@@ -4,6 +4,11 @@
 Host projects extend RULES with their own rule specs — keep the
 generic rules here, add domain-specific ones in an overlay file or by
 appending to RULES at import time.
+
+The default scopes target a host project's app/ or src/ layout. The
+``--self`` flag instead points the framework-agnostic rules at the
+engineering-skills ecosystem's own runtime (scripts/, .claude/skills/)
+so the ecosystem can lint itself — see ``RuleSpec.self_applicable``.
 """
 from __future__ import annotations
 
@@ -29,6 +34,14 @@ class RuleSpec:
     include: re.Pattern[str]
     exclude: re.Pattern[str] | None = None
     suffixes: tuple[str, ...] = (".py",)
+    # True when the rule is framework-agnostic enough to also lint the
+    # ecosystem's own runtime under `--self`. Django-shaped rules
+    # (fat-view, bare-delay, stringly-status) stay False — and so does
+    # comment-drift: its detached-banner check rejects the section-banner
+    # style the ecosystem's own CLI scripts use deliberately, and its
+    # stale-term list is host-tuned. Only silent-catch and query-mutation
+    # carry cleanly onto the ecosystem's own runtime.
+    self_applicable: bool = False
 
 
 # Default scope: anything under app/ or src/ that looks like a service,
@@ -45,12 +58,14 @@ RULES: tuple[RuleSpec, ...] = (
         script="scripts/lint/silent_catch.py",
         include=re.compile(_DEFAULT_PYTHON_INCLUDE),
         exclude=re.compile(r"^tests/test_.*\.py$"),
+        self_applicable=True,
     ),
     RuleSpec(
         name="query-mutation",
         script="scripts/lint/no_query_mutation.py",
         include=re.compile(_DEFAULT_PYTHON_INCLUDE),
         exclude=re.compile(r"^tests/test_.*\.py$"),
+        self_applicable=True,
     ),
     RuleSpec(
         name="bare-delay",
@@ -176,6 +191,24 @@ def _expand_paths_by_suffix(paths: Iterable[str], suffixes: tuple[str, ...]) -> 
     return expanded
 
 
+_SELF_LINT_ROOTS = ("scripts", ".claude/skills", ".claude/skill-use")
+_SELF_LINT_SKIP = ("/fixtures/", "/tests/")
+
+
+def _collect_self_paths(repo_root: Path) -> list[str]:
+    """Python files in the ecosystem's own runtime, for ``--self``.
+
+    Covers scripts/ and the skill helper code; skips fixtures/ and
+    tests/ — those are lint inputs and test code, not runtime.
+    """
+    roots = [str(repo_root / root) for root in _SELF_LINT_ROOTS]
+    return _dedupe(
+        path
+        for path in expand_python_paths(roots)
+        if not any(seg in path.replace("\\", "/") for seg in _SELF_LINT_SKIP)
+    )
+
+
 def collect_candidate_paths(
     args: argparse.Namespace,
     repo_root: Path,
@@ -219,6 +252,8 @@ def collect_candidate_paths(
                 )
             )
         return _dedupe(candidates)
+    if args.self_scope:
+        return _collect_self_paths(repo_root)
     return _expand_paths_by_suffix(args.paths, suffixes)
 
 
@@ -232,7 +267,10 @@ def filter_paths_for_rule(
     paths: Iterable[str],
     rule: RuleSpec,
     repo_root: Path,
+    self_mode: bool = False,
 ) -> list[str]:
+    if self_mode and not rule.self_applicable:
+        return []
     scoped: list[str] = []
     seen: set[str] = set()
     for path in paths:
@@ -240,9 +278,11 @@ def filter_paths_for_rule(
         if rel is None:
             continue
         rel = rel.replace("\\", "/")
-        if any(should_skip_dir(part) for part in rel.split("/")):
+        # `--self` paths live under .claude/, whose leading dot would trip
+        # should_skip_dir; _collect_self_paths already did the scoping.
+        if not self_mode and any(should_skip_dir(part) for part in rel.split("/")):
             continue
-        if not rule.include.search(rel):
+        if not self_mode and not rule.include.search(rel):
             continue
         if rule.exclude and rule.exclude.search(rel):
             continue
@@ -277,10 +317,17 @@ def run_rules(
     candidate_paths: list[str],
     repo_root: Path,
     runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+    self_mode: bool = False,
 ) -> int:
     exit_code = 0
     for rule in rules:
-        scoped = filter_paths_for_rule(candidate_paths, rule, repo_root)
+        if self_mode and not rule.self_applicable:
+            print(
+                f"[lint:{rule.name}] skipped — not applicable to the "
+                "ecosystem's own runtime (see RuleSpec.self_applicable)"
+            )
+            continue
+        scoped = filter_paths_for_rule(candidate_paths, rule, repo_root, self_mode)
         code = run_rule(rule, scoped, repo_root, runner)
         if code:
             exit_code = max(exit_code, code)
@@ -297,6 +344,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Lint scoped files changed from REF to HEAD",
     )
     source.add_argument("--all", action="store_true", help="Lint all scoped project files")
+    source.add_argument(
+        "--self",
+        dest="self_scope",
+        action="store_true",
+        help="Lint the engineering-skills ecosystem's own runtime (scripts/, .claude/skills/)",
+    )
     parser.add_argument(
         "--rule",
         default="all",
@@ -310,8 +363,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("paths", nargs="*", help="Explicit files or directories to lint")
     args = parser.parse_args(argv)
-    if not (args.staged or args.changed_from or args.all or args.paths):
-        parser.error("choose --staged, --changed-from, --all, or pass explicit paths")
+    if not (args.staged or args.changed_from or args.all or args.self_scope or args.paths):
+        parser.error("choose --staged, --changed-from, --all, --self, or pass explicit paths")
     return args
 
 
@@ -320,7 +373,7 @@ def main(argv: list[str] | None = None) -> int:
     repo_root = Path(args.repo_root).resolve()
     candidates = collect_candidate_paths(args, repo_root)
     rules = selected_rules(args.rule)
-    return run_rules(rules, candidates, repo_root)
+    return run_rules(rules, candidates, repo_root, self_mode=args.self_scope)
 
 
 if __name__ == "__main__":

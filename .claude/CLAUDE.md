@@ -90,6 +90,13 @@ and `docs/linting.md`. The base lints shipped with this ecosystem are:
 - `comment-drift` — comments and docstrings must stay aligned with code
 - `codegen-emits-new-paths` — pluggable check that codegen targets canonical paths
 
+The ecosystem can lint its own runtime too: `scripts/lint/run.py --self`
+points the rules that are clean of host/Django assumptions —
+`silent-catch` and `query-mutation` — at `scripts/` and `.claude/skills/`.
+The remaining rules are skipped (see `RuleSpec.self_applicable` in
+`run.py`). `--self` is a manual dogfooding check, not part of
+host-project pre-commit.
+
 Project-specific lints (UI primitives, domain rename, sidecar boundary,
 etc.) are added by the host project — see `docs/linting.md` for the
 authoring pattern.

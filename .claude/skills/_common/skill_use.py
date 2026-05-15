@@ -44,7 +44,7 @@ def log_event(
         with log_path.open("a") as fh:
             fh.write(json.dumps(event) + "\n")
     except Exception:  # noqa: BLE001 — telemetry logging must never break the skill
-        pass
+        pass  # noqa: silent-catch: telemetry write is best-effort — must never break the skill
 
 
 def _find_repo_root(start: Path) -> Path | None:

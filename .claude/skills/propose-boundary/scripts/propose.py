@@ -697,7 +697,7 @@ def _log_skill_use(*, target: str, artifact: str | None, elapsed: float) -> None
         with log_path.open("a") as fh:
             fh.write(json.dumps(event) + "\n")
     except Exception:  # noqa: BLE001 — telemetry logging must never break the skill
-        pass
+        pass  # noqa: silent-catch: telemetry write is best-effort — must never break the skill
 
 
 def _write_output(path: Path, payload: dict) -> None:
