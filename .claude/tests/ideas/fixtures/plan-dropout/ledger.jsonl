@@ -1,0 +1,2 @@
+{"record_kind":"intake","id":"refactor-export-pipeline","title":"Refactor export pipeline","created_at":"2026-04-01T09:00:00Z","origin":"plan:ai-docs/plans/q2-refactor.md","subsystem_kind":"extraction","state":"in-flight","summary":"First plan item."}
+{"record_kind":"intake","id":"unify-error-reporting","title":"Unify error reporting","created_at":"2026-04-01T09:05:00Z","origin":"plan:ai-docs/plans/q2-refactor.md","subsystem_kind":"infra","state":"in-flight","summary":"Second plan item."}

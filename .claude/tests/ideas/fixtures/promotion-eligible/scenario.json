@@ -1,0 +1,25 @@
+{
+  "function": "promotion_eligible",
+  "ledger": "ledger.jsonl",
+  "kwargs": {},
+  "expected": [
+    {
+      "id": "single-adoption",
+      "title": "Single-adoption idea",
+      "qualifier": "single-constraint-set",
+      "adoption_count": 1,
+      "adoption_evidence": ["app/extraction/path_a.py"]
+    },
+    {
+      "id": "triple-adoption",
+      "title": "Triple-adoption idea",
+      "qualifier": "validated-across-N",
+      "adoption_count": 3,
+      "adoption_evidence": [
+        "app/ui/surface_a.tsx",
+        "app/ui/surface_b.tsx",
+        "app/ui/surface_c.tsx"
+      ]
+    }
+  ]
+}

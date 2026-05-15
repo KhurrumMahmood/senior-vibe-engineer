@@ -1,0 +1,6 @@
+{
+  "function": "find_harvest_opportunities",
+  "ledger": "ledger.jsonl",
+  "kwargs": {},
+  "expected": ["prompt-pattern-skeleton"]
+}

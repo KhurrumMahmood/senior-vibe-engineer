@@ -1,0 +1,5 @@
+{
+  "function": "extract_candidates",
+  "kwargs_paths": {"root": "."},
+  "expected_path": "expected.json"
+}

@@ -1,0 +1,81 @@
+# Pre-commit runs ONLY on staged files by default, so existing
+# violations in untouched files cannot block commits. See CLAUDE.md
+# "Linting" for the operational details (escape valves like
+# SKIP=ruff ..., and the full-repo run).
+#
+# Install once per clone with:
+#   .venv/bin/pre-commit install
+
+# Local hooks use `language: python` with no `additional_dependencies`,
+# a pattern that was unreliable in earlier pre-commit releases.
+minimum_pre_commit_version: "4.5.1"
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        # Templates that embed agent syntax ({% %}, Jinja, Liquid) get
+        # mangled by whitespace trimming — exclude .html by default.
+        exclude: '\.html$'
+      - id: end-of-file-fixer
+        exclude: '\.html$'
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
+      - id: check-merge-conflict
+
+  # Ecosystem AST rules under scripts/lint/. The runner owns the rule
+  # scopes so local hooks and CI do not drift. Host projects add their
+  # own project-specific rules (UI primitives, domain renames, sidecar
+  # boundaries, etc.) by dropping new rules into scripts/lint/ and
+  # appending hooks here.
+  - repo: local
+    hooks:
+      - id: silent-catch
+        name: "silent-catch (no bare `except Exception: pass` in service/view layers)"
+        entry: python scripts/lint/run.py --rule silent-catch
+        language: python
+        types: [python]
+
+      - id: stringly-status
+        name: "stringly-status (TextChoices for state fields and enum-member compares)"
+        entry: python scripts/lint/run.py --rule stringly-status
+        language: python
+        types: [python]
+
+      - id: query-mutation
+        name: "query-mutation (get_/fetch_/load_/... must not mutate)"
+        entry: python scripts/lint/run.py --rule query-mutation
+        language: python
+        types: [python]
+
+      - id: fat-view
+        name: "fat-view (view functions must stay within LOC budget)"
+        entry: python scripts/lint/run.py --rule fat-view
+        language: python
+        types: [python]
+
+      - id: safe-dispatch
+        name: "safe-dispatch (no bare .delay()/.apply_async() in tasks/views/services)"
+        entry: python scripts/lint/run.py --rule bare-delay
+        language: python
+        types: [python]
+
+      - id: comment-drift
+        name: "comment-drift (comments and docstrings must stay aligned with code)"
+        entry: python scripts/lint/run.py --rule comment-drift
+        language: python
+        types_or: [python, javascript, html]
+
+      - id: codegen-emits-new-paths
+        name: "codegen-emits-new-paths (codegen output stays on canonical paths)"
+        entry: python scripts/lint/run.py --rule codegen-emits-new-paths
+        language: python
+        types: [python]

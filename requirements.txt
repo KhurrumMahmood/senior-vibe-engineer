@@ -1,0 +1,11 @@
+# Runtime deps for the ecosystem scripts and lint runner.
+
+# Used by scripts/_lib/yaml_frontmatter.py for shared frontmatter parsing
+# across decisions/plans/skill_meta/specs. The four scripts share this
+# module instead of hand-rolled YAML parsers — see ADR 0003.
+PyYAML>=6.0
+
+# Dev tooling (CI + local pre-commit). Pinning ruff so the hook version
+# in .pre-commit-config.yaml stays in lockstep.
+ruff==0.6.9
+pre-commit>=3.7.0

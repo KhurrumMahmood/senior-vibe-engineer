@@ -1,0 +1,8 @@
+{% load static %}
+<div id="knownPanel" data-known-target></div>
+{% include 'core/_brand_picker.html' with bp_id='setupExternalSourceBrandId' bp_name='external_source_brand_id' %}
+<script src="{% static 'js/site-config-good.js' %}"></script>
+<script>
+window.SITES_CONFIG = {siteId: 1, endpoints: {knownEndpoint: "/api/sites/1/known/"}};
+window.SiteConfigGood.start();
+</script>

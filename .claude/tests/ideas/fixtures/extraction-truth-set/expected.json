@@ -1,0 +1,46 @@
+[
+  {
+    "slug": "collapse-the-duplicated-export-writer",
+    "title": "Collapse the duplicated export writer",
+    "subsystem_kind": "refactor",
+    "summary": "Collapse the duplicated export writer",
+    "origin": "backlog-extract",
+    "quality_markers": ["underdeveloped"],
+    "tags": ["refactor", "backlog"],
+    "source_path": "BACKLOG.md",
+    "source_kind": "backlog"
+  },
+  {
+    "slug": "discovery-times-out-on-slow-sitemaps",
+    "title": "Discovery times out on slow sitemaps",
+    "subsystem_kind": "bug",
+    "summary": "Discovery times out on slow sitemaps",
+    "origin": "backlog-extract",
+    "quality_markers": ["underdeveloped"],
+    "tags": ["bug", "backlog"],
+    "source_path": "BACKLOG.md",
+    "source_kind": "backlog"
+  },
+  {
+    "slug": "refine-the-marketing-copy-heuristic",
+    "title": "Refine the marketing_copy heuristic",
+    "subsystem_kind": "extraction",
+    "summary": "Refine the marketing_copy heuristic",
+    "origin": "backlog-extract",
+    "quality_markers": ["underdeveloped"],
+    "tags": ["extraction", "backlog"],
+    "source_path": "BACKLOG.md",
+    "source_kind": "backlog"
+  },
+  {
+    "slug": "hydration-parse-drift-across-framework-versions",
+    "title": "Hydration parse drift across framework versions",
+    "subsystem_kind": "lesson",
+    "summary": "Rule: SSR hydration shapes drift per major version.\nWhy: cross-version drift broke an early prototype.\nHow: detect framework + version before parsing the hydration blob.",
+    "origin": "lesson-extract",
+    "quality_markers": ["has-more-potential"],
+    "tags": ["lesson"],
+    "source_path": "lessons.md",
+    "source_kind": "lesson"
+  }
+]

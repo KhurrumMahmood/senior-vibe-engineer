@@ -1,0 +1,9 @@
+{"record_kind":"intake","id":"single-adoption","title":"Single-adoption idea","created_at":"2026-03-01T09:00:00Z","origin":"convo","subsystem_kind":"extraction","state":"in-flight","summary":"One adoption."}
+{"record_kind":"event","id":"single-adoption","event_at":"2026-03-15T10:00:00Z","event_kind":"adoption","adoption_evidence":"app/extraction/path_a.py","summary":"Adopted in path_a."}
+{"record_kind":"intake","id":"triple-adoption","title":"Triple-adoption idea","created_at":"2026-02-01T09:00:00Z","origin":"convo","subsystem_kind":"UI","state":"done","outcome":"adopted","summary":"Adopted across three surfaces."}
+{"record_kind":"event","id":"triple-adoption","event_at":"2026-02-10T10:00:00Z","event_kind":"adoption","adoption_evidence":"app/ui/surface_a.tsx","summary":"Surface A."}
+{"record_kind":"event","id":"triple-adoption","event_at":"2026-02-20T10:00:00Z","event_kind":"adoption","adoption_evidence":"app/ui/surface_b.tsx","summary":"Surface B."}
+{"record_kind":"event","id":"triple-adoption","event_at":"2026-03-01T10:00:00Z","event_kind":"transition","from_state":"in-flight","to_state":"done","outcome":"adopted","adoption_evidence":"app/ui/surface_c.tsx","summary":"Surface C; done."}
+{"record_kind":"intake","id":"no-adoption","title":"In-flight no adoption","created_at":"2026-04-01T09:00:00Z","origin":"convo","subsystem_kind":"docs","state":"in-flight","summary":"Nothing adopted yet."}
+{"record_kind":"intake","id":"rejected-with-adoption","title":"Rejected idea (data weirdness)","created_at":"2026-01-01T09:00:00Z","origin":"convo","subsystem_kind":"infra","state":"done","outcome":"rejected","summary":"Has an adoption event but rejected; eligibility is gated by outcome."}
+{"record_kind":"event","id":"rejected-with-adoption","event_at":"2026-01-10T10:00:00Z","event_kind":"adoption","adoption_evidence":"path/abandoned.py","summary":"Edge case data."}

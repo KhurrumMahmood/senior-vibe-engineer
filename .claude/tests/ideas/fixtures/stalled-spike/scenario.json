@@ -1,0 +1,9 @@
+{
+  "function": "find_stalled",
+  "ledger": "ledger.jsonl",
+  "kwargs": {
+    "now": "2026-05-13T00:00:00Z",
+    "stale_days": 14
+  },
+  "expected": ["unfinished-prototype"]
+}

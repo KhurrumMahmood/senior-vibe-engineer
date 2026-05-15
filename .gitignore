@@ -1,0 +1,28 @@
+# Python bytecode and packaging
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtual environment
+.venv/
+
+# Tool caches
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# macOS
+.DS_Store
+
+# Per-skill scan outputs are regenerated on demand; only the tracked
+# effectiveness meta under reports/_meta/ is committed (see README.md).
+/reports/*
+!/reports/_meta/
+
+# Skill-effectiveness telemetry — the raw log and gzipped archives carry
+# repo-local paths and override strings (see .claude/skill-use/README.md).
+# The summarized lessons-*.md digest stays tracked.
+.claude/skill-use/log.jsonl
+.claude/skill-use/archive/log-*.jsonl.gz

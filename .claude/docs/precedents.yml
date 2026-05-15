@@ -1,0 +1,33 @@
+# Lightweight project case-law registry.
+#
+# ADRs preserve historical decisions; this file tracks current, updateable
+# "law as applied" for recurring implementation mechanisms. When a mechanism
+# changes, add a new .vN entry, set the old entry's superseded_by, and migrate
+# or explicitly branch the referenced applications.
+#
+# Schema (per entry):
+#
+#   - id: <kebab-case-slug>.v<N>           # required; .vN tail tracks supersession
+#     status: active | superseded          # required
+#     title: <one-line statement>          # required
+#     summary: >                           # required; the law in 1-3 sentences
+#       Plain prose; what the precedent governs and the discriminator that
+#       fires it.
+#     applies_to:                          # required; glob paths or named surfaces
+#       - <path/glob>
+#     canonical_examples:                  # optional but recommended
+#       - <path to in-repo exemplar>
+#     guards:                              # optional; tests/lints/skills that enforce
+#       - <test path or skill name>
+#     supersedes: []                       # ids this entry replaces
+#     superseded_by: null                  # id that replaces this entry, when retired
+#     exceptions:                          # optional; explicit carve-outs
+#       - <one-line per exception>
+#     migration_note: >                    # required when status: active
+#       What changes when this precedent is superseded — which surfaces have to
+#       migrate, which can stay on the old version as legacy.
+#
+# Host projects append their own entries below. The skeleton above is
+# intentionally empty — precedents are project state, not framework
+# state, so the engineering-skills mirror ships the schema and the
+# `python3 scripts/precedents.py check` validator, not specific entries.

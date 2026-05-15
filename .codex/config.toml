@@ -1,0 +1,28 @@
+[features]
+codex_hooks = true
+
+[hooks]
+
+[[hooks.PreToolUse]]
+matcher = ".*"
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "python3 scripts/agent_policy/hook.py --tool codex --event PreToolUse"
+timeout = 30
+statusMessage = "Checking agent policy"
+
+[[hooks.PostToolUse]]
+matcher = ".*"
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = "python3 scripts/agent_policy/hook.py --tool codex --event PostToolUse"
+timeout = 30
+statusMessage = "Recording verification evidence"
+
+[[hooks.Stop]]
+matcher = ".*"
+[[hooks.Stop.hooks]]
+type = "command"
+command = "python3 scripts/agent_policy/hook.py --tool codex --event Stop"
+timeout = 30
+statusMessage = "Checking completion policy"

@@ -1,0 +1,577 @@
+#!/usr/bin/env python3
+"""Detect drift on the folder-topology surface (ADR 0006).
+
+Stage 1 detection bands:
+  - flat_prefix_cluster:   a directory contains N+ Python modules
+                           sharing the same `<prefix>_` token, where
+                           `prefix` names a domain (>= 2 chars).
+  - tests_by_prefix:       a directory contains N+ files matching
+                           `tests_*.py` AND has no `tests/` subfolder.
+  - sparse_folder_package: a folder package (has `__init__.py`)
+                           contains FEWER than N source modules at
+                           its top level — the demotion direction
+                           added by ADR 0006 Rule 5. The threshold is
+                           the same N as the promotion bands; folders
+                           earn packaging at ≥3 siblings and lose it
+                           below ≥3.
+  - pages_route_mirror:    a file under `app/pages/<parent>/` whose
+                           basename starts with a token matching a
+                           singularization of the parent folder name
+                           (e.g. `pages/sites/site_wizard.py` — the
+                           `site_` prefix duplicates the parent
+                           `sites/`). Implements ADR 0010: filenames
+                           under `app/pages/` strip parent-folder
+                           prefixes so a reader who knows the route
+                           knows the file.
+
+Stage 2 bands (deferred — see SKILL.md):
+  - route_folder_misalignment
+  - same_domain_helper_sprawl
+
+Output: JSONL with one finding per line. Each record has the keys
+`pattern`, `file`, `lineno`, `summary`, `recommendation` so the shared
+render_simple_report helper can render it.
+"""
+from __future__ import annotations
+
+import argparse
+import fnmatch
+import json
+import sys
+from collections import defaultdict
+from pathlib import Path
+
+DEFAULT_MIN_CLUSTER_SIZE = 3
+
+DEFAULT_EXCLUDE_DIR_NAMES = {
+    "__pycache__",
+    "migrations",
+    "data",
+    ".venv",
+    "node_modules",
+    "staticfiles",
+    ".git",
+    ".pytest_cache",
+    ".ruff_cache",
+}
+
+# Folder packages whose existence is mandated by a framework runtime
+# (Django auto-discovery, py.test convention) — these never demote
+# even when their source-module count is below threshold.
+FRAMEWORK_FOLDER_NAMES = {
+    "tests",          # py.test / Django test runner discovery
+    "commands",       # core/management/commands/<cmd>.py — Django convention
+    "management",     # core/management/ — Django parent of commands
+    "templatetags",   # Django template-tag library
+    "migrations",     # already excluded; defensive
+    "fixtures",       # py.test fixtures package
+}
+
+# Tokens that should not count as a "prefix" — they're noise (e.g. the
+# Django app's own conftest, init shims, single-purpose files that
+# happen to share a leading word). These are treated as singletons by
+# the prefix-cluster scan.
+PREFIX_NOISE_TOKENS = {
+    "__init__",
+    "conftest",
+    "apps",
+    "admin",
+    "urls",
+    "wsgi",
+    "asgi",
+    "manage",
+    "settings",  # Django global settings — distinct from views/settings_*
+    "models",
+    "views",
+    "tests",  # caught by the tests_by_prefix band, not flat_prefix_cluster
+}
+
+
+def _is_excluded(path: Path, extra_globs: list[str]) -> bool:
+    if any(part in DEFAULT_EXCLUDE_DIR_NAMES for part in path.parts):
+        return True
+    rel = str(path)
+    for pattern in extra_globs:
+        if fnmatch.fnmatch(rel, pattern):
+            return True
+    return False
+
+
+def _has_subfolder(directory: Path, name: str) -> bool:
+    target = directory / name
+    return target.is_dir() and (target / "__init__.py").exists() or target.is_dir()
+
+
+def _python_modules_in(directory: Path) -> list[Path]:
+    if not directory.is_dir():
+        return []
+    return sorted(p for p in directory.iterdir() if p.is_file() and p.suffix == ".py")
+
+
+def _prefix_clusters(
+    modules: list[Path],
+    min_cluster_size: int,
+) -> dict[str, list[Path]]:
+    """Group modules by leading `<prefix>_` token; return clusters of >= N."""
+    by_prefix: dict[str, list[Path]] = defaultdict(list)
+    for module in modules:
+        stem = module.stem
+        if "_" not in stem:
+            continue
+        prefix = stem.split("_", 1)[0]
+        if len(prefix) < 2:
+            continue
+        if prefix in PREFIX_NOISE_TOKENS:
+            continue
+        by_prefix[prefix].append(module)
+    return {prefix: paths for prefix, paths in by_prefix.items() if len(paths) >= min_cluster_size}
+
+
+def _tests_by_prefix(modules: list[Path], min_cluster_size: int) -> list[Path]:
+    """Return tests_*.py files in `modules` if their count >= min_cluster_size."""
+    hits = [m for m in modules if m.stem.startswith("tests_") and m.stem != "tests"]
+    return hits if len(hits) >= min_cluster_size else []
+
+
+def _is_folder_package(directory: Path) -> bool:
+    return (directory / "__init__.py").is_file()
+
+
+def _source_modules_in(directory: Path) -> list[Path]:
+    """Return non-init, non-test source modules at the top of `directory`.
+
+    Used by the `sparse_folder_package` band — counts only files that
+    represent first-class source content. Skips `__init__.py`,
+    `conftest.py`, and any `tests_*.py` file (those are covered by
+    `tests_by_prefix` if at threshold).
+    """
+    if not directory.is_dir():
+        return []
+    out: list[Path] = []
+    for p in directory.iterdir():
+        if not (p.is_file() and p.suffix == ".py"):
+            continue
+        if p.stem in {"__init__", "conftest"}:
+            continue
+        if p.stem.startswith("tests_") or p.stem.startswith("test_"):
+            continue
+        out.append(p)
+    return sorted(out)
+
+
+def _child_packages_in(directory: Path) -> list[Path]:
+    """Return immediate child packages (subdirs with `__init__.py`)."""
+    if not directory.is_dir():
+        return []
+    return sorted(
+        p for p in directory.iterdir()
+        if p.is_dir() and (p / "__init__.py").is_file()
+    )
+
+
+def _is_framework_folder(directory: Path, scan_root: Path) -> bool:
+    """True if directory is a known framework-mandated folder name.
+
+    The check is name-based and applies to any directory whose final
+    component is in FRAMEWORK_FOLDER_NAMES, so subfolders like
+    `core/views/site_config/tests/` are also exempted.
+    """
+    if directory.name in FRAMEWORK_FOLDER_NAMES:
+        return True
+    # Defensive: a `commands` folder anywhere under `management/` is a
+    # framework dir even if the literal name check above already
+    # caught it.
+    parts = directory.parts
+    if "management" in parts and "commands" in parts:
+        return True
+    return False
+
+
+def _is_under_tests_tree(directory: Path) -> bool:
+    """True if directory is `tests/` or any descendant of one.
+
+    Within a tests tree, `test_` is the canonical Python/Django test-
+    runner naming convention — not a domain prefix. Files like
+    `tests/test_foo.py` and `tests/test_bar.py` should never trip
+    `flat_prefix_cluster` on the `test` token even when ≥3 siblings
+    share it. This sibling clustering IS the convention.
+    """
+    return any(part == "tests" for part in directory.parts)
+
+
+def _is_namespace_package(directory: Path) -> bool:
+    """True if directory has __init__.py, zero source modules, and ≥1
+    child package.
+
+    Such a folder is a Python *namespace* package — its purpose is to
+    group child subpackages under a shared dotted-path prefix
+    (`app.ai.runtime`, `app.ai.ai_sidecar`). It carries no
+    first-class source surface of its own and is intentionally below
+    ADR 0006's ≥3-module threshold. Treating it as `sparse_folder_
+    package` would force collapsing the namespace, which contradicts
+    the grouping decision the redesign embodied (ADR 0008/0009).
+    """
+    if not (directory / "__init__.py").is_file():
+        return False
+    has_source_modules = any(
+        p.is_file()
+        and p.suffix == ".py"
+        and p.stem not in {"__init__", "conftest"}
+        and not p.stem.startswith("test_")
+        and not p.stem.startswith("tests_")
+        for p in directory.iterdir()
+    )
+    if has_source_modules:
+        return False
+    has_child_pkg = any(
+        p.is_dir() and (p / "__init__.py").is_file()
+        for p in directory.iterdir()
+    )
+    return has_child_pkg
+
+
+# Threshold for treating an `__init__.py` as a substantive re-export
+# shim rather than a stub doc-string. Calibrated empirically: the
+# transitional shims at `core/models/__init__.py` (3614 bytes),
+# `core/views/brand_downloads/__init__.py` (2641 bytes), and
+# `core/views/crawling/__init__.py` (2923 bytes) all sit well above
+# this floor; trivially-stubbed packages (e.g. `"""<doc>"""\n` only)
+# fall under it.
+_SHIM_INIT_SIZE_FLOOR = 500
+
+
+def _is_reexport_shim(directory: Path) -> bool:
+    """True if directory's only `.py` content is a substantive re-export
+    `__init__.py` — typically a backwards-compat redirect surviving a
+    move. ADR 0006's ≥3-module threshold is about folder structure;
+    a re-export shim adds NO folder structure to evaluate (its sole
+    purpose is keeping legacy import paths resolvable while callers
+    migrate). Demoting it to a sibling `.py` file would yield exactly
+    the same shim at a different path, not a structural improvement.
+    """
+    init_file = directory / "__init__.py"
+    if not init_file.is_file():
+        return False
+    # Must be the sole organizational content: 0 source modules, 0 child packages.
+    if any(
+        p.is_file()
+        and p.suffix == ".py"
+        and p.stem not in {"__init__", "conftest"}
+        and not p.stem.startswith("test_")
+        and not p.stem.startswith("tests_")
+        for p in directory.iterdir()
+    ):
+        return False
+    if any(
+        p.is_dir() and (p / "__init__.py").is_file()
+        for p in directory.iterdir()
+    ):
+        return False
+    try:
+        size = init_file.stat().st_size
+    except OSError:
+        return False
+    if size < _SHIM_INIT_SIZE_FLOOR:
+        return False
+    try:
+        text = init_file.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return False
+    # A re-export shim's signature: import statements that name another
+    # package. A substantive `__init__.py` without imports is something
+    # else (configuration, constants, etc.) and stays subject to the
+    # sparse-folder rule.
+    has_imports = any(
+        line.strip().startswith(("from ", "import "))
+        for line in text.splitlines()
+    )
+    return has_imports
+
+
+# Pages-mirror-routes (ADR 0010): the parent folder name and the
+# leading filename token form a duplicated prefix that should be
+# stripped. Common singularizations only — keeps the band high
+# precision; novel folder names are flagged once added here.
+_PAGES_PARENT_TO_TOKEN = {
+    "sites": "site",
+    "runs": "run",
+    "jobs": "job",
+    "brands": "brand",
+    "products": "product",
+    "exports": "export",
+    "ptid": "ptid",
+}
+
+
+def _scan_pages_route_mirror(
+    pages_root: Path,
+    project_root: Path,
+) -> list[dict]:
+    """Find files under `app/pages/<parent>/` whose name duplicates the
+    parent folder as a prefix.
+
+    Implements ADR 0010 Stage-1 detection: filename `<token>_*.py` under
+    `<parent>/` where `<token>` singularizes `<parent>` is the canonical
+    drift shape — the file should be `*.py` (parent-prefix stripped).
+    """
+    out: list[dict] = []
+    if not pages_root.is_dir():
+        return out
+
+    def rel(path: Path) -> str:
+        try:
+            return str(path.relative_to(project_root))
+        except ValueError:
+            return str(path)
+
+    for parent in sorted(pages_root.iterdir()):
+        if not parent.is_dir():
+            continue
+        if parent.name in DEFAULT_EXCLUDE_DIR_NAMES:
+            continue
+        token = _PAGES_PARENT_TO_TOKEN.get(parent.name)
+        if token is None:
+            continue
+        for module in sorted(parent.iterdir()):
+            if not (module.is_file() and module.suffix == ".py"):
+                continue
+            stem = module.stem
+            if stem in {"__init__", "conftest"}:
+                continue
+            if not stem.startswith(f"{token}_"):
+                continue
+            stripped = stem[len(token) + 1:]
+            if not stripped:
+                continue
+            out.append({
+                "pattern": "pages_route_mirror",
+                "file": rel(module),
+                "lineno": 1,
+                "summary": (
+                    f"`{rel(module)}` duplicates parent-folder prefix "
+                    f"`{token}_` under `{rel(parent)}/`. ADR 0010 says "
+                    f"filenames strip parent-folder prefixes."
+                ),
+                "recommendation": (
+                    f"Rename `{module.name}` to `{stripped}.py` so the "
+                    f"file path mirrors the route. The full path becomes "
+                    f"`{rel(parent)}/{stripped}.py` and a reader who "
+                    f"knows the URL `/api/{parent.name}/.../{stripped}/` "
+                    f"can navigate to it directly. Update template "
+                    f"`{{% include %}}`, `template_name`, and any "
+                    f"`from app.pages.{parent.name} import "
+                    f"{stem}` callers in the same PR."
+                ),
+            })
+    return out
+
+
+def detect(
+    *,
+    project_root: Path,
+    scan_root: Path,
+    min_cluster_size: int,
+    exclude_globs: list[str],
+) -> list[dict]:
+    findings: list[dict] = []
+
+    def rel(path: Path) -> str:
+        try:
+            return str(path.relative_to(project_root))
+        except ValueError:
+            return str(path)
+
+    if not scan_root.is_dir():
+        return findings
+
+    # Walk every directory under scan_root (including scan_root itself).
+    directories: list[Path] = [scan_root]
+    for path in scan_root.rglob("*"):
+        if path.is_dir() and not _is_excluded(path, exclude_globs):
+            directories.append(path)
+
+    seen_dirs: set[Path] = set()
+    for directory in sorted(directories):
+        try:
+            resolved = directory.resolve()
+        except OSError:
+            continue
+        if resolved in seen_dirs:
+            continue
+        seen_dirs.add(resolved)
+        if _is_excluded(directory, exclude_globs):
+            continue
+
+        modules = _python_modules_in(directory)
+
+        # Band 3 — sparse_folder_package (Rule 5, demotion direction).
+        # Fires on a folder that has __init__.py but fewer than
+        # min_cluster_size first-class source modules. Skip the scan
+        # root itself (it is by definition the entry point — its
+        # cluster size is the whole project). Namespace packages
+        # (0 modules + ≥1 child package) are exempt — collapsing
+        # them would dissolve an intentional grouping prefix.
+        if (
+            directory != scan_root
+            and _is_folder_package(directory)
+            and not _is_namespace_package(directory)
+            and not _is_reexport_shim(directory)
+            and not _is_under_tests_tree(directory)
+        ):
+            if not _is_framework_folder(directory, scan_root):
+                source_modules = _source_modules_in(directory)
+                child_packages = _child_packages_in(directory)
+                # Hybrid count: source modules + child packages count
+                # toward the ≥3 threshold. A folder with 2 source
+                # modules + 2 child subpackages has 4 organizational
+                # children — it is a healthy mid-tree node, not a
+                # sparse leaf candidate for demotion.
+                organizational_children = len(source_modules) + len(child_packages)
+                if organizational_children < min_cluster_size:
+                    sample_modules = ", ".join(p.name for p in source_modules)
+                    sample_pkgs = ", ".join(p.name + "/" for p in child_packages)
+                    pieces = [s for s in (sample_modules, sample_pkgs) if s]
+                    sample = "; ".join(pieces) or "(none)"
+                    findings.append({
+                        "pattern": "sparse_folder_package",
+                        "file": rel(directory),
+                        "lineno": 1,
+                        "summary": (
+                            f"Folder package `{rel(directory)}` has "
+                            f"{len(source_modules)} source module(s) and "
+                            f"{len(child_packages)} child package(s), below "
+                            f"the ≥{min_cluster_size} threshold: {sample}."
+                        ),
+                        "recommendation": (
+                            f"Demote `{rel(directory)}/` per ADR 0006 Rule 5 — "
+                            "the survivors migrate up to the parent as sibling "
+                            "files and the folder is removed. Run "
+                            "`/propose-folder-reorganization` (demote mode) for "
+                            "the per-folder proposal — current → proposed tree, "
+                            "file-move table, import-impact summary, "
+                            "characterization-test matrix. The migration lands "
+                            "as one PR via `/refactor-subsystem` (decomposition "
+                            "mode). If the folder is in-flight to grow back "
+                            "above threshold, the proposal records "
+                            "`defer_in_flight` instead of an action."
+                        ),
+                    })
+
+        if not modules:
+            continue
+
+        # Band 1 — flat_prefix_cluster
+        # Suppress entirely when scanning under a tests/ tree (the
+        # `test_*.py` convention is canonical Python/Django) or when
+        # scanning a framework-mandated folder like
+        # `core/management/commands/` (Django auto-discovers commands
+        # by leaf-file basename, so subfolders would break dispatch
+        # and `run_*` / `setup_*` siblings are a feature, not drift).
+        if _is_under_tests_tree(directory) or _is_framework_folder(directory, scan_root):
+            clusters: dict[str, list[Path]] = {}
+        else:
+            clusters = _prefix_clusters(modules, min_cluster_size)
+        for prefix, paths in sorted(clusters.items()):
+            sample = ", ".join(p.name for p in paths[:5])
+            extra = f" (+{len(paths) - 5} more)" if len(paths) > 5 else ""
+            findings.append({
+                "pattern": "flat_prefix_cluster",
+                "file": rel(directory),
+                "lineno": 1,
+                "summary": (
+                    f"Directory `{rel(directory)}` has {len(paths)} sibling modules "
+                    f"sharing the prefix `{prefix}_`: {sample}{extra}."
+                ),
+                "recommendation": (
+                    f"Collapse the `{prefix}_` cluster into `{rel(directory)}/{prefix}/` per "
+                    "ADR 0006 Rule 2. Run `/propose-folder-reorganization` for the per-cluster "
+                    "proposal — current → proposed tree, file-move table, import-impact summary, "
+                    "characterization-test matrix. The migration lands as one PR via "
+                    "`/refactor-subsystem` (decomposition mode)."
+                ),
+            })
+
+        # Band 2 — tests_by_prefix
+        tests_hits = _tests_by_prefix(modules, min_cluster_size)
+        if tests_hits:
+            has_tests_subfolder = (directory / "tests").is_dir()
+            if not has_tests_subfolder:
+                sample = ", ".join(p.name for p in tests_hits[:5])
+                extra = f" (+{len(tests_hits) - 5} more)" if len(tests_hits) > 5 else ""
+                findings.append({
+                    "pattern": "tests_by_prefix",
+                    "file": rel(directory),
+                    "lineno": 1,
+                    "summary": (
+                        f"Directory `{rel(directory)}` has {len(tests_hits)} `tests_*.py` "
+                        f"files and no `tests/` subfolder: {sample}{extra}."
+                    ),
+                    "recommendation": (
+                        f"Introduce `{rel(directory)}/tests/` per ADR 0006 Rule 1. New tests go "
+                        "into `tests/test_<area>.py`; existing `tests_*.py` files migrate "
+                        "alongside the code they exercise — not in a one-shot rename PR. "
+                        "The Django test runner discovers both forms identically."
+                    ),
+                })
+
+    # Band 4 — pages_route_mirror (ADR 0010). Scoped to `app/pages/`
+    # (or whatever lives at `<scan_root>/pages/`). Cheap O(N) scan;
+    # runs once per detect invocation, not per directory.
+    pages_root = scan_root / "pages" if (scan_root / "pages").is_dir() else None
+    if pages_root is not None:
+        findings.extend(_scan_pages_route_mirror(pages_root, project_root))
+
+    return findings
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--root",
+        type=Path,
+        default=Path("app"),
+        help="Package root to scan (default: app)",
+    )
+    # spec:project-structure-redesign-phase-2::IM-26
+    parser.add_argument(
+        "--project-root",
+        type=Path,
+        default=Path.cwd(),
+        help="Project root for relative-path display (default: cwd)",
+    )
+    parser.add_argument(
+        "--min-cluster-size",
+        type=int,
+        default=DEFAULT_MIN_CLUSTER_SIZE,
+        help="Minimum siblings to count as a cluster (default: 3, per ADR 0006)",
+    )
+    parser.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        help="Additional glob pattern to exclude (additive; repeatable)",
+    )
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+
+    project_root = args.project_root.resolve()
+    scan_root = args.root if args.root.is_absolute() else (project_root / args.root).resolve()
+
+    findings = detect(
+        project_root=project_root,
+        scan_root=scan_root,
+        min_cluster_size=args.min_cluster_size,
+        exclude_globs=args.exclude,
+    )
+
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    with args.output.open("w", encoding="utf-8") as f:
+        for finding in findings:
+            f.write(json.dumps(finding) + "\n")
+
+    print(f"detect: wrote {len(findings)} findings to {args.output}", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
