@@ -33,3 +33,6 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/test_*.py" = ["B011", "F841"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

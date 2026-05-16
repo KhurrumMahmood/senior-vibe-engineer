@@ -9,3 +9,4 @@ PyYAML>=6.0
 # in .pre-commit-config.yaml stays in lockstep.
 ruff==0.6.9
 pre-commit>=3.7.0
+pytest>=8.0
