@@ -31,6 +31,18 @@ jobs:
           pip install ruff==0.6.9
           pip install -r requirements.txt
 
+      # Registry checks run always (not diff-scoped) — drift in one ADR
+      # can break links from another, so the whole registry is verified.
+      - name: ADR registry link-check (hard)
+        run: python3 scripts/decisions.py link-check
+
+      # Audit is advisory in CI: the ecosystem ships intentionally
+      # `proposed` starter ADRs and audit flags `proposed` ADRs older
+      # than 30 days, so a hard gate would mean dated CI breakage. Emit
+      # a warning annotation instead; pre-commit keeps audit a hard gate.
+      - name: ADR registry audit (advisory)
+        run: python3 scripts/decisions.py audit || echo "::warning::decision-registry audit reported drift (advisory) — see output above"
+
       - name: Compute changed Python files vs main
         id: changed
         run: |
@@ -87,3 +99,24 @@ jobs:
       - name: No Python changes — skipping lint
         if: steps.changed.outputs.files == ''
         run: echo "No .py files changed."
+
+  test:
+    name: Test (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # The substrate test suite is small and fast — run it always,
+      # not diff-scoped: a change anywhere can break a shared script.
+      - name: Run pytest
+        run: python3 -m pytest

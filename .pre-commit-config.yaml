@@ -6,8 +6,9 @@
 # Install once per clone with:
 #   .venv/bin/pre-commit install
 
-# Local hooks use `language: python` with no `additional_dependencies`,
-# a pattern that was unreliable in earlier pre-commit releases.
+# The lint hooks use `language: python` with no `additional_dependencies`,
+# a pattern that was unreliable in earlier pre-commit releases — hence the
+# version pin. The decisions-* hooks add PyYAML, which decisions.py needs.
 minimum_pre_commit_version: "4.5.1"
 
 repos:
@@ -79,3 +80,25 @@ repos:
         entry: python scripts/lint/run.py --rule codegen-emits-new-paths
         language: python
         types: [python]
+
+      # ADR registry guards. Both scan ai-docs/decisions/ themselves, so
+      # pass_filenames is false; files: scopes them to commits that touch
+      # an ADR. Hard gates here — a drifted registry blocks only
+      # ADR-touching commits, which is acceptable (you cannot edit the
+      # registry while it is drifted). CI runs link-check as a hard gate
+      # too, but audit only advisory there — see .github/workflows/ci.yml.
+      - id: decisions-link-check
+        name: "decisions-link-check (ADR supersedes + applies_to paths resolve)"
+        entry: python scripts/decisions.py link-check
+        language: python
+        additional_dependencies: ["PyYAML>=6.0"]
+        files: ^ai-docs/decisions/.*\.md$
+        pass_filenames: false
+
+      - id: decisions-audit
+        name: "decisions-audit (no invalid status / stale proposed / broken supersedes)"
+        entry: python scripts/decisions.py audit
+        language: python
+        additional_dependencies: ["PyYAML>=6.0"]
+        files: ^ai-docs/decisions/.*\.md$
+        pass_filenames: false
