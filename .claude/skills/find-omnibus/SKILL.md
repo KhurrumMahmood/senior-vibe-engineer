@@ -19,7 +19,7 @@ not_for: |
   specifically in views (use /find-layer-violation). Refactor
   execution (use /refactor-subsystem in decomposition mode).
 language: python
-framework: django
+framework: any
 scout_model: cheap
 ---
 

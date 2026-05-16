@@ -16,7 +16,7 @@ not_for: |
   Per-symbol behavior annotation (use /explain-code). Refactor
   execution (use /refactor-subsystem with a spec).
 language: python
-framework: django
+framework: any
 ---
 
 # /map-subsystem
