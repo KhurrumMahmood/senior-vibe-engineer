@@ -11,7 +11,7 @@ Augment, Cursor, Gemini) should start at
 
 ## What's in the box
 
-- **`.claude/skills/`** — 54 skills covering five jobs in a maintenance
+- **`.claude/skills/`** — 55 skills covering five jobs in a maintenance
   loop:
   - **MAP** (`map-subsystem`, `map-product-workflow`) — durable inventory
     docs for a subsystem or user-visible workflow.
@@ -48,17 +48,26 @@ Augment, Cursor, Gemini) should start at
   `no_fat_view`, `no_bare_delay`, `no_comment_drift`,
   `codegen_emits_new_paths`, `run_jscpd`).
 - **`ai-docs/`** — the ADR / plan / spec workflow that pairs with the
-  skills. Six adopted ADRs ship as the foundation:
+  skills. Nine ADRs ship as the foundation; the ones marked *(proposed)*
+  are calibrated starting points an adopting project confirms or
+  supersedes:
   - `0001-textchoices-for-state` — string state fields → typed enums.
   - `0002-spec-first-refactor` — refactors author a spec before code.
-  - `0003-canonical-findings-ledger` — findings get an ID and a row in a
-    ledger; refactors close ledger rows.
+  - `0003-canonical-findings-ledger` *(proposed)* — findings get an ID
+    and a row in a ledger; refactors close ledger rows.
   - `0004-parallel-writers-shared-helper` — when two writers diverge on
     the same shape, factor a shared helper rather than racing the format.
   - `0005-agent-rules-design` — how this very file (`CLAUDE.md`) is
     architected: lean root + load-on-demand docs + cross-tool mirrors.
-  - `0006-folder-organization` — bidirectional folder-packaging
-    convention; ≥3 siblings earn packaging, < 3 collapse back.
+  - `0006-folder-organization` *(proposed)* — bidirectional
+    folder-packaging convention; ≥3 siblings earn packaging, < 3
+    collapse back.
+  - `0013-idea-tracking-system` — two-tier idea tracking: a ledger for
+    raw ideas, a curated pattern library for the ones that prove out.
+  - `0016-importance-map-shape` *(proposed)* — a declarative importance
+    map so debt scans can weight findings by where they land.
+  - `0017-staged-boundary-rearchitecting` *(proposed)* — when to extract
+    a module boundary, when to phase it, when to refuse phasing.
 - **`.augment/`, `.codex/`, `.cursor/`, `.gemini/`** — cross-tool agent
   rules that all point back at the same canonical guide (symlinks where
   the host filesystem supports them). See
@@ -113,11 +122,11 @@ things commonly block them:
 .claude/
   CLAUDE.md                 # lean root guide for all agents
   docs/                     # doctrine: canonical patterns, smells, catalogue
-  skills/                   # 54 skills, each a self-contained dir
+  skills/                   # 55 skills, each a self-contained dir
     _common/                # shared scout-dispatch, scripts, posture docs
     <skill-name>/SKILL.md   # the agent-facing skill definition
 ai-docs/
-  decisions/                # ADRs (0001-0006 ship; project adds more)
+  decisions/                # ADRs (ecosystem ships a starter set; project adds more)
   plans/                    # System-tier planning docs (scope→impact→architect→spec)
   specs/                    # refactor specs (refactor-subsystem reads these)
 scripts/

@@ -6,7 +6,7 @@ date: 2026-04-30
 deciders: [khurrum]
 supersedes: []
 superseded_by: null
-applies_to: [app/]
+applies_to: [host:app/]
 tags: [stringly-state, lint, models]
 related_smell: stringly-typed-state
 related_pattern: stringly-status

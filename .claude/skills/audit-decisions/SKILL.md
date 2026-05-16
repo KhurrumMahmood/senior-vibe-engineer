@@ -164,6 +164,12 @@ For each ADR with `applies_to: [path1, path2, ...]`:
 Allow a glob pattern in `applies_to:` (e.g., `core/services/*.py`); for
 those, check that at least one match exists.
 
+An `applies_to:` entry prefixed `host:` names a path in the importing
+host project, not this repo (see `ai-docs/decisions/README.md`). Strip
+the `host:` prefix before the existence check; if the path is then
+missing, treat it as **advisory** — note it under the scan summary, not
+as an `applies-to-missing` drift row.
+
 ### Stage 3 — Aggregate into `drift.md`
 
 ```markdown

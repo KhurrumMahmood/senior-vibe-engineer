@@ -9,11 +9,11 @@ superseded_by: null
 applies_to:
   - .claude/CLAUDE.md
   - .claude/docs/
-  - .claude/tasks/lessons.md
+  - host:.claude/tasks/lessons.md
   - ai-docs/decisions/
   - .augment/rules/imported/
-  - .augment/context.md
-  - .augment/requirements.md
+  - host:.augment/context.md
+  - host:.augment/requirements.md
 tags: [agent-rules, claude-md, cross-tool, doc-design, skill-ecosystem]
 related_smell: null
 related_pattern: null

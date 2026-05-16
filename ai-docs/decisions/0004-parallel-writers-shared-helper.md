@@ -6,7 +6,7 @@ date: 2026-05-03
 deciders: [khurrum]
 supersedes: []
 superseded_by: null
-applies_to: [app/]
+applies_to: [host:app/]
 tags: [format-equivalence-gap, refactor, structural-rule, share-utilities]
 related_smell: format-equivalence-gap
 related_pattern: parallel-writers-shared-producer

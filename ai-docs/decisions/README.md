@@ -61,6 +61,26 @@ related_pattern: stringly-status       # → canonical-patterns.md anchor
 Use `python3 scripts/decisions.py init <slug>` to scaffold; it
 auto-assigns the next id.
 
+## Portable `applies_to` paths
+
+`applies_to` lists the code paths a decision governs, and `link-check`
+verifies each one resolves. But an ADR that ships inside a reusable
+skill/ADR pack is authored in one repo and *applied* in another — its
+paths resolve in the importing **host project**, not in the pack's own
+repo. Prefix those entries with `host:`:
+
+```yaml
+applies_to:
+  - host:app/services/        # resolves in the host project
+  - .claude/docs/linting.md   # resolves here — checked strictly
+```
+
+`link-check` resolves a `host:` entry when it is present, so drift is
+still caught once the pack is imported, and reports its absence as
+advisory rather than drift. Bare entries are always strict. Use `host:`
+only for genuinely host-resident paths — an ADR about the pack's own
+files (skills, docs, scripts) uses bare paths.
+
 ## Relation to other artifacts
 
 Three tiers of knowledge, no overlap:

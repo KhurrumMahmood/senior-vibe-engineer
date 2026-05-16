@@ -7,13 +7,12 @@ deciders: [khurrum]
 supersedes: []
 superseded_by: null
 applies_to:
-  - app/
-  - app/pages/
-  - app/api/
-  - app/tasks/
-  - app/services/
-  - app/
-  - app/views/
+  - host:app/
+  - host:app/pages/
+  - host:app/api/
+  - host:app/tasks/
+  - host:app/services/
+  - host:app/views/
 tags: [folder-organization, topology, decomposition, tests]
 related_smell: folder-topology-drift
 related_pattern: null

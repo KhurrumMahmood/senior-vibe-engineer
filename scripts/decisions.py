@@ -22,7 +22,7 @@ Format: ai-docs/decisions/<NNNN>-<slug>.md with frontmatter:
   deciders: [khurrum]
   supersedes: []
   superseded_by: null
-  applies_to: [core/]
+  applies_to: [core/]   # "host:" prefix → resolves in the importing project
   tags: [stringly-state, lint]
   related_smell: stringly-typed-state
   related_pattern: stringly-status
@@ -54,6 +54,14 @@ VALID_STATUSES = {"proposed", "accepted", "superseded", "deprecated"}
 ID_RE = re.compile(r"^(\d{4})-([a-z][a-z0-9_-]*)\.md$")
 SLUG_RE = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 PROPOSED_AGE_DAYS = 30
+
+# An applies_to entry prefixed "host:" names a path in the importing host
+# project, not in the repo that ships the ADR — a portable ADR pack is
+# authored in one repo and applied in another. link-check resolves a
+# host: path when it is present (so drift is still caught once the pack
+# is imported) and treats its absence as advisory, not drift. See the
+# "Portable applies_to paths" section in ai-docs/decisions/README.md.
+HOST_PATH_PREFIX = "host:"
 
 
 def load_decisions(decisions_dir: Path) -> list[dict]:
@@ -243,6 +251,7 @@ def cmd_audit(args, decisions_dir: Path) -> int:
 def cmd_link_check(args, decisions_dir: Path) -> int:
     decisions = load_decisions(decisions_dir)
     diags: list[str] = []
+    advisory: list[str] = []
     for d in decisions:
         for sup_id in d.get("supersedes") or []:
             sup_id = str(sup_id).zfill(4)
@@ -252,14 +261,26 @@ def cmd_link_check(args, decisions_dir: Path) -> int:
         if sb and not any(o["id"] == str(sb).zfill(4) for o in decisions):
             diags.append(f"{d['id']}: superseded_by {sb} → not found")
         for path_str in d.get("applies_to") or []:
-            applies_path = REPO_ROOT / str(path_str)
-            if not applies_path.exists():
-                diags.append(f"{d['id']}: applies_to {path_str} → path does not exist")
+            raw = str(path_str)
+            host_scoped = raw.startswith(HOST_PATH_PREFIX)
+            rel = raw.removeprefix(HOST_PATH_PREFIX)
+            if (REPO_ROOT / rel).exists():
+                continue
+            if host_scoped:
+                advisory.append(
+                    f"{d['id']}: applies_to {raw} → host path, resolves "
+                    "in the importing project (advisory)"
+                )
+            else:
+                diags.append(f"{d['id']}: applies_to {raw} → path does not exist")
+    for line in advisory:
+        print(line)
     if not diags:
-        print(f"OK — {len(decisions)} decisions, all links resolve")
+        tail = f", {len(advisory)} host-scoped" if advisory else ""
+        print(f"OK — {len(decisions)} decisions, all links resolve{tail}")
         return 0
-    for d in diags:
-        print(d)
+    for line in diags:
+        print(line)
     return 1
 
 

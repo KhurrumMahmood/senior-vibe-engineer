@@ -164,8 +164,11 @@ that scales in an AI-grown codebase.
   "finding dismissed without a guard" (deferred tax)? Not blocking, but
   the answer will eventually live in
   `quality-coordination-kernel.md`.
-- **Where host-project ADRs live** — this repo ships six adopted ADRs
-  (0001–0006) as a foundation. Host projects extend the numbering
-  (0007+). Open question: does the host fork its own `decisions/` or
-  inherit by reference? Likely fork; pin this once a real consumer
-  uses the ecosystem.
+- **Where host-project ADRs live** — this repo ships nine ADRs
+  (0001–0006, 0013, 0016, 0017) as a foundation. Host projects extend
+  the numbering (`decisions.py init` auto-assigns the next id). The
+  foundation ADRs are import-portable: host-resident `applies_to` paths
+  carry a `host:` prefix, so `link-check` does not read their absence
+  here as drift (see `ai-docs/decisions/README.md`). Still open: does
+  the host fork its own `decisions/` or inherit by reference? Likely
+  fork; pin this once a real consumer uses the ecosystem.
