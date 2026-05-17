@@ -11,8 +11,14 @@ Augment, Cursor, Gemini) should start at
 
 ## What's in the box
 
-- **`.claude/skills/`** — 58 skills covering five jobs in a maintenance
-  loop:
+- **`.claude/skills/`** — 60 skills covering diagnosis, construction,
+  and five jobs in the maintenance loop:
+  - **DIAGNOSE** (`diagnose`) — turn concrete symptoms, regressions,
+    flakes, and unclear failures into a reproduction loop, root cause,
+    verification, and prevention follow-up.
+  - **CONSTRUCT** (`plan-skill` now; future constructive pattern writers) —
+    make write-time patterns explicit before drift exists, starting with
+    adversarial skill planning and dogfood gates.
   - **MAP** (`map-subsystem`, `map-product-workflow`) — durable inventory
     docs for a subsystem or user-visible workflow.
   - **SUSPECT** (`find-duplication`, `find-dormant`, `find-omnibus`,
@@ -33,7 +39,8 @@ Augment, Cursor, Gemini) should start at
   - Plus governance skills: `decide`, `audit-decisions`,
     `project-interview`, `adapt-project`, `scope-feature` /
     `impact-feature` / `architecture-fit` / `plan-spec` (System-tier
-    planning chain), `design-it-twice`, `which-skill`, `triage-debt`.
+    planning chain), `design-it-twice`, `plan-skill`, `which-skill`,
+    `triage-debt`.
 - **`.claude/docs/`** — the doctrine the skills enforce:
   `canonical-patterns.md`, `architectural-smells.md`, `skill-catalog.md`,
   `quality-coordination-kernel.md`, `senior-engineer-posture.md`,
@@ -123,7 +130,7 @@ things commonly block them:
 .claude/
   CLAUDE.md                 # lean root guide for all agents
   docs/                     # doctrine: canonical patterns, smells, catalogue
-  skills/                   # 58 skills, each a self-contained dir
+  skills/                   # 60 skills, each a self-contained dir
     _common/                # shared scout-dispatch, scripts, posture docs
     <skill-name>/SKILL.md   # the agent-facing skill definition
 ai-docs/

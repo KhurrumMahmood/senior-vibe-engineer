@@ -17,6 +17,13 @@ type: "always_apply"
   highest-leverage anti-misapplication field.
 - `/which-skill` recommends or rules out a skill from a free-text task
   description by reading every `SKILL.md` frontmatter.
+- `/diagnose` is the concrete-symptom lane beside the maintenance
+  loop: reproduce, identify root cause, verify the fix, and name
+  the prevention follow-up before broad cleanup.
+- `/plan-skill` is the intake gate for broad new or materially
+  revised skills. New skills need adversarial requirements, a
+  trigger contract, evidence requirements, and at least one dogfood
+  case before cataloging.
 
 ### Planning ladder
 

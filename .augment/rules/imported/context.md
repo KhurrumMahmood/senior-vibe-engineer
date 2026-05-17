@@ -85,6 +85,10 @@ bad/good fixtures under `tests/lint/`.
 ## Workflow Discipline
 
 - Plan before ambiguous / risky / multi-file / architectural work.
+- Use `/diagnose` for concrete bugs that lack a trusted
+  reproduction loop or root-cause explanation.
+- Use `/plan-skill` before creating or materially revising a repo
+  skill; tiny wording fixes can be edited directly.
 - Apply `.claude/skills/_common/interface-depth.md` before adding
   helpers, services, module splits, abstractions, or adapters.
 - Verify changed behavior before calling work done. State exactly what

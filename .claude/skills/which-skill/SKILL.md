@@ -98,7 +98,7 @@ python3 .claude/skills/which-skill/scripts/match.py "${TASK}" --json
 
 The matcher returns JSON with:
 - `inferred_tier` (quick | feature | system | maintenance | cross-cutting | null)
-- `inferred_job` (plan | map | suspect | explain | refactor | guard | decide | triage | teach | meta | null)
+- `inferred_job` (plan | map | suspect | explain | refactor | guard | decide | triage | teach | construct | diagnose | meta | null)
 - `tier_hints` and `job_hints` — the matched signal words
 - `recommendation` — the top-scoring skill name OR `proceed_directly`
 - `task_packet` — the optional task-packet fields (`lanes`, `stage`,

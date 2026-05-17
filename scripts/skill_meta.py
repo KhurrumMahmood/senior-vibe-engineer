@@ -42,7 +42,20 @@ EXISTING_REQUIRED = {"name", "description", "argument-hint", "allowed-tools", "u
 NEW_CONTRACT_REQUIRED = {"tier", "job", "best_for", "not_for", "language", "framework"}
 
 VALID_TIERS = {"quick", "feature", "system", "new-project", "maintenance", "cross-cutting"}
-VALID_JOBS = {"plan", "map", "suspect", "explain", "refactor", "guard", "decide", "triage", "teach", "meta"}
+VALID_JOBS = {
+    "plan",
+    "map",
+    "suspect",
+    "explain",
+    "refactor",
+    "guard",
+    "decide",
+    "triage",
+    "teach",
+    "construct",
+    "diagnose",
+    "meta",
+}
 VALID_LANGUAGES = {"python", "typescript", "rust", "any"}
 VALID_FRAMEWORKS = {"django", "none", "any"}
 VALID_SCOUT_MODELS = {"cheap", "careful"}

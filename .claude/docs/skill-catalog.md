@@ -1,6 +1,7 @@
 # Skill catalog — by job, not by verb
 
-> **Plan, map, suspect, explain, refactor, guard — plus decide and meta.**
+> **Plan, diagnose, map, suspect, explain, refactor, guard — plus
+> construct, decide, and meta.**
 >
 > Optimal tooling for an AI-grown codebase continuously converts hidden
 > structure into explicit structure, and one-off discoveries into
@@ -25,6 +26,9 @@ meta** skills that complement every tier:
 
 ```
   PLAN  (Quick / Feature / System / New-Project)
+    │
+    ▼
+  DIAGNOSE  (concrete symptom -> feedback loop -> root cause)
     │
     ▼
   decide  (cross-cutting; at any tier when a real choice is made)
@@ -87,10 +91,25 @@ follow-up for the System chain.
 
 ### Bug fix that touches multiple files
 
-→ **`/fix-workflow`** with a natural-language description of the
-issue, OR a cluster ID from a previous SUSPECT scan.
-→ NOT `/plan-feature` (planning is for net-new behavior, not bug
-fixes).
+→ If the symptom is not reproduced or the root cause is unknown, start
+with **`/diagnose <symptom>`**. The deliverable is a feedback loop,
+root cause, verification, and prevention follow-up.
+→ If a previous SUSPECT scan already identified the cluster or the fix
+shape is known, use **`/fix-workflow`** with a natural-language
+description or cluster ID.
+→ NOT `/plan-feature` (planning is for net-new behavior, not bug fixes).
+
+### Creating or revising a skill
+
+→ **`/plan-skill <skill-idea>`** before writing the skill. It forces the
+adversarial requirements pass: why not an existing skill, what false
+trigger would hurt, what artifact proves completion, and what dogfood
+case demonstrates the skill works.
+→ Then implement the smallest useful skill, run `skill_meta.py lint`,
+run matcher cases for positive/negative prompts, and dogfood once before
+cataloging it.
+→ NOT direct skill authoring for broad or new workflow skills. Tiny
+wording fixes to existing `SKILL.md` files can be edited directly.
 
 ### Inherited code you don't understand
 
@@ -165,6 +184,35 @@ will outlive this PR.
 PLAN skills produce the spec; they do NOT implement the feature.
 Implementation is downstream — driven by the spec via
 `/refactor-subsystem` or manual edits.
+
+## DIAGNOSE — prove the bug before fixing it
+
+**When to reach for a DIAGNOSE skill:** when there is a concrete
+symptom but no trusted reproduction loop or root cause. Diagnosis is
+not broad cleanup; it is the incident/debug lane that turns "broken"
+into evidence.
+
+| Skill | What it produces | When |
+|---|---|---|
+| `/diagnose` | `reports/diagnose/scan-<TS>/`: diagnosis index plus separate reproduction, root-cause, verification, cleanup-check files and evidence manifest. | Hard bugs, performance regressions, flakes, and reports where the tempting first fix would be guesswork. |
+
+## CONSTRUCT — write with the pattern before drift exists
+
+**When to reach for a CONSTRUCT skill:** when the correct project
+pattern is already known and the agent is about to create a surface
+that could drift if built from scratch. Constructive skills are the
+write-time complement to SUSPECT scanners.
+
+Initial constructive targets:
+
+- **Agent brief authoring** — behavior-first handoffs with durable
+  vocabulary, acceptance criteria, and scope boundaries.
+- **Test-slice construction** — public-interface tests chosen before a
+  feature or bug fix starts, with mocking only at real system edges.
+- **UI/form construction** — shared UI primitives, controls, state, and
+  responsive rules applied before template drift exists.
+- **Skill construction** — `/plan-skill` now covers the requirements and
+  validation gate; a future `/write-skill` can consume its brief.
 
 ## MAP — what's in this subsystem/workflow, and what owns what?
 
@@ -302,6 +350,7 @@ other skill — at any tier, at any stage.
 |---|---|---|
 | `/decide` | Authors or amends an ADR under `ai-docs/decisions/<NNNN>-<slug>.md`. Reads canonical-patterns.md and architectural-smells.md to suggest related-pattern / related-smell backrefs. Smallest first-class artifact in the senior-engineer ecosystem. | When a real choice is being made that constrains future work, excludes an alternative, or sets an expiration. Threshold: 2-5 ADRs/quarter. |
 | `/which-skill` | Recommender. Reads every SKILL.md frontmatter (tier, job, best_for, not_for) and ranks against a free-text task description. Returns top match or "proceed directly". | When the right skill isn't obvious, especially at the start of a non-trivial task. Defends against funneling a 1-line fix into heavy planning machinery. |
+| `/plan-skill` | New-skill intake and hardening gate. Produces a skill brief, adversarial requirements review, validation plan, and evidence manifest before implementation. | Before creating a new skill or materially revising an existing one. Forces the "why not an existing skill?" and "how will we dogfood this?" questions up front. |
 | `/engineer-init` | Bootstraps the ecosystem runtime — checks Python >= 3.11, creates `.venv`, installs `requirements.txt`, wires pre-commit hooks when the repo is git-tracked, and verifies a script-backed skill runs to exit 0. Idempotent; `--check` reports status without installing. Prompt-only, no helper script. | Once per clone before invoking any script-backed skill; or when a skill errors out with a missing-module / dependency failure. |
 | `/triage-debt` | Pure aggregator. Scores accumulated debt across `reports/_meta/effectiveness.jsonl`, every `reports/<find-*>/latest/`, `scripts/specs.py audit`, and `scripts/decisions.py audit`. Produces a ranked queue at `reports/triage-debt/scan-<TS>/queue.md`; each entry recommends the next skill to invoke. | Periodic (weekly / pre-release) "what's accumulating" sweep. After a busy refactor batch, before planning a new feature. |
 | `/teach-pattern` | Layered briefing on one rule, smell, ADR, or canonical-pattern anchor — rule, why, exemplar, counter-example, enforcement. The `--for-agent <context>` flag re-frames the briefing as "given THIS PR context, here's why X is right and Y is wrong." | Onboarding (human or new agent) to a project convention; mid-PR agent reasoning ("why does the lint say X?"); converting a one-line rule into the full backstory. |
@@ -388,10 +437,15 @@ The common path through the loop, in order:
    right entry point.
 2. **For new work:** `/plan-feature <name>` → spec → `/refactor-
    subsystem` or implement.
-3. **For cleanup work:** `/map-subsystem` or `/map-product-workflow`
+3. **For concrete bugs:** `/diagnose <symptom>` → root cause +
+   verification → fix directly or hand off to `/fix-workflow` →
+   `/prevent-regression` if the prevention shape is repeatable.
+4. **For cleanup work:** `/map-subsystem` or `/map-product-workflow`
    → `/find-<smell>` → `/explain-code` or contract-maker →
    `/fix-workflow` or `/refactor-subsystem` → `/prevent-regression`.
-4. **At any step:** `/decide` when a real choice is made.
+5. **For new skills:** `/plan-skill <idea>` → implement the smallest
+   skill → dogfood + matcher/lint/evidence checks → catalog it.
+6. **At any step:** `/decide` when a real choice is made.
 
 Skipping steps is fine when the target is already well-understood.
 Skipping GUARD is a mistake — it turns every cleanup into a recurring
@@ -444,7 +498,8 @@ refactor design.
 
 ## Accepting new skills
 
-Three rules before adding anything to this catalog:
+Run `/plan-skill <idea>` before adding anything broad or new to this
+catalog. Tiny wording fixes can skip it. The standing rules:
 
 1. **It must fit exactly one job.** Skills that blur MAP + REFACTOR
    (like today's `/refactor-subsystem`) tend to produce reactive maps
@@ -456,6 +511,10 @@ Three rules before adding anything to this catalog:
 3. **It must produce an artifact a human can read without the skill
    loaded.** Reports, proposals, explanations — each stands on its
    own. Don't rely on skill-internal context.
+4. **It must be dogfooded once before cataloging.** The dogfood case
+   can be a real host-project task or a small fixture, but it must
+   exercise the trigger path and the output artifact. Add a negative
+   prompt when false invocation is a realistic risk.
 
 New skills also declare the agent decision contract in frontmatter
 (`tier`, `job`, `best_for`, `not_for`, `language`, `framework`) per

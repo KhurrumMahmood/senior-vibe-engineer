@@ -39,7 +39,7 @@ tier: feature
 | `feature` | Cross-cutting feature, 1-3 day scope, touches one workflow. `/plan-feature` is the canonical example. |
 | `system` | New subsystem or 2+ workflow feature. The granular planning chain (`/scope-feature` → `/impact-feature` → `/architecture-fit` → `/plan-spec`) lives here. |
 | `new-project` | Greenfield scaffolding. `/init-project`. |
-| `maintenance` | The five-job loop — every existing `/find-*`, `/map-*`, `/refactor-subsystem`, `/fix-workflow`, `/prevent-regression`, `/explain-code`. |
+| `maintenance` | The cleanup/debug lanes — `/diagnose` plus the map/suspect/explain/refactor/guard loop (`/find-*`, `/map-*`, `/refactor-subsystem`, `/fix-workflow`, `/prevent-regression`, `/explain-code`). |
 | `cross-cutting` | Used at any tier — `/decide`, `/which-skill`, `/teach-pattern`, `/triage-debt`, `/audit-decisions`. |
 
 The tier is **not** a difficulty rating. It tells the agent which lane
@@ -47,7 +47,7 @@ of the workflow this skill belongs to.
 
 ### `job`
 
-Which of the ten jobs this skill performs.
+Which job this skill performs.
 
 ```
 job: plan
@@ -64,6 +64,8 @@ job: plan
 | `decide` | Authors / amends an ADR in the decision registry. |
 | `triage` | Aggregates signals (effectiveness log + reports + drift) into a ranked queue. |
 | `teach` | Produces an agent decision-walkthrough for a smell / pattern / decision. |
+| `construct` | Supplies a canonical pattern at write time before drift exists. Constructive skills produce drafts, briefs, or implementation scaffolds that follow project doctrine from the start. |
+| `diagnose` | Builds a feedback loop around a live symptom, identifies root cause, and proves the fix. |
 | `meta` | Operates on the skill ecosystem itself (e.g. `/which-skill`). |
 
 ### `best_for`

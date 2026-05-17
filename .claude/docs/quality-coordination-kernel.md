@@ -182,10 +182,13 @@ conditions and "low risk" becomes "shared liability."
 
 ### 2.1 The maintenance loop
 
-`map → suspect → explain → refactor → guard`. Each tier has skills:
+`diagnose` sits beside the maintenance loop for concrete symptoms;
+`map → suspect → explain → refactor → guard` remains the cleanup loop
+for structural debt. Each tier has skills:
 
 | Tier | Job | Skills |
 |---|---|---|
+| DIAGNOSE | Build a feedback loop around a live symptom | `diagnose` |
 | MAP | Inventory existing structure | `map-subsystem`, `map-product-workflow` |
 | SUSPECT | Detect smells | `find-omnibus`, `find-duplication`, `find-semantic-duplication`, `find-implicit-state`, `find-layer-violation`, `find-route-sprawl`, `find-workflow-duplication`, `find-frontend-contract-drift`, `find-contract-drift`, `find-async-lifecycle-drift`, `find-dead-route-surface`, `find-workflow-state-gaps`, `find-test-obligation-drift`, `find-doc-route-drift`, `find-dormant`, `find-query-mutation`, `find-complexity-hotspots`, `find-comment-drift` |
 | EXPLAIN | Annotate behavior + propose migrations | `explain-code`, `extract-enum`, `extract-state-type`, `introduce-fk`, `extract-workflow-registry`, `unify-shadows` |
@@ -202,6 +205,8 @@ Outside the linear loop:
 - `decide` — author/amend ADRs at any tier.
 - `design-it-twice` — parallel-divergent fan-out for material design forks.
 - `which-skill` — recommender that defends against skill misapplication.
+- `plan-skill` — adversarial requirements and validation gate before
+  new skills enter the catalog.
 
 ### 2.3 Planning chain (System tier)
 
@@ -388,6 +393,37 @@ before the writer commits to a non-canonical shape, or they're
 useless).
 
 **See also**: §3.5 — detective UI consistency complement.
+
+**Initial outline**: treat constructive skills as pattern writers with
+evidence, not as prose tips. Each constructive skill should declare:
+
+1. The write surface it owns (template form, test slice, agent brief,
+   skill, API route, dispatch call, export path).
+2. The canonical inputs it consumes (`CONTEXT.md`, ADRs, subsystem map,
+   existing primitive, example test, existing route convention).
+3. The artifact it writes or drafts.
+4. The negative-space contract: when an agent must not use it.
+5. The dogfood case that proves the generated shape is better than a
+   blank-page implementation.
+
+The first wave should be small and concrete:
+
+- `/plan-skill` — shipped as the intake gate for new skills. It forces
+  adversarial requirements, trigger design, evidence contracts, and a
+  dogfood plan before implementation.
+- `/author-agent-brief` — candidate constructive skill for durable
+  issue/sub-agent handoffs: behavior, interfaces, acceptance criteria,
+  scope boundaries, and verification expectations.
+- `/construct-test-slice` — candidate write-time complement to
+  `/diagnose` and `/plan-feature`: choose public-interface tests and
+  mocking boundaries before implementation.
+- `/construct-ui-surface` — candidate UI/template complement to
+  `/find-frontend-duplication`: start from shared primitives, form
+  controls, state handling, and responsive expectations.
+
+The gate for adding any of these is `/plan-skill`: if it cannot name a
+durable artifact, a false-trigger risk, and a dogfood case, it stays an
+idea rather than a catalog entry.
 
 ### 3.9 Product-layer telemetry
 

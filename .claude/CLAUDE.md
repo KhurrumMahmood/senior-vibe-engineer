@@ -121,8 +121,9 @@ authoring pattern.
   `/plan-spec`) is for new subsystems or multi-week initiatives.
 - **Smallest responsible fix.** Don't broaden scope. Don't extract
   abstractions speculatively (see `.claude/skills/_common/interface-depth.md`).
-- **Reproduce bugs first** with a test, log, or traceback. Fix the root
-  cause, then prove the failure no longer occurs.
+- **Reproduce bugs first** with a test, log, or traceback. For hard bugs
+  without a trusted loop/root cause, use `/diagnose` before fixing. Fix
+  the root cause, then prove the failure no longer occurs.
 - **Trace all call sites.** Grep every place a changed model / field /
   function is created, read, or defaulted.
 - **Verify before done.** Run the narrowest meaningful tests; widen if
@@ -211,8 +212,10 @@ rules that don't have lints yet.
 ## Maintenance Workflow
 
 Cleanup uses a five-job loop: **map → suspect → explain → refactor →
-guard**. The full skill catalogue is in `docs/skill-catalog.md`; the six
-architectural smells the SUSPECT skills target are in
+guard**, with `/diagnose` beside it for concrete symptoms and
+`/plan-skill` as the intake gate for new/revised skills. The full skill
+catalogue is in `docs/skill-catalog.md`; the six architectural smells
+the SUSPECT skills target are in
 `docs/architectural-smells.md`. Skipping MAP or EXPLAIN is fine when the
 target is already understood. **Skipping GUARD is a mistake** — it turns
 every cleanup into a recurring tax.

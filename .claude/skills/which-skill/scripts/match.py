@@ -63,6 +63,8 @@ JOB_HINTS: dict[str, set[str]] = {
     "decide": {"decide", "decision", "adr", "record", "choose"},
     "triage": {"triage", "prioritize", "queue", "debt", "accumulating"},
     "teach": {"teach", "explain why", "tutorial", "walkthrough", "briefing"},
+    "construct": {"construct", "author", "write", "create", "draft", "pattern"},
+    "diagnose": {"diagnose", "debug", "reproduce", "root", "cause", "regression", "flake"},
     "meta": {"audit", "drift", "stale", "healthy", "registry", "hygiene"},
 }
 
@@ -77,7 +79,9 @@ TIER_HINTS: dict[str, set[str]] = {
     "system": {"subsystem", "cross-cutting", "cross", "multi-workflow",
                "redesign", "rework", "architecture"},
     "maintenance": {"dead", "duplicate", "duplication", "dormant", "fat",
-                    "omnibus", "stringly", "tuple", "smell"},
+                    "omnibus", "stringly", "tuple", "smell", "bug",
+                    "broken", "failing", "debug", "diagnose", "reproduce",
+                    "regression", "flake"},
     "new-project": {"greenfield", "scaffold", "init", "bootstrap", "new project"},
     "cross-cutting": {"adr", "decision", "convention"},
 }
@@ -86,6 +90,11 @@ OBLIGATION_CHANGE_HINTS = frozenset({"changed", "touched", "diff", "staged"})
 OBLIGATION_VERIFY_HINTS = frozenset({
     "test", "tests", "testing", "verify", "verification", "smoke",
     "obligation", "obligations", "tier", "tiers",
+})
+SKILL_DEVELOPMENT_HINTS = frozenset({"skill", "skills", "frontmatter", "dogfood"})
+SKILL_DEVELOPMENT_ACTIONS = frozenset({
+    "create", "write", "plan", "new", "revise", "update", "validation",
+    "dogfood", "author", "build",
 })
 
 WORD_RE = re.compile(r"[a-z][a-z0-9_-]+")
@@ -135,6 +144,15 @@ def is_test_obligation_signal(task_tokens: set[str]) -> bool:
     verb rather than asking for a product workflow map.
     """
     return bool(task_tokens & OBLIGATION_CHANGE_HINTS) and bool(task_tokens & OBLIGATION_VERIFY_HINTS)
+
+
+def is_skill_development_signal(task_tokens: set[str]) -> bool:
+    """True when wording is about designing/writing an agent skill.
+
+    Without this override, generic words like "new" and "ui" can route
+    "create a new skill" prompts to product-feature or obligation scans.
+    """
+    return bool(task_tokens & SKILL_DEVELOPMENT_HINTS) and bool(task_tokens & SKILL_DEVELOPMENT_ACTIONS)
 
 
 def score_skill(
@@ -225,6 +243,11 @@ def cmd_match(args, skills_dir: Path) -> int:
     if is_test_obligation_signal(task_tokens):
         inferred_job = "suspect"
         job_hits = sorted(set(job_hits) | {"verification-obligation"})
+    if is_skill_development_signal(task_tokens):
+        inferred_tier = "cross-cutting"
+        inferred_job = "plan"
+        tier_hits = sorted(set(tier_hits) | {"skill-development"})
+        job_hits = sorted(set(job_hits) | {"skill-development"})
 
     skills = load_skills(skills_dir)
     if not skills:
