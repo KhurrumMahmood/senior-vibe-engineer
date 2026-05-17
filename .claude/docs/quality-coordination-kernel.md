@@ -187,7 +187,7 @@ conditions and "low risk" becomes "shared liability."
 | Tier | Job | Skills |
 |---|---|---|
 | MAP | Inventory existing structure | `map-subsystem`, `map-product-workflow` |
-| SUSPECT | Detect smells | `find-omnibus`, `find-duplication`, `find-semantic-duplication`, `find-implicit-state`, `find-layer-violation`, `find-route-sprawl`, `find-workflow-duplication`, `find-frontend-contract-drift`, `find-contract-drift`, `find-async-lifecycle-drift`, `find-dead-route-surface`, `find-workflow-state-gaps`, `find-test-obligation-drift`, `find-doc-route-drift`, `find-dormant`, `find-query-mutation`, `find-comment-drift` |
+| SUSPECT | Detect smells | `find-omnibus`, `find-duplication`, `find-semantic-duplication`, `find-implicit-state`, `find-layer-violation`, `find-route-sprawl`, `find-workflow-duplication`, `find-frontend-contract-drift`, `find-contract-drift`, `find-async-lifecycle-drift`, `find-dead-route-surface`, `find-workflow-state-gaps`, `find-test-obligation-drift`, `find-doc-route-drift`, `find-dormant`, `find-query-mutation`, `find-complexity-hotspots`, `find-comment-drift` |
 | EXPLAIN | Annotate behavior + propose migrations | `explain-code`, `extract-enum`, `extract-state-type`, `introduce-fk`, `extract-workflow-registry`, `unify-shadows` |
 | REFACTOR | Execute changes | `fix-workflow`, `refactor-subsystem` |
 | GUARD | Crystallize learnings | `prevent-regression` |

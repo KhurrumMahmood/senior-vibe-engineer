@@ -11,7 +11,7 @@ Augment, Cursor, Gemini) should start at
 
 ## What's in the box
 
-- **`.claude/skills/`** — 55 skills covering five jobs in a maintenance
+- **`.claude/skills/`** — 58 skills covering five jobs in a maintenance
   loop:
   - **MAP** (`map-subsystem`, `map-product-workflow`) — durable inventory
     docs for a subsystem or user-visible workflow.
@@ -30,7 +30,8 @@ Augment, Cursor, Gemini) should start at
     cleanup with a strict spec-first protocol and characterization tests.
   - **GUARD** (`prevent-regression`) — turn a closed cleanup into a
     lint / test guardrail so the problem can't come back.
-  - Plus governance skills: `decide`, `audit-decisions`, `scope-feature` /
+  - Plus governance skills: `decide`, `audit-decisions`,
+    `project-interview`, `adapt-project`, `scope-feature` /
     `impact-feature` / `architecture-fit` / `plan-spec` (System-tier
     planning chain), `design-it-twice`, `which-skill`, `triage-debt`.
 - **`.claude/docs/`** — the doctrine the skills enforce:
@@ -42,8 +43,8 @@ Augment, Cursor, Gemini) should start at
 - **`scripts/`** — the runtime that backs the skills:
   `decisions.py`, `plans.py`, `specs.py`, `ledger.py`, `precedents.py`,
   `skill_meta.py`, `skill_effectiveness.py`, `evidence_gate.py`,
-  `duplication_audit.py`, `semantic_inventory.py`, `subsystems.py`,
-  `query_planner.py`, plus a `lint/` runner and the diff-scoped AST rules
+  `project_adapt.py`, `duplication_audit.py`, `semantic_inventory.py`,
+  `subsystems.py`, `query_planner.py`, plus a `lint/` runner and the diff-scoped AST rules
   (`silent_catch`, `no_query_mutation`, `no_stringly_typed_status`,
   `no_fat_view`, `no_bare_delay`, `no_comment_drift`,
   `codegen_emits_new_paths`, `run_jscpd`).
@@ -122,7 +123,7 @@ things commonly block them:
 .claude/
   CLAUDE.md                 # lean root guide for all agents
   docs/                     # doctrine: canonical patterns, smells, catalogue
-  skills/                   # 55 skills, each a self-contained dir
+  skills/                   # 58 skills, each a self-contained dir
     _common/                # shared scout-dispatch, scripts, posture docs
     <skill-name>/SKILL.md   # the agent-facing skill definition
 ai-docs/

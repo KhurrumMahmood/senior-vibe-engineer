@@ -107,6 +107,7 @@ file/symbol you need to trust.
   `/find-semantic-duplication`
 - "Status logic feels stringy" → `/find-implicit-state`
 - "Read methods are surprising me" → `/find-query-mutation`
+- "This path feels slow or branchy" → `/find-complexity-hotspots`
 - "Views are too big" → `/find-layer-violation`
 - "Workflow knowledge is everywhere" → `/find-workflow-duplication`,
   `/find-route-sprawl`, `/find-frontend-contract-drift`
@@ -192,6 +193,7 @@ want systematic confirmation.
 | `/find-omnibus` | Modules answering too many questions (SRP "and"-count > 2, high responsibility-cluster count × LOC) | When an edit requires understanding three separate domains from one file. |
 | `/find-implicit-state` | Stringly-typed status fields, tuple-inferred identity (`where(status=X, created_at__gt=Y).first()`) | When a bug report mentions "jobs get stuck in state X" or "identity looks right but the wrong row came back." |
 | `/find-query-mutation` | Methods named `get_*/fetch_*/load_*/list_*/find_*/check_*` that mutate | When a read looks cheap but isn't, or a caller is surprised by side effects. |
+| `/find-complexity-hotspots` | Algorithmic / ORM / structural hot spots: nested loops, membership scans, sort-in-loop, QuerySet/manager calls inside loops, high-branch functions. Advisory report; findings need measurement or human review before optimization. | When a subsystem feels slow, a review flags a performance hotspot, or `/refactor-subsystem` needs a first-pass lead list. |
 | `/find-layer-violation` | Views/tasks owning business logic (domain loops, LLM calls, multi-model transactions) | When view modules grow past a few hundred LOC or service extraction keeps getting deferred. |
 | `/find-route-sprawl` | Product routes scattered through flat URL modules, missing include boundaries, duplicated alias surfaces | When a route file feels like a global junk drawer or a workflow prefix has no owner. |
 | `/find-workflow-duplication` | Workflow authority repeated across layers: step labels, tab IDs, route literals, endpoint suffixes, boot payload keys, sidebar/dashboard knowledge | When sidebar, dashboard, templates, JS, and docs all seem to know the same workflow independently. |
@@ -272,6 +274,24 @@ shape can land again.
 
 GUARD is not a one-shot install — it's the **every-cleanup tail**.
 A fix without a GUARD is an open door for the same bug to walk back in.
+
+## PROJECT ADAPTATION — how does this portable kernel become local?
+
+**When to reach for a PROJECT ADAPTATION skill:** when installing or
+dogfooding engineering-skills in a host repo; when the adapter facts
+are stale; or when a project needs its human intent, risk posture, and
+"do not standardize this mess" guidance captured before agents start
+canonizing local patterns.
+
+| Skill | What it does | When |
+|---|---|---|
+| `/adapt-project` | Discovers objective host-project facts — stack, commands, tests, CI, docs, source roots, domain terms, sensitive surfaces, existing guardrails, and skill overlays. Writes `adapter.yml` and a human report; host writes require `--apply`; `--no-host-write` supports dogfood against reference repos with an external artifact root. | First pass on a new host repo; after stack/test/CI changes; before generating project-specific skill overlays. |
+| `/project-interview` | Drafts the human-approved project profile — purpose, maturity, critical workflows, risk posture, desired direction, intentional tradeoffs, known-bad legacy patterns, and open questions. | After `/adapt-project` discovery, or whenever a repo's direction has changed enough that agents need new priors. |
+
+The split is deliberate: `/adapt-project` can discover what exists, but
+only `/project-interview` can capture what the project is trying to be.
+Common patterns in a vibe-coded or inherited repo are observations, not
+canonical patterns, until the profile says they are healthy.
 
 ## DECIDE & META — cross-cutting at every tier
 
