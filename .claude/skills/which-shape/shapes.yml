@@ -1,0 +1,140 @@
+schema_version: 1
+shapes:
+  - id: project-intake
+    title: Project Intake
+    summary: Discover repo facts, capture human intent, then reroute with context.
+    first_next: "/adapt-project"
+    sequence:
+      - "/adapt-project"
+      - "/project-interview"
+      - "/which-shape"
+    stop: "Stop after adapter/profile drafts exist; rerun /which-shape with the new context."
+    cues:
+      strong: [adapt, adapter, onboard, onboarding, unknown, inherited]
+      normal: [repo, project, codebase, context, profile, start, localize]
+      negative: [typo, one-line, trivial, traceback]
+    alternatives: [legacy-stabilization, health-audit]
+
+  - id: direct-change
+    title: Direct Change
+    summary: Make the narrow edit directly; avoid routing overhead.
+    first_next: "proceed directly"
+    sequence:
+      - "edit the obvious target"
+      - "run the narrowest meaningful verification"
+      - "/decide only if a durable choice appears"
+    stop: "Stop if the edit touches multiple surfaces or reveals a recurring pattern."
+    cues:
+      strong: [typo, one-line, oneline, trivial, tiny, narrow, obvious]
+      normal: [rename, small, simple, docs, copy, text]
+      negative: [architecture, subsystem, unknown, inherited, repeated]
+    alternatives: [bug-fix, decision-capture]
+
+  - id: bug-fix
+    title: Bug Fix
+    summary: Reproduce, trace, patch the root cause, verify, then consider a guard.
+    first_next: "reproduce the failure"
+    sequence:
+      - "reproduce with a test, log, or traceback"
+      - "trace call sites and patch the root cause"
+      - "verify the failure no longer occurs"
+      - "/prevent-regression if the bug shape can recur"
+    stop: "Stop and reframe if the bug cannot be reproduced or spans a subsystem boundary."
+    cues:
+      strong: [bug, broken, failing, failure, traceback, exception, error]
+      normal: [fix, reproduce, root, regression, crash]
+      negative: [new, feature, scaffold, onboard]
+    alternatives: [regression-prevention, legacy-stabilization]
+
+  - id: feature-shaping
+    title: Feature Shaping
+    summary: Shape new behavior before implementation.
+    first_next: "/plan-feature"
+    sequence:
+      - "/plan-feature for one-workflow features"
+      - "/scope-feature -> /impact-feature -> /architecture-fit -> /plan-spec for system work"
+      - "implement from the resulting plan/spec"
+    stop: "Stop when scope or architecture fit changes the feature boundary."
+    cues:
+      strong: [feature, add, endpoint, capability, workflow]
+      normal: [new, expose, build, plan, scope, design, system]
+      negative: [typo, dead, duplicate, repeated]
+    alternatives: [decision-capture, direct-change]
+
+  - id: legacy-stabilization
+    title: Legacy Stabilization
+    summary: Map and stabilize messy inherited code before standardizing patterns.
+    first_next: "/map-subsystem"
+    sequence:
+      - "/map-subsystem or /map-product-workflow"
+      - "run selected SUSPECT skills"
+      - "/triage-debt"
+      - "promote only human-approved healthy patterns"
+    stop: "Stop before treating common legacy patterns as doctrine."
+    cues:
+      strong: [legacy, messy, chaotic, stabilize, stabilization, vibe-coded]
+      normal: [cleanup, slow, branchy, inherited, standardize, canonize, debt]
+      negative: [typo, one-line, accepted, proposal]
+    alternatives: [health-audit, project-intake]
+
+  - id: health-audit
+    title: Health Audit
+    summary: Run an advisory sweep and turn findings into a prioritized queue.
+    first_next: "selected /find-* skill"
+    sequence:
+      - "choose focused SUSPECT scans"
+      - "/triage-debt"
+      - "pick the highest-value follow-up"
+    stop: "Stop when the scan is broad enough to prioritize; do not fix everything in one pass."
+    cues:
+      strong: [audit, scan, health, sweep]
+      normal: [find, inspect, periodic, review, hotspots, complexity, duplication]
+      negative: [typo, approved, implement]
+    alternatives: [legacy-stabilization, regression-prevention]
+
+  - id: refactor-execution
+    title: Refactor Execution
+    summary: Execute an approved cleanup/refactor proposal with characterization tests.
+    first_next: "/fix-workflow"
+    sequence:
+      - "confirm the approved proposal or cluster"
+      - "/fix-workflow for one cluster or /refactor-subsystem for larger restructuring"
+      - "run characterization and targeted tests"
+      - "/prevent-regression"
+    stop: "Stop if the target lacks an approved proposal or enough characterization."
+    cues:
+      strong: [approved, proposal, execute, refactor]
+      normal: [extract, split, move, cluster, spec, planned]
+      negative: [unknown, brainstorm, audit, scan]
+    alternatives: [legacy-stabilization, regression-prevention]
+
+  - id: regression-prevention
+    title: Regression Prevention
+    summary: Convert repeated failures or completed cleanup lessons into guards.
+    first_next: "/prevent-regression"
+    sequence:
+      - "name the recurring failure shape"
+      - "/prevent-regression"
+      - "add the narrow lint/test/policy guard"
+      - "document the canonical pattern"
+    stop: "Stop if the pattern has not repeated or the replacement shape is not known."
+    cues:
+      strong: [prevent, guard, recurring, repeated, again, keeps]
+      normal: [regression, enforce, lint, rule, policy, back, recurring-bug, should-have-guarded]
+      negative: [new, unknown, brainstorm]
+    alternatives: [bug-fix, decision-capture]
+
+  - id: decision-capture
+    title: Decision Capture
+    summary: Pause to record or compare a durable tradeoff before implementation.
+    first_next: "/decide"
+    sequence:
+      - "/design-it-twice if the fork is material and unsettled"
+      - "/decide once the choice is clear"
+      - "resume the underlying work shape"
+    stop: "Stop when the choice is merely local preference, not durable project case law."
+    cues:
+      strong: [decision, decide, adr, tradeoff, choose]
+      normal: [architecture, option, fork, durable, policy, convention]
+      negative: [typo, trivial, scan]
+    alternatives: [feature-shaping, direct-change]

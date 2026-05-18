@@ -59,14 +59,27 @@ def _composition_pairs(events: list[dict]) -> Counter[tuple[str, str]]:
     return pairs
 
 
+def _split_events(events: list[dict]) -> tuple[list[dict], list[dict]]:
+    run_events: list[dict] = []
+    recommendation_events: list[dict] = []
+    for event in events:
+        if event.get("event_kind") == "recommendation":
+            recommendation_events.append(event)
+        else:
+            run_events.append(event)
+    return run_events, recommendation_events
+
+
 def _render_digest(events: list[dict], window_start: str, window_end: str) -> str:
     by_skill: dict[str, list[dict]] = defaultdict(list)
-    for event in events:
+    run_events, recommendation_events = _split_events(events)
+    for event in run_events:
         by_skill[event["skill"]].append(event)
 
     lines: list[str] = []
     lines.append(f"# Skill-use lessons — {window_start} → {window_end}\n")
     lines.append(f"Events in window: {len(events)}\n")
+    lines.append(f"Skill runs: {len(run_events)}; shape recommendations: {len(recommendation_events)}\n")
 
     lines.append("## Per-skill useful rate\n")
     lines.append("| Skill | n | useful% | overridden% |")
@@ -105,7 +118,7 @@ def _render_digest(events: list[dict], window_start: str, window_end: str) -> st
         lines.append("(no override themes in this window)")
 
     lines.append("\n## Composition patterns (skill → follow-up)\n")
-    pairs = _composition_pairs(events)
+    pairs = _composition_pairs(run_events)
     if not pairs:
         lines.append("(no follow-up handoffs captured)")
     else:
@@ -131,6 +144,34 @@ def _render_digest(events: list[dict], window_start: str, window_end: str) -> st
         lines.extend(triggers)
     else:
         lines.append("(no triggers fired in this window)")
+
+    lines.append("\n## Shape recommendation feedback\n")
+    if not recommendation_events:
+        lines.append("(no shape recommendation events captured)")
+    else:
+        by_shape: dict[str, list[dict]] = defaultdict(list)
+        for event in recommendation_events:
+            shape = event.get("shape")
+            if isinstance(shape, str) and shape:
+                by_shape[shape].append(event)
+        lines.append("| Shape | n | overridden% | top override theme |")
+        lines.append("|---|---:|---:|---|")
+        for shape in sorted(by_shape):
+            shape_events = by_shape[shape]
+            n = len(shape_events)
+            overridden = sum(1 for event in shape_events if event.get("outcome") == "overridden")
+            stems = Counter(
+                _stem(event["human_override"])
+                for event in shape_events
+                if isinstance(event.get("human_override"), str)
+                and event["human_override"].strip()
+            )
+            stems.pop("", None)
+            top_override = stems.most_common(1)[0][0] if stems else "—"
+            lines.append(
+                f"| `{shape}` | {n} | {overridden * 100 // n if n else 0}% | "
+                f"{top_override} |"
+            )
 
     lines.append("")
     return "\n".join(lines)

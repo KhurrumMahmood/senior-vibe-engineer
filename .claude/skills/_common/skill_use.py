@@ -11,6 +11,7 @@ from __future__ import annotations
 import datetime
 import json
 from pathlib import Path
+from typing import Any
 
 
 def log_event(
@@ -22,18 +23,23 @@ def log_event(
     outcome: str = "useful",
     follow_up_skill: str | None = None,
     human_override: str | None = None,
+    event_kind: str = "skill_run",
+    log_path: Path | None = None,
+    **extra: Any,
 ) -> None:
     try:
-        repo_root = _find_repo_root(Path(__file__))
-        if repo_root is None:
-            return
-        log_path = repo_root / ".claude" / "skill-use" / "log.jsonl"
-        log_path.parent.mkdir(exist_ok=True)
+        if log_path is None:
+            repo_root = _find_repo_root(Path(__file__))
+            if repo_root is None:
+                return
+            log_path = repo_root / ".claude" / "skill-use" / "log.jsonl"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
         event = {
             "ts": datetime.datetime.now(datetime.timezone.utc).strftime(
                 "%Y-%m-%dT%H:%M:%SZ"
             ),
             "skill": skill,
+            "event_kind": event_kind,
             "target": target,
             "artifact": artifact,
             "outcome": outcome,
@@ -41,10 +47,11 @@ def log_event(
             "duration_s": round(elapsed_s, 3),
             "follow_up_skill": follow_up_skill,
         }
+        event.update(extra)
         with log_path.open("a") as fh:
             fh.write(json.dumps(event) + "\n")
-    except Exception:  # noqa: BLE001 — telemetry logging must never break the skill
-        pass  # noqa: silent-catch: telemetry write is best-effort — must never break the skill
+    except (OSError, TypeError, ValueError):
+        pass
 
 
 def _find_repo_root(start: Path) -> Path | None:

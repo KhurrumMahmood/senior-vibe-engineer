@@ -45,6 +45,7 @@ One JSON object per line. Required fields:
 {
   "ts": "2026-05-14T10:32:00Z",
   "skill": "find-omnibus",
+  "event_kind": "skill_run",
   "target": "<path or identifier>",
   "artifact": "reports/find-omnibus/scan-20260514-1032/findings.json",
   "outcome": "useful",
@@ -59,6 +60,10 @@ Field meanings:
 - `ts` — ISO-8601 UTC timestamp when the skill terminated.
 - `skill` — the slug from the skill's frontmatter `name:` field
   (without the leading `/`).
+- `event_kind` — optional; existing events without the field are
+  treated as `skill_run`. `/which-shape` emits `recommendation`
+  events, which projections summarize separately so routing advice
+  does not pollute skill useful-rate metrics.
 - `target` — the path or identifier the skill was invoked on.
   May be a file path, subsystem slug, scan id, or a skill directory.
 - `artifact` — relative path to the primary artifact produced. `null`
@@ -80,6 +85,23 @@ Field meanings:
   not orchestrator time).
 - `follow_up_skill` — the next skill the human invoked (or `null` if
   none). Captures composition patterns.
+
+Shape recommendation events add these optional fields:
+
+```json
+{
+  "event_kind": "recommendation",
+  "skill": "which-shape",
+  "shape": "legacy-stabilization",
+  "confidence": "high",
+  "project_context_state": "missing",
+  "recommended_first_skill": "/map-subsystem"
+}
+```
+
+Use `outcome: "overridden"` plus a short `human_override` stem such as
+`wrong-shape`, `too-much-process`, `missed-project-intake`, or
+`should-have-guarded` when the recommendation was wrong.
 
 ## Opt-in capture
 
