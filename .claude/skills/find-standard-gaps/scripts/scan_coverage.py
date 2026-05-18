@@ -206,7 +206,13 @@ def run_ast_detector(root: Path, detector: dict):
             tree = ast.parse(src)
             srclines = src.splitlines()
 
-            def visit(node: ast.AST, in_try: bool, in_with: bool) -> None:
+            # `visit` is defined inside the per-file loop; bind the
+            # per-file state as default args so the closure captures this
+            # iteration's values, not the loop variable (ruff B023).
+            def visit(node: ast.AST, in_try: bool, in_with: bool,
+                      srclines: list[str] = srclines, rel: str = rel,
+                      file_sites: list[dict] = file_sites,
+                      file_gaps: list[dict] = file_gaps) -> None:
                 if isinstance(node, ast.Call):
                     name = _dotted(node.func)
                     if name and call_re.search(name):

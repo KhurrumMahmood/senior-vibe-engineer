@@ -19,6 +19,7 @@ not_for: |
   fixes (hand off to /fix-workflow). Authoring a bespoke one-off lint
   when no standard will be reused (just write the lint).
 language: python
+framework: any
 ---
 
 # /find-standard-gaps
