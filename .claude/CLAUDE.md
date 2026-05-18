@@ -212,9 +212,10 @@ rules that don't have lints yet.
 ## Maintenance Workflow
 
 Cleanup uses a five-job loop: **map → suspect → explain → refactor →
-guard**, with `/diagnose` beside it for concrete symptoms and
-`/plan-skill` as the intake gate for new/revised skills. The full skill
-catalogue is in `docs/skill-catalog.md`; the six architectural smells
+guard**, with `/diagnose` beside it for concrete symptoms,
+`/plan-skill` as the intake gate for new/revised skills, and
+`/check-ecosystem-consistency` after significant skill changes. The full
+skill catalogue is in `docs/skill-catalog.md`; the six architectural smells
 the SUSPECT skills target are in
 `docs/architectural-smells.md`. Skipping MAP or EXPLAIN is fine when the
 target is already understood. **Skipping GUARD is a mistake** — it turns

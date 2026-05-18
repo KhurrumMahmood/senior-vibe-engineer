@@ -17,6 +17,8 @@ type: "always_apply"
   highest-leverage anti-misapplication field.
 - `/which-skill` recommends or rules out a skill from a free-text task
   description by reading every `SKILL.md` frontmatter.
+- `/which-shape` recommends the operating loop before tactical skill choice;
+  update its `shapes.yml` when a new skill changes a durable loop.
 - `/diagnose` is the concrete-symptom lane beside the maintenance
   loop: reproduce, identify root cause, verify the fix, and name
   the prevention follow-up before broad cleanup.
@@ -24,6 +26,10 @@ type: "always_apply"
   revised skills. New skills need adversarial requirements, a
   trigger contract, evidence requirements, and at least one dogfood
   case before cataloging.
+- `/check-ecosystem-consistency` is the post-change audit for the skill
+  ecosystem. It compares against `.claude/ecosystem/last-state.json` and
+  flags stale counts, missing catalog coverage, and shape-router review
+  obligations.
 
 ### Planning ladder
 

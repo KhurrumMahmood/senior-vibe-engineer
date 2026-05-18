@@ -34,6 +34,9 @@ meta** skills that complement every tier:
   decide  (cross-cutting; at any tier when a real choice is made)
     │
     ▼
+  which-shape  (meta; recommends the right operating loop)
+    │
+    ▼
   which-skill  (meta; recommends the right skill for an ambiguous task)
 ```
 
@@ -45,9 +48,9 @@ work enters at PLAN; cleanup work enters at MAP or SUSPECT.
 
 Most "which skill?" questions have an obvious answer if you name the
 shape of the task. The walkthroughs below cover the common cases. When
-in doubt, run `/which-skill <task description>` — it scores the task
-against every skill's `best_for` / `not_for` and either picks one or
-explicitly says "no planning skill applies — proceed directly."
+the operating loop is unclear, run `/which-shape <situation>`. When the
+loop is clear but the exact skill is not, run `/which-skill <task
+description>`.
 
 ### One-line bug fix or trivial change
 
@@ -108,6 +111,10 @@ case demonstrates the skill works.
 → Then implement the smallest useful skill, run `skill_meta.py lint`,
 run matcher cases for positive/negative prompts, and dogfood once before
 cataloging it.
+→ Run **`/check-ecosystem-consistency`** before handoff for significant
+skill changes. It snapshots the skill ecosystem, compares against the
+last reviewed state, and flags follow-ups like stale counts, missing
+catalog coverage, and possible `/which-shape` registry updates.
 → NOT direct skill authoring for broad or new workflow skills. Tiny
 wording fixes to existing `SKILL.md` files can be edited directly.
 
@@ -140,6 +147,8 @@ file/symbol you need to trust.
 - "Comments feel stale, noisy, detached, or too thin to help" →
   `/find-comment-drift`
 - "Old code might be dead" → `/find-dormant`
+- "A baseline standard isn't applied everywhere it should be" →
+  `/find-standard-gaps`
 
 ### Recording a real architectural choice
 
@@ -148,7 +157,16 @@ file/symbol you need to trust.
 alternative explicitly, or sets an expiration. Pure preferences do
 NOT need an ADR.
 
-### Genuinely uncertain — multiple skills could apply
+### Genuinely uncertain — the operating loop is unclear
+
+→ **`/which-shape <situation>`** — recommends the problem-solving loop
+first: project intake, direct change, bug fix, feature shaping, legacy
+stabilization, health audit, refactor execution, regression prevention,
+or decision capture.
+→ Use this when the user describes a messy situation and should not
+need to understand the skill catalog.
+
+### Tactically uncertain — multiple skills could apply
 
 → **`/which-skill <task description>`** — scores every skill's
 metadata against the task; recommends the top match or "proceed
@@ -256,6 +274,7 @@ want systematic confirmation.
 | `/find-comment-drift` | Comments/docstrings/JSDoc that no longer carry senior-engineer signal: detached banners, narration comments, missing/thin public class docstrings, stale terminology, JS functions needing JSDoc, thin ceremonial JSDoc, noisy HTML section comments, malformed doc references. Advisory report; its bad-comment subset is mirrored by the diff-scoped `comment-drift` lint. | When an AI-grown surface feels sour to read, after a route/UI cleanup, or before doing a focused explanatory-code pass. |
 | `/find-folder-topology-drift` | Bidirectional ADR 0006 audit — flat folders with N≥3 same-prefix sibling files (promote), `tests_*.py` populations missing a `tests/` subfolder, AND folder packages whose source-module count fell below ≥3 (demote). Folders earn packaging at threshold and lose it below threshold. | When a `views/`, `tasks/`, or `services/` directory feels like a junk drawer of `<prefix>_*.py` siblings; or when a previous decomposition's folder has shrunk back to 1-2 source modules. |
 | `/find-stale-artifacts` | Working-artifact hygiene for non-code surfaces — abandoned plans, in-flight plans past a soft staleness budget, aged `reports/<skill>/scan-<TS>/` directories not pointed at by `latest`, and orphan top-level `reports/*.md` files. Sibling to `/find-dormant` for code. | Periodic (monthly / quarterly) sweep of `ai-docs/plans/` and `reports/` to keep working-artifact directories from accumulating cruft as side effects of active work. |
+| `/find-standard-gaps` | Sites where a declared baseline standard should apply but doesn't — each standard is an idea with an executable `ast` detector (`call_matches` + `enclosed_by`/`requires_kwarg`). Generalizes hand-written AST lints: declare a standard once instead of authoring a bespoke lint. Detection-only. | Periodic security/resilience sweep; when a guard class ("X must be inside a `try`", "Y must pass a timeout") should hold project-wide; after adding a standard to the standards file. |
 
 ### Product-Health Pilot Workflow
 
@@ -349,6 +368,8 @@ other skill — at any tier, at any stage.
 | Skill | What it does | When |
 |---|---|---|
 | `/decide` | Authors or amends an ADR under `ai-docs/decisions/<NNNN>-<slug>.md`. Reads canonical-patterns.md and architectural-smells.md to suggest related-pattern / related-smell backrefs. Smallest first-class artifact in the senior-engineer ecosystem. | When a real choice is being made that constrains future work, excludes an alternative, or sets an expiration. Threshold: 2-5 ADRs/quarter. |
+| `/which-shape` | Strategic router. Reads `which-shape/shapes.yml` plus `.claude/project/` adapter/profile state and recommends an advisory operating loop with first next step, sequence, and stop/reassess condition. | When the situation is ambiguous at the loop level: unknown project, messy legacy code, broad health question, recurring failure, or unclear feature/refactor/decision shape. |
+| `/check-ecosystem-consistency` | Diff-aware ecosystem audit. Snapshots skills, `/which-shape` references, public count claims, and catalog coverage; compares against `.claude/ecosystem/last-state.json`; writes `reports/check-ecosystem-consistency/scan-<TS>/`. | After adding/removing/materially changing skills or editing the shape registry/catalog. Use `--update-state` only after the findings are reviewed. |
 | `/which-skill` | Recommender. Reads every SKILL.md frontmatter (tier, job, best_for, not_for) and ranks against a free-text task description. Returns top match or "proceed directly". | When the right skill isn't obvious, especially at the start of a non-trivial task. Defends against funneling a 1-line fix into heavy planning machinery. |
 | `/plan-skill` | New-skill intake and hardening gate. Produces a skill brief, adversarial requirements review, validation plan, and evidence manifest before implementation. | Before creating a new skill or materially revising an existing one. Forces the "why not an existing skill?" and "how will we dogfood this?" questions up front. |
 | `/engineer-init` | Bootstraps the ecosystem runtime — checks Python >= 3.11, creates `.venv`, installs `requirements.txt`, wires pre-commit hooks when the repo is git-tracked, and verifies a script-backed skill runs to exit 0. Idempotent; `--check` reports status without installing. Prompt-only, no helper script. | Once per clone before invoking any script-backed skill; or when a skill errors out with a missing-module / dependency failure. |
@@ -359,9 +380,9 @@ other skill — at any tier, at any stage.
 
 `/decide` should be invoked WITHIN other skills' flows when a fork
 needs an ADR (e.g., `/plan-feature` Stage 3 may invoke `/decide` for
-each material fork). `/which-skill` is the agent-facing meta tool — if
-the agent is uncertain which skill to use, it runs `/which-skill`
-first. `/triage-debt`, `/teach-pattern`, and `/audit-decisions` are the
+each material fork). `/which-shape` chooses the operating loop when the
+situation is broad or unclear; `/which-skill` chooses the tactical skill
+inside a known loop. `/triage-debt`, `/teach-pattern`, and `/audit-decisions` are the
 **senior-engineer surface** — they make accumulation visible, turn
 rules into briefings agents can reason about mid-PR, and prevent the
 decision registry from rotting. All three are read-only — the user

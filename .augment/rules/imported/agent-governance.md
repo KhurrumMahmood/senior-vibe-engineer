@@ -27,6 +27,9 @@ type: "always_apply"
 - Skill ecosystem changes go through `/plan-skill` unless they are tiny wording
   edits. New skills need adversarial requirements, a trigger contract,
   evidence/dogfood plan, and `scripts/skill_meta.py lint` before cataloging.
+- After significant skill ecosystem changes, run
+  `/check-ecosystem-consistency` and review stale counts, catalog coverage,
+  and possible `/which-shape` registry updates before updating its state.
 - Concrete bug investigations with no trusted reproduction should use
   `/diagnose` before implementation: feedback loop, hypotheses, root cause,
   verification, and cleanup check.

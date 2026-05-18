@@ -204,9 +204,12 @@ Outside the linear loop:
 - `teach-pattern` — turn doctrine into agent-consumable briefings.
 - `decide` — author/amend ADRs at any tier.
 - `design-it-twice` — parallel-divergent fan-out for material design forks.
+- `which-shape` — recommends the operating loop before tactical skill choice.
 - `which-skill` — recommender that defends against skill misapplication.
 - `plan-skill` — adversarial requirements and validation gate before
   new skills enter the catalog.
+- `check-ecosystem-consistency` — diff-aware audit that checks whether
+  skills, `/which-shape`, catalog coverage, and public counts still agree.
 
 ### 2.3 Planning chain (System tier)
 

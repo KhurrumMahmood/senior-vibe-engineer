@@ -49,6 +49,10 @@ into a recurring tax. See `.claude/docs/skill-catalog.md` for the full
 skill list and `.claude/docs/architectural-smells.md` for the six
 architectural smells the SUSPECT skills target.
 
+`/which-shape` chooses the operating loop when the task shape is unclear;
+`/check-ecosystem-consistency` keeps that router, the skill catalog, and
+public skill counts aligned after significant skill changes.
+
 ## Planning ladder
 
 Plan complexity should be tiered to task stakes:
@@ -89,6 +93,8 @@ bad/good fixtures under `tests/lint/`.
   reproduction loop or root-cause explanation.
 - Use `/plan-skill` before creating or materially revising a repo
   skill; tiny wording fixes can be edited directly.
+- Run `/check-ecosystem-consistency` after significant skill ecosystem
+  changes; review `/which-shape` impact before updating its stored state.
 - Apply `.claude/skills/_common/interface-depth.md` before adding
   helpers, services, module splits, abstractions, or adapters.
 - Verify changed behavior before calling work done. State exactly what

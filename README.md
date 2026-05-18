@@ -11,7 +11,7 @@ Augment, Cursor, Gemini) should start at
 
 ## What's in the box
 
-- **`.claude/skills/`** — 60 skills covering diagnosis, construction,
+- **`.claude/skills/`** — 63 skills covering diagnosis, construction,
   and five jobs in the maintenance loop:
   - **DIAGNOSE** (`diagnose`) — turn concrete symptoms, regressions,
     flakes, and unclear failures into a reproduction loop, root cause,
@@ -25,8 +25,9 @@ Augment, Cursor, Gemini) should start at
     `find-semantic-duplication`, `find-implicit-state`, `find-layer-violation`,
     `find-query-mutation`, `find-transaction-overreach`, `find-comment-drift`,
     `find-*-drift` family, `find-stale-artifacts`, `find-folder-topology-drift`,
-    `find-rule-surface-drift`, `find-test-obligation-drift`, …) — advisory
-    scans that produce ranked, evidence-backed candidate lists.
+    `find-rule-surface-drift`, `find-test-obligation-drift`,
+    `find-standard-gaps`, …) — advisory scans that produce ranked,
+    evidence-backed candidate lists.
   - **EXPLAIN** (`explain-code`, `teach-pattern`, `extract-cotton-primitive`,
     `extract-enum`, `extract-state-type`, `extract-workflow-registry`,
     `introduce-fk`, `unify-shadows`, `propose-folder-reorganization`) —
@@ -37,7 +38,8 @@ Augment, Cursor, Gemini) should start at
   - **GUARD** (`prevent-regression`) — turn a closed cleanup into a
     lint / test guardrail so the problem can't come back.
   - Plus governance skills: `decide`, `audit-decisions`,
-    `project-interview`, `adapt-project`, `scope-feature` /
+    `which-shape`, `check-ecosystem-consistency`, `project-interview`,
+    `adapt-project`, `scope-feature` /
     `impact-feature` / `architecture-fit` / `plan-spec` (System-tier
     planning chain), `design-it-twice`, `plan-skill`, `which-skill`,
     `triage-debt`.
@@ -92,6 +94,7 @@ python3 -m venv .venv
 .venv/bin/pre-commit install   # requires a git repo; skip if unversioned
 
 # Try a skill (under Claude Code; Codex/Augment vary)
+/which-shape "this inherited project feels messy and slow"
 /which-skill "I need to clean up duplicated workflow modules"
 /find-duplication app/services
 /triage-debt
@@ -130,7 +133,7 @@ things commonly block them:
 .claude/
   CLAUDE.md                 # lean root guide for all agents
   docs/                     # doctrine: canonical patterns, smells, catalogue
-  skills/                   # 60 skills, each a self-contained dir
+  skills/                   # 63 skills, each a self-contained dir
     _common/                # shared scout-dispatch, scripts, posture docs
     <skill-name>/SKILL.md   # the agent-facing skill definition
 ai-docs/
