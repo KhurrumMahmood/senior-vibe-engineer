@@ -1,0 +1,4 @@
+interface:
+  display_name: "Check Ecosystem Consistency"
+  short_description: "Audit skill ecosystem drift"
+  default_prompt: "Use $check-ecosystem-consistency to audit skill, catalog, and shape-router consistency after this change."
