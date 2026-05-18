@@ -1,0 +1,54 @@
+{
+  "standards_version": "0.1",
+  "note": "EXAMPLE / TEMPLATE. Copy to standards.json and adapt to your project — narrow `paths` to your source root and replace these with the baseline standards your codebase should uphold. A standard = an idea with an executable `ast` detector. See ../knowledge/detector-model.md for the detector model and how to add one.",
+  "ideas": [
+    {
+      "id": "idea-external-connection-resilience",
+      "label": "External DB connections must have error handling",
+      "kind": "standard",
+      "level": "primitive",
+      "dimension": "quality",
+      "statement": "Code that opens a connection to an external database must do so inside exception handling, so an unreachable host or bad credential surfaces as an actionable failure rather than an unhandled traceback.",
+      "status": "claimed",
+      "contract": {
+        "solves": [
+          "an external DB being down or misconfigured crashes the request with a raw traceback"
+        ],
+        "improves": [
+          "operator-facing resilience of external-database integrations"
+        ],
+        "applies_when": "code opens a connection to an external database",
+        "detector": {
+          "kind": "ast",
+          "call_matches": "(mysql\\.connector|pymysql|psycopg2|MySQLdb|sqlite3)\\.connect$",
+          "enclosed_by": "try",
+          "paths": ["**/*.py"]
+        }
+      }
+    },
+    {
+      "id": "idea-http-request-timeout",
+      "label": "Outbound HTTP requests must set a timeout",
+      "kind": "standard",
+      "level": "primitive",
+      "dimension": "quality",
+      "statement": "Every outbound requests.* call must pass an explicit timeout, so a hung or slow remote host cannot block a worker or request indefinitely.",
+      "status": "claimed",
+      "contract": {
+        "solves": [
+          "a hung remote host blocks a worker or request forever when no timeout is set"
+        ],
+        "improves": [
+          "resilience of every outbound HTTP integration"
+        ],
+        "applies_when": "code makes an outbound HTTP call via the requests library",
+        "detector": {
+          "kind": "ast",
+          "call_matches": "requests\\.(get|post|put|patch|delete|head|request)$",
+          "requires_kwarg": "timeout",
+          "paths": ["**/*.py"]
+        }
+      }
+    }
+  ]
+}
