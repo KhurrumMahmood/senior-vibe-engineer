@@ -1,12 +1,17 @@
 # Runtime deps for the ecosystem scripts and lint runner.
+#
+# All deps are pinned to exact versions so the venv is reproducible and
+# portable: `python3.11 -m venv .venv && .venv/bin/pip install -r
+# requirements.txt` yields an identical environment on any clone. CI
+# (.github/workflows/ci.yml) runs Python 3.11. Bump versions deliberately.
 
 # Used by scripts/_lib/yaml_frontmatter.py for shared frontmatter parsing
 # across decisions/plans/skill_meta/specs. The four scripts share this
 # module instead of hand-rolled YAML parsers — see ADR 0003.
-PyYAML>=6.0
+PyYAML==6.0.3
 
-# Dev tooling (CI + local pre-commit). Pinning ruff so the hook version
-# in .pre-commit-config.yaml stays in lockstep.
+# Dev tooling (CI + local pre-commit). ruff stays in lockstep with the
+# hook version pinned in .pre-commit-config.yaml.
 ruff==0.6.9
-pre-commit>=3.7.0
-pytest>=8.0
+pre-commit==4.6.0
+pytest==9.0.3
