@@ -102,3 +102,19 @@ repos:
         additional_dependencies: ["PyYAML>=6.0"]
         files: ^ai-docs/decisions/.*\.md$
         pass_filenames: false
+
+      # Skill-ecosystem guard. find-skill-artifact-drift's Band-A subset
+      # blocks a commit that introduces a SKILL.md referencing a script,
+      # flag, or Bash grant that does not exist. Scoped to changed SKILL.md
+      # (pass_filenames) so it ratchets forward and never blocks on
+      # pre-existing drift in untouched skills; fixtures carry deliberate
+      # drift so they are excluded. CI runs the same gate registry-wide as
+      # an advisory warning — see .github/workflows/ci.yml.
+      - id: skill-artifact-drift
+        name: "skill-artifact-drift (SKILL.md scripts/flags/tools must exist)"
+        entry: python .claude/skills/find-skill-artifact-drift/scripts/detect.py --gate
+        language: python
+        additional_dependencies: ["PyYAML>=6.0"]
+        files: (^|/)SKILL\.md$
+        exclude: /fixtures/
+        pass_filenames: true

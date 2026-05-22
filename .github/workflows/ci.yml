@@ -51,6 +51,15 @@ jobs:
       - name: Skill frontmatter contract (registry-wide)
         run: python3 scripts/skill_meta.py lint
 
+      # find-skill-artifact-drift Band-A run, registry-wide and advisory.
+      # The ecosystem ships pre-existing reference drift (e.g. a SKILL.md
+      # documenting renamed scanner scripts), so a hard gate would mean
+      # dated CI breakage. Emit a warning; pre-commit keeps the
+      # changed-files Band-A gate hard — same coverage-ratchet split as the
+      # ADR audit above.
+      - name: Skill-artifact drift (advisory, registry-wide)
+        run: python3 .claude/skills/find-skill-artifact-drift/scripts/detect.py --gate || echo "::warning::find-skill-artifact-drift reported Band-A reference drift (advisory) — see output above"
+
       - name: Compute changed Python files vs main
         id: changed
         run: |
