@@ -21,6 +21,11 @@ Detector kinds:
   - `manual` — skipped; checked by hand.
 
 Per-standard status in the output:
+  - `gated_out`           — the standard's `activation` (ADR 0020) is
+                            NOT in scope for the project's declared
+                            (maturity, stakes). Computed BEFORE the
+                            detector — it is NOT scanned, NOT counted as
+                            gaps, and is NEVER a "0 gaps" pass.
   - `scanned`             — ran; see gaps. `skipped_files` flags any
                             file that could not be read/parsed.
   - `no_files_matched`    — the detector's `paths` matched nothing. A
@@ -30,6 +35,14 @@ Per-standard status in the output:
                             files but none are `.py`.
   - `skipped` / `error`   — manual/skill detector, or a malformed one.
 A "0 gaps" result is only trustworthy under `status: scanned`.
+
+Standard activation (ADR 0020): each standard may carry an `activation`
+of `{"baseline": true}` or `{"rungs": [{min_maturity, min_stakes}, ...]}`.
+The project's state is read from `<project-root>/.project-state.json`
+(maturity x stakes). A standard is gated in scope BEFORE its detector
+runs; if no state file is found, MAX (production / public-adversarial) is
+assumed so nothing is silently skipped, with a prominent warning to run
+`/orient`. See knowledge/detector-model.md and project_state.py.
 
 Stdlib-only. Read-only against the codebase.
 
@@ -48,8 +61,26 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+# project_state lives beside this script; add our own dir to sys.path so
+# the import works whether the script is run directly or imported by a
+# test that has not put this directory on the path.
+_HERE = Path(__file__).resolve().parent
+if str(_HERE) not in sys.path:
+    sys.path.insert(0, str(_HERE))
+from project_state import (  # noqa: E402
+    PROJECT_STATE_FILENAME,
+    assumed_max_state,
+    load_project_state,
+    standard_in_scope,
+)
+
 SKIP_DIRS = {".venv", "__pycache__", "migrations", ".git", "node_modules",
-             "tests", "experiments"}
+             "tests", "experiments", "worktrees"}
+# `worktrees` (e.g. `.claude/worktrees/<name>/`) holds full repo checkouts
+# created for agent isolation. Scanning them double-counts the whole tree —
+# a dogfood run on a host project with one stale worktree inflated every
+# `**/*.py` detector ~10x (e.g. eval/exec: 462 of 483 hits were the worktree
+# copy). They are repo copies, never first-party source — skip like `.git`.
 
 # Python 3.11+ `try/except*` is a distinct node; treat it like `try`.
 _TRY_TYPES = (ast.Try,) + ((ast.TryStar,) if hasattr(ast, "TryStar") else ())
@@ -273,11 +304,19 @@ def run_ast_detector(root: Path, detector: dict):
 
 
 # --------------------------------------------------------------------------
-def analyze_idea(root: Path, idea: dict) -> dict:
+def analyze_idea(root: Path, idea: dict, state: dict) -> dict:
     detector = (idea.get("contract") or {}).get("detector") or {}
     kind = detector.get("kind", "none")
     base = {"id": idea.get("id", "?"), "label": idea.get("label", ""),
             "detector_kind": kind}
+
+    # Activation gate (ADR 0020) runs FIRST — with precedence over detector
+    # kind. A standard not in scope for the project's declared state is
+    # reported `gated_out`: not scanned, not a gap, not a "0 gaps" pass.
+    in_scope, reason = standard_in_scope(idea.get("activation"), state)
+    if not in_scope:
+        return {**base, "status": "gated_out", "reason": reason}
+
     runner = {"grep": run_grep_detector, "ast": run_ast_detector}.get(kind)
     if runner:
         result, err = runner(root, detector)
@@ -311,18 +350,34 @@ def analyze_idea(root: Path, idea: dict) -> dict:
             "error": "no executable detector (kind manual / none)"}
 
 
-def render_report(source: str, results: list[dict]) -> str:
+def render_report(source: str, results: list[dict], state: dict) -> str:
+    assumed = state.get("assumed") is True
+    state_line = (f"maturity=`{state.get('maturity', '?')}` · "
+                  f"stakes=`{state.get('stakes', '?')}`"
+                  + (" (ASSUMED MAX — no .project-state.json)" if assumed else ""))
     L = [f"# Application-coverage scan — {source}", "",
          f"_Scanned {datetime.now(timezone.utc).isoformat(timespec='seconds')} "
-         f"by scan_coverage.py._", ""]
+         f"by scan_coverage.py._",
+         f"_Project state: {state_line}_", ""]
+    if assumed:
+        L += [f"> ⚠ **No `{PROJECT_STATE_FILENAME}` found** — assuming MAX "
+              f"(production / public-adversarial) so no standard is silently "
+              f"skipped. Run `/orient` to declare the project's real "
+              f"(maturity, stakes) and gate stakes-driven rungs honestly.", ""]
     scanned = [r for r in results if r["status"] == "scanned"]
     with_gaps = [r for r in scanned if r["gaps"]]
+    gated = [r for r in results if r["status"] == "gated_out"]
     unsupported = [r for r in results if r["status"] == "language_unsupported"]
     no_files = [r for r in results if r["status"] == "no_files_matched"]
     L += ["## Summary", "",
-          f"- {len(results)} standard(s) in input; {len(scanned)} scanned",
+          f"- {len(results)} standard(s) in input; {len(scanned)} scanned, "
+          f"{len(gated)} gated out (out of scope at the declared state)",
           f"- **{sum(len(r['gaps']) for r in scanned)} coverage gap(s)** "
           f"across {len(with_gaps)} standard(s)"]
+    if gated:
+        L.append(f"- {len(gated)} standard(s) **gated out** — not in scope for "
+                 f"`{state.get('maturity', '?')}/{state.get('stakes', '?')}`; "
+                 f"NOT scanned and NOT a \"0 gaps\" pass")
     if unsupported:
         L.append(f"- ⚠ {len(unsupported)} standard(s) **language-unsupported** — "
                  f"the `ast` detector is Python-only; see SKILL.md "
@@ -331,7 +386,26 @@ def render_report(source: str, results: list[dict]) -> str:
         L.append(f"- ⚠ {len(no_files)} standard(s) matched **no files** — a "
                  f"misconfigured glob; NOT a passing result")
     L.append("")
+
+    # Gated-out standards get their own clearly-labelled section: they were
+    # never scanned, so folding them into the per-standard list below would
+    # blur "0 gaps" (a pass) with "out of scope" (not even checked).
+    if gated:
+        L += ["## Gated out (out of scope at the declared state)", "",
+              "_These standards' activation thresholds are not met by the "
+              "project's declared (maturity, stakes). They were NOT scanned — "
+              "this is not a passing result, it is \"does not apply yet\". "
+              "Raising the declared state via `/orient` may activate them._",
+              ""]
+        for r in gated:
+            L.append(f"### `{r['id']}` — {r['label']}")
+            L.append(f"- _gated_out: {r.get('reason', '')}_")
+            L.append("")
+
+    L += ["## Scanned & other statuses", ""]
     for r in results:
+        if r["status"] == "gated_out":
+            continue  # already listed in the gated-out section above
         L.append(f"### `{r['id']}` — {r['label']}")
         if r["status"] == "scanned":
             sites = r["situation_sites"]
@@ -354,6 +428,11 @@ def main() -> int:
                     help="JSON file with an `ideas` array (a standards file)")
     ap.add_argument("--project-root", required=True, type=Path)
     ap.add_argument("--output-dir", required=True, type=Path)
+    ap.add_argument("--project-state", type=Path, default=None,
+                    help=f"path to the project-state file (default: "
+                         f"<project-root>/{PROJECT_STATE_FILENAME}). Declares "
+                         f"(maturity, stakes); gates each standard's activation "
+                         f"(ADR 0020) before its detector runs.")
     args = ap.parse_args()
 
     try:
@@ -365,29 +444,58 @@ def main() -> int:
         sys.exit("error: --ideas file has no `ideas` array")
 
     root = args.project_root.resolve()
-    results = [analyze_idea(root, idea) for idea in ideas]
+
+    # Load the project-state surface. An explicit --project-state path that
+    # does not exist is a user error (don't silently assume MAX for a typo);
+    # the default-location absence is the legitimate "undeclared" case ->
+    # assume MAX and warn. A present-but-malformed file raises ValueError.
+    state_dir = args.project_state.parent if args.project_state else root
+    if args.project_state and not args.project_state.is_file():
+        sys.exit(f"error: --project-state {args.project_state} does not exist")
+    try:
+        state = load_project_state(state_dir)
+    except ValueError as exc:
+        sys.exit(f"error: {exc}")
+    assumed = state is None
+    if assumed:
+        state = assumed_max_state()
+
+    results = [analyze_idea(root, idea, state) for idea in ideas]
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     (args.output_dir / "coverage.json").write_text(
-        json.dumps({"source": str(args.ideas), "results": results}, indent=2))
+        json.dumps({"source": str(args.ideas), "project_state": state,
+                    "results": results}, indent=2))
     (args.output_dir / "coverage.md").write_text(
-        render_report(str(args.ideas), results))
+        render_report(str(args.ideas), results, state))
+
+    if assumed:
+        print(f"WARNING: no {PROJECT_STATE_FILENAME} found at "
+              f"{state_dir / PROJECT_STATE_FILENAME} — assuming MAX "
+              f"(production / public-adversarial) so nothing is silently "
+              f"skipped. Run /orient to declare (maturity, stakes).")
 
     scanned = [r for r in results if r["status"] == "scanned"]
+    gated = [r for r in results if r["status"] == "gated_out"]
     unsupported = [r for r in results if r["status"] == "language_unsupported"]
     no_files = [r for r in results if r["status"] == "no_files_matched"]
     total_gaps = sum(len(r["gaps"]) for r in scanned)
     flags = []
+    if gated:
+        flags.append(f"{len(gated)} gated out")
     if unsupported:
         flags.append(f"{len(unsupported)} language-unsupported")
     if no_files:
         flags.append(f"{len(no_files)} no-files-matched")
-    print(f"scanned {len(scanned)}/{len(results)} standard(s): {total_gaps} "
+    print(f"state {state['maturity']}/{state['stakes']}: scanned "
+          f"{len(scanned)}/{len(results)} standard(s): {total_gaps} "
           f"coverage gap(s)" + ("; " + ", ".join(flags) if flags else ""))
     for r in scanned:
         skipped = f", {r['skipped_files']} skipped" if r["skipped_files"] else ""
         print(f"  {r['id']} [{r['detector_kind']}]: {len(r['gaps'])} gap(s) "
               f"of {r['situation_sites']} situation site(s){skipped}")
+    for r in gated:
+        print(f"  {r['id']}: GATED OUT — {r['reason']}")
     for r in unsupported:
         print(f"  {r['id']}: LANGUAGE-UNSUPPORTED — {r['matched']} non-Python "
               f"file(s) matched ({', '.join(r['extensions'])})")
