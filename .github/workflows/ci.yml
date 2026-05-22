@@ -120,3 +120,11 @@ jobs:
       # not diff-scoped: a change anywhere can break a shared script.
       - name: Run pytest
         run: python3 -m pytest
+
+      # The ecosystem's own guard: run every skill's scripts/smoke.py through
+      # one aggregating gate. Blocking on smokes that exist (they must stay
+      # green); missing smokes are reported, not failed — coverage climbs over
+      # time, flip to --require-all when high enough. Runs always, not
+      # diff-scoped: a shared `_common` change can break any skill's smoke.
+      - name: Run skill ecosystem smokes
+        run: python3 .claude/skills/_common/scripts/run_skill_smokes.py
