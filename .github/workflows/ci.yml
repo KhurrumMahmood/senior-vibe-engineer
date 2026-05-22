@@ -43,6 +43,14 @@ jobs:
       - name: ADR registry audit (advisory)
         run: python3 scripts/decisions.py audit || echo "::warning::decision-registry audit reported drift (advisory) — see output above"
 
+      # The skill frontmatter contract (scripts/skill_meta.py lint) validated only a
+      # synthetic fixture, never the real skills — a bad tier/job enum or a missing
+      # required field could land green. Run it registry-wide (like the ADR checks
+      # above), always, hard. Stdlib-only, no extra deps. Flip to `lint --strict` to
+      # also forbid contract-less legacy skills once that ratchet is wanted.
+      - name: Skill frontmatter contract (registry-wide)
+        run: python3 scripts/skill_meta.py lint
+
       - name: Compute changed Python files vs main
         id: changed
         run: |
