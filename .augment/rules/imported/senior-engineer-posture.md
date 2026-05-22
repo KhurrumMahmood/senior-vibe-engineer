@@ -95,3 +95,23 @@ the updateable case-law registry for recurring mechanisms. Use it when a
 best-practice shape has canonical examples, guards, exceptions, and old
 applications that should migrate together if the shape changes. ADRs preserve
 history; precedents describe current law-as-applied.
+
+**Outward-facing quality specifically:** beyond "is this clean", a change
+usually touches security, resilience, observability, data/privacy, or cost —
+name which before choosing an approach. Instincts: validate or encode at every
+trust boundary (input → store, crawled HTML → prompt, LLM output →
+code/markup); default-deny and fail-closed; assume hostile input, a down
+dependency, AND a compromised dependency; guard irreversible actions
+(delete/charge/email/execute); make the secure path the easy path; treat the
+axis as decaying (coverage + regression guards beat one-time audits).
+Observability has two halves — application (can an operator debug it: structured
+logs, surfaced errors, metrics) and product (can the team see how users move
+through a workflow: usage events, drop-off, what they abandon/like). Stage
+controls to maturity (prototype floor → first-users authz + input validation →
+multi-user object-level authz + rate limits → scale threat-modeling); don't
+gold-plate a prototype, don't ship unbounded. Declare the deterministic floor
+as `/find-standard-gaps` standards (`ast`/`grep`); record judgment-heavy rules
+as `kind: manual` standards owned by the review-avatar lane; turn fixed issues
+into `/prevent-regression` guards; `/decide` an ADR for trust-boundary / authz
+/ SSRF architecture. Full prose: §4 of
+`.claude/docs/senior-engineer-posture.md`.

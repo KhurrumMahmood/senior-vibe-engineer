@@ -171,6 +171,93 @@ intra-folder discipline). Decision-shaping skills (`/architecture-fit`,
 `/decide`, `/propose-folder-reorganization`) load the `_common/` doc
 when evaluating structural options.
 
+## 4. Outward-Facing Quality: assume hostility, failure, and an audience
+
+Sections 1–3 are mostly *inward* — is this code clean, well-placed,
+maintainable? Carry a second axis the inward lens never surfaces: how the
+system behaves under a hostile input, a failing dependency, a 3am page, a
+privacy obligation, and a bill. Name which of these a change touches
+**before** picking an approach — most changes touch at least one.
+
+The axis has five faces:
+
+- **Security** — trust boundaries, authorization (not just
+  authentication), injection, secrets, SSRF, and — for AI features —
+  prompt injection and LLM-output-as-code.
+- **Resilience** — timeouts, retries, idempotency, partial-failure
+  behavior, not holding a transaction open across a network call.
+- **Observability** — *two* halves. *Application*: can an operator tell
+  what broke (structured logs, surfaced errors, metrics)? *Product*: can
+  the team tell how users actually move through a workflow — where they
+  stall, what they abandon, what they like (usage events on key
+  journeys)? You can't debug or improve what you can't see.
+- **Data / privacy** — what's sensitive, where it flows, who can see it,
+  whether it lands in logs or LLM prompts, whether a user can delete it.
+- **Cost / abuse** — can a caller drive unbounded crawl / LLM / export
+  spend? Especially acute for AI products.
+
+**Why** — most quality instinct is inward; this axis only shows up when
+you deliberately adopt the frame of an attacker, an operator, or an end
+user. The instincts below generalize better than any checklist:
+
+- **Trust boundaries are where bugs become vulnerabilities.** Ask "where
+  does data cross from less-trusted to more-trusted?" — every crossing
+  needs validation or encoding. (Input parsing — a `safe_int` helper — is
+  already this instinct.)
+- **Default deny, fail closed.** A new endpoint is unauthorized until
+  proven otherwise; an error denies rather than falling through to allow.
+- **Three separate adversaries:** the input is hostile, the network is
+  down, the dependency is compromised. Defend against all three.
+- **Irreversibility raises the bar** — deleting, charging, emailing,
+  publishing, executing: guard these.
+- **Blast radius** — "if this credential / endpoint is compromised, what's
+  the worst case?" drives least-privilege.
+- **Make the secure path the easy path** — a default-secure base class or
+  a linted wrapper beats a rule nobody follows under deadline.
+- **It decays** — deps rot, a new endpoint skips the check, a refactor
+  drops a guard. *Coverage* and *regression guards* beat one-time audits.
+
+**Stage the controls to maturity** (the §1 "naming ≠ adopting" rule
+applies — the failure mode is binary: ignoring this axis, or gold-plating
+a prototype with security theater):
+
+- *Prototype* — only the irreversible / exfiltrating floor: secrets never
+  in git, never log secrets or PII, parameterized queries, no real
+  charges / emails / deletes without a guard.
+- *First real users* — authn + authz on every endpoint, input validation
+  at boundaries, a dependency-vuln signal, outbound timeouts.
+- *Multi-user / money / sensitive data* — object-level authorization
+  (IDOR is the most common real-world web vulnerability), rate-limited
+  expensive paths, mapped PII flow, audit trails.
+- *Scale / compliance* — lightweight per-feature threat modeling, secret
+  rotation, least-privilege accounts, supply-chain checks, an incident
+  runbook.
+
+**How to apply:**
+
+- **Declare the floor as standards.** Deterministic always-on rules
+  ("outbound calls set a timeout", "no `eval`/`exec` on untrusted input",
+  "service code logs, not prints") live in `/find-standard-gaps`
+  (`standards.example.json`) as `ast`/`grep` detectors, coverage-checked
+  across the tree.
+- **Record the ceiling as `manual` standards.** Judgment-heavy rules no
+  AST captures ("authorize against the object, not just the user", "no PII
+  in prompts", "expensive endpoints are abuse-bounded", "external content
+  is contained at the boundary") are declared `kind: manual` — the
+  baseline stays complete, and these are what the role-based review-avatar
+  lane checks.
+- **Turn every found issue into a guard** — a vulnerability fixed once is
+  a regression waiting to happen; feed it to `/prevent-regression`.
+- **ADR the architectural calls** — the trust-boundary posture, the SSRF
+  allowlist, the authz model constrain future work; record them with
+  `/decide`.
+
+**Reference skills / docs** — `/find-standard-gaps`
+(`standards.example.json` ships a security / resilience / observability
+baseline), `/prevent-regression`, the two-lane code review (general +
+adversarial), and `/design-it-twice` as the parallel-divergent fan-out
+pattern the review-avatar lane mirrors.
+
 ## Adding New Domain-Specific Instances
 
 When a new "before-you-act framing for a problem class" rule emerges —
