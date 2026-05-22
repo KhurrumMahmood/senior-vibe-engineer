@@ -68,13 +68,13 @@ present and non-empty.
 Run all three commands concurrently in one Bash message:
 
 ```bash
-.venv/bin/python scripts/cotton_inventory.py \
+.venv/bin/python .claude/skills/find-frontend-duplication/scripts/cotton_inventory.py \
   --out "${REPORT_DIR}/cotton-inventory.json"
 
-.venv/bin/python scripts/frontend_class_chain_scanner.py \
+.venv/bin/python .claude/skills/find-frontend-duplication/scripts/frontend_class_chain_scanner.py \
   --out-dir "${REPORT_DIR}/class-chains"
 
-.venv/bin/python scripts/frontend_helper_scanner.py \
+.venv/bin/python .claude/skills/find-frontend-duplication/scripts/frontend_helper_scanner.py \
   --out "${REPORT_DIR}/helpers.json"
 ```
 
@@ -223,9 +223,12 @@ candidate.
 .claude/skills/find-frontend-duplication/
 ├── SKILL.md                      # this file — orchestrator
 ├── scripts/
-│   ├── collapse.py               # Stage 2
-│   ├── rank.py                   # Stage 3
-│   └── report.py                 # Stage 5
+│   ├── cotton_inventory.py             # Stage 1 — cotton primitive inventory
+│   ├── frontend_class_chain_scanner.py # Stage 1 — Tailwind class chains
+│   ├── frontend_helper_scanner.py      # Stage 1 — JS helper forks
+│   ├── collapse.py                     # Stage 2
+│   ├── rank.py                         # Stage 3
+│   └── report.py                       # Stage 5
 ├── agents/
 │   └── investigate.md            # Stage 4 scout brief
 └── knowledge/                    # sub-agent context, never loaded by orchestrator
@@ -237,9 +240,10 @@ The orchestrator (you) **never reads files in `knowledge/`**. Those are
 for the scout sub-agents. Keeping them out of your context is the
 whole point of this architecture.
 
-The detection scripts in Stage 1 (`scripts/cotton_inventory.py`,
-`scripts/frontend_class_chain_scanner.py`,
-`scripts/frontend_helper_scanner.py`) live at the **project root**
-under `scripts/` because they are reusable from
-`/extract-cotton-primitive` and from manual review. The skill-internal
-scripts (collapse, rank, report) live under this skill directory.
+All five pipeline scripts — the three Stage-1 scanners plus collapse,
+rank, and report — live under this skill's `scripts/` directory, so the
+skill is **self-contained**: deploying it carries its own detectors. The
+Stage-1 scanners are stdlib-only and scan the host project relative to
+the current working directory (`--root` defaults to cwd), so
+`/extract-cotton-primitive` and manual review can reuse them via this
+skill path.
