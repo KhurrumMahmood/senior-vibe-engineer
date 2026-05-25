@@ -54,7 +54,7 @@ def _load_scouts(scout_dir: Path) -> list[dict[str, Any]]:
     for path in sorted(scout_dir.glob("*.json")):
         try:
             out.append(json.loads(path.read_text()))
-        except json.JSONDecodeError:
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
             print(f"[report] WARN: bad JSON in {path}", file=sys.stderr)
     return out
 
@@ -63,7 +63,11 @@ def _read_candidates(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     out: list[dict[str, Any]] = []
-    for raw in path.read_text().splitlines():
+    try:
+        text = path.read_text()
+    except (OSError, UnicodeDecodeError):
+        return out
+    for raw in text.splitlines():
         raw = raw.strip()
         if not raw:
             continue

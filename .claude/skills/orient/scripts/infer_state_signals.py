@@ -332,7 +332,7 @@ def read_declared_state(root: Path) -> dict | None:
         return None
     try:
         return json.loads(state_file.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return {"_malformed": True}
 
 

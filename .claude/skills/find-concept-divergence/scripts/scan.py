@@ -89,7 +89,11 @@ def load_host_excludes() -> tuple[str, ...]:
     if not host_path.exists():
         return ()
     out: list[str] = []
-    for raw in host_path.read_text(encoding="utf-8").splitlines():
+    try:
+        text = host_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return ()
+    for raw in text.splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
@@ -117,8 +121,8 @@ def load_glossary(path: Path) -> dict[str, Any]:
         sys.exit(f"glossary not found: {path}")
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except yaml.YAMLError as exc:
-        sys.exit(f"glossary YAML error: {exc}")
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+        sys.exit(f"glossary read/parse error: {exc}")
     if not isinstance(data, dict) or "concepts" not in data:
         sys.exit("glossary missing top-level `concepts:` block")
     return data

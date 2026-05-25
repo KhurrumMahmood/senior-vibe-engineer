@@ -56,7 +56,7 @@ def tokenize(text: str) -> set[str]:
 def _load_yaml(path: Path) -> dict[str, Any]:
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         raise ValueError(f"cannot read {path}: {exc}") from exc
     if not isinstance(data, dict):
         raise ValueError(f"{path} must contain a YAML mapping")
@@ -120,7 +120,7 @@ def project_context_state(project_root: Path) -> dict[str, Any]:
             data = yaml.safe_load(profile.read_text(encoding="utf-8"))
             if isinstance(data, dict):
                 profile_payload = data
-        except (OSError, yaml.YAMLError):
+        except (OSError, UnicodeDecodeError, yaml.YAMLError):
             profile_payload = {}
 
     user_approved = bool(profile_payload.get("user_approved"))

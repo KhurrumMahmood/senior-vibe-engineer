@@ -144,7 +144,7 @@ def _inventory_file(path: Path, repo_root: Path) -> tuple[list[dict[str, Any]], 
     """
     try:
         source = path.read_text(encoding="utf-8")
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         print(f"warn: cannot read {path}: {exc}", file=sys.stderr)
         return [], 0
 

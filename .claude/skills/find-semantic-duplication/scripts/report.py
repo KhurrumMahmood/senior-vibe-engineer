@@ -156,7 +156,7 @@ def main() -> int:
 
     try:
         ranked = json.loads(args.input.read_text())
-    except (OSError, json.JSONDecodeError) as e:
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError) as e:
         print(f"[report] ERROR reading {args.input}: {e}", file=sys.stderr)
         return 2
 

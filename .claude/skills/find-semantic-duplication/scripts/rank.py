@@ -125,7 +125,7 @@ def _load_confirmed(confirmed_dir: Path) -> list[dict[str, Any]]:
     for p in sorted(confirmed_dir.glob("*.json")):
         try:
             d = json.loads(p.read_text())
-        except (json.JSONDecodeError, OSError) as e:
+        except (json.JSONDecodeError, OSError, UnicodeDecodeError) as e:
             print(f"[rank] WARN skipping {p.name}: {e}", file=sys.stderr)
             continue
         out.append(d)
@@ -139,7 +139,11 @@ def _merge_caller_counts(
     if not callers_path or not callers_path.exists():
         return
     caller_map: dict[tuple[str, str], int] = {}
-    for line in callers_path.read_text().splitlines():
+    try:
+        text = callers_path.read_text()
+    except (OSError, UnicodeDecodeError):
+        return
+    for line in text.splitlines():
         line = line.strip()
         if not line:
             continue

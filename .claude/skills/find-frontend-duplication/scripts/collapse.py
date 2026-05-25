@@ -282,9 +282,13 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
-    cotton = json.loads(args.cotton.read_text())
-    norm = json.loads(args.class_chains_norm.read_text())
-    helpers = json.loads(args.helpers.read_text())
+    try:
+        cotton = json.loads(args.cotton.read_text())
+        norm = json.loads(args.class_chains_norm.read_text())
+        helpers = json.loads(args.helpers.read_text())
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        print(f"error: cannot read input: {exc}", file=sys.stderr)
+        return 1
 
     cotton_index = build_cotton_index(cotton)
     chain_candidates = collapse_class_chains(norm["buckets"], cotton_index)

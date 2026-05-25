@@ -625,7 +625,10 @@ def _resolve_from_finding(
             f"findings file not found: {findings_path}\n"
             "Run /find-implicit-state first."
         )
-    raw = findings_path.read_text(encoding="utf-8").strip()
+    try:
+        raw = findings_path.read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeDecodeError) as exc:
+        raise RuntimeError(f"could not read findings file: {findings_path}\n{exc}") from exc
     records: list[dict[str, Any]] = []
     if raw.startswith("{"):
         obj = json.loads(raw)

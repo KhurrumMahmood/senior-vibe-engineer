@@ -67,7 +67,7 @@ def load_project_state(root: Path) -> dict | None:
         return None
     try:
         state = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"{PROJECT_STATE_FILENAME} is unreadable: {exc}") from exc
     if not isinstance(state, dict):
         raise ValueError(f"{PROJECT_STATE_FILENAME} must be a JSON object")

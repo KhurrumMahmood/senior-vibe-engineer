@@ -46,7 +46,11 @@ def parse_onboarding_links(path: Path) -> list[tuple[str, int]]:
     if not path.exists():
         return []
     links: list[tuple[str, int]] = []
-    for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return links
+    for lineno, line in enumerate(text.splitlines(), 1):
         for match in MD_LINK_RE.finditer(line):
             if match.start() > 0 and line[match.start() - 1] == "!":
                 continue  # image link `![alt](path)`, not a doc reference
@@ -90,7 +94,11 @@ def parse_supplementary_table(claude_md_path: Path) -> list[tuple[str, int]]:
         return []
     rows: list[tuple[str, int]] = []
     in_table = False
-    for lineno, line in enumerate(claude_md_path.read_text(encoding="utf-8").splitlines(), 1):
+    try:
+        text = claude_md_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return rows
+    for lineno, line in enumerate(text.splitlines(), 1):
         stripped = line.strip()
         if not in_table:
             if stripped.startswith("| File ") and "Read when" in stripped:
@@ -168,7 +176,10 @@ def detect(
 
     # 1. oversized_root
     if claude_md_path.exists():
-        char_count = len(claude_md_path.read_text(encoding="utf-8"))
+        try:
+            char_count = len(claude_md_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError):
+            char_count = 0
         if char_count > max_root_chars:
             findings.append({
                 "pattern": "oversized_root",
@@ -190,7 +201,10 @@ def detect(
         for doc in sorted(docs_root.glob("*.md")):
             if doc.parent != docs_root:
                 continue
-            char_count = len(doc.read_text(encoding="utf-8"))
+            try:
+                char_count = len(doc.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError):
+                continue
             if char_count > max_doc_chars:
                 findings.append({
                     "pattern": "oversized_doc",

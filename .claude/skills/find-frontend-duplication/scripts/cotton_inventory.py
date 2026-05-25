@@ -144,7 +144,10 @@ def build_inventory(project_root):
         raise SystemExit(f"app/_components/cotton not found under {project_root}")
     primitives = []
     for html in sorted(cotton_dir.glob("*.html")):
-        text = html.read_text(encoding="utf-8")
+        try:
+            text = html.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
         primitive = primitive_name_from_path(html)
         props, found_cvars = parse_cvars(text)
         prop_names = {p["name"] for p in props}

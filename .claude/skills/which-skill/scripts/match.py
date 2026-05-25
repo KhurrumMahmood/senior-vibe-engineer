@@ -212,7 +212,7 @@ def load_skills(skills_dir: Path) -> list[dict]:
     for sm in sorted(skills_dir.glob("*/SKILL.md")):
         try:
             fm = parse(sm.read_text(encoding="utf-8"), path=sm).metadata
-        except FrontmatterError as exc:
+        except (OSError, UnicodeDecodeError, FrontmatterError) as exc:
             print(f"warning: skipping {sm.name}: {exc}", file=sys.stderr)
             continue
         if not fm:

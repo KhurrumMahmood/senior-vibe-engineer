@@ -54,7 +54,11 @@ def _read_jsonl(path: Path) -> list[dict]:
     if not path.exists():
         return []
     out = []
-    for line in path.read_text(encoding="utf-8").splitlines():
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return out
+    for line in text.splitlines():
         line = line.strip()
         if not line:
             continue
@@ -65,7 +69,10 @@ def _read_jsonl(path: Path) -> list[dict]:
 def _read_json(path: Path, default):
     if not path.exists():
         return default
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError):
+        return default
 
 
 def _iso_utc() -> str:

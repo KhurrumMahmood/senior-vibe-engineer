@@ -255,7 +255,10 @@ def previous_nonblank_line(lines: list[str], start_index: int) -> tuple[int, str
 
 def scan_python(path: Path, project_root: Path) -> list[Finding]:
     findings: list[Finding] = []
-    text = path.read_text(encoding="utf-8")
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return findings
     lines = text.splitlines()
     try:
         tokens = tokenize.generate_tokens(io.StringIO(text).readline)
@@ -408,7 +411,10 @@ def is_thin_jsdoc(jsdoc: str, params: list[str]) -> bool:
 
 def scan_javascript(path: Path, project_root: Path) -> list[Finding]:
     findings: list[Finding] = []
-    text = path.read_text(encoding="utf-8")
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return findings
     lines = text.splitlines()
     in_block_comment = False
     in_jsdoc_comment = False
@@ -496,7 +502,10 @@ def scan_javascript(path: Path, project_root: Path) -> list[Finding]:
 
 def scan_html(path: Path, project_root: Path) -> list[Finding]:
     findings: list[Finding] = []
-    text = path.read_text(encoding="utf-8")
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return findings
     for match in re.finditer(r"<!--(?P<body>.*?)-->", text, re.DOTALL):
         lineno = text.count("\n", 0, match.start()) + 1
         body = re.sub(r"\s+", " ", match.group("body").strip())

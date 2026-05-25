@@ -31,7 +31,7 @@ def _load_domain_files(prompts_dir: Path) -> list[dict[str, Any]]:
     for p in sorted(prompts_dir.glob("candidates_*.json")):
         try:
             data = json.loads(p.read_text())
-        except (json.JSONDecodeError, OSError) as e:
+        except (json.JSONDecodeError, OSError, UnicodeDecodeError) as e:
             print(f"[collapse_candidates] WARN skipping {p.name}: {e}",
                   file=sys.stderr)
             continue

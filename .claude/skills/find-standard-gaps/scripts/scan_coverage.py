@@ -437,7 +437,7 @@ def main() -> int:
 
     try:
         doc = json.loads(args.ideas.read_text())
-    except (FileNotFoundError, json.JSONDecodeError) as exc:
+    except (FileNotFoundError, json.JSONDecodeError, UnicodeDecodeError) as exc:
         sys.exit(f"error: cannot read --ideas: {exc}")
     ideas = doc.get("ideas")
     if not ideas:

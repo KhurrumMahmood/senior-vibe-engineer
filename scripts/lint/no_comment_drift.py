@@ -93,7 +93,7 @@ def expand_paths(paths: Iterable[str]) -> list[str]:
 def _line_has_noqa(path: Path, lineno: int) -> bool:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return False
     if lineno < 1 or lineno > len(lines):
         return False
@@ -103,8 +103,13 @@ def _line_has_noqa(path: Path, lineno: int) -> bool:
 def _check_path(detector, path: str) -> tuple[int, bool]:
     file_path = Path(path)
     try:
+        # The detector skips files it cannot decode (uniform with the other
+        # SUSPECT detectors), so probe the read here to preserve this blocking
+        # lint's "cannot read -> exit 2" contract instead of letting an
+        # unreadable file pass silently as clean.
+        file_path.read_text(encoding="utf-8")
         findings = detector.scan_files([file_path], REPO_ROOT)
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         print(f"{path}: comment-drift: cannot read - {exc}", file=sys.stderr)
         return 0, True
     except SyntaxError as exc:

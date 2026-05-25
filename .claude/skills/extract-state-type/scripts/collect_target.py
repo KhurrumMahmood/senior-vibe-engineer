@@ -333,7 +333,7 @@ def main() -> int:
 
     try:
         source = args.file.read_text(encoding="utf-8")
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         print(f"error: cannot read target file: {exc}", file=sys.stderr)
         return 2
 

@@ -131,8 +131,12 @@ def main():
     parser.add_argument("--scan-id", type=str, required=True)
     args = parser.parse_args()
 
-    ranked = json.loads(args.input.read_text())
-    classified = json.loads(args.classified.read_text()) if args.classified and args.classified.exists() else None
+    try:
+        ranked = json.loads(args.input.read_text())
+        classified = json.loads(args.classified.read_text()) if args.classified and args.classified.exists() else None
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        print(f"error: cannot read input: {exc}", file=sys.stderr)
+        return 1
 
     md = render_md(ranked, classified, args.scan_id)
     findings = render_findings_json(ranked, classified)

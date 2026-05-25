@@ -87,7 +87,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         batch = json.loads(args.batch_file.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         print(f"error: batch file is not valid JSON: {exc}", file=sys.stderr)
         return 2
     if not isinstance(batch, list):

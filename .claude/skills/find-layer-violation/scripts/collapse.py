@@ -44,7 +44,11 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     out: list[dict[str, Any]] = []
-    for raw in path.read_text().splitlines():
+    try:
+        text = path.read_text()
+    except (OSError, UnicodeDecodeError):
+        return out
+    for raw in text.splitlines():
         raw = raw.strip()
         if not raw:
             continue

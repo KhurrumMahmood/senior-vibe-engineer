@@ -112,8 +112,12 @@ def script_option_strings(path: Path) -> set[str] | None:
     subparser counts as existing. Returns None if the file cannot be parsed
     (then flag-checking is skipped, never guessed)."""
     try:
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    except (OSError, SyntaxError):
+        source = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    try:
+        tree = ast.parse(source, filename=str(path))
+    except SyntaxError:
         return None
     opts: set[str] = set()
     for node in ast.walk(tree):
@@ -153,8 +157,11 @@ def scan_skill(skill_dir: Path) -> list[Finding]:
     skill_md = skill_dir / "SKILL.md"
     try:
         full_text = skill_md.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
+    try:
         doc = parse(full_text, path=skill_md)
-    except (OSError, FrontmatterError):
+    except FrontmatterError:
         return []  # frontmatter validity is skill_meta.py lint's job, not ours
     fm = doc.metadata
     body = doc.body

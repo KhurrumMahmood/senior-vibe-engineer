@@ -30,7 +30,11 @@ def _run(project: Path) -> list[dict[str, object]]:
             text=True,
             check=True,
         )
-        return [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines() if line.strip()]
+        try:
+            text = output.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            return []
+        return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
 def main() -> int:

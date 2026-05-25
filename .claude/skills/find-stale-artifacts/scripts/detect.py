@@ -44,7 +44,10 @@ def parse_frontmatter(path: Path) -> tuple[dict[str, str], int]:
     """
     if not path.exists():
         return {}, 0
-    text = path.read_text(encoding="utf-8")
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return {}, 0
     match = FRONTMATTER_RE.match(text)
     if not match:
         return {}, 0

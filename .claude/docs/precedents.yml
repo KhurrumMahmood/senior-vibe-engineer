@@ -31,3 +31,52 @@
 # intentionally empty — precedents are project state, not framework
 # state, so the engineering-skills mirror ships the schema and the
 # `python3 scripts/precedents.py check` validator, not specific entries.
+
+- id: read-decode-safety.v1
+  status: active
+  title: Every skill-script file read is decode-safe; an AST guard enforces it with no allowlist
+  summary: >
+    Path.read_text(encoding="utf-8") (and bare read_text()) raises
+    UnicodeDecodeError on non-UTF-8 bytes. Its MRO is UnicodeDecodeError ->
+    UnicodeError -> ValueError -> Exception, so it is NOT an OSError: a read
+    guarded only by `except OSError`, or by a parse-only handler
+    (json.JSONDecodeError / yaml.YAMLError / SyntaxError), lets the decode error
+    escape as a traceback instead of a clean skip/error. An AST audit of
+    .claude/skills/*/scripts/*.py found 72 such reads across 49 files. The fix
+    is intent-matched, not uniform: arbitrary-source scanners SKIP unreadable
+    input (catch (OSError, UnicodeDecodeError); return the accumulator/default),
+    while required-artifact reads FAIL CLEAN (print + non-zero exit, or raise a
+    descriptive error) — never a raw traceback. The convention is the inline
+    except tuple, mirroring the SAFE detectors that already did this;
+    .claude/skills/find-implicit-state/scripts/detect.py (catches
+    (OSError, UnicodeDecodeError), skips the file) is the in-repo exemplar. It is
+    deliberately not promoted to a shared helper — do not add a shared-read
+    dependency to 49 scripts just to satisfy the rule.
+  applies_to:
+    - .claude/skills/*/scripts/*.py
+    - scripts/lint/no_comment_drift.py
+  canonical_examples:
+    - .claude/skills/find-implicit-state/scripts/detect.py  # scanner-skip exemplar
+    - .claude/skills/find-comment-drift/scripts/detect.py   # scanner-skip
+    - .claude/skills/find-orphaned-ideas/scripts/find.py    # scanner-skip (multi-read)
+    - scripts/lint/no_comment_drift.py                      # caller owns "block on unreadable"
+  guards:
+    - tests.test_skill_detector_reads.test_skill_detector_reads_guard_against_decode_errors
+  supersedes: []
+  superseded_by: null
+  exceptions:
+    - errors= in {replace,ignore,surrogateescape,backslashreplace} needs no try
+    - a detector must NOT swallow the decode error to signal policy; the blocking
+      no_comment_drift lint re-derives its "cannot read -> exit 2" contract via its
+      own read-probe rather than depending on the detector raising
+    - only the file-path read shape is guarded; a --stdin read shape is tracked separately
+  migration_note: >
+    When this is superseded (e.g. a shared decode-safe read helper is adopted
+    across skill scripts), every read relying on the inline
+    (OSError, UnicodeDecodeError) tuple must migrate to the new mechanism or be
+    explicitly branched as legacy. Keep the two intents distinct: arbitrary-source
+    scanners skip unreadable input (return the accumulator/default); required-artifact
+    reads fail clean (print + non-zero exit, or raise a descriptive error). Where a
+    handler is type-specific (json.JSONDecodeError / yaml.YAMLError / SyntaxError),
+    split the read from the parse so the decode error is caught at the read site, not
+    left to a parse-only handler that cannot see it.

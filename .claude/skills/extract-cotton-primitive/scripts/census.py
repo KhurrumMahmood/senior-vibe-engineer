@@ -153,7 +153,11 @@ def main():
         print(f"error: candidates file missing: {candidates_path}", file=sys.stderr)
         sys.exit(1)
 
-    raw = json.loads(candidates_path.read_text())
+    try:
+        raw = json.loads(candidates_path.read_text())
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        print(f"error: cannot read candidates file: {exc}", file=sys.stderr)
+        sys.exit(1)
     candidates = raw.get("candidates", raw) if isinstance(raw, dict) else raw
 
     candidate = find_candidate(

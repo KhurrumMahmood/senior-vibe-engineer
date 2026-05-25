@@ -174,7 +174,11 @@ def main() -> int:
         print(f"error: triage file not found: {args.triage}", file=sys.stderr)
         return 2
 
-    lines = args.triage.read_text(encoding="utf-8").splitlines()
+    try:
+        lines = args.triage.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        print(f"error: cannot read triage file: {exc}", file=sys.stderr)
+        return 2
 
     findings: dict[str, dict] = {}
     i = 0

@@ -128,7 +128,11 @@ def main():
               file=sys.stderr)
         return 1
 
-    payload = json.loads(candidates_source.read_text())
+    try:
+        payload = json.loads(candidates_source.read_text())
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        print(f"ERROR: cannot read candidates file: {exc}", file=sys.stderr)
+        return 1
     candidates = payload.get("candidates", [])
 
     candidate = find_candidate(candidates,

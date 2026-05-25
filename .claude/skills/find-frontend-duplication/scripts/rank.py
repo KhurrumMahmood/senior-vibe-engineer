@@ -74,7 +74,11 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
-    data = json.loads(args.input.read_text())
+    try:
+        data = json.loads(args.input.read_text())
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        print(f"error: cannot read input: {exc}", file=sys.stderr)
+        return 1
     for c in data["candidates"]:
         s = score(c)
         p = bucket(s)

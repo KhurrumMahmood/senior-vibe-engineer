@@ -215,7 +215,7 @@ def load_previous_state(state_path: Path) -> dict[str, Any] | None:
         return None
     try:
         payload = json.loads(state_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
         return None
     return payload if isinstance(payload, dict) else None
 

@@ -101,7 +101,7 @@ def _load_todo_tuning(repo_root: Path) -> dict:
         return out
     try:
         text = path.read_text(encoding="utf-8")
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return out
     section: str | None = None
     backtick_pattern = re.compile(r"`([^`]+)`")
@@ -193,7 +193,10 @@ def detect_harvest(records: list[dict]) -> list[dict]:
 def detect_plan_dropouts(records: list[dict], plan_path: Path) -> list[str]:
     if not plan_path.exists():
         return []
-    text = plan_path.read_text(encoding="utf-8")
+    try:
+        text = plan_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
     items = extract_plan_items(text)
     if not items:
         return []
@@ -272,7 +275,7 @@ def detect_stale_plans(
     for plan_path in sorted(plans_dir.glob("*.md")):
         try:
             text = plan_path.read_text(encoding="utf-8")
-        except OSError:
+        except (OSError, UnicodeDecodeError):
             continue
 
         status = _parse_plan_status(text)
@@ -339,7 +342,7 @@ def detect_dead_prototype(
 
     try:
         data = json.loads(from_report.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as exc:
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
         raise ValueError(f"could not parse --from-report as JSON: {exc}") from exc
 
     items: list = []
@@ -476,7 +479,7 @@ def detect_attention_gap(
 
     try:
         text = map_path.read_text(encoding="utf-8")
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         return {"status": "malformed", "error": str(exc), "areas": [], "drift": []}
 
     if not text.strip():

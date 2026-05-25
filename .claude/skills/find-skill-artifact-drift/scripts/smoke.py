@@ -40,7 +40,11 @@ def run_detect(skills_dir: Path) -> list[dict]:
             text=True,
             capture_output=True,
         )
-        return [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines() if line.strip()]
+        try:
+            text = output.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            return []
+        return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
 def gate_returncode(skills_dir: Path) -> int:
