@@ -70,6 +70,21 @@
       no_comment_drift lint re-derives its "cannot read -> exit 2" contract via its
       own read-probe rather than depending on the detector raising
     - only the file-path read shape is guarded; a --stdin read shape is tracked separately
+  assumes: >
+    Each skill script owns its read+decode inline; there is no shared
+    decode-safe read utility in these repos, so the cost of a shared dependency
+    across ~49 scripts exceeds the cost of an inline (OSError, UnicodeDecodeError)
+    tuple at each read site. The skill corpus is UTF-8 by policy, so non-UTF-8
+    input is the exceptional path (skip or fail-clean), never the common one.
+  revisit_when: >
+    A shared decode-safe read utility becomes standard in either repo — seeds
+    already exist in-tree (engineering-skills-2 scripts/_subst.py; pnci's
+    ast_pipeline read_source helper). When that lands, the inline-tuple
+    convention flips to "call the shared helper" and migration_note's migration
+    applies. Also revisit if the skill corpus stops being UTF-8-by-policy (e.g.
+    vendored non-UTF-8 fixtures land under skills/*/scripts/), which turns decode
+    failure into a common path needing a first-class handling decision rather
+    than an edge-case skip.
   migration_note: >
     When this is superseded (e.g. a shared decode-safe read helper is adopted
     across skill scripts), every read relying on the inline
@@ -80,3 +95,14 @@
     handler is type-specific (json.JSONDecodeError / yaml.YAMLError / SyntaxError),
     split the read from the parse so the decode error is caught at the read site, not
     left to a parse-only handler that cannot see it.
+  resolution_notes:
+    # Non-obvious judgments from the 72-read propagation; full per-read detail
+    # is recoverable from commit 36c8c66.
+    - A present-but-corrupt required artifact is an ERROR (fail-clean), not an
+      absence — do not fold a decode failure on a required input into the
+      "file missing -> use default" branch; a garbled required file is a louder,
+      different failure than a missing optional one.
+    - When a read already sat under a narrow handler (e.g. except
+      json.JSONDecodeError), add ONLY decode-safety — split the read out, or widen
+      the tuple to include UnicodeDecodeError; do not opportunistically swallow
+      unrelated errors the task did not ask you to handle.
