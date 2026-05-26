@@ -18,9 +18,9 @@ solves: >-
   the intent/provenance layer of the skill-meta trio (frontmatter contract →
   artifact coherence → intent), the deepest of the three.
 born:
-  commit: "pending-initial-commit"
+  commit: "bad0fff"
   date: "2026-05-26"
-  sibling_births: []          # only NEW skill dir in its introducing commit; ships alongside the 67 sibling contracts + _schema.yaml (those skills were born earlier)
+  sibling_births: []          # only NEW skill dir in its introducing commit (bad0fff); shipped alongside the 67 sibling contracts + _schema.yaml (those skills were born earlier)
 dogfood_kind: self-installed-guard
 dogfooded_on:
   - "the ES2 contract corpus itself — scan.py ran against the full set this session (skills=68 / contracts=68, TOTAL findings: 0) and regenerated _index.yaml. Provenance was re-derived from ES2's own git history, not copied from the pnci host."
@@ -49,15 +49,15 @@ duplication_risk:
     relation: sibling-different-layer
     disambiguator: "which-skill reads SKILL.md frontmatter to RECOMMEND a skill for a task; find-skill-intent-drift reads contracts to AUDIT intent freshness. Both read the catalogue, different jobs."
 provenance_confidence:
-  textual: low                # uncommitted at write time — no commit subject names it yet; rises once the introducing commit lands
+  textual: med                # introducing commit bad0fff describes the guard ("advisory drift guard") but not by exact slug — med, not high
   structural: med             # scanner script present; no fixtures/ pair and no pre-commit/CI wiring (advisory by design)
   temporal: high              # born and dogfooded in the same session — maximal proximity (and not part of the big-bang 90f8567 set)
   dogfood: high               # ran clean against the full ES2 contract corpus this session; that IS the dogfood run
 evidence:
+  - "bad0fff — true birth of SKILL.md (introducing commit, 2026-05-26); all parents lack the file."
   - "scan.py — skills=68 / contracts=68, all four bands 0, TOTAL findings: 0; wrote _index.yaml (the dogfood run on the ES2 corpus)."
   - "ported from the pnci host as the portable schema+guard; ES2 contracts re-derived from ES2 git history (born SHAs, dogfooded_on, run_evidence are repo-specific)."
   - "_schema.yaml (schema v2) is the contract shape this guard enforces; _duplication-watchlist.yaml rolls up the duplication_risk[] blocks."
 gaps:
-  - "born.commit is pending — this contract ships in its own introducing commit, so the SHA can't be known at write time; backfill the real birth SHA opportunistically. textual confidence rises once that commit names the skill."
   - "No fixtures/ good-bad pair and no pre-commit/CI wiring yet (advisory by design); structural signature is therefore partial."
   - "No reports/<skill>/ run dir exists or is expected — the durable, git-tracked output is _index.yaml, so there is no on-disk timestamped run_evidence to mine."
