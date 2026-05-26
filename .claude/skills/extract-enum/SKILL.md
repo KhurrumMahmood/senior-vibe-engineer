@@ -8,13 +8,18 @@ tier: maintenance
 job: explain
 best_for: |
   A confirmed implicit-state finding (or explicit `<file>::<field>`
-  target) ready for a TextChoices proposal — produces the enum class,
-  caller migration table, data-migration risks, and stop condition.
-  Read-only. Decided in: 0001 (TextChoices for state).
+  target) on a Django model field, ready for a TextChoices proposal —
+  produces the enum class, caller migration table, data-migration risks,
+  and stop condition. Read-only. Decided in: 0001 (TextChoices for state).
 not_for: |
   Detection (use /find-implicit-state first). Tuple-inferred-identity
   sub-shape — a `.filter(status=X, *_at__...).first()` pattern (use
-  /introduce-fk). Refactor execution (use /fix-workflow).
+  /introduce-fk). Refactor execution (use /fix-workflow). Non-model
+  first-party string sentinels (a dataclass attribute, function return,
+  module constant, or command-internal outcome) — those take a plain
+  `str`-valued Enum (`enum.StrEnum` on 3.11+, or `class X(str, Enum)`),
+  not TextChoices, and the collector only walks model fields; apply that
+  conversion by hand.
 language: python
 framework: django
 ---
@@ -36,8 +41,8 @@ supporting `targets.json` and `profile.md`.
 
 ## Core beliefs
 
-1. **The endpoint is `models.TextChoices`, not a tuple-style
-   `STATUS_CHOICES` list.** The `stringly-status` lint rule rejects
+1. **For a model field, the endpoint is `models.TextChoices`, not a
+   tuple-style `STATUS_CHOICES` list.** The `stringly-status` lint rule rejects
    tuple-style choices as "still the smell" — see the CLAUDE.md
    Canonical Pattern entry and `scripts/lint/no_stringly_typed_status.py`.
    Your proposal must propose a `TextChoices` class, not a tuple.
@@ -53,12 +58,20 @@ supporting `targets.json` and `profile.md`.
    proposal wrong.
 4. **The proposal is read-only.** No code edits, no migrations, no
    test edits. `/fix-workflow` owns execution.
-5. **New features should not create this smell.** When a new model
-   field represents `status`, `phase`, or `state`, prefer a
-   `models.TextChoices` enum from the first commit. If a feature must
-   touch a legacy tuple-style `STATUS_CHOICES` field, consider a small
-   `/extract-enum` proposal or explicit follow-up before adding more
-   callers that compare bare strings.
+5. **New features should not create this smell, and the endpoint
+   depends on the carrier.** When a new **model field** represents
+   `status`, `phase`, or `state`, prefer a `models.TextChoices` enum
+   from the first commit — that is this skill's job. When the carrier
+   is **not a model** (a `@dataclass` attribute, a function return, a
+   module constant, or a command-internal run outcome), the endpoint is
+   a plain `str`-valued Enum (`enum.StrEnum` on 3.11+, or
+   `class X(str, Enum)`), accessed `CLASS.MEMBER` and defined next to
+   the carrier it serves; this collector only walks model fields, so
+   that conversion is hand-applied. (A project with a house value-enum
+   type binds this generic endpoint to it in `knowledge/`.) If a feature
+   must touch a legacy tuple-style `STATUS_CHOICES` field, consider a
+   small `/extract-enum` proposal or explicit follow-up before adding
+   more callers that compare bare strings.
 
 ## Scope
 
@@ -339,6 +352,7 @@ artifact.
 | Findings file missing (Form A) | Abort; tell user to run `/find-implicit-state` |
 | Finding's `recommendation_hint` is `introduce_fk_candidate` | Abort; tell user to run `/introduce-fk` — this finding is tuple-identity, not stringly-state |
 | `collect.py` returns 0 literals | Target has no callers — field may be dead code; suggest `/find-dormant` on the model file |
+| `collect.py` errors `no Model subclass … declares … as CharField/TextField` — the `<file>::<field>` target is not a model field (it's a `@dataclass` attr, function return, module constant, or command-internal sentinel) | This skill's collector only walks model fields. The endpoint is a plain `str`-valued Enum (`enum.StrEnum` on 3.11+, or `class X(str, Enum)`), NOT TextChoices: define the enum next to the carrier, members `NAME = "value"`, swap each literal for `<Name>.<MEMBER>`, no migration. Do NOT `# noqa` a first-party sentinel (the noqa valve is for vendor-bridge literals only) |
 | Model class ambiguous (multiple Models in file declare same field name) | Ask user for `--model-class <Name>` and retry Stage 1 |
 | Scout says `targets_missing` | Re-dispatch once with stricter brief; if still missing, the `targets.json` is malformed — re-run Stage 1 |
 | Case-variant explosion (>5 variants of same lower-cased form) | Flag in proposal risks; recommend a pre-migration data-normalization audit before human approval |

@@ -811,6 +811,15 @@ def main(argv: list[str] | None = None) -> int:
             + (f" (model={model_class})" if model_class else ""),
             file=sys.stderr,
         )
+        print(
+            "hint: if the carrier is NOT a Django model field (a dataclass "
+            "attribute, function return, module constant, or command-internal "
+            "sentinel), the endpoint is a plain str-valued Enum (enum.StrEnum "
+            "on 3.11+, or class X(str, Enum)), not TextChoices — this collector "
+            "only walks model fields. Apply it by hand; do not # noqa a "
+            "first-party sentinel.",
+            file=sys.stderr,
+        )
         return 2
 
     files = _walk_python_files(project_root)
