@@ -98,6 +98,20 @@ def cmd_intake(args: argparse.Namespace) -> int:
 
 
 def cmd_event(args: argparse.Namespace) -> int:
+    # --adoption-evidence is only meaningful on an 'adoption' event; on any other
+    # kind it was silently dropped, so 'transition --to-state done --outcome adopted
+    # --adoption-evidence ...' never recorded the adoption (adoption_count stayed 0
+    # and the idea never graduated). Reject it loudly and point at the separate
+    # event — track-idea keeps one record per event. Checked before any ledger read.
+    if args.adoption_evidence and args.kind != "adoption":
+        print(
+            f"error: --adoption-evidence is only recorded on '--kind adoption' events, "
+            f"not '--kind {args.kind}'. Record this {args.kind} first, then append a "
+            f"separate adoption event: "
+            f"event {args.slug} --kind adoption --adoption-evidence ...",
+            file=sys.stderr,
+        )
+        return 2
     records = _load()
     intake = _intake_for(records, args.slug)
     if not intake:
@@ -336,5 +350,28 @@ def main(argv: list[str] | None = None) -> int:
     return rc
 
 
+def self_test() -> None:
+    """Lock the loud guard: --adoption-evidence on a non-adoption event is
+    rejected (exit 2), never silently dropped. Hermetic — the guard returns
+    before any ledger read, so no fixture ledger is needed."""
+    def _ns(**kw):
+        base = dict(
+            slug="selftest", kind=None, from_state=None, to_state=None,
+            outcome=None, markers_added=None, markers_removed=None,
+            edges_added=None, adoption_evidence=None, summary=None,
+        )
+        base.update(kw)
+        return argparse.Namespace(**base)
+
+    for kind in ("transition", "marker", "edge", "dev-note", "note"):
+        ns = _ns(kind=kind, to_state="done", outcome="adopted",
+                 adoption_evidence="app/x.py")
+        assert cmd_event(ns) == 2, f"--adoption-evidence on {kind!r} must be rejected (got pass)"
+    print("track self-test OK")
+
+
 if __name__ == "__main__":
+    if "--self-test" in sys.argv[1:]:
+        self_test()
+        raise SystemExit(0)
     raise SystemExit(main())
