@@ -106,3 +106,63 @@
       json.JSONDecodeError), add ONLY decode-safety — split the read out, or widen
       the tuple to include UnicodeDecodeError; do not opportunistically swallow
       unrelated errors the task did not ask you to handle.
+
+- id: explain-job-is-read-only-proposal.v1
+  status: active
+  title: The EXPLAIN job is the read-only proposal/brief stage -- it proposes the explicit form, REFACTOR executes it
+  summary: >
+    In the maintenance loop (map -> suspect -> explain -> refactor -> guard),
+    EXPLAIN is deliberately the READ-ONLY stage: an EXPLAIN skill turns a SUSPECT
+    finding into an implementation-ready brief/proposal and changes no code; the
+    matching REFACTOR skill executes that brief. This is why transform-NAMED skills
+    (extract-enum, extract-state-type, extract-workflow-registry,
+    extract-cotton-primitive, introduce-fk, unify-shadows,
+    propose-folder-reorganization, propose-boundary) correctly carry job=explain
+    even though their names sound like actions -- they PROPOSE the change, they do
+    not perform it. Doctrine source: skill-catalog.md ("EXPLAIN proposes the
+    explicit form; REFACTOR executes it") and the README EXPLAIN bullet ("read-only
+    proposals that turn a SUSPECT finding into an implementation-ready brief").
+    Recorded as a precedent because the rationale was prose-only: a 2026-05-25
+    self-review (a SUSPECT-style read of frontmatter) flagged these job=explain
+    labels as inconsistent / mislabeled and a fix-now authorization nearly
+    relabeled them -- which would have wrecked the deliberate propose/execute split
+    while passing every artifact and routing check.
+  applies_to:
+    - .claude/skills/*/SKILL.md            # the job: frontmatter field
+    - .claude/docs/skill-catalog.md        # the doctrine source
+  canonical_examples:
+    - .claude/skills/extract-enum/SKILL.md                   # transform-named, correctly job=explain (proposes)
+    - .claude/skills/propose-folder-reorganization/SKILL.md  # proposes a shape, does not move files
+    - .claude/skills/refactor-subsystem/SKILL.md             # the REFACTOR counterpart that executes an explain brief
+  guards:
+    - tests.test_skill_taxonomy.test_proposer_skills_are_explain
+  supersedes: []
+  superseded_by: null
+  exceptions:
+    - A skill that BOTH proposes and writes code is not an EXPLAIN skill -- split
+      it, or classify it as REFACTOR. The propose/execute separation is the
+      invariant, not the skill name.
+    - The conceptual/source regime keeps EXPLAIN and REFACTOR separate for
+      legibility; a future prod/compiled build (ledger intake
+      prod-build-compilation-pipeline) may deliberately FUSE detect-propose-execute
+      for speed. Fusion in the compiled build does not supersede this precedent for
+      the source regime.
+  assumes: >
+    The skill ecosystem is in its conceptual/source regime, where stages are kept
+    separate for legibility and protectability (detection separate from
+    resolution). The job taxonomy is the routing key that which-skill and the
+    maintenance loop depend on, so EXPLAIN meaning "read-only proposal" must hold
+    uniformly for routing to be trustworthy.
+  revisit_when: >
+    A prod/compiled build of the skill system ships that intentionally fuses
+    detection and resolution (ledger intake prod-build-compilation-pipeline). In
+    that regime the propose/execute boundary may collapse by design, and this
+    precedent then scopes explicitly to the source regime rather than the compiled
+    one. Also revisit if the maintenance-loop stage model itself is revised.
+  migration_note: >
+    If EXPLAIN is ever redefined (e.g. merged with REFACTOR in a compiled build),
+    every skill currently carrying job=explain because it PROPOSES must be
+    re-evaluated: either re-tagged under the new stage vocabulary or explicitly
+    branched as source-regime-only. Do not silently let "explain" drift to mean
+    "any analysis skill" -- that is the exact misreading this precedent exists to
+    prevent.
