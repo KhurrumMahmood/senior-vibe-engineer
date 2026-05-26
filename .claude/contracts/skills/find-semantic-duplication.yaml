@@ -1,0 +1,55 @@
+schema_version: 2
+
+skill: find-semantic-duplication
+job: suspect
+problem_class: "semantic (behavioral) duplication detection (SUSPECT)"
+intent: >
+  Read-only scan that surfaces code which is BEHAVIORALLY equivalent without
+  being textually identical — parallel implementations of the same logic that a
+  token-diff clone detector misses — ranked as advisory leads, with a deliberate
+  keep-separate verdict for legitimately-parallel code, without touching
+  production files.
+solves: >
+  Token-level clone detection (find-duplication) misses re-implementations that
+  do the same thing with different syntax; there was no lead list of where the
+  same behavior was reinvented, so semantic forks drifted apart and contradicted
+  each other over time.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted in the 90f8567 big-bang; no on-disk reports run and no fixtures pair in this ES2 tree)"
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0004"]
+  precedent: []
+  doc: ["skill-catalog.md", "architectural-smells.md"]
+  contract: []
+related_skills: [find-duplication, find-workflow-duplication, unify-shadows]
+duplication_risk:
+  - with: find-duplication
+    relation: sibling-different-layer
+    disambiguator: "find-semantic-duplication flags BEHAVIORALLY-equivalent code with different text; find-duplication flags TEXTUAL/token clones. Semantic-equivalence vs copy-paste."
+  - with: find-workflow-duplication
+    relation: sibling-different-layer
+    disambiguator: "find-semantic-duplication flags duplicated LOGIC in code; find-workflow-duplication flags duplicated WORKFLOW orchestration (parallel pipelines that should share a registry). Code-level vs workflow-level."
+  - with: unify-shadows
+    relation: sequential
+    disambiguator: "find-semantic-duplication DETECTS behavioral forks; unify-shadows is the resolution that collapses parallel implementations to one authority. Detect vs unify."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
+  - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scanner present, no oracle pair (structural med)"
+  - "reports_dir null, run count 0 — no on-disk semantic-duplication scan run in this ES2 tree"
+gaps:
+  - "Semantic equivalence is a judgment call the script can only triage; the keep_separate verdict needs human review, and ES2 has no run on disk, so dogfood_kind is none-found (already the honest answer in the pnci base too)."

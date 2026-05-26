@@ -1,0 +1,53 @@
+schema_version: 2
+
+skill: triage-debt
+job: triage
+problem_class: "cross-cutting debt aggregation (TRIAGE)"
+intent: >
+  Cross-cutting aggregator that scores accumulated debt across the maintenance
+  loop's outputs (reviewed quality findings, find-* report stacks, spec drift,
+  decision drift, hard-size-overflow specs, recurring same-target hits) and
+  produces a ranked queue. Each entry names the recommended next skill to invoke
+  (refactor-subsystem / fix-workflow / extract-* / decide). Pure read — never
+  runs find-*; reads the cached evidence those skills already produced.
+solves: >
+  Individual find-* skills each see one axis; nobody sees what is ACCUMULATING
+  across runs — recurrence, spec drift (IM-N unchecked >60d), decision drift
+  (proposed >30d, broken chains). triage-debt answers "where is a maintenance
+  window best spent" rather than "which one cleanup to do next".
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted in the 90f8567 big-bang; no on-disk reports run in this ES2 tree and no fixtures pair — as a read-only aggregator its only possible dogfood is self-runs, of which there are none here)"
+reports_dir: reports/triage-debt
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0003"]
+  precedent: []
+  doc: ["quality-findings.md", "architectural-smells.md", "skill-catalog.md"]
+  contract: []
+related_skills: [audit-decisions, refactor-subsystem, fix-workflow, which-skill, decide]
+duplication_risk:
+  - with: audit-decisions
+    relation: sibling-different-layer
+    disambiguator: "triage-debt `not_for`: 'Decision-registry hygiene specifically (use /audit-decisions, which is narrower and more authoritative for that axis)'. triage-debt aggregates ALL debt axes and only reads decision drift as one input; audit-decisions owns that axis."
+  - with: which-skill
+    relation: sibling-different-layer
+    disambiguator: "Both cross-cutting meta routers, but triage-debt routes from accumulated REPORT evidence to a ranked cleanup queue; which-skill routes from a free-text TASK to a skill. Input source differs."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
+  - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scanner present, no oracle pair (structural med)"
+  - "reports_dir reports/triage-debt is the declared output home, but run count is 0 — no on-disk ranked-queue run in this ES2 tree"
+gaps:
+  - "pnci had 3 on-disk self-runs (dogfood med); ES2 has none, so dogfood drops to low and dogfood_kind is none-found. reports_dir is the SKILL.md-declared path even though no run exists yet. Dropped the pnci related_skills edge to propose-spine (pnci-only skill, absent from ES2)."

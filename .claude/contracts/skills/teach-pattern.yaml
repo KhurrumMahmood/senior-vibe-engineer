@@ -1,0 +1,52 @@
+schema_version: 2
+
+skill: teach-pattern
+job: teach
+problem_class: "pattern instruction (TEACH) — explain an established convention in context"
+intent: >
+  Explain an established codebase pattern, convention, or canonical helper to the engineer
+  in the context of what they are about to do — what the pattern is, why it exists, where
+  the canonical implementation lives, and how to apply it correctly — so new work conforms
+  instead of reinventing. TEACH skill: prose instruction, no code edits and no new authority.
+  Distinct from searching the pattern library: it conveys understanding of a known pattern
+  rather than retrieving or ranking candidates.
+solves: >
+  Engineers (human or AI) re-deriving or violating an established convention because the
+  pattern's rationale and canonical location aren't surfaced at the moment of use.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found — extracted big-bang into ES2 (90f8567), not dogfooded in this repo. A prose instruction skill: no scripts/, no fixtures/, no reports/teach-pattern run dir on disk, and nothing to leave a dogfood trace."
+reports_dir: reports/teach-pattern
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills: [decide, which-skill, plan-feature, architecture-fit, query-patterns]
+duplication_risk:
+  - with: query-patterns
+    relation: sibling-different-layer
+    disambiguator: "teach-pattern EXPLAINS a known pattern in context (instruction); query-patterns SEARCHES/ranks the pattern library for candidates (retrieval). Teach-vs-search, same domain different job."
+  - with: decide
+    relation: sequential
+    disambiguator: "teach-pattern conveys an ALREADY-established pattern; decide AUTHORS a new ADR/decision when none exists. teach-pattern not_for: 'Authoring a new ADR (use /decide).'"
+provenance_confidence:
+  textual: low
+  structural: low
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
+  - "prose-only TEACH skill — no scripts/, no fixtures/, no reports dir; structural axis is necessarily low"
+  - "sits in the knowledge-conveyance cluster (decide / which-skill / query-patterns) rather than the detector clusters"
+gaps:
+  - "SKILL.md references ai-docs/decisions rather than a docs/decisions/ tree — consistent with ES2 having no docs/decisions/ ADR set, so embodies_decisions.adr is []."
+  - "A prose instruction skill leaves no executable or run artifact in either repo, so all four provenance axes rest on textual intent (SKILL.md) and cluster position; nothing raises them above low."

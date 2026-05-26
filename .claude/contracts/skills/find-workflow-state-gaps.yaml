@@ -1,0 +1,59 @@
+schema_version: 2
+
+skill: find-workflow-state-gaps
+job: suspect
+problem_class: "UI state-coverage drift detection (SUSPECT, advisory)"
+intent: >
+  Advisory scan for /sites workflow state-coverage gaps — loading, empty,
+  success, partial, failed, retry/cancel, disabled, stale-job, permission, and
+  mobile/responsive states. Bands: missing_loading_state, missing_empty_state,
+  missing_failure_state, missing_recovery_state, missing_disabled_state,
+  missing_mobile_state. Also imports /find-workflow-duplication findings as
+  state-authority context. Text-surface advisory — findings need judgment
+  before becoming guardrails.
+solves: >
+  A /sites tab or async panel shipped without the states a senior engineer
+  expects before UI polish — no loading spinner, no empty state, no failure /
+  retry path, no disabled or stale-job handling — surfaced before the next
+  async panel is added or after a route/template/JS ownership move.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: fixture-pair
+dogfooded_on:
+  - "Self-shipped good/bad fixtures (fixtures/good/ has app + static trees with the expected states present; fixtures/bad/ has the same surfaces with states missing) — the regression oracle."
+  - "none-found for an ES2 self-scan: no reports/find-workflow-state-gaps dir on disk, so the scanner has not been run against the ES2 tree."
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills: [find-test-obligation-drift, find-workflow-duplication, find-async-lifecycle-drift, find-dead-route-surface, find-contract-drift, map-product-workflow]
+duplication_risk:
+  - with: find-workflow-duplication
+    relation: shared-doc-coupling
+    disambiguator: "find-workflow-state-gaps IMPORTS /find-workflow-duplication findings as state-authority context (they share the /sites workflow surface), but state-gaps audits UI STATE coverage while workflow-dup audits duplicated step authority. Consumption, not overlap."
+  - with: find-test-obligation-drift
+    relation: sibling-different-layer
+    disambiguator: "Co-born in the 90f8567 cohort with the same good/bad-fixture signature; state-gaps asks 'does the UI handle empty/loading/failed?', test-obligation-drift asks 'did the diff get the tests its surface implies?'."
+  - with: find-async-lifecycle-drift
+    relation: sibling-different-layer
+    disambiguator: "Same /sites product-health family; find-async-lifecycle-drift targets polling/job/cancel/resume LIFECYCLE drift, state-gaps targets the rendered STATE set."
+provenance_confidence:
+  textual: low
+  structural: high
+  temporal: low
+  dogfood: high
+evidence:
+  - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
+  - "has_fixtures + has_scripts both true — fixtures/{good,bad}/ app + static trees are the structural + dogfood oracle"
+  - "no reports/find-workflow-state-gaps dir on disk in ES2 — no self-scan run here"
+gaps:
+  - "No ADR in ai-docs/decisions/ names find-workflow-state-gaps, so embodies_decisions.adr is []."
+  - "No ES2 self-scan run on disk; the dogfood axis rests on the fixtures oracle, not a run against the ES2 tree. Advisory-only in v1 (no band promoted to a lint)."

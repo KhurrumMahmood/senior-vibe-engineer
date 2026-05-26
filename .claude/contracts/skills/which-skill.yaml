@@ -1,0 +1,43 @@
+schema_version: 2
+
+skill: which-skill
+job: meta
+problem_class: "skill routing / anti-misapplication (META)"
+intent: "Recommend a skill (or \"no planning skill applies — proceed directly\") for a free-text task description. Reads every SKILL.md frontmatter — tier, job, best_for, not_for, language, framework — and ranks candidates by token overlap. Two purposes: recommend the right skill, and surface metadata mismatches when the recommender consistently picks wrong."
+solves: "The most common agent failure mode is invoking heavy planning machinery for a one-line fix (or the inverse). which-skill defends against tool misapplication cheaply, and doubles as a lint on skill metadata — a skill that never routes to its own invocation prompts has a frontmatter bug."
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted in the big-bang 90f8567 cohort; has a matcher script but no on-disk reports dir or self-scan run in ES2)"
+reports_dir: null
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc:
+    - skill-catalog.md
+  contract: []
+related_skills: [plan-feature, scope-feature, triage-debt, teach-pattern, plan-skill]
+duplication_risk:
+  - with: triage-debt
+    relation: sibling-different-layer
+    disambiguator: "Both are cross-cutting meta routers, but which-skill answers 'which skill for THIS task' from a free-text description; triage-debt answers 'what should I clean up next' from cached find-* evidence. Different input (task text vs report stacks)."
+provenance_confidence:
+  textual: low      # big-bang 90f8567 cohort; commit subject does not name which-skill
+  structural: med   # has a matcher script (has_scripts) but no fixtures pair
+  temporal: low     # 90f8567 birth shared by 54 siblings — no birth-proximity signal
+  dogfood: low      # no fixtures oracle and no ES2 self-run
+evidence:
+  - "90f8567 — born in the big-bang 55-skill extraction cohort (2026-05-15)"
+  - "has_scripts: true (frontmatter-ranking matcher) but has_fixtures: false — one of two structural signals present"
+  - "no reports_dir and 0 run artifacts on disk — not yet dogfooded in ES2"
+  - "explain-job-is-read-only-proposal.v1 in precedents.yml mentions which-skill only in prose (a routing-key dependency), not as a canonical_example — too thin to claim embodiment"
+gaps:
+  - "which-skill is named in the explain-job-is-read-only-proposal.v1 precedent's prose but is not a canonical_example or applies_to, so precedent: [] (no genuine embodiment)."
+  - "No ADR in ai-docs/decisions/ cites which-skill, and no fixtures oracle; intent rests on SKILL.md + the skill-catalog.md doc."

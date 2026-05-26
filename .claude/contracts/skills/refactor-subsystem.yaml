@@ -1,0 +1,46 @@
+schema_version: 2
+
+skill: refactor-subsystem
+job: refactor
+problem_class: "large-subsystem refactor execution (REFACTOR)"
+intent: "Execute a large-subsystem refactor (split a bloated module, extract a service, reorganize a domain) via an orchestrator/scout pattern driven by a spec in ai-docs/specs/. Seven phases — Inventory, Characterize+Extract, Plan, Approve, Execute, Verify, Crystallize — with mandatory three-output scouts (primary brief + findings.md + extracted-behaviors.md) and a conservative default: unknown code STAYS until explicit human approval."
+solves: "Multi-file refactors done ad-hoc lose behaviors and drift from any spec. Without spec-first discipline, characterization tests, and two-commit separation, refactors silently change behavior and bury bug fixes inside \"no-op\" moves."
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted in the big-bang 90f8567 cohort; ES2 has no host-subsystem refactors and no on-disk reports/spec run for it — the seven-phase spec-driven flow has not been driven against this repo)"
+reports_dir: null
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0002", "0006", "0017"]
+  precedent:
+    - explain-job-is-read-only-proposal.v1
+  doc: []
+  contract: []
+related_skills: [fix-workflow, propose-boundary, propose-folder-reorganization, plan-spec, find-omnibus, find-semantic-duplication]
+duplication_risk:
+  - with: fix-workflow
+    relation: sibling-different-layer
+    disambiguator: "refactor-subsystem `not_for`: 'Single-cluster cleanups (use /fix-workflow)' — refactor-subsystem is the heavy multi-phase, spec-driven, scout-fanout path; fix-workflow executes one cluster in the current worktree."
+  - with: propose-boundary
+    relation: sequential
+    disambiguator: "propose-boundary / propose-folder-reorganization produce the proposal/spec; refactor-subsystem EXECUTES it in decomposition mode. The proposals never edit code; refactor-subsystem does."
+provenance_confidence:
+  textual: low      # big-bang 90f8567 cohort; commit subject does not name refactor-subsystem
+  structural: low   # prose+orchestrator skill — no scanner script, no fixtures (drives scouts against a spec file)
+  temporal: low     # 90f8567 birth shared by 54 siblings — no birth-proximity signal
+  dogfood: low      # no fixtures oracle, no host refactor, no ES2 self-run
+evidence:
+  - "90f8567 — born in the big-bang 55-skill extraction cohort (2026-05-15)"
+  - "no reports_dir and 0 run artifacts on disk; ES2 has no host-subsystem refactors — subsystem-refactor dogfood does not apply here"
+  - "explain-job-is-read-only-proposal.v1 in precedents.yml names refactor-subsystem/SKILL.md as a canonical_example (the REFACTOR counterpart that executes an explain brief — anchors the explain/refactor read-only-proposal boundary)"
+gaps:
+  - "ES2 has no ai-docs/specs run or host refactor that exercises the seven-phase flow (dogfood_kind: none-found); intent rests on SKILL.md + the explain-job-is-read-only-proposal.v1 precedent it anchors."
+  - "Divergence from pnci intent base: pnci carried precedent spine-extraction-contract-guard.v1 + doc spine-architecture.md, NEITHER of which exists in ES2, so both are dropped. ADR 0002 (spec-first-refactor) DOES exist in ES2 and names '/refactor-subsystem is the canonical executor', so it is attributed; embodies_decisions.adr is [\"0002\", \"0006\", \"0017\"] (0006 folder-organization names refactor-subsystem as the decomposition executor, 0017 staged-boundary-rearchitecting lists it in applies_to). Precedent embodiment remains explain-job-is-read-only-proposal.v1."
+  - "pnci related_skills listed propose-spine (a pnci-only skill) — dropped; the propose-boundary disambiguator was rewritten to not name propose-spine."

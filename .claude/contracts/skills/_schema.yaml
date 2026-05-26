@@ -1,0 +1,119 @@
+# Skill intent + provenance contract — schema v2.
+#
+# One file per skill at .claude/contracts/skills/<skill-name>.yaml.
+# This is the machine-checkable home for "why this skill exists and what it actually
+# does," so intent can't be silently reverted or eroded. Guarded (advisory) by the
+# find-skill-intent-drift lint.
+#
+# THIS REPO (engineering-skills-2) is the portable skill ecosystem; these contracts are
+# derived from ES2's OWN git history, not copied from any host project. The contract SHAPE
+# (this schema + the guard) is portable and also ships into host checkouts that vendor the
+# skills, but each repo's contracts must be re-derived from that repo's commits — born SHAs,
+# dogfooded_on, reports, and provenance_confidence are repo-specific. Copying another repo's
+# provenance verbatim would be false provenance.
+#
+# Provenance is TRIANGULATED from git-native channels; confidence is recorded per channel:
+#   textual    – commit subjects name the skill / say "dogfood"
+#   structural – guard-install artifact signature (scanner script, good/bad fixtures,
+#                pre-commit or CI wiring, a CLAUDE.md / catalog bullet)
+#   temporal   – proximity of dogfooding/stabilization commits to the skill's birth commit
+#   dogfood    – confidence specifically that we know what it was *used on*
+#                (separate axis — the most decision-relevant signal)
+# A fourth corroboration source is STRUCTURED, not just commit text:
+#   .claude/docs/precedents.yml · .claude/tasks/lessons.md · ai-docs/decisions/ (ADRs)
+# NOTE (ES2-specific): the ADR tree lives at ai-docs/decisions/ (NOT docs/decisions/) —
+# 14 ADRs (0001-0006, 0013, 0016-0022). So embodies_decisions.adr is NON-empty for the
+# skills that an ADR actually governs. Attribute an ADR ONLY when the skill is the
+# enforcement/realization of that ADR's decision (bidirectional signal: the skill's SKILL.md
+# cites the ADR AND the ADR names the skill back) — NOT when a skill merely uses an artifact
+# the ADR defines or lists the skill as one example among many (e.g. ADR 0003's findings
+# ledger names ~12 skills but only triage-debt enforces it). Beware stale pnci ADR numbers in
+# extracted SKILL.md text (e.g. 0010/0011 do not exist in ES2's tree).
+#
+# NOTE (ES2-specific birth signal): the ecosystem was extracted big-bang — 55 skills share
+# the first commit (90f8567, 2026-05-15). For those, born.sibling_births is large and the
+# TEMPORAL axis is weak (birth proximity carries little information when everything was born
+# together); lean on textual + structural + dogfood instead. Skills born in later, smaller
+# commits (e.g. a582cbf = 3 skills) have a sharper temporal signal.
+#
+# CAVEAT (verified): skill *outputs* route to reports/<skill>/… which is gitignored via
+# `/reports/*` (only `/reports/_meta/` is tracked — see README.md). So git HISTORY carries
+# code deltas + commit subjects, not the outputs.
+# BUT the outputs exist ON DISK as timestamped run artifacts (e.g. scan-<UTC>) and are rich
+# local provenance: WHEN each skill ran, WHAT it produced, what it ran ON. Mine them for
+# run_evidence and to raise the `dogfood` axis. Two limits keep them honest:
+#   (1) gitignored ⇒ local-only, not a durable/reproducible corpus;
+#   (2) reports are the skill's own FINDINGS (self-report) — never the trusted oracle (the
+#       oracle stays the code delta). Also: a `latest` symlink in a reports dir is NOT a run —
+#       count only real timestamped run directories.
+
+schema_version: 2
+
+# Field reference (copy the shape per skill; use gaps: for anything undeterminable, do NOT guess):
+#   skill                 dir under .claude/skills/
+#   job                   frontmatter `job:` pulled VERBATIM from SKILL.md (not paraphrased)
+#   problem_class         e.g. "architectural-drift detection (SUSPECT)"
+#   intent                1-3 sentences: the core idea / why this skill exists
+#   solves                the specific pain it addresses
+#   born.commit/date      true birth of SKILL.md = earliest commit (full history) whose every
+#                         parent lacks the file (parent-absence; NOT `git log --diff-filter=A`,
+#                         which can report a spurious birth across a merge)
+#   born.sibling_births   other skills born in the SAME birth commit ([] if none; large under 90f8567)
+#   dogfood_kind          subsystem-refactor | self-installed-guard | fixture-pair | none-found
+#   dogfooded_on          subsystem + commit range/SHAs, the self-shipped artifact, the fixtures
+#                         pair, or the ES2 self-scan run(s); "none-found" if extracted but not yet
+#                         dogfooded in THIS repo (honest for many big-bang-extracted skills)
+#   reports_dir           on-disk output dir(s), incl. aliases (e.g. find-omnibus -> reports/omnibus,
+#                         harvest-learnings -> reports/harvest); none if absent
+#   run_evidence          from on-disk timestamped artifacts (local, not git): {count, first, latest}
+#   embodies_decisions    keyed by type: adr (ai-docs/decisions/, [] unless the skill enforces
+#                         that ADR — bidirectional signal) / precedent / doc / contract
+#   related_skills        sibling skills touching the same area
+#   duplication_risk[]    {with, relation, disambiguator}
+#                         relation: sequential | sibling-different-layer | shared-doc-coupling | genuine-overlap
+#                         disambiguator: usually a `not_for` quote that separates them
+#   provenance_confidence textual/structural/temporal/dogfood : high|med|low
+#   evidence              short-sha — one line on what it shows
+#   gaps                  provenance not determinable from git / structured / on-disk sources
+
+# --- worked example (real ES2 skill; shows every field filled) ---
+example:
+  skill: find-complexity-hotspots
+  job: suspect          # VERBATIM frontmatter `job:` value (the SUSPECT job tier), not a paraphrase of the description
+  problem_class: "performance / complexity hotspot detection (SUSPECT)"
+  intent: "Surface likely algorithmic, Django ORM, and structural complexity hotspots via a read-only stdlib AST scan (nested loops, membership scans, sort-in-loop, QuerySet calls inside loops, high-branch functions), ranked as advisory leads — without touching production files."
+  solves: "Expensive code paths grow silently; before a refactor there was no first-pass, repo-wide lead list of where complexity concentrates, so reviewers guessed at 'this feels slow.'"
+  born:
+    commit: "a582cbf"
+    date: "2026-05-16"
+    sibling_births: [adapt-project, project-interview]   # small, sharp cohort (3 skills) — temporal signal is meaningful here
+  dogfood_kind: fixture-pair
+  dogfooded_on:
+    - "ships a fixtures/good + fixtures/bad pair that the scan must rank correctly (the regression oracle)"
+    - "self-scan on the ES2 tree — reports/find-complexity-hotspots/scan-20260517-023234 (one on-disk run)"
+  reports_dir: reports/find-complexity-hotspots
+  run_evidence:
+    count: 1           # one real timestamped run dir (a `latest` symlink is NOT counted)
+    first: "scan-20260517-023234"
+    latest: "scan-20260517-023234"
+  embodies_decisions:
+    adr: []            # no ADR in ai-docs/decisions/ governs this skill (it is named by none)
+    precedent: []      # no precedents.yml entry for this skill
+    doc: []
+    contract: []
+  related_skills: [find-omnibus, find-layer-violation, refactor-subsystem]
+  duplication_risk:
+    - with: find-omnibus
+      relation: sibling-different-layer
+      disambiguator: "find-complexity-hotspots flags WITHIN-function cost (nested loops, ORM-in-loop, branchiness); find-omnibus flags MODULE-level sprawl (oversized multi-responsibility files). Different granularity, both SUSPECT."
+  provenance_confidence:
+    textual: med       # commit a582cbf names the cohort; no explicit "dogfood" subject
+    structural: high   # scanner script + good/bad fixtures pair both present
+    temporal: high     # small 3-skill birth cohort — birth proximity is informative (unlike the big-bang 90f8567 set)
+    dogfood: med       # fixtures pair is a real oracle; only one self-scan run on the ES2 tree
+  evidence:
+    - "a582cbf — born in a 3-skill cohort (with adapt-project, project-interview), not the big-bang 90f8567 set"
+    - "fixtures/good + fixtures/bad present — the ranking regression oracle"
+    - "reports/find-complexity-hotspots/scan-20260517-023234 — one on-disk self-scan run (local, gitignored)"
+  gaps:
+    - "No precedents.yml entry and no ADR in ai-docs/decisions/ names this skill, so embodies_decisions is empty; intent rests on SKILL.md + the fixtures oracle."

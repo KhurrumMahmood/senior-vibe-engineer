@@ -1,0 +1,44 @@
+# Skill intent + provenance contract — schema v2.
+# ES2-only skill; authored fresh from SKILL.md + es2_skill_facts.yaml.
+
+schema_version: 2
+
+skill: engineer-init
+job: meta
+problem_class: "ecosystem runtime bootstrap (META)"
+intent: "Bootstrap the engineering-skills runtime so the script-backed skills can actually run — check Python >= 3.11, create the .venv, install requirements.txt (PyYAML, ruff, pre-commit), wire pre-commit hooks when the repo is git-tracked, and prove the install by running a script-backed skill (skill_meta.py lint) to exit 0. Idempotent: every stage no-ops if its work is already done."
+solves: "Claude Code auto-lists every skill as a slash command BEFORE the runtime exists, so a skill looks available yet fails on its first scripts/*.py call because the venv / PyYAML isn't installed. There was no single idempotent setup path that installed the runtime and verified an actual script-backed call succeeds; the chicken-and-egg (a setup skill cannot depend on the runtime it installs) is resolved by keeping it to stdlib venv + pip, prompt-only."
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted in the big-bang 90f8567 commit; no ES2 self-run on disk — reports_dir is null and this is a prompt-only setup skill with no helper script to scan)"
+reports_dir: null
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []         # no ADR in ai-docs/decisions/ names engineer-init
+  precedent: []   # no precedents.yml entry names engineer-init
+  doc: []
+  contract: []
+related_skills: [adapt-project, project-interview, orient, which-shape, which-skill]
+duplication_risk:
+  - with: adapt-project
+    relation: sibling-different-layer
+    disambiguator: "engineer-init makes the RUNTIME work (venv + deps + hooks + verify); adapt-project discovers HOST-PROJECT facts and scaffolds an adapter. engineer-init not_for: 'Installing the ecosystem INTO a host project … is a manual step this skill does not perform.' adapt-project not_for: 'Installing the runtime itself (use /engineer-init).'"
+provenance_confidence:
+  textual: low      # big-bang 90f8567 cohort — commit subject does not single this skill out
+  structural: low   # prompt-only: no helper script, no fixtures (the SKILL.md is explicit that a setup skill cannot depend on the runtime it installs)
+  temporal: low     # 55-skill big-bang cohort — birth proximity carries no signal
+  dogfood: low      # no fixtures oracle, no self-run on disk
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction, not a named later commit"
+  - "has_scripts=false, has_fixtures=false (facts) — prompt-only by design; SKILL.md 'Repository layout' shows SKILL.md as the whole skill"
+  - "reports_dir null, run count 0 (facts) — no timestamped self-run artifact exists"
+gaps:
+  - "No precedents.yml entry and no ADR in ai-docs/decisions/ names engineer-init; intent rests entirely on the SKILL.md."
+  - "No ES2 dogfood evidence — this is a setup skill that runs once per clone, so absence of a reports run is expected, not a coverage hole, but it leaves dogfood_kind honestly none-found."

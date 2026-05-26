@@ -1,0 +1,43 @@
+schema_version: 2
+
+skill: find-concept-divergence
+job: suspect
+problem_class: "concept-name drift detection (SUSPECT)"
+intent: "Surface concept-name drift between the canonical glossary at `.claude/contracts/concepts.yaml` and the codebase/docs via three strict bands — avoid_term_hit (code uses a phrasing the glossary's `avoid:` block bans), competing_term_coexistence (multiple `competing_terms` from a flagged_ambiguities entry in one file), and superseded_co_occurrence (a deprecated name and its `superseded_by:` replacement in one file). Detection only — never edits code or docs."
+solves: "Terminology drift the glossary author hasn't caught — banned phrasings, unresolved competing names co-occurring, and half-finished renames — which erodes the shared domain language faster than humans can police it by hand."
+born:
+  commit: "cc5c4d6"
+  date: "2026-05-19"
+  sibling_births: []
+dogfood_kind: self-installed-guard
+dogfooded_on:
+  - "self-scan on the ES2 tree — reports/find-concept-divergence/scan-20260520-004804 and scan-20260520-004933 (two on-disk runs; a concept-drift meta-guard run against this repo's own glossary + sources)"
+reports_dir: reports/find-concept-divergence
+run_evidence:
+  count: 2
+  first: "scan-20260520-004804"
+  latest: "scan-20260520-004933"
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract:
+    - .claude/contracts/concepts.yaml
+related_skills: [find-rule-surface-drift, find-semantic-duplication]
+duplication_risk:
+  - with: find-semantic-duplication
+    relation: sibling-different-layer
+    disambiguator: "find-concept-divergence checks NAME drift against a glossary; find-semantic-duplication checks two live implementations solving the same problem. Concept = lexical/glossary, semantic = behavioral."
+provenance_confidence:
+  textual: med      # born in a named standalone commit cc5c4d6 (not the big-bang set) — commit isolates this skill
+  structural: med   # ships a scanner script (has_scripts) but no good/bad fixtures pair
+  temporal: med     # solo birth in its own later commit (sibling_births: []) — birth is informative, unlike 90f8567
+  dogfood: med      # two on-disk self-scan runs (≥2 raises dogfood), but no fixtures oracle
+evidence:
+  - "cc5c4d6 — born standalone on 2026-05-19, NOT in the big-bang 90f8567 cohort (sibling_births: []); sharpest birth signal in this set"
+  - "reports/find-concept-divergence/scan-20260520-004804 + scan-20260520-004933 — two on-disk self-scan runs the day after birth (local, gitignored)"
+  - "has_scripts: true, has_fixtures: false — strict canonical-name + avoid-term grep against the concepts.yaml glossary"
+gaps:
+  - "No precedents.yml entry names find-concept-divergence and no ADR in ai-docs/decisions/ cites it (adr: []); embodiment is the .claude/contracts/concepts.yaml glossary it scans against."
+  - "Divergence from pnci intent base: ES2's SKILL.md adds a `coverage_lint:` escape clause to not_for (set coverage_lint on a superseded concept and the scanner skips co-occurrence noise so a dedicated lint owns the rename) — captured in intent. ES2 also DROPS pnci's /CONTEXT.md doc backref (that file is pnci-specific); embodiment is concepts.yaml only."
+  - "related_skills DROPPED find-doc-link-rot — it is one of the 6 pnci-only skills absent from ES2 (no duplication_risk edge targeted it, so no duplication entry was dropped)."

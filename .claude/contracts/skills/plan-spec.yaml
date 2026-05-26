@@ -1,0 +1,55 @@
+schema_version: 2
+
+skill: plan-spec
+job: plan
+problem_class: "System-tier planning, terminal stage (PLAN)"
+intent: >
+  Final skill in the System-tier chain. Reads an `architected`-status plan, validates that
+  §6 has no unresolved P0 forks, then calls scripts/plans.py promote to scaffold a successor
+  spec under ai-docs/specs/<spec-id>.md and mark the plan `promoted`. The plan's §3-5 inform
+  the spec's Architecture / Implementation / Exceptions sections. Hands off to
+  /refactor-subsystem for execution.
+solves: >
+  A fully-architected plan still has to become a behavior-preserving spec that
+  /refactor-subsystem can execute, with the plan<->spec link and the no-open-P0-fork gate
+  enforced. plan-spec is the validated promotion step that closes planning and opens
+  execution.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted big-bang under 90f8567, no ES2 dogfood run). No reports dir; delegates promotion to shared scripts/plans.py promote, and no plan in ES2 is attributable to a plan-spec promotion from history."
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills: [scope-feature, impact-feature, architecture-fit, refactor-subsystem, plan-feature, decide]
+duplication_risk:
+  - with: architecture-fit
+    relation: sequential
+    disambiguator: "architecture-fit produces the `architected` plan (fills §5-6); plan-spec consumes it and promotes to a spec. not_for: 'Plan with status != architected (use the matching earlier-stage skill).' Sequential, gated by status."
+  - with: refactor-subsystem
+    relation: sequential
+    disambiguator: "plan-spec scaffolds the spec; refactor-subsystem executes it. plan-spec is terminal in the planning chain; refactor-subsystem is the execution handoff."
+  - with: plan-feature
+    relation: sibling-different-layer
+    disambiguator: "Both end at a spec, but plan-feature scaffolds a proposed Feature-tier spec from scratch; plan-spec PROMOTES an already-architected System-tier plan via scripts/plans.py promote. Entry condition differs."
+provenance_confidence:
+  textual: low
+  structural: low
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction cohort (textual + temporal low)"
+  - "has_scripts false, has_fixtures false — thin terminal stage that delegates to shared scripts/plans.py promote (structural low)"
+  - "no reports dir and no plan/spec in ES2 attributable to a plan-spec promotion (dogfood low)"
+gaps:
+  - "embodies_decisions.adr is []: ADRs 0003 and 0017 name plan-spec only as a CONSUMER/transcriber in the planning chain (it promotes an architected plan to a spec), not as the enforcement/realization of either decision. The pnci base's adr:[\"0002\"] was a spec-first attribution that belongs to /refactor-subsystem (the executor), not to plan-spec, so it does not transfer. No precedent names this skill."

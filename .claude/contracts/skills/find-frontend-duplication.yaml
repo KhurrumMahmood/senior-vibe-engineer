@@ -1,0 +1,60 @@
+schema_version: 2
+
+skill: find-frontend-duplication
+job: suspect
+problem_class: "frontend duplication detection (SUSPECT)"
+intent: >
+  Detect duplicated UX shells, hand-rolled primitives, and JS helper forks across
+  templates/ and static/js/ by comparing Tailwind class chains and JS function
+  definitions against the existing cotton primitive inventory — surfacing
+  'should be a c-primitive but isn't' candidates. An orchestrator drives stdlib
+  scanners (cotton inventory, class-chain, helper-fork), collapses + ranks into
+  P0/P1/P2 candidates, and fans out investigator sub-agents; the orchestrator never
+  reads markup itself. Hands off to /extract-cotton-primitive for proposals.
+solves: >
+  Hand-rolled modal/badge/alert/dropdown/button shells and forked JS helpers
+  (showToast/escapeHtml/siteEndpoint) repeated across templates instead of going through
+  one cotton primitive or wrapper.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found — extracted big-bang into ES2 (90f8567), not dogfooded in this repo. Ships its full Stage-1..5 scanner suite under scripts/ but no fixtures/ oracle, and no reports/frontend-duplication run dir exists on disk."
+reports_dir: reports/frontend-duplication
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills: [extract-cotton-primitive, find-duplication, find-semantic-duplication, find-frontend-contract-drift, find-workflow-duplication]
+duplication_risk:
+  - with: find-duplication
+    relation: sibling-different-layer
+    disambiguator: "not_for quote: 'Python code duplication (use /find-duplication or /find-semantic-duplication)'. frontend-duplication = Tailwind chains + JS helper forks in templates/static; find-duplication = Python jscpd+AST clones."
+  - with: find-frontend-contract-drift
+    relation: sibling-different-layer
+    disambiguator: "not_for quote: 'Implicit JS<->template global contracts (use /find-frontend-contract-drift)'. duplication = repeated UI shells; contract-drift = the implicit boot-global channel."
+  - with: extract-cotton-primitive
+    relation: sequential
+    disambiguator: "frontend-duplication DETECTS 'should-be-a-primitive' candidates; extract-cotton-primitive turns one into a c-primitive proposal (named handoff in the description)."
+  - with: find-workflow-duplication
+    relation: sibling-different-layer
+    disambiguator: "not_for quote: 'Cross-layer workflow drift (use /find-workflow-duplication)'. This = UI primitive reuse; workflow-duplication = duplicated step authority across layers."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
+  - "self-contained scripts/ suite (cotton_inventory, class-chain scanner, helper scanner, collapse, rank, report) — a multi-stage detector signature, but no fixtures/ pair"
+  - "no reports/frontend-duplication dir on disk — no captured ES2 self-scan run"
+gaps:
+  - "pnci's contract was the richest dogfood case (subsystem-refactor: a cotton-consolidation commit wave + 4 on-disk runs). ES2 has none of that — no consolidation history in this repo, no runs, no fixtures — so the honest ES2 dogfood_kind is none-found, a sharp divergence from the pnci intent base."
+  - "embodies_decisions.adr is []: ADR 0022 (generated-detector lifecycle) names this skill's cotton_inventory.py in applies_to, but as the hardcoded-layout 'first instance' that 0022 exists to REPARAMETERIZE — the motivating artifact, not the realization of the synthesize→freeze→gate mechanism — so 0022 is not attributed. No cotton-components doc is pinned; intent rests on SKILL.md."

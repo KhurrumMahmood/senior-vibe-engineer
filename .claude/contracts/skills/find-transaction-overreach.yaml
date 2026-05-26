@@ -1,0 +1,51 @@
+schema_version: 2
+
+skill: find-transaction-overreach
+job: suspect
+problem_class: "runtime-failure-mode detection (SUSPECT) — transaction overreach"
+intent: >
+  Detect Django transaction.atomic() blocks (and @transaction.atomic functions) that hold
+  a DB connection while doing slow / external work — HTTP calls, AI/SDK calls, cloud
+  uploads, time.sleep, subprocess, or Celery dispatch. An AST scan collapses hits per
+  block and fans out cheap scout sub-agents to bucket each candidate (narrow / split /
+  defer / legitimate / false positive) before handoff to /fix-workflow cluster:<symbol>.
+solves: >
+  A smell that passes structural review but starves the connection pool under load: a
+  transaction pins a database connection across a network round-trip or other slow work,
+  so concurrent requests exhaust available connections.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted big-bang under 90f8567, no ES2 dogfood run). reports/transaction-overreach absent; no fixtures pair shipped, so there is no oracle and no recorded scan in ES2."
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills: [find-query-mutation, find-layer-violation, fix-workflow]
+duplication_risk:
+  - with: find-query-mutation
+    relation: sibling-different-layer
+    disambiguator: "Same AST+cheap-scout orchestrator shape and shared handoff to /fix-workflow cluster:<symbol>, but find-transaction-overreach targets a runtime connection-pool failure mode while find-query-mutation targets a naming/side-effect contract lie. not_for: 'Read-named methods that mutate persisted state (use /find-query-mutation).'"
+  - with: find-layer-violation
+    relation: sibling-different-layer
+    disambiguator: "find-layer-violation flags entry points owning business logic (incl. direct external calls); find-transaction-overreach flags external/slow work specifically INSIDE an atomic region. Overlap on 'external call' but different invariant (layer ownership vs connection-pinning)."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction cohort (textual + temporal low)"
+  - "has_scripts true, has_fixtures false — AST detector + scout briefs, no good/bad oracle (structural med)"
+  - "SKILL.md frontmatter job:suspect, scout_model:cheap — cheap-scout audit pass behind the smell"
+gaps:
+  - "No on-disk run, no fixtures pair, no precedents.yml entry in ES2 (the pnci base had 3 same-day /sites runs; ES2 has none) — dogfood unproven here."

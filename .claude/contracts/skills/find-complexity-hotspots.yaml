@@ -1,0 +1,59 @@
+# Skill intent + provenance contract — schema v2 (engineering-skills-2).
+schema_version: 2
+skill: find-complexity-hotspots
+job: suspect
+problem_class: performance / complexity hotspot detection (SUSPECT)
+intent: Surface likely algorithmic, Django ORM, and structural complexity hotspots via a read-only stdlib
+  AST scan (nested loops, membership scans, sort-in-loop, QuerySet calls inside loops, high-branch functions),
+  ranked as advisory leads — without touching production files.
+solves: Expensive code paths grow silently; before a refactor there was no first-pass, repo-wide lead
+  list of where complexity concentrates, so reviewers guessed at 'this feels slow.'
+born:
+  commit: a582cbf
+  date: '2026-05-16'
+  sibling_births:
+  - adapt-project
+  - project-interview
+dogfood_kind: fixture-pair
+dogfooded_on:
+- ships a fixtures/good (clean.py) + fixtures/bad (hotspots.py) pair that the scan must rank correctly
+  (the regression oracle)
+- self-scan on the ES2 tree — reports/find-complexity-hotspots/scan-20260517-023234 (one on-disk run)
+reports_dir: reports/find-complexity-hotspots
+run_evidence:
+  count: 1
+  first: scan-20260517-023234
+  latest: scan-20260517-023234
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills:
+- find-omnibus
+- find-layer-violation
+- refactor-subsystem
+- fix-workflow
+duplication_risk:
+- with: find-omnibus
+  relation: sibling-different-layer
+  disambiguator: 'find-complexity-hotspots flags WITHIN-function cost (nested loops, ORM-in-loop, branchiness);
+    find-omnibus flags MODULE-level sprawl (oversized multi-responsibility files). Different granularity,
+    both SUSPECT. not_for quote: ''Broad architecture smells like omnibus modules (use /find-omnibus)''.'
+- with: find-layer-violation
+  relation: sibling-different-layer
+  disambiguator: 'not_for quote: ''view/service layer leaks (use /find-layer-violation)'' — find-complexity-hotspots
+    scans cost, not authority placement.'
+provenance_confidence:
+  textual: med
+  structural: high
+  temporal: high
+  dogfood: med
+evidence:
+- a582cbf — born in a 3-skill cohort (with adapt-project, project-interview), not the big-bang 90f8567
+  set
+- fixtures/good (clean.py) + fixtures/bad (hotspots.py) present — the ranking regression oracle
+- reports/find-complexity-hotspots/scan-20260517-023234 — one on-disk self-scan run (local, gitignored)
+gaps:
+- No precedents.yml entry and no ADR in ai-docs/decisions/ names find-complexity-hotspots, so embodies_decisions
+  is empty; intent rests on SKILL.md + the fixtures oracle.

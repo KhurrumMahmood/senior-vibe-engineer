@@ -1,0 +1,124 @@
+# Skill intent + provenance contract — schema v2 (engineering-skills-2).
+schema_version: 2
+skill: unify-shadows
+job: explain
+problem_class: semantic-duplication resolution proposal (EXPLAIN/bridge)
+intent: Turn a confirmed /find-semantic-duplication finding into an implementation-ready proposal. Consumes
+  a finding shaped as keep_separate_document_why | share_utilities | complete_migration | merge_at_workflow
+  and emits a proposal with migration plan, caller impact, test matrix, and stop condition. Hands off
+  to /fix-workflow semantic:<id>.
+solves: A detected semantic duplicate (two independently-written, both-live workflows solving the same
+  problem) is not directly actionable — someone has to decide the merge shape and map caller impact before
+  any code moves. This skill is the EXPLAIN-to-REFACTOR bridge for that decision.
+born:
+  commit: 90f8567
+  date: '2026-05-15'
+  sibling_births:
+  - architecture-fit
+  - audit-decisions
+  - brainstorm-ideas
+  - decide
+  - design-it-twice
+  - engineer-init
+  - explain-code
+  - extract-cotton-primitive
+  - extract-enum
+  - extract-existing-ideas
+  - extract-state-type
+  - extract-workflow-registry
+  - find-async-lifecycle-drift
+  - find-comment-drift
+  - find-contract-drift
+  - find-dead-route-surface
+  - find-doc-route-drift
+  - find-dormant
+  - find-duplication
+  - find-folder-topology-drift
+  - find-frontend-contract-drift
+  - find-frontend-duplication
+  - find-implicit-state
+  - find-layer-violation
+  - find-omnibus
+  - find-orphaned-ideas
+  - find-query-mutation
+  - find-route-sprawl
+  - find-rule-surface-drift
+  - find-semantic-duplication
+  - find-stale-artifacts
+  - find-test-obligation-drift
+  - find-transaction-overreach
+  - find-workflow-duplication
+  - find-workflow-state-gaps
+  - fix-workflow
+  - gut-check
+  - impact-feature
+  - introduce-fk
+  - map-product-workflow
+  - map-subsystem
+  - mature-existing-ideas
+  - plan-feature
+  - plan-spec
+  - prevent-regression
+  - propose-boundary
+  - propose-folder-reorganization
+  - query-patterns
+  - refactor-subsystem
+  - scope-feature
+  - teach-pattern
+  - track-idea
+  - triage-debt
+  - which-skill
+dogfood_kind: none-found
+dogfooded_on:
+- none-found (extracted big-bang in 90f8567). Has scanner/agent machinery but no fixtures and no reports/unify-shadows
+  run dir on disk in ES2 — the pnci SC-3/SC-7 dogfood proposals are pnci history, not ES2's.
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent:
+  - explain-job-is-read-only-proposal.v1
+  doc:
+  - architectural-smells.md
+  contract: []
+related_skills:
+- find-semantic-duplication
+- fix-workflow
+- find-duplication
+- prevent-regression
+duplication_risk:
+- with: find-semantic-duplication
+  relation: sequential
+  disambiguator: 'unify-shadows `not_for`: ''Detection of semantic duplication (use /find-semantic-duplication)''
+    — find-* detects, unify-shadows proposes the resolution, fix-workflow executes. No overlap.'
+- with: find-duplication
+  relation: sibling-different-layer
+  disambiguator: 'unify-shadows `not_for`: ''Lexical near-clones (use /find-duplication then /fix-workflow)''.
+    unify-shadows resolves SEMANTIC duplication (two shadows of one capability, different code); find-duplication
+    detects lexical/structural clones (identical bodies).'
+- with: propose-boundary
+  relation: sibling-different-layer
+  disambiguator: Both are EXPLAIN-job proposal-writers feeding /fix-workflow or /refactor-subsystem, but
+    unify-shadows resolves SEMANTIC duplication (two shadows of one capability) while propose-boundary
+    resolves a MISSING-BOUNDARY (one file, tangled domains).
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+- 90f8567 — born in the big-bang ecosystem-extraction commit alongside 54 sibling skills (temporal weak;
+  the big-bang subject does not name this skill, textual weak)
+- precedents.yml entry explain-job-is-read-only-proposal.v1 names unify-shadows as a transform-named,
+  correctly job=explain proposer (proposes the resolution, REFACTOR executes it)
+- has scanner/agent machinery (shadow profiler) but no fixtures pair and no reports/unify-shadows dir
+  on disk in ES2 (structural med, run_evidence 0)
+gaps:
+- The pnci contract recorded dogfood_kind subsystem-refactor (SC-3 and SC-7 dogfood proposals shipped
+  in the birth commit); that is pnci history. ES2 has no on-disk reports/unify-shadows run, so ES2's honest
+  dogfood_kind is none-found.
+- No ADR in ai-docs/decisions/ names unify-shadows; embodies_decisions.adr [], corroboration via architectural-smells.md
+  + the precedents.yml proposer-job entry.

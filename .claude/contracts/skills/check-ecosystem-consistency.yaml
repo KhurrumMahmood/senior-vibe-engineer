@@ -1,0 +1,51 @@
+# Skill intent + provenance contract — schema v2.
+# ES2-only skill; authored fresh from SKILL.md + es2_skill_facts.yaml.
+
+schema_version: 2
+
+skill: check-ecosystem-consistency
+job: suspect
+problem_class: "ecosystem self-consistency audit (SUSPECT)"
+intent: "Diff-aware ecosystem consistency audit for engineering-skills. Snapshots skills, /which-shape shape-routing references, docs skill-count claims, and catalog coverage; compares with the last reviewed state (.claude/ecosystem/last-state.json) so significant skill changes surface follow-up obligations — catalogue coverage, count updates, and a conscious review of whether shapes.yml needs an update. Advisory: state is only written with --update-state, after findings are reviewed."
+solves: "Adding, removing, or materially repurposing a skill creates coordination obligations (skill-catalog coverage, README/ONBOARDING count claims, a possible /which-shape registry update) that are silently forgotten. There was no diff-against-reviewed-state pass that flags 'this skill changed — did you reconsider the shape registry and the count surfaces?' before handoff or commit."
+born:
+  commit: "25dc4de"
+  date: "2026-05-17"
+  sibling_births: []
+dogfood_kind: self-installed-guard
+dogfooded_on:
+  - "the ES2 ecosystem itself — a meta-guard that snapshots/diffs the skill registry, shapes.yml, docs counts, and catalog coverage of THIS repo"
+  - "self-scan on disk — reports/check-ecosystem-consistency/scan-20260518-063838-386687 (one timestamped run against the ecosystem)"
+reports_dir: reports/check-ecosystem-consistency
+run_evidence:
+  count: 1
+  first: "scan-20260518-063838-386687"
+  latest: "scan-20260518-063838-386687"
+embodies_decisions:
+  adr: []         # no ADR in ai-docs/decisions/ names check-ecosystem-consistency
+  precedent: []   # no precedents.yml entry names check-ecosystem-consistency
+  doc: []
+  contract: []
+related_skills: [which-shape, which-skill, find-rule-surface-drift, find-skill-artifact-drift, find-skill-intent-drift]
+duplication_risk:
+  - with: which-shape
+    relation: shared-doc-coupling
+    disambiguator: "check-ecosystem-consistency AUDITS whether shapes.yml drifted after skill changes and prompts a which-shape update; which-shape is the router that CONSUMES that registry. Same surface, opposite roles (SUSPECT audit vs router)."
+  - with: find-rule-surface-drift
+    relation: sibling-different-layer
+    disambiguator: "find-rule-surface-drift governs the AGENT-RULES surface (oversized/dormant/missing-link docs, ADR 0005); check-ecosystem-consistency governs the SKILL-ECOSYSTEM surface (registry/shape-routing/count/catalog coverage). Different surfaces, both diff-aware SUSPECT audits."
+  - with: find-skill-intent-drift
+    relation: sibling-different-layer
+    disambiguator: "find-skill-intent-drift checks one skill's recorded INTENT/PROVENANCE contract; check-ecosystem-consistency checks cross-skill REGISTRY/COUNT/CATALOG coherence across the whole ecosystem. Different granularity, both advisory."
+provenance_confidence:
+  textual: med      # born in a dedicated, non-big-bang commit (25dc4de) with no sibling births — the commit singles this skill out
+  structural: med   # ships a scanner (check.py) but no good/bad fixtures pair (has_scripts=true, has_fixtures=false)
+  temporal: med     # solo birth cohort — sharper than the 90f8567 set, but a single skill carries limited proximity signal
+  dogfood: med      # ran against the ecosystem itself, but exactly one self-scan on disk (no fixtures oracle)
+evidence:
+  - "25dc4de — born 2026-05-17 in a dedicated commit, sibling_births_count 0 (facts)"
+  - "reports/check-ecosystem-consistency/scan-20260518-063838-386687 — one on-disk self-scan run against the ES2 ecosystem (facts; local, gitignored)"
+  - "has_scripts=true / has_fixtures=false (facts) — check.py present, no oracle pair; SKILL.md baseline lives at .claude/ecosystem/last-state.json"
+gaps:
+  - "No precedents.yml entry and no ADR in ai-docs/decisions/ names check-ecosystem-consistency; intent rests on the SKILL.md and the one self-scan run."
+  - "Exactly one self-scan run and no fixtures pair, so dogfood is med not high — the self-install on the ecosystem is real but lightly exercised."

@@ -1,0 +1,52 @@
+schema_version: 2
+
+skill: fix-workflow
+job: refactor
+problem_class: "scoped refactor execution for a single finding (REFACTOR)"
+intent: >
+  Execute a scoped fix for one confirmed maintenance-loop finding (a layer
+  violation, a duplication cluster, a query-mutation pair, a dormant-delete
+  target) under behavior-preserving discipline: pin current behavior, make the
+  smallest responsible change, prove the failure is gone. The targeted-execution
+  counterpart to /refactor-subsystem's larger decompositions.
+solves: >
+  SUSPECT skills produce findings but do not fix them, and /refactor-subsystem is
+  sized for whole-subsystem decompositions; there was no disciplined executor for
+  a single small finding, so point-fixes were done ad hoc without the pin-change-
+  prove guardrail.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted in the 90f8567 big-bang; prose-only orchestrator with no scripts, no fixtures, and no on-disk reports run in this ES2 tree)"
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0003", "0004"]
+  precedent: []
+  doc: ["skill-catalog.md"]
+  contract: []
+related_skills: [refactor-subsystem, unify-shadows, find-layer-violation, find-query-mutation, find-dormant]
+duplication_risk:
+  - with: refactor-subsystem
+    relation: sibling-different-layer
+    disambiguator: "fix-workflow executes ONE scoped finding (layer:/cluster:/delete:); refactor-subsystem executes a whole-subsystem decomposition under the two-commit discipline. Point-fix vs subsystem-scale, both REFACTOR."
+  - with: unify-shadows
+    relation: sibling-different-layer
+    disambiguator: "fix-workflow is the general scoped-fix executor; unify-shadows is the specialized executor for collapsing parallel/shadow implementations to one authority. General vs duplication-specific REFACTOR."
+provenance_confidence:
+  textual: low
+  structural: low
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
+  - "has_scripts: false / has_fixtures: false per es2_skill_facts.yaml — prose-only orchestrator, no scanner and no oracle (structural low)"
+  - "reports_dir null, run count 0 — no on-disk run in this ES2 tree"
+gaps:
+  - "pnci dogfooded this on host refactors (subsystem-refactor) and shipped scripts; in ES2 it is prose-only (has_scripts false) with no run on disk, so dogfood_kind is honestly none-found and structural is low. The pnci birth-date caveat (split SKILL.md births) is pnci-specific and does not apply — ES2 born cleanly in 90f8567."

@@ -1,0 +1,923 @@
+_note: 'Synthesized from the duplication_risk[] blocks in every skill contract (regenerate: .venv/bin/python
+  .claude/contracts/skills/_synth_watchlist.py). Raw, pre-review duplication candidates; promote confirmed
+  items to .claude/quality/findings.jsonl. genuine-overlap + shared-doc-coupling are actionable; sibling-different-layer
+  + sequential are expected/healthy (distinct surfaces / pipelines, disambiguated by each skill''s not_for).
+  relation_disagreement = the two skills'' contracts classify the pair differently — reconcile.'
+counts:
+  genuine-overlap: 0
+  shared-doc-coupling: 2
+  sibling-different-layer: 81
+  sequential: 47
+unique_pairs: 130
+relation_disagreements: 0
+actionable:
+  genuine-overlap: []
+  shared-doc-coupling:
+  - pair:
+    - check-ecosystem-consistency
+    - which-shape
+    note: '[check-ecosystem-consistency->which-shape] check-ecosystem-consistency AUDITS whether shapes.yml
+      drifted after skill changes and prompts a which-shape update; which-shape is the router that CONSUMES
+      that registry. Same surface, opposite roles (SUSPECT audit vs router). | [which-shape->check-ecosystem-consistency]
+      check-ecosystem-consistency audits whether shapes.yml (which-shape''s registry) drifts after skill
+      changes and prompts a which-shape update; they share the shape-registry surface but check-ecosystem-consistency
+      is a SUSPECT audit, which-shape is the router that consumes the registry.'
+  - pair:
+    - find-workflow-duplication
+    - find-workflow-state-gaps
+    note: '[find-workflow-state-gaps->find-workflow-duplication] find-workflow-state-gaps IMPORTS /find-workflow-duplication
+      findings as state-authority context (they share the /sites workflow surface), but state-gaps audits
+      UI STATE coverage while workflow-dup audits duplicated step authority. Consumption, not overlap.'
+informational:
+  sibling-different-layer:
+  - pair:
+    - adapt-project
+    - engineer-init
+    note: '[adapt-project->engineer-init] adapt-project adapts the ecosystem to a host project (facts/adapter);
+      engineer-init installs the RUNTIME (venv/deps). adapt-project not_for: ''Installing the runtime
+      itself (use /engineer-init).'' | [engineer-init->adapt-project] engineer-init makes the RUNTIME
+      work (venv + deps + hooks + verify); adapt-project discovers HOST-PROJECT facts and scaffolds an
+      adapter. engineer-init not_for: ''Installing the ecosystem INTO a host project … is a manual step
+      this skill does not perform.'' adapt-project not_for: ''Installing the runtime itself (use /engineer-init).'''
+  - pair:
+    - adapt-project
+    - orient
+    note: '[adapt-project->orient] adapt-project reads code for objective facts; orient declares human-judgment
+      maturity × stakes state. orient not_for: ''Discovering objective repo facts like stack, CI, source
+      roots (use /adapt-project).'' | [orient->adapt-project] orient declares human-judgment lifecycle/stakes
+      state; adapt-project discovers OBJECTIVE repo facts (stack, CI, source roots). orient not_for: ''Discovering
+      objective repo facts like stack, CI, source roots (use /adapt-project).'''
+  - pair:
+    - adapt-project
+    - project-interview
+    note: '[adapt-project->project-interview] adapt-project discovers OBJECTIVE facts (stack/CI/source
+      roots) and produces an adapter; project-interview captures HUMAN intent (purpose, risk posture,
+      intentional tradeoffs). adapt-project not_for: ''Capturing project purpose, risk posture, desired
+      direction, or intentional tradeoffs (use /project-interview).'' They were born in the same a582cbf
+      cohort as the two operational/intent halves of localization. | [project-interview->adapt-project]
+      project-interview captures HUMAN intent (purpose, risk tolerance, known-bad patterns); adapt-project
+      discovers OBJECTIVE repo facts. project-interview not_for: ''Objective repo discovery (use /adapt-project).''
+      Born together in a582cbf as the intent/operational halves of localization.'
+  - pair:
+    - architecture-fit
+    - gut-check
+    note: '[architecture-fit->gut-check] architecture-fit is a structured plan-stage walk against the
+      decision registry; gut-check is an instinctive smell pass over a plan/diff/summary with no plan-status
+      gate. | [gut-check->architecture-fit] gut-check is lean instinct (SIGNAL, no ground truth); architecture-fit
+      is systematic decision-registry validation of a plan (VERDICT-bearing). gut-check not_for: ''Plan
+      validation against decisions (use /architecture-fit).'' and escalate_to names architecture-fit when
+      the plan needs systematic validation.'
+  - pair:
+    - audit-decisions
+    - find-rule-surface-drift
+    note: '[find-rule-surface-drift->audit-decisions] find-rule-surface-drift not_for quote: ''Decision-registry
+      drift (use /audit-decisions).'''
+  - pair:
+    - audit-decisions
+    - find-stale-artifacts
+    note: '[find-stale-artifacts->audit-decisions] not_for quote: ''Decision-registry drift in ai-docs/decisions/
+      (use /audit-decisions).'''
+  - pair:
+    - audit-decisions
+    - triage-debt
+    note: '[audit-decisions->triage-debt] triage-debt `not_for`: ''Decision-registry hygiene specifically
+      (use /audit-decisions, which is narrower and more authoritative for that axis)''. triage-debt aggregates
+      ALL debt axes and reads decision drift as one input; audit-decisions owns that axis. | [triage-debt->audit-decisions]
+      triage-debt `not_for`: ''Decision-registry hygiene specifically (use /audit-decisions, which is
+      narrower and more authoritative for that axis)''. triage-debt aggregates ALL debt axes and only
+      reads decision drift as one input; audit-decisions owns that axis.'
+  - pair:
+    - brainstorm-ideas
+    - decide
+    note: '[brainstorm-ideas->decide] brainstorm-ideas produces ledger intakes; /decide sources decision
+      alternatives in an ADR (''not_for: Sourcing decision alternatives (use /decide)'').'
+  - pair:
+    - brainstorm-ideas
+    - design-it-twice
+    note: '[brainstorm-ideas->design-it-twice] brainstorm-ideas captures adjacent thoughts; design-it-twice
+      compares implementation forks (''not_for: Brainstorming code structure / architecture forks (use
+      /design-it-twice)''). | [design-it-twice->brainstorm-ideas] design-it-twice compares 2+ defensible
+      IMPLEMENTATION forks; brainstorm-ideas generates idea-ledger intakes. Different artifact, different
+      stage.'
+  - pair:
+    - brainstorm-ideas
+    - mature-existing-ideas
+    note: '[mature-existing-ideas->brainstorm-ideas] mature-existing-ideas `not_for`: ''Generating new
+      ideas (use /brainstorm-ideas)''. mature deepens EXISTING entries; brainstorm generates NEW candidates.
+      Research-existing vs generate-new.'
+  - pair:
+    - brainstorm-ideas
+    - track-idea
+    note: '[brainstorm-ideas->track-idea] brainstorm-ideas generates a BATCH of N candidate intakes; track-idea
+      captures a SINGLE record (''not_for: Capturing a single idea (use /track-idea intake — one record)'').
+      | [track-idea->brainstorm-ideas] track-idea writes ONE record you already have; brainstorm-ideas
+      GENERATES a batch of candidate intakes (and delegates the actual write back through the shared helper).
+      Single capture vs batch generation.'
+  - pair:
+    - check-ecosystem-consistency
+    - find-rule-surface-drift
+    note: '[check-ecosystem-consistency->find-rule-surface-drift] find-rule-surface-drift governs the
+      AGENT-RULES surface (oversized/dormant/missing-link docs, ADR 0005); check-ecosystem-consistency
+      governs the SKILL-ECOSYSTEM surface (registry/shape-routing/count/catalog coverage). Different surfaces,
+      both diff-aware SUSPECT audits.'
+  - pair:
+    - check-ecosystem-consistency
+    - find-skill-intent-drift
+    note: '[check-ecosystem-consistency->find-skill-intent-drift] find-skill-intent-drift checks one skill''s
+      recorded INTENT/PROVENANCE contract; check-ecosystem-consistency checks cross-skill REGISTRY/COUNT/CATALOG
+      coherence across the whole ecosystem. Different granularity, both advisory.'
+  - pair:
+    - decide
+    - track-idea
+    note: '[decide->track-idea] decide records a future-binding CHOICE (ADR); track-idea/lessons capture
+      informal diary items (''not_for: Lessons learned (use .claude/tasks/lessons.md)'').'
+  - pair:
+    - diagnose
+    - gut-check
+    note: '[diagnose->gut-check] diagnose needs a LIVE symptom and builds a measured loop; gut-check is
+      an instinctive smell pass with no live symptom (''not_for: Broad architecture improvement without
+      a live symptom (use /gut-check ...)'').'
+  - pair:
+    - explain-code
+    - map-product-workflow
+    note: '[explain-code->map-product-workflow] explain-code annotates a file/dir/subsystem; map-product-workflow
+      maps a cross-workflow user-visible topology (''not_for: Cross-workflow product topology (use /map-product-workflow)'').'
+  - pair:
+    - explain-code
+    - map-subsystem
+    note: '[explain-code->map-subsystem] explain-code adds BEHAVIORAL annotation (pre/postconditions,
+      invariants); map-subsystem produces INVENTORY (''not_for: Pure inventory without behavioral annotation
+      (use /map-subsystem)''). Complementary, not overlapping. | [map-subsystem->explain-code] map-subsystem
+      is inventory (file list / public surface / dep graph); explain-code is per-symbol behavioral annotation.
+      map-subsystem not_for: ''Per-symbol behavior annotation (use /explain-code).'''
+  - pair:
+    - extract-cotton-primitive
+    - extract-workflow-registry
+    note: '[extract-workflow-registry->extract-cotton-primitive] extract-workflow-registry consolidates
+      product-STEP authority (routes/tabs/status/boot keys); extract-cotton-primitive consolidates UI
+      SHELL markup into a c-primitive. Different topology layer, both EXPLAIN proposers.'
+  - pair:
+    - extract-cotton-primitive
+    - refactor-subsystem
+    note: '[extract-cotton-primitive->refactor-subsystem] extract-cotton-primitive is read-only (proposes
+      the component, no edits — precedent explain-job-is-read-only-proposal.v1); refactor-subsystem executes
+      the extraction under the two-commit discipline.'
+  - pair:
+    - extract-enum
+    - extract-state-type
+    note: '[extract-enum->extract-state-type] extract-enum is for a Django MODEL FIELD''s status; extract-state-type
+      is for a function''s implicit mutable dict/kwargs state. Both are EXPLAIN-job proposers, different
+      target shape. | [extract-state-type->extract-enum] extract-state-type is for a function''s implicit
+      mutable DICT/kwargs; extract-enum is for a Django MODEL FIELD''s stringly-typed status. not_for:
+      ''Stringly-typed status fields on a Django model (use /extract-enum).'''
+  - pair:
+    - extract-enum
+    - introduce-fk
+    note: '[extract-enum->introduce-fk] extract-enum handles the stringly-typed-field sub-shape; introduce-fk
+      handles the tuple-inferred-identity sub-shape `.filter(status=X, *_at__...).first()` (''not_for:
+      Tuple-inferred-identity sub-shape ... (use /introduce-fk)''). Both consume find-implicit-state output.
+      | [introduce-fk->extract-enum] Both consume /find-implicit-state candidates, but introduce-fk handles
+      the tuple-IDENTITY sub-shape (→ FK); extract-enum handles the stringly-typed STATUS sub-shape (→
+      TextChoices). not_for: ''Stringly-typed status enums (use /extract-enum).'''
+  - pair:
+    - extract-existing-ideas
+    - mature-existing-ideas
+    note: '[extract-existing-ideas->mature-existing-ideas] extract-existing-ideas creates intakes from
+      prose; mature-existing-ideas researches an EXISTING ledger entry (''not_for: Maturing an existing
+      ledger entry (use /mature-existing-ideas)'').'
+  - pair:
+    - extract-state-type
+    - introduce-fk
+    note: '[extract-state-type->introduce-fk] extract-state-type targets dict/namespace shape; introduce-fk
+      targets tuple-inferred FK identity. not_for: ''Tuple-inferred FK identity (use /introduce-fk).''
+      Both are extract-* bridges off find-implicit-state.'
+  - pair:
+    - find-async-lifecycle-drift
+    - find-comment-drift
+    note: '[find-comment-drift->find-async-lifecycle-drift] Both are SUSPECT drift scanners with a fixtures
+      oracle, but find-comment-drift flags prose-vs-code drift (comments/docstrings); find-async-lifecycle-drift
+      flags async-lifecycle drift (task/await/teardown). Different drift axis.'
+  - pair:
+    - find-async-lifecycle-drift
+    - find-workflow-state-gaps
+    note: '[find-async-lifecycle-drift->find-workflow-state-gaps] find-async-lifecycle-drift checks lifecycle
+      MECHANICS (polling guards, terminal handling, stale-response, duplicate-job); find-workflow-state-gaps
+      checks UI STATE COVERAGE (loading/empty/partial/failed/stale-job states). Both born same commit,
+      same /sites surface, different band. | [find-workflow-state-gaps->find-async-lifecycle-drift] Same
+      /sites product-health family; find-async-lifecycle-drift targets polling/job/cancel/resume LIFECYCLE
+      drift, state-gaps targets the rendered STATE set.'
+  - pair:
+    - find-comment-drift
+    - find-concept-divergence
+    note: '[find-comment-drift->find-concept-divergence] find-comment-drift flags comments drifted from
+      their adjacent code; find-concept-divergence flags domain-glossary terms drifted from their canonical
+      definitions. Local-comment vs cross-doc concept.'
+  - pair:
+    - find-complexity-hotspots
+    - find-layer-violation
+    note: '[find-complexity-hotspots->find-layer-violation] not_for quote: ''view/service layer leaks
+      (use /find-layer-violation)'' — find-complexity-hotspots scans cost, not authority placement.'
+  - pair:
+    - find-complexity-hotspots
+    - find-omnibus
+    note: '[find-complexity-hotspots->find-omnibus] find-complexity-hotspots flags WITHIN-function cost
+      (nested loops, ORM-in-loop, branchiness); find-omnibus flags MODULE-level sprawl (oversized multi-responsibility
+      files). Different granularity, both SUSPECT. not_for quote: ''Broad architecture smells like omnibus
+      modules (use /find-omnibus)''. | [find-omnibus->find-complexity-hotspots] find-complexity-hotspots
+      not_for: ''Broad architecture smells like omnibus modules (use /find-omnibus)''. complexity = per-function
+      algorithmic cost; omnibus = per-file responsibility count.'
+  - pair:
+    - find-concept-divergence
+    - find-semantic-duplication
+    note: '[find-concept-divergence->find-semantic-duplication] find-concept-divergence checks NAME drift
+      against a glossary; find-semantic-duplication checks two live implementations solving the same problem.
+      Concept = lexical/glossary, semantic = behavioral.'
+  - pair:
+    - find-contract-drift
+    - find-doc-route-drift
+    note: '[find-contract-drift->find-doc-route-drift] find-doc-route-drift compares DOCS vs URL patterns;
+      find-contract-drift compares template/JS/registry/payload against each other (no doc layer).'
+  - pair:
+    - find-contract-drift
+    - find-frontend-contract-drift
+    note: '[find-contract-drift->find-frontend-contract-drift] find-contract-drift IMPORTS find-frontend-contract-drift''s
+      boot-global detector, then adds endpoint/DOM/template-JS bands. FE-contract-drift = boot globals
+      only; this = full /sites route-surface contract superset. | [find-frontend-contract-drift->find-contract-drift]
+      find-contract-drift IMPORTS this skill''s boot-global detector and adds endpoint/DOM/template-JS
+      bands. This = boot globals only; find-contract-drift = full /sites contract superset.'
+  - pair:
+    - find-contract-drift
+    - find-workflow-duplication
+    note: '[find-contract-drift->find-workflow-duplication] not_for: ''Repeated workflow labels or route
+      literals owned by multiple layers (use /find-workflow-duplication)'' — this checks contract agreement,
+      not duplicated step authority.'
+  - pair:
+    - find-dead-route-surface
+    - find-dormant
+    note: '[find-dead-route-surface->find-dormant] not_for quote: ''Whole-repo Python dead-code audits
+      (use /find-dormant ...)''. find-dead-route-surface reuses find-dormant''s URL extraction but scopes
+      to /sites route/template/static wiring; find-dormant is broad Python archaeology. | [find-dormant->find-dead-route-surface]
+      find-dormant flags unreferenced code symbols broadly; find-dead-route-surface narrows to URL routes/views
+      with no live entry point. General dead-code vs route-specific.'
+  - pair:
+    - find-dead-route-surface
+    - find-orphaned-ideas
+    note: '[find-dead-route-surface->find-orphaned-ideas] find-orphaned-ideas --dead-prototype CONSUMES
+      a /find-dormant report to flag orphan routes as idea-ledger candidates; find-dead-route-surface
+      is the /sites-scoped detector itself.'
+  - pair:
+    - find-doc-route-drift
+    - find-dormant
+    note: '[find-doc-route-drift->find-dormant] not_for quote: ''Code-side dead routes (use /find-dormant)''.
+      doc-route-drift compares DOCS against URLs; find-dormant audits whether code routes are reachable
+      at all.'
+  - pair:
+    - find-doc-route-drift
+    - find-frontend-contract-drift
+    note: '[find-doc-route-drift->find-frontend-contract-drift] not_for quote: ''Frontend template-to-JS
+      boot contracts (use /find-frontend-contract-drift)''. Both born in the 90f8567 cohort; doc-route-drift
+      checks documented routes, FE-contract-drift checks template↔JS boot globals.'
+  - pair:
+    - find-doc-route-drift
+    - find-route-sprawl
+    note: '[find-doc-route-drift->find-route-sprawl] not_for quote: ''Live route deduplication or include-boundary
+      problems (use /find-route-sprawl)''. doc-route-drift = doc/route agreement; route-sprawl = scattered
+      live URL ownership. | [find-route-sprawl->find-doc-route-drift] find-route-sprawl not_for quote:
+      ''Doc/route drift (use /find-doc-route-drift).'' — sprawl is URL-ownership topology; doc-route-drift
+      is documented-vs-actual route divergence.'
+  - pair:
+    - find-doc-route-drift
+    - find-rule-surface-drift
+    note: '[find-rule-surface-drift->find-doc-route-drift] find-rule-surface-drift not_for quote routes
+      code-side drift away: ''use /find-doc-route-drift for documented route drift''. rule-surface-drift
+      audits the agent-rules docs tree; doc-route-drift audits documented routes vs Django URLs.'
+  - pair:
+    - find-dormant
+    - find-duplication
+    note: '[find-duplication->find-dormant] Co-born in the big-bang commit. find-duplication has a dormant-code
+      side-channel but its primary axis is clones; find-dormant owns reachability/dead-code (''not_for:
+      Dead-code detection as a primary task (that''s /find-dormant)'').'
+  - pair:
+    - find-dormant
+    - find-stale-artifacts
+    note: '[find-dormant->find-stale-artifacts] find-dormant flags dead PRODUCTION code; find-stale-artifacts
+      flags stale repo artifacts (generated/cached/orphaned files). Live-code-deadness vs artifact-staleness.
+      | [find-stale-artifacts->find-dormant] Explicitly framed as ''sibling to /find-dormant for non-code
+      surfaces'' — find-dormant covers dead CODE, find-stale-artifacts covers dead PLANS/SPECS/REPORT-DIRS.
+      not_for: ''Code-side dead-code detection (use /find-dormant).'''
+  - pair:
+    - find-duplication
+    - find-frontend-duplication
+    note: '[find-duplication->find-frontend-duplication] find-duplication is Python-only (jscpd+AST on
+      .py); find-frontend-duplication compares Tailwind class chains + JS helper forks in templates/static.
+      Same family, different language surface. | [find-frontend-duplication->find-duplication] not_for
+      quote: ''Python code duplication (use /find-duplication or /find-semantic-duplication)''. frontend-duplication
+      = Tailwind chains + JS helper forks in templates/static; find-duplication = Python jscpd+AST clones.'
+  - pair:
+    - find-duplication
+    - find-implicit-state
+    note: '[find-implicit-state->find-duplication] not_for quote: ''Lexical duplication on jscpd-only
+      matches (use /find-duplication)''. implicit-state detects state-encoding shape, not clones.'
+  - pair:
+    - find-duplication
+    - find-semantic-duplication
+    note: '[find-duplication->find-semantic-duplication] not_for quote: ''Semantic duplication where the
+      code differs but the workflow overlaps (use /find-semantic-duplication)''. find-duplication = lexical/structural
+      (identical bodies); semantic = same problem, different code. | [find-semantic-duplication->find-duplication]
+      find-semantic-duplication flags BEHAVIORALLY-equivalent code with different text; find-duplication
+      flags TEXTUAL/token clones. Semantic-equivalence vs copy-paste.'
+  - pair:
+    - find-duplication
+    - find-workflow-duplication
+    note: '[find-duplication->find-workflow-duplication] not_for quote: ''Cross-layer drift (template/JS/Python
+      for one workflow — use /find-workflow-duplication)''. find-duplication is intra-language clone detection;
+      workflow-duplication spans layers.'
+  - pair:
+    - find-duplication
+    - unify-shadows
+    note: '[unify-shadows->find-duplication] unify-shadows `not_for`: ''Lexical near-clones (use /find-duplication
+      then /fix-workflow)''. unify-shadows resolves SEMANTIC duplication (two shadows of one capability,
+      different code); find-duplication detects lexical/structural clones (identical bodies).'
+  - pair:
+    - find-folder-topology-drift
+    - find-omnibus
+    note: '[find-folder-topology-drift->find-omnibus] not_for quote: ''File-level "this module does too
+      many things" (use /find-omnibus — that smell is intra-file, this one is intra-folder)''. Explicit
+      author-drawn boundary: omnibus = within a file, topology = across files in a folder. | [find-omnibus->find-folder-topology-drift]
+      find-folder-topology-drift not_for (verified in ES2): ''File-level "this module does too many things"
+      (use /find-omnibus — that smell is intra-file, this one is intra-folder)''. omnibus = within a file;
+      topology = across files in a folder.'
+  - pair:
+    - find-folder-topology-drift
+    - find-route-sprawl
+    note: '[find-folder-topology-drift->find-route-sprawl] not_for quote: ''Cross-layer workflow drift
+      (use /find-route-sprawl …)''. topology-drift checks folder packaging threshold; route-sprawl checks
+      scattered URL-prefix ownership.'
+  - pair:
+    - find-frontend-contract-drift
+    - find-frontend-duplication
+    note: '[find-frontend-contract-drift->find-frontend-duplication] frontend-duplication = repeated UX
+      shells / JS helper forks; this = the implicit JS<->template global boot contract. Different smell.
+      | [find-frontend-duplication->find-frontend-contract-drift] not_for quote: ''Implicit JS<->template
+      global contracts (use /find-frontend-contract-drift)''. duplication = repeated UI shells; contract-drift
+      = the implicit boot-global channel.'
+  - pair:
+    - find-frontend-contract-drift
+    - find-workflow-duplication
+    note: '[find-frontend-contract-drift->find-workflow-duplication] not_for: ''Duplicated workflow step
+      definitions across template/JS/Python (use /find-workflow-duplication).'' This checks the boot-global
+      channel, not duplicated step authority.'
+  - pair:
+    - find-frontend-duplication
+    - find-workflow-duplication
+    note: '[find-frontend-duplication->find-workflow-duplication] not_for quote: ''Cross-layer workflow
+      drift (use /find-workflow-duplication)''. This = UI primitive reuse; workflow-duplication = duplicated
+      step authority across layers.'
+  - pair:
+    - find-implicit-state
+    - find-layer-violation
+    note: '[find-implicit-state->find-layer-violation] find-layer-violation not_for: ''Stringly-typed
+      state inside a view (use /find-implicit-state)''. Co-born, explicit author boundary: layer = authority
+      placement, implicit-state = state encoding.'
+  - pair:
+    - find-implicit-state
+    - find-query-mutation
+    note: '[find-query-mutation->find-implicit-state] not_for: ''Stringly-typed status comparisons (use
+      /find-implicit-state).'' Different smell, different detector.'
+  - pair:
+    - find-layer-violation
+    - find-omnibus
+    note: '[find-layer-violation->find-omnibus] find-layer-violation flags cross-LAYER leaks (view->ORM,
+      logic-in-template); find-omnibus flags MODULE-level sprawl (oversized multi-responsibility files).
+      Boundary-crossing vs file-size, both SUSPECT. | [find-omnibus->find-layer-violation] not_for quote:
+      ''Layer violations specifically in views (use /find-layer-violation)''. omnibus = one file, 3+ domains;
+      layer = entry point owns domain logic. Co-born, explicit author boundary.'
+  - pair:
+    - find-layer-violation
+    - find-transaction-overreach
+    note: '[find-transaction-overreach->find-layer-violation] find-layer-violation flags entry points
+      owning business logic (incl. direct external calls); find-transaction-overreach flags external/slow
+      work specifically INSIDE an atomic region. Overlap on ''external call'' but different invariant
+      (layer ownership vs connection-pinning).'
+  - pair:
+    - find-omnibus
+    - find-standard-gaps
+    note: '[find-standard-gaps->find-omnibus] find-standard-gaps audits ABSENCE of a declared standard
+      (''should be here, isn''t''); the find-* structural family (find-omnibus, find-duplication, find-dormant)
+      audits code that EXISTS. find-standard-gaps not_for: ''Structural smells — omnibus, duplication,
+      dormant code (use the find-* family).'''
+  - pair:
+    - find-orphaned-ideas
+    - query-patterns
+    note: '[query-patterns->find-orphaned-ideas] query-patterns `not_for`: ''Finding orphaned ledger entries
+      (use /find-orphaned-ideas)''. query-patterns matches a PROBLEM to Tier-2 patterns; find-orphaned-ideas
+      audits Tier-1 ledger entries needing attention. Different tier, different question.'
+  - pair:
+    - find-query-mutation
+    - find-transaction-overreach
+    note: '[find-query-mutation->find-transaction-overreach] Both are AST+cheap-scout SUSPECT scanners
+      with the same orchestrator shape, but find-query-mutation targets name-vs-side-effect lying; find-transaction-overreach
+      targets a runtime connection-pool failure mode. not_for: ''Read-named methods that mutate persisted
+      state (use /find-query-mutation).'' | [find-transaction-overreach->find-query-mutation] Same AST+cheap-scout
+      orchestrator shape and shared handoff to /fix-workflow cluster:<symbol>, but find-transaction-overreach
+      targets a runtime connection-pool failure mode while find-query-mutation targets a naming/side-effect
+      contract lie. not_for: ''Read-named methods that mutate persisted state (use /find-query-mutation).'''
+  - pair:
+    - find-route-sprawl
+    - find-workflow-duplication
+    note: '[find-route-sprawl->find-workflow-duplication] Both product-topology SUSPECT skills, but find-route-sprawl
+      owns URL-prefix scatter; find-workflow-duplication owns step-authority duplication. find-route-sprawl
+      not_for: ''Workflow-step duplication across templates+JS+Python (use /find-workflow-duplication).''
+      | [find-workflow-duplication->find-route-sprawl] Both product-topology SUSPECT skills; find-workflow-duplication
+      owns repeated step-authority across layers, find-route-sprawl owns URL-prefix ownership scatter.
+      find-workflow-duplication not_for: ''Route prefix sprawl (use /find-route-sprawl).'''
+  - pair:
+    - find-rule-surface-drift
+    - find-skill-intent-drift
+    note: '[find-skill-intent-drift->find-rule-surface-drift] find-rule-surface-drift guards the agent-rules
+      DOC surface (CLAUDE.md trigger reachability, oversized always-loaded files, dormant docs); this
+      guards skill INTENT contracts (why each skill exists). Different surfaces, both ''rules about the
+      meta-layer''.'
+  - pair:
+    - find-rule-surface-drift
+    - find-stale-artifacts
+    note: '[find-rule-surface-drift->find-stale-artifacts] Both defend attention against drift, but find-rule-surface-drift
+      owns the agent-rules surface (CLAUDE.md + .claude/docs per ADR 0005); find-stale-artifacts owns
+      working-artifact dirs (plans/specs/report scans). find-stale-artifacts cross-refs: ''Agent-rules
+      surface drift ... use /find-rule-surface-drift.'' | [find-stale-artifacts->find-rule-surface-drift]
+      not_for quote: ''Agent-rules surface drift in .claude/CLAUDE.md or .claude/docs/ (use /find-rule-surface-drift)
+      — that one defends ADR 0005''s tiered storage convention.'''
+  - pair:
+    - find-semantic-duplication
+    - find-workflow-duplication
+    note: '[find-semantic-duplication->find-workflow-duplication] find-semantic-duplication flags duplicated
+      LOGIC in code; find-workflow-duplication flags duplicated WORKFLOW orchestration (parallel pipelines
+      that should share a registry). Code-level vs workflow-level. | [find-workflow-duplication->find-semantic-duplication]
+      find-workflow-duplication not_for quote: ''Generic code duplication across functions (use /find-duplication
+      or /find-semantic-duplication).'' — this one is layer-crossing topology constants, not function
+      bodies.'
+  - pair:
+    - find-skill-artifact-drift
+    - find-skill-intent-drift
+    note: '[find-skill-artifact-drift->find-skill-intent-drift] SKILL-META TRIO layer split: find-skill-artifact-drift
+      checks the SKILL.md PROSE references (named scripts, documented --flags, declared tools/produces/evidence)
+      against the FILES ON DISK; find-skill-intent-drift checks the recorded INTENT/PROVENANCE contract
+      (this contracts/skills/<skill>.yaml) against the skill. Different layers of skill-meta drift, NOT
+      genuine overlap. | [find-skill-intent-drift->find-skill-artifact-drift] The skill-meta trio: find-skill-artifact-drift
+      checks SKILL.md PROSE references (named scripts, documented --flags, declared tools) against the
+      FILES ON DISK; find-skill-intent-drift checks the recorded INTENT/PROVENANCE contract against the
+      skill. Artifact coherence vs intent freshness — adjacent layers, not overlap.'
+  - pair:
+    - find-skill-intent-drift
+    - which-skill
+    note: '[find-skill-intent-drift->which-skill] which-skill reads SKILL.md frontmatter to RECOMMEND
+      a skill for a task; find-skill-intent-drift reads contracts to AUDIT intent freshness. Both read
+      the catalogue, different jobs.'
+  - pair:
+    - find-test-obligation-drift
+    - find-workflow-state-gaps
+    note: '[find-test-obligation-drift->find-workflow-state-gaps] Both are advisory SUSPECT scanners,
+      but find-test-obligation-drift maps a DIFF to expected test tiers; find-workflow-state-gaps audits
+      a /sites workflow''s UI STATE coverage. Different question (did you test it? vs does it handle empty/loading/failed?).
+      | [find-workflow-state-gaps->find-test-obligation-drift] Co-born in the 90f8567 cohort with the
+      same good/bad-fixture signature; state-gaps asks ''does the UI handle empty/loading/failed?'', test-obligation-drift
+      asks ''did the diff get the tests its surface implies?''.'
+  - pair:
+    - fix-workflow
+    - refactor-subsystem
+    note: '[fix-workflow->refactor-subsystem] fix-workflow executes ONE scoped finding (layer:/cluster:/delete:);
+      refactor-subsystem executes a whole-subsystem decomposition under the two-commit discipline. Point-fix
+      vs subsystem-scale, both REFACTOR. | [refactor-subsystem->fix-workflow] refactor-subsystem `not_for`:
+      ''Single-cluster cleanups (use /fix-workflow)'' — refactor-subsystem is the heavy multi-phase, spec-driven,
+      scout-fanout path; fix-workflow executes one cluster in the current worktree.'
+  - pair:
+    - fix-workflow
+    - unify-shadows
+    note: '[fix-workflow->unify-shadows] fix-workflow is the general scoped-fix executor; unify-shadows
+      is the specialized executor for collapsing parallel/shadow implementations to one authority. General
+      vs duplication-specific REFACTOR.'
+  - pair:
+    - gut-check
+    - teach-pattern
+    note: '[gut-check->teach-pattern] gut-check not_for quote: ''Pattern-rule briefing — explain why we
+      do X (use /teach-pattern).'' — gut-check reacts to a specific artifact; teach-pattern briefs a named
+      rule.'
+  - pair:
+    - harvest-learnings
+    - teach-pattern
+    note: '[harvest-learnings->teach-pattern] harvest-learnings DISCOVERS + distills portable standards
+      from a forge; teach-pattern documents ONE already-known pattern as a briefing. harvest-learnings
+      not_for: ''Documenting one already-known pattern (use /teach-pattern).'''
+  - pair:
+    - harvest-learnings
+    - track-idea
+    note: '[harvest-learnings->track-idea] harvest-learnings mines a project for CROSS-PROJECT portable
+      standards (recurring batch); track-idea / extract-existing-ideas capture a single project-local
+      idea. harvest-learnings not_for: ''Capturing a single project-local idea mid-task (use /track-idea
+      or /extract-existing-ideas).'''
+  - pair:
+    - impact-feature
+    - plan-feature
+    note: '[impact-feature->plan-feature] impact-feature is the System-tier stage-2 (scout fan-out only,
+      no spec scaffold); plan-feature is the Feature-tier all-in-one that already bundles its own scout
+      fan-out. impact-feature not_for: ''Feature-tier impact mapping — /plan-feature already bundles its
+      own scout fan-out (use it instead).'''
+  - pair:
+    - map-product-workflow
+    - map-subsystem
+    note: '[map-product-workflow->map-subsystem] Both MAP skills, but map-product-workflow follows one
+      workflow ACROSS layers/subsystems; map-subsystem inventories a single subsystem''s internals. map-product-workflow
+      not_for: ''Single-subsystem inventory (use /map-subsystem).'' | [map-subsystem->map-product-workflow]
+      Both MAP skills writing durable .claude/docs/ docs, but map-subsystem inventories ONE code subsystem
+      (→ subsystems/<name>.md); map-product-workflow spans a cross-subsystem user-visible workflow (→
+      workflows/<name>.md). map-subsystem not_for: ''Cross-subsystem product workflows (use /map-product-workflow).'''
+  - pair:
+    - mature-existing-ideas
+    - track-idea
+    note: '[mature-existing-ideas->track-idea] mature-existing-ideas `not_for`: ''Capturing a single new
+      idea (use /track-idea intake)''. mature RESEARCHES an existing entry; track-idea WRITES a new record.
+      It escalates to /track-idea event when research surfaces an explicit transition. | [track-idea->mature-existing-ideas]
+      track-idea CAPTURES/projects ledger records (intake/event/lesson); mature-existing-ideas RESEARCHES
+      an existing entry and appends research-log notes. mature''s `not_for`: ''Capturing a single new
+      idea (use /track-idea intake)''. Write-new vs research-existing.'
+  - pair:
+    - orient
+    - project-interview
+    note: '[orient->project-interview] orient is the NARROW two-axis (maturity × stakes) state write;
+      project-interview is the BROAD human-intent profile. orient not_for: ''Capturing project purpose,
+      critical workflows, intentional tradeoffs … (use /project-interview).'' project-interview owns purpose/risk-posture/do-not-break
+      surfaces. | [project-interview->orient] project-interview is the BROAD intent profile; orient is
+      the NARROW two-axis maturity × stakes state write. orient not_for: ''Capturing project purpose,
+      critical workflows, intentional tradeoffs … (use /project-interview).'''
+  - pair:
+    - plan-feature
+    - plan-skill
+    note: '[plan-skill->plan-feature] plan-skill `not_for`: ''General feature planning (use /plan-feature
+      or the System-tier chain)''. plan-skill plans a SKILL (trigger contract, evidence contract, dogfood);
+      plan-feature plans a code FEATURE. Different artifact class.'
+  - pair:
+    - plan-feature
+    - plan-spec
+    note: '[plan-feature->plan-spec] Both scaffold a spec, but plan-feature scaffolds DIRECTLY at Feature
+      tier (proposed status, no prior plan), while plan-spec is the TERMINAL System-tier step promoting
+      an architected plan. Different entry conditions. | [plan-spec->plan-feature] Both end at a spec,
+      but plan-feature scaffolds a proposed Feature-tier spec from scratch; plan-spec PROMOTES an already-architected
+      System-tier plan via scripts/plans.py promote. Entry condition differs.'
+  - pair:
+    - plan-feature
+    - scope-feature
+    note: '[plan-feature->scope-feature] plan-feature `not_for`: ''New subsystems or 2+ workflows (use
+      the System-tier chain ...)''; `escalate_to`: /scope-feature when impact surfaces 2+ subsystems.
+      plan-feature is Feature-tier (one workflow); scope-feature starts the heavier System-tier chain.
+      Tier is the disambiguator. | [scope-feature->plan-feature] not_for: ''Feature-tier work that touches
+      one workflow / 1-3 day scope (use /plan-feature).'' scope-feature is System-tier stage 1; plan-feature
+      is the whole Feature-tier path in one skill. Tier separates them.'
+  - pair:
+    - propose-boundary
+    - propose-folder-reorganization
+    note: '[propose-boundary->propose-folder-reorganization] propose-boundary `not_for`: ''Folder-topology
+      promotion/demotion (use /find-folder-topology-drift + /propose-folder-reorganization)''. propose-boundary
+      extracts a CODE seam (public API + shim) intra-subsystem; propose-folder-reorganization moves FILES
+      between folders. | [propose-folder-reorganization->propose-boundary] propose-folder-reorganization
+      moves FILES across folders (intra-folder topology); propose-boundary extracts an in-code public-API
+      seam (intra-file/module). Both EXPLAIN proposers, different granularity.'
+  - pair:
+    - propose-boundary
+    - unify-shadows
+    note: '[unify-shadows->propose-boundary] Both are EXPLAIN-job proposal-writers feeding /fix-workflow
+      or /refactor-subsystem, but unify-shadows resolves SEMANTIC duplication (two shadows of one capability)
+      while propose-boundary resolves a MISSING-BOUNDARY (one file, tangled domains).'
+  - pair:
+    - query-patterns
+    - teach-pattern
+    note: '[query-patterns->teach-pattern] query-patterns SEARCHES the Tier-2 pattern library (.claude/patterns/)
+      for a problem-shape match and ranks; teach-pattern EXPLAINS an already-known convention from canonical-patterns/smells/ADRs
+      into a layered briefing. Search vs teach; different source corpus. | [teach-pattern->query-patterns]
+      teach-pattern EXPLAINS a known pattern in context (instruction); query-patterns SEARCHES/ranks the
+      pattern library for candidates (retrieval). Teach-vs-search, same domain different job.'
+  - pair:
+    - triage-debt
+    - which-skill
+    note: '[triage-debt->which-skill] Both cross-cutting meta routers, but triage-debt routes from accumulated
+      REPORT evidence to a ranked cleanup queue; which-skill routes from a free-text TASK to a skill.
+      Input source differs. | [which-skill->triage-debt] Both are cross-cutting meta routers, but which-skill
+      answers ''which skill for THIS task'' from a free-text description; triage-debt answers ''what should
+      I clean up next'' from cached find-* evidence. Different input (task text vs report stacks).'
+  - pair:
+    - which-shape
+    - which-skill
+    note: '[which-shape->which-skill] which-shape recommends an operating LOOP when the work shape is
+      unclear; which-skill recommends a single SKILL once the shape is known. which-shape not_for: ''Picking
+      between two already-known skills (use /which-skill).'' SKILL.md states the bad pattern explicitly:
+      asking which-skill to onboard/stabilize an unknown repo is what which-shape exists to handle.'
+  sequential:
+  - pair:
+    - adapt-project
+    - triage-debt
+    note: '[adapt-project->triage-debt] adapt-project routes common-but-suspect patterns to /triage-debt
+      rather than standardizing them. adapt-project not_for: ''Cleaning up a messy codebase (use /triage-debt
+      then the maintenance loop).'''
+  - pair:
+    - architecture-fit
+    - decide
+    note: '[architecture-fit->decide] architecture-fit *recommends* /decide candidates inline (''not_for:
+      Authoring an ADR — this skill recommends /decide candidates but does not write ADRs itself''); /decide
+      authors the ADR. | [decide->architecture-fit] architecture-fit emits decision proposals; /decide
+      authors them (delegate_from: ''/architecture-fit emits decision proposals that route through /decide'').'
+  - pair:
+    - architecture-fit
+    - design-it-twice
+    note: '[architecture-fit->design-it-twice] architecture-fit surfaces a P0 fork in §6; design-it-twice
+      fans out 3 designers when that fork can''t be authored inline via /decide. | [design-it-twice->architecture-fit]
+      architecture-fit surfaces the P0 fork in §6 and recommends this when it can''t be authored inline;
+      design-it-twice does the fan-out. delegate_from confirms the direction.'
+  - pair:
+    - architecture-fit
+    - impact-feature
+    note: '[impact-feature->architecture-fit] impact-feature hands forward to /architecture-fit (stage
+      3); it explicitly does NOT do architecture-fit analysis (''that''s the next skill''s job'').'
+  - pair:
+    - architecture-fit
+    - plan-spec
+    note: '[plan-spec->architecture-fit] architecture-fit produces the `architected` plan (fills §5-6);
+      plan-spec consumes it and promotes to a spec. not_for: ''Plan with status != architected (use the
+      matching earlier-stage skill).'' Sequential, gated by status.'
+  - pair:
+    - audit-decisions
+    - decide
+    note: '[audit-decisions->decide] audit-decisions DETECTS registry drift (proposed-too-long, broken
+      chains, dangling applies_to) read-only; /decide is the WRITE that resolves a flagged entry (accept
+      / deprecate / supersede). Detect vs act. | [decide->audit-decisions] /decide authors/amends/supersedes;
+      audit-decisions scans the registry for rot and recommends /decide --supersede / --status per row.'
+  - pair:
+    - brainstorm-ideas
+    - extract-existing-ideas
+    note: '[brainstorm-ideas->extract-existing-ideas] extract-existing-ideas walks EXISTING prose (BACKLOG/lessons/plans)
+      and hands its candidates to brainstorm-ideas'' helper for the actual write; brainstorm-ideas generates
+      NEW ideas from a topic. The write path is shared (dedup/validation live once). | [extract-existing-ideas->brainstorm-ideas]
+      extract-existing-ideas walks EXISTING prose and proposes candidates; brainstorm-ideas generates
+      NEW ideas from scratch AND owns the shared write path (''not_for: Generating new ideas from scratch
+      (use /brainstorm-ideas)''; escalate_to brainstorm-ideas for the write).'
+  - pair:
+    - decide
+    - design-it-twice
+    note: '[decide->design-it-twice] design-it-twice writes the comparative analysis when the ADR Decision
+      sentence can''t be authored yet; /decide authors the ADR. decide is the downstream step. | [design-it-twice->decide]
+      design-it-twice produces the comparative analysis (3 designs + recommendation); /decide authors
+      the ADR from it. not_for points to /decide as the downstream ADR step (''does NOT author the ADR'').'
+  - pair:
+    - decide
+    - gut-check
+    note: '[gut-check->decide] gut-check escalate_to: ''/decide when a repeat smell suggests a decision
+      should be revisited'' — gut-check surfaces the conflict, /decide authors/amends the ADR.'
+  - pair:
+    - decide
+    - harvest-learnings
+    note: '[harvest-learnings->decide] harvest-learnings emits standard candidates (proposal-only); when
+      one rises to durable doctrine, decide authors the ADR. harvest-learnings escalate_to: ''/decide
+      when a harvested standard rises to durable doctrine (an ADR).'''
+  - pair:
+    - decide
+    - project-interview
+    note: '[project-interview->decide] project-interview surfaces durable architectural choices in answers
+      and escalates them; decide authors the ADR. project-interview not_for: ''ADR authoring (use /decide).'''
+  - pair:
+    - decide
+    - teach-pattern
+    note: '[teach-pattern->decide] teach-pattern conveys an ALREADY-established pattern; decide AUTHORS
+      a new ADR/decision when none exists. teach-pattern not_for: ''Authoring a new ADR (use /decide).'''
+  - pair:
+    - diagnose
+    - fix-workflow
+    note: '[diagnose->fix-workflow] diagnose builds the loop + root cause for an UNREPRODUCED symptom;
+      fix-workflow executes a KNOWN cleanup cluster from a find-* report (''not_for: Known cleanup clusters
+      from a find-* report (use /fix-workflow ...)''). escalate_to fix-workflow once the root cause is
+      understood.'
+  - pair:
+    - diagnose
+    - prevent-regression
+    note: '[diagnose->prevent-regression] diagnose finds + verifies the fix; prevent-regression turns
+      the post-mortem''s repeatable guardrail into a lint/test (named in escalate_to).'
+  - pair:
+    - explain-code
+    - fix-workflow
+    note: '[explain-code->fix-workflow] explain-code is read-only and hands off to /fix-workflow or /refactor-subsystem
+      once unexplained regions resolve into concrete smells.'
+  - pair:
+    - extract-cotton-primitive
+    - find-frontend-duplication
+    note: '[extract-cotton-primitive->find-frontend-duplication] find-frontend-duplication DETECTS repeated
+      template shells; extract-cotton-primitive PROPOSES the <c-name /> primitive + rewrite table; /refactor-subsystem
+      executes. Detect -> propose -> execute. | [find-frontend-duplication->extract-cotton-primitive]
+      frontend-duplication DETECTS ''should-be-a-primitive'' candidates; extract-cotton-primitive turns
+      one into a c-primitive proposal (named handoff in the description).'
+  - pair:
+    - extract-enum
+    - find-implicit-state
+    note: '[extract-enum->find-implicit-state] find-implicit-state DETECTS the stringly-typed comparison;
+      extract-enum turns a confirmed finding into a TextChoices proposal (''not_for: Detection (use /find-implicit-state
+      first)''). Co-born in the big-bang commit. | [find-implicit-state->extract-enum] implicit-state
+      DETECTS extract_enum_candidate / introduce_fk_candidate buckets; extract-enum and introduce-fk turn
+      one into a TextChoices / FK migration proposal (named handoffs).'
+  - pair:
+    - extract-existing-ideas
+    - find-orphaned-ideas
+    note: '[extract-existing-ideas->find-orphaned-ideas] find-orphaned-ideas (plan-dropouts mode) DETECTS
+      a systemic gap and escalates (''escalate_to: /extract-existing-ideas when plan-dropouts reveals
+      a systemic gap''); extract-existing-ideas then BACKFILLS the ledger by mining prose. Detect->act
+      handoff. (extract-existing-ideas also runs standalone for initial ledger bootstrap, independent
+      of orphaned-ideas.) | [find-orphaned-ideas->extract-existing-ideas] escalate_to quote: ''/extract-existing-ideas
+      when the plan-dropouts list reveals a systemic gap (many items missing)''. orphaned-ideas detects
+      the drift; extract-existing-ideas does the backfill from prose.'
+  - pair:
+    - extract-state-type
+    - find-implicit-state
+    note: '[extract-state-type->find-implicit-state] find-implicit-state DETECTS; extract-state-type proposes
+      the typed shape. Read-only proposal vs scanner.'
+  - pair:
+    - extract-workflow-registry
+    - find-workflow-duplication
+    note: '[extract-workflow-registry->find-workflow-duplication] find-workflow-duplication DETECTS duplicated
+      step authority; extract-workflow-registry proposes the canonical registry that resolves it. SUSPECT
+      → EXPLAIN bridge. | [find-workflow-duplication->extract-workflow-registry] find-workflow-duplication
+      DETECTS the scattered authority; extract-workflow-registry proposes the canonical registry that
+      owns it. SUSPECT → EXPLAIN bridge.'
+  - pair:
+    - extract-workflow-registry
+    - map-product-workflow
+    note: '[extract-workflow-registry->map-product-workflow] map-product-workflow MAPS the workflow (produces
+      .claude/docs/workflows/<name>.md); extract-workflow-registry proposes the registry from that map
+      (''not_for: Workflow detection (use /map-product-workflow first ...)''). | [map-product-workflow->extract-workflow-registry]
+      map-product-workflow MAPS (.claude/docs/workflows/<name>.md); extract-workflow-registry reads that
+      map to propose a canonical registry (EXPLAIN). map → extract is the named ordering in extract-workflow-registry''s
+      not_for.'
+  - pair:
+    - find-async-lifecycle-drift
+    - prevent-regression
+    note: '[find-async-lifecycle-drift->prevent-regression] find-async-lifecycle-drift is an advisory
+      baseline scanner; once a narrow lifecycle rule stabilizes it''s promoted to /prevent-regression
+      (''not_for: ... blocking commits in v1. Use this as a baseline scanner before promoting a narrow
+      lifecycle rule to /prevent-regression'').'
+  - pair:
+    - find-dormant
+    - find-orphaned-ideas
+    note: '[find-orphaned-ideas->find-dormant] orphaned-ideas --dead-prototype CONSUMES a /find-dormant
+      report (--from-report) to raise orphan routes/templates as ledger candidates. find-dormant produces;
+      orphaned-ideas reads.'
+  - pair:
+    - find-folder-topology-drift
+    - propose-folder-reorganization
+    note: '[find-folder-topology-drift->propose-folder-reorganization] topology-drift DETECTS the drift;
+      propose-folder-reorganization turns a finding into a per-cluster reorg proposal (its --target accepts
+      a topology-drift finding). | [propose-folder-reorganization->find-folder-topology-drift] propose-folder-reorganization
+      `not_for`: ''Detection (use /find-folder-topology-drift first)''. find-* detects drift; this proposes
+      the move; refactor-subsystem executes.'
+  - pair:
+    - find-implicit-state
+    - introduce-fk
+    note: '[introduce-fk->find-implicit-state] find-implicit-state DETECTS the tuple-identity pattern
+      and emits the candidate; introduce-fk consumes it and proposes the FK. not_for: ''Detection of the
+      pattern itself (use /find-implicit-state).'''
+  - pair:
+    - find-layer-violation
+    - propose-boundary
+    note: '[find-layer-violation->propose-boundary] find-layer-violation DETECTS the boundary leak; propose-boundary
+      PROPOSES the public-API seam to restore it; refactor-subsystem executes. Detect -> propose -> execute.'
+  - pair:
+    - find-omnibus
+    - propose-boundary
+    note: '[propose-boundary->find-omnibus] propose-boundary `not_for`: ''Intra-file responsibility split
+      where the smell is one file with three domains (use /find-omnibus then /refactor-subsystem)''. find-omnibus
+      detects; propose-boundary is for cross-module tangle within a subsystem.'
+  - pair:
+    - find-orphaned-ideas
+    - mature-existing-ideas
+    note: '[mature-existing-ideas->find-orphaned-ideas] find-orphaned-ideas DETECTS stale/needs-attention
+      entries; mature-existing-ideas (often via --all-needs-research) acts on them by researching. Detect
+      vs act.'
+  - pair:
+    - find-orphaned-ideas
+    - track-idea
+    note: '[find-orphaned-ideas->track-idea] not_for quote: ''Capturing new ideas (use /track-idea intake).
+      Adding lessons or transitions (use /track-idea event)''. orphaned-ideas is the READ-side audit;
+      track-idea is the WRITE-side capture. orphaned-ideas --apply-stale is the one write exception (emits
+      transition events via the same path).'
+  - pair:
+    - find-semantic-duplication
+    - unify-shadows
+    note: '[find-semantic-duplication->unify-shadows] find-semantic-duplication DETECTS behavioral forks;
+      unify-shadows is the resolution that collapses parallel implementations to one authority. Detect
+      vs unify. | [unify-shadows->find-semantic-duplication] unify-shadows `not_for`: ''Detection of semantic
+      duplication (use /find-semantic-duplication)'' — find-* detects, unify-shadows proposes the resolution,
+      fix-workflow executes. No overlap.'
+  - pair:
+    - find-skill-artifact-drift
+    - plan-skill
+    note: '[find-skill-artifact-drift->plan-skill] find-skill-artifact-drift detects Band-A/B reference
+      drift; Band-C semantic judgment (''is the procedure correct?'') is out of scope and handed to plan-skill.
+      find-skill-artifact-drift not_for: ''Proving a skill''s procedure is semantically correct … Band
+      C semantic judgment belongs to /plan-skill.'''
+  - pair:
+    - find-skill-intent-drift
+    - plan-skill
+    note: '[find-skill-intent-drift->plan-skill] plan-skill AUTHORS/revises a skill (and should write
+      or refresh its intent contract); find-skill-intent-drift DETECTS when that contract later drifts
+      from the skill. Author vs audit.'
+  - pair:
+    - find-standard-gaps
+    - fix-workflow
+    note: '[find-standard-gaps->fix-workflow] find-standard-gaps DETECTS coverage gaps; executing the
+      fixes is handed off. find-standard-gaps not_for: ''Executing the fixes (hand off to /fix-workflow).'''
+  - pair:
+    - find-standard-gaps
+    - harvest-learnings
+    note: '[find-standard-gaps->harvest-learnings] harvest-learnings PROPOSES portable standards; find-standard-gaps
+      gives an adopted standard an executable detector and COVERAGE-CHECKS it. harvest-learnings not_for:
+      ''Coverage-checking a standard that already exists (use /find-standard-gaps).'' find-standard-gaps
+      consumes the standard harvest produced. | [harvest-learnings->find-standard-gaps] harvest-learnings
+      PROPOSES portable standards with exemplars + verdicts; find-standard-gaps gives an ADOPTED standard
+      an executable detector and coverage-checks it. harvest-learnings escalate_to: ''/find-standard-gaps
+      to give an adopted standard an executable detector.'''
+  - pair:
+    - find-standard-gaps
+    - orient
+    note: '[find-standard-gaps->orient] orient WRITES the lifecycle state (.project-state.json) that gates
+      which standard rungs are active; find-standard-gaps is the coverage scan that those rungs feed into.
+      orient not_for: ''Running the coverage scan that consumes this state (use /find-standard-gaps).''
+      | [orient->find-standard-gaps] orient WRITES the lifecycle state; find-standard-gaps is the coverage
+      scan that CONSUMES it to gate which standard rungs apply. orient not_for: ''Running the coverage
+      scan that consumes this state (use /find-standard-gaps).'''
+  - pair:
+    - find-workflow-duplication
+    - map-product-workflow
+    note: '[map-product-workflow->find-workflow-duplication] map-product-workflow produces the workflow
+      map (MAP); find-workflow-duplication consumes that surface to detect duplicated step authority (SUSPECT).
+      MAP → SUSPECT bridge.'
+  - pair:
+    - fix-workflow
+    - introduce-fk
+    note: '[introduce-fk->fix-workflow] introduce-fk PROPOSES (read-only, proposal.md only); /fix-workflow
+      or /refactor-subsystem EXECUTES. not_for: ''Refactor execution (use /fix-workflow or /refactor-subsystem
+      after the proposal).'''
+  - pair:
+    - fix-workflow
+    - prevent-regression
+    note: '[prevent-regression->fix-workflow] fix-workflow CLOSES a bug (the fix itself); prevent-regression
+      GUARDS it afterward (authors the lint/test/hook that rejects the regression). fix → prevent is the
+      canonical close→guard ordering.'
+  - pair:
+    - harvest-learnings
+    - plan-skill
+    note: '[harvest-learnings->plan-skill] harvest-learnings proposes a standard; when one warrants its
+      own detector skill, plan-skill designs it. harvest-learnings escalate_to: ''/plan-skill when a harvested
+      standard warrants its own detector skill.'''
+  - pair:
+    - impact-feature
+    - scope-feature
+    note: '[impact-feature->scope-feature] scope-feature (stage 1) fills §1-2 and advances to scoped;
+      impact-feature (stage 2) consumes a scoped plan and fills §3-4. delegate_from: ''/scope-feature
+      recommends /impact-feature once §1-2 are filled.'' | [scope-feature->impact-feature] scope-feature
+      fills plan §1-2 (status scoped); impact-feature is stage 2 reading a `scoped` plan and filling §3-4.
+      Sequential chain stages, not overlap.'
+  - pair:
+    - map-subsystem
+    - refactor-subsystem
+    note: '[map-subsystem->refactor-subsystem] map-subsystem is read-only inventory feeding the loop;
+      refactor-subsystem executes a spec-driven refactor. map-subsystem not_for: ''Refactor execution
+      (use /refactor-subsystem with a spec).'''
+  - pair:
+    - plan-skill
+    - prevent-regression
+    note: '[plan-skill->prevent-regression] plan-skill `escalate_to`: /prevent-regression when a deterministic
+      guard should enforce the skill contract. plan-skill designs the skill; prevent-regression hardens
+      an invariant into a lint/test. Sequential.'
+  - pair:
+    - plan-spec
+    - refactor-subsystem
+    note: '[plan-spec->refactor-subsystem] plan-spec scaffolds the spec; refactor-subsystem executes it.
+      plan-spec is terminal in the planning chain; refactor-subsystem is the execution handoff.'
+  - pair:
+    - project-interview
+    - triage-debt
+    note: '[project-interview->triage-debt] project-interview names known-bad current patterns; triage-debt
+      is where cleanup of them is scored/queued. project-interview not_for: ''Cleanup execution (use /triage-debt,
+      /fix-workflow, /refactor-subsystem).'''
+  - pair:
+    - project-interview
+    - which-shape
+    note: '[which-shape->project-interview] which-shape routes missing-intent situations TO project-interview;
+      it does not capture intent itself. which-shape not_for: ''Replacing human judgment about project
+      goals; missing intent should route to /project-interview.'''
+  - pair:
+    - propose-boundary
+    - refactor-subsystem
+    note: '[propose-boundary->refactor-subsystem] propose-boundary is read-only and stops at the proposal;
+      refactor-subsystem (decomposition mode) executes it. | [refactor-subsystem->propose-boundary] propose-boundary
+      / propose-folder-reorganization produce the proposal/spec; refactor-subsystem EXECUTES it in decomposition
+      mode. The proposals never edit code; refactor-subsystem does.'
+  - pair:
+    - query-patterns
+    - track-idea
+    note: '[query-patterns->track-idea] query-patterns `escalate_to`: /track-idea intake when the query
+      returns no matches and the problem is worth capturing. Read (search) then, on a miss, write (capture).
+      No overlap.'

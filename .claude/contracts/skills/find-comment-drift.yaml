@@ -1,0 +1,52 @@
+schema_version: 2
+
+skill: find-comment-drift
+job: suspect
+problem_class: "comment / code drift detection (SUSPECT)"
+intent: >
+  Read-only stdlib scan that surfaces comments and docstrings likely to have
+  drifted from the code they describe (stale references to renamed symbols,
+  contradicted counts/paths, TODO/FIXME rot), ranked as advisory leads without
+  touching production files.
+solves: >
+  Comments lie as code changes around them; there was no first-pass, repo-wide
+  lead list of where prose has drifted from behavior, so reviewers only caught
+  stale comments by accident during unrelated reads.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: fixture-pair
+dogfooded_on:
+  - "ships a fixtures good/bad pair the scan must rank correctly (the regression oracle)"
+  - "self-scan on the ES2 tree — reports/find-comment-drift/scan-20260516-020251 (one on-disk run)"
+reports_dir: reports/find-comment-drift
+run_evidence:
+  count: 1
+  first: "scan-20260516-020251"
+  latest: "scan-20260516-020251"
+embodies_decisions:
+  adr: []
+  precedent: ["read-decode-safety.v1"]
+  doc: ["skill-catalog.md"]
+  contract: []
+related_skills: [find-async-lifecycle-drift, find-concept-divergence, prevent-regression]
+duplication_risk:
+  - with: find-async-lifecycle-drift
+    relation: sibling-different-layer
+    disambiguator: "Both are SUSPECT drift scanners with a fixtures oracle, but find-comment-drift flags prose-vs-code drift (comments/docstrings); find-async-lifecycle-drift flags async-lifecycle drift (task/await/teardown). Different drift axis."
+  - with: find-concept-divergence
+    relation: sibling-different-layer
+    disambiguator: "find-comment-drift flags comments drifted from their adjacent code; find-concept-divergence flags domain-glossary terms drifted from their canonical definitions. Local-comment vs cross-doc concept."
+provenance_confidence:
+  textual: low
+  structural: high
+  temporal: low
+  dogfood: high
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
+  - "has_scripts: true / has_fixtures: true per es2_skill_facts.yaml — scanner + good/bad oracle both present (structural high)"
+  - "reports/find-comment-drift/scan-20260516-020251 — one on-disk self-scan run on the ES2 tree (local, gitignored)"
+  - "precedents.yml read-decode-safety.v1 names .claude/skills/find-comment-drift/scripts/detect.py as a scanner-skip exemplar"
+gaps:
+  - "Only one self-scan run on disk, but the fixtures pair is a real regression oracle, so dogfood is high on the oracle axis rather than on run count."

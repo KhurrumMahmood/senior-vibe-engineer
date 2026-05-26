@@ -1,0 +1,55 @@
+schema_version: 2
+
+skill: mature-existing-ideas
+job: meta
+problem_class: "idea-ledger research / freshness (META, Tier 1)"
+intent: >
+  Research an existing ledger entry (or a batch carrying the needs-research
+  marker), append research-log notes to the ledger, and optionally clear markers
+  as evidence accumulates. The orchestrator does the research (project doc grep,
+  external Web/Context7 lookups, prior-art surveys); the helper script appends
+  the note event(s) and marker transitions.
+solves: >
+  Captured ideas marked needs-research go stale without anyone doing the research
+  and recording it. mature-existing-ideas is the structured "do the research now,
+  write it down, decide whether to clear the marker" surface, plus periodic
+  freshness review for untouched ideas.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted in the 90f8567 big-bang; no on-disk reports run and no fixtures pair — outputs append to the ledger log, not attributable to this skill vs sibling writers)"
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0013"]
+  precedent: []
+  doc: ["idea-ledger.md", "review-lane.md"]
+  contract: []
+related_skills: [track-idea, query-patterns, brainstorm-ideas, find-orphaned-ideas, extract-existing-ideas]
+duplication_risk:
+  - with: track-idea
+    relation: sibling-different-layer
+    disambiguator: "mature-existing-ideas `not_for`: 'Capturing a single new idea (use /track-idea intake)'. mature RESEARCHES an existing entry; track-idea WRITES a new record. It escalates to /track-idea event when research surfaces an explicit transition."
+  - with: brainstorm-ideas
+    relation: sibling-different-layer
+    disambiguator: "mature-existing-ideas `not_for`: 'Generating new ideas (use /brainstorm-ideas)'. mature deepens EXISTING entries; brainstorm generates NEW candidates. Research-existing vs generate-new."
+  - with: find-orphaned-ideas
+    relation: sequential
+    disambiguator: "find-orphaned-ideas DETECTS stale/needs-attention entries; mature-existing-ideas (often via --all-needs-research) acts on them by researching. Detect vs act."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
+  - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scripts/mature.py present (append-only note/marker writer), no oracle pair (structural med)"
+  - "SKILL.md flags --adversarial / --accept-on-loop with a review-lane.md gate — research is review-gated"
+gaps:
+  - "No reports dir and no commit-textual evidence of a specific ledger entry it first matured; outputs append to the ledger log, not attributable to this skill vs sibling writers, so dogfood_kind is none-found."

@@ -1,0 +1,50 @@
+schema_version: 2
+
+skill: impact-feature
+job: plan
+problem_class: "System-tier planning (stage 2 of 4) — cross-subsystem impact mapping"
+intent: "Second skill in the System-tier planning chain. Reads a scoped-status plan at ai-docs/plans/<name>.md, fans out one scout per touched subsystem to map call sites + model touchpoints + route boundaries + behaviors-to-preserve + test surfaces, synthesizes the cross-subsystem impact and blast radius, fills §3-4 of the plan, and advances status to impacted. Heavier than /scope-feature (scout fan-out) but lighter than /plan-feature (no spec scaffold; that's /plan-spec)."
+solves: "A scoped feature whose true reachability is unknown — impact is not a touched-files list but the full set of call sites and load-bearing behaviors-to-preserve (save orderings, queue pinning, signal handlers) the change must not break. Scouts run in parallel so wall-clock cost scales with the most-touched subsystem, not the sum."
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted in the big-bang 90f8567 cohort; no on-disk reports dir or self-run — the System-tier scout fan-out has not been driven against an ES2 plan)"
+reports_dir: null
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc:
+    - development-workflow.md
+    - architectural-smells.md
+    - canonical-patterns.md
+  contract: []
+related_skills: [scope-feature, architecture-fit, plan-spec, plan-feature, decide]
+duplication_risk:
+  - with: plan-feature
+    relation: sibling-different-layer
+    disambiguator: "impact-feature is the System-tier stage-2 (scout fan-out only, no spec scaffold); plan-feature is the Feature-tier all-in-one that already bundles its own scout fan-out. impact-feature not_for: 'Feature-tier impact mapping — /plan-feature already bundles its own scout fan-out (use it instead).'"
+  - with: scope-feature
+    relation: sequential
+    disambiguator: "scope-feature (stage 1) fills §1-2 and advances to scoped; impact-feature (stage 2) consumes a scoped plan and fills §3-4. delegate_from: '/scope-feature recommends /impact-feature once §1-2 are filled.'"
+  - with: architecture-fit
+    relation: sequential
+    disambiguator: "impact-feature hands forward to /architecture-fit (stage 3); it explicitly does NOT do architecture-fit analysis ('that's the next skill's job')."
+provenance_confidence:
+  textual: low      # big-bang 90f8567 cohort; commit subject does not name impact-feature
+  structural: low   # prose+orchestrator skill — no scanner script, no fixtures (fans out scouts, edits a plan file)
+  temporal: low     # 90f8567 birth shared by 54 siblings — no birth-proximity signal
+  dogfood: low      # no fixtures oracle and no ES2 self-run
+evidence:
+  - "90f8567 — born in the big-bang 55-skill extraction cohort (2026-05-15)"
+  - "has_fixtures: false, has_scripts: false — prose-driven planning-chain skill; structural signal is low"
+  - "no reports_dir and 0 run artifacts on disk — not yet dogfooded in ES2"
+gaps:
+  - "No precedents.yml entry names impact-feature; embodies_decisions.adr is [] because ADRs 0003 and 0017 name it only as a CONSUMER (it reads the registry / blast-radius signal during planning), not as their enforcement/realization. Intent rests on SKILL.md + the development-workflow / architectural-smells / canonical-patterns docs it reads."
+  - "ES2's impact-feature SKILL.md keeps the System-tier framing and ai-docs/plans/ path (matches the pnci intent base; no reality divergence beyond provenance)."

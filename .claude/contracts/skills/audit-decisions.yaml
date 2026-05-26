@@ -1,0 +1,52 @@
+schema_version: 2
+
+skill: audit-decisions
+job: guard
+problem_class: "decision-registry hygiene audit (GUARD)"
+intent: >
+  Audit the decision registry for hygiene drift: proposed-status ADRs that
+  outlived their decision window, broken supersedes chains, and applies_to
+  paths that no longer exist. Read-only — surfaces the drifted entries and the
+  recommended status transition; the human runs /decide to resolve.
+solves: >
+  Decisions rot silently — a proposed ADR that nobody accepted/deprecated, a
+  superseded-by pointer to a missing entry, an applies_to glob whose target was
+  deleted. audit-decisions is the narrow, authoritative read of decision-tree
+  health so the rot is visible before it misleads future work.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted in the 90f8567 big-bang; ES2 has no docs/decisions/ tree to audit, no on-disk reports run, and no fixtures pair)"
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: ["skill-catalog.md"]
+  contract: []
+related_skills: [decide, triage-debt, refactor-subsystem]
+duplication_risk:
+  - with: decide
+    relation: sequential
+    disambiguator: "audit-decisions DETECTS registry drift (proposed-too-long, broken chains, dangling applies_to) read-only; /decide is the WRITE that resolves a flagged entry (accept / deprecate / supersede). Detect vs act."
+  - with: triage-debt
+    relation: sibling-different-layer
+    disambiguator: "triage-debt `not_for`: 'Decision-registry hygiene specifically (use /audit-decisions, which is narrower and more authoritative for that axis)'. triage-debt aggregates ALL debt axes and reads decision drift as one input; audit-decisions owns that axis."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
+  - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scanner present, no good/bad oracle (structural med)"
+  - "reports_dir null, run count 0 — no on-disk audit run in this ES2 tree"
+gaps:
+  - "ES2 now has a real ai-docs/decisions/ tree (14 ADRs) for this skill to audit, but no timestamped self-run is on disk, so dogfood_kind is still none-found (the dogfooded_on line above predates the tree and is out of scope for this edit pass)."
+  - "embodies_decisions.adr is []: audit-decisions is the AUDITOR of the decision registry, not a skill any ADR names as its enforcement/realization; no precedents.yml entry names it either."

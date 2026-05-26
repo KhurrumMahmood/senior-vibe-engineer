@@ -1,0 +1,57 @@
+schema_version: 2
+
+skill: find-workflow-duplication
+job: suspect
+problem_class: "product-topology drift detection (SUSPECT) — duplicated step authority"
+intent: >
+  Detect duplicated product-step authority — step labels, tab IDs, route literals,
+  endpoint suffixes, sidebar/dashboard step definitions, boot payload keys, and status
+  text — repeated across backend, templates, JS, and docs for one product workflow
+  (default: sites) instead of owned by a single registry. A stdlib detector with
+  --min-active-owners 2 emits per-owner findings, each surface-classified
+  (active_executable / legacy_unloaded / route_definition / docs / tests) so lexical
+  repeats are treated as evidence, not findings.
+solves: >
+  The same workflow-step knowledge re-typed in every layer, so a label or tab id change
+  has to be hunted across Python + templates + JS + docs and silently drifts when one copy
+  is missed.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found — extracted big-bang into ES2 (90f8567), not dogfooded in this repo. Ships scripts/detect.py + scripts/report.py but no fixtures/ oracle, and no reports/workflow-duplication run dir exists on disk."
+reports_dir: reports/workflow-duplication
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills: [map-product-workflow, extract-workflow-registry, find-route-sprawl, find-workflow-state-gaps, find-duplication]
+duplication_risk:
+  - with: find-route-sprawl
+    relation: sibling-different-layer
+    disambiguator: "Both product-topology SUSPECT skills; find-workflow-duplication owns repeated step-authority across layers, find-route-sprawl owns URL-prefix ownership scatter. find-workflow-duplication not_for: 'Route prefix sprawl (use /find-route-sprawl).'"
+  - with: find-semantic-duplication
+    relation: sibling-different-layer
+    disambiguator: "find-workflow-duplication not_for quote: 'Generic code duplication across functions (use /find-duplication or /find-semantic-duplication).' — this one is layer-crossing topology constants, not function bodies."
+  - with: extract-workflow-registry
+    relation: sequential
+    disambiguator: "find-workflow-duplication DETECTS the scattered authority; extract-workflow-registry proposes the canonical registry that owns it. SUSPECT → EXPLAIN bridge."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
+  - "scripts/{detect,report}.py present — stdlib detector + report-emitter structural signature; no fixtures/ pair"
+  - "no reports/workflow-duplication dir on disk — no captured ES2 self-scan run"
+gaps:
+  - "pnci's contract had a sharp 6a303b6d topology cohort, +1-day stabilization, and one on-disk active-surface run; ES2 has none of that (big-bang birth, no runs), so temporal is weak and dogfood is none-found here, unlike pnci's med."
+  - "No ADR in ai-docs/decisions/ names find-workflow-duplication (adr is []); intent rests on SKILL.md and the product-topology cohort it ships with."

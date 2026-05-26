@@ -1,0 +1,131 @@
+# Skill intent + provenance contract — schema v2 (engineering-skills-2).
+schema_version: 2
+skill: extract-enum
+job: explain
+problem_class: stringly-typed-state consolidation proposal (maintenance EXPLAIN/bridge)
+intent: Turn a stringly-typed state field into a TextChoices enum proposal. Consumes an extract-enum candidate
+  from /find-implicit-state (or an explicit `<file>::<field>` target) and emits reports/extract-enum/<target>/proposal.md
+  with the enum class, caller migration table, data-migration risks, and stop condition. Read-only — no
+  code edits. Hands off to /fix-workflow or /refactor-subsystem.
+solves: A model status/phase/state field carried as bare strings compared across the codebase, with no
+  TextChoices enum — bridges a detected implicit-state finding into a concrete enum + caller-migration
+  + data-migration plan.
+born:
+  commit: 90f8567
+  date: '2026-05-15'
+  sibling_births:
+  - architecture-fit
+  - audit-decisions
+  - brainstorm-ideas
+  - decide
+  - design-it-twice
+  - engineer-init
+  - explain-code
+  - extract-cotton-primitive
+  - extract-existing-ideas
+  - extract-state-type
+  - extract-workflow-registry
+  - find-async-lifecycle-drift
+  - find-comment-drift
+  - find-contract-drift
+  - find-dead-route-surface
+  - find-doc-route-drift
+  - find-dormant
+  - find-duplication
+  - find-folder-topology-drift
+  - find-frontend-contract-drift
+  - find-frontend-duplication
+  - find-implicit-state
+  - find-layer-violation
+  - find-omnibus
+  - find-orphaned-ideas
+  - find-query-mutation
+  - find-route-sprawl
+  - find-rule-surface-drift
+  - find-semantic-duplication
+  - find-stale-artifacts
+  - find-test-obligation-drift
+  - find-transaction-overreach
+  - find-workflow-duplication
+  - find-workflow-state-gaps
+  - fix-workflow
+  - gut-check
+  - impact-feature
+  - introduce-fk
+  - map-product-workflow
+  - map-subsystem
+  - mature-existing-ideas
+  - plan-feature
+  - plan-spec
+  - prevent-regression
+  - propose-boundary
+  - propose-folder-reorganization
+  - query-patterns
+  - refactor-subsystem
+  - scope-feature
+  - teach-pattern
+  - track-idea
+  - triage-debt
+  - unify-shadows
+  - which-skill
+dogfood_kind: none-found
+dogfooded_on:
+- none-found (extracted big-bang in 90f8567, not yet dogfooded in this repo). Has a script but no fixtures
+  pair and no reports/extract-enum/ run dir on disk — no on-disk proposal to treat as a self-run, and
+  no host-subsystem refactor in ES2.
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent:
+  - explain-job-is-read-only-proposal.v1
+  doc:
+  - architectural-smells.md
+  - canonical-patterns.md
+  contract: []
+related_skills:
+- find-implicit-state
+- introduce-fk
+- extract-state-type
+- fix-workflow
+- refactor-subsystem
+duplication_risk:
+- with: find-implicit-state
+  relation: sequential
+  disambiguator: 'find-implicit-state DETECTS the stringly-typed comparison; extract-enum turns a confirmed
+    finding into a TextChoices proposal (''not_for: Detection (use /find-implicit-state first)''). Co-born
+    in the big-bang commit.'
+- with: introduce-fk
+  relation: sibling-different-layer
+  disambiguator: 'extract-enum handles the stringly-typed-field sub-shape; introduce-fk handles the tuple-inferred-identity
+    sub-shape `.filter(status=X, *_at__...).first()` (''not_for: Tuple-inferred-identity sub-shape ...
+    (use /introduce-fk)''). Both consume find-implicit-state output.'
+- with: extract-state-type
+  relation: sibling-different-layer
+  disambiguator: extract-enum is for a Django MODEL FIELD's status; extract-state-type is for a function's
+    implicit mutable dict/kwargs state. Both are EXPLAIN-job proposers, different target shape.
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+- 90f8567 — born in the big-bang ecosystem-extraction commit alongside 54 sibling skills (temporal weak)
+- precedents.yml entry explain-job-is-read-only-proposal.v1 names extract-enum as a transform-named, correctly
+  job=explain proposer (proposes the enum, REFACTOR executes it)
+- 'frontmatter says ''Decided in: 0001 (TextChoices for state)'', but ES2 has no docs/decisions/ tree
+  so that ADR does not resolve here — recorded as a gap, not an adr edge'
+- has scripts/ but no fixtures/ pair — structural signal is single-channel (med)
+gaps:
+- No on-disk reports/extract-enum/ run dir and no fixtures, so dogfood is none-found — what it was first
+  exercised on is not recoverable in ES2.
+- 'embodies_decisions.adr is []: the SKILL.md frontmatter cites ''Decided in: 0001'', but ai-docs/decisions/0001
+  (TextChoices for state) names ONLY find-implicit-state as its detector — extract-enum is not its
+  enforcement/realization. ADR 0003 names extract-enum only inside its closed ''shape'' vocabulary (a
+  producer artifact), not as the ledger''s enforcer. So neither is attributed. The TextChoices doctrine is
+  corroborated instead by canonical-patterns.md + architectural-smells.md + the precedents.yml proposer-job
+  entry. (NOTE: the stale evidence line still says the ADR "does not resolve here" — that premise is now
+  false, but evidence is out of scope for this edit pass.)'

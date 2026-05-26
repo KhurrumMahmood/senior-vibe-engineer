@@ -1,0 +1,55 @@
+schema_version: 2
+
+skill: explain-code
+job: explain
+problem_class: "behavioral annotation (maintenance EXPLAIN)"
+intent: >
+  Read-only EXPLAIN skill that converts a file, directory package, or named subsystem
+  into an annotated behavior doc at reports/explanations/<target>.md. Fans out scout
+  sub-agents per public symbol to capture intent, pre/postconditions, invariants,
+  callers, and unexplained regions. Complements /map-subsystem (inventory) by adding the
+  behavioral annotation that lets a human trust the code enough to change it.
+solves: >
+  Not being able to safely change a region because its behavior, invariants, and callers
+  are undocumented — inventory alone (what's there) doesn't confer the trust needed to
+  edit (what it does and must keep doing).
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found — extracted big-bang into ES2 (90f8567), not dogfooded in this repo. Has a scripts/ helper but no fixtures/ oracle and no reports/explanations dir on disk in ES2; outputs (annotation docs) are gitignored and none were produced here."
+reports_dir: reports/explanations
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: ["skill-catalog.md", "architectural-smells.md"]
+  contract: []
+related_skills: [map-subsystem, map-product-workflow, fix-workflow, refactor-subsystem, find-omnibus]
+duplication_risk:
+  - with: map-subsystem
+    relation: sibling-different-layer
+    disambiguator: "explain-code adds BEHAVIORAL annotation (pre/postconditions, invariants); map-subsystem produces INVENTORY ('not_for: Pure inventory without behavioral annotation (use /map-subsystem)'). Complementary, not overlapping."
+  - with: map-product-workflow
+    relation: sibling-different-layer
+    disambiguator: "explain-code annotates a file/dir/subsystem; map-product-workflow maps a cross-workflow user-visible topology ('not_for: Cross-workflow product topology (use /map-product-workflow)')."
+  - with: fix-workflow
+    relation: sequential
+    disambiguator: "explain-code is read-only and hands off to /fix-workflow or /refactor-subsystem once unexplained regions resolve into concrete smells."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
+  - "has scripts/ helper and fans out scout sub-agents (allowed-tools include Agent); no fixtures/ oracle"
+  - "reports_dir reports/explanations declared by SKILL.md but empty on disk — no ES2 annotation run captured"
+gaps:
+  - "No ADR in ai-docs/decisions/ names explain-code and no precedents.yml entry cites it, so embodies_decisions.adr is []; intent rests on SKILL.md + skill-catalog.md / architectural-smells.md."
+  - "No on-disk annotation run in ES2; the dogfood axis cannot be raised from run artifacts (reports/explanations is gitignored and empty)."

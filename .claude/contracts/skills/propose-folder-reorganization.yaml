@@ -1,0 +1,53 @@
+schema_version: 2
+
+skill: propose-folder-reorganization
+job: explain
+problem_class: "folder-topology drift resolution proposal (EXPLAIN/bridge)"
+intent: >
+  Turn a confirmed /find-folder-topology-drift finding into a per-cluster
+  reorganization proposal. Consumes a finding (or explicit target like
+  core/views::site_config) and emits a proposal with the current -> proposed
+  tree, file-move table, import-impact summary, characterization-test matrix,
+  and stop condition. Read-only — no file moves. Hands off to
+  /refactor-subsystem (decomposition mode).
+solves: >
+  Folder-topology drift (flat folders with N+ same-prefix siblings that should be
+  a package, tests-by-prefix that belong under a tests/ subfolder, packages
+  fallen below the >=3 threshold) is detected but not directly actionable — the
+  move table and import impact must be mapped first before a safe migration.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted in the 90f8567 big-bang; no on-disk reports run and no fixtures pair in this ES2 tree)"
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0006"]
+  precedent: ["explain-job-is-read-only-proposal.v1"]
+  doc: ["skill-catalog.md", "architectural-smells.md"]
+  contract: []
+related_skills: [find-folder-topology-drift, find-omnibus, refactor-subsystem, propose-boundary, decide]
+duplication_risk:
+  - with: find-folder-topology-drift
+    relation: sequential
+    disambiguator: "propose-folder-reorganization `not_for`: 'Detection (use /find-folder-topology-drift first)'. find-* detects drift; this proposes the move; refactor-subsystem executes."
+  - with: propose-boundary
+    relation: sibling-different-layer
+    disambiguator: "propose-folder-reorganization moves FILES across folders (intra-folder topology); propose-boundary extracts an in-code public-API seam (intra-file/module). Both EXPLAIN proposers, different granularity."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
+  - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — inspect.py present (gathers cluster + import-impact data), no oracle pair (structural med)"
+  - "precedents.yml explain-job-is-read-only-proposal.v1 names .claude/skills/propose-folder-reorganization/SKILL.md in canonical_examples — confirms the read-only-proposal intent"
+gaps:
+  - "pnci dogfooded this on a real host cluster (core/views::site_config, subsystem-refactor); ES2 has no host folders and no run on disk, so dogfood_kind is honestly none-found here."

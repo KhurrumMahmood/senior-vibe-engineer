@@ -1,0 +1,56 @@
+schema_version: 2
+
+skill: introduce-fk
+job: explain
+problem_class: "refactor proposal (EXPLAIN/bridge) — tuple-identity → ForeignKey"
+intent: >
+  Turn a tuple-inferred-identity pattern (.filter(status=X, created_at__gt=Y).first()) into
+  an explicit ForeignKey + two-step data-migration proposal. Consumes an introduce-fk
+  candidate from /find-implicit-state (or an explicit OWNER::Model -> TARGET::Model [via
+  fk_name] target) and emits reports/introduce-fk/<target>/proposal.md with FK field shape,
+  backfill migration sketch, caller migration table, tie-break strategy, and risks.
+  Read-only — no code edits.
+solves: >
+  Owner/job identity inferred from a (status, timestamp, nullness) tuple, which breaks
+  under concurrent jobs and hides in test fixtures. An explicit FK makes the at-most-one
+  invariant schema-enforced; this skill produces the implementation-ready proposal to get
+  there.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted big-bang under 90f8567, no ES2 dogfood run). reports/introduce-fk absent; the EXPLAIN-job read-only-proposal precedent names this skill as doctrine but no run is recorded in ES2."
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: ["explain-job-is-read-only-proposal.v1"]
+  doc: ["architectural-smells.md"]
+  contract: []
+related_skills: [find-implicit-state, extract-enum, fix-workflow, refactor-subsystem]
+duplication_risk:
+  - with: find-implicit-state
+    relation: sequential
+    disambiguator: "find-implicit-state DETECTS the tuple-identity pattern and emits the candidate; introduce-fk consumes it and proposes the FK. not_for: 'Detection of the pattern itself (use /find-implicit-state).'"
+  - with: extract-enum
+    relation: sibling-different-layer
+    disambiguator: "Both consume /find-implicit-state candidates, but introduce-fk handles the tuple-IDENTITY sub-shape (→ FK); extract-enum handles the stringly-typed STATUS sub-shape (→ TextChoices). not_for: 'Stringly-typed status enums (use /extract-enum).'"
+  - with: fix-workflow
+    relation: sequential
+    disambiguator: "introduce-fk PROPOSES (read-only, proposal.md only); /fix-workflow or /refactor-subsystem EXECUTES. not_for: 'Refactor execution (use /fix-workflow or /refactor-subsystem after the proposal).'"
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction cohort (textual + temporal low)"
+  - "precedents.yml explain-job-is-read-only-proposal.v1 names introduce-fk as a transform-named EXPLAIN skill that PROPOSES, not performs"
+  - "has_scripts true, has_fixtures false; SKILL.md body cites architectural-smells.md (structural med)"
+gaps:
+  - "No on-disk run in ES2 (the pnci base had a real negative-result run on UrlCollection↔UrlCrawlJob; that history is pnci's, not ES2's), so the dogfood axis stays low."

@@ -1,0 +1,55 @@
+schema_version: 2
+
+skill: find-dead-route-surface
+job: suspect
+problem_class: "route-surface reachability detection / product-topology (SUSPECT)"
+intent: >
+  Advisory scan for `/sites` route-surface reachability — legacy prototype routes,
+  views referencing missing templates, templates no route renders, template script tags
+  pointing at missing JS, and site static JS no template loads. Reuses `/find-dormant`
+  URL extraction but scopes to `/sites` route/template/static wiring. Emits five detector
+  bands (legacy_prototype_route, route_template_missing, unreferenced_template_surface,
+  missing_static_js, unloaded_site_static_js) as a triage candidate list; deletion still
+  needs human authorization.
+solves: >
+  Accumulated `/sites` cruft — old prototype pages, unloaded JS, and template/static
+  reachability drift — that a whole-repo dead-code audit is too coarse to localize and
+  that nothing flags until a 404 or a dead page is noticed.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: fixture-pair
+dogfooded_on:
+  - "ships a fixtures/ pair the run.py scan must classify correctly (the regression oracle)"
+  - "no ES2 self-scan run on record — no reports/find-dead-route-surface dir on disk, so the oracle is the fixtures pair, not an observed run"
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills: [find-dormant, find-contract-drift, find-doc-route-drift, find-orphaned-ideas]
+duplication_risk:
+  - with: find-dormant
+    relation: sibling-different-layer
+    disambiguator: "not_for quote: 'Whole-repo Python dead-code audits (use /find-dormant ...)'. find-dead-route-surface reuses find-dormant's URL extraction but scopes to /sites route/template/static wiring; find-dormant is broad Python archaeology."
+  - with: find-orphaned-ideas
+    relation: sibling-different-layer
+    disambiguator: "find-orphaned-ideas --dead-prototype CONSUMES a /find-dormant report to flag orphan routes as idea-ledger candidates; find-dead-route-surface is the /sites-scoped detector itself."
+provenance_confidence:
+  textual: low
+  structural: high
+  temporal: low
+  dogfood: high
+evidence:
+  - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
+  - "fixtures/ pair present + scripts/run.py — the SUSPECT detector's regression oracle and the structural guard-install signature"
+  - "no reports/find-dead-route-surface dir on disk — no captured ES2 self-scan run"
+gaps:
+  - "pnci's contract pinned this skill to precedents.yml product-health-advisory-loop.v1 and 5 on-disk runs; ES2 has neither (no such precedent entry, no run dir), so the dogfood signal rests on the fixtures oracle alone, not an observed ES2 run."
+  - "Birth is the shared big-bang commit, which does not single out the dead-route surface; intent derived from SKILL.md + the fixtures pair."

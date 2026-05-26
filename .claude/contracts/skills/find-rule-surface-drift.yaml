@@ -1,0 +1,58 @@
+schema_version: 2
+
+skill: find-rule-surface-drift
+job: suspect
+problem_class: "agent-rules-surface drift detection (SUSPECT)"
+intent: >
+  Detect drift on the agent-rules surface (CLAUDE.md + .claude/docs/) against
+  ADR 0005's tiered-storage convention: oversized always-loaded files, dormant
+  load-on-demand docs, missing-but-referenced docs, unreferenced docs, and
+  broken links from the human onboarding entry point (/ONBOARDING.md). A
+  detector emits bands; thresholds tunable via --max-root-chars /
+  --max-doc-chars.
+solves: >
+  The agent-rules surface silently rotting — the always-on CLAUDE.md bloats,
+  load-on-demand docs go stale or get referenced after deletion, and the
+  trigger table drifts from the filesystem, eroding the tiered-storage
+  discipline that keeps context lean.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: fixture-pair
+dogfooded_on:
+  - "Self-shipped fixtures/ exercise corpora (synthetic CLAUDE.md + docs/ + ONBOARDING.md that trip the bands) are the regression oracle."
+  - "One ES2 self-scan against the live .claude/ agent-rules surface — reports/find-rule-surface-drift/scan-20260516-015741 (a meta-guard run on the ecosystem itself)."
+reports_dir: reports/find-rule-surface-drift
+run_evidence:
+  count: 1
+  first: "scan-20260516-015741"
+  latest: "scan-20260516-015741"
+embodies_decisions:
+  adr: ["0005"]
+  precedent: []
+  doc: []
+  contract: []
+related_skills: [find-stale-artifacts, find-doc-route-drift, find-frontend-contract-drift, audit-decisions, fix-workflow]
+duplication_risk:
+  - with: find-stale-artifacts
+    relation: sibling-different-layer
+    disambiguator: "Both defend attention against drift, but find-rule-surface-drift owns the agent-rules surface (CLAUDE.md + .claude/docs per ADR 0005); find-stale-artifacts owns working-artifact dirs (plans/specs/report scans). find-stale-artifacts cross-refs: 'Agent-rules surface drift ... use /find-rule-surface-drift.'"
+  - with: audit-decisions
+    relation: sibling-different-layer
+    disambiguator: "find-rule-surface-drift not_for quote: 'Decision-registry drift (use /audit-decisions).'"
+  - with: find-doc-route-drift
+    relation: sibling-different-layer
+    disambiguator: "find-rule-surface-drift not_for quote routes code-side drift away: 'use /find-doc-route-drift for documented route drift'. rule-surface-drift audits the agent-rules docs tree; doc-route-drift audits documented routes vs Django URLs."
+provenance_confidence:
+  textual: low
+  structural: high
+  temporal: low
+  dogfood: high
+evidence:
+  - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
+  - "has_fixtures + has_scripts both true — exercise fixture corpora are the structural oracle"
+  - "reports/find-rule-surface-drift/scan-20260516-015741 — one ES2 self-scan against the live .claude/ surface (meta-guard run on the ecosystem)"
+gaps:
+  - "Both a fixture-pair skill and a meta-guard with a self-scan; classed fixture-pair per the brief's priority (fixtures present ⇒ the good/bad pair is the oracle). Only one self-scan run on disk, so dogfood is high on the fixtures oracle but the run count alone (1) would be med."
+  - "Dropped the pnci duplication_risk edge to find-augment-mirror-drift (pnci-only skill, absent from ES2)."

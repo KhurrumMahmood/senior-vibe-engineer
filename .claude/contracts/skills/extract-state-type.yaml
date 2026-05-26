@@ -1,0 +1,54 @@
+schema_version: 2
+
+skill: extract-state-type
+job: explain
+problem_class: "implicit-dict-state consolidation proposal (maintenance EXPLAIN/bridge)"
+intent: >
+  Read-only EXPLAIN skill that converts a function operating on an implicit mutable dict
+  (or ad-hoc kwargs/namespace) into a typed @dataclass or TypedDict migration plan.
+  Produces reports/extract-state-type/<target>/proposal.md with the current-shape table,
+  proposed type definition, caller-by-caller migration plan, characterization-test matrix,
+  and stop condition. Hands off to /fix-workflow or manual migration.
+solves: >
+  State threaded through a function as an untyped mutable dict / loose kwargs / namespace,
+  where the shape is implicit and drift-prone — bridges a detected implicit-state finding
+  into a concrete typed-shape migration plan.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted big-bang under 90f8567, no ES2 dogfood run). reports/extract-state-type does not exist on disk; the EXPLAIN-job read-only-proposal precedent names this skill as doctrine but no run is recorded in ES2."
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: ["explain-job-is-read-only-proposal.v1"]
+  doc: []
+  contract: []
+related_skills: [find-implicit-state, extract-enum, introduce-fk, fix-workflow]
+duplication_risk:
+  - with: extract-enum
+    relation: sibling-different-layer
+    disambiguator: "extract-state-type is for a function's implicit mutable DICT/kwargs; extract-enum is for a Django MODEL FIELD's stringly-typed status. not_for: 'Stringly-typed status fields on a Django model (use /extract-enum).'"
+  - with: introduce-fk
+    relation: sibling-different-layer
+    disambiguator: "extract-state-type targets dict/namespace shape; introduce-fk targets tuple-inferred FK identity. not_for: 'Tuple-inferred FK identity (use /introduce-fk).' Both are extract-* bridges off find-implicit-state."
+  - with: find-implicit-state
+    relation: sequential
+    disambiguator: "find-implicit-state DETECTS; extract-state-type proposes the typed shape. Read-only proposal vs scanner."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction cohort (textual + temporal low)"
+  - "precedents.yml explain-job-is-read-only-proposal.v1 names extract-state-type as a transform-named EXPLAIN skill that PROPOSES, not performs"
+  - "has_scripts true, has_fixtures false — scanner-backed proposal skill, no good/bad oracle (structural med)"
+gaps:
+  - "No on-disk run in ES2; the precedent names the read-only-proposal doctrine, not a specific dogfood target, so the dogfood axis stays low."

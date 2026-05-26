@@ -1,0 +1,51 @@
+schema_version: 2
+
+skill: find-query-mutation
+job: suspect
+problem_class: "architectural-drift detection (SUSPECT) — query-mutation smell"
+intent: >
+  Detect read-named methods (get_* / fetch_* / load_* / list_* / find_* / check_*) whose
+  bodies mutate persisted state via .save() / .delete() / .update() / .create() / bulk_* /
+  update_or_create() / get_or_create(). An AST scan collapses hits per function and fans
+  out cheap scout sub-agents to bucket each candidate (rename / split / legitimate
+  cache-warming / stdlib false positive) before handoff to /fix-workflow cluster:<symbol>.
+solves: >
+  Functions whose name lies about their side effects — a structurally-valid read accessor
+  that secretly writes the database, which surprises callers and corrupts the read/write
+  contract a reader relies on.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted big-bang under 90f8567, no ES2 dogfood run). reports/query-mutation absent; no fixtures pair shipped, so there is no oracle and no recorded scan in ES2."
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills: [find-implicit-state, find-transaction-overreach, find-layer-violation, fix-workflow]
+duplication_risk:
+  - with: find-transaction-overreach
+    relation: sibling-different-layer
+    disambiguator: "Both are AST+cheap-scout SUSPECT scanners with the same orchestrator shape, but find-query-mutation targets name-vs-side-effect lying; find-transaction-overreach targets a runtime connection-pool failure mode. not_for: 'Read-named methods that mutate persisted state (use /find-query-mutation).'"
+  - with: find-implicit-state
+    relation: sibling-different-layer
+    disambiguator: "not_for: 'Stringly-typed status comparisons (use /find-implicit-state).' Different smell, different detector."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction cohort (textual + temporal low)"
+  - "has_scripts true, has_fixtures false — AST detector + scout briefs, no good/bad oracle (structural med)"
+  - "SKILL.md frontmatter job:suspect, scout_model:cheap — cheap-scout audit pass behind the smell"
+gaps:
+  - "No on-disk run, no fixtures pair, no precedents.yml entry in ES2 — dogfood unproven here (the pnci base leaned on a sibling lint born in pnci; that lint is not part of ES2's skill facts)."

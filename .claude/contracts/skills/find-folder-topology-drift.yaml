@@ -1,0 +1,47 @@
+schema_version: 2
+
+skill: find-folder-topology-drift
+job: suspect
+problem_class: "folder-topology drift detection / placement-convention guard (SUSPECT)"
+intent: "Detect drift on the folder-topology surface against the bidirectional ≥3-sibling threshold — promote-direction (same-prefix sibling sprawl, tests_*.py populations that should be folders, URL-prefix views ungrouped, same-domain helper sprawl at root) and demote-direction (folder packages whose source-module count fell below ≥3). Read-only; hands off to /propose-folder-reorganization then /refactor-subsystem."
+solves: "Directory layout silently violating the project's folder-grouping convention — flat folders that should be packages and over-eager packages that should collapse — which the folder-organization convention codifies but nothing enforces between refactors."
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: self-installed-guard
+dogfooded_on:
+  - "self-scan on the ES2 tree — reports/find-folder-topology-drift/scan-20260516-015858 (one on-disk run; a find-folder-* topology guard run against this repo's own layout)"
+reports_dir: reports/find-folder-topology-drift
+run_evidence:
+  count: 1
+  first: "scan-20260516-015858"
+  latest: "scan-20260516-015858"
+embodies_decisions:
+  adr: ["0006"]
+  precedent: []
+  doc:
+    - folder-organization.md
+  contract: []
+related_skills: [propose-folder-reorganization, refactor-subsystem, find-omnibus, find-route-sprawl]
+duplication_risk:
+  - with: find-omnibus
+    relation: sibling-different-layer
+    disambiguator: "not_for quote: 'File-level \"this module does too many things\" (use /find-omnibus — that smell is intra-file, this one is intra-folder)'. Explicit author-drawn boundary: omnibus = within a file, topology = across files in a folder."
+  - with: find-route-sprawl
+    relation: sibling-different-layer
+    disambiguator: "not_for quote: 'Cross-layer workflow drift (use /find-route-sprawl …)'. topology-drift checks folder packaging threshold; route-sprawl checks scattered URL-prefix ownership."
+  - with: propose-folder-reorganization
+    relation: sequential
+    disambiguator: "topology-drift DETECTS the drift; propose-folder-reorganization turns a finding into a per-cluster reorg proposal (its --target accepts a topology-drift finding)."
+provenance_confidence:
+  textual: low      # big-bang 90f8567 cohort; commit subject does not name find-folder-topology-drift
+  structural: med   # ships a scanner script (has_scripts) but no good/bad fixtures pair
+  temporal: low     # 90f8567 birth shared by 54 siblings — no birth-proximity signal
+  dogfood: med      # exactly one on-disk self-scan run against the ES2 layout; no fixtures oracle
+evidence:
+  - "90f8567 — born in the big-bang 55-skill extraction cohort (2026-05-15)"
+  - "reports/find-folder-topology-drift/scan-20260516-015858 — one on-disk self-scan run on the ES2 tree (local, gitignored)"
+  - "has_scripts: true, has_fixtures: false — one structural signal; it is a find-folder-* meta-guard with a self-scan run, so dogfood_kind is self-installed-guard"
+gaps:
+  - "Divergence from pnci intent base: pnci's SKILL.md cited ADR 0006/0002/0011 by number; ES2's intent/solves drop the literal ADR-number prose (no number-cite) and lean on the folder-organization.md doc — same bidirectional ≥3 convention. (Note: pnci's 0011 has no ES2 counterpart; only ai-docs/decisions/0006 is real here and is the attributed adr.)"

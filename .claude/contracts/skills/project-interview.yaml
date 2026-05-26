@@ -1,0 +1,53 @@
+# Skill intent + provenance contract — schema v2.
+# ES2-only skill; authored fresh from SKILL.md + es2_skill_facts.yaml.
+
+schema_version: 2
+
+skill: project-interview
+job: meta
+problem_class: "human-intent project profiling (META)"
+intent: "Build the human-approved project profile that complements /adapt-project discovery. Reads repository facts first, then interviews the user about purpose, maturity, critical workflows, risk posture, desired direction, intentional tradeoffs, known-bad legacy patterns, and do-not-break surfaces. Writes draft artifacts under reports/project-interview/scan-<TS>/ by default; durable .claude/project/profile.yml, profile.md, and open-questions.md require --apply."
+solves: "/adapt-project can discover facts but cannot safely infer purpose, priorities, risk posture, intentional tradeoffs, or whether a repeated pattern is healthy. Without a human-approved profile, future skills (which-skill, planning, prevent-regression) lack the intent context that should constrain them — and a messy project's repeated scars get mistaken for examples worth standardizing."
+born:
+  commit: "a582cbf"
+  date: "2026-05-16"
+  sibling_births: [adapt-project, find-complexity-hotspots]   # small, sharp 3-skill cohort — temporal signal is meaningful
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (no timestamped self-run on the ES2 tree; reports_dir is null). The SKILL.md documents a --no-host-write dogfood mode paired with adapt-project, but the facts show no ES2 run artifact, so the dogfood is documented intent, not observed evidence."
+reports_dir: null
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []         # no ADR in ai-docs/decisions/ names project-interview
+  precedent: []   # no precedents.yml entry names project-interview
+  doc: []
+  contract: []
+related_skills: [adapt-project, orient, decide, triage-debt, which-shape, which-skill]
+duplication_risk:
+  - with: adapt-project
+    relation: sibling-different-layer
+    disambiguator: "project-interview captures HUMAN intent (purpose, risk tolerance, known-bad patterns); adapt-project discovers OBJECTIVE repo facts. project-interview not_for: 'Objective repo discovery (use /adapt-project).' Born together in a582cbf as the intent/operational halves of localization."
+  - with: orient
+    relation: sibling-different-layer
+    disambiguator: "project-interview is the BROAD intent profile; orient is the NARROW two-axis maturity × stakes state write. orient not_for: 'Capturing project purpose, critical workflows, intentional tradeoffs … (use /project-interview).'"
+  - with: decide
+    relation: sequential
+    disambiguator: "project-interview surfaces durable architectural choices in answers and escalates them; decide authors the ADR. project-interview not_for: 'ADR authoring (use /decide).'"
+  - with: triage-debt
+    relation: sequential
+    disambiguator: "project-interview names known-bad current patterns; triage-debt is where cleanup of them is scored/queued. project-interview not_for: 'Cleanup execution (use /triage-debt, /fix-workflow, /refactor-subsystem).'"
+provenance_confidence:
+  textual: med      # born in the small named 3-skill cohort a582cbf (with adapt-project, find-complexity-hotspots), not the big-bang set
+  structural: low   # has_scripts=false / has_fixtures=false in facts — the documented project_adapt.py interview helper is shared/repo-level, not this skill's own scanner+fixtures signature
+  temporal: high     # small 3-skill birth cohort — birth proximity is informative (unlike the big-bang 90f8567 set)
+  dogfood: low      # no fixtures oracle; no self-run on disk
+evidence:
+  - "a582cbf — born 2026-05-16 in a 3-skill cohort with adapt-project and find-complexity-hotspots (facts)"
+  - "reports_dir null, run count 0 (facts) — no ES2 timestamped run despite a documented dogfood pipeline"
+  - "has_scripts=false / has_fixtures=false (facts) — shares the repo-level project_adapt.py helper rather than owning a scripts/ + fixtures pair"
+gaps:
+  - "No precedents.yml entry and no ADR in ai-docs/decisions/ names project-interview; intent rests on the SKILL.md and the a582cbf cohort framing."
+  - "No ES2 dogfood evidence; an interview is interactive and human-driven, so absence of a reports run is plausible-by-nature, but dogfood stays honestly low."

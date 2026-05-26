@@ -1,0 +1,50 @@
+schema_version: 2
+
+skill: prevent-regression
+job: guard
+problem_class: "regression-guard authoring (GUARD) — turn a fixed bug into an executable rule"
+intent: >
+  After a bug is fixed (or a recurring smell is identified), author an executable guard —
+  AST lint rule, test, or hook — that fails on the regression and passes on the fix, so the
+  class of defect cannot silently return. GUARD skill at the closing end of the maintenance
+  loop. Ships scripts/generate_rule.py + scripts/verify_rule.py to scaffold a rule and
+  prove it discriminates (red on the pre-fix shape, green on the post-fix shape) before it
+  is wired into CI/pre-commit.
+solves: >
+  Fixes that don't stick — a bug or pattern violation gets fixed once, then drifts back in
+  later because nothing mechanically rejects the bad shape on the next change.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found — extracted big-bang into ES2 (90f8567), not dogfooded in this repo. Ships scripts/generate_rule.py + scripts/verify_rule.py (the rule scaffolder), but no fixtures/ oracle, no installed ES2 rule attributable to a prevent-regression run, and no reports/prevent-regression run dir on disk."
+reports_dir: reports/prevent-regression
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills: [fix-workflow, unify-shadows, refactor-subsystem, find-duplication, find-dormant, find-semantic-duplication]
+duplication_risk:
+  - with: fix-workflow
+    relation: sequential
+    disambiguator: "fix-workflow CLOSES a bug (the fix itself); prevent-regression GUARDS it afterward (authors the lint/test/hook that rejects the regression). fix → prevent is the canonical close→guard ordering."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
+  - "scripts/generate_rule.py + scripts/verify_rule.py — a guard-authoring/verification signature (scaffold a rule, prove it discriminates red/green); no fixtures/ pair"
+  - "no reports/prevent-regression dir on disk — no captured ES2 guard-authoring run"
+gaps:
+  - "pnci's contract was a strong self-installed-guard dogfood case — it had shipped concrete installed guards (e.g. the silent-catch lint) with fixtures and a CI wiring, and was pinned to pnci precedents (silent-catch-canonicalization, spine-extraction-contract-guard.v1). ES2 has none of those: no installed rule traceable to a run, no fixtures, and those precedents are pnci-specific — so dogfood_kind is none-found and precedent is [], a divergence from the pnci intent base."
+  - "related_skills dropped propose-spine (present in the pnci base) because that skill does not exist in ES2; it was a related_skills entry only, not a duplication_risk edge."
+  - "embodies_decisions.adr is []: ADR 0004 names future prevent-regression proposals only as able to 'cite this ADR as motivating context', and 0019 names /prevent-regression only as a 'candidate' for one verification test — both are one-example/related-context mentions, not the enforcement/realization of either decision, so neither is attributed."

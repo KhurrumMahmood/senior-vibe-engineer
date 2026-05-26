@@ -1,0 +1,50 @@
+schema_version: 2
+
+skill: find-layer-violation
+job: suspect
+problem_class: "architectural layer-violation detection (SUSPECT)"
+intent: >
+  Read-only scan that surfaces likely layer-boundary violations — views reaching
+  past the service layer into the ORM, business logic embedded in templates or
+  views, cross-layer imports that skip the intended seam — ranked as advisory
+  leads without touching production files.
+solves: >
+  Layer boundaries erode silently as logic leaks into the wrong tier; there was
+  no first-pass, repo-wide lead list of where the view/service/model seams are
+  crossed, so the architecture decayed without a signal to extract a service.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted in the 90f8567 big-bang; no on-disk reports run and no fixtures pair in this ES2 tree)"
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: ["skill-catalog.md", "architectural-smells.md"]
+  contract: []
+related_skills: [find-omnibus, find-complexity-hotspots, fix-workflow, propose-boundary, refactor-subsystem]
+duplication_risk:
+  - with: find-omnibus
+    relation: sibling-different-layer
+    disambiguator: "find-layer-violation flags cross-LAYER leaks (view->ORM, logic-in-template); find-omnibus flags MODULE-level sprawl (oversized multi-responsibility files). Boundary-crossing vs file-size, both SUSPECT."
+  - with: propose-boundary
+    relation: sequential
+    disambiguator: "find-layer-violation DETECTS the boundary leak; propose-boundary PROPOSES the public-API seam to restore it; refactor-subsystem executes. Detect -> propose -> execute."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
+  - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scanner present, no oracle pair (structural med)"
+  - "reports_dir null, run count 0 — no on-disk layer-violation scan run in this ES2 tree"
+gaps:
+  - "pnci dogfooded this against host service-extraction refactors (subsystem-refactor); ES2 has no host subsystems and no run on disk, so dogfood_kind is honestly none-found here."
