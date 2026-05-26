@@ -108,6 +108,11 @@ auto-generated roll-up (per-skill born date, problem class, dogfood kind +
 confidence, duplication-risk count, stale state); pass `--no-index` to
 skip that write.
 
+When **bootstrapping** the contracts in a fresh repo, regenerate
+`_index.yaml` *after* the contracts are committed. A roll-up written while
+they are still uncommitted records every entry as `stale: baseline
+(contract uncommitted)`; only a post-commit re-run resolves them to `ok`.
+
 Unlike the report-producing SUSPECT skills, this is a single-script
 meta-guard: it has no `fixtures/` pair and writes no `reports/<skill>/`
 run directory. Its durable output is the regenerated `_index.yaml`
