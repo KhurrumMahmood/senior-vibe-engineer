@@ -665,7 +665,7 @@ def render_markdown(
             lines.append(
                 "- No importance map declared — see "
                 "`ai-docs/decisions/0016-importance-map-shape.md` for the "
-                "format and create `.claude/docs/importance-map.md`."
+                "format and create `.engineering/docs/importance-map.md`."
             )
         elif status == "malformed":
             lines.append(f"- Malformed importance-map.md: {attention_gap.get('error')}")

@@ -3,7 +3,7 @@ schema_version: 2
 skill: find-orphaned-ideas
 job: suspect
 problem_class: "idea-ledger drift / attention-gap detection (SUSPECT)"
-intent: "Read-side audit for the Tier 1 idea ledger that detects ideas needing attention but not getting it, across seven orthogonal modes — stale (in-flight, no event in N days), harvest (has-more-potential, not in-flight), plan-dropouts (in a plan but missing from ledger), todo (TODO/FIXME orphans), stale-plans (proposed plans silent > N days), dead-prototype (orphan routes/templates from a /find-dormant report), attention-gap (importance-weighted audit, reads .claude/docs/importance-map.md). Read-only by default; --apply-stale writes stalled-transition events."
+intent: "Read-side audit for the Tier 1 idea ledger that detects ideas needing attention but not getting it, across seven orthogonal modes — stale (in-flight, no event in N days), harvest (has-more-potential, not in-flight), plan-dropouts (in a plan but missing from ledger), todo (TODO/FIXME orphans), stale-plans (proposed plans silent > N days), dead-prototype (orphan routes/templates from a /find-dormant report), attention-gap (importance-weighted audit, reads .engineering/docs/importance-map.md). Read-only by default; --apply-stale writes stalled-transition events."
 solves: "Ideas getting lost — in-flight work going silent, harvested capacity nobody picked back up, plan/backlog items with no ledger entry, and TODO/source-tree forgetfulness — that the append-only ledger captures but no one reviews."
 born:
   commit: "90f8567"

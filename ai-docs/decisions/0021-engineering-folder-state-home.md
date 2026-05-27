@@ -1,12 +1,12 @@
 ---
 id: "0021"
 title: Portable .engineering/ state home
-status: proposed
+status: accepted
 date: 2026-05-22
-deciders: []
+deciders: [khurrum]
 supersedes: []
 superseded_by: null
-applies_to: [".claude/skills/find-standard-gaps/scripts/project_state.py", ".claude/skills/find-standard-gaps/scripts/scan_coverage.py", ".claude/skills/orient/", ".project-state.json"]
+applies_to: [".claude/skills/find-standard-gaps/scripts/project_state.py", ".claude/skills/find-standard-gaps/scripts/scan_coverage.py", ".claude/skills/orient/", ".engineering/project-state.json"]
 tags: [state, portable, cross-tool, engineering-folder, project-state, committed-vs-gitignored, schema-versioning, migration, derived-knowledge]
 related_smell: null
 related_pattern: null
@@ -138,6 +138,11 @@ deliberately **not** decided in this ADR.
   consuming repos.
 - **Now disallowed:** writing new toolkit per-project state to the repo root or
   under `.claude/`. New state goes into the correct `.engineering/` zone.
+- **Relocates (not re-decides):** the host-config docs previously shipped under
+  `.claude/docs/` — `todo-tuning.md` and `importance-map.md` — now live in
+  `.engineering/docs/` (loaders keep a one-time-warning `.claude/docs/` fallback
+  during transition). This refines only the *location* line in ADR 0016; ADR 0016's
+  importance-map *shape* decision is unchanged.
 - **Surfaced, not closed:** derived-knowledge merge handling (above). The folder
   makes the problem *concrete* — it concentrates derived-knowledge files in one
   place — which is why the open question lands with this ADR.
@@ -152,8 +157,14 @@ deliberately **not** decided in this ADR.
   fallback during transition; `project_state.py` / `scan_coverage.py` / `/orient`
   updated and still green.
 - A ledger intake exists for derived-knowledge merge handling.
-- **Proposed** until: the folder exists in es2 (dogfood) with `.project-state.json`
-  migrated in, the shipped ignore rule and schema version are real, and the three
-  call sites read from the new location. Pairs with ADR 0020 (project-state, the
-  folder's first inhabitant) and ADR 0022 (which stores accepted-gate decisions +
-  frozen detectors here).
+- **Accepted (2026-05-27):** the folder exists in es2 (dogfood) — `.project-state.json`
+  migrated into the committed zone; the shipped `.gitignore` rule and the
+  `manifest.json` schema `version` are real; and the three call sites
+  (`project_state.py`, `scan_coverage.py`, `/orient`) read from the new location with
+  the root fallback. The scope mechanism (`_common/scope.py` + `engineering_home.py`),
+  its first `.engineering/docs/<skill>-scope.md` descriptor, and the migrated
+  `todo-tuning.md` / `importance-map.md` host-config docs are the committed zone's
+  second inhabitant cohort. Pairs with ADR 0020 (project-state, the folder's first
+  inhabitant) and ADR 0022 (which stores accepted-gate decisions + frozen detectors
+  here; **remains proposed** — its `.engineering/` storage dependency is now satisfied
+  but its detector-lifecycle work is out of scope).

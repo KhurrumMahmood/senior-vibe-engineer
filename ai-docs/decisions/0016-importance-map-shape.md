@@ -8,7 +8,7 @@ supersedes: []
 superseded_by: null
 applies_to:
   - .claude/skills/find-orphaned-ideas/
-  - .claude/docs/importance-map.md
+  - .engineering/docs/importance-map.md
 tags:
   - idea-tracking
   - audit-tooling
@@ -184,6 +184,8 @@ exploration. Rejected.
   → 'No importance map — see ADR 0016' notice; clean exit."
 - **Malformed-file behavior** is verified by row 10: "malformed
   `importance-map.md` → diagnostic, no crash."
-- **`.claude/docs/importance-map.md`** is the canonical location.
+- **`.engineering/docs/importance-map.md`** is the canonical location
+  (relocated from `.claude/docs/` by ADR 0021; loaders keep a one-time-warning
+  `.claude/docs/` fallback during transition).
   The engineering-skills mirror ships a template (header + commented
   example areas) so adopters know the format. Hosts copy and fill.

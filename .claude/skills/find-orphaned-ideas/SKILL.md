@@ -1,6 +1,6 @@
 ---
 name: find-orphaned-ideas
-description: Detect ideas that need attention but are not getting it. Seven modes — stale (in-flight, no event in N days), harvest (has-more-potential, not in-flight), plan-dropouts (in a plan file but missing from ledger), todo (TODO/FIXME orphans in source files), stale-plans (proposed plans > N days silent with no ledger intake), dead-prototype (orphan routes/templates from a /find-dormant report), attention-gap (importance-weighted audit per ADR 0016, reads `.claude/docs/importance-map.md`). Read-only audit by default; can optionally write `stalled` transition events when --apply-stale is set. Read .claude/docs/idea-ledger.md when authoring or debugging this skill, `.claude/docs/todo-tuning.md` when calibrating --todo, and `.claude/docs/importance-map.md` (plus ADR 0016) when calibrating --attention-gap.
+description: Detect ideas that need attention but are not getting it. Seven modes — stale (in-flight, no event in N days), harvest (has-more-potential, not in-flight), plan-dropouts (in a plan file but missing from ledger), todo (TODO/FIXME orphans in source files), stale-plans (proposed plans > N days silent with no ledger intake), dead-prototype (orphan routes/templates from a /find-dormant report), attention-gap (importance-weighted audit per ADR 0016, reads `.engineering/docs/importance-map.md`). Read-only audit by default; can optionally write `stalled` transition events when --apply-stale is set. Read .claude/docs/idea-ledger.md when authoring or debugging this skill, `.engineering/docs/todo-tuning.md` when calibrating --todo, and `.engineering/docs/importance-map.md` (plus ADR 0016) when calibrating --attention-gap.
 argument-hint: "[--stale | --harvest | --plan-dropouts <path> | --todo | --stale-plans | --dead-prototype | --attention-gap | --all] [--from-report <path>] [--stale-days N] [--stale-plans-days N] [--min-age-days N] [--min-words N] [--apply-stale]"
 allowed-tools: Bash, Read, Edit
 user-invocable: true
@@ -134,12 +134,12 @@ over-surface:
 
 - `min_words = 4` — drops trivial `// TODO` and `# TODO: x` markers but
   keeps anything substantive. Override per-run with `--min-words N`, or
-  globally in `.claude/docs/todo-tuning.md`.
+  globally in `.engineering/docs/todo-tuning.md`.
 - No upper age bound — old TODOs are the most interesting orphans. Opt
   into a lower bound with `--min-age-days N` (uses git mtime of the
   enclosing file as a coarse proxy).
 - No automatic test-file skip — test scaffolding often holds the richest
-  TODOs. Add path globs to `.claude/docs/todo-tuning.md` under
+  TODOs. Add path globs to `.engineering/docs/todo-tuning.md` under
   `## Path skip` to filter project-specific noise (vendor JS, agent
   worktrees, generated migrations).
 
@@ -193,7 +193,7 @@ entry, it reads `path` / `file` / `route` / `template` and
 /find-orphaned-ideas --attention-gap
 ```
 
-Read the declarative importance map at `.claude/docs/importance-map.md`
+Read the declarative importance map at `.engineering/docs/importance-map.md`
 (shape defined by ADR 0016), rank declared areas by tier
 (`critical` > `core` > `supporting`), and emit a report row per area
 listing its locators and any drift.
@@ -363,14 +363,14 @@ advisory; the user invokes `/track-idea event` for the rest.
 | `--apply-stale` write fails mid-batch | Stop at the failing record; report what was written and what was not (the ledger remains valid) |
 | Same idea matches multiple modes (e.g. stale AND harvest) | Report under each section; do not deduplicate |
 | `--todo` against binary or non-UTF8 file | Skip silently; the file walk continues |
-| `--todo` produces project-specific noise (vendor JS, worktrees) | Add globs to `.claude/docs/todo-tuning.md` `## Path skip` |
+| `--todo` produces project-specific noise (vendor JS, worktrees) | Add globs to `.engineering/docs/todo-tuning.md` `## Path skip` |
 | `--todo` git mtime lookup fails (not a git repo, or file untracked) | The `--min-age-days` filter drops that file; without the filter the TODO still surfaces |
 | `--stale-plans` plan with no parseable status | Skipped (status defaults to None, which is not `proposed`) |
 | `--stale-plans` plan slug collides with an existing ledger intake | Skipped — the cross-check is exact stem-slug match |
 | `--dead-prototype` with no path AND no `reports/find-dormant/` scans | Exit 2 with usage error naming both options |
 | `--dead-prototype` report exists but JSON has no recognized array key | Exit 2 with the list of accepted keys |
 | Same path matches multiple new modes (e.g. TODO in a stale plan file) | Report under each section; do not deduplicate |
-| `--attention-gap` with no `.claude/docs/importance-map.md` | Emit "No importance map declared — see ADR 0016" notice; exit 0 |
+| `--attention-gap` with no `.engineering/docs/importance-map.md` | Emit "No importance map declared — see ADR 0016" notice; exit 0 |
 | `--attention-gap` with an empty or all-prose importance-map.md | Treated as malformed; diagnostic naming Tier + Locators shape; exit 0 |
 | `--attention-gap` area is missing a `Tier:` line or has no locators | Area is silently skipped during parsing — only fully-formed areas are surfaced |
 | `--attention-gap` locator `path:` does not exist on disk | Drift row under the area; the area still renders |
@@ -388,9 +388,9 @@ advisory; the user invokes `/track-idea event` for the rest.
 ## Cross-references
 
 - Schema: `.claude/docs/idea-ledger.md`
-- TODO-mode tuning (optional host config): `.claude/docs/todo-tuning.md`
+- TODO-mode tuning (optional host config): `.engineering/docs/todo-tuning.md`
 - Attention-gap declarative map (optional host config):
-  `.claude/docs/importance-map.md` (shape per ADR 0016)
+  `.engineering/docs/importance-map.md` (shape per ADR 0016)
 - Capture skill: `/track-idea`
 - Upstream for `--dead-prototype`: `/find-dormant`, `/find-dead-route-surface`
 - Bulk writer for surfaced candidates: `/extract-existing-ideas` (which
