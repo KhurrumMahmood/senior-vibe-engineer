@@ -40,8 +40,16 @@ Descriptor format (loose markdown, stdlib-parseable — reuses
     - app/urls.py
     - templates/sites/*.html
 
+    ## Routes               (how this host shapes product routes)
+    - `page_prefix | sites`
+    - `api_prefix | api`
+    - `scoped_id_param | site_id`
+
 Each ``## Steps`` bullet is a backtick-delimited row of four ``|``-separated
-fields: ``id | label | route_name | path``. Other sections are plain
+fields: ``id | label | route_name | path``. ``## Routes`` bullets are
+``key | value`` rows (same backtick grammar) declaring how the host shapes its
+routes — which URL prefix carries product pages vs APIs and which converter
+param scopes a route to one product instance. Other sections are plain
 backtick/text glob bullets (same bullet grammar as ``scope.py``).
 
 Stdlib-only. Read-only against the project.
@@ -66,6 +74,7 @@ _SECTION_MAP: dict[str, set[str]] = {
     "targets": {"targets", "scan targets"},
     "template_roots": {"template roots", "templates"},
     "text_globs": {"text-file globs", "text file globs", "text globs"},
+    "routes": {"routes", "route shape"},
 }
 
 _STEP_FIELDS = ("id", "label", "route_name", "path")
@@ -133,6 +142,27 @@ def workflow_template_roots(repo_root: Path | str) -> list[str]:
 def workflow_text_globs(repo_root: Path | str) -> list[str]:
     """Globs for files scanned for duplicated workflow knowledge (``## Text-file globs``)."""
     return list(_sections(repo_root)["text_globs"])
+
+
+def workflow_route_shape(repo_root: Path | str) -> dict[str, str]:
+    """Host route shape as a ``{key: value}`` map (``## Routes``).
+
+    Recognised keys: ``page_prefix`` (URL prefix carrying product *pages*),
+    ``api_prefix`` (prefix carrying APIs), ``scoped_id_param`` (the converter
+    param that scopes a route to one product instance, e.g. ``site_id``). Empty
+    dict when no descriptor (or no ``## Routes`` section) exists — the route
+    detectors then classify nothing, mirroring the ignore-first contract.
+    Rows that are not ``key | value`` pairs are skipped (malformed, not fatal).
+    """
+    shape: dict[str, str] = {}
+    for row in _sections(repo_root)["routes"]:
+        if "|" not in row:
+            continue
+        key, _, value = row.partition("|")
+        key = key.strip()
+        if key:
+            shape[key] = value.strip()
+    return shape
 
 
 def _dedupe(items: list[str]) -> list[str]:

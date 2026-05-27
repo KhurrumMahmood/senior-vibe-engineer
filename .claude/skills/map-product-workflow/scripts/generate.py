@@ -54,7 +54,7 @@ def render_sites_map(project_root: Path) -> tuple[str, dict[str, object]]:
     steps = workflow_steps(project_root)
     routes = extract_routes(project_root)
     route_names = route_by_name(routes)
-    redirects, renders = extract_python_surface(project_root, [project_root / "core" / "views" / "site_config.py"])
+    redirects, renders = extract_python_surface(project_root)
     template_paths, js_paths = _workflow_paths(project_root)
     template_accesses = extract_window_accesses(project_root, template_paths)
     js_accesses = extract_window_accesses(project_root, js_paths)

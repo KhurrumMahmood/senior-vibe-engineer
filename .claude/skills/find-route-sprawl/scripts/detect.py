@@ -9,7 +9,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
 import scope as _scope  # noqa: E402
-from product_topology import extract_routes, relpath, write_jsonl  # noqa: E402
+from product_topology import extract_routes, relpath, route_shape_for, write_jsonl  # noqa: E402
+
+
+def _workflow_tokens(page_prefix: str | None) -> set[str]:
+    """Tokens that mark an include() as workflow-owned (the prefix + its singular)."""
+    if not page_prefix:
+        return set()
+    tokens = {page_prefix}
+    if page_prefix.endswith("s"):
+        tokens.add(page_prefix[:-1])
+    return tokens
 
 
 def _discover_root_urls(project_root: Path) -> Path | None:
@@ -36,12 +46,19 @@ def _discover_root_urls(project_root: Path) -> Path | None:
 
 
 def detect(project_root: Path, root_urls: Path, page_threshold: int, api_threshold: int) -> list[dict[str, object]]:
-    routes = extract_routes(project_root, [root_urls])
+    shape = route_shape_for(project_root)
+    routes = extract_routes(project_root, [root_urls], shape)
     root_file = relpath(root_urls, project_root)
     root_routes = [route for route in routes if route.file == root_file]
     site_pages = [route for route in root_routes if route.is_site_page]
     site_apis = [route for route in root_routes if route.is_site_scoped_api]
-    includes = [route for route in routes if route.is_include and ("sites" in route.route or "site" in route.view)]
+    tokens = _workflow_tokens(shape.page_prefix)
+    includes = [
+        route
+        for route in routes
+        if route.is_include and any(t in route.route or t in route.view for t in tokens)
+    ]
+    page_glob = f"/{shape.page_prefix}/<{shape.scoped_id_param}>/..." if not shape.is_empty else "page"
 
     findings: list[dict[str, object]] = []
     if len(site_pages) > page_threshold:
@@ -51,7 +68,7 @@ def detect(project_root: Path, root_urls: Path, page_threshold: int, api_thresho
                 "file": site_pages[0].file if site_pages else str(root_urls),
                 "lineno": site_pages[0].lineno if site_pages else 0,
                 "count": len(site_pages),
-                "summary": f"{len(site_pages)} `/sites/<site_id>/...` page routes live directly in the root URL file.",
+                "summary": f"{len(site_pages)} `{page_glob}` page routes live directly in the root URL file.",
                 "recommendation": "Group product workflow page routes behind a workflow-owned include() module.",
             }
         )
@@ -92,7 +109,7 @@ def detect(project_root: Path, root_urls: Path, page_threshold: int, api_thresho
                     "file": site_pages[0].file,
                     "lineno": min(lines),
                     "segment": segment,
-                    "summary": f"`/sites/<site_id>/{segment}/...` routes are separated by {max(lines) - min(lines)} lines.",
+                    "summary": f"`/{shape.page_prefix}/<{shape.scoped_id_param}>/{segment}/...` routes are separated by {max(lines) - min(lines)} lines.",
                     "recommendation": "Keep related workflow routes adjacent or behind the same include().",
                 }
             )

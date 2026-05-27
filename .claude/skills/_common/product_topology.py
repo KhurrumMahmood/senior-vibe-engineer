@@ -22,6 +22,7 @@ from typing import Any, Iterable
 # via this sibling loader. A repo with no descriptor yields empty workflow data,
 # so the toolkit ships with zero assumptions about any one host's product flow.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope as _scope  # noqa: E402
 import workflows  # noqa: E402
 
 SKIP_DIRS = {
@@ -33,15 +34,97 @@ SKIP_DIRS = {
     "migrations",
 }
 
-ROUTE_LITERAL_RE = re.compile(r"/(?:sites|api)/[^`'\"<),]+")
-DOC_ROUTE_RE = re.compile(r"/(?:sites|api)/\{id\}/[^`'\"\s)<,]+|/(?:sites|api)/<id>/[^`'\"\s)<,]+")
-REDIRECT_CLAIM_RE = re.compile(
-    r"`?(?P<src>/sites/(?:\{id\}|<id>)/[^`'\"\s)<,]+)`?.*?"
-    r"redirects?\s+to\s+`?(?P<target>/[^`'\"\s)<,]+)`?",
-    re.IGNORECASE,
-)
 WINDOW_ACCESS_RE = re.compile(r"\bwindow\.([A-Za-z_$][\w$]*)\b")
 WINDOW_ASSIGN_RE = re.compile(r"\bwindow\.([A-Za-z_$][\w$]*)\s*=")
+
+# How a host shapes product routes is host-authored data (`## Routes` in
+# `.engineering/docs/product-workflows.md`), not a baked-in `/sites|/api`
+# assumption. The route detectors load a RouteShape and classify against it; an
+# empty shape (no descriptor) classifies nothing — the ignore-first contract.
+
+
+@dataclass(frozen=True)
+class RouteShape:
+    """Host route conventions: page/api URL prefixes + the instance-scope param."""
+    page_prefix: str | None = None
+    api_prefix: str | None = None
+    scoped_id_param: str | None = None
+
+    @property
+    def is_empty(self) -> bool:
+        return not (self.page_prefix or self.api_prefix or self.scoped_id_param)
+
+
+def route_shape_for(project_root: Path) -> RouteShape:
+    """Load the host's RouteShape from the workflow descriptor (empty if absent)."""
+    raw = workflows.workflow_route_shape(project_root)
+    return RouteShape(
+        page_prefix=raw.get("page_prefix") or None,
+        api_prefix=raw.get("api_prefix") or None,
+        scoped_id_param=raw.get("scoped_id_param") or None,
+    )
+
+
+def _scoped_id_re(scoped_id_param: str) -> str:
+    # `<int:site_id>`, `<slug:site_id>`, or bare `<site_id>` — any converter.
+    return r"<(?:\w+:)?" + re.escape(scoped_id_param) + r">"
+
+
+def _has_scoped_id(route: str, scoped_id_param: str | None) -> bool:
+    if not scoped_id_param:
+        return False
+    return re.search(_scoped_id_re(scoped_id_param), route) is not None
+
+
+def classify_route(route: str, shape: RouteShape) -> str:
+    """Family of a urlconf route under the host's shape.
+
+    ``site_page`` (page prefix + instance-scope param) > ``site_scoped_api``
+    (api prefix + instance-scope param) > ``global_api`` (api prefix) >
+    ``other``. An empty shape yields ``other`` for everything.
+    """
+    page, api = shape.page_prefix, shape.api_prefix
+    if page and route.startswith(page + "/") and _has_scoped_id(route, shape.scoped_id_param):
+        return "site_page"
+    if api and route.startswith(api + "/"):
+        if _has_scoped_id(route, shape.scoped_id_param):
+            return "site_scoped_api"
+        return "global_api"
+    return "other"
+
+
+def _route_literal_re(shape: RouteShape) -> re.Pattern[str] | None:
+    """Match `/<prefix>/...` route literals in text; ``None`` when no prefixes."""
+    prefixes = [p for p in (shape.page_prefix, shape.api_prefix) if p]
+    if not prefixes:
+        return None
+    alt = "|".join(re.escape(p) for p in prefixes)
+    return re.compile(r"/(?:" + alt + r")/[^`'\"<),]+")
+
+
+def _doc_route_re(shape: RouteShape) -> re.Pattern[str] | None:
+    """Match doc-form `/<prefix>/{id}/...` or `/<prefix>/<id>/...`; ``None`` when no prefixes."""
+    prefixes = [p for p in (shape.page_prefix, shape.api_prefix) if p]
+    if not prefixes:
+        return None
+    alt = "|".join(re.escape(p) for p in prefixes)
+    return re.compile(
+        r"/(?:" + alt + r")/\{id\}/[^`'\"\s)<,]+"
+        r"|/(?:" + alt + r")/<id>/[^`'\"\s)<,]+"
+    )
+
+
+def _redirect_claim_re(shape: RouteShape) -> re.Pattern[str] | None:
+    """Match a doc "`/<page>/{id}/..` redirects to `..`" claim; ``None`` without a page prefix."""
+    page = shape.page_prefix
+    if not page:
+        return None
+    p = re.escape(page)
+    return re.compile(
+        r"`?(?P<src>/" + p + r"/(?:\{id\}|<id>)/[^`'\"\s)<,]+)`?.*?"
+        r"redirects?\s+to\s+`?(?P<target>/[^`'\"\s)<,]+)`?",
+        re.IGNORECASE,
+    )
 
 
 @dataclass(frozen=True)
@@ -52,28 +135,24 @@ class RouteRecord:
     file: str
     lineno: int
     is_include: bool = False
+    # Classified at construction against the host RouteShape (``classify_route``).
+    # Defaults to "other" so a record built without a shape stays unclassified.
+    route_family: str = "other"
 
     @property
     def normalized_path(self) -> str:
-        return "/" + self.route.replace("<int:site_id>", "{site_id}").strip("/")
+        # Canonicalise any Django converter (`<int:site_id>` -> `{site_id}`,
+        # `<slug:pk>` -> `{pk}`) — shape-independent, so docs and code routes
+        # compare in one brace syntax.
+        return "/" + re.sub(r"<(?:\w+:)?(\w+)>", r"{\1}", self.route).strip("/")
 
     @property
     def is_site_page(self) -> bool:
-        return self.route.startswith("sites/<int:site_id>/")
+        return self.route_family == "site_page"
 
     @property
     def is_site_scoped_api(self) -> bool:
-        return self.route.startswith("api/") and "<int:site_id>" in self.route
-
-    @property
-    def route_family(self) -> str:
-        if self.is_site_page:
-            return "site_page"
-        if self.is_site_scoped_api:
-            return "site_scoped_api"
-        if self.route.startswith("api/"):
-            return "global_api"
-        return "other"
+        return self.route_family == "site_scoped_api"
 
 
 @dataclass(frozen=True)
@@ -251,15 +330,28 @@ def _join_routes(prefix: str, route: str) -> str:
     return f"{prefix.rstrip('/')}/{route.lstrip('/')}"
 
 
-def extract_routes(project_root: Path, url_paths: list[Path] | None = None) -> list[RouteRecord]:
+def discover_url_modules(project_root: Path) -> list[Path]:
+    """All `urls.py` / `*_urls.py` in the repo, ignore-first (no source-root assumption).
+
+    Walks the scope universe (whole repo minus builtin skips) rather than a baked
+    `core/`+`app/` pair, so any host layout's urlconfs are found.
+    """
+    return [
+        path
+        for path in _scope.iter_paths(project_root, _scope.Scope(), extensions=frozenset({".py"}))
+        if path.name == "urls.py" or path.name.endswith("_urls.py")
+    ]
+
+
+def extract_routes(
+    project_root: Path,
+    url_paths: list[Path] | None = None,
+    shape: RouteShape | None = None,
+) -> list[RouteRecord]:
     if url_paths is None:
-        url_paths = [project_root / "core" / "urls.py"]
-        for route_root in (project_root / "core", project_root / "app"):
-            url_paths.extend(
-                path
-                for path in iter_files(route_root, (".py",))
-                if path.name == "urls.py" or path.name.endswith("_urls.py")
-            )
+        url_paths = discover_url_modules(project_root)
+    if shape is None:
+        shape = route_shape_for(project_root)
 
     routes: list[RouteRecord] = []
     scanned: set[tuple[Path, str]] = set()
@@ -292,14 +384,16 @@ def extract_routes(project_root: Path, url_paths: list[Path] | None = None) -> l
                 if kw.arg == "name":
                     name = _constant_string(kw.value) or ""
             include_file = _include_target_file(view_node, imports, project_root)
+            full_route = _join_routes(prefix, route)
             routes.append(
                 RouteRecord(
-                    route=_join_routes(prefix, route),
+                    route=full_route,
                     name=name,
                     view=view,
                     file=relpath(path, project_root),
                     lineno=getattr(node, "lineno", 0),
                     is_include=include_file is not None or "include" in view,
+                    route_family=classify_route(full_route, shape),
                 )
             )
             if include_file is not None:
@@ -386,7 +480,7 @@ class _PythonSurfaceVisitor(ast.NodeVisitor):
 
 def extract_python_surface(project_root: Path, paths: list[Path] | None = None) -> tuple[list[RedirectRecord], list[TemplateRender]]:
     if paths is None:
-        paths = iter_files(project_root / "core" / "views", (".py",))
+        paths = _scope.iter_paths(project_root, _scope.Scope(), extensions=frozenset({".py"}))
     redirects: list[RedirectRecord] = []
     templates: list[TemplateRender] = []
     for path in paths:
@@ -427,18 +521,29 @@ def extract_window_accesses(project_root: Path, paths: list[Path]) -> list[Windo
     return accesses
 
 
-def extract_docs_routes(project_root: Path, paths: list[Path] | None = None) -> tuple[list[DocsRouteMention], list[RedirectClaim]]:
+def extract_docs_routes(
+    project_root: Path,
+    paths: list[Path] | None = None,
+    shape: RouteShape | None = None,
+) -> tuple[list[DocsRouteMention], list[RedirectClaim]]:
     if paths is None:
         paths = iter_files(project_root / "docs", (".md",)) + iter_files(
             project_root / ".claude" / "docs", (".md",)
         )
+    if shape is None:
+        shape = route_shape_for(project_root)
+    doc_route_re = _doc_route_re(shape)
+    redirect_claim_re = _redirect_claim_re(shape)
     mentions: list[DocsRouteMention] = []
     claims: list[RedirectClaim] = []
+    # No host route prefixes -> nothing to recognise in docs (ignore-first).
+    if doc_route_re is None and redirect_claim_re is None:
+        return mentions, claims
     for path in paths:
         if not path.exists():
             continue
         for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").splitlines(), start=1):
-            for match in DOC_ROUTE_RE.finditer(line):
+            for match in (doc_route_re.finditer(line) if doc_route_re else ()):
                 if "..." in match.group(0):
                     continue
                 mentions.append(
@@ -449,7 +554,7 @@ def extract_docs_routes(project_root: Path, paths: list[Path] | None = None) -> 
                         line=line.strip()[:240],
                     )
                 )
-            claim_match = REDIRECT_CLAIM_RE.search(line)
+            claim_match = redirect_claim_re.search(line) if redirect_claim_re else None
             if claim_match:
                 claims.append(
                     RedirectClaim(
@@ -463,16 +568,32 @@ def extract_docs_routes(project_root: Path, paths: list[Path] | None = None) -> 
     return mentions, claims
 
 
-def normalize_doc_site_route(route: str) -> str:
-    return route.replace("/sites/{id}/", "/sites/{site_id}/").replace(
-        "/sites/<id>/", "/sites/{site_id}/"
-    )
+def normalize_doc_site_route(
+    route: str, page_prefix: str = "sites", scoped_id_param: str = "site_id"
+) -> str:
+    """Canonicalise a documented `/ptr/{id}/` or `/ptr/<id>/` to `/ptr/{scoped_id}/`.
+
+    Defaults reproduce the pnci ``sites``/``site_id`` behaviour; callers pass the
+    host's RouteShape values. ``page_prefix`` falsy -> route returned unchanged.
+    """
+    if not page_prefix:
+        return route
+    prefix = "/" + page_prefix + "/"
+    canonical = prefix + "{" + scoped_id_param + "}/"
+    return route.replace(prefix + "{id}/", canonical).replace(prefix + "<id>/", canonical)
 
 
-def normalize_route_literal(route: str) -> str:
-    normalized = re.sub(r"\{\{\s*[^}]+\s*\}\}", "{site_id}", route)
-    normalized = re.sub(r"\$\{[^}]+\}", "{site_id}", normalized)
-    normalized = re.sub(r"\{[^}/]+\}", "{site_id}", normalized)
+def normalize_route_literal(route: str, placeholder: str = "site_id") -> str:
+    """Collapse `{{x}}`/`${x}`/`{x}` interpolations to one `{placeholder}` sentinel.
+
+    The sentinel only needs to be consistent within a scan (it groups route
+    literals that differ solely in their id slot); defaults to ``site_id`` to
+    match ``RouteRecord.normalized_path``'s converter canonicalisation.
+    """
+    token = "{" + placeholder + "}"
+    normalized = re.sub(r"\{\{\s*[^}]+\s*\}\}", token, route)
+    normalized = re.sub(r"\$\{[^}]+\}", token, normalized)
+    normalized = re.sub(r"\{[^}/]+\}", token, normalized)
     return normalized.strip()
 
 
@@ -494,10 +615,9 @@ def route_by_view_class(routes: list[RouteRecord]) -> dict[str, RouteRecord]:
     return by_view
 
 
-def status_provider_names(project_root: Path) -> list[dict[str, Any]]:
-    paths = iter_files(project_root / "core" / "views", (".py",)) + iter_files(
-        project_root / "core" / "services", (".py",)
-    )
+def status_provider_names(project_root: Path, paths: list[Path] | None = None) -> list[dict[str, Any]]:
+    if paths is None:
+        paths = _scope.iter_paths(project_root, _scope.Scope(), extensions=frozenset({".py"}))
     providers: list[dict[str, Any]] = []
     for path in paths:
         try:
@@ -541,9 +661,12 @@ def label_hits(project_root: Path, paths: list[Path] | None = None) -> list[dict
     paths = paths or workflow_text_files(project_root)
     labels = workflows.workflow_labels(project_root)
     tab_ids = workflows.workflow_tab_ids(project_root)
+    shape = route_shape_for(project_root)
+    route_pattern = _route_literal_re(shape)
+    placeholder = shape.scoped_id_param or "site_id"
     # Empty alternation `(...)` would compile to a pattern matching the empty
-    # string at every position — skip the label/tab scan entirely when the host
-    # declares no workflow. The route-literal scan is independent.
+    # string at every position — skip the label/tab/route scan entirely when the
+    # host declares no workflow or no route prefixes (ignore-first).
     label_pattern = (
         re.compile(r"\b(" + "|".join(re.escape(label) for label in labels) + r")\b") if labels else None
     )
@@ -575,11 +698,11 @@ def label_hits(project_root: Path, paths: list[Path] | None = None) -> list[dict
                         "evidence": line.strip()[:200],
                     }
                 )
-            for match in ROUTE_LITERAL_RE.finditer(line):
+            for match in (route_pattern.finditer(line) if route_pattern else ()):
                 hits.append(
                     {
                         "kind": "route_literal",
-                        "value": normalize_route_literal(match.group(0)),
+                        "value": normalize_route_literal(match.group(0), placeholder),
                         "file": relpath(path, project_root),
                         "lineno": lineno,
                         "evidence": line.strip()[:200],

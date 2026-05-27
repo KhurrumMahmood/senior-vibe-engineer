@@ -8,12 +8,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
 from product_topology import (  # noqa: E402
+    RouteShape,
     extract_docs_routes,
     extract_python_surface,
     extract_routes,
     iter_files,
     normalize_doc_site_route,
     route_by_name,
+    route_shape_for,
     write_jsonl,
 )
 
@@ -28,11 +30,14 @@ def _view_class(view: str) -> str:
     return view
 
 
-def _target_matches(actual: str, claimed: str) -> bool:
+def _target_matches(actual: str, claimed: str, shape: RouteShape) -> bool:
     actual_norm = actual.rstrip("/")
     claimed_norm = claimed.rstrip("/")
-    if claimed_norm.startswith("/sites/"):
-        return normalize_doc_site_route(claimed_norm) == actual_norm
+    if shape.page_prefix and claimed_norm.startswith("/" + shape.page_prefix + "/"):
+        canonical = normalize_doc_site_route(
+            claimed_norm, shape.page_prefix, shape.scoped_id_param or "site_id"
+        )
+        return canonical == actual_norm
     return actual_norm.endswith(claimed_norm)
 
 
@@ -41,8 +46,9 @@ def detect(
     docs_root: Path,
     root_urls: Path | None = None,
 ) -> list[dict[str, object]]:
+    shape = route_shape_for(project_root)
     url_paths = [root_urls] if root_urls is not None else None
-    routes = extract_routes(project_root, url_paths=url_paths)
+    routes = extract_routes(project_root, url_paths=url_paths, shape=shape)
     redirects, _ = extract_python_surface(project_root)
     route_names = route_by_name(routes)
     actual_paths = {route.normalized_path.rstrip("/"): route for route in routes}
@@ -61,11 +67,13 @@ def detect(
         for path in iter_files(docs_root, (".md",))
         if not (".claude" in path.parts and "workflows" in path.parts)
     ]
-    mentions, claims = extract_docs_routes(project_root, doc_paths)
+    mentions, claims = extract_docs_routes(project_root, doc_paths, shape)
+    page_prefix = shape.page_prefix or ""
+    scoped_id = shape.scoped_id_param or "site_id"
     findings: list[dict[str, object]] = []
 
     for mention in mentions:
-        normalized = normalize_doc_site_route(mention.route).rstrip("/")
+        normalized = normalize_doc_site_route(mention.route, page_prefix, scoped_id).rstrip("/")
         if normalized not in actual_paths:
             findings.append(
                 {
@@ -79,7 +87,7 @@ def detect(
             )
 
     for claim in claims:
-        source = normalize_doc_site_route(claim.source).rstrip("/")
+        source = normalize_doc_site_route(claim.source, page_prefix, scoped_id).rstrip("/")
         source_route = actual_paths.get(source) or actual_paths.get(source + "/")
         if not source_route:
             continue
@@ -100,7 +108,7 @@ def detect(
                 }
             )
             continue
-        if not any(_target_matches(target, claim.target) for target in actual_targets):
+        if not any(_target_matches(target, claim.target, shape) for target in actual_targets):
             findings.append(
                 {
                     "pattern": "stale_redirect_claim",
