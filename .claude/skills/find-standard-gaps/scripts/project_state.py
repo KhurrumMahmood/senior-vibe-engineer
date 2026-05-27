@@ -28,7 +28,14 @@ Stdlib-only. Read-only against the project.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
+
+# engineering_home lives in _common (.claude/skills/<skill>/scripts/ ->
+# .claude/skills/_common). It is the single resolver for the .engineering/
+# state home + its transitional legacy fallbacks (ADR 0021).
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
+import engineering_home as _home  # noqa: E402
 
 # Ordinal ladders for >= comparison. Index = severity; a higher index
 # means "more mature" / "higher stakes". These are the canonical orders
@@ -50,38 +57,64 @@ ASSUMED_MAX_STATE = {
     "assumed": True,
 }
 
+# Legacy basename (pre-ADR-0021, at the repo root). The canonical location is
+# `.engineering/project-state.json`; resolution prefers it and falls back here.
 PROJECT_STATE_FILENAME = ".project-state.json"
+PROJECT_STATE_BASENAME = "project-state.json"
 
 
-def load_project_state(root: Path) -> dict | None:
-    """Read `<root>/.project-state.json`; validate enums; None if absent.
+def resolve_project_state_path(root: Path) -> tuple[Path, bool]:
+    """Resolve the project-state surface: `.engineering/project-state.json`
+    first, falling back to the legacy `<root>/.project-state.json` (ADR 0021).
 
-    Returns the parsed dict on success, or None when the file does not
-    exist (the caller then substitutes `assumed_max_state()` and warns).
-    Raises ValueError on a present-but-malformed file — a corrupt state
-    surface is a real error, not an "absent" signal, and must not be
-    silently treated as MAX.
+    Returns ``(path, used_legacy)``; the path may not exist (callers check).
     """
-    path = Path(root) / PROJECT_STATE_FILENAME
+    return _home.resolve(
+        root, PROJECT_STATE_BASENAME, legacy=Path(root) / PROJECT_STATE_FILENAME
+    )
+
+
+def _validate_state(state: object, source: str) -> dict:
+    """Validate a parsed state object against the ADR-0020 enums."""
+    if not isinstance(state, dict):
+        raise ValueError(f"{source} must be a JSON object")
+    maturity = state.get("maturity")
+    stakes = state.get("stakes")
+    if maturity not in _MATURITY_RANK:
+        raise ValueError(
+            f"{source}: maturity must be one of {MATURITY_LADDER}, got {maturity!r}")
+    if stakes not in _STAKES_RANK:
+        raise ValueError(
+            f"{source}: stakes must be one of {STAKES_LADDER}, got {stakes!r}")
+    return state
+
+
+def load_state_file(path: Path) -> dict | None:
+    """Read a specific project-state file; validate enums; None if absent.
+
+    Raises ValueError on a present-but-malformed file — a corrupt state surface
+    is a real error, not an "absent" signal, and must not be silently treated
+    as MAX.
+    """
+    path = Path(path)
     if not path.is_file():
         return None
     try:
         state = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ValueError(f"{PROJECT_STATE_FILENAME} is unreadable: {exc}") from exc
-    if not isinstance(state, dict):
-        raise ValueError(f"{PROJECT_STATE_FILENAME} must be a JSON object")
-    maturity = state.get("maturity")
-    stakes = state.get("stakes")
-    if maturity not in _MATURITY_RANK:
-        raise ValueError(
-            f"{PROJECT_STATE_FILENAME}: maturity must be one of "
-            f"{MATURITY_LADDER}, got {maturity!r}")
-    if stakes not in _STAKES_RANK:
-        raise ValueError(
-            f"{PROJECT_STATE_FILENAME}: stakes must be one of "
-            f"{STAKES_LADDER}, got {stakes!r}")
-    return state
+        raise ValueError(f"{path} is unreadable: {exc}") from exc
+    return _validate_state(state, str(path))
+
+
+def load_project_state(root: Path) -> dict | None:
+    """Resolve and read the project's state surface; None if absent.
+
+    Reads `.engineering/project-state.json`, falling back to the legacy
+    `<root>/.project-state.json` during the ADR 0021 transition. Raises
+    ValueError on a present-but-malformed file.
+    """
+    path, _used_legacy = resolve_project_state_path(root)
+    return load_state_file(path)
 
 
 def assumed_max_state() -> dict:

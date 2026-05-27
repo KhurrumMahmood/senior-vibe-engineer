@@ -1,0 +1,5 @@
+# Toolkit-shipped ignore rule (ADR 0021). The gitignored zone is local/ and
+# nothing else: per-run scratch, caches, and synthesis intermediates that must
+# not be committed. Everything else under .engineering/ is the committed zone —
+# durable team knowledge that travels with the repo.
+/local/

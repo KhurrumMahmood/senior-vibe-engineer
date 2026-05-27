@@ -26,6 +26,11 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# engineering_home lives in _common (.claude/skills/orient/scripts/ ->
+# .claude/skills/_common); the single resolver for the .engineering/ state home.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
+import engineering_home as _home  # noqa: E402
+
 # Directories never worth scanning — vendored deps, VCS, build output,
 # virtualenvs, caches. Keeps the grep fast and the signal clean.
 SKIP_DIRS = {
@@ -327,7 +332,9 @@ def scan(root: Path, max_files: int) -> tuple[dict[str, SignalResult], dict[str,
 
 
 def read_declared_state(root: Path) -> dict | None:
-    state_file = root / ".project-state.json"
+    state_file, _used_legacy = _home.resolve(
+        root, "project-state.json", legacy=root / ".project-state.json"
+    )
     if not state_file.exists():
         return None
     try:

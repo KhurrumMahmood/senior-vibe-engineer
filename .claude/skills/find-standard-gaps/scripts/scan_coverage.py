@@ -68,9 +68,10 @@ _HERE = Path(__file__).resolve().parent
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 from project_state import (  # noqa: E402
-    PROJECT_STATE_FILENAME,
     assumed_max_state,
     load_project_state,
+    load_state_file,
+    resolve_project_state_path,
     standard_in_scope,
 )
 
@@ -354,16 +355,16 @@ def render_report(source: str, results: list[dict], state: dict) -> str:
     assumed = state.get("assumed") is True
     state_line = (f"maturity=`{state.get('maturity', '?')}` · "
                   f"stakes=`{state.get('stakes', '?')}`"
-                  + (" (ASSUMED MAX — no .project-state.json)" if assumed else ""))
+                  + (" (ASSUMED MAX — no project state declared)" if assumed else ""))
     L = [f"# Application-coverage scan — {source}", "",
          f"_Scanned {datetime.now(timezone.utc).isoformat(timespec='seconds')} "
          f"by scan_coverage.py._",
          f"_Project state: {state_line}_", ""]
     if assumed:
-        L += [f"> ⚠ **No `{PROJECT_STATE_FILENAME}` found** — assuming MAX "
-              f"(production / public-adversarial) so no standard is silently "
-              f"skipped. Run `/orient` to declare the project's real "
-              f"(maturity, stakes) and gate stakes-driven rungs honestly.", ""]
+        L += ["> ⚠ **No project state declared** — assuming MAX "
+              "(production / public-adversarial) so no standard is silently "
+              "skipped. Run `/orient` to declare the project's real "
+              "(maturity, stakes) and gate stakes-driven rungs honestly.", ""]
     scanned = [r for r in results if r["status"] == "scanned"]
     with_gaps = [r for r in scanned if r["gaps"]]
     gated = [r for r in results if r["status"] == "gated_out"]
@@ -429,10 +430,11 @@ def main() -> int:
     ap.add_argument("--project-root", required=True, type=Path)
     ap.add_argument("--output-dir", required=True, type=Path)
     ap.add_argument("--project-state", type=Path, default=None,
-                    help=f"path to the project-state file (default: "
-                         f"<project-root>/{PROJECT_STATE_FILENAME}). Declares "
-                         f"(maturity, stakes); gates each standard's activation "
-                         f"(ADR 0020) before its detector runs.")
+                    help="path to the project-state file (default: "
+                         "<project-root>/.engineering/project-state.json, with a "
+                         "legacy <project-root>/.project-state.json fallback). "
+                         "Declares (maturity, stakes); gates each standard's "
+                         "activation (ADR 0020) before its detector runs.")
     args = ap.parse_args()
 
     try:
@@ -449,11 +451,15 @@ def main() -> int:
     # does not exist is a user error (don't silently assume MAX for a typo);
     # the default-location absence is the legitimate "undeclared" case ->
     # assume MAX and warn. A present-but-malformed file raises ValueError.
-    state_dir = args.project_state.parent if args.project_state else root
     if args.project_state and not args.project_state.is_file():
         sys.exit(f"error: --project-state {args.project_state} does not exist")
     try:
-        state = load_project_state(state_dir)
+        if args.project_state:
+            state = load_state_file(args.project_state)
+            state_loc = args.project_state
+        else:
+            state_loc, _ = resolve_project_state_path(root)
+            state = load_project_state(root)
     except ValueError as exc:
         sys.exit(f"error: {exc}")
     assumed = state is None
@@ -470,8 +476,7 @@ def main() -> int:
         render_report(str(args.ideas), results, state))
 
     if assumed:
-        print(f"WARNING: no {PROJECT_STATE_FILENAME} found at "
-              f"{state_dir / PROJECT_STATE_FILENAME} — assuming MAX "
+        print(f"WARNING: no project state found at {state_loc} — assuming MAX "
               f"(production / public-adversarial) so nothing is silently "
               f"skipped. Run /orient to declare (maturity, stakes).")
 

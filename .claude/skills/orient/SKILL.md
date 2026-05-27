@@ -1,6 +1,6 @@
 ---
 name: orient
-description: Establish (or re-confirm) a project's lifecycle state on two independent axes — maturity (prototype → first-users → production) and stakes/exposure (internal → external → public-adversarial) — by asking orientation questions, showing the resulting classification and which standard rungs it activates, then writing the declared state to `.project-state.json` at the project root. This is the human-in-the-loop "pull" mechanism of ADR 0020 — automatic inference proposes a transition, /orient lets the human dispose. Stakes/exposure are NOT reliably inferable from code, which is why the questions matter. Idempotent — re-running re-confirms and overwrites.
+description: Establish (or re-confirm) a project's lifecycle state on two independent axes — maturity (prototype → first-users → production) and stakes/exposure (internal → external → public-adversarial) — by asking orientation questions, showing the resulting classification and which standard rungs it activates, then writing the declared state to `.engineering/project-state.json` (the cross-agent state home, ADR 0021). This is the human-in-the-loop "pull" mechanism of ADR 0020 — automatic inference proposes a transition, /orient lets the human dispose. Stakes/exposure are NOT reliably inferable from code, which is why the questions matter. Idempotent — re-running re-confirms and overwrites.
 argument-hint: "[--project-root <path>] [--show] [--dry-run]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -10,7 +10,7 @@ best_for: |
   Declaring or re-confirming where a project sits on the maturity ×
   stakes grid so standard-activation skills (find-standard-gaps and the
   review lanes) enforce the right rungs — not too few, not gold-plated.
-  The trigger: starting work in a project with no .project-state.json,
+  The trigger: starting work in a project with no .engineering/project-state.json,
   or being prompted by inference that the project "looks past its
   declared state" (a new unauthenticated write endpoint, first real-user
   data, a public deploy). Stakes/exposure can only be set by a human, so
@@ -48,7 +48,7 @@ threshold, but only a human, through these orientation questions, can
 
 The work is the conversation plus the write. There is no scout fan-out
 and no timestamped report. The deliverable is one file:
-`<project-root>/.project-state.json`.
+`<project-root>/.engineering/project-state.json`.
 
 ## Core beliefs
 
@@ -169,10 +169,15 @@ project-level declared value still takes the higher rung.
 
 ```bash
 PROJECT_ROOT="${ARG_PROJECT_ROOT:-$(pwd)}"
-STATE_FILE="${PROJECT_ROOT}/.project-state.json"
+ENGINEERING_DIR="${PROJECT_ROOT}/.engineering"
+STATE_FILE="${ENGINEERING_DIR}/project-state.json"
+# Transitional read fallback (ADR 0021): prefer the .engineering/ home, but
+# read a legacy root-level .project-state.json if the host has not migrated.
+LEGACY_STATE_FILE="${PROJECT_ROOT}/.project-state.json"
+[ ! -f "$STATE_FILE" ] && [ -f "$LEGACY_STATE_FILE" ] && STATE_FILE="$LEGACY_STATE_FILE"
 ```
 
-If `.project-state.json` already exists, **read it and show the user
+If a project-state file already exists, **read it and show the user
 the current classification first.** Re-orientation is a confirmation
 conversation, not a blank slate. If `--show` was passed, print the
 current state (or "no state declared yet") and stop — no questions, no
@@ -215,9 +220,12 @@ If they correct an axis, re-map and re-show.
 
 ### Stage 3 — Write the state file
 
-On confirmation, write `<project-root>/.project-state.json` with
-**exactly** this schema (the sibling scanner relies on it — do not add,
-rename, or reorder semantic keys):
+On confirmation, write `<project-root>/.engineering/project-state.json`
+(run `mkdir -p "${ENGINEERING_DIR}"` first) with **exactly** this schema
+(the sibling scanner relies on it — do not add, rename, or reorder
+semantic keys). If a legacy `<project-root>/.project-state.json` exists,
+remove it after writing the canonical file — the loaders prefer
+`.engineering/`, but a stale duplicate invites drift:
 
 ```json
 {
@@ -250,7 +258,7 @@ project crosses a threshold."
 > **Convention divergence (intentional):** unlike the `find-*` /
 > `map-*` skills, /orient does **not** write a timestamped
 > `reports/<skill>/scan-<TS>/` artifact. Its output is the durable,
-> single-instance `.project-state.json` at the project root — a declared
+> single-instance `.engineering/project-state.json` — a declared
 > state surface analogous to `environment=dev/production` in `.env`,
 > not an audit report. There is one current state, and re-running
 > overwrites it.
@@ -299,7 +307,7 @@ When the helper flags a signal whose suggested rung is **above** the
 declared state, surface it to the user as:
 
 > "This looks past your declared state — `<signal>` suggests
-> `<axis> ≥ <rung>`, but `.project-state.json` says `<axis>=<current>`.
+> `<axis> ≥ <rung>`, but `.engineering/project-state.json` says `<axis>=<current>`.
 > Re-run `/orient` to re-confirm?"
 
 If there is no declared state at all, the prompt is simply "no project
@@ -320,7 +328,7 @@ action is a human running `/orient` — never an automatic write.
 - Auto-advancing the declared state from inference — inference proposes;
   the human disposes via a fresh `/orient` run.
 - Writing a timestamped report — the durable single-instance
-  `.project-state.json` is the artifact.
+  `.engineering/project-state.json` is the artifact.
 
 ## When things go sideways
 
@@ -329,9 +337,9 @@ action is a human running `/orient` — never an automatic write.
 | Non-interactive run, can't get answers | Do not write a guessed file. Report "orientation needs a human (stakes is not inferable)" and stop. |
 | User unsure about an axis | Ask the discriminating question for that ladder (Q8 for the stakes ceiling; Q1–Q2 for production). Default *down* a rung when genuinely ambiguous and note it — but flag that under-defending is the worse failure if the project is actually exposed. |
 | One high-stakes surface in an otherwise low-stakes app | Take the higher project-level rung, record the surface in `notes`, and mention ADR 0020 defers per-area exceptions as a future override. |
-| `.project-state.json` exists but is malformed / hand-edited | Show what you can parse, treat unparseable fields as "undeclared," and re-orient from the questions. |
+| `.engineering/project-state.json` exists but is malformed / hand-edited | Show what you can parse, treat unparseable fields as "undeclared," and re-orient from the questions. |
 | Inference flags a signal but the user says it's intentional / out of scope | Not a tool failure — leave the state file unchanged. Inference proposes; the human disposed by declining. |
-| Asked to set state for a different repo | Honor `--project-root`; write `.project-state.json` at THAT root, never the engineering-skills repo's own. |
+| Asked to set state for a different repo | Honor `--project-root`; write `.engineering/project-state.json` at THAT root, never the engineering-skills repo's own. |
 
 ## Repository layout
 
@@ -344,6 +352,6 @@ action is a human running `/orient` — never an automatic write.
     └── inference-heuristics.md     # the signal taxonomy + how to read output
 ```
 
-The schema written to `.project-state.json` is a **fixed contract**
+The schema written to `.engineering/project-state.json` is a **fixed contract**
 shared with the standard-activation scanner. Changing it is a
 coordinated change across both surfaces, not a local edit.

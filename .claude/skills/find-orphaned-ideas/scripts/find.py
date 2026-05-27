@@ -30,6 +30,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(REPO_ROOT / ".claude" / "skills" / "_common"))
 
+import engineering_home as _home  # noqa: E402
 import ideas_lib as L  # noqa: E402
 
 LEDGER = REPO_ROOT / ".claude" / "ideas" / "log.jsonl"
@@ -89,14 +90,19 @@ def _parse_plan_status(text: str) -> str | None:
 
 
 def _load_todo_tuning(repo_root: Path) -> dict:
-    """Read optional .claude/docs/todo-tuning.md (path skips, min-words override).
+    """Read optional todo-tuning.md (path skips, min-words override).
+
+    Resolved from `.engineering/docs/todo-tuning.md`, falling back to the
+    legacy `.claude/docs/todo-tuning.md` during the ADR 0021 transition.
 
     Format (loose): under `## Path skip`, each bullet's leading
     backtick-delimited token is the glob pattern. Under `## Min words`,
     the first bare integer line wins.
     """
     out: dict = {"path_skip": [], "min_words": None}
-    path = repo_root / ".claude" / "docs" / "todo-tuning.md"
+    path, _used_legacy = _home.docs_path(
+        repo_root, "todo-tuning.md", legacy_claude_docs=True
+    )
     if not path.exists():
         return out
     try:
@@ -387,7 +393,7 @@ def detect_dead_prototype(
 
 
 def _parse_importance_map(text: str) -> list[dict]:
-    """Parse .claude/docs/importance-map.md per ADR 0016.
+    """Parse importance-map.md per ADR 0016.
 
     Returns a list of areas:
         [{"name": str, "tier": str, "locators": [{"kind": "path"|"kind",
@@ -456,7 +462,10 @@ def detect_attention_gap(
     repo_root: Path,
     records: list[dict],
 ) -> dict:
-    """Read .claude/docs/importance-map.md (ADR 0016) and produce a ranked report.
+    """Read importance-map.md (ADR 0016) and produce a ranked report.
+
+    Resolved from `.engineering/docs/importance-map.md`, falling back to the
+    legacy `.claude/docs/importance-map.md` during the ADR 0021 transition.
 
     Skeleton per Improvement 3 / ADR 0016:
         - File absent or empty → {"status": "no_map", "areas": [], "drift": []}
@@ -473,7 +482,9 @@ def detect_attention_gap(
     to the post-ADR addendum — the skeleton ships the graceful-degradation
     path and a rendered table with locator counts.
     """
-    map_path = repo_root / ".claude" / "docs" / "importance-map.md"
+    map_path, _used_legacy = _home.docs_path(
+        repo_root, "importance-map.md", legacy_claude_docs=True
+    )
     if not map_path.exists():
         return {"status": "no_map", "areas": [], "drift": []}
 
