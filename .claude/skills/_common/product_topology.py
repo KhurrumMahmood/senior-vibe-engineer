@@ -343,6 +343,41 @@ def discover_url_modules(project_root: Path) -> list[Path]:
     ]
 
 
+def discover_root_urlconf(project_root: Path, skill_name: str | None = None) -> Path | None:
+    """The Django ROOT_URLCONF — the `urls.py` whose package also holds
+    settings/wsgi/asgi.
+
+    Enumerates `urls.py` modules ignore-first through the per-skill scope
+    universe (honors `.engineering/docs/<skill>-scope.md` when ``skill_name`` is
+    given), then prefers the one whose directory holds a project marker. The
+    settings-adjacency check is what disambiguates the real project urlconf from
+    the app-level or fixture urlconfs a bare repo walk also surfaces. Falls back
+    to the shallowest `urls.py` for a deterministic pick, or ``None`` when the
+    repo has no `urls.py`.
+    """
+    if skill_name:
+        candidates = [
+            path
+            for path in _scope.scan(project_root, skill_name, extensions=frozenset({".py"}))
+            if path.name == "urls.py"
+        ]
+    else:
+        candidates = [
+            path
+            for path in _scope.iter_paths(
+                project_root, _scope.Scope(), extensions=frozenset({".py"})
+            )
+            if path.name == "urls.py"
+        ]
+    if not candidates:
+        return None
+    project_markers = {"settings.py", "settings", "wsgi.py", "asgi.py"}
+    for path in candidates:
+        if {sibling.name for sibling in path.parent.iterdir()} & project_markers:
+            return path
+    return min(candidates, key=lambda path: (len(path.relative_to(project_root).parts), str(path)))
+
+
 def extract_routes(
     project_root: Path,
     url_paths: list[Path] | None = None,

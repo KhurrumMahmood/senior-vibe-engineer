@@ -9,6 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
 from product_topology import (  # noqa: E402
     RouteShape,
+    discover_root_urlconf,
     extract_docs_routes,
     extract_python_surface,
     extract_routes,
@@ -18,6 +19,7 @@ from product_topology import (  # noqa: E402
     route_shape_for,
     write_jsonl,
 )
+from product_health import expand_paths  # noqa: E402
 
 
 def _view_class(view: str) -> str:
@@ -47,9 +49,18 @@ def detect(
     root_urls: Path | None = None,
 ) -> list[dict[str, object]]:
     shape = route_shape_for(project_root)
+    if root_urls is None:
+        root_urls = discover_root_urlconf(project_root, "find-doc-route-drift")
     url_paths = [root_urls] if root_urls is not None else None
     routes = extract_routes(project_root, url_paths=url_paths, shape=shape)
-    redirects, _ = extract_python_surface(project_root)
+    # Validate doc claims against the product's real redirect contract. Prefer the
+    # declared code (descriptor ## Targets) so the real repo's hundreds of
+    # test-fixture redirects don't leak in; fall back to the ignore-first scope
+    # universe (whole repo minus builtin skips) when no descriptor is declared, so
+    # the detector still works on a bare repo or fixture. (Unlike map-product-workflow,
+    # a detector has an inherent subject — the code — so it narrows, not blanks.)
+    surface_paths = expand_paths(project_root, None, (".py",))
+    redirects, _ = extract_python_surface(project_root, surface_paths or None)
     route_names = route_by_name(routes)
     actual_paths = {route.normalized_path.rstrip("/"): route for route in routes}
     actual_paths.update({route.normalized_path.rstrip("/") + "/": route for route in routes})

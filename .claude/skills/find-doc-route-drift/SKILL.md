@@ -1,7 +1,7 @@
 ---
 name: find-doc-route-drift
 description: Compare documented product routes and redirect claims against Django URL patterns and simple redirect calls. SUSPECT skill for stale docs and route contract drift.
-argument-hint: "[--docs-root .claude/docs --root-urls app/urls.py]"
+argument-hint: "[--docs-root .claude/docs] [--root-urls <path/to/urls.py>]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -26,7 +26,9 @@ when docs describe routes or redirects that no longer match code.
 ## Scope
 
 - Default docs root: `.claude/docs`.
-- Default URL source: `app/urls.py`.
+- Default URL source: the root URLconf, auto-discovered via the per-skill
+  scope universe (override with `--root-urls <path/to/urls.py>`); follows
+  `include()`s.
 <!-- spec:project-structure-redesign-phase-2::IM-16 -->
 - Output: `reports/doc-route-drift/<scan-id>/`.
 - No code edits.

@@ -8,8 +8,13 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
-import scope as _scope  # noqa: E402
-from product_topology import extract_routes, relpath, route_shape_for, write_jsonl  # noqa: E402
+from product_topology import (  # noqa: E402
+    discover_root_urlconf,
+    extract_routes,
+    relpath,
+    route_shape_for,
+    write_jsonl,
+)
 
 
 def _workflow_tokens(page_prefix: str | None) -> set[str]:
@@ -20,29 +25,6 @@ def _workflow_tokens(page_prefix: str | None) -> set[str]:
     if page_prefix.endswith("s"):
         tokens.add(page_prefix[:-1])
     return tokens
-
-
-def _discover_root_urls(project_root: Path) -> Path | None:
-    """Find the Django root URLconf without a hardcoded source root.
-
-    Enumerates `**/urls.py` through the per-skill scope universe (ignore-first;
-    honors `.engineering/docs/find-route-sprawl-scope.md` when present), then
-    prefers the one in the Django project package — the directory that also
-    holds settings/wsgi/asgi. Falls back to the shallowest `urls.py` for a
-    deterministic pick, or ``None`` when the repo has no `urls.py` at all.
-    """
-    candidates = [
-        p
-        for p in _scope.scan(project_root, "find-route-sprawl", extensions=frozenset({".py"}))
-        if p.name == "urls.py"
-    ]
-    if not candidates:
-        return None
-    project_markers = {"settings.py", "settings", "wsgi.py", "asgi.py"}
-    for path in candidates:
-        if {sibling.name for sibling in path.parent.iterdir()} & project_markers:
-            return path
-    return min(candidates, key=lambda p: (len(p.relative_to(project_root).parts), str(p)))
 
 
 def detect(project_root: Path, root_urls: Path, page_threshold: int, api_threshold: int) -> list[dict[str, object]]:
@@ -154,7 +136,7 @@ def main() -> int:
     project_root = args.project_root.resolve()
     root_urls = args.root_urls
     if root_urls is None:
-        root_urls = _discover_root_urls(project_root)
+        root_urls = discover_root_urlconf(project_root, "find-route-sprawl")
         if root_urls is None:
             write_jsonl([], args.output)
             print(f"wrote {args.output}: 0 findings (no urls.py found)")

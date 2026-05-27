@@ -20,6 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
 from product_topology import (  # noqa: E402
     dataclass_dicts,
+    discover_root_urlconf,
     extract_docs_routes,
     extract_python_surface,
     extract_routes,
@@ -30,6 +31,7 @@ from product_topology import (  # noqa: E402
     utc_scan_id,
     write_json,
 )
+from product_health import expand_paths  # noqa: E402
 from workflows import (  # noqa: E402
     workflow_steps,
     workflow_ui_script_globs,
@@ -68,9 +70,14 @@ def _route_table(routes: list[object], family: str) -> list[str]:
 
 def render_workflow_map(project_root: Path, workflow_name: str) -> tuple[str, dict[str, object]]:
     steps = workflow_steps(project_root)
-    routes = extract_routes(project_root)
+    root_urls = discover_root_urlconf(project_root, "map-product-workflow")
+    routes = extract_routes(project_root, [root_urls] if root_urls else None)
     route_names = route_by_name(routes)
-    redirects, renders = extract_python_surface(project_root)
+    # Scan the product's declared code (the descriptor's ## Targets) for the
+    # workflow's redirects, renders, and status providers — not the whole repo,
+    # which would pull in unrelated apps and test fixtures.
+    surface_paths = expand_paths(project_root, None, (".py",))
+    redirects, renders = extract_python_surface(project_root, surface_paths)
     template_paths, js_paths = _workflow_paths(project_root)
     template_accesses = extract_window_accesses(project_root, template_paths)
     js_accesses = extract_window_accesses(project_root, js_paths)
@@ -82,7 +89,7 @@ def render_workflow_map(project_root: Path, workflow_name: str) -> tuple[str, di
     doc_mentions, redirect_claims = extract_docs_routes(project_root, doc_paths)
     providers = [
         provider
-        for provider in status_provider_names(project_root)
+        for provider in status_provider_names(project_root, surface_paths)
         if "ai_sidecar" not in str(provider["file"])
     ]
 
