@@ -10,6 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
 from product_topology import label_hits, workflow_text_files, write_jsonl  # noqa: E402
+import workflows  # noqa: E402
 
 SCRIPT_SRC_RE = re.compile(
     r"(?:static\s+['\"](?P<static>js/[^'\"]+\.js)['\"]|"
@@ -17,51 +18,75 @@ SCRIPT_SRC_RE = re.compile(
 )
 
 
+# Backend layer segments matched as path *components*, so `app/pages/x.py`,
+# `core/views/x.py`, and `src/services/y.py` all classify by their conventional
+# segment rather than a baked source-root prefix. ADR-0011 split pnci's old
+# `core/views` into `app/pages` + `app/api`, which a prefix literal would miss.
+_BACKEND_LAYER_SEGMENTS = ("views", "pages", "api", "services", "tasks")
+
+
 def _owner(file: str) -> str:
     if file.endswith("urls.py") or file.endswith("api_urls.py"):
         return "routes"
-    if file.startswith("core/views/"):
-        return "views"
-    if file.startswith("core/services/"):
-        return "services"
-    if file.startswith("templates/"):
-        return "templates"
-    if file.startswith("static/js/"):
-        return "javascript"
     if file.startswith("docs/") or file.startswith(".claude/docs/"):
         return "docs"
-    return file.split("/", 1)[0]
+    if file.startswith("templates/") or "/templates/" in file:
+        return "templates"
+    if file.startswith("static/js/") or file.endswith(".js"):
+        return "javascript"
+    segments = file.split("/")
+    for segment in segments:
+        if segment in _BACKEND_LAYER_SEGMENTS:
+            return segment
+    return segments[0]
 
 
-def _active_site_js_files(project_root: Path) -> set[str]:
-    template_paths = sorted((project_root / "templates" / "core").glob("site_config*.html"))
-    template_paths.extend(sorted((project_root / "templates" / "core" / "includes").glob("*.html")))
-    active: set[str] = set()
-    for path in template_paths:
-        if not path.exists():
-            continue
-        text = path.read_text(encoding="utf-8", errors="ignore")
-        for match in SCRIPT_SRC_RE.finditer(text):
-            js_path = match.group("static") or match.group("src")
-            if js_path:
-                active.add(f"static/{js_path}")
-    return active
+def _resolve_ui_surfaces(project_root: Path) -> tuple[set[str], set[str] | None]:
+    """Resolve the host's UI templates and the JS those templates ``<script>``-load.
+
+    UI templates are host-declared via ``## UI template globs`` in
+    ``.engineering/docs/product-workflows.md``; the first return value is their
+    repo-relative paths (the active executable template surface). The second is
+    the JS they load — used to split loaded ("active_executable") from unloaded
+    ("legacy_unloaded") workflow JS.
+
+    When the host declares no UI template globs we cannot tell loaded JS from
+    legacy, so the JS set is ``None`` (every JS file counts as active — the old
+    ``--workflow generic`` behaviour) and no template is marked active. This is
+    the ignore-first contract: a repo with no descriptor assumes no UI layout.
+    """
+    globs = workflows.workflow_ui_template_globs(project_root)
+    if not globs:
+        return set(), None
+    ui_template_files: set[str] = set()
+    active_js_files: set[str] = set()
+    for glob in globs:
+        for path in sorted(project_root.glob(glob)):
+            if not path.is_file():
+                continue
+            ui_template_files.add(path.relative_to(project_root).as_posix())
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            for match in SCRIPT_SRC_RE.finditer(text):
+                js_path = match.group("static") or match.group("src")
+                if js_path:
+                    active_js_files.add(f"static/{js_path}")
+    return ui_template_files, active_js_files
 
 
-def _surface(file: str, active_js_files: set[str] | None) -> str:
+def _surface(file: str, active_js_files: set[str] | None, ui_template_files: set[str]) -> str:
     if file.startswith("docs/") or file.startswith(".claude/docs/"):
         return "docs"
     if file.startswith("tests/") or file.startswith("testing/"):
         return "tests"
     if file.endswith("urls.py") or file.endswith("api_urls.py"):
         return "route_definition"
-    if file.startswith("static/js/"):
+    if file.startswith("static/js/") or file.endswith(".js"):
         if active_js_files is None:
             return "active_executable"
         return "active_executable" if file in active_js_files else "legacy_unloaded"
-    if file.startswith("templates/core/site_config") or file.startswith("templates/core/includes/"):
+    if file in ui_template_files:
         return "active_executable"
-    if file.startswith("core/views/") or file.startswith("core/services/"):
+    if _owner(file) in _BACKEND_LAYER_SEGMENTS:
         return "active_executable"
     return "other"
 
@@ -73,9 +98,9 @@ def _counts(values: list[str]) -> dict[str, int]:
     return counts
 
 
-def detect(project_root: Path, min_owners: int, workflow: str, min_active_owners: int) -> list[dict[str, object]]:
+def detect(project_root: Path, min_owners: int, min_active_owners: int) -> list[dict[str, object]]:
     paths = workflow_text_files(project_root)
-    active_js_files = _active_site_js_files(project_root) if workflow == "sites" else None
+    ui_template_files, active_js_files = _resolve_ui_surfaces(project_root)
     hits = label_hits(project_root, paths)
     grouped: dict[tuple[str, str], list[dict[str, object]]] = defaultdict(list)
     for hit in hits:
@@ -87,18 +112,18 @@ def detect(project_root: Path, min_owners: int, workflow: str, min_active_owners
         files = sorted({str(hit["file"]) for hit in group})
         if len(owners) < min_owners:
             continue
-        surface_by_file = {file: _surface(file, active_js_files) for file in files}
+        surface_by_file = {file: _surface(file, active_js_files, ui_template_files) for file in files}
         active_files = sorted(file for file in files if surface_by_file[file] == "active_executable")
         active_owners = sorted(
             {
                 _owner(str(hit["file"]))
                 for hit in group
-                if _surface(str(hit["file"]), active_js_files) == "active_executable"
+                if _surface(str(hit["file"]), active_js_files, ui_template_files) == "active_executable"
             }
         )
         if len(active_owners) < min_active_owners:
             continue
-        surfaces = [_surface(str(hit["file"]), active_js_files) for hit in group]
+        surfaces = [_surface(str(hit["file"]), active_js_files, ui_template_files) for hit in group]
         deferred_files = sorted(
             file
             for file in files
@@ -144,13 +169,12 @@ def detect(project_root: Path, min_owners: int, workflow: str, min_active_owners
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
-    parser.add_argument("--workflow", choices=["sites", "generic"], default="sites")
     parser.add_argument("--min-owners", type=int, default=3)
     parser.add_argument("--min-active-owners", type=int, default=0)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
-    findings = detect(args.project_root.resolve(), args.min_owners, args.workflow, args.min_active_owners)
+    findings = detect(args.project_root.resolve(), args.min_owners, args.min_active_owners)
     write_jsonl(findings, args.output)
     print(f"wrote {args.output}: {len(findings)} findings")
     return 0

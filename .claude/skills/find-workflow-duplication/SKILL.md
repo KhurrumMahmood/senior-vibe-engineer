@@ -1,7 +1,7 @@
 ---
 name: find-workflow-duplication
 description: Detect duplicated product-step authority such as labels, tab ids, route literals, endpoint suffixes, sidebar/dashboard step definitions, boot payload keys, and status text across backend, templates, JS, and docs.
-argument-hint: "[workflow-name: sites]"
+argument-hint: "[--min-active-owners <n>]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -27,9 +27,11 @@ of owned by a registry.
 
 ## Scope
 
-- Default workflow: `sites`.
-- Scans `core/`, `templates/`, `static/js/`, `docs/`, and
-  `.claude/docs/`.
+- Workflow is host-authored — read from
+  `.engineering/docs/product-workflows.md`. With no descriptor the scan
+  finds nothing (the toolkit assumes no product flow).
+- Scans the host's declared `## Text-file globs`; templates declared
+  under `## UI template globs` split loaded JS from legacy/unloaded.
 - Output: `reports/workflow-duplication/<scan-id>/`.
 - No code edits.
 
@@ -47,7 +49,7 @@ python3 .claude/skills/find-workflow-duplication/scripts/report.py \
   --output-md "$REPORT_DIR/report.md" \
   --output-json "$REPORT_DIR/findings.json" \
   --scan-id "$SCAN_ID" \
-  --target sites
+  --target "product workflow"
 ```
 
 ## Findings
@@ -88,12 +90,11 @@ Every finding includes surface classification:
   behavior independently: navigation, page tabs, status providers,
   route/URL generation, endpoint construction, feature visibility, or
   boot payload shape.
-- Every finding must name the proposed canonical owner. For `/sites`,
-  prefer `SiteWorkflowRegistry` or the existing workflow boot payload
-  when the duplication is about steps, visibility, JS boot data, or
-  site-config endpoint consumers.
-- Do not fold ai-sidecar workflow rules into general `/sites`
-  workflow findings unless the user explicitly scopes that work in.
+- Every finding must name the proposed canonical owner — the workflow
+  registry or boot payload that should own the duplicated step,
+  visibility, JS boot-data, or endpoint-consumer knowledge.
+- Do not fold a distinct sub-workflow's rules into the primary
+  workflow's findings unless the user explicitly scopes that work in.
 
 ## Next Skills
 
