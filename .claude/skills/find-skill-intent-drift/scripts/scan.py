@@ -51,7 +51,7 @@ def git_last_epoch(path: Path) -> int | None:
 def load_contract(p: Path):
     try:
         return yaml.safe_load(p.read_text(encoding="utf-8")) or {}, None
-    except (yaml.YAMLError, OSError) as e:
+    except (yaml.YAMLError, OSError, UnicodeDecodeError) as e:
         return None, f"load error: {e}"
 
 
