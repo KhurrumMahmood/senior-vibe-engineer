@@ -1,7 +1,7 @@
 ---
 name: find-duplication
 description: Detect structural and lexical code duplication. Runs jscpd and the AST visitor in parallel, collapses overlapping clone pairs into method-identity findings, fans out sub-agent investigators, and produces a triage report with a dormant-code side-channel. Hands off to `/fix-workflow` for execution.
-argument-hint: "[directory — defaults to core/]"
+argument-hint: "--target <directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -28,7 +28,7 @@ the scout brief and the knowledge files, not in this prompt.
 
 ## Scope
 
-- **Target path:** the argument, defaulting to `core/`. Must be a directory.
+- **Target path:** the required `--target` argument. Must be a directory.
 - **Project root:** this worktree's root.
 - **Python:** `.venv/bin/python` (never bare `python`).
 - **Project-specific defaults** (ignore paths, dispatch registries, shadow

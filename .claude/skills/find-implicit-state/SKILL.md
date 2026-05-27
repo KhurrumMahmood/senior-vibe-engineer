@@ -1,7 +1,7 @@
 ---
 name: find-implicit-state
 description: Detect stringly-typed state comparisons and tuple-inferred identity patterns. Runs an AST scan for bare string literals compared to `.status`/`.phase`/`.state`, model fields declared without a `TextChoices` enum, and `.filter(status=..., *_at__...).first()` identity-inference shapes; collapses hits by file, fans out scout sub-agents to bucket each candidate, and produces a report that hands off to `/extract-enum` or `/introduce-fk`. Detection-only — never edits production code.
-argument-hint: "[directory — defaults to core/]"
+argument-hint: "--target <directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -35,7 +35,7 @@ don't.
 
 ## Scope
 
-- **Target path:** the argument, defaulting to `core/`. Must be a
+- **Target path:** the required `--target` argument. Must be a
   directory.
 - **Project root:** this worktree's root.
 - **Python:** `python3` (the detectors are stdlib-only and run without
@@ -237,8 +237,8 @@ The report is the source of truth — do not enumerate every candidate.
 
 | Symptom | Action |
 |---|---|
-| Stage 1 detect.py finds 0 hits | Target has no implicit state (best outcome) — or the directory argument is wrong. Re-run with `--target core/` |
-| Stage 1 detect.py is slow (>2 min) | Shouldn't happen on `core/` — check for `__pycache__` entries in target. Add more `--skip-file-glob` flags if needed |
+| Stage 1 detect.py finds 0 hits | Target has no implicit state (best outcome) — or the directory argument is wrong. Re-run with a valid `--target <dir>` |
+| Stage 1 detect.py is slow (>2 min) | Shouldn't happen on a typical source tree — check for `__pycache__` entries in target. Add more `--skip-file-glob` flags if needed |
 | Stage 2 reports 0 candidates | Same as Stage 1 zero — or collapse ignored all hits (check stderr) |
 | Stage 3 scout buckets everything as `enum_already_used` | Scout is being too permissive. Inspect one output; re-dispatch with "consult `knowledge/` for known enum list" |
 | Scout recommends `/introduce-fk` for a freshness-check hit | Rule 1 in `verify.md` was skipped — re-dispatch citing `freshness_not_identity` |

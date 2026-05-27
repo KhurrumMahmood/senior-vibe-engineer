@@ -180,6 +180,40 @@ def test_iter_paths_ignore_then_roots_compose(tmp_path):
     assert got == {"app/foo.py"}
 
 
+# ---- parse_sections (pure, skill-specific glob sections) -----------------
+
+def test_parse_sections_fills_each_key():
+    text = (
+        "## Views\n"
+        "- `app/pages/`\n"
+        "- `app/api/`\n\n"
+        "## Tasks\n"
+        "- app/jobs/ — async layer\n"
+    )
+    out = scope.parse_sections(text, {"view": {"views", "view"}, "task": {"tasks", "task"}})
+    assert out == {"view": ["app/pages/", "app/api/"], "task": ["app/jobs/"]}
+
+
+def test_parse_sections_absent_section_is_empty_list():
+    out = scope.parse_sections("## Views\n- `a/`\n", {"view": {"views"}, "task": {"tasks"}})
+    assert out["view"] == ["a/"]
+    assert out["task"] == []  # every key present, empty when its heading is absent
+
+
+def test_parse_sections_ignores_unmapped_headings():
+    out = scope.parse_sections("## Other\n- `x/`\n", {"view": {"views"}})
+    assert out == {"view": []}
+
+
+# ---- descriptor_text -----------------------------------------------------
+
+def test_descriptor_text_reads_and_absent(tmp_path):
+    assert scope.descriptor_text(tmp_path, "find-layer-violation") is None
+    _touch(tmp_path, ".engineering/docs/find-layer-violation-scope.md", "## Views\n- `app/`\n")
+    text = scope.descriptor_text(tmp_path, "find-layer-violation")
+    assert text is not None and "## Views" in text
+
+
 # ---- scan convenience ----------------------------------------------------
 
 def test_scan_reads_descriptor_and_filters(tmp_path):

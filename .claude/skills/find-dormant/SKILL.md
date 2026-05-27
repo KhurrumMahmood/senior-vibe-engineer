@@ -1,7 +1,7 @@
 ---
 name: find-dormant
 description: Detect dead and quasi-dead code. Runs vulture + AST "defined but never referenced" checks, validates every candidate against real call sites, cross-references URL patterns with template URL-name usage, runs a git-log recency check, and produces a deletion-candidates report with evidence. Never deletes unilaterally — surfaces findings for user authorization, then hands off to `/fix-workflow`.
-argument-hint: "[directory — defaults to core/]"
+argument-hint: "--target <directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -35,7 +35,7 @@ verification are documented in
 
 ## Scope
 
-- **Target path:** the argument, defaulting to `core/`. Must be a
+- **Target path:** the required `--target` argument. Must be a
   directory.
 - **Project root:** this worktree's root.
 - **Python:** `.venv/bin/python` (never bare `python`).
@@ -90,7 +90,7 @@ on another — they all write independent outputs that collapse merges.
 # 2. URL patterns — for the orphan-endpoint check. Follows include() to
 #    find patterns defined in api_urls.py, admin_urls.py, etc.
 .venv/bin/python .claude/skills/find-dormant/scripts/detect_urls.py \
-  --root-urls core/urls.py \
+  --root-urls <path/to/urls.py> \
   --project-root "$(pwd)" \
   --output "${REPORT_DIR}/url_patterns.jsonl"
 
@@ -264,8 +264,8 @@ The report is the source of truth — do not enumerate every candidate.
 | Symptom | Action |
 |---|---|
 | Stage 1 vulture missing | `pip install vulture` into `.venv`; or skip `--vulture` flag in Stage 2 — unreferenced+silent_catches still produce candidates |
-| Stage 1 detect_urls reports 0 patterns | Check `core/urls.py` exists; re-run with `--root-urls` pointing at the right file |
-| Stage 1 detect_unreferenced is slow | Each def triggers a `git grep` — expect 1–2 minutes on core/ (10k+ defs). Reduce scope with a smaller `<target>` |
+| Stage 1 detect_urls reports 0 patterns | Check the root URLconf exists; re-run with `--root-urls` pointing at the right file |
+| Stage 1 detect_unreferenced is slow | Each def triggers a `git grep` — expect 1–2 minutes on a large source tree (10k+ defs). Reduce scope with a smaller `<target>` |
 | Stage 2 reports 0 candidates | Target has no orphans (best outcome) — or detectors all failed; check stderr from each Stage-1 command |
 | Stage 3 scout buckets everything as `false_positive` | Scout is being too conservative; inspect one output and re-dispatch with tighter instruction |
 | Scout flags webhook-shaped URL as `certain_delete` | Rule 2 in `verify.md` was skipped — re-dispatch citing `external_api_risk` |

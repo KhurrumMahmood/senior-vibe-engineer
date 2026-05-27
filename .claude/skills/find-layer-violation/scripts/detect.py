@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Detect layer-violation smells — views/tasks owning business logic.
 
-AST-walks ``core/views/*.py``, ``core/tasks/*.py``, and
-``core/tasks.py`` (if it exists). For each view function /
+AST-walks the view and task layer files under ``--target`` (classified by
+the host's find-layer-violation-scope.md layer map, or by conventional
+``views``/``tasks`` path segments). For each view function /
 View-subclass HTTP method / top-level task function, emits one record
 per detected signal:
 
@@ -14,7 +15,7 @@ per detected signal:
     contains >5 statements, OR ``for … in <var>`` where <var> was
     bound from a ``.objects.filter/.all/.order_by()`` queryset in the
     same scope.
-  - **direct_llm_call**: imports from ``core.services.*`` whose module
+  - **direct_llm_call**: imports from a ``services`` module whose module
     name contains an LLM/AI keyword (``llm``, ``ai``, ``openai``,
     ``anthropic``, ``fireworks``, ``openrouter``, ``cerebras``,
     ``fireworksai``, ``groq``) used inline in a view/task function
@@ -36,7 +37,7 @@ Output (one JSON record per signal-hit at ``--output``):
 
     {
       "type": "layer_violation",
-      "file": "core/views/external_source.py",
+      "file": "app/views/external_source.py",
       "symbol": "ExternalSourceExtractView.post",
       "kind": "view_method",
       "signal": "multi_model_write",
@@ -46,9 +47,9 @@ Output (one JSON record per signal-hit at ``--output``):
       "loc": 215
     }
 
-Scope is restricted to ``core/views/*.py`` and ``core/tasks*`` — the
-layer-violation smell is specifically "the wrong layer owns the work."
-Services / models / utils are out of scope for this detector.
+Scope is restricted to the view and task layers — the layer-violation
+smell is specifically "the wrong layer owns the work." Services / models
+/ utils are out of scope for this detector.
 """
 from __future__ import annotations
 
@@ -59,6 +60,15 @@ import json
 import re
 import sys
 from pathlib import Path
+
+# scope lives in _common (skills/<skill>/scripts/ -> skills/_common). It
+# supplies the host-authored layer map (which globs are views/tasks) so this
+# detector carries no hardcoded source-root assumption.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
+import scope as _scope  # noqa: E402
+
+# Headings in find-layer-violation-scope.md that declare each layer's globs.
+_LAYER_SECTION_MAP = {"view": {"views", "view"}, "task": {"tasks", "task"}}
 
 
 DEFAULT_FN_BUDGET = 80
@@ -79,7 +89,7 @@ HTTP_METHODS = frozenset({
     "get", "post", "put", "patch", "delete", "head", "options",
 })
 
-# LLM/AI-ish module fragments inside core.services.* — when a view/task
+# LLM/AI-ish module fragments inside a services module — when a view/task
 # imports one of these and uses it inline, that's a direct LLM call.
 LLM_MODULE_HINTS = (
     "llm", "ai_", "_ai", "openai", "anthropic", "fireworks",
@@ -262,18 +272,25 @@ def _is_task_function(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     return False
 
 
+def _is_services_module(mod: str) -> bool:
+    """True when a (lowercased) dotted module path names a ``services`` layer
+    segment — ``core.services.x``, ``app.services.extraction.x``,
+    ``services.x``, or a relative ``..services.x``. A layer convention, not a
+    source-root binding, so the detector works on any host's package layout.
+    """
+    return "services" in mod.split(".")
+
+
 def _collect_llm_imports(tree: ast.Module) -> set[str]:
-    """Names imported from an LLM-ish core.services module, tracked by
-    alias in the importing module so we can check usage by Name.id.
+    """Names imported from an LLM-ish services module, tracked by alias in the
+    importing module so we can check usage by Name.id.
     """
     out: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom):
             mod = (node.module or "").lower()
-            if "core.services" not in mod:
-                # Also accept relative imports ``from ..services.foo``.
-                if not (node.level and "services" in mod):
-                    continue
+            if not _is_services_module(mod):
+                continue
             if not any(h in mod for h in LLM_MODULE_HINTS):
                 continue
             for alias in node.names:
@@ -281,7 +298,7 @@ def _collect_llm_imports(tree: ast.Module) -> set[str]:
         elif isinstance(node, ast.Import):
             for alias in node.names:
                 mod = (alias.name or "").lower()
-                if "core.services" in mod and any(
+                if _is_services_module(mod) and any(
                     h in mod for h in LLM_MODULE_HINTS
                 ):
                     out.add(alias.asname or alias.name.split(".")[-1])
@@ -303,16 +320,31 @@ def _walk_python_files(
     return files
 
 
-def _scope_kind(file_rel: str) -> str | None:
-    """Return 'view' / 'task' / None based on file path."""
+def _scope_kind(
+    file_rel: str,
+    view_globs: tuple[str, ...] = (),
+    task_globs: tuple[str, ...] = (),
+) -> str | None:
+    """Classify a file as 'view' / 'task' / None.
+
+    Host-declared globs (from the `## Views` / `## Tasks` sections of
+    find-layer-violation-scope.md) win, so a project whose views don't live
+    under a conventionally-named directory — e.g. pnci's `app/pages/`,
+    `app/api/` — is still classified. The generic fallback matches the
+    conventional segment names `views` / `tasks` under any top package, so a
+    standard layout needs no config.
+    """
     p = file_rel.replace("\\", "/")
-    if "/core/views/" in p or p.endswith("/core/views.py") or p == "core/views.py":
+    for g in view_globs:
+        if _scope.path_matches(p, g):
+            return "view"
+    for g in task_globs:
+        if _scope.path_matches(p, g):
+            return "task"
+    segs = p.split("/")
+    if "views" in segs or p.endswith("/views.py") or p == "views.py":
         return "view"
-    if p.startswith("core/views/") or p == "core/views.py":
-        return "view"
-    if p.startswith("core/tasks/") or p == "core/tasks.py":
-        return "task"
-    if "/core/tasks/" in p or p.endswith("/core/tasks.py"):
+    if "tasks" in segs or p.endswith("/tasks.py") or p == "tasks.py":
         return "task"
     return None
 
@@ -451,7 +483,7 @@ class FunctionScanner(ast.NodeVisitor):
                 "symbol": self.symbol,
                 "kind": self.kind,
                 "signal": "direct_llm_call",
-                "evidence": f"uses `{name}` from core.services.*",
+                "evidence": f"uses `{name}` from a services module",
                 "lineno": lineno,
                 "end_lineno": end_line,
                 "loc": loc,
@@ -512,6 +544,8 @@ def scan_file(
     fn_budget: int,
     method_budget: int,
     task_budget: int,
+    view_globs: tuple[str, ...] = (),
+    task_globs: tuple[str, ...] = (),
 ) -> list[dict[str, object]]:
     try:
         source = filepath.read_text(encoding="utf-8")
@@ -523,7 +557,7 @@ def scan_file(
         return []
 
     lines = source.splitlines()
-    scope = _scope_kind(file_rel)
+    scope = _scope_kind(file_rel, view_globs, task_globs)
     if scope is None:
         return []
 
@@ -587,7 +621,7 @@ def scan_file(
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--target", required=True, type=Path,
-                   help="Directory to scan (expects core/views/ and/or core/tasks/)")
+                   help="Directory to scan (view/task layer files within it)")
     p.add_argument("--project-root", required=True, type=Path,
                    help="Project root (for relative paths in output)")
     p.add_argument("--output", required=True, type=Path,
@@ -618,6 +652,16 @@ def main(argv: list[str] | None = None) -> int:
     skip_globs = _DEFAULT_SKIP_FILE_GLOBS + tuple(args.skip_file_glob)
     project_root = args.project_root.resolve()
 
+    # Host-authored layer map (which globs are views / tasks); empty unless the
+    # project ships find-layer-violation-scope.md, in which case _scope_kind
+    # falls back to conventional `views`/`tasks` segment names.
+    layers = _scope.parse_sections(
+        _scope.descriptor_text(project_root, "find-layer-violation") or "",
+        _LAYER_SECTION_MAP,
+    )
+    view_globs = tuple(layers["view"])
+    task_globs = tuple(layers["task"])
+
     files = _walk_python_files(args.target, skip_globs, project_root)
     records: list[dict[str, object]] = []
     for filepath in files:
@@ -629,6 +673,7 @@ def main(argv: list[str] | None = None) -> int:
             scan_file(
                 filepath, rel,
                 args.fn_budget, args.method_budget, args.task_budget,
+                view_globs, task_globs,
             )
         )
 

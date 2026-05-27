@@ -10,7 +10,7 @@ description: |
   dispatch, and transaction/resource policy. Produces an extract-service
   candidates report. Never edits code — hands off to
   `/fix-workflow layer:<candidate_id>`.
-argument-hint: "[directory — defaults to core/views]"
+argument-hint: "--target <directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -46,9 +46,11 @@ documented in
 
 ## Scope
 
-- **Target path:** the argument, defaulting to `core/views`. Also
-  accepts `core/tasks.py` or `core/tasks/` for task-side scans, or
-  `core/` for a full sweep.
+- **Target path:** the required `--target` argument. View and task
+  layer files within it are classified automatically (by the
+  conventional `views`/`tasks` segment names, or the host's
+  `.engineering/docs/find-layer-violation-scope.md` layer map). Accepts
+  a directory for a full sweep or a single file.
 - **Project root:** this worktree's root.
 - **Python:** `python3` (detectors are stdlib-only). `.venv/bin/python`
   is not required — this skill is read-only and does not touch Django.
@@ -250,7 +252,7 @@ The report is the source of truth — do not enumerate every candidate.
 
 | Symptom | Action |
 |---|---|
-| Stage 1 detector reports 0 candidates | Target has no flagged views/tasks (best outcome) — or scope is too narrow; try `core/` for a full sweep |
+| Stage 1 detector reports 0 candidates | Target has no flagged views/tasks (best outcome) — or scope is too narrow; try a wider target like the source root for a full sweep |
 | Stage 1 over-fires on CRUD helpers | Tighten LOC budget with `--fn-budget` / `--method-budget` / `--task-budget`, or add the shape to `knowledge/` HTTP-coupled filter |
 | Stage 2 caps too aggressively | Pass `--top 50` or higher to `collapse.py` |
 | Stage 3 scout buckets everything as `intentional_http_coupling` | Scout is being too lenient — re-dispatch citing the canonical examples (`external_source.py`, `collections.py`) from `knowledge/` |

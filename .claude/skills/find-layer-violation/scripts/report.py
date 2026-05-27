@@ -11,7 +11,7 @@ Scout JSON schema (see knowledge/verification.md):
 
     {
       "candidate_id": "layer-0001",
-      "file": "core/views/external_source.py",
+      "file": "app/views/external_source.py",
       "symbol": "ExternalSourceExtractView.post",
       "bucket": "extract_service | move_to_existing_service | broad_workflow_coordinator | intentional_http_coupling",
       "signals_confirmed": ["fat", "multi_model_write"],
@@ -59,7 +59,7 @@ BUCKET_LABELS: dict[str, str] = {
 BUCKET_RECOMMENDATION: dict[str, str] = {
     "extract_service": (
         "`/fix-workflow layer:<candidate_id>` — extract a new "
-        "`core/services/<domain>/` method; keep the view as a thin HTTP wrapper"
+        "`services/<domain>/` method; keep the view as a thin HTTP wrapper"
     ),
     "move_to_existing_service": (
         "`/fix-workflow layer:<candidate_id>` — move logic into the named "
@@ -294,7 +294,7 @@ def render_report(
             f"{step}. Extract a service for `{top.get('file', '?')}`::"
             f"`{top.get('symbol', '?')}` — run "
             f"`/fix-workflow layer:{top.get('candidate_id', '?')}`. Follow the "
-            f"`core/services/<domain>/` directory-package precedent."
+            f"`services/<domain>/` directory-package precedent."
         )
         step += 1
         if len(extract) > 1:

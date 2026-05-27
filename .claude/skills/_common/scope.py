@@ -156,9 +156,55 @@ def load_scope(repo_root: Path | str, skill_name: str) -> Scope:
     return Scope(roots=roots, ignore=ignore, source=path)
 
 
-def _path_matches(rel_posix: str, pattern: str) -> bool:
+def parse_sections(text: str, section_map: dict[str, set[str]]) -> dict[str, list[str]]:
+    """Parse named glob-bullet sections from a descriptor body.
+
+    ``section_map`` maps a result key to the set of accepted (lowercased)
+    headings that fill it (e.g. ``{"view": {"views", "view"}}``). Returns
+    ``{key: [globs...]}`` for every key — empty when its section is absent.
+    The generic primitive for skill-specific sections beyond roots/ignore
+    (e.g. a layer map). Pure function over text.
+    """
+    out: dict[str, list[str]] = {key: [] for key in section_map}
+    heading_to_key: dict[str, str] = {}
+    for key, headings in section_map.items():
+        for heading in headings:
+            heading_to_key[heading] = key
+    section: str | None = None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("## "):
+            section = heading_to_key.get(line[3:].strip().lower())
+            continue
+        if section is None or not line.startswith(("-", "*", "+")):
+            continue
+        token = _bullet_token(line)
+        if token:
+            out[section].append(token)
+    return out
+
+
+def descriptor_text(repo_root: Path | str, skill_name: str) -> str | None:
+    """Raw text of a skill's `.engineering/docs/<skill>-scope.md`, or ``None``.
+
+    For consumers that parse skill-specific sections beyond roots/ignore via
+    ``parse_sections`` (the descriptor file is shared, the sections are not).
+    """
+    path, _used_legacy = _home.docs_path(repo_root, f"{skill_name}-scope.md")
+    if not path.is_file():
+        return None
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def path_matches(rel_posix: str, pattern: str) -> bool:
     """fnmatch over the repo-relative POSIX path, with a gitignore-style subtree
     rule: a pattern naming a directory also matches everything beneath it.
+
+    Public so consumers parsing skill-specific glob sections (e.g.
+    find-layer-violation's view/task layer map) share one matching semantics.
     """
     p = pattern.rstrip("/")
     return (
@@ -170,7 +216,7 @@ def _path_matches(rel_posix: str, pattern: str) -> bool:
 
 
 def _matches_any(rel_posix: str, patterns: list[str]) -> bool:
-    return any(_path_matches(rel_posix, p) for p in patterns)
+    return any(path_matches(rel_posix, p) for p in patterns)
 
 
 def iter_paths(

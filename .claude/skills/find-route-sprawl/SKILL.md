@@ -1,14 +1,14 @@
 ---
 name: find-route-sprawl
 description: Detect route prefixes for a product workflow that are scattered through flat URL modules, missing include ownership boundaries, or duplicated as ambiguous API aliases. SUSPECT skill for product topology.
-argument-hint: "[--root-urls core/urls.py]"
+argument-hint: "[--root-urls <path/to/urls.py>]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
 job: suspect
 best_for: |
   Flat route ownership where one workflow's URL prefixes are scattered
-  through `core/urls.py` without `path('', include())` boundaries;
+  through the root URL module without `path('', include())` boundaries;
   duplicate alias routes registered for the same view.
 not_for: |
   Doc/route drift (use /find-doc-route-drift). Workflow-step
@@ -26,7 +26,8 @@ live in a flat URL namespace.
 
 ## Scope
 
-- Default target: `core/urls.py`.
+- Default target: the root URLconf, auto-discovered via the per-skill
+  scope universe (override with `--root-urls <path/to/urls.py>`).
 - Output: `reports/route-sprawl/<scan-id>/report.md` and
   `findings.json`.
 - No code edits, no route changes.
@@ -44,7 +45,7 @@ python3 .claude/skills/find-route-sprawl/scripts/report.py \
   --output-md "$REPORT_DIR/report.md" \
   --output-json "$REPORT_DIR/findings.json" \
   --scan-id "$SCAN_ID" \
-  --target core/urls.py
+  --target "root URLconf"
 ```
 
 ## Findings

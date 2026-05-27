@@ -1,7 +1,7 @@
 ---
 name: find-transaction-overreach
 description: Detect Django `transaction.atomic()` blocks (and `@transaction.atomic` functions) that hold a DB connection while doing slow / external work. Runs an AST scan for HTTP calls, AI/SDK calls, cloud uploads, `time.sleep`, subprocess, and Celery dispatch inside atomic regions; collapses hits per block, fans out scout sub-agents to bucket each candidate (narrow / split / defer / legitimate / false positive), and produces a report that hands off to `/fix-workflow cluster:<symbol>`. Detection-only — never edits production code.
-argument-hint: "[directory — defaults to core/]"
+argument-hint: "--target <directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -41,7 +41,7 @@ it, you don't.
 
 ## Scope
 
-- **Target path:** the argument, defaulting to `core/`. Accepts either
+- **Target path:** the required `--target` argument. Accepts either
   a directory or a single file.
 - **Project root:** this worktree's root.
 - **Python:** `python3` (the detectors are stdlib-only and run without
@@ -238,8 +238,8 @@ The report is the source of truth — do not enumerate every candidate.
 
 | Symptom | Action |
 |---|---|
-| Stage 1 detect.py finds 0 hits | Target has no transaction-overreach smell (best outcome) — or the directory argument is wrong. Re-run with `--target core/` or widen to `--target .` |
-| Stage 1 detect.py is slow (>2 min) | Shouldn't happen on `core/` — check for `__pycache__` entries in target. Add more `--skip-file-glob` flags if needed |
+| Stage 1 detect.py finds 0 hits | Target has no transaction-overreach smell (best outcome) — or the directory argument is wrong. Re-run with a valid `--target <dir>` or widen to `--target .` |
+| Stage 1 detect.py is slow (>2 min) | Shouldn't happen on a typical source tree — check for `__pycache__` entries in target. Add more `--skip-file-glob` flags if needed |
 | Stage 2 reports 0 candidates | Same as Stage 1 zero — or collapse ignored all hits (check stderr) |
 | Stage 3 scout buckets everything as `false_positive` | Scout is being too permissive on `celery` hits. Inspect one output; the `safe_dispatch` + `transaction.on_commit` combination IS legitimate, but `safe_dispatch` alone (no on_commit) inside an atomic block is still worth flagging |
 | Scout recommends `narrow_transaction` for a `select_for_update().get()` followed by row update | That's the canonical row-locking pattern — should be `false_positive` (the only "external" thing inside is a row read, not a slow op). Re-dispatch with the `knowledge/` row-locking note cited |

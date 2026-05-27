@@ -8,7 +8,31 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
+import scope as _scope  # noqa: E402
 from product_topology import extract_routes, relpath, write_jsonl  # noqa: E402
+
+
+def _discover_root_urls(project_root: Path) -> Path | None:
+    """Find the Django root URLconf without a hardcoded source root.
+
+    Enumerates `**/urls.py` through the per-skill scope universe (ignore-first;
+    honors `.engineering/docs/find-route-sprawl-scope.md` when present), then
+    prefers the one in the Django project package — the directory that also
+    holds settings/wsgi/asgi. Falls back to the shallowest `urls.py` for a
+    deterministic pick, or ``None`` when the repo has no `urls.py` at all.
+    """
+    candidates = [
+        p
+        for p in _scope.scan(project_root, "find-route-sprawl", extensions=frozenset({".py"}))
+        if p.name == "urls.py"
+    ]
+    if not candidates:
+        return None
+    project_markers = {"settings.py", "settings", "wsgi.py", "asgi.py"}
+    for path in candidates:
+        if {sibling.name for sibling in path.parent.iterdir()} & project_markers:
+            return path
+    return min(candidates, key=lambda p: (len(p.relative_to(project_root).parts), str(p)))
 
 
 def detect(project_root: Path, root_urls: Path, page_threshold: int, api_threshold: int) -> list[dict[str, object]]:
@@ -99,7 +123,12 @@ def detect(project_root: Path, root_urls: Path, page_threshold: int, api_thresho
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
-    parser.add_argument("--root-urls", type=Path, default=Path("core/urls.py"))
+    parser.add_argument(
+        "--root-urls",
+        type=Path,
+        default=None,
+        help="Root URLconf to scan; auto-discovered via scope when omitted.",
+    )
     parser.add_argument("--page-threshold", type=int, default=6)
     parser.add_argument("--api-threshold", type=int, default=12)
     parser.add_argument("--output", type=Path, required=True)
@@ -107,7 +136,13 @@ def main() -> int:
 
     project_root = args.project_root.resolve()
     root_urls = args.root_urls
-    if not root_urls.is_absolute():
+    if root_urls is None:
+        root_urls = _discover_root_urls(project_root)
+        if root_urls is None:
+            write_jsonl([], args.output)
+            print(f"wrote {args.output}: 0 findings (no urls.py found)")
+            return 0
+    elif not root_urls.is_absolute():
         root_urls = project_root / root_urls
     findings = detect(project_root, root_urls, args.page_threshold, args.api_threshold)
     write_jsonl(findings, args.output)

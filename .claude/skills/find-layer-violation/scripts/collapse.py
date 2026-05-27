@@ -11,7 +11,7 @@ Output record:
 
     {
       "candidate_id": "layer-0001",
-      "file": "core/views/external_source.py",
+      "file": "app/views/external_source.py",
       "symbol": "ExternalSourceExtractView.post",
       "kind": "view_method",
       "loc": 142,

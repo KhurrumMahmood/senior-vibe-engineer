@@ -1,7 +1,7 @@
 ---
 name: find-semantic-duplication
 description: Detect semantic duplication — independently-written, both-live workflows or functions that solve the same problem with different code. Builds an inventory + call graph via semantic_inventory.py, fans out summarizing/comparing/confirming scouts, collapses multi-way clusters, and produces a ranked triage report with capability matrices. Hands off to `/fix-workflow` for execution.
-argument-hint: "[directory — defaults to core/]"
+argument-hint: "--target <directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -31,7 +31,7 @@ can still solve the same problem — this skill finds those.
 
 ## Scope
 
-- **Target path:** the argument, defaulting to `core/`. Must be a directory.
+- **Target path:** the required `--target` argument. Must be a directory.
 - **Project root:** this worktree's root.
 - **Python:** `.venv/bin/python` for Django-touching scripts; `python3` is
   fine for `semantic_inventory.py` (stdlib-only).

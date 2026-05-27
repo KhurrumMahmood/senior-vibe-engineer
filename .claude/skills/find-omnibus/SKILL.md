@@ -1,7 +1,7 @@
 ---
 name: find-omnibus
 description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. AST-walks the target, groups top-level symbols by head-noun cluster, counts SRP "and"s, ranks by responsibility count plus security/side-effect sensitivity and LOC, fans out scout sub-agents that apply the refactor-subsystem §1.2.5 facet-vs-domain rule, and produces a decomposition-candidates report. Never edits code — hands off to `/refactor-subsystem <spec-id>` in decomposition mode.
-argument-hint: "[directory — defaults to core/]"
+argument-hint: "--target <directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -38,7 +38,7 @@ decomposition-sketch format are documented in
 
 ## Scope
 
-- **Target path:** the argument, defaulting to `core/`. Must be a
+- **Target path:** the required `--target` argument. Must be a
   directory.
 - **Project root:** this worktree's root.
 - **Python:** `python3` (detectors are stdlib-only). `.venv/bin/python`
@@ -47,7 +47,7 @@ decomposition-sketch format are documented in
   patterns, directory-package precedent, known false-positive
   shapes): in `knowledge/`.
 - **Coordination omnibus rule:** broad workflow coordinators such as
-  `core/views/site_config.py` may be real omnibus files even when most
+  `app/views/site_config.py` may be real omnibus files even when most
   domain behavior has moved out. Bucket them as `coordination_omnibus`
   when the next improvement is a workflow registry or route ownership
   map, not another service extraction.
@@ -225,7 +225,7 @@ The report is the source of truth — do not enumerate every candidate.
 
 | Symptom | Action |
 |---|---|
-| Stage 1 detector reports 0 candidates | Target has no omnibus files (best outcome) — or scope is too narrow; try a wider target like `core/` |
+| Stage 1 detector reports 0 candidates | Target has no omnibus files (best outcome) — or scope is too narrow; try a wider target like the source root |
 | Stage 1 reports a clearly-cohesive file | Raise the `and_count >= 3` threshold in `detect.py` OR add the file's shape to `knowledge/` false-positive filter |
 | Stage 2 caps too aggressively | Pass `--top 50` or higher to `collapse.py` |
 | Stage 3 scout buckets everything as `facets_not_domains` | Scout is being too aggressive at collapsing — re-dispatch citing the "3+ confirmed domains" rule from `verification.md` |

@@ -1,7 +1,7 @@
 ---
 name: find-query-mutation
 description: Detect read-named methods that mutate persisted state. Runs an AST scan for functions named `get_*` / `fetch_*` / `load_*` / `list_*` / `find_*` / `check_*` whose body calls `.save()` / `.delete()` / `.update()` / `.create()` / `.bulk_create()` / `.bulk_update()` / `.update_or_create()` / `.get_or_create()`; collapses hits per function, fans out scout sub-agents to bucket each candidate (rename / split / legitimate warming / stdlib false positive), and produces a report that hands off to `/fix-workflow cluster:<symbol>`. Detection-only — never edits production code.
-argument-hint: "[directory — defaults to core/]"
+argument-hint: "--target <directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -35,7 +35,7 @@ scouts read it, you don't.
 
 ## Scope
 
-- **Target path:** the argument, defaulting to `core/`. Must be a
+- **Target path:** the required `--target` argument. Must be a
   directory.
 - **Project root:** this worktree's root.
 - **Python:** `python3` (the detectors are stdlib-only and run without
@@ -243,8 +243,8 @@ The report is the source of truth — do not enumerate every candidate.
 
 | Symptom | Action |
 |---|---|
-| Stage 1 detect.py finds 0 hits | Target has no query-mutation smell (best outcome) — or the directory argument is wrong. Re-run with `--target core/` |
-| Stage 1 detect.py is slow (>2 min) | Shouldn't happen on `core/` — check for `__pycache__` entries in target. Add more `--skip-file-glob` flags if needed |
+| Stage 1 detect.py finds 0 hits | Target has no query-mutation smell (best outcome) — or the directory argument is wrong. Re-run with a valid `--target <dir>` |
+| Stage 1 detect.py is slow (>2 min) | Shouldn't happen on a typical source tree — check for `__pycache__` entries in target. Add more `--skip-file-glob` flags if needed |
 | Stage 2 reports 0 candidates | Same as Stage 1 zero — or collapse ignored all hits (check stderr) |
 | Stage 3 scout buckets everything as `false_positive_stdlib_wrapper` | Scout is being too permissive. Inspect one output; re-dispatch with "re-check whether the receiver is `self` inside a `models.Model` subclass" |
 | Scout recommends `rename_to_mutator` for a `get_context_data` override | Receiver-resolution rule was skipped — re-dispatch citing `cbv_context_data` |
