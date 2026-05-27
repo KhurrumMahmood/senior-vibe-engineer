@@ -2,8 +2,9 @@
 
 Covers parsing a `.engineering/docs/product-workflows.md` descriptor in a tmp
 state home: step rows (`id | label | route_name | path`), malformed-row
-skipping, labels/tab-ids = steps-plus-extras (deduped, ordered), the three glob
-sections, and the empty fallback when no descriptor exists (the toolkit ships
+skipping, labels/tab-ids = steps-plus-extras (deduped, ordered), the glob
+sections (targets / template-roots / text / UI template / UI script), and the
+empty fallback when no descriptor exists (the toolkit ships
 with no workflow). Deterministic and disk-isolated — every read runs against
 ``tmp_path``.
 """
@@ -44,7 +45,11 @@ _FULL = (
     "- templates/sites\n\n"
     "## Text-file globs\n"
     "- app/urls.py\n"
-    "- templates/sites/*.html\n"
+    "- templates/sites/*.html\n\n"
+    "## UI template globs\n"
+    "- templates/sites/site_config*.html\n\n"
+    "## UI script globs\n"
+    "- static/js/site-config-*.js\n"
 )
 
 
@@ -92,6 +97,8 @@ def test_workflow_targets_template_roots_text_globs(tmp_path):
     assert workflows.workflow_targets(tmp_path) == ["app/pages/sites", "static/js/site-config-*.js"]
     assert workflows.workflow_template_roots(tmp_path) == ["templates/sites"]
     assert workflows.workflow_text_globs(tmp_path) == ["app/urls.py", "templates/sites/*.html"]
+    assert workflows.workflow_ui_template_globs(tmp_path) == ["templates/sites/site_config*.html"]
+    assert workflows.workflow_ui_script_globs(tmp_path) == ["static/js/site-config-*.js"]
 
 
 # ---- empty fallback (toolkit ships no workflow) --------------------------
@@ -103,6 +110,8 @@ def test_absent_descriptor_is_empty(tmp_path):
     assert workflows.workflow_targets(tmp_path) == []
     assert workflows.workflow_template_roots(tmp_path) == []
     assert workflows.workflow_text_globs(tmp_path) == []
+    assert workflows.workflow_ui_template_globs(tmp_path) == []
+    assert workflows.workflow_ui_script_globs(tmp_path) == []
 
 
 def test_descriptor_without_relevant_sections_is_empty(tmp_path):

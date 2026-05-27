@@ -40,6 +40,12 @@ Descriptor format (loose markdown, stdlib-parseable — reuses
     - app/urls.py
     - templates/sites/*.html
 
+    ## UI template globs    (templates that assign frontend boot globals)
+    - templates/sites/site_config*.html
+
+    ## UI script globs      (frontend scripts that read those boot globals)
+    - static/js/site-config-*.js
+
     ## Routes               (how this host shapes product routes)
     - `page_prefix | sites`
     - `api_prefix | api`
@@ -74,6 +80,8 @@ _SECTION_MAP: dict[str, set[str]] = {
     "targets": {"targets", "scan targets"},
     "template_roots": {"template roots", "templates"},
     "text_globs": {"text-file globs", "text file globs", "text globs"},
+    "ui_template_globs": {"ui template globs", "frontend template globs"},
+    "ui_script_globs": {"ui script globs", "frontend script globs"},
     "routes": {"routes", "route shape"},
 }
 
@@ -142,6 +150,20 @@ def workflow_template_roots(repo_root: Path | str) -> list[str]:
 def workflow_text_globs(repo_root: Path | str) -> list[str]:
     """Globs for files scanned for duplicated workflow knowledge (``## Text-file globs``)."""
     return list(_sections(repo_root)["text_globs"])
+
+
+def workflow_ui_template_globs(repo_root: Path | str) -> list[str]:
+    """Globs for the workflow's UI templates — those that assign frontend boot
+    globals (``## UI template globs``). Empty when no descriptor — the toolkit
+    assumes no host template layout."""
+    return list(_sections(repo_root)["ui_template_globs"])
+
+
+def workflow_ui_script_globs(repo_root: Path | str) -> list[str]:
+    """Globs for the workflow's UI scripts — those that read the boot globals
+    (``## UI script globs``). Empty when no descriptor — the toolkit assumes no
+    host script layout."""
+    return list(_sections(repo_root)["ui_script_globs"])
 
 
 def workflow_route_shape(repo_root: Path | str) -> dict[str, str]:

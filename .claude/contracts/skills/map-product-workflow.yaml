@@ -4,8 +4,8 @@ skill: map-product-workflow
 job: map
 problem_class: "product-topology mapping (MAP) — workflow surface inventory"
 intent: >
-  Trace one end-to-end product workflow (default: site setup/configuration, the /sites
-  surface) across every layer it touches — routes, views, templates, JS bundles, Celery
+  Trace one end-to-end product workflow (e.g. a site setup/configuration surface)
+  across every layer it touches — routes, views, templates, JS bundles, Celery
   tasks, models, status fields, boot payloads — and emit a durable workflow map at
   .claude/docs/workflows/<name>.md. MAP skill: read-only inventory, no proposals and no
   edits. It is the entry point of the product-topology loop (MAP → SUSPECT → EXPLAIN),

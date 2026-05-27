@@ -1,7 +1,7 @@
 ---
 name: map-product-workflow
 description: Map a user-visible product workflow across routes, views, templates, JavaScript, docs, status providers, and compatibility redirects. Produces `.claude/docs/workflows/<name>.md`. MAP skill for topology-level quality.
-argument-hint: "<workflow-name: sites>"
+argument-hint: "<workflow-name>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -27,7 +27,10 @@ to locate in code.
 
 ## Scope
 
-- Supported workflow: `sites`.
+- Workflow name: any label you pass. Its shape (steps, route shape, UI
+  template/script globs) is host-authored in
+  `.engineering/docs/product-workflows.md`; with no descriptor the map is
+  empty rather than assuming a project's layout.
 - Output: `.claude/docs/workflows/<name>.md`.
 - Scratch JSON: `reports/product-topology/<scan-id>/<name>.json`.
 - Python: `python3`; scripts are stdlib-only.
@@ -38,7 +41,7 @@ to locate in code.
 ```bash
 SCAN_ID="workflow-map-$(date -u +%Y%m%d-%H%M%S)"
 python3 .claude/skills/map-product-workflow/scripts/generate.py \
-  sites \
+  <workflow-name> \
   --scan-id "$SCAN_ID"
 ```
 
