@@ -1,7 +1,7 @@
 ---
 name: find-complexity-hotspots
 description: Detect likely algorithmic, Django ORM, and structural complexity hotspots in Python code without changing production files. Runs a stdlib AST scan for nested loops, membership scans, sorting inside loops, QuerySet/manager calls inside loops, and high-branch functions; writes a timestamped report with ranked advisory findings. Use when a subsystem feels slow, export/discovery/extraction paths are growing expensive, or a refactor inventory needs a first-pass performance/complexity lead list.
-argument-hint: "[paths — defaults to app/]"
+argument-hint: "<paths>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -30,8 +30,9 @@ surrounding code, input sizes, and tests prove it actionable.
 
 ## Scope
 
-- **Target path:** arguments, defaulting to `app/`. Accepts files,
-  directories, and glob patterns.
+- **Target path:** required positional argument(s). Accepts files,
+  directories, and glob patterns. Point it at the subsystem to scan —
+  there is no whole-repo default.
 - **Project root:** this worktree's root.
 - **Python:** `.venv/bin/python`; all skill scripts are stdlib-only but
   use the project venv for consistency with the host project's agent rules.
@@ -54,10 +55,10 @@ Run the single orchestrator unless you need to debug an intermediate:
 Useful options:
 
 ```bash
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py app/services/export
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py app --max-findings 40
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py app --include-tests
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py app --skip-effectiveness-log
+.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py <paths>
+.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py <paths> --max-findings 40
+.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py <paths> --include-tests
+.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py <paths> --skip-effectiveness-log
 ```
 
 The detector can also be run directly:
@@ -66,7 +67,7 @@ The detector can also be run directly:
 .venv/bin/python .claude/skills/find-complexity-hotspots/scripts/detect.py \
   --project-root "$(pwd)" \
   --output /tmp/complexity-hotspots.jsonl \
-  app/services/export
+  <paths>
 ```
 
 ## Finding Buckets

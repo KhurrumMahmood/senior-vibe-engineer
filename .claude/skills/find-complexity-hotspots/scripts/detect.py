@@ -36,7 +36,6 @@ SKIP_DIRS = {
     "reports",
 }
 TEST_GLOBS = ("test_*.py", "tests_*.py", "tests.py", "conftest.py")
-DEFAULT_TARGETS = ("app",)
 
 QUERYSET_METHODS = {
     "aggregate",
@@ -419,14 +418,14 @@ def _positive_int(raw: str) -> int:
 
 def detect(
     project_root: Path,
-    paths: list[str] | None = None,
+    paths: list[str],
     *,
     include_tests: bool = False,
     max_findings: int = 80,
 ) -> list[dict[str, Any]]:
     project_root = project_root.resolve()
     records: list[dict[str, Any]] = []
-    for path in _iter_python_files(project_root, paths or list(DEFAULT_TARGETS), include_tests):
+    for path in _iter_python_files(project_root, paths, include_tests):
         try:
             text = path.read_text(encoding="utf-8")
             tree = ast.parse(text, filename=str(path))
@@ -451,7 +450,7 @@ def detect(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("paths", nargs="*", help="Files, directories, or globs to scan.")
+    parser.add_argument("paths", nargs="+", help="Files, directories, or globs to scan.")
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--include-tests", action="store_true")
@@ -460,7 +459,7 @@ def main(argv: list[str] | None = None) -> int:
 
     records = detect(
         args.project_root,
-        args.paths or None,
+        args.paths,
         include_tests=args.include_tests,
         max_findings=args.max_findings,
     )

@@ -28,7 +28,7 @@ def _positive_int(raw: str) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("paths", nargs="*", help="Files, directories, or globs to scan.")
+    parser.add_argument("paths", nargs="+", help="Files, directories, or globs to scan.")
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
     parser.add_argument("--include-tests", action="store_true")
     parser.add_argument("--max-findings", type=_positive_int, default=80)
@@ -36,10 +36,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     project_root = args.project_root.resolve()
-    target = " ".join(args.paths) if args.paths else "app"
+    target = " ".join(args.paths)
     records = detect(
         project_root,
-        args.paths or None,
+        args.paths,
         include_tests=args.include_tests,
         max_findings=args.max_findings,
     )
