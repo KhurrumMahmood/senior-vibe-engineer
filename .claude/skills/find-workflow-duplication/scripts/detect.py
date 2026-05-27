@@ -9,7 +9,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
-from product_topology import label_hits, sites_workflow_text_files, workflow_text_files, write_jsonl  # noqa: E402
+from product_topology import label_hits, workflow_text_files, write_jsonl  # noqa: E402
 
 SCRIPT_SRC_RE = re.compile(
     r"(?:static\s+['\"](?P<static>js/[^'\"]+\.js)['\"]|"
@@ -74,7 +74,7 @@ def _counts(values: list[str]) -> dict[str, int]:
 
 
 def detect(project_root: Path, min_owners: int, workflow: str, min_active_owners: int) -> list[dict[str, object]]:
-    paths = sites_workflow_text_files(project_root) if workflow == "sites" else workflow_text_files(project_root)
+    paths = workflow_text_files(project_root)
     active_js_files = _active_site_js_files(project_root) if workflow == "sites" else None
     hits = label_hits(project_root, paths)
     grouped: dict[tuple[str, str], list[dict[str, object]]] = defaultdict(list)

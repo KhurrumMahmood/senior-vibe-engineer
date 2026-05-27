@@ -16,7 +16,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
 from product_topology import (  # noqa: E402
-    SITE_WORKFLOW_STEPS,
     dataclass_dicts,
     extract_docs_routes,
     extract_python_surface,
@@ -28,6 +27,7 @@ from product_topology import (  # noqa: E402
     utc_scan_id,
     write_json,
 )
+from workflows import workflow_steps  # noqa: E402
 
 
 def _workflow_paths(project_root: Path) -> tuple[list[Path], list[Path]]:
@@ -51,6 +51,7 @@ def _route_table(routes: list[object], family: str) -> list[str]:
 
 
 def render_sites_map(project_root: Path) -> tuple[str, dict[str, object]]:
+    steps = workflow_steps(project_root)
     routes = extract_routes(project_root)
     route_names = route_by_name(routes)
     redirects, renders = extract_python_surface(project_root, [project_root / "core" / "views" / "site_config.py"])
@@ -85,7 +86,7 @@ def render_sites_map(project_root: Path) -> tuple[str, dict[str, object]]:
         "| Step | Canonical route | Canonical path | Actual route present |",
         "|---|---|---|---|",
     ]
-    for step in SITE_WORKFLOW_STEPS:
+    for step in steps:
         route = route_names.get(step["route_name"])
         present = f"`{route.file}:{route.lineno}`" if route else "missing"
         lines.append(f"| {step['label']} | `{step['route_name']}` | `{step['path']}` | {present} |")
@@ -147,7 +148,7 @@ def render_sites_map(project_root: Path) -> tuple[str, dict[str, object]]:
 
     data = {
         "workflow": "sites",
-        "steps": list(SITE_WORKFLOW_STEPS),
+        "steps": list(steps),
         "page_routes": dataclass_dicts(page_routes),
         "site_scoped_api_routes": dataclass_dicts(api_routes),
         "template_renders": dataclass_dicts(renders),

@@ -9,7 +9,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
-from product_topology import SITE_WORKFLOW_STEPS, utc_scan_id  # noqa: E402
+from product_topology import utc_scan_id  # noqa: E402
+from workflows import workflow_steps  # noqa: E402
 
 
 REGISTRY_FIELDS = (
@@ -25,7 +26,7 @@ REGISTRY_FIELDS = (
 )
 
 
-def render_proposal(workflow: str, workflow_map: Path, findings: list[Path]) -> str:
+def render_proposal(workflow: str, workflow_map: Path, findings: list[Path], steps: list[dict[str, str]]) -> str:
     lines: list[str] = [
         f"# Workflow registry proposal — {workflow}",
         "",
@@ -56,8 +57,8 @@ def render_proposal(workflow: str, workflow_map: Path, findings: list[Path]) -> 
     for field in REGISTRY_FIELDS:
         lines.append(f"| `{field}` | {meanings[field]} |")
 
-    lines.extend(["", "## Proposed `/sites` Entries", "", "| id | label | route | active tab |", "|---|---|---|---|"])
-    for step in SITE_WORKFLOW_STEPS:
+    lines.extend(["", f"## Proposed `{workflow}` Entries", "", "| id | label | route | active tab |", "|---|---|---|---|"])
+    for step in steps:
         lines.append(
             f"| `{step['id']}` | {step['label']} | `{step['route_name']}` | `{step['id']}` |"
         )
@@ -96,7 +97,7 @@ def render_proposal(workflow: str, workflow_map: Path, findings: list[Path]) -> 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("workflow", choices=["sites"])
+    parser.add_argument("workflow", help="Workflow name; matches the host's product-workflows.md.")
     parser.add_argument("--workflow-map", type=Path, default=Path(".claude/docs/workflows/sites.md"))
     parser.add_argument("--finding", type=Path, action="append", default=[])
     parser.add_argument("--output", type=Path, default=None)
@@ -108,12 +109,13 @@ def main() -> int:
     project_root = args.project_root.resolve()
     scan_id = args.scan_id or utc_scan_id("workflow-registry")
     output = args.output or project_root / "reports" / "workflow-registry" / args.workflow / "proposal.md"
-    markdown = render_proposal(args.workflow, args.workflow_map, args.finding)
+    steps = workflow_steps(project_root)
+    markdown = render_proposal(args.workflow, args.workflow_map, args.finding, steps)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(markdown, encoding="utf-8")
 
     if not args.skip_effectiveness_log:
-        buckets = {"registry_fields": len(REGISTRY_FIELDS), "steps": len(SITE_WORKFLOW_STEPS)}
+        buckets = {"registry_fields": len(REGISTRY_FIELDS), "steps": len(steps)}
         subprocess.run(
             [
                 "python3",

@@ -11,51 +11,18 @@ from __future__ import annotations
 import ast
 import json
 import re
+import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-
-SITE_WORKFLOW_STEPS: tuple[dict[str, str], ...] = (
-    {"id": "setup", "label": "Setup", "route_name": "site_setup", "path": "/sites/{site_id}/setup/"},
-    {
-        "id": "extraction",
-        "label": "Extraction",
-        "route_name": "site_extraction_fields",
-        "path": "/sites/{site_id}/extraction/fields/",
-    },
-    {"id": "pages", "label": "Pages", "route_name": "site_pages", "path": "/sites/{site_id}/pages/"},
-    {"id": "images", "label": "Images", "route_name": "site_images", "path": "/sites/{site_id}/images/"},
-    {
-        "id": "external",
-        "label": "External",
-        "route_name": "site_external",
-        "path": "/sites/{site_id}/external/",
-    },
-    {"id": "tagging", "label": "Tagging", "route_name": "site_tagging", "path": "/sites/{site_id}/tagging/"},
-    {
-        "id": "export",
-        "label": "Export",
-        "route_name": "site_export_data",
-        "path": "/sites/{site_id}/export/data/",
-    },
-)
-
-WORKFLOW_LABELS = tuple(step["label"] for step in SITE_WORKFLOW_STEPS) + (
-    "Downloads",
-    "Brands",
-    "Training",
-)
-WORKFLOW_TAB_IDS = tuple(step["id"] for step in SITE_WORKFLOW_STEPS) + (
-    "extraction_urls",
-    "extraction_fields",
-    "export_data",
-    "export_images",
-    "downloads",
-    "brands",
-    "training",
-)
+# The product workflow (steps, labels, tab ids, scan globs) is host-authored
+# data, not baked-in code — read it from `.engineering/docs/product-workflows.md`
+# via this sibling loader. A repo with no descriptor yields empty workflow data,
+# so the toolkit ships with zero assumptions about any one host's product flow.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import workflows  # noqa: E402
 
 SKIP_DIRS = {
     ".git",
@@ -217,7 +184,10 @@ def _constant_string(node: ast.AST | None) -> str | None:
     return None
 
 
-def _route_name_from_registry_call(node: ast.AST) -> str | None:
+def _route_name_from_registry_call(node: ast.AST, steps: list[dict[str, str]]) -> str | None:
+    # Resolves `…SiteWorkflowRegistry.canonical_route_name("setup")` to its route
+    # name via the host's declared steps. Fully dormant unless a host both ships a
+    # workflow descriptor *and* calls that exact registry API.
     if not isinstance(node, ast.Call):
         return None
     func_name = expr_to_string(node.func)
@@ -226,19 +196,19 @@ def _route_name_from_registry_call(node: ast.AST) -> str | None:
     step_key = _constant_string(node.args[0]) if node.args else None
     if not step_key:
         return None
-    for step in SITE_WORKFLOW_STEPS:
+    for step in steps:
         if step["id"] == step_key:
             return step["route_name"]
     return None
 
 
-def _route_name_from_redirect_arg(node: ast.AST | None) -> str | None:
+def _route_name_from_redirect_arg(node: ast.AST | None, steps: list[dict[str, str]]) -> str | None:
     if node is None:
         return None
     direct = _constant_string(node)
     if direct:
         return direct.split(":")[-1]
-    return _route_name_from_registry_call(node)
+    return _route_name_from_registry_call(node, steps)
 
 
 def _module_file(project_root: Path, module: str) -> Path:
@@ -353,6 +323,7 @@ class _PythonSurfaceVisitor(ast.NodeVisitor):
         self.stack: list[str] = []
         self.redirects: list[RedirectRecord] = []
         self.templates: list[TemplateRender] = []
+        self.workflow_steps = workflows.workflow_steps(project_root)
 
     def _symbol(self) -> str:
         return ".".join(self.stack) if self.stack else "<module>"
@@ -378,7 +349,7 @@ class _PythonSurfaceVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> Any:
         func_name = expr_to_string(node.func)
-        first_arg = _route_name_from_redirect_arg(node.args[0]) if node.args else None
+        first_arg = _route_name_from_redirect_arg(node.args[0], self.workflow_steps) if node.args else None
         if func_name.endswith("redirect") and first_arg:
             self.redirects.append(
                 RedirectRecord(
@@ -548,61 +519,43 @@ def status_provider_names(project_root: Path) -> list[dict[str, Any]]:
 
 
 def workflow_text_files(project_root: Path) -> list[Path]:
-    candidates: list[Path] = []
-    candidates.extend(iter_files(project_root / "core", (".py",)))
-    candidates.extend(iter_files(project_root / "templates", (".html",)))
-    candidates.extend(iter_files(project_root / "static" / "js", (".js",)))
-    candidates.extend(iter_files(project_root / "docs", (".md",)))
-    candidates.extend(iter_files(project_root / ".claude" / "docs", (".md",)))
-    return candidates
+    """Files scanned for duplicated workflow knowledge.
 
-
-def sites_workflow_text_files(project_root: Path) -> list[Path]:
-    """Return files likely to carry `/sites` workflow topology.
-
-    This intentionally avoids scanning every model/test/service file for
-    common words like "Setup" or "Export"; product-topology duplication is
-    about workflow ownership surfaces, not incidental domain vocabulary.
+    Driven by the host's ``## Text-file globs`` (see ``workflows.py``); empty
+    when no descriptor exists — the toolkit assumes no product flow until a host
+    declares one. Globs are evaluated relative to ``project_root`` (e.g.
+    ``app/urls.py``, ``templates/sites/*.html``, ``docs/**/*.md``) and only
+    file matches outside builtin skip dirs are kept. This intentionally scans a
+    curated, host-declared set rather than every model/test/service file, so
+    incidental domain vocabulary doesn't masquerade as workflow-label drift.
     """
-    candidates: list[Path] = []
-    explicit = [
-        project_root / "core" / "urls.py",
-        project_root / "core" / "views" / "site_config.py",
-        project_root / "core" / "views" / "sitemaps.py",
-        project_root / "core" / "views" / "field_config.py",
-        project_root / "core" / "views" / "external.py",
-        project_root / "core" / "views" / "tagging.py",
-        project_root / "core" / "views" / "agent.py",
-    ]
-    candidates.extend(path for path in explicit if path.exists())
-    candidates.extend(iter_files(project_root / "core" / "views" / "brand_downloads", (".py",)))
-    candidates.extend(sorted((project_root / "templates" / "core").glob("site_config*.html")))
-    candidates.extend(sorted((project_root / "templates" / "core" / "includes").glob("*sub_tabs.html")))
-    candidates.extend(sorted((project_root / "static" / "js").glob("site-config*.js")))
-    candidates.extend(sorted((project_root / "static" / "js").glob("export-*.js")))
-    candidates.extend(sorted((project_root / "static" / "js").glob("download-*.js")))
-    for path in iter_files(project_root / ".claude" / "docs", (".md",)) + iter_files(
-        project_root / "docs", (".md",)
-    ):
-        try:
-            text = path.read_text(encoding="utf-8", errors="ignore")
-        except OSError:
-            continue
-        if "/sites/" in text or "site_config" in text:
-            candidates.append(path)
-    return sorted(dict.fromkeys(candidates))
+    found: list[Path] = []
+    for pattern in workflows.workflow_text_globs(project_root):
+        for path in project_root.glob(pattern):
+            if path.is_file() and not any(part in SKIP_DIRS for part in path.parts):
+                found.append(path)
+    return sorted(dict.fromkeys(found))
 
 
 def label_hits(project_root: Path, paths: list[Path] | None = None) -> list[dict[str, Any]]:
     paths = paths or workflow_text_files(project_root)
+    labels = workflows.workflow_labels(project_root)
+    tab_ids = workflows.workflow_tab_ids(project_root)
+    # Empty alternation `(...)` would compile to a pattern matching the empty
+    # string at every position — skip the label/tab scan entirely when the host
+    # declares no workflow. The route-literal scan is independent.
+    label_pattern = (
+        re.compile(r"\b(" + "|".join(re.escape(label) for label in labels) + r")\b") if labels else None
+    )
+    tab_pattern = (
+        re.compile(r"['\"](" + "|".join(re.escape(tab) for tab in tab_ids) + r")['\"]") if tab_ids else None
+    )
     hits: list[dict[str, Any]] = []
-    label_pattern = re.compile(r"\b(" + "|".join(re.escape(label) for label in WORKFLOW_LABELS) + r")\b")
-    tab_pattern = re.compile(r"['\"](" + "|".join(re.escape(tab) for tab in WORKFLOW_TAB_IDS) + r")['\"]")
     for path in paths:
         if not path.exists():
             continue
         for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").splitlines(), start=1):
-            for match in label_pattern.finditer(line):
+            for match in label_pattern.finditer(line) if label_pattern else ():
                 hits.append(
                     {
                         "kind": "label",
@@ -612,7 +565,7 @@ def label_hits(project_root: Path, paths: list[Path] | None = None) -> list[dict
                         "evidence": line.strip()[:200],
                     }
                 )
-            for match in tab_pattern.finditer(line):
+            for match in tab_pattern.finditer(line) if tab_pattern else ():
                 hits.append(
                     {
                         "kind": "tab_id",

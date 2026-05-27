@@ -15,7 +15,6 @@ if str(COMMON_DIR) not in sys.path:
     sys.path.insert(0, str(COMMON_DIR))
 
 from product_health import (  # noqa: E402
-    SITES_TEMPLATE_ROOTS,
     expand_paths,
     finding,
     line_for_offset,
@@ -23,6 +22,7 @@ from product_health import (  # noqa: E402
     normalize_record,
     read_text,
 )
+from workflows import workflow_template_roots  # noqa: E402
 from product_topology import write_jsonl  # noqa: E402
 
 SUFFIXES = (".py", ".js", ".html")
@@ -185,7 +185,7 @@ def _call_frontend_detector(project_root: Path) -> list[dict[str, Any]]:
     js_root = project_root / "static" / "js"
     findings: list[dict[str, Any]] = []
     seen: set[tuple[str, int, str, str]] = set()
-    for root in SITES_TEMPLATE_ROOTS:
+    for root in workflow_template_roots(project_root):
         template_root = project_root / root
         if not template_root.exists():
             continue

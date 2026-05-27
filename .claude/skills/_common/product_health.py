@@ -10,43 +10,14 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
-from product_topology import render_simple_report, relpath, utc_scan_id, write_json, write_jsonl
+# _common siblings; product_topology's import side-effect also adds _common to
+# the path, but inserting here makes this module self-sufficient. The scan
+# targets / template roots are host-authored data (see workflows.py), not baked
+# in — a repo with no descriptor scans nothing rather than another host's flow.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from product_topology import render_simple_report, relpath, utc_scan_id, write_json, write_jsonl  # noqa: E402
+from workflows import workflow_targets  # noqa: E402
 
-
-DEFAULT_SITES_TARGETS: tuple[str, ...] = (
-    "app/pages/sites",
-    "app/site_management",
-    "app/api/site_config",
-    "app/api/sitemaps.py",
-    "app/api/field_config.py",
-    "app/api/brand_downloads",
-    "app/api/collections.py",
-    "app/api/ptid.py",
-    "app/api/visual_extraction.py",
-    "app/api/training.py",
-    "app/api/tier_detection.py",
-    "app/api/brand_mapping.py",
-    "app/api/site_checklist.py",
-    "app/api/crawling/legacy_dispatch.py",
-    "app/api/crawling/orphan_jobs.py",
-    "app/pages/crawling.py",
-    "app/services/sites",
-    "static/js/site-config-*.js",
-    "static/js/download-filters.js",
-    "static/js/export-*.js",
-    "static/js/brand-picker.js",
-    "static/js/app-dialog.js",
-    "static/js/app-modal.js",
-    "static/js/app-csrf.js",
-    "templates/core/site_config_base.html",
-    "templates/core/_site_checklist.html",
-    "app/pages/sites/templates/core",
-)
-
-SITES_TEMPLATE_ROOTS: tuple[str, ...] = (
-    "templates/core",
-    "app/pages/sites/templates/core",
-)
 
 SKIP_DIRS = {
     ".git",
@@ -79,9 +50,16 @@ def expand_paths(
     project_root: Path,
     raw_paths: Sequence[str | Path] | None,
     suffixes: tuple[str, ...],
-    default_targets: Sequence[str] = DEFAULT_SITES_TARGETS,
+    default_targets: Sequence[str] | None = None,
 ) -> list[Path]:
-    targets: Sequence[str | Path] = raw_paths or default_targets
+    # Explicit caller paths win; else the caller's declared default_targets;
+    # else the host's workflow scan targets (empty when no descriptor exists).
+    if raw_paths:
+        targets: Sequence[str | Path] = raw_paths
+    elif default_targets is not None:
+        targets = default_targets
+    else:
+        targets = workflow_targets(project_root)
     found: list[Path] = []
     for raw in targets:
         raw_text = str(raw)
