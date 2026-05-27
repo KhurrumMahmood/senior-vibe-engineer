@@ -129,11 +129,14 @@ def _load_todo_tuning(repo_root: Path) -> dict:
             if pattern:
                 out["path_skip"].append(pattern)
         elif section == "min_words":
-            stripped = line.lstrip("#").strip()
-            if not stripped:
+            # Honor the doc's stated contract: "the first integer-only line
+            # wins; comment lines (starting with `#`) are skipped." The old
+            # lstrip("#") turned a "# 4" comment into the value 4 — it only
+            # appeared correct when the comment's number matched the default.
+            if not line or line.startswith("#"):
                 continue
             try:
-                out["min_words"] = int(stripped.split()[0])
+                out["min_words"] = int(line.split()[0])
                 section = None
             except (ValueError, IndexError):
                 pass
@@ -728,7 +731,7 @@ def main(argv: list[str] | None = None) -> int:
         help="Optional file-age floor for --todo (uses git mtime)",
     )
     p.add_argument(
-        "--min-words", type=int, default=4,
+        "--min-words", type=int, default=None,
         help="Min words in TODO body to surface (default 4)",
     )
     p.add_argument(
@@ -754,9 +757,16 @@ def main(argv: list[str] | None = None) -> int:
     records = L.load_ledger(LEDGER)
 
     todo_config = _load_todo_tuning(REPO_ROOT)
-    todo_min_words = args.min_words
-    if todo_config["min_words"] is not None and args.min_words == 4:
+    # Precedence: an explicit --min-words (any value, including 4) wins; else
+    # the host's todo-tuning.md override; else the built-in default of 4. The
+    # None argparse default is what lets us distinguish "user passed 4" from
+    # "user passed nothing" — the old `== 4` sentinel could not.
+    if args.min_words is not None:
+        todo_min_words = args.min_words
+    elif todo_config["min_words"] is not None:
         todo_min_words = todo_config["min_words"]
+    else:
+        todo_min_words = 4
 
     findings: dict = {}
 

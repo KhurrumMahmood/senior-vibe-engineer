@@ -115,8 +115,12 @@ _DEFAULT_SKIP_DIRS: frozenset[str] = frozenset({
 })
 
 _DEFAULT_SKIP_FILE_GLOBS: tuple[str, ...] = (
+    # Test files legitimately import across layers, so skip them. Package
+    # __init__.py is deliberately NOT skipped: package-style layouts (e.g. an
+    # ADR-0011 split where views live in app/pages/<area>/__init__.py) carry
+    # real view/task code there, and skipping it silently drops those modules
+    # from the scan. Re-export-only __init__.py files simply yield no findings.
     "tests_*.py", "test_*.py", "tests.py", "conftest.py",
-    "__init__.py",
 )
 
 NOQA_RE = re.compile(r"#\s*noqa:\s*layer-violation:\s*\S+")
@@ -636,21 +640,26 @@ def main(argv: list[str] | None = None) -> int:
                    help="Extra file-name globs to skip (repeatable)")
     args = p.parse_args(argv)
 
-    if not args.target.exists():
+    # Resolve a relative --target under --project-root (not the process CWD), so
+    # the detector scans the requested host rather than wherever it was launched
+    # from. Absolute targets and the common project-root==CWD case are unchanged.
+    project_root = args.project_root.resolve()
+    target = args.target if args.target.is_absolute() else project_root / args.target
+
+    if not target.exists():
         print(
-            f"[detect_layer_violation] ERROR: {args.target} not found",
+            f"[detect_layer_violation] ERROR: {target} not found",
             file=sys.stderr,
         )
         return 2
-    if not args.target.is_dir():
+    if not target.is_dir():
         print(
-            f"[detect_layer_violation] ERROR: {args.target} is not a directory",
+            f"[detect_layer_violation] ERROR: {target} is not a directory",
             file=sys.stderr,
         )
         return 2
 
     skip_globs = _DEFAULT_SKIP_FILE_GLOBS + tuple(args.skip_file_glob)
-    project_root = args.project_root.resolve()
 
     # Host-authored layer map (which globs are views / tasks); empty unless the
     # project ships find-layer-violation-scope.md, in which case _scope_kind
@@ -662,7 +671,7 @@ def main(argv: list[str] | None = None) -> int:
     view_globs = tuple(layers["view"])
     task_globs = tuple(layers["task"])
 
-    files = _walk_python_files(args.target, skip_globs, project_root)
+    files = _walk_python_files(target, skip_globs, project_root)
     records: list[dict[str, object]] = []
     for filepath in files:
         try:
