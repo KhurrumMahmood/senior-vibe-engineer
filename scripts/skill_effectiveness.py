@@ -11,7 +11,7 @@ Schema (one line per skill run, appended by each skill's final stage):
       "skill": "find-dormant",
       "scan_id": "scan-20260419-062049",
       "ts": "2026-04-19T06:20:49Z",
-      "target": "core/services/",
+      "target": "src/services/",
       "findings_total": 27,
       "buckets": {"certain_delete": 4, "orphan_endpoint": 0,
                   "quasi_dead_broken": 4, "false_positive": 17,

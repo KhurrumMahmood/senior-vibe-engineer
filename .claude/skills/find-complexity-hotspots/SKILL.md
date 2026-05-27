@@ -34,13 +34,13 @@ surrounding code, input sizes, and tests prove it actionable.
   directories, and glob patterns.
 - **Project root:** this worktree's root.
 - **Python:** `.venv/bin/python`; all skill scripts are stdlib-only but
-  use the project venv for consistency with PNCI agent rules.
+  use the project venv for consistency with the host project's agent rules.
 - **Output:** `reports/find-complexity-hotspots/scan-<TS>/` with
   `detections.jsonl`, `report.md`, `findings.json`, and a `latest`
   symlink.
 - **No production edits.** This skill never changes app code.
 
-Read `references/pnci-patterns.md` only when judging whether a finding
+Read `references/reading-notes.md` only when judging whether a finding
 is interesting enough to recommend follow-up.
 
 ## Pipeline

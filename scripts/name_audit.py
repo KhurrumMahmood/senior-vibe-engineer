@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Scan core/services/ and core/views/ for:
+"""Scan the given source directories for:
 
   (A) Bare-name collisions with divergent signatures — the same class
       of issue that produced the `_call_llm` shadow cluster.  A name
@@ -11,7 +11,7 @@
       `process`, `handle`, `run`, `do_thing` don't describe the
       operation — readers have to open the body to learn what it does.
 
-Usage: python3 scripts/name_audit.py [--top N]
+Usage: python3 scripts/name_audit.py <dir> [<dir> ...] [--top N]
 
 Output groups:
 
@@ -33,7 +33,6 @@ from collections import defaultdict
 
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-TARGETS = [ROOT / "core" / "services", ROOT / "core" / "views"]
 SKIP_NAME_PREFIXES = ("tests_", "test_")
 SKIP_DIR_NAMES = {"migrations", "__pycache__"}
 
@@ -101,6 +100,14 @@ def is_property(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     return False
 
 
+def _display(path: pathlib.Path) -> str:
+    """Repo-relative path for reporting; falls back to the absolute path."""
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def collect(targets: list[pathlib.Path]):
     by_name: dict[str, list[dict]] = defaultdict(list)
     for target in targets:
@@ -116,7 +123,7 @@ def collect(targets: list[pathlib.Path]):
             for node in tree.body:
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     by_name[node.name].append({
-                        "path": str(path.relative_to(ROOT)),
+                        "path": _display(path),
                         "lineno": node.lineno,
                         "class": None,
                         "params": param_sig(node),
@@ -131,7 +138,7 @@ def collect(targets: list[pathlib.Path]):
                     for child in node.body:
                         if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
                             by_name[child.name].append({
-                                "path": str(path.relative_to(ROOT)),
+                                "path": _display(path),
                                 "lineno": child.lineno,
                                 "class": node.name,
                                 "params": param_sig(child),
@@ -204,11 +211,13 @@ def fmt_def(d: dict) -> str:
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("targets", nargs="+", type=pathlib.Path,
+                    help="Source directories to scan for name collisions.")
     ap.add_argument("--top", type=int, default=20,
                     help="Max items per bucket (default 20)")
     args = ap.parse_args()
 
-    by_name = collect(TARGETS)
+    by_name = collect([t.resolve() for t in args.targets])
     shadows, dupes, generics = classify(by_name)
 
     # Rank shadows by (member count desc, total body lines desc) — the

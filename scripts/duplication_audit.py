@@ -10,12 +10,15 @@ Finds categories of duplication that grep misses:
   (e) same-name + same-arity functions across modules    -- possible clone pairs
 
 Usage:
-  .venv/bin/python scripts/duplication_audit.py [path]
-  .venv/bin/python scripts/duplication_audit.py core > reports/duplication/baseline/ast_findings.json
+  .venv/bin/python scripts/duplication_audit.py <path>
+  .venv/bin/python scripts/duplication_audit.py <path> \
+      --canonical-input-utils path/to/input_utils.py \
+      > reports/duplication/baseline/ast_findings.json
 
 Read-only: never modifies files.
 """
 
+import argparse
 import ast
 import json
 import os
@@ -23,7 +26,10 @@ import sys
 from collections import defaultdict
 
 
-CANONICAL_INPUT_UTILS = ("core/input_utils.py",)  # the ONE legit home for _safe_*
+# Host-declared canonical home(s) for `_safe_*` helpers, supplied via
+# --canonical-input-utils (path suffixes). Empty default is ignore-first:
+# exempt nothing, so every shadow `_safe_*` definition is reported.
+CANONICAL_INPUT_UTILS: tuple[str, ...] = ()
 PROTOCOL_CLONE_NAMES = {
     "run",
     "execute",
@@ -85,11 +91,10 @@ def _find_bare_int_request(tree, path):
     return hits
 
 
-def _find_shadow_safe_helpers(tree, path):
+def _find_shadow_safe_helpers(tree, path, canonical_homes):
     """(b) def _safe_int|_safe_float|_safe_bool at any non-canonical location."""
     hits = []
-    canonical = any(path.endswith(c) for c in CANONICAL_INPUT_UTILS)
-    if canonical:
+    if any(path.endswith(c) for c in canonical_homes):
         return hits
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -159,7 +164,7 @@ def _collect_function_fingerprints(tree, path):
     return fingerprints
 
 
-def audit(root):
+def audit(root, canonical_homes=()):
     report = {
         "bare_int_request": [],
         "shadow_safe_helpers": [],
@@ -175,7 +180,7 @@ def audit(root):
             continue
         rel = os.path.relpath(path)
         report["bare_int_request"].extend(_find_bare_int_request(tree, rel))
-        report["shadow_safe_helpers"].extend(_find_shadow_safe_helpers(tree, rel))
+        report["shadow_safe_helpers"].extend(_find_shadow_safe_helpers(tree, rel, canonical_homes))
         report["call_llm_defs"].extend(_find_call_llm_defs(tree, rel))
         report["json_loads_request_body"].extend(_find_json_loads_request_body(tree, rel))
         all_fingerprints.extend(_collect_function_fingerprints(tree, rel))
@@ -211,11 +216,22 @@ def audit(root):
 
 
 def main():
-    root = sys.argv[1] if len(sys.argv) > 1 else "core"
-    if not os.path.isdir(root):
-        print(f"error: {root} is not a directory", file=sys.stderr)
+    parser = argparse.ArgumentParser(description="AST duplication audit (read-only).")
+    parser.add_argument("root", help="Source directory to scan.")
+    parser.add_argument(
+        "--canonical-input-utils",
+        action="append",
+        default=None,
+        metavar="PATH_SUFFIX",
+        help="Path suffix of a legit `_safe_*` home to exempt from the shadow "
+        "check (repeatable). Default: exempt nothing (report every shadow).",
+    )
+    args = parser.parse_args()
+    if not os.path.isdir(args.root):
+        print(f"error: {args.root} is not a directory", file=sys.stderr)
         sys.exit(2)
-    report = audit(root)
+    canonical_homes = tuple(args.canonical_input_utils or CANONICAL_INPUT_UTILS)
+    report = audit(args.root, canonical_homes)
     json.dump(report, sys.stdout, indent=2)
     sys.stdout.write("\n")
 
