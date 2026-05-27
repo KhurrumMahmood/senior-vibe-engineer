@@ -55,7 +55,6 @@ TEMPLATE_CHARS = set("<>*${}|…")
 # `.claude/skills/<name>/scripts/x.py` ref is captured whole, not as a bare
 # `scripts/x.py` substring.
 SCRIPT_REF_RE = re.compile(r"(?<![\w./-])(?:[\w.-]+/)*scripts/[\w./-]+\.py")
-SCRIPT_ON_LINE_RE = re.compile(r"([\w./-]+\.py)\b")
 LONG_FLAG_RE = re.compile(r"(?<![\w-])(--[a-z][\w-]+)")
 READONLY_CLAIM_RE = re.compile(
     r"\b(?:never edits?|does not edit|read-only|read only|without editing|"
@@ -190,7 +189,11 @@ def scan_skill(skill_dir: Path) -> list[Finding]:
 
     # --- Band A: documented flags exist in the script's argparse ----------
     # Only inside fenced code blocks (where commands live), and only when a
-    # single resolvable script is on the line, to avoid prose false positives.
+    # single resolvable *script ref* is on the line — a `scripts/<file>.py`
+    # token, the same strict shape the missing_script_ref band uses. Matching
+    # any `.py` token here mis-reads a flag *value* (e.g. a `--config
+    # path/to/conf.py`) or a delegating launcher (no introspectable argparse)
+    # as the documented script and emits a false positive.
     in_fence = False
     for idx, line in enumerate(lines, 1):
         if line.lstrip().startswith("```"):
@@ -201,7 +204,7 @@ def scan_skill(skill_dir: Path) -> list[Finding]:
         flags = LONG_FLAG_RE.findall(line)
         if not flags:
             continue
-        scripts = [t for t in SCRIPT_ON_LINE_RE.findall(line) if resolve_script(t, skill_dir)]
+        scripts = [t for t in SCRIPT_REF_RE.findall(line) if resolve_script(t, skill_dir)]
         if len(scripts) != 1:
             continue
         resolved = resolve_script(scripts[0], skill_dir)
