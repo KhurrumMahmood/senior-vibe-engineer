@@ -98,6 +98,84 @@ def test_load_scope_reads_engineering_docs(tmp_path):
     assert s.source.name == "find-route-sprawl-scope.md"
 
 
+# ---- load_repo_ignore + the repo-wide ignore layer -----------------------
+
+def test_load_repo_ignore_absent_is_empty(tmp_path):
+    assert scope.load_repo_ignore(tmp_path) == []
+
+
+def test_load_repo_ignore_reads_ignore_section(tmp_path):
+    _touch(
+        tmp_path,
+        ".engineering/docs/ignore.md",
+        "# repo-wide ignore\n\n## Ignore\n- `reports/`\n- `**/*.min.js`\n",
+    )
+    assert scope.load_repo_ignore(tmp_path) == ["reports/", "**/*.min.js"]
+
+
+def test_load_repo_ignore_discards_roots(tmp_path):
+    # A repo-wide narrowing is nonsensical — only ## Ignore is consumed.
+    _touch(
+        tmp_path,
+        ".engineering/docs/ignore.md",
+        "## Roots\n- app/\n\n## Ignore\n- `reports/`\n",
+    )
+    assert scope.load_repo_ignore(tmp_path) == ["reports/"]
+
+
+def test_iter_paths_applies_repo_wide_ignore(tmp_path):
+    # The repo-wide layer subtracts from every skill's universe, even an empty Scope.
+    _touch(tmp_path, "app/foo.py")
+    _touch(tmp_path, "reports/run-2026.md")
+    _touch(tmp_path, ".engineering/docs/ignore.md", "## Ignore\n- `reports/`\n")
+    got = _rel(scope.iter_paths(tmp_path, scope.Scope()), tmp_path)
+    assert got == {"app/foo.py"}
+
+
+def test_iter_paths_repo_wide_and_skill_ignore_union(tmp_path):
+    # A file matching either the repo-wide or the per-skill ignore is excluded.
+    _touch(tmp_path, "app/foo.py")
+    _touch(tmp_path, "app/foo_test.py")
+    _touch(tmp_path, "reports/run.md")
+    _touch(tmp_path, ".engineering/docs/ignore.md", "## Ignore\n- `reports/`\n")
+    s = scope.Scope(ignore=["**/*_test.py"])
+    got = _rel(scope.iter_paths(tmp_path, s), tmp_path)
+    assert got == {"app/foo.py"}
+
+
+def test_iter_paths_repo_ignore_opt_out(tmp_path):
+    # repo_ignore=[] overrides the on-disk ignore.md (the test-isolation hook).
+    _touch(tmp_path, "app/foo.py")
+    _touch(tmp_path, "vendor/lib.py")
+    _touch(tmp_path, ".engineering/docs/ignore.md", "## Ignore\n- `vendor/`\n")
+    default = _rel(scope.iter_paths(tmp_path, scope.Scope()), tmp_path)
+    assert default == {"app/foo.py"}  # ignore.md honored by default
+    isolated = _rel(scope.iter_paths(tmp_path, scope.Scope(), repo_ignore=[]), tmp_path)
+    assert isolated == {"app/foo.py", "vendor/lib.py"}  # opt-out keeps vendor
+
+
+def test_iter_paths_repo_wide_ignore_composes_with_roots(tmp_path):
+    # roots narrow first; the repo-wide ignore still subtracts within them.
+    _touch(tmp_path, "app/foo.py")
+    _touch(tmp_path, "app/generated/gen.py")
+    _touch(tmp_path, "scripts/bar.py")
+    _touch(tmp_path, ".engineering/docs/ignore.md", "## Ignore\n- `app/generated/`\n")
+    s = scope.Scope(roots=["app"])
+    got = _rel(scope.iter_paths(tmp_path, s), tmp_path)
+    assert got == {"app/foo.py"}  # scripts/ out by roots, app/generated/ out by repo-wide ignore
+
+
+def test_scan_honors_repo_wide_ignore(tmp_path):
+    # scan() routes through iter_paths, so the repo-wide layer applies there too.
+    _touch(tmp_path, "app/foo.py")
+    _touch(tmp_path, "reports/old.md")
+    _touch(tmp_path, ".engineering/docs/ignore.md", "## Ignore\n- `reports/`\n")
+    # No per-skill scope file → whole-repo-minus-ignores; reports/ is removed
+    # only by the repo-wide layer.
+    got = _rel(scope.scan(tmp_path, "find-omnibus"), tmp_path)
+    assert got == {"app/foo.py"}
+
+
 # ---- iter_paths: ignore-first walk ---------------------------------------
 
 def test_iter_paths_default_universe_prunes_builtin_dirs(tmp_path):
@@ -118,6 +196,16 @@ def test_iter_paths_prunes_claude_worktrees_subtree(tmp_path):
 
     got = _rel(scope.iter_paths(tmp_path, scope.Scope()), tmp_path)
     assert got == {".claude/skills/keep.py"}
+
+
+def test_iter_paths_prunes_engineering_home(tmp_path):
+    # The cross-agent state home is config/infra, never scanned as source —
+    # even though load_repo_ignore reads ignore.md from under it directly.
+    _touch(tmp_path, "app/keep.py")
+    _touch(tmp_path, ".engineering/manifest.json", "{}\n")
+    _touch(tmp_path, ".engineering/docs/find-x-scope.md", "## Roots\n- app/\n")
+    got = _rel(scope.iter_paths(tmp_path, scope.Scope(), repo_ignore=[]), tmp_path)
+    assert got == {"app/keep.py"}
 
 
 def test_iter_paths_ignore_glob_removes_matches(tmp_path):

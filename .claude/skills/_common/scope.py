@@ -14,6 +14,14 @@ directories minus the host's `## Ignore` globs. Declaring explicit `## Roots`
 is an *optional narrowing*, not the primary knob — a host says what to leave
 out, not what to let in.
 
+The ignore set is layered widest-to-narrowest: (1) ``BUILTIN_SKIP_DIRS`` /
+``BUILTIN_SKIP_PREFIXES``, the toolkit-shipped noise floor; (2) a **repo-wide
+host ignore** (`.engineering/docs/ignore.md`, read by ``load_repo_ignore``)
+subtracted from *every* skill's universe — the "system-level gitignore"
+companion to the per-skill knob; (3) each skill's own `## Ignore`. All three
+only ever subtract; a skill's optional `## Roots` is the one knob that adds
+back, by narrowing.
+
 Descriptor format (loose markdown, stdlib-parseable — no PyYAML):
 
     ## Ignore
@@ -61,10 +69,15 @@ BUILTIN_SKIP_DIRS = frozenset({
 
 # Repo-relative POSIX *prefixes* pruned during the walk. Unlike the bare-name
 # dirs above these are anchored multi-segment subtrees. `.claude/worktrees`
-# holds live agent git worktrees (a whole second checkout) — never the host's
-# own source.
+# holds live agent git worktrees (a whole second checkout); `.engineering` is
+# the cross-agent state home (config descriptors, manifest, project state) —
+# both are infrastructure, never the host's own source. The repo-wide
+# `ignore.md` lives under `.engineering`, but ``load_repo_ignore`` reads it
+# directly (not via the walk), so pruning the subtree only keeps the descriptors
+# themselves out of scan *results*, where they would be noise.
 BUILTIN_SKIP_PREFIXES = (
     ".claude/worktrees",
+    ".engineering",
 )
 
 
@@ -156,6 +169,28 @@ def load_scope(repo_root: Path | str, skill_name: str) -> Scope:
     return Scope(roots=roots, ignore=ignore, source=path)
 
 
+def load_repo_ignore(repo_root: Path | str) -> list[str]:
+    """Repo-wide host ignore globs from `.engineering/docs/ignore.md`, or ``[]``.
+
+    The host-wide companion to per-skill ``scope.ignore``: a single descriptor
+    whose `## Ignore` globs are removed from *every* skill's universe — the
+    "system-level gitignore" layer — on top of the builtin skips and beneath
+    each skill's own `## Ignore`. Absent or unreadable → ``[]`` (no extra
+    ignores; the ignore-first fallback still applies). Any `## Roots` in the file
+    is discarded: a repo-wide *narrowing* is nonsensical, a global ignore only
+    ever subtracts.
+    """
+    path, _used_legacy = _home.docs_path(Path(repo_root), "ignore.md")
+    if not path.is_file():
+        return []
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
+    _roots, ignore = parse_scope(text)
+    return ignore
+
+
 def parse_sections(text: str, section_map: dict[str, set[str]]) -> dict[str, list[str]]:
     """Parse named glob-bullet sections from a descriptor body.
 
@@ -224,18 +259,26 @@ def iter_paths(
     scope: Scope,
     *,
     extensions: frozenset[str] | None = None,
+    repo_ignore: list[str] | None = None,
 ) -> list[Path]:
     """Return absolute paths of repo files in ``scope``, ignore-first.
 
     Universe = every file under ``repo_root``, pruning ``BUILTIN_SKIP_DIRS``
-    directories and ``BUILTIN_SKIP_PREFIXES`` subtrees, minus ``scope.ignore``
-    globs, narrowed to ``scope.roots`` when those are set. Optional
-    ``extensions`` (e.g. ``{".py"}``) filters by suffix; ``None`` = all files.
-    Sorted for deterministic output.
+    directories and ``BUILTIN_SKIP_PREFIXES`` subtrees, minus the repo-wide host
+    ignore and ``scope.ignore`` globs, narrowed to ``scope.roots`` when those are
+    set. Optional ``extensions`` (e.g. ``{".py"}``) filters by suffix; ``None`` =
+    all files. Sorted for deterministic output.
+
+    ``repo_ignore`` defaults to ``load_repo_ignore(repo_root)`` so every caller
+    inherits the repo-wide layer; pass an explicit list (e.g. ``[]``) to override
+    it — used by unit tests isolating the per-skill walk from any on-disk
+    `ignore.md`.
     """
     repo_root = Path(repo_root)
+    if repo_ignore is None:
+        repo_ignore = load_repo_ignore(repo_root)
     roots = scope.roots or None
-    ignore = scope.ignore
+    ignore = scope.ignore + repo_ignore
     out: list[Path] = []
     for dirpath, dirnames, filenames in os.walk(repo_root):
         rel_dir = Path(dirpath).relative_to(repo_root).as_posix()
