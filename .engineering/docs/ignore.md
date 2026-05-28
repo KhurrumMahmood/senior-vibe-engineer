@@ -25,6 +25,11 @@ report the honest answer about the toolkit itself. `## Roots` is deliberately
 omitted: a repo-wide *narrowing* is nonsensical, and the loader discards any
 roots found here anyway.
 
+Patterns are `fnmatch` globs over the repo-relative POSIX path, not gitignore
+syntax: `*` matches across `/` (so `app/*.py` also matches `app/sub/x.py`),
+`**` is not special, and a bare directory name matches that directory and
+everything beneath it. Anchor a pattern by writing its leading path segments.
+
 ## Ignore
 
 - `.claude/skills/*/fixtures` — skill test fixtures (sample app trees, not toolkit source)

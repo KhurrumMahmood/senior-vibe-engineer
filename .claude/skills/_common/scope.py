@@ -34,10 +34,21 @@ Descriptor format (loose markdown, stdlib-parseable — no PyYAML):
 
 `## Scan` is an accepted alias for `## Roots`. Each bullet's pattern is the
 backtick-delimited token if present, else the text before a ` — ` rationale.
-Patterns are fnmatch globs over the **repo-relative POSIX path** (consistent
-with the `todo-tuning.md` `## Path skip` precedent this generalizes), with a
-gitignore-style subtree rule: a pattern naming a directory also matches
-everything beneath it.
+
+Pattern matching is `fnmatch` over the **repo-relative POSIX path** (it
+generalizes the `todo-tuning.md` `## Path skip` precedent), NOT gitignore
+syntax — the "gitignore" nicknames above are an analogy for the *concept*
+(per-skill / per-repo ignore lists), not the matcher. The semantics a host
+author has to know, because they differ from gitignore:
+  - `*` matches across `/`: `app/*.py` also matches `app/sub/x.py`, and a bare
+    `*.py` matches at any depth.
+  - `**` is NOT special — it is just two `*`. A leading `**/` therefore needs
+    ≥1 preceding segment: `**/migrations/**` matches `app/x/migrations/0001.py`
+    but NOT top-level `migrations/0001.py`. Anchor instead by writing the
+    leading segments, or use a bare directory name.
+  - A pattern naming a directory (bare name or `dir/`) matches that directory
+    and everything beneath it — the gitignore-style subtree rule. There is no
+    negation and no leading-`/` anchor.
 
 Stdlib-only. Read-only against the project.
 """
@@ -101,6 +112,11 @@ class Scope:
 # Headings (normalized to lowercase) that select each section.
 _IGNORE_HEADINGS = {"ignore", "ignores", "skip", "path skip", "paths to skip"}
 _ROOTS_HEADINGS = {"roots", "root", "scan", "scan roots", "include"}
+
+# Repo-wide `ignore.md` paths whose inert `## Roots` we have already warned
+# about — one stderr line per file per process, so a misconfig is loud once
+# without spamming every scan.
+_warned_inert_roots: set[str] = set()
 
 
 def _bullet_token(line: str) -> str | None:
@@ -177,8 +193,9 @@ def load_repo_ignore(repo_root: Path | str) -> list[str]:
     "system-level gitignore" layer — on top of the builtin skips and beneath
     each skill's own `## Ignore`. Absent or unreadable → ``[]`` (no extra
     ignores; the ignore-first fallback still applies). Any `## Roots` in the file
-    is discarded: a repo-wide *narrowing* is nonsensical, a global ignore only
-    ever subtracts.
+    is discarded (a repo-wide *narrowing* is nonsensical; a global ignore only
+    ever subtracts) — and triggers a one-time stderr warning so the inert
+    section is visible rather than silently dropped.
     """
     path, _used_legacy = _home.docs_path(Path(repo_root), "ignore.md")
     if not path.is_file():
@@ -187,7 +204,14 @@ def load_repo_ignore(repo_root: Path | str) -> list[str]:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return []
-    _roots, ignore = parse_scope(text)
+    roots, ignore = parse_scope(text)
+    if roots and str(path) not in _warned_inert_roots:
+        _warned_inert_roots.add(str(path))
+        print(
+            f"scope: ignoring the `## Roots` section in {path} — a repo-wide "
+            "ignore only subtracts; declare roots per skill, not repo-wide.",
+            file=sys.stderr,
+        )
     return ignore
 
 

@@ -123,6 +123,20 @@ def test_load_repo_ignore_discards_roots(tmp_path):
     assert scope.load_repo_ignore(tmp_path) == ["reports/"]
 
 
+def test_load_repo_ignore_warns_on_inert_roots(tmp_path, capsys):
+    # Discarding ## Roots is not enough — a silent drop is a footgun, so an
+    # inert repo-wide narrowing is announced on stderr (once per file).
+    _touch(
+        tmp_path,
+        ".engineering/docs/ignore.md",
+        "## Roots\n- app/\n\n## Ignore\n- `reports/`\n",
+    )
+    assert scope.load_repo_ignore(tmp_path) == ["reports/"]
+    err = capsys.readouterr().err
+    assert "## Roots" in err
+    assert "ignore.md" in err
+
+
 def test_iter_paths_applies_repo_wide_ignore(tmp_path):
     # The repo-wide layer subtracts from every skill's universe, even an empty Scope.
     _touch(tmp_path, "app/foo.py")
