@@ -17,17 +17,39 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
+import scope as _scope  # noqa: E402
 
-# Path fragment -> divergence risk baseline.
-DIVERGENCE_BY_PATH: list[tuple[str, float]] = [
-    ("core/services/", 3.0),
-    ("core/tasks", 3.0),
-    ("core/proxy_services", 3.0),
-    ("core/scrapers/", 3.0),
-    ("core/views", 2.0),
-    ("core/management/commands/", 1.5),
-    ("scripts/", 1.0),
-]
+
+# Path-fragment -> divergence-risk weights are HOST-AUTHORED data, not baked-in
+# code: a project that wants path-sensitive ranking declares them in
+# `.engineering/docs/find-duplication-scope.md` under `## Divergence weights`
+# as `` `<fragment>=<weight>` `` bullets (e.g. `` `services/=3.0` ``). The toolkit
+# ships an empty default, so it assumes nothing about any host's folder layout:
+# with no descriptor every path scores the neutral 1.0 and ranking falls back to
+# multiplicity x keyword-risk x blast-radius.
+DEFAULT_DIVERGENCE_WEIGHTS: list[tuple[str, float]] = []
+
+
+def load_divergence_weights(project_root: Path) -> list[tuple[str, float]]:
+    """Host-authored `(fragment, weight)` pairs from the find-duplication scope
+    descriptor's `## Divergence weights` section; the empty default when absent."""
+    text = _scope.descriptor_text(project_root, "find-duplication")
+    if not text:
+        return list(DEFAULT_DIVERGENCE_WEIGHTS)
+    tokens = _scope.parse_sections(
+        text, {"weights": {"divergence weights", "divergence-weights", "weights"}}
+    )["weights"]
+    weights: list[tuple[str, float]] = []
+    for token in tokens:
+        fragment, sep, raw = token.partition("=")
+        if not sep:
+            continue
+        try:
+            weights.append((fragment.strip(), float(raw.strip())))
+        except ValueError:
+            continue
+    return weights
 
 # Filename keywords that bump divergence risk (money / auth / proxy code).
 HIGH_RISK_KEYWORDS: set[str] = {
@@ -46,8 +68,8 @@ SHAPE_BLAST: dict[str, float] = {
 }
 
 
-def _path_score(path: str) -> float:
-    for frag, score in DIVERGENCE_BY_PATH:
+def _path_score(path: str, weights: list[tuple[str, float]] | None = None) -> float:
+    for frag, score in (weights or []):
         if frag in path:
             return score
     return 1.0
@@ -59,11 +81,14 @@ def _keyword_bump(path: str) -> float:
     return min(bump, 2.0)
 
 
-def divergence_risk(sites: list[dict[str, Any]]) -> float:
+def divergence_risk(
+    sites: list[dict[str, Any]], weights: list[tuple[str, float]] | None = None
+) -> float:
     if not sites:
         return 1.0
+    weights = weights or []
     return max(
-        _path_score(s.get("file", "") or "") + _keyword_bump(s.get("file", "") or "")
+        _path_score(s.get("file", "") or "", weights) + _keyword_bump(s.get("file", "") or "")
         for s in sites
     )
 
