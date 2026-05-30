@@ -89,9 +89,9 @@ V1 shapes:
 
 ## Project Context
 
-The router reads `.claude/project/adapter.yml`,
-`.claude/project/profile.yml`, and `.claude/project/open-questions.md`
-when present.
+The router reads `.engineering/project/adapter.yml`,
+`.engineering/project/profile.yml`, and
+`.engineering/project/open-questions.md` when present.
 
 Missing project context is a routing signal, not a universal blocker.
 Broad unknown-project prompts should route to `project-intake`; narrow

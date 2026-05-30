@@ -25,6 +25,7 @@ COMMON_DIR = REPO_ROOT / ".claude" / "skills" / "_common"
 if str(COMMON_DIR) not in sys.path:
     sys.path.insert(0, str(COMMON_DIR))
 
+import engineering_home as _eh  # noqa: E402
 from skill_use import log_event  # noqa: E402
 
 SCHEMA_VERSION = 1
@@ -110,7 +111,7 @@ def load_shapes(path: Path = DEFAULT_SHAPES) -> list[dict[str, Any]]:
 
 
 def project_context_state(project_root: Path) -> dict[str, Any]:
-    project_dir = project_root / ".claude" / "project"
+    project_dir = _eh.project_dir(project_root)
     adapter = project_dir / "adapter.yml"
     profile = project_dir / "profile.yml"
     open_questions = project_dir / "open-questions.md"

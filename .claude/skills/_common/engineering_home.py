@@ -32,6 +32,7 @@ ENGINEERING_DIRNAME = ".engineering"
 MANIFEST_FILENAME = "manifest.json"
 DOCS_SUBDIR = "docs"
 LOCAL_SUBDIR = "local"  # the only gitignored path inside .engineering/
+PROJECT_SUBDIR = "project"  # durable per-project adaptation state (adapter/profile)
 
 # Schema version of the .engineering/ layout. Readers check it; a mismatch is
 # the signal to run a documented migration, never a crash (ADR 0021).
@@ -49,6 +50,19 @@ def engineering_dir(root: Path | str) -> Path:
 def manifest_path(root: Path | str) -> Path:
     """`<root>/.engineering/manifest.json`."""
     return engineering_dir(root) / MANIFEST_FILENAME
+
+
+def project_dir(root: Path | str) -> Path:
+    """`<root>/.engineering/project` — durable per-project adaptation state.
+
+    Home of the `/adapt-project` and `/project-interview` outputs
+    (`adapter.yml`, `profile.yml`, `open-questions.md`). This is committed-zone
+    state (ADR 0021): durable team knowledge that travels with the repo, so it
+    belongs under `.engineering/` and never under any one agent's folder
+    (`.claude/`). Distinct from the *project root* passed as ``root``, and from
+    the top-level `project-state.json` (ADR 0020 maturity state).
+    """
+    return engineering_dir(root) / PROJECT_SUBDIR
 
 
 def read_manifest(root: Path | str) -> dict | None:

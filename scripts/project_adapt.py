@@ -25,6 +25,12 @@ import yaml
 SCRIPT_PATH = Path(__file__).resolve()
 REPO_ROOT = SCRIPT_PATH.parent.parent
 
+# The committed-zone path layout (`.engineering/...`) lives in exactly one
+# place — engineering_home — so durable host writes never re-bake the folder
+# convention (ADR 0021). Stdlib + PyYAML script; engineering_home is stdlib.
+sys.path.insert(0, str(REPO_ROOT / ".claude" / "skills" / "_common"))
+import engineering_home as _eh  # noqa: E402
+
 ADAPTER_SCHEMA_VERSION = 1
 PROFILE_SCHEMA_VERSION = 1
 TIMESTAMP_RE = re.compile(r"^scan-\d{8}-\d{6}$")
@@ -533,7 +539,7 @@ def write_discovery(
     )
     _update_latest(scan_dir)
     if apply:
-        dest = project_root / ".claude" / "project" / "adapter.yml"
+        dest = _eh.project_dir(project_root) / "adapter.yml"
         _safe_yaml_dump(dest, adapter)
     return scan_dir
 
@@ -580,7 +586,7 @@ def write_profile_draft(
     )
     _update_latest(scan_dir)
     if apply:
-        dest_dir = project_root / ".claude" / "project"
+        dest_dir = _eh.project_dir(project_root)
         _safe_yaml_dump(dest_dir / "profile.yml", profile)
         (dest_dir / "profile.md").write_text(profile_markdown(profile), encoding="utf-8")
         (dest_dir / "open-questions.md").write_text(open_questions_markdown(profile), encoding="utf-8")
@@ -755,7 +761,7 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
     parser.add_argument("--artifact-root", type=Path, default=Path.cwd())
     parser.add_argument("--timestamp", help="Stable scan timestamp for tests, e.g. 20260517-120000")
-    parser.add_argument("--apply", action="store_true", help="Write durable .claude/project files")
+    parser.add_argument("--apply", action="store_true", help="Write durable .engineering/project files")
     parser.add_argument("--no-host-write", action="store_true", help="Assert this run must not write to project-root")
 
 

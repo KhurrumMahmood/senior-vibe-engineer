@@ -1,6 +1,6 @@
 ---
 name: project-interview
-description: Build the human-approved project profile that complements /adapt-project discovery. Reads repository facts first, then interviews the user about purpose, maturity, critical workflows, risk posture, desired direction, intentional tradeoffs, known-bad legacy patterns, and do-not-break surfaces. Writes draft artifacts under reports/project-interview/scan-<TS>/ by default; durable .claude/project/profile.yml, profile.md, and open-questions.md require --apply.
+description: Build the human-approved project profile that complements /adapt-project discovery. Reads repository facts first, then interviews the user about purpose, maturity, critical workflows, risk posture, desired direction, intentional tradeoffs, known-bad legacy patterns, and do-not-break surfaces. Writes draft artifacts under reports/project-interview/scan-<TS>/ by default; durable .engineering/project/profile.yml, profile.md, and open-questions.md require --apply.
 argument-hint: "[--project-root <path>] [--artifact-root <path>] [--apply|--no-host-write]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -42,10 +42,10 @@ tradeoffs, or whether a repeated pattern is healthy.
 
 The deliverable is a draft or applied profile:
 
-- `.claude/project/profile.yml` — machine-readable, human-approved
+- `.engineering/project/profile.yml` — machine-readable, human-approved
   project intent.
-- `.claude/project/profile.md` — readable summary.
-- `.claude/project/open-questions.md` — unresolved questions agents
+- `.engineering/project/profile.md` — readable summary.
+- `.engineering/project/open-questions.md` — unresolved questions agents
   should revisit.
 
 ## Forms
@@ -59,7 +59,7 @@ The deliverable is a draft or applied profile:
 
 Default behavior writes a draft under
 `reports/project-interview/scan-<TS>/`. `--apply` writes durable files
-under `.claude/project/`. `--no-host-write` is the dogfood mode and
+under `.engineering/project/`. `--no-host-write` is the dogfood mode and
 requires `--artifact-root` outside the host project.
 
 ## Pipeline

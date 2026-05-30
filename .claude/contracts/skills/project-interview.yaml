@@ -6,7 +6,7 @@ schema_version: 2
 skill: project-interview
 job: meta
 problem_class: "human-intent project profiling (META)"
-intent: "Build the human-approved project profile that complements /adapt-project discovery. Reads repository facts first, then interviews the user about purpose, maturity, critical workflows, risk posture, desired direction, intentional tradeoffs, known-bad legacy patterns, and do-not-break surfaces. Writes draft artifacts under reports/project-interview/scan-<TS>/ by default; durable .claude/project/profile.yml, profile.md, and open-questions.md require --apply."
+intent: "Build the human-approved project profile that complements /adapt-project discovery. Reads repository facts first, then interviews the user about purpose, maturity, critical workflows, risk posture, desired direction, intentional tradeoffs, known-bad legacy patterns, and do-not-break surfaces. Writes draft artifacts under reports/project-interview/scan-<TS>/ by default; durable .engineering/project/profile.yml, profile.md, and open-questions.md require --apply."
 solves: "/adapt-project can discover facts but cannot safely infer purpose, priorities, risk posture, intentional tradeoffs, or whether a repeated pattern is healthy. Without a human-approved profile, future skills (which-skill, planning, prevent-regression) lack the intent context that should constrain them — and a messy project's repeated scars get mistaken for examples worth standardizing."
 born:
   commit: "a582cbf"

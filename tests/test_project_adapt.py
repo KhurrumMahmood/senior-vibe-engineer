@@ -90,7 +90,7 @@ def test_no_host_write_stores_artifacts_outside_target(tmp_path):
 
     assert scan_dir == artifacts / "reports" / "adapt-project" / "scan-20260517-120000"
     assert (scan_dir / "adapter.yml").is_file()
-    assert not (project / ".claude" / "project" / "adapter.yml").exists()
+    assert not (project / ".engineering" / "project" / "adapter.yml").exists()
 
 
 def test_no_host_write_rejects_artifact_root_inside_target(tmp_path):
@@ -107,7 +107,7 @@ def test_no_host_write_rejects_artifact_root_inside_target(tmp_path):
         )
 
     assert not (project / "reports").exists()
-    assert not (project / ".claude" / "project" / "adapter.yml").exists()
+    assert not (project / ".engineering" / "project" / "adapter.yml").exists()
 
 
 def test_apply_writes_project_adapter(tmp_path):
@@ -121,7 +121,7 @@ def test_apply_writes_project_adapter(tmp_path):
         no_host_write=False,
     )
 
-    assert (tmp_path / ".claude" / "project" / "adapter.yml").is_file()
+    assert (tmp_path / ".engineering" / "project" / "adapter.yml").is_file()
 
 
 def test_schema_validators_accept_generated_artifacts(tmp_path):

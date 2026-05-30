@@ -1,6 +1,6 @@
 ---
 name: adapt-project
-description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads stack markers, commands, tests, CI, docs, source roots, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .claude/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
+description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads stack markers, commands, tests, CI, docs, source roots, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
 argument-hint: "[--project-root <path>] [--artifact-root <path>] [--apply|--no-host-write]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -57,8 +57,9 @@ and human review decide what deserves to become doctrine.
 
 Default behavior writes only a timestamped report under
 `reports/adapt-project/scan-<TS>/`. `--apply` additionally writes the
-durable adapter to `.claude/project/adapter.yml` in the host project.
-`--no-host-write` is mutually exclusive with `--apply` and is the
+durable adapter to `.engineering/project/adapter.yml` in the host project
+(the committed-zone state home, ADR 0021 — not under any one agent's
+folder). `--no-host-write` is mutually exclusive with `--apply` and is the
 dogfood mode for evaluating another repo. When `--no-host-write` is
 used, `--artifact-root` must be outside the host project.
 
@@ -103,7 +104,7 @@ Each scan directory contains:
 
 Durable project state, when `--apply` is used:
 
-- `.claude/project/adapter.yml`
+- `.engineering/project/adapter.yml`
 
 ## Dogfood
 
