@@ -29,7 +29,7 @@ then runs the repo scan.
 **Form B — explicit ``<file>::<field>`` target.**
 ::
 
-    collect.py --target core/models/crawl_jobs.py::status \\
+    collect.py --target <pkg>/models/crawl_jobs.py::status \\
       --project-root /path/to/your-project \\
       --output reports/extract-enum/<target>/targets.json
 
@@ -42,7 +42,7 @@ Output schema (written to ``--output``)::
       "target_slug": "crawl_jobs__status",
       "model_class": "CrawlJob",
       "field_name": "status",
-      "field_file": "core/models/crawl_jobs.py",
+      "field_file": "<pkg>/models/crawl_jobs.py",
       "field_symbol": "CrawlJob.status",
       "current_kwargs": {
         "max_length": 20,
@@ -54,18 +54,18 @@ Output schema (written to ``--output``)::
         {"value": "Pending", "count": 2, "case_variant_of": "pending"}
       ],
       "comparison_sites": [
-        {"file": "core/views/crawling.py", "symbol": "is_pending",
+        {"file": "<pkg>/views/crawling.py", "symbol": "is_pending",
          "op": "==", "literal": "pending",
          "evidence": "job.status == 'pending'"}
       ],
       "assignment_sites": [
-        {"file": "core/tasks/crawling.py", "symbol": "start_job",
+        {"file": "<pkg>/tasks/crawling.py", "symbol": "start_job",
          "literal": "running",
          "evidence": "job.status = 'running'"}
       ],
       "callers_by_file": {
-        "core/views/crawling.py": 4,
-        "core/tasks/crawling.py": 8
+        "<pkg>/views/crawling.py": 4,
+        "<pkg>/tasks/crawling.py": 8
       }
     }
 
@@ -88,6 +88,9 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
+import scope as _scope  # noqa: E402
 
 STATE_FIELD_CALLS = frozenset({"CharField", "TextField"})
 
@@ -704,31 +707,24 @@ def _parse_explicit_target(target: str) -> tuple[str, str, str | None]:
 def _find_model_declaration_file(
     project_root: Path, model_class: str
 ) -> Path | None:
-    """Locate the file declaring ``class <model_class>(`` under ``core/models/``.
+    """Locate the file declaring ``class <model_class>(`` anywhere in scope.
 
-    Falls back to ``core/`` when not found there. Returns the first file
-    matched. Skips standard noise dirs (migrations, __pycache__, etc.).
+    Walks the host-authored ignore-first scope (whole repo minus the builtin
+    noise floor minus the host's `## Ignore`, or the optional `## Roots`
+    narrowing) rather than assuming any one app-root layout. Returns the first
+    file (the iterator is already sorted) whose text contains
+    ``class <model_class>(``, else ``None``.
     """
-    import re
-
-    pattern = re.compile(rf"^\s*class\s+{re.escape(model_class)}\b")
-    seen: set[Path] = set()
-    for base_rel in ("core/models", "core"):
-        base = project_root / base_rel
-        if not base.exists():
+    needle = f"class {model_class}("
+    for path in _scope.iter_paths(
+        project_root, _scope.Scope(), extensions=frozenset({".py"})
+    ):
+        try:
+            src = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
             continue
-        for path in base.rglob("*.py"):
-            if path in seen:
-                continue
-            seen.add(path)
-            if any(part in _DEFAULT_SKIP_DIRS for part in path.parts):
-                continue
-            try:
-                src = path.read_text(encoding="utf-8")
-            except (OSError, UnicodeDecodeError):
-                continue
-            if any(pattern.match(line) for line in src.splitlines()):
-                return path
+        if needle in src:
+            return path
     return None
 
 
@@ -738,7 +734,7 @@ def main(argv: list[str] | None = None) -> int:
     src.add_argument("--from-finding", dest="from_finding", metavar="CANDIDATE_ID",
                      help="Candidate ID in --findings to resolve")
     src.add_argument("--target", dest="target", metavar="FILE::FIELD",
-                     help="Explicit target, e.g. core/models/crawl_jobs.py::status")
+                     help="Explicit target, e.g. <pkg>/models/crawl_jobs.py::status")
     parser.add_argument("--findings", type=Path,
                         default=Path("reports/implicit-state/latest/findings.json"),
                         help="findings.json from /find-implicit-state (Form A)")
@@ -784,7 +780,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     if decl is None and model_class:
         # The finding's file may be a caller site, not the model declaration.
-        # Fall back to searching core/models/ for `class <model_class>(`.
+        # Fall back to searching the in-scope tree for `class <model_class>(`.
         alt_path = _find_model_declaration_file(project_root, model_class)
         if alt_path is not None:
             try:

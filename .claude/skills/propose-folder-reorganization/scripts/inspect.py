@@ -7,7 +7,7 @@ Given a parent directory and a leading-underscore prefix, gather:
                      a cluster member, with the after-rename target
                      precomputed
   - matched_tests:   tests_<prefix>_*.py files at the parent (or at the
-                     project root for `core/`) that exercise cluster
+                     project root / an app root) that exercise cluster
                      members
   - singletons_at_parent: count of sibling files at the parent that are
                      NOT in the cluster and NOT in noise tokens
@@ -55,19 +55,54 @@ NOISE_TOKENS = {
     "tests",
 }
 
-# Known scratch-code prefixes — see project memory
-# project_core_vs_scratch_code.md.
-SCRATCH_CODE_PREFIXES = (
-    "core/management/commands/_experiments/",
+# Path *segments* that mark a directory as scratch / experimental code,
+# matched anywhere in the parent's path (location-independent — no app-root
+# literal). e.g. `_experiments` matches `core/.../_experiments/x`,
+# `app/.../_experiments/x`, or a top-level `experiments/x`.
+SCRATCH_CODE_SEGMENTS = (
+    "_experiments",
+    "experiments",
+    "sandbox",
+    "scratch",
+    "tmp",
+    "_archive",
 )
 
-# Django and other frameworks discover modules by file name in some
-# directories; collapsing into subfolders breaks the contract. The
-# proposal flags these so the orchestrator can recommend
-# `defer_framework_convention`.
-FRAMEWORK_CONVENTION_PARENTS = {
-    "core/management/commands",
-}
+# Django (and similar frameworks) discover modules by file name in some
+# directories; collapsing into subfolders breaks the contract. These are
+# matched as path *suffixes* so they hold for ANY app root (`core/`, `app/`,
+# `src/x/`, …) rather than a single hardcoded directory. The proposal flags
+# a hit so the orchestrator can recommend `defer_framework_convention`.
+FRAMEWORK_CONVENTION_SUFFIXES = (
+    "management/commands",
+    "management",
+    "migrations",
+    "templatetags",
+)
+
+
+def _posix(parent_rel: str) -> str:
+    """Normalize a relative parent path to POSIX separators for matching."""
+    return parent_rel.replace("\\", "/").strip("/")
+
+
+def _is_scratch(parent_rel: str) -> bool:
+    """True when any path segment marks scratch / experimental code."""
+    segments = _posix(parent_rel).split("/")
+    return any(seg in SCRATCH_CODE_SEGMENTS for seg in segments)
+
+
+def _is_framework_convention(parent_rel: str) -> bool:
+    """True when the parent equals or ends with a framework-convention dir
+    (``management/commands``, ``management``, ``migrations``, ``templatetags``)
+    for any app root — the sanctioned "assume the Django convention, not a
+    specific directory" case.
+    """
+    rel = _posix(parent_rel)
+    for suffix in FRAMEWORK_CONVENTION_SUFFIXES:
+        if rel == suffix or rel.endswith("/" + suffix):
+            return True
+    return False
 
 
 def _is_excluded_dir(path: Path, extra_globs: list[str]) -> bool:
@@ -219,7 +254,7 @@ def _import_impact(
     The importer path is project-relative. statement is the source line
     text (truncated to 200 chars). current_module is the dotted path
     that resolves to a cluster member; new_module is the
-    after-rename target. Both absolute (`from core.views.site_config_x
+    after-rename target. Both absolute (`from pkg.views.site_config_x
     import Y`) and relative (`from .site_config_x import Y`) imports
     are matched.
     """
@@ -289,9 +324,11 @@ def _matched_tests(
     """Find tests_<prefix>_*.py files exercising cluster members.
 
     Searches:
-      - the parent itself (e.g. `core/views/`)
-      - the project root if parent is `core/` (matches the user's
-        primary complaint: 99 `tests_*.py` at `core/` root)
+      - the parent itself (e.g. `<package>/views/`)
+      - the project root (matches the common complaint of many
+        `tests_*.py` siblings piled at the repo root)
+      - the parent's top-level app root (e.g. tests piled at
+        `<app>/` for a `<app>/views/<prefix>_*` cluster)
     """
     results: list[dict] = []
     candidates: list[Path] = []
@@ -311,17 +348,23 @@ def _matched_tests(
             if p not in candidates:
                 candidates.append(p)
 
-    # Tests under core/ when the cluster lives in core/* — the user's
-    # primary case (`tests/test_site_config_*.py` for the
-    # `core/views/site_config_*` cluster).
-    core = project_root / "core"
-    if core.is_dir() and core != parent:
-        for p in core.iterdir():
-            if not (p.is_file() and p.suffix == ".py"):
-                continue
-            if p.stem.startswith(f"tests_{prefix}_"):
-                if p not in candidates:
-                    candidates.append(p)
+    # Tests piled at the parent's top-level app root when the cluster
+    # lives a level or more below it (e.g. `<app>/tests_<prefix>_*.py`
+    # for a `<app>/views/<prefix>_*` cluster). Derived from the parent's
+    # own path — no hardcoded app-root name.
+    try:
+        parent_rel_parts = parent.relative_to(project_root).parts
+    except ValueError:
+        parent_rel_parts = ()
+    if len(parent_rel_parts) > 1:
+        app_root = project_root / parent_rel_parts[0]
+        if app_root.is_dir() and app_root != parent:
+            for p in app_root.iterdir():
+                if not (p.is_file() and p.suffix == ".py"):
+                    continue
+                if p.stem.startswith(f"tests_{prefix}_"):
+                    if p not in candidates:
+                        candidates.append(p)
 
     for test_path in sorted(candidates):
         # Pair the test with the most-likely cluster file by stem
@@ -351,11 +394,9 @@ def _defer_signals(
     signals: list[str] = []
     if len(cluster_paths) < min_cluster_size:
         signals.append("cluster_below_threshold")
-    for prefix in SCRATCH_CODE_PREFIXES:
-        if parent_rel.startswith(prefix.rstrip("/")):
-            signals.append("scratch_code")
-            break
-    if parent_rel in FRAMEWORK_CONVENTION_PARENTS:
+    if _is_scratch(parent_rel):
+        signals.append("scratch_code")
+    if _is_framework_convention(parent_rel):
         signals.append("framework_convention")
     return signals
 
@@ -420,7 +461,7 @@ def main() -> int:
         "--parent",
         type=Path,
         required=True,
-        help="Parent directory containing the cluster (e.g. core/views).",
+        help="Parent directory containing the cluster (e.g. <package>/views).",
     )
     parser.add_argument(
         "--prefix",
