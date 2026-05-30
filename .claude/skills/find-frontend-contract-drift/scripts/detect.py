@@ -9,7 +9,10 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
-from product_topology import extract_window_accesses, iter_files, write_jsonl  # noqa: E402
+import scope as _scope  # noqa: E402
+from product_topology import extract_window_accesses, write_jsonl  # noqa: E402
+
+SKILL_NAME = "find-frontend-contract-drift"
 
 BROWSER_GLOBALS = {
     "document",
@@ -533,9 +536,35 @@ def _top_level_js_declarations(js_paths: list[Path], project_root: Path) -> dict
     return declarations
 
 
-def detect(project_root: Path, template_root: Path, js_root: Path, boot_threshold: int) -> list[dict[str, object]]:
-    template_paths = iter_files(template_root, (".html",))
-    js_paths = iter_files(js_root, (".js",))
+def _is_under(path: Path, root: Path) -> bool:
+    """True if ``path`` is ``root`` or lives beneath it (resolved)."""
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except ValueError:
+        return False
+
+
+def detect(
+    *,
+    project_root: Path,
+    scope: _scope.Scope,
+    boot_threshold: int,
+    template_root: Path | None = None,
+    js_root: Path | None = None,
+) -> list[dict[str, object]]:
+    # Select frontend files by EXTENSION over the whole repo, ignore-first
+    # (BUILTIN_SKIP_DIRS + repo-wide ignore.md + this skill's `## Ignore`),
+    # narrowed only by the host's `## Roots` — no baked `templates/` or
+    # `static/js` scan root (ADR 0021). The optional `--template-root` /
+    # `--js-root` overrides are a per-invocation narrowing applied on top of
+    # the extension-selected set, not a layout assumption.
+    template_paths = _scope.iter_paths(project_root, scope, extensions={".html"})
+    js_paths = _scope.iter_paths(project_root, scope, extensions={".js"})
+    if template_root is not None:
+        template_paths = [p for p in template_paths if _is_under(p, template_root)]
+    if js_root is not None:
+        js_paths = [p for p in js_paths if _is_under(p, js_root)]
     functions_by_file = _function_blocks(js_paths, project_root)
     exports = _namespace_exports(js_paths, project_root, functions_by_file)
     shared_js_files = _shared_script_files(template_paths, project_root)
@@ -684,16 +713,49 @@ def detect(project_root: Path, template_root: Path, js_root: Path, boot_threshol
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
-    parser.add_argument("--template-root", type=Path, default=Path("templates"))
-    parser.add_argument("--js-root", type=Path, default=Path("static/js"))
+    parser.add_argument(
+        "--template-root",
+        type=Path,
+        default=None,
+        help=(
+            "optional per-invocation override; default is the whole repo, "
+            "narrowed only by the host's scope/ignore descriptors."
+        ),
+    )
+    parser.add_argument(
+        "--js-root",
+        type=Path,
+        default=None,
+        help=(
+            "optional per-invocation override; default is the whole repo, "
+            "narrowed only by the host's scope/ignore descriptors."
+        ),
+    )
     parser.add_argument("--boot-threshold", type=int, default=3)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
     project_root = args.project_root.resolve()
-    template_root = args.template_root if args.template_root.is_absolute() else project_root / args.template_root
-    js_root = args.js_root if args.js_root.is_absolute() else project_root / args.js_root
-    findings = detect(project_root, template_root, js_root, args.boot_threshold)
+    scope = _scope.load_scope(project_root, SKILL_NAME)
+    template_root = None
+    if args.template_root is not None:
+        template_root = (
+            args.template_root if args.template_root.is_absolute()
+            else project_root / args.template_root
+        )
+    js_root = None
+    if args.js_root is not None:
+        js_root = (
+            args.js_root if args.js_root.is_absolute()
+            else project_root / args.js_root
+        )
+    findings = detect(
+        project_root=project_root,
+        scope=scope,
+        boot_threshold=args.boot_threshold,
+        template_root=template_root,
+        js_root=js_root,
+    )
     write_jsonl(findings, args.output)
     print(f"wrote {args.output}: {len(findings)} findings")
     return 0
