@@ -36,7 +36,10 @@ for.
 
 - **Template root:** `templates/` (default).
 - **JS root:** `static/js/` (default).
-- **Cotton primitive root:** `templates/cotton/`.
+- **Component primitive root:** declared by the project's `component_profile`
+  (`.engineering/manifest.json`, `definitions_root` field), read by
+  `cotton_inventory.py`. No baked-in path — when no `component_profile` is
+  declared (`kind: none`) the inventory is simply empty.
 - **Project root:** this worktree's root.
 - **Python:** `.venv/bin/python` (never bare `python`).
 - **No code edits.** Read-only audit.
@@ -210,7 +213,7 @@ candidate.
 
 | Symptom | Action |
 |---|---|
-| Stage 1 cotton-inventory empty | `templates/cotton/` not at expected path; check project layout |
+| Stage 1 cotton-inventory empty | No `component_profile` declared (`kind: none`), or its `definitions_root` is unset/missing on disk; check `.engineering/manifest.json` |
 | Stage 2 reports 0 candidates | min-tokens / min-count thresholds may be too high — re-run scanners with `--min-count 2 --min-tokens 2` |
 | Stage 4 sub-agent recommends "extract" for a single-callsite chain | Re-dispatch citing `knowledge/extraction-thresholds.md` (3+ callsites across 2+ templates) |
 | Stage 4 confabulates a non-existent file path | Re-dispatch with stricter "verify each cited file exists by listing it" preamble; skip if it fails twice |

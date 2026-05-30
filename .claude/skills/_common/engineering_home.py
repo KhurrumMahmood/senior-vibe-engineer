@@ -141,6 +141,52 @@ def inactive_reason(root: Path | str, skill_name: str) -> str | None:
     return skill_activation(root)["inactive"].get(skill_name) or None
 
 
+# --- Component profile (what the host's UI component system looks like) ------
+# A component-aware skill (e.g. find-frontend-duplication) must not bake in one
+# project's component layout, tag syntax, or file extensions. The host declares
+# them once, per project, in the manifest's `component_profile` block, and the
+# skill reads them through this resolver. `kind == "none"` (the default for an
+# un-adapted repo) is the graceful no-op: no declared component system, so a
+# component inventory is simply empty rather than a crash. Per-kind syntax
+# defaults (Cotton's `<c-*>` tag, `.html`, React's `<Pascal>` in `.jsx/.tsx`)
+# belong in the consuming skill, not here — this resolver stays framework-blind.
+
+
+def component_profile(root: Path | str) -> dict:
+    """Normalized `component_profile` block from the manifest.
+
+    Always returns ``{"kind": str, "definitions_root": str,
+    "reference_pattern": str, "extensions": [str, ...]}``. ``kind`` defaults to
+    ``"none"`` when the manifest, the block, or the field is missing or
+    malformed; the other fields default to empty so the consuming skill can
+    apply its own per-kind defaults.
+    """
+    block = (read_manifest(root) or {}).get("component_profile")
+    if not isinstance(block, dict):
+        block = {}
+    kind = block.get("kind")
+    if not isinstance(kind, str) or not kind.strip():
+        kind = "none"
+    definitions_root = block.get("definitions_root")
+    if not isinstance(definitions_root, str):
+        definitions_root = ""
+    reference_pattern = block.get("reference_pattern")
+    if not isinstance(reference_pattern, str):
+        reference_pattern = ""
+    raw_exts = block.get("extensions")
+    extensions = (
+        [str(e) for e in raw_exts if isinstance(e, str)]
+        if isinstance(raw_exts, list)
+        else []
+    )
+    return {
+        "kind": kind.strip(),
+        "definitions_root": definitions_root,
+        "reference_pattern": reference_pattern,
+        "extensions": extensions,
+    }
+
+
 def _warn_once(message: str, key: str) -> None:
     if key not in _warned:
         _warned.add(key)
