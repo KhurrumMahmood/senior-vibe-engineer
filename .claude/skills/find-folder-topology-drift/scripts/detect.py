@@ -35,25 +35,17 @@ render_simple_report helper can render it.
 from __future__ import annotations
 
 import argparse
-import fnmatch
 import json
 import sys
 from collections import defaultdict
 from pathlib import Path
 
-DEFAULT_MIN_CLUSTER_SIZE = 3
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
+import scope as _scope  # noqa: E402
 
-DEFAULT_EXCLUDE_DIR_NAMES = {
-    "__pycache__",
-    "migrations",
-    "data",
-    ".venv",
-    "node_modules",
-    "staticfiles",
-    ".git",
-    ".pytest_cache",
-    ".ruff_cache",
-}
+SKILL_NAME = "find-folder-topology-drift"
+
+DEFAULT_MIN_CLUSTER_SIZE = 3
 
 # Folder packages whose existence is mandated by a framework runtime
 # (Django auto-discovery, py.test convention) — these never demote
@@ -85,16 +77,6 @@ PREFIX_NOISE_TOKENS = {
     "views",
     "tests",  # caught by the tests_by_prefix band, not flat_prefix_cluster
 }
-
-
-def _is_excluded(path: Path, extra_globs: list[str]) -> bool:
-    if any(part in DEFAULT_EXCLUDE_DIR_NAMES for part in path.parts):
-        return True
-    rel = str(path)
-    for pattern in extra_globs:
-        if fnmatch.fnmatch(rel, pattern):
-            return True
-    return False
 
 
 def _has_subfolder(directory: Path, name: str) -> bool:
@@ -169,7 +151,7 @@ def _child_packages_in(directory: Path) -> list[Path]:
     )
 
 
-def _is_framework_folder(directory: Path, scan_root: Path) -> bool:
+def _is_framework_folder(directory: Path) -> bool:
     """True if directory is a known framework-mandated folder name.
 
     The check is name-based and applies to any directory whose final
@@ -327,11 +309,12 @@ def _scan_pages_route_mirror(
     for parent in sorted(pages_root.iterdir()):
         if not parent.is_dir():
             continue
-        if parent.name in DEFAULT_EXCLUDE_DIR_NAMES:
+        if parent.name in _scope.BUILTIN_SKIP_DIRS:
             continue
         token = _PAGES_PARENT_TO_TOKEN.get(parent.name)
         if token is None:
             continue
+        parent_pkg = rel(parent).replace("/", ".")
         for module in sorted(parent.iterdir()):
             if not (module.is_file() and module.suffix == ".py"):
                 continue
@@ -356,10 +339,10 @@ def _scan_pages_route_mirror(
                     f"Rename `{module.name}` to `{stripped}.py` so the "
                     f"file path mirrors the route. The full path becomes "
                     f"`{rel(parent)}/{stripped}.py` and a reader who "
-                    f"knows the URL `/api/{parent.name}/.../{stripped}/` "
-                    f"can navigate to it directly. Update template "
+                    f"knows the route can navigate to it directly. "
+                    f"Update template "
                     f"`{{% include %}}`, `template_name`, and any "
-                    f"`from app.pages.{parent.name} import "
+                    f"`from {parent_pkg} import "
                     f"{stem}` callers in the same PR."
                 ),
             })
@@ -369,9 +352,8 @@ def _scan_pages_route_mirror(
 def detect(
     *,
     project_root: Path,
-    scan_root: Path,
+    scope: _scope.Scope,
     min_cluster_size: int,
-    exclude_globs: list[str],
 ) -> list[dict]:
     findings: list[dict] = []
 
@@ -381,17 +363,17 @@ def detect(
         except ValueError:
             return str(path)
 
-    if not scan_root.is_dir():
-        return findings
-
-    # Walk every directory under scan_root (including scan_root itself).
-    directories: list[Path] = [scan_root]
-    for path in scan_root.rglob("*"):
-        if path.is_dir() and not _is_excluded(path, exclude_globs):
-            directories.append(path)
+    # Candidate directories = every directory holding an in-scope file.
+    # Scope is ignore-first (BUILTIN_SKIP_DIRS + repo-wide ignore.md +
+    # this skill's `## Ignore`), so there is no baked host scan root or
+    # exclude list — narrowing is entirely host-authored (ADR 0021). The
+    # bands below re-read each directory from disk, so the scan only needs
+    # to supply the directory list.
+    files = _scope.iter_paths(project_root, scope)
+    directories = sorted({f.parent for f in files} | {project_root})
 
     seen_dirs: set[Path] = set()
-    for directory in sorted(directories):
+    for directory in directories:
         try:
             resolved = directory.resolve()
         except OSError:
@@ -399,8 +381,6 @@ def detect(
         if resolved in seen_dirs:
             continue
         seen_dirs.add(resolved)
-        if _is_excluded(directory, exclude_globs):
-            continue
 
         modules = _python_modules_in(directory)
 
@@ -412,13 +392,13 @@ def detect(
         # (0 modules + ≥1 child package) are exempt — collapsing
         # them would dissolve an intentional grouping prefix.
         if (
-            directory != scan_root
+            directory != project_root
             and _is_folder_package(directory)
             and not _is_namespace_package(directory)
             and not _is_reexport_shim(directory)
             and not _is_under_tests_tree(directory)
         ):
-            if not _is_framework_folder(directory, scan_root):
+            if not _is_framework_folder(directory):
                 source_modules = _source_modules_in(directory)
                 child_packages = _child_packages_in(directory)
                 # Hybrid count: source modules + child packages count
@@ -467,7 +447,7 @@ def detect(
         # `core/management/commands/` (Django auto-discovers commands
         # by leaf-file basename, so subfolders would break dispatch
         # and `run_*` / `setup_*` siblings are a feature, not drift).
-        if _is_under_tests_tree(directory) or _is_framework_folder(directory, scan_root):
+        if _is_under_tests_tree(directory) or _is_framework_folder(directory):
             clusters: dict[str, list[Path]] = {}
         else:
             clusters = _prefix_clusters(modules, min_cluster_size)
@@ -514,11 +494,14 @@ def detect(
                     ),
                 })
 
-    # Band 4 — pages_route_mirror (ADR 0010). Scoped to `app/pages/`
-    # (or whatever lives at `<scan_root>/pages/`). Cheap O(N) scan;
-    # runs once per detect invocation, not per directory.
-    pages_root = scan_root / "pages" if (scan_root / "pages").is_dir() else None
-    if pages_root is not None:
+    # Band 4 — pages_route_mirror (ADR 0010). Runs on any `pages/`
+    # directory beneath an in-scope file (location-independent —
+    # `app/pages`, `src/pages`, …), not a baked `app/` root.
+    pages_roots = sorted({
+        parent for f in files for parent in f.parents
+        if parent.name == "pages"
+    })
+    for pages_root in pages_roots:
         findings.extend(_scan_pages_route_mirror(pages_root, project_root))
 
     return findings
@@ -529,8 +512,12 @@ def main() -> int:
     parser.add_argument(
         "--root",
         type=Path,
-        default=Path("app"),
-        help="Package root to scan (default: app)",
+        default=None,
+        help=(
+            "Optional subtree to narrow the scan to (per-invocation override). "
+            "Default: the whole repo, narrowed only by the host's scope/ignore "
+            "descriptors (.engineering/docs/<skill>-scope.md and ignore.md)."
+        ),
     )
     # spec:project-structure-redesign-phase-2::IM-26
     parser.add_argument(
@@ -549,19 +536,26 @@ def main() -> int:
         "--exclude",
         action="append",
         default=[],
-        help="Additional glob pattern to exclude (additive; repeatable)",
+        help="Additional ignore glob, additive on top of scope (repeatable)",
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
     project_root = args.project_root.resolve()
-    scan_root = args.root if args.root.is_absolute() else (project_root / args.root).resolve()
+    scope = _scope.load_scope(project_root, SKILL_NAME)
+    if args.root is not None:
+        root = args.root if args.root.is_absolute() else (project_root / args.root)
+        try:
+            scope.roots = [root.resolve().relative_to(project_root).as_posix()]
+        except ValueError:
+            pass  # --root outside project_root: ignore, scan whole repo
+    if args.exclude:
+        scope.ignore = list(scope.ignore) + list(args.exclude)
 
     findings = detect(
         project_root=project_root,
-        scan_root=scan_root,
+        scope=scope,
         min_cluster_size=args.min_cluster_size,
-        exclude_globs=args.exclude,
     )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
