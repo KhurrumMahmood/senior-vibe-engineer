@@ -19,7 +19,11 @@ import yaml
 SCRIPT_PATH = Path(__file__).resolve()
 SKILL_DIR = SCRIPT_PATH.parents[1]
 REPO_ROOT = SCRIPT_PATH.parents[4]
+SKILLS_DIR = SCRIPT_PATH.parents[2]  # .claude/skills — to resolve /skill steps
 DEFAULT_SHAPES = SKILL_DIR / "shapes.yml"
+
+# A `/skill-name` reference inside a shape's first_next / sequence text.
+SKILL_TOKEN_RE = re.compile(r"/([a-z][a-z0-9]+(?:-[a-z0-9]+)*)")
 
 COMMON_DIR = REPO_ROOT / ".claude" / "skills" / "_common"
 if str(COMMON_DIR) not in sys.path:
@@ -207,7 +211,34 @@ def _score_shape(shape: dict[str, Any], task_tokens: set[str], context: dict[str
     return score, rationale or ["fallback shape candidate"]
 
 
-def route(task: str, project_root: Path, shapes_path: Path = DEFAULT_SHAPES) -> dict[str, Any]:
+def _inactive_steps(
+    first_next: str, sequence: list[str], project_root: Path, skills_dir: Path
+) -> list[dict[str, str]]:
+    """Concrete skill steps in a shape that the host has opted out of.
+
+    Scans the recommended loop's text for `/skill-name` references, keeps only
+    those that name a real skill (a `<skills_dir>/<name>/SKILL.md` exists) and
+    are inactive for this repo, and returns each with its recorded reason.
+    Generic placeholders like `/find-*` resolve to no skill and are ignored.
+    """
+    out: dict[str, str] = {}
+    for part in [first_next, *sequence]:
+        for name in SKILL_TOKEN_RE.findall(part):
+            if name in out:
+                continue
+            if not (skills_dir / name / "SKILL.md").is_file():
+                continue
+            if not _eh.is_skill_active(project_root, name):
+                out[name] = _eh.inactive_reason(project_root, name) or ""
+    return [{"skill": name, "reason": reason} for name, reason in out.items()]
+
+
+def route(
+    task: str,
+    project_root: Path,
+    shapes_path: Path = DEFAULT_SHAPES,
+    skills_dir: Path = SKILLS_DIR,
+) -> dict[str, Any]:
     if not task.strip():
         raise ValueError("empty situation description")
     shapes = load_shapes(shapes_path)
@@ -231,6 +262,9 @@ def route(task: str, project_root: Path, shapes_path: Path = DEFAULT_SHAPES) -> 
         "sequence": winner["sequence"],
         "stop": winner["stop"],
         "rationale": rationale,
+        "inactive_steps": _inactive_steps(
+            winner["first_next"], winner["sequence"], project_root, skills_dir
+        ),
     }
     alternatives = [
         {
@@ -267,6 +301,11 @@ def render_markdown(result: dict[str, Any]) -> str:
     lines.extend(["", f"First next: {rec['first_next']}", "", "Loop:"])
     lines.extend(f"- {step}" for step in rec["sequence"])
     lines.extend(["", f"Stop/reassess: {rec['stop']}"])
+    if rec.get("inactive_steps"):
+        lines.extend(["", "Inactive here (skipped for this repo):"])
+        for step in rec["inactive_steps"]:
+            reason = f" — {step['reason']}" if step["reason"] else ""
+            lines.append(f"- /{step['skill']}{reason}")
     if result.get("alternatives"):
         lines.extend(["", "Alternatives:"])
         for alt in result["alternatives"]:

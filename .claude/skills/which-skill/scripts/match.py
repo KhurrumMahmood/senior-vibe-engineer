@@ -35,6 +35,11 @@ if _lib_parent not in sys.path:
     sys.path.insert(0, _lib_parent)
 from _lib.yaml_frontmatter import FrontmatterError, parse  # noqa: E402
 
+_common_dir = str(REPO_ROOT / ".claude" / "skills" / "_common")
+if _common_dir not in sys.path:
+    sys.path.insert(0, _common_dir)
+import engineering_home as eh  # noqa: E402
+
 # Optional task-packet fields surfaced on the winning candidate (PR B-lite).
 TASK_PACKET_FIELDS = (
     "lanes", "stage", "entrypoint",
@@ -286,8 +291,29 @@ def cmd_match(args, skills_dir: Path) -> int:
         ranked.append((score, sk, rationale))
     ranked.sort(key=lambda t: (-t[0], t[1].get("name", "")))
 
-    top = ranked[: args.top]
     threshold = args.threshold
+    project_root = args.project_root.resolve()
+
+    # Activation gate — a skill the host has opted out of cannot be
+    # recommended for this repo, no matter how well it scores. Drop inactive
+    # skills from the candidate pool; surface any that *would* have qualified
+    # (score >= threshold) with their recorded reason, so a suppressed
+    # high-scorer is explained rather than silently missing.
+    active_ranked = []
+    excluded_inactive = []
+    for score, sk, rationale in ranked:
+        name = sk.get("name", "")
+        if name and not eh.is_skill_active(project_root, name):
+            if score >= threshold:
+                excluded_inactive.append({
+                    "name": name,
+                    "score": score,
+                    "reason": eh.inactive_reason(project_root, name) or "",
+                })
+            continue
+        active_ranked.append((score, sk, rationale))
+
+    top = active_ranked[: args.top]
     above = [r for r in top if r[0] >= threshold]
 
     out = {
@@ -296,6 +322,7 @@ def cmd_match(args, skills_dir: Path) -> int:
         "inferred_job": inferred_job,
         "tier_hints": tier_hits,
         "job_hints": job_hits,
+        "excluded_inactive": excluded_inactive,
         "candidates": [
             {
                 "name": sk.get("name", "?"),
@@ -330,6 +357,12 @@ def cmd_match(args, skills_dir: Path) -> int:
             print("Top candidates anyway (none above threshold):")
             for score, sk, _rationale in top:
                 print(f"  {sk.get('name', '?'):<25} score={score}")
+            if excluded_inactive:
+                print()
+                print("Excluded (inactive for this repo):")
+                for item in excluded_inactive:
+                    reason = f" — {item['reason']}" if item["reason"] else ""
+                    print(f"  /{item['name']:<25} score={item['score']}{reason}")
         return 1
 
     winner = above[0][1]
@@ -362,6 +395,12 @@ def cmd_match(args, skills_dir: Path) -> int:
             print("Below threshold (shown for context):")
             for score, sk, _rationale in top[len(above):]:
                 print(f"  /{sk.get('name', '?'):<25} score={score}")
+        if excluded_inactive:
+            print()
+            print("Excluded (inactive for this repo):")
+            for item in excluded_inactive:
+                reason = f" — {item['reason']}" if item["reason"] else ""
+                print(f"  /{item['name']:<25} score={item['score']}{reason}")
     return 0
 
 
@@ -376,6 +415,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--skills-dir", type=Path, default=DEFAULT_SKILLS_DIR,
         help="Override the skills directory (default: .claude/skills/)",
+    )
+    p.add_argument(
+        "--project-root", type=Path, default=REPO_ROOT,
+        help=(
+            "Repo whose .engineering/manifest.json declares skill activation; "
+            "inactive skills are excluded from recommendations (default: this repo)."
+        ),
     )
     p.add_argument("--top", type=int, default=3, help="How many candidates to show")
     p.add_argument(
