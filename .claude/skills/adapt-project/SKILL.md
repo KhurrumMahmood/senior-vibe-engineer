@@ -136,6 +136,53 @@ patterns as `do not standardize yet`, route them to `/triage-debt`, and
 only promote patterns with human approval plus tests, lints, or clear
 examples of healthy use.
 
+## Skill activation
+
+Adaptation also records **which skills apply to this project**. Not every
+skill fits every repo — a stdlib CLI toolkit has no routes, a backend-only
+service has no frontend. Activation is the applicability switch: it is
+separate from per-run scope (`<skill>-scope.md`, which narrows paths inside
+an active skill) and from ADR 0020 maturity×stakes rung-gating (which
+*standards* fire inside a skill).
+
+State lives in the committed manifest at `.engineering/manifest.json` under
+a `skills` block. The model is **default-on with an opt-out list** — most
+skills apply, so you name only the exceptions and why:
+
+```json
+{
+  "version": 1,
+  "skills": {
+    "default": "active",
+    "inactive": {
+      "find-route-sprawl": "No HTTP route surface (stdlib CLI toolkit).",
+      "find-frontend-duplication": "No application frontend (only test fixtures)."
+    }
+  }
+}
+```
+
+Record exceptions during adaptation with the manifest CLI (stdlib, no venv
+needed — it must run on a fresh host before any venv exists):
+
+```bash
+python3 scripts/manifest.py --project-root <repo> deactivate find-route-sprawl "No HTTP route surface."
+python3 scripts/manifest.py --project-root <repo> activate find-route-sprawl   # re-enable
+python3 scripts/manifest.py --project-root <repo> show                         # list state
+```
+
+Consumers gate on it before doing work:
+
+- in Python: `engineering_home.is_skill_active(root, name)` /
+  `engineering_home.inactive_reason(root, name)`;
+- in shell: `python3 scripts/manifest.py --project-root <repo> is-active <skill>`
+  (exit `0` active, `1` inactive).
+
+A flipped allowlist (`"default": "inactive"` plus an `active` list) is
+supported for locked-down repos, but default-on is the norm. Today the
+operator records the opt-out list by hand from adaptation findings;
+auto-proposing it from discovery is a follow-on.
+
 ## Inspiration
 
 This skill was inspired in part by GAIA React's agent workflow ideas,
