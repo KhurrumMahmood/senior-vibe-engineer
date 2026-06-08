@@ -27,8 +27,23 @@ shapes:
     cues:
       strong: [typo, one-line, oneline, trivial, tiny, narrow, obvious]
       normal: [rename, small, simple, docs, copy, text]
-      negative: [architecture, subsystem, unknown, inherited, repeated]
+      negative: [architecture, subsystem, unknown, inherited, repeated, concept, domain, glossary, wide, terminology]
     alternatives: [bug-fix, decision-capture]
+
+  - id: concept-rename
+    title: Concept Rename
+    summary: Drive a glossary-worthy domain-concept rename to completion across every surface.
+    first_next: "/rename-concept"
+    sequence:
+      - "/rename-concept <old> <new> — assess the scope-gate + two-band completeness gate"
+      - "record the rename in the glossary (concepts.yaml superseded_by + the canonical concept's avoid: block)"
+      - "correct old prose + cross-tool mirrors; the gate is clean only when identifiers AND prose are"
+    stop: "Stop if it's a single local symbol with narrow blast — that's Direct Change."
+    cues:
+      strong: [concept, glossary, supersede, terminology, deprecate]
+      normal: [domain, rename, identifier, sweep, wide]
+      negative: [local, variable, one-line, oneline, single, trivial, typo]
+    alternatives: [decision-capture, task-closeout]
 
   - id: bug-fix
     title: Bug Fix

@@ -198,9 +198,15 @@ def check() -> tuple[int, list[str]]:
         referenced.update(body.get("related_skills") or [])
     for skills in select_scanners.ADJACENCY_SCANNERS.values():
         referenced.update(skills)
-    referenced.update(select_scanners.UNIVERSAL_FLOOR)
-    referenced.update(select_scanners.DOC_SHAPE_FLOOR)
-    referenced.update(select_scanners.RENAME_SHAPE_FLOOR)
+    # Every `*_FLOOR` roster select_scanners defines, discovered dynamically so a
+    # newly-added floor (e.g. SWEEP_SHAPE_FLOOR / RENAME_DRIVER_FLOOR) is covered by
+    # this guard automatically rather than being added to the roster but silently
+    # escaping the referential check.
+    for _name in dir(select_scanners):
+        if _name.endswith("_FLOOR"):
+            value = getattr(select_scanners, _name)
+            if isinstance(value, list):
+                referenced.update(value)
 
     missing = sorted(s for s in referenced if not (SKILLS_DIR / s / "SKILL.md").is_file())
     return (1 if missing else 0), missing

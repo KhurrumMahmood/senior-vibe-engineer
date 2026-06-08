@@ -55,6 +55,11 @@ JOB_BAND: dict[str, str] = {
 UNIVERSAL_FLOOR = ["find-comment-drift", "find-test-obligation-drift", "prevent-regression"]
 DOC_SHAPE_FLOOR: list[str] = []                    # find-doc-link-rot not in this repo's skill set
 RENAME_SHAPE_FLOOR = ["find-concept-divergence"]   # added on large (rename-prone) shapes
+# added on large shapes: a wide multi-file change is where a sweep across sibling
+# sites stops short (the "updated N-1 of N" forgotten-call-site case).
+SWEEP_SHAPE_FLOOR = ["find-incomplete-sweep"]
+# added on a rename signal (ANY band — a concept rename can be a small diff).
+RENAME_DRIVER_FLOOR = ["rename-concept"]
 
 _JOB_CACHE: dict[str, str | None] = {}
 
@@ -75,7 +80,8 @@ def job_for(skill: str) -> str | None:
     return job
 
 
-def select(report: dict[str, Any], *, band: str, has_doc_change: bool = False) -> dict[str, Any]:
+def select(report: dict[str, Any], *, band: str, has_doc_change: bool = False,
+           has_rename_signal: bool = False) -> dict[str, Any]:
     """Build the tiered roster from a `query_planner.report_for_files` report.
 
     Returns `{"buckets": {pre_baseline, post_sweep, guard_tail}, "dropped": [...]}`,
@@ -104,6 +110,11 @@ def select(report: dict[str, Any], *, band: str, has_doc_change: bool = False) -
     if band == "large":
         for skill in RENAME_SHAPE_FLOOR:
             add(skill, "large / cross-subsystem shape (rename-prone)")
+        for skill in SWEEP_SHAPE_FLOOR:
+            add(skill, "large / multi-file shape (sweep-prone — forgotten call site)")
+    if has_rename_signal:
+        for skill in RENAME_DRIVER_FLOOR:
+            add(skill, "rename signal: concepts.yaml / no_*_references touched — drive the rename to completion with /rename-concept")
 
     buckets: dict[str, list[dict[str, Any]]] = {"pre_baseline": [], "post_sweep": [], "guard_tail": []}
     dropped: list[dict[str, Any]] = []

@@ -150,7 +150,15 @@ def main(argv: list[str] | None = None) -> int:
                   "input mode carries no diff-LOC signal; a large rewrite of few files may be "
                   "understated. Re-run with --changed-from/--commit/--range for LOC sizing.")
     has_doc_change = any(f.endswith(".md") or f.startswith("docs/") or "/docs/" in f for f in files)
-    roster = select_scanners.select(report, band=band, has_doc_change=has_doc_change)
+    # Rename signal: the glossary or a reintroduction-guard lint was touched — a concept
+    # rename is underway, so recommend /rename-concept to drive it to completion (any band).
+    has_rename_signal = any(
+        f == ".claude/contracts/concepts.yaml"
+        or (f.startswith("scripts/lint/no_") and f.endswith("_references.py"))
+        for f in files
+    )
+    roster = select_scanners.select(report, band=band, has_doc_change=has_doc_change,
+                                    has_rename_signal=has_rename_signal)
 
     c = closeout_mod.build(
         target=target, scope_band=band, axis_breakdown=classify.axis_breakdown(inputs),
