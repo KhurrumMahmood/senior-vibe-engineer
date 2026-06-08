@@ -133,11 +133,20 @@ run directory. Its durable output is the regenerated `_index.yaml`
   `fixture-pair` / `none-found`), and `provenance_confidence` with all
   four axes (`textual` / `structural` / `temporal` / `dogfood`) set to
   `high` / `med` / `low`. Capture is incomplete until these are filled.
-- `stale` — the contract is committed, and `SKILL.md` has a *newer* last
-  commit than the contract. The skill changed after its intent was last
-  recorded, so the captured intent may no longer match. A contract that is
-  not yet committed reports `baseline (contract uncommitted)` and is **not**
-  flagged stale — there is no committed baseline to drift from yet.
+- `stale` — the contract is committed, and the `SKILL.md` **frontmatter
+  intent surface** changed between the contract's last commit and now. The
+  comparison is intent-aware, not a raw timestamp check: the YAML frontmatter
+  (description / best_for / not_for / job / tier / ...) is compared across the
+  two revisions after dropping operational keys (`argument-hint`,
+  `allowed-tools`, `name`, `user-invocable`) and collapsing path-like tokens
+  to a placeholder, so a body-only sweep (e.g. a `core/` → `app/` path
+  reference rewrite, prose edits below the frontmatter) does **not** flag —
+  only a real intent edit does. Edge cases: a `SKILL.md` absent at the
+  contract commit flags stale (the intent surface can't be vouched for); a git
+  or YAML-parse failure falls back conservatively to the legacy "SKILL.md
+  newer than contract" timestamp compare. A contract that is not yet committed
+  reports `baseline (contract uncommitted)` and is **not** flagged stale —
+  there is no committed baseline to drift from yet.
 
 ## Out of Scope
 
