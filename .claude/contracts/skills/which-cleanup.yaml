@@ -1,0 +1,66 @@
+schema_version: 2
+
+skill: which-cleanup
+job: meta
+problem_class: "diff-driven, scope-tiered closeout routing (META)"
+intent: >-
+  After a body of work, route into the code-quality skill suite from the DIFF:
+  resolve what changed (files / --staged / --changed-from / --commit / --range /
+  --area / --since), size it into a scope band (trivial/small/medium/large), and
+  recommend cleanup skills bucketed pre-baseline (job:map), post-sweep
+  (job:suspect/explain/refactor), and guard-tail (job:guard) by reading each
+  skill's own frontmatter against the subsystem registry. Registry-OPTIONAL: with
+  no .claude/subsystems.yaml it degrades to the universal floor + band sizing,
+  mirroring how /which-shape degrades when project state is absent. Output
+  escalates: checklist (small) -> multi-agent scoped fan-out (medium) -> sequenced
+  plan + /refactor-subsystem spec stub + Workflow script on --emit-plan (large).
+  A backward coverage.py audit runs the same selection in reverse. Advisory and
+  read-only against production code.
+solves: >-
+  The forward/diff-blind gap the two existing routers cannot close (which-skill
+  and which-shape route before work from text; triage-debt is global/periodic over
+  cached reports). which-cleanup is the registry's planned diff-scoped consumer,
+  built registry-optional so it is useful in the portable ecosystem before any
+  host project supplies a subsystems.yaml.
+born:
+  commit: "uncommitted"        # authored 2026-06-08; ported from the pnci-pricing instantiation, re-derived ES2-native
+  date: "2026-06-08"
+dogfood_kind: self-installed-guard
+dogfooded_on:
+  - "coverage.py check (referential integrity: every registry/floor-recommended skill resolves to a real .claude/skills/<name>) wired into .github/workflows/ci.yml — a self-installed guard, verified green."
+  - "Registry-optional forward run: run.py --changed-from HEAD~1 in ES2 (which ships NO subsystems.yaml) degraded cleanly to band=medium with '(none matched the registry)' and the universal floor (find-comment-drift, find-test-obligation-drift, prevent-regression) — no crash."
+  - "smoke.py + the registry-optional coverage.py check/audit run green under ES2's .venv."
+reports_dir: reports/which-cleanup
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0023"]
+  precedent: []
+  doc: ["skill-catalog.md", "architectural-smells.md"]
+  contract: []
+related_skills: [which-shape, which-skill, triage-debt, find-test-obligation-drift]
+duplication_risk:
+  - with: triage-debt
+    relation: sibling-different-layer
+    disambiguator: "which-cleanup is DIFF-SCOPED + forward — it reads the change and runs fresh registry selection on what was touched. triage-debt is GLOBAL + periodic — it aggregates CACHED find-* reports and never reads a diff. which-cleanup's large band hands off TO triage-debt; it never re-implements its recurrence scoring."
+  - with: which-shape
+    relation: sibling-different-layer
+    disambiguator: "which-shape routes the operating LOOP before work from a situation description (forward, diff-blind); which-cleanup routes CLEANUP after work from the diff. which-shape's task-closeout shape points AT which-cleanup. Both share the registry-absent graceful-degradation pattern."
+  - with: find-test-obligation-drift
+    relation: sibling-different-layer
+    disambiguator: "find-test-obligation-drift answers 'what TESTS does this diff owe'; which-cleanup answers 'what CLEANUP SKILLS does this diff owe' (the SUSPECT/EXPLAIN/REFACTOR/GUARD roster). FTOD is one entry in which-cleanup's universal floor. They share the _common/diff_resolution.py substrate."
+provenance_confidence:
+  textual: high                # named by slug throughout SKILL.md, ADR 0023, catalog, shapes.yml
+  structural: high             # run.py/classify/select_scanners/closeout/coverage/smoke + tests present; guard wired into ci.yml
+  temporal: high               # contract authored same day as the ES2 port + ADR 0023
+  dogfood: med                 # exercised on ES2's own diff (registry-optional path) + the CI guard; not yet run on an unrelated future task
+evidence:
+  - "ADR 0023 (which-cleanup-closeout-router) — registry-consumer role, registry-optional default, forward-vs-triage-debt boundary, coverage namespacing policy."
+  - "Port lineage: mechanism copied from the pnci-pricing instantiation; provenance (ADR number, born commit, dogfood, the registry-optional adaptation) re-derived ES2-native per the cross-repo port discipline."
+  - "Substrate reuse: scripts/query_planner.py report_for_files() seam; _common/diff_resolution.py (shared with find-test-obligation-drift); each skill's job: frontmatter."
+gaps:
+  - "born.commit is 'uncommitted' until the introducing commit lands; skill + contract ship together so the stale band stays clean."
+  - "Scope-band thresholds (classify.py) are a tunable human knob pending recalibration against effectiveness.jsonl."
+  - "Coverage backward-audit join is moot until a host project supplies a .claude/subsystems.yaml; in bare ES2 it sees the universal floor only."

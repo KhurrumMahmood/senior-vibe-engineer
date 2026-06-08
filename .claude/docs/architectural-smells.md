@@ -169,6 +169,8 @@ sibling-pointer docstrings instead. The interface-depth gate
 instance justifies one.
 
 **Decided in:** 0004 (parallel writers shared helper).
+**Decided in:** 0023 (no parallel area→skill table — `/which-cleanup` reads the
+one subsystem registry rather than authoring a second source of truth).
 
 ## 6. Product-topology drift
 

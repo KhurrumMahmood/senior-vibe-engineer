@@ -98,6 +98,22 @@ def _build_report(
     return report
 
 
+def report_for_files(
+    paths: list[str],
+    registry: dict[str, dict[str, Any]],
+    *,
+    checks_dir: Path = DEFAULT_CHECKS_DIR,
+    include_checklist: bool = True,
+) -> dict[str, Any]:
+    """Public seam: paths -> ``{"subsystems": [...], "unmatched": [...]}`` report.
+
+    Lets downstream consumers (e.g. ``/which-cleanup``) reuse the registry walk
+    without reaching into the underscore-private grouping/build helpers.
+    """
+    grouped = _group_by_subsystem(paths, registry)
+    return _build_report(grouped, registry, checks_dir, include_checklist)
+
+
 def _render_text(report: dict[str, Any], include_checklist: bool) -> str:
     lines: list[str] = []
     for entry in report["subsystems"]:
@@ -134,10 +150,13 @@ def cmd_for_files(args: argparse.Namespace, registry: dict[str, dict[str, Any]])
     if not paths:
         print("error: at least one path required", file=sys.stderr)
         return 2
-    grouped = _group_by_subsystem(paths, registry)
     include_checklist = not args.no_checklist
-    checks_dir = Path(args.checks_dir).resolve()
-    report = _build_report(grouped, registry, checks_dir, include_checklist)
+    report = report_for_files(
+        paths,
+        registry,
+        checks_dir=Path(args.checks_dir).resolve(),
+        include_checklist=include_checklist,
+    )
     if args.json:
         print(json.dumps(report, sort_keys=True))
     else:

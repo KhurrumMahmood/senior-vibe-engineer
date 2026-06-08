@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import subprocess
 import sys
 from pathlib import Path
 
@@ -12,43 +11,9 @@ COMMON_DIR = PROJECT_ROOT / ".claude" / "skills" / "_common"
 if str(COMMON_DIR) not in sys.path:
     sys.path.insert(0, str(COMMON_DIR))
 
-from product_health import expand_paths, finding  # noqa: E402
+from diff_resolution import changed_paths as _changed_paths  # noqa: E402
+from product_health import finding  # noqa: E402
 from product_topology import relpath, write_jsonl  # noqa: E402
-
-SUFFIXES = (".py", ".js", ".html", ".md", ".yaml", ".yml", ".toml")
-
-
-def _run_git_name_only(project_root: Path, cmd: list[str]) -> list[str]:
-    try:
-        result = subprocess.run(cmd, cwd=project_root, text=True, capture_output=True, check=True)
-    except (OSError, subprocess.CalledProcessError):
-        return []
-    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
-
-
-def _git_files(project_root: Path, *, staged: bool = False, changed_from: str | None = None) -> list[str]:
-    if changed_from:
-        cmd = ["git", "diff", "--name-only", changed_from]
-        return _run_git_name_only(project_root, cmd)
-    elif staged:
-        cmd = ["git", "diff", "--cached", "--name-only"]
-        return _run_git_name_only(project_root, cmd)
-    else:
-        cmd = ["git", "diff", "--name-only"]
-        untracked_cmd = ["git", "ls-files", "--others", "--exclude-standard"]
-        return sorted(set(_run_git_name_only(project_root, cmd) + _run_git_name_only(project_root, untracked_cmd)))
-
-
-def _changed_paths(
-    project_root: Path,
-    paths: list[str] | None,
-    *,
-    staged: bool = False,
-    changed_from: str | None = None,
-) -> list[Path]:
-    if paths:
-        return expand_paths(project_root, paths, SUFFIXES)
-    return [project_root / file for file in _git_files(project_root, staged=staged, changed_from=changed_from)]
 
 
 def _is_backend_runtime(file: str) -> bool:

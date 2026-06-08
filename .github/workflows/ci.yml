@@ -60,6 +60,11 @@ jobs:
       - name: Skill-artifact drift (advisory, registry-wide)
         run: python3 .claude/skills/find-skill-artifact-drift/scripts/detect.py --gate || echo "::warning::find-skill-artifact-drift reported Band-A reference drift (advisory) — see output above"
 
+      # /which-cleanup referential integrity (ADR 0023): every skill the subsystem
+      # registry + closeout floor can recommend must resolve to a real skill dir.
+      - name: which-cleanup referential integrity (hard)
+        run: python3 .claude/skills/which-cleanup/scripts/coverage.py check
+
       - name: Compute changed Python files vs main
         id: changed
         run: |

@@ -138,3 +138,18 @@ shapes:
       normal: [architecture, option, fork, durable, policy, convention]
       negative: [typo, trivial, scan]
     alternatives: [feature-shaping, direct-change]
+
+  - id: task-closeout
+    title: Task Closeout
+    summary: After a body of work, size the change from the diff and run scope-matched cleanup.
+    first_next: "/which-cleanup"
+    sequence:
+      - "/which-cleanup <files | --staged | --changed-from REF | --commit SHA | --range A..B | --area NAME | --since SPEC>"
+      - "run the band-appropriate cleanup (checklist / scoped scout fan-out / closeout plan)"
+      - "/prevent-regression for any cluster that closes"
+    stop: "Stop once the changed surface is swept and any closed cluster is guarded; hand off to /triage-debt for the global picture."
+    cues:
+      strong: [closeout, cleanup, stabilize, finished, wrap-up, post-commit]
+      normal: [changed, touched, diff, staged, after, done, sweep, tidy, harden]
+      negative: [start, new, feature, onboard, unknown]
+    alternatives: [health-audit, regression-prevention]
