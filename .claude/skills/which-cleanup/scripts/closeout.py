@@ -134,6 +134,17 @@ def render_md(c: dict[str, Any]) -> str:
         lines.extend(_render_items(c["checklist"][band_key], n_paths))
         lines.append("")
 
+    if c["scope_band"] != "trivial":
+        lines.append("## 📝 Documentation — update what this change touched")
+        lines.append("Closeout biases toward keeping docs current, not just code:")
+        lines.append("  - Refresh the reference docs describing the changed surface (per the repo's "
+                     "keep-docs-current policy) — don't leave the prose behind the code.")
+        lines.append("  - If you changed agent rules (CLAUDE.md / .claude/docs/*), sync the cross-tool "
+                     "mirrors (.augment / AGENTS.md / .codex / .cursor / .gemini).")
+        lines.append("  - Doc-drift scans: `/find-comment-drift` (in the floor) plus the repo's "
+                     "doc / route / rule-surface drift scans.")
+        lines.append("")
+
     if c["scope_band"] == "medium" and c["fanout"]:
         lines.append("## Medium scope — dispatch these as scoped scouts")
         lines.append("")
