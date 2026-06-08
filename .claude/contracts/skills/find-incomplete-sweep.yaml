@@ -1,0 +1,87 @@
+schema_version: 2
+
+skill: find-incomplete-sweep
+job: suspect
+problem_class: "incomplete-execution-residue detection (SUSPECT) — forgotten sibling at the old shape"
+intent: >
+  Advisory scan for incomplete sweeps — a multi-site change applied to N-1 of N
+  structurally-similar sites, leaving one sibling frozen at the old shape, fully
+  referenced and fully live so nothing else flags it. v0 band is kwarg-omission:
+  among a callee's call sites, a keyword the strong majority pass but one
+  straggler does not, gated on a git-trajectory signal (the kwarg-present sites
+  were touched AFTER the straggler — a sweep that landed after the straggler was
+  last edited). Deterministic pre-filters (query-lookup callees, optional-by-
+  nature kwargs, arg-count-illegal kwargs, dataclass-/signature-default fields)
+  keep the scout's residual real-straggler-dense; the forgotten-vs-deliberate
+  call is an irreducible scout fan-out. A second, experimental placeholder-residue
+  band (--band placeholder) catches concrete scaffolded-but-unfilled functions
+  gated by recency + reference-asymmetry. Hands off to /fix-workflow.
+solves: >
+  The most characteristic residue of AI partial execution: a session sweeps a
+  change across call sites and runs out of context before the last one. The
+  straggler still works and is still referenced, so a lint (no declared contract
+  names the missing site) and /find-dormant (which only sees the unreferenced
+  half) are both blind to it. The intended shape is inferred from the cluster
+  majority + git recency — judgment-bearing and per-run, not a fixed AST rule.
+born:
+  # Ported MECHANISM from another repo; ALL provenance re-derived ES2-native per
+  # _schema.yaml. The ES2 birth commit does not exist yet (committed later by the
+  # orchestrator) — "uncommitted" is the honest born marker, NOT a copied SHA.
+  commit: "uncommitted"
+  date: "2026-06-08"
+  sibling_births: []   # birth commit not yet formed; cannot assert siblings (see gaps)
+dogfood_kind: subsystem-refactor
+dogfooded_on:
+  # REAL ES2 self-scan runs performed during the port (on-disk under reports/, gitignored).
+  - "scripts/ kwarg-omission scan (2026-06-08): 37 files scanned, 15 raw divergence candidates, 1 down-ranked (declared-default field), 0 gated-in — ES2's scripts/ has no recently-swept kwarg divergence, so the trajectory gate correctly reports clean (precision over coverage)."
+  - "scripts/ + .claude/skills/ broad kwarg scan (2026-06-08): 185 files scanned, 57 raw, 2 down-ranked, 5 gated-in — all five are `path.read_text(..., encoding=)` stragglers where the sibling majority pass encoding= but these omit it and were touched before the sweep (a genuine forgotten-sweep shape, and consistent with the read-decode-safety precedent the repo already tracks). Proves the git-trajectory gate fires end-to-end on real ES2 code."
+  - "placeholder-residue band (2026-06-08, --band placeholder): 0 raw / 0 gated-in on both scripts/ and the broad set — ES2 source carries no placeholder bodies in scope. Band proven to fire via test_ph5_recency_reference_gate; kept experimental behind --band pending a real recent-stub hit."
+reports_dir: reports/find-incomplete-sweep
+run_evidence:
+  count: 2
+  first: scan-dogfood-kwarg
+  latest: scan-dogfood-broad
+embodies_decisions:
+  adr: []        # no ES2 ADR in ai-docs/decisions/ names this skill (bidirectional signal absent)
+  precedent: []  # no precedents.yml entry yet
+  doc: []
+  contract: []
+related_skills: [rename-concept, find-dormant, find-semantic-duplication, find-orphaned-ideas, find-stale-artifacts, audit-decisions, find-implicit-state, unify-shadows, fix-workflow, prevent-regression, which-cleanup, triage-debt]
+duplication_risk:
+  - with: find-dormant
+    relation: sibling-different-layer
+    disambiguator: "find-incomplete-sweep not_for quote: 'Implemented-but-unwired dead code (use /find-dormant) — that is the unreferenced half; this is the over-referenced-at-old-shape half.' The placeholder band makes this explicit: a stub with NO reference-asymmetry is routed to /find-dormant, not flagged here."
+  - with: find-semantic-duplication
+    relation: sibling-different-layer
+    disambiguator: "find-incomplete-sweep not_for quote: 'Sameness-based duplication to unify (use /find-semantic-duplication or /unify-shadows) — this is divergence-within-cluster, not both-live sameness.'"
+  - with: find-stale-artifacts
+    relation: sibling-different-layer
+    disambiguator: "find-incomplete-sweep not_for quote: 'Declared-intent vs realized-state drift at the plan / idea / ADR / contract granularity (use /find-orphaned-ideas, /find-stale-artifacts, /audit-decisions).' — those detect drift in declared/working artifacts; this is no-declared-contract code-granularity partial execution among sibling call sites."
+  - with: find-orphaned-ideas
+    relation: sibling-different-layer
+    disambiguator: "The placeholder band is NOT /find-orphaned-ideas --todo: that surfaces raw TODO markers anywhere; this fires only on a placeholder BODY in concrete code gated by recency + reference-asymmetry."
+  - with: find-implicit-state
+    relation: sibling-different-layer
+    disambiguator: "find-incomplete-sweep not_for quote: 'Missing enum TYPE declaration (use /find-implicit-state).'"
+  - with: fix-workflow
+    relation: sequential
+    disambiguator: "find-incomplete-sweep DETECTS (SUSPECT, detection-only); /fix-workflow completes the sweep under regression-test-first, two-commit discipline. not_for quote: 'Refactor execution (this is detection only; hand off to /fix-workflow).'"
+  - with: prevent-regression
+    relation: sequential
+    disambiguator: "find-incomplete-sweep catches a half-done sweep after the fact; a recurring forgotten-sweep TYPE graduates to a diff-scoped lint via /prevent-regression so the next omission is caught at commit time (escalate_to)."
+provenance_confidence:
+  textual: low      # no commit subject names the skill yet (born commit not formed)
+  structural: high  # scan.py + scout.py + placeholder.py + reference/scout-rubric.md + a 13-test regression suite all present
+  temporal: low     # uncommitted — no birth-proximity signal to lean on
+  dogfood: high     # three real ES2 self-scan runs recorded (kwarg scripts/, kwarg broad, placeholder), with raw/gated-in/down-ranked counts
+evidence:
+  - "scripts/scan.py + scripts/scout.py + scripts/placeholder.py — the kwarg-omission detector, the scout-packet builder (imports scan.py as a library), and the placeholder-residue band; stdlib-only AST + git blame, zero host-library imports (structural:high)"
+  - "scripts/test_scan.py — 13 regression tests (DataclassDefaultFilterTests DC1-DC5 + value-awareness + filter-drop; PlaceholderBandTests PH1-PH5 incl. a real-git-repo recency/reference-asymmetry gate proof); all pass on ES2 (structural:high)"
+  - "reference/scout-rubric.md — the irreducible-judgment brief the scout fan-out reads (forgotten / deliberate / optional / not-applicable vocabulary + the dominant result-shape/optional-field trap)"
+  - "reports/find-incomplete-sweep/{scan-dogfood-kwarg,scan-dogfood-broad} — two on-disk self-scan runs; the 37-file/15-raw/0-gated-in (scripts/) and 185-file/57-raw/5-gated-in (broad) deltas come from those manifests (dogfood:high)"
+gaps:
+  - "Ported mechanism: the scripts/SKILL.md/tests/contract SHAPE were copied from a host project's /find-incomplete-sweep, but per _schema.yaml ALL provenance is re-derived ES2-native — no host born SHA, dogfood run, or report count was carried over. born.commit is 'uncommitted' because the ES2 birth commit is formed later by the orchestrator."
+  - "born.sibling_births is [] only because the birth commit does not exist yet; another skill (rename-concept) was in flight in the same working tree at port time, so the eventual birth cohort may differ — do NOT assert it until the commit is formed and verified by parent-absence."
+  - "No ADR in ai-docs/decisions/ and no precedents.yml entry names this skill, so embodies_decisions is empty by fact, not omission — intent rests on SKILL.md + the regression suite + the self-scan runs."
+  - "Report outputs route to reports/find-incomplete-sweep/ which is gitignored (/reports/* except /reports/_meta/), so once committed the git history will carry the code deltas + commit subject, not the scan outputs; the raw/gated-in counts here are reproduced from the on-disk run manifests."
+  - "The 5 gated-in broad-scan findings are detector candidates, not confirmed forgotten sweeps — the forgotten-vs-deliberate call is the scout fan-out's job (Step B); they are recorded as a real end-to-end gate-firing proof, not asserted as bugs."
