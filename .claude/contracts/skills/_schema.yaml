@@ -57,7 +57,10 @@ schema_version: 2
 #   solves                the specific pain it addresses
 #   born.commit/date      true birth of SKILL.md = earliest commit (full history) whose every
 #                         parent lacks the file (parent-absence; NOT `git log --diff-filter=A`,
-#                         which can report a spurious birth across a merge)
+#                         which can report a spurious birth across a merge).
+#                         NOTE: SHAs predating the 2026-06-11 public-history cut resolve only in
+#                         the maintainer's private archive (the public history starts fresh per
+#                         ADR 0035's privacy posture); the DATES remain authoritative everywhere.
 #   born.sibling_births   other skills born in the SAME birth commit ([] if none; large under 90f8567)
 #   dogfood_kind          subsystem-refactor | self-installed-guard | fixture-pair | host-attested | none-found
 #   dogfooded_on          subsystem + commit range/SHAs, the self-shipped artifact, the fixtures
