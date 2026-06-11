@@ -155,21 +155,31 @@ BATTERY = {"cx": run_cx, "omnibus": run_omnibus, "ruff": run_ruff, "strdisp": ru
 
 # --- manifest / digest / diff ----------------------------------------------
 
-def cmd_scan(args) -> int:
-    root = args.root.resolve()
+def build_manifest(root: Path, scope: list[str]) -> dict:
     findings, errors = [], {}
     for name, fn in BATTERY.items():
         try:
-            got = fn(root, args.scope)
+            got = fn(root, scope)
             findings.extend(got)
             print(f"[{name}] {len(got)} findings", file=sys.stderr)
         except Exception as exc:  # noqa: BLE001 — battery member isolation: one broken detector must not kill the sweep
             errors[name] = str(exc)[:200]
             print(f"[{name}] ERROR {exc}", file=sys.stderr)
     findings.sort(key=lambda x: (-x["severity"], x["rule"], x["path"]))
-    manifest = {"target": str(root), "scope": args.scope,
-                "counts": dict(Counter(x["rule"].split(":")[0] for x in findings)),
-                "total": len(findings), "errors": errors, "findings": findings}
+    return {"target": str(root), "scope": scope,
+            "counts": dict(Counter(x["rule"].split(":")[0] for x in findings)),
+            "total": len(findings), "errors": errors, "findings": findings}
+
+
+# Numeric finding fields the ratchet treats as one-way: a persisting finding
+# whose metric GREW beyond baseline is a regression even though its id is stable.
+RATCHET_METRICS = ("loc", "clusters", "count", "compares")
+
+
+def cmd_scan(args) -> int:
+    root = args.root.resolve()
+    manifest = build_manifest(root, args.scope)
+    findings = manifest["findings"]
     args.out.write_text(json.dumps(manifest, indent=1))
 
     by_fam = defaultdict(list)
@@ -202,6 +212,60 @@ def cmd_diff(args) -> int:
     return 0 if not new else 1
 
 
+def cmd_ratchet(args) -> int:
+    """Structural seatbelt: the baseline manifest is a one-way ratchet.
+
+    FAIL if the current scan introduces a NEW finding id, or grows a ratchet
+    metric (loc/clusters/count/compares) on a persisting finding. When clean
+    and anything improved, auto-tighten: rewrite the baseline to the current
+    state so the improvement can never silently regress. The baseline and the
+    sweep manifest are the same artifact at two moments — the GUARD layer and
+    the batch harness share one schema (Atlas seatbelt mechanics,
+    independently reimplemented, generalized from lint rules to structure).
+    """
+    base = {x["id"]: x for x in json.loads(args.baseline.read_text())["findings"]}
+    cur_manifest = build_manifest(args.root.resolve(), args.scope)
+    cur = {x["id"]: x for x in cur_manifest["findings"]}
+
+    accepted = set(args.accept or [])
+    violations: list[str] = []
+    waived = 0
+    for i in set(cur) - set(base):
+        if i in accepted:
+            waived += 1
+            continue
+        x = cur[i]
+        violations.append(f"NEW     {x['rule']} {x['path']}::{x['symbol']} — {x['summary'][:80]}  [{i}]")
+    for i in set(cur) & set(base):
+        for m in RATCHET_METRICS:
+            b, c = base[i].get(m), cur[i].get(m)
+            if isinstance(b, int) and isinstance(c, int) and c > b:
+                if i in accepted:  # deliberate increase: baseline absorbs the new value below
+                    waived += 1
+                    break
+                violations.append(f"GREW    {cur[i]['rule']} {cur[i]['path']}::{cur[i]['symbol']} — {m} {b} -> {c}  [{i}]")
+
+    fixed = set(base) - set(cur)
+    improved = sum(
+        1 for i in set(cur) & set(base) for m in RATCHET_METRICS
+        if isinstance(base[i].get(m), int) and isinstance(cur[i].get(m), int)
+        and cur[i][m] < base[i][m]
+    )
+    if violations:
+        print(f"RATCHET FAILED — {len(violations)} regression(s) vs {args.baseline}:")
+        for v in violations:
+            print(f"  {v}")
+        return 1
+    if (fixed or improved or waived) and not args.no_update:
+        args.baseline.write_text(json.dumps(cur_manifest, indent=1))
+        tail = f", {waived} deliberate increase(s) absorbed" if waived else ""
+        print(f"RATCHET OK — tightened baseline: {len(fixed)} finding(s) removed, "
+              f"{improved} metric(s) improved{tail} ({len(cur)} findings now held)")
+    else:
+        print(f"RATCHET OK — no change ({len(cur)} findings held)")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -215,6 +279,17 @@ def main(argv=None) -> int:
     p.add_argument("before", type=Path)
     p.add_argument("after", type=Path)
     p.set_defaults(fn=cmd_diff)
+    p = sub.add_parser("ratchet")
+    p.add_argument("--baseline", type=Path, required=True)
+    p.add_argument("--root", type=Path, required=True)
+    p.add_argument("--scope", nargs="+", default=["."])
+    p.add_argument("--no-update", action="store_true",
+                   help="check only; do not auto-tighten the baseline")
+    p.add_argument("--accept", action="append", metavar="FINDING_ID",
+                   help="deliberately accept a new finding or metric increase "
+                        "(the SEATBELT_INCREASE analog); repeatable, recorded "
+                        "by the baseline absorbing the new value")
+    p.set_defaults(fn=cmd_ratchet)
     args = ap.parse_args(argv)
     return args.fn(args)
 
