@@ -1,5 +1,6 @@
 ---
 id: "0005"
+namespace: core
 title: Agent rules surface uses lean root + load-on-demand tiered storage
 status: accepted
 date: 2026-05-07

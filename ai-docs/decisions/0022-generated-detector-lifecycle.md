@@ -1,5 +1,6 @@
 ---
 id: "0022"
+namespace: core
 title: "Generated-detector lifecycle: synthesize -> propose -> accept -> freeze -> gate"
 status: proposed
 date: 2026-05-22
@@ -118,8 +119,8 @@ suspect end, a crystallized reusable detector at the guard end).
   evidence earns graduation) need tuning.
 - **First instance:** the cotton scanners. The **curated half** is concrete and
   near-term — parameterize them against a committed convention descriptor
-  (django-cotton's `templates/cotton/` as the default, host override for pnci's
-  `app/_components/cotton`), closing the hardcoded-layout / argument-hint gaps the
+  (django-cotton's `templates/cotton/` as the default, with a host override),
+  closing the hardcoded-layout / argument-hint gaps the
   SKILL.md already advertises. The **generative half** handles the next host whose
   component system we haven't seen.
 

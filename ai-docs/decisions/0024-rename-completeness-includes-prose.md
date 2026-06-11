@@ -1,5 +1,6 @@
 ---
 id: "0024"
+namespace: core
 title: Concept-rename completeness includes prose, not just identifiers
 status: proposed
 date: 2026-06-08

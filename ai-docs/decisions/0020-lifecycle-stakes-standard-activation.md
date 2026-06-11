@@ -1,5 +1,6 @@
 ---
 id: "0020"
+namespace: core
 title: Lifecycle- and Stakes-Gated Standard Activation
 status: proposed
 date: 2026-05-21
@@ -46,7 +47,7 @@ Two axes, not one:
   (internal-trusted → external-untrusted → public-adversarial / high-uptime /
   regulated).
 
-These are independent. The host project (pnci) is the proof: it is *quasi-live*
+These are independent. The reference host adaptation is the proof: it is *quasi-live*
 (high maturity) but an *internal, trusted-operator tool* with modest uptime
 needs (low stakes). It must not be buggy, but it should never be held to the
 "always under fire, like Google" bar. Maturity alone would mis-rank it.
@@ -112,7 +113,7 @@ Project state is **declared, inferred, and re-confirmed** — all three:
 
 - **Single-axis linear maturity ladder.** Rejected: conflates "how live" with
   "how high-stakes." It would over-burden a quasi-live internal tool and
-  under-protect an early public service. pnci is the counterexample.
+  under-protect an early public service. The reference host adaptation is the counterexample.
 - **Near-empty prototype baseline ("move fast, no standards").** Rejected: the
   dominant real-world failure in AI-grown code is maintainability chaos, not
   under-engineered safety. The Sanity baseline must bind even prototypes.
@@ -140,7 +141,7 @@ Project state is **declared, inferred, and re-confirmed** — all three:
 - **Harder:** someone must declare and maintain (maturity, stakes); standards
   authors must classify each rule (baseline vs which rung); the inference
   heuristics and `/orient` flow must be built and tuned.
-- **pnci worked classification:** maturity ≈ live / relied-upon (internal);
+- **Reference host adaptation worked classification:** maturity ≈ live / relied-upon (internal);
   stakes ≈ **low** (internal, trusted operators, modest uptime). ⇒ enforce
   baseline (Sanity + the common-sense safety rung) and the maturity-driven
   correctness rungs (don't lose data) — but treat the *common-sense* rung as the
@@ -149,8 +150,8 @@ Project state is **declared, inferred, and re-confirmed** — all three:
   side-effectful routes, `ppc_code_is_safe` at the write boundary, prompt
   delimiters) are baseline-worthy — *do them*; the heavy adversarial rungs
   (broad rate-limiting / DDoS infrastructure, a second model pre-screening all
-  crawled text for prompt-injection safety) are **not** required at pnci's
-  stakes — *do not* gold-plate them.
+  crawled text for prompt-injection safety) are **not** required at a quasi-live
+  internal service's stakes — *do not* gold-plate them.
 
 ## Verification
 
@@ -163,7 +164,7 @@ Project state is **declared, inferred, and re-confirmed** — all three:
   confirmation (push).
 - A regression check proves a prototype-classified project is *not* flagged for a
   stakes-gated rung, and that raising its declared stakes activates that rung.
-- **Proposed** until: the state surface + one gated scan exist, *and* pnci is
+- **Proposed** until: the state surface + one gated scan exist, *and* the reference host adaptation is
   classified and its scan reflects "live / low-stakes" (baseline + common-sense
   rungs, no gold-plating). Pairs with ADR 0018 (the axis), ADR 0019 (trust
   boundaries — whose common-sense rung is baseline), and the harvest skill (which

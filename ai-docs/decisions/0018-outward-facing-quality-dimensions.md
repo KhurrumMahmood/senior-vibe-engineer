@@ -1,5 +1,6 @@
 ---
 id: "0018"
+namespace: core
 title: Outward Facing Quality Dimensions
 status: proposed
 date: 2026-05-21
@@ -23,7 +24,7 @@ architectural smell is structural. There is near-zero coverage of
 failing or compromised dependency, an operator paged at 3am, a privacy
 obligation, and a bill.
 
-A read-only audit of the host project (pnci-pricing, 2026-05-21) confirmed the
+A read-only audit of a production host adaptation confirmed the
 gap is not theoretical. Three independent scouts found: user-controlled
 `bypass_proxy` enabling SSRF to the cloud-metadata endpoint; 10+ unauthenticated
 `/debug/*` routes live in production regardless of `DEBUG`; and eight `exec()`

@@ -13,9 +13,14 @@ Subcommands:
   audit             Run drift checks; exit 1 if any drift
   link-check        Verify supersedes/superseded_by chains and applies_to paths
 
-Format: ai-docs/decisions/<NNNN>-<slug>.md with frontmatter:
+Format: ai-docs/decisions/<NNNN>-<slug>.md with frontmatter.
 
-  id: "0001"          # quoted: PyYAML SafeLoader parses unquoted 0010 as octal 8
+Canonical identity is <namespace>:<slug> (e.g. core:textchoices-for-state) — stable
+across forks/merges. The NNNN prefix is local display/ordering only; it may collide
+across forks or namespaces, so it is NOT the cross-repo identity.
+
+  id: "0001"          # local display/order; quote it (PyYAML reads 0010 as octal 8)
+  namespace: core     # core = portable toolkit; "project" = a host adaptation
   title: Use TextChoices for all status fields
   status: accepted
   date: 2026-04-30
@@ -100,9 +105,13 @@ def load_decisions(decisions_dir: Path) -> list[dict]:
                     f'(id: "{file_id}") to silence this',
                     file=sys.stderr,
                 )
+        slug = m.group(2)
+        namespace = str(fm.get("namespace") or "core")
         out.append({
             "id": file_id,
-            "slug": m.group(2),
+            "slug": slug,
+            "namespace": namespace,
+            "key": f"{namespace}:{slug}",
             "title": str(fm.get("title") or ""),
             "status": str(fm.get("status") or "proposed"),
             "date": str(fm.get("date") or ""),
@@ -138,6 +147,7 @@ def cmd_init(args, decisions_dir: Path) -> int:
     body = (
         "---\n"
         f'id: "{next_id:04d}"\n'
+        "namespace: core\n"
         f"title: {title}\n"
         "status: proposed\n"
         f"date: {today}\n"
@@ -183,7 +193,7 @@ def cmd_list(args, decisions_dir: Path) -> int:
 def cmd_show(args, decisions_dir: Path) -> int:
     decisions = load_decisions(decisions_dir)
     target = args.id.lstrip("0") or "0"
-    matches = [d for d in decisions if d["id"].lstrip("0") == target or d["id"] == args.id]
+    matches = [d for d in decisions if d["id"].lstrip("0") == target or d["id"] == args.id or d.get("slug") == args.id or d.get("key") == args.id]
     if not matches:
         print(f"error: no decision matches id={args.id!r}", file=sys.stderr)
         return 1
@@ -218,10 +228,16 @@ def _audit_drift(decisions: list[dict]) -> list[str]:
         if d["status"] not in VALID_STATUSES:
             diags.append(f"{d['id']}: invalid status {d['status']!r} (allowed: {sorted(VALID_STATUSES)})")
         if d["status"] == "proposed" and d["date"]:
+            # A proposed ADR is "intentionally proposed" — not drift — when it carries a
+            # revisit_when trigger (explicitly deferred on a stated condition) or provenance
+            # (validated in a downstream adaptation, offered upstream as a calibrated default;
+            # core may have nothing to enforce it against yet). Only *bare* proposed ADRs age out.
+            fm = d.get("frontmatter") or {}
+            intentional = bool(fm.get("revisit_when") or fm.get("provenance"))
             try:
                 age = (today - _dt.date.fromisoformat(d["date"])).days
-                if age > PROPOSED_AGE_DAYS:
-                    diags.append(f"{d['id']}: proposed for {age} days (>{PROPOSED_AGE_DAYS}) — accept or reject")
+                if age > PROPOSED_AGE_DAYS and not intentional:
+                    diags.append(f"{d['id']}: proposed for {age} days (>{PROPOSED_AGE_DAYS}) — accept, reject, or add a revisit_when trigger")
             except ValueError:
                 diags.append(f"{d['id']}: malformed date {d['date']!r}")
         for sup_id in d.get("supersedes") or []:

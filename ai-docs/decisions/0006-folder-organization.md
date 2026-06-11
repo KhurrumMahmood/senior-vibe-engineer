@@ -1,8 +1,10 @@
 ---
 id: "0006"
+namespace: core
 title: Layer folders use route-prefix and tests-folder grouping over flat naming
 status: proposed
 date: 2026-05-07
+revisit_when: ["the folder-topology guard graduates from advisory to enforced"]
 deciders: [khurrum]
 supersedes: []
 superseded_by: null
@@ -30,11 +32,11 @@ directory the eye cannot navigate. Concrete state, today:
   `tests_external_quality.py`, …) sitting next to production code.
   Tests are grouped by *naming convention*, not by *folder*.
 - `app/views/` holds 41 entries with two unmistakable prefix clusters:
-  eight `site_config_*.py` files (`site_config_dashboard.py`,
-  `site_config_context.py`, `site_config_save.py`,
-  `site_config_lifecycle.py`, `site_config_mappings.py`,
-  `site_config_crawl.py`, `site_config_normalized.py`, plus the
-  shim `site_config.py`) and eight `settings_*.py` files
+  eight `account_*.py` files (`account_dashboard.py`,
+  `account_context.py`, `account_save.py`,
+  `account_lifecycle.py`, `account_mappings.py`,
+  `account_crawl.py`, `account_normalized.py`, plus the
+  shim `account.py`) and eight `settings_*.py` files
   (`settings_access.py`, `settings_diagnostics.py`, `settings_email.py`,
   `settings_global.py`, `settings_pages.py`, `settings_external.py`,
   `settings_proxy.py`, plus the shim `settings.py`). Both clusters
@@ -97,10 +99,10 @@ Five rules, in order of precedence:
    pairs are not yet a pattern. Once collapsed, the folder gets a
    thin `__init__.py` that re-exports the public symbols the prior
    flat module(s) named, so callers don't churn until they're touched.
-   Worked example: the eight `app/views/site_config_*.py` files
-   collapse into `app/views/site_config/{dashboard,context,save,
+   Worked example: the eight `app/views/account_*.py` files
+   collapse into `app/views/account/{dashboard,context,save,
    lifecycle,mappings,crawl,normalized,__init__}.py`. The shim
-   `site_config.py` at the parent layer is allowed to remain as a
+   `account.py` at the parent layer is allowed to remain as a
    compatibility re-export under ADR 0002's two-commit refactor
    discipline; it does not count toward the cluster.
 
@@ -177,7 +179,7 @@ to fragment. Four explicit guardrails:
 - **Status quo (no convention).** The flat structure plus
   decompositions-by-rename. Rejected — already painful at 142 entries
   in `app/` and the trajectory is upward, not downward. Naming
-  prefixes (`tests_`, `site_config_`, `settings_`, `vendor_`)
+  prefixes (`tests_`, `account_`, `settings_`, `vendor_`)
   already act as folder names; promoting them to actual folders
   costs a one-time import update but yields permanent navigability.
 - **Per-Django-app split.** Break `app/` into multiple Django apps
@@ -211,14 +213,14 @@ to fragment. Four explicit guardrails:
 **Easier:**
 
 - Folder names answer "where does X live?" before the agent or
-  reader has to grep. The path `app/views/site_config/save.py`
-  carries the same information as `app/views/site_config_save.py`
+  reader has to grep. The path `app/views/account/save.py`
+  carries the same information as `app/views/account_save.py`
   but localizes the cluster — siblings are visible in one `ls`,
   unrelated views (`auth.py`, `dashboard.py`) don't intrude on the
   scan.
-- Tests follow code through refactors. When `app/views/site_config_*`
-  becomes `app/views/site_config/`, the matching `tests/test_site_*`
-  files have a clear destination (`app/views/site_config/tests/`),
+- Tests follow code through refactors. When `app/views/account_*`
+  becomes `app/views/account/`, the matching `tests/test_account_*`
+  files have a clear destination (`app/views/account/tests/`),
   removing the "but where do the tests go?" friction every
   decomposition currently hits.
 - AI agents that understood `app/views/brand_downloads/` and
@@ -228,9 +230,9 @@ to fragment. Four explicit guardrails:
 
 **Harder:**
 
-- Every cluster collapse churns imports. `from app.views.site_config_save
-  import …` becomes `from app.views.site_config.save import …` (or
-  `from app.views.site_config import save_handler` if the package
+- Every cluster collapse churns imports. `from app.views.account_save
+  import …` becomes `from app.views.account.save import …` (or
+  `from app.views.account import save_handler` if the package
   `__init__.py` re-exports). One-PR-per-cluster keeps the diff
   reviewable; the EXPLAIN skill's migration table makes the import
   delta explicit before the move.

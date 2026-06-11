@@ -38,7 +38,8 @@ of those choices belong in `lessons.md` or commit messages.
 
 ```yaml
 ---
-id: 0001
+id: "0001"              # local display/order; quote it (PyYAML reads 0010 as octal) — NOT the cross-repo identity
+namespace: core         # core = portable toolkit; "project" = a host adaptation
 title: Use TextChoices for all status fields
 status: accepted        # proposed | accepted | superseded | deprecated
 date: 2026-04-30
@@ -60,6 +61,44 @@ related_pattern: stringly-status       # → canonical-patterns.md anchor
 
 Use `python3 scripts/decisions.py init <slug>` to scaffold; it
 auto-assigns the next id.
+
+### Identity: `<namespace>:<slug>`
+
+The **intended canonical identity** of an ADR is `<namespace>:<slug>` — e.g.
+`core:textchoices-for-state`. It is semantic, so two repos can't collide on it the way
+they collide on `NNNN` (where `core:0019` and a downstream `project:0019` are different
+decisions). Two namespaces exist:
+
+- **`core`** — the portable toolkit (this repo). Open-source; its ADRs avoid references
+  to any *specific private host* (bare `applies_to` paths and `host:`-prefixed
+  placeholder paths are both fine — see "Portable `applies_to` paths" below).
+- **`project`** — a host adaptation (e.g. a private downstream repo). Its ADRs may
+  `supersede` or refine a `core:` decision and cite it by `core:<slug>`.
+
+**Migration status (honest).** The slug is the *target* identity, not yet load-bearing
+end-to-end. `decisions.py show` resolves a slug or `key`, but `supersedes` /
+`superseded_by` / `link-check` still match on `NNNN`, and the ~230 existing
+`ADR NNNN` backrefs across the docs are not yet rewritten to slugs. So today `NNNN` is
+still the key the tooling resolves; the NNNN→slug migration (resolver + backref rewrite)
+is tracked, unfinished work — not a delivered guarantee.
+
+### Optional fields: `provenance`, `assumes` / `revisit_when`
+
+Three optional frontmatter fields carry decision hygiene (see
+`core:decision-assumptions-and-revisit-triggers`):
+
+- **`provenance:`** — a one-line note that the decision was validated in a downstream
+  adaptation and is offered here as a calibrated default. A `core:` ADR with
+  `provenance` may legitimately sit at `status: proposed` (core has nothing to enforce
+  it against yet) without being stale.
+- **`assumes:`** — the falsifiable condition(s) the decision rests on.
+- **`revisit_when:`** — the observable trigger that should re-open it (e.g. "the lint
+  that enforces this is built in core"). Doubles as the place to record *deferred
+  enforcement*: an ADR whose detector isn't built yet names that gap here.
+
+`audit` treats a `proposed` ADR carrying `revisit_when` or `provenance` as
+**intentionally proposed** (deferred-on-a-condition / offered default), not 30-day
+drift. A bare `proposed` ADR with neither still ages out.
 
 ## Portable `applies_to` paths
 

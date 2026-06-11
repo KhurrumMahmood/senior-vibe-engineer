@@ -1,8 +1,11 @@
 ---
 id: 0004
+namespace: core
 title: Parallel writers of the same output shape route through a shared helper
 status: accepted
 date: 2026-05-03
+assumes: ["no standard shared helper exists for the divergent shape yet"]
+revisit_when: ["a shared helper for the shape becomes the project norm"]
 deciders: [khurrum]
 supersedes: []
 superseded_by: null

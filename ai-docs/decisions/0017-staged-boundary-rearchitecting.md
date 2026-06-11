@@ -1,5 +1,6 @@
 ---
 id: "0017"
+namespace: core
 title: Staged boundary rearchitecting — when to extract, when to phase, when to refuse phasing
 status: proposed
 date: 2026-05-14

@@ -1,5 +1,6 @@
 ---
 id: 0002
+namespace: core
 title: Multi-file refactors are spec-first via ai-docs/specs/
 status: accepted
 date: 2026-04-30

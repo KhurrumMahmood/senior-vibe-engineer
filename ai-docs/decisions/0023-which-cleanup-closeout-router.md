@@ -1,5 +1,6 @@
 ---
 id: "0023"
+namespace: core
 title: /which-cleanup is the diff-scoped, registry-optional closeout consumer
 status: proposed
 date: 2026-06-08

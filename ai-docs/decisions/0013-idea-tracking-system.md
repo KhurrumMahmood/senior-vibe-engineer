@@ -1,5 +1,6 @@
 ---
 id: "0013"
+namespace: core
 title: Two-tier idea-tracking system (ledger + pattern library)
 status: accepted
 date: 2026-05-13

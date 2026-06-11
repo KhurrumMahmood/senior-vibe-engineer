@@ -1,5 +1,6 @@
 ---
 id: "0016"
+namespace: core
 title: Importance Map Shape
 status: proposed
 date: 2026-05-14

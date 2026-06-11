@@ -1,8 +1,11 @@
 ---
 id: 0003
+namespace: core
 title: Skill outputs land in a canonical findings ledger
 status: proposed
 date: 2026-05-03
+assumes: ["no canonical findings ledger exists in core yet"]
+revisit_when: ["work begins on the convergent closure loop this ledger is the substrate for"]
 deciders: [khurrum]
 supersedes: []
 superseded_by: null

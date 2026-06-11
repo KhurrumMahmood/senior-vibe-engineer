@@ -1,5 +1,6 @@
 ---
 id: 0001
+namespace: core
 title: Use TextChoices for all status / phase / state fields
 status: accepted
 date: 2026-04-30

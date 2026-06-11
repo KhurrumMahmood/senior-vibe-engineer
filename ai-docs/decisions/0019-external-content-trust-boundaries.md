@@ -1,5 +1,6 @@
 ---
 id: "0019"
+namespace: core
 title: External Content Trust Boundaries
 status: proposed
 date: 2026-05-21
@@ -17,7 +18,7 @@ related_pattern: null
 ## Context
 
 AI-assisted products introduce trust boundaries the classic web-security model
-doesn't name. Two are acute in the host project (pnci-pricing) and general to
+doesn't name. Two are acute in a production host adaptation and general to
 any crawl+LLM pipeline:
 
 - **Crawled third-party HTML flows into LLM prompts.** Pages the operator does
@@ -94,7 +95,7 @@ generation time. Concretely:
 ## Verification
 
 - The AST safety check is enforced at **all** `FieldExtractionConfig` /
-  `SiteConfiguration` code-write boundaries, not just the SI adapter.
+  configuration-record code-write boundaries, not just the SI adapter.
 - A regression test proves a malicious-import PPC posted to the apply endpoint is
   rejected before it reaches the DB (`/prevent-regression` candidate).
 - HTML-excerpt prompt assembly wraps content in a sentinel block and uses a
