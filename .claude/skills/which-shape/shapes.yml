@@ -162,7 +162,8 @@ shapes:
       - "/which-cleanup <files | --staged | --changed-from REF | --commit SHA | --range A..B | --area NAME | --since SPEC>"
       - "run the band-appropriate cleanup (checklist / scoped scout fan-out / closeout plan)"
       - "/prevent-regression for any cluster that closes"
-    stop: "Stop once the changed surface is swept and any closed cluster is guarded; hand off to /triage-debt for the global picture."
+      - "/converge — after-phase gate: weakest value node, single next step, stop condition, do-not-do-next"
+    stop: "Stop once the changed surface is swept, any closed cluster is guarded, and /converge has named the thread's stop condition; hand off to /triage-debt for the global picture."
     cues:
       strong: [closeout, cleanup, stabilize, finished, wrap-up, post-commit]
       normal: [changed, touched, diff, staged, after, done, sweep, tidy, harden]
