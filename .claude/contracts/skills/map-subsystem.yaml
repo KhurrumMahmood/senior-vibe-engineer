@@ -18,8 +18,9 @@ born:
   commit: "90f8567"
   date: "2026-05-15"
   sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
-dogfood_kind: none-found
+dogfood_kind: host-attested
 dogfooded_on:
+  - "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 2 effectiveness records, 0 scan dirs, learnings_file=false, 2026-04-20..2026-04-20."
   - "none-found — extracted big-bang into ES2 (90f8567), not dogfooded in this repo. ES2 has no host subsystems to map: no .claude/docs/subsystems/<name>.md outputs and no reports/map dir on disk. Has a scripts/ doc generator but no fixtures/ oracle."
 reports_dir: none
 run_evidence:
@@ -46,7 +47,7 @@ provenance_confidence:
   textual: low
   structural: med
   temporal: low
-  dogfood: low
+  dogfood: med
 evidence:
   - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
   - "has scripts/ doc generator + knowledge/ output-format spec; no fixtures/ oracle (has_fixtures false)"

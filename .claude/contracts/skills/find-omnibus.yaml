@@ -71,8 +71,9 @@ born:
   - triage-debt
   - unify-shadows
   - which-skill
-dogfood_kind: none-found
+dogfood_kind: host-attested
 dogfooded_on:
+- "host-attested (ADR 0035): attestations.yaml host-a row — 2 invocations, 1 effectiveness records, 0 scan dirs, learnings_file=false, 2026-04-20..2026-06-11."
 - none-found as a real oracle. There is one on-disk self-scan on the ES2 tree (reports/omnibus/scan-20260516-020044),
   but ES2 has no host-subsystem decomposition refactor driven by it — it is a single self-report, not
   a dogfood against a confirmed omnibus file. The host-a core/views/site_config.py decomposition is host-a
@@ -111,7 +112,7 @@ provenance_confidence:
   textual: low
   structural: med
   temporal: low
-  dogfood: low
+  dogfood: med
 evidence:
 - 'scan-surface declared via scans: frontmatter [python, javascript, typescript] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
 - 90f8567 — born in the big-bang ecosystem-extraction commit alongside 54 sibling skills (temporal weak)

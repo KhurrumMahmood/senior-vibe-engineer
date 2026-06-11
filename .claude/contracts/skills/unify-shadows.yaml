@@ -68,8 +68,9 @@ born:
   - track-idea
   - triage-debt
   - which-skill
-dogfood_kind: none-found
+dogfood_kind: host-attested
 dogfooded_on:
+- "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 2 effectiveness records, 0 scan dirs, learnings_file=false, 2026-04-19..2026-04-19."
 - none-found (extracted big-bang in 90f8567). Has scanner/agent machinery but no fixtures and no reports/unify-shadows
   run dir on disk in ES2 — the host-a SC-3/SC-7 dogfood proposals are host-a history, not ES2's.
 reports_dir: none
@@ -108,7 +109,7 @@ provenance_confidence:
   textual: low
   structural: med
   temporal: low
-  dogfood: low
+  dogfood: med
 evidence:
 - 90f8567 — born in the big-bang ecosystem-extraction commit alongside 54 sibling skills (temporal weak;
   the big-bang subject does not name this skill, textual weak)

@@ -17,8 +17,9 @@ born:
   commit: "90f8567"
   date: "2026-05-15"
   sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
-dogfood_kind: none-found
+dogfood_kind: host-attested
 dogfooded_on:
+  - "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 2 effectiveness records, 0 scan dirs, learnings_file=false, 2026-05-07..2026-05-07."
   - "none-found (extracted big-bang under 90f8567, no ES2 dogfood run). reports/transaction-overreach absent; no fixtures pair shipped, so there is no oracle and no recorded scan in ES2."
 reports_dir: none
 run_evidence:
@@ -42,7 +43,7 @@ provenance_confidence:
   textual: low
   structural: med
   temporal: low
-  dogfood: low
+  dogfood: med
 evidence:
   - "90f8567 — born in the 55-skill big-bang extraction cohort (textual + temporal low)"
   - "has_scripts true, has_fixtures false — AST detector + scout briefs, no good/bad oracle (structural med)"

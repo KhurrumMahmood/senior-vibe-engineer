@@ -9,8 +9,9 @@ born:
   commit: "90f8567"
   date: "2026-05-15"
   sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
-dogfood_kind: none-found
+dogfood_kind: host-attested
 dogfooded_on:
+  - "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 5 effectiveness records, 0 scan dirs, learnings_file=false, 2026-05-03..2026-05-08."
   - "none-found (extracted in the big-bang 90f8567 cohort; no ES2 self-run — decide writes ADRs, and ES2 has no reports dir or run artifacts for it)"
 reports_dir: null
 run_evidence:
@@ -43,7 +44,7 @@ provenance_confidence:
   textual: low      # big-bang 90f8567 cohort; commit subject does not name decide specifically
   structural: low   # prose-only skill — no scanner script, no fixtures (writes ADR markdown)
   temporal: low     # 90f8567 birth shared by 54 siblings — birth proximity carries no signal
-  dogfood: low      # no fixtures oracle and no ES2 self-run
+  dogfood: med      # no fixtures oracle and no ES2 self-run
 evidence:
   - "90f8567 — born in the big-bang 55-skill extraction cohort (2026-05-15), not a named later commit"
   - "no reports_dir and 0 run artifacts on disk — not yet dogfooded in ES2"

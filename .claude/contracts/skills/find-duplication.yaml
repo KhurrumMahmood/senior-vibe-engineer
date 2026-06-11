@@ -67,8 +67,9 @@ born:
   - triage-debt
   - unify-shadows
   - which-skill
-dogfood_kind: none-found
+dogfood_kind: host-attested
 dogfooded_on:
+- "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 1 effectiveness records, 0 scan dirs, learnings_file=true, 2026-05-02..2026-05-02."
 - none-found (extracted big-bang in 90f8567, not yet dogfooded in this repo). Has a scanner script but
   no fixtures pair and no reports/duplication run dir on disk in ES2 — the host-a core/ copy-paste sweep
   that dogfooded this skill is host-a history, not ES2's.
@@ -111,7 +112,7 @@ provenance_confidence:
   textual: low
   structural: med
   temporal: low
-  dogfood: low
+  dogfood: med
 evidence:
 - 90f8567 — born in the big-bang ecosystem-extraction commit alongside 54 sibling skills (temporal weak)
 - has scripts/ (jscpd + AST scanner) but no fixtures/ pair (structural med)

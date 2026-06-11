@@ -17,8 +17,9 @@ born:
   commit: "90f8567"
   date: "2026-05-15"
   sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
-dogfood_kind: none-found
+dogfood_kind: host-attested
 dogfooded_on:
+  - "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 1 effectiveness records, 0 scan dirs, learnings_file=false, 2026-05-02..2026-05-02."
   - "none-found — extracted big-bang into ES2 (90f8567), not dogfooded in this repo. Has a scripts/ helper but no fixtures/ oracle and no reports/explanations dir on disk in ES2; outputs (annotation docs) are gitignored and none were produced here."
 reports_dir: reports/explanations
 run_evidence:
