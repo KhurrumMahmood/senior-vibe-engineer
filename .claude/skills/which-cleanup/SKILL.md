@@ -23,6 +23,10 @@ not_for: |
 escalate_to: |
   /triage-debt for the global picture once the diff-scoped closeout is done;
   /refactor-subsystem to execute a large-band closeout plan from the spec stub.
+  Mass-finding rule: when a dispatched scanner returns one band with ≥5
+  findings on the touched surface, escalate that cluster as ONE
+  standardize-and-enforce candidate (/decide → extract the primitive →
+  /prevent-regression), not per-item fixes.
 delegate_from: |
   /which-shape (the task-closeout shape points here).
 lanes: [routing]

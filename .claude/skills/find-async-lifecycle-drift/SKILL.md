@@ -19,6 +19,13 @@ not_for: |
   Proving Celery behavior, replacing integration tests, or blocking
   commits in v1. Use this as a baseline scanner before promoting a
   narrow lifecycle rule to `/prevent-regression`.
+escalate_to: |
+  /fix-workflow for isolated findings. When one band returns ≥5
+  findings on one surface, treat the cluster as ONE
+  standardize-and-enforce candidate: /decide the shared abstraction
+  (poller / job-lifecycle primitive), extract it, then
+  /prevent-regression to pin the band. Per-item fixes leave the
+  generator in place.
 language: any
 framework: django
 scans: [python, javascript]

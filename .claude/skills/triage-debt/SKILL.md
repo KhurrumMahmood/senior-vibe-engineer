@@ -60,6 +60,11 @@ re-running every detector.
 5. **Parking is real.** A decision saying "leave foo alone until
    2026-Q3" is a legitimate park; subtract score so the queue doesn't
    keep nagging.
+6. **Mass findings mean a missing standard.** When a single detector
+   band yields ≥5 findings on one surface in its latest scan, the debt
+   is one missing shared abstraction or convention — not N local bugs.
+   Per-item fixes leave the generator in place; the queue entry must
+   route to standardize-and-enforce instead (see Stage 3).
 
 ## Scope (this skill itself)
 
@@ -203,6 +208,24 @@ each entry, determine the recommended next skill:
 | decision drift (broken chain) | `/audit-decisions` to inspect, then manual fix |
 | hard size overflow | `/find-omnibus <file>` then `/refactor-subsystem` |
 
+**Mass-finding escalation (overrides the table).** Before emitting an
+entry, check the candidate's latest scan buckets (in
+`effectiveness.jsonl`): if any single bucket holds **≥5 findings on one
+surface**, do NOT recommend per-item execution. The recommended next
+becomes the standardize-and-enforce route:
+
+1. `/decide` — name the standard or shared primitive the cluster
+   implies (one ADR, not N tickets);
+2. extract the primitive (the source skill's extract-* / refactor
+   path);
+3. `/prevent-regression` — pin the band so the cluster cannot regrow.
+
+Annotate the entry `escalated: mass-finding (<bucket> × <count>)`.
+The canonical failure this prevents: a lifecycle scanner returns the
+same missing-guard band 19 times across one route surface, and triage
+emits 19 tickets — when the right shape was one shared primitive plus
+one guard.
+
 ### Stage 4 — Write `queue.md`
 
 ```markdown
@@ -218,6 +241,7 @@ past 90 days._
 - **Why ranked here:** _one-line reason — recurrence / hard-size /
   drift / etc._
 - **Recommended next:** `/<skill> <args>`
+- **Escalation:** _(when triggered)_ standardize-and-enforce — band `<bucket>` × <count>
 - **Evidence:** `reports/<smell>/latest/<file>`
 
 ### 2. ...
