@@ -42,7 +42,7 @@ REQUIRED = ["skill", "job", "problem_class", "intent", "solves", "born",
             "dogfood_kind", "provenance_confidence"]
 BORN_KEYS = ["commit", "date"]
 CONF_AXES = ["textual", "structural", "temporal", "dogfood"]
-DOGFOOD_KINDS = {"subsystem-refactor", "self-installed-guard", "fixture-pair", "none-found"}
+DOGFOOD_KINDS = {"subsystem-refactor", "self-installed-guard", "fixture-pair", "host-attested", "none-found"}
 CONF_LEVELS = {"high", "med", "low"}
 
 # Frontmatter keys that describe the CLI/tool surface or bare identity, not the skill's

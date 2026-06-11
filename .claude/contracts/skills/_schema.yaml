@@ -59,10 +59,15 @@ schema_version: 2
 #                         parent lacks the file (parent-absence; NOT `git log --diff-filter=A`,
 #                         which can report a spurious birth across a merge)
 #   born.sibling_births   other skills born in the SAME birth commit ([] if none; large under 90f8567)
-#   dogfood_kind          subsystem-refactor | self-installed-guard | fixture-pair | none-found
+#   dogfood_kind          subsystem-refactor | self-installed-guard | fixture-pair | host-attested | none-found
 #   dogfooded_on          subsystem + commit range/SHAs, the self-shipped artifact, the fixtures
 #                         pair, or the ES2 self-scan run(s); "none-found" if extracted but not yet
-#                         dogfooded in THIS repo (honest for many big-bang-extracted skills)
+#                         dogfooded in THIS repo (honest for many big-bang-extracted skills).
+#                         host-attested (ADR 0035): the evidence lives in a host adaptation and is
+#                         frozen as a counts-only row in .claude/contracts/provenance/attestations.yaml —
+#                         dogfooded_on cites the attestation row (host alias + key counts). A
+#                         host-attested claim caps provenance_confidence.dogfood at MED until a
+#                         local re-run exists; cross-repo evidence is real but not locally reproduced.
 #   reports_dir           on-disk output dir(s), incl. aliases (e.g. find-omnibus -> reports/omnibus,
 #                         harvest-learnings -> reports/harvest); none if absent
 #   run_evidence          from on-disk timestamped artifacts (local, not git): {count, first, latest}
