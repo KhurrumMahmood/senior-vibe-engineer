@@ -1,0 +1,8 @@
+{
+  "function": "supersession_chain",
+  "ledger": "ledger.jsonl",
+  "kwargs": {
+    "idea_id": "idea-a"
+  },
+  "expected": ["idea-a", "idea-b", "idea-c"]
+}

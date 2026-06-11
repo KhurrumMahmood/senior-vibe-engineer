@@ -1,0 +1,52 @@
+schema_version: 2
+
+skill: find-orphaned-ideas
+job: suspect
+problem_class: "idea-ledger drift / attention-gap detection (SUSPECT)"
+intent: "Read-side audit for the Tier 1 idea ledger that detects ideas needing attention but not getting it, across seven orthogonal modes — stale (in-flight, no event in N days), harvest (has-more-potential, not in-flight), plan-dropouts (in a plan but missing from ledger), todo (TODO/FIXME orphans), stale-plans (proposed plans silent > N days), dead-prototype (orphan routes/templates from a /find-dormant report), attention-gap (importance-weighted audit, reads .engineering/docs/importance-map.md). Read-only by default; --apply-stale writes stalled-transition events."
+solves: "Ideas getting lost — in-flight work going silent, harvested capacity nobody picked back up, plan/backlog items with no ledger entry, and TODO/source-tree forgetfulness — that the append-only ledger captures but no one reviews."
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted in the big-bang 90f8567 cohort; ships a find.py scanner but has no on-disk reports dir or self-scan run in ES2)"
+reports_dir: null
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0013", "0016"]
+  precedent:
+    - read-decode-safety.v1
+  doc:
+    - idea-ledger.md
+    - todo-tuning.md
+    - importance-map.md
+  contract: []
+related_skills: [track-idea, extract-existing-ideas, brainstorm-ideas, mature-existing-ideas, find-dormant]
+duplication_risk:
+  - with: track-idea
+    relation: sequential
+    disambiguator: "not_for quote: 'Capturing new ideas (use /track-idea intake). Adding lessons or transitions (use /track-idea event)'. orphaned-ideas is the READ-side audit; track-idea is the WRITE-side capture. orphaned-ideas --apply-stale is the one write exception (emits transition events via the same path)."
+  - with: extract-existing-ideas
+    relation: sequential
+    disambiguator: "escalate_to quote: '/extract-existing-ideas when the plan-dropouts list reveals a systemic gap (many items missing)'. orphaned-ideas detects the drift; extract-existing-ideas does the backfill from prose."
+  - with: find-dormant
+    relation: sequential
+    disambiguator: "orphaned-ideas --dead-prototype CONSUMES a /find-dormant report (--from-report) to raise orphan routes/templates as ledger candidates. find-dormant produces; orphaned-ideas reads."
+provenance_confidence:
+  textual: low      # big-bang 90f8567 cohort; commit subject does not name find-orphaned-ideas
+  structural: med   # ships a find.py scanner (has_scripts) but no good/bad fixtures pair
+  temporal: low     # 90f8567 birth shared by 54 siblings — no birth-proximity signal
+  dogfood: low      # no fixtures oracle and no ES2 self-scan run
+evidence:
+  - "90f8567 — born in the big-bang 55-skill extraction cohort (2026-05-15)"
+  - "has_scripts: true (find.py multi-mode detector) but has_fixtures: false — one of two structural signals present"
+  - "read-decode-safety.v1 in precedents.yml names find-orphaned-ideas/scripts/find.py as a canonical_example (the file-read decode-safety convention)"
+  - "no reports_dir and 0 run artifacts on disk — not yet dogfooded in ES2"
+gaps:
+  - "ADRs ai-docs/decisions/0013 (idea-tracking) and 0016 (importance-map) both DIRECTLY name find-orphaned-ideas, so embodies_decisions.adr is [\"0013\", \"0016\"]; further corroborated by precedent read-decode-safety.v1 + the idea-ledger / importance-map docs."
+  - "ES2's find-orphaned-ideas SKILL.md matches the host-a intent base (seven modes incl. attention-gap); no reality divergence beyond provenance."

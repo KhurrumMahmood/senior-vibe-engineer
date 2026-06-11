@@ -1,0 +1,57 @@
+schema_version: 2
+
+skill: propose-boundary
+job: explain
+problem_class: "missing-boundary resolution proposal (EXPLAIN/bridge)"
+intent: >
+  Turn a confirmed or suspected missing-boundary into a read-only
+  boundary-extraction proposal. Consumes a target (file, directory, or skill
+  directory) and emits a proposal with candidate seams, proposed public API,
+  backward-compat shim shape, caller-impact summary, and characterization-test
+  matrix. Read-only. Hands off to /refactor-subsystem (decomposition mode).
+solves: >
+  A file or directory where distinct domain concerns live side-by-side with no
+  defined public contract — siblings reach into each other's private helpers,
+  change-amplification touches the same N files per feature, test setup explodes
+  — needs a seam proposal before any refactor.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: host-attested
+dogfooded_on:
+  - "host-attested (ADR 0035): attestations.yaml host-a row — 4 invocations, 0 effectiveness records, 0 scan dirs, learnings_file=false, 2026-05-14..2026-05-14."
+  - "none-found — extracted big-bang into ES2 (90f8567), not dogfooded in this repo. Has a scripts/ helper but no fixtures/ oracle and no reports/propose-boundary dir on disk; no boundary proposal has been produced against the ES2 tree."
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0017"]
+  precedent: ["explain-job-is-read-only-proposal.v1"]
+  doc: ["architectural-smells.md"]
+  contract: []
+related_skills: [map-subsystem, find-omnibus, propose-folder-reorganization, refactor-subsystem, gut-check, decide]
+duplication_risk:
+  - with: propose-folder-reorganization
+    relation: sibling-different-layer
+    disambiguator: "propose-boundary `not_for`: 'Folder-topology promotion/demotion (use /find-folder-topology-drift + /propose-folder-reorganization)'. propose-boundary extracts a CODE seam (public API + shim) intra-subsystem; propose-folder-reorganization moves FILES between folders."
+  - with: find-omnibus
+    relation: sequential
+    disambiguator: "propose-boundary `not_for`: 'Intra-file responsibility split where the smell is one file with three domains (use /find-omnibus then /refactor-subsystem)'. find-omnibus detects; propose-boundary is for cross-module tangle within a subsystem."
+  - with: refactor-subsystem
+    relation: sequential
+    disambiguator: "propose-boundary is read-only and stops at the proposal; refactor-subsystem (decomposition mode) executes it."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: med
+evidence:
+  - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
+  - "has scripts/ helper; no fixtures/ oracle (has_fixtures false)"
+  - "precedents.yml explain-job-is-read-only-proposal.v1 names propose-boundary explicitly as a transform-named skill that correctly carries job=explain (it PROPOSES, REFACTOR executes)"
+gaps:
+  - "DIVERGENCE from the host-a intent base on DOGFOOD only: host-a dogfooded this on the refactor-subsystem-skill dir + tasks/_shared (2 proposals on disk); ES2 has no host subsystems and no on-disk proposals, so dogfood_kind is none-found. embodies_decisions.adr is [\"0017\"] (staged-boundary-rearchitecting) — ai-docs/decisions/0017 exists in ES2 and names propose-boundary in applies_to as the proposal step, matching the SKILL.md reference."
+  - "Dropped the host-a related_skills entry propose-spine (host-a-only skill, absent from ES2)."

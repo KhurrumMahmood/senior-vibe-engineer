@@ -1,0 +1,51 @@
+# Skill intent + provenance contract — schema v2.
+# ES2-only skill; authored fresh from SKILL.md + es2_skill_facts.yaml.
+# One of the SKILL-META TRIO (see duplication_risk).
+
+schema_version: 2
+
+skill: find-skill-artifact-drift
+job: suspect
+problem_class: "instruction-artifact coherence detection (SUSPECT)"
+intent: "SUSPECT scan for instruction-artifact coherence (IAC): a SKILL.md is a procedure an agent follows literally, so when its PROSE names scripts/<name>.py --<flag>, documents a tool, or declares produces/evidence_required, those must exist on disk or the agent's first step fails. Band A is deterministic reference integrity (missing_script_ref, missing_documented_flag, bash_tool_undeclared) and is gate-worthy; Band B is heuristic structural proxies (orphan_script, evidence_contract_unbacked, not_for_tooltell_conflict) and stays advisory."
+solves: "scripts/skill_meta.py lint validates the frontmatter CONTRACT (required fields, enum values, name==dir) but does NOT check the references between the SKILL.md body and the files on disk. Refactors rename or delete scripts the prose still names, drop documented flags, or add a shell block without the Bash grant — drift that passes the frontmatter lint yet breaks the skill at runtime."
+born:
+  commit: "331f2d5"
+  date: "2026-05-22"
+  sibling_births: []
+dogfood_kind: fixture-pair
+dogfooded_on:
+  - "ships a good/bad fixture-skill pair that smoke.py asserts on: every band must fire on the bad fixture, the good fixture stays clean, and --gate exits non-zero on the bad fixture and zero on the good one (the regression oracle)"
+  - "no timestamped self-scan run on disk (reports_dir is null, run count 0) — the fixtures pair is the dogfood, not a reports/ scan"
+reports_dir: null
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []         # no ADR in ai-docs/decisions/ names find-skill-artifact-drift
+  precedent: []   # no precedents.yml entry names find-skill-artifact-drift (read-decode-safety / explain-job precedents are unrelated)
+  doc: []
+  contract: []
+related_skills: [find-skill-intent-drift, plan-skill, find-rule-surface-drift, check-ecosystem-consistency]
+duplication_risk:
+  - with: find-skill-intent-drift
+    relation: sibling-different-layer
+    disambiguator: "SKILL-META TRIO layer split: find-skill-artifact-drift checks the SKILL.md PROSE references (named scripts, documented --flags, declared tools/produces/evidence) against the FILES ON DISK; find-skill-intent-drift checks the recorded INTENT/PROVENANCE contract (this contracts/skills/<skill>.yaml) against the skill. Different layers of skill-meta drift, NOT genuine overlap."
+  - with: plan-skill
+    relation: sequential
+    disambiguator: "find-skill-artifact-drift detects Band-A/B reference drift; Band-C semantic judgment ('is the procedure correct?') is out of scope and handed to plan-skill. find-skill-artifact-drift not_for: 'Proving a skill's procedure is semantically correct … Band C semantic judgment belongs to /plan-skill.'"
+provenance_confidence:
+  textual: med      # born in a dedicated, non-big-bang commit (331f2d5) with no sibling births — the commit singles this skill out
+  structural: high  # ships both a scanner (detect.py + report.py + --gate) AND a good/bad fixtures pair (has_scripts=true, has_fixtures=true)
+  temporal: med     # solo birth cohort — sharper than the 90f8567 set, but a single skill carries limited proximity signal
+  dogfood: high     # the good/bad fixtures pair driven by smoke.py is a real, executable regression oracle
+evidence:
+  - 'scan-surface declared via scans: frontmatter [python, markdown] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
+  - "331f2d5 — born 2026-05-22 in a dedicated commit, sibling_births_count 0 (facts)"
+  - "has_scripts=true / has_fixtures=true (facts) — detect.py + report.py + smoke.py and a good/bad fixture-skill pair"
+  - "SKILL.md 'Smoke Test' — smoke.py asserts band firing on bad, clean on good, and --gate exit codes both ways (the oracle)"
+  - "third trio layer present on disk: scripts/skill_meta.py lint (frontmatter contract) — verified to exist alongside the find-skill-intent-drift sibling skill"
+gaps:
+  - "No precedents.yml entry and no ADR in ai-docs/decisions/ names find-skill-artifact-drift; intent rests on the SKILL.md plus the fixtures oracle (which is strong)."
+  - "No timestamped reports/ self-scan run (reports_dir null), so 'dogfooded on the ES2 skill corpus at large' is not separately evidenced — the fixtures pair carries the dogfood signal instead."

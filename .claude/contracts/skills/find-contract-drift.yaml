@@ -1,0 +1,56 @@
+schema_version: 2
+
+skill: find-contract-drift
+job: suspect
+problem_class: "cross-layer contract drift detection / product-topology (SUSPECT)"
+intent: >
+  Advisory SUSPECT scan for `/sites` cross-layer contract drift beyond boot globals —
+  endpoint keys, DOM IDs, `data-*` selectors, template-called JS exports, and JSON/boot
+  payload fields. Imports the `/find-frontend-contract-drift` boot-global detector and
+  adds route-surface contract bands.
+solves: >
+  Silent disagreement between `/sites` templates, static JS, the site workflow registry,
+  and API payloads — a JS call references an endpoint key or DOM ID the registry/template
+  no longer provides, breaking the route only at runtime.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: fixture-pair
+dogfooded_on:
+  - "ships fixtures/good + fixtures/bad — the good/bad pair the detector bands must split correctly (the regression oracle)"
+  - "no on-disk self-scan run in ES2 (reports/find-contract-drift absent); the fixtures pair is the only ES2 dogfood evidence"
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills: [find-frontend-contract-drift, find-dead-route-surface, find-workflow-duplication, find-doc-route-drift, prevent-regression]
+duplication_risk:
+  - with: find-frontend-contract-drift
+    relation: sibling-different-layer
+    disambiguator: "find-contract-drift IMPORTS find-frontend-contract-drift's boot-global detector, then adds endpoint/DOM/template-JS bands. FE-contract-drift = boot globals only; this = full /sites route-surface contract superset."
+  - with: find-workflow-duplication
+    relation: sibling-different-layer
+    disambiguator: "not_for: 'Repeated workflow labels or route literals owned by multiple layers (use /find-workflow-duplication)' — this checks contract agreement, not duplicated step authority."
+  - with: find-doc-route-drift
+    relation: sibling-different-layer
+    disambiguator: "find-doc-route-drift compares DOCS vs URL patterns; find-contract-drift compares template/JS/registry/payload against each other (no doc layer)."
+provenance_confidence:
+  textual: low
+  structural: high
+  temporal: low
+  dogfood: high
+evidence:
+  - 'scan-surface declared via scans: frontmatter [python, javascript, templates] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
+  - "90f8567 — born in the 55-skill big-bang extraction cohort (textual + temporal low)"
+  - "fixtures/good + fixtures/bad present — the band regression oracle (structural high, dogfood high)"
+  - "has_scripts true — AST/route-surface detector backs the bands"
+gaps:
+  - "ES2 has no precedents.yml guard entry for this skill (the host-a base cited sites-dom-contract.v1 / product-health-advisory-loop.v1; neither exists in ES2's precedents.yml), so precedent is []."
+  - "No on-disk self-scan run in ES2; the fixtures pair, not a real /sites run, carries the dogfood signal here."

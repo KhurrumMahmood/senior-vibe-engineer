@@ -1,0 +1,51 @@
+# Skill intent + provenance contract — schema v2.
+# ES2-only skill; authored fresh from SKILL.md + es2_skill_facts.yaml.
+
+schema_version: 2
+
+skill: which-shape
+job: meta
+problem_class: "strategic operating-loop routing (META)"
+intent: "Recommend the right problem-solving LOOP before choosing individual skills. Reads the explicit shape registry (shapes.yml) plus project adapter/profile state, then returns an advisory route — project-intake, direct-change, bug-fix, feature-shaping, legacy-stabilization, health-audit, refactor-execution, regression-prevention, or decision-capture — with a first next command, a short loop sequence, and a stop/reassess condition. Advisory-only: never invokes the recommended skills."
+solves: "/which-skill answers 'which skill?' but is too tactical when the user describes a messy situation (unknown repo, recurring failure, broad health question) and shouldn't have to understand the skill catalog. There was no surface that answers the prior question — 'what KIND of work are we doing?' — and routes to an operating loop rather than a single tool."
+born:
+  commit: "c7ffa65"
+  date: "2026-05-17"
+  sibling_births: []
+dogfood_kind: host-attested
+dogfooded_on:
+  - "host-attested (ADR 0035): attestations.yaml host-a row — 1 invocations, 0 effectiveness records, 0 scan dirs, learnings_file=false, 2026-05-26..2026-05-26."
+  - "none-found (born in a dedicated c7ffa65 commit but no timestamped self-run on the ES2 tree; reports_dir is null — which-shape logs recommendation events to .claude/skill-use/log.jsonl rather than writing a reports/ scan artifact)"
+reports_dir: null
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []         # no ADR in ai-docs/decisions/ names which-shape
+  precedent: []   # no precedents.yml entry names which-shape
+  doc: []
+  contract: []
+related_skills: [which-skill, project-interview, adapt-project, check-ecosystem-consistency]
+duplication_risk:
+  - with: which-skill
+    relation: sibling-different-layer
+    disambiguator: "which-shape recommends an operating LOOP when the work shape is unclear; which-skill recommends a single SKILL once the shape is known. which-shape not_for: 'Picking between two already-known skills (use /which-skill).' SKILL.md states the bad pattern explicitly: asking which-skill to onboard/stabilize an unknown repo is what which-shape exists to handle."
+  - with: project-interview
+    relation: sequential
+    disambiguator: "which-shape routes missing-intent situations TO project-interview; it does not capture intent itself. which-shape not_for: 'Replacing human judgment about project goals; missing intent should route to /project-interview.'"
+  - with: check-ecosystem-consistency
+    relation: shared-doc-coupling
+    disambiguator: "check-ecosystem-consistency audits whether shapes.yml (which-shape's registry) drifts after skill changes and prompts a which-shape update; they share the shape-registry surface but check-ecosystem-consistency is a SUSPECT audit, which-shape is the router that consumes the registry."
+provenance_confidence:
+  textual: med      # born in a dedicated, non-big-bang commit (c7ffa65) with no sibling births — the commit singles this skill out
+  structural: med   # ships a router script (route.py) but no good/bad fixtures pair (has_scripts=true, has_fixtures=false)
+  temporal: med     # solo birth cohort — sharper than the 90f8567 set, but a single skill carries limited proximity signal
+  dogfood: low      # no fixtures oracle and no self-run on disk (telemetry events are not a reports run)
+evidence:
+  - "c7ffa65 — born 2026-05-17 in a dedicated commit, sibling_births_count 0 (facts)"
+  - "has_scripts=true / has_fixtures=false (facts) — route.py present, no oracle pair"
+  - "reports_dir null (facts) — by design logs recommendation events to .claude/skill-use/log.jsonl, not a timestamped reports/ scan"
+gaps:
+  - "No precedents.yml entry and no ADR in ai-docs/decisions/ names which-shape; intent rests on the SKILL.md."
+  - "No ES2 dogfood run on disk; recommendation telemetry exists in skill-use/log.jsonl but the schema counts only timestamped reports/ scans, so dogfood stays honestly low."

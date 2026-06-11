@@ -1,0 +1,46 @@
+{
+  "brainstorm-ideas": [
+    "0013"
+  ],
+  "extract-existing-ideas": [
+    "0013"
+  ],
+  "find-folder-topology-drift": [
+    "0002",
+    "0006",
+    "0011"
+  ],
+  "find-orphaned-ideas": [
+    "0013",
+    "0016"
+  ],
+  "find-rule-surface-drift": [
+    "0005"
+  ],
+  "find-stale-artifacts": [
+    "0005"
+  ],
+  "harvest-learnings": [
+    "0020"
+  ],
+  "mature-existing-ideas": [
+    "0013"
+  ],
+  "orient": [
+    "0020"
+  ],
+  "propose-folder-reorganization": [
+    "0002",
+    "0006"
+  ],
+  "query-patterns": [
+    "0013"
+  ],
+  "refactor-subsystem": [
+    "0006",
+    "0010"
+  ],
+  "track-idea": [
+    "0013"
+  ]
+}

@@ -1,0 +1,168 @@
+# Lightweight project case-law registry.
+#
+# ADRs preserve historical decisions; this file tracks current, updateable
+# "law as applied" for recurring implementation mechanisms. When a mechanism
+# changes, add a new .vN entry, set the old entry's superseded_by, and migrate
+# or explicitly branch the referenced applications.
+#
+# Schema (per entry):
+#
+#   - id: <kebab-case-slug>.v<N>           # required; .vN tail tracks supersession
+#     status: active | superseded          # required
+#     title: <one-line statement>          # required
+#     summary: >                           # required; the law in 1-3 sentences
+#       Plain prose; what the precedent governs and the discriminator that
+#       fires it.
+#     applies_to:                          # required; glob paths or named surfaces
+#       - <path/glob>
+#     canonical_examples:                  # optional but recommended
+#       - <path to in-repo exemplar>
+#     guards:                              # optional; tests/lints/skills that enforce
+#       - <test path or skill name>
+#     supersedes: []                       # ids this entry replaces
+#     superseded_by: null                  # id that replaces this entry, when retired
+#     exceptions:                          # optional; explicit carve-outs
+#       - <one-line per exception>
+#     migration_note: >                    # required when status: active
+#       What changes when this precedent is superseded — which surfaces have to
+#       migrate, which can stay on the old version as legacy.
+#
+# Host projects append their own entries below. The skeleton above is
+# intentionally empty — precedents are project state, not framework
+# state, so the engineering-skills mirror ships the schema and the
+# `python3 scripts/precedents.py check` validator, not specific entries.
+
+- id: read-decode-safety.v1
+  status: active
+  title: Every skill-script file read is decode-safe; an AST guard enforces it with no allowlist
+  summary: >
+    Path.read_text(encoding="utf-8") (and bare read_text()) raises
+    UnicodeDecodeError on non-UTF-8 bytes. Its MRO is UnicodeDecodeError ->
+    UnicodeError -> ValueError -> Exception, so it is NOT an OSError: a read
+    guarded only by `except OSError`, or by a parse-only handler
+    (json.JSONDecodeError / yaml.YAMLError / SyntaxError), lets the decode error
+    escape as a traceback instead of a clean skip/error. An AST audit of
+    .claude/skills/*/scripts/*.py found 72 such reads across 49 files. The fix
+    is intent-matched, not uniform: arbitrary-source scanners SKIP unreadable
+    input (catch (OSError, UnicodeDecodeError); return the accumulator/default),
+    while required-artifact reads FAIL CLEAN (print + non-zero exit, or raise a
+    descriptive error) — never a raw traceback. The convention is the inline
+    except tuple, mirroring the SAFE detectors that already did this;
+    .claude/skills/find-implicit-state/scripts/detect.py (catches
+    (OSError, UnicodeDecodeError), skips the file) is the in-repo exemplar. It is
+    deliberately not promoted to a shared helper — do not add a shared-read
+    dependency to 49 scripts just to satisfy the rule.
+  applies_to:
+    - .claude/skills/*/scripts/*.py
+    - scripts/lint/no_comment_drift.py
+  canonical_examples:
+    - .claude/skills/find-implicit-state/scripts/detect.py  # scanner-skip exemplar
+    - .claude/skills/find-comment-drift/scripts/detect.py   # scanner-skip
+    - .claude/skills/find-orphaned-ideas/scripts/find.py    # scanner-skip (multi-read)
+    - scripts/lint/no_comment_drift.py                      # caller owns "block on unreadable"
+  guards:
+    - tests.test_skill_detector_reads.test_skill_detector_reads_guard_against_decode_errors
+  supersedes: []
+  superseded_by: null
+  exceptions:
+    - errors= in {replace,ignore,surrogateescape,backslashreplace} needs no try
+    - a detector must NOT swallow the decode error to signal policy; the blocking
+      no_comment_drift lint re-derives its "cannot read -> exit 2" contract via its
+      own read-probe rather than depending on the detector raising
+    - only the file-path read shape is guarded; a --stdin read shape is tracked separately
+  assumes: >
+    Each skill script owns its read+decode inline; there is no shared
+    decode-safe read utility in these repos, so the cost of a shared dependency
+    across ~49 scripts exceeds the cost of an inline (OSError, UnicodeDecodeError)
+    tuple at each read site. The skill corpus is UTF-8 by policy, so non-UTF-8
+    input is the exceptional path (skip or fail-clean), never the common one.
+  revisit_when: >
+    A shared decode-safe read utility becomes standard in either repo — seeds
+    already exist in-tree (engineering-skills-2 scripts/_subst.py; host-a's
+    ast_pipeline read_source helper). When that lands, the inline-tuple
+    convention flips to "call the shared helper" and migration_note's migration
+    applies. Also revisit if the skill corpus stops being UTF-8-by-policy (e.g.
+    vendored non-UTF-8 fixtures land under skills/*/scripts/), which turns decode
+    failure into a common path needing a first-class handling decision rather
+    than an edge-case skip.
+  migration_note: >
+    When this is superseded (e.g. a shared decode-safe read helper is adopted
+    across skill scripts), every read relying on the inline
+    (OSError, UnicodeDecodeError) tuple must migrate to the new mechanism or be
+    explicitly branched as legacy. Keep the two intents distinct: arbitrary-source
+    scanners skip unreadable input (return the accumulator/default); required-artifact
+    reads fail clean (print + non-zero exit, or raise a descriptive error). Where a
+    handler is type-specific (json.JSONDecodeError / yaml.YAMLError / SyntaxError),
+    split the read from the parse so the decode error is caught at the read site, not
+    left to a parse-only handler that cannot see it.
+  resolution_notes:
+    # Non-obvious judgments from the 72-read propagation; full per-read detail
+    # is recoverable from commit 36c8c66.
+    - A present-but-corrupt required artifact is an ERROR (fail-clean), not an
+      absence — do not fold a decode failure on a required input into the
+      "file missing -> use default" branch; a garbled required file is a louder,
+      different failure than a missing optional one.
+    - When a read already sat under a narrow handler (e.g. except
+      json.JSONDecodeError), add ONLY decode-safety — split the read out, or widen
+      the tuple to include UnicodeDecodeError; do not opportunistically swallow
+      unrelated errors the task did not ask you to handle.
+
+- id: explain-job-is-read-only-proposal.v1
+  status: active
+  title: The EXPLAIN job is the read-only proposal/brief stage -- it proposes the explicit form, REFACTOR executes it
+  summary: >
+    In the maintenance loop (map -> suspect -> explain -> refactor -> guard),
+    EXPLAIN is deliberately the READ-ONLY stage: an EXPLAIN skill turns a SUSPECT
+    finding into an implementation-ready brief/proposal and changes no code; the
+    matching REFACTOR skill executes that brief. This is why transform-NAMED skills
+    (extract-enum, extract-state-type, extract-workflow-registry,
+    extract-cotton-primitive, introduce-fk, unify-shadows,
+    propose-folder-reorganization, propose-boundary) correctly carry job=explain
+    even though their names sound like actions -- they PROPOSE the change, they do
+    not perform it. Doctrine source: skill-catalog.md ("EXPLAIN proposes the
+    explicit form; REFACTOR executes it") and the README EXPLAIN bullet ("read-only
+    proposals that turn a SUSPECT finding into an implementation-ready brief").
+    Recorded as a precedent because the rationale was prose-only: a 2026-05-25
+    self-review (a SUSPECT-style read of frontmatter) flagged these job=explain
+    labels as inconsistent / mislabeled and a fix-now authorization nearly
+    relabeled them -- which would have wrecked the deliberate propose/execute split
+    while passing every artifact and routing check.
+  applies_to:
+    - .claude/skills/*/SKILL.md            # the job: frontmatter field
+    - .claude/docs/skill-catalog.md        # the doctrine source
+  canonical_examples:
+    - .claude/skills/extract-enum/SKILL.md                   # transform-named, correctly job=explain (proposes)
+    - .claude/skills/propose-folder-reorganization/SKILL.md  # proposes a shape, does not move files
+    - .claude/skills/refactor-subsystem/SKILL.md             # the REFACTOR counterpart that executes an explain brief
+  guards:
+    - tests.test_skill_taxonomy.test_proposer_skills_are_explain
+  supersedes: []
+  superseded_by: null
+  exceptions:
+    - A skill that BOTH proposes and writes code is not an EXPLAIN skill -- split
+      it, or classify it as REFACTOR. The propose/execute separation is the
+      invariant, not the skill name.
+    - The conceptual/source regime keeps EXPLAIN and REFACTOR separate for
+      legibility; a future prod/compiled build (ledger intake
+      prod-build-compilation-pipeline) may deliberately FUSE detect-propose-execute
+      for speed. Fusion in the compiled build does not supersede this precedent for
+      the source regime.
+  assumes: >
+    The skill ecosystem is in its conceptual/source regime, where stages are kept
+    separate for legibility and protectability (detection separate from
+    resolution). The job taxonomy is the routing key that which-skill and the
+    maintenance loop depend on, so EXPLAIN meaning "read-only proposal" must hold
+    uniformly for routing to be trustworthy.
+  revisit_when: >
+    A prod/compiled build of the skill system ships that intentionally fuses
+    detection and resolution (ledger intake prod-build-compilation-pipeline). In
+    that regime the propose/execute boundary may collapse by design, and this
+    precedent then scopes explicitly to the source regime rather than the compiled
+    one. Also revisit if the maintenance-loop stage model itself is revised.
+  migration_note: >
+    If EXPLAIN is ever redefined (e.g. merged with REFACTOR in a compiled build),
+    every skill currently carrying job=explain because it PROPOSES must be
+    re-evaluated: either re-tagged under the new stage vocabulary or explicitly
+    branched as source-regime-only. Do not silently let "explain" drift to mean
+    "any analysis skill" -- that is the exact misreading this precedent exists to
+    prevent.

@@ -1,0 +1,48 @@
+schema_version: 2
+
+skill: extract-existing-ideas
+job: meta
+problem_class: "ledger bootstrap from existing prose (cross-cutting META)"
+intent: "Walk existing prose surfaces (BACKLOG.md, lessons.md, plan files) and propose candidate ledger intakes for items already named there. Read-only by default — emits a candidates JSON and a report, then hands off to /brainstorm-ideas' helper script for the actual write so dedup, validation, and origin discipline stay in one place."
+solves: "Work already captured in BACKLOG.md / lessons / plans never making it into the ledger — bootstraps the ledger on an existing project and catches backlog items that bypassed /track-idea."
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted in the big-bang 90f8567 cohort; has a candidate-extraction script but no on-disk reports dir or self-run in ES2)"
+reports_dir: null
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0013"]
+  precedent: []
+  doc:
+    - idea-ledger.md
+  contract: []
+related_skills: [brainstorm-ideas, track-idea, mature-existing-ideas, find-orphaned-ideas]
+duplication_risk:
+  - with: brainstorm-ideas
+    relation: sequential
+    disambiguator: "extract-existing-ideas walks EXISTING prose and proposes candidates; brainstorm-ideas generates NEW ideas from scratch AND owns the shared write path ('not_for: Generating new ideas from scratch (use /brainstorm-ideas)'; escalate_to brainstorm-ideas for the write)."
+  - with: find-orphaned-ideas
+    relation: sequential
+    disambiguator: "find-orphaned-ideas (plan-dropouts mode) DETECTS a systemic gap and escalates ('escalate_to: /extract-existing-ideas when plan-dropouts reveals a systemic gap'); extract-existing-ideas then BACKFILLS the ledger by mining prose. Detect->act handoff. (extract-existing-ideas also runs standalone for initial ledger bootstrap, independent of orphaned-ideas.)"
+  - with: mature-existing-ideas
+    relation: sibling-different-layer
+    disambiguator: "extract-existing-ideas creates intakes from prose; mature-existing-ideas researches an EXISTING ledger entry ('not_for: Maturing an existing ledger entry (use /mature-existing-ideas)')."
+provenance_confidence:
+  textual: low      # big-bang 90f8567 cohort; commit subject does not name extract-existing-ideas
+  structural: med   # has a candidate-extraction script (has_scripts) but no fixtures pair
+  temporal: low     # 90f8567 birth shared by 54 siblings — no birth-proximity signal
+  dogfood: low      # no fixtures oracle and no ES2 self-run
+evidence:
+  - "90f8567 — born in the big-bang 55-skill extraction cohort (2026-05-15)"
+  - "has_scripts: true (prose-walking candidate extractor) but has_fixtures: false — one of two structural signals present"
+  - "no reports_dir and 0 run artifacts on disk — not yet dogfooded in ES2"
+gaps:
+  - "No precedents.yml entry names extract-existing-ideas; embodies_decisions.adr is [\"0013\"] (idea-tracking-system, the ADR establishing the two-tier idea system this skill realizes), corroborated by the idea-ledger.md doc."
+  - "ES2's extract-existing-ideas SKILL.md matches the host-a intent base (same job/problem_class, same handoff to brainstorm-ideas); no reality divergence beyond provenance."

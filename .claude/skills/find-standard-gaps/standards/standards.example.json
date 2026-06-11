@@ -1,0 +1,299 @@
+{
+  "standards_version": "0.1",
+  "note": "EXAMPLE / TEMPLATE. Copy to standards.json and adapt: narrow each `paths` to your source root, drop framework-specific entries you don't use (their label says so), and add your own. A standard = an idea with a detector. Detectors come in two layers. FLOOR = `ast`/`grep` detectors, auto-scanned by scan_coverage.py: cheap, precise, always-on. CEILING = `kind: manual` standards the scan skips on purpose: judgment-heavy rules that no AST pattern captures, recorded here so the declared baseline is COMPLETE, and owned by code review / the role-based review-avatar lane. Dimensions in use: security, resilience, observability, privacy, cost, quality. ACTIVATION (ADR 0020): every standard carries an `activation` of `{baseline:true}` (always in scope) or `{rungs:[{min_maturity,min_stakes,...}]}` (in scope only when the project's declared maturity x stakes meet a rung). Maturity ladder prototype<first-users<production; stakes ladder internal<external<public-adversarial. The baseline = Sanity (DRY/consistency) + the cheap common-sense safety rung; depth-laddered standards add heavier rungs gated to higher maturity AND stakes. See ../knowledge/detector-model.md for the detector model and the project-state surface.",
+  "ideas": [
+    {
+      "id": "idea-external-connection-resilience",
+      "label": "External DB connections must have error handling",
+      "kind": "standard",
+      "level": "primitive",
+      "dimension": "resilience",
+      "statement": "Code that opens a connection to an external database must do so inside exception handling, so an unreachable host or bad credential surfaces as an actionable failure rather than an unhandled traceback.",
+      "status": "claimed",
+      "activation": { "baseline": true },
+      "contract": {
+        "solves": ["an external DB being down or misconfigured crashes the request with a raw traceback"],
+        "improves": ["operator-facing resilience of external-database integrations"],
+        "applies_when": "code opens a connection to an external database",
+        "detector": {
+          "kind": "ast",
+          "call_matches": "(mysql\\.connector|pymysql|psycopg2|MySQLdb|sqlite3)\\.connect$",
+          "enclosed_by": "try",
+          "paths": ["**/*.py"]
+        }
+      }
+    },
+    {
+      "id": "idea-http-request-timeout",
+      "label": "Outbound HTTP requests must set a timeout",
+      "kind": "standard",
+      "level": "primitive",
+      "dimension": "resilience",
+      "statement": "Every outbound requests.* call must pass an explicit timeout, so a hung or slow remote host cannot block a worker or request indefinitely.",
+      "status": "claimed",
+      "activation": { "baseline": true },
+      "contract": {
+        "solves": ["a hung remote host blocks a worker or request forever when no timeout is set"],
+        "improves": ["resilience of every outbound HTTP integration"],
+        "applies_when": "code makes an outbound HTTP call via the requests library",
+        "detector": {
+          "kind": "ast",
+          "call_matches": "requests\\.(get|post|put|patch|delete|head|request)$",
+          "requires_kwarg": "timeout",
+          "paths": ["**/*.py"]
+        }
+      }
+    },
+    {
+      "id": "idea-subprocess-timeout",
+      "label": "Blocking subprocess calls must set a timeout",
+      "kind": "standard",
+      "level": "primitive",
+      "dimension": "resilience",
+      "statement": "A blocking subprocess.run/check_output/check_call/call must pass a timeout so a wedged child process cannot hang a worker forever.",
+      "status": "claimed",
+      "activation": { "baseline": true },
+      "contract": {
+        "solves": ["a child process that never returns hangs the calling worker indefinitely"],
+        "improves": ["resilience of every shell-out integration"],
+        "applies_when": "code runs a blocking subprocess",
+        "detector": {
+          "kind": "ast",
+          "call_matches": "subprocess\\.(run|check_output|check_call|call)$",
+          "requires_kwarg": "timeout",
+          "paths": ["**/*.py"]
+        }
+      }
+    },
+    {
+      "id": "idea-no-dynamic-code-execution",
+      "label": "Dynamic code execution (eval/exec) must be reviewed and sandboxed",
+      "kind": "standard",
+      "level": "primitive",
+      "dimension": "security",
+      "statement": "eval()/exec() turn data into code; every call is a code-injection surface and must be deliberately reviewed, fed only trusted input, and ideally run in a restricted namespace. Treat each hit as 'prove this is safe', not 'this is a bug'.",
+      "status": "claimed",
+      "activation": { "baseline": true },
+      "contract": {
+        "solves": ["attacker-influenced data reaching eval/exec becomes remote code execution"],
+        "improves": ["auditability of every dynamic-execution site in the tree"],
+        "applies_when": "code calls eval() or exec()",
+        "detector": {
+          "kind": "grep",
+          "situation": "\\b(eval|exec)\\s*\\(",
+          "paths": ["**/*.py"]
+        }
+      }
+    },
+    {
+      "id": "idea-no-shell-injection",
+      "label": "subprocess must not use shell=True",
+      "kind": "standard",
+      "level": "primitive",
+      "dimension": "security",
+      "statement": "shell=True runs the command through a shell, so any interpolated value becomes a shell-injection vector. Pass an argument list instead.",
+      "status": "claimed",
+      "activation": { "baseline": true },
+      "contract": {
+        "solves": ["interpolating a value into a shell=True command line enables command injection"],
+        "improves": ["safety of every shell-out"],
+        "applies_when": "code invokes a subprocess with shell=True",
+        "detector": {
+          "kind": "grep",
+          "situation": "shell\\s*=\\s*True",
+          "paths": ["**/*.py"]
+        }
+      }
+    },
+    {
+      "id": "idea-no-disabled-tls-verification",
+      "label": "TLS verification must not be disabled",
+      "kind": "standard",
+      "level": "primitive",
+      "dimension": "security",
+      "statement": "verify=False on an outbound request disables certificate validation and exposes the call to man-in-the-middle interception. Fix the trust store instead of disabling verification.",
+      "status": "claimed",
+      "activation": { "baseline": true },
+      "contract": {
+        "solves": ["a verify=False call can be silently MITM'd, leaking credentials or data"],
+        "improves": ["transport security of outbound integrations"],
+        "applies_when": "code makes an outbound TLS request with verification disabled",
+        "detector": {
+          "kind": "grep",
+          "situation": "verify\\s*=\\s*False",
+          "paths": ["**/*.py"]
+        }
+      }
+    },
+    {
+      "id": "idea-no-hardcoded-secret",
+      "label": "Secrets must not be hardcoded in source",
+      "kind": "standard",
+      "level": "primitive",
+      "dimension": "security",
+      "statement": "API keys, passwords, and tokens must come from the environment or a secret store, never a literal in source — a committed secret lives in git history forever. (grep heuristic; review each hit, config(...)/os.environ reads are fine.)",
+      "status": "claimed",
+      "activation": { "baseline": true },
+      "contract": {
+        "solves": ["a secret committed to source leaks through the repo and its history permanently"],
+        "improves": ["secret hygiene across the codebase"],
+        "applies_when": "a secret-looking name is assigned a string literal",
+        "detector": {
+          "kind": "grep",
+          "situation": "(SECRET|PASSWORD|PASSWD|API_?KEY|ACCESS_?TOKEN|PRIVATE_?KEY)\\s*=\\s*[\"'][^\"']{6,}[\"']",
+          "paths": ["**/*.py"]
+        }
+      }
+    },
+    {
+      "id": "idea-no-autoescape-bypass",
+      "label": "Template autoescaping must not be bypassed on dynamic data [Django/Jinja-specific]",
+      "kind": "standard",
+      "level": "primitive",
+      "dimension": "security",
+      "statement": "mark_safe()/|safe disables HTML autoescaping; on any user- or external-derived value that is a stored/reflected XSS vector. Every use must be reviewed to confirm the content is static or already sanitized. Drop this standard if your stack has no template autoescaping.",
+      "status": "claimed",
+      "activation": { "baseline": true },
+      "contract": {
+        "solves": ["marking attacker-influenced content safe renders it unescaped, enabling XSS"],
+        "improves": ["auditability of every autoescape bypass"],
+        "applies_when": "code calls mark_safe()",
+        "detector": {
+          "kind": "grep",
+          "situation": "mark_safe\\s*\\(",
+          "paths": ["**/*.py"]
+        }
+      }
+    },
+    {
+      "id": "idea-no-print-in-service-code",
+      "label": "Long-running service code must log, not print",
+      "kind": "standard",
+      "level": "primitive",
+      "dimension": "observability",
+      "statement": "Application/service/worker code must emit through the structured logger, not print(), so output is captured, leveled, timestamped, and correlatable in production. (Narrow `paths` to your long-running code; print() is fine in CLI entrypoints and scripts.)",
+      "status": "claimed",
+      "activation": { "baseline": true },
+      "contract": {
+        "solves": ["print() output is uncaptured, unleveled, and invisible in production logs"],
+        "improves": ["debuggability of the running application"],
+        "applies_when": "service/worker code writes diagnostic output",
+        "detector": {
+          "kind": "grep",
+          "situation": "\\bprint\\s*\\(",
+          "paths": ["app/**/*.py", "src/**/*.py", "services/**/*.py"]
+        }
+      }
+    },
+    {
+      "id": "idea-object-level-authorization",
+      "label": "Endpoints must authorize the caller against the specific object, not just authenticate",
+      "kind": "standard",
+      "level": "compound",
+      "dimension": "security",
+      "statement": "Any endpoint that loads a record by an id from the request must check that the caller is permitted to access THAT object — not merely that they are logged in. Authentication answers 'who are you'; authorization answers 'may you touch this row'. Missing object-level checks are broken access control (IDOR), the most common real-world web vulnerability. Owned by code review / the Attacker review-avatar — not mechanically detectable here.",
+      "status": "claimed",
+      "activation": { "baseline": true },
+      "contract": {
+        "solves": ["a logged-in user reads or mutates another tenant's object by changing an id in the URL"],
+        "improves": ["access-control correctness on every object-scoped endpoint"],
+        "applies_when": "an endpoint loads a record using an id taken from the request",
+        "detector": {"kind": "manual"}
+      }
+    },
+    {
+      "id": "idea-no-secrets-or-pii-in-logs-or-prompts",
+      "label": "Secrets and PII must not enter logs or LLM prompts",
+      "kind": "standard",
+      "level": "compound",
+      "dimension": "privacy",
+      "statement": "Credentials and personal data must never be written to logs, error responses, or LLM prompt payloads. Logs get shipped to third-party aggregators; prompts get sent to model providers and may be retained. Owned by code review / the Privacy review-avatar — not mechanically detectable here.",
+      "status": "claimed",
+      "activation": { "baseline": true },
+      "contract": {
+        "solves": ["secrets/PII leak through log aggregators or model-provider prompt retention"],
+        "improves": ["data-handling posture of logging and AI integrations"],
+        "applies_when": "code logs, returns errors, or builds an LLM prompt from values that may contain secrets or PII",
+        "detector": {"kind": "manual"}
+      }
+    },
+    {
+      "id": "idea-abuse-bounded-expensive-endpoints",
+      "label": "Endpoints that trigger expensive work must be abuse-bounded",
+      "kind": "standard",
+      "level": "compound",
+      "dimension": "cost",
+      "statement": "Any endpoint that kicks off a crawl, an LLM/AI call, a bulk export, or other metered/expensive work must be guarded against runaway spend. The COMMON-SENSE rung (baseline floor): require authentication and a basic per-caller quota / sanity bound so a single caller cannot trivially run up unbounded cost. The HARDENED rung (production + public-adversarial): real rate-limiting and cost-DoS / abuse-resistance infrastructure (token buckets, per-tenant budgets, anomaly throttling). A low-stakes internal tool stops at the common-sense floor; do not gold-plate DDoS infrastructure onto it. Owned by code review / the Operator and Attacker review-avatars — not mechanically detectable here.",
+      "status": "claimed",
+      "activation": {
+        "rungs": [
+          {"name": "common-sense", "min_maturity": "prototype", "min_stakes": "internal", "cost": "cheap", "is_common_sense_floor": true},
+          {"name": "hardened", "min_maturity": "production", "min_stakes": "public-adversarial", "cost": "high"}
+        ]
+      },
+      "contract": {
+        "solves": ["an under-bounded endpoint lets a caller drive unbounded compute, API, or model spend"],
+        "improves": ["cost safety and abuse resistance of expensive operations"],
+        "applies_when": "an endpoint triggers metered, billed, or otherwise expensive work",
+        "detector": {"kind": "manual"}
+      }
+    },
+    {
+      "id": "idea-untrusted-content-boundary",
+      "label": "External content and LLM output must be contained at the trust boundary",
+      "kind": "standard",
+      "level": "compound",
+      "dimension": "security",
+      "statement": "Content from outside the trust boundary — crawled/third-party HTML, uploaded files, and LLM output — must be contained before it crosses INTO a prompt, generated code, persistent storage, or rendered output. The COMMON-SENSE rung (baseline floor): structural prompt delimiters, parse-and-validate, a never-obey-crawled-content rule, escape/sanitize on render — cheap, no reason not to from day one. The HARDENED rung (production + public-adversarial): a second model pre-screening all incoming text for prompt-injection / safety, sandboxed execution of any generated code, and threat-modeled content quarantine. Stakes selects the rung: a low-stakes internal tool's appropriate ceiling is the common-sense floor. Owned by code review / the Attacker review-avatar — not mechanically detectable here.",
+      "status": "claimed",
+      "activation": {
+        "rungs": [
+          {"name": "common-sense", "min_maturity": "prototype", "min_stakes": "internal", "cost": "cheap", "is_common_sense_floor": true},
+          {"name": "hardened", "min_maturity": "production", "min_stakes": "public-adversarial", "cost": "high"}
+        ]
+      },
+      "contract": {
+        "solves": ["hostile external content or manipulated LLM output crosses unchecked into code, storage, prompts, or the page"],
+        "improves": ["integrity of every trust-boundary crossing in AI and crawl pipelines"],
+        "applies_when": "external content or LLM output flows into a prompt, generated code, storage, or rendered output",
+        "detector": {"kind": "manual"}
+      }
+    },
+    {
+      "id": "idea-second-model-input-screening",
+      "label": "A second model must pre-screen all incoming text for prompt-injection / safety [high-stakes rung only]",
+      "kind": "standard",
+      "level": "compound",
+      "dimension": "security",
+      "statement": "Run every piece of externally-sourced text (crawled HTML, uploads, user messages) through an independent safety/prompt-injection screening model BEFORE it reaches the primary LLM or any code-generation path. This is the heavy end of the prompt-injection depth ladder — it adds a second model call to every input and is justified ONLY for a production, public-adversarial service. It is explicitly NOT required for a low-stakes internal tool, whose appropriate ceiling is the common-sense delimiter/validate rung of idea-untrusted-content-boundary. Owned by code review / the Attacker review-avatar — not mechanically detectable here.",
+      "status": "claimed",
+      "activation": {
+        "rungs": [
+          {"name": "second-model-screen", "min_maturity": "production", "min_stakes": "public-adversarial", "cost": "high"}
+        ]
+      },
+      "contract": {
+        "solves": ["a sophisticated indirect prompt-injection slips past structural delimiters into the primary model"],
+        "improves": ["adversarial robustness of the AI input boundary for a public, high-stakes service"],
+        "applies_when": "a production, public-adversarial service feeds externally-sourced text to an LLM or code-generation path",
+        "detector": {"kind": "manual"}
+      }
+    },
+    {
+      "id": "idea-user-friction-instrumented",
+      "label": "Key user workflows must emit product-analytics signal",
+      "kind": "standard",
+      "level": "compound",
+      "dimension": "observability",
+      "statement": "A workflow you cannot measure is a workflow you cannot improve. Key multi-step user journeys must emit product-analytics events (step entry/exit, success, failure, abandonment, time-on-step) so friction and feature adoption are measured from real usage, not guessed. The user-facing complement to application logging. Owned by product/design review / the Naive-User review-avatar — not mechanically detectable here.",
+      "status": "claimed",
+      "activation": { "baseline": true },
+      "contract": {
+        "solves": ["friction, drop-off, and dead features stay invisible because no usage signal is emitted"],
+        "improves": ["the team's understanding of how users actually move through the product"],
+        "applies_when": "a user-facing multi-step workflow ships without usage instrumentation",
+        "detector": {"kind": "manual"}
+      }
+    }
+  ]
+}

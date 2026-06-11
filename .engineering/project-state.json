@@ -1,0 +1,7 @@
+{
+  "maturity": "production",
+  "stakes": "internal",
+  "declared_by": "manual",
+  "declared_at": "2026-05-21T00:00:00Z",
+  "notes": "Portable meta-repo of code-quality skills. Relied-upon by its own development loop (production maturity) but an internal, single-maintainer tooling repo with no external/adversarial exposure (internal stakes). Per ADR 0020: enforce baseline + common-sense rungs; do not gold-plate public-adversarial rungs."
+}

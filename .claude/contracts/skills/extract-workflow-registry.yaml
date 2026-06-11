@@ -1,0 +1,57 @@
+schema_version: 2
+
+skill: extract-workflow-registry
+job: explain
+problem_class: "product-workflow canonical-registry proposal (maintenance EXPLAIN/bridge)"
+intent: >
+  Propose a canonical registry for a mapped product workflow: step id, label, route_name,
+  url_builder, visibility_rule, status_provider, active_tab_key, template_owner,
+  frontend_boot_keys, and registry-owned endpoint payloads (api_endpoints /
+  api_endpoint_templates). EXPLAIN skill — no code edits. Consumes a mapped workflow
+  (default .claude/docs/workflows/sites.md) plus topology-drift findings and turns scattered
+  step authority into a single registry proposal a later refactor can implement.
+solves: >
+  Product-step authority (labels, tab ids, route literals, status providers, boot keys,
+  endpoint suffixes) duplicated across backend / templates / JS / docs with no canonical
+  registry — bridges a mapped workflow into a single-source-of-truth registry proposal.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: host-attested
+dogfooded_on:
+  - "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 1 effectiveness records, 0 scan dirs, learnings_file=false, 2026-04-29..2026-04-29."
+  - "none-found — extracted big-bang into ES2 (90f8567), not dogfooded in this repo. Ships a scripts/propose.py detector but no fixtures/ oracle, and no reports/workflow-registry run dir exists on disk."
+reports_dir: reports/workflow-registry
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: ["explain-job-is-read-only-proposal.v1"]
+  doc: []
+  contract: []
+related_skills: [map-product-workflow, find-workflow-duplication, find-route-sprawl, find-frontend-contract-drift, fix-workflow, refactor-subsystem]
+duplication_risk:
+  - with: map-product-workflow
+    relation: sequential
+    disambiguator: "map-product-workflow MAPS the workflow (produces .claude/docs/workflows/<name>.md); extract-workflow-registry proposes the registry from that map ('not_for: Workflow detection (use /map-product-workflow first ...)')."
+  - with: find-workflow-duplication
+    relation: sequential
+    disambiguator: "find-workflow-duplication DETECTS duplicated step authority; extract-workflow-registry proposes the canonical registry that resolves it. SUSPECT → EXPLAIN bridge."
+  - with: extract-cotton-primitive
+    relation: sibling-different-layer
+    disambiguator: "extract-workflow-registry consolidates product-STEP authority (routes/tabs/status/boot keys); extract-cotton-primitive consolidates UI SHELL markup into a c-primitive. Different topology layer, both EXPLAIN proposers."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
+  - "precedents.yml explain-job-is-read-only-proposal.v1 names extract-workflow-registry as a transform-NAMED skill that correctly carries job=explain because it PROPOSES the registry, it does not perform the change"
+  - "has scripts/propose.py (detector signature) but no fixtures/ pair; no reports/workflow-registry dir on disk"
+gaps:
+  - "No ADR in ai-docs/decisions/ names extract-workflow-registry, so embodies_decisions.adr is []; the registry-as-single-source concept is corroborated by the precedents.yml EXPLAIN-stage entry, not an ADR."
+  - "No on-disk runs (run_evidence 0) and no fixtures oracle, so the dogfood axis can't be raised above low in ES2."

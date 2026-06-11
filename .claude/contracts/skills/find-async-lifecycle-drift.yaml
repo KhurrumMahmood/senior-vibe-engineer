@@ -1,0 +1,53 @@
+schema_version: 2
+
+skill: find-async-lifecycle-drift
+job: suspect
+problem_class: "async-lifecycle drift detection (product-health SUSPECT)"
+intent: >
+  Advisory SUSPECT scan for polling, job, cancel/resume, and export lifecycle drift on the
+  `/sites` route surface: unguarded polling, missing terminal-status handling, stale fetch
+  response hazards, duplicate job starts, and missing retry/cancel controls. A baseline
+  before/after sensor, explicitly not a commit-time blocker in v1.
+solves: >
+  AI-grown async UI/backend flows that forget cleanup — progress polling that never stops
+  on terminal status, no stale-response guard, no duplicate-job protection, missing
+  cancel/resume — silently shipping broken lifecycle behavior.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: fixture-pair
+dogfooded_on:
+  - "Ships scripts/ + a fixtures/{good,bad} pair — the good fixtures must scan clean and the bad fixtures must surface the expected lifecycle patterns; that pair is the regression oracle."
+  - "none-found for an ES2 self-scan: no reports/find-async-lifecycle-drift dir on disk, so the scanner has not been run against the ES2 tree."
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: ["canonical-patterns.md"]
+  contract: []
+related_skills: [find-comment-drift, find-contract-drift, find-dead-route-surface, find-workflow-state-gaps, find-test-obligation-drift, prevent-regression]
+duplication_risk:
+  - with: find-workflow-state-gaps
+    relation: sibling-different-layer
+    disambiguator: "find-async-lifecycle-drift checks lifecycle MECHANICS (polling guards, terminal handling, stale-response, duplicate-job); find-workflow-state-gaps checks UI STATE COVERAGE (loading/empty/partial/failed/stale-job states). Both born same commit, same /sites surface, different band."
+  - with: prevent-regression
+    relation: sequential
+    disambiguator: "find-async-lifecycle-drift is an advisory baseline scanner; once a narrow lifecycle rule stabilizes it's promoted to /prevent-regression ('not_for: ... blocking commits in v1. Use this as a baseline scanner before promoting a narrow lifecycle rule to /prevent-regression')."
+provenance_confidence:
+  textual: low
+  structural: high
+  temporal: low
+  dogfood: high
+evidence:
+  - 'scan-surface declared via scans: frontmatter [python, javascript] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
+  - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
+  - "has_fixtures + has_scripts both true — good/bad fixture pair is the structural + dogfood oracle"
+  - "no reports/find-async-lifecycle-drift dir on disk in ES2 — no self-scan run here"
+gaps:
+  - "No ADR in ai-docs/decisions/ names find-async-lifecycle-drift, so embodies_decisions.adr is []."
+  - "No ES2 self-scan run on disk; the dogfood axis rests entirely on the fixtures oracle, not on a run against the ES2 tree."

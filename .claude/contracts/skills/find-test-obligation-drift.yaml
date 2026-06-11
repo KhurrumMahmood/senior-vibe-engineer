@@ -1,0 +1,45 @@
+schema_version: 2
+
+skill: find-test-obligation-drift
+job: suspect
+problem_class: "verification-obligation drift detection (SUSPECT, advisory)"
+intent: "Advisory diff analyzer that maps touched files (explicit paths, --staged, or --changed-from REF) to the expected verification tiers declared in .claude/docs/testing.md and development-workflow.md, then flags missing nearby test/smoke obligations. Bands: missing_backend_test_obligation, missing_ui_test_obligation, missing_skill_smoke_obligation, missing_quality_tool_test_obligation. Advisory in v1 — complements the human final-verification note, does not block commits."
+solves: "A multi-file change shipping without the verification its touched surface implies — backend /sites code with no test, UI/template/JS with no Playwright/DOM coverage, new skill/script work with no smoke test — caught at handoff time before the gap reaches review."
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: fixture-pair
+dogfooded_on:
+  - "ships a fixtures/good + fixtures/bad pair (good = touched files with matching tests; bad = backend view / template / lint-script / JS changes with no nearby test) that the scan must classify correctly — the regression oracle"
+  - "no on-disk self-scan run in ES2 (reports_dir is null); the fixtures pair is the only dogfood signal"
+reports_dir: null
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc:
+    - testing.md
+    - development-workflow.md
+  contract: []
+related_skills: [find-workflow-state-gaps, find-comment-drift, find-contract-drift, find-async-lifecycle-drift, find-dead-route-surface]
+duplication_risk:
+  - with: find-workflow-state-gaps
+    relation: sibling-different-layer
+    disambiguator: "Both are advisory SUSPECT scanners, but find-test-obligation-drift maps a DIFF to expected test tiers; find-workflow-state-gaps audits a /sites workflow's UI STATE coverage. Different question (did you test it? vs does it handle empty/loading/failed?)."
+provenance_confidence:
+  textual: low      # big-bang 90f8567 cohort; commit subject does not name find-test-obligation-drift
+  structural: high  # ships both a scanner script AND a good/bad fixtures pair
+  temporal: low     # 90f8567 birth shared by 54 siblings — no birth-proximity signal
+  dogfood: high     # real fixtures good/bad oracle (the classification regression test)
+evidence:
+  - 'scan-surface declared via scans: frontmatter [python, javascript, templates] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
+  - "90f8567 — born in the big-bang 55-skill extraction cohort (2026-05-15)"
+  - "has_scripts: true AND has_fixtures: true — fixtures/good + fixtures/bad present (verified on disk: bad/ has untested app view, template, lint script, JS) — the classification oracle"
+  - "no reports_dir / 0 run artifacts — the fixtures pair, not a self-scan run, is the dogfood signal"
+gaps:
+  - "Divergence from host-a intent base: host-a carried precedent product-health-advisory-loop.v1 and a co-born test_product_health_skills.py guard — BOTH are absent in ES2 (grep of precedents.yml returns 0; ES2 SKILL.md is terser and names neither). So precedent: [] here, and the duplication_risk disambiguator with find-workflow-state-gaps drops the 'co-born product-health advisory-loop precedent + shared guard' framing, keeping only the layer distinction."
+  - "No ADR in ai-docs/decisions/ cites this skill (adr: []); embodiment is the testing.md + development-workflow.md tier docs it maps diffs against."

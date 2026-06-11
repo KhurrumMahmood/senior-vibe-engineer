@@ -1,0 +1,54 @@
+schema_version: 2
+
+skill: track-idea
+job: meta
+problem_class: "idea-ledger capture (META, Tier 1)"
+intent: >
+  Append an intake, event, or lesson record to the Tier 1 idea ledger at
+  .claude/ideas/log.jsonl. The capture surface for everything that could be
+  reused or forgotten — features, refactors, prompts, harnesses, research
+  probes, workflow tweaks. Validates against the idea-ledger schema before
+  writing, then projects the idea's current state (list / show).
+solves: >
+  Reusable thinking (a prompt that worked, a research probe, a harness shape, a
+  UI idea) gets lost in chat transcripts and ad-hoc notes. track-idea is the
+  durable, schema-validated capture point upstream of BACKLOG.md and the pattern
+  library.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, triage-debt, unify-shadows, which-skill]
+dogfood_kind: host-attested
+dogfooded_on:
+  - "host-attested (ADR 0035): attestations.yaml host-a row — 88 invocations, 0 effectiveness records, 0 scan dirs, learnings_file=false, 2026-05-14..2026-06-11."
+  - "none-found — extracted big-bang into ES2 (90f8567), not dogfooded in this repo. Has a scripts/ helper (track.py) but no fixtures/ oracle; outputs go to .claude/ideas/log.jsonl (an accreting ledger), not a reports/<skill>/ run stack, so there is no on-disk run artifact to count in ES2."
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0013"]
+  precedent: []
+  doc: ["idea-ledger.md"]
+  contract: []
+related_skills: [mature-existing-ideas, query-patterns, brainstorm-ideas, extract-existing-ideas, find-orphaned-ideas, decide]
+duplication_risk:
+  - with: mature-existing-ideas
+    relation: sibling-different-layer
+    disambiguator: "track-idea CAPTURES/projects ledger records (intake/event/lesson); mature-existing-ideas RESEARCHES an existing entry and appends research-log notes. mature's `not_for`: 'Capturing a single new idea (use /track-idea intake)'. Write-new vs research-existing."
+  - with: brainstorm-ideas
+    relation: sibling-different-layer
+    disambiguator: "track-idea writes ONE record you already have; brainstorm-ideas GENERATES a batch of candidate intakes (and delegates the actual write back through the shared helper). Single capture vs batch generation."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: med
+evidence:
+  - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
+  - "has scripts/ helper (track.py); no fixtures/ oracle (has_fixtures false)"
+  - "outputs route to .claude/ideas/log.jsonl, not reports/ — no per-invocation run dirs to count in ES2"
+gaps:
+  - "embodies_decisions.adr is [\"0013\"] (idea-tracking-system): the SKILL.md best_for frames the ledger as Tier 1 of the two-tier system that ADR establishes, which this skill is the capture surface of."
+  - "Outputs are one accreting ledger file, not timestamped run dirs, so per-invocation run counts/dates aren't separable; the dogfood axis can't be raised from on-disk runs in ES2 (and no live ledger has accreted here)."

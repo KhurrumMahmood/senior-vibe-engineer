@@ -1,0 +1,50 @@
+schema_version: 2
+
+skill: find-dormant
+job: suspect
+problem_class: "dead / dormant code detection (SUSPECT)"
+intent: >
+  Read-only scan that surfaces likely-dead code — symbols, functions, modules,
+  and routes with no live references — ranked from certain-delete down to
+  needs-review, as advisory leads without touching production files.
+solves: >
+  Dead code accumulates and obscures the live system; there was no first-pass,
+  repo-wide lead list of what is unreferenced, so reviewers feared deleting code
+  that might still be reachable and left it to rot instead.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: host-attested
+dogfooded_on:
+  - "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 2 effectiveness records, 0 scan dirs, learnings_file=true, 2026-05-02..2026-05-03."
+  - "none-found (extracted in the 90f8567 big-bang; no on-disk reports run and no fixtures pair in this ES2 tree)"
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: ["skill-catalog.md", "architectural-smells.md"]
+  contract: []
+related_skills: [find-dead-route-surface, find-stale-artifacts, fix-workflow, refactor-subsystem]
+duplication_risk:
+  - with: find-dead-route-surface
+    relation: sibling-different-layer
+    disambiguator: "find-dormant flags unreferenced code symbols broadly; find-dead-route-surface narrows to URL routes/views with no live entry point. General dead-code vs route-specific."
+  - with: find-stale-artifacts
+    relation: sibling-different-layer
+    disambiguator: "find-dormant flags dead PRODUCTION code; find-stale-artifacts flags stale repo artifacts (generated/cached/orphaned files). Live-code-deadness vs artifact-staleness."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: med
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
+  - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scanner present, no oracle pair (structural med)"
+  - "reports_dir null, run count 0 — no on-disk dormant-scan run in this ES2 tree"
+gaps:
+  - "host-a dogfooded this on real delete-commit history (subsystem-refactor); ES2 has no such host history and no run on disk, so dogfood_kind is honestly none-found here."

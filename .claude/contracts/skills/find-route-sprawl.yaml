@@ -1,0 +1,53 @@
+schema_version: 2
+
+skill: find-route-sprawl
+job: suspect
+problem_class: "product-topology drift detection (SUSPECT) — route ownership sprawl"
+intent: >
+  Detect route prefixes for a product workflow that are scattered through flat URL
+  modules (default core/urls.py) without path('', include()) ownership boundaries, or
+  duplicated as ambiguous API aliases. A stdlib detector emits four bands
+  (flat_site_page_routes, flat_site_scoped_api_routes, missing_workflow_include,
+  duplicate_route_alias_surface) into a report; no code or route changes.
+solves: >
+  Routes that are technically valid but hard to own because they live in a flat URL
+  namespace — no include boundary means no single place owns a workflow's URL surface,
+  and alias duplication makes the canonical route ambiguous.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: host-attested
+dogfooded_on:
+  - "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 2 effectiveness records, 0 scan dirs, learnings_file=false, 2026-04-29..2026-04-29."
+  - "none-found — extracted big-bang into ES2 (90f8567), not dogfooded in this repo. Ships scripts/detect.py + scripts/report.py but no fixtures/ oracle, and no reports/route-sprawl run dir exists on disk."
+reports_dir: reports/route-sprawl
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills: [map-product-workflow, find-workflow-duplication, find-doc-route-drift, find-dormant]
+duplication_risk:
+  - with: find-workflow-duplication
+    relation: sibling-different-layer
+    disambiguator: "Both product-topology SUSPECT skills, but find-route-sprawl owns URL-prefix scatter; find-workflow-duplication owns step-authority duplication. find-route-sprawl not_for: 'Workflow-step duplication across templates+JS+Python (use /find-workflow-duplication).'"
+  - with: find-doc-route-drift
+    relation: sibling-different-layer
+    disambiguator: "find-route-sprawl not_for quote: 'Doc/route drift (use /find-doc-route-drift).' — sprawl is URL-ownership topology; doc-route-drift is documented-vs-actual route divergence."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: med
+evidence:
+  - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
+  - "scripts/{detect,report}.py present — stdlib detector + report-emitter structural signature; no fixtures/ pair"
+  - "no reports/route-sprawl dir on disk — no captured ES2 self-scan run"
+gaps:
+  - "host-a's contract embodied ADR 0006 (folder-organization) and was born in a sharp product-topology cohort (6a303b6d); no ADR in ai-docs/decisions/ names find-route-sprawl, so embodies_decisions.adr is [], and the skill rode the big-bang commit instead of a topology cohort — temporal signal is weak here, unlike host-a."
+  - "No on-disk runs (run_evidence 0) and no fixtures, so the dogfood axis can't be raised above low in ES2."

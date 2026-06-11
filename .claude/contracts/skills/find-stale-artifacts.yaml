@@ -1,0 +1,123 @@
+# Skill intent + provenance contract — schema v2 (engineering-skills-2).
+schema_version: 2
+skill: find-stale-artifacts
+job: suspect
+problem_class: working-artifact hygiene detection (SUSPECT)
+intent: Detect stale working artifacts — abandoned plans, proposed plans untouched past a soft staleness
+  budget, aged scan-* report directories not pointed at by `latest`, and orphan top-level reports/*.md
+  files. Enforces a status-frontmatter + age + reference-graph discipline across a small fixed list of
+  artifact dirs (ai-docs/plans, ai-docs/specs, reports/). Sibling to /find-dormant for non-code surfaces.
+solves: Working artifacts that outlive the work and accumulate as a silent attention tax — months-old
+  abandoned/proposed plans, dead scan dirs nobody will reread, and stray top-level report notes — with
+  no periodic forcing function to clear them.
+born:
+  commit: 90f8567
+  date: '2026-05-15'
+  sibling_births:
+  - architecture-fit
+  - audit-decisions
+  - brainstorm-ideas
+  - decide
+  - design-it-twice
+  - engineer-init
+  - explain-code
+  - extract-cotton-primitive
+  - extract-enum
+  - extract-existing-ideas
+  - extract-state-type
+  - extract-workflow-registry
+  - find-async-lifecycle-drift
+  - find-comment-drift
+  - find-contract-drift
+  - find-dead-route-surface
+  - find-doc-route-drift
+  - find-dormant
+  - find-duplication
+  - find-folder-topology-drift
+  - find-frontend-contract-drift
+  - find-frontend-duplication
+  - find-implicit-state
+  - find-layer-violation
+  - find-omnibus
+  - find-orphaned-ideas
+  - find-query-mutation
+  - find-route-sprawl
+  - find-rule-surface-drift
+  - find-semantic-duplication
+  - find-test-obligation-drift
+  - find-transaction-overreach
+  - find-workflow-duplication
+  - find-workflow-state-gaps
+  - fix-workflow
+  - gut-check
+  - impact-feature
+  - introduce-fk
+  - map-product-workflow
+  - map-subsystem
+  - mature-existing-ideas
+  - plan-feature
+  - plan-spec
+  - prevent-regression
+  - propose-boundary
+  - propose-folder-reorganization
+  - query-patterns
+  - refactor-subsystem
+  - scope-feature
+  - teach-pattern
+  - track-idea
+  - triage-debt
+  - unify-shadows
+  - which-skill
+dogfood_kind: none-found
+dogfooded_on:
+- none-found as a self-installed guard in ES2. There is one on-disk self-scan (reports/find-stale-artifacts/scan-20260516-020146),
+  but find-stale-artifacts is a working-artifact SUSPECT scan over ai-docs/+reports/, not an ecosystem-meta
+  guard, and ES2 carries no in-commit cleanup tying the scan to a deletion. The host-a 'clear out the artifacts
+  that motivated it' birth-commit cleanup is host-a history, not ES2's.
+reports_dir: reports/find-stale-artifacts
+run_evidence:
+  count: 1
+  first: scan-20260516-020146
+  latest: scan-20260516-020146
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills:
+- find-dormant
+- find-rule-surface-drift
+- audit-decisions
+- find-orphaned-ideas
+duplication_risk:
+- with: find-dormant
+  relation: sibling-different-layer
+  disambiguator: 'Explicitly framed as ''sibling to /find-dormant for non-code surfaces'' — find-dormant
+    covers dead CODE, find-stale-artifacts covers dead PLANS/SPECS/REPORT-DIRS. not_for: ''Code-side dead-code
+    detection (use /find-dormant).'''
+- with: find-rule-surface-drift
+  relation: sibling-different-layer
+  disambiguator: 'not_for quote: ''Agent-rules surface drift in .claude/CLAUDE.md or .claude/docs/ (use
+    /find-rule-surface-drift) — that one defends ADR 0005''s tiered storage convention.'''
+- with: audit-decisions
+  relation: sibling-different-layer
+  disambiguator: 'not_for quote: ''Decision-registry drift in ai-docs/decisions/ (use /audit-decisions).'''
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: med
+evidence:
+- 'scan-surface declared via scans: frontmatter [markdown] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
+- 90f8567 — born in the big-bang ecosystem-extraction commit alongside 54 sibling skills (temporal weak;
+  textual weak — no commit names this skill in ES2's big-bang birth)
+- has scripts/ (detector) but no fixtures dir — relies on the live artifact surface as its corpus (structural
+  med)
+- reports/find-stale-artifacts — 1 scan dir (scan-20260516-020146), one self-report on the ES2 tree (gitignored)
+gaps:
+- The host-a contract recorded dogfood_kind subsystem-refactor (the motivating in-commit cleanup WAS the
+  dogfood); that is host-a history. ES2 has only one self-scan with no paired deletion, so ES2's honest
+  dogfood_kind is none-found and dogfood confidence is med (a single self-run exists but is not an oracle).
+- SKILL.md not_for references ADR 0005 (agent-rules-design) as a disambiguating boundary, but 0005 names
+  find-rule-surface-drift as its scanner, not find-stale-artifacts, so embodies_decisions.adr stays []. No
+  reports beyond the single scan to map usage.

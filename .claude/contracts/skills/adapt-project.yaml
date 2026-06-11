@@ -1,0 +1,53 @@
+# Skill intent + provenance contract — schema v2.
+# ES2-only skill; authored fresh from SKILL.md + es2_skill_facts.yaml.
+
+schema_version: 2
+
+skill: adapt-project
+job: meta
+problem_class: "host-project discovery / adapter scaffolding (META)"
+intent: "Discover objective host-project facts and scaffold a project adapter for engineering-skills — stack markers, commands, tests, CI, docs, source roots, domain terms, sensitive surfaces, existing guardrails, and candidate skill overlays. Writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default; host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it."
+solves: "Localizing the portable engineering-skills ecosystem to a new repo needs the operational facts (stack/commands/tests/CI/source roots) gathered objectively. There was no read-only discovery pass that produces a machine-readable adapter while explicitly refusing to confuse observed frequency with health — a messy repo's repeated patterns are flagged 'do not standardize yet', not canonized."
+born:
+  commit: "a582cbf"
+  date: "2026-05-16"
+  sibling_births: [find-complexity-hotspots, project-interview]   # small, sharp 3-skill cohort — temporal signal is meaningful
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (no timestamped self-run on the ES2 tree; reports_dir is null). The SKILL.md documents a host-a-style --no-host-write dogfood mode, but the facts show no ES2 run artifact, so the dogfood is documented intent, not observed evidence."
+reports_dir: null
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []         # no ADR in ai-docs/decisions/ names adapt-project
+  precedent: []   # no precedents.yml entry names adapt-project
+  doc: []
+  contract: []
+related_skills: [project-interview, orient, engineer-init, which-shape, triage-debt]
+duplication_risk:
+  - with: project-interview
+    relation: sibling-different-layer
+    disambiguator: "adapt-project discovers OBJECTIVE facts (stack/CI/source roots) and produces an adapter; project-interview captures HUMAN intent (purpose, risk posture, intentional tradeoffs). adapt-project not_for: 'Capturing project purpose, risk posture, desired direction, or intentional tradeoffs (use /project-interview).' They were born in the same a582cbf cohort as the two operational/intent halves of localization."
+  - with: orient
+    relation: sibling-different-layer
+    disambiguator: "adapt-project reads code for objective facts; orient declares human-judgment maturity × stakes state. orient not_for: 'Discovering objective repo facts like stack, CI, source roots (use /adapt-project).'"
+  - with: engineer-init
+    relation: sibling-different-layer
+    disambiguator: "adapt-project adapts the ecosystem to a host project (facts/adapter); engineer-init installs the RUNTIME (venv/deps). adapt-project not_for: 'Installing the runtime itself (use /engineer-init).'"
+  - with: triage-debt
+    relation: sequential
+    disambiguator: "adapt-project routes common-but-suspect patterns to /triage-debt rather than standardizing them. adapt-project not_for: 'Cleaning up a messy codebase (use /triage-debt then the maintenance loop).'"
+provenance_confidence:
+  textual: med      # born in the small named 3-skill cohort a582cbf (with find-complexity-hotspots, project-interview), not the big-bang set
+  structural: low   # has_scripts=false / has_fixtures=false in facts — the documented project_adapt.py is the shared adapter script but is not counted as this skill's own scanner+fixtures pair
+  temporal: high     # small 3-skill birth cohort — birth proximity is informative (unlike the big-bang 90f8567 set)
+  dogfood: low      # no fixtures oracle; no self-run on disk (documented --no-host-write mode is intent, not evidence)
+evidence:
+  - "a582cbf — born 2026-05-16 in a 3-skill cohort with find-complexity-hotspots and project-interview (facts)"
+  - "reports_dir null, run count 0 (facts) — no ES2 timestamped run despite a documented dogfood pipeline"
+  - "has_scripts=false / has_fixtures=false (facts) — the project_adapt.py helper is shared/repo-level, not flagged as this skill's own scripts/ + fixtures signature"
+gaps:
+  - "No precedents.yml entry and no ADR in ai-docs/decisions/ names adapt-project; intent rests on the SKILL.md and the a582cbf cohort framing."
+  - "The facts report has_scripts=false yet SKILL.md drives scripts/project_adapt.py; the boolean keys off the skill's own scripts/ dir (the helper lives at repo scripts/), so structural confidence stays low — could not reconcile further without re-running disk archaeology, which the brief forbids."

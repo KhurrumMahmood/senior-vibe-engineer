@@ -1,0 +1,129 @@
+# Skill intent + provenance contract — schema v2 (engineering-skills-2).
+schema_version: 2
+skill: find-omnibus
+job: suspect
+problem_class: omnibus-module detection (SUSPECT)
+intent: Detect omnibus modules — files answering questions from 3+ independently-understandable domains.
+  Walks the target through per-language symbol-extraction adapters (Python AST; JavaScript/TypeScript
+  heuristic regex — ADR 0032), groups top-level symbols by head-noun cluster, counts SRP 'and's, ranks
+  by responsibility count plus security/side-effect sensitivity and LOC, fans out scouts applying the
+  refactor-subsystem §1.2.5 facet-vs-domain rule. Produces decomposition candidates; hands off to
+  /refactor-subsystem <spec-id> in decomposition mode, or — when the target layer lacks substrate
+  (no module mechanism / tests / non-duplicated helpers) — emits the re-architect verdict requiring
+  a substrate ADR before any decomposition spec.
+solves: The omnibus smell — a single file owning 3+ unrelated domains — distinguished from merely-large-but-cohesive
+  files (the facet-vs-domain rule guards against splitting for size alone).
+born:
+  commit: 90f8567
+  date: '2026-05-15'
+  sibling_births:
+  - architecture-fit
+  - audit-decisions
+  - brainstorm-ideas
+  - decide
+  - design-it-twice
+  - engineer-init
+  - explain-code
+  - extract-cotton-primitive
+  - extract-enum
+  - extract-existing-ideas
+  - extract-state-type
+  - extract-workflow-registry
+  - find-async-lifecycle-drift
+  - find-comment-drift
+  - find-contract-drift
+  - find-dead-route-surface
+  - find-doc-route-drift
+  - find-dormant
+  - find-duplication
+  - find-folder-topology-drift
+  - find-frontend-contract-drift
+  - find-frontend-duplication
+  - find-implicit-state
+  - find-layer-violation
+  - find-orphaned-ideas
+  - find-query-mutation
+  - find-route-sprawl
+  - find-rule-surface-drift
+  - find-semantic-duplication
+  - find-stale-artifacts
+  - find-test-obligation-drift
+  - find-transaction-overreach
+  - find-workflow-duplication
+  - find-workflow-state-gaps
+  - fix-workflow
+  - gut-check
+  - impact-feature
+  - introduce-fk
+  - map-product-workflow
+  - map-subsystem
+  - mature-existing-ideas
+  - plan-feature
+  - plan-spec
+  - prevent-regression
+  - propose-boundary
+  - propose-folder-reorganization
+  - query-patterns
+  - refactor-subsystem
+  - scope-feature
+  - teach-pattern
+  - track-idea
+  - triage-debt
+  - unify-shadows
+  - which-skill
+dogfood_kind: host-attested
+dogfooded_on:
+- "host-attested (ADR 0035): attestations.yaml host-a row — 2 invocations, 1 effectiveness records, 0 scan dirs, learnings_file=false, 2026-04-20..2026-06-11."
+- none-found as a real oracle. There is one on-disk self-scan on the ES2 tree (reports/omnibus/scan-20260516-020044),
+  but ES2 has no host-subsystem decomposition refactor driven by it — it is a single self-report, not
+  a dogfood against a confirmed omnibus file. The host-a core/views/site_config.py decomposition is host-a
+  history, not ES2's.
+reports_dir: reports/omnibus
+run_evidence:
+  count: 1
+  first: scan-20260516-020044
+  latest: scan-20260516-020044
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc:
+  - architectural-smells.md
+  contract: []
+related_skills:
+- refactor-subsystem
+- find-layer-violation
+- find-folder-topology-drift
+- find-complexity-hotspots
+duplication_risk:
+- with: find-layer-violation
+  relation: sibling-different-layer
+  disambiguator: 'not_for quote: ''Layer violations specifically in views (use /find-layer-violation)''.
+    omnibus = one file, 3+ domains; layer = entry point owns domain logic. Co-born, explicit author boundary.'
+- with: find-folder-topology-drift
+  relation: sibling-different-layer
+  disambiguator: 'find-folder-topology-drift not_for (verified in ES2): ''File-level "this module does
+    too many things" (use /find-omnibus — that smell is intra-file, this one is intra-folder)''. omnibus
+    = within a file; topology = across files in a folder.'
+- with: find-complexity-hotspots
+  relation: sibling-different-layer
+  disambiguator: 'find-complexity-hotspots not_for: ''Broad architecture smells like omnibus modules (use
+    /find-omnibus)''. complexity = per-function algorithmic cost; omnibus = per-file responsibility count.'
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: med
+evidence:
+- 'scan-surface declared via scans: frontmatter [python, javascript, typescript] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
+- 90f8567 — born in the big-bang ecosystem-extraction commit alongside 54 sibling skills (temporal weak)
+- SKILL.md cites the refactor-subsystem §1.2.5 facet-vs-domain rule + coordination_omnibus / facets_not_domains
+  scout buckets — ties it to architectural-smells.md and the refactor handoff
+- reports/omnibus — 1 scan dir (scan-20260516-020044), a single self-report on the ES2 tree (gitignored,
+  local-only)
+- has scripts/ but no fixtures/ pair (structural med)
+gaps:
+- The host-a contract recorded dogfood_kind subsystem-refactor against core/views/site_config.py; that is
+  host-a history. ES2 has only one self-scan and no decomposition refactor, so ES2's honest dogfood_kind
+  is none-found (one self-report is not a trusted oracle).
+- No ADR/precedent references this skill in ES2 — embodies_decisions.adr [], corroboration via architectural-smells.md
+  only.

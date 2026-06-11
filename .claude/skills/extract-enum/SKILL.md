@@ -1,0 +1,377 @@
+---
+name: extract-enum
+description: Turn a stringly-typed state field into a TextChoices enum proposal. Consumes an extract-enum candidate from /find-implicit-state (or an explicit `<file>::<field>` target) and emits reports/extract-enum/<target>/proposal.md with the enum class, caller migration table, data-migration risks, and stop condition. Read-only — no code edits. Hands off to /fix-workflow or /refactor-subsystem.
+argument-hint: "<implicit-state:ID or FILE::FIELD>"
+allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
+user-invocable: true
+tier: maintenance
+job: explain
+best_for: |
+  A confirmed implicit-state finding (or explicit `<file>::<field>`
+  target) on a Django model field, ready for a TextChoices proposal —
+  produces the enum class, caller migration table, data-migration risks,
+  and stop condition. Read-only. Decided in: 0001 (TextChoices for state).
+not_for: |
+  Detection (use /find-implicit-state first). Tuple-inferred-identity
+  sub-shape — a `.filter(status=X, *_at__...).first()` pattern (use
+  /introduce-fk). Refactor execution (use /fix-workflow). Non-model
+  first-party string sentinels (a dataclass attribute, function return,
+  module constant, or command-internal outcome) — those take a plain
+  `str`-valued Enum (`enum.StrEnum` on 3.11+, or `class X(str, Enum)`),
+  not TextChoices, and the collector only walks model fields; apply that
+  conversion by hand.
+language: python
+framework: django
+---
+
+# /extract-enum
+
+You are the **orchestrator** for turning a stringly-typed state field
+into an implementation-ready `models.TextChoices` proposal.
+`/find-implicit-state` already flagged the target; your job is to read
+the literals in full, dispatch a scout to profile case-variants /
+dynamic-value confusions / caller migration shape, and consolidate into
+a proposal the human reviews before handing off to `/fix-workflow` or
+`/refactor-subsystem`.
+
+You do NOT write production code in this skill. You never edit the
+model file, the callers, or a migration file. The only artifact you
+produce is `reports/extract-enum/<target-slug>/proposal.md` plus its
+supporting `targets.json` and `profile.md`.
+
+## Core beliefs
+
+1. **For a model field, the endpoint is `models.TextChoices`, not a
+   tuple-style `STATUS_CHOICES` list.** The `stringly-status` lint rule rejects
+   tuple-style choices as "still the smell" — see the CLAUDE.md
+   Canonical Pattern entry and `scripts/lint/no_stringly_typed_status.py`.
+   Your proposal must propose a `TextChoices` class, not a tuple.
+2. **Case-variants and third-party bridges are load-bearing.** An
+   accidental `"Pending"` among mostly-`"pending"` rows is a data-
+   migration risk, not a noise literal. A vendor-supplied literal
+   from a webhook payload is NOT a candidate for an enum member.
+   The scout classifies; the orchestrator includes both shapes in
+   the risk section.
+3. **One target per run.** If the scout surfaces another stringly-
+   typed field in the same file, log it under follow-on findings and
+   stop. Running `/extract-enum` twice is cheaper than getting one
+   proposal wrong.
+4. **The proposal is read-only.** No code edits, no migrations, no
+   test edits. `/fix-workflow` owns execution.
+5. **New features should not create this smell, and the endpoint
+   depends on the carrier.** When a new **model field** represents
+   `status`, `phase`, or `state`, prefer a `models.TextChoices` enum
+   from the first commit — that is this skill's job. When the carrier
+   is **not a model** (a `@dataclass` attribute, a function return, a
+   module constant, or a command-internal run outcome), the endpoint is
+   a plain `str`-valued Enum (`enum.StrEnum` on 3.11+, or
+   `class X(str, Enum)`), accessed `CLASS.MEMBER` and defined next to
+   the carrier it serves; this collector only walks model fields, so
+   that conversion is hand-applied. (A project with a house value-enum
+   type binds this generic endpoint to it in `knowledge/`.) If a feature
+   must touch a legacy tuple-style `STATUS_CHOICES` field, consider a
+   small `/extract-enum` proposal or explicit follow-up before adding
+   more callers that compare bare strings.
+
+## Scope
+
+- **Project root:** this worktree's root.
+- **Python:** `python3` for `scripts/collect.py` (stdlib-only). The
+  skill does not import Django or touch the DB.
+- **Worktree guard:** read-only — no guard required here. The
+  execution skill (`/fix-workflow`) does its own worktree check.
+- **Project-specific defaults** (known stringly-typed hotspots,
+  third-party-bridge recognition rules): `knowledge/`.
+  The scout reads that file; the orchestrator does not.
+
+## Argument parsing
+
+Two forms:
+
+### Form A — Finding ID from /find-implicit-state
+
+Pattern: `implicit-state:<id>` or `<id>` where `<id>` matches
+`implicit-state-NNNN`. Resolves against
+`reports/implicit-state/latest/findings.json`. The orchestrator reads
+the candidate's `recommendation_hint` — this skill rejects any hint
+other than `extract_enum_candidate` and recommends `/introduce-fk` for
+`introduce_fk_candidate`.
+
+If the findings file is missing, abort and tell the user to run
+`/find-implicit-state` first — do NOT fall back to scanning.
+
+### Form B — Explicit `<file>::<field>` target
+
+Pattern: `core/models/crawl_jobs.py::status`. The field lives on a
+`models.Model` subclass; the skill inspects every comparison/
+assignment site in the codebase. An optional third part narrows to a
+specific class in files with multiple models:
+`core/models/crawl_jobs.py::status::UrlCrawlJob`.
+
+Present the parsed spec back to the user (`target_slug`,
+`model_class`, `field_file`) and wait for approval (same approval-
+token contract as `/fix-workflow`: first non-whitespace token must be
+`approved`, `approve`, `go`, `lgtm`, `proceed`, `yes`). This is the
+only interactive step before Stage 0.
+
+## Pipeline
+
+### Stage 0 — Setup
+
+**Pre:** argument parsed, approval received (Form B only). **Post:**
+`${REPORT_DIR}` exists, `latest` symlink.
+
+```bash
+TARGET_SLUG="<model>__<field>"    # crawljob__status, urlcrawljob__status, ...
+REPORT_DIR="reports/extract-enum/${TARGET_SLUG}"
+mkdir -p "${REPORT_DIR}"
+ln -sfn "${TARGET_SLUG}" reports/extract-enum/latest
+```
+
+`reports/extract-enum/` uses target slugs directly (not timestamps) so
+successive runs against the same field overwrite. The proposal shape
+is deterministic per field.
+
+### Stage 1 — Collect literals + callers
+
+**Pre:** argument parsed. **Post:** `${REPORT_DIR}/targets.json`
+with field declaration + literals + comparison/assignment sites.
+
+**Form A:**
+
+```bash
+python3 .claude/skills/extract-enum/scripts/collect.py \
+  --from-finding "${FINDING_ID}" \
+  --findings reports/implicit-state/latest/findings.json \
+  --project-root "$(pwd)" \
+  --output "${REPORT_DIR}/targets.json"
+```
+
+**Form B:**
+
+```bash
+python3 .claude/skills/extract-enum/scripts/collect.py \
+  --target "${FILE}::${FIELD}" \
+  ${MODEL_CLASS:+--model-class "${MODEL_CLASS}"} \
+  --project-root "$(pwd)" \
+  --output "${REPORT_DIR}/targets.json"
+```
+
+The collector writes to stderr a one-line summary:
+`<Model>.<field> — N literals (M case-variants) across K files`. If
+zero literals surface, exit 1 — the finding was resolvable but the
+field has no live callers; the target may be dead code (follow up
+with `/find-dormant`).
+
+### Stage 2 — Profile the target (single scout)
+
+**Pre:** `targets.json` exists. **Post:** `${REPORT_DIR}/profile.md`
+exists.
+
+Dispatch ONE scout (not fan-out) with `agents/enum-profiler.md`.
+Substitute placeholders:
+
+- `{{target_slug}}`, `{{model_class}}`, `{{field_name}}`,
+  `{{field_file}}`, `{{field_symbol}}` — from `targets.json`
+- `{{project_root}}` — `$(pwd)` absolute
+- `{{targets_path}}` — absolute path to `${REPORT_DIR}/targets.json`
+- `{{output_path}}` — absolute path to `${REPORT_DIR}/profile.md`
+- `{{skill_root}}` — absolute path to
+  `.claude/skills/extract-enum/`
+
+Use `subagent_type=general-purpose`.
+
+If the scout returns `profile_incomplete` or `targets_missing`, re-
+dispatch once with a stricter "respond only with file-write
+confirmation" nudge. If it fails twice, proceed with a partial
+profile and flag the gap in the proposal.
+
+### Stage 3 — Synthesize the proposal
+
+**Pre:** profile exists. **Post:** `${REPORT_DIR}/proposal.md`
+written.
+
+Read `targets.json` + `profile.md`. Write `proposal.md` with this
+structure:
+
+```markdown
+# Proposal — extract-enum: <Model>.<field>
+
+## Target
+`<field_file>::<Model>.<field>` — currently
+`<CharField|TextField>(max_length=<N>, default=<default>)`.
+
+## Distinct literals found (<N> sites)
+<bullet list from targets.json.literals; include count per literal,
+flag case-variants>
+
+## Proposed enum
+\`\`\`python
+from django.db import models
+
+
+class <Model>Status(models.TextChoices):
+    PENDING = "pending", "Pending"
+    IN_PROGRESS = "in_progress", "In progress"
+    DONE = "done", "Done"
+    FAILED = "failed", "Failed"
+\`\`\`
+
+## Field change
+\`\`\`python
+# before
+<field> = models.CharField(max_length=<N>, default="<default>")
+# after
+<field> = models.CharField(
+    max_length=<N>,
+    default=<Model>Status.<DEFAULT_MEMBER>,
+    choices=<Model>Status.choices,
+)
+\`\`\`
+
+## Migration plan
+1. **Schema migration** — add `choices` kwarg; `makemigrations`
+   generates the AlterField operation.
+2. **Data-migration check (pre-deploy)** — run
+   `SELECT DISTINCT <field> FROM <table>` in production. If the set is
+   NOT a subset of the enum values, the deploy will fail the
+   `choices` validator. Reconcile with a one-off data-normalization
+   migration first (see risks below).
+3. **Caller migration** — update the <N> sites listed in the table
+   below to use enum members.
+4. **Lint enforcement** — re-run
+   `scripts/lint/no_stringly_typed_status.py <field_file>
+   <caller files>` — expect zero hits scoped to this field.
+
+## Caller table
+<table from profile.md: file | symbol | before | after>
+
+## Data-migration risks
+<bullet list — case-inconsistency, third-party bridges, tuple-choice
+mismatches, read-only-never-written literals, etc.>
+
+## Test matrix
+Baseline (from `.claude/skills/_common/skill-conventions.md`):
+
+\`\`\`bash
+.venv/bin/python manage.py test \
+  tests.test_site_capabilities tests.test_hydration_detector \
+  --settings=app.settings_test_sqlite -v 2
+\`\`\`
+
+Plus subsystem-specific suites — grep `<Model>` in `tests/test_*`:
+
+- `tests.test_<suite_a>` — covers the callers in <path>
+- `tests.test_<suite_b>` — covers the callers in <path>
+
+New characterization test (before migration): pin the current
+behavior of every comparison path so the caller migration is proven
+behavior-preserving.
+
+Ruff baseline on the affected files:
+
+\`\`\`bash
+.venv/bin/ruff check <field_file> <caller files>
+\`\`\`
+
+## Stop condition
+- Enum class added, field updated, `makemigrations` generates a
+  clean migration.
+- Every comparison site in the caller table uses an enum member.
+- `scripts/lint/no_stringly_typed_status.py` reports zero hits on
+  `<field>` in scope.
+- Characterization tests (pre-migration behavior) pass unchanged.
+- Baseline + subsystem-specific test matrix passes.
+
+## Follow-on findings
+<other stringly-typed fields surfaced during profiling; NOT part of
+this proposal — each is a new `/extract-enum` invocation>
+
+## Authorization
+Human review required before execution. If approved, hand the
+proposal to `/fix-workflow extract-enum:<target-slug>` (when that
+variant ships) or to `/refactor-subsystem` for a multi-file change.
+```
+
+See `knowledge/` for project-specific gotchas the
+proposal's risk section should cover (third-party bridges, Celery
+resilience retries, legacy ExternalSource imports).
+
+### Stage 4 — Effectiveness log
+
+**Pre:** proposal written. **Post:** one line appended to
+`reports/_meta/effectiveness.jsonl`.
+
+```bash
+LITERAL_COUNT=$(python3 -c "import json,sys; print(len(json.load(open(sys.argv[1]))['literals']))" "${REPORT_DIR}/targets.json")
+CASE_VARIANTS=$(python3 -c "import json,sys; print(sum(1 for l in json.load(open(sys.argv[1]))['literals'] if l.get('case_variant_of')))" "${REPORT_DIR}/targets.json")
+CONFIRMED=$(python3 -c "import json,sys; print(len(json.load(open(sys.argv[1]))['comparison_sites']))" "${REPORT_DIR}/targets.json")
+FIELD_SYMBOL=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['field_symbol'])" "${REPORT_DIR}/targets.json")
+FIELD_FILE=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['field_file'])" "${REPORT_DIR}/targets.json")
+
+python3 scripts/log_effectiveness.py \
+  --skill extract-enum \
+  --scan-id "${TARGET_SLUG}" \
+  --target "${FIELD_FILE}::${FIELD_SYMBOL}" \
+  --findings-total "${LITERAL_COUNT}" \
+  --buckets "{\"case_variants\": ${CASE_VARIANTS}, \"confirmed_sites\": ${CONFIRMED}}"
+```
+
+### Stage 5 — Summarize
+
+Report to the user in ≤10 lines:
+
+- Target (file + Model.field).
+- Literal count + case-variant count.
+- Caller count (by file, top 3).
+- Risks flagged (one-line summary).
+- Path to `${REPORT_DIR}/proposal.md`.
+- Recommended next command:
+  `/fix-workflow extract-enum:<target-slug>` (proposal-only today; hand
+  the proposal to `/refactor-subsystem` for execution).
+
+Do NOT start the execution step yourself. The proposal is the handoff
+artifact.
+
+## Non-goals
+
+- Executing the refactor (that's `/fix-workflow` /
+  `/refactor-subsystem`).
+- Detecting new stringly-typed state (that's `/find-implicit-state`).
+- Proposing a data-normalization migration for production rows —
+  list the risk, don't write the migration. The migration is part
+  of `/fix-workflow`'s job after human review of the risk.
+- Opening more than one target per run. A second stringly-typed field
+  surfaces as a follow-on finding; re-invoke the skill to handle it.
+- Touching any file outside `reports/extract-enum/<target-slug>/`.
+
+## When things go sideways
+
+| Symptom | Action |
+|---|---|
+| Findings file missing (Form A) | Abort; tell user to run `/find-implicit-state` |
+| Finding's `recommendation_hint` is `introduce_fk_candidate` | Abort; tell user to run `/introduce-fk` — this finding is tuple-identity, not stringly-state |
+| `collect.py` returns 0 literals | Target has no callers — field may be dead code; suggest `/find-dormant` on the model file |
+| `collect.py` errors `no Model subclass … declares … as CharField/TextField` — the `<file>::<field>` target is not a model field (it's a `@dataclass` attr, function return, module constant, or command-internal sentinel) | This skill's collector only walks model fields. The endpoint is a plain `str`-valued Enum (`enum.StrEnum` on 3.11+, or `class X(str, Enum)`), NOT TextChoices: define the enum next to the carrier, members `NAME = "value"`, swap each literal for `<Name>.<MEMBER>`, no migration. Do NOT `# noqa` a first-party sentinel (the noqa valve is for vendor-bridge literals only) |
+| Model class ambiguous (multiple Models in file declare same field name) | Ask user for `--model-class <Name>` and retry Stage 1 |
+| Scout says `targets_missing` | Re-dispatch once with stricter brief; if still missing, the `targets.json` is malformed — re-run Stage 1 |
+| Case-variant explosion (>5 variants of same lower-cased form) | Flag in proposal risks; recommend a pre-migration data-normalization audit before human approval |
+| Literal appears ONLY in webhook/bridge paths (ExternalSource, ScraperAPI, vendor APIs) | Mark as `third_party_bridge`; propose `# noqa: stringly-status: <reason>` for those comparison sites, NOT an enum member |
+| Tuple-style `STATUS_CHOICES` already exists but lists different literals than scan found | Surface both sets in the proposal; flag the divergence as a migration risk |
+
+## Repository layout
+
+```
+.claude/skills/extract-enum/
+├── SKILL.md                         # this file — orchestrator
+├── scripts/
+│   └── collect.py                   # Stage 1 (stdlib-only)
+├── agents/
+│   └── enum-profiler.md             # Stage 2 scout brief
+└── knowledge/                       # scout context, never loaded by orchestrator
+    └── (host-overlay specifics).md
+```
+
+The orchestrator (you) **never reads files in `knowledge/`**. Those are
+for the scout sub-agent. Keeping them out of your context is the whole
+point of this architecture.

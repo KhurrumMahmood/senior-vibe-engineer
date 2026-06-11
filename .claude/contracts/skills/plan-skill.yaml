@@ -1,0 +1,46 @@
+schema_version: 2
+
+skill: plan-skill
+job: plan
+problem_class: "skill-design hardening / intake gate (PLAN)"
+intent: "Plan and harden a new or revised skill before implementation — adversarial requirements pushback, trigger design, evidence contracts, dogfood cases, and review gates. The intake gate for the maintenance nervous system: stop if the skill cannot name a durable artifact and at least one dogfood case."
+solves: "Skills that trigger too broadly, produce no durable artifact, lack validation, duplicate an existing skill, or cannot be dogfooded before humans rely on them. plan-skill forces those failure modes to be confronted (with adversarial pushback) at design time rather than discovered in production."
+born:
+  commit: "8793ef0"
+  date: "2026-05-16"
+  sibling_births: [diagnose]
+dogfood_kind: self-installed-guard
+dogfooded_on:
+  - "self-scan on the ES2 ecosystem — reports/plan-skill/scan-20260521-185516 (one on-disk run; plan-skill is the skill-development intake gate run against this repo's own skill set)"
+reports_dir: reports/plan-skill
+run_evidence:
+  count: 1
+  first: "scan-20260521-185516"
+  latest: "scan-20260521-185516"
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc:
+    - quality-coordination-kernel.md
+    - skill-catalog.md
+  contract: []
+related_skills: [which-skill, decide, prevent-regression, plan-feature, diagnose]
+duplication_risk:
+  - with: plan-feature
+    relation: sibling-different-layer
+    disambiguator: "plan-skill `not_for`: 'General feature planning (use /plan-feature or the System-tier chain)'. plan-skill plans a SKILL (trigger contract, evidence contract, dogfood); plan-feature plans a code FEATURE. Different artifact class."
+  - with: prevent-regression
+    relation: sequential
+    disambiguator: "plan-skill `escalate_to`: /prevent-regression when a deterministic guard should enforce the skill contract. plan-skill designs the skill; prevent-regression hardens an invariant into a lint/test. Sequential."
+provenance_confidence:
+  textual: med      # born in a small named cohort (8793ef0, with diagnose) — sharper than the big-bang set
+  structural: low   # prose-driven planning skill — no scanner script, no fixtures (orchestrates pushback + evidence design)
+  temporal: med     # 2-skill cohort (with diagnose) — birth proximity carries some signal, unlike 90f8567
+  dogfood: med      # exactly one on-disk self-scan run against the ES2 skill set; no fixtures oracle
+evidence:
+  - "8793ef0 — born in a small 2-skill cohort with diagnose (2026-05-16), not the big-bang 90f8567 set"
+  - "reports/plan-skill/scan-20260521-185516 — one on-disk self-scan run (local, gitignored)"
+  - "has_fixtures: false, has_scripts: false — prose-only planning skill; structural signal is low"
+gaps:
+  - "No precedents.yml entry names plan-skill and no ADR in ai-docs/decisions/ cites it (adr: []); intent rests on SKILL.md + the quality-coordination-kernel / skill-catalog docs and the single self-scan run."
+  - "Divergence from host-a intent base: host-a's plan-skill is scoped to 'a new host-a skill'; ES2's is the portable ecosystem intake gate (same job/problem_class, broader host)."

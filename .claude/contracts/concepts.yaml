@@ -1,0 +1,249 @@
+# Canonical concept glossary for engineering-skills-2.
+#
+# Seeded from /CONTEXT.md Language and Resolved-ambiguities sections.
+# This file is the canonical store; CONTEXT.md Language is the
+# human-readable mirror. When the two drift, this file wins and
+# CONTEXT.md gets updated to match.
+#
+# Schema (per concept):
+#   name           kebab-case slug; the canonical store form.
+#   aliases        phrasings that mean the SAME concept. The scanner
+#                  flags unsourced occurrences in code/docs as drift.
+#   definition     one-paragraph authoritative definition. Pull from
+#                  CONTEXT.md mechanically; resolve drift via flagged_*.
+#   avoid          phrasings that LOOK related but mean something else,
+#                  or deprecated names without a clean rename target.
+#                  Distinct from aliases (which ARE the same concept).
+#   superseded_by  if this concept is the deprecated side of a rename,
+#                  the slug of its replacement.
+#   coverage_lint  if a dedicated lint already enforces the rename, the
+#                  scanner skips band 3 noise for this concept and lets
+#                  the lint own the enforcement story.
+#   source         where the canonical definition lives (anchor).
+
+concepts:
+
+  - name: skill
+    aliases: [skills]
+    definition: |
+      A self-contained capability under `.claude/skills/<name>/`. Each
+      skill has a SKILL.md (agent-facing definition with frontmatter
+      that declares tier / job / best_for / not_for), optional
+      agents/*.md (scout briefs), knowledge/*.md (reusable rules and
+      false-positive catalogues), scripts/*.py (detection/synthesis
+      logic), and fixtures/ + tests/ (executable checks). Skills are
+      invoked by agents via slash-commands.
+    avoid:
+      - "confusing skill with the underlying tool (a skill uses tools)"
+      - "calling sub-agent briefs 'skills'"
+    source: "CONTEXT.md#Language"
+
+  - name: skill-body
+    aliases: ["skill body"]
+    definition: |
+      The body of a skill (its SKILL.md and scripts) — project-agnostic
+      and lives in engineering-skills-2. Distinct from knowledge files
+      which carry project-specific content.
+    avoid:
+      - "putting host-project examples in the skill body"
+    source: "CONTEXT.md#Language"
+
+  - name: knowledge
+    aliases: ["knowledge files"]
+    definition: |
+      Files under a skill's `knowledge/` directory carrying
+      project-specific examples, false-positives, and exemplar paths.
+      Filled in per host project. The deliberate separation lets the
+      skill body travel and the knowledge stay local.
+    avoid:
+      - "putting ecosystem-wide rules in knowledge/ where they won't be loaded generally"
+    source: "CONTEXT.md#Language"
+
+  - name: job
+    aliases: [jobs]
+    definition: |
+      One of MAP, SUSPECT, EXPLAIN, REFACTOR, GUARD — the five-stage
+      maintenance loop the ecosystem orchestrates. Each skill declares
+      its job in its frontmatter; the catalogue
+      (.claude/docs/skill-catalog.md) groups by job. MAP and EXPLAIN
+      can be skipped when the target is already understood. GUARD must
+      not be skipped — that's the rule that protects against recurring
+      tax.
+    # `avoid:` is for term-level identifiers that mean a wrong concept,
+    # not for behavioral rules (those live in `definition` above). The
+    # earlier seed put "skipping GUARD" here; it tripped on the docs
+    # that correctly teach the rule (a glossary gap, not real drift).
+    source: "CONTEXT.md#Language"
+
+  - name: scout
+    aliases: [scouts]
+    definition: |
+      A sub-agent dispatched by a skill (typically a SUSPECT or
+      EXPLAIN skill) to investigate one candidate in parallel with
+      siblings. Scout output goes to disk
+      (reports/<skill>/scan-*/scouts/<id>.md), not back into the
+      orchestrator's context. Dispatch helpers live at
+      .claude/skills/_common/dispatch_scout.sh and
+      .claude/skills/_common/dispatch_scout_cheap.sh.
+    avoid:
+      - "returning scout findings via stdout (they pollute context)"
+      - "calling unrelated worker sub-agents 'scouts'"
+    source: "CONTEXT.md#Language"
+
+  - name: tier
+    aliases: ["task tier"]
+    definition: |
+      Task complexity classification — Quick (one-line fix), Feature
+      (1–3 day scope, single workflow), System (new subsystem,
+      cross-subsystem feature, multi-week), Maintenance (cleanup loop
+      work). The System-tier chain is /scope-feature → /impact-feature
+      → /architecture-fit → /plan-spec. The judgment pauses between
+      System stages are the point — don't collapse them.
+    avoid:
+      - "forcing every task through the heaviest tier"
+      - "using 'tier' to mean LLM model size"
+    source: "CONTEXT.md#Language"
+
+  - name: canonical-pattern
+    aliases: ["canonical pattern", "canonical patterns"]
+    definition: |
+      A named way to do a recurring thing (input parsing, dispatch,
+      atomic file writes, AI calls, …). Catalogued in
+      .claude/docs/canonical-patterns.md. Many canonical patterns have
+      a matching diff-scoped lint rule under scripts/lint/.
+    avoid:
+      - "documenting patterns inline in skills"
+      - "treating canonical-patterns.md as a tutorial (it's a catalogue, terse by design)"
+    source: "CONTEXT.md#Language"
+
+  - name: architectural-smell
+    aliases: ["architectural smell", "smell", "smells"]
+    definition: |
+      A named anti-pattern that a SUSPECT skill targets. Catalogued in
+      .claude/docs/architectural-smells.md. Six base smells ship:
+      omnibus modules, stringly-typed state, query mutation, layer
+      violation, format-equivalence gaps (parallel writers),
+      product-topology drift, folder-topology drift. Host projects add
+      more.
+    avoid:
+      - "using 'smell' as a generic complaint — a smell has a SUSPECT skill, an exemplar, a counter-example, and an enforcement story"
+    source: "CONTEXT.md#Language"
+
+  - name: adr
+    aliases: ["ADR", "architectural decision record"]
+    definition: |
+      A versioned record under ai-docs/decisions/NNNN-<slug>.md
+      capturing a choice that constrains future work or excludes
+      alternatives. ADRs supersede each other and link to related
+      smells/patterns. Scaffold with
+      `python3 scripts/decisions.py init <slug>`. Threshold: 2–5 ADRs
+      per quarter.
+    avoid:
+      - "ADRs for trivial choices"
+      - "treating ADRs as todo items (superseding is the closure path, not 'completion')"
+    source: "CONTEXT.md#Language"
+
+  - name: plan
+    aliases: [plans]
+    definition: |
+      Lives at ai-docs/plans/<name>.md, has a status
+      (proposed → scoped → impacted → architected → promoted), and is
+      the System-tier judgment-pause artifact. Plans promote into specs
+      once architecturally clean.
+    avoid:
+      - "writing the Spec directly when a Plan is the right artifact"
+      - "treating Plan / Spec as interchangeable"
+    source: "CONTEXT.md#Language"
+
+  - name: spec
+    aliases: [specs]
+    definition: |
+      Lives at ai-docs/specs/<name>.md and is what /refactor-subsystem
+      reads as input — it pins behavior to preserve, characterization
+      tests, and the extraction shape. Promoted from a Plan.
+    avoid:
+      - "writing the Spec directly when a Plan is the right artifact"
+      - "treating Plan / Spec as interchangeable"
+    source: "CONTEXT.md#Language"
+
+  - name: ledger
+    aliases: ["canonical findings ledger"]
+    definition: |
+      The append-only record (reports/_meta/effectiveness.jsonl +
+      per-skill ledger.md files where used) that captures one row per
+      skill run. Defined in ADR 0003. Lets the maintenance loop measure
+      whether running the same SUSPECT skill against the same area is
+      producing fewer findings over time.
+    avoid:
+      - "editing past entries"
+      - "using the ledger as a todo list"
+    source: "CONTEXT.md#Language"
+
+  - name: cross-tool-mirror
+    aliases: ["cross-tool mirror"]
+    definition: |
+      The pattern of having multiple agent tools (Claude Code, Codex,
+      Augment, Cursor, Gemini) read the same canonical guide.
+      Implementation: AGENTS.md, .cursor/CURSOR.md, .gemini/GEMINI.md
+      are symlinks to .claude/CLAUDE.md; Augment imports condensed
+      always-apply rules from .augment/rules/imported/.
+    avoid:
+      - "editing the mirrors directly when the source is CLAUDE.md"
+      - "copy-pasting CLAUDE.md to a mirror file instead of symlinking"
+    source: "CONTEXT.md#Language, docs/cross-tool-agent-governance.md"
+
+  - name: diff-scoped-lint
+    aliases: ["diff-scoped lint", "diff-scoped"]
+    definition: |
+      A lint that runs only against files changed in the current diff
+      (not the whole repo). Implemented by scripts/lint/run.py reading
+      `git diff --name-only origin/main...HEAD`. Lets the ruleset grow
+      without producing a noise wall against legacy code. Existing
+      violations in untouched files don't block commits.
+    avoid:
+      - "running the lint runner without --changed-from in CI"
+      - "treating diff-scoped as 'weaker' — it's the only enforcement model that scales in an AI-grown codebase"
+    source: "CONTEXT.md#Language"
+
+
+# Drift / unresolved naming inconsistencies the scanner should surface but
+# the glossary author has not yet picked a canonical winner for.
+#
+# Use `competing_terms:` only when the named terms are actually competing
+# for the same concept — rename transitions or parallel implementations
+# of the same thing. The scanner's band 2 treats a file containing 2+ of
+# these as drift, which is the right semantics for true competition.
+#
+# Do NOT use `competing_terms:` for overload cases where the named terms
+# are typed names for distinct things that share a noun. For those,
+# document the typed senses in `where:`, leave `competing_terms:` absent,
+# and let the canonical concept's `avoid:` block catch the actual drift
+# (bare generic-noun usage in prose / log strings) via band 1.
+#
+# `source:` on an ambiguity entry lists files that enumerate the
+# ambiguity in glossary prose — band 2 skips them so the scanner does
+# not flag its own documentation.
+flagged_ambiguities:
+
+  - id: skill-effectiveness-metric
+    competing_terms: []
+    where:
+      - "CONTEXT.md Flagged-ambiguities/Open: counting findings-over-time is the obvious-but-imperfect signal"
+      - "Open question: what's the right composite that weights 'guard installed' (real closure) vs 'finding dismissed without a guard' (deferred tax)"
+    resolution_path: |
+      Answer will eventually live in quality-coordination-kernel.md.
+      Not blocking, but the composite metric needs to be defined before
+      the ledger can be used as a closure indicator vs a sighting log.
+    surfaced_during: "2026-05-19 concepts.yaml seeding (mirror of CONTEXT.md Open ambiguity)"
+
+  - id: host-project-adr-residence
+    competing_terms: []
+    where:
+      - "engineering-skills-2 ships nine ADRs (0001–0006, 0013, 0016, 0017) as a foundation"
+      - "Host projects extend numbering via `decisions.py init`"
+      - "Foundation ADRs use a `host:` prefix on `applies_to` paths so link-check does not read their absence here as drift"
+    resolution_path: |
+      Still open: does the host fork its own `decisions/` or inherit by
+      reference? Likely fork — pin this once a real consumer uses the
+      ecosystem.
+    surfaced_during: "2026-05-19 concepts.yaml seeding (mirror of CONTEXT.md Open ambiguity)"

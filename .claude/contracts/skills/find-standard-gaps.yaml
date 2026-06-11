@@ -1,0 +1,53 @@
+# Skill intent + provenance contract — schema v2.
+# ES2-only skill; authored fresh from SKILL.md + es2_skill_facts.yaml.
+
+schema_version: 2
+
+skill: find-standard-gaps
+job: suspect
+problem_class: "declared-standard coverage-gap detection (SUSPECT)"
+intent: "Detect places a declared baseline standard should apply but doesn't. A standard (a security check, resilience rule, input-validation or observability requirement) is declared once as an entry with an executable `ast` detector; scan_coverage.py then scans the tree and reports every site whose triggering situation holds but the standard is absent. Generalizes hand-written AST lints — declare a standard instead of authoring a bespoke one-off lint. Deterministic (no scout fan-out); detection-only, never edits code."
+solves: "A good standard is worth nothing at the sites that don't use it, and authoring one bespoke AST lint per rule does not scale. There was no declarative 'absence is the finding' pass that coverage-checks a baseline standard across the tree — and the genuinely dangerous failure mode (a silent '0 gaps' on an unanalyzable language) had no guard until language_unsupported was made a first-class, non-compliant result."
+born:
+  commit: "35e618c"
+  date: "2026-05-17"
+  sibling_births: []
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (no timestamped self-run on the ES2 tree; reports_dir is null). It ships a standards.example.json template the user copies + adapts, but the facts show no scan-<TS> run artifact, so there is no observed ES2 dogfood."
+reports_dir: null
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0018", "0019", "0020", "0021", "0022"]   # find-standard-gaps is the declared-standards / coverage-ratchet realization these ADRs operate through
+  precedent: []   # no precedents.yml entry names find-standard-gaps
+  doc: []
+  contract: []
+related_skills: [harvest-learnings, orient, fix-workflow, prevent-regression, find-omnibus, find-duplication]
+duplication_risk:
+  - with: harvest-learnings
+    relation: sequential
+    disambiguator: "harvest-learnings PROPOSES portable standards; find-standard-gaps gives an adopted standard an executable detector and COVERAGE-CHECKS it. harvest-learnings not_for: 'Coverage-checking a standard that already exists (use /find-standard-gaps).' find-standard-gaps consumes the standard harvest produced."
+  - with: orient
+    relation: sequential
+    disambiguator: "orient WRITES the lifecycle state (.project-state.json) that gates which standard rungs are active; find-standard-gaps is the coverage scan that those rungs feed into. orient not_for: 'Running the coverage scan that consumes this state (use /find-standard-gaps).'"
+  - with: fix-workflow
+    relation: sequential
+    disambiguator: "find-standard-gaps DETECTS coverage gaps; executing the fixes is handed off. find-standard-gaps not_for: 'Executing the fixes (hand off to /fix-workflow).'"
+  - with: find-omnibus
+    relation: sibling-different-layer
+    disambiguator: "find-standard-gaps audits ABSENCE of a declared standard ('should be here, isn't'); the find-* structural family (find-omnibus, find-duplication, find-dormant) audits code that EXISTS. find-standard-gaps not_for: 'Structural smells — omnibus, duplication, dormant code (use the find-* family).'"
+provenance_confidence:
+  textual: med      # born in a dedicated, non-big-bang commit (35e618c) with no sibling births — the commit singles this skill out
+  structural: med   # ships a scanner (scan_coverage.py) + a standards.example.json template, but no good/bad fixtures pair (has_scripts=true, has_fixtures=false)
+  temporal: med     # solo birth cohort — sharper than the 90f8567 set, but a single skill carries limited proximity signal
+  dogfood: low      # no fixtures oracle and no self-run on disk (the example standards file is a template, not a run)
+evidence:
+  - "35e618c — born 2026-05-17 in a dedicated commit, sibling_births_count 0 (facts)"
+  - "has_scripts=true / has_fixtures=false (facts) — scan_coverage.py present, standards.example.json template, no oracle pair"
+  - "reports_dir null, run count 0 (facts) — no ES2 timestamped run on disk"
+gaps:
+  - "No precedents.yml entry names find-standard-gaps; embodies_decisions.adr is [\"0018\", \"0019\", \"0020\", \"0021\", \"0022\"] — it is the declared-standards / coverage-ratchet surface (0018 dimensions, 0019 trust-boundary standard, 0020 lifecycle×stakes activation) realized by scan_coverage.py, which 0021 (state home) and 0022 (detector lifecycle) build directly on (both name its scripts in applies_to)."
+  - "No ES2 dogfood run, and no fixtures pair — so dogfood is honestly low; the standards.example.json template is the only shipped exemplar and is not a regression oracle."

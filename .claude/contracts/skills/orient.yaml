@@ -1,0 +1,50 @@
+# Skill intent + provenance contract — schema v2.
+# ES2-only skill; authored fresh from SKILL.md + es2_skill_facts.yaml.
+
+schema_version: 2
+
+skill: orient
+job: meta
+problem_class: "lifecycle-state declaration / standard-activation gating (META)"
+intent: "Establish or re-confirm a project's lifecycle state on two independent axes — maturity (prototype → first-users → production) and stakes/exposure (internal → external → public-adversarial) — by asking orientation questions, showing the resulting classification and which standard rungs it activates (and which it caps), then writing the declared state to .project-state.json at the project root. The human-in-the-loop 'pull' half of ADR 0020: inference proposes a transition; /orient lets the human dispose."
+solves: "Stakes/exposure are NOT reliably inferable from code, so without a human-declared state the standard-activation ecosystem either under-defends (a prototype-grade control shipped into a relied-upon, exposed context) or over-defends (gold-plating a low-stakes internal tool). There was no single declared-state surface that activates the right rungs at the right moment AND caps the heavy ones on the way down."
+born:
+  commit: "2cd03f2"
+  date: "2026-05-22"
+  sibling_births: []
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (born in a dedicated 2cd03f2 commit but never self-run on the ES2 tree; reports_dir is null because /orient deliberately writes the durable single-instance .project-state.json, not a timestamped reports/ artifact)"
+reports_dir: null
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0020", "0021", "0022"]   # orient is the human-in-the-loop pull half (0020) and the project-state writer / discovery pass these ADRs name
+  precedent: []   # no precedents.yml entry names orient
+  doc: []
+  contract: []
+related_skills: [find-standard-gaps, project-interview, adapt-project, decide, harvest-learnings]
+duplication_risk:
+  - with: project-interview
+    relation: sibling-different-layer
+    disambiguator: "orient is the NARROW two-axis (maturity × stakes) state write; project-interview is the BROAD human-intent profile. orient not_for: 'Capturing project purpose, critical workflows, intentional tradeoffs … (use /project-interview).' project-interview owns purpose/risk-posture/do-not-break surfaces."
+  - with: find-standard-gaps
+    relation: sequential
+    disambiguator: "orient WRITES the lifecycle state; find-standard-gaps is the coverage scan that CONSUMES it to gate which standard rungs apply. orient not_for: 'Running the coverage scan that consumes this state (use /find-standard-gaps).'"
+  - with: adapt-project
+    relation: sibling-different-layer
+    disambiguator: "orient declares human-judgment lifecycle/stakes state; adapt-project discovers OBJECTIVE repo facts (stack, CI, source roots). orient not_for: 'Discovering objective repo facts like stack, CI, source roots (use /adapt-project).'"
+provenance_confidence:
+  textual: med      # born in a dedicated, non-big-bang commit (2cd03f2) with no sibling births — the commit singles this skill out
+  structural: med   # ships a read-only helper (infer_state_signals.py) but no fixtures pair (has_scripts=true, has_fixtures=false)
+  temporal: med     # solo birth cohort — sharper than the 90f8567 set, but a single skill carries limited proximity signal
+  dogfood: low      # no fixtures oracle and no self-run on disk
+evidence:
+  - "2cd03f2 — born 2026-05-22 in a dedicated commit, sibling_births_count 0 (facts)"
+  - "has_scripts=true / has_fixtures=false (facts) — infer_state_signals.py is the only helper; no good/bad oracle"
+  - "reports_dir null by design — SKILL.md 'Convention divergence (intentional)': writes .project-state.json, not a timestamped reports/ run"
+gaps:
+  - "No precedents.yml entry names orient; embodies_decisions.adr is [\"0020\", \"0021\", \"0022\"] — orient is the human-in-the-loop pull half of 0020 (lifecycle×stakes) and the .project-state.json writer / host-discovery pass that 0021 (state home) and 0022 (detector lifecycle) name in applies_to."
+  - "No ES2 dogfood run; the .project-state.json output is a single-instance state file, so absence of a reports/ run is by design and dogfood stays low rather than implying a gap."

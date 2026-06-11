@@ -1,0 +1,4 @@
+interface:
+  display_name: "Which Shape"
+  short_description: "Choose the right problem-solving loop"
+  default_prompt: "Use $which-shape to recommend the right operating loop for this situation."

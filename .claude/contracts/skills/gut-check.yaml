@@ -1,0 +1,128 @@
+# Skill intent + provenance contract — schema v2 (engineering-skills-2).
+schema_version: 2
+skill: gut-check
+job: teach
+problem_class: cross-cutting instinct pass (TEACH) — does-this-look-dumb reaction
+intent: An instinctive senior-engineer 'does this look dumb?' reaction pass over a plan markdown, a commit
+  diff, or a free-form architecture summary. Emits 3-5 cited smell reactions split into un-decided smells
+  (no precedent/ADR covers them — raw signal) and decided-but-still-smell (an ADR/precedent explains the
+  choice, but the smell still surfaces). Confidence-banded (strong-smell / weak-smell / style-preference).
+  Prompt-only, no helper script.
+solves: The moment a design goes from 'designed' to 'built' with nobody flinching at a wrong shape, over-engineering,
+  or hidden coupling. Highest-leverage output is decision-conflict flagging — surfacing a smell that already
+  contradicts a precedent or ADR so the human knows BOTH that it smells AND that a deliberate decision
+  contradicts it. Produces SIGNAL, not VERDICT.
+born:
+  commit: 90f8567
+  date: '2026-05-15'
+  sibling_births:
+  - architecture-fit
+  - audit-decisions
+  - brainstorm-ideas
+  - decide
+  - design-it-twice
+  - engineer-init
+  - explain-code
+  - extract-cotton-primitive
+  - extract-enum
+  - extract-existing-ideas
+  - extract-state-type
+  - extract-workflow-registry
+  - find-async-lifecycle-drift
+  - find-comment-drift
+  - find-contract-drift
+  - find-dead-route-surface
+  - find-doc-route-drift
+  - find-dormant
+  - find-duplication
+  - find-folder-topology-drift
+  - find-frontend-contract-drift
+  - find-frontend-duplication
+  - find-implicit-state
+  - find-layer-violation
+  - find-omnibus
+  - find-orphaned-ideas
+  - find-query-mutation
+  - find-route-sprawl
+  - find-rule-surface-drift
+  - find-semantic-duplication
+  - find-stale-artifacts
+  - find-test-obligation-drift
+  - find-transaction-overreach
+  - find-workflow-duplication
+  - find-workflow-state-gaps
+  - fix-workflow
+  - impact-feature
+  - introduce-fk
+  - map-product-workflow
+  - map-subsystem
+  - mature-existing-ideas
+  - plan-feature
+  - plan-spec
+  - prevent-regression
+  - propose-boundary
+  - propose-folder-reorganization
+  - query-patterns
+  - refactor-subsystem
+  - scope-feature
+  - teach-pattern
+  - track-idea
+  - triage-debt
+  - unify-shadows
+  - which-skill
+dogfood_kind: none-found
+dogfooded_on:
+- none-found (extracted big-bang in 90f8567). Prompt-only skill — no scanner, no fixtures, no reports
+  dir — so output is ephemeral reaction text, not a retained artifact. No recorded dogfood run target
+  in ES2.
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc:
+  - architectural-smells.md
+  - precedents.yml
+  contract: []
+related_skills:
+- decide
+- architecture-fit
+- teach-pattern
+- propose-boundary
+duplication_risk:
+- with: architecture-fit
+  relation: sibling-different-layer
+  disambiguator: 'gut-check is lean instinct (SIGNAL, no ground truth); architecture-fit is systematic
+    decision-registry validation of a plan (VERDICT-bearing). gut-check not_for: ''Plan validation against
+    decisions (use /architecture-fit).'' and escalate_to names architecture-fit when the plan needs systematic
+    validation.'
+- with: teach-pattern
+  relation: sibling-different-layer
+  disambiguator: 'gut-check not_for quote: ''Pattern-rule briefing — explain why we do X (use /teach-pattern).''
+    — gut-check reacts to a specific artifact; teach-pattern briefs a named rule.'
+- with: decide
+  relation: sequential
+  disambiguator: 'gut-check escalate_to: ''/decide when a repeat smell suggests a decision should be revisited''
+    — gut-check surfaces the conflict, /decide authors/amends the ADR.'
+provenance_confidence:
+  textual: low
+  structural: high
+  temporal: low
+  dogfood: low
+evidence:
+- 90f8567 — born in the big-bang ecosystem-extraction commit alongside 54 sibling skills (temporal weak;
+  textual weak — the big-bang subject does not name this skill)
+- SKILL.md dir contains only SKILL.md (no scripts/agents/knowledge) — confirms the 'prompt-only, no helper
+  script' design (structural high)
+- SKILL.md body uses placeholder 'ADR NNNN (slug)' and reads .claude/docs/precedents.yml as the optional
+  decision-conflict source — it is deliberately portable and cites NO project-specific ADR ids (diverges
+  from host-a's gut-check, which cited ADR 0001/0006/0008/0017)
+gaps:
+- Dogfood:low — prompt-only skills leave no run artifacts, so what it was first exercised on is not recoverable
+  from git or disk.
+- 'ES2''s gut-check is the portable form: it references precedents.yml + architectural-smells.md as mechanisms
+  but embodies no specific ADR (it cites a placeholder ''ADR NNNN (slug)'', naming none). The host-a contract''s
+  adr:[0001,0006,0008,0017] are host-a exemplars and do not transfer.'

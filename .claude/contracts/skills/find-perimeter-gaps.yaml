@@ -1,0 +1,83 @@
+# Skill intent + provenance contract — schema v2 (engineering-skills-2).
+schema_version: 2
+skill: find-perimeter-gaps
+job: suspect
+problem_class: detector-fleet coverage audit (SUSPECT-of-SUSPECTs)
+intent: >-
+  Audit the quality perimeter itself — enumerate every (code root × language)
+  cell with significant LOC, map which SUSPECT detectors cover each cell via
+  their "scans:" / "language:" frontmatter declarations, and flag cells no
+  detector covers. Coverage claims are honest by rule — "language: any" means
+  portable implementation, not universal scanning, and confers no coverage
+  (ADR 0032). Blind spots may be accepted via explicit --accept root:language,
+  never invisible. Detection-only; classification of each gap (data-not-code /
+  stale "scans:" declaration / missing language adapter) is the orchestrator's
+  synthesis.
+solves: The fleet-blind-spot failure mode — a detector ecosystem whose individual
+  skills each scan what they scan, with nobody auditing the inverse, so an entire
+  language layer can grow unbounded while every detector reports clean. Born from
+  a real incident where tens of thousands of frontend-JS lines (including a 5,000+
+  line omnibus) were invisible to a Python-only omnibus detector while template lints
+  actively funneled code into the unscanned layer.
+born:
+  commit: f7ac248
+  date: '2026-06-11'
+  sibling_births: []
+dogfood_kind: fixture-pair
+dogfooded_on:
+- >-
+  tests/test_perimeter_gaps.py — synthetic-tree fixtures pinning the coverage
+  rule ("language: any" covers nothing; explicit "scans:" or exact language
+  match only), the gap listing, and the data-like file exclusion, committed in
+  the birth commit.
+- Self-scan against the ES2 tree during development (matrix + gap list produced);
+  no decision has yet consumed an ES2 gap finding, so this is a smoke run, not a
+  trusted oracle.
+reports_dir: reports/perimeter
+run_evidence:
+  count: 0
+  first: none
+  latest: none
+embodies_decisions:
+  adr:
+  - '0032'
+  precedent: []
+  doc:
+  - architectural-smells.md
+  contract: []
+related_skills:
+- find-omnibus
+- check-ecosystem-consistency
+- adapt-project
+duplication_risk:
+- with: check-ecosystem-consistency
+  relation: sibling-different-layer
+  disambiguator: 'check-ecosystem-consistency audits the ecosystem''s internal
+    consistency (skills vs docs vs contracts); find-perimeter-gaps audits the
+    ecosystem''s coverage of the HOST codebase. not_for quote: ''Auditing the
+    ecosystem''s internal consistency (/check-ecosystem-consistency)''.'
+- with: find-omnibus
+  relation: feeds
+  disambiguator: 'find-perimeter-gaps finds languages/roots no detector scans;
+    find-omnibus is one of the detectors whose scans: declaration it audits. A
+    perimeter gap in a code language resolves to a new language adapter on
+    find-omnibus (or a scans: fix), per ADR 0032 — not a per-language skill fork.'
+provenance_confidence:
+  textual: high
+  structural: med
+  temporal: high
+  dogfood: med
+evidence:
+- f7ac248 (2026-06-11) — born in a dedicated commit alongside ADR 0032, whose
+  Rule 2 (perimeter audit / honest coverage declarations) this skill executes;
+  commit subject names both (textual+temporal high)
+- has scripts/scan.py (stdlib, deterministic) + a committed test module
+  pinning coverage semantics; no fixtures/ directory pair (structural med)
+- reports/perimeter has no committed run reports yet (run_evidence 0) —
+  dogfood rests on the test module plus one development-time self-scan
+  (dogfood med)
+gaps:
+- No host-project adoption consumed a gap finding yet; the motivating incident
+  is seed-host history, so ES2-local dogfood is the test module only.
+- run_evidence is empty until a maintenance sweep writes a report under
+  reports/perimeter.

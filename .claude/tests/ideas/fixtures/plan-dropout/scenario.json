@@ -1,0 +1,12 @@
+{
+  "function": "find_plan_dropouts",
+  "ledger": "ledger.jsonl",
+  "kwargs": {
+    "plan_items": [
+      "Refactor export pipeline",
+      "Unify error reporting",
+      "Add agentic retry loop"
+    ]
+  },
+  "expected": ["Add agentic retry loop"]
+}

@@ -1,0 +1,54 @@
+schema_version: 2
+
+skill: decide
+job: decide
+problem_class: "decision-record authoring (cross-cutting DECIDE)"
+intent: "Author or amend a single Architectural Decision Record under ai-docs/decisions/. The smallest first-class artifact in the senior-engineer skill ecosystem, usable at any tier (Quick / Feature / System / Maintenance) whenever a real choice is being made. Reads canonical-patterns.md and architectural-smells.md to suggest related-pattern / related-smell backrefs and to avoid duplicating an existing decision. Read-only against the rest of the codebase — only writes under ai-docs/decisions/."
+solves: "Design forks that constrain future work or exclude an alternative being decided implicitly (in chat, commits, or someone's head) instead of recorded as a navigable, supersedable ADR — and the registry becoming un-navigable without backrefs."
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: host-attested
+dogfooded_on:
+  - "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 5 effectiveness records, 0 scan dirs, learnings_file=false, 2026-05-03..2026-05-08."
+  - "none-found (extracted in the big-bang 90f8567 cohort; no ES2 self-run — decide writes ADRs, and ES2 has no reports dir or run artifacts for it)"
+reports_dir: null
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc:
+    - canonical-patterns.md
+    - architectural-smells.md
+    - ai-docs/decisions/README.md
+  contract: []
+related_skills: [plan-feature, scope-feature, architecture-fit, design-it-twice, audit-decisions, which-skill]
+duplication_risk:
+  - with: design-it-twice
+    relation: sequential
+    disambiguator: "design-it-twice writes the comparative analysis when the ADR Decision sentence can't be authored yet; /decide authors the ADR. decide is the downstream step."
+  - with: architecture-fit
+    relation: sequential
+    disambiguator: "architecture-fit emits decision proposals; /decide authors them (delegate_from: '/architecture-fit emits decision proposals that route through /decide')."
+  - with: audit-decisions
+    relation: sequential
+    disambiguator: "/decide authors/amends/supersedes; audit-decisions scans the registry for rot and recommends /decide --supersede / --status per row."
+  - with: track-idea
+    relation: sibling-different-layer
+    disambiguator: "decide records a future-binding CHOICE (ADR); track-idea/lessons capture informal diary items ('not_for: Lessons learned (use .claude/tasks/lessons.md)')."
+provenance_confidence:
+  textual: low      # big-bang 90f8567 cohort; commit subject does not name decide specifically
+  structural: low   # prose-only skill — no scanner script, no fixtures (writes ADR markdown)
+  temporal: low     # 90f8567 birth shared by 54 siblings — birth proximity carries no signal
+  dogfood: med      # no fixtures oracle and no ES2 self-run
+evidence:
+  - "90f8567 — born in the big-bang 55-skill extraction cohort (2026-05-15), not a named later commit"
+  - "no reports_dir and 0 run artifacts on disk — not yet dogfooded in ES2"
+  - "no precedents.yml entry names decide; corroboration is the SKILL.md + the canonical-patterns / architectural-smells docs it reads"
+gaps:
+  - "embodies_decisions.adr is []: ADR 0003 names /decide explicitly as a NON-editor of the findings ledger, and 0022 names it only as the generic ADR author a decision would be recorded in — neither makes decide the enforcement/realization of that decision, so neither is attributed. Intent rests on SKILL.md + the docs it reads."
+  - "Divergence from host-a intent base: ES2 writes ADRs under ai-docs/decisions/ (host-a used docs/decisions/); doc backref points at ai-docs/decisions/README.md accordingly."

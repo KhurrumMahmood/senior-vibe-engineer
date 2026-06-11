@@ -1,0 +1,54 @@
+schema_version: 2
+
+skill: extract-cotton-primitive
+job: explain
+problem_class: "frontend duplication resolution proposal (EXPLAIN/bridge)"
+intent: >
+  Turn a confirmed frontend-duplication finding (repeated card/pill/alert/menu
+  shells across templates) into a django-cotton primitive extraction proposal:
+  the proposed <c-name /> component, its prop surface, the call-site rewrite
+  table, and a stop condition. Read-only — proposes the component, does not
+  write it; hands off to /refactor-subsystem.
+solves: >
+  Duplicated template shells (the same card/alert/menu markup pasted across many
+  templates) are detected but not directly actionable — the prop surface and
+  every call-site rewrite must be mapped before a cotton primitive can replace
+  them. This is the EXPLAIN bridge between detection and the refactor that
+  executes it.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: host-attested
+dogfooded_on:
+  - "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 1 effectiveness records, 0 scan dirs, learnings_file=false, 2026-05-06..2026-05-06."
+  - "none-found (extracted in the 90f8567 big-bang; no on-disk reports run and no fixtures pair in this ES2 tree)"
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: ["explain-job-is-read-only-proposal.v1"]
+  doc: ["skill-catalog.md"]
+  contract: []
+related_skills: [find-frontend-duplication, find-frontend-contract-drift, refactor-subsystem, unify-shadows]
+duplication_risk:
+  - with: find-frontend-duplication
+    relation: sequential
+    disambiguator: "find-frontend-duplication DETECTS repeated template shells; extract-cotton-primitive PROPOSES the <c-name /> primitive + rewrite table; /refactor-subsystem executes. Detect -> propose -> execute."
+  - with: refactor-subsystem
+    relation: sibling-different-layer
+    disambiguator: "extract-cotton-primitive is read-only (proposes the component, no edits — precedent explain-job-is-read-only-proposal.v1); refactor-subsystem executes the extraction under the two-commit discipline."
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
+  - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scanner present, no oracle pair (structural med)"
+  - "precedents.yml explain-job-is-read-only-proposal.v1 names extract-cotton-primitive in its job=explain proposer list — corroborates the read-only-proposal intent"
+gaps:
+  - "ES2 SKILL.md targets templates/cotton/ (a generic Django+cotton layout), unlike host-a's app/_components/cotton/; the intent transfers but the path target is ES2-generic. No ES2 dogfood run, so dogfood_kind is honestly none-found."

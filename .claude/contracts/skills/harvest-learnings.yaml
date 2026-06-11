@@ -1,0 +1,57 @@
+# Skill intent + provenance contract — schema v2.
+# ES2-only skill; authored fresh from SKILL.md + es2_skill_facts.yaml.
+
+schema_version: 2
+
+skill: harvest-learnings
+job: construct
+problem_class: "portable-standard mining / knowledge harvest (CONSTRUCT)"
+intent: "Distill a host project's forged learnings (lint suite, precedents, ADRs, idea ledger, known-issues) AND latent production-grade standards the project skips into PORTABLE standards — each carrying an attributed exemplar + durable host back-link, a portability verdict (ports / stays-home via a translation test), and a lifecycle×stakes activation tag (ADR 0020). Two-source (extractive + generative); recurring; proposal-only — never edits code or auto-adopts."
+solves: "A portable principle with no exemplar is operationally inert ('validate input' tells an agent nothing about when it bit). The forge — a host project's lints, precedents, ADRs, incidents — is where the teeth are, but there was no skill that carried the teeth across (attributed exemplar + incident back-link) AND refused to emit a principle without them, while also surfacing the production standards a 'hit-the-goal' pass silently skipped."
+born:
+  commit: "e82f20f"
+  date: "2026-05-22"
+  sibling_births: []
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found as a self-installed guard or fixtures oracle — harvest-learnings is a CONSTRUCT mining skill, not a meta-guard; has_fixtures=false and it carries no good/bad oracle"
+  - "one host-project harvest run exists on disk — reports/harvest/scan-20260521-191141 — but that is a real-output run against a host project's forged surfaces, not an ES2 self-scan; counted as run_evidence, not as a dogfood oracle"
+reports_dir: reports/harvest
+run_evidence:
+  count: 1
+  first: "scan-20260521-191141"
+  latest: "scan-20260521-191141"
+embodies_decisions:
+  adr: []         # no ADR in ai-docs/decisions/ names harvest-learnings as a realization (0020 names it only as the standards-activation tagger it feeds, not the mechanism)
+  precedent: []   # no precedents.yml entry names harvest-learnings
+  doc: []
+  contract: []
+related_skills: [find-standard-gaps, track-idea, extract-existing-ideas, teach-pattern, decide, plan-skill, orient]
+duplication_risk:
+  - with: find-standard-gaps
+    relation: sequential
+    disambiguator: "harvest-learnings PROPOSES portable standards with exemplars + verdicts; find-standard-gaps gives an ADOPTED standard an executable detector and coverage-checks it. harvest-learnings escalate_to: '/find-standard-gaps to give an adopted standard an executable detector.'"
+  - with: track-idea
+    relation: sibling-different-layer
+    disambiguator: "harvest-learnings mines a project for CROSS-PROJECT portable standards (recurring batch); track-idea / extract-existing-ideas capture a single project-local idea. harvest-learnings not_for: 'Capturing a single project-local idea mid-task (use /track-idea or /extract-existing-ideas).'"
+  - with: teach-pattern
+    relation: sibling-different-layer
+    disambiguator: "harvest-learnings DISCOVERS + distills portable standards from a forge; teach-pattern documents ONE already-known pattern as a briefing. harvest-learnings not_for: 'Documenting one already-known pattern (use /teach-pattern).'"
+  - with: decide
+    relation: sequential
+    disambiguator: "harvest-learnings emits standard candidates (proposal-only); when one rises to durable doctrine, decide authors the ADR. harvest-learnings escalate_to: '/decide when a harvested standard rises to durable doctrine (an ADR).'"
+  - with: plan-skill
+    relation: sequential
+    disambiguator: "harvest-learnings proposes a standard; when one warrants its own detector skill, plan-skill designs it. harvest-learnings escalate_to: '/plan-skill when a harvested standard warrants its own detector skill.'"
+provenance_confidence:
+  textual: med      # born in a dedicated, non-big-bang commit (e82f20f) with no sibling births — the commit singles this skill out
+  structural: low   # prompt-driven judgment skill: has_scripts=false / has_fixtures=false (only a knowledge/output-schema.md ships; no scanner, no oracle pair)
+  temporal: med     # solo birth cohort — sharper than the 90f8567 set, but a single skill carries limited proximity signal
+  dogfood: med      # one real host-project harvest run on disk proves the procedure executes end to end, but it is a host-output run (not a self-scan) and there is no fixtures oracle
+evidence:
+  - "e82f20f — born 2026-05-22 in a dedicated commit, sibling_births_count 0 (facts)"
+  - "reports/harvest/scan-20260521-191141 — one on-disk harvest run (facts; local, gitignored). reports_dir aliases harvest-learnings -> reports/harvest"
+  - "has_scripts=false / has_fixtures=false (facts) — prompt-only orchestrator; SKILL.md 'Repository layout' shows only SKILL.md + knowledge/output-schema.md"
+gaps:
+  - "No precedents.yml entry names harvest-learnings; embodies_decisions.adr is [] because ADR 0020 names it only as the skill that TAGS each harvested standard with an activation shape (a downstream consumer of 0020's vocabulary), not as 0020's enforcement/realization. Intent rests on the SKILL.md."
+  - "The one reports/harvest run is a host-project harvest output, not an ES2 self-scan or a fixtures oracle, so it raises dogfood to med (procedure-proven) but not high; dogfood_kind stays none-found because this is a CONSTRUCT skill, not a self-installed guard."

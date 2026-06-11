@@ -1,0 +1,77 @@
+schema_version: 2
+
+skill: rename-concept
+job: refactor
+problem_class: "domain-concept rename lifecycle assessment + completeness gate (REFACTOR) — no front door, no per-rename definition of done"
+intent: >
+  Assess a single domain-concept rename (OLD -> NEW) against its full lifecycle
+  and a mandatory two-band completeness gate, read-only. v0 is ASSESS-ONLY:
+  assess.py reports the scope-gate verdict (glossary concept and/or wide-blast,
+  or a trivial local rename to bail on), a per-step lifecycle status table
+  (concepts.yaml superseded_by, a no_<old>_references guard lint, live-code
+  blast radius with allowlisted residue excluded), and the completeness gate —
+  /find-concept-divergence's superseded_co_occurrence (band 3, identifiers) AND
+  avoid_term_hit (band 1, retired prose) filtered to THIS rename, both of which
+  must be CLEAN. The gate is the definition of done: a coverage_lint-guarded
+  rename cannot pass on identifiers alone while comments/docstrings still use
+  the old term (band 3 is skipped for coverage_lint concepts; band 1 is what
+  proves the prose was corrected). It DRIVES /find-concept-divergence (one scan,
+  both bands filter it); it does not reimplement the detector.
+solves: >
+  A concept rename is a multi-step lifecycle executed from tribal knowledge with
+  no front door and no completeness gate, so renames predictably land
+  half-applied: the identifier sweep happens and the long tail (string-literal
+  references, the guard lint, the cross-tool agent mirrors, the docs) is
+  forgotten — and the retired *prose* is forgotten even when identifiers are
+  clean. This skill frames /find-concept-divergence's drift bands as a
+  per-rename definition of done, so "is this rename actually finished?" has a
+  read-only answer instead of being eyeballed.
+born:
+  commit: "uncommitted"
+  date: "2026-06-08"
+  sibling_births: []
+dogfood_kind: fixture-pair
+dogfooded_on:
+  - "Self-run against the ES2 tree (2026-06-08): assess.py drives this repo's real find-concept-divergence over its portable DEFAULT_TARGETS. On `ledger -> findings-log` (a real glossary concept, 63 live files) BOTH bands render GREEN — band 3 superseded_co_occurrence empty (no ES2 concept declares superseded_by) and band 1 avoid_term_hit empty (tree is clean against its own glossary). Verdict HALF-APPLIED only because the synthetic NEW slug is not in the glossary and no guard lint exists, which is the honest read."
+  - "Two-band gate proven non-no-op (2026-06-08): scripts/smoke.py injects a transient probe file under tests/ containing a glossary `avoid:` phrase verbatim ('confusing skill with the underlying tool', owned by the `skill` concept), runs assess.py with old=skill, and asserts band 1 flips RED while band 3 stays GREEN and the verdict leaves COMPLETE — then removes the probe (no leak). This is the headline novelty (avoid_term_hit prose gate) exercised end-to-end against ES2's scanner; the clean-tree run is the good fixture, the probe-injected run is the bad fixture."
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract:
+    - .claude/contracts/concepts.yaml
+related_skills: [find-concept-divergence, find-incomplete-sweep, decide, refactor-subsystem, which-cleanup]
+duplication_risk:
+  - with: find-concept-divergence
+    relation: sequential
+    disambiguator: "rename-concept not_for quote: 'Bulk drift detection across ALL concepts at once (use /find-concept-divergence directly — this skill filters it to ONE rename).' The completeness gate (definition of done) IS /find-concept-divergence's superseded_co_occurrence + avoid_term_hit bands filtered to this rename — this skill CONSUMES that detector (runs it once, both bands filter the findings), it does not duplicate it. Also a delegate_from edge: a divergence finding routes here for a per-rename completeness check."
+  - with: find-incomplete-sweep
+    relation: sibling-different-layer
+    disambiguator: "Paired in SKILL.md: /rename-concept ASSESSES whether one named rename is done (subsystem granularity, REFACTOR, glossary-backed completeness gate); /find-incomplete-sweep CATCHES a half-done multi-site sweep after the fact (code granularity, advisory SUSPECT, git-trajectory heuristic). Same failure (partial execution), two altitudes, two postures."
+  - with: refactor-subsystem
+    relation: sibling-different-layer
+    disambiguator: "rename-concept not_for quote: 'General module decomposition or service extraction (use /refactor-subsystem).' refactor-subsystem is spec-first structural module moves with scout fan-out; rename-concept is a wide-but-shallow identifier+string+doc+mirror rename governed by a glossary. escalate_to refactor-subsystem only if the rename needs structural moves beyond identifier/string renames."
+  - with: decide
+    relation: sequential
+    disambiguator: "rename-concept not_for quote: 'Authoring the DECISION itself — the ADR content is human judgment; this skill reports lifecycle status, it does not decide.' The lifecycle's decision step escalates to /decide for the ADR content; rename-concept reports on the decision, it does not author it."
+provenance_confidence:
+  textual: low      # files are uncommitted (born.commit: uncommitted) — no commit subject yet names or dogfoods the skill
+  structural: high  # ships assess.py + an explicit scripts/smoke.py that the ecosystem skill-smoke gate discovers and runs (SMOKE rename-concept, exit 0); good-fixture (clean tree) + bad-fixture (probe injection) oracle
+  temporal: low     # uncommitted — no birth-proximity signal to other commits yet
+  dogfood: med      # the smoke is a real executable oracle proving both bands render + band 1 flips the gate RED; but no real superseded_by rename exists in ES2's glossary to exercise band 3 non-trivially (it is structurally empty everywhere)
+evidence:
+  - "uncommitted (2026-06-08) — assess.py + scripts/smoke.py ported from host-a's /rename-concept ASSESS half; provenance RE-DERIVED from ES2 (no host-a SHAs). Ports the two-band completeness gate intact."
+  - "scripts/smoke.py — explicit behavioral oracle: discovered + run green by .claude/skills/_common/scripts/run_skill_smokes.py (counted under explicit smokes, 'SMOKE rename-concept'); asserts both bands render and a glossary `avoid:`-phrase probe flips band 1 RED while band 3 stays GREEN, then removes the probe (structural:high)"
+  - "assess.py delegates scan targets to find-concept-divergence's own portable DEFAULT_TARGETS (passes no positional targets) instead of host-a's hardcoded `app docs .claude/docs templates`, so it is framework-agnostic and never drifts from the detector's notion of scope — verified by a green self-run on the ES2 tree (structural:high)"
+  - "skill_meta.py lint accepts the frontmatter (tier: maintenance, job: refactor, language: python, framework: any) — exit 0, name matches directory (textual:low on intent capture, but the contract surface is enforced)"
+gaps:
+  - "v0 is ASSESS-ONLY by design: host-a's orchestrate.py (propose-only write half — authors a dry-run-ready tools/rename codemod plan + a no_<old>_references lint scaffold + a 7-step checklist) was NOT ported, because this ecosystem ships no `tools/rename`-style codemod harness for the plan to target. The write half is a v1 follow-up pending such a harness; until then the identifier sweep and guard-lint authoring are manual/IDE steps. SKILL.md carries this as a 'Deferred (v1 gap)' note."
+  - "Outputs print to stdout and the find-concept-divergence scan runs in a tempdir, so there is NO persistent reports/rename-concept/ run directory (reports_dir: none, run_evidence.count: 0). Provenance rests on the in-session self-run + the executable smoke oracle, not on-disk run artifacts."
+  - "born.commit is `uncommitted` (the porting session has not committed these files); textual + temporal confidence are therefore low. They rise to med/high once a commit subject names the skill."
+  - "Divergence from host-a intent base: (1) ASSESS-ONLY scope — orchestrate/codemod/--apply dropped as a deferred v1 gap (no codemod harness in ES2); (2) scan-target defaults de-baked to find-concept-divergence's portable DEFAULT_TARGETS (ES2 has no app/ or templates/); (3) the ALLOW_SUBSTR residue allowlist re-pointed to ES2-native paths (ai-docs/decisions/ for the ADR tree, ONBOARDING.md, this skill + the detector; host-a's tools/rename/ and docs/decisions/ removed); (4) host-a backrefs (ADR 0012/0023, /CONTEXT.md, tools/rename plans, the host-a guard-lint family) replaced with ES2-appropriate references; embodies_decisions.adr is [] (no ai-docs/decisions/ ADR names this skill)."
+  - "find-incomplete-sweep ships as a skill in ES2 but has NO contract yaml here, so its sibling edge is asserted one-directionally (via this skill's duplication_risk + SKILL.md pairing) and not reciprocated; born.sibling_births is [] (the files are uncommitted and no shared birth commit exists)."

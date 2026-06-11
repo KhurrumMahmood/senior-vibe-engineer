@@ -1,0 +1,57 @@
+schema_version: 2
+
+skill: architecture-fit
+job: plan
+problem_class: "System-tier planning judgment (PLAN)"
+intent: >
+  Third stage of the System-tier planning chain. Reads an `impacted`-status plan,
+  walks the impact map against the decision registry, canonical-patterns, and
+  architectural-smells, and surfaces every material fork that needs an ADR — filling
+  §5 (Architecture Fit) and §6 (Open Decisions) before the plan is promoted to a spec.
+  It is the last judgment pause; it recommends `/decide` candidates inline but never
+  authors ADRs or scaffolds the spec itself.
+solves: >
+  Promoting a feature plan to implementation without first checking it against existing
+  decisions / smells, so design forks (build-vs-buy, sync-vs-async, FK-vs-enum,
+  new-model-vs-extend, new-subsystem-vs-absorb) get silently decided during coding
+  instead of deliberately at planning time.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [audit-decisions, brainstorm-ideas, decide, design-it-twice, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found — extracted big-bang into ES2 (90f8567), not dogfooded in this repo. A planning-chain stage that operates on ai-docs/plans/<name>.md, not a code or guard target; no fixtures, no scripts, no on-disk run artifacts in ES2."
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: ["architectural-smells.md", "canonical-patterns.md"]
+  contract: []
+related_skills: [impact-feature, plan-spec, decide, design-it-twice, scope-feature, plan-feature]
+duplication_risk:
+  - with: decide
+    relation: sequential
+    disambiguator: "architecture-fit *recommends* /decide candidates inline ('not_for: Authoring an ADR — this skill recommends /decide candidates but does not write ADRs itself'); /decide authors the ADR."
+  - with: design-it-twice
+    relation: sequential
+    disambiguator: "architecture-fit surfaces a P0 fork in §6; design-it-twice fans out 3 designers when that fork can't be authored inline via /decide."
+  - with: gut-check
+    relation: sibling-different-layer
+    disambiguator: "architecture-fit is a structured plan-stage walk against the decision registry; gut-check is an instinctive smell pass over a plan/diff/summary with no plan-status gate."
+provenance_confidence:
+  textual: low
+  structural: low
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
+  - "frontmatter tier:system job:plan; delegate_from /impact-feature, handoff forward to /plan-spec — fixes plan-chain position"
+  - "no scripts/ and no fixtures/ (prose-only orchestrator); no reports/architecture-fit dir on disk"
+gaps:
+  - "embodies_decisions.adr is []: ADRs 0003 (findings-ledger), 0013 (idea-tracking), and 0017 (staged-boundary) name architecture-fit only as a CONSUMER of those artifacts (it queries the registry / pattern library) — it does not author ADRs or enforce any of them, so none is attributed. Intent rests on SKILL.md + the canonical-patterns/architectural-smells docs it walks."
+  - "Planning-chain skill operates on plan markdown (ai-docs/plans/), which is not a reports/<skill>/ artifact, so the dogfood axis can't be raised from on-disk runs in ES2."

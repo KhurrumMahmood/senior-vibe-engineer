@@ -1,0 +1,4 @@
+interface:
+  display_name: "Find Complexity Hotspots"
+  short_description: "Detect performance and complexity hotspots"
+  default_prompt: "Use $find-complexity-hotspots to scan this codebase and report likely performance hotspots."

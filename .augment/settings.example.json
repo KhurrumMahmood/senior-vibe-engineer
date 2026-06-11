@@ -1,0 +1,75 @@
+{
+  "toolPermissions": [
+    {
+      "toolName": "view",
+      "permission": { "type": "allow" }
+    },
+    {
+      "toolName": "codebase-retrieval",
+      "permission": { "type": "allow" }
+    },
+    {
+      "toolName": "grep-search",
+      "permission": { "type": "allow" }
+    },
+    {
+      "toolName": "launch-process",
+      "shellInputRegex": "^(git status|git diff|git log|\\.venv/bin/python manage.py test|\\.venv/bin/python -m pytest|\\.venv/bin/ruff check|python3 scripts/agent_policy/)",
+      "permission": { "type": "allow" }
+    },
+    {
+      "toolName": "launch-process",
+      "shellInputRegex": "^(rm -rf|sudo|chmod 777|git reset --hard)",
+      "permission": { "type": "deny" }
+    },
+    {
+      "toolName": "remove-files",
+      "permission": { "type": "deny" }
+    },
+    {
+      "toolName": "launch-process",
+      "permission": { "type": "ask-user" }
+    }
+  ],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${AUGMENT_PROJECT_DIR:-$PWD}/scripts/agent_policy/hook.py\" --tool augment --event PreToolUse",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${AUGMENT_PROJECT_DIR:-$PWD}/scripts/agent_policy/hook.py\" --tool augment --event PostToolUse",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": ".*",
+        "metadata": {
+          "includeConversationData": true
+        },
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${AUGMENT_PROJECT_DIR:-$PWD}/scripts/agent_policy/hook.py\" --tool augment --event Stop",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}

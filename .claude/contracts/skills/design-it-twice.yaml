@@ -1,0 +1,56 @@
+schema_version: 2
+
+skill: design-it-twice
+job: decide
+problem_class: "design-fork resolution by parallel fan-out (cross-cutting DECIDE)"
+intent: >
+  Resolve a material design fork by parallel-divergent fan-out — spawn 3 designer
+  sub-agents with deliberately different binding constraints, then synthesize a
+  comparative analysis with a recommendation. Writes one comparative-design document
+  under reports/design-it-twice/scan-<TS>/. Does NOT author the ADR — /decide is the
+  downstream step. Pattern inspired by mattpocock/skills' "design-it-twice".
+solves: >
+  Committing to one side of a high-cost design fork (architecture, interface shape, data
+  model, build-vs-buy, sync-vs-async, FK-vs-enum) before the alternatives have been
+  explored, when the ADR Decision sentence can't be written yet without speculation and
+  being wrong means an expensive rewrite.
+born:
+  commit: "90f8567"
+  date: "2026-05-15"
+  sibling_births: [architecture-fit, audit-decisions, brainstorm-ideas, decide, engineer-init, explain-code, extract-cotton-primitive, extract-enum, extract-existing-ideas, extract-state-type, extract-workflow-registry, find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-doc-route-drift, find-dormant, find-duplication, find-folder-topology-drift, find-frontend-contract-drift, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-orphaned-ideas, find-query-mutation, find-route-sprawl, find-rule-surface-drift, find-semantic-duplication, find-stale-artifacts, find-test-obligation-drift, find-transaction-overreach, find-workflow-duplication, find-workflow-state-gaps, fix-workflow, gut-check, impact-feature, introduce-fk, map-product-workflow, map-subsystem, mature-existing-ideas, plan-feature, plan-spec, prevent-regression, propose-boundary, propose-folder-reorganization, query-patterns, refactor-subsystem, scope-feature, teach-pattern, track-idea, triage-debt, unify-shadows, which-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found (extracted big-bang under 90f8567, no ES2 dogfood run). reports/design-it-twice does not exist on disk; this is a prose+sub-agent fan-out skill with no scanner."
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: ["architectural-smells.md", "canonical-patterns.md"]
+  contract: []
+related_skills: [decide, architecture-fit, scope-feature, plan-feature, gut-check]
+duplication_risk:
+  - with: decide
+    relation: sequential
+    disambiguator: "design-it-twice produces the comparative analysis (3 designs + recommendation); /decide authors the ADR from it. not_for points to /decide as the downstream ADR step ('does NOT author the ADR')."
+  - with: architecture-fit
+    relation: sequential
+    disambiguator: "architecture-fit surfaces the P0 fork in §6 and recommends this when it can't be authored inline; design-it-twice does the fan-out. delegate_from confirms the direction."
+  - with: brainstorm-ideas
+    relation: sibling-different-layer
+    disambiguator: "design-it-twice compares 2+ defensible IMPLEMENTATION forks; brainstorm-ideas generates idea-ledger intakes. Different artifact, different stage."
+provenance_confidence:
+  textual: low
+  structural: low
+  temporal: low
+  dogfood: low
+evidence:
+  - "90f8567 — born in the 55-skill big-bang extraction cohort; birth proximity carries no signal (temporal low)"
+  - "SKILL.md body cites mattpocock/skills as the pattern origin, and architectural-smells.md + canonical-patterns.md as embodied docs"
+  - "no scripts/, no fixtures/, no reports dir — prose + Agent fan-out skill (structural low)"
+gaps:
+  - "No ADR in ai-docs/decisions/ names design-it-twice and no precedents.yml entry for this skill; intent rests on SKILL.md + the two cited docs."
+  - "No on-disk run in ES2, so dogfood is unproven here (the host-a base had one self-run; ES2 has none)."

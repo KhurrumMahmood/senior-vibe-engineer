@@ -1,0 +1,134 @@
+# Pre-commit runs ONLY on staged files by default, so existing
+# violations in untouched files cannot block commits. See CLAUDE.md
+# "Linting" for the operational details (escape valves like
+# SKIP=ruff ..., and the full-repo run).
+#
+# Install once per clone with:
+#   .venv/bin/pre-commit install
+
+# The lint hooks use `language: python` with no `additional_dependencies`,
+# a pattern that was unreliable in earlier pre-commit releases — hence the
+# version pin. The decisions-* hooks add PyYAML, which decisions.py needs.
+minimum_pre_commit_version: "4.5.1"
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        # Templates that embed agent syntax ({% %}, Jinja, Liquid) get
+        # mangled by whitespace trimming — exclude .html by default.
+        exclude: '\.html$'
+      - id: end-of-file-fixer
+        exclude: '\.html$'
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
+      - id: check-merge-conflict
+
+  # Ecosystem AST rules under scripts/lint/. The runner owns the rule
+  # scopes so local hooks and CI do not drift. Host projects add their
+  # own project-specific rules (UI primitives, domain renames, sidecar
+  # boundaries, etc.) by dropping new rules into scripts/lint/ and
+  # appending hooks here.
+  - repo: local
+    hooks:
+      - id: silent-catch
+        name: "silent-catch (no bare `except Exception: pass` in service/view layers)"
+        entry: python scripts/lint/run.py --rule silent-catch
+        language: python
+        types: [python]
+
+      - id: stringly-status
+        name: "stringly-status (TextChoices for state fields and enum-member compares)"
+        entry: python scripts/lint/run.py --rule stringly-status
+        language: python
+        types: [python]
+
+      - id: query-mutation
+        name: "query-mutation (get_/fetch_/load_/... must not mutate)"
+        entry: python scripts/lint/run.py --rule query-mutation
+        language: python
+        types: [python]
+
+      - id: fat-view
+        name: "fat-view (view functions must stay within LOC budget)"
+        entry: python scripts/lint/run.py --rule fat-view
+        language: python
+        types: [python]
+
+      - id: safe-dispatch
+        name: "safe-dispatch (no bare .delay()/.apply_async() in tasks/views/services)"
+        entry: python scripts/lint/run.py --rule bare-delay
+        language: python
+        types: [python]
+
+      - id: comment-drift
+        name: "comment-drift (comments and docstrings must stay aligned with code)"
+        entry: python scripts/lint/run.py --rule comment-drift
+        language: python
+        types_or: [python, javascript, html]
+
+      - id: codegen-emits-new-paths
+        name: "codegen-emits-new-paths (codegen output stays on canonical paths)"
+        entry: python scripts/lint/run.py --rule codegen-emits-new-paths
+        language: python
+        types: [python]
+
+      # ADR registry guards. Both scan ai-docs/decisions/ themselves, so
+      # pass_filenames is false; files: scopes them to commits that touch
+      # an ADR. Hard gates here — a drifted registry blocks only
+      # ADR-touching commits, which is acceptable (you cannot edit the
+      # registry while it is drifted). CI runs link-check as a hard gate
+      # too, but audit only advisory there — see .github/workflows/ci.yml.
+      - id: decisions-link-check
+        name: "decisions-link-check (ADR supersedes + applies_to paths resolve)"
+        entry: python scripts/decisions.py link-check
+        language: python
+        additional_dependencies: ["PyYAML>=6.0"]
+        files: ^ai-docs/decisions/.*\.md$
+        pass_filenames: false
+
+      - id: decisions-audit
+        name: "decisions-audit (no invalid status / stale proposed / broken supersedes)"
+        entry: python scripts/decisions.py audit
+        language: python
+        additional_dependencies: ["PyYAML>=6.0"]
+        files: ^ai-docs/decisions/.*\.md$
+        pass_filenames: false
+
+      # Open-source hygiene. The core ships under an open-source licence and must
+      # never name the specific private host it was extracted from (the public
+      # alias is host-a; ADR 0035). Two tiers: identity tokens are scanned across
+      # EVERY tracked file, structural tokens on doc surfaces only. Stdlib-only;
+      # the script enumerates its own scan set, so it runs on every commit
+      # (always_run) with pass_filenames false. Django/Python *flavour* is
+      # allowed — see the README's Tech assumptions.
+      - id: no-host-references
+        name: "no-host-references (open-source core must not name a private host)"
+        entry: python scripts/lint/no_host_references.py
+        language: python
+        always_run: true
+        pass_filenames: false
+
+      # Skill-ecosystem guard. find-skill-artifact-drift's Band-A subset
+      # blocks a commit that introduces a SKILL.md referencing a script,
+      # flag, or Bash grant that does not exist. Scoped to changed SKILL.md
+      # (pass_filenames) so it ratchets forward and never blocks on
+      # pre-existing drift in untouched skills; fixtures carry deliberate
+      # drift so they are excluded. CI runs the same gate registry-wide as
+      # an advisory warning — see .github/workflows/ci.yml.
+      - id: skill-artifact-drift
+        name: "skill-artifact-drift (SKILL.md scripts/flags/tools must exist)"
+        entry: python .claude/skills/find-skill-artifact-drift/scripts/detect.py --gate
+        language: python
+        additional_dependencies: ["PyYAML>=6.0"]
+        files: (^|/)SKILL\.md$
+        exclude: /fixtures/
+        pass_filenames: true

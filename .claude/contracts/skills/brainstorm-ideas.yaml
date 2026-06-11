@@ -1,0 +1,127 @@
+# Skill intent + provenance contract — schema v2 (engineering-skills-2).
+schema_version: 2
+skill: brainstorm-ideas
+job: meta
+problem_class: idea-capture / ledger intake generation (cross-cutting META)
+intent: Generate a batch of candidate ledger intakes for a topic or context file, dedup against the existing
+  ledger, and bulk-write the survivors as proposed-state intakes with origin AI-suggestion. The orchestrator
+  does the creative work (N candidates with title / summary / hypothesis / subsystem_kind / markers);
+  the helper script validates against duplicates and writes. Tier 1 of the idea-tracking system.
+solves: Losing most of the thoughts surfaced in an exploratory session because only one or two make it
+  into a /track-idea intake — captures the whole batch at once with dedup and origin discipline preserved.
+born:
+  commit: 90f8567
+  date: '2026-05-15'
+  sibling_births:
+  - architecture-fit
+  - audit-decisions
+  - decide
+  - design-it-twice
+  - engineer-init
+  - explain-code
+  - extract-cotton-primitive
+  - extract-enum
+  - extract-existing-ideas
+  - extract-state-type
+  - extract-workflow-registry
+  - find-async-lifecycle-drift
+  - find-comment-drift
+  - find-contract-drift
+  - find-dead-route-surface
+  - find-doc-route-drift
+  - find-dormant
+  - find-duplication
+  - find-folder-topology-drift
+  - find-frontend-contract-drift
+  - find-frontend-duplication
+  - find-implicit-state
+  - find-layer-violation
+  - find-omnibus
+  - find-orphaned-ideas
+  - find-query-mutation
+  - find-route-sprawl
+  - find-rule-surface-drift
+  - find-semantic-duplication
+  - find-stale-artifacts
+  - find-test-obligation-drift
+  - find-transaction-overreach
+  - find-workflow-duplication
+  - find-workflow-state-gaps
+  - fix-workflow
+  - gut-check
+  - impact-feature
+  - introduce-fk
+  - map-product-workflow
+  - map-subsystem
+  - mature-existing-ideas
+  - plan-feature
+  - plan-spec
+  - prevent-regression
+  - propose-boundary
+  - propose-folder-reorganization
+  - query-patterns
+  - refactor-subsystem
+  - scope-feature
+  - teach-pattern
+  - track-idea
+  - triage-debt
+  - unify-shadows
+  - which-skill
+dogfood_kind: none-found
+dogfooded_on:
+- none-found (extracted big-bang in 90f8567, not yet dogfooded in this repo). Has a helper script but
+  no fixtures and no reports/<skill>/ dir — outputs write to the idea ledger (.claude/ideas/log.jsonl),
+  not a reports dir, so there is no on-disk run signal.
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0013"]
+  precedent: []
+  doc:
+  - idea-ledger.md
+  contract: []
+related_skills:
+- track-idea
+- extract-existing-ideas
+- mature-existing-ideas
+- find-orphaned-ideas
+- query-patterns
+- design-it-twice
+duplication_risk:
+- with: track-idea
+  relation: sibling-different-layer
+  disambiguator: 'brainstorm-ideas generates a BATCH of N candidate intakes; track-idea captures a SINGLE
+    record (''not_for: Capturing a single idea (use /track-idea intake — one record)'').'
+- with: extract-existing-ideas
+  relation: sequential
+  disambiguator: extract-existing-ideas walks EXISTING prose (BACKLOG/lessons/plans) and hands its candidates
+    to brainstorm-ideas' helper for the actual write; brainstorm-ideas generates NEW ideas from a topic.
+    The write path is shared (dedup/validation live once).
+- with: design-it-twice
+  relation: sibling-different-layer
+  disambiguator: 'brainstorm-ideas captures adjacent thoughts; design-it-twice compares implementation
+    forks (''not_for: Brainstorming code structure / architecture forks (use /design-it-twice)'').'
+- with: decide
+  relation: sibling-different-layer
+  disambiguator: 'brainstorm-ideas produces ledger intakes; /decide sources decision alternatives in an
+    ADR (''not_for: Sourcing decision alternatives (use /decide)'').'
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+- 90f8567 — born in the big-bang ecosystem-extraction commit alongside 54 sibling skills (temporal signal
+  is weak — birth proximity carries no information when 55 skills share a commit)
+- has scripts/ (helper validates against duplicates + writes) but no fixtures; frontmatter tier:cross-cutting
+  job:meta
+- .claude/docs/idea-ledger.md present in ES2 — the doc the SKILL.md tells you to read when authoring/debugging
+  this skill
+gaps:
+- Outputs land in the ledger jsonl, not reports/, so run_evidence is 0 and the dogfood axis stays low
+  — can't show what topics it was actually run on from on-disk artifacts.
+- embodies_decisions.adr is ["0013"] (idea-tracking-system) — the ADR that establishes the two-tier idea
+  system this skill realizes; intent is further corroborated by the idea-ledger.md doc.

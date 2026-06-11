@@ -1,0 +1,610 @@
+#!/usr/bin/env python3
+"""Detect comment/docstring/JSDoc drift.
+
+The output format intentionally matches the simple product-topology report
+shape: JSONL records with `pattern`, `file`, `lineno`, `summary`, and
+`recommendation`.
+"""
+from __future__ import annotations
+
+import argparse
+import ast
+import io
+import re
+import sys
+import tokenize
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Iterable
+
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+COMMON_DIR = PROJECT_ROOT / ".claude" / "skills" / "_common"
+if str(COMMON_DIR) not in sys.path:
+    sys.path.insert(0, str(COMMON_DIR))
+
+from product_topology import iter_files, relpath, write_jsonl  # noqa: E402
+
+SUFFIXES = (".py", ".js", ".html")
+DEFAULT_TARGETS = (
+    "app/pages/sites",
+    "app/site_management",
+    "app/api/site_config",
+    "app/api/sitemaps.py",
+    "app/api/field_config.py",
+    "app/api/brand_downloads",
+    "app/api/collections.py",
+    "app/api/ptid.py",
+    "app/api/visual_extraction.py",
+    "app/api/training.py",
+    "app/api/tier_detection.py",
+    "app/api/brand_mapping.py",
+    "app/api/site_checklist.py",
+    "app/api/crawling/legacy_dispatch.py",
+    "app/api/crawling/orphan_jobs.py",
+    "app/pages/crawling.py",
+    "app/services/sites",
+    "static/js/site-config-core.js",
+    "static/js/site-config-sidebar.js",
+    "static/js/site-config-preview.js",
+    "static/js/site-config-ui.js",
+    "static/js/site-config-discovery.js",
+    "static/js/site-config-custom-import.js",
+    "static/js/site-config-external_source-brand.js",
+    "static/js/site-config-agent-review.js",
+    "static/js/site-config-brand-detection.js",
+    "static/js/site-config-external_source-summary.js",
+    "static/js/site-config-forms.js",
+    "static/js/site-config-proxy.js",
+    "static/js/site-config-jobs.js",
+    "static/js/site-config-flatdata-chat.js",
+    "static/js/site-config-flatdata-preview.js",
+    "static/js/site-config-fields.js",
+    "static/js/site-config-training.js",
+    "static/js/site-config-ptid.js",
+    "static/js/site-config-pages.js",
+    "static/js/site-config-images.js",
+    "static/js/site-config-brand-mapping.js",
+    "static/js/download-filters.js",
+    "static/js/export-preview.js",
+    "static/js/export-filters.js",
+    "static/js/export-viewer-utils.js",
+    "static/js/export-progress.js",
+    "static/js/brand-picker.js",
+    "static/js/app-dialog.js",
+    "static/js/app-modal.js",
+    "static/js/app-csrf.js",
+    "templates/core/site_config_base.html",
+    "templates/core/_site_checklist.html",
+    "app/pages/sites/templates/core",
+)
+
+STALE_TERM_RE = re.compile(
+    r"\b(?:SiteConfig|Site Configuration|site configuration|site config)\b"
+)
+DOC_REF_RE = re.compile(
+    r"\b(?:L\d{2,}|line\s+\d{2,}|[A-Za-z0-9_./-]+\.(?:py|js|html):\d{1,5})\b",
+    re.IGNORECASE,
+)
+NARRATION_RE = re.compile(
+    r"^(?:"
+    r"get|create|update|delete|remove|save|return|format|parse|load|build|"
+    r"render|initialize|validate|check|set|clear|find|filter|sort|count|"
+    r"calculate|fetch|call|loop|iterate|append|add|show|hide|toggle|"
+    r"populate|test|open|close|wire|bind|store|reset|refresh|delegate|"
+    r"replace|group|compute|sync|start|stop|resume"
+    r")\b",
+    re.IGNORECASE,
+)
+WHY_WORD_RE = re.compile(
+    r"\b(?:why|because|compat|legacy|intentional|avoid|must|cannot|workaround|"
+    r"race|safety|security|performance|cache|contract|Django|ScraperAPI|Celery|"
+    r"temporary|until|fallback|fall\s+back|preserve|exclude|server-side|client-side|"
+    r"since|so|if|when|while|after|before|for|via|with|without|from|against|"
+    r"only|needed|first|external|min|attached|json_script|stale|once|AI|"
+    r"pending|already|escaped|XSS|injection|restores)\b",
+    re.IGNORECASE,
+)
+SECTION_LABEL_RE = re.compile(
+    r"^(?:"
+    r"module state|state|detail panel state|job management state|"
+    r"global auto-process state management|helpers?|utilities|utility functions|"
+    r"public query api|data fetching|rendering|actions?|init|initialization|"
+    r"window export|exports?|export functions(?: for use by other modules)?|"
+    r"toolbar handlers?|event bindings?|index management|classification|results?|"
+    r"url dropdown|screenshot\s*/\s*html viewer|load\s*/\s*render field configs|"
+    r"additional extracted data section|re-process all pages|identity|breadcrumbs|"
+    r"description|marketing copy|features|specifications|product attributes|"
+    r"attachments|video|missing fields|other arrays|header|body|"
+    r"pies quality|tier info banner|job banner"
+    r")$",
+    re.IGNORECASE,
+)
+JS_FUNCTION_RE = re.compile(
+    r"^\s*(?:export\s+)?(?:(?P<async1>async)\s+)?function\s+(?P<fn>[A-Za-z_$][\w$]*)\s*\("
+    r"|^\s*(?:export\s+)?(?:const|let|var)\s+(?P<const>[A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>|[A-Za-z_$][\w$]*\s*=>)"
+    r"|^\s*window\.(?P<win>[A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?function\b"
+)
+JSDOC_NAME_RE = re.compile(
+    r"^(?:initialize|handle|start|open|submit|run)",
+    re.IGNORECASE,
+)
+
+
+@dataclass(frozen=True)
+class Finding:
+    pattern: str
+    file: str
+    lineno: int
+    summary: str
+    recommendation: str
+
+
+def emit(pattern: str, path: Path, lineno: int, summary: str, recommendation: str, project_root: Path) -> Finding:
+    return Finding(
+        pattern=pattern,
+        file=relpath(path, project_root),
+        lineno=lineno,
+        summary=summary.strip(),
+        recommendation=recommendation.strip(),
+    )
+
+
+def is_comment_noise(text: str) -> bool:
+    stripped = text.strip()
+    if not stripped:
+        return False
+    if stripped.startswith(("TODO", "FIXME", "NOTE", "noqa", "type:", "pylint", "ruff", "fmt")):
+        return False
+    if WHY_WORD_RE.search(stripped):
+        return False
+    normalized = re.sub(r"^[A-Z]{1,4}\d+:\s*", "", stripped)
+    words = re.findall(r"[A-Za-z]+", normalized)
+    return len(words) <= 14 and bool(NARRATION_RE.match(normalized))
+
+
+def is_banner_text(text: str) -> bool:
+    stripped = text.strip().strip("/#*").strip()
+    if not stripped:
+        return False
+    if re.search(r"[─━═]{2,}", stripped):
+        return True
+    if re.fullmatch(r"[-_=*\s]{3,}", stripped):
+        return True
+    if re.fullmatch(r"[-_=*\s]{3,}.+[-_=*\s]{3,}", stripped):
+        return True
+    if re.match(r"^section\s+\d+", stripped, re.IGNORECASE):
+        return True
+    if stripped.isupper() and len(stripped.split()) <= 5:
+        return True
+    if SECTION_LABEL_RE.match(stripped):
+        return True
+    return False
+
+
+def should_keep_html_comment(text: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(?:conditional|shared|payload|gotcha|Django|HTMX|modal target|JavaScript owns|"
+            r"required|do not|compat|legacy|intentional|template)\b",
+            text,
+            re.IGNORECASE,
+        )
+    )
+
+
+def is_noisy_html_comment(text: str) -> bool:
+    stripped = re.sub(r"\s+", " ", text.strip())
+    if not stripped or should_keep_html_comment(stripped):
+        return False
+    return bool(
+        re.match(
+            r"^(?:section\s+\d+[:.-]?\s*)?(?:header|content|main content|sidebar|navigation|"
+            r"tabs?|buttons?|save button|top save button|scripts?|styles?|modal|forms?|"
+            r"site information|credentials|settings|status|actions?)$",
+            stripped,
+            re.IGNORECASE,
+        )
+        or stripped.upper().startswith("SECTION ")
+    )
+
+
+def scan_stale_and_refs(
+    path: Path,
+    lineno: int,
+    text: str,
+    findings: list[Finding],
+    project_root: Path,
+) -> None:
+    if STALE_TERM_RE.search(text):
+        findings.append(
+            emit(
+                "stale_comment_term",
+                path,
+                lineno,
+                text[:180],
+                "Update comments/docstrings to current Site/SiteConfig terminology unless the text names the intentional BrandMapping exception.",
+                project_root,
+            )
+        )
+    if DOC_REF_RE.search(text):
+        findings.append(
+            emit(
+                "malformed_doc_reference",
+                path,
+                lineno,
+                text[:180],
+                "Replace brittle line-number references with a durable symbol, route, doc section, or repo-relative path.",
+                project_root,
+            )
+        )
+
+
+def next_nonblank_line(lines: list[str], start_index: int) -> tuple[int, str] | None:
+    for idx in range(start_index, len(lines)):
+        if lines[idx].strip():
+            return idx + 1, lines[idx]
+    return None
+
+
+def previous_nonblank_line(lines: list[str], start_index: int) -> tuple[int, str] | None:
+    for idx in range(start_index, -1, -1):
+        if lines[idx].strip():
+            return idx + 1, lines[idx]
+    return None
+
+
+def scan_python(path: Path, project_root: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return findings
+    lines = text.splitlines()
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(text).readline)
+        for token in tokens:
+            if token.type != tokenize.COMMENT:
+                continue
+            lineno = token.start[0]
+            comment = token.string.lstrip("#").strip()
+            if lineno == 1 and token.string.startswith("#!"):
+                continue
+            scan_stale_and_refs(path, lineno, comment, findings, project_root)
+            line = lines[lineno - 1] if lineno - 1 < len(lines) else ""
+            if token.start[1] > len(line) - len(line.lstrip()):
+                continue
+            if is_banner_text(comment):
+                findings.append(
+                    emit(
+                        "detached_section_banner",
+                        path,
+                        lineno,
+                        comment[:180],
+                        "Delete the banner, or convert it to an adjacent docstring/JSDoc-style comment on the symbol it describes.",
+                        project_root,
+                    )
+                )
+            elif is_comment_noise(comment):
+                findings.append(
+                    emit(
+                        "obvious_narration_comment",
+                        path,
+                        lineno,
+                        comment[:180],
+                        "Delete comments that narrate the next line; keep or rewrite only when they explain why, contract, caveat, or history.",
+                        project_root,
+                    )
+                )
+    except tokenize.TokenError:
+        pass
+
+    try:
+        module = ast.parse(text, filename=str(path))
+    except SyntaxError:
+        return findings
+
+    for node in ast.walk(module):
+        if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            doc = ast.get_docstring(node)
+            if doc:
+                scan_stale_and_refs(path, getattr(node, "lineno", 1), doc, findings, project_root)
+
+        if not isinstance(node, ast.ClassDef):
+            continue
+        if node.name.startswith("_") or node.name == "Meta":
+            continue
+        doc = ast.get_docstring(node)
+        if not doc:
+            findings.append(
+                emit(
+                    "missing_public_class_docstring",
+                    path,
+                    node.lineno,
+                    f"class {node.name}",
+                    "Add a concise class docstring explaining ownership, contract, or route/service role.",
+                    project_root,
+                )
+            )
+            continue
+        first = doc.strip().splitlines()[0].strip()
+        word_count = len(re.findall(r"[A-Za-z0-9_]+", first))
+        generic = re.match(r"^(?:View|Handler|Manager|Service|Helper|Utility|Class)\.?$", first, re.IGNORECASE)
+        if word_count < 5 or generic:
+            findings.append(
+                emit(
+                    "thin_public_class_docstring",
+                    path,
+                    node.lineno,
+                    f"class {node.name}: {first}",
+                    "Strengthen the class docstring so it names the responsibility or contract, not just the noun.",
+                    project_root,
+                )
+            )
+    return findings
+
+
+def extract_js_comment_text(line: str) -> str | None:
+    stripped = line.strip()
+    if stripped.startswith("//"):
+        return stripped[2:].strip()
+    if stripped.startswith("/*") or stripped.startswith("*"):
+        return stripped.strip("/* ").strip()
+    return None
+
+
+def jsdoc_before(lines: list[str], line_index: int) -> str | None:
+    idx = line_index - 1
+    blanks_seen = 0
+    while idx >= 0 and blanks_seen <= 2:
+        stripped = lines[idx].strip()
+        if not stripped:
+            blanks_seen += 1
+            idx -= 1
+            continue
+        if stripped.endswith("*/"):
+            block: list[str] = []
+            while idx >= 0:
+                block.append(lines[idx].strip())
+                if lines[idx].strip().startswith("/**"):
+                    return "\n".join(reversed(block))
+                if lines[idx].strip().startswith("/*"):
+                    return None
+                idx -= 1
+        return None
+    return None
+
+
+def has_jsdoc_before(lines: list[str], line_index: int) -> bool:
+    return jsdoc_before(lines, line_index) is not None
+
+
+def extract_js_params(line: str) -> list[str]:
+    signature = line.split("{", 1)[0]
+    match = re.search(r"\((?P<params>[^)]*)\)", signature)
+    if not match:
+        arrow = re.search(r"=\s*(?:async\s+)?(?P<param>[A-Za-z_$][\w$]*)\s*=>", signature)
+        return [arrow.group("param")] if arrow else []
+    params: list[str] = []
+    for raw_param in match.group("params").split(","):
+        param = raw_param.strip()
+        if not param or param.startswith(("...", "{", "[")):
+            continue
+        param = param.split("=", 1)[0].strip()
+        if re.fullmatch(r"[A-Za-z_$][\w$]*", param):
+            params.append(param)
+    return params
+
+
+def is_thin_jsdoc(jsdoc: str, params: list[str]) -> bool:
+    body_lines = [
+        re.sub(r"^/\*\*|^\*/?$|^\*\s?", "", line).strip()
+        for line in jsdoc.splitlines()
+    ]
+    body = "\n".join(line for line in body_lines if line)
+    if not body:
+        return True
+    if params and "@param" not in body:
+        return True
+    words = re.findall(r"[A-Za-z0-9_]+", body)
+    return len(words) <= 4 and "@" not in body
+
+
+def scan_javascript(path: Path, project_root: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return findings
+    lines = text.splitlines()
+    in_block_comment = False
+    in_jsdoc_comment = False
+    for idx, line in enumerate(lines):
+        lineno = idx + 1
+        stripped = line.strip()
+        comment_text = None
+        is_jsdoc_line = in_jsdoc_comment
+        if in_block_comment:
+            comment_text = stripped.strip("/* ").strip()
+            if "*/" in stripped:
+                in_block_comment = False
+                in_jsdoc_comment = False
+        elif stripped.startswith("/*"):
+            comment_text = stripped.strip("/* ").strip()
+            is_jsdoc_line = stripped.startswith("/**")
+            if "*/" not in stripped:
+                in_block_comment = True
+                in_jsdoc_comment = is_jsdoc_line
+        elif stripped.startswith("//"):
+            comment_text = stripped[2:].strip()
+
+        if comment_text is not None:
+            scan_stale_and_refs(path, lineno, comment_text, findings, project_root)
+            if is_jsdoc_line:
+                continue
+            if is_banner_text(comment_text):
+                findings.append(
+                    emit(
+                        "detached_section_banner",
+                        path,
+                        lineno,
+                        comment_text[:180],
+                        "Replace banner comments with adjacent JSDoc for public-ish functions, or delete them when names already carry the structure.",
+                        project_root,
+                    )
+                )
+            elif is_comment_noise(comment_text):
+                findings.append(
+                    emit(
+                        "obvious_narration_comment",
+                        path,
+                        lineno,
+                        comment_text[:180],
+                        "Delete narration comments; use JSDoc or a caveat comment only when there is contract or intent to preserve.",
+                        project_root,
+                    )
+                )
+
+        match = JS_FUNCTION_RE.match(line)
+        if not match:
+            continue
+        name = match.group("fn") or match.group("const") or match.group("win")
+        if not name or name.startswith("_"):
+            continue
+        if not JSDOC_NAME_RE.match(name) and not match.group("win") and not match.group("async1"):
+            continue
+        jsdoc = jsdoc_before(lines, idx)
+        if jsdoc:
+            params = extract_js_params(line)
+            if is_thin_jsdoc(jsdoc, params):
+                findings.append(
+                    emit(
+                        "thin_jsdoc_comment",
+                        path,
+                        lineno,
+                        f"{name}() has JSDoc without the useful contract detail",
+                        "Make public-ish JSDoc describe parameters, return values, side effects, or workflow contract; otherwise prefer no comment.",
+                        project_root,
+                    )
+                )
+            continue
+        findings.append(
+            emit(
+                "jsdoc_candidate",
+                path,
+                lineno,
+                f"{name}() lacks adjacent JSDoc",
+                "Add real JSDoc when this function is public-ish, async, global, shared, or carries non-obvious side effects; otherwise rename/delete nearby banner comments.",
+                project_root,
+            )
+        )
+    return findings
+
+
+def scan_html(path: Path, project_root: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return findings
+    for match in re.finditer(r"<!--(?P<body>.*?)-->", text, re.DOTALL):
+        lineno = text.count("\n", 0, match.start()) + 1
+        body = re.sub(r"\s+", " ", match.group("body").strip())
+        scan_stale_and_refs(path, lineno, body, findings, project_root)
+        if is_noisy_html_comment(body):
+            findings.append(
+                emit(
+                    "noisy_html_comment",
+                    path,
+                    lineno,
+                    body[:180],
+                    "Delete template comments that only duplicate visible headings or obvious HTML structure.",
+                    project_root,
+                )
+            )
+    for match in re.finditer(r"<script\b[^>]*>(?P<body>.*?)</script>", text, re.IGNORECASE | re.DOTALL):
+        body = match.group("body")
+        start_line = text.count("\n", 0, match.start("body")) + 1
+        for offset, line in enumerate(body.splitlines()):
+            lineno = start_line + offset
+            stripped = line.strip()
+            if not stripped.startswith("//"):
+                continue
+            comment = stripped[2:].strip()
+            scan_stale_and_refs(path, lineno, comment, findings, project_root)
+            if is_banner_text(comment):
+                findings.append(
+                    emit(
+                        "detached_section_banner",
+                        path,
+                        lineno,
+                        comment[:180],
+                        "Replace script banner comments with adjacent JSDoc or delete them when function and variable names already carry the structure.",
+                        project_root,
+                    )
+                )
+            elif is_comment_noise(comment):
+                findings.append(
+                    emit(
+                        "obvious_narration_comment",
+                        path,
+                        lineno,
+                        comment[:180],
+                        "Delete comments that narrate inline template scripts; keep only intent, caveat, or template/JS ownership notes.",
+                        project_root,
+                    )
+                )
+    return findings
+
+
+def collect_files(paths: Iterable[str], project_root: Path) -> list[Path]:
+    seen: set[Path] = set()
+    files: list[Path] = []
+    for raw in paths:
+        path = Path(raw)
+        if not path.is_absolute():
+            path = project_root / path
+        if path.is_dir():
+            candidates = iter_files(path, SUFFIXES)
+        elif path.is_file() and path.suffix in SUFFIXES:
+            candidates = [path]
+        else:
+            candidates = []
+        for candidate in candidates:
+            resolved = candidate.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            files.append(candidate)
+    return sorted(files)
+
+
+def scan_files(files: Iterable[Path], project_root: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    for path in files:
+        if path.suffix == ".py":
+            findings.extend(scan_python(path, project_root))
+        elif path.suffix == ".js":
+            findings.extend(scan_javascript(path, project_root))
+        elif path.suffix == ".html":
+            findings.extend(scan_html(path, project_root))
+    return sorted(findings, key=lambda item: (item.file, item.lineno, item.pattern, item.summary))
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Detect comment/docstring/JSDoc drift.")
+    parser.add_argument("paths", nargs="*", help="Files or directories to scan. Defaults to the /sites surface.")
+    parser.add_argument("--output", required=True, type=Path, help="JSONL output path.")
+    parser.add_argument("--project-root", type=Path, default=PROJECT_ROOT)
+    args = parser.parse_args(argv)
+
+    project_root = args.project_root.resolve()
+    target_paths = args.paths or list(DEFAULT_TARGETS)
+    files = collect_files(target_paths, project_root)
+    findings = scan_files(files, project_root)
+    write_jsonl((asdict(finding) for finding in findings), args.output)
+    print(f"scanned {len(files)} files; wrote {len(findings)} findings to {relpath(args.output, project_root)}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,57 @@
+schema_version: 2
+
+skill: diagnose
+job: diagnose
+problem_class: "debugging-loop construction (maintenance DIAGNOSE)"
+intent: >
+  Build a trustworthy debugging loop for hard bugs, regressions, and intermittent
+  failures BEFORE changing code — establish a reproduction (or the reason one is not
+  possible), find the root cause, and verify the fix. Writes an index report under
+  reports/diagnose/scan-<TS>/diagnosis.md plus the evidence files the frontmatter
+  evidence contract requires (reproduction_or_reason, root_cause, fix_verification,
+  cleanup_check). Carries a max-overhead stop (30 min without a credible loop → write
+  what artifact/access is missing).
+solves: >
+  Fixing hard / unclear / intermittent bugs by guesswork instead of a reproducible loop
+  and measured root cause — the "change code and hope" failure mode that a
+  reproduce-bugs-first discipline targets.
+born:
+  commit: "8793ef0"
+  date: "2026-05-16"
+  sibling_births: [plan-skill]
+dogfood_kind: none-found
+dogfooded_on:
+  - "none-found — extracted into ES2 (born 8793ef0 alongside plan-skill), not dogfooded in this repo. Carries a full lane/stage/evidence frontmatter contract, but in ES2 the skill dir ships no scripts/ and no fixtures/, and no reports/diagnose run dir exists on disk."
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills: [fix-workflow, prevent-regression, gut-check, find-implicit-state]
+duplication_risk:
+  - with: fix-workflow
+    relation: sequential
+    disambiguator: "diagnose builds the loop + root cause for an UNREPRODUCED symptom; fix-workflow executes a KNOWN cleanup cluster from a find-* report ('not_for: Known cleanup clusters from a find-* report (use /fix-workflow ...)'). escalate_to fix-workflow once the root cause is understood."
+  - with: prevent-regression
+    relation: sequential
+    disambiguator: "diagnose finds + verifies the fix; prevent-regression turns the post-mortem's repeatable guardrail into a lint/test (named in escalate_to)."
+  - with: gut-check
+    relation: sibling-different-layer
+    disambiguator: "diagnose needs a LIVE symptom and builds a measured loop; gut-check is an instinctive smell pass with no live symptom ('not_for: Broad architecture improvement without a live symptom (use /gut-check ...)')."
+provenance_confidence:
+  textual: low
+  structural: low
+  temporal: med
+  dogfood: low
+evidence:
+  - "8793ef0 — born in a 2-skill cohort with plan-skill (the quality-coordination intake pair), not the big-bang 90f8567 set; small cohort gives a weak-but-nonzero temporal signal"
+  - "frontmatter carries a full contract (consumes/produces/evidence_required/risk_triggers/max_overhead) and the body wires scripts/evidence_gate.py check --skill diagnose, but that path is a host-runtime path — ES2's diagnose dir has no scripts/"
+  - "no scripts/ and no fixtures/ in the ES2 skill dir; no reports/diagnose run dir on disk"
+gaps:
+  - "host-a's diagnose was self-installed-guard because it shipped scripts/evidence_gate.py in the skill; ES2 ships no scripts/ for diagnose, so the evidence gate is a referenced host-runtime artifact, not a bundled ES2 dogfood. Dogfood is therefore none-found here, not self-installed-guard."
+  - "No ADR in ai-docs/decisions/ names diagnose (adr is []); the SKILL.md tells the agent to read host CONTEXT.md/ADRs generically rather than embodying a specific ES2 doc, so embodies_decisions.doc is []."

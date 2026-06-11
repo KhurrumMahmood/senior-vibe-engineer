@@ -1,0 +1,8 @@
+{
+  "function": "reconcile_lineage",
+  "ledger": "ledger.jsonl",
+  "kwargs": {},
+  "expected": {
+    "old-rejected-attempt": ["revived-attempt"]
+  }
+}

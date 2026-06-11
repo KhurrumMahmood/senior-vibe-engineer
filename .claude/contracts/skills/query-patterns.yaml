@@ -1,0 +1,126 @@
+# Skill intent + provenance contract — schema v2 (engineering-skills-2).
+schema_version: 2
+skill: query-patterns
+job: meta
+problem_class: pattern-library prior-art search (META, Tier 2)
+intent: Search the Tier 2 pattern library at .claude/patterns/ for prior art matching a problem description.
+  Reads every pattern file's frontmatter (problem_class, pros, cons, domain, status, generalizability)
+  plus the body's 'Problem fit' / 'Use this when X' headline, scores by token overlap, and returns ranked
+  matches. Read-only, cheap, fast, no side effects.
+solves: An agent or human about to start work re-invents a shape the project already has a recommended
+  pattern for. query-patterns is the cheap 'does prior art exist?' check at planning time (/plan-feature,
+  /scope-feature, /architecture-fit) and during exploratory work.
+born:
+  commit: 90f8567
+  date: '2026-05-15'
+  sibling_births:
+  - architecture-fit
+  - audit-decisions
+  - brainstorm-ideas
+  - decide
+  - design-it-twice
+  - engineer-init
+  - explain-code
+  - extract-cotton-primitive
+  - extract-enum
+  - extract-existing-ideas
+  - extract-state-type
+  - extract-workflow-registry
+  - find-async-lifecycle-drift
+  - find-comment-drift
+  - find-contract-drift
+  - find-dead-route-surface
+  - find-doc-route-drift
+  - find-dormant
+  - find-duplication
+  - find-folder-topology-drift
+  - find-frontend-contract-drift
+  - find-frontend-duplication
+  - find-implicit-state
+  - find-layer-violation
+  - find-omnibus
+  - find-orphaned-ideas
+  - find-query-mutation
+  - find-route-sprawl
+  - find-rule-surface-drift
+  - find-semantic-duplication
+  - find-stale-artifacts
+  - find-test-obligation-drift
+  - find-transaction-overreach
+  - find-workflow-duplication
+  - find-workflow-state-gaps
+  - fix-workflow
+  - gut-check
+  - impact-feature
+  - introduce-fk
+  - map-product-workflow
+  - map-subsystem
+  - mature-existing-ideas
+  - plan-feature
+  - plan-spec
+  - prevent-regression
+  - propose-boundary
+  - propose-folder-reorganization
+  - refactor-subsystem
+  - scope-feature
+  - teach-pattern
+  - track-idea
+  - triage-debt
+  - unify-shadows
+  - which-skill
+dogfood_kind: none-found
+dogfooded_on:
+- none-found (extracted big-bang in 90f8567). Read-only stdout recommender — has a script but no fixtures
+  and no reports dir, so there is no on-disk run signal and no commit-textual evidence of a first real
+  query in ES2.
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0013"]
+  precedent: []
+  doc:
+  - pattern-library.md
+  - query-patterns-inline.md
+  contract: []
+related_skills:
+- track-idea
+- mature-existing-ideas
+- find-orphaned-ideas
+- plan-feature
+- scope-feature
+- teach-pattern
+- decide
+duplication_risk:
+- with: teach-pattern
+  relation: sibling-different-layer
+  disambiguator: query-patterns SEARCHES the Tier-2 pattern library (.claude/patterns/) for a problem-shape
+    match and ranks; teach-pattern EXPLAINS an already-known convention from canonical-patterns/smells/ADRs
+    into a layered briefing. Search vs teach; different source corpus.
+- with: track-idea
+  relation: sequential
+  disambiguator: 'query-patterns `escalate_to`: /track-idea intake when the query returns no matches and
+    the problem is worth capturing. Read (search) then, on a miss, write (capture). No overlap.'
+- with: find-orphaned-ideas
+  relation: sibling-different-layer
+  disambiguator: 'query-patterns `not_for`: ''Finding orphaned ledger entries (use /find-orphaned-ideas)''.
+    query-patterns matches a PROBLEM to Tier-2 patterns; find-orphaned-ideas audits Tier-1 ledger entries
+    needing attention. Different tier, different question.'
+provenance_confidence:
+  textual: low
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+- 90f8567 — born in the big-bang ecosystem-extraction commit alongside 54 sibling skills (temporal weak);
+  query-patterns is the Tier 2 read surface (track-idea is the Tier 1 write surface)
+- has scripts/ (the token-overlap recommender) but no fixtures (structural med)
+- .claude/docs/pattern-library.md + query-patterns-inline.md present in ES2 — the docs the SKILL.md reads;
+  the .claude/patterns/ corpus it searches is nascent so hits are sparse by construction
+gaps:
+- 'dogfood_kind none-found: read-only stdout recommender, no reports dir, no commit-textual evidence of
+  a first real query; the Tier-2 corpus is near-empty so even on-disk usage signal is minimal.'
+- embodies_decisions.adr is ["0013"] (idea-tracking-system) — the ADR that establishes the two-tier idea
+  system query-patterns serves as the Tier-2 read surface of; further corroborated via pattern-library.md.

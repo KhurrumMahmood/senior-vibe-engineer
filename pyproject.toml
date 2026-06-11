@@ -1,0 +1,38 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+extend-exclude = [
+    "migrations/",
+    "staticfiles/",
+    ".venv/",
+    "node_modules/",
+    "__pycache__/",
+    "build/",
+    "dist/",
+    "*.egg-info/",
+    "fixtures",    # skill test inputs — deliberately contain smells / bad code
+]
+
+[tool.ruff.lint]
+# Deliberately narrow initial rule set — adding sort-imports (I) or
+# formatting rules wholesale produces a noise wall that buries real
+# signal. Host projects can extend `select` once their codebase is ready.
+select = [
+    "F",    # pyflakes — unused imports, undefined names, etc.
+    "E",    # pycodestyle errors (basic)
+    "B",    # flake8-bugbear — likely bugs
+    "BLE",  # blind-except — complementary to the silent-catch custom rule
+]
+
+ignore = [
+    "E501",   # line too long — too many existing violations to enforce now
+    "E402",   # module-level import not at top — framework bootstraps legitimately do this
+    "B008",   # function call in default arg — common idiom in some frameworks
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/test_*.py" = ["B011", "F841"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
