@@ -5,8 +5,8 @@ title: Skills are namespaced by coupling layer and domain (core / lang / framewo
 status: accepted
 date: 2026-06-11
 deciders: [khurrum, claude-code]
-assumes: ["what transfers across host projects is the loop, the scanner toolbox, and the process skills — not 72 individually named flat skills; the flat namespace hides which skills a given host can actually use"]
-revisit_when: ["the harness's skill discovery cannot express the layering even via name prefixes or packaging (then the taxonomy lives in frontmatter + manifest only), or a second host adoption shows the layer boundaries were drawn in the wrong place"]
+assumes: ["what transfers across host projects is the loop, the scanner toolbox, and the process skills — not 72 individually named flat skills; the flat namespace hides which skills a given host can actually use", "the named layer set and example folders are a rendering of TODAY'S corpus (Python/Django-derived, one domain family on the horizon) — the durable commitment is the placement discipline, not this specific tree"]
+revisit_when: ["the harness's skill discovery cannot express the layering even via name prefixes or packaging (then the taxonomy lives in frontmatter + manifest only)", "a second host adoption or a corpus shift shows the layer boundaries were drawn in the wrong place — the tree is re-derived from the corpus then, not defended", "periodically at catalog-review time: does the current tree still mirror the actual coupling profile?"]
 supersedes: []
 superseded_by: null
 applies_to: [.claude/skills/]
@@ -90,6 +90,22 @@ discovery cannot walk nested directories, the layering is expressed through
 name prefixes or plugin packaging instead — the *taxonomy and placement
 rule* are the commitment of this ADR; the directory mechanics are verified
 at migration time by the reorganization plan.
+
+**6. Scope and durability — what this ADR is NOT.** This ADR governs the
+**toolkit's own skill catalog only**. It is not a folder standard for host
+projects: a host's code organization stays governed by its own conventions
+(ADR 0006 / `folder-organization.md` territory, advisory and
+host-calibrated), and nothing in this decision authorizes restructuring a
+host's directories. Within the toolkit, the *binding* commitment is the
+placement discipline — coupling declared honestly, structure mirroring the
+shipping contract, concept+binding over forking, N=1 for contract
+boundaries. The *specific tree* (the layer names, the example folders) is
+the current rendering of that discipline over today's corpus; it is
+expected to be re-derived as the corpus changes, the same way the
+maintenance loop periodically re-derives any folder topology rather than
+freezing one. A future catalog whose coupling profile looks different
+should get a different tree under the same rule — without superseding this
+ADR.
 
 **Incidentally-coupled skills are mislabeled, not moved.** A skill whose
 procedure is universal but whose examples are Django-flavored (most plan-*
