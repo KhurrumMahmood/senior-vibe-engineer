@@ -1,0 +1,136 @@
+{
+  "bidirectional_confirmed_AUTO_INCLUDE": {
+    "brainstorm-ideas": [
+      "0013"
+    ],
+    "extract-existing-ideas": [
+      "0013"
+    ],
+    "find-folder-topology-drift": [
+      "0006"
+    ],
+    "find-orphaned-ideas": [
+      "0013",
+      "0016"
+    ],
+    "find-rule-surface-drift": [
+      "0005"
+    ],
+    "mature-existing-ideas": [
+      "0013"
+    ],
+    "orient": [
+      "0020"
+    ],
+    "propose-folder-reorganization": [
+      "0006"
+    ],
+    "query-patterns": [
+      "0013"
+    ],
+    "refactor-subsystem": [
+      "0006"
+    ],
+    "track-idea": [
+      "0013"
+    ]
+  },
+  "oneway_named_by_adr_JUDGE_enforce_vs_mention": {
+    "architecture-fit": [
+      "0003",
+      "0013",
+      "0017"
+    ],
+    "decide": [
+      "0003",
+      "0022"
+    ],
+    "extract-enum": [
+      "0003"
+    ],
+    "extract-state-type": [
+      "0003"
+    ],
+    "find-duplication": [
+      "0003"
+    ],
+    "find-frontend-duplication": [
+      "0022"
+    ],
+    "find-implicit-state": [
+      "0001"
+    ],
+    "find-rule-surface-drift": [
+      "0018"
+    ],
+    "find-semantic-duplication": [
+      "0004"
+    ],
+    "find-standard-gaps": [
+      "0018",
+      "0019",
+      "0020",
+      "0021",
+      "0022"
+    ],
+    "fix-workflow": [
+      "0002",
+      "0003",
+      "0004",
+      "0005"
+    ],
+    "impact-feature": [
+      "0003",
+      "0017"
+    ],
+    "introduce-fk": [
+      "0003"
+    ],
+    "map-product-workflow": [
+      "0016"
+    ],
+    "map-subsystem": [
+      "0017"
+    ],
+    "orient": [
+      "0021",
+      "0022"
+    ],
+    "plan-feature": [
+      "0013"
+    ],
+    "plan-spec": [
+      "0003",
+      "0017"
+    ],
+    "prevent-regression": [
+      "0004",
+      "0019"
+    ],
+    "propose-boundary": [
+      "0017"
+    ],
+    "refactor-subsystem": [
+      "0002",
+      "0003",
+      "0017"
+    ],
+    "scope-feature": [
+      "0003",
+      "0013",
+      "0017"
+    ],
+    "triage-debt": [
+      "0003",
+      "0016"
+    ]
+  },
+  "stale_pnci_adr_numbers_in_skillmd_IGNORE": {
+    "find-folder-topology-drift": [
+      "0011"
+    ],
+    "refactor-subsystem": [
+      "0010"
+    ]
+  }
+}
