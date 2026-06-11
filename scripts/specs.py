@@ -1849,7 +1849,7 @@ def scaffold_spec_body(
     frontmatter = (
         "---\n"
         f"id: {spec_id}\n"
-        f"title: {title}\n"
+        f"title: {json.dumps(title)}\n"  # quoted: a colon in an unquoted title is invalid YAML
         "status: STUB\n"
         f"last_audited: {today}\n"
         f"{optional_lines}"

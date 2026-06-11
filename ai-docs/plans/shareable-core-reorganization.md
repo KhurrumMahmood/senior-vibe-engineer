@@ -1,6 +1,6 @@
 ---
 name: shareable-core-reorganization
-title: Shareable-core reorganization: layering, generalization, distribution
+title: "Shareable-core reorganization: layering, generalization, distribution"
 status: scoped
 date: 2026-06-11
 authors: [khurrum, claude-code]

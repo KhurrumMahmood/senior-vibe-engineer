@@ -158,7 +158,7 @@ def cmd_init(args, decisions_dir: Path) -> int:
         "---\n"
         f'id: "{next_id:04d}"\n'
         "namespace: core\n"
-        f"title: {title}\n"
+        f"title: {json.dumps(title)}\n"  # quoted: a colon in an unquoted title is invalid YAML
         "status: proposed\n"
         f"date: {today}\n"
         "deciders: []\n"

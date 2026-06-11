@@ -117,7 +117,7 @@ def _scaffold_body(slug: str, title: str, today: str, motivating_decision: str |
     return (
         "---\n"
         f"name: {slug}\n"
-        f"title: {title}\n"
+        f"title: {json.dumps(title)}\n"  # quoted: a colon in an unquoted title is invalid YAML
         "status: draft\n"
         f"date: {today}\n"
         "authors: []\n"
