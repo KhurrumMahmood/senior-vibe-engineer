@@ -41,6 +41,7 @@ provenance_confidence:
   temporal: med     # solo birth cohort — sharper than the 90f8567 set, but a single skill carries limited proximity signal
   dogfood: high     # the good/bad fixtures pair driven by smoke.py is a real, executable regression oracle
 evidence:
+  - 'scan-surface declared via scans: frontmatter [python, markdown] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
   - "331f2d5 — born 2026-05-22 in a dedicated commit, sibling_births_count 0 (facts)"
   - "has_scripts=true / has_fixtures=true (facts) — detect.py + report.py + smoke.py and a good/bad fixture-skill pair"
   - "SKILL.md 'Smoke Test' — smoke.py asserts band firing on bad, clean on good, and --gate exit codes both ways (the oracle)"

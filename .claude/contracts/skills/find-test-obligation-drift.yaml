@@ -36,6 +36,7 @@ provenance_confidence:
   temporal: low     # 90f8567 birth shared by 54 siblings — no birth-proximity signal
   dogfood: high     # real fixtures good/bad oracle (the classification regression test)
 evidence:
+  - 'scan-surface declared via scans: frontmatter [python, javascript, templates] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
   - "90f8567 — born in the big-bang 55-skill extraction cohort (2026-05-15)"
   - "has_scripts: true AND has_fixtures: true — fixtures/good + fixtures/bad present (verified on disk: bad/ has untested app view, template, lint script, JS) — the classification oracle"
   - "no reports_dir / 0 run artifacts — the fixtures pair, not a self-scan run, is the dogfood signal"

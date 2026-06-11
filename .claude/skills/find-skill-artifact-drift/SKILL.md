@@ -27,6 +27,7 @@ not_for: |
   lint already owns. Band C semantic judgment belongs to /plan-skill.
 language: python
 framework: any
+scans: [python, markdown]
 produces: [detections, report, findings]
 evidence_required: [report, findings]
 max_overhead: "Run one detect+report pass; treat Band B as a review queue, never an auto-patch list."

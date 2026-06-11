@@ -18,6 +18,7 @@ not_for: |
   registrations (use /find-doc-route-drift).
 language: python
 framework: django
+scans: [javascript, templates]
 ---
 
 # /find-frontend-contract-drift

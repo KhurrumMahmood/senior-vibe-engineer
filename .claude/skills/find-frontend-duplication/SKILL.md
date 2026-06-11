@@ -21,6 +21,7 @@ not_for: |
   (use /extract-cotton-primitive).
 language: python
 framework: django
+scans: [javascript, templates]
 ---
 
 # /find-frontend-duplication

@@ -24,6 +24,7 @@ not_for: |
   read-only.
 language: python
 framework: any
+scans: [markdown]
 ---
 
 # /find-stale-artifacts

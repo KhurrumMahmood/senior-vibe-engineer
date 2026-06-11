@@ -23,6 +23,7 @@ not_for: |
   complements the human final verification note.
 language: any
 framework: django
+scans: [python, javascript, templates]
 ---
 
 # /find-test-obligation-drift

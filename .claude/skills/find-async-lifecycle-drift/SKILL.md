@@ -21,6 +21,7 @@ not_for: |
   narrow lifecycle rule to `/prevent-regression`.
 language: any
 framework: django
+scans: [python, javascript]
 ---
 
 # /find-async-lifecycle-drift

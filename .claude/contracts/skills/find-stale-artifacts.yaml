@@ -108,6 +108,7 @@ provenance_confidence:
   temporal: low
   dogfood: med
 evidence:
+- 'scan-surface declared via scans: frontmatter [markdown] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
 - 90f8567 — born in the big-bang ecosystem-extraction commit alongside 54 sibling skills (temporal weak;
   textual weak — no commit names this skill in ES2's big-bang birth)
 - has scripts/ (detector) but no fixtures dir — relies on the live artifact surface as its corpus (structural

@@ -20,6 +20,7 @@ not_for: |
   verify before deleting any route/template/static file.
 language: any
 framework: django
+scans: [python, javascript, templates]
 ---
 
 # /find-dead-route-surface

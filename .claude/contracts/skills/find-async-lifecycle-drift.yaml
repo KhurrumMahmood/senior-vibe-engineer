@@ -44,6 +44,7 @@ provenance_confidence:
   temporal: low
   dogfood: high
 evidence:
+  - 'scan-surface declared via scans: frontmatter [python, javascript] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
   - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
   - "has_fixtures + has_scripts both true — good/bad fixture pair is the structural + dogfood oracle"
   - "no reports/find-async-lifecycle-drift dir on disk in ES2 — no self-scan run here"

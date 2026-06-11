@@ -22,6 +22,7 @@ not_for: |
   goes to /fix-workflow with the cluster id.
 language: python
 framework: any
+scans: [markdown]
 ---
 
 # /find-rule-surface-drift

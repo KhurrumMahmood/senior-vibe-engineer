@@ -26,6 +26,7 @@ not_for: |
   low-noise on real route work.
 language: any
 framework: django
+scans: [python, javascript, templates]
 ---
 
 # /find-contract-drift

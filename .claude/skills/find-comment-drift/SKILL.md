@@ -24,6 +24,7 @@ not_for: |
   existing lints for behavior and correctness.
 language: any
 framework: django
+scans: [python, javascript, templates]
 ---
 
 # /find-comment-drift

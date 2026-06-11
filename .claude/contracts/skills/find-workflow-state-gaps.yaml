@@ -51,6 +51,7 @@ provenance_confidence:
   temporal: low
   dogfood: high
 evidence:
+  - 'scan-surface declared via scans: frontmatter [javascript, templates] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
   - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
   - "has_fixtures + has_scripts both true — fixtures/{good,bad}/ app + static trees are the structural + dogfood oracle"
   - "no reports/find-workflow-state-gaps dir on disk in ES2 — no self-scan run here"

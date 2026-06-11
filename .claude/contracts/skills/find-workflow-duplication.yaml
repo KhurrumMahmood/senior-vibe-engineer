@@ -49,6 +49,7 @@ provenance_confidence:
   temporal: low
   dogfood: low
 evidence:
+  - 'scan-surface declared via scans: frontmatter [python, javascript, templates, markdown] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
   - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
   - "scripts/{detect,report}.py present — stdlib detector + report-emitter structural signature; no fixtures/ pair"
   - "no reports/workflow-duplication dir on disk — no captured ES2 self-scan run"

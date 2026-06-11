@@ -17,6 +17,7 @@ not_for: |
   /find-route-sprawl). Doc/route drift (use /find-doc-route-drift).
 language: python
 framework: django
+scans: [python, javascript, templates, markdown]
 ---
 
 # /find-workflow-duplication

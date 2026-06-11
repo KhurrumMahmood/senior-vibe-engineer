@@ -4,10 +4,13 @@ skill: find-omnibus
 job: suspect
 problem_class: omnibus-module detection (SUSPECT)
 intent: Detect omnibus modules — files answering questions from 3+ independently-understandable domains.
-  AST-walks the target, groups top-level symbols by head-noun cluster, counts SRP 'and's, ranks by responsibility
-  count plus security/side-effect sensitivity and LOC, fans out scouts applying the refactor-subsystem
-  §1.2.5 facet-vs-domain rule. Produces decomposition candidates; hands off to /refactor-subsystem <spec-id>
-  in decomposition mode.
+  Walks the target through per-language symbol-extraction adapters (Python AST; JavaScript/TypeScript
+  heuristic regex — ADR 0032), groups top-level symbols by head-noun cluster, counts SRP 'and's, ranks
+  by responsibility count plus security/side-effect sensitivity and LOC, fans out scouts applying the
+  refactor-subsystem §1.2.5 facet-vs-domain rule. Produces decomposition candidates; hands off to
+  /refactor-subsystem <spec-id> in decomposition mode, or — when the target layer lacks substrate
+  (no module mechanism / tests / non-duplicated helpers) — emits the re-architect verdict requiring
+  a substrate ADR before any decomposition spec.
 solves: The omnibus smell — a single file owning 3+ unrelated domains — distinguished from merely-large-but-cohesive
   files (the facet-vs-domain rule guards against splitting for size alone).
 born:
@@ -110,6 +113,7 @@ provenance_confidence:
   temporal: low
   dogfood: low
 evidence:
+- 'scan-surface declared via scans: frontmatter [python, javascript, typescript] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
 - 90f8567 — born in the big-bang ecosystem-extraction commit alongside 54 sibling skills (temporal weak)
 - SKILL.md cites the refactor-subsystem §1.2.5 facet-vs-domain rule + coordination_omnibus / facets_not_domains
   scout buckets — ties it to architectural-smells.md and the refactor handoff

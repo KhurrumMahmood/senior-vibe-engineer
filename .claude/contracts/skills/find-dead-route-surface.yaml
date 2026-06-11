@@ -47,6 +47,7 @@ provenance_confidence:
   temporal: low
   dogfood: high
 evidence:
+  - 'scan-surface declared via scans: frontmatter [python, javascript, templates] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
   - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
   - "fixtures/ pair present + scripts/run.py — the SUSPECT detector's regression oracle and the structural guard-install signature"
   - "no reports/find-dead-route-surface dir on disk — no captured ES2 self-scan run"

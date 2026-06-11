@@ -21,6 +21,7 @@ not_for: |
   becoming guardrails.
 language: any
 framework: django
+scans: [javascript, templates]
 ---
 
 # /find-workflow-state-gaps

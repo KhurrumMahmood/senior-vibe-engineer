@@ -46,6 +46,7 @@ provenance_confidence:
   temporal: low
   dogfood: low
 evidence:
+  - 'scan-surface declared via scans: frontmatter [javascript, templates] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
   - "90f8567 — born in the 55-skill big-bang extraction cohort (textual + temporal low)"
   - "has_scripts true, has_fixtures false — scanner-backed, no good/bad oracle pair (structural med)"
   - "find-contract-drift imports this skill's boot-global detector — a structural downstream dependency, the main in-repo signal of use"
