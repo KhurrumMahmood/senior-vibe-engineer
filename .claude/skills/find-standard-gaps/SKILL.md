@@ -12,6 +12,10 @@ best_for: |
   outbound HTTP call sets a timeout", "no call to X without guard Y".
   Each standard is a declarative entry with an `ast` detector; the scan
   is deterministic, cheap, and syntactically precise.
+  Census mode (scripts/census.py) answers the upstream discovery question:
+  "what variants exist, which is the majority, who are the stragglers?"
+  Use census before declaring a standard to understand the current
+  population; census output feeds /decide and standards declaration.
 not_for: |
   Judgment-heavy ideas that do not reduce to a call/argument/block
   pattern (keep those as code review). Structural smells — omnibus,
@@ -167,13 +171,67 @@ deciding satisfaction.
 | 0 standards scanned | All standards are `manual`/`skill`, or the standards file has no `ideas` array |
 | A gap is a deliberate exception | Not a tool failure — note it at fix time; a future `--allow` list could record approved exceptions |
 
+## Census mode — discover before you declare
+
+`scripts/census.py` answers the upstream question: **"for a given *concern*,
+what variants exist across a surface, what is the majority, and who are the
+stragglers?"** Use it *before* declaring a standard when you do not yet know
+which shape to canonicalize.
+
+The workflow:
+1. Run census → see variant distribution.
+2. Pick the majority variant as the standard (or consciously choose a
+   different one and note why in the ADR).
+3. Declare the standard in `standards.json` and use `scan_coverage.py` to
+   enforce it going forward.
+
+Census output feeds `/decide` — paste the variant table into the ADR context
+to record the population state at decision time.
+
+### When to use census vs scan_coverage
+
+| Question | Tool |
+|---|---|
+| "Is standard X applied everywhere?" | `scan_coverage.py` |
+| "What variants exist for concern Y before I decide?" | `census.py` |
+
+### Pipeline
+
+```bash
+TS=$(date +%Y%m%d-%H%M%S)
+REPORT_DIR="reports/standard-gaps/census-${TS}"
+mkdir -p "$REPORT_DIR"
+
+python3 .claude/skills/find-standard-gaps/scripts/census.py \
+  --concern json_response_envelope \
+  --project-root "$(pwd)" \
+  app/api \
+  --json "${REPORT_DIR}/findings.json"
+```
+
+Output: per-variant counts sorted desc, majority variant + share %, straggler
+`file:line` list for minority variants, opaque (non-literal payload) count.
+The `--json` artifact carries the full structured data for downstream tooling.
+
+### Registered concerns
+
+| Concern ID | What it detects |
+|---|---|
+| `json_response_envelope` | Django `JsonResponse({...})` dict-literal shapes: sorted top-level keys, `status` kwarg presence, literal status value. Opaque = variable/non-literal payload. |
+
+To add a concern: register a new `Concern(...)` entry in `CONCERN_REGISTRY`
+in `census.py` (~30 lines). A concern provides a `site_finder(path, root) →
+list[Site]` that returns one `Site` per occurrence with a normalised
+`variant` key or `"opaque"`.
+
 ## Repository layout
 
 ```
 .claude/skills/find-standard-gaps/
 ├── SKILL.md                  # this file — orchestrator
 ├── scripts/
-│   └── scan_coverage.py      # the scan — deterministic, stdlib-only
+│   ├── scan_coverage.py      # gap scan — deterministic, stdlib-only
+│   └── census.py             # census mode — discover before you declare
 ├── knowledge/
 │   └── detector-model.md     # the detector model + how to add a standard
 └── standards/
