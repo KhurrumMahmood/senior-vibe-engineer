@@ -103,6 +103,18 @@ repos:
         files: ^ai-docs/decisions/.*\.md$
         pass_filenames: false
 
+      # Open-source hygiene. The core ships under an open-source licence and must
+      # never name the specific private host it was extracted from (proprietary
+      # model/path/identifier tokens). Stdlib-only; scans the open-source-facing
+      # surfaces itself, so pass_filenames is false. Django/Python *flavour* is
+      # allowed — see the README's Tech assumptions.
+      - id: no-host-references
+        name: "no-host-references (open-source core must not name a private host)"
+        entry: python scripts/lint/no_host_references.py
+        language: python
+        files: ^(ai-docs/decisions/.*\.md|README\.md|VISION\.md|ONBOARDING\.md)$
+        pass_filenames: false
+
       # Skill-ecosystem guard. find-skill-artifact-drift's Band-A subset
       # blocks a commit that introduces a SKILL.md referencing a script,
       # flag, or Bash grant that does not exist. Scoped to changed SKILL.md
