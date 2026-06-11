@@ -108,6 +108,8 @@ def test_run_changed_from_head(tmp_path):
     r = _run(RUN, "--changed-from", "HEAD~1", "--json", "--skip-effectiveness-log",
              "--now", "testrun", "--reports-dir", str(tmp_path / "reports"), "--specs-dir", str(tmp_path / "specs"))
     assert r.returncode == 0, r.stderr
+    if "No changes detected" in r.stdout:
+        pytest.skip("HEAD~1 unresolvable or empty in this checkout (e.g. fresh-history root commit)")
     c = json.loads(r.stdout)
     assert c["scope_band"] in {"small", "medium", "large"}
     assert set(c["checklist"]) == {"pre_baseline", "post_sweep", "guard_tail"}
@@ -160,6 +162,8 @@ def test_emit_plan_gates_spec_stub(tmp_path):
     """Review fix: the large-band spec stub is written only with --emit-plan."""
     common = ["--changed-from", "HEAD~1", "--json", "--skip-effectiveness-log", "--now", "ep"]
     r1 = _run(RUN, *common, "--reports-dir", str(tmp_path / "r1"), "--specs-dir", str(tmp_path / "s1"))
+    if "No changes detected" in r1.stdout:
+        pytest.skip("HEAD~1 unresolvable or empty in this checkout (e.g. fresh-history root commit)")
     c1 = json.loads(r1.stdout)
     if c1["scope_band"] != "large":
         pytest.skip("HEAD~1 is not large in this checkout")
