@@ -8,6 +8,7 @@ deciders: []
 supersedes: []
 superseded_by: null
 applies_to: [".claude/skills/find-standard-gaps/"]
+embodied_by: ["skill:orient", "skill:find-standard-gaps"]
 tags: [standards, lifecycle, project-stage, stakes, activation, baseline, orientation, north-star]
 related_smell: null
 related_pattern: null

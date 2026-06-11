@@ -11,6 +11,7 @@ applies_to:
   - .claude/skills/find-omnibus/
   - .claude/skills/find-perimeter-gaps/
   - .claude/docs/architectural-smells.md
+embodied_by: ["skill:find-perimeter-gaps", "skill:find-omnibus"]
 tags: [portability, detectors, perimeter, substrate]
 related_smell: omnibus-module
 related_pattern: null

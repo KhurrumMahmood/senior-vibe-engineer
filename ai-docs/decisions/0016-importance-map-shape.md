@@ -10,6 +10,7 @@ superseded_by: null
 applies_to:
   - .claude/skills/find-orphaned-ideas/
   - .engineering/docs/importance-map.md
+embodied_by: ["skill:find-orphaned-ideas"]
 tags:
   - idea-tracking
   - audit-tooling

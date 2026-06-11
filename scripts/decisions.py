@@ -21,6 +21,9 @@ across forks or namespaces, so it is NOT the cross-repo identity.
 
   id: "0001"          # local display/order; quote it (PyYAML reads 0010 as octal 8)
   namespace: core     # core = portable toolkit; "project" = a host adaptation
+  embodied_by: []     # accepted ADRs must name their embodiment: skill:<name>,
+                      # lint:<rule>, script:<path>, hook:<id>, doctrine:<path>,
+                      # contract:<path>, or pending:<ref> (ADR 0033)
   title: Use TextChoices for all status fields
   status: accepted
   date: 2026-04-30
@@ -67,6 +70,12 @@ PROPOSED_AGE_DAYS = 30
 # is imported) and treats its absence as advisory, not drift. See the
 # "Portable applies_to paths" section in ai-docs/decisions/README.md.
 HOST_PATH_PREFIX = "host:"
+
+# embodied_by entry kinds (ADR 0033). An accepted ADR must name at least one —
+# the executable surface that realizes it, a deliberate doctrine-only choice,
+# or a pending: ref tracking the build. pending: entries are the
+# decided-but-unbuilt backlog; link-check lists them as advisory.
+EMBODIMENT_KINDS = {"skill", "lint", "script", "hook", "doctrine", "contract", "pending"}
 
 
 def load_decisions(decisions_dir: Path) -> list[dict]:
@@ -118,6 +127,7 @@ def load_decisions(decisions_dir: Path) -> list[dict]:
             "supersedes": fm.get("supersedes") or [],
             "superseded_by": fm.get("superseded_by"),
             "applies_to": fm.get("applies_to") or [],
+            "embodied_by": [str(e) for e in (fm.get("embodied_by") or [])],
             "tags": fm.get("tags") or [],
             "related_smell": fm.get("related_smell"),
             "related_pattern": fm.get("related_pattern"),
@@ -155,6 +165,7 @@ def cmd_init(args, decisions_dir: Path) -> int:
         "supersedes: []\n"
         "superseded_by: null\n"
         "applies_to: []\n"
+        "embodied_by: []   # required once accepted: skill:/lint:/script:/hook:/doctrine:/contract:/pending: (ADR 0033)\n"
         "tags: []\n"
         "related_smell: null\n"
         "related_pattern: null\n"
@@ -240,6 +251,16 @@ def _audit_drift(decisions: list[dict]) -> list[str]:
                     diags.append(f"{d['id']}: proposed for {age} days (>{PROPOSED_AGE_DAYS}) — accept, reject, or add a revisit_when trigger")
             except ValueError:
                 diags.append(f"{d['id']}: malformed date {d['date']!r}")
+        # ADR 0033: an accepted decision must declare its embodiment — the
+        # executable surface (skill/lint/script/hook), a deliberate
+        # doctrine-only choice, or a pending: ref tracking the build.
+        # Proposed ADRs may leave it empty; that IS the not-yet-built state.
+        if d["status"] == "accepted" and not d.get("embodied_by"):
+            diags.append(
+                f"{d['id']}: accepted but embodied_by is empty — name the skill/lint/"
+                "script that realizes it, doctrine:<path> if prose-only is deliberate, "
+                "or pending:<ref> if the build is tracked elsewhere (ADR 0033)"
+            )
         for sup_id in d.get("supersedes") or []:
             sup_id = str(sup_id).zfill(4)
             if sup_id not in by_id:
@@ -289,6 +310,26 @@ def cmd_link_check(args, decisions_dir: Path) -> int:
                 )
             else:
                 diags.append(f"{d['id']}: applies_to {raw} → path does not exist")
+        for entry in d.get("embodied_by") or []:
+            kind, sep, ref = entry.partition(":")
+            if not sep or kind not in EMBODIMENT_KINDS or not ref:
+                diags.append(
+                    f"{d['id']}: embodied_by {entry!r} → must be <kind>:<ref> with kind "
+                    f"in {sorted(EMBODIMENT_KINDS)}"
+                )
+                continue
+            if kind == "pending":
+                advisory.append(f"{d['id']}: embodied_by pending:{ref} → decided-but-unbuilt (advisory backlog)")
+                continue
+            if kind == "hook":
+                advisory.append(f"{d['id']}: embodied_by hook:{ref} → hook, resolves in harness settings (advisory)")
+                continue
+            target = {
+                "skill": Path(".claude/skills") / ref / "SKILL.md",
+                "lint": Path("scripts/lint") / f"{ref}.py",
+            }.get(kind, Path(ref.partition("#")[0]))
+            if not (REPO_ROOT / target).exists():
+                diags.append(f"{d['id']}: embodied_by {entry} → {target} does not exist")
     for line in advisory:
         print(line)
     if not diags:

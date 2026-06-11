@@ -8,6 +8,7 @@ deciders: [khurrum]
 supersedes: []
 superseded_by: null
 applies_to: [".claude/skills/rename-concept/", ".claude/contracts/concepts.yaml", ".claude/skills/find-concept-divergence/"]
+embodied_by: ["skill:rename-concept"]
 tags: [skills, rename, concept-glossary, completeness, prose]
 related_smell: format-equivalence-gap
 related_pattern: null

@@ -11,6 +11,7 @@ deciders: [khurrum]
 supersedes: []
 superseded_by: null
 applies_to: [ai-docs/decisions/, scripts/decisions.py]
+embodied_by: ["script:scripts/decisions.py"]
 tags: [decisions, hygiene, invalidation]
 related_smell: null
 related_pattern: null

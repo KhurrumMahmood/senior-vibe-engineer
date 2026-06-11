@@ -15,6 +15,7 @@ applies_to:
   - .augment/rules/imported/
   - host:.augment/context.md
   - host:.augment/requirements.md
+embodied_by: ["doctrine:.claude/CLAUDE.md", "skill:find-rule-surface-drift"]
 tags: [agent-rules, claude-md, cross-tool, doc-design, skill-ecosystem]
 related_smell: null
 related_pattern: null

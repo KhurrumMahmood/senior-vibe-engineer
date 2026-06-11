@@ -8,6 +8,7 @@ deciders: [khurrum]
 supersedes: []
 superseded_by: null
 applies_to: [host:app/]
+embodied_by: ["lint:no_stringly_typed_status", "skill:extract-enum"]
 tags: [stringly-state, lint, models]
 related_smell: stringly-typed-state
 related_pattern: stringly-status

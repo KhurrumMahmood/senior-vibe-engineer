@@ -8,6 +8,7 @@ deciders: [khurrum]
 supersedes: []
 superseded_by: null
 applies_to: [".claude/skills/which-cleanup/", "scripts/query_planner.py"]
+embodied_by: ["skill:which-cleanup"]
 tags: [skills, routing, cleanup, closeout, coverage, registry-optional]
 related_smell: format-equivalence-gap
 related_pattern: null

@@ -10,6 +10,7 @@ deciders: [khurrum]
 supersedes: []
 superseded_by: null
 applies_to: [host:app/]
+embodied_by: ["doctrine:.claude/docs/architectural-smells.md"]
 tags: [format-equivalence-gap, refactor, structural-rule, share-utilities]
 related_smell: format-equivalence-gap
 related_pattern: parallel-writers-shared-producer

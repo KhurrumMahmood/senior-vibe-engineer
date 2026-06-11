@@ -31,11 +31,21 @@ def _emit(path: Path, metadata: dict, body: str) -> Path:
 @pytest.fixture
 def write_adr():
     """Return a helper that writes one ADR markdown file into a decisions dir."""
+    _UNSET = object()
+
     def _write(decisions_dir, *, id="0001", slug="first-decision",
                status="accepted", date="2026-01-01", title=None,
                supersedes=None, superseded_by=None, applies_to=None,
-               tags=None, body=None):
+               embodied_by=_UNSET, tags=None, body=None):
         title = title or slug.replace("-", " ").title()
+        if embodied_by is _UNSET:
+            # ADR 0033: accepted ADRs must declare an embodiment. Seed a
+            # self-referential doctrine ref — it resolves under both the real
+            # REPO_ROOT and the tmp_path monkeypatch, and emits no advisory.
+            embodied_by = (
+                [f"doctrine:ai-docs/decisions/{id}-{slug}.md"]
+                if status == "accepted" else []
+            )
         metadata = {
             "id": id,
             "title": title,
@@ -45,6 +55,7 @@ def write_adr():
             "supersedes": supersedes or [],
             "superseded_by": superseded_by,
             "applies_to": applies_to or [],
+            "embodied_by": embodied_by,
             "tags": tags or [],
         }
         body = body if body is not None else f"# {title}\n\n## Context\n\nSeeded.\n"

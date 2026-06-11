@@ -12,6 +12,7 @@ applies_to:
   - .claude/patterns/
   - .claude/skills/
   - .claude/docs/
+embodied_by: ["skill:track-idea", "script:scripts/ledger.py"]
 tags: [knowledge-management, lifecycle, capture, curation]
 related_smell: null
 related_pattern: null

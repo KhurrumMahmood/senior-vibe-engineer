@@ -8,6 +8,7 @@ deciders: [khurrum]
 supersedes: []
 superseded_by: null
 applies_to: [ai-docs/specs/, .claude/skills/refactor-subsystem/]
+embodied_by: ["script:scripts/specs.py", "skill:refactor-subsystem"]
 tags: [refactor, spec, workflow, skill-ecosystem]
 related_smell: omnibus-module
 related_pattern: spec-first-refactor

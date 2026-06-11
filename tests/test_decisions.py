@@ -227,3 +227,63 @@ def test_link_check_host_applies_to_present_is_silent_ok(tmp_path, write_adr, mo
     out = capsys.readouterr().out
     assert "advisory" not in out
     assert "host-scoped" not in out
+
+
+# ---- embodied_by (ADR 0033) ------------------------------------------------
+
+def test_audit_accepted_empty_embodiment_is_drift(tmp_path, write_adr, capsys):
+    """An accepted ADR with an empty embodied_by is hard drift (exit 1)."""
+    d = _ddir(tmp_path)
+    write_adr(d, id="0001", slug="alpha", status="accepted", embodied_by=[])
+    rc = decisions.main(["--decisions-dir", str(d), "audit"])
+    assert rc == 1
+    assert "embodied_by is empty" in capsys.readouterr().out
+
+
+def test_audit_proposed_empty_embodiment_is_clean(tmp_path, write_adr):
+    """A proposed ADR may leave embodied_by empty — that IS the not-yet-built state."""
+    d = _ddir(tmp_path)
+    today = datetime.date.today().isoformat()
+    write_adr(d, id="0001", slug="alpha", status="proposed", date=today, embodied_by=[])
+    rc = decisions.main(["--decisions-dir", str(d), "audit"])
+    assert rc == 0
+
+
+def test_link_check_embodiment_unknown_kind_is_drift(tmp_path, write_adr, monkeypatch, capsys):
+    monkeypatch.setattr(decisions, "REPO_ROOT", tmp_path)
+    d = _ddir(tmp_path)
+    write_adr(d, id="0001", slug="alpha", embodied_by=["widget:foo"])
+    rc = decisions.main(["--decisions-dir", str(d), "link-check"])
+    assert rc == 1
+    assert "must be <kind>:<ref>" in capsys.readouterr().out
+
+
+def test_link_check_embodiment_missing_skill_is_drift(tmp_path, write_adr, monkeypatch, capsys):
+    monkeypatch.setattr(decisions, "REPO_ROOT", tmp_path)
+    d = _ddir(tmp_path)
+    write_adr(d, id="0001", slug="alpha", embodied_by=["skill:ghost"])
+    rc = decisions.main(["--decisions-dir", str(d), "link-check"])
+    assert rc == 1
+    assert "does not exist" in capsys.readouterr().out
+
+
+def test_link_check_embodiment_resolving_skill_is_silent(tmp_path, write_adr, monkeypatch, capsys):
+    monkeypatch.setattr(decisions, "REPO_ROOT", tmp_path)
+    d = _ddir(tmp_path)
+    skill_dir = tmp_path / ".claude" / "skills" / "real-skill"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text("---\nname: real-skill\n---\n", encoding="utf-8")
+    write_adr(d, id="0001", slug="alpha", embodied_by=["skill:real-skill"])
+    rc = decisions.main(["--decisions-dir", str(d), "link-check"])
+    assert rc == 0
+    assert "does not exist" not in capsys.readouterr().out
+
+
+def test_link_check_embodiment_pending_is_advisory(tmp_path, write_adr, monkeypatch, capsys):
+    """A pending: ref is the decided-but-unbuilt backlog — advisory, not drift."""
+    monkeypatch.setattr(decisions, "REPO_ROOT", tmp_path)
+    d = _ddir(tmp_path)
+    write_adr(d, id="0001", slug="alpha", embodied_by=["pending:ai-docs/plans/future.md"])
+    rc = decisions.main(["--decisions-dir", str(d), "link-check"])
+    assert rc == 0
+    assert "decided-but-unbuilt" in capsys.readouterr().out
