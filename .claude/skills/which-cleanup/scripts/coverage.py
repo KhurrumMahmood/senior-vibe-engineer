@@ -97,7 +97,11 @@ def _recent_coverage(window_days: int, now: datetime) -> tuple[dict[str, set[str
         return covered, unmappable
     registry = _registry()
     seen_unmappable: set[str] = set()
-    for line in EFFECTIVENESS.read_text(encoding="utf-8").splitlines():
+    try:
+        effectiveness_lines = EFFECTIVENESS.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        return covered, unmappable
+    for line in effectiveness_lines:
         line = line.strip()
         if not line:
             continue

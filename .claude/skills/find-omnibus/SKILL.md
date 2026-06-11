@@ -1,7 +1,7 @@
 ---
 name: find-omnibus
-description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. AST-walks the target, groups top-level symbols by head-noun cluster, counts SRP "and"s, ranks by responsibility count plus security/side-effect sensitivity and LOC, fans out scout sub-agents that apply the refactor-subsystem §1.2.5 facet-vs-domain rule, and produces a decomposition-candidates report. Never edits code — hands off to `/refactor-subsystem <spec-id>` in decomposition mode.
-argument-hint: "--target <directory>"
+description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Walks the target with per-language symbol-extraction adapters (exact AST for Python; column-0 declaration heuristic for JavaScript/TypeScript — ADR 0032), groups top-level symbols by head-noun cluster, counts SRP "and"s, ranks by responsibility count plus security/side-effect sensitivity and LOC, fans out scout sub-agents that apply the refactor-subsystem §1.2.5 facet-vs-domain rule, and produces a decomposition-candidates report. Never edits code — hands off to `/refactor-subsystem <spec-id>` in decomposition mode, or escalates to a substrate ADR when the target layer cannot absorb a decomposition (ADR 0032 rule 3).
+argument-hint: "--target <directory> [--language python|javascript]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -12,14 +12,18 @@ best_for: |
   files that mix credentials, admin APIs, CSRF/auth, command/network
   diagnostics, persistence, raw SQL, import/export, task dispatch, or
   filesystem writes; produces decomposition candidates that hand off
-  to /refactor-subsystem.
+  to /refactor-subsystem. Covers Python (exact) and JavaScript/
+  TypeScript (heuristic; findings carry analyzer provenance).
 not_for: |
   Single-responsibility files that are merely large (cohesive >500 LOC
   is fine — avoid splitting for size alone). Layer violations
   specifically in views (use /find-layer-violation). Refactor
   execution (use /refactor-subsystem in decomposition mode).
+  Languages without an extraction adapter yet — check
+  /find-perimeter-gaps for what is and isn't covered.
 language: python
 framework: any
+scans: [python, javascript, typescript]
 scout_model: cheap
 ---
 
@@ -206,6 +210,20 @@ Report to the user in ≤10 lines:
   the stub).
   For `coordination_omnibus`, prefer `/map-product-workflow` and
   `/extract-workflow-registry` before decomposition.
+
+**Substrate gate (ADR 0032 rule 3).** Before recommending
+decomposition for any confirmed candidate, check the target layer's
+substrate: (a) a module/import mechanism, (b) test infrastructure
+that can pin behavior across the split, (c) infrastructure helpers
+(fetch/escape/log wrappers) that exist once, not per-file. Python
+targets in a tested package pass trivially. A script-tag JavaScript
+file with no module system fails (a) and usually (b) — splitting it
+just multiplies globals. When any leg fails, the recommendation is
+**re-architect: substrate ADR first** (module mechanism, test story,
+shared-helper home), with a grandfathered size-growth lint as the
+interim control — not a decomposition spec. Findings from heuristic
+adapters (``analyzer != python-ast``) deserve a skim of the actual
+file before this call; coarse extraction can over- or under-cluster.
 
 The report is the source of truth — do not enumerate every candidate.
 

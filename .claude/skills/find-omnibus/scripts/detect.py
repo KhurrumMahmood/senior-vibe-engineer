@@ -1,9 +1,22 @@
 #!/usr/bin/env python3
 """Detect omnibus modules — files that answer questions from 3+ domains.
 
-AST-walks the target directory. For each Python file, groups top-level
-``FunctionDef`` / ``AsyncFunctionDef`` / ``ClassDef`` declarations into
-**domain clusters** by extracting the head-noun(s) from the symbol name:
+Language-general by architecture (ADR 0032): the clustering, scoring and
+reporting below are language-neutral; per-language **symbol extraction
+adapters** (keyed by file extension) feed them top-level symbols.
+
+- ``python-ast`` adapter: full ``ast`` walk (exact), including god-class
+  method expansion.
+- ``js-heuristic`` adapter: column-0 declaration scan for JavaScript /
+  TypeScript (``function name(``, ``const name = (…) =>``, ``class
+  Name``, ``window.Name =``). Deliberately coarse — IIFE-wrapped or
+  deeply indented module bodies under-detect; if that proves material,
+  the adapter graduates to a real parser per ADR 0032 rather than
+  growing regex epicycles. Findings carry the adapter name so reviewers
+  can calibrate trust.
+
+For each source file, groups top-level declarations into **domain
+clusters** by extracting the head-noun(s) from the symbol name:
 
   1. Split the name on ``_`` (``bulk_crawl_task`` → ``['bulk', 'crawl',
      'task']``).
@@ -66,6 +79,8 @@ _DEFAULT_SKIP_DIRS: frozenset[str] = frozenset({
 _DEFAULT_SKIP_FILE_GLOBS: tuple[str, ...] = (
     "tests_*.py", "test_*.py", "tests.py", "conftest.py",
     "__init__.py",
+    "*.min.js", "*.min.css", "*-min.js", "*.bundle.js",
+    "*.test.js", "*.spec.js", "*.test.ts", "*.spec.ts",
 )
 
 # Skip additional paths that are structurally expected to aggregate
@@ -89,6 +104,8 @@ _STRIP_TOKENS: frozenset[str] = frozenset({
     "start", "stop", "cancel", "retry", "reset", "clear", "apply",
     "ensure", "try", "find", "search", "sync", "refresh", "render",
     "init", "setup", "is", "has", "can", "should", "was", "were",
+    "show", "hide", "open", "close", "toggle", "display", "select",
+    "initialize", "wire", "populate",
     # Role suffixes (also stripped from ClassDef names)
     "task", "view", "service", "helper", "util", "utils", "client",
     "manager", "factory", "handler", "worker", "callback", "hook",
@@ -113,14 +130,17 @@ _RISK_TERMS: tuple[tuple[str, tuple[str, ...]], ...] = (
 )
 
 
-def _walk_python_files(
+def _walk_source_files(
     target: Path,
     skip_file_globs: tuple[str, ...],
     skip_path_globs: tuple[str, ...],
     project_root: Path,
+    extensions: frozenset[str],
 ) -> list[Path]:
     files: list[Path] = []
-    for path in target.rglob("*.py"):
+    for path in sorted(target.rglob("*")):
+        if not path.is_file() or path.suffix.lower() not in extensions:
+            continue
         if any(part in _DEFAULT_SKIP_DIRS for part in path.parts):
             continue
         if any(fnmatch.fnmatchcase(path.name, g) for g in skip_file_globs):
@@ -189,29 +209,24 @@ def _risk_signals(rel: str, source: str, symbol_names: list[str]) -> tuple[int, 
     return len(signals), signals
 
 
-def _scan_file(filepath: Path, rel: str) -> dict[str, object] | None:
-    try:
-        source = filepath.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        return None
+def _python_symbols(source: str) -> list[tuple[str, str, int]] | None:
+    """Python adapter: exact ``ast`` extraction.
+
+    Returns ``(symbol_name, cluster_name, loc)`` triples — cluster_name
+    is the name fed to head-noun extraction (method name for expanded
+    god-class methods, so ``Service.parse_html`` clusters as ``html``
+    not ``Service``). ``None`` means unparseable.
+    """
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return None
-
-    file_loc = len(source.splitlines())
-    clusters: dict[str, dict[str, object]] = {}
-    symbol_names: list[str] = []
-
+    symbols: list[tuple[str, str, int]] = []
     for node in tree.body:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             if node.name.startswith("__") and node.name.endswith("__"):
                 continue
-            symbol_names.append(node.name)
-            key = _cluster_key(node.name)
-            bucket = clusters.setdefault(key, {"symbols": [], "loc": 0})
-            bucket["symbols"].append(node.name)  # type: ignore[arg-type]
-            bucket["loc"] = int(bucket["loc"]) + _node_loc(node)  # type: ignore[operator]
+            symbols.append((node.name, node.name, _node_loc(node)))
         elif isinstance(node, ast.ClassDef):
             if node.name.startswith("__") and node.name.endswith("__"):
                 continue
@@ -227,17 +242,88 @@ def _scan_file(filepath: Path, rel: str) -> dict[str, object] | None:
             ]
             if len(method_nodes) >= 3:
                 for m in method_nodes:
-                    symbol_names.append(f"{node.name}.{m.name}")
-                    key = _cluster_key(m.name)
-                    bucket = clusters.setdefault(key, {"symbols": [], "loc": 0})
-                    bucket["symbols"].append(f"{node.name}.{m.name}")  # type: ignore[arg-type]
-                    bucket["loc"] = int(bucket["loc"]) + _node_loc(m)  # type: ignore[operator]
+                    symbols.append(
+                        (f"{node.name}.{m.name}", m.name, _node_loc(m))
+                    )
             else:
-                symbol_names.append(node.name)
-                key = _cluster_key(node.name)
-                bucket = clusters.setdefault(key, {"symbols": [], "loc": 0})
-                bucket["symbols"].append(node.name)  # type: ignore[arg-type]
-                bucket["loc"] = int(bucket["loc"]) + _node_loc(node)  # type: ignore[operator]
+                symbols.append((node.name, node.name, _node_loc(node)))
+    return symbols
+
+
+_JS_DECL = re.compile(
+    r"^(?:"
+    r"(?:async\s+)?function\s+(?P<fn>[A-Za-z_$][\w$]*)\s*\("
+    r"|(?:const|let|var)\s+(?P<assigned>[A-Za-z_$][\w$]*)\s*=\s*"
+    r"(?:async\s*)?(?:function\b|\([^)\n]*\)\s*=>|[A-Za-z_$][\w$]*\s*=>)"
+    r"|class\s+(?P<cls>[A-Za-z_$][\w$]*)"
+    r"|window\.(?P<ns>[A-Za-z_$][\w$]*)\s*="
+    r")",
+    re.MULTILINE,
+)
+
+
+def _javascript_symbols(source: str) -> list[tuple[str, str, int]] | None:
+    """JavaScript/TypeScript adapter: column-0 declaration heuristic.
+
+    Counts top-level function declarations, function-valued const/let/var
+    assignments, class declarations, and ``window.X =`` namespace
+    exports. Symbol LOC is the span to the next top-level declaration —
+    coarse, but ranking-grade. Known under-detection: IIFE-wrapped
+    module bodies (declarations indented one level) yield no symbols;
+    such files come back ``None``-equivalent (empty) rather than wrong.
+    """
+    lines = source.splitlines()
+    matches: list[tuple[int, str]] = []  # (line_index, name)
+    for m in _JS_DECL.finditer(source):
+        name = m.group("fn") or m.group("assigned") or m.group("cls") or m.group("ns")
+        if not name:
+            continue
+        line_index = source.count("\n", 0, m.start())
+        matches.append((line_index, name))
+    symbols: list[tuple[str, str, int]] = []
+    for i, (line_index, name) in enumerate(matches):
+        end = matches[i + 1][0] if i + 1 < len(matches) else len(lines)
+        loc = max(1, end - line_index)
+        symbols.append((name, name, loc))
+    return symbols
+
+
+# Extension → (adapter_name, extractor). The analysis below is
+# language-neutral; this table is the only per-language seam (ADR 0032).
+_ANALYZERS: dict[str, tuple[str, object]] = {
+    ".py": ("python-ast", _python_symbols),
+    ".js": ("js-heuristic", _javascript_symbols),
+    ".mjs": ("js-heuristic", _javascript_symbols),
+    ".cjs": ("js-heuristic", _javascript_symbols),
+    ".ts": ("js-heuristic", _javascript_symbols),
+    ".tsx": ("js-heuristic", _javascript_symbols),
+}
+
+_LANGUAGE_BY_ADAPTER: dict[str, str] = {
+    "python-ast": "python",
+    "js-heuristic": "javascript",
+}
+
+
+def _scan_file(filepath: Path, rel: str) -> dict[str, object] | None:
+    adapter_name, extractor = _ANALYZERS[filepath.suffix.lower()]
+    try:
+        source = filepath.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    extracted = extractor(source)  # type: ignore[operator]
+    if extracted is None:
+        return None
+
+    file_loc = len(source.splitlines())
+    clusters: dict[str, dict[str, object]] = {}
+    symbol_names: list[str] = []
+    for symbol_name, cluster_name, loc in extracted:
+        symbol_names.append(symbol_name)
+        key = _cluster_key(cluster_name)
+        bucket = clusters.setdefault(key, {"symbols": [], "loc": 0})
+        bucket["symbols"].append(symbol_name)  # type: ignore[arg-type]
+        bucket["loc"] = int(bucket["loc"]) + loc  # type: ignore[operator]
 
     # SRP "and"-count: clusters with ≥2 symbols are genuine clusters;
     # single-symbol clusters are noise. Exclude _unclassified from the
@@ -282,6 +368,8 @@ def _scan_file(filepath: Path, rel: str) -> dict[str, object] | None:
     return {
         "type": "omnibus",
         "file": rel,
+        "language": _LANGUAGE_BY_ADAPTER[adapter_name],
+        "analyzer": adapter_name,
         "loc": file_loc,
         "cluster_count": len(ordered_clusters),
         "and_count": and_count,
@@ -305,6 +393,9 @@ def main(argv: list[str] | None = None) -> int:
                    help="Extra file-name globs to skip (repeatable)")
     p.add_argument("--skip-path-glob", action="append", default=[],
                    help="Extra relative-path globs to skip (repeatable)")
+    p.add_argument("--language", action="append", default=[],
+                   choices=sorted(set(_LANGUAGE_BY_ADAPTER.values())),
+                   help="Restrict to these languages (default: all adapters)")
     args = p.parse_args(argv)
 
     if not args.target.exists():
@@ -324,7 +415,15 @@ def main(argv: list[str] | None = None) -> int:
     skip_paths = _DEFAULT_SKIP_PATH_GLOBS + tuple(args.skip_path_glob)
     project_root = args.project_root.resolve()
 
-    files = _walk_python_files(args.target, skip_files, skip_paths, project_root)
+    wanted = set(args.language) or set(_LANGUAGE_BY_ADAPTER.values())
+    extensions = frozenset(
+        ext
+        for ext, (adapter_name, _) in _ANALYZERS.items()
+        if _LANGUAGE_BY_ADAPTER[adapter_name] in wanted
+    )
+    files = _walk_source_files(
+        args.target.resolve(), skip_files, skip_paths, project_root, extensions,
+    )
     records: list[dict[str, object]] = []
     for filepath in files:
         try:

@@ -181,7 +181,7 @@ def classify_stale(contract_path: Path, skillmd_path: Path) -> tuple[bool, str]:
 
     try:
         current_text = skillmd_path.read_text(encoding="utf-8")
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return _timestamp_fallback(contract_path, skillmd_path)
 
     old_fm = frontmatter_block(old_text)

@@ -125,7 +125,7 @@ def _parse_frontmatter_fields(skill_md: Path) -> dict[str, object]:
     fields: dict[str, object] = {}
     try:
         lines = skill_md.read_text(encoding="utf-8").splitlines()
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return fields
     if not lines or lines[0].strip() != "---":
         return fields

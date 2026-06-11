@@ -47,11 +47,20 @@ understandable domains.
 require understanding three domains to change one. AI agents appear to
 understand the file while missing the real contract.
 
+**Languages.** Any — the smell is language-neutral. Detector coverage:
+Python (exact AST) and JavaScript/TypeScript (heuristic adapter); see
+ADR 0032 and `/find-perimeter-gaps` for the current coverage matrix.
+
 **Detector.** `/find-omnibus` — SRP "and" test + cluster-
 count-times-LOC ranking.
 
-**Contract-maker / refactor.** Three options, framed by recency and
-local pain — don't default-frame this as "to refactor or not":
+**Contract-maker / refactor.** Four options, framed by recency and
+local pain — don't default-frame this as "to refactor or not".
+**Check the substrate first** (ADR 0032 rule 3): the first three
+options all assume the target layer has a module/import mechanism,
+test infrastructure, and non-duplicated infrastructure helpers. If any
+of those is missing, the first three options are unexecutable advice
+and the verdict is the fourth.
 
 - **Decompose** — `/refactor-subsystem` with `decomposition` mode
   splits by responsibility cluster into a directory package with a
@@ -67,9 +76,19 @@ local pain — don't default-frame this as "to refactor or not":
   archaeology cost of any reorg outweighs the readability win. A
   `--require-recent-edits` gate enforces this by default; `--force`
   is the explicit override.
+- **Re-architect** — the layer's substrate is missing (e.g. a
+  5K-line script-tag JavaScript file in a project with no module
+  system and no JS tests: splitting it just multiplies globals).
+  Decomposition is blocked on a substrate decision — write the ADR
+  (module mechanism, test story, shared-helper home) first, then
+  decompose under ADR 0017's staging rules. A size-growth guard
+  (grandfathered lint) is the right interim control while the ADR is
+  pending; it stops the bleeding without pretending to be the cure.
 
 Pairs with `ai-docs/decisions/0017-staged-boundary-rearchitecting.md`
-when the decompose option's blast radius forces phasing.
+when the decompose option's blast radius forces phasing, and with
+`ai-docs/decisions/0032-language-general-detection.md` for the
+substrate gate and detector language coverage.
 
 ## 2. Stringly-typed state / tuple-inferred identity
 
