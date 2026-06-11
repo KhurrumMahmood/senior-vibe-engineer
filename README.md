@@ -1,9 +1,14 @@
 # engineering-skills
 
-A portable **senior-engineer skill ecosystem** for AI coding agents. Skills
-that find architectural debt, refactor systematically, author ADRs, and
-convert one-off discoveries into durable guardrails — extracted from a
-real production codebase and generalized for cross-project reuse.
+A **senior-engineer skill ecosystem** for AI coding agents: skills that find
+architectural debt, refactor systematically, author ADRs, and turn one-off
+discoveries into durable guardrails. Extracted from a real production codebase.
+**Today it is Python/Django-flavored** — the lint substrate and most worked
+examples are Django — with a *roadmap* toward language-neutral reuse, not yet a
+proven-portable core (see [Tech assumptions](#tech-assumptions)).
+
+**Where it's headed:** [`VISION.md`](./VISION.md) states the end-state this
+ecosystem converges a project toward — the success criterion the skills serve.
 
 This README is the **human entrypoint**. AI agents (Claude Code, Codex,
 Augment, Cursor, Gemini) should start at
@@ -157,11 +162,13 @@ reports/
 - **stdlib-first** in `_common/` so skills can run before a project venv
   exists; PyYAML is the only required external dep (for shared
   frontmatter parsing, pinned in `requirements.txt`).
-- Some lint rules and skill examples are **Django/Python-flavored** — the
-  host project this ecosystem came from is a Django app. See
-  `.claude/skills/_common/portability-roadmap.md` for the cross-language
-  porting contract; the design has always anticipated TypeScript and
-  Rust adapters.
+- **The lint substrate and worked examples are Django/Python — not just
+  illustration.** The AST lint rules (`no_query_mutation`, `no_bare_delay`, …)
+  are Django/Celery detectors, and the patterns' only proven instances are
+  Django. `.claude/skills/_common/portability-roadmap.md` holds the cross-language
+  porting contract and the design anticipates TypeScript/Rust adapters — but
+  **no non-Django adapter exists yet**, so "portable" is a roadmap, not a
+  current property.
 
 ## Where to read next
 
