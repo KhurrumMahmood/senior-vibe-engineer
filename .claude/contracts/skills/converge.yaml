@@ -1,0 +1,65 @@
+schema_version: 2
+
+skill: converge
+job: triage
+problem_class: "after-phase convergence gating / next-necessary-step routing (TRIAGE)"
+intent: >-
+  After a meaningful phase of work, model the work-in-progress as a small
+  value graph (every dimension must hold at once for "done"), assess each
+  node on cited evidence with unknown-counts-as-weak and
+  authorship-is-not-evidence rules, and emit ADR 0031's fixed verdict:
+  phase_status (advance/repair/branch/park/discard), strongest/weakest
+  nodes, the single next necessary step, why that step, the success gate,
+  the stop condition, and an explicit do-not-do-next refusal list. Advisory
+  and read-only against production code; emits the verdict and stops.
+solves: >-
+  The toolkit's documented convergence failure: after a phase, the next
+  AVAILABLE interesting move wins over the next NECESSARY one —
+  decided-but-unbuilt work accumulates and activity substitutes for
+  outcome. The forward routers (which-shape, which-skill) select work at
+  the start and which-cleanup selects cleanup from the diff at closeout;
+  none reads a work-in-progress after a phase to name the weakest value
+  node, the stop condition, and what to refuse next.
+born:
+  commit: "uncommitted"        # authored 2026-06-11; skill + contract + ADR status change ship together
+  date: "2026-06-11"
+dogfood_kind: none-found
+dogfooded_on:
+  - "Not yet dogfooded — first implementation of a paper-validated design (ADR 0031 provenance). The first real after-phase run should be recorded here and in run_evidence."
+reports_dir: reports/converge
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: ["0031"]
+  precedent: []
+  doc: ["skill-catalog.md"]
+  contract: []
+related_skills: [which-cleanup, which-shape, which-skill, triage-debt, track-idea, decide]
+duplication_risk:
+  - with: which-cleanup
+    relation: sibling-different-layer
+    disambiguator: "which-cleanup is diff-scoped and answers 'which QUALITY SKILLS does this change owe at closeout'; converge is thread-scoped and answers 'should this WORK continue, and if so what single next step'. A converge verdict of advance/repair may name which-cleanup as the guard-tail move; converge never selects cleanup skills from a diff."
+  - with: which-shape
+    relation: sibling-different-layer
+    disambiguator: "which-shape routes the operating loop BEFORE work from a situation description; converge gates AFTER a phase from the work-in-progress + evidence. Symmetric ends of the same thread — forward router vs. after-phase gate (the gap ADR 0031 names)."
+  - with: triage-debt
+    relation: sibling-different-layer
+    disambiguator: "triage-debt is global and periodic over cached find-* reports; converge is one thread, one phase, one verdict. converge's park/discard statuses hand items to track-idea, not to the debt queue."
+  - with: gut-check
+    relation: sibling-different-layer
+    disambiguator: "gut-check is an instinct pass over a proposed move ('does this feel wrong, and why'); converge is a structured gate over completed phase output with a fixed verdict schema and a mandatory stop condition. gut-check can run inside converge's Stage 2 assessment; the verdict shape is converge's alone."
+provenance_confidence:
+  textual: high                # named by slug in ADR 0031's embodied_by, skill-catalog, and this contract
+  structural: med              # prompt-only skill (no scripts/); verdict schema + stage structure present in SKILL.md
+  temporal: high               # contract authored same day as the skill and the ADR 0031 status change
+  dogfood: low                 # not yet run on a real after-phase moment; ADR provenance is a paper-validated design
+evidence:
+  - "ADR 0031 (value-graph-next-step-router) — verdict shape (the fields are the commitment), five-status vocabulary, self-assessed-gate limit, revisit_when trigger fired by explicit decider pull on 2026-06-11."
+  - "ADR 0033 footer convention — SKILL.md carries the source-decision footer; this contract carries embodies_decisions.adr=[0031]; ADR 0031 names skill:converge back (bidirectional link complete)."
+  - "June 2026 effectiveness audit — the activity-not-outcome finding is the documented failure mode this gate exists to interrupt."
+gaps:
+  - "Self-assessed gate: judge and judged are the same actor until outcome telemetry exists (ADR 0031's named limit); Stage 2 bias rules are mitigation, not cure."
+  - "Default value graph (5 engineering nodes) is untuned; expect dogfood runs to adjust node names and the repair-over-advance bias."
+  - "born.commit is 'uncommitted' until the introducing commit lands; skill + contract ship together so the stale band stays clean."

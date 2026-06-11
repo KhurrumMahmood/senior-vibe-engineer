@@ -2,7 +2,7 @@
 id: "0031"
 namespace: core
 title: A value-graph + next-step router is the toolkit's after-phase convergence gate
-status: proposed
+status: accepted
 date: 2026-06-09
 provenance: "Lifted from a sibling creative-tooling project where it was designed and validated on paper but never built — an unbuilt, unenforced design, not implemented or battle-tested here. Offered to core as the convergence primitive for its recurring decided-but-unbuilt / activity-not-outcome failure mode."
 assumes: ["the toolkit's recurring failure is convergence — work fans out into more activity instead of closing on a named outcome — and no existing skill names, after a phase, the single next necessary move and an explicit stop condition"]
@@ -11,6 +11,7 @@ deciders: [khurrum]
 supersedes: []
 superseded_by: null
 applies_to: [ai-docs/decisions/]
+embodied_by: ["skill:converge"]
 tags: [convergence, routing, closure, next-step, stop-condition, primitive]
 related_smell: null
 related_pattern: null
@@ -172,11 +173,24 @@ ADR before adoption.
   and stop condition once this primitive is in use — i.e. closing on momentum
   rather than on a gate.
 
+## Status update (2026-06-11)
+
+The `revisit_when` trigger fired by explicit decider pull: the toolkit's
+2026-06 assessment confirmed the convergence/activity-not-outcome failure
+mode as the live priority, and the decider asked for the build. `/converge`
+(`.claude/skills/converge/`) is the first implementation — verdict shape as
+committed below, default five-node engineering value graph, and the
+self-assessed-gate limit carried verbatim into the skill's Known limits.
+Status moves to **accepted**; `embodied_by: skill:converge` per ADR 0033.
+The implementation is unproven in use (dogfood confidence: low in its
+contract) — acceptance covers the primitive and the verdict shape, not a
+track record.
+
 ## Verification
 
-This ADR is **proposed** and records a design; there is **no implementation to
-verify**. The checks below are the *acceptance criteria for a future build*, plus
-the honesty checks that apply to the ADR as written today.
+The checks below were authored as *acceptance criteria for a future build*
+when this ADR was proposed; with `/converge` built, the "Future" items now
+apply to it directly.
 
 - **Future — verdict completeness:** any built router emits all of
   `phase_status`, `weakest_nodes`, `next_step`, `stop_condition`, and
@@ -189,9 +203,10 @@ the honesty checks that apply to the ADR as written today.
   the router consumes it as the success-gate signal instead of a self-assessed
   one (this is one arm of `revisit_when`).
 - **Today — honesty of provenance:** `provenance` states the source is a validated
-  but **unbuilt** design and that nothing here is implemented or enforced;
-  `status: proposed` matches that. The claim and the status do not exceed the
-  evidence.
+  but (at proposal time) **unbuilt** design; the Status update section records
+  when and why that changed. The claim and the status do not exceed the
+  evidence: acceptance covers the primitive and verdict shape, not a track
+  record.
 - **Today — host-reference guard stays green:** this ADR names no private host or
   proprietary identifier; `scripts/lint/no_host_references.py` passes over it. The
   router is framed as a general engineering primitive and the source is cited only
