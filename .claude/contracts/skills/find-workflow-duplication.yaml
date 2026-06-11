@@ -54,5 +54,5 @@ evidence:
   - "scripts/{detect,report}.py present — stdlib detector + report-emitter structural signature; no fixtures/ pair"
   - "no reports/workflow-duplication dir on disk — no captured ES2 self-scan run"
 gaps:
-  - "pnci's contract had a sharp 6a303b6d topology cohort, +1-day stabilization, and one on-disk active-surface run; ES2 has none of that (big-bang birth, no runs), so temporal is weak and dogfood is none-found here, unlike pnci's med."
+  - "host-a's contract had a sharp 6a303b6d topology cohort, +1-day stabilization, and one on-disk active-surface run; ES2 has none of that (big-bang birth, no runs), so temporal is weak and dogfood is none-found here, unlike host-a's med."
   - "No ADR in ai-docs/decisions/ names find-workflow-duplication (adr is []); intent rests on SKILL.md and the product-topology cohort it ships with."

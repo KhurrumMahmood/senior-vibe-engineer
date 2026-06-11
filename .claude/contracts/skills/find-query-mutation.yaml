@@ -48,4 +48,4 @@ evidence:
   - "has_scripts true, has_fixtures false — AST detector + scout briefs, no good/bad oracle (structural med)"
   - "SKILL.md frontmatter job:suspect, scout_model:cheap — cheap-scout audit pass behind the smell"
 gaps:
-  - "No on-disk run, no fixtures pair, no precedents.yml entry in ES2 — dogfood unproven here (the pnci base leaned on a sibling lint born in pnci; that lint is not part of ES2's skill facts)."
+  - "No on-disk run, no fixtures pair, no precedents.yml entry in ES2 — dogfood unproven here (the host-a base leaned on a sibling lint born in host-a; that lint is not part of ES2's skill facts)."

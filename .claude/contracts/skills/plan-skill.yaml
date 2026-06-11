@@ -43,4 +43,4 @@ evidence:
   - "has_fixtures: false, has_scripts: false — prose-only planning skill; structural signal is low"
 gaps:
   - "No precedents.yml entry names plan-skill and no ADR in ai-docs/decisions/ cites it (adr: []); intent rests on SKILL.md + the quality-coordination-kernel / skill-catalog docs and the single self-scan run."
-  - "Divergence from pnci intent base: pnci's plan-skill is scoped to 'a new PNCI skill'; ES2's is the portable ecosystem intake gate (same job/problem_class, broader host)."
+  - "Divergence from host-a intent base: host-a's plan-skill is scoped to 'a new host-a skill'; ES2's is the portable ecosystem intake gate (same job/problem_class, broader host)."

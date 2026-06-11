@@ -47,4 +47,4 @@ evidence:
   - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scanner present, no oracle pair (structural med)"
   - "reports_dir null, run count 0 — no on-disk layer-violation scan run in this ES2 tree"
 gaps:
-  - "pnci dogfooded this against host service-extraction refactors (subsystem-refactor); ES2 has no host subsystems and no run on disk, so dogfood_kind is honestly none-found here."
+  - "host-a dogfooded this against host service-extraction refactors (subsystem-refactor); ES2 has no host subsystems and no run on disk, so dogfood_kind is honestly none-found here."

@@ -125,7 +125,7 @@
       "0016"
     ]
   },
-  "stale_pnci_adr_numbers_in_skillmd_IGNORE": {
+  "stale_host_adr_numbers_in_skillmd_IGNORE": {
     "find-folder-topology-drift": [
       "0011"
     ],

@@ -57,5 +57,5 @@ evidence:
   - "self-contained scripts/ suite (cotton_inventory, class-chain scanner, helper scanner, collapse, rank, report) — a multi-stage detector signature, but no fixtures/ pair"
   - "no reports/frontend-duplication dir on disk — no captured ES2 self-scan run"
 gaps:
-  - "pnci's contract was the richest dogfood case (subsystem-refactor: a cotton-consolidation commit wave + 4 on-disk runs). ES2 has none of that — no consolidation history in this repo, no runs, no fixtures — so the honest ES2 dogfood_kind is none-found, a sharp divergence from the pnci intent base."
+  - "host-a's contract was the richest dogfood case (subsystem-refactor: a cotton-consolidation commit wave + 4 on-disk runs). ES2 has none of that — no consolidation history in this repo, no runs, no fixtures — so the honest ES2 dogfood_kind is none-found, a sharp divergence from the host-a intent base."
   - "embodies_decisions.adr is []: ADR 0022 (generated-detector lifecycle) names this skill's cotton_inventory.py in applies_to, but as the hardcoded-layout 'first instance' that 0022 exists to REPARAMETERIZE — the motivating artifact, not the realization of the synthesize→freeze→gate mechanism — so 0022 is not attributed. No cotton-components doc is pinned; intent rests on SKILL.md."

@@ -20,7 +20,7 @@ SCRIPT_SRC_RE = re.compile(
 
 # Backend layer segments matched as path *components*, so `app/pages/x.py`,
 # `core/views/x.py`, and `src/services/y.py` all classify by their conventional
-# segment rather than a baked source-root prefix. ADR-0011 split pnci's old
+# segment rather than a baked source-root prefix. ADR-0011 split host-a's old
 # `core/views` into `app/pages` + `app/api`, which a prefix literal would miss.
 _BACKEND_LAYER_SEGMENTS = ("views", "pages", "api", "services", "tasks")
 

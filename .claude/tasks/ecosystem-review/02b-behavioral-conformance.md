@@ -1,6 +1,6 @@
 # 02b — Behavioral Conformance: Pointing skill-comply at the ES3 Ecosystem
 
-_Assessment date: 2026-05-25. Harness baseline: PNCI/experiments/skill-comply/ Stages 1-2 (validate.py: OVERALL PASS, 5 fixtures). ES3 corpus: 67 skills with SKILL.md + _common shared library._
+_Assessment date: 2026-05-25. Harness baseline: host-a/experiments/skill-comply/ Stages 1-2 (validate.py: OVERALL PASS, 5 fixtures). ES3 corpus: 67 skills with SKILL.md + _common shared library._
 
 ---
 

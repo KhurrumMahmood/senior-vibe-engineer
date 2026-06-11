@@ -39,5 +39,5 @@ evidence:
   - "has_scripts: true, has_fixtures: false — strict canonical-name + avoid-term grep against the concepts.yaml glossary"
 gaps:
   - "No precedents.yml entry names find-concept-divergence and no ADR in ai-docs/decisions/ cites it (adr: []); embodiment is the .claude/contracts/concepts.yaml glossary it scans against."
-  - "Divergence from pnci intent base: ES2's SKILL.md adds a `coverage_lint:` escape clause to not_for (set coverage_lint on a superseded concept and the scanner skips co-occurrence noise so a dedicated lint owns the rename) — captured in intent. ES2 also DROPS pnci's /CONTEXT.md doc backref (that file is pnci-specific); embodiment is concepts.yaml only."
-  - "related_skills DROPPED find-doc-link-rot — it is one of the 6 pnci-only skills absent from ES2 (no duplication_risk edge targeted it, so no duplication entry was dropped)."
+  - "Divergence from host-a intent base: ES2's SKILL.md adds a `coverage_lint:` escape clause to not_for (set coverage_lint on a superseded concept and the scanner skips co-occurrence noise so a dedicated lint owns the rename) — captured in intent. ES2 also DROPS host-a's /CONTEXT.md doc backref (that file is host-a-specific); embodiment is concepts.yaml only."
+  - "related_skills DROPPED find-doc-link-rot — it is one of the 6 host-a-only skills absent from ES2 (no duplication_risk edge targeted it, so no duplication entry was dropped)."

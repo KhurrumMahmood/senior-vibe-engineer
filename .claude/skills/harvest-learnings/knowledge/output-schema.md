@@ -83,13 +83,13 @@ heavy rung is stakes-gated. Prompt injection: delimiters + parser-strip
 only). Tag the ladder, not a single point. Full reasoning in ADR 0020
 (`ai-docs/decisions/0020-lifecycle-stakes-standard-activation.md`).
 
-## Worked examples (pnci forge)
+## Worked examples (host-a forge)
 
 | Candidate | Verdict | Activation | Why |
 |---|---|---|---|
 | `silent-catch` — no bare `except: pass` that swallows | **ports** | baseline | "don't silently swallow errors" survives de-stacking; holds in any language |
 | `stringly-status` — state is an enum, not a string | **principle-ports-mechanism-stays** | baseline | typing discipline ports; the `TextChoices` mechanism stays home |
-| `safe-dispatch` — risky dispatch through one guarded wrapper | **principle-ports-mechanism-stays** | baseline | "centralize risky dispatch behind one guarded call" ports; the `safe_dispatch` signature is pnci's |
+| `safe-dispatch` — risky dispatch through one guarded wrapper | **principle-ports-mechanism-stays** | baseline | "centralize risky dispatch behind one guarded call" ports; the `safe_dispatch` signature is host-a's |
 | External-content trust boundary (ADR 0019) | **ports** | baseline (common-sense rung); heavy rung stakes-gated | "treat LLM output + crawled content as untrusted" is general to any crawl+LLM pipeline; second-model screening is a high-stakes rung only |
 | `pies-image-dict` — PIES image dict shape | **stays-home** | — | pure domain (autocare PIES); dies at the domain layer |
 | "ScraperAPI async batch is unreliable" | **stays-home** | — | vendor-specific operational fact, not a standard |

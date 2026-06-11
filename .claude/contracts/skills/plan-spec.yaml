@@ -52,4 +52,4 @@ evidence:
   - "has_scripts false, has_fixtures false — thin terminal stage that delegates to shared scripts/plans.py promote (structural low)"
   - "no reports dir and no plan/spec in ES2 attributable to a plan-spec promotion (dogfood low)"
 gaps:
-  - "embodies_decisions.adr is []: ADRs 0003 and 0017 name plan-spec only as a CONSUMER/transcriber in the planning chain (it promotes an architected plan to a spec), not as the enforcement/realization of either decision. The pnci base's adr:[\"0002\"] was a spec-first attribution that belongs to /refactor-subsystem (the executor), not to plan-spec, so it does not transfer. No precedent names this skill."
+  - "embodies_decisions.adr is []: ADRs 0003 and 0017 name plan-spec only as a CONSUMER/transcriber in the planning chain (it promotes an architected plan to a spec), not as the enforcement/realization of either decision. The host-a base's adr:[\"0002\"] was a spec-first attribution that belongs to /refactor-subsystem (the executor), not to plan-spec, so it does not transfer. No precedent names this skill."

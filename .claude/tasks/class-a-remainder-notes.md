@@ -103,7 +103,7 @@ to constrain this lookup, the right knob would be `load_scope(project_root,
 ## Verification
 
 All commands run with `python3` (stdlib-only; no venv/Django in ES2).
-`cwd` for runs: repo root `/Users/khurrummahmood/Projects/engineering-skills-2`.
+`cwd` for runs: repo root `~/Projects/engineering-skills-2`.
 
 ### 1. Parse checks
 ```

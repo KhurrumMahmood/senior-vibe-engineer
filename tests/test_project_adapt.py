@@ -151,11 +151,11 @@ def test_schema_validators_accept_generated_artifacts(tmp_path):
 
 
 def test_evaluate_dogfood_writes_required_sections(tmp_path):
-    project = tmp_path / "pnci-pricing"
+    project = tmp_path / "host-a"
     artifacts = tmp_path / "dogfood"
     seed_django_repo(project)
 
-    path = project_adapt.evaluate_dogfood(project, artifacts, reference="pnci-pricing")
+    path = project_adapt.evaluate_dogfood(project, artifacts, reference="host-a")
 
     text = path.read_text(encoding="utf-8")
     assert "## Good Inference" in text
@@ -164,8 +164,8 @@ def test_evaluate_dogfood_writes_required_sections(tmp_path):
 
 
 def test_evaluate_dogfood_rejects_artifact_root_inside_target(tmp_path):
-    project = tmp_path / "pnci-pricing"
+    project = tmp_path / "host-a"
     seed_django_repo(project)
 
     with pytest.raises(ValueError, match="outside --project-root"):
-        project_adapt.evaluate_dogfood(project, project / "reports", reference="pnci-pricing")
+        project_adapt.evaluate_dogfood(project, project / "reports", reference="host-a")

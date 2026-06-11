@@ -1,14 +1,14 @@
 """Regression guard: find-layer-violation must scan package ``__init__.py``.
 
 Post-ADR-0011-style layouts carry real view/task code in package
-``__init__.py`` files (e.g. pnci's ``app/pages/<area>/__init__.py``). The
+``__init__.py`` files (e.g. host-a's ``app/pages/<area>/__init__.py``). The
 detector's default skip set once listed ``"__init__.py"`` — a stale assumption
 from the flat ``core/views/*.py`` era — which silently dropped those modules
 from the layer-violation scan (measured: 16 → 19 findings once unskipped). This
 pins the walker to include package ``__init__.py`` while still skipping
 test/conftest files, which legitimately import across layers.
 
-Plain ``unittest`` so the same file runs under Django's test runner (pnci) and
+Plain ``unittest`` so the same file runs under Django's test runner (host-a) and
 pytest (engineering-skills-2) unchanged.
 """
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Host-authored product-workflow definition — de-pnci'd out of `_common` code.
+"""Host-authored product-workflow definition — de-host-a'd out of `_common` code.
 
 The product-topology skills (`/map-product-workflow`,
 `/extract-workflow-registry`, `/find-workflow-duplication`) and the advisory
 product-health skills used to carry one host's workflow baked into module
 constants (`SITE_WORKFLOW_STEPS`, the `/sites` text-file whitelist,
-`DEFAULT_SITES_TARGETS`). That made the toolkit assume pnci's product flow.
+`DEFAULT_SITES_TARGETS`). That made the toolkit assume host-a's product flow.
 
 A workflow is now **host-authored data**: an optional
 `.engineering/docs/product-workflows.md` descriptor in the cross-agent state

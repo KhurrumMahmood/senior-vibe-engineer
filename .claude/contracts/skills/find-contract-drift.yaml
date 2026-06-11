@@ -52,5 +52,5 @@ evidence:
   - "fixtures/good + fixtures/bad present — the band regression oracle (structural high, dogfood high)"
   - "has_scripts true — AST/route-surface detector backs the bands"
 gaps:
-  - "ES2 has no precedents.yml guard entry for this skill (the pnci base cited sites-dom-contract.v1 / product-health-advisory-loop.v1; neither exists in ES2's precedents.yml), so precedent is []."
+  - "ES2 has no precedents.yml guard entry for this skill (the host-a base cited sites-dom-contract.v1 / product-health-advisory-loop.v1; neither exists in ES2's precedents.yml), so precedent is []."
   - "No on-disk self-scan run in ES2; the fixtures pair, not a real /sites run, carries the dogfood signal here."

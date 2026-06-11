@@ -52,4 +52,4 @@ evidence:
   - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scanner present, no oracle pair (structural med)"
   - "reports_dir null, run count 0 — no on-disk semantic-duplication scan run in this ES2 tree"
 gaps:
-  - "Semantic equivalence is a judgment call the script can only triage; the keep_separate verdict needs human review, and ES2 has no run on disk, so dogfood_kind is none-found (already the honest answer in the pnci base too)."
+  - "Semantic equivalence is a judgment call the script can only triage; the keep_separate verdict needs human review, and ES2 has no run on disk, so dogfood_kind is none-found (already the honest answer in the host-a base too)."

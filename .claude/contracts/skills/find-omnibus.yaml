@@ -75,7 +75,7 @@ dogfood_kind: none-found
 dogfooded_on:
 - none-found as a real oracle. There is one on-disk self-scan on the ES2 tree (reports/omnibus/scan-20260516-020044),
   but ES2 has no host-subsystem decomposition refactor driven by it — it is a single self-report, not
-  a dogfood against a confirmed omnibus file. The pnci core/views/site_config.py decomposition is pnci
+  a dogfood against a confirmed omnibus file. The host-a core/views/site_config.py decomposition is host-a
   history, not ES2's.
 reports_dir: reports/omnibus
 run_evidence:
@@ -121,8 +121,8 @@ evidence:
   local-only)
 - has scripts/ but no fixtures/ pair (structural med)
 gaps:
-- The pnci contract recorded dogfood_kind subsystem-refactor against core/views/site_config.py; that is
-  pnci history. ES2 has only one self-scan and no decomposition refactor, so ES2's honest dogfood_kind
+- The host-a contract recorded dogfood_kind subsystem-refactor against core/views/site_config.py; that is
+  host-a history. ES2 has only one self-scan and no decomposition refactor, so ES2's honest dogfood_kind
   is none-found (one self-report is not a trusted oracle).
 - No ADR/precedent references this skill in ES2 — embodies_decisions.adr [], corroboration via architectural-smells.md
   only.

@@ -53,4 +53,4 @@ evidence:
   - "no scripts/, no fixtures/, no reports dir — prose + Agent fan-out skill (structural low)"
 gaps:
   - "No ADR in ai-docs/decisions/ names design-it-twice and no precedents.yml entry for this skill; intent rests on SKILL.md + the two cited docs."
-  - "No on-disk run in ES2, so dogfood is unproven here (the pnci base had one self-run; ES2 has none)."
+  - "No on-disk run in ES2, so dogfood is unproven here (the host-a base had one self-run; ES2 has none)."

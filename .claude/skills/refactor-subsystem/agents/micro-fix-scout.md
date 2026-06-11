@@ -24,7 +24,7 @@ returns.
 | `{{canonical}}` | Spec frontmatter `items.<ID>.canonical` | `TaskDispatchService.safe_dispatch` |
 | `{{canonical_import}}` | Spec frontmatter or derived | `from core.services.task_dispatch import TaskDispatchService` |
 | `{{verification_cmd}}` | Dispatch tuple per file | `tests.test_data_export tests.test_site_capabilities` |
-| `{{worktree}}` | `git rev-parse --show-toplevel` | `/Users/khurrummahmood/Projects/your-project` |
+| `{{worktree}}` | `git rev-parse --show-toplevel` | `~/Projects/your-project` |
 | `{{venv}}` | `knowledge/` | `.venv/bin/python` |
 | `{{branch}}` | `git branch --show-current` | `wip` |
 

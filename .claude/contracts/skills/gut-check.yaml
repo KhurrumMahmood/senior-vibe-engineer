@@ -119,10 +119,10 @@ evidence:
   script' design (structural high)
 - SKILL.md body uses placeholder 'ADR NNNN (slug)' and reads .claude/docs/precedents.yml as the optional
   decision-conflict source — it is deliberately portable and cites NO project-specific ADR ids (diverges
-  from pnci's gut-check, which cited ADR 0001/0006/0008/0017)
+  from host-a's gut-check, which cited ADR 0001/0006/0008/0017)
 gaps:
 - Dogfood:low — prompt-only skills leave no run artifacts, so what it was first exercised on is not recoverable
   from git or disk.
 - 'ES2''s gut-check is the portable form: it references precedents.yml + architectural-smells.md as mechanisms
-  but embodies no specific ADR (it cites a placeholder ''ADR NNNN (slug)'', naming none). The pnci contract''s
-  adr:[0001,0006,0008,0017] are pnci exemplars and do not transfer.'
+  but embodies no specific ADR (it cites a placeholder ''ADR NNNN (slug)'', naming none). The host-a contract''s
+  adr:[0001,0006,0008,0017] are host-a exemplars and do not transfer.'

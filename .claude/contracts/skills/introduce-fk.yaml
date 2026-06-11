@@ -53,4 +53,4 @@ evidence:
   - "precedents.yml explain-job-is-read-only-proposal.v1 names introduce-fk as a transform-named EXPLAIN skill that PROPOSES, not performs"
   - "has_scripts true, has_fixtures false; SKILL.md body cites architectural-smells.md (structural med)"
 gaps:
-  - "No on-disk run in ES2 (the pnci base had a real negative-result run on UrlCollection↔UrlCrawlJob; that history is pnci's, not ES2's), so the dogfood axis stays low."
+  - "No on-disk run in ES2 (the host-a base had a real negative-result run on UrlCollection↔UrlCrawlJob; that history is host-a's, not ES2's), so the dogfood axis stays low."

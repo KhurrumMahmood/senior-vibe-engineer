@@ -50,4 +50,4 @@ evidence:
   - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scanner present, no oracle pair (structural med)"
   - "reports_dir reports/triage-debt is the declared output home, but run count is 0 — no on-disk ranked-queue run in this ES2 tree"
 gaps:
-  - "pnci had 3 on-disk self-runs (dogfood med); ES2 has none, so dogfood drops to low and dogfood_kind is none-found. reports_dir is the SKILL.md-declared path even though no run exists yet. Dropped the pnci related_skills edge to propose-spine (pnci-only skill, absent from ES2)."
+  - "host-a had 3 on-disk self-runs (dogfood med); ES2 has none, so dogfood drops to low and dogfood_kind is none-found. reports_dir is the SKILL.md-declared path even though no run exists yet. Dropped the host-a related_skills edge to propose-spine (host-a-only skill, absent from ES2)."

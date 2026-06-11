@@ -49,4 +49,4 @@ evidence:
   - "no reports_dir and 0 run artifacts on disk — not yet dogfooded in ES2"
 gaps:
   - "ADRs ai-docs/decisions/0013 (idea-tracking) and 0016 (importance-map) both DIRECTLY name find-orphaned-ideas, so embodies_decisions.adr is [\"0013\", \"0016\"]; further corroborated by precedent read-decode-safety.v1 + the idea-ledger / importance-map docs."
-  - "ES2's find-orphaned-ideas SKILL.md matches the pnci intent base (seven modes incl. attention-gap); no reality divergence beyond provenance."
+  - "ES2's find-orphaned-ideas SKILL.md matches the host-a intent base (seven modes incl. attention-gap); no reality divergence beyond provenance."

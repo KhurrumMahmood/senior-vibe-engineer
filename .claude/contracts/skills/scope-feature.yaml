@@ -48,4 +48,4 @@ evidence:
   - "has_scripts false, has_fixtures false — planning skill, no scanner (structural low)"
   - "SKILL.md body cites architectural-smells.md + canonical-patterns.md as read inputs (doc)"
 gaps:
-  - "No on-disk run in ES2 (the pnci base had one scan dir; ES2 has none), and plan outputs live in ai-docs/plans/ untracked by name — dogfood unproven here."
+  - "No on-disk run in ES2 (the host-a base had one scan dir; ES2 has none), and plan outputs live in ai-docs/plans/ untracked by name — dogfood unproven here."

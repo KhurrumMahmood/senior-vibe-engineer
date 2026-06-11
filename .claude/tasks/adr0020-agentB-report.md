@@ -38,7 +38,7 @@ which it deliberately caps), then writes the declared state to
 I built the inference helper as a script (not just a checklist) because
 the "push" half of ADR 0020 calls for an actual pass that flags
 candidate transitions, and the verification step required running it
-against pnci — a documentation-only checklist would make the push side
+against host-a — a documentation-only checklist would make the push side
 vaporware. The script is bounded (~5 cheap regexes, read-only) so it
 earns its place without over-engineering.
 
@@ -66,8 +66,8 @@ when BOTH axes meet its thresholds; re-running overwrites (idempotent).
 - Contract round-trip: wrote the exact Stage-3 schema to a temp path,
   loaded it back, asserted every enum value, `declared_by=="orient"`,
   and ISO8601 `declared_at` → CONTRACT ROUND-TRIP OK.
-- Ran against `/Users/khurrummahmood/Projects/pnci-pricing` read-only.
-  pnci already has a `manual`-declared `.project-state.json`
+- Ran against `<host-a-checkout>` read-only.
+  host-a already has a `manual`-declared `.project-state.json`
   (production / internal — ADR 0020's worked classification), confirming
   my schema/enums match real externally-authored state. Verified I did
   NOT create either repo's state file (both are `declared_by:"manual"`,

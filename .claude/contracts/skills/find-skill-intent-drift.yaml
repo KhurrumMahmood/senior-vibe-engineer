@@ -23,7 +23,7 @@ born:
   sibling_births: []          # only NEW skill dir in its introducing commit (bad0fff); shipped alongside the 67 sibling contracts + _schema.yaml (those skills were born earlier)
 dogfood_kind: self-installed-guard
 dogfooded_on:
-  - "the ES2 contract corpus itself — scan.py ran against the full set this session (skills=68 / contracts=68, TOTAL findings: 0) and regenerated _index.yaml. Provenance was re-derived from ES2's own git history, not copied from the pnci host."
+  - "the ES2 contract corpus itself — scan.py ran against the full set this session (skills=68 / contracts=68, TOTAL findings: 0) and regenerated _index.yaml. Provenance was re-derived from ES2's own git history, not copied from the host-a host."
 reports_dir: none             # meta-guard: durable output is the regenerated _index.yaml in the contracts dir, not a reports/<skill>/ run dir
 run_evidence:
   count: 0
@@ -56,7 +56,7 @@ provenance_confidence:
 evidence:
   - "bad0fff — true birth of SKILL.md (introducing commit, 2026-05-26); all parents lack the file."
   - "scan.py — skills=68 / contracts=68, all four bands 0, TOTAL findings: 0; wrote _index.yaml (the dogfood run on the ES2 corpus)."
-  - "ported from the pnci host as the portable schema+guard; ES2 contracts re-derived from ES2 git history (born SHAs, dogfooded_on, run_evidence are repo-specific)."
+  - "ported from the host-a host as the portable schema+guard; ES2 contracts re-derived from ES2 git history (born SHAs, dogfooded_on, run_evidence are repo-specific)."
   - "_schema.yaml (schema v2) is the contract shape this guard enforces; _duplication-watchlist.yaml rolls up the duplication_risk[] blocks."
   - "dogfood surfaced the _index bootstrap-staleness behavior — a roll-up generated while the contracts are still uncommitted marks every entry 'baseline (contract uncommitted)' and resolves to 'ok' only on a post-commit re-run (now noted in SKILL.md Pipeline)."
 gaps:

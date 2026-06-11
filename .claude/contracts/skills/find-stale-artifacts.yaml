@@ -72,8 +72,8 @@ dogfood_kind: none-found
 dogfooded_on:
 - none-found as a self-installed guard in ES2. There is one on-disk self-scan (reports/find-stale-artifacts/scan-20260516-020146),
   but find-stale-artifacts is a working-artifact SUSPECT scan over ai-docs/+reports/, not an ecosystem-meta
-  guard, and ES2 carries no in-commit cleanup tying the scan to a deletion. The pnci 'clear out the artifacts
-  that motivated it' birth-commit cleanup is pnci history, not ES2's.
+  guard, and ES2 carries no in-commit cleanup tying the scan to a deletion. The host-a 'clear out the artifacts
+  that motivated it' birth-commit cleanup is host-a history, not ES2's.
 reports_dir: reports/find-stale-artifacts
 run_evidence:
   count: 1
@@ -115,8 +115,8 @@ evidence:
   med)
 - reports/find-stale-artifacts — 1 scan dir (scan-20260516-020146), one self-report on the ES2 tree (gitignored)
 gaps:
-- The pnci contract recorded dogfood_kind subsystem-refactor (the motivating in-commit cleanup WAS the
-  dogfood); that is pnci history. ES2 has only one self-scan with no paired deletion, so ES2's honest
+- The host-a contract recorded dogfood_kind subsystem-refactor (the motivating in-commit cleanup WAS the
+  dogfood); that is host-a history. ES2 has only one self-scan with no paired deletion, so ES2's honest
   dogfood_kind is none-found and dogfood confidence is med (a single self-run exists but is not an oracle).
 - SKILL.md not_for references ADR 0005 (agent-rules-design) as a disambiguating boundary, but 0005 names
   find-rule-surface-drift as its scanner, not find-stale-artifacts, so embodies_decisions.adr stays []. No

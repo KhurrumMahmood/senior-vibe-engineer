@@ -53,5 +53,5 @@ evidence:
   - "frontmatter carries a full contract (consumes/produces/evidence_required/risk_triggers/max_overhead) and the body wires scripts/evidence_gate.py check --skill diagnose, but that path is a host-runtime path — ES2's diagnose dir has no scripts/"
   - "no scripts/ and no fixtures/ in the ES2 skill dir; no reports/diagnose run dir on disk"
 gaps:
-  - "pnci's diagnose was self-installed-guard because it shipped scripts/evidence_gate.py in the skill; ES2 ships no scripts/ for diagnose, so the evidence gate is a referenced host-runtime artifact, not a bundled ES2 dogfood. Dogfood is therefore none-found here, not self-installed-guard."
+  - "host-a's diagnose was self-installed-guard because it shipped scripts/evidence_gate.py in the skill; ES2 ships no scripts/ for diagnose, so the evidence gate is a referenced host-runtime artifact, not a bundled ES2 dogfood. Dogfood is therefore none-found here, not self-installed-guard."
   - "No ADR in ai-docs/decisions/ names diagnose (adr is []); the SKILL.md tells the agent to read host CONTEXT.md/ADRs generically rather than embodying a specific ES2 doc, so embodies_decisions.doc is []."

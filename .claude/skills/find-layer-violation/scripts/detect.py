@@ -333,7 +333,7 @@ def _scope_kind(
 
     Host-declared globs (from the `## Views` / `## Tasks` sections of
     find-layer-violation-scope.md) win, so a project whose views don't live
-    under a conventionally-named directory — e.g. pnci's `app/pages/`,
+    under a conventionally-named directory — e.g. host-a's `app/pages/`,
     `app/api/` — is still classified. The generic fallback matches the
     conventional segment names `views` / `tasks` under any top package, so a
     standard layout needs no config.

@@ -52,5 +52,5 @@ evidence:
   - "fixtures/ pair present + scripts/run.py — the SUSPECT detector's regression oracle and the structural guard-install signature"
   - "no reports/find-dead-route-surface dir on disk — no captured ES2 self-scan run"
 gaps:
-  - "pnci's contract pinned this skill to precedents.yml product-health-advisory-loop.v1 and 5 on-disk runs; ES2 has neither (no such precedent entry, no run dir), so the dogfood signal rests on the fixtures oracle alone, not an observed ES2 run."
+  - "host-a's contract pinned this skill to precedents.yml product-health-advisory-loop.v1 and 5 on-disk runs; ES2 has neither (no such precedent entry, no run dir), so the dogfood signal rests on the fixtures oracle alone, not an observed ES2 run."
   - "Birth is the shared big-bang commit, which does not single out the dead-route surface; intent derived from SKILL.md + the fixtures pair."

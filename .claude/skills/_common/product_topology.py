@@ -608,7 +608,7 @@ def normalize_doc_site_route(
 ) -> str:
     """Canonicalise a documented `/ptr/{id}/` or `/ptr/<id>/` to `/ptr/{scoped_id}/`.
 
-    Defaults reproduce the pnci ``sites``/``site_id`` behaviour; callers pass the
+    Defaults reproduce the host-a ``sites``/``site_id`` behaviour; callers pass the
     host's RouteShape values. ``page_prefix`` falsy -> route returned unchanged.
     """
     if not page_prefix:

@@ -16,7 +16,7 @@ Two layers already exist and matter:
   root, narrow only via ignore/allow files, filter by extension" primitive.
 - **workflows.py** (`.claude/skills/_common/workflows.py`): host-authored
   product-workflow descriptor at **`.engineering/docs/product-workflows.md`**
-  (see item 6). Already de-pnci'd: ships no workflow; empty descriptor =
+  (see item 6). Already de-host-a'd: ships no workflow; empty descriptor =
   empty results.
 
 The descriptor home (`.engineering/docs/`) EXISTS in this repo, and
@@ -26,7 +26,7 @@ descriptor files exist as skill fixtures (e.g.
 ---
 
 ## 1. find-folder-topology-drift (CLASS C)
-File: `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/find-folder-topology-drift/scripts/detect.py`
+File: `~/Projects/engineering-skills-2/.claude/skills/find-folder-topology-drift/scripts/detect.py`
 
 **Scan-root default (lines 529-534):**
 ```python
@@ -60,7 +60,7 @@ pathlib — lines 37-42).
 **Single-top-dir assumptions if scanned from repo root:**
 - Band 4 `pages_route_mirror` is hardcoded to `scan_root / "pages"` (line 520)
   — expects `app/pages/`. From repo root it would look at `<root>/pages`.
-- `_PAGES_PARENT_TO_TOKEN` (lines 295-303) is a fixed pnci singularization
+- `_PAGES_PARENT_TO_TOKEN` (lines 295-303) is a fixed host-a singularization
   map (`sites→site`, `runs→run`, …).
 - `sparse_folder_package` band explicitly skips `directory != scan_root`
   (line 414): "skip the scan root itself (its cluster size is the whole
@@ -87,7 +87,7 @@ workflows.py) or graceful-skip when absent.
 ---
 
 ## 2. find-frontend-contract-drift (CLASS C)
-File: `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/find-frontend-contract-drift/scripts/detect.py`
+File: `~/Projects/engineering-skills-2/.claude/skills/find-frontend-contract-drift/scripts/detect.py`
 
 **Roots defaults (lines 686-688):**
 ```python
@@ -120,13 +120,13 @@ argparse dirs).
 **Other hardcoded host assumptions baked into detection (would NOT auto-fix
 by just changing roots):**
 - `_workflow_scope` (lines 101-107): `templates/core/site_config`,
-  `static/js/site-config`, `external_source` → pnci `/sites` literals.
+  `static/js/site-config`, `external_source` → host-a `/sites` literals.
 - `_is_shared_template` (413-419): matches `site_config_base.html`,
   `/includes/`, `base`.
 - `STATIC_JS_RE = {% static 'js/...' %}` (line 40) — Django `{% static %}`
   template-tag assumption.
 - `CANONICAL_BOOT_GLOBAL = "SITES_CONFIG"` + `COMPAT_BOOT_GLOBALS`
-  (lines 79-88) — pnci-specific window globals.
+  (lines 79-88) — host-a-specific window globals.
 
 **What breaks if scanned whole-repo-by-extension instead of by the two dirs:**
 collection-wise nothing (already extension-filtered); more `.html`/`.js` are
@@ -142,8 +142,8 @@ seed roots from `workflow_ui_template_globs`/`workflow_ui_script_globs`.
 ---
 
 ## 3. find-route-sprawl (CLASS C EXEMPLAR — path-agnostic)
-File: `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/find-route-sprawl/scripts/detect.py`
-SKILL.md: `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/find-route-sprawl/SKILL.md`
+File: `~/Projects/engineering-skills-2/.claude/skills/find-route-sprawl/scripts/detect.py`
+SKILL.md: `~/Projects/engineering-skills-2/.claude/skills/find-route-sprawl/SKILL.md`
 
 **Argparse default is `None` (lines 125-130):**
 ```python
@@ -172,7 +172,7 @@ It imports `_common` via the same idiom (lines 10-17):
 
 **What "auto-discover" means — repo-root + ignore via scope (GOOD, not
 app-root guessing).** `discover_root_urlconf` lives in
-`/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/_common/product_topology.py`
+`~/Projects/engineering-skills-2/.claude/skills/_common/product_topology.py`
 (def at **line 346**, full body confirmed). Exact mechanism (lines 358-378):
 ```python
 if skill_name:
@@ -204,14 +204,14 @@ NOTE: `detect()` itself still consumes `route_shape_for(project_root)`
 `## Routes` section (`page_prefix`/`api_prefix`/`scoped_id_param`). With no
 descriptor the RouteShape `is_empty` and `classify_route` returns `"other"`
 for everything → route-sprawl finds nothing rather than assuming `/sites`.
-(There are pnci-default literals like `page_prefix="sites"` only inside helper
+(There are host-a-default literals like `page_prefix="sites"` only inside helper
 fns `route_shape_for`-adjacent code, e.g. product_topology lines 607/621/701,
 used as *fallback args* in standalone helpers, not in the descriptor path.)
 
 ---
 
 ## 4. find-frontend-duplication / cotton_inventory.py (CLASS B — Cotton)
-File: `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/find-frontend-duplication/scripts/cotton_inventory.py`
+File: `~/Projects/engineering-skills-2/.claude/skills/find-frontend-duplication/scripts/cotton_inventory.py`
 
 **Hardcoded Cotton paths:**
 - line 142: `cotton_dir = project_root / "app" / "_components" / "cotton"`
@@ -254,7 +254,7 @@ plain (no Cotton logic).
 ---
 
 ## 5. _common/product_health.py (CLASS B — shared advisory helpers + surface map)
-File: `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/_common/product_health.py`
+File: `~/Projects/engineering-skills-2/.claude/skills/_common/product_health.py`
 
 This is NOT a "ProductSurface classifier"; it is the shared helper library for
 the advisory product-health SUSPECT skills. It imports from `product_topology`
@@ -316,7 +316,7 @@ line 149) — purely a labeling/grouping signal for report output, not a gate.
 **De-bake notes (Principle B/C):** two host couplings here —
 (i) `infer_surface`'s `app/pages/sites`, `templates/core/site_config`,
 `app/site_management`, `app/api/`, `app/services/sites` prefixes plus the
-`"sites_*"` label vocabulary are pnci `/sites`-specific (the default
+`"sites_*"` label vocabulary are host-a `/sites`-specific (the default
 `"sites_surface"` literal is itself a leak); and (ii) the rest of `expand_paths`
 is *already* de-baked — it routes through `workflows.workflow_targets`. So the
 cleanup is mostly `infer_surface`: drive surface labels from descriptor data
@@ -325,7 +325,7 @@ cleanup is mostly `infer_surface`: drive surface labels from descriptor data
 ---
 
 ## 6. product-workflows descriptor mechanism (CLASS B)
-Parser: `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/_common/workflows.py`
+Parser: `~/Projects/engineering-skills-2/.claude/skills/_common/workflows.py`
 Descriptor path: **`.engineering/docs/product-workflows.md`** under the
 cross-agent state home (`engineering_home.docs_path(repo_root, DESCRIPTOR_NAME)`,
 `DESCRIPTOR_NAME = "product-workflows.md"`, line 73). The `.engineering/docs/`
@@ -396,15 +396,15 @@ Every script under `.claude/skills/` that imports `product_health` (grep of
 `product_health` across skill scripts). The advisory product-health skills each
 import it across their `detect.py` / `report.py` / `run.py` trio:
 
-- `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/find-async-lifecycle-drift/scripts/{detect,report,run}.py`
-- `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/find-complexity-hotspots/scripts/{detect,run}.py`
-- `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/find-contract-drift/scripts/{detect,report,run}.py`
-- `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/find-dead-route-surface/scripts/{detect,report,run}.py`
-- `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/find-doc-route-drift/scripts/detect.py`
-- `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/find-test-obligation-drift/scripts/{detect,report,run}.py`
-- `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/find-workflow-state-gaps/scripts/{detect,report,run}.py`
-- `/Users/khurrummahmood/Projects/engineering-skills-2/.claude/skills/map-product-workflow/scripts/generate.py`
-- test: `/Users/khurrummahmood/Projects/engineering-skills-2/tests/test_product_health.py` (exists per grep; verify name)
+- `~/Projects/engineering-skills-2/.claude/skills/find-async-lifecycle-drift/scripts/{detect,report,run}.py`
+- `~/Projects/engineering-skills-2/.claude/skills/find-complexity-hotspots/scripts/{detect,run}.py`
+- `~/Projects/engineering-skills-2/.claude/skills/find-contract-drift/scripts/{detect,report,run}.py`
+- `~/Projects/engineering-skills-2/.claude/skills/find-dead-route-surface/scripts/{detect,report,run}.py`
+- `~/Projects/engineering-skills-2/.claude/skills/find-doc-route-drift/scripts/detect.py`
+- `~/Projects/engineering-skills-2/.claude/skills/find-test-obligation-drift/scripts/{detect,report,run}.py`
+- `~/Projects/engineering-skills-2/.claude/skills/find-workflow-state-gaps/scripts/{detect,report,run}.py`
+- `~/Projects/engineering-skills-2/.claude/skills/map-product-workflow/scripts/generate.py`
+- test: `~/Projects/engineering-skills-2/tests/test_product_health.py` (exists per grep; verify name)
 
 So **8 skills + 1 test module** depend on `product_health.py`. Most consume the
 helper API (`expand_paths`, `finding`, `normalize_record`, `write_scan_outputs`,

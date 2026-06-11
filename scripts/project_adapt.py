@@ -635,7 +635,7 @@ def evaluate_dogfood(project_root: Path, artifact_root: Path, *, reference: str 
     adapter = discover_project(project_root)
     profile = build_profile_from_discovery(adapter)
     expected = []
-    if reference and "pnci" in reference.lower():
+    if reference and "host-a" in reference.lower():
         expected = [
             ("Django stack", "django" in adapter.get("stack", {}).get("frameworks", [])),
             ("venv Python command", any(".venv/bin/python" in c for c in adapter.get("commands", {}).get("test", []))),

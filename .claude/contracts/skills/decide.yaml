@@ -50,4 +50,4 @@ evidence:
   - "no precedents.yml entry names decide; corroboration is the SKILL.md + the canonical-patterns / architectural-smells docs it reads"
 gaps:
   - "embodies_decisions.adr is []: ADR 0003 names /decide explicitly as a NON-editor of the findings ledger, and 0022 names it only as the generic ADR author a decision would be recorded in — neither makes decide the enforcement/realization of that decision, so neither is attributed. Intent rests on SKILL.md + the docs it reads."
-  - "Divergence from pnci intent base: ES2 writes ADRs under ai-docs/decisions/ (pnci used docs/decisions/); doc backref points at ai-docs/decisions/README.md accordingly."
+  - "Divergence from host-a intent base: ES2 writes ADRs under ai-docs/decisions/ (host-a used docs/decisions/); doc backref points at ai-docs/decisions/README.md accordingly."

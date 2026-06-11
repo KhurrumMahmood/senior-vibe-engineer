@@ -14,7 +14,7 @@ born:
   sibling_births: [find-complexity-hotspots, project-interview]   # small, sharp 3-skill cohort — temporal signal is meaningful
 dogfood_kind: none-found
 dogfooded_on:
-  - "none-found (no timestamped self-run on the ES2 tree; reports_dir is null). The SKILL.md documents a PNCI-style --no-host-write dogfood mode, but the facts show no ES2 run artifact, so the dogfood is documented intent, not observed evidence."
+  - "none-found (no timestamped self-run on the ES2 tree; reports_dir is null). The SKILL.md documents a host-a-style --no-host-write dogfood mode, but the facts show no ES2 run artifact, so the dogfood is documented intent, not observed evidence."
 reports_dir: null
 run_evidence:
   count: 0

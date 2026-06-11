@@ -49,4 +49,4 @@ evidence:
   - "has_scripts: false / has_fixtures: false per es2_skill_facts.yaml — prose-only orchestrator, no scanner and no oracle (structural low)"
   - "reports_dir null, run count 0 — no on-disk run in this ES2 tree"
 gaps:
-  - "pnci dogfooded this on host refactors (subsystem-refactor) and shipped scripts; in ES2 it is prose-only (has_scripts false) with no run on disk, so dogfood_kind is honestly none-found and structural is low. The pnci birth-date caveat (split SKILL.md births) is pnci-specific and does not apply — ES2 born cleanly in 90f8567."
+  - "host-a dogfooded this on host refactors (subsystem-refactor) and shipped scripts; in ES2 it is prose-only (has_scripts false) with no run on disk, so dogfood_kind is honestly none-found and structural is low. The host-a birth-date caveat (split SKILL.md births) is host-a-specific and does not apply — ES2 born cleanly in 90f8567."

@@ -53,4 +53,4 @@ evidence:
 gaps:
   - "No ADR in ai-docs/decisions/ names find-doc-route-drift, so embodies_decisions.adr is []."
   - "SKILL.md declares output under reports/doc-route-drift/, but the facts file records no on-disk reports dir / 0 runs in ES2 — reports_dir set to none and the dogfood axis stays low."
-  - "Dropped the pnci duplication_risk edge to find-doc-link-rot (pnci-only skill, absent from ES2)."
+  - "Dropped the host-a duplication_risk edge to find-doc-link-rot (host-a-only skill, absent from ES2)."

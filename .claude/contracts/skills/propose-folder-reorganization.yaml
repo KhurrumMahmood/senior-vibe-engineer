@@ -50,4 +50,4 @@ evidence:
   - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — inspect.py present (gathers cluster + import-impact data), no oracle pair (structural med)"
   - "precedents.yml explain-job-is-read-only-proposal.v1 names .claude/skills/propose-folder-reorganization/SKILL.md in canonical_examples — confirms the read-only-proposal intent"
 gaps:
-  - "pnci dogfooded this on a real host cluster (core/views::site_config, subsystem-refactor); ES2 has no host folders and no run on disk, so dogfood_kind is honestly none-found here."
+  - "host-a dogfooded this on a real host cluster (core/views::site_config, subsystem-refactor); ES2 has no host folders and no run on disk, so dogfood_kind is honestly none-found here."

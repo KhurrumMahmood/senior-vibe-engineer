@@ -1,6 +1,6 @@
 """Tests for host-shaped route classification (.claude/skills/_common).
 
-The product-topology route detectors used to hardcode pnci's `/sites|/api`
+The product-topology route detectors used to hardcode host-a's `/sites|/api`
 shape. Classification is now driven by a host-authored `## Routes` block in
 `.engineering/docs/product-workflows.md` (page/api prefixes + the instance-scope
 converter param). These tests pin: shape parsing, `classify_route`, the
@@ -97,7 +97,7 @@ def test_classify_route_honours_alternate_converter_and_prefix():
     assert pt.classify_route("accounts/<slug:pk>/profile/", shape) == "site_page"
     assert pt.classify_route("accounts/<pk>/profile/", shape) == "site_page"  # bare converter
     assert pt.classify_route("rest/<int:pk>/detail/", shape) == "site_scoped_api"
-    # pnci's literal shape must NOT classify another host's routes.
+    # host-a's literal shape must NOT classify another host's routes.
     assert pt.classify_route("sites/<int:site_id>/setup/", shape) == "other"
 
 
@@ -182,7 +182,7 @@ def test_extract_docs_routes_empty_shape_finds_nothing(tmp_path):
 
 # ---- normalize_doc_site_route -------------------------------------------
 
-def test_normalize_doc_site_route_pnci_defaults():
+def test_normalize_doc_site_route_host_defaults():
     assert pt.normalize_doc_site_route("/sites/{id}/setup/") == "/sites/{site_id}/setup/"
     assert pt.normalize_doc_site_route("/sites/<id>/setup/") == "/sites/{site_id}/setup/"
 

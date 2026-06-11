@@ -32,7 +32,7 @@ For each batch in the plan:
 0. **Re-run the concurrency check (R6; original lesson L-4)** before touching files. The main
    worktree's dirty set changes while the refactor runs:
    ```bash
-   git -C /Users/khurrummahmood/Projects/your-project status --porcelain | \
+   git -C ~/Projects/your-project status --porcelain | \
      grep -E '<code_roots regex>' && echo "COLLISION" || echo "clear"
    ```
    If any file in `code_roots` now shows `M` / `??` in the main worktree,

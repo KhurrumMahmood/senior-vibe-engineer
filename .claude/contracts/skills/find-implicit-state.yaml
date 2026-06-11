@@ -54,5 +54,5 @@ evidence:
   - "has scripts/detect.py; no fixtures/ oracle (has_fixtures false) — structural med, not high"
   - "precedents.yml read-decode-safety.v1 names find-implicit-state/scripts/detect.py as the canonical scanner-skip exemplar"
 gaps:
-  - "DIVERGENCE from the pnci intent base on DOGFOOD only: pnci classed this a subsystem-refactor with a core/ dogfood loop; ES2 has no host subsystem and no fixtures, so dogfood_kind is none-found. embodies_decisions.adr is [\"0001\"] (TextChoices for state) — ai-docs/decisions/0001 exists in ES2 and names ONLY find-implicit-state as the detector built to surface the stringly-typed-state smell, matching the SKILL.md best_for 'Decided in: 0001'."
+  - "DIVERGENCE from the host-a intent base on DOGFOOD only: host-a classed this a subsystem-refactor with a core/ dogfood loop; ES2 has no host subsystem and no fixtures, so dogfood_kind is none-found. embodies_decisions.adr is [\"0001\"] (TextChoices for state) — ai-docs/decisions/0001 exists in ES2 and names ONLY find-implicit-state as the detector built to surface the stringly-typed-state smell, matching the SKILL.md best_for 'Decided in: 0001'."
   - "The read-decode-safety.v1 precedent corroborates the detector's decode-safety convention, not the skill's state-detection intent; recorded because the brief asks to list any precedent whose entry names the skill."

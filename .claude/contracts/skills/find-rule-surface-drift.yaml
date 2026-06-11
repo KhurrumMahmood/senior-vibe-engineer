@@ -56,4 +56,4 @@ evidence:
   - "reports/find-rule-surface-drift/scan-20260516-015741 — one ES2 self-scan against the live .claude/ surface (meta-guard run on the ecosystem)"
 gaps:
   - "Both a fixture-pair skill and a meta-guard with a self-scan; classed fixture-pair per the brief's priority (fixtures present ⇒ the good/bad pair is the oracle). Only one self-scan run on disk, so dogfood is high on the fixtures oracle but the run count alone (1) would be med."
-  - "Dropped the pnci duplication_risk edge to find-augment-mirror-drift (pnci-only skill, absent from ES2)."
+  - "Dropped the host-a duplication_risk edge to find-augment-mirror-drift (host-a-only skill, absent from ES2)."

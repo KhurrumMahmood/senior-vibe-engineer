@@ -2,7 +2,7 @@
 
 ## Summary
 
-Added explicit `scans:` frontmatter fields to 12 SUSPECT skills in both engineering-skills and pnci-pricing projects. Per ADR 0032, `scans:` lists the languages a detector's scan surface actually covers, enabling the perimeter audit to detect coverage gaps. The static/javascript gap (motivating incident from ADR 0032) is now closed.
+Added explicit `scans:` frontmatter fields to 12 SUSPECT skills in both engineering-skills and host-a projects. Per ADR 0032, `scans:` lists the languages a detector's scan surface actually covers, enabling the perimeter audit to detect coverage gaps. The static/javascript gap (motivating incident from ADR 0032) is now closed.
 
 ## Skills Updated (with Evidence)
 
@@ -57,14 +57,14 @@ Added explicit `scans:` frontmatter fields to 12 SUSPECT skills in both engineer
 ## Test Results
 
 - `tests/test_perimeter_gaps.py` and `tests/test_skill_taxonomy.py`: **6 passed** (0.05s)
-- Perimeter gaps audit on pnci-pricing:
+- Perimeter gaps audit on host-a:
   - Before: 8 uncovered gaps (including **static/javascript** 38534 LOC, 74 files — the motivating incident)
   - After: **2 gaps** (only static/css and testing/sql, both expected — no CSS/SQL detectors exist)
   - static/javascript now covered by 9 detectors (find-async-lifecycle-drift, find-comment-drift, find-contract-drift, find-dead-route-surface, find-frontend-contract-drift, find-frontend-duplication, find-test-obligation-drift, find-workflow-duplication, find-workflow-state-gaps)
 
 ## Locations Modified
 
-1. Engineering-skills: `/Users/khurrummahmood/Projects/engineering-skills/.claude/skills/`
+1. Engineering-skills: `~/Projects/engineering-skills/.claude/skills/`
    - find-async-lifecycle-drift/SKILL.md
    - find-comment-drift/SKILL.md
    - find-contract-drift/SKILL.md
@@ -78,5 +78,5 @@ Added explicit `scans:` frontmatter fields to 12 SUSPECT skills in both engineer
    - find-rule-surface-drift/SKILL.md
    - find-stale-artifacts/SKILL.md
 
-2. PNCI Pricing (copied skills): `/Users/khurrummahmood/Projects/pnci-pricing/.claude/skills/`
+2. host-a (copied skills): `<host-a-checkout>/.claude/skills/`
    - Same 12 skills, updated in parallel to maintain consistency

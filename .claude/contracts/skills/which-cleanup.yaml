@@ -23,7 +23,7 @@ solves: >-
   built registry-optional so it is useful in the portable ecosystem before any
   host project supplies a subsystems.yaml.
 born:
-  commit: "uncommitted"        # authored 2026-06-08; ported from the pnci-pricing instantiation, re-derived ES2-native
+  commit: "uncommitted"        # authored 2026-06-08; ported from the host-a instantiation, re-derived ES2-native
   date: "2026-06-08"
 dogfood_kind: self-installed-guard
 dogfooded_on:
@@ -58,7 +58,7 @@ provenance_confidence:
   dogfood: med                 # exercised on ES2's own diff (registry-optional path) + the CI guard; not yet run on an unrelated future task
 evidence:
   - "ADR 0023 (which-cleanup-closeout-router) — registry-consumer role, registry-optional default, forward-vs-triage-debt boundary, coverage namespacing policy."
-  - "Port lineage: mechanism copied from the pnci-pricing instantiation; provenance (ADR number, born commit, dogfood, the registry-optional adaptation) re-derived ES2-native per the cross-repo port discipline."
+  - "Port lineage: mechanism copied from the host-a instantiation; provenance (ADR number, born commit, dogfood, the registry-optional adaptation) re-derived ES2-native per the cross-repo port discipline."
   - "Substrate reuse: scripts/query_planner.py report_for_files() seam; _common/diff_resolution.py (shared with find-test-obligation-drift); each skill's job: frontmatter."
 gaps:
   - "born.commit is 'uncommitted' until the introducing commit lands; skill + contract ship together so the stale band stays clean."

@@ -53,6 +53,6 @@ evidence:
   - "no fixtures/ and no captured reports/product-topology run on disk — the skill's product is a prose map document, and no ES2-authored one exists"
   - "anchors the product-topology MAP→SUSPECT→EXPLAIN loop alongside find-route-sprawl, find-workflow-duplication, extract-workflow-registry (all big-bang siblings)"
 gaps:
-  - "pnci's contract was a subsystem-refactor dogfood case — it had produced a real workflow map (.claude/docs/workflows/sites.md) plus a captured run. ES2 has neither, so the honest dogfood_kind is none-found here, a divergence from the pnci intent base."
+  - "host-a's contract was a subsystem-refactor dogfood case — it had produced a real workflow map (.claude/docs/workflows/sites.md) plus a captured run. ES2 has neither, so the honest dogfood_kind is none-found here, a divergence from the host-a intent base."
   - "Prose/orchestration MAP skill with no detector scripts, so the structural axis is low (unlike the script-bearing SUSPECT siblings); intent rests on SKILL.md and its position in the topology loop."
   - "embodies_decisions.adr is []: ADR 0016 (importance-map) EXPLICITLY excludes map-product-workflow as a unit, and no other ADR names it as a realization, so none is attributed."

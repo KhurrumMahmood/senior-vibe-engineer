@@ -52,5 +52,5 @@ evidence:
   - "has scripts/ doc generator + knowledge/ output-format spec; no fixtures/ oracle (has_fixtures false)"
   - "no .claude/docs/subsystems/ outputs and no reports/map dir on disk in ES2 — nothing mapped here"
 gaps:
-  - "DIVERGENCE from the pnci intent base: pnci classed this subsystem-refactor (two real subsystems mapped to .claude/docs/subsystems/views-collections.md + views-crawling.md, co-born with GUARD lints). ES2 is the portable skill ecosystem with no host subsystems, so nothing has been mapped and dogfood_kind is none-found."
+  - "DIVERGENCE from the host-a intent base: host-a classed this subsystem-refactor (two real subsystems mapped to .claude/docs/subsystems/views-collections.md + views-crawling.md, co-born with GUARD lints). ES2 is the portable skill ecosystem with no host subsystems, so nothing has been mapped and dogfood_kind is none-found."
   - "embodies_decisions.adr is []: ADR 0017 (staged-boundary) names map-subsystem only as a context/signal source feeding the planning chain, not as the enforcement/realization of the decision, so it is not attributed."

@@ -45,4 +45,4 @@ evidence:
   - "no reports_dir and 0 run artifacts on disk — not yet dogfooded in ES2"
 gaps:
   - "No precedents.yml entry names extract-existing-ideas; embodies_decisions.adr is [\"0013\"] (idea-tracking-system, the ADR establishing the two-tier idea system this skill realizes), corroborated by the idea-ledger.md doc."
-  - "ES2's extract-existing-ideas SKILL.md matches the pnci intent base (same job/problem_class, same handoff to brainstorm-ideas); no reality divergence beyond provenance."
+  - "ES2's extract-existing-ideas SKILL.md matches the host-a intent base (same job/problem_class, same handoff to brainstorm-ideas); no reality divergence beyond provenance."

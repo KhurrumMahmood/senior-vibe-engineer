@@ -5,7 +5,7 @@ You are one of several parallel agents authoring per-skill contracts for the
 `.claude/contracts/skills/<skill>.yaml`. Your prompt names the exact subset
 of skills you own. Do ONLY those. Other agents handle the rest.
 
-- **Project root:** `/Users/khurrummahmood/Projects/engineering-skills-2` (cd here)
+- **Project root:** `~/Projects/engineering-skills-2` (cd here)
 - **venv (if you run anything):** `.venv/bin/python`  · **Platform:** darwin/macOS
 - You write files only; no git mutations, no commits.
 
@@ -28,17 +28,17 @@ of skills you own. Do ONLY those. Other agents handle the rest.
 
 ## Two authoring modes
 
-**SHARED skills** (have a pnci contract — see your list): the pnci contract at
-`/Users/khurrummahmood/Projects/pnci-pricing/.claude/contracts/skills/<skill>.yaml`
+**SHARED skills** (have a host-a contract — see your list): the host-a contract at
+`<host-a-checkout>/.claude/contracts/skills/<skill>.yaml`
 is your **intent base**. Transfer `problem_class`, `intent`, `solves`,
 `related_skills`, and `duplication_risk` *relationships* — but:
 - **VERIFY against the ES2 `SKILL.md`.** If ES2's skill differs (narrower,
-  renamed surface, different `not_for`), write ES2's reality, not pnci's.
-- **RE-DERIVE all provenance from ES2 facts.** Never copy pnci's `born`,
+  renamed surface, different `not_for`), write ES2's reality, not host-a's.
+- **RE-DERIVE all provenance from ES2 facts.** Never copy host-a's `born`,
   `dogfooded_on`, `reports_dir`, `run_evidence`, or `provenance_confidence`.
-  Those are pnci's history; ES2's are different (big-bang extraction).
+  Those are host-a's history; ES2's are different (big-bang extraction).
 
-**ES2-ONLY skills** (no pnci contract): author fresh from the ES2 `SKILL.md`
+**ES2-ONLY skills** (no host-a contract): author fresh from the ES2 `SKILL.md`
 + facts. These tend to be ecosystem-bootstrap skills (adapt-project,
 engineer-init, orient, project-interview, which-shape, check-ecosystem-consistency,
 find-standard-gaps, harvest-learnings, find-skill-artifact-drift).
@@ -67,7 +67,7 @@ find-standard-gaps, harvest-learnings, find-skill-artifact-drift).
   Be honest — do not invent a dogfood target.
 - **`run_evidence`:** copy from facts (`count` already excludes `latest`
   symlinks). If `reports_dir` is null, `count: 0`, `first`/`latest`: null.
-- **`provenance_confidence`** (re-assess for ES2, do not copy pnci):
+- **`provenance_confidence`** (re-assess for ES2, do not copy host-a):
   - `textual`: **low** for big-bang (`90f8567`) skills unless born in a named
     later commit; `med`/`high` only if you can see the commit names the skill
     (optional: one `git log --oneline -- .claude/skills/<skill>` is fine, but
@@ -80,11 +80,11 @@ find-standard-gaps, harvest-learnings, find-skill-artifact-drift).
     self-run → med; none → low.
 - **`duplication_risk`:** preserve cross-skill relationships, but **drop or
   repoint any entry whose `with:` skill does NOT exist in ES2** (check
-  `_fanout_partition.yaml`). The COMPLETE set of pnci-only skills absent from
+  `_fanout_partition.yaml`). The COMPLETE set of host-a-only skills absent from
   ES2 (drop/repoint duplication edges pointing at these) is exactly these 6:
   find-augment-mirror-drift, find-broken-file-refs, find-doc-link-rot,
   find-folder-readme-drift, find-spine-drift, propose-spine. Everything else a
-  pnci contract references (e.g. find-contract-drift, find-frontend-contract-drift)
+  host-a contract references (e.g. find-contract-drift, find-frontend-contract-drift)
   DOES exist in ES2 — keep those edges.
   Relation enum: `sequential` | `sibling-different-layer` |
   `shared-doc-coupling` | `genuine-overlap`. Each entry needs a one-line
@@ -106,6 +106,6 @@ find-standard-gaps, harvest-learnings, find-skill-artifact-drift).
 ## When done
 
 Write each `<skill>.yaml`, then reply with: the count you wrote, any skill where
-ES2's reality diverged from the pnci intent base (and how), and any
-`duplication_risk` entries you dropped because the target skill is pnci-only.
+ES2's reality diverged from the host-a intent base (and how), and any
+`duplication_risk` entries you dropped because the target skill is host-a-only.
 Keep the reply short — your durable output is the files.

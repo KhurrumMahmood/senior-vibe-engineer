@@ -78,7 +78,7 @@
     input is the exceptional path (skip or fail-clean), never the common one.
   revisit_when: >
     A shared decode-safe read utility becomes standard in either repo — seeds
-    already exist in-tree (engineering-skills-2 scripts/_subst.py; pnci's
+    already exist in-tree (engineering-skills-2 scripts/_subst.py; host-a's
     ast_pipeline read_source helper). When that lands, the inline-tuple
     convention flips to "call the shared helper" and migration_note's migration
     applies. Also revisit if the skill corpus stops being UTF-8-by-policy (e.g.

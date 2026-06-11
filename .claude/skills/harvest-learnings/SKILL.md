@@ -90,7 +90,7 @@ mkdir -p "$REPORT_DIR"
 Enumerate each surface where a learning was forged. Each is a candidate. Prefer
 **durable handles** (rule name, ADR id, precedent id) as back-links over raw
 `file:line`, which rots.
-- **Lint suite** — every project AST/regex lint IS a forged learning. (pnci:
+- **Lint suite** — every project AST/regex lint IS a forged learning. (host-a:
   `silent-catch`, `stringly-status`, `query-mutation`, `fat-view`,
   `safe-dispatch`, `site-intelligence-boundary`, `pies-image-dict`,
   `no-retailer-references`.) Find them via the linting docs + lint sources.

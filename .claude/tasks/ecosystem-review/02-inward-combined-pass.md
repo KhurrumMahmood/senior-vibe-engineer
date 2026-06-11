@@ -132,11 +132,11 @@ thesis**, not a novel claim.
 ### point-at-existing (do NOT mint duplicates)
 
 - **Behavioral generality** → this pass IS the cross-skill-generality evidence
-  (STAGE2 follow-up #4) for the **pnci** ledger's `skill-spec-conformance-validation`
+  (STAGE2 follow-up #4) for the **host-a** ledger's `skill-spec-conformance-validation`
   (parent; skill-comply is its realization) and `skill-comply-real-run-orchestration`
   (Stage 3 child). The buckets (A=1/B=26/C=40) and the **`antipattern_files`
   oracle blocker** are already owned by that lineage — cite, don't duplicate.
-  (Not writing to pnci's ledger here: a co-located agent is active in pnci;
+  (Not writing to host-a's ledger here: a co-located agent is active in host-a;
   avoid a concurrent jsonl-append race.)
 - **Compiled-build fusion** → the "adopt your own machinery" finding is input to
   es2's `prod-build-compilation-pipeline` intake and the

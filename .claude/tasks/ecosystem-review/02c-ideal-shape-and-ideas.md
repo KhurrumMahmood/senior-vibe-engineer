@@ -100,7 +100,7 @@ by `job:`), the dir-level analog of the existing `<prefix>_*.py` mode.
   precision/recall vs labels); idea 4's 1 guard is the only thing skill-comply can grade
   by "did it fire." The detect/guard imbalance here predicts 02b's bucket sizes.
   - **Cross-session reconciliation (2026-05-25):** a co-located agent just captured the
-    skill-comply future in the **pnci** ledger — parent idea `skill-spec-conformance-validation`
+    skill-comply future in the **host-a** ledger — parent idea `skill-spec-conformance-validation`
     (skill-comply is its realization) with child `skill-comply-real-run-orchestration`
     (Stage 3, proposed/harness). Our behavioral pillar is the **cross-skill generality**
     evidence for that parent idea (STAGE2 follow-up #4). Synthesis must POINT AT those

@@ -1,6 +1,6 @@
 """Structural guard: every skill-script file read is decode-safe.
 
-Propagated from pnci-pricing (precedent read-decode-safety.v1). `read_text`
+Propagated from host-a (precedent read-decode-safety.v1). `read_text`
 decodes as UTF-8 (or locale) and raises UnicodeDecodeError -- a ValueError
 subclass, *not* an OSError -- on the first non-UTF-8 byte. A read whose only
 guard is `except OSError`, or a parse-only handler (json.JSONDecodeError /

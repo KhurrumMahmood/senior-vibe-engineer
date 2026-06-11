@@ -48,5 +48,5 @@ evidence:
   - "scripts/{detect,report}.py present — stdlib detector + report-emitter structural signature; no fixtures/ pair"
   - "no reports/route-sprawl dir on disk — no captured ES2 self-scan run"
 gaps:
-  - "pnci's contract embodied ADR 0006 (folder-organization) and was born in a sharp product-topology cohort (6a303b6d); no ADR in ai-docs/decisions/ names find-route-sprawl, so embodies_decisions.adr is [], and the skill rode the big-bang commit instead of a topology cohort — temporal signal is weak here, unlike pnci."
+  - "host-a's contract embodied ADR 0006 (folder-organization) and was born in a sharp product-topology cohort (6a303b6d); no ADR in ai-docs/decisions/ names find-route-sprawl, so embodies_decisions.adr is [], and the skill rode the big-bang commit instead of a topology cohort — temporal signal is weak here, unlike host-a."
   - "No on-disk runs (run_evidence 0) and no fixtures, so the dogfood axis can't be raised above low in ES2."

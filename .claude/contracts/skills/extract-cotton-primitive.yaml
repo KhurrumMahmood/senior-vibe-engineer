@@ -50,4 +50,4 @@ evidence:
   - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scanner present, no oracle pair (structural med)"
   - "precedents.yml explain-job-is-read-only-proposal.v1 names extract-cotton-primitive in its job=explain proposer list — corroborates the read-only-proposal intent"
 gaps:
-  - "ES2 SKILL.md targets templates/cotton/ (a generic Django+cotton layout), unlike pnci's app/_components/cotton/; the intent transfers but the path target is ES2-generic. No ES2 dogfood run, so dogfood_kind is honestly none-found."
+  - "ES2 SKILL.md targets templates/cotton/ (a generic Django+cotton layout), unlike host-a's app/_components/cotton/; the intent transfers but the path target is ES2-generic. No ES2 dogfood run, so dogfood_kind is honestly none-found."

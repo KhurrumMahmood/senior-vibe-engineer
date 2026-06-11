@@ -27,7 +27,7 @@
 # enforcement/realization of that ADR's decision (bidirectional signal: the skill's SKILL.md
 # cites the ADR AND the ADR names the skill back) — NOT when a skill merely uses an artifact
 # the ADR defines or lists the skill as one example among many (e.g. ADR 0003's findings
-# ledger names ~12 skills but only triage-debt enforces it). Beware stale pnci ADR numbers in
+# ledger names ~12 skills but only triage-debt enforces it). Beware stale host-a ADR numbers in
 # extracted SKILL.md text (e.g. 0010/0011 do not exist in ES2's tree).
 #
 # NOTE (ES2-specific birth signal): the ecosystem was extracted big-bang — 55 skills share

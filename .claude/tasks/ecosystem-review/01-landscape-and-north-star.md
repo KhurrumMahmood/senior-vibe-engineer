@@ -11,7 +11,7 @@ Bounded, read-only diagnostic. 2026-05-25.
 - **Trigger:** the quality/health skills have never been pointed at the
   ecosystem itself; the planning skills visibly overlap without a consistent
   standard; four parallel skill repos (engineering-skills 55 / -2 67 / -3 67 /
-  pnci 64) drift with no declared canonical.
+  host-a 64) drift with no declared canonical.
 
 ## 1. The ecosystem's actual shape (measured)
 
@@ -91,12 +91,12 @@ one-off intakes (`mirror-find-broken-file-refs`, `find-doc-link-rot-skill`,
 `mirror-ast-lint-scaffold` …). Any fix in one copy re-drifts. That is *why* this
 feels like a rabbit hole — until canonical + sync are settled.
 
-- **Should be portable to es2 (currently pnci-only):** `find-spine-drift` +
+- **Should be portable to es2 (currently host-a-only):** `find-spine-drift` +
   `propose-spine` (spine = a general multi-entry-workflow pattern, *not*
-  pnci-specific — user-confirmed), `find-broken-file-refs`, `find-doc-link-rot`,
+  host-a-specific — user-confirmed), `find-broken-file-refs`, `find-doc-link-rot`,
   `find-folder-readme-drift`; `find-augment-mirror-drift` → generalize to
   rule-mirror drift (es2 already has `find-rule-surface-drift`).
-- **Should also reach pnci (currently es2-only):** `find-standard-gaps`,
+- **Should also reach host-a (currently es2-only):** `find-standard-gaps`,
   `find-skill-artifact-drift`, `check-ecosystem-consistency` (host self-audit),
   possibly `harvest-learnings`.
 - **Pending decision:** es3 → v3 canonical; es2 = center; replace ad-hoc

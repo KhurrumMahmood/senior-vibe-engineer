@@ -70,8 +70,8 @@ born:
 dogfood_kind: none-found
 dogfooded_on:
 - none-found (extracted big-bang in 90f8567, not yet dogfooded in this repo). Has a scanner script but
-  no fixtures pair and no reports/duplication run dir on disk in ES2 — the pnci core/ copy-paste sweep
-  that dogfooded this skill is pnci history, not ES2's.
+  no fixtures pair and no reports/duplication run dir on disk in ES2 — the host-a core/ copy-paste sweep
+  that dogfooded this skill is host-a history, not ES2's.
 reports_dir: none
 run_evidence:
   count: 0
@@ -118,8 +118,8 @@ evidence:
 - no reports/duplication dir on disk in ES2 (run_evidence 0) — the skill has not been dogfooded in this
   repo since extraction
 gaps:
-- The pnci contract recorded dogfood_kind subsystem-refactor (a core/ jscpd/ast sweep with matching cluster
-  IDs); that is pnci's history. ES2 was extracted big-bang with no host subsystem and no run artifacts,
+- The host-a contract recorded dogfood_kind subsystem-refactor (a core/ jscpd/ast sweep with matching cluster
+  IDs); that is host-a's history. ES2 was extracted big-bang with no host subsystem and no run artifacts,
   so ES2's honest dogfood_kind is none-found.
 - 'embodies_decisions.adr is []: ADR 0003 (findings-ledger) lists find-duplication only as a PRODUCER of
   findings (one of ~12), not as the ledger''s enforcement/consumer, so it is not attributed; no precedent

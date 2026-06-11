@@ -336,7 +336,7 @@ def _looks_like_query_call(dotted: str) -> bool:
         return True
     if method in QUERYSET_AMBIGUOUS_METHODS:
         # `dict.get`, `list.count`, and `Path.exists` dominate false positives
-        # in PNCI's transformation-heavy code. Require a strong receiver for
+        # in host-a's transformation-heavy code. Require a strong receiver for
         # these ambiguous names.
         return False
     return method in QUERYSET_FLUENT_METHODS

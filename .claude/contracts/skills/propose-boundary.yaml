@@ -52,5 +52,5 @@ evidence:
   - "has scripts/ helper; no fixtures/ oracle (has_fixtures false)"
   - "precedents.yml explain-job-is-read-only-proposal.v1 names propose-boundary explicitly as a transform-named skill that correctly carries job=explain (it PROPOSES, REFACTOR executes)"
 gaps:
-  - "DIVERGENCE from the pnci intent base on DOGFOOD only: pnci dogfooded this on the refactor-subsystem-skill dir + tasks/_shared (2 proposals on disk); ES2 has no host subsystems and no on-disk proposals, so dogfood_kind is none-found. embodies_decisions.adr is [\"0017\"] (staged-boundary-rearchitecting) — ai-docs/decisions/0017 exists in ES2 and names propose-boundary in applies_to as the proposal step, matching the SKILL.md reference."
-  - "Dropped the pnci related_skills entry propose-spine (pnci-only skill, absent from ES2)."
+  - "DIVERGENCE from the host-a intent base on DOGFOOD only: host-a dogfooded this on the refactor-subsystem-skill dir + tasks/_shared (2 proposals on disk); ES2 has no host subsystems and no on-disk proposals, so dogfood_kind is none-found. embodies_decisions.adr is [\"0017\"] (staged-boundary-rearchitecting) — ai-docs/decisions/0017 exists in ES2 and names propose-boundary in applies_to as the proposal step, matching the SKILL.md reference."
+  - "Dropped the host-a related_skills entry propose-spine (host-a-only skill, absent from ES2)."

@@ -108,12 +108,12 @@ Durable project state, when `--apply` is used:
 
 ## Dogfood
 
-For PNCI-style dogfood without touching the host project:
+For host-a-style dogfood without touching the host project:
 
 ```bash
 .venv/bin/python scripts/project_adapt.py discover \
-  --project-root /path/to/pnci-pricing \
-  --artifact-root /private/tmp/engineering-skills-dogfood/pnci-pricing \
+  --project-root /path/to/host-a \
+  --artifact-root /private/tmp/engineering-skills-dogfood/host-a \
   --no-host-write
 ```
 
@@ -121,9 +121,9 @@ Then pair it with `/project-interview` and write an evaluation:
 
 ```bash
 .venv/bin/python scripts/project_adapt.py evaluate \
-  --project-root /path/to/pnci-pricing \
-  --artifact-root /private/tmp/engineering-skills-dogfood/pnci-pricing \
-  --reference pnci-pricing
+  --project-root /path/to/host-a \
+  --artifact-root /private/tmp/engineering-skills-dogfood/host-a \
+  --reference host-a
 ```
 
 Dogfood evaluation is host-read-only: the artifact root must stay
