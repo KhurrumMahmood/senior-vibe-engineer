@@ -4,7 +4,7 @@ title: "Status Projection And Presentation"
 status: architected
 date: 2026-06-12
 authors: [khurrum, claude-code]
-motivating_decision: null
+motivating_decision: "0037"
 successor_spec: null
 subsystems: [scripts, reports, engineering-state, skills-routing]
 workflows: []
