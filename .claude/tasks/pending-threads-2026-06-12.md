@@ -13,12 +13,12 @@ PARKED (deliberate).
 
 | Thread | Route |
 |---|---|
-| Remaining class sweeps: missing declared-verdict block; ceremony stages (output consumed by nothing); read-only-dispatch+write contracts | one detector+fix batch per class, repair-skill Stage-8 style |
+| Class-1 batch: author declared-verdict blocks (41 hits, spec in class-sweeps-spec.md) | needs authored fixes — batch campaign, verify per skill |
+| Class-2 batch: 4 ceremony stages (remove or wire a consumer) + 3 borderline | small judgment batch off the same spec |
 | Next full repair loops: /fix-workflow, /prevent-regression | /repair-skill; prevent-regression is Bucket A — verify via skill-comply, the first machine-checked repair |
 | Class-lift rollout to /diagnose Phase 7 + /fix-workflow closeout | small spec'd edits via the repair loop |
-| skill-comply: fix inherited wrong-name doc/code discrepancy; then recall-axis fixture; then first Bucket-B oracle (proposer completeness) | direct small fix; then incremental scorers per 02b |
-| success-game/initial-chat.md harvest (early agent-governance design trace) | one sweep agent, ledger intakes |
-| meta-failure-audit-kit port (adversarial lane for change specs / ADRs) | port agent, parity-first like skill-comply |
+| skill-comply: recall-axis fixture; then first Bucket-B oracle (proposer completeness) | incremental scorers per 02b (wrong-name fix landed, 413bd93) |
+| meta-failure-audit-kit wiring (six-lens decision-point pass into /repair-skill + /decide) | /plan-skill intake; port landed at scripts/meta_failure_audit (ea8717d) |
 
 ## Design (needs a written experiment before execution)
 
@@ -56,4 +56,7 @@ which-cleanup de-baked; P4 belief-re-arm fused; class-lift gate
 installed; forgotten-sweep + triage; es2 question retired; ~15 ledger
 intakes/lessons banked; /repair-skill text-alone pass (6/6 gaps fixed,
 re-verified YES, 8c1d008); parents[4] sweep (12/12 scripts de-baked,
-61326ed, record in skill-repairs/parents4-sweep-fix.md).
+61326ed, record in skill-repairs/parents4-sweep-fix.md); backlog wave
+of four agents: skill-comply wrong-name C2 fix (413bd93), success-game
+harvest (6 intakes), meta-failure-kit port (ea8717d), three class-sweep
+detectors run + class-3 mechanical batch fixed (558778b).
