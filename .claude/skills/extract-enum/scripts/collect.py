@@ -728,6 +728,23 @@ def _find_model_declaration_file(
     return None
 
 
+# spec:status-projection-and-presentation::IM-5
+def _write_scope_sidecar(artifact_dir: Path, paths: list[str]) -> None:
+    """scope.json sidecar (ADR 0037) — declares which repo paths this
+    artifact's conclusions depend on, so the status projection can flag
+    input drift. Strictly additive; silently skipped when the toolkit
+    helper is absent (skill vendored without scripts/_lib)."""
+    helper = Path(__file__).resolve().parents[4] / "scripts" / "_lib" / "artifact_scope.py"
+    if not helper.is_file():
+        return
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("artifact_scope", helper)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.write_scope(artifact_dir, paths)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     src = parser.add_mutually_exclusive_group(required=True)
@@ -858,6 +875,10 @@ def main(argv: list[str] | None = None) -> int:
     args.output.write_text(
         json.dumps(target, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+    )
+    _write_scope_sidecar(
+        args.output.parent,
+        sorted({decl["field_file"], *target["callers_by_file"]}),
     )
 
     # Stderr summary.
