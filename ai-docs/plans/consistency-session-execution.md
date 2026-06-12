@@ -85,13 +85,16 @@ never fully executes and a project that never reaches coherent form.
   LOCALLY: *done when* a ledger event on `operator-composition-ledger`
   in THIS repo links the brief's path and first-experiment result —
   cross-repo memory is not a mechanism.
-- **W-G — The assurance loop itself.** *Done when the mechanism
-  exists, not when the cadence is intended:* either a scheduled
-  routine or a session-start hook that surfaces non-terminal plans
-  silent >14 days, with its id/path recorded here. Until then the
-  cadence is manual (every 2 weeks) and this W-item stays open. Track
-  A's pending-approvals section takes over the watching only via an
-  explicit handover event recorded against this plan.
+- **W-G — The assurance loop itself.** Operator direction (2026-06-12):
+  **execution-first** — the cadence for THIS project is "the pending
+  work gets done, then dogfooded on a meaningful target," not new
+  watcher machinery. Mechanism: Track A's session-start hook (already
+  in W-A scope for queue items) is extended to also surface
+  non-terminal plans silent >14 days — one mechanism, built once,
+  inside the work already scheduled. Until it lands: manual biweekly
+  sweep (`/find-orphaned-ideas --stale-plans`, now regression-tested
+  to actually fire). *Done when:* the hook exists and its path is
+  recorded here, via an explicit handover event on this plan.
 
 **Out of scope.** Executing W-C/W-E/W-F work themselves (each has its
 own vehicle); any new feature work not enumerated above.
