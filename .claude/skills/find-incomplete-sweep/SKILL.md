@@ -13,7 +13,7 @@ description: |
   abandoned partial work from legitimate post-completion cleanup via residue
   direction. Detection-only — never edits code; hands off to /fix-workflow.
 argument-hint: "[--band kwarg|placeholder|all] --paths scripts ... [--min-callsites 4] [--majority-frac 0.75] [--min-present 3] [--max-age-days 120] [--out DIR] [--no-gate]"
-allowed-tools: Bash, Read, Grep, Glob, Write
+allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect

@@ -2,7 +2,7 @@
 name: mature-existing-ideas
 description: Research an existing ledger entry (or a batch of entries carrying the needs-research marker), append research-log notes to the ledger, and optionally clear markers as evidence accumulates. The orchestrator does the research (project doc grep, external Web/Context7 lookups, prior-art surveys); the helper script appends the resulting note event(s) and marker transitions. Read .claude/docs/idea-ledger.md when authoring or debugging this skill.
 argument-hint: "<slug> | --all-needs-research | --topic <topic> [--clear-needs-research] [--clear-underdeveloped] [--adversarial] [--accept-on-loop]"
-allowed-tools: Bash, Read, WebSearch, WebFetch
+allowed-tools: Bash, Read, WebSearch, WebFetch, Agent
 user-invocable: true
 tier: cross-cutting
 job: meta
