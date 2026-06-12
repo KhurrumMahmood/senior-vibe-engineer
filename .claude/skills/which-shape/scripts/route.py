@@ -42,49 +42,17 @@ STOPWORDS = {
     "could", "would", "may", "might", "just", "really", "right", "what",
 }
 
-# Boost-arm cue constants. shapes.yml is the source of truth: each
-# constant mirrors its shape's strong cues (PROJECT_INTAKE_CUES may also
-# draw from normal cues). `--validate` fails on drift via
-# CUE_CONSTANT_SYNC below.
-DIRECT_CUES = {"typo", "one-line", "oneline", "trivial", "tiny", "narrow", "obvious"}
-BUG_CUES = {"bug", "broken", "failing", "failure", "traceback", "exception", "error"}
-PROJECT_INTAKE_CUES = {"adapt", "adapter", "onboard", "onboarding", "unknown", "repo", "project", "codebase"}
-INTAKE_FORCE_CUES = {"adapt", "adapter", "onboard", "onboarding", "unknown", "inherited"}
-LEGACY_CUES = {"legacy", "messy", "chaotic", "stabilize", "stabilization", "vibe-coded"}
-HEALTH_CUES = {"audit", "scan", "health", "sweep"}
-REGRESSION_CUES = {"prevent", "guard", "recurring", "repeated", "again", "keeps"}
-DECISION_CUES = {"decision", "decide", "adr", "tradeoff", "choose"}
-FEATURE_CUES = {"feature", "add", "endpoint", "capability", "workflow"}
-REFACTOR_CUES = {"approved", "proposal", "execute", "refactor"}
-CONCEPT_RENAME_CUES = {"concept", "glossary", "supersede", "terminology", "deprecate"}
-CLOSEOUT_CUES = {"closeout", "cleanup", "stabilize", "finished", "wrap-up", "post-commit"}
-
-# Shape ids with a boost arm in _score_shape. `--validate` fails when a
-# shapes.yml id is missing here; keep in sync when adding an arm.
-BOOSTED_SHAPE_IDS = {
-    "project-intake", "direct-change", "concept-rename", "bug-fix",
-    "feature-shaping", "legacy-stabilization", "health-audit",
-    "refactor-execution", "regression-prevention", "decision-capture",
-    "task-closeout",
-}
-
-# (constant name, constant, shape id, cue keys it may draw from).
-# Strong-only constants must equal the shape's strong set exactly; mixed
-# constants must stay a subset of the allowed keys' union.
-CUE_CONSTANT_SYNC = [
-    ("DIRECT_CUES", DIRECT_CUES, "direct-change", ("strong",)),
-    ("BUG_CUES", BUG_CUES, "bug-fix", ("strong",)),
-    ("PROJECT_INTAKE_CUES", PROJECT_INTAKE_CUES, "project-intake", ("strong", "normal")),
-    ("INTAKE_FORCE_CUES", INTAKE_FORCE_CUES, "project-intake", ("strong",)),
-    ("LEGACY_CUES", LEGACY_CUES, "legacy-stabilization", ("strong",)),
-    ("HEALTH_CUES", HEALTH_CUES, "health-audit", ("strong",)),
-    ("REGRESSION_CUES", REGRESSION_CUES, "regression-prevention", ("strong",)),
-    ("DECISION_CUES", DECISION_CUES, "decision-capture", ("strong",)),
-    ("FEATURE_CUES", FEATURE_CUES, "feature-shaping", ("strong",)),
-    ("REFACTOR_CUES", REFACTOR_CUES, "refactor-execution", ("strong",)),
-    ("CONCEPT_RENAME_CUES", CONCEPT_RENAME_CUES, "concept-rename", ("strong",)),
-    ("CLOSEOUT_CUES", CLOSEOUT_CUES, "task-closeout", ("strong",)),
-]
+# Boost weights live in shapes.yml as data (frame review F4b / Path A);
+# there is no in-code per-shape table left. A shape's `boost:` block is
+# either the simple form {cues, weight, rationale} or the rules form
+# {mode, rules}, where each rule = {conditions, weight, rationale} and
+# conditions are AND-ed, [] meaning "always". The condition vocabulary is
+# deliberately tiny and schema-validated — not an expression language.
+BOOST_MODES = {"first-match", "additive"}
+BOOST_CONDITION_TYPES = {"cue-hit", "context-missing", "not-narrow"}
+_SIMPLE_BOOST_KEYS = {"cues", "weight", "rationale", "narrow_signal"}
+_RULES_BOOST_KEYS = {"mode", "rules", "narrow_signal"}
+_RULE_KEYS = {"conditions", "weight", "rationale"}
 
 
 def tokenize(text: str) -> set[str]:
@@ -101,6 +69,97 @@ def _load_yaml(path: Path) -> dict[str, Any]:
     return data
 
 
+def _is_cue_list(value: Any) -> bool:
+    return isinstance(value, list) and bool(value) and all(isinstance(item, str) and item for item in value)
+
+
+def _is_weight(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _simple_boost_ids(shapes: list[Any]) -> set[str]:
+    """Shape ids whose boost is the simple {cues, weight, rationale} form."""
+    out: set[str] = set()
+    for shape in shapes:
+        if not isinstance(shape, dict):
+            continue
+        boost = shape.get("boost")
+        if isinstance(boost, dict) and "cues" in boost and "rules" not in boost and "mode" not in boost:
+            out.add(str(shape.get("id")))
+    return out
+
+
+def _validate_condition(label: str, cond: Any, simple_ids: set[str], errors: list[str]) -> None:
+    if not isinstance(cond, dict):
+        errors.append(f"{label} must be a mapping")
+        return
+    ctype = cond.get("type")
+    if ctype not in BOOST_CONDITION_TYPES:
+        errors.append(f"{label}: unknown condition type {ctype!r} (allowed: {sorted(BOOST_CONDITION_TYPES)})")
+        return
+    if ctype == "cue-hit":
+        if ("cues" in cond) == ("cues_from" in cond):
+            errors.append(f"{label}: cue-hit needs exactly one of cues / cues_from")
+        if "cues" in cond and not _is_cue_list(cond["cues"]):
+            errors.append(f"{label}: cues must be a non-empty list of strings")
+        if "cues_from" in cond and cond["cues_from"] not in simple_ids:
+            errors.append(f"{label}: cues_from must name a shape with a simple cues/weight boost")
+        extra = set(cond) - {"type", "cues", "cues_from"}
+    else:
+        extra = set(cond) - {"type"}
+    if extra:
+        errors.append(f"{label}: unexpected keys {sorted(extra)}")
+
+
+def _validate_boost(sid: str, boost: Any, simple_ids: set[str], errors: list[str]) -> None:
+    label = f"{sid}: boost"
+    if not isinstance(boost, dict):
+        errors.append(f"{label} must be a mapping (use {{}} to declare no boost)")
+        return
+    if not boost:
+        return  # explicit opt-out: the shape deliberately has no boost
+    if "narrow_signal" in boost and not isinstance(boost["narrow_signal"], bool):
+        errors.append(f"{label}.narrow_signal must be a boolean")
+    if "rules" in boost or "mode" in boost:
+        extra = set(boost) - _RULES_BOOST_KEYS
+        if extra:
+            errors.append(f"{label}: unexpected keys {sorted(extra)}")
+        if boost.get("mode") not in BOOST_MODES:
+            errors.append(f"{label}.mode must be one of {sorted(BOOST_MODES)}")
+        rules = boost.get("rules")
+        if not isinstance(rules, list) or not rules:
+            errors.append(f"{label}.rules must be a non-empty list")
+            return
+        for rindex, rule in enumerate(rules):
+            rlabel = f"{label}.rules[{rindex}]"
+            if not isinstance(rule, dict):
+                errors.append(f"{rlabel} must be a mapping")
+                continue
+            extra = set(rule) - _RULE_KEYS
+            if extra:
+                errors.append(f"{rlabel}: unexpected keys {sorted(extra)}")
+            if not _is_weight(rule.get("weight")):
+                errors.append(f"{rlabel}.weight must be an integer")
+            if not isinstance(rule.get("rationale"), str) or not rule.get("rationale"):
+                errors.append(f"{rlabel}.rationale must be a non-empty string")
+            conditions = rule.get("conditions")
+            if not isinstance(conditions, list):
+                errors.append(f"{rlabel}.conditions must be a list ([] means always)")
+                continue
+            for cindex, cond in enumerate(conditions):
+                _validate_condition(f"{rlabel}.conditions[{cindex}]", cond, simple_ids, errors)
+    else:
+        extra = set(boost) - _SIMPLE_BOOST_KEYS
+        if extra:
+            errors.append(f"{label}: unexpected keys {sorted(extra)}")
+        if not _is_cue_list(boost.get("cues")):
+            errors.append(f"{label}.cues must be a non-empty list of strings")
+        if not _is_weight(boost.get("weight")):
+            errors.append(f"{label}.weight must be an integer")
+        if not isinstance(boost.get("rationale"), str) or not boost.get("rationale"):
+            errors.append(f"{label}.rationale must be a non-empty string")
+
+
 def validate_shapes_payload(payload: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     if payload.get("schema_version") != SCHEMA_VERSION:
@@ -110,8 +169,9 @@ def validate_shapes_payload(payload: dict[str, Any]) -> list[str]:
         errors.append("shapes must be a non-empty list")
         return errors
 
+    simple_ids = _simple_boost_ids(shapes)
     seen: set[str] = set()
-    required = {"id", "title", "summary", "first_next", "sequence", "stop", "cues", "alternatives"}
+    required = {"id", "title", "summary", "first_next", "sequence", "stop", "cues", "alternatives", "boost"}
     for index, shape in enumerate(shapes):
         if not isinstance(shape, dict):
             errors.append(f"shape {index} must be a mapping")
@@ -128,6 +188,10 @@ def validate_shapes_payload(payload: dict[str, Any]) -> list[str]:
             errors.append(f"{sid or index}: missing keys {sorted(missing)}")
         if not isinstance(shape.get("sequence"), list) or not shape.get("sequence"):
             errors.append(f"{sid or index}: sequence must be a non-empty list")
+        if "boost" in shape:
+            _validate_boost(str(sid or index), shape["boost"], simple_ids, errors)
+        if "context_exempt" in shape and not isinstance(shape["context_exempt"], bool):
+            errors.append(f"{sid or index}: context_exempt must be a boolean")
         cues = shape.get("cues")
         if not isinstance(cues, dict):
             errors.append(f"{sid or index}: cues must be a mapping")
@@ -136,37 +200,6 @@ def validate_shapes_payload(payload: dict[str, Any]) -> list[str]:
             values = cues.get(key, [])
             if not isinstance(values, list) or any(not isinstance(item, str) for item in values):
                 errors.append(f"{sid or index}: cues.{key} must be a list of strings")
-    return errors
-
-
-def validate_scorer_coverage(shapes: list[dict[str, Any]]) -> list[str]:
-    """Fail loudly when shapes.yml and the scorer drift apart.
-
-    Two checks (frame review F4b): every shape id must have a boost arm
-    in _score_shape (an unboosted shape can almost never win), and the
-    module cue constants must stay in sync with the registry's cues.
-    """
-    errors: list[str] = []
-    ids = {str(shape["id"]) for shape in shapes}
-    for sid in sorted(ids - BOOSTED_SHAPE_IDS):
-        errors.append(f"{sid}: no boost arm in _score_shape — add one and list it in BOOSTED_SHAPE_IDS")
-    for sid in sorted(BOOSTED_SHAPE_IDS - ids):
-        errors.append(f"{sid}: boost arm references a shape id missing from shapes.yml")
-    by_id = {str(shape["id"]): shape for shape in shapes}
-    for name, constant, sid, keys in CUE_CONSTANT_SYNC:
-        shape = by_id.get(sid)
-        if shape is None:
-            continue  # already reported above
-        allowed: set[str] = set()
-        for key in keys:
-            allowed |= set(shape.get("cues", {}).get(key, []))
-        extra = constant - allowed
-        if extra:
-            errors.append(f"{name}: cues not in {sid} {'+'.join(keys)} cues: {sorted(extra)}")
-        if keys == ("strong",):
-            missing = allowed - constant
-            if missing:
-                errors.append(f"{name}: missing {sid} strong cues: {sorted(missing)}")
     return errors
 
 
@@ -213,8 +246,76 @@ def _cue_set(shape: dict[str, Any], key: str) -> set[str]:
     return set(shape.get("cues", {}).get(key, []))
 
 
-def _score_shape(shape: dict[str, Any], task_tokens: set[str], context: dict[str, Any]) -> tuple[int, list[str]]:
-    sid = str(shape["id"])
+def _boost_block(shape: dict[str, Any]) -> dict[str, Any]:
+    boost = shape.get("boost")
+    return boost if isinstance(boost, dict) else {}
+
+
+def _boost_rules(shape: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
+    """Normalize a boost block to (mode, rules); the simple form is sugar
+    for one additive cue-hit rule."""
+    boost = _boost_block(shape)
+    if not boost:
+        return "additive", []
+    if "rules" in boost:
+        return str(boost["mode"]), list(boost["rules"])
+    return "additive", [{
+        "conditions": [{"type": "cue-hit", "cues": boost["cues"]}],
+        "weight": boost["weight"],
+        "rationale": boost["rationale"],
+    }]
+
+
+def _boost_cue_vocabulary(shape: dict[str, Any]) -> set[str]:
+    """The literal boost-trigger tokens a shape declares (cues_from
+    references resolve to the other shape and are excluded here)."""
+    boost = _boost_block(shape)
+    if "cues" in boost:
+        return set(boost["cues"])
+    vocab: set[str] = set()
+    for rule in boost.get("rules", []):
+        for cond in rule.get("conditions", []):
+            if cond.get("type") == "cue-hit" and "cues" in cond:
+                vocab |= set(cond["cues"])
+    return vocab
+
+
+def narrow_cue_union(shapes: list[dict[str, Any]]) -> set[str]:
+    """Tokens marking a task as narrow: the boost vocabularies of shapes
+    flagged `narrow_signal: true` (read by the not-narrow condition)."""
+    out: set[str] = set()
+    for shape in shapes:
+        if _boost_block(shape).get("narrow_signal"):
+            out |= _boost_cue_vocabulary(shape)
+    return out
+
+
+def _condition_holds(
+    cond: dict[str, Any],
+    task_tokens: set[str],
+    context_missing: bool,
+    narrow: bool,
+    shapes_by_id: dict[str, dict[str, Any]],
+) -> bool:
+    ctype = cond["type"]
+    if ctype == "cue-hit":
+        if "cues" in cond:
+            cues = set(cond["cues"])
+        else:
+            cues = set(_boost_block(shapes_by_id[cond["cues_from"]])["cues"])
+        return bool(task_tokens & cues)
+    if ctype == "context-missing":
+        return context_missing
+    return not narrow  # not-narrow — the only remaining schema-validated type
+
+
+def _score_shape(
+    shape: dict[str, Any],
+    task_tokens: set[str],
+    context: dict[str, Any],
+    shapes_by_id: dict[str, dict[str, Any]],
+    narrow_cues: set[str],
+) -> tuple[int, list[str]]:
     strong_hits = task_tokens & _cue_set(shape, "strong")
     normal_hits = task_tokens & _cue_set(shape, "normal")
     negative_hits = task_tokens & _cue_set(shape, "negative")
@@ -228,55 +329,20 @@ def _score_shape(shape: dict[str, Any], task_tokens: set[str], context: dict[str
         rationale.append(f"negative cues: {', '.join(sorted(negative_hits))}")
 
     context_missing = context["state"] == "missing"
-    narrow = bool(task_tokens & (DIRECT_CUES | BUG_CUES | DECISION_CUES | REGRESSION_CUES))
+    narrow = bool(task_tokens & narrow_cues)
 
-    if sid == "project-intake":
-        intake_hits = task_tokens & PROJECT_INTAKE_CUES
-        forced = bool(task_tokens & INTAKE_FORCE_CUES)
-        if context_missing and intake_hits and (forced or not narrow):
-            score += 36
-            rationale.append("project context is missing and the task asks for repo/project orientation")
-        elif context_missing and forced:
-            score += 18
-            rationale.append("project context is missing")
-        else:
-            score -= 30
-            rationale.append("project intake is not the immediate blocker")
-    elif sid == "direct-change" and task_tokens & DIRECT_CUES:
-        score += 34
-        rationale.append("task looks narrow enough to skip routing overhead")
-    elif sid == "bug-fix" and task_tokens & BUG_CUES:
-        score += 30
-        rationale.append("task starts from a failure symptom")
-    elif sid == "legacy-stabilization" and task_tokens & LEGACY_CUES:
-        score += 30
-        rationale.append("task describes messy or inherited structure")
-    elif sid == "health-audit" and task_tokens & HEALTH_CUES:
-        score += 30
-        rationale.append("task asks for an advisory scan")
-    elif sid == "regression-prevention" and task_tokens & REGRESSION_CUES:
-        score += 30
-        rationale.append("task is about recurrence or guardrails")
-        if task_tokens & BUG_CUES:
-            score += 8
-            rationale.append("failure symptom is paired with recurrence language")
-    elif sid == "decision-capture" and task_tokens & DECISION_CUES:
-        score += 34
-        rationale.append("task names a durable choice")
-    elif sid == "feature-shaping" and task_tokens & FEATURE_CUES:
-        score += 26
-        rationale.append("task asks for new behavior")
-    elif sid == "refactor-execution" and task_tokens & REFACTOR_CUES:
-        score += 24
-        rationale.append("task names an approved refactor/proposal shape")
-    elif sid == "concept-rename" and task_tokens & CONCEPT_RENAME_CUES:
-        score += 30
-        rationale.append("task names a glossary-level concept or terminology change")
-    elif sid == "task-closeout" and task_tokens & CLOSEOUT_CUES:
-        score += 30
-        rationale.append("task asks for post-work cleanup or closeout")
+    mode, rules = _boost_rules(shape)
+    for rule in rules:
+        if all(
+            _condition_holds(cond, task_tokens, context_missing, narrow, shapes_by_id)
+            for cond in rule["conditions"]
+        ):
+            score += rule["weight"]
+            rationale.append(rule["rationale"])
+            if mode == "first-match":
+                break
 
-    if context_missing and sid not in {"project-intake", "direct-change", "bug-fix", "decision-capture"}:
+    if context_missing and not shape.get("context_exempt"):
         score -= 4
     return score, rationale or ["fallback shape candidate"]
 
@@ -371,9 +437,11 @@ def route(
     shapes = load_shapes(shapes_path)
     context = project_context_state(project_root)
     task_tokens = tokenize(task)
+    shapes_by_id = {str(shape["id"]): shape for shape in shapes}
+    narrow_cues = narrow_cue_union(shapes)
     ranked: list[tuple[int, dict[str, Any], list[str]]] = []
     for shape in shapes:
-        score, rationale = _score_shape(shape, task_tokens, context)
+        score, rationale = _score_shape(shape, task_tokens, context, shapes_by_id, narrow_cues)
         ranked.append((score, shape, rationale))
     ranked.sort(key=lambda item: (-item[0], item[1]["id"]))
 
@@ -491,10 +559,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.validate:
-            shapes = load_shapes(args.shapes)
-            coverage_errors = validate_scorer_coverage(shapes)
-            if coverage_errors:
-                raise ValueError("; ".join(coverage_errors))
+            load_shapes(args.shapes)  # schema includes the boost blocks
             print("shapes OK")
             return 0
         task = " ".join(args.task).strip()

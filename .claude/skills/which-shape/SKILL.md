@@ -104,11 +104,14 @@ update. Add a skill to a shape only when it changes the operating loop;
 purely tactical skills can stay out after that review is captured in the
 ecosystem state.
 
-After editing `shapes.yml`, run `route.py --validate` — it checks the
-schema, that every shape has a scorer boost arm, and that the scorer's
-cue constants match the registry's cues. Two pieces of per-shape
-knowledge still live in `scripts/route.py`, not the registry: the
-`narrow`-task cue union and the context-missing exemption set.
+Boost weights are registry data too: every shape declares a `boost:`
+block in `shapes.yml` (simple `cues`/`weight`/`rationale`, or a small
+schema-validated rules form for conditional boosts; `boost: {}` is an
+explicit opt-out), plus the `narrow_signal` and `context_exempt` flags.
+The scorer holds no per-shape table — adding a shape never requires
+editing `scripts/route.py`. After editing `shapes.yml`, run
+`route.py --validate` — it checks the schema, including every boost
+block.
 
 ## Project Context
 

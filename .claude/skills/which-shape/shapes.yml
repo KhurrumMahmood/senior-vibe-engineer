@@ -1,4 +1,21 @@
 schema_version: 1
+# Boost blocks are data, not code (frame review F4b / Path A). Every shape
+# MUST declare `boost:` — an empty mapping `boost: {}` is an explicit
+# opt-out. Two forms:
+#
+#   simple:  boost: {cues: [...], weight: N, rationale: "..."}
+#            fires once when any cue token appears in the task.
+#   rules:   boost: {mode: first-match|additive, rules: [...]}
+#            each rule = {conditions: [...], weight: N, rationale: "..."};
+#            conditions are AND-ed; [] means "always". Condition types
+#            (deliberately minimal, schema-validated — not an expression
+#            language): cue-hit (cues: [...] or cues_from: <shape-id with a
+#            simple boost>), context-missing, not-narrow.
+#
+# `narrow_signal: true` marks a shape's boost cues as contributing to the
+# "narrow task" union that project-intake's not-narrow condition reads.
+# `context_exempt: true` (shape level) skips the -4 penalty applied to all
+# other shapes when project context is missing.
 shapes:
   - id: project-intake
     title: Project Intake
@@ -14,6 +31,30 @@ shapes:
       normal: [repo, project, codebase, context, profile, start, localize]
       negative: [typo, one-line, trivial, traceback]
     alternatives: [legacy-stabilization, health-audit]
+    context_exempt: true
+    boost:
+      mode: first-match
+      rules:
+        - conditions:
+            - {type: context-missing}
+            - {type: cue-hit, cues: [adapt, adapter, onboard, onboarding, unknown, repo, project, codebase]}
+            - {type: cue-hit, cues: [adapt, adapter, onboard, onboarding, unknown, inherited]}
+          weight: 36
+          rationale: "project context is missing and the task asks for repo/project orientation"
+        - conditions:
+            - {type: context-missing}
+            - {type: cue-hit, cues: [adapt, adapter, onboard, onboarding, unknown, repo, project, codebase]}
+            - {type: not-narrow}
+          weight: 36
+          rationale: "project context is missing and the task asks for repo/project orientation"
+        - conditions:
+            - {type: context-missing}
+            - {type: cue-hit, cues: [adapt, adapter, onboard, onboarding, unknown, inherited]}
+          weight: 18
+          rationale: "project context is missing"
+        - conditions: []
+          weight: -30
+          rationale: "project intake is not the immediate blocker"
 
   - id: direct-change
     title: Direct Change
@@ -29,6 +70,12 @@ shapes:
       normal: [rename, small, simple, docs, copy, text]
       negative: [architecture, subsystem, unknown, inherited, repeated, concept, domain, glossary, wide, terminology]
     alternatives: [bug-fix, decision-capture]
+    context_exempt: true
+    boost:
+      narrow_signal: true
+      cues: [typo, one-line, oneline, trivial, tiny, narrow, obvious]
+      weight: 34
+      rationale: "task looks narrow enough to skip routing overhead"
 
   - id: concept-rename
     title: Concept Rename
@@ -44,6 +91,10 @@ shapes:
       normal: [domain, rename, identifier, sweep, wide]
       negative: [local, variable, one-line, oneline, single, trivial, typo]
     alternatives: [decision-capture, task-closeout]
+    boost:
+      cues: [concept, glossary, supersede, terminology, deprecate]
+      weight: 30
+      rationale: "task names a glossary-level concept or terminology change"
 
   - id: bug-fix
     title: Bug Fix
@@ -60,6 +111,14 @@ shapes:
       normal: [fix, reproduce, root, regression, crash]
       negative: [new, feature, scaffold, onboard]
     alternatives: [regression-prevention, legacy-stabilization]
+    context_exempt: true
+    boost:
+      narrow_signal: true
+      # "crash" restored: boosted pre-repair via BUG_CUES, lost in the
+      # constant-sync narrowing; a normal cue, but a clear bug signal.
+      cues: [bug, broken, failing, failure, traceback, exception, error, crash]
+      weight: 30
+      rationale: "task starts from a failure symptom"
 
   - id: feature-shaping
     title: Feature Shaping
@@ -75,6 +134,13 @@ shapes:
       normal: [new, expose, build, plan, scope, design, system]
       negative: [typo, dead, duplicate, repeated]
     alternatives: [decision-capture, direct-change]
+    boost:
+      # "new" restored: boosted pre-repair via FEATURE_CUES, lost in the
+      # constant-sync narrowing. It stays a negative cue for bug-fix,
+      # regression-prevention, and task-closeout.
+      cues: [feature, add, endpoint, capability, workflow, new]
+      weight: 26
+      rationale: "task asks for new behavior"
 
   - id: legacy-stabilization
     title: Legacy Stabilization
@@ -91,6 +157,10 @@ shapes:
       normal: [cleanup, slow, branchy, inherited, standardize, canonize, debt]
       negative: [typo, one-line, accepted, proposal]
     alternatives: [health-audit, project-intake]
+    boost:
+      cues: [legacy, messy, chaotic, stabilize, stabilization, vibe-coded]
+      weight: 30
+      rationale: "task describes messy or inherited structure"
 
   - id: health-audit
     title: Health Audit
@@ -106,6 +176,10 @@ shapes:
       normal: [find, inspect, periodic, review, hotspots, complexity, duplication]
       negative: [typo, approved, implement]
     alternatives: [legacy-stabilization, regression-prevention]
+    boost:
+      cues: [audit, scan, health, sweep]
+      weight: 30
+      rationale: "task asks for an advisory scan"
 
   - id: refactor-execution
     title: Refactor Execution
@@ -122,6 +196,12 @@ shapes:
       normal: [extract, split, move, cluster, spec, planned]
       negative: [unknown, brainstorm, audit, scan]
     alternatives: [legacy-stabilization, regression-prevention]
+    boost:
+      # "extract" and "split" restored: boosted pre-repair via
+      # REFACTOR_CUES, lost in the constant-sync narrowing.
+      cues: [approved, proposal, execute, refactor, extract, split]
+      weight: 24
+      rationale: "task names an approved refactor/proposal shape"
 
   - id: regression-prevention
     title: Regression Prevention
@@ -138,6 +218,21 @@ shapes:
       normal: [regression, enforce, lint, rule, policy, back, recurring-bug, should-have-guarded]
       negative: [new, unknown, brainstorm]
     alternatives: [bug-fix, decision-capture]
+    boost:
+      mode: additive
+      narrow_signal: true
+      # "regression" and "back" restored: boosted pre-repair via
+      # REGRESSION_CUES, lost in the constant-sync narrowing.
+      rules:
+        - conditions:
+            - {type: cue-hit, cues: [prevent, guard, recurring, repeated, again, keeps, regression, back]}
+          weight: 30
+          rationale: "task is about recurrence or guardrails"
+        - conditions:
+            - {type: cue-hit, cues: [prevent, guard, recurring, repeated, again, keeps, regression, back]}
+            - {type: cue-hit, cues_from: bug-fix}
+          weight: 8
+          rationale: "failure symptom is paired with recurrence language"
 
   - id: decision-capture
     title: Decision Capture
@@ -153,6 +248,12 @@ shapes:
       normal: [architecture, option, fork, durable, policy, convention]
       negative: [typo, trivial, scan]
     alternatives: [feature-shaping, direct-change]
+    context_exempt: true
+    boost:
+      narrow_signal: true
+      cues: [decision, decide, adr, tradeoff, choose]
+      weight: 34
+      rationale: "task names a durable choice"
 
   - id: task-closeout
     title: Task Closeout
@@ -169,3 +270,7 @@ shapes:
       normal: [changed, touched, diff, staged, after, done, sweep, tidy, harden]
       negative: [start, new, feature, onboard, unknown]
     alternatives: [health-audit, regression-prevention]
+    boost:
+      cues: [closeout, cleanup, stabilize, finished, wrap-up, post-commit]
+      weight: 30
+      rationale: "task asks for post-work cleanup or closeout"

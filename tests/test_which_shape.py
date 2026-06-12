@@ -85,39 +85,130 @@ def test_validate_passes_on_real_registry(capsys):
     assert "shapes OK" in capsys.readouterr().out
 
 
-def test_validate_fails_on_shape_without_boost_arm(tmp_path, capsys):
-    payload = _registry_payload()
-    payload["shapes"].append({
+def _mystery_shape(**overrides) -> dict:
+    shape = {
         "id": "mystery-shape",
         "title": "Mystery Shape",
-        "summary": "Added to the registry without a scorer boost arm.",
+        "summary": "Added to the registry for validation tests.",
         "first_next": "/orient",
         "sequence": ["/orient"],
         "stop": "Stop.",
         "cues": {"strong": ["mystery"], "normal": [], "negative": []},
         "alternatives": [],
-    })
-    shapes_path = tmp_path / "shapes.yml"
-    shapes_path.write_text(yaml.safe_dump(payload), encoding="utf-8")
-
-    assert route.main(["--validate", "--shapes", str(shapes_path)]) == 2
-    assert "mystery-shape: no boost arm" in capsys.readouterr().err
+    }
+    shape.update(overrides)
+    return shape
 
 
-def test_validate_fails_on_cue_constant_drift(tmp_path, capsys):
+def _validate_registry_with(tmp_path, shape: dict) -> tuple[int, str]:
     payload = _registry_payload()
-    for shape in payload["shapes"]:
-        if shape["id"] == "direct-change":
-            shape["cues"]["strong"].remove("typo")  # DIRECT_CUES now has an extra cue
-        if shape["id"] == "bug-fix":
-            shape["cues"]["strong"].append("brand-new-cue")  # BUG_CUES now misses one
+    payload["shapes"].append(shape)
     shapes_path = tmp_path / "shapes.yml"
     shapes_path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+    return route.main(["--validate", "--shapes", str(shapes_path)]), str(shapes_path)
 
-    assert route.main(["--validate", "--shapes", str(shapes_path)]) == 2
-    err = capsys.readouterr().err
-    assert "DIRECT_CUES" in err and "typo" in err
-    assert "BUG_CUES" in err and "brand-new-cue" in err
+
+def test_validate_fails_on_shape_without_boost_block(tmp_path, capsys):
+    # F4b guard, data-driven form: every shape must declare a boost block
+    # (an empty mapping is the explicit opt-out).
+    code, _ = _validate_registry_with(tmp_path, _mystery_shape())
+    assert code == 2
+    assert "boost" in capsys.readouterr().err
+
+
+def test_validate_accepts_explicitly_empty_boost_block(tmp_path, capsys):
+    code, shapes_path = _validate_registry_with(tmp_path, _mystery_shape(boost={}))
+    assert code == 0
+    assert "shapes OK" in capsys.readouterr().out
+    # And the unboosted shape still routes on its base cues without crashing.
+    result = route.route("mystery", tmp_path, Path(shapes_path))
+    assert result["recommendation"]["shape"] == "mystery-shape"
+
+
+def test_validate_fails_on_malformed_boost_blocks(tmp_path, capsys):
+    cases = [
+        # (boost block, expected error fragment)
+        ({"cues": ["mystery"], "weight": "30", "rationale": "r"}, "weight must be an integer"),
+        ({"cues": [], "weight": 30, "rationale": "r"}, "cues must be a non-empty list"),
+        ({"cues": ["mystery"], "weight": 30, "rationale": "r", "wieght": 1}, "unexpected keys"),
+        ({"mode": "sometimes", "rules": [{"conditions": [], "weight": 1, "rationale": "r"}]},
+         "mode must be one of"),
+        ({"mode": "additive", "rules": [{"conditions": [{"type": "moon-phase"}], "weight": 1, "rationale": "r"}]},
+         "unknown condition type"),
+        ({"mode": "additive", "rules": [{"conditions": [{"type": "cue-hit"}], "weight": 1, "rationale": "r"}]},
+         "exactly one of cues / cues_from"),
+        ({"mode": "additive",
+          "rules": [{"conditions": [{"type": "cue-hit", "cues_from": "no-such-shape"}], "weight": 1, "rationale": "r"}]},
+         "cues_from must name a shape with a simple cues/weight boost"),
+        ({"mode": "additive",
+          # regression-prevention has a rules-form boost: not a valid cues_from target
+          "rules": [{"conditions": [{"type": "cue-hit", "cues_from": "regression-prevention"}], "weight": 1, "rationale": "r"}]},
+         "cues_from must name a shape with a simple cues/weight boost"),
+    ]
+    for boost, fragment in cases:
+        code, _ = _validate_registry_with(tmp_path, _mystery_shape(boost=boost))
+        err = capsys.readouterr().err
+        assert code == 2, boost
+        assert fragment in err, (boost, err)
+
+
+# --- Path A parity battery ----------------------------------------------------
+# Scores recorded from the pre-migration scorer (hard-coded boost arms,
+# commit-time baseline in .claude/tasks/skill-repairs/which-shape/
+# parity_baseline.json). The data-driven registry reproduced every entry
+# byte-for-byte BEFORE the vocabulary restoration; the four prompts marked
+# "restored" then changed intentionally when the trimmed boost tokens
+# (crash / regression / back / new / extract / split) were re-added as data.
+PARITY_BATTERY = [
+    # (prompt, shape, score, confidence)
+    ("help me with the thing we discussed", "bug-fix", 0, "low"),  # fallback tiebreak
+    ("this is not a typo, the whole subsystem terminology is wrong", "concept-rename", 28, "medium"),
+    ("fix one-line typo in the status label", "direct-change", 58, "high"),
+    ("this bug keeps coming back", "regression-prevention", 50, "high"),
+    ("this failure keeps coming back; prevent the regression again", "regression-prevention", 78, "high"),
+    ("onboard an unknown inherited repo and figure out what loop to run", "project-intake", 76, "high"),
+    ("adapt this codebase", "project-intake", 52, "high"),
+    ("this project feels messy and slow; identify the right cleanup loop", "legacy-stabilization", 46, "high"),
+    ("what should we audit for a broad health sweep", "health-audit", 62, "high"),
+    ("choose the durable architecture tradeoff and record an ADR", "decision-capture", 78, "high"),
+    ("add a new endpoint for the export workflow", "feature-shaping", 62, "high"),
+    ("execute the approved refactor proposal", "refactor-execution", 68, "high"),
+    ("rename the domain concept across the glossary and all surfaces", "concept-rename", 58, "high"),
+    ("the work is finished; run a closeout cleanup over the changed files", "task-closeout", 66, "high"),
+    # restored vocabulary — intentional deltas vs the narrowed scorer:
+    ("the app shows a crash on startup", "bug-fix", 34, "medium"),  # was bug-fix/4/low
+    ("stop this regression from coming back", "regression-prevention", 34, "medium"),  # was bug-fix/4/low (tiebreak)
+    ("build a new export page", "feature-shaping", 30, "medium"),  # was feature-shaping/4/low
+    ("extract the service and split the module", "refactor-execution", 28, "medium"),  # was refactor-execution/4/low
+]
+
+
+def test_parity_battery_against_recorded_scores(tmp_path):
+    for prompt, shape, score, confidence in PARITY_BATTERY:
+        rec = route.route(prompt, tmp_path)["recommendation"]
+        got = (rec["shape"], rec["score"], rec["confidence"])
+        assert got == (shape, score, confidence), (prompt, got)
+
+
+def test_restored_boost_tokens_come_from_data(tmp_path):
+    # The curated re-added tokens must trigger their shapes' boosts via
+    # shapes.yml, at boosted (>= medium) confidence — the routing-quality
+    # regression the constant-sync narrowing introduced.
+    rec = route.route("the app shows a crash on startup", tmp_path)["recommendation"]
+    assert rec["shape"] == "bug-fix"
+    assert rec["confidence"] == "medium"
+    assert "task starts from a failure symptom" in rec["rationale"]
+
+    rec = route.route("stop this regression from coming back", tmp_path)["recommendation"]
+    assert rec["shape"] == "regression-prevention"
+    assert "task is about recurrence or guardrails" in rec["rationale"]
+
+
+def test_regression_compound_boost_reads_bug_cues_via_cues_from(tmp_path):
+    # cues_from: bug-fix now includes the restored "crash" token.
+    rec = route.route("the crash keeps happening again", tmp_path)["recommendation"]
+    assert rec["shape"] == "regression-prevention"
+    assert "failure symptom is paired with recurrence language" in rec["rationale"]
 
 
 def test_recommendation_events_do_not_pollute_skill_useful_rate(tmp_path):
