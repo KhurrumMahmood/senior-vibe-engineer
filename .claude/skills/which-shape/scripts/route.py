@@ -233,11 +233,68 @@ def _inactive_steps(
     return [{"skill": name, "reason": reason} for name, reason in out.items()]
 
 
+# spec:status-projection-and-presentation::IM-9
+def load_status_signals(project_root: Path, status_path: Path | None = None) -> list[str]:
+    """Projection-derived rationale extras (ADR 0037: advisory, additive-only).
+
+    Returns [] when status.json is absent, unreadable, or stale (its
+    generated_at predates the live context sources route.py reads
+    directly) — the live read stays authoritative, and with the file
+    absent the route output is byte-identical to the ungrounded run.
+    """
+    from datetime import datetime, timezone
+
+    path = status_path or project_root / ".engineering" / "local" / "status.json"
+    if not path.is_file():
+        return []
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        generated_at = datetime.fromisoformat(doc["generated_at"])
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+        return []  # noqa: silent-catch: malformed projection = no grounding, never an error (degrade-silently contract)
+    live_sources = [
+        _eh.project_dir(project_root) / "adapter.yml",
+        _eh.project_dir(project_root) / "profile.yml",
+        _eh.project_dir(project_root) / "open-questions.md",
+        project_root / ".engineering" / "project-state.json",
+    ]
+    for source in live_sources:
+        if source.is_file():
+            mtime = datetime.fromtimestamp(source.stat().st_mtime, tz=timezone.utc)
+            if mtime > generated_at:
+                return []  # projection predates a live source — drop silently
+
+    sections = doc.get("sections") or {}
+    signals: list[str] = []
+
+    approvals = sections.get("pending_approvals") or {}
+    if approvals.get("available") and approvals.get("pending_count"):
+        signals.append(
+            f"project status: {approvals['pending_count']} proposal(s) pending approval"
+        )
+    staleness = sections.get("staleness") or {}
+    if staleness.get("available") and staleness.get("stale_count"):
+        signals.append(
+            f"project status: {staleness['stale_count']} artifact(s) stale against their inputs"
+        )
+    queue = sections.get("queue") or {}
+    staged = [i for i in queue.get("items", []) if i.get("status") == "staged"]
+    if queue.get("available") and staged:
+        signals.append(f"project status: {len(staged)} staged work item(s) in the queue")
+    in_flight = sections.get("in_flight") or {}
+    if in_flight.get("available") and in_flight.get("active_plans"):
+        signals.append(
+            f"project status: {len(in_flight['active_plans'])} plan(s) in flight"
+        )
+    return signals[:3]
+
+
 def route(
     task: str,
     project_root: Path,
     shapes_path: Path = DEFAULT_SHAPES,
     skills_dir: Path = SKILLS_DIR,
+    status_path: Path | None = None,
 ) -> dict[str, Any]:
     if not task.strip():
         raise ValueError("empty situation description")
@@ -261,7 +318,7 @@ def route(
         "first_next": winner["first_next"],
         "sequence": winner["sequence"],
         "stop": winner["stop"],
-        "rationale": rationale,
+        "rationale": rationale + load_status_signals(project_root, status_path),
         "inactive_steps": _inactive_steps(
             winner["first_next"], winner["sequence"], project_root, skills_dir
         ),
@@ -345,6 +402,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
     parser.add_argument("--shapes", type=Path, default=DEFAULT_SHAPES)
     parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--status", type=Path, default=None,
+        help="status.json override (default: <project-root>/.engineering/local/status.json; "
+             "absent file = ungrounded run, byte-identical output).",
+    )
     parser.add_argument("--validate", action="store_true", help="Validate shapes.yml and exit.")
     parser.add_argument("--skip-log", action="store_true")
     parser.add_argument("--log", type=Path, default=None, help="Override skill-use log path.")
@@ -358,7 +420,7 @@ def main(argv: list[str] | None = None) -> int:
             print("shapes OK")
             return 0
         task = " ".join(args.task).strip()
-        result = route(task, args.project_root.resolve(), args.shapes)
+        result = route(task, args.project_root.resolve(), args.shapes, status_path=args.status)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

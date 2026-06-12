@@ -172,6 +172,62 @@ def test_render_markdown_surfaces_inactive_steps(tmp_path):
     assert "no interview step here" in md
 
 
+# --- status.json grounding (spec IM-9, AR-5) ---------------------------------
+
+
+def _grounded_doc(pending: int = 2) -> dict:
+    return {
+        "schema_version": 1,
+        "generated_at": "2026-06-12T00:00:00+00:00",
+        "root": "x",
+        "sections": {
+            "pending_approvals": {"available": True, "pending_count": pending, "items": []},
+            "staleness": {"available": True, "stale_count": 0, "artifacts": []},
+            "queue": {"available": False, "reason": "none"},
+            "in_flight": {"available": False, "reason": "none"},
+        },
+    }
+
+
+def test_route_json_byte_identical_when_status_absent(tmp_path):
+    """AR-5: with no status.json, grounding must not change a single byte."""
+    task = "this project feels messy and slow; identify the right cleanup loop"
+    baseline = json.dumps(route.route(task, tmp_path), indent=2, sort_keys=True)
+    grounded = json.dumps(
+        route.route(task, tmp_path, status_path=tmp_path / "nope.json"),
+        indent=2, sort_keys=True,
+    )
+    assert baseline == grounded
+
+
+def test_route_rationale_cites_projection_signal_when_present(tmp_path):
+    status = tmp_path / "status.json"
+    status.write_text(json.dumps(_grounded_doc(pending=2)))
+    result = route.route(
+        "this project feels messy and slow; identify the right cleanup loop",
+        tmp_path, status_path=status,
+    )
+    cited = [r for r in result["recommendation"]["rationale"] if "project status" in r]
+    assert cited == ["project status: 2 proposal(s) pending approval"]
+
+
+def test_stale_projection_dropped_silently(tmp_path):
+    doc = _grounded_doc()
+    doc["generated_at"] = "2020-01-01T00:00:00+00:00"  # predates the live source below
+    status = tmp_path / "status.json"
+    status.write_text(json.dumps(doc))
+    eng = tmp_path / ".engineering"
+    eng.mkdir()
+    (eng / "project-state.json").write_text("{}")  # mtime = now > generated_at
+    assert route.load_status_signals(tmp_path, status) == []
+
+
+def test_malformed_projection_dropped_silently(tmp_path):
+    status = tmp_path / "status.json"
+    status.write_text("{not json")
+    assert route.load_status_signals(tmp_path, status) == []
+
+
 def test_compaction_summarizes_recommendations_separately():
     events = [
         {
