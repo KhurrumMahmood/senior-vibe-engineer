@@ -23,8 +23,8 @@ Exit codes:
   2  usage error (unknown skill, missing arg, scan-dir absent)
 
 Soft gate by design — never refuses to do other work, never edits
-production code. PR F will wire this into CI; PR G will turn the
-warnings into hard refusals where appropriate.
+production code. The gate is run manually or by the skills that
+document it; nothing in CI consumes it.
 """
 from __future__ import annotations
 
