@@ -226,9 +226,11 @@ def check_c2_rule_cli(repo: Path, rule_name: str, module: str, bad_fixture: Path
     clean_rc, _ = _run_rule_on_stdin(rule_script, CLEAN_INPUT, "clean.py")
 
     ok = empty.returncode == 2 and bad_rc == 1 and clean_rc == 0
-    # Output-format spot check on the bad run.
+    # Output-format spot check on the bad run. Uses the same tag-field parse as
+    # C4/C8 hit-counting, so message text echoing the wired name (e.g. an
+    # allow-list hint) cannot mask a drifted emitted tag.
     fmt_ok = any(
-        line.count(":") >= 3 and f": {rule_name}: " in line
+        (pv := _parse_violation(line)) is not None and pv[1] == rule_name
         for line in bad_out.splitlines()
     )
     ok = ok and fmt_ok
