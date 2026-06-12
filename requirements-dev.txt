@@ -1,0 +1,15 @@
+# Optional dev/CI-only deps — NOT needed to run the ecosystem's scripts
+# and skills (those use requirements.txt). Install on top of it:
+#   .venv/bin/python -m pip install -r requirements-dev.txt
+#   .venv/bin/python -m playwright install chromium --only-shell
+#
+# Always invoke pip as `.venv/bin/python -m pip` (not the .venv/bin/pip
+# shim): venv shims hardcode the creation-time absolute path in their
+# shebang, so after a directory rename they silently target the old
+# location. Same reason /engineer-init validates pyvenv.cfg before
+# trusting an existing venv.
+
+# Headless-browser smoke for the status dashboard renderer
+# (tests/test_render_status.py; CI step "Renderer browser smoke").
+# The test skips cleanly when playwright is absent.
+playwright==1.60.0

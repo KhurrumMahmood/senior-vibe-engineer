@@ -121,14 +121,24 @@ The ecosystem requires Python >= 3.11 (stdlib features in the scripts,
 stop and ask the user to point at a >= 3.11 interpreter — do not try to
 install Python.
 
-### Stage 2 — Create the venv
+### Stage 2 — Create (or rebuild) the venv
 
-**Pre:** Python OK. **Post:** `.venv/bin/python` exists.
+**Pre:** Python OK. **Post:** `.venv/bin/python` exists AND the venv
+was created for THIS directory.
+
+Existence is not enough: a venv created before the repo directory was
+renamed or moved still has an executable `bin/python`, but every
+`bin/` shim (`pip`, `pre-commit`, `playwright`, …) hardcodes the
+creation-time absolute path in its shebang and silently targets the
+old location. Validate `pyvenv.cfg` before trusting an existing venv;
+rebuild on mismatch (a venv is fully regenerable — deleting it loses
+nothing).
 
 ```bash
-if [ -x .venv/bin/python ]; then
-  echo "venv present — skipping"
+if [ -x .venv/bin/python ] && grep -q "command = .*$(pwd)/\.venv" .venv/pyvenv.cfg; then
+  echo "venv present and paths match — skipping"
 else
+  [ -d .venv ] && echo "venv stale (created for another path) — rebuilding" && rm -rf .venv
   python3 -m venv .venv && echo "venv created"
 fi
 ```
@@ -139,12 +149,23 @@ fi
 from the venv.
 
 ```bash
-.venv/bin/pip install -r requirements.txt
+.venv/bin/python -m pip install -r requirements.txt
 ```
 
-`pip` is idempotent — satisfied requirements are left alone. If `pip`
-fails on a network error, stop and report it; the first install needs
-PyPI reachable.
+Always `python -m pip`, never the `.venv/bin/pip` shim — the shim is
+exactly the stale-shebang hazard Stage 2 guards against. `pip` is
+idempotent — satisfied requirements are left alone. If `pip` fails on
+a network error, stop and report it; the first install needs PyPI
+reachable.
+
+Optional dev/CI extras (the status-dashboard browser smoke) live in
+`requirements-dev.txt` — install only when working on the renderer or
+reproducing the CI browser step locally:
+
+```bash
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m playwright install chromium --only-shell
+```
 
 ### Stage 4 — Wire pre-commit hooks
 

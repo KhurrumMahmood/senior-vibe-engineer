@@ -150,7 +150,7 @@ jobs:
       # not installed, so the main pytest run above stays browser-free.
       - name: Renderer browser smoke (Playwright + Chromium)
         run: |
-          pip install playwright
+          pip install -r requirements-dev.txt
           python3 -m playwright install chromium --only-shell
           python3 -m pytest tests/test_render_status.py -q
 

@@ -44,9 +44,16 @@ deps from `requirements.txt`. Install once per clone:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+.venv/bin/python -m pip install -r requirements.txt
 .venv/bin/pre-commit install
 ```
+
+Always invoke pip as `.venv/bin/python -m pip` (never the
+`.venv/bin/pip` shim): venv shims hardcode the creation-time absolute
+path, so after a directory rename they silently target the old
+location. `/engineer-init` validates `pyvenv.cfg` and rebuilds a stale
+venv automatically. CI-only extras (dashboard browser smoke) live in
+`requirements-dev.txt` — optional locally.
 
 `/engineer-init` runs these steps idempotently — Python-version check,
 venv, deps, and pre-commit hooks when the repo is git-tracked — then

@@ -151,3 +151,4 @@
 {"adoption_evidence":"built: commits 15f2b60,2549ae7,e06d751,f98227f,e10aad3 (2026-06-12)","event_at":"2026-06-12T13:29:32Z","event_kind":"adoption","id":"report-scope-manifest","record_kind":"event"}
 {"event_at":"2026-06-12T13:29:32Z","event_kind":"transition","from_state":"proposed","id":"report-scope-manifest","outcome":"adopted","record_kind":"event","to_state":"done"}
 {"event_at":"2026-06-12T13:29:32Z","event_kind":"transition","from_state":"proposed","id":"status-projection-schema","outcome":"adopted","record_kind":"event","to_state":"done"}
+{"event_at":"2026-06-12T13:45:36Z","event_kind":"note","id":"operator-composition-ledger","record_kind":"event","summary":"Clean-room rebuild target named: ~/Projects/content-pipeline (operator direction 2026-06-12). Phase 1 harvest reads ~/Projects/comic and ~/Projects/content as read-only corpus; Phase 2 greenfield setup installs the ecosystem from commit zero with status projection + goal artifact + queue."}

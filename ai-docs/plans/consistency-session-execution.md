@@ -86,7 +86,8 @@ never fully executes and a project that never reaches coherent form.
   in-place modification, assets stay put. Phase 1: harvest the ~8
   proven operators into operator cards plus dead-end autopsies; the
   state-journal reader experiment and lens-battery writeup ride along.
-  Phase 2: fresh greenfield folder (name TBD), ecosystem installed
+  Phase 2: fresh greenfield folder (named 2026-06-12:
+  `~/Projects/content-pipeline`), ecosystem installed
   from commit zero, goal artifact (W-E) instantiated for real, first
   scoped slice proves the core output path end-to-end before any
   composition architecture. Phase 3: build by composition — code/text
