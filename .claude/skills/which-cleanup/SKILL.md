@@ -72,6 +72,11 @@ Backward (coverage audit):
 .venv/bin/python .claude/skills/which-cleanup/scripts/coverage.py audit --since 2026-05-01
 ```
 
+Both scripts anchor target-project paths (registry, reports, specs, git scope)
+on `--project-root`, defaulting to the git toplevel of the cwd (else the cwd) —
+the kit may be installed in a different repo than the project being audited.
+Pass `--project-root <dir>` to target a project explicitly.
+
 ## How it works
 
 ```
@@ -91,12 +96,13 @@ changes and `find-concept-divergence` on large rename-prone shapes) is always ad
 ## Pipeline
 
 ```bash
-.venv/bin/python .claude/skills/which-cleanup/scripts/run.py <scope args> [--json] [--max-scouts N]
+.venv/bin/python .claude/skills/which-cleanup/scripts/run.py <scope args> [--json] [--max-scouts N] [--project-root DIR]
 ```
 
 It resolves the scope, classifies the band, builds the tiered roster, writes
-`reports/which-cleanup/scan-<TS>/closeout.{json,md}` (+ `latest`), and logs one
-line to `reports/_meta/effectiveness.jsonl`. Read `closeout.md` and act on it.
+`<project-root>/reports/which-cleanup/scan-<TS>/closeout.{json,md}` (+ `latest`),
+and logs one line to `<project-root>/reports/_meta/effectiveness.jsonl`. Read
+`closeout.md` and act on it.
 
 ## Escalation by band
 

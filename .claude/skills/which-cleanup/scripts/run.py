@@ -18,9 +18,13 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+# KIT_ROOT anchors kit-relative imports ONLY (this skill kit's _common/ and
+# scripts/). Target-project paths (registry, reports, specs, git scope) anchor
+# on --project-root instead — the kit may live in a different repo (ADR 0024
+# de-baking convention; see which-shape/scripts/route.py).
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = Path(__file__).resolve().parents[4]
-for _p in (str(SCRIPT_DIR), str(REPO_ROOT / ".claude" / "skills" / "_common"), str(REPO_ROOT / "scripts")):
+KIT_ROOT = Path(__file__).resolve().parents[4]
+for _p in (str(SCRIPT_DIR), str(KIT_ROOT / ".claude" / "skills" / "_common"), str(KIT_ROOT / "scripts")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
@@ -31,37 +35,32 @@ import select_scanners
 from query_planner import report_for_files
 from subsystems import for_path, load_registry
 
-DEFAULT_REGISTRY = REPO_ROOT / ".claude" / "subsystems.yaml"
-DEFAULT_REPORTS_DIR = REPO_ROOT / "reports" / "which-cleanup"
-DEFAULT_SPECS_DIR = REPO_ROOT / "ai-docs" / "specs"
 
-
-def _relativize(paths: list[Path]) -> list[str]:
+def _relativize(paths: list[Path], root: Path) -> list[str]:
     out = []
     for p in paths:
         try:
-            out.append(str(p.resolve().relative_to(REPO_ROOT)))
+            out.append(str(p.resolve().relative_to(root)))
         except ValueError:
             continue
     return out
 
 
-def _rel(path: Path) -> str:
+def _rel(path: Path, root: Path) -> str:
     try:
-        return str(path.relative_to(REPO_ROOT))
+        return str(path.relative_to(root))
     except ValueError:
         return str(path)
 
 
-def resolve_scope(args, registry) -> tuple[str, list[str], int | None]:
+def resolve_scope(args, registry, root: Path) -> tuple[str, list[str], int | None]:
     """Return (target_label, repo_relative_files, diff_loc_or_None)."""
-    root = REPO_ROOT
     if args.paths:
-        files = _relativize(dr.changed_paths(root, args.paths))
+        files = _relativize(dr.changed_paths(root, args.paths), root)
         return (" ".join(args.paths), files, None)
     if args.area:
         try:
-            files = _relativize(dr.resolve_area(root, args.area, registry))
+            files = _relativize(dr.resolve_area(root, args.area, registry), root)
         except KeyError:
             print(f"error: unknown subsystem/area: {args.area}", file=sys.stderr)
             raise SystemExit(2) from None
@@ -84,16 +83,18 @@ def resolve_scope(args, registry) -> tuple[str, list[str], int | None]:
     return ("working tree", dr.git_files(root), dr.diff_loc(root, []))
 
 
-def _log_effectiveness(scan_id: str, target: str, c: dict) -> None:
+def _log_effectiveness(scan_id: str, target: str, c: dict, project_root: Path) -> None:
     buckets = {k: len(v) for k, v in c["checklist"].items()}
     buckets["dropped"] = len(c["dropped"])
     total = sum(len(v) for v in c["checklist"].values())
     try:
+        # The helper script ships with the kit; cwd anchors its relative
+        # default log path (reports/_meta/effectiveness.jsonl) in the target.
         subprocess.run(
-            [sys.executable, str(REPO_ROOT / "scripts" / "log_effectiveness.py"),
+            [sys.executable, str(KIT_ROOT / "scripts" / "log_effectiveness.py"),
              "--skill", "which-cleanup", "--scan-id", scan_id, "--target", target[:120],
              "--findings-total", str(total), "--buckets", json.dumps(buckets)],
-            cwd=REPO_ROOT, capture_output=True, text=True, check=False,
+            cwd=project_root, capture_output=True, text=True, check=False,
         )
     except OSError:
         pass
@@ -111,28 +112,36 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--max-scouts", type=int, default=5, help="Cap the medium-band fan-out roster")
     p.add_argument("--emit-plan", action="store_true",
                    help="On the large band, also write the /refactor-subsystem spec stub + Workflow script")
-    p.add_argument("--registry", default=str(DEFAULT_REGISTRY))
-    p.add_argument("--reports-dir", default=str(DEFAULT_REPORTS_DIR))
-    p.add_argument("--specs-dir", default=str(DEFAULT_SPECS_DIR))
+    p.add_argument("--project-root", type=Path, default=None,
+                   help="Target project root (default: git toplevel of cwd, else cwd)")
+    p.add_argument("--registry", default=None,
+                   help="Subsystem registry (default: <project-root>/.claude/subsystems.yaml)")
+    p.add_argument("--reports-dir", default=None,
+                   help="Report output dir (default: <project-root>/reports/which-cleanup)")
+    p.add_argument("--specs-dir", default=None,
+                   help="Spec-stub output dir (default: <project-root>/ai-docs/specs)")
     p.add_argument("--now", default=None, help="Override timestamp (tests); ISO or scan-id stamp")
     p.add_argument("--skip-effectiveness-log", action="store_true")
     p.add_argument("--json", action="store_true")
     args = p.parse_args(argv)
 
+    project_root = dr.resolve_project_root(args.project_root)
+    registry_path = Path(args.registry).resolve() if args.registry else project_root / ".claude" / "subsystems.yaml"
+
     try:
-        registry = load_registry(Path(args.registry).resolve())
+        registry = load_registry(registry_path)
     except FileNotFoundError:
         registry = {}  # no project registry shipped (generic default): universal floor + band only
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
-    target, files, dloc = resolve_scope(args, registry)
+    target, files, dloc = resolve_scope(args, registry, project_root)
     # A diff can name deleted/renamed-away paths; they can't be cleaned, would
     # inflate the file count, and would emit commands against non-existent files.
     # Drop them (matching find-test-obligation-drift's detect() contract). diff_loc
     # still counts deletions as churn, so the LOC axis keeps seeing the change.
-    files = [f for f in files if (REPO_ROOT / f).exists()]
+    files = [f for f in files if (project_root / f).exists()]
     if not files:
         print(f"No changes detected for scope ({target}); nothing to clean up.")
         return 0
@@ -174,7 +183,8 @@ def main(argv: list[str] | None = None) -> int:
 
     # Trivial scope honors the "text only, no scan dir" contract.
     if band != "trivial":
-        reports_dir = Path(args.reports_dir).resolve()
+        reports_dir = (Path(args.reports_dir) if args.reports_dir
+                       else project_root / "reports" / "which-cleanup").resolve()
         scan_dir = reports_dir / scan_id
         scan_dir.mkdir(parents=True, exist_ok=True)
         (scan_dir / "closeout.json").write_text(json.dumps(c, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -185,7 +195,7 @@ def main(argv: list[str] | None = None) -> int:
         elif latest.is_symlink() or latest.exists():
             latest.unlink()
         latest.symlink_to(scan_id)
-        c["report_dir"] = _rel(scan_dir)
+        c["report_dir"] = _rel(scan_dir, project_root)
 
         # Large band always shows the sequenced plan in closeout.md; the spec stub
         # + Workflow script are written to ai-docs/specs/ only on --emit-plan (avoids
@@ -193,15 +203,16 @@ def main(argv: list[str] | None = None) -> int:
         if band == "large" and args.emit_plan:
             base = subsystems[0] if subsystems else "mixed"
             slug = re.sub(r"[^a-z0-9]+", "-", f"{base}-closeout-{now}".lower()).strip("-")
-            specs_dir = Path(args.specs_dir).resolve()
+            specs_dir = (Path(args.specs_dir) if args.specs_dir
+                         else project_root / "ai-docs" / "specs").resolve()
             specs_dir.mkdir(parents=True, exist_ok=True)
             spec_path = specs_dir / f"{slug}.md"
             spec_path.write_text(closeout_mod.spec_stub(c, slug), encoding="utf-8")
             (scan_dir / f"{slug}.workflow.js").write_text(closeout_mod.workflow_script(c, slug), encoding="utf-8")
-            c["spec_stub"] = _rel(spec_path)
+            c["spec_stub"] = _rel(spec_path, project_root)
 
         if not args.skip_effectiveness_log:
-            _log_effectiveness(scan_id, target, c)
+            _log_effectiveness(scan_id, target, c, project_root)
 
     if args.json:
         print(json.dumps(c, indent=2, sort_keys=True))

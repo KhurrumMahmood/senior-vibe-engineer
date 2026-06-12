@@ -22,20 +22,28 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+# KIT_ROOT anchors kit-relative imports and the kit's skill catalogue ONLY.
+# Target-project paths (registry, effectiveness log, git history) anchor on
+# --project-root instead — the kit may live in a different repo (ADR 0024
+# de-baking convention; see which-shape/scripts/route.py).
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = Path(__file__).resolve().parents[4]
-for _p in (str(SCRIPT_DIR), str(REPO_ROOT / ".claude" / "skills" / "_common"), str(REPO_ROOT / "scripts")):
+KIT_ROOT = Path(__file__).resolve().parents[4]
+for _p in (str(SCRIPT_DIR), str(KIT_ROOT / ".claude" / "skills" / "_common"), str(KIT_ROOT / "scripts")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
 import select_scanners
-from diff_resolution import resolve_since, run_git_name_only
+from diff_resolution import resolve_project_root, resolve_since, run_git_name_only
 from query_planner import report_for_files
 from subsystems import for_path, load_registry
 
-DEFAULT_REGISTRY = REPO_ROOT / ".claude" / "subsystems.yaml"
-EFFECTIVENESS = REPO_ROOT / "reports" / "_meta" / "effectiveness.jsonl"
-SKILLS_DIR = REPO_ROOT / ".claude" / "skills"
+# The recommendable skills ship with the kit (select_scanners reads their
+# job: frontmatter from the same place) — kit-anchored, not project-anchored.
+SKILLS_DIR = KIT_ROOT / ".claude" / "skills"
+
+
+def _effectiveness_path(project_root: Path) -> Path:
+    return project_root / "reports" / "_meta" / "effectiveness.jsonl"
 
 
 # --------------------------------------------------------------------------- #
@@ -51,10 +59,10 @@ def normalize_target(target: str) -> str:
     return target.strip()
 
 
-def _registry() -> dict[str, Any]:
+def _registry(project_root: Path) -> dict[str, Any]:
     """Load the subsystem registry, or {} when none is shipped (generic default)."""
     try:
-        return load_registry(DEFAULT_REGISTRY)
+        return load_registry(project_root / ".claude" / "subsystems.yaml")
     except FileNotFoundError:
         return {}
 
@@ -78,27 +86,30 @@ def _is_coverage_skill(skill: str) -> bool:
 # audit                                                                        #
 # --------------------------------------------------------------------------- #
 
-def _range_files(last: int | None, since: str | None) -> list[str]:
+def _range_files(last: int | None, since: str | None, project_root: Path) -> list[str]:
     if since:
-        return resolve_since(REPO_ROOT, since)
+        return resolve_since(project_root, since)
     n = last or 50
     out = run_git_name_only(
-        REPO_ROOT, ["git", "log", f"-n{n}", "--name-only", "--pretty=format:"]
+        project_root, ["git", "log", f"-n{n}", "--name-only", "--pretty=format:"]
     )
     return sorted(set(out))
 
 
-def _recent_coverage(window_days: int, now: datetime) -> tuple[dict[str, set[str]], list[dict[str, Any]]]:
+def _recent_coverage(
+    window_days: int, now: datetime, project_root: Path
+) -> tuple[dict[str, set[str]], list[dict[str, Any]]]:
     """Return ({subsystem -> set(skills recently scanned)}, [unmappable target rows])."""
     cutoff = now - timedelta(days=window_days)
     covered: dict[str, set[str]] = {}
     unmappable: list[dict[str, Any]] = []
-    if not EFFECTIVENESS.is_file():
+    effectiveness = _effectiveness_path(project_root)
+    if not effectiveness.is_file():
         return covered, unmappable
-    registry = _registry()
+    registry = _registry(project_root)
     seen_unmappable: set[str] = set()
     try:
-        effectiveness_lines = EFFECTIVENESS.read_text(encoding="utf-8").splitlines()
+        effectiveness_lines = effectiveness.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeDecodeError):
         return covered, unmappable
     for line in effectiveness_lines:
@@ -130,9 +141,11 @@ def _recent_coverage(window_days: int, now: datetime) -> tuple[dict[str, set[str
     return covered, unmappable
 
 
-def audit(*, last: int | None, since: str | None, window_days: int, now: datetime) -> dict[str, Any]:
-    registry = _registry()
-    files = _range_files(last, since)
+def audit(
+    *, last: int | None, since: str | None, window_days: int, now: datetime, project_root: Path
+) -> dict[str, Any]:
+    registry = _registry(project_root)
+    files = _range_files(last, since, project_root)
     subsystems = sorted({s for f in files if (s := for_path(f, registry))})
     report = report_for_files(files, registry, include_checklist=False)
     roster = select_scanners.select(report, band="large")  # widest implied set for the audit
@@ -142,7 +155,7 @@ def audit(*, last: int | None, since: str | None, window_days: int, now: datetim
         for it in items:
             implied.setdefault(it["skill"], []).append(band_key)
 
-    covered, unmappable = _recent_coverage(window_days, now)
+    covered, unmappable = _recent_coverage(window_days, now, project_root)
     covered_all: set[str] = set().union(*covered.values()) if covered else set()
 
     gaps = []
@@ -194,9 +207,9 @@ def render_audit(a: dict[str, Any]) -> str:
 # check (referential integrity — the rot guard)                               #
 # --------------------------------------------------------------------------- #
 
-def check() -> tuple[int, list[str]]:
+def check(project_root: Path) -> tuple[int, list[str]]:
     """Every skill the registry/selection can recommend must resolve to a real skill dir."""
-    registry = _registry()
+    registry = _registry(project_root)
     referenced: set[str] = set()
     for body in registry.values():
         referenced.update(body.get("related_skills") or [])
@@ -226,15 +239,20 @@ def main(argv: list[str] | None = None) -> int:
     grp.add_argument("--last", type=int, metavar="N", help="last N commits (default 50)")
     pa.add_argument("--window-days", type=int, default=90)
     pa.add_argument("--now", default=None, help="Override 'now' (ISO) for the coverage window (tests)")
+    pa.add_argument("--project-root", type=Path, default=None,
+                    help="Target project root (default: git toplevel of cwd, else cwd)")
     pa.add_argument("--json", action="store_true")
 
     pc = sub.add_parser("check", help="Referential integrity: every recommendable skill exists")
+    pc.add_argument("--project-root", type=Path, default=None,
+                    help="Target project root (default: git toplevel of cwd, else cwd)")
     pc.add_argument("--json", action="store_true")
 
     args = p.parse_args(argv)
+    project_root = resolve_project_root(args.project_root)
 
     if args.cmd == "check":
-        code, missing = check()
+        code, missing = check(project_root)
         if args.json:
             print(json.dumps({"missing_skills": missing}, sort_keys=True))
         elif missing:
@@ -248,7 +266,8 @@ def main(argv: list[str] | None = None) -> int:
     now = datetime.fromisoformat(args.now) if args.now else datetime.now(timezone.utc)
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
-    a = audit(last=args.last, since=args.since, window_days=args.window_days, now=now)
+    a = audit(last=args.last, since=args.since, window_days=args.window_days, now=now,
+              project_root=project_root)
     print(json.dumps(a, indent=2, sort_keys=True) if args.json else render_audit(a), end="" if args.json else "")
     if args.json:
         print()

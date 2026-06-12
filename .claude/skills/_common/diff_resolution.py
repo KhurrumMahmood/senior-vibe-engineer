@@ -24,6 +24,31 @@ from product_health import expand_paths
 DEFAULT_SUFFIXES = (".py", ".js", ".html", ".md", ".yaml", ".yml", ".toml")
 
 
+def resolve_project_root(explicit: Path | None = None) -> Path:
+    """Resolve the target-project root for de-baked skill scripts.
+
+    An explicit ``--project-root`` always wins. Otherwise prefer the git
+    toplevel of the current working directory (so a run from a subdirectory
+    of the target repo still anchors at its root), falling back to the cwd
+    itself outside any git repo. Never anchors on the kit's own location —
+    the skill kit may live in a different repo than the target project.
+    """
+    if explicit is not None:
+        return explicit.resolve()
+    cwd = Path.cwd()
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(cwd), "rev-parse", "--show-toplevel"],
+            text=True, capture_output=True, check=True,
+        )
+        toplevel = result.stdout.strip()
+        if toplevel:
+            return Path(toplevel).resolve()
+    except (OSError, subprocess.CalledProcessError):
+        pass
+    return cwd.resolve()
+
+
 def run_git_name_only(project_root: Path, cmd: list[str]) -> list[str]:
     """Run a git command, returning non-empty stripped stdout lines (``[]`` on failure)."""
     try:
