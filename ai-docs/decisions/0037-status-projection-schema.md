@@ -2,7 +2,7 @@
 id: "0037"
 namespace: core
 title: Project status is one versioned, derived status.json under .engineering/local/, with a packet-compatible work queue
-status: proposed
+status: accepted
 date: 2026-06-12
 deciders: [khurrum, claude-code]
 assumes: ["the sweep manifest schema remains unversioned (the projection is its first programmatic consumer and pins a field subset)", "copy-paste command actions are a sufficient interaction floor for the presentation tier (no localhost server needed yet)"]
@@ -10,7 +10,7 @@ revisit_when: ["ADR 0036 productization versions the sweep manifest schema (re-d
 supersedes: []
 superseded_by: null
 applies_to: [scripts/, .engineering/, ai-docs/plans/status-projection-and-presentation.md, .claude/skills/which-shape/]
-embodied_by: ["pending:ai-docs/plans/status-projection-and-presentation.md"]
+embodied_by: ["script:scripts/status.py", "script:scripts/render_status.py", "script:scripts/queue_status.py", "script:scripts/_lib/status_schema.py", "script:scripts/_lib/artifact_scope.py", "doctrine:.claude/docs/queue-contract.md"]
 tags: [projection, status, dashboard, queue, packets, engineering-folder, schema-versioning, degradation, presentation]
 related_smell: format-equivalence-gap
 related_pattern: parallel-writers-shared-producer
