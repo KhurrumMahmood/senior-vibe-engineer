@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""End-to-end Stage-1a validation: seed → install → score, per proposal.
+"""End-to-end harness validation: seed → install → score, per proposal.
 
-For each proposal under ``fixtures/`` (default: conformant + defective):
+For each proposal under ``fixtures/`` (default: all six — conformant,
+defective, over-broad, poisoned-good, wrong-name, under-broad):
 
 1. Seed a FRESH mini-host repo (its own ``mkdtemp``) so proposals never
    contaminate each other's plumbing/lint files.
@@ -33,22 +34,35 @@ FIXTURES = HERE / "fixtures"
 PROJECT_ROOT = HERE.parents[1]  # repo root (scripts/skill_comply -> scripts -> root): holds .claude/skills/...
 
 # Expected outcomes for the shipped fixtures. Each defective case names the
-# exact CONSEQUENTIAL check it must trip, so a fixture that fails "for the wrong
-# reason" is caught too. The defect classes deliberately span the verdict space:
+# exact CONSEQUENTIAL check set it must trip, so a fixture that fails "for the
+# wrong reason" is caught too. The defect classes deliberately span the verdict
+# space:
 #   conformant    pass               every check passes
-#   defective     fail  C4           matcher drift — rule misses the real bug
+#   defective     fail  C4+C9        matcher drift — rule misses the real bug
+#                                    (subscript-only, so it misses the recall
+#                                    siblings too — both fail honestly)
 #   over-broad    fail  C8           fires on innocent code (the C8 hole, now closed)
 #   poisoned-good fail  C3           the "clean" good fixture hides a live anti-pattern
-#   wrong-name    fail  C4           emitted tag drifts from the wired name → C4 counts 0
-# (wrong-name shares C4 with defective by design — see STAGE2.md on the
+#   wrong-name    fail  C4+C9        emitted tag drifts from the wired name →
+#                                    both tag-counting checks see 0 hits
+#   under-broad   fail  C9           literal-`request`-receiver matcher misses the
+#                                    sibling forms planted in app/views/reports.py
+#                                    (passes C3/C4/C8 — the recall axis is the
+#                                    ONLY check that sees it)
+# (wrong-name shares C4 with defective by design — see DESIGN.md on the
 # tag-coupling fragility; the two are distinguishable only by the C2 cosmetic line.)
 EXPECTATIONS = {
     "conformant": {"verdict": "pass", "consequential_fail_ids": []},
-    "defective": {"verdict": "fail", "consequential_fail_ids": ["C4"]},
+    "defective": {"verdict": "fail", "consequential_fail_ids": ["C4", "C9"]},
     "over-broad": {"verdict": "fail", "consequential_fail_ids": ["C8"]},
     "poisoned-good": {"verdict": "fail", "consequential_fail_ids": ["C3"]},
-    "wrong-name": {"verdict": "fail", "consequential_fail_ids": ["C4"]},
+    "wrong-name": {"verdict": "fail", "consequential_fail_ids": ["C4", "C9"]},
+    "under-broad": {"verdict": "fail", "consequential_fail_ids": ["C9"]},
 }
+
+DEFAULT_FIXTURES = [
+    "conformant", "defective", "over-broad", "poisoned-good", "wrong-name", "under-broad",
+]
 
 
 def _run(cmd: list[str], **kw) -> subprocess.CompletedProcess:
@@ -78,6 +92,7 @@ def _score(proposal: Path, manifest: dict) -> tuple[dict, str]:
         "--rule-name", manifest["rule_name"],
         "--fixed-files", *manifest["fixed_files"],
         "--antipattern-files", *manifest["antipattern_files"],
+        "--recall-files", *manifest["recall_files"],
         "--project-root", str(PROJECT_ROOT),
         "--out", str(out),
     ]
@@ -133,12 +148,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--only", nargs="*", default=None,
                         help="Validate only these proposal names "
-                             "(default: conformant defective over-broad poisoned-good wrong-name)")
+                             f"(default: {' '.join(DEFAULT_FIXTURES)})")
     parser.add_argument("--keep", action="store_true",
                         help="Keep the seeded temp repos for inspection")
     args = parser.parse_args()
 
-    names = args.only or ["conformant", "defective", "over-broad", "poisoned-good", "wrong-name"]
+    names = args.only or DEFAULT_FIXTURES
     print(f"== skill-comply harness validation: {', '.join(names)} ==")
     results = {name: validate_one(name, args.keep) for name in names}
 

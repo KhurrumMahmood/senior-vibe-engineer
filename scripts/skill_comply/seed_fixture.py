@@ -12,7 +12,11 @@ What the seeded repo contains
 
 * The **target anti-pattern** — bare ``int(request.POST.get(...))`` /
   ``int(request.GET.get(...))`` parsing of user input without the canonical
-  ``safe_int(...)`` helper — in two view files.
+  ``safe_int(...)`` helper — in two view files, plus a third view file
+  (``app/views/reports.py``) holding **sibling syntactic forms** of the same
+  bug (``self.request.POST.get(...)`` and an aliased receiver). The sibling
+  file is the recall ground truth (C9): a rule that matches the plain form
+  but misses the siblings is under-broad.
 * A ``safe_int`` helper definition plus an already-correct ``safe_int(...)``
   call site, so a guard must not false-positive on the correct form, and must
   not flag ``int(x)`` on non-request values.
@@ -43,8 +47,11 @@ Prints a single JSON object on stdout::
     {
       "repo": "/tmp/skill-comply-seed-XXXX",
       "anchor": "<sha of commit 2>",
-      "antipattern_files": ["app/views/products.py", "app/views/checkout.py"],
+      "antipattern_files": ["app/views/products.py", "app/views/checkout.py",
+                            "app/views/reports.py"],
       "fixed_files": ["app/views/products.py"],
+      "recall_files": ["app/views/reports.py"],
+      "planted_instances": [{"id": "...", "file": "...", "line": N, "form": "..."}, ...],
       "rule_name": "no-bare-int-request"
     }
 
@@ -420,6 +427,31 @@ def apply_quantity(request):
     return {"quantity": quantity}
 '''
 
+# reports.py — SIBLING FORMS of the anti-pattern, planted as recall ground
+# truth (C9). Same bug — bare int() of user-supplied POST/GET data — expressed
+# through receivers a narrowly-written matcher misses: ``self.request`` (the
+# class-based-view form) and an aliased local. Present from commit 1, never
+# fixed, so the instances are live at HEAD. A rule that matches the plain
+# ``request.POST.get(...)`` form but not these siblings passes C3/C4/C8 and
+# fails only C9. This file IS in ``antipattern_files`` (hits here are
+# legitimate, so C8 allows them) and in ``recall_files`` (C9 requires hits).
+REPORTS_PY = '''\
+"""Reporting views (mini-host seed) — sibling-form anti-pattern instances (unfixed)."""
+from __future__ import annotations
+
+
+class ReportView:
+    def current_page(self):
+        # Sibling form 1: class-based-view receiver — self.request, not `request`.
+        return int(self.request.POST.get("page"))
+
+
+def export_rows(request):
+    req = request
+    # Sibling form 2: aliased receiver — same user input, different name.
+    return int(req.GET.get("limit"))
+'''
+
 # cart.py — benign decoys for the incidental-firing check (C8). Neither call is
 # the target anti-pattern (raw int() of user-supplied request POST/GET), so a
 # correctly-scoped guard leaves them alone. An over-broad guard that fires on
@@ -497,6 +529,47 @@ Do not edit by hand — re-seed instead.
 '''
 
 
+def _line_of(body: str, needle: str) -> int:
+    """1-based line number of the first line containing *needle* in *body*.
+
+    The seed bodies are module constants, so these line numbers are
+    deterministic — they are the stable per-instance ground truth the
+    ``planted_instances`` inventory (and the proposer-completeness oracle)
+    keys on."""
+    for idx, line in enumerate(body.splitlines(), start=1):
+        if needle in line:
+            return idx
+    raise AssertionError(f"seed constant drifted: {needle!r} not found")
+
+
+def _planted_instances() -> list[dict]:
+    """Anti-pattern instances that are LIVE AT HEAD, with stable IDs.
+
+    products.py instances are excluded: the anchor commit fixes them, so at
+    HEAD they no longer exist. This list is the ground truth for the recall
+    check (C9) and for oracle_proposer_completeness.py."""
+    return [
+        {
+            "id": "checkout-post-quantity",
+            "file": "app/views/checkout.py",
+            "line": _line_of(CHECKOUT_BAD, 'int(request.POST.get("quantity"))'),
+            "form": "plain-request",
+        },
+        {
+            "id": "reports-self-request-page",
+            "file": "app/views/reports.py",
+            "line": _line_of(REPORTS_PY, 'int(self.request.POST.get("page"))'),
+            "form": "self-request",
+        },
+        {
+            "id": "reports-aliased-get-limit",
+            "file": "app/views/reports.py",
+            "line": _line_of(REPORTS_PY, 'int(req.GET.get("limit"))'),
+            "form": "aliased-receiver",
+        },
+    ]
+
+
 def _write(root: Path, rel: str, body: str) -> None:
     dest = root / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -551,9 +624,10 @@ def seed(dest: str | None = None, rule_name: str = DEFAULT_RULE_NAME) -> dict:
     _write(root, "app/services/cart.py", CART_PY)
     _write(root, "app/views/__init__.py", "")
 
-    # --- commit 1: introduce the anti-pattern across two view files ---
+    # --- commit 1: introduce the anti-pattern across three view files ---
     _write(root, "app/views/products.py", PRODUCTS_BAD)
     _write(root, "app/views/checkout.py", CHECKOUT_BAD)
+    _write(root, "app/views/reports.py", REPORTS_PY)
 
     _git(root, "init", "-q")
     _git(root, "checkout", "-q", "-b", "main")
@@ -570,8 +644,18 @@ def seed(dest: str | None = None, rule_name: str = DEFAULT_RULE_NAME) -> dict:
     return {
         "repo": str(root),
         "anchor": anchor,
-        "antipattern_files": ["app/views/products.py", "app/views/checkout.py"],
+        "antipattern_files": [
+            "app/views/products.py",
+            "app/views/checkout.py",
+            "app/views/reports.py",
+        ],
         "fixed_files": ["app/views/products.py"],
+        # Recall ground truth (C9): files holding sibling syntactic forms of the
+        # anti-pattern, live at HEAD, that the rule MUST fire on.
+        "recall_files": ["app/views/reports.py"],
+        # Per-instance ground truth (stable IDs) for the proposer-completeness
+        # oracle — anti-pattern instances live at HEAD.
+        "planted_instances": _planted_instances(),
         "rule_name": rule_name,
     }
 

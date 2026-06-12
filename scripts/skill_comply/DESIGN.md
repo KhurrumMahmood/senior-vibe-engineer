@@ -555,3 +555,182 @@ is caught too.
   artifacts.
 - The harness remains stdlib-only and runs under the shared `.venv`
   (Python 3.10+ — the C2 import scan needs `sys.stdlib_module_names`).
+# skill-comply — Stage 3: the recall axis (C9) and the first Bucket-B oracle
+
+Stage 3 closes Known Gap #2 (the missing recall / false-negative axis) and
+opens the Bucket-B front identified in the behavioral-conformance assessment
+(`.claude/tasks/ecosystem-review/02b-behavioral-conformance.md`): grading
+proposer-family skills by completeness against planted ground truth.
+
+## What changed at a glance
+
+- **New consequential check `C9` — planted-variant recall.** The seed plants
+  sibling syntactic forms of the anti-pattern in known `recall_files`; the rule
+  must fire on every one. An under-broad rule — Stage-1b finding #2, previously
+  review-only — is now a deterministic machine catch.
+- **Sixth fixture `under-broad`** — passes C3/C4/C8, fails only C9.
+- **Seed gains per-instance ground truth** — a `planted_instances` inventory
+  (stable ID + file + line + form) in the manifest.
+- **First Bucket-B oracle** — `oracle_proposer_completeness.py` grades a
+  findings report (not a guard) for completeness against `planted_instances`.
+
+## C9: planted-variant recall (seed + scorer changes)
+
+**Seed.** `seed_fixture.py` now writes a third anti-pattern view file,
+`app/views/reports.py`, present from commit 1 and **never fixed** (live at
+HEAD), holding two sibling forms of the bug a narrowly-written matcher misses:
+
+- `int(self.request.POST.get("page"))` — the class-based-view receiver
+  (`self.request`, not the literal `request`);
+- `int(req.GET.get("limit"))` — an aliased local receiver.
+
+The manifest gains `recall_files: ["app/views/reports.py"]` and adds
+`reports.py` to `antipattern_files` — hits there are *legitimate* (C8 allows
+them) and *required* (C9 demands them). The two checks compose: C8 says "fire
+only where the pattern is"; C9 says "fire everywhere the pattern is."
+
+**Scorer.** `check_c9_planted_recall` runs the rule (via stdin, same plumbing
+as C4) over each recall file at HEAD and requires `hits > 0`, counted by the
+emitted tag — so it inherits the Stage-2 tag-field parse, and a tag-drifted
+rule fails C9 alongside C4 (see fixture table). C9 mirrors C8's skip contract:
+no `recall_files` supplied → skipped (pass with a note) — the same
+"skip is a silent pass" caveat applies and remains an orchestration-layer
+obligation. `validate.py` always supplies the manifest's `recall_files`, so in
+the fixture world C9 always runs.
+
+**Why C9 is consequential.** It is C8's recall complement. A rule that matches
+only the one form its author fixed passes C3 (self-consistent with its own
+fixtures), C4 (fires on the exact anchored form), and C8 (no stray hits) while
+silently leaving real instances unguarded. None of the precision checks can
+see a false negative; C9 is the only check that examines instances the
+proposal's author did not choose.
+
+## The `under-broad` fixture (sixth verdict-space entry)
+
+Identical to `conformant` except for one injected defect in
+`_is_request_get_call`: the receiver must be the **literal name `request`**
+(`isinstance(inner.value, ast.Name) and inner.value.id == "request"`). This is
+a faithful reproduction of the real Stage-1b Sonnet finding #2. Its fixtures
+are self-consistent, it fires on the anchored bug, it never over-fires — and
+it misses both planted siblings in `reports.py`.
+
+Updated verdict-space table:
+
+| Fixture | Verdict | Consequential fail | What it models |
+|---|---|---|---|
+| `conformant`   | **pass** | — | a complete, correct guard |
+| `defective`    | **fail** | C4 + C9 | matcher drift — subscript-only matcher misses the `.get()` bug *and* the recall siblings (both fail honestly) |
+| `over-broad`   | **fail** | C8 | fires on innocent code |
+| `poisoned-good`| **fail** | C3 | the "clean" good fixture hides a live anti-pattern |
+| `wrong-name`   | **fail** | C4 + C9 | emitted tag drifts from the wired name — both tag-counting checks see 0 hits |
+| `under-broad`  | **fail** | **C9 only** | literal-`request` receiver misses `self.request` / aliased forms — invisible to C3/C4/C8 |
+
+`defective` and `wrong-name` picking up C9 alongside C4 is by design: a
+matcher that cannot see the primary form cannot see its siblings either, and a
+drifted tag zeroes every tag-counted check. `validate.py` asserts the exact
+consequential-failure *set* per fixture, so these multi-check signatures are
+pinned, and `under-broad` failing anything besides C9 would be caught.
+
+## Per-instance ground truth: `planted_instances`
+
+The manifest now carries a stable-ID inventory of every anti-pattern instance
+**live at HEAD** (products.py is excluded — the anchor fixes it):
+
+```json
+[
+  {"id": "checkout-post-quantity",     "file": "app/views/checkout.py", "line": 7,  "form": "plain-request"},
+  {"id": "reports-self-request-page",  "file": "app/views/reports.py",  "line": 8,  "form": "self-request"},
+  {"id": "reports-aliased-get-limit",  "file": "app/views/reports.py",  "line": 14, "form": "aliased-receiver"}
+]
+```
+
+Line numbers are computed from the seed's module constants (`_line_of`), not
+hard-coded, so they cannot drift from the seeded source — a needle that
+disappears from a constant raises at seed time. This inventory serves C9's
+ground truth (via `recall_files`) and is the oracle's entire scoring basis.
+
+## Bucket-B oracle #1: proposer completeness
+
+`oracle_proposer_completeness.py` grades the **output of a SUSPECT/proposer
+skill** — a findings report — rather than a runnable guard. The 02b assessment
+put 26 skills in Bucket B ("side-effect-gradeable, different oracle"); the
+common oracle shape for the proposer/explain sub-group is *structural
+completeness against ground truth*, and this script is its first concrete
+instrument, fixture-based so no live skill run is needed.
+
+**Contract** (full prose in the module docstring): CLI takes
+`--report <dir>` (must contain `findings.json` with
+`{"findings": [{"id", "file", "line"}, ...]}`), `--ground-truth
+<manifest.json>` (the seed manifest with `planted_instances`), optional
+`--out` and `--line-tolerance N` (default 0). Matching is one-to-one, greedy
+in findings order: file equality + line within tolerance. Output
+(`oracle.json` + stdout summary): `found` pairs, `missed` instance IDs,
+`false_positives` finding IDs, `recall`, `precision`, `verdict`. **Pass
+requires recall == 1.0 AND zero false positives** — C8's reasoning applied to
+reports: a padded report erodes trust the way an over-broad guard does. Exit
+0 = pass, 1 = fail, 2 = harness error (missing/malformed inputs — including a
+non-integer `line`, fixed in Stage 3 verification: it previously escaped as a
+traceback with exit 1, colliding with the verdict-fail code).
+
+**Verified live** against a fresh seed: a complete report (all 3 planted
+instances) → PASS, recall 1.0 / precision 1.0, exit 0; dropping one instance →
+FAIL with the miss named by stable ID, recall 0.6667, exit 1; adding a phantom
+finding in the benign decoy (`app/services/cart.py`) → FAIL with the false
+positive named, precision 0.75, exit 1.
+
+**What it deliberately does not grade:** triage quality (`triage.md` presence
+is noted, not scored), severity ranking, prose accuracy. Those stay with the
+review lane, exactly as Stage 1b concluded for guards.
+
+## Remaining Bucket-B oracle candidates (from the 02b assessment)
+
+The next instruments, in the assessment's own priority order:
+
+1. **fix-workflow / refactor-subsystem — characterization-test oracle** (the
+   assessment's named second pilot). Checks: tests written *before* the
+   refactor, green after, `git diff --stat` bounded to the stated scope, no
+   new failures. The C4 analogue is "pre-refactor test fails on pre-refactor
+   code, passes after"; refactor-subsystem additionally needs a *phase-gate*
+   scorer (green after each of its seven phases), not a single shot.
+2. **Explain proposers (extract-enum, extract-state-type, introduce-fk,
+   propose-boundary, unify-shadows, explain-code, …)** — structural
+   completeness: required proposal.md sections present, and every
+   grep-identified call site appears in the migration table. The
+   migration-table-coverage half is exactly the proposer-completeness shape
+   already built here; per-skill work is the required-section schema.
+3. **diagnose — reproduction-loop oracle.** The closest B-bucket analogue to
+   C4: the reproduction loop must be executable and *fail before the fix*;
+   the regression test must pass after.
+4. **Plans/specs (scope/impact/architecture-fit/plan-spec/plan-feature/
+   plan-skill)** — section-presence + status-machine progression; a schema
+   validation pass, simpler than the guard scorer.
+5. **decide / design-it-twice / triage-debt / teach-pattern / map skills /
+   harvest-learnings / gut-check** — per-skill structural oracles (frontmatter
+   fields + on-disk path references for ADRs; evidence files exist for triage
+   queues; exemplar paths exist for teach-pattern; file-list coverage for
+   maps).
+
+Still open from Stages 1–2 and 02b: the `antipattern_files`/`recall_files`
+oracle problem in real (non-fixture) runs, "skip = silent pass" surfacing at
+the orchestration layer, the ruff-coverable branch, Stage-3 real-run
+orchestration at scale, and Bucket C (precision/recall against labeled ground
+truth for the 27 scanners) — a separate evaluation framework, not an
+extension of this harness.
+
+## Actual harness output (Stage 3)
+
+```
+== Harness summary ==
+  conformant   PASS
+  defective    PASS
+  over-broad   PASS
+  poisoned-good PASS
+  wrong-name   PASS
+  under-broad  PASS
+
+OVERALL: PASS
+```
+
+Tests: `tests/test_skill_comply.py` (4 tests) — six-fixture validate run,
+under-broad fails-only-C9 assertion, oracle happy path, oracle
+miss + false-positive path.

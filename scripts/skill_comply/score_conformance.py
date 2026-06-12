@@ -19,6 +19,7 @@ Pre/Post declarations:
     C6  CLAUDE.md entry       Phase 5 Post   (cosmetic)
     C7  proposal.md           Phase 6 Post   (cosmetic)
     C8  bounded incidental firing   (CONSEQUENTIAL)
+    C9  planted-variant recall      (CONSEQUENTIAL)
 
 "Consequential" = the check proves the guard does its job *durably*. A guard
 does its job only if it both (a) fires on the bug and (b) stays quiet on clean
@@ -28,8 +29,14 @@ fires on the real pre-anchor bug while clean on the post-fix HEAD. C8 covers
 known anti-pattern files — an over-broad rule that also flags innocent code is
 not theater (it does catch the bug) but it is a guard that will be # noqa'd or
 deleted, after which it protects nothing, so over-firing is a consequential
-failure too. The rest are necessary-but-cosmetic: their absence makes the
-proposal incomplete, but their presence does not prove the guard works.
+failure too. C9 is C8's recall complement: the seed plants sibling syntactic
+forms of the anti-pattern (e.g. ``self.request.POST.get(...)``) in known
+``recall_files``; the rule must FIRE on every one. A rule that matches only the
+one form its author fixed passes C3 (self-consistent fixtures), C4 (fires on
+the exact anchored form), and C8 (no stray hits) while silently leaving real
+instances unguarded — a false-negative failure none of the precision checks can
+see. The rest are necessary-but-cosmetic: their absence makes the proposal
+incomplete, but their presence does not prove the guard works.
 
 Note on C4/C8 hit-counting: both count violation lines by the rule's emitted
 tag (``: <rule_name>: ``). If a rule's emitted tag drifts from the wired/manifest
@@ -440,6 +447,49 @@ def check_c8_incidental_firing(
     return CheckResult("C8", "bounded incidental firing", True, ok, ev)
 
 
+def check_c9_planted_recall(
+    repo: Path,
+    rule_name: str,
+    module: str,
+    recall_files: list[str] | None,
+) -> CheckResult:
+    """CONSEQUENTIAL. Recall complement of C8. The seed plants sibling
+    syntactic forms of the anti-pattern (``self.request.POST.get(...)``, an
+    aliased receiver) in known ``recall_files``, live at HEAD. The rule must
+    FIRE (hits>0, counted by emitted tag) on every recall file. An under-broad
+    rule — one that matches the exact form the anchor fixed but not its
+    siblings — passes C3/C4/C8 and is exposed only here.
+
+    Mirrors C8's skip contract: with no recall ground truth supplied the check
+    is skipped (pass with a note). The same "skip is a silent pass" caveat from
+    C8 applies — an orchestration layer must surface the skip."""
+    if not recall_files:
+        return CheckResult("C9", "planted-variant recall", True, True,
+                           "skipped — no recall ground truth supplied")
+    rule_script = repo / "scripts" / "lint" / f"{module}.py"
+    if not rule_script.exists():
+        return CheckResult("C9", "planted-variant recall", True, False,
+                           f"rule script not found at {rule_script}")
+
+    details: list[str] = []
+    all_ok = True
+    for rel in recall_files:
+        target = repo / rel
+        if not target.exists():
+            all_ok = False
+            details.append(f"{rel}: recall file missing from repo")
+            continue
+        src = target.read_text(encoding="utf-8")
+        _, out = _run_rule_on_stdin(rule_script, src, rel)
+        hits = _count_hits(out, rule_name)
+        ok = hits > 0
+        all_ok = all_ok and ok
+        details.append(
+            f"{rel}: hits={hits} (need >0) → {'OK' if ok else 'MISSED — under-broad'}"
+        )
+    return CheckResult("C9", "planted-variant recall", True, all_ok, "; ".join(details))
+
+
 # ---------------------------------------------------------------------------
 # stdlib-only import scan
 # ---------------------------------------------------------------------------
@@ -491,6 +541,7 @@ def score(
     project_root: Path,
     module: str | None = None,
     antipattern_files: list[str] | None = None,
+    recall_files: list[str] | None = None,
 ) -> Scorecard:
     # The proposal manifest carries the module name and the rule's enforcement
     # scope (the same include/exclude that get wired into run.py). C8 reuses that
@@ -522,6 +573,7 @@ def score(
     card.add(check_c7_proposal(proposal))
     card.add(check_c8_incidental_firing(
         repo, rule_name, module, antipattern_files, include_regex, exclude_regex))
+    card.add(check_c9_planted_recall(repo, rule_name, module, recall_files))
     return card
 
 
@@ -552,6 +604,9 @@ def main() -> int:
     parser.add_argument("--antipattern-files", nargs="*", default=None,
                         help="Repo-relative files that legitimately contain the anti-pattern "
                              "(C8 allow-list of hit sites). If omitted, C8 is skipped.")
+    parser.add_argument("--recall-files", nargs="*", default=None,
+                        help="Repo-relative files holding sibling anti-pattern forms the rule "
+                             "MUST fire on (C9 recall ground truth). If omitted, C9 is skipped.")
     parser.add_argument("--module", default=None,
                         help="Override module name (default: from manifest or rule-name)")
     parser.add_argument("--project-root", type=Path,
@@ -578,6 +633,7 @@ def main() -> int:
         project_root=args.project_root,
         module=args.module,
         antipattern_files=args.antipattern_files,
+        recall_files=args.recall_files,
     )
 
     out = args.out or (args.proposal / "conformance.json")
