@@ -77,6 +77,14 @@ When already inside Claude Code, prefer native Claude Code sub-agents and
 skills. Use `claude -p` subprocess scouts only when nesting-safe fan-out
 is needed; the Codex `/private/tmp` workaround is not required unless
 reproducing Codex sandbox constraints.
+
+`claude -p` availability caveat (2026-06): Anthropic plans to remove
+headless `claude -p` from subscription plans, so subscription sessions
+should not treat it as a free substrate. When a fresh-context role is
+needed and native sub-agents can't nest, the default is to hand the
+user a ready-to-run command for a **separate Claude Code window**;
+use `claude -p` only when the user opts in. Longer term, pooled
+reusable workers may replace per-call spawning — see the idea ledger.
 [/Claude-Code-Specific]
 
 [Augment-Specific]
