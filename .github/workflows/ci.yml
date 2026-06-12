@@ -143,6 +143,17 @@ jobs:
       - name: Run pytest
         run: python3 -m pytest
 
+      # Status-dashboard browser smoke (ADR 0037 / verification-policy UI
+      # row): the rendered HTML must open from file:// in headless Chromium
+      # with zero console errors and zero network requests. Playwright is a
+      # CI-only dependency — locally the same test skips when playwright is
+      # not installed, so the main pytest run above stays browser-free.
+      - name: Renderer browser smoke (Playwright + Chromium)
+        run: |
+          pip install playwright
+          python3 -m playwright install chromium --only-shell
+          python3 -m pytest tests/test_render_status.py -q
+
       # The ecosystem's own guard: run every skill's scripts/smoke.py through
       # one aggregating gate. Blocking on smokes that exist (they must stay
       # green); missing smokes are reported, not failed — coverage climbs over
