@@ -271,12 +271,26 @@ def detect_stale_plans(
     *,
     stale_threshold_days: int = 30,
 ) -> list[dict]:
-    """Find ai-docs/plans/*.md with status=proposed, untouched > N days, missing from ledger."""
+    """Find ai-docs/plans/*.md in a non-terminal status, untouched > N days, not actively tracked in the ledger.
+
+    Non-terminal = every status a plan can stall in (scripts/plans.py
+    VALID_STATUSES minus terminal promoted/abandoned) plus legacy
+    "proposed" for host projects that use it. Untracked plans fall back
+    to filesystem mtime — an uncommitted plan still ages. A ledger slug
+    match only exempts the plan while the ledger idea is in-flight
+    (--stale owns the watching then); a proposed-state intake is not
+    active tracking.
+    """
+    non_terminal = {"draft", "proposed", "scoped", "impacted", "architected"}
     plans_dir = repo_root / "ai-docs" / "plans"
     if not plans_dir.exists():
         return []
 
-    ledger_slugs = set(L.project_all(records).keys())
+    projections = L.project_all(records)
+    ledger_states = {
+        k: (v.get("state") if isinstance(v, dict) else None)
+        for k, v in projections.items()
+    }
     now = datetime.now(timezone.utc)
     threshold = now - timedelta(days=stale_threshold_days)
 
@@ -288,15 +302,22 @@ def detect_stale_plans(
             continue
 
         status = _parse_plan_status(text)
-        if status != "proposed":
+        if status not in non_terminal:
             continue
 
         mtime = _git_file_mtime(plan_path)
-        if mtime is None or mtime > threshold:
+        if mtime is None:
+            try:
+                mtime = datetime.fromtimestamp(
+                    plan_path.stat().st_mtime, tz=timezone.utc
+                )
+            except OSError:
+                continue
+        if mtime > threshold:
             continue
 
         slug = plan_path.stem.lower().replace("_", "-")
-        if slug in ledger_slugs:
+        if ledger_states.get(slug) == "in-flight":
             continue
 
         out.append({
