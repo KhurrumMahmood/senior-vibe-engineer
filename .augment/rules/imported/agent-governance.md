@@ -33,6 +33,10 @@ type: "always_apply"
 - Concrete bug investigations with no trusted reproduction should use
   `/diagnose` before implementation: feedback loop, hypotheses, root cause,
   verification, and cleanup check.
+- For vague, messy, or multi-step requests where the operating mode is
+  unclear, route with `/which-shape` first (then `/which-skill` once the
+  shape is known) instead of picking skills ad hoc or proceeding unrouted.
+  Tiny obvious edits are exempt.
 - Treat agent context as a budget. Parallel workers should receive concise,
   self-contained task briefs and relevant file paths, not inherited full
   transcripts. Use `.claude/tasks/` briefs and file-based findings for

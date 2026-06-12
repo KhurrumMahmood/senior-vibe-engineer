@@ -10,6 +10,11 @@ lesson — use the idea-tracking system instead of an ad-hoc note. The
 bar for entry is *"would future-me want this back?"*; capture
 liberally, prune via `/find-orphaned-ideas`.
 
+Before ending a strategy/design conversation that produced
+agreed-but-unexecuted items, silent decisions, or reusable ideas, sweep
+the conversation and capture them as ledger intakes via `/track-idea` —
+capture beats curation.
+
 The system is two-tier (ADR 0013):
 
 - **Tier 1 — Idea ledger** at `.claude/ideas/log.jsonl`. Append-only

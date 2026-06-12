@@ -14,6 +14,10 @@ This README is the **human entrypoint**. AI agents (Claude Code, Codex,
 Augment, Cursor, Gemini) should start at
 [`AGENTS.md`](./AGENTS.md) → [`.claude/CLAUDE.md`](./.claude/CLAUDE.md).
 
+**Where to start:** `/engineer-init` for first-time setup (venv, deps,
+hooks); `/which-shape` for routing whenever you're unsure what kind of
+work to run.
+
 ## What's in the box
 
 - **`.claude/skills/`** — 63 skills covering diagnosis, construction,

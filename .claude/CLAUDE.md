@@ -115,6 +115,10 @@ authoring pattern.
   explicitly in your reply. One clarifying question is much cheaper
   than a confidently wrong implementation; completion-trained models
   default to guessing, so this has to be deliberate.
+- **Route before working.** For vague, messy, or multi-step requests
+  where the operating mode is unclear, consult `/which-shape` first
+  (then `/which-skill` once the shape is known) rather than picking
+  skills ad hoc or proceeding unrouted. Tiny obvious edits are exempt.
 - **Plan when it pays.** Ambiguous / risky / multi-file: write a short
   plan first. Obvious fixes: just do them. The System-tier chain
   (`/scope-feature` → `/impact-feature` → `/architecture-fit` →
@@ -146,6 +150,11 @@ authoring pattern.
     was invoked, on what, outcome, human override). Opt-in per skill;
     gitignored log + archive, summarized lessons digests safe to commit.
     See `.claude/skill-use/README.md` for schema and capture helper.
+- **Sweep before ending.** Before closing a strategy/design conversation
+  that produced agreed-but-unexecuted items, silent decisions, or
+  reusable ideas, sweep the conversation and capture them as ledger
+  intakes via `/track-idea`. Capture beats curation — the bar is "would
+  future-me wish this were written down?"
 
 Full prose (test-first protocol, service-layer / view-pattern conventions,
 testing patterns, post-implementation gut check) lives in
