@@ -100,6 +100,17 @@ never fully executes and a project that never reaches coherent form.
   `operator-composition-ledger` in THIS repo links the harvest output
   and the first recorded adoption in the new project — cross-repo
   memory is not a mechanism.
+  **PROGRESS 2026-06-12: Phases 1–2 done.** Harvest: two scout reports
+  persisted verbatim at `content-pipeline/ai-docs/harvest/`, distilled
+  into a 19-operator index + dead-end autopsies at
+  `ai-docs/operators/README.md`. Greenfield: pack installed (604 files,
+  test suite green standalone: 335 passed, 3 skipped), goal artifact
+  seeded at `.engineering/goals.md` (W-E's first instantiation), fresh
+  ledger seeded with all 19 operators, commit zero `a96923a`. Linkage
+  recorded as an adoption event on `operator-composition-ledger`.
+  Remaining for closure: the first recorded code adoption in the new
+  project (Phase 3, rides on the first scoped slice — slice choice is
+  an open user decision).
 - **W-G — The assurance loop itself.** Operator direction (2026-06-12):
   **execution-first** — the cadence for THIS project is "the pending
   work gets done, then dogfooded on a meaningful target," not new
