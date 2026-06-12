@@ -172,6 +172,13 @@ the replay case.
 
 ### Stage 8 — Close out
 
+- **Class-lift gate.** For each repaired defect, name its class in
+  one sentence, define the cheapest detector (usually a grep), and
+  RUN it across the skill catalog. The detector's output is the
+  artifact — paste hit counts in the reply. Siblings found → batch
+  them (one sweep spec, not N future bug reports); class
+  mechanizable → route to /prevent-regression. A defect fixed only
+  where it was reported is a recurring tax.
 - Residual triage: each verifier/probe/dogfood residual is fixed
   (small, in-class) or ledgered with its routing named — never
   dropped.
