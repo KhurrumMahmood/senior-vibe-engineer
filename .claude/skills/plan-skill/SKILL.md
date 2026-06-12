@@ -98,6 +98,20 @@ Then define the artifact contract:
 - what downstream skill consumes the output;
 - stop conditions.
 
+Two contract rules, both learned from execution failures:
+
+- **Declared verdict.** The skill body opens with a compact "How
+  success is judged" block naming the gates the executor will face.
+  Executors optimize toward announced verdicts; a gate revealed only
+  at the end shapes nothing.
+- **Load-bearing or delete.** Every mandated verification or
+  reporting stage names its consumer (a later stage, the reply
+  contract, or a gate). A stage whose output nothing consumes gets
+  skipped under load at ~100% — wire it or remove it. Likewise,
+  "read X" instructions need an un-fakeable acknowledgment (one line
+  that cannot be written without the read), and gates must test the
+  artifact's property, never just its existence.
+
 ## Stage 4 - Implementation Shape
 
 Pick the narrowest mechanism that works:
@@ -110,6 +124,20 @@ Pick the narrowest mechanism that works:
 
 Use progressive disclosure. If `SKILL.md` approaches 500 lines, split
 rarely-read detail into one-level references.
+
+Contracts must be executable as written, on hosts the skill was not
+written on:
+
+- a sub-agent dispatch names an agent type that can actually produce
+  the demanded outputs (a read-only type cannot satisfy a
+  write-three-files contract), and its allowed-tool list includes
+  what the outputs require;
+- template placeholders state their fallbacks (detached HEAD, no
+  venv, no branch);
+- "always in scope" convention sources state an absence fallback —
+  host-adapter slots must cover total absence, not just substitution,
+  and worked examples naming origin-project helpers are marked as
+  illustration so they cannot be harvested as false rules.
 
 ## Stage 5 - Dogfood Plan
 
@@ -125,6 +153,15 @@ healthy:
 Prefer real host-project tasks over invented examples. If a real task is
 too expensive, write a small fixture and state the gap.
 
+For execution-heavy skills, the binding dogfood is a **real-host run**:
+execute the skill against a codebase it was not written on, under
+hostile-but-realistic conditions (missing convention docs, no venv,
+detached HEAD, commits forbidden). Scenario probes and document review
+both miss the unexecutable-against-reality defect class by
+construction. The dogfood log — each friction citing the text it was
+following, each fix, and the scenario that should now pass — is the
+skill's replay case; keep it.
+
 ## Stage 6 - Build Gate
 
 After implementation, run the smallest meaningful gate set:
@@ -138,6 +175,16 @@ After implementation, run the smallest meaningful gate set:
 If the skill declares `evidence_required`, also run
 `scripts/evidence_gate.py` against a dogfood report directory. If the
 skill has scripts, add or update touched tests and run them.
+
+For a **material revision** of an existing skill, the gate set is the
+repair loop (see `/repair-skill`): frame review against the rubric, a
+scout that verifies the review's claims before any edit, an
+independent non-context-sharing verifier after, and an A/B probe at
+the headline defect site at the weakest supported model tier. When
+judging probes, score the grounding, not just the behavior — an
+executor can produce the right behavior while citing mandates that do
+not exist, which inflates the old-condition score and hides
+brittleness.
 
 ## Evidence Manifest
 
