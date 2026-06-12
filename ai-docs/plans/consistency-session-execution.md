@@ -111,6 +111,15 @@ never fully executes and a project that never reaches coherent form.
   Remaining for closure: the first recorded code adoption in the new
   project (Phase 3, rides on the first scoped slice — slice choice is
   an open user decision).
+  **CLOSED 2026-06-12 (same day):** harvest ran seven passes total
+  (101 operator cards; text-corpus declared dry, then amended twice
+  via operator corrections — code-as-idea, multi-model panel), and
+  the first code adoption landed: content-pipeline commit 1562961
+  (`pipeline/runs.py` from card 18, adoption event + in-flight
+  transition, 9 characterization tests). `operator-composition-ledger`
+  → done(adopted). The creative first slice (which story/span runs
+  the spine first) remains content-pipeline's own next decision; W-F's
+  contract — mechanism proven end-to-end — is met.
 - **W-G — The assurance loop itself.** Operator direction (2026-06-12):
   **execution-first** — the cadence for THIS project is "the pending
   work gets done, then dogfooded on a meaningful target," not new
