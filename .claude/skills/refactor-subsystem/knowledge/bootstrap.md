@@ -70,6 +70,11 @@ table is an auto-generated AST dump. Phase 1.1 (scout dispatch)
 will populate the real content.
 ```
 
+In environments where committing is not permitted (review-only runs, CI
+sandboxes), record the intent in the run report and defer the commit to
+the first permitted moment; downstream phases run against the on-disk
+spec normally.
+
 ## Why a separate file
 
 Phase 0 is the rarest codepath — scaffolds run once per subsystem,

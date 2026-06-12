@@ -26,7 +26,7 @@ returns.
 | `{{verification_cmd}}` | Dispatch tuple per file | `tests.test_data_export tests.test_site_capabilities` |
 | `{{worktree}}` | `git rev-parse --show-toplevel` | `~/Projects/your-project` |
 | `{{venv}}` | `knowledge/operations.md` | `.venv/bin/python` |
-| `{{branch}}` | `git branch --show-current` | `wip` |
+| `{{branch}}` | `git branch --show-current`; on detached HEAD (empty output) substitute `(detached HEAD @ <short-sha>)` | `wip` |
 
 ---
 

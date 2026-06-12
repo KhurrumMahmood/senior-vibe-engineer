@@ -30,6 +30,10 @@ one silently.
   fi
   ```
 
+  The guard applies only when the current phase will issue
+  Django/`manage.py` commands; phases that issue none (e.g. Phase 0–1
+  inventory work) note the missing venv and proceed.
+
   Scout briefs receive the resolved interpreter as `{{venv}}` (e.g.
   `.venv/bin/python` or `$PYTHON_VENV_PATH/bin/python`).
 

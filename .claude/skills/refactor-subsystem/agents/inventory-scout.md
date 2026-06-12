@@ -1,7 +1,9 @@
 # inventory-scout brief template
 
 Dispatched at Phase 1.3, one sub-agent per chunk, in parallel (one
-orchestrator message, N `Agent` tool calls with `subagent_type="Explore"`).
+orchestrator message, N `Agent` tool calls with
+`subagent_type="general-purpose"` — a read-only agent type such as
+`Explore` cannot satisfy the three-file output contract below).
 
 The orchestrator substitutes every `{{placeholder}}` before dispatch. The
 template below produces the FULL prompt — do not summarize or elide
@@ -23,7 +25,7 @@ sections.
 | `{{archaeology_owner}}` | Chunk map row | `scout` or `orchestrator` |
 | `{{worktree}}` | `git rev-parse --show-toplevel` | `~/Projects/your-project` |
 | `{{venv}}` | `knowledge/operations.md` | `.venv/bin/python` (or `$PYTHON_VENV_PATH/bin/python`) |
-| `{{branch}}` | `git branch --show-current` | `wip` |
+| `{{branch}}` | `git branch --show-current`; on detached HEAD (empty output) substitute `(detached HEAD @ <short-sha>)` | `wip` |
 
 ---
 
@@ -194,8 +196,9 @@ AND ≤ 20 commits — see Phase 1.4), run:
 and add rationale entries to Output 3 as LR-T candidates. Otherwise skip
 archaeology — the orchestrator is handling Phase 1.4 for {{file}} in parallel.
 
-Use only Read, Grep, Glob, Bash. Do not edit anything. Do not produce summaries
-beyond the three files above.
+Use only Read, Grep, Glob, Bash, and Write — Write restricted to the three
+output paths declared above. Do not edit anything else. Do not produce
+summaries beyond the three files above.
 ```
 
 ---

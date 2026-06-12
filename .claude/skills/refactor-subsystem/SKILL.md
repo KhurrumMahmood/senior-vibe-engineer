@@ -254,6 +254,10 @@ Key invariants (no need to load the playbook to remember these):
 - A stub spec has `status: STUB`; Phase 1.1.5's inventory gate will
   recognize that and allow scouts to populate the narrative.
 - Commit the stub as a single-file commit before any Phase 1 work.
+  Where committing is not permitted (review-only runs, CI sandboxes),
+  record the intent in the run report and defer the commit to the
+  first permitted moment; downstream phases run against the on-disk
+  spec normally.
 
 ## Phase 1 — Inventory
 
@@ -269,7 +273,9 @@ python3 scripts/ledger.py list --decision split_queued,monitor
 ```
 
 Record: `code_roots`, current `[ ]` / `[~]` / `[x]` states, ledger
-entries for files in `code_roots`.
+entries for files in `code_roots`. (`ledger.py list` exits 1 with "no
+entries match" when nothing matches — a normal empty result, not a
+failure.)
 
 Verify the venv before Django commands (fall back to `$PYTHON_VENV_PATH`
 if the worktree lacks its own `.venv`):
@@ -280,6 +286,10 @@ if [ -z "${PYTHON_VENV_PATH:-}" ] && [ ! -x .venv/bin/python ]; then
   exit 1
 fi
 ```
+
+The guard applies only when the current phase will issue
+Django/`manage.py` commands; phases that issue none (e.g. Phase 0–1
+inventory work) note the missing venv and proceed.
 
 If `coverage` reports drift (checkmark lag or orphan refs), **fix the
 drift first** — either as a sub-task or abort and report. A spec that
@@ -336,6 +346,12 @@ the same violations with the same naming:
 3. **Out of scope:** any doc whose trigger doesn't match. Context is
    expensive.
 
+**Absence fallback.** If the named convention sources do not exist in
+the host (no `.claude/CLAUDE.md`, no `.claude/docs/`), substitute a
+generic language/framework-hygiene rule table, record the substitution
+in `convention-sources.md` for Phase 4 human audit, and do NOT import
+the worked example's helper names below as rules.
+
 Write the resolved list to
 `reports/refactor/<spec-id>/convention-sources.md`. Every scout brief
 references this file.
@@ -345,6 +361,10 @@ from `docs/pipelines.md` that only applies to crawl tasks must not be
 flagged as a violation in a view or service file. For every
 convention entry, record:
 
+<!-- host-adapter: rule table. The rows below are an ORIGIN-project
+illustration (TaskDispatchService, ensure_for_site, safe_int are that
+project's helpers), NOT a default rule set — substitute rules drawn
+from the host project's own convention sources. -->
 ```markdown
 | Rule short | Canonical helper | Anti-pattern regex | Applies when path matches |
 |---|---|---|---|
@@ -389,7 +409,11 @@ function/class by domain. Use `scripts/chunk_file.py --format markdown`:
 Clusters under ~100 LOC are merge candidates.
 
 **Step 3: Intra-file DRY scan.** Use structural AST comparison (R27).
-`scripts/specs.py solid` (Gate 2) normalizes `ast.dump()` output. Look
+`scripts/specs.py solid` (Gate 2) normalizes `ast.dump()` output. At
+this stage consume ONLY the Gate-2 (DRY) section of its output: L1
+checks for `phase-1-solid-audit.md` — the very file this step is
+producing — so an L1 SKIP/FAIL and a non-zero overall exit are expected
+here and are not abort signals. Look
 for identical try/except shapes, duplicated setup sequences, multiple
 implementations of the same abstraction.
 
@@ -431,9 +455,16 @@ Rules:
 
 - **Defaults:** `--token-budget 8000 --loc-budget 2500`. Tune only when
   scouts overflow or coordination breaks down.
-- **Orphan chunks from 1.1.5 are first-class.** Create `orphan-1`,
-  `orphan-2`, ... for every orphan region. Rank orphan IM proposals
-  first in Phase 2.2 (R14; original lesson L-12).
+- **Two "orphan" notions — don't conflate them.** The chunker's
+  "orphan regions" are coverage gaps between chunks; §1.1.5's orphans
+  are spec-unmentioned spans. Inspect every chunker gap region before
+  creating anything: blank/trivial separators (whitespace, lone
+  comments) are folded into the adjacent chunk and their disposition
+  recorded in the chunk map. Only substantive uncovered spans (real
+  code the chunk map misses) and §1.1.5 spec-unmentioned spans become
+  orphan chunks — `orphan-1`, `orphan-2`, ... — with their own scouts.
+  Rank orphan IM proposals first in Phase 2.2 (R14; original lesson
+  L-12).
 - **Spec-guided cleavages:** if the spec enumerates IM-group line
   boundaries, pass `--loc-hints <start:end,...>` to bias toward them.
 - **Files ≤ 2,000 LOC skip chunking.** One scout per file, basename-keyed
@@ -452,7 +483,13 @@ Rules:
   short-code regex (R21) all use the qualified form.
 
 Write the chunk map to
-`reports/refactor/<spec-id>/inventory/<basename>__chunks.md`:
+`reports/refactor/<spec-id>/inventory/<basename>__chunks.md`. The
+orchestrator REWRITES that file — overwriting the chunker's markdown
+output at the same path — into the format below (basename-qualified
+IDs, archaeology-owner column); the chunker's raw output survives at
+`<basename>__chunks.json`. Dispatch scouts only from the rewritten
+map: raw chunker IDs like `C-01` are unqualified and would break R35
+qualification.
 
 ```markdown
 # Chunk map — <file> (<LOC> LOC total)
@@ -482,7 +519,9 @@ assigns archaeology owners.
 ### 1.3 Dispatch the inventory scouts (parallel)
 
 For each chunk (or each small file that skipped chunking), dispatch one
-`Explore` sub-agent. Scouts run in parallel — one message, N tool calls.
+`general-purpose` sub-agent (a read-only agent type such as `Explore`
+cannot satisfy the three-file output contract). Scouts run in parallel —
+one message, N tool calls.
 
 **Use `agents/inventory-scout.md` as the brief template.** Substitute
 every `{{placeholder}}` with the chunk's values (file path, line range,
@@ -580,7 +619,11 @@ Write `reports/refactor/<spec-id>/phase-1-inventory.md`:
 2. **Three outputs per chunk** — all three scout files on disk.
 3. **Archaeology present where required** — every ≥ 50-commit file has
    ≥ 3 LR-T candidates; every ≤ 500 LOC / ≤ 20 commits file has inline
-   archaeology or a note.
+   archaeology or a note. Files in neither bracket (e.g. a large file
+   with modest history) get orchestrator-owned archaeology per
+   operations.md's "everything else" rule, producing a tagged report —
+   held to the ≥ 3 LR-T standard where history supports it, else the
+   report records the shortfall and the reason.
 4. **No empty primary briefs** — silent-fail signal. Re-dispatch.
 
 Missing outputs → re-dispatch. Do not proceed until all four conditions
@@ -1104,7 +1147,7 @@ blocks."
 **Level 3 (sub-agent judgment — Gate 1 + Gate 3):**
 
 SRP and linear-flow gates require judgment that can't be mechanically
-checked. Dispatch **one** Explore sub-agent with the independent-review
+checked. Dispatch **one** `general-purpose` sub-agent with the independent-review
 brief. **The orchestrator does NOT evaluate these gates itself** —
 dispatching prevents rubber-stamping its own work.
 
