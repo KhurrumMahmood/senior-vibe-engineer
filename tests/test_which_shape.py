@@ -54,6 +54,17 @@ def test_durable_tradeoff_routes_to_decision_capture(tmp_path):
     assert _shape_for("choose the durable architecture tradeoff and record an ADR", tmp_path) == "decision-capture"
 
 
+def test_concept_rename_strong_cues_route_to_concept_rename(tmp_path):
+    # Frame review F4b probe: a negated "typo" must no longer beat the
+    # registry's own concept-rename shape.
+    assert _shape_for("this is not a typo, the whole subsystem terminology is wrong", tmp_path) == "concept-rename"
+    assert _shape_for("rename the domain concept across the glossary and all surfaces", tmp_path) == "concept-rename"
+
+
+def test_task_closeout_strong_cues_route_to_task_closeout(tmp_path):
+    assert _shape_for("the work is finished; run a closeout cleanup over the changed files", tmp_path) == "task-closeout"
+
+
 def test_which_skill_failure_examples_route_to_shapes(tmp_path):
     assert _shape_for("I need to onboard an unknown inherited repo and figure out what loop to run", tmp_path) == "project-intake"
     assert _shape_for("This project feels messy and slow; identify the right cleanup loop", tmp_path) != "regression-prevention"
@@ -65,6 +76,50 @@ def test_shapes_registry_schema_is_valid():
     assert len({shape["id"] for shape in payload["shapes"]}) == len(payload["shapes"])
 
 
+def _registry_payload() -> dict:
+    return yaml.safe_load((ROUTE_PATH.parents[1] / "shapes.yml").read_text(encoding="utf-8"))
+
+
+def test_validate_passes_on_real_registry(capsys):
+    assert route.main(["--validate"]) == 0
+    assert "shapes OK" in capsys.readouterr().out
+
+
+def test_validate_fails_on_shape_without_boost_arm(tmp_path, capsys):
+    payload = _registry_payload()
+    payload["shapes"].append({
+        "id": "mystery-shape",
+        "title": "Mystery Shape",
+        "summary": "Added to the registry without a scorer boost arm.",
+        "first_next": "/orient",
+        "sequence": ["/orient"],
+        "stop": "Stop.",
+        "cues": {"strong": ["mystery"], "normal": [], "negative": []},
+        "alternatives": [],
+    })
+    shapes_path = tmp_path / "shapes.yml"
+    shapes_path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+
+    assert route.main(["--validate", "--shapes", str(shapes_path)]) == 2
+    assert "mystery-shape: no boost arm" in capsys.readouterr().err
+
+
+def test_validate_fails_on_cue_constant_drift(tmp_path, capsys):
+    payload = _registry_payload()
+    for shape in payload["shapes"]:
+        if shape["id"] == "direct-change":
+            shape["cues"]["strong"].remove("typo")  # DIRECT_CUES now has an extra cue
+        if shape["id"] == "bug-fix":
+            shape["cues"]["strong"].append("brand-new-cue")  # BUG_CUES now misses one
+    shapes_path = tmp_path / "shapes.yml"
+    shapes_path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+
+    assert route.main(["--validate", "--shapes", str(shapes_path)]) == 2
+    err = capsys.readouterr().err
+    assert "DIRECT_CUES" in err and "typo" in err
+    assert "BUG_CUES" in err and "brand-new-cue" in err
+
+
 def test_recommendation_events_do_not_pollute_skill_useful_rate(tmp_path):
     log = tmp_path / "log.jsonl"
     events = [
@@ -74,7 +129,7 @@ def test_recommendation_events_do_not_pollute_skill_useful_rate(tmp_path):
             "event_kind": "recommendation",
             "target": "messy project",
             "artifact": None,
-            "outcome": "useful",
+            "outcome": "unscored",
             "human_override": None,
             "duration_s": 0.1,
             "follow_up_skill": None,
@@ -260,3 +315,41 @@ def test_compaction_summarizes_recommendations_separately():
     assert "| `fix-workflow` | 1 | 100% | 0% |" in digest
     assert "## Shape recommendation feedback" in digest
     assert "`legacy-stabilization`" in digest
+
+
+def test_outcome_defaults_to_unscored(tmp_path):
+    log = tmp_path / "log.jsonl"
+    assert route.main([
+        "fix one-line typo in the status label",
+        "--project-root", str(tmp_path),
+        "--log", str(log),
+    ]) == 0
+    event = json.loads(log.read_text(encoding="utf-8").strip())
+    assert event["event_kind"] == "recommendation"
+    assert event["outcome"] == "unscored"
+
+
+def test_compaction_overridden_rate_counts_only_scored_events():
+    base = {
+        "skill": "which-shape",
+        "event_kind": "recommendation",
+        "target": "messy project",
+        "artifact": None,
+        "human_override": None,
+        "duration_s": 0.1,
+        "follow_up_skill": None,
+        "shape": "legacy-stabilization",
+        "confidence": "medium",
+    }
+    events = [
+        {**base, "ts": "2026-05-17T00:00:00Z", "outcome": "unscored"},
+        {**base, "ts": "2026-05-17T00:00:01Z", "outcome": "unscored"},
+        {**base, "ts": "2026-05-17T00:00:02Z", "outcome": "overridden",
+         "human_override": "wrong-shape: should have started with project-intake"},
+    ]
+
+    digest = skill_compact._render_digest(events, "2026-05-17T00:00:00Z", "2026-05-17T00:00:02Z")
+
+    # n=3 events, 1 scored, and the unscored majority must not dilute
+    # the overridden rate toward 0%.
+    assert "| `legacy-stabilization` | 3 | 1 | 100% |" in digest

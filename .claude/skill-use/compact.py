@@ -154,12 +154,15 @@ def _render_digest(events: list[dict], window_start: str, window_end: str) -> st
             shape = event.get("shape")
             if isinstance(shape, str) and shape:
                 by_shape[shape].append(event)
-        lines.append("| Shape | n | overridden% | top override theme |")
-        lines.append("|---|---:|---:|---|")
+        lines.append("| Shape | n | scored | overridden% | top override theme |")
+        lines.append("|---|---:|---:|---:|---|")
         for shape in sorted(by_shape):
             shape_events = by_shape[shape]
             n = len(shape_events)
-            overridden = sum(1 for event in shape_events if event.get("outcome") == "overridden")
+            # Recommendations default to `unscored`; overridden% counts
+            # only events a human went back and scored.
+            scored = [e for e in shape_events if e.get("outcome") != "unscored"]
+            overridden = sum(1 for event in scored if event.get("outcome") == "overridden")
             stems = Counter(
                 _stem(event["human_override"])
                 for event in shape_events
@@ -169,7 +172,8 @@ def _render_digest(events: list[dict], window_start: str, window_end: str) -> st
             stems.pop("", None)
             top_override = stems.most_common(1)[0][0] if stems else "—"
             lines.append(
-                f"| `{shape}` | {n} | {overridden * 100 // n if n else 0}% | "
+                f"| `{shape}` | {n} | {len(scored)} | "
+                f"{overridden * 100 // len(scored) if scored else 0}% | "
                 f"{top_override} |"
             )
 

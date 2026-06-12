@@ -42,16 +42,49 @@ STOPWORDS = {
     "could", "would", "may", "might", "just", "really", "right", "what",
 }
 
+# Boost-arm cue constants. shapes.yml is the source of truth: each
+# constant mirrors its shape's strong cues (PROJECT_INTAKE_CUES may also
+# draw from normal cues). `--validate` fails on drift via
+# CUE_CONSTANT_SYNC below.
 DIRECT_CUES = {"typo", "one-line", "oneline", "trivial", "tiny", "narrow", "obvious"}
-BUG_CUES = {"bug", "broken", "failing", "failure", "traceback", "exception", "error", "crash"}
+BUG_CUES = {"bug", "broken", "failing", "failure", "traceback", "exception", "error"}
 PROJECT_INTAKE_CUES = {"adapt", "adapter", "onboard", "onboarding", "unknown", "repo", "project", "codebase"}
 INTAKE_FORCE_CUES = {"adapt", "adapter", "onboard", "onboarding", "unknown", "inherited"}
 LEGACY_CUES = {"legacy", "messy", "chaotic", "stabilize", "stabilization", "vibe-coded"}
 HEALTH_CUES = {"audit", "scan", "health", "sweep"}
-REGRESSION_CUES = {"prevent", "guard", "recurring", "repeated", "again", "regression", "keeps", "back"}
+REGRESSION_CUES = {"prevent", "guard", "recurring", "repeated", "again", "keeps"}
 DECISION_CUES = {"decision", "decide", "adr", "tradeoff", "choose"}
-FEATURE_CUES = {"feature", "add", "endpoint", "capability", "workflow", "new"}
-REFACTOR_CUES = {"approved", "proposal", "execute", "refactor", "extract", "split"}
+FEATURE_CUES = {"feature", "add", "endpoint", "capability", "workflow"}
+REFACTOR_CUES = {"approved", "proposal", "execute", "refactor"}
+CONCEPT_RENAME_CUES = {"concept", "glossary", "supersede", "terminology", "deprecate"}
+CLOSEOUT_CUES = {"closeout", "cleanup", "stabilize", "finished", "wrap-up", "post-commit"}
+
+# Shape ids with a boost arm in _score_shape. `--validate` fails when a
+# shapes.yml id is missing here; keep in sync when adding an arm.
+BOOSTED_SHAPE_IDS = {
+    "project-intake", "direct-change", "concept-rename", "bug-fix",
+    "feature-shaping", "legacy-stabilization", "health-audit",
+    "refactor-execution", "regression-prevention", "decision-capture",
+    "task-closeout",
+}
+
+# (constant name, constant, shape id, cue keys it may draw from).
+# Strong-only constants must equal the shape's strong set exactly; mixed
+# constants must stay a subset of the allowed keys' union.
+CUE_CONSTANT_SYNC = [
+    ("DIRECT_CUES", DIRECT_CUES, "direct-change", ("strong",)),
+    ("BUG_CUES", BUG_CUES, "bug-fix", ("strong",)),
+    ("PROJECT_INTAKE_CUES", PROJECT_INTAKE_CUES, "project-intake", ("strong", "normal")),
+    ("INTAKE_FORCE_CUES", INTAKE_FORCE_CUES, "project-intake", ("strong",)),
+    ("LEGACY_CUES", LEGACY_CUES, "legacy-stabilization", ("strong",)),
+    ("HEALTH_CUES", HEALTH_CUES, "health-audit", ("strong",)),
+    ("REGRESSION_CUES", REGRESSION_CUES, "regression-prevention", ("strong",)),
+    ("DECISION_CUES", DECISION_CUES, "decision-capture", ("strong",)),
+    ("FEATURE_CUES", FEATURE_CUES, "feature-shaping", ("strong",)),
+    ("REFACTOR_CUES", REFACTOR_CUES, "refactor-execution", ("strong",)),
+    ("CONCEPT_RENAME_CUES", CONCEPT_RENAME_CUES, "concept-rename", ("strong",)),
+    ("CLOSEOUT_CUES", CLOSEOUT_CUES, "task-closeout", ("strong",)),
+]
 
 
 def tokenize(text: str) -> set[str]:
@@ -103,6 +136,37 @@ def validate_shapes_payload(payload: dict[str, Any]) -> list[str]:
             values = cues.get(key, [])
             if not isinstance(values, list) or any(not isinstance(item, str) for item in values):
                 errors.append(f"{sid or index}: cues.{key} must be a list of strings")
+    return errors
+
+
+def validate_scorer_coverage(shapes: list[dict[str, Any]]) -> list[str]:
+    """Fail loudly when shapes.yml and the scorer drift apart.
+
+    Two checks (frame review F4b): every shape id must have a boost arm
+    in _score_shape (an unboosted shape can almost never win), and the
+    module cue constants must stay in sync with the registry's cues.
+    """
+    errors: list[str] = []
+    ids = {str(shape["id"]) for shape in shapes}
+    for sid in sorted(ids - BOOSTED_SHAPE_IDS):
+        errors.append(f"{sid}: no boost arm in _score_shape — add one and list it in BOOSTED_SHAPE_IDS")
+    for sid in sorted(BOOSTED_SHAPE_IDS - ids):
+        errors.append(f"{sid}: boost arm references a shape id missing from shapes.yml")
+    by_id = {str(shape["id"]): shape for shape in shapes}
+    for name, constant, sid, keys in CUE_CONSTANT_SYNC:
+        shape = by_id.get(sid)
+        if shape is None:
+            continue  # already reported above
+        allowed: set[str] = set()
+        for key in keys:
+            allowed |= set(shape.get("cues", {}).get(key, []))
+        extra = constant - allowed
+        if extra:
+            errors.append(f"{name}: cues not in {sid} {'+'.join(keys)} cues: {sorted(extra)}")
+        if keys == ("strong",):
+            missing = allowed - constant
+            if missing:
+                errors.append(f"{name}: missing {sid} strong cues: {sorted(missing)}")
     return errors
 
 
@@ -205,6 +269,12 @@ def _score_shape(shape: dict[str, Any], task_tokens: set[str], context: dict[str
     elif sid == "refactor-execution" and task_tokens & REFACTOR_CUES:
         score += 24
         rationale.append("task names an approved refactor/proposal shape")
+    elif sid == "concept-rename" and task_tokens & CONCEPT_RENAME_CUES:
+        score += 30
+        rationale.append("task names a glossary-level concept or terminology change")
+    elif sid == "task-closeout" and task_tokens & CLOSEOUT_CUES:
+        score += 30
+        rationale.append("task asks for post-work cleanup or closeout")
 
     if context_missing and sid not in {"project-intake", "direct-change", "bug-fix", "decision-capture"}:
         score -= 4
@@ -410,13 +480,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--validate", action="store_true", help="Validate shapes.yml and exit.")
     parser.add_argument("--skip-log", action="store_true")
     parser.add_argument("--log", type=Path, default=None, help="Override skill-use log path.")
-    parser.add_argument("--outcome", choices=["useful", "partial", "noop", "overridden"], default="useful")
+    parser.add_argument(
+        "--outcome", choices=["unscored", "useful", "partial", "noop", "overridden"],
+        default="unscored",
+        help="Default 'unscored': a recommendation is not evidence of usefulness; "
+             "rerun with an explicit outcome to score it.",
+    )
     parser.add_argument("--human-override", default=None)
     args = parser.parse_args(argv)
 
     try:
         if args.validate:
-            load_shapes(args.shapes)
+            shapes = load_shapes(args.shapes)
+            coverage_errors = validate_scorer_coverage(shapes)
+            if coverage_errors:
+                raise ValueError("; ".join(coverage_errors))
             print("shapes OK")
             return 0
         task = " ".join(args.task).strip()
