@@ -48,8 +48,11 @@ never fully executes and a project that never reaches coherent form.
 
 - **W-A — Track A: status projection & presentation.** DONE
   2026-06-12: full chain ran scoped → impacted → architected → ADR
-  0037 → spec promoted → built (commits e97f2ca, 805344a, ceb067b,
-  15f2b60, 2549ae7, e06d751, f98227f, e10aad3). All six plan-§2
+  0037 → spec promoted → built (commits e055b2f, e725677, 8b1fa98,
+  34360f9, 7c64c32, 49c2d1c, 109a418, b643c4a — post-rewrite hashes;
+  history was rewritten 2026-06-12 for inspiration-source obfuscation,
+  so shas recorded anywhere before that date refer to the superseded
+  history). All six plan-§2
   success criteria are green with tests: degradation matrix,
   approvals round-trip, scope-drift staleness (git fixture), renderer
   browser smoke (headless Chromium, zero console errors/requests),
