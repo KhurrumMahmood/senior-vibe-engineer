@@ -53,8 +53,9 @@ def main() -> int:
     assert set(c["checklist"]) == {"pre_baseline", "post_sweep", "guard_tail"}
     assert "/find-implicit-state" in closeout_mod.render_md(c)
 
-    # 4. referential integrity — every recommendable skill resolves.
-    code, missing = coverage.check()
+    # 4. referential integrity — every recommendable skill resolves. The smoke
+    # is a kit self-check, so the kit root is the project root here.
+    code, missing = coverage.check(REPO_ROOT)
     assert code == 0, f"missing skills referenced by registry/floor: {missing}"
 
     print("which-cleanup smoke: OK")

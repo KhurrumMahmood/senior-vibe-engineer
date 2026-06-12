@@ -33,10 +33,16 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from functools import lru_cache
 
-# Anchor scans + git at the repo root so results don't depend on the caller's CWD.
-# This file lives at .claude/skills/find-incomplete-sweep/scripts/scan.py, so
-# parents[4] is the repository root (verified empirically in this checkout).
-REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
+# KIT_ROOT anchors kit-relative imports ONLY (_common). Relative --paths,
+# blame fallbacks, and report labels are target-project surfaces and anchor on
+# --project-root instead — the kit may live in a different repo than the
+# target project (de-baking convention, ADR 0024).
+KIT_ROOT = pathlib.Path(__file__).resolve().parents[4]
+_COMMON = str(KIT_ROOT / ".claude" / "skills" / "_common")
+if _COMMON not in sys.path:
+    sys.path.insert(0, _COMMON)
+
+from diff_resolution import resolve_project_root  # noqa: E402
 
 # Bare single-segment callee names too generic to cluster meaningfully.
 GENERIC_SINGLE = {
@@ -117,11 +123,11 @@ def func_key(func: ast.AST) -> str | None:
     return ".".join(parts[-2:])
 
 
-def iter_py_files(paths: list[str]):
+def iter_py_files(paths: list[str], project_root: pathlib.Path):
     for p in paths:
         root = pathlib.Path(p)
         if not root.is_absolute():
-            root = REPO_ROOT / root  # anchor relative --paths at the repo root
+            root = project_root / root  # anchor relative --paths at the target project root
         if root.is_file() and root.suffix == ".py":
             yield root
             continue
@@ -134,10 +140,10 @@ def iter_py_files(paths: list[str]):
             yield f
 
 
-def collect_callsites(paths: list[str]) -> tuple[list[CallSite], int, int]:
+def collect_callsites(paths: list[str], project_root: pathlib.Path) -> tuple[list[CallSite], int, int]:
     sites: list[CallSite] = []
     scanned = skipped = 0
-    for f in iter_py_files(paths):
+    for f in iter_py_files(paths, project_root):
         try:
             src = f.read_text(encoding="utf-8")
             tree = ast.parse(src)
@@ -259,7 +265,7 @@ def _param_default_values(args: ast.arguments) -> dict[str, str]:
     return out
 
 
-def collect_default_kwargs(paths: list[str]) -> tuple[dict[str, dict[str, str]], set[str]]:
+def collect_default_kwargs(paths: list[str], project_root: pathlib.Path) -> tuple[dict[str, dict[str, str]], set[str]]:
     """Map a callable's final name -> {param/field name -> default-value signature}.
 
     Across the scanned paths, indexes by the *bare class/function name* (the
@@ -292,7 +298,7 @@ def collect_default_kwargs(paths: list[str]) -> tuple[dict[str, dict[str, str]],
             else:
                 cur.setdefault(k, v)
 
-    for f in iter_py_files(paths):
+    for f in iter_py_files(paths, project_root):
         try:
             tree = ast.parse(f.read_text(encoding="utf-8"))
         except (SyntaxError, UnicodeDecodeError):
@@ -390,7 +396,7 @@ def _blame_committer_time(abspath: str, line: int) -> int | None:
     try:
         out = subprocess.run(
             ["git", "blame", "--porcelain", "-L", f"{line},{line}", "--", p.name],
-            cwd=p.parent if p.parent.exists() else REPO_ROOT,
+            cwd=p.parent if p.parent.exists() else pathlib.Path.cwd(),
             capture_output=True, text=True, timeout=20,
         )
         if out.returncode != 0:
@@ -452,14 +458,14 @@ def apply_trajectory_gate(findings: list[Finding]):
             )
 
 
-def rel(path: str) -> str:
+def rel(path: str, project_root: pathlib.Path) -> str:
     try:
-        return str(pathlib.Path(path).resolve().relative_to(REPO_ROOT))
+        return str(pathlib.Path(path).resolve().relative_to(project_root))
     except ValueError:
         return path
 
 
-def render(findings, scanned, skipped, args) -> str:
+def render(findings, scanned, skipped, args, project_root: pathlib.Path) -> str:
     gated = [f for f in findings if f.gated_in]
     optional_default = [f for f in findings if f.optional_by_default]
     ungated = [f for f in findings if not f.gated_in and not f.optional_by_default]
@@ -481,7 +487,7 @@ def render(findings, scanned, skipped, args) -> str:
     def block(f: Finding) -> str:
         lines = [
             f"### `{f.callee}(…, {f.kwarg}=…)` — straggler missing `{f.kwarg}`",
-            f"- straggler: `{rel(f.straggler_file)}:{f.straggler_line}` "
+            f"- straggler: `{rel(f.straggler_file, project_root)}:{f.straggler_line}` "
             f"(missing `{f.kwarg}`)",
             f"- majority: {f.present_count}/{f.group_size} call sites pass "
             f"`{f.kwarg}` ({int(f.majority_frac*100)}%)",
@@ -491,7 +497,7 @@ def render(findings, scanned, skipped, args) -> str:
               if f.override_value else []),
             f"- trajectory: {f.trajectory_note}",
             "- present sites: "
-            + ", ".join(f"`{rel(pf)}:{pl}`" for pf, pl in f.present_sites[:6])
+            + ", ".join(f"`{rel(pf, project_root)}:{pl}`" for pf, pl in f.present_sites[:6])
             + ("" if len(f.present_sites) <= 6 else f" … (+{len(f.present_sites)-6})"),
         ]
         return "\n".join(lines)
@@ -511,10 +517,10 @@ def render(findings, scanned, skipped, args) -> str:
     return "\n".join(L) + "\n"
 
 
-def run_kwarg_band(args):
+def run_kwarg_band(args, project_root: pathlib.Path):
     """The v0 kwarg-omission band: detect + dataclass-default pre-filter + gate."""
-    sites, scanned, skipped = collect_callsites(args.paths)
-    default_kwargs, _var_kw = collect_default_kwargs(args.paths)
+    sites, scanned, skipped = collect_callsites(args.paths, project_root)
+    default_kwargs, _var_kw = collect_default_kwargs(args.paths, project_root)
     findings = find_candidates(
         sites, args.min_callsites, args.majority_frac, args.min_present,
         default_kwargs=default_kwargs,
@@ -522,20 +528,21 @@ def run_kwarg_band(args):
     if not args.no_gate:
         apply_trajectory_gate(findings)
 
-    report = render(findings, scanned, skipped, args)
+    report = render(findings, scanned, skipped, args, project_root)
     if args.out:
         out = pathlib.Path(args.out)
         out.mkdir(parents=True, exist_ok=True)
         (out / "findings.md").write_text(report)
         (out / "manifest.json").write_text(json.dumps({
             "band": "kwarg-omission",
+            "project_root": str(project_root),
             "files_scanned": scanned, "files_skipped": skipped,
             "raw_candidates": len(findings),
             "gated_in": sum(1 for f in findings if f.gated_in),
             "down_ranked": sum(1 for f in findings if f.optional_by_default),
             "findings": [
                 {"callee": f.callee, "kwarg": f.kwarg,
-                 "straggler": f"{rel(f.straggler_file)}:{f.straggler_line}",
+                 "straggler": f"{rel(f.straggler_file, project_root)}:{f.straggler_line}",
                  "majority_frac": f.majority_frac, "group_size": f.group_size,
                  "gated_in": f.gated_in,
                  "optional_by_default": f.optional_by_default,
@@ -587,10 +594,14 @@ def main():
     ap.add_argument("--out", default=None)
     ap.add_argument("--no-gate", action="store_true",
                     help="skip git-trajectory blame (faster, no discriminator)")
+    ap.add_argument("--project-root", type=pathlib.Path, default=None,
+                    help="Target project root anchoring relative --paths and report "
+                         "labels (default: git toplevel of cwd, else cwd)")
     args = ap.parse_args()
 
+    project_root = resolve_project_root(args.project_root)
     if args.band in ("kwarg", "all"):
-        run_kwarg_band(args)
+        run_kwarg_band(args, project_root)
     if args.band in ("placeholder", "all"):
         run_placeholder_band(args)
 

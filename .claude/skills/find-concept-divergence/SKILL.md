@@ -115,10 +115,15 @@ REPORT_DIR="reports/find-concept-divergence/$SCAN_ID"
 mkdir -p "$REPORT_DIR"
 
 .venv/bin/python .claude/skills/find-concept-divergence/scripts/scan.py \
-  --glossary .claude/contracts/concepts.yaml \
   --output "$REPORT_DIR/findings.jsonl" \
-  --report "$REPORT_DIR/report.md"
+  --report "$REPORT_DIR/report.md" \
+  [--glossary PATH] [--project-root DIR]
 ```
+
+Scan targets, finding labels, and the glossary default
+(`<project-root>/.claude/contracts/concepts.yaml`) anchor on
+`--project-root`, which defaults to the git toplevel of the cwd (else
+the cwd).
 
 The scan writes:
 

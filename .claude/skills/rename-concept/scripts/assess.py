@@ -37,12 +37,19 @@ import tempfile
 
 import yaml
 
-# Anchor every repo path / subprocess at the repo root so the verdict does NOT
-# depend on the caller's CWD (running from elsewhere previously inverted the
-# verdict — a real glossary concept silently reported "LOCAL rename, bail").
+# KIT_ROOT anchors kit-shipped resources ONLY (the delegated
+# find-concept-divergence detector and the _common import below). Every
+# target-project surface (git grep, glossary, guard-lint check, divergence-scan
+# anchoring) anchors on --project-root instead — the kit may live in a
+# different repo than the target project (de-baking convention, ADR 0024).
 # Layout: .claude/skills/rename-concept/scripts/assess.py
-#   parents[0]=scripts [1]=rename-concept [2]=skills [3]=.claude [4]=repo root
-REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
+#   parents[0]=scripts [1]=rename-concept [2]=skills [3]=.claude [4]=kit root
+KIT_ROOT = pathlib.Path(__file__).resolve().parents[4]
+_COMMON = str(KIT_ROOT / ".claude" / "skills" / "_common")
+if _COMMON not in sys.path:
+    sys.path.insert(0, _COMMON)
+
+from diff_resolution import resolve_project_root  # noqa: E402
 
 # Paths where the OLD name legitimately persists (not "incomplete rename").
 # ES2-native residue: the ADR tree (ai-docs/decisions/ — ADRs intentionally
@@ -58,11 +65,11 @@ ALLOW_SUBSTR = (
 )
 
 
-def git_grep_files(term: str) -> list[str]:
+def git_grep_files(term: str, project_root: pathlib.Path) -> list[str]:
     try:
         out = subprocess.run(
             ["git", "grep", "-lI", "-i", "-e", term],
-            cwd=REPO_ROOT, capture_output=True, text=True, timeout=60,
+            cwd=project_root, capture_output=True, text=True, timeout=60,
         )
     except (subprocess.SubprocessError, OSError):
         return []
@@ -85,7 +92,7 @@ def _norm_concept(s: str) -> str:
     return s.lower().strip("-")
 
 
-def read_glossary_supersede(old: str) -> str | None:
+def read_glossary_supersede(old: str, project_root: pathlib.Path) -> str | None:
     """Resolve `old` against the glossary by NAME or ALIAS (normalized, so
     CamelCase/snake/spaced inputs match kebab slugs), and report its rename
     status. Returns one of:
@@ -95,7 +102,7 @@ def read_glossary_supersede(old: str) -> str | None:
                                yet recorded — a real glossary concept)
       - <slug>               : found, superseded_by points at <slug>.
     """
-    p = REPO_ROOT / ".claude/contracts/concepts.yaml"
+    p = project_root / ".claude/contracts/concepts.yaml"
     if not p.exists():
         return "<no concepts.yaml>"
     try:
@@ -115,14 +122,14 @@ def read_glossary_supersede(old: str) -> str | None:
     return "<no entry>"
 
 
-def guard_lint_exists(old: str) -> str | None:
-    lint_dir = REPO_ROOT / "scripts" / "lint"
+def guard_lint_exists(old: str, project_root: pathlib.Path) -> str | None:
+    lint_dir = project_root / "scripts" / "lint"
     cands = list(lint_dir.glob(f"no_*{old.lower()}*references.py"))
     cands += list(lint_dir.glob(f"no_{old.lower()}*.py"))
-    return str(cands[0].relative_to(REPO_ROOT)) if cands else None
+    return str(cands[0].relative_to(project_root)) if cands else None
 
 
-def _run_concept_divergence() -> list[dict] | None:
+def _run_concept_divergence(project_root: pathlib.Path) -> list[dict] | None:
     """Run find-concept-divergence ONCE and return its raw findings (parsed
     JSONL). None if the detector can't run. Both completeness bands —
     superseded_co_occurrence (band 3) and avoid_term_hit (band 1) — filter
@@ -137,7 +144,7 @@ def _run_concept_divergence() -> list[dict] | None:
     DEFAULT_TARGETS (it auto-skips roots that don't exist in this repo), so
     this skill stays framework-agnostic and never drifts from the detector's
     notion of what to scan — pass no positional targets."""
-    script = REPO_ROOT / ".claude/skills/find-concept-divergence/scripts/scan.py"
+    script = KIT_ROOT / ".claude/skills/find-concept-divergence/scripts/scan.py"
     if not script.exists():
         return None
     try:
@@ -145,8 +152,9 @@ def _run_concept_divergence() -> list[dict] | None:
             out = str(pathlib.Path(td) / "findings.jsonl")
             rep = str(pathlib.Path(td) / "report.md")
             subprocess.run([sys.executable, str(script),
+                            "--project-root", str(project_root),
                             "--output", out, "--report", rep],
-                           cwd=REPO_ROOT, capture_output=True, text=True, timeout=180)
+                           cwd=project_root, capture_output=True, text=True, timeout=180)
             findings = []
             for line in pathlib.Path(out).read_text().splitlines():
                 if not line.strip():
@@ -210,18 +218,22 @@ def main():
     ap.add_argument("new")
     ap.add_argument("--min-blast", type=int, default=3,
                     help="files below this = scope-gate bails to local rename")
+    ap.add_argument("--project-root", type=pathlib.Path, default=None,
+                    help="Target project root (git grep, glossary, guard lint, "
+                         "divergence scan; default: git toplevel of cwd, else cwd)")
     args = ap.parse_args()
     old, new = args.old, args.new
+    project_root = resolve_project_root(args.project_root)
 
-    old_files_all = git_grep_files(old)
+    old_files_all = git_grep_files(old, project_root)
     old_files_live = [f for f in old_files_all if not allowed(f)]
     # Run find-concept-divergence ONCE; both completeness bands filter it.
-    divergence = _run_concept_divergence()                    # None if unavailable
+    divergence = _run_concept_divergence(project_root)        # None if unavailable
     co_occur = concept_divergence_cooccurrence(divergence, old)      # band 3 (term co-occurrence)
     avoid_hits = concept_avoid_hits(divergence, old, new)           # band 1 (retired prose)
 
-    supersede = read_glossary_supersede(old)
-    lint = guard_lint_exists(old)
+    supersede = read_glossary_supersede(old, project_root)
+    lint = guard_lint_exists(old, project_root)
 
     is_concept = supersede not in ("<no entry>", "<no concepts.yaml>")
     supersede_set = supersede not in ("<not superseded>", "<no entry>", "<no concepts.yaml>")

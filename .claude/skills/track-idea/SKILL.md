@@ -189,8 +189,12 @@ For Form C (lesson), produce:
 re-read.
 
 ```bash
-python3 .claude/skills/track-idea/scripts/track.py <form> <args>
+python3 .claude/skills/track-idea/scripts/track.py <form> <args> [--project-root DIR]
 ```
+
+The ledger lives at `<project-root>/.claude/ideas/log.jsonl`;
+`--project-root` defaults to the git toplevel of the cwd (else the cwd),
+so runs from inside the target repo need no flag.
 
 The script validates against `ideas_lib.validate_record` and writes
 through `ideas_lib.append_record`. On validation failure, the script

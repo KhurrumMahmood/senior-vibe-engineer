@@ -26,12 +26,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(REPO_ROOT / "scripts"))
+# KIT_ROOT anchors kit-relative imports ONLY (scripts/_lib, _common). The
+# pattern library is a target-project surface and anchors on --project-root
+# instead — the kit may live in a different repo (de-baking convention, ADR 0024).
+KIT_ROOT = Path(__file__).resolve().parents[4]
+for _p in (str(KIT_ROOT / "scripts"), str(KIT_ROOT / ".claude" / "skills" / "_common")):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 from _lib.yaml_frontmatter import FrontmatterError, read  # noqa: E402
-
-PATTERNS_DIR = REPO_ROOT / ".claude" / "patterns"
+from diff_resolution import resolve_project_root  # noqa: E402
 
 WEIGHTS: dict[str, float] = {
     "problem_class": 6.0,
@@ -101,12 +105,14 @@ def listify(v: Any) -> list[str]:
     return [str(v)]
 
 
-def load_patterns(include_deprecated: bool = False) -> tuple[list[PatternRecord], list[str]]:
+def load_patterns(
+    patterns_dir: Path, include_deprecated: bool = False
+) -> tuple[list[PatternRecord], list[str]]:
     patterns: list[PatternRecord] = []
     errors: list[str] = []
-    if not PATTERNS_DIR.exists():
+    if not patterns_dir.exists():
         return patterns, errors
-    for path in sorted(PATTERNS_DIR.glob("*.md")):
+    for path in sorted(patterns_dir.glob("*.md")):
         if path.name.lower() == "readme.md":
             continue
         try:
@@ -150,7 +156,7 @@ def score(query_tokens: list[str], rec: PatternRecord) -> tuple[float, dict[str,
     return total, overlap
 
 
-def rank(query: str, patterns: list[PatternRecord]) -> list[dict]:
+def rank(query: str, patterns: list[PatternRecord], project_root: Path) -> list[dict]:
     qt = tokenize(query)
     if not qt:
         return []
@@ -171,7 +177,8 @@ def rank(query: str, patterns: list[PatternRecord]) -> list[dict]:
             "lineage_parents": listify(meta.get("lineage_parents")),
             "lineage_children": listify(meta.get("lineage_children")),
             "domain": str(meta.get("domain") or ""),
-            "path": str(rec.path.relative_to(REPO_ROOT)),
+            "path": (str(rec.path.relative_to(project_root))
+                     if rec.path.is_relative_to(project_root) else str(rec.path)),
             "score": round(s, 2),
             "hits": hits,
         })
@@ -224,6 +231,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--top", type=int, default=5)
     p.add_argument("--json", action="store_true")
     p.add_argument("--include-deprecated", action="store_true")
+    p.add_argument("--project-root", type=Path, default=None,
+                   help="Target project root owning .claude/patterns/ "
+                        "(default: git toplevel of cwd, else cwd)")
     args = p.parse_args(argv)
 
     if not args.query or not args.query.strip():
@@ -233,8 +243,12 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
-    patterns, parse_errors = load_patterns(include_deprecated=args.include_deprecated)
-    results = rank(args.query, patterns)[: args.top]
+    project_root = resolve_project_root(args.project_root)
+    patterns_dir = project_root / ".claude" / "patterns"
+    patterns, parse_errors = load_patterns(
+        patterns_dir, include_deprecated=args.include_deprecated
+    )
+    results = rank(args.query, patterns, project_root)[: args.top]
 
     if args.json:
         print(json.dumps({

@@ -70,15 +70,17 @@ skill drives is `/find-concept-divergence`.
 ## Mode: assess — read-only lifecycle status + completeness gate
 
 ```bash
-.venv/bin/python .claude/skills/rename-concept/scripts/assess.py <old> <new>
+.venv/bin/python .claude/skills/rename-concept/scripts/assess.py <old> <new> \
+  [--min-blast N] [--project-root DIR]
 ```
 
 Reports, read-only:
 
 - **scope-gate** — is `<old>` a glossary concept and/or a wide-blast rename
   (≥ `--min-blast` live files, default 3), or a trivial local one the skill
-  should bail on? Anchored at the repo root so the verdict never depends on the
-  caller's CWD.
+  should bail on? Anchored at `--project-root` (default: git toplevel of the
+  cwd, else the cwd) so the verdict never depends on where inside the target
+  repo the caller sits — and never silently inspects the kit's own repo.
 - **lifecycle status** — a per-step table: is `concepts.yaml`'s old entry
   marked `superseded_by: <new>`; does a `no_<old>_references` reintroduction
   lint exist under `scripts/lint/`; how many live-code files still mention the

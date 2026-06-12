@@ -22,8 +22,9 @@ Exit codes:
     1 validation / domain error (idea exists / missing intake / bad input)
     2 usage error
 
-The ledger is .claude/ideas/log.jsonl. All timestamps are current UTC.
-Schema lives at .claude/docs/idea-ledger.md.
+The ledger is <project-root>/.claude/ideas/log.jsonl (--project-root
+defaults to the git toplevel of the cwd, else the cwd). All timestamps
+are current UTC. Schema lives at .claude/docs/idea-ledger.md.
 """
 from __future__ import annotations
 
@@ -33,13 +34,19 @@ import sys
 import time
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(REPO_ROOT / ".claude" / "skills" / "_common"))
+# KIT_ROOT anchors kit-relative imports ONLY. The ledger is a target-project
+# surface and anchors on --project-root instead — the kit may live in a
+# different repo than the target project (de-baking convention, ADR 0024).
+KIT_ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(KIT_ROOT / ".claude" / "skills" / "_common"))
 
 import ideas_lib as L  # noqa: E402
+from diff_resolution import resolve_project_root  # noqa: E402
 from skill_use import log_event  # noqa: E402
 
-LEDGER = REPO_ROOT / ".claude" / "ideas" / "log.jsonl"
+
+def _ledger_path(project_root: Path) -> Path:
+    return project_root / ".claude" / "ideas" / "log.jsonl"
 
 
 def _csv(s: str | None) -> list[str]:
@@ -48,8 +55,8 @@ def _csv(s: str | None) -> list[str]:
     return [t.strip() for t in s.split(",") if t.strip()]
 
 
-def _load() -> list[dict]:
-    return L.load_ledger(LEDGER)
+def _load(ledger: Path) -> list[dict]:
+    return L.load_ledger(ledger)
 
 
 def _intake_for(records: list[dict], idea_id: str) -> dict | None:
@@ -60,7 +67,7 @@ def _intake_for(records: list[dict], idea_id: str) -> dict | None:
 
 
 def cmd_intake(args: argparse.Namespace) -> int:
-    records = _load()
+    records = _load(args.ledger)
     if _intake_for(records, args.slug):
         print(f"error: intake already exists for {args.slug!r}; use 'event' or 'show'", file=sys.stderr)
         return 1
@@ -92,7 +99,7 @@ def cmd_intake(args: argparse.Namespace) -> int:
     if errors:
         print(f"validation failed: {'; '.join(errors)}", file=sys.stderr)
         return 1
-    L.append_record(LEDGER, rec)
+    L.append_record(args.ledger, rec)
     print(f"appended intake: {args.slug}")
     return 0
 
@@ -112,7 +119,7 @@ def cmd_event(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
-    records = _load()
+    records = _load(args.ledger)
     intake = _intake_for(records, args.slug)
     if not intake:
         print(f"error: no intake for {args.slug!r}; create one with 'intake' first", file=sys.stderr)
@@ -188,13 +195,13 @@ def cmd_event(args: argparse.Namespace) -> int:
     if errors:
         print(f"validation failed: {'; '.join(errors)}", file=sys.stderr)
         return 1
-    L.append_record(LEDGER, rec)
+    L.append_record(args.ledger, rec)
     print(f"appended {args.kind} event for {args.slug}")
     return 0
 
 
 def cmd_lesson(args: argparse.Namespace) -> int:
-    records = _load()
+    records = _load(args.ledger)
     if not _intake_for(records, args.slug):
         print(f"error: no intake for {args.slug!r}; create one with 'intake' first", file=sys.stderr)
         return 1
@@ -213,13 +220,13 @@ def cmd_lesson(args: argparse.Namespace) -> int:
     if errors:
         print(f"validation failed: {'; '.join(errors)}", file=sys.stderr)
         return 1
-    L.append_record(LEDGER, rec)
+    L.append_record(args.ledger, rec)
     print(f"appended lesson on {args.slug}: {args.title}")
     return 0
 
 
 def cmd_list(args: argparse.Namespace) -> int:
-    records = _load()
+    records = _load(args.ledger)
     projs = L.project_all(records)
     if not projs:
         print("(no ideas captured yet)")
@@ -247,7 +254,7 @@ def cmd_list(args: argparse.Namespace) -> int:
 
 
 def cmd_show(args: argparse.Namespace) -> int:
-    records = _load()
+    records = _load(args.ledger)
     proj = L.project(records, args.idea_id)
     if proj is None:
         print(f"error: no intake for {args.idea_id!r}", file=sys.stderr)
@@ -281,9 +288,17 @@ def cmd_show(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Idea ledger writer")
+    # Shared by every subcommand so the flag works in either position
+    # (track.py list --project-root X / track.py --project-root X list).
+    root_opt = argparse.ArgumentParser(add_help=False)
+    root_opt.add_argument(
+        "--project-root", type=Path, default=None,
+        help="Target project root owning .claude/ideas/log.jsonl "
+             "(default: git toplevel of cwd, else cwd)",
+    )
     sub = p.add_subparsers(dest="form", required=True)
 
-    pi = sub.add_parser("intake", help="Append a new intake record")
+    pi = sub.add_parser("intake", help="Append a new intake record", parents=[root_opt])
     pi.add_argument("slug")
     pi.add_argument("--title", required=True)
     pi.add_argument("--origin", required=True)
@@ -298,7 +313,7 @@ def build_parser() -> argparse.ArgumentParser:
     pi.add_argument("--hypothesis")
     pi.set_defaults(func=cmd_intake)
 
-    pe = sub.add_parser("event", help="Append an event record")
+    pe = sub.add_parser("event", help="Append an event record", parents=[root_opt])
     pe.add_argument("slug")
     pe.add_argument("--kind", required=True, choices=sorted(L.VALID_EVENT_KINDS))
     pe.add_argument("--from-state", choices=sorted(L.VALID_STATES))
@@ -311,20 +326,20 @@ def build_parser() -> argparse.ArgumentParser:
     pe.add_argument("--summary")
     pe.set_defaults(func=cmd_event)
 
-    pl = sub.add_parser("lesson", help="Append a lesson record")
+    pl = sub.add_parser("lesson", help="Append a lesson record", parents=[root_opt])
     pl.add_argument("slug")
     pl.add_argument("--title", required=True)
     pl.add_argument("--body", required=True)
     pl.add_argument("--generalizes-to")
     pl.set_defaults(func=cmd_lesson)
 
-    pli = sub.add_parser("list", help="List ideas with optional filters")
+    pli = sub.add_parser("list", help="List ideas with optional filters", parents=[root_opt])
     pli.add_argument("--state", choices=sorted(L.VALID_STATES))
     pli.add_argument("--marker", choices=sorted(L.VALID_MARKERS))
     pli.add_argument("--subsystem")
     pli.set_defaults(func=cmd_list)
 
-    ps = sub.add_parser("show", help="Show one idea's projection")
+    ps = sub.add_parser("show", help="Show one idea's projection", parents=[root_opt])
     ps.add_argument("idea_id")
     ps.add_argument("--quiet-on-list-fields", action="store_true")
     ps.set_defaults(func=cmd_show)
@@ -335,6 +350,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     start = time.monotonic()
     args = build_parser().parse_args(argv)
+    args.ledger = _ledger_path(resolve_project_root(args.project_root))
     rc = args.func(args)
     target = (
         getattr(args, "slug", None)
@@ -344,7 +360,7 @@ def main(argv: list[str] | None = None) -> int:
     log_event(
         skill="track-idea",
         target=str(target),
-        artifact=str(LEDGER),
+        artifact=str(args.ledger),
         elapsed_s=time.monotonic() - start,
     )
     return rc

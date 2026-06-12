@@ -34,12 +34,14 @@ import json
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(REPO_ROOT / ".claude" / "skills" / "_common"))
+# KIT_ROOT anchors kit-relative imports ONLY. The ledger is a target-project
+# surface and anchors on --project-root instead — the kit may live in a
+# different repo than the target project (de-baking convention, ADR 0024).
+KIT_ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(KIT_ROOT / ".claude" / "skills" / "_common"))
 
 import ideas_lib as L  # noqa: E402
-
-LEDGER = REPO_ROOT / ".claude" / "ideas" / "log.jsonl"
+from diff_resolution import resolve_project_root  # noqa: E402
 
 REQUIRED_FIELDS = ("slug", "title", "subsystem_kind", "summary", "origin")
 
@@ -79,7 +81,12 @@ def main(argv: list[str] | None = None) -> int:
                    help="Validate and dedupe without writing")
     p.add_argument("--json", action="store_true",
                    help="Emit JSON summary instead of human-readable text")
+    p.add_argument("--project-root", type=Path, default=None,
+                   help="Target project root owning .claude/ideas/log.jsonl "
+                        "(default: git toplevel of cwd, else cwd)")
     args = p.parse_args(argv)
+
+    ledger = resolve_project_root(args.project_root) / ".claude" / "ideas" / "log.jsonl"
 
     if not args.batch_file.exists():
         print(f"error: batch file not found: {args.batch_file}", file=sys.stderr)
@@ -107,7 +114,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 1
 
-    records = L.load_ledger(LEDGER)
+    records = L.load_ledger(ledger)
     existing_slugs = {r["id"] for r in records if r.get("record_kind") == "intake"}
 
     written: list[str] = []
@@ -125,7 +132,7 @@ def main(argv: list[str] | None = None) -> int:
             validation_failures.append((slug, errors))
             continue
         if not args.dry_run:
-            L.append_record(LEDGER, rec)
+            L.append_record(ledger, rec)
         written.append(slug)
 
     if args.json:

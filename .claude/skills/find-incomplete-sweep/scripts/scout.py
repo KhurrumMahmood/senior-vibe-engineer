@@ -38,10 +38,17 @@ import sys
 from collections import defaultdict
 
 SKILL_SCRIPTS = pathlib.Path(__file__).resolve().parent
-# Manifest paths are stored relative to the repo root (scan.rel); anchor reads
-# there so scout works regardless of the caller's CWD. SKILL_SCRIPTS is the
-# scripts/ dir, so parents[3] is the repository root (verified in this checkout).
-REPO_ROOT = SKILL_SCRIPTS.parents[3]
+# KIT_ROOT anchors kit-relative imports ONLY (_common; scan.py is loaded from
+# SKILL_SCRIPTS directly). Manifest paths are relative to the TARGET project
+# root the scan recorded (manifest "project_root", or --project-root /
+# git-toplevel-of-cwd as fallback) — the kit may live in a different repo
+# (de-baking convention, ADR 0024). parents[3] of scripts/ is the kit root.
+KIT_ROOT = SKILL_SCRIPTS.parents[3]
+_COMMON = str(KIT_ROOT / ".claude" / "skills" / "_common")
+if _COMMON not in sys.path:
+    sys.path.insert(0, _COMMON)
+
+from diff_resolution import resolve_project_root  # noqa: E402
 
 
 def load_scan_module():
@@ -61,7 +68,7 @@ def load_scan_module():
     return mod
 
 
-def read_window(file: str, line: int, context: int) -> dict:
+def read_window(file: str, line: int, context: int, project_root: pathlib.Path) -> dict:
     """Return a code window centered on `line` (1-based), ± context lines.
 
     Robust: a missing file or an out-of-range line yields an annotated stub
@@ -69,7 +76,7 @@ def read_window(file: str, line: int, context: int) -> dict:
     """
     path = pathlib.Path(file)
     if not path.is_absolute():
-        path = REPO_ROOT / path  # manifest paths are repo-root-relative
+        path = project_root / path  # manifest paths are project-root-relative
     if not path.exists():
         return {"file": file, "line": line, "available": False,
                 "note": "file not found on disk", "text": ""}
@@ -103,14 +110,14 @@ def parse_straggler(ref: str) -> tuple[str, int] | None:
         return None
 
 
-def build_present_index(scan_mod, paths: list[str]):
+def build_present_index(scan_mod, paths: list[str], project_root: pathlib.Path):
     """Map (callee_key, kwarg) -> [(file, line), ...] for sites passing kwarg.
 
     Reuses scan.py's collector so the present-site definition is identical to
     the one the detector used. Returns the index plus the raw site list (so a
     caller can fall back to "any site for this callee" if a kwarg key drifts).
     """
-    sites, _scanned, _skipped = scan_mod.collect_callsites(paths)
+    sites, _scanned, _skipped = scan_mod.collect_callsites(paths, project_root)
     by_kwarg: dict[tuple[str, str], list[tuple[str, int]]] = defaultdict(list)
     by_callee: dict[str, list[tuple[str, int]]] = defaultdict(list)
     for s in sites:
@@ -148,6 +155,10 @@ def main():
     ap.add_argument("--paths", nargs="+", required=True,
                     help="paths to re-scan for present-site locations "
                          "(must match the original scan, e.g. scripts)")
+    ap.add_argument("--project-root", type=pathlib.Path, default=None,
+                    help="Target project root the manifest paths are relative to "
+                         "(default: the scan manifest's recorded project_root, "
+                         "else git toplevel of cwd, else cwd)")
     args = ap.parse_args()
 
     scan_dir = pathlib.Path(args.scan_dir)
@@ -161,6 +172,15 @@ def main():
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         print(f"ERROR: cannot read manifest.json under {scan_dir}: {exc}", file=sys.stderr)
         sys.exit(1)
+
+    # Anchor precedence: explicit flag > root the scan recorded > cwd toplevel.
+    if args.project_root is not None:
+        project_root = args.project_root.resolve()
+    elif manifest.get("project_root"):
+        project_root = pathlib.Path(manifest["project_root"]).resolve()
+    else:
+        project_root = resolve_project_root(None)
+
     gated = [f for f in manifest.get("findings", []) if f.get("gated_in")]
     if not gated:
         print("no gated-in findings — nothing to scout", file=sys.stderr)
@@ -170,7 +190,7 @@ def main():
         return
 
     scan_mod = load_scan_module()
-    by_kwarg, by_callee = build_present_index(scan_mod, args.paths)
+    by_kwarg, by_callee = build_present_index(scan_mod, args.paths, project_root)
 
     packets = []
     for idx, f in enumerate(gated, start=1):
@@ -194,10 +214,10 @@ def main():
             "trajectory": f.get("trajectory", ""),
             "straggler": {
                 "ref": f["straggler"],
-                **read_window(straggler_file, straggler_line, args.context),
+                **read_window(straggler_file, straggler_line, args.context, project_root),
             },
             "present_sites": [
-                read_window(pf, pl, args.context) for pf, pl in present_locs
+                read_window(pf, pl, args.context, project_root) for pf, pl in present_locs
             ],
         }
         if not packet["present_sites"]:

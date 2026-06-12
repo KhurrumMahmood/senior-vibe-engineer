@@ -105,8 +105,11 @@ matcher output captured.
 
 ```bash
 python3 .claude/skills/query-patterns/scripts/query.py "${PROBLEM}" \
-  [--top N] [--json] [--include-deprecated]
+  [--top N] [--json] [--include-deprecated] [--project-root DIR]
 ```
+
+The pattern library is read from `<project-root>/.claude/patterns/`;
+`--project-root` defaults to the git toplevel of the cwd (else the cwd).
 
 The matcher returns:
 

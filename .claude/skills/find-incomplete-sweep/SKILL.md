@@ -80,6 +80,9 @@ Two detector bands, selected with `--band` (default `kwarg`):
 
 `--paths` is required — there is no default scan root, so a wrong default can
 never silently scan nothing. Pass one or more source roots (e.g. `scripts`).
+Relative paths anchor on `--project-root` (default: git toplevel of the cwd,
+else the cwd); the resolved root is recorded in `manifest.json` so `scout.py`
+re-anchors the same way.
 
 ```bash
 # Codebase audit (default): cluster every callee, flag kwarg-omission stragglers
@@ -93,6 +96,10 @@ never silently scan nothing. Pass one or more source roots (e.g. `scripts`).
 # Faster pass without the git-trajectory discriminator (raw candidates only)
 .venv/bin/python .claude/skills/find-incomplete-sweep/scripts/scan.py \
   --paths scripts --no-gate
+
+# From outside the target repo, anchor explicitly
+.venv/bin/python .claude/skills/find-incomplete-sweep/scripts/scan.py \
+  --paths scripts --project-root /path/to/target
 ```
 
 Output (kwarg band): `findings.md` (gated-IN forgotten sweeps + gated-OUT
@@ -146,7 +153,8 @@ the scouts judge, the orchestrator ranks.
 
 ```bash
 .venv/bin/python .claude/skills/find-incomplete-sweep/scripts/scout.py \
-  --scan-dir reports/find-incomplete-sweep/scan-<TS> --paths scripts
+  --scan-dir reports/find-incomplete-sweep/scan-<TS> --paths scripts \
+  [--project-root DIR]
 ```
 
 `scout.py` reads the scan's `manifest.json`, takes only the **gated-in**

@@ -181,13 +181,14 @@ cat > "${TMPFILE}" <<'EOF'
   ...
 ]
 EOF
-python3 .claude/skills/brainstorm-ideas/scripts/brainstorm.py "${TMPFILE}"
+python3 .claude/skills/brainstorm-ideas/scripts/brainstorm.py "${TMPFILE}" [--project-root DIR]
 rm -f "${TMPFILE}"
 ```
 
 The helper:
 - Loads the JSON batch
-- Loads the existing ledger
+- Loads the existing ledger at `<project-root>/.claude/ideas/log.jsonl`
+  (`--project-root` defaults to the git toplevel of the cwd, else the cwd)
 - Skips any candidate whose slug already has an intake (reports the
   skip to stderr)
 - Validates each survivor via `ideas_lib.validate_record`

@@ -104,10 +104,13 @@ Run with the project venv:
 ```
 SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
 REPORT_DIR="reports/find-comment-drift/$SCAN_ID"
-.venv/bin/python .claude/skills/find-comment-drift/scripts/detect.py --output "$REPORT_DIR/detections.jsonl" <paths...>
+.venv/bin/python .claude/skills/find-comment-drift/scripts/detect.py --output "$REPORT_DIR/detections.jsonl" [--project-root DIR] <paths...>
 .venv/bin/python .claude/skills/find-comment-drift/scripts/report.py "$REPORT_DIR/detections.jsonl" --output "$REPORT_DIR/report.md" --target "<paths...>"
 ln -sfn "$SCAN_ID" reports/find-comment-drift/latest
 ```
+
+Relative scan paths anchor on `--project-root`, which defaults to the
+git toplevel of the cwd (else the cwd) — matching the sibling detectors.
 
 If shell process substitution or symlinks are awkward in the current
 environment, create the directory with any equivalent safe command. The

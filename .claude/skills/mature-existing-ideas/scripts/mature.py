@@ -37,12 +37,14 @@ import json
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(REPO_ROOT / ".claude" / "skills" / "_common"))
+# KIT_ROOT anchors kit-relative imports ONLY. The ledger is a target-project
+# surface and anchors on --project-root instead — the kit may live in a
+# different repo than the target project (de-baking convention, ADR 0024).
+KIT_ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(KIT_ROOT / ".claude" / "skills" / "_common"))
 
 import ideas_lib as L  # noqa: E402
-
-LEDGER = REPO_ROOT / ".claude" / "ideas" / "log.jsonl"
+from diff_resolution import resolve_project_root  # noqa: E402
 
 
 def _format_summary(summary: str, sources: list[str]) -> str:
@@ -53,7 +55,7 @@ def _format_summary(summary: str, sources: list[str]) -> str:
     return summary
 
 
-def _append_note(slug: str, summary: str) -> None:
+def _append_note(ledger: Path, slug: str, summary: str) -> None:
     rec = {
         "record_kind": "event",
         "id": slug,
@@ -61,10 +63,10 @@ def _append_note(slug: str, summary: str) -> None:
         "event_kind": "note",
         "summary": summary,
     }
-    L.append_record(LEDGER, rec)
+    L.append_record(ledger, rec)
 
 
-def _append_marker_removal(slug: str, marker: str) -> None:
+def _append_marker_removal(ledger: Path, slug: str, marker: str) -> None:
     rec = {
         "record_kind": "event",
         "id": slug,
@@ -74,34 +76,35 @@ def _append_marker_removal(slug: str, marker: str) -> None:
         "markers_removed": [marker],
         "summary": f"research complete: removing {marker}",
     }
-    L.append_record(LEDGER, rec)
+    L.append_record(ledger, rec)
 
 
 def mature_one(
+    ledger: Path,
     slug: str,
     summary: str,
     sources: list[str],
     clear_needs_research: bool,
     clear_underdeveloped: bool,
 ) -> dict:
-    records = L.load_ledger(LEDGER)
+    records = L.load_ledger(ledger)
     proj = L.project(records, slug)
     if proj is None:
         raise ValueError(f"no intake for {slug!r}")
     formatted = _format_summary(summary, sources)
-    _append_note(slug, formatted)
+    _append_note(ledger, slug, formatted)
     actions: list[str] = ["note_appended"]
     if clear_needs_research:
         if "needs-research" not in proj["quality_markers"]:
             actions.append("needs_research_not_set")
         else:
-            _append_marker_removal(slug, "needs-research")
+            _append_marker_removal(ledger, slug, "needs-research")
             actions.append("needs_research_cleared")
     if clear_underdeveloped:
         if "underdeveloped" not in proj["quality_markers"]:
             actions.append("underdeveloped_not_set")
         else:
-            _append_marker_removal(slug, "underdeveloped")
+            _append_marker_removal(ledger, slug, "underdeveloped")
             actions.append("underdeveloped_cleared")
     return {"slug": slug, "actions": actions}
 
@@ -115,7 +118,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--clear-underdeveloped", action="store_true")
     p.add_argument("--batch", type=Path)
     p.add_argument("--json", action="store_true")
+    p.add_argument("--project-root", type=Path, default=None,
+                   help="Target project root owning .claude/ideas/log.jsonl "
+                        "(default: git toplevel of cwd, else cwd)")
     args = p.parse_args(argv)
+
+    ledger = resolve_project_root(args.project_root) / ".claude" / "ideas" / "log.jsonl"
 
     work: list[dict] = []
 
@@ -162,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
     fatal = False
     for entry in work:
         try:
-            result = mature_one(**entry)
+            result = mature_one(ledger, **entry)
             results.append(result)
         except ValueError as exc:
             results.append({"slug": entry["slug"], "error": str(exc)})

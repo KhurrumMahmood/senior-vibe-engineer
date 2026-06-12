@@ -23,13 +23,14 @@ import json
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(REPO_ROOT / ".claude" / "skills" / "_common"))
+# KIT_ROOT anchors kit-relative imports ONLY. The ledger and the default
+# candidates output are target-project surfaces and anchor on --project-root
+# instead — the kit may live in a different repo (de-baking convention, ADR 0024).
+KIT_ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(KIT_ROOT / ".claude" / "skills" / "_common"))
 
 import ideas_lib as L  # noqa: E402
-
-LEDGER = REPO_ROOT / ".claude" / "ideas" / "log.jsonl"
-DEFAULT_OUT = REPO_ROOT / ".claude" / "ideas" / "extract-candidates.json"
+from diff_resolution import resolve_project_root  # noqa: E402
 
 
 def classify(candidates: list[dict], existing_slugs: set[str]) -> tuple[list[dict], list[dict]]:
@@ -79,11 +80,21 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Candidate emitter")
     p.add_argument("root", nargs="?", default=".")
     p.add_argument("--source", choices=("backlog", "lessons", "both"), default="both")
-    p.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    p.add_argument("--out", type=Path, default=None,
+                   help="Candidates JSON output "
+                        "(default: <project-root>/.claude/ideas/extract-candidates.json)")
     p.add_argument("--json", action="store_true")
     p.add_argument("--include-collisions", action="store_true",
                    help="Include colliding candidates in the JSON output file")
+    p.add_argument("--project-root", type=Path, default=None,
+                   help="Target project root owning .claude/ideas/ "
+                        "(default: git toplevel of cwd, else cwd)")
     args = p.parse_args(argv)
+
+    project_root = resolve_project_root(args.project_root)
+    ledger = project_root / ".claude" / "ideas" / "log.jsonl"
+    if args.out is None:
+        args.out = project_root / ".claude" / "ideas" / "extract-candidates.json"
 
     root = Path(args.root).resolve()
     if not root.exists():
@@ -96,7 +107,7 @@ def main(argv: list[str] | None = None) -> int:
     raw = L.extract_candidates(root)
     candidates = filter_by_source(raw, args.source)
 
-    records = L.load_ledger(LEDGER)
+    records = L.load_ledger(ledger)
     existing_slugs = {r["id"] for r in records if r.get("record_kind") == "intake"}
 
     new, collide = classify(candidates, existing_slugs)
@@ -106,7 +117,7 @@ def main(argv: list[str] | None = None) -> int:
     args.out.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
     try:
-        out_display = str(args.out.relative_to(REPO_ROOT))
+        out_display = str(args.out.relative_to(project_root))
     except ValueError:
         out_display = str(args.out)
 

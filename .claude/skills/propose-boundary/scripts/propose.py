@@ -675,14 +675,18 @@ def main() -> int:
         target=args.target,
         artifact=str(args.output),
         elapsed=time.monotonic() - start,
+        project_root=project_root,
     )
     return 0
 
 
-def _log_skill_use(*, target: str, artifact: str | None, elapsed: float) -> None:
+def _log_skill_use(*, target: str, artifact: str | None, elapsed: float,
+                   project_root: Path) -> None:
     try:
-        repo_root = Path(__file__).resolve().parents[4]
-        log_path = repo_root / ".claude" / "skill-use" / "log.jsonl"
+        # Telemetry is a target-project surface: it lands in the analyzed
+        # project's .claude/skill-use/, not the kit's own repo (ADR 0024
+        # de-baking convention).
+        log_path = project_root / ".claude" / "skill-use" / "log.jsonl"
         log_path.parent.mkdir(exist_ok=True)
         event = {
             "ts": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),

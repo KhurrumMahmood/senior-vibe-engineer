@@ -32,7 +32,16 @@ from typing import Any, Iterable
 
 import yaml
 
-REPO = Path(__file__).resolve().parents[4]
+# KIT_ROOT anchors kit-relative imports ONLY (_common). Scan targets, the
+# glossary default, and finding labels are target-project surfaces and anchor
+# on --project-root instead — the kit may live in a different repo than the
+# target project (de-baking convention, ADR 0024).
+KIT_ROOT = Path(__file__).resolve().parents[4]
+_COMMON = str(KIT_ROOT / ".claude" / "skills" / "_common")
+if _COMMON not in sys.path:
+    sys.path.insert(0, _COMMON)
+
+from diff_resolution import resolve_project_root  # noqa: E402
 
 # Common project roots. iter_files auto-skips paths that don't exist,
 # so listing all of them is safe across language/framework shapes. Host
@@ -141,13 +150,22 @@ def is_excluded(rel: str) -> bool:
     return False
 
 
-def iter_files(targets: Iterable[str]) -> Iterable[Path]:
+def _rel(path: Path, root: Path) -> str:
+    """Root-relative label; absolute path for files outside the root (never raises)."""
+    try:
+        return str(path.relative_to(root))
+    except ValueError:
+        return str(path)
+
+
+def iter_files(targets: Iterable[str], root: Path) -> Iterable[Path]:
     for raw in targets:
-        p = (REPO / raw).resolve()
+        p = Path(raw)
+        p = (p if p.is_absolute() else root / raw).resolve()
         if not p.exists():
             continue
         if p.is_file():
-            rel = str(p.relative_to(REPO))
+            rel = _rel(p, root)
             if not is_excluded(rel) and p.suffix in INCLUDE_SUFFIXES:
                 yield p
             continue
@@ -156,7 +174,7 @@ def iter_files(targets: Iterable[str]) -> Iterable[Path]:
                 continue
             if f.suffix not in INCLUDE_SUFFIXES:
                 continue
-            rel = str(f.relative_to(REPO))
+            rel = _rel(f, root)
             if is_excluded(rel):
                 continue
             yield f
@@ -208,9 +226,9 @@ def _source_files(entry: dict[str, Any]) -> set[str]:
     return out
 
 
-def scan(glossary: dict[str, Any], targets: Iterable[str]) -> list[dict[str, Any]]:
+def scan(glossary: dict[str, Any], targets: Iterable[str], root: Path) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
-    files = list(iter_files(targets))
+    files = list(iter_files(targets, root))
 
     # Band 1: avoid-term hits.
     for concept in glossary.get("concepts", []):
@@ -229,7 +247,7 @@ def scan(glossary: dict[str, Any], targets: Iterable[str]) -> list[dict[str, Any
             continue
         source_files = _source_files(concept)
         for f in files:
-            rel = str(f.relative_to(REPO))
+            rel = _rel(f, root)
             if rel in source_files:
                 continue
             for hit in scan_file_for_terms(f, terms):
@@ -250,7 +268,7 @@ def scan(glossary: dict[str, Any], targets: Iterable[str]) -> list[dict[str, Any
             continue
         source_files = _source_files(amb)
         for f in files:
-            rel = str(f.relative_to(REPO))
+            rel = _rel(f, root)
             if rel in source_files:
                 continue
             file_hits: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -296,7 +314,7 @@ def scan(glossary: dict[str, Any], targets: Iterable[str]) -> list[dict[str, Any
                     "band": "superseded_co_occurrence",
                     "concept": concept["name"],
                     "superseded_by": replacement,
-                    "file": str(f.relative_to(REPO)),
+                    "file": _rel(f, root),
                     "side": "old",
                     **h,
                 })
@@ -336,16 +354,23 @@ def write_report(findings: list[dict[str, Any]], path: Path) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--glossary", default=str(REPO / ".claude/contracts/concepts.yaml"))
+    ap.add_argument("--glossary", default=None,
+                    help="glossary path (default: <project-root>/.claude/contracts/concepts.yaml)")
+    ap.add_argument("--project-root", type=Path, default=None,
+                    help="Target project root anchoring scan targets, labels, and "
+                         "the glossary default (default: git toplevel of cwd, else cwd)")
     ap.add_argument("--output", required=True, help="JSONL findings path")
     ap.add_argument("--report", required=True, help="Markdown report path")
     ap.add_argument("targets", nargs="*", default=list(DEFAULT_TARGETS),
                     help="paths to scan (relative to repo root)")
     args = ap.parse_args(argv)
 
-    glossary = load_glossary(Path(args.glossary))
+    project_root = resolve_project_root(args.project_root)
+    glossary_path = (Path(args.glossary) if args.glossary
+                     else project_root / ".claude/contracts/concepts.yaml")
+    glossary = load_glossary(glossary_path)
     targets = args.targets or list(DEFAULT_TARGETS)
-    findings = scan(glossary, targets)
+    findings = scan(glossary, targets, project_root)
 
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)

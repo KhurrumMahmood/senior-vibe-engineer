@@ -247,8 +247,14 @@ python3 .claude/skills/find-orphaned-ideas/scripts/find.py \
    | --attention-gap | --all] \
   [--stale-days N] [--stale-plans-days N] \
   [--min-words N] [--min-age-days N] \
-  [--from-report <path>] [--apply-stale] [--json]
+  [--from-report <path>] [--apply-stale] [--json] \
+  [--project-root DIR]
 ```
+
+Every detector surface (the ledger, `todo-tuning.md` /
+`importance-map.md`, the TODO source walk, `ai-docs/plans/`, and
+`reports/find-dormant/`) anchors on `--project-root`, which defaults to
+the git toplevel of the cwd (else the cwd).
 
 The script reads the ledger via `ideas_lib.load_ledger` and calls
 `find_stalled`, `find_harvest_opportunities`, and `find_plan_dropouts`

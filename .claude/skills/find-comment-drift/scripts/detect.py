@@ -17,11 +17,15 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
 
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
-COMMON_DIR = PROJECT_ROOT / ".claude" / "skills" / "_common"
+# KIT_ROOT anchors kit-relative imports ONLY (_common). Scanned paths anchor
+# on --project-root, which defaults to the git toplevel of the cwd (matching
+# the sibling detectors) — the kit may live in a different repo (ADR 0024).
+KIT_ROOT = Path(__file__).resolve().parents[4]
+COMMON_DIR = KIT_ROOT / ".claude" / "skills" / "_common"
 if str(COMMON_DIR) not in sys.path:
     sys.path.insert(0, str(COMMON_DIR))
 
+from diff_resolution import resolve_project_root  # noqa: E402
 from product_topology import iter_files, relpath, write_jsonl  # noqa: E402
 
 SUFFIXES = (".py", ".js", ".html")
@@ -594,10 +598,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Detect comment/docstring/JSDoc drift.")
     parser.add_argument("paths", nargs="*", help="Files or directories to scan. Defaults to the /sites surface.")
     parser.add_argument("--output", required=True, type=Path, help="JSONL output path.")
-    parser.add_argument("--project-root", type=Path, default=PROJECT_ROOT)
+    parser.add_argument("--project-root", type=Path, default=None,
+                        help="Target project root anchoring relative paths "
+                             "(default: git toplevel of cwd, else cwd)")
     args = parser.parse_args(argv)
 
-    project_root = args.project_root.resolve()
+    project_root = resolve_project_root(args.project_root)
     target_paths = args.paths or list(DEFAULT_TARGETS)
     files = collect_files(target_paths, project_root)
     findings = scan_files(files, project_root)

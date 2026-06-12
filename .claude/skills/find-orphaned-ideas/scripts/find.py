@@ -27,13 +27,16 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(REPO_ROOT / ".claude" / "skills" / "_common"))
+# KIT_ROOT anchors kit-relative imports ONLY. Every detector surface (ledger,
+# todo-tuning / importance-map config, source walk, ai-docs/plans, find-dormant
+# reports) is target-project and anchors on --project-root instead — the kit
+# may live in a different repo (de-baking convention, ADR 0024).
+KIT_ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(KIT_ROOT / ".claude" / "skills" / "_common"))
 
 import engineering_home as _home  # noqa: E402
 import ideas_lib as L  # noqa: E402
-
-LEDGER = REPO_ROOT / ".claude" / "ideas" / "log.jsonl"
+from diff_resolution import resolve_project_root  # noqa: E402
 
 BULLET_RE = re.compile(r"^\s*[-*+]\s+(?:\[[ xX]\]\s+)?(.+?)\s*$")
 HEADING_RE = re.compile(r"^#{1,6}\s+(.+?)\s*$")
@@ -575,7 +578,7 @@ def detect_attention_gap(
     return {"status": "ok", "areas": areas, "drift": drift}
 
 
-def apply_stale(stale: list[dict]) -> tuple[int, list[str]]:
+def apply_stale(ledger: Path, stale: list[dict]) -> tuple[int, list[str]]:
     failures: list[str] = []
     written = 0
     for finding in stale:
@@ -589,7 +592,7 @@ def apply_stale(stale: list[dict]) -> tuple[int, list[str]]:
             "summary": "auto-detected stale after inactivity",
         }
         try:
-            L.append_record(LEDGER, rec)
+            L.append_record(ledger, rec)
             written += 1
         except ValueError as exc:
             failures.append(f"{finding['id']}: {exc}")
@@ -761,7 +764,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument("--apply-stale", action="store_true")
     p.add_argument("--json", action="store_true")
+    p.add_argument(
+        "--project-root", type=Path, default=None,
+        help="Target project root (ledger, config docs, source walk, plans, "
+             "reports; default: git toplevel of cwd, else cwd)",
+    )
     args = p.parse_args(argv)
+
+    project_root = resolve_project_root(args.project_root)
+    ledger = project_root / ".claude" / "ideas" / "log.jsonl"
 
     any_mode = any([
         args.stale, args.harvest, args.plan_dropouts,
@@ -775,9 +786,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: plan file not found: {args.plan_dropouts}", file=sys.stderr)
         return 2
 
-    records = L.load_ledger(LEDGER)
+    records = L.load_ledger(ledger)
 
-    todo_config = _load_todo_tuning(REPO_ROOT)
+    todo_config = _load_todo_tuning(project_root)
     # Precedence: an explicit --min-words (any value, including 4) wins; else
     # the host's todo-tuning.md override; else the built-in default of 4. The
     # None argparse default is what lets us distinguish "user passed 4" from
@@ -802,36 +813,36 @@ def main(argv: list[str] | None = None) -> int:
         )
     if args.todo:
         findings["todo"] = detect_todo_orphans(
-            REPO_ROOT,
+            project_root,
             min_words=todo_min_words,
             min_age_days=args.min_age_days,
             path_skip=todo_config["path_skip"],
         )
     if args.stale_plans:
         findings["stale_plans"] = detect_stale_plans(
-            REPO_ROOT, records,
+            project_root, records,
             stale_threshold_days=args.stale_plans_days,
         )
     if args.dead_prototype:
         try:
             findings["dead_prototype"] = detect_dead_prototype(
-                REPO_ROOT, args.from_report,
+                project_root, args.from_report,
             )
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
     if args.attention_gap:
-        findings["attention_gap"] = detect_attention_gap(REPO_ROOT, records)
+        findings["attention_gap"] = detect_attention_gap(project_root, records)
 
     if args.apply_stale and findings.get("stale"):
-        written, failures = apply_stale(findings["stale"])
+        written, failures = apply_stale(ledger, findings["stale"])
         if failures:
             print(
                 f"applied {written}; then failed: {'; '.join(failures)}",
                 file=sys.stderr,
             )
             return 1
-        records = L.load_ledger(LEDGER)
+        records = L.load_ledger(ledger)
         findings["stale"] = detect_stale(records, args.stale_days)
 
     now_iso = L.utc_now_iso()
