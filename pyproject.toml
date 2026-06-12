@@ -36,3 +36,6 @@ ignore = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "slow: multi-subprocess end-to-end runs; deselect with `-m 'not slow'`",
+]

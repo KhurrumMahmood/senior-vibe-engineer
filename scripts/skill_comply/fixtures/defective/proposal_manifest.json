@@ -1,0 +1,11 @@
+{
+  "rule_name": "no-bare-int-request",
+  "module": "no_bare_int_request",
+  "rule_script": "scripts/lint/no_bare_int_request.py",
+  "bad_fixture": "tests/lint/no_bare_int_request_bad.py",
+  "good_fixture": "tests/lint/no_bare_int_request_good.py",
+  "include_regex": "^app/(services|views|pages|api)/.*\\.py$",
+  "exclude_regex": "^tests/test_.*\\.py$",
+  "claude_bullet": "- **`no-bare-int-request` / `scripts/lint/no_bare_int_request.py`** — flag bare `int(request.POST/GET[...])`; parse user input through `safe_int(...)` instead. Allow-list is `# noqa: no-bare-int-request: <reason>` (reason required). See `tests/lint/no_bare_int_request_{bad,good}.py` for the canonical examples.",
+  "wire_claude_md": true
+}
