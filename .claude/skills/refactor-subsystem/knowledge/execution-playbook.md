@@ -32,9 +32,12 @@ For each batch in the plan:
 0. **Re-run the concurrency check (R6; original lesson L-4)** before touching files. The main
    worktree's dirty set changes while the refactor runs:
    ```bash
-   git -C ~/Projects/your-project status --porcelain | \
+   # <main-worktree-path> = the first entry in `git worktree list`.
+   git -C <main-worktree-path> status --porcelain | \
      grep -E '<code_roots regex>' && echo "COLLISION" || echo "clear"
    ```
+   (This is the main-worktree collision check — distinct from the
+   current-worktree cleanliness guard in `knowledge/operations.md`.)
    If any file in `code_roots` now shows `M` / `??` in the main worktree,
    **stop**. Do not start this batch. Either (a) wait for the main worktree
    to land its edit and rebase the refactor branch on top, or (b) abort the
@@ -51,7 +54,13 @@ For each batch in the plan:
    `from .new_module import *` line. If not, update every caller.
 
 4. **Run the batch's test scope** (from the plan's test strategy for that
-   batch):
+   batch). Before running, re-verify the plan's coverage-path proof for
+   this batch (R36 at batch level): grep at least one module in the
+   batch's test scope for an import, `from ... import`, or
+   `patch("...")` reference to each destination module the batch
+   creates or populates. An empty grep means the suite has no path into
+   the moved code — stop and fix the test strategy; do not run it and
+   trust green.
    ```bash
    .venv/bin/python manage.py test <batch-specific-tests> \
      --settings=app.settings_test_sqlite -v 2
@@ -106,25 +115,32 @@ instead.
 5+ call sites, confirmed by `python3 scripts/specs.py violations <spec-id>`
 (R13).
 
-**Input:** the violation list, grouped by target file.
-`scripts/specs.py violations` emits JSON in this shape so it can drive
-dispatch directly:
+**Input:** the violation list from `scripts/specs.py violations
+<spec-id> --json`. The real output shape is a flat per-item
+`violations` list — there is no file grouping in the JSON:
 
 ```json
 {
-  "AR-2": {
-    "canonical": "TaskDispatchService.safe_dispatch",
-    "anti_pattern": "\\.delay\\(|\\.apply_async\\(",
-    "by_file": {
-      "core/views_crawling.py": [
-        {"line": 893, "code": "crawl_site_task.delay(site_id)"},
-        {"line": 1023, "code": "..."}
-      ],
-      "core/views_ptid.py": [...]
+  "spec": "<spec-id>",
+  "items": [
+    {
+      "item_id": "AR-2",
+      "canonical": "TaskDispatchService.safe_dispatch",
+      "anti_pattern": "\\.delay\\(|\\.apply_async\\(",
+      "compliant_count": "<int>",
+      "violating_count": "<int>",
+      "compliance_pct": "<float>",
+      "violations": [
+        {"file": "core/views_crawling.py", "line": 893, "text": "crawl_site_task.delay(site_id)"},
+        {"file": "core/views_ptid.py", "line": 1023, "text": "..."}
+      ]
     }
-  }
+  ]
 }
 ```
+
+The orchestrator groups each item's `violations` by `file` to build
+the per-file dispatch tuples.
 
 **Dispatch pattern — one general-purpose sub-agent per target file, in
 parallel** (one message, N tool calls):
@@ -288,23 +304,33 @@ worktree is actively editing.
 **Per-convention decision loop:**
 
 ```python
-# Pseudo-code for the decision this phase runs
-for item_id, violations in violations_json.items():
-    canonical = violations["canonical"]
-    count = sum(len(v) for v in violations["by_file"].values())
+# Pseudo-code for the decision this phase runs. Shape matches the
+# real `violations --json` output (flat items[].violations list).
+for item in violations_json["items"]:
+    item_id = item["item_id"]
+    canonical = item["canonical"]
+    count = len(item["violations"])  # after the code_roots filter above
 
     if count == 0:
         record_compliant(item_id, canonical)
         continue
 
-    if count <= 10:
-        dispatch_micro_fix_swarm(item_id, canonical, violations["by_file"])
+    if count < 5:
+        # 1-4: fix sequentially in the orchestrator — not worth
+        # swarm overhead (decision table above).
+        fix_inline_sequentially(item_id, canonical, item["violations"])
+        record_inline_fixed(item_id, canonical, count)
+    elif count <= 10:
+        # 5-10: micro-fix swarm (Phase 5.3.5).
+        by_file = group_by_file(item["violations"])  # {file: [violations]}
+        dispatch_micro_fix_swarm(item_id, canonical, by_file)
         record_inline_fixed(item_id, canonical, count)
     else:
+        # 11+: separate follow-up ledger entry.
         create_ledger_entry(
             decision="split_queued",
-            rationale=f"AR-{item_id} convention enforcement deferred: {count} violations",
-            files=list(violations["by_file"].keys()),
+            rationale=f"{item_id} convention enforcement deferred: {count} violations",
+            files=sorted({v["file"] for v in item["violations"]}),
         )
         record_partial_enforcement(item_id, canonical, count)
 ```
@@ -314,11 +340,13 @@ for item_id, violations in violations_json.items():
 the post-fix numbers so the final state is measurable. Re-run
 `violations <spec-id>` to confirm the new compliance rates.
 
-**Escape hatch — `--enforce-inline` flag.** When the refactor author is
-confident the violations are mechanical regardless of count, pass
-`--enforce-inline` to pre-commit to the inline-fix branch for all
-violations. This bypasses the threshold and forces 5.3.5 dispatch for
-every tagged convention. Use sparingly — over-eager enforcement can
+**Escape hatch — a Phase 4 decision, not a flag.** When the refactor
+author is confident the violations are mechanical regardless of count,
+committing to inline-fix all of them (bypassing the 11+ deferral
+threshold) is a Phase 4 sign-off scope item — the same mechanism §5.4
+uses for repo-wide enforcement; add it to the sign-off block's
+**Approved scope** lines. It is never an executor-claimed flag; no
+script implements one. Use sparingly — over-eager enforcement can
 bloat the refactor with unrelated commits.
 
 ## 5.5 Findings as ledger entries
@@ -331,7 +359,7 @@ state, not a checkpoint):
 python3 scripts/ledger.py update <file> \
   --decision monitor \
   --rationale "P2 finding from <spec-id> refactor: <summary>" \
-  --next-review <+180d>
+  --next-review-days 180
 ```
 
 ## 5.6 Caller-update wave (decomposition mode)

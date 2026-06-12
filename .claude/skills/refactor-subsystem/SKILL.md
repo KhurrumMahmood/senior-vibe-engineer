@@ -31,11 +31,24 @@ refactor. Unlike `/fix-workflow` — which handles a single cluster of
 duplication or dead code — this skill produces the spec-driven, scout-fanned,
 human-approved split of a bloated module or subsystem.
 
-Procedural detail lives in five knowledge files:
+**How success is judged.** These are the gates the run will face —
+optimize for them, not for speed:
 
-- `knowledge/` — worktree paths, scripts, venv conventions,
-  archaeology recipe, test matrix, report layout. Read at the start of
-  Phase 1.
+- Characterization suite green at HEAD, after every batch, and at 6.1.
+- Per-batch coverage-path proof (R36): a named suite imports/patches
+  each batch's destination modules — in the plan, re-checked per batch.
+- `phase-6-boundary.md` clean — or each finding explicitly waived in
+  the Phase 4 sign-off block.
+- Sign-off scope honored token-for-token; nothing executed beyond it.
+- Every knowledge pointer resolves to real content. If a pointer
+  dangles, STOP and flag it — do not improvise a recipe.
+
+Procedural detail lives in five knowledge files (plus one shared
+rubric in `_common/`):
+
+- `knowledge/operations.md` — worktree paths, scripts, venv
+  conventions, cleanliness guard, archaeology recipe + report schema,
+  test matrix, report directory layout. Read at the start of Phase 1.
 - `knowledge/execution-playbook.md` — Phase 5 batch execution protocol,
   two-commit discipline, micro-fix swarm dispatch, convention enforcement
   decision loop, caller-update wave. Read at Phase 5 start.
@@ -44,7 +57,7 @@ Procedural detail lives in five knowledge files:
   when running Phase 6.3 (dispatched to sub-agent, not by orchestrator).
 - `knowledge/bootstrap.md` — Phase 0 stub-scaffolding playbook. Read
   only when `specs.py show` exits non-zero.
-- `knowledge/learnings.md` — 36 rules (R1–R36) distilled from prior
+- `knowledge/learnings.md` — 44 rules (R1–R44) distilled from prior
   refactors. Read on ambiguity; don't front-load. An L-number index at
   the bottom maps shakedown lessons to R-numbers.
 - `.claude/skills/_common/interface-depth.md` — shared rubric for
@@ -102,7 +115,7 @@ Two scout brief templates live in `agents/`:
 
 ## Scope
 
-See `knowledge/` for exact paths, venv rules, and the
+See `knowledge/operations.md` for exact paths, venv rules, and the
 cleanliness guard. Summary:
 
 - **Worktree:** run wherever invoked. Confirm with `git rev-parse
@@ -112,10 +125,32 @@ cleanliness guard. Summary:
   stdlib-only).
 - **Cleanliness guard:** `code_roots` must be clean (no unrelated
   uncommitted edits) before Phase 1 AND before every Phase 5 batch.
-  Commands in `knowledge/`.
+  Commands in `knowledge/operations.md`.
 - **Argument:** a spec id that resolves to `ai-docs/specs/<id>.md`.
   Validate with `python3 scripts/specs.py show <id>`. If the spec
   doesn't exist, run Phase 0 — do not abort.
+
+## Resuming mid-refactor
+
+A refactor legitimately spans sessions (R33: two preparation sessions
+plus one execution session is the healthy shape). On entering with a
+fresh context mid-run:
+
+1. **Infer the current phase:** `python3 scripts/specs.py coverage
+   <spec-id>` plus `ls reports/refactor/<spec-id>/` — the artifacts
+   present (see `knowledge/operations.md` "Report directory layout")
+   tell you which phase last completed.
+2. **Re-read that phase's knowledge file.** Phase 5 means
+   `knowledge/execution-playbook.md` IN FULL — not from memory.
+3. **Restate the approved scope and waivers** from `phase-3-plan.md`
+   §Sign-off before any edit.
+4. **Re-arm beliefs 3 and 4:** unknown code STAYS; deletion needs
+   recorded human approval.
+5. **Re-run the cleanliness guard** (commands in
+   `knowledge/operations.md`).
+
+Do not resume a Phase 5 batch with the playbook unread or the
+sign-off scope unloaded.
 
 ## Mode detection
 
@@ -286,7 +321,12 @@ the same violations with the same naming:
 2. **Conditionally in scope** — pick from the "Supplementary
    Documentation" table in `.claude/CLAUDE.md`. The docs live under
    `.claude/docs/`, so write the full path in
-   `convention-sources.md`:
+   `convention-sources.md`.
+
+   <!-- host-adapter: conditional doc list. The topic → doc mapping
+   below is the ORIGIN project's; substitute the host project's
+   subsystem docs (an explicit configured choice — do not silently
+   "find equivalents" at run time). Worked example: -->
    - Crawling / sitemaps / downloads → `.claude/docs/pipelines.md`
    - Extraction / AI training → `.claude/docs/known-issues.md`
    - PTID work → `.claude/docs/ptid-pipeline.md`
@@ -424,6 +464,21 @@ Write the chunk map to
 | tasks__orphan-1 | 9240–10118 | 879 | 4600 | auto_generate_exports_task, ... (11 total) | orchestrator |
 ```
 
+**Then write the dispatch manifest** the §1.3 subprocess loop reads:
+`reports/refactor/<spec-id>/inventory/chunks.jsonl`, one JSON object
+per basename-qualified chunk across ALL chunked files (and the single
+`<basename>__C-01` chunk of each unchunked file):
+
+```json
+{"chunk_id": "tasks__C-01", "file": "core/tasks.py", "line_start": 1, "line_end": 1480, "declarations": "imports, logger, ... (14 total)", "archaeology_owner": "orchestrator"}
+```
+
+`chunk_file.py` does NOT emit this file — its JSON output is one
+per-file object with raw chunk IDs (`chunks[].id`) and no
+`archaeology_owner`. The orchestrator builds `chunks.jsonl` from the
+chunk map in the same pass that basename-qualifies the IDs (R35) and
+assigns archaeology owners.
+
 ### 1.3 Dispatch the inventory scouts (parallel)
 
 For each chunk (or each small file that skipped chunking), dispatch one
@@ -482,12 +537,16 @@ level (cheaper, no spawn overhead). Use subprocess dispatch when the
 skill may be invoked nested, or when scout context isolation is worth
 more than the spawn cost.
 
-The same pattern applies to Phase 5.3.5's micro-fix swarm — see
-`knowledge/execution-playbook.md` for the swarm-specific wrapper.
+The same subprocess pattern works for Phase 5.3.5's micro-fix swarm
+when it runs nested — dispatch `agents/micro-fix-scout.md` through
+`dispatch_scout.sh` the same way. The swarm's dispatch protocol and
+guardrails (edit-only sub-agents, serial orchestrator commits) are in
+`knowledge/execution-playbook.md` §5.3.5; there is no separate
+subprocess wrapper script for it.
 
 ### 1.4 Git archaeology (trigger-based, NOT optional)
 
-See `knowledge/` for the full recipe. Summary:
+See `knowledge/operations.md` for the full recipe. Summary:
 
 - **≤ 500 LOC AND ≤ 20 commits** → scout runs it inline.
 - **Everything else** → orchestrator runs it in parallel with scouts.
@@ -495,10 +554,12 @@ See `knowledge/` for the full recipe. Summary:
   file must include at least 3 load-bearing LR-T candidates with
   `<!-- archaeology: <hash> -->` tags.
 
-The recipe uses a subject-word filter (`fix|retry|timeout|crash|...`) to
-find high-signal commits. Record findings in
+The recipe uses a subject-word filter (`fix|retry|timeout|crash` —
+known terms; the host project extends the list, see the host-adapter
+slot in `knowledge/operations.md`) to find high-signal commits.
+Record findings in
 `reports/refactor/<spec-id>/archaeology/<basename>.md` per the schema
-in `knowledge/`.
+in `knowledge/operations.md`.
 
 ### 1.5 Consolidate the inventory
 
@@ -552,7 +613,9 @@ Per public function / class entry point:
 symbol importable from the original path), `TaskSignatureTest` (function
 signatures unchanged), and `TaskRegistrationTest` (Celery tasks still
 registered with their original names + options). Behavior tests are the
-domain test suites' job.
+domain test suites' job. Structure pinning is sufficient ONLY with the
+per-batch coverage-path proof (plan item 7, R36): never trust green
+from a suite with no path into the moved code.
 
 **Shim compatibility is mandatory for Django module splits.** When an
 old view/task/service module becomes a package or re-export shim, add
@@ -584,7 +647,7 @@ Read `reports/refactor/<spec-id>/extracted/*.md` (all scout outputs) and
 consolidate into `reports/refactor/<spec-id>/extracted-behaviors.md`.
 
 Each scout output is named `{chunk_id}__L{start}-L{end}.md` (see
-`knowledge/` "Report directory layout" and the
+`knowledge/operations.md` "Report directory layout" and the
 completeness contract in `agents/inventory-scout.md`). Missing or
 mis-named files indicate an incomplete scout — re-dispatch rather than
 proceeding.
@@ -712,7 +775,12 @@ python3 scripts/specs.py coverage <spec-id>
 6. **Batch plan** — each batch leaves the repo green and is individually
    revertable. Rule of thumb: one `[batch-tag]` prefix per batch, passes
    its test scope independently. For 10K LOC, expect 5–15 batches.
-7. **Test strategy per batch** — which modules' tests need to pass.
+7. **Test strategy per batch** — which modules' tests need to pass,
+   WITH grep evidence that at least one named suite imports or patches
+   each batch's destination modules (R36 generalized to batch level).
+   The plan shows the grep output; the Phase 4 reviewer approves
+   coverage, not suite names. A batch whose grep comes back empty has
+   no test strategy yet — fix that before Phase 4.
 8. **Interface depth checks** — for every new public service/module,
    shared helper, or adapter seam, include the compact section from
    `.claude/skills/_common/interface-depth.md`: deletion test, caller
@@ -881,7 +949,9 @@ Append to `phase-3-plan.md`:
 
 Goal: make the planned changes, one batch at a time.
 
-**Read `knowledge/execution-playbook.md` in full before starting.** It
+**Read `knowledge/execution-playbook.md` in full before starting** —
+and if this session is resuming mid-run, run the "Resuming
+mid-refactor" protocol (after §Scope) first. The playbook
 covers: spec-markers-before-implementation (§5.1), batch execution
 protocol with concurrency re-check (§5.2), two-commit discipline for
 bug fixes (§5.3), micro-fix swarm for 5+ mechanical fixes (§5.3.5),
@@ -918,9 +988,17 @@ plan, not just the retired file. Include:
 - templates and JS loaded by those routes,
 - new services created by the extraction.
 
-Report the result as `target clean` vs `repo still has known findings`
-when a wider quality scan sees debt outside the approved scope. Do not
-declare a split complete while the same responsibility still lives in a
+Write the scan to `reports/refactor/<spec-id>/phase-6-boundary.md`:
+the scan commands run, every hit, and the classification of the
+result as `target clean` vs `repo still has known findings` (the
+latter when a wider quality scan sees debt outside the approved
+scope).
+
+**Gate:** known findings inside the named ownership family BLOCK
+Phase 7 unless explicitly waived in the Phase 4 sign-off block
+(recorded under **Approved scope** or **Not approved (deferred)** —
+the existing waiver mechanism, no new machinery). Do not declare a
+split complete while the same responsibility still lives in a
 registered sibling/prototype path.
 
 When reporting lint health, distinguish touched/diff-scoped cleanliness
@@ -930,8 +1008,16 @@ surface is clean and which surface still carries inherited findings.
 
 ### 6.1 Full verification suite
 
+The baseline suite names below are the ORIGIN project's, kept as a
+worked example — substituting the host project's suites is an
+explicit configured choice (see the host-adapter slot in
+`knowledge/operations.md` "Verification test matrix"), never a
+silent run-time guess.
+
 ```bash
 # Baseline (always)
+# host-adapter: replace the two suites below with the host project's
+# baseline test modules.
 .venv/bin/python manage.py test \
   tests.test_site_capabilities tests.test_hydration_detector \
   --settings=app.settings_test_sqlite -v 2
@@ -1002,7 +1088,11 @@ Phase 7 follow-ups.
 ```bash
 python3 scripts/specs.py solid <spec-id>
 # Exit 0 = L1+L2 pass. Exit 1 = at least one failure.
-# --json emits structured output for L3 dispatch.
+
+# --json writes structured output to STDOUT — redirect it yourself to
+# produce the L3 dispatch input (same pattern as §5.4's violations):
+python3 scripts/specs.py solid <spec-id> --json \
+  > reports/refactor/<spec-id>/phase-6-solid.json
 ```
 
 L1 (artifact gate) checks `phase-1-solid-audit.md` exists and has all
@@ -1019,8 +1109,9 @@ brief. **The orchestrator does NOT evaluate these gates itself** —
 dispatching prevents rubber-stamping its own work.
 
 The scout reads `knowledge/solid-gate-tests.md` (the rubric) and
-`phase-6-solid.json` (L1+L2 output) to evaluate every `.py` file in
-`code_roots`. Writes verdicts to
+`reports/refactor/<spec-id>/phase-6-solid.json` (the L1+L2 output
+redirected above) to evaluate every `.py` file in `code_roots`.
+Writes verdicts to
 `reports/refactor/<spec-id>/phase-6-solid-agent.md`.
 
 After the scout returns, read the verdict file. FAIL → flag files as
@@ -1068,6 +1159,12 @@ follow-up rather than blocking. Service/interface failures block Phase 7.
 
 Goal: leave the repo in a durable state for future agents.
 
+Entry conditions: `reports/refactor/<spec-id>/phase-6-boundary.md`
+exists and reports `target clean` — or every remaining
+ownership-family finding carries an explicit Phase 4 sign-off waiver
+(§6.0); no unresolved `GATE-FAIL` from 6.1.5; 6.2 reports
+`is_clean: true`.
+
 ### 7.1 Delete the characterization tests
 
 Read each and decide:
@@ -1096,6 +1193,11 @@ Commit with `[spec-id:cleanup] Delete characterization tests`.
   --decision monitor \
   --rationale "Created by <spec-id> refactor. Monitor for growth."
 ```
+
+Every Phase 6.3 / 6.3.5 FAIL or ADVISORY verdict flagged as a
+follow-up becomes a ledger `monitor` entry here, or a named open item
+in the learnings entry (7.3), so the next maintainer knows what's
+still open.
 
 ### 7.2.5 Update quality-tool memory
 
@@ -1138,8 +1240,12 @@ actioned>
 regression tests from P1 findings>
 
 ### Skill-worthy patterns
-<what this taught that isn't already in knowledge/learnings.md R1-R36>
+<what this taught that isn't already in knowledge/learnings.md R1-R44>
 ```
+
+Any 6.3 / 6.3.5 FAIL or ADVISORY verdict not already routed to the
+ledger at 7.2 becomes a named open item in this entry so the next
+maintainer knows what's still open.
 
 ### 7.4 Final spec marker sweep
 
@@ -1226,8 +1332,9 @@ python3 scripts/log_effectiveness.py \
 │   ├── inventory-scout.md      # Phase 1.3 — parallel inventory scouts
 │   └── micro-fix-scout.md      # Phase 5.3.5 — mechanical-fix swarm
 └── knowledge/                  # loaded on demand
+    ├── operations.md           # Phase 1 — paths, venv, guard, archaeology, report layout
     ├── execution-playbook.md   # Phase 5 sub-sections
     ├── solid-gate-tests.md     # Phase 6.3 sub-agent rubric + 1.2.5 worked example
     ├── bootstrap.md            # Phase 0 stub-scaffolding playbook
-    └── learnings.md            # R1–R36 from prior refactors
+    └── learnings.md            # R1–R44 from prior refactors
 ```

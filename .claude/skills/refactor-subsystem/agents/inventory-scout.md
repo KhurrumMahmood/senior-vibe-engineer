@@ -22,7 +22,7 @@ sections.
 | `{{declarations}}` | `scripts/chunk_file.py` output | multiline list of `(line, kind, name, summary)` |
 | `{{archaeology_owner}}` | Chunk map row | `scout` or `orchestrator` |
 | `{{worktree}}` | `git rev-parse --show-toplevel` | `~/Projects/your-project` |
-| `{{venv}}` | `knowledge/` | `.venv/bin/python` (or `$PYTHON_VENV_PATH/bin/python`) |
+| `{{venv}}` | `knowledge/operations.md` | `.venv/bin/python` (or `$PYTHON_VENV_PATH/bin/python`) |
 | `{{branch}}` | `git branch --show-current` | `wip` |
 
 ---

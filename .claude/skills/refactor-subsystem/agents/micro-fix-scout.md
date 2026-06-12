@@ -25,7 +25,7 @@ returns.
 | `{{canonical_import}}` | Spec frontmatter or derived | `from core.services.task_dispatch import TaskDispatchService` |
 | `{{verification_cmd}}` | Dispatch tuple per file | `tests.test_data_export tests.test_site_capabilities` |
 | `{{worktree}}` | `git rev-parse --show-toplevel` | `~/Projects/your-project` |
-| `{{venv}}` | `knowledge/` | `.venv/bin/python` |
+| `{{venv}}` | `knowledge/operations.md` | `.venv/bin/python` |
 | `{{branch}}` | `git branch --show-current` | `wip` |
 
 ---

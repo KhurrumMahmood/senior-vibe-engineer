@@ -1,4 +1,4 @@
-# Learnings distilled from prior refactor dogfoods (R1-R43)
+# Learnings distilled from prior refactor dogfoods (R1-R44)
 
 This file is loaded by the orchestrator **when stuck on a judgment
 call** — not front-to-back on every run. Each rule has provenance
@@ -546,7 +546,7 @@ SKILL.md body references `(L-N)` shorthand. Use this to resolve:
 
 | L-N | Closest rule(s) | One-line |
 |---|---|---|
-| L-1 | (`knowledge/`) | Worktree venv resolution — never fall back to a sibling worktree's venv |
+| L-1 | (`knowledge/operations.md`) | Worktree venv resolution — never fall back to a sibling worktree's venv |
 | L-3 | R15 | Single scout on 10K LOC blows the thoroughness budget |
 | L-4 | R6 + execution-playbook §5.2.0 | Re-check main worktree dirty set before EVERY batch, not just the first |
 | L-5 | R14 | 40%-incomplete spec inventory would have silently orphaned 11 tasks |
@@ -559,7 +559,7 @@ SKILL.md body references `(L-N)` shorthand. Use this to resolve:
 | L-12 | R14 + R2 | Orphan chunks (whole file spans) are higher-ROI scout targets |
 | L-13 | R17 | ≥ 50 commits → mandatory archaeology, ≥ 3 load-bearing LR-T extractions |
 | L-14 | — | Finding-or-not decision tree (action/EX/prose/INV/P-tier) |
-| L-16 | (`knowledge/`) | Don't silently fall back to `.venv/` in the wrong worktree |
+| L-16 | (`knowledge/operations.md`) | Don't silently fall back to `.venv/` in the wrong worktree |
 | L-17 | R19 | Micro-fix swarm for 5+ mechanical fixes, parallel sub-agent dispatch |
 | L-18 | R20 | Convention enforcement is first-class, not scope creep |
 | L-19 | R15 | AST-based chunker respects decorators and class boundaries |
