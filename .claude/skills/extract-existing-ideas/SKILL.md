@@ -44,6 +44,18 @@ The ledger schema and projection rules live in
 `.claude/docs/idea-ledger.md`. **Read that file** before reasoning about
 a non-trivial extraction batch.
 
+## How success is judged
+
+- A candidates JSON plus a report exist, with every candidate
+  classified NEW vs WOULD-COLLIDE against the ledger's slug set —
+  collisions surfaced for `/track-idea event`, never silently dropped.
+- No intake was written by this skill itself: survivors go through
+  `brainstorm-ideas/scripts/brainstorm.py`, where dedup, validation,
+  and origin discipline live.
+- The review gate ran (unless `--write` was explicit); lesson-sourced
+  candidates carry `has-more-potential` by default.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **The backlog is the first ledger.** Most projects already have a

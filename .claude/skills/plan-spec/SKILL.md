@@ -40,6 +40,19 @@ and **behavior-preserving execution** (the spec). The promotion is
 explicit — you call `scripts/plans.py promote`, which itself shells
 out to `scripts/specs.py init`. No silent promotion.
 
+## How success is judged
+
+- The Stage 1 gate held: any unresolved P0 fork in §6 produced an
+  explicit ABORT naming each fork and its `/decide <slug>` — refusal
+  is the correct outcome, not a failure.
+- The spec at `ai-docs/specs/<spec-id>.md` is transcribed from plan
+  §3-§5 (P1 forks land in §Exceptions as deferred), not invented.
+- The link is bidirectional: plan `status: promoted` +
+  `successor_spec:` set, spec pointing back via Provenance.
+- Promotion went through `scripts/plans.py promote` — never a
+  hand-rolled scaffold.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **The promotion gate is real.** A plan with unresolved P0 forks in

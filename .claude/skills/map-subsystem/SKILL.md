@@ -39,6 +39,20 @@ Procedural detail lives in two knowledge files:
 - `knowledge/output-format.md` — the exact shape of
   `.claude/docs/subsystems/<name>.md` + worked example.
 
+## How success is judged
+
+- `.claude/docs/subsystems/<name>.md` is complete per
+  `knowledge/output-format.md`: file inventory, public-vs-private
+  surface, responsibility clusters, dependency graph, and the
+  convention-compliance score.
+- On `--refresh`, the doc opens with a diff section against the prior
+  version — what changed, not just what is.
+- No judgment leaked: the map counts and reports; "should be split"
+  verdicts belong to the SUSPECT skills downstream.
+- Beyond the doc, writes are limited to the `reports/map/<name>/`
+  scratch dir and the `reports/_meta/effectiveness.jsonl` line.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **The map is a living doc, not a one-shot dump.** On refresh, diff

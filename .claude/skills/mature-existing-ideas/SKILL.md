@@ -45,6 +45,19 @@ The ledger schema, marker semantics, and the full table of skill ↔
 ledger interactions live in `.claude/docs/idea-ledger.md`. **Read that
 file** before reasoning about non-trivial marker transitions.
 
+## How success is judged
+
+- Every researched slug gets at least one `note`-kind event with the
+  `research:` prefix appended to the ledger — even when the conclusion
+  is "no new information"; research that lives only in your head is
+  the failure mode this skill exists to prevent.
+- Markers are cleared only with evidence, per idea — never auto-cleared
+  across a batch; open questions leave the marker in place.
+- Sources are cited in the summary so the research path is re-walkable.
+- No state transitions executed — recommendations route to
+  `/track-idea event`.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Research notes belong on the idea, not just in your head.**

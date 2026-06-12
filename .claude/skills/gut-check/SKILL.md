@@ -76,6 +76,19 @@ highest-leverage output — never suppress a smell just because an ADR
 or precedent covers it. Surface both: "this looks dumb, but ADR X
 explains why we did it this way."
 
+## How success is judged
+
+- Every reaction in `reports/gut-check/scan-<TS>/<target-slug>.md` is
+  cited (the line/section that triggered the flinch), confidence-banded
+  (`strong-smell` / `weak-smell` / `style-preference`), and split into
+  un-decided vs decided-but-still-smell against the decision sources.
+- Decision sources were actually loaded — when `precedents.yml` is
+  absent, the report says precedent matching was unavailable for this
+  run rather than silently skipping it.
+- "No instinctive smells" is a valid, stated outcome — never pad with
+  low-confidence filler. Signal, not verdict; zero production touches.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Instinctive smell, not mechanical scoring.** This skill is the

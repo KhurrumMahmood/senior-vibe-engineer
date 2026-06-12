@@ -41,6 +41,19 @@ write is the new or amended ADR file. Backref suggestions to
 your summary, not executed by you (an explicit edit task lands those
 backrefs after human review).
 
+## How success is judged
+
+- The new/amended ADR passes Stage 3 verification:
+  `scripts/decisions.py audit` and `link-check` come back clean.
+- Stage 1 confirmed no existing decision already covers the topic —
+  a duplicate aborts into `--amend` or supersession, never a second
+  ADR for the same choice.
+- `related_smell` / `related_pattern` backrefs are set where one
+  applies, and the summary recommends the matching `Decided in: NNNN`
+  lines — recommended, not self-executed.
+- Nothing outside `ai-docs/decisions/` was written.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **The threshold for a decision is real.** Any choice that (a)

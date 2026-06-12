@@ -49,6 +49,20 @@ inert — "validate input" tells an agent nothing about *when it bit*. The forge
 This skill carries the teeth across, and refuses to emit a principle without
 them.
 
+## How success is judged
+
+- `reports/harvest/scan-<TS>/harvest.md` + `harvest.json` exist, and
+  every emitted standard carries its provenance: an attributed
+  exemplar plus a durable back-link (rule name / ADR id / precedent
+  id, never raw `file:line`).
+- Each candidate has a Stage 3 portability verdict (ports /
+  stays-home / principle-ports-mechanism-stays) and a Stage 4
+  ADR-0020 activation tag — and the filter visibly bit (zero
+  stayed-home means re-run Stage 3).
+- Ported items carry the N=1 `single-constraint-set` confidence caveat.
+- Proposal only: no code edits, no auto-adoption into the corpus.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **The exemplar is the teeth.** A portable standard with no attributed

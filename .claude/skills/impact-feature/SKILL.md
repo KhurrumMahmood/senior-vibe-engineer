@@ -39,6 +39,19 @@ The scout fan-out is the most parallelizable part of System-tier
 planning; running scouts in parallel keeps the wall-clock cost
 proportional to the most-touched subsystem rather than to the sum.
 
+## How success is judged
+
+- One scout ran per touched subsystem, each leaving its brief at
+  `${REPORT_DIR}/scout/<subsystem>.md` with call sites, model
+  touchpoints, route boundaries, test surfaces, and
+  behaviors-to-preserve — not just a touched-files list.
+- §3 (Impact Map) and §4 (Blast Radius) of `ai-docs/plans/<name>.md`
+  are synthesized from those scout files, and status advances to
+  `impacted`.
+- A scope mismatch (impact exceeds §1) triggers a STOP and a
+  re-run-`/scope-feature` recommendation — never silent expansion.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Impact ≠ touched-files-list.** Impact includes call sites,

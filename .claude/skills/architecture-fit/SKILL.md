@@ -43,6 +43,19 @@ plan that reaches `architected` with unresolved P0 forks in §6 is
 expected; `/plan-spec` will require those to be resolved (via
 `/decide`) before it will promote.
 
+## How success is judged
+
+- Every piece of the §3 impact map was walked through the three
+  checks — decision, pattern, smell — and §5 records the conformance
+  (or the explicit "no constraining priors" note `/plan-spec` will
+  demand).
+- Every material fork is surfaced in §6: authored inline via
+  `/decide <slug>` with the captured id, or recorded `(decision
+  pending)` — never buried in prose.
+- Plan status advances to `architected`; no ADR is authored by this
+  skill itself, and no spec is scaffolded.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Conformance > novelty.** Default is to follow existing decisions

@@ -33,6 +33,18 @@ silently-broken, orphan-entry-with-live-internals) and the 6-step
 verification are documented in
 `knowledge/verification.md` — scouts read it, you don't.
 
+## How success is judged
+
+- Every deletion candidate in `${REPORT_DIR}/report.md` carries a
+  Stage 3 scout verdict at `scout/<candidate_id>.json` with call-site
+  evidence and a bucket (`certain_delete` / `orphan_endpoint` /
+  `quasi_dead_broken` / `false_positive`); recency was checked.
+- `external_api_risk` orphan endpoints are flagged for human
+  confirmation, never bucketed `certain_delete` silently.
+- Nothing is deleted — recommendations route to `/fix-workflow
+  delete:<name>` or `fix:<name>` after user authorization.
+Write toward these gates from Stage 0.
+
 ## Scope
 
 - **Target path:** the required `--target` argument. Must be a

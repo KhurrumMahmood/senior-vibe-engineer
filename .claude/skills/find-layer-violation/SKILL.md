@@ -44,6 +44,19 @@ View-Pattern evaluation rule, and the extraction-sketch format are
 documented in
 `knowledge/verification.md` — scouts read it, you don't.
 
+## How success is judged
+
+- Every reported entry point carries a Stage 3 scout verdict at
+  `scout/<candidate_id>.json` — an authority judgment in one of the
+  four buckets (`extract_service` / `move_to_existing_service` /
+  `broad_workflow_coordinator` / `intentional_http_coupling`), not a
+  raw signal count.
+- Extract-service candidates in `report.md` are actionable: their IDs
+  resolve as `/fix-workflow layer:<candidate_id>` arguments;
+  coordinators route to product-topology mapping instead.
+- Zero code edits — read-only audit.
+Write toward these gates from Stage 0.
+
 ## Scope
 
 - **Target path:** the required `--target` argument. View and task

@@ -39,6 +39,19 @@ connection during it), the five buckets (`narrow_transaction`,
 checklist are documented in `knowledge/verification.md` — scouts read
 it, you don't.
 
+## How success is judged
+
+- `${REPORT_DIR}/report.md` and `findings.json` agree — every finding
+  traces to a Stage 3 scout verdict at `scout/<candidate_id>.json`
+  with the atomic-block span and slow-op category as evidence.
+- Each candidate lands in one of the five buckets; `# atomic-overreach:`
+  markers and `transaction.on_commit` deferrals are honored, never
+  reported as actionable.
+- Actionable symbols resolve as `/fix-workflow cluster:<symbol>`
+  arguments.
+- Zero edits to production code — detection-only audit.
+Write toward these gates from Stage 0.
+
 ## Scope
 
 - **Target path:** the required `--target` argument. Accepts either

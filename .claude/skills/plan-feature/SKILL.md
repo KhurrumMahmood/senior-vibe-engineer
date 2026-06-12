@@ -55,6 +55,19 @@ write are:
   lifecycle: proposed, motivating_decision: linked if any)
 - One line in `reports/_meta/effectiveness.jsonl`
 
+## How success is judged
+
+- The spec's sections are grounded in `${REPORT_DIR}/context.md`, the
+  per-subsystem `scout/<subsystem>.md` outputs, and `impact.md` — a
+  transcription of evidence, never an invention.
+- Behaviors-to-preserve from the scouts' extracted-behaviors are
+  carried into the spec as the contract the feature must respect.
+- Every material fork has a decision stub: a `/decide` invocation or
+  a `motivating_decision` placeholder — no buried choices.
+- Impact crossing 2+ workflows triggers escalation to the System-tier
+  chain instead of a widened spec.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **The spec is the deliverable.** Implementation is downstream. A

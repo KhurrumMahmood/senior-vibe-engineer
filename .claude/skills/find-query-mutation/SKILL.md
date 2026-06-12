@@ -33,6 +33,18 @@ legitimate_cache_warming, false_positive_stdlib_wrapper), and the
 verification checklist are documented in `knowledge/verification.md` —
 scouts read it, you don't.
 
+## How success is judged
+
+- Every reported candidate carries a Stage 3 scout verdict at
+  `scout/<candidate_id>.json` in one of the four buckets
+  (`rename_to_mutator` / `split_reader_and_mutator` /
+  `legitimate_cache_warming` / `false_positive_stdlib_wrapper`) —
+  no detector hit reaches `report.md` ungraded or silently dropped.
+- Actionable symbols in the report resolve as `/fix-workflow
+  cluster:<symbol>` arguments; `# hidden-mutation:` markers honored.
+- Zero edits to production code — detection-only audit.
+Write toward these gates from Stage 0.
+
 ## Scope
 
 - **Target path:** the required `--target` argument. Must be a

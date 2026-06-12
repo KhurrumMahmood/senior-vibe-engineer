@@ -29,6 +29,18 @@ Semantic duplication fills a gap between `/find-duplication` (syntactic
 clones) and `/find-dormant` (dead code). Two bodies with 0% token overlap
 can still solve the same problem — this skill finds those.
 
+## How success is judged
+
+- No finding reaches `triage.md` without a Stage 5 Confirm scout
+  verdict at `scout/<finding_id>.json` — Compare nominations alone
+  are never reported.
+- Every confirmed cluster has its capability matrix at
+  `capability_matrices/<finding_id>.md`; `uncertain` and
+  `false_positive` verdicts flow through honestly, not forced.
+- Finding IDs resolve as `/fix-workflow semantic:<id>` arguments.
+- Zero edits to production files — this is a read-only audit.
+Write toward these gates from Stage 0.
+
 ## Scope
 
 - **Target path:** the required `--target` argument. Must be a directory.

@@ -43,6 +43,19 @@ The schema, projection rules, and full skill-↔-ledger interaction table
 live in `.claude/docs/idea-ledger.md`. **Read that file** before
 reasoning about a non-trivial finding.
 
+## How success is judged
+
+- The report keeps the seven modes separated — stale, harvest,
+  plan-dropouts, todo, stale-plans, dead-prototype, attention-gap —
+  with zero-finding sections shown as "(none)", proving each detector
+  ran.
+- The ledger at `.claude/ideas/log.jsonl` is untouched unless
+  `--apply-stale` was set; that one exception appends auditable
+  `transition` events and re-runs Stage 1 to show "0 stale findings".
+- Thresholds (`stale_days`, etc.) are surfaced in the report header so
+  the reader can recalibrate; follow-ups route to `/track-idea event`.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Detection ≠ action.** The default mode is read-only. Findings are

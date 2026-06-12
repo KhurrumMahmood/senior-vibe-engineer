@@ -60,6 +60,20 @@ The architectural framing — why "looks unfinished" is the wrong target and
 git-trajectory gate separates *abandonment* from *post-completion cleanup* —
 is captured in the bands and gate sections below.
 
+## How success is judged
+
+- Every gated-in packet in `scout_packets.json` receives exactly one
+  Step B verdict from the fixed vocabulary (`forgotten` / `deliberate`
+  / `optional` / `not-applicable`) with a one-line rationale — leaves
+  are recorded with their why, never silently dropped.
+- `<scan-dir>/triaged.md` is written forgotten-first; each `forgotten`
+  carries the suggested completion and hands off to `/fix-workflow
+  cluster:<finding>`.
+- The git-trajectory gate ran (unless `--no-gate` was explicit);
+  likely-deliberate divergences stay in their own section.
+- Zero code edits — detection-only.
+Write toward these gates from the first detector run.
+
 ## Bands
 
 Two detector bands, selected with `--band` (default `kwarg`):

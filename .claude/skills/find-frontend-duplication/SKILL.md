@@ -33,6 +33,19 @@ produce a triage report. Do **not** read the candidate class chains or
 function bodies yourself — that is what the investigator sub-agents are
 for.
 
+## How success is judged
+
+- `${REPORT_DIR}/triage.md` + `findings.json` exist; every
+  investigated candidate carries a Stage 4 scout verdict at
+  `scout/<candidate_id>.json`, aggregated into `classified.json`.
+- Each candidate was compared against the cotton-primitive inventory
+  (`cotton-inventory.json`) — "should be a c-primitive" claims name
+  the existing primitive or the absence of one.
+- Top candidates hand off cleanly to `/extract-cotton-primitive`;
+  primitive-bypass findings route to `/prevent-regression`.
+- Zero template/JS edits — read-only audit.
+Write toward these gates from Stage 0.
+
 ## Scope
 
 - **Template root:** `templates/` (default).

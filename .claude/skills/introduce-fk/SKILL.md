@@ -36,6 +36,20 @@ owner model, the target model, the callers, or a migration file. The
 only artifact you produce is `reports/introduce-fk/<target-slug>/
 proposal.md` plus its supporting `targets.json` and `profile.md`.
 
+## How success is judged
+
+- `proposal.md` carries the FK field shape, the mandatory two-step
+  migration (nullable + backfill first; `NOT NULL` only if the
+  invariant is real), the caller migration table, and an explicit
+  tie-break strategy for multi-match backfill rows.
+- The scout's "active X" vs "latest X" call is respected — a
+  `latest_query` / `unique_hit` classification produces a documented
+  misclassification note, not a forced FK.
+- One owner/target pair per run; extra tuple-identity patterns land
+  under Follow-on findings. Zero code or migration edits — execution
+  belongs to `/fix-workflow` or `/refactor-subsystem`.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Job identity is an explicit FK, never inferred from

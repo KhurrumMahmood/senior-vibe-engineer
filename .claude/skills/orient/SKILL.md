@@ -50,6 +50,19 @@ The work is the conversation plus the write. There is no scout fan-out
 and no timestamped report. The deliverable is one file:
 `<project-root>/.engineering/project-state.json`.
 
+## How success is judged
+
+- `.engineering/project-state.json` holds exactly one `maturity` and
+  one `stakes` value, mapped from the user's answers to the
+  orientation questions — stakes were asked, never silently inferred.
+- The prior state (if any) was shown before asking, and the proposed
+  classification plus the rungs it activates were confirmed by the
+  human before the write.
+- In a non-interactive context with no answers, no guessed file was
+  written — "orientation needs a human" is the correct outcome.
+- Unknowns and single-surface exceptions are explicit in `notes`.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Activation, not knowledge.** General training already covers

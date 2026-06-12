@@ -38,6 +38,18 @@ artifact you produce is
 `reports/extract-cotton-primitive/<target-slug>/proposal.md` plus its
 supporting `targets.json` and `profile.md`.
 
+## How success is judged
+
+- `proposal.md` is complete per the Stage 3 structure: `<c-vars>`
+  declaration and primitive body from `primitive.md`, the census
+  reconciliation, callsite migration table (before/after per site),
+  JS-partner notes with the idempotent-init guard, and stop condition.
+- The three-callsite, two-template rule held — below threshold the
+  proposal says `defer_low_callsite_count`, never forces a primitive.
+- Zero edits to `templates/cotton/`, callsites, or JS — execution is
+  `/refactor-subsystem`'s or the human's, after review.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Three-callsite, two-template rule.** A primitive lands only if

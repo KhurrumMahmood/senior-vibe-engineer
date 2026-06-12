@@ -48,6 +48,19 @@ they diverged, and recommends an axis with a stated trade.
 You do NOT author the ADR — that's `/decide`. You do NOT implement
 the design — that's the planning chain after the ADR lands.
 
+## How success is judged
+
+- Three designs exist under `reports/design-it-twice/scan-<TS>/`, each
+  committed hard to a genuinely different binding constraint — three
+  near-identical "balanced" designs is a failed run.
+- The comparative document at `<fork-slug>.md` separates where the
+  designs agreed (real constraints) from where they diverged (the
+  actual design space), and recommends an axis with the trade named.
+- The chosen axes are stated and justified in the Stage 1 section.
+- No ADR authored, nothing written outside the scan dir — the handoff
+  is `/decide <slug>` with this analysis as evidence.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Divergence is the point.** Each design must commit hard to its

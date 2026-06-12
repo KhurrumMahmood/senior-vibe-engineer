@@ -48,6 +48,20 @@ Procedural detail lives in the knowledge files:
   `reports/explanations/<target>.md`.
 - `agents/annotate.md` — scout brief for per-symbol behavior capture.
 
+## How success is judged
+
+- Every ranked symbol in `targets.json` (up to the 15-symbol cap) has
+  a scout annotation at `annotations/<symbol-key>.md` synthesized into
+  `reports/explanations/<target-slug>.md` — symbols over budget are
+  listed as follow-on candidates, never silently omitted.
+- Unexplained regions are first-class output: a branch the scout
+  could not explain is recorded as such, never papered over with an
+  invented behavior claim.
+- Zero edits outside `reports/explanations/` — the doc is the
+  contract downstream `/fix-workflow` / `/refactor-subsystem` work
+  reasons against.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Explanation is a proposal artifact.** The doc is written once,

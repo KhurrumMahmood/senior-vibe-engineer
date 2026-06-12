@@ -35,6 +35,19 @@ full, dispatch a scout per member to profile signature / callers / return
 contract / retry-and-resource semantics, and consolidate into a proposal.
 The human reviews the proposal before authorizing `/fix-workflow`.
 
+## How success is judged
+
+- `reports/unify-shadows/<finding-id>/proposal.md` exists with every
+  shadow member profiled at `profiles/<member-key>.md` — divergences
+  in signature, callers, return contract, and retry/resource semantics
+  are documented per member, never asserted equivalent without
+  evidence.
+- The scan's `consolidation_shape` is respected; in-tree "INTENTIONAL
+  shadow" comments are cited, not overridden.
+- One proposal per finding; the handoff target `/fix-workflow
+  semantic:<id>` can execute it. Zero production-code edits here.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Shape is load-bearing.** The scan's `consolidation_shape` field decides

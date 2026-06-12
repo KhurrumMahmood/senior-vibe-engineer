@@ -33,6 +33,18 @@ enum_already_used, legacy_allow_list), and the verification checklist
 are documented in `knowledge/verification.md` — scouts read it, you
 don't.
 
+## How success is judged
+
+- Every reported candidate carries a Stage 3 scout verdict at
+  `scout/<candidate_id>.json` in one of the four buckets
+  (`extract_enum_candidate` / `introduce_fk_candidate` /
+  `enum_already_used` / `legacy_allow_list`), with the hit evidence
+  attached — nothing reaches `report.md` ungraded.
+- Each actionable candidate is routed to its named handoff:
+  `/extract-enum <symbol>` or `/introduce-fk <symbol>`.
+- Zero edits to production code — detection-only audit.
+Write toward these gates from Stage 0.
+
 ## Scope
 
 - **Target path:** the required `--target` argument. Must be a

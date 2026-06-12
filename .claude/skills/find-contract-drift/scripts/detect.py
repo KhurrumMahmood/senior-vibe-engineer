@@ -189,7 +189,14 @@ def _call_frontend_detector(project_root: Path) -> list[dict[str, Any]]:
         template_root = project_root / root
         if not template_root.exists():
             continue
-        for record in module.detect(project_root, template_root, js_root, 3):
+        scope = module._scope.load_scope(project_root, module.SKILL_NAME)
+        for record in module.detect(
+            project_root=project_root,
+            scope=scope,
+            boot_threshold=3,
+            template_root=template_root,
+            js_root=js_root,
+        ):
             file = str(record.get("file", ""))
             if not _sites_file(file):
                 continue

@@ -40,6 +40,19 @@ evaluation rule, and the
 decomposition-sketch format are documented in
 `knowledge/verification.md` — scouts read it, you don't.
 
+## How success is judged
+
+- Every reported candidate carries a Stage 3 scout verdict at
+  `scout/<candidate_id>.json`, bucketed by the facet-vs-domain rule
+  (`confirmed_omnibus` / `borderline` / `coordination_omnibus` /
+  `facets_not_domains`) — no detector hit reaches `report.md` ungraded.
+- The substrate gate (ADR 0032 rule 3) ran before any decomposition
+  recommendation; failing layers get "substrate ADR first", not a spec.
+- The handoff is named: `/refactor-subsystem <spec-id>` for confirmed
+  candidates, `/map-product-workflow` for `coordination_omnibus`.
+- Zero code edits — read-only audit.
+Write toward these gates from Stage 0.
+
 ## Scope
 
 - **Target path:** the required `--target` argument. Must be a

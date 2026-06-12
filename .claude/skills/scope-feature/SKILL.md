@@ -45,6 +45,19 @@ whole point of the System tier. A scoping conversation that surfaces a
 narrower-than-expected scope, a wrong-tool diagnosis, or a missing
 prerequisite is a successful run, not a failed one.
 
+## How success is judged
+
+- §1 (Scope & Bounds) and §2 (Success Criteria) of
+  `ai-docs/plans/<name>.md` are filled from the user's confirmed
+  answers to Q1-Q5 — never from invented answers; Stage 0.5 inferred
+  answers were confirmed, not silently assumed.
+- Success criteria are observable, not aspirational; §1 cites the
+  binding priors named after the Stage 1 read.
+- Plan status advanced to `scoped` — and a tier-wrong diagnosis
+  (abandon and route to `/plan-feature`) counts as a successful run.
+- Open unknowns are named in the plan, not papered over.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Scope is contract, not aspiration.** "What's in / out / non-goal"

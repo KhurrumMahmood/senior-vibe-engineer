@@ -39,6 +39,19 @@ model file, the callers, or a migration file. The only artifact you
 produce is `reports/extract-enum/<target-slug>/proposal.md` plus its
 supporting `targets.json` and `profile.md`.
 
+## How success is judged
+
+- `proposal.md` is complete per the Stage 3 structure: a
+  `models.TextChoices` class (never tuple-style choices), the caller
+  table from `profile.md`, data-migration risks (case-variants,
+  third-party bridges), test matrix, and stop condition.
+- Exactly one target per run — extra stringly-typed fields land under
+  Follow-on findings, not in this proposal.
+- No file outside `reports/extract-enum/<target-slug>/` was touched;
+  execution is deferred to `/fix-workflow` or `/refactor-subsystem`
+  after human review.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **For a model field, the endpoint is `models.TextChoices`, not a

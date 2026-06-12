@@ -39,6 +39,19 @@ skill. The only artifact you produce is
 `reports/propose-folder-reorganization/<target-slug>/proposal.md`
 plus its supporting `inspection.json`.
 
+## How success is judged
+
+- `proposal.md` carries the current → proposed tree, a file-move table
+  grounded in `inspection.json`, the full import-impact list (every
+  breaking import line with its after-rename target), and a
+  characterization-test matrix as the stop condition.
+- ADR 0006 thresholds are honored: ≥3 real siblings or the proposal
+  says `defer_below_threshold`; one cluster per run; `defer_signals`
+  from the inspection are surfaced, never suppressed.
+- Zero file moves, zero edits — handoff is `/refactor-subsystem` in
+  decomposition mode after human review.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 0. **Framework norms are a floor; intuitiveness is the goal above it.**

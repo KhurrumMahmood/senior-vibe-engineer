@@ -49,6 +49,22 @@ Do not implement the skill until the brief survives adversarial
 pushback. If the request is just a tiny edit, say so and skip the skill
 machinery.
 
+## How success is judged
+
+The frontmatter's `evidence_required` list IS the verdict — the run
+passes when `evidence.json` satisfies `scripts/evidence_gate.py` on all
+four items:
+
+- `skill_problem` — Stage 1's one-sentence problem class, with a
+  durable artifact named (or a recommendation against the skill).
+- `trigger_contract` — Stage 3 frontmatter draft with `best_for` /
+  `not_for` naming adjacent skills.
+- `validation_plan` — `validation-plan.md` with at least one dogfood
+  case and its commands.
+- `adversarial_review` — `adversarial-review.md` recording Stage 2's
+  seven attacks and the accepted/rejected objections.
+Write toward these gates from Stage 1.
+
 ## Stage 1 - Problem Before Skill
 
 Name the problem class in one sentence:

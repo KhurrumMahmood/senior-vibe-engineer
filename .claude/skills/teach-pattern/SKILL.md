@@ -50,6 +50,19 @@ The skill answers two distinct questions in one shape:
 Both modes share the five-section template; the `--for-agent` mode adds
 a sixth "applied to your context" section at the top.
 
+## How success is judged
+
+- All five sections of the briefing are grounded in real artifacts:
+  the rule from its canonical source, the why naming both smell and
+  decision links, an exemplar citing an actual spec/ADR/file, a
+  counter-example from a real find-* finding — never an invented
+  snippet.
+- Where no real exemplar, smell entry, ADR, or enforcement exists,
+  the briefing says so explicitly ("none yet — file a /decide"),
+  because naming the gap is the deliverable.
+- Read-only beyond `reports/teach-pattern/scan-<TS>/<topic-slug>.md`.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Layered briefing > flat documentation.** Rule first (one line),

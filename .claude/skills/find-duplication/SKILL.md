@@ -26,6 +26,18 @@ You are the **orchestrator** for a duplication audit. Your job is to drive a
 pipeline of scripts and sub-agent investigators; the judgment calls live in
 the scout brief and the knowledge files, not in this prompt.
 
+## How success is judged
+
+- `${REPORT_DIR}/triage.md` + `findings.json` exist, and every
+  investigated finding carries a Stage 4 scout verdict at
+  `scout/<finding_id>.json` — nothing dropped silently between
+  `ranked.json` and `classified.json`.
+- Cluster IDs in the triage report resolve as `/fix-workflow
+  cluster:<id>` arguments; dormant candidates flow to the
+  side-channel, never get acted on here.
+- Zero edits to production files — this is a read-only audit.
+Write toward these gates from Stage 0.
+
 ## Scope
 
 - **Target path:** the required `--target` argument. Must be a directory.

@@ -40,6 +40,18 @@ Procedural detail lives in the knowledge files:
   `reports/extract-state-type/<target>/proposal.md`.
 - `agents/state-profiler.md` — scout brief for dict-shape inference.
 
+## How success is judged
+
+- `proposal.md` matches `knowledge/proposal-template.md`: current-shape
+  key table, complete `@dataclass` / `TypedDict` definition, one caller
+  row per file from the scout's grep pass, and a stop condition.
+- The characterization-test section is present and concrete — the
+  shape `/fix-workflow` must write before any edit is non-optional.
+- One scout, one proposal, one target; extras go to Follow-on findings.
+- Nothing outside `reports/extract-state-type/<slug>/` was touched —
+  the proposal is the handoff artifact, never the execution.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **The dict IS the contract.** Every read of a key is a caller

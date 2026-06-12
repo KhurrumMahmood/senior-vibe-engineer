@@ -43,6 +43,20 @@ The ledger schema, projection rules, and the full table of skill ↔
 ledger interactions live in `.claude/docs/idea-ledger.md`. **Read that
 file** before reasoning about a non-trivial batch.
 
+## How success is judged
+
+- Candidates were surfaced to the user for pruning BEFORE any write;
+  the approved survivors were written in one helper-script call —
+  never by hand-appending to the ledger.
+- Every candidate slug was deduped against existing intakes; skips
+  are surfaced so the user can `/track-idea event` them instead.
+- Origin honesty holds: `AI-suggestion` (or `convo+research` when
+  `--external-research` enriched a candidate), and quality markers
+  default to `underdeveloped`.
+- Candidates use the existing `subsystem_kind` vocabulary unless the
+  topic genuinely needs a new kind.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Capture is the bottleneck.** Brainstorm sessions surface
