@@ -1,11 +1,11 @@
 ---
 name: status-projection-and-presentation
 title: "Status Projection And Presentation"
-status: architected
+status: promoted
 date: 2026-06-12
 authors: [khurrum, claude-code]
 motivating_decision: "0037"
-successor_spec: null
+successor_spec: status-projection-and-presentation
 subsystems: [scripts, reports, engineering-state, skills-routing]
 workflows: []
 ---
@@ -318,9 +318,10 @@ collect scripts, ci.yml, example settings).
 ## 6. Open Decisions
 
 **P0 — must resolve before promotion.**
-- `status-projection-schema` — the planned `/decide` (§1 in-scope)
-  now has its full charter; **author it next**, before `/plan-spec`.
-  It must settle, in one ADR:
+- ~~`status-projection-schema`~~ — **RESOLVED 2026-06-12 by ADR 0037**
+  (`ai-docs/decisions/0037-status-projection-schema.md`, proposed,
+  awaiting acceptance). The charter below is retained as the record
+  of what the ADR was required to settle; all five items landed in it:
   (a) **Placement fork** — `status.json` + queue dir under
   `reports/` (derived-output convention) vs `.engineering/local/`
   (ADR 0021 gitignored zone) vs hybrid. *Recommended:*
