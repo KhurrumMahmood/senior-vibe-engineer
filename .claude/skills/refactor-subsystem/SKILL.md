@@ -143,10 +143,11 @@ fresh context mid-run:
 2. **Re-read that phase's knowledge file.** Phase 5 means
    `knowledge/execution-playbook.md` IN FULL — not from memory.
 3. **Restate the approved scope and waivers** from `phase-3-plan.md`
-   §Sign-off before any edit.
-4. **Re-arm beliefs 3 and 4:** unknown code STAYS; deletion needs
-   recorded human approval.
-5. **Re-run the cleanliness guard** (commands in
+   §Sign-off before any edit — and end the restatement by re-arming
+   beliefs 3 and 4: unknown code STAYS; deletion needs recorded
+   human approval. (One step: a scope restatement that omits the
+   belief re-arm is incomplete.)
+4. **Re-run the cleanliness guard** (commands in
    `knowledge/operations.md`).
 
 Do not resume a Phase 5 batch with the playbook unread or the
