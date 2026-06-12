@@ -7,10 +7,7 @@ PARKED (deliberate).
 
 ## In-flight
 
-| Thread | Route |
-|---|---|
-| parents[4] de-baking sweep (11 hard leaks + 1 default; which-cleanup pattern) | implementer agent running → review, commit |
-| /repair-skill text-alone adversarial pass (validation-plan obligation) | reviewer agent running → fix-or-ledger findings |
+(none — both lanes closed; see "Closed this session")
 
 ## Queued (decided, cheap to dispatch)
 
@@ -57,4 +54,6 @@ which-shape / scope-feature repairs + lift; which-shape Path A;
 plan-skill retrofit; /repair-skill created; skill-comply ported;
 which-cleanup de-baked; P4 belief-re-arm fused; class-lift gate
 installed; forgotten-sweep + triage; es2 question retired; ~15 ledger
-intakes/lessons banked.
+intakes/lessons banked; /repair-skill text-alone pass (6/6 gaps fixed,
+re-verified YES, 8c1d008); parents[4] sweep (12/12 scripts de-baked,
+61326ed, record in skill-repairs/parents4-sweep-fix.md).
