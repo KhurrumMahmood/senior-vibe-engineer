@@ -77,14 +77,22 @@ never fully executes and a project that never reaches coherent form.
   dashboard renders "stated goal vs. current trajectory."
   *Done when:* goal artifact shape decided (possibly inside Track A's
   schema ADR) or explicitly parked.
-- **W-F — Track B research brief (content/comic project).** Operator
-  cards retrofitted onto the ~8 proven operators; the state-journal
-  reader experiment specified against the pairwise instrument; lens
-  battery (cached-sequential triage vs independent-parallel verdict)
-  written up. Lives in the comic/content project, but closure is bound
-  LOCALLY: *done when* a ledger event on `operator-composition-ledger`
-  in THIS repo links the brief's path and first-experiment result —
-  cross-repo memory is not a mechanism.
+- **W-F — Track B via clean-room rebuild (operator direction
+  2026-06-12, supersedes the retrofit framing).** The existing
+  comic/content folders become a READ-ONLY evidence corpus — no
+  in-place modification, assets stay put. Phase 1: harvest the ~8
+  proven operators into operator cards plus dead-end autopsies; the
+  state-journal reader experiment and lens-battery writeup ride along.
+  Phase 2: fresh greenfield folder (name TBD), ecosystem installed
+  from commit zero, goal artifact (W-E) instantiated for real, first
+  scoped slice proves the core output path end-to-end before any
+  composition architecture. Phase 3: build by composition — code/text
+  copied only with a recorded adoption event against the idea it
+  embodies. This is also the dogfood venue for Track A's projection.
+  Closure stays bound LOCALLY: *done when* a ledger event on
+  `operator-composition-ledger` in THIS repo links the harvest output
+  and the first recorded adoption in the new project — cross-repo
+  memory is not a mechanism.
 - **W-G — The assurance loop itself.** Operator direction (2026-06-12):
   **execution-first** — the cadence for THIS project is "the pending
   work gets done, then dogfooded on a meaningful target," not new
