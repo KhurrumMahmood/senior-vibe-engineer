@@ -1,0 +1,92 @@
+{
+  "help me with the thing we discussed": [
+    "bug-fix",
+    0,
+    "low"
+  ],
+  "this is not a typo, the whole subsystem terminology is wrong": [
+    "concept-rename",
+    28,
+    "medium"
+  ],
+  "fix one-line typo in the status label": [
+    "direct-change",
+    58,
+    "high"
+  ],
+  "this bug keeps coming back": [
+    "regression-prevention",
+    50,
+    "high"
+  ],
+  "this failure keeps coming back; prevent the regression again": [
+    "regression-prevention",
+    78,
+    "high"
+  ],
+  "onboard an unknown inherited repo and figure out what loop to run": [
+    "project-intake",
+    76,
+    "high"
+  ],
+  "adapt this codebase": [
+    "project-intake",
+    52,
+    "high"
+  ],
+  "this project feels messy and slow; identify the right cleanup loop": [
+    "legacy-stabilization",
+    46,
+    "high"
+  ],
+  "what should we audit for a broad health sweep": [
+    "health-audit",
+    62,
+    "high"
+  ],
+  "choose the durable architecture tradeoff and record an ADR": [
+    "decision-capture",
+    78,
+    "high"
+  ],
+  "add a new endpoint for the export workflow": [
+    "feature-shaping",
+    62,
+    "high"
+  ],
+  "execute the approved refactor proposal": [
+    "refactor-execution",
+    68,
+    "high"
+  ],
+  "rename the domain concept across the glossary and all surfaces": [
+    "concept-rename",
+    58,
+    "high"
+  ],
+  "the work is finished; run a closeout cleanup over the changed files": [
+    "task-closeout",
+    66,
+    "high"
+  ],
+  "the app shows a crash on startup": [
+    "bug-fix",
+    4,
+    "low"
+  ],
+  "stop this regression from coming back": [
+    "bug-fix",
+    4,
+    "low"
+  ],
+  "build a new export page": [
+    "feature-shaping",
+    4,
+    "low"
+  ],
+  "extract the service and split the module": [
+    "refactor-execution",
+    4,
+    "low"
+  ]
+}
