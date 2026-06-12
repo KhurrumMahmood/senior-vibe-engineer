@@ -1,7 +1,7 @@
 ---
 name: status-projection-and-presentation
 title: "Status Projection And Presentation"
-status: scoped
+status: impacted
 date: 2026-06-12
 authors: [khurrum, claude-code]
 motivating_decision: null
@@ -162,13 +162,65 @@ the routers in actual project state).
 
 ## 3. Impact Map
 
-_Filled by `/impact-feature`. Subsystems, models, routes,
-services touched. Reach-and-blast analysis._
+Full synthesis: `reports/impact-feature/latest/impact.md` (six scouts,
+all passed). Condensed here.
+
+**Touched subsystems.**
+- `scripts-core` — `status.py` home; reuses `plans.py:load_plans:67`,
+  `decisions.py:load_decisions:81`, `_common/ideas_lib.py`
+  (project/project_all), `subsystems.py:load_registry:36`.
+- `reports-and-proposals` — pending-approvals over 9 chains;
+  `scope.json` sidecar (helper named `artifact_scope.py` —
+  `_common/scope.py` collision); exemplar adopters extract-enum +
+  unify-shadows.
+- `engineering-state-and-queue` — ADR 0021 zones; agent-neutral JSON
+  queue; session-start hook (no hooks exist today; house pattern is
+  `scripts/agent_policy/hook.py`).
+- `which-shape-routing` — seam is `project_context_state()`
+  (route.py:117-145); needs `--status` path override.
+- `sweep-manifest` — file-reads only via one path-resolver indirection;
+  digest tier only.
+- `ci-tests-hooks` — ~6 new test modules (zero CI edits); one new CI
+  step: Playwright+chromium renderer smoke (first browser harness in
+  repo); nothing in pre-commit.
+
+**Constraint corrections for §5:** (a) §1's "stdlib-only" cannot hold —
+the mandatory-reuse loaders are PyYAML-backed; recommend "venv-python,
+stdlib-preferred". (b) ADR 0036 packets are prose-only — the queue
+contract is the first packet implementation. (c) The sweep manifest
+schema is unversioned/untested and scheduled for revision; the schema
+ADR must pin the consumed field subset.
 
 ## 4. Blast Radius
 
-_Filled by `/impact-feature`. Call sites and behaviors that
-must be preserved across the change._
+**Behaviors to preserve** (11 total — full list in impact.md; the five
+load-bearing ones):
+- `ideas_lib` owns ledger projection — call, never re-derive (0004).
+- Registry-optional: absent source → absent section, exit 0; the
+  projection never writes into any skill's report dir.
+- `route.py --json` is a sort_keys envelope — byte-identity when
+  status.json absent forbids even an added constant key.
+- NEVER invoke sweep.py from the projection — `ratchet` rewrites its
+  baseline in place on a clean run (sweep.py:260); a read would mutate
+  GUARD state.
+- Pending-approvals honesty: closure detectable for only 2 of 9 chains
+  (prevent-regression, propose-boundary); the rest report "pending
+  until explicitly dismissed".
+
+**Test surfaces.** New: `tests/test_status.py`,
+pending-approvals/scope-staleness (first tmp-path `git init` in suite),
+renderer smoke, queue hook, sidecar helper (NOT `test_scope.py` —
+taken). Extend: `tests/test_which_shape.py` (byte-identity regression).
+Patterns: `test_which_cleanup.py` (subprocess+overrides),
+`test_project_adapt.py` (seed repo). `test_skill_detector_reads.py`
+auto-covers new readers.
+
+**Files to touch (estimate).** ~20 across 6 areas: ~12 new (status.py,
+artifact_scope.py, renderer + assets, hook, queue doc, schema ADR, 6
+test modules), ~8 modified (route.py + tests, two exemplar skill
+collect scripts, ci.yml, example settings).
+
+**Affected workflows.** None (`.claude/docs/workflows/` absent).
 
 ## 5. Architecture Fit
 
