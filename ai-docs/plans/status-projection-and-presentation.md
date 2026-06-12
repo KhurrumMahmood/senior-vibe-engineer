@@ -1,7 +1,7 @@
 ---
 name: status-projection-and-presentation
 title: "Status Projection And Presentation"
-status: impacted
+status: architected
 date: 2026-06-12
 authors: [khurrum, claude-code]
 motivating_decision: null
@@ -28,7 +28,8 @@ the routers in actual project state).
   schema, file placement (see open fork below), and the server-tier
   ladder (static → stdlib localhost → hosted) recorded as
   alternatives-considered. Declares `embodied_by` per ADR 0033.
-- **`scripts/status.py`** — deterministic, stdlib-only projection
+- **`scripts/status.py`** — deterministic, venv-python
+  (stdlib-preferred) projection
   composing existing sources, each section degrading cleanly when its
   source is absent (registry-optional doctrine, per ADR 0023's
   degradation precedent): lifecycle state (`.engineering/`
@@ -224,13 +225,141 @@ collect scripts, ci.yml, example settings).
 
 ## 5. Architecture Fit
 
-_Filled by `/architecture-fit`. Decision conformance, canonical-
-pattern alignment, new smells introduced or avoided._
+**Decision conformance.**
+- ADR 0004 (parallel writers → shared helper) — `status.py` reuses
+  `plans.py` / `decisions.py` / `_common/ideas_lib.py` /
+  `subsystems.py` loaders verbatim; it never re-derives any
+  projection rule. This **resolves the §3 stdlib-only correction**:
+  the loaders are PyYAML-backed, and vendoring a parallel frontmatter
+  reader to preserve "stdlib-only" would itself be the smell-5 shape
+  ADR 0004 exists to block. §1 amended to "venv-python,
+  stdlib-preferred".
+- ADR 0021 (`.engineering/` state home) — supplies the doctrine for
+  the placement fork (§6 P0): new toolkit per-project state may not
+  land at repo root or under `.claude/`; the commit-policy seam
+  ("per-run, machine-local scratch" → `.engineering/local/`) covers
+  both the regenerable `status.json` and the queue. Queue files are
+  plain agent-neutral JSON per the cross-tool rule; the session-start
+  hook is a Claude-side convenience reader over neutral data.
+- ADR 0036 (batch sweep manifests) — the projection consumes the
+  digest tier only (counts / totals / id deltas) via one
+  path-resolver indirection; it never invokes `sweep.py` (the
+  `ratchet` subcommand rewrites its baseline in place — a "status
+  read" would mutate GUARD state). The queue contract is the **first
+  packet implementation** (0036 specifies packets; none exist) — the
+  schema ADR must say so and keep the packet fields
+  (scope/recipe/verification/expected-delta/budget) compatible.
+- ADR 0023 (registry-optional degradation) — every projection section
+  follows the `/which-cleanup` + `/which-shape` precedent: absent
+  source → section marked absent, exit 0; and 0023's "no parallel
+  area→skill table" rule generalizes — the projection reads live
+  sources, never authors a second copy of any state.
+- ADR 0033 (decisions declare embodiment) — the new schema ADR ships
+  with `embodied_by: [script:scripts/status.py, script:<renderer>,
+  hook:<session-start>]`; the hook kind is existence-advisory, which
+  fits (hooks may live in host settings).
+- ADR 0025 (assumes / revisit_when) — the schema ADR has genuine
+  environmental dependencies and must carry both fields: it assumes
+  the sweep-manifest schema stays unversioned (pin the consumed field
+  subset; revisit when ADR 0036's productization versions it) and
+  assumes copy-paste actions are a sufficient interaction floor
+  (revisit when that proves false → the deferred localhost server).
+- ADR 0003 (findings ledger, proposed) — coordination, not conflict:
+  one reader seam so `findings.jsonl` slots in as a projection source
+  when shareable-core W5 lands; the projection does not pre-build
+  against the unaccepted schema.
+- ADR 0013 (idea ledger) — in-flight-ideas section reads through
+  `ideas_lib.project_all` only.
+- ADR 0020 (maturity × stakes) — lifecycle section reads
+  `.engineering/project-state.json` through the existing loader.
+- ADR 0031 (`/converge` gate) — adjacency, no overlap: the projection
+  is a state *surface*, `/converge` is an after-phase *gate*; the
+  projection composes and renders, it never emits verdicts or
+  re-ranks (§1 non-goal). The future `goals` section (W-E) renders
+  stated-goal-vs-trajectory; gating against it stays `/converge`'s
+  job.
+
+**Pattern alignment.**
+- `parallel-writers-shared-producer` — `status.py` is the single
+  producer; the lens renderer consumes `status.json` only and never
+  recomputes state; `route.py` cites projection signals but never
+  treats them as authoritative over its live reads.
+- `query-methods-are-side-effect-free` — the entire projection path
+  is read-only by construction; the one trap (sweep `ratchet`
+  auto-tightening) is handled by file-reads-only (above). The
+  `--self` lint scope (`silent-catch`, `query-mutation`) applies to
+  `scripts/` and should stay green over `status.py`.
+- Scan-dir names are opaque (four conventions observed) — staleness
+  and age use mtime / embedded timestamps, never name parsing.
+
+**Smells avoided.**
+- Smell 5 (format-equivalence gap) — the motivating smell: one
+  producer, dumb renderers, no second writer of any section's facts.
+- Smell 1 (omnibus module) — `status.py` composes ~6 sections; keep
+  one private function per section with a uniform
+  `(sources) -> section | absent` contract, composer stays thin. If
+  sections grow past the ≥3-sibling threshold, decompose under the
+  folder-organization convention — not pre-emptively.
+- Smell 2 (stringly state) — section names, staleness states, and
+  pending-approval statuses are closed vocabularies pinned in the
+  schema ADR; Python comparisons go through enums/constants, not
+  bare literals.
+
+**Smells accepted (with justification).**
+- A bounded parallel-read: `route.py` keeps its live
+  `project_context_state()` read AND gains the `status.json` signal —
+  two reads of overlapping facts that can disagree when the
+  projection is stale. Accepted because the live read stays
+  authoritative and projection signals are additive rationale
+  extras only (§6 P1 pins the reconciliation rule); collapsing
+  route.py onto the projection would invert the dependency and break
+  the byte-identity regression contract.
 
 ## 6. Open Decisions
 
-_Filled by `/architecture-fit`. Material forks not yet decided —
-candidates for `/decide`._
+**P0 — must resolve before promotion.**
+- `status-projection-schema` — the planned `/decide` (§1 in-scope)
+  now has its full charter; **author it next**, before `/plan-spec`.
+  It must settle, in one ADR:
+  (a) **Placement fork** — `status.json` + queue dir under
+  `reports/` (derived-output convention) vs `.engineering/local/`
+  (ADR 0021 gitignored zone) vs hybrid. *Recommended:*
+  `.engineering/local/` for both — 0021's seam classifies regenerable
+  per-run output as local-zone state; the consumers (renderer,
+  `route.py`, hook) need a stable well-known path, which opaque
+  timestamped `reports/` scan dirs cannot give; and writing into
+  `reports/` would add a writer to a namespace the projection is
+  forbidden to touch (§4 behavior). Queue stays out of the committed
+  zone to avoid 0021's open derived-knowledge merge-conflict problem.
+  (b) **Versioned schema** with `schema_version`, closed section
+  vocabulary, per-section absent-marker convention.
+  (c) **Pinned sweep-manifest field subset** consumed (manifest is
+  unversioned; first programmatic consumer).
+  (d) **Queue contract as first ADR-0036 packet implementation**
+  (packet-compatible field set).
+  (e) Server-tier ladder (static → stdlib localhost → hosted) as
+  alternatives-considered; `embodied_by` + `assumes`/`revisit_when`
+  per ADRs 0033/0025 (see §5).
+
+**P1 — should resolve before implementation.**
+- `route-grounding-reconciliation` — how `route.py` treats a stale or
+  contradictory `status.json` vs its live `.engineering/` read.
+  *Recommended:* live reads stay authoritative; projection-derived
+  signals are additive-only rationale/telemetry extras, dropped (not
+  errored) when `generated_at` predates the sources' mtimes. Can be
+  settled in the spec or at implementation; no ADR needed unless the
+  rule turns out to constrain other consumers.
+- `goals-section-reservation` — whether schema v1 reserves an
+  optional `goals` section (W-E's cheapest embodiment) or defers it
+  to a v2 bump. *Recommended:* reserve in v1 as optional +
+  absent-tolerated — costs nothing under the degradation doctrine and
+  saves a version bump. Fold into the P0 `/decide` as one line.
+
+**Authored inline.**
+- None — the single P0 fork is deliberately routed through the
+  already-planned `status-projection-schema` `/decide` so placement,
+  schema, and packet compatibility land as one coherent decision
+  rather than fragments.
 
 ## 7. Promotion Notes
 
