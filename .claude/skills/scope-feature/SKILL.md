@@ -2,7 +2,7 @@
 name: scope-feature
 description: First skill in the System-tier chain. Scaffolds an `ai-docs/plans/<name>.md` plan if needed, reads decisions / canonical-patterns / smells, then drives clarifying questions to fill §1 (Scope & Bounds) and §2 (Success Criteria) of the plan. Advances plan status to `scoped`. Designed for System-tier work — new subsystems, cross-subsystem features, multi-week initiatives — where the judgment pause between scoping and impact analysis is the whole point.
 argument-hint: "<plan-name>  (kebab-case slug, becomes ai-docs/plans/<name>.md)"
-allowed-tools: Bash, Read, Grep, Glob, Write, Edit
+allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: system
 job: plan
@@ -67,7 +67,8 @@ prerequisite is a successful run, not a failed one.
 ## Scope (this skill itself)
 
 - **Project root:** this worktree's root.
-- **Python:** `python3` (stdlib-only).
+- **Python:** `.venv/bin/python` explicitly — the plan/decision scripts
+  need PyYAML via `scripts/_lib`, so they are not stdlib-only.
 - **Read:** `ai-docs/decisions/`, `.claude/docs/canonical-patterns.md`,
   `.claude/docs/architectural-smells.md`,
   `.claude/docs/subsystems/` (file list only — full reads in /impact-feature).
@@ -80,36 +81,54 @@ prerequisite is a successful run, not a failed one.
 ```bash
 PLAN_NAME="<arg>"
 PLAN_PATH="ai-docs/plans/${PLAN_NAME}.md"
+TS=$(date +%Y%m%d-%H%M%S)
 ```
 
 If the plan does not exist, scaffold it:
 
 ```bash
-python3 scripts/plans.py init "${PLAN_NAME}"
+.venv/bin/python scripts/plans.py init "${PLAN_NAME}"
 ```
 
 If the plan exists with `status` other than `draft` or `scoped`, abort
 and tell the user to use `/impact-feature`, `/architecture-fit`, or
 `/plan-spec` for the next stage.
 
+### Stage 0.5 — Inventory conversation-supplied answers
+
+Scan the invoking conversation for material that already answers any
+of Q1-Q5 (Stage 2). Present the inferred answers to the user for
+confirmation, each marked as inferred; ask only the genuinely open
+questions in Stage 2. Never re-interrogate an answer already given;
+never silently fill one.
+
 ### Stage 1 — Read priors
 
 Load the constraint context:
 
 ```bash
-python3 scripts/decisions.py audit --json
-python3 scripts/decisions.py list --json
-ls .claude/docs/subsystems/
+.venv/bin/python scripts/decisions.py audit --json
+.venv/bin/python scripts/decisions.py list --json
+ls .claude/docs/subsystems/ 2>/dev/null || echo "no subsystem docs"
 ```
+
+The subsystems directory is host-side and may be absent — absence is
+fine before `/impact-feature`. When present, use the file names to
+seed concrete subsystem names in Q2.
 
 Read `.claude/docs/canonical-patterns.md` and
 `.claude/docs/architectural-smells.md` end-to-end. These are the law-as-
-stated; scope must respect them.
+stated; scope must respect them. After the read, reply with one line
+naming the 2-3 priors (decision ids / pattern anchors / smell names)
+most binding on THIS scope — un-fakeable without the read, and it
+doubles as frame activation. Stage 3's checklist and the §1 Prior
+constraints rows consume it.
 
 ### Stage 2 — Drive scoping conversation
 
-Pose the user the following questions in order. Stop after each round
-and wait for the answer; do not invent answers.
+Pose the user the following questions in order, skipping any confirmed
+in Stage 0.5. Stop after each round and wait for the answer; do not
+invent answers.
 
 **For structure-redesign work** (project topology, package
 boundaries, multi-app split, framework migration), read
@@ -119,30 +138,35 @@ and specific success-criteria patterns for Q5.
 
 1. **One-sentence problem statement.** "Right now, X happens / does
    not happen, and that costs Y." If the user can't write this in one
-   sentence, the work is too vague — push back.
+   sentence, the work is too vague — push back. If the one-sentence
+   problem already smells single-workflow (Feature-tier) or one-line
+   (Quick-tier), say so NOW as a provisional flag; Q6 remains the
+   binding check.
 2. **In-scope.** What changes belong inside this initiative? List
    concrete artifacts: subsystems, models, routes, services, docs.
 
    **Once Q2 is answered, kick off background exploration before
    asking Q3.** You now know roughly which subsystems the work
-   touches; fire an `Explore` sub-agent in parallel to survey them
-   while the rest of the clarification continues. The point is to
-   surface unknown unknowns (recent activity in the area, an
-   in-progress migration, an undocumented feature flag, a related
-   smell) before you write §1, not after.
+   touches; fire a `general-purpose` sub-agent in parallel to survey
+   them while the rest of the clarification continues (a read-only
+   agent type such as `Explore` cannot satisfy the file-output
+   contract). The point is to surface unknown unknowns (recent
+   activity in the area, an in-progress migration, an undocumented
+   feature flag, a related smell) before you write §1, not after.
 
    ```
    Agent({
      description: "Background scope exploration for <plan-name>",
-     subagent_type: "Explore",
+     subagent_type: "general-purpose",
      prompt: "Survey these subsystems in the host project repo: <Q2 answers>.
        Look for: recent activity (git log last 30 days), undocumented
        feature flags or overrides, in-progress migrations, related
        work mentioned in commit messages, smells from
        .claude/docs/architectural-smells.md that already have a
        foothold here. Write findings to
-       reports/scope-feature/scan-<TS>/exploration.md. Under 300
-       words. Bullet form. Do NOT propose changes — surface only.",
+       reports/scope-feature/scan-${TS}/exploration.md (write nothing
+       else). Under 300 words. Bullet form. Do NOT propose changes —
+       surface only.",
      run_in_background: true
    })
    ```
@@ -166,12 +190,12 @@ and specific success-criteria patterns for Q5.
 
 ### Stage 3 — Apply prior constraints
 
-By now the background `Explore` from Stage 2 (Q2 hook) should have
-returned. Read its output at
-`reports/scope-feature/scan-<TS>/exploration.md` and incorporate its
+By now the background exploration sub-agent from Stage 2 (Q2 hook)
+should have returned. Read its output at
+`reports/scope-feature/scan-${TS}/exploration.md` and incorporate its
 findings into the constraint check below — especially anything it
 flagged about recent activity, undocumented overrides, or smells with
-a foothold in the area. If the file doesn't exist (Explore still
+a foothold in the area. If the file doesn't exist (sub-agent still
 running, or it failed), proceed without it and note "background
 exploration unavailable" in the §1 **Prior constraints** subsection so
 the next-stage skill knows to re-survey.
@@ -183,7 +207,7 @@ For each in-scope item, check:
 - Does a **canonical pattern** apply? (List anchor names.)
 - Does an **architectural smell** describe a shape we must avoid?
   (List names.)
-- Did the background **Explore** surface anything new? (Recent
+- Did the background **exploration** surface anything new? (Recent
   activity, hidden state, in-progress work — list and resolve before
   Stage 4.)
 
@@ -205,6 +229,8 @@ references. Use this shape:
 **Problem.** _One-sentence problem statement._
 
 **In scope.**
+<!-- gate: each bullet must let a stranger adjudicate a borderline
+     change in/out two months from now -->
 - _Concrete artifact 1_
 - _Concrete artifact 2_
 
@@ -226,16 +252,27 @@ references. Use this shape:
 - _Observable outcome 3_
 ```
 
+### Stage 4.5 — Artifact-truth gate
+
+Generate three hypothetical borderline changes — plausible adjacent
+work a future agent might propose — and adjudicate each in/out
+strictly from the §1 text written in Stage 4, WITHOUT asking the
+user. If any adjudication is ambiguous, tighten §1 and re-test before
+advancing status. The three changes and their verdicts are reported
+in the Stage 6 summary.
+
 ### Stage 5 — Advance status
 
 Edit `${PLAN_PATH}` to set `status: scoped` (in-place, single
 `status:` line in frontmatter).
 
 ```bash
-python3 scripts/plans.py audit
+.venv/bin/python scripts/plans.py audit
 ```
 
-Confirm the plan loads cleanly.
+Paste audit's one-line result into the Stage 6 summary; on failure,
+fix before reporting. Note: audit checks registry-level links/status,
+not §1-2 content — the content gate is Stage 4.5.
 
 ### Stage 6 — Summarize
 
@@ -245,6 +282,9 @@ Report to the user in ≤8 lines:
 - One-line problem statement.
 - In-scope count, out-of-scope count, success-criteria count.
 - Active decisions / patterns / smells touched.
+- Borderline gate (Stage 4.5): the three changes and their in/out
+  verdicts, one line.
+- Audit result (Stage 5), one line.
 - Recommended next command:
   - Normal case: `/impact-feature <name>`.
   - Tier shrunk: `/plan-feature <name>` — plan was abandoned.
