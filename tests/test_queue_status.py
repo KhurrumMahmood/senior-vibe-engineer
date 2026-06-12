@@ -70,3 +70,26 @@ def test_stage_hook_list_roundtrip(tmp_path, capsys):
 def test_stage_rejects_unsafe_id(tmp_path, capsys):
     q = _load_queue_mod()
     assert q.main(["--root", str(tmp_path), "stage", "///", "--recipe", "r"]) == 2
+
+
+def test_hook_surfaces_silent_non_terminal_plans(tmp_path, capsys):
+    """W-G (consistency-session-execution): the session-start hook flags
+    non-terminal plans gone silent >14 days; terminal/fresh plans stay quiet."""
+    import os
+    import time
+
+    q = _load_queue_mod()
+    plans = tmp_path / "ai-docs" / "plans"
+    plans.mkdir(parents=True)
+    old = time.time() - 30 * 86400
+    for name, status in (("stalled-a", "scoped"), ("done-b", "promoted")):
+        p = plans / f"{name}.md"
+        p.write_text(f"---\nname: {name}\nstatus: {status}\n---\n\n# {name}\n")
+        os.utime(p, (old, old))
+    fresh = plans / "fresh-c.md"
+    fresh.write_text("---\nname: fresh-c\nstatus: scoped\n---\n\n# c\n")
+
+    assert q.main(["--root", str(tmp_path), "hook"]) == 0
+    out = capsys.readouterr().out
+    assert "stalled-a (scoped)" in out
+    assert "done-b" not in out and "fresh-c" not in out

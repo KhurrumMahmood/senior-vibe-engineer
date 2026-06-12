@@ -104,8 +104,36 @@ def cmd_list(root: Path) -> int:
     return 0
 
 
+# Stale-plan surfacing (consistency-session-execution W-G): the same
+# session-start hook also flags non-terminal plans gone silent, so a plan
+# can't quietly evaporate between sessions. This is the cheap surfacer —
+# /find-orphaned-ideas --stale-plans stays the authoritative detector.
+PLAN_NON_TERMINAL = ("draft", "proposed", "scoped", "impacted", "architected")
+_PLAN_STATUS_RE = re.compile(r"^status:\s*([a-z-]+)\s*$", re.MULTILINE)
+STALE_PLAN_DAYS = 14
+
+
+def stale_plans(root: Path, days: int = STALE_PLAN_DAYS) -> list[tuple[str, str]]:
+    plans_dir = root / "ai-docs" / "plans"
+    if not plans_dir.is_dir():
+        return []
+    cutoff = datetime.now(timezone.utc).timestamp() - days * 86400
+    out = []
+    for path in sorted(plans_dir.glob("*.md")):
+        if path.name == "README.md" or path.stat().st_mtime > cutoff:
+            continue
+        try:
+            head = path.read_text(encoding="utf-8")[:2000]
+        except (OSError, UnicodeDecodeError):
+            continue  # noqa: silent-catch: unreadable plan is find-orphaned-ideas' problem, not the hook's
+        m = _PLAN_STATUS_RE.search(head)
+        if m and m.group(1) in PLAN_NON_TERMINAL:
+            out.append((path.stem, m.group(1)))
+    return out
+
+
 def cmd_hook(root: Path) -> int:
-    """Session-start hook: one line when work is staged, silence when not."""
+    """Session-start hook: one line per concern when there is one, else silence."""
     pending = [i for i in read_items(root) if i.get("status") == "staged"]
     if pending:
         ids = ", ".join(i["id"] for i in pending[:5])
@@ -113,6 +141,14 @@ def cmd_hook(root: Path) -> int:
         print(
             f"[queue] {len(pending)} staged work item(s) pending: {ids}{more} — "
             f"run `python3 scripts/queue_status.py list` to pick up."
+        )
+    silent = stale_plans(root)
+    if silent:
+        listed = ", ".join(f"{name} ({status})" for name, status in silent[:5])
+        more = f" (+{len(silent) - 5} more)" if len(silent) > 5 else ""
+        print(
+            f"[plans] {len(silent)} non-terminal plan(s) silent >{STALE_PLAN_DAYS}d: "
+            f"{listed}{more} — run `/find-orphaned-ideas --stale-plans`."
         )
     return 0
 

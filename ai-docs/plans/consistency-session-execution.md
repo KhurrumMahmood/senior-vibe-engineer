@@ -46,11 +46,14 @@ never fully executes and a project that never reaches coherent form.
 
 **Commitment inventory (the scope).**
 
-- **W-A — Track A: status projection & presentation.** In motion.
-  Plan `status-projection-and-presentation` (scoped); next
-  `/impact-feature`, then `/architecture-fit` (placement fork →
-  `/decide`), `/plan-spec`, execution. *Done when:* spec promoted,
-  landed, all six §2 success criteria green.
+- **W-A — Track A: status projection & presentation.** DONE
+  2026-06-12: full chain ran scoped → impacted → architected → ADR
+  0037 → spec promoted → built (commits e97f2ca, 805344a, ceb067b,
+  15f2b60, 2549ae7, e06d751, f98227f, e10aad3). All six plan-§2
+  success criteria are green with tests: degradation matrix,
+  approvals round-trip, scope-drift staleness (git fixture), renderer
+  browser smoke (headless Chromium, zero console errors/requests),
+  route.py byte-identity + cited signal, queue→hook round-trip.
 - **W-B — Routing + harvest rules.** DONE (commit c2e5680): CLAUDE.md
   route-before-working + sweep-before-ending, Augment mirrors, README
   pointer.
@@ -103,6 +106,14 @@ never fully executes and a project that never reaches coherent form.
   sweep (`/find-orphaned-ideas --stale-plans`, now regression-tested
   to actually fire). *Done when:* the hook exists and its path is
   recorded here, via an explicit handover event on this plan.
+  **HANDOVER 2026-06-12: the hook exists** — `scripts/queue_status.py
+  hook` (session-start; wiring documented in
+  `.claude/docs/queue-contract.md`) surfaces staged queue items AND
+  non-terminal plans silent >14 days, regression-tested in
+  `tests/test_queue_status.py`. First live run flagged
+  `skill-runtime-adherence-harness` (draft, silent >14d). The manual
+  biweekly sweep is retired as the primary mechanism; it remains the
+  deep detector.
 
 **Out of scope.** Executing W-C/W-E/W-F work themselves (each has its
 own vehicle); any new feature work not enumerated above.

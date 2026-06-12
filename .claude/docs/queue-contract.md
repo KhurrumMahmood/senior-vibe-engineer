@@ -45,9 +45,12 @@ sweep-originated items, re-scans and diffs the manifest).
   ```
 
   The hook prints one line when items are staged and nothing when the
-  queue is empty or absent. Codex/Augment users rely on the
-  manual-pickup floor — the data is agent-neutral; only the hook is
-  Claude-specific.
+  queue is empty or absent. It also surfaces non-terminal plans silent
+  >14 days (`[plans] …`) — the cheap session-start surfacer behind the
+  `consistency-session-execution` W-G assurance loop;
+  `/find-orphaned-ideas --stale-plans` remains the authoritative
+  detector. Codex/Augment users rely on the manual-pickup floor — the
+  data is agent-neutral; only the hook is Claude-specific.
 
 The status projection (`scripts/status.py`) reports the queue as its
 `queue` section; the dashboard renders it with the pickup command as a
