@@ -42,6 +42,16 @@ IDENTITY_B64 = [
     "a2h1cnJ1bW1haG1vb2Q=",
 ]
 
+# Inspiration-source tokens — external projects analyzed for evidence or drawn
+# on for ideas are referred to by codename (Hermes, Atlas, Talos, Daedalus),
+# never by real name, regardless of their license or public status. Same
+# identity tier as the host: scanned across every tracked file.
+INSPIRATION_B64 = [
+    "ZXhwZW5zaWZ5",
+    "b3BlbmNsYXc=",
+    "Y2xhdWRlLWNvZGUtcnVzdA==",
+]
+
 # Structural tokens — host-proprietary model / export / view names. Doc surfaces only.
 STRUCTURAL_B64 = [
     "UGllc1Byb2R1Y3REYXRh",
@@ -109,7 +119,7 @@ def _scan(paths: list[Path], pattern: re.Pattern, hits: list, seen: set) -> int:
 
 
 def main() -> int:
-    identity_re = _compile(IDENTITY_B64)
+    identity_re = _compile(IDENTITY_B64 + INSPIRATION_B64)
     structural_re = _compile(STRUCTURAL_B64)
     hits: list[tuple[str, int, str, str]] = []
     seen: set = set()
