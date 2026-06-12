@@ -44,6 +44,18 @@ work; there is no scout fan-out. The detector model (how `ast` and
 `grep` detectors work, why `ast` is preferred) is in
 `knowledge/detector-model.md`.
 
+## How success is judged
+
+- `coverage.md` enumerates every standard's coverage cells —
+  situation-site count, gap count, coverage % — with no standard
+  silently dropped (`manual`/`skill` standards reported as skipped).
+- Each standard carries an explicit analyzability verdict:
+  `language_unsupported` is surfaced as "could not analyze", never
+  passed off as 0 gaps / compliant.
+- Clean standards (0 gaps) are named as positive results.
+- No production edits — the run writes only under
+  `reports/standard-gaps/scan-<TS>/`.
+
 ## Core beliefs
 
 1. **Absence is the finding.** Structural skills audit code that
@@ -98,7 +110,9 @@ python3 .claude/skills/find-standard-gaps/scripts/scan_coverage.py \
 ```
 
 `scan_coverage.py` runs each standard's detector against the tree and
-writes `coverage.md` (human report) and `coverage.json` (machine). It
+writes `coverage.md` (human report) and `coverage.json` (machine —
+reserved for query_planner v1.0, not yet consumed; Stage 2 reads only
+`coverage.md`). It
 recognises `ast` (`enclosed_by` / `requires_kwarg`) and `grep`
 detectors; `manual`/`skill` standards are reported as skipped.
 

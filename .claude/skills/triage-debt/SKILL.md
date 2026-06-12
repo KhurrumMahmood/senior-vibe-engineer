@@ -43,6 +43,17 @@ across the maintenance loop's outputs. A single find-* run sees one
 slice; this skill compounds them so the user can prioritize without
 re-running every detector.
 
+## How success is judged
+
+- `queue.md` is ranked by the Stage 2 score, and every top-N entry
+  carries a one-line "why ranked here" rationale plus a concrete
+  recommended-next skill invocation.
+- The inputs that fed the ranking are declared — which find-* `latest`
+  reports, `specs-audit.json`, `decisions-audit.json`, and
+  `effectiveness.jsonl` were read, and which were missing.
+- No new detection ran; no production code, spec, or decision status
+  was touched — the run writes only under `reports/triage-debt/scan-<TS>/`.
+
 ## Core beliefs
 
 1. **Recurrence is the strongest signal.** If `find-omnibus` has flagged
@@ -77,9 +88,11 @@ re-running every detector.
   `python3 scripts/specs.py size-check --json`,
   `python3 scripts/decisions.py audit --json`,
   `ai-docs/decisions/` (for `parked_until:` annotations).
-- **Write:** `reports/triage-debt/scan-<TS>/queue.md`,
+- **Write:** `reports/triage-debt/scan-<TS>/queue.md`.
+- **MAY write (debug only):**
   `reports/triage-debt/scan-<TS>/raw-scores.json` (the score breakdown
-  per entry, for debugging the heuristic).
+  per entry) — write only when debugging the scoring heuristic; no
+  downstream stage or skill reads it.
 - **MAY append:** one line to `reports/_meta/effectiveness.jsonl` via
   `scripts/log_effectiveness.py` recording the run.
 
@@ -181,8 +194,9 @@ score = recurrence_count * 100
   target AND the date is in the future. Score = 500 (effectively kicks
   it off the top-N).
 
-Write per-candidate breakdowns to `${REPORT_DIR}/raw-scores.json` so
-the heuristic is debuggable.
+Optionally write per-candidate breakdowns to
+`${REPORT_DIR}/raw-scores.json` — only when debugging the scoring
+heuristic; nothing downstream reads it.
 
 ### Stage 3 — Build the queue
 

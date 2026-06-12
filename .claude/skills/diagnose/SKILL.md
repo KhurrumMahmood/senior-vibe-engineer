@@ -44,6 +44,18 @@ runtime (`.venv/bin/python` when this ecosystem is running its own
 scripts). Read `CONTEXT.md` and relevant ADRs when domain terms or
 architectural choices affect the symptom.
 
+## How success is judged
+
+- A trusted reproduction loop is demonstrated before any fix - or
+  `reproduction.md` records why none was possible and the run stops.
+- The four `evidence_required` artifacts exist with pasted transcripts:
+  `reproduction.md` (reproduction_or_reason), `root-cause.md`
+  (root_cause, with the confirming probe's exact command and output),
+  `verification.md` (fix_verification, the passing rerun),
+  `cleanup-check.md` (cleanup_check, the `[DIAG-...]` grep).
+- `scripts/evidence_gate.py check` exits 0; its summary line is pasted
+  in the final reply.
+
 ## Phase 0 - Frame
 
 Record:
@@ -169,6 +181,12 @@ Before declaring done:
   recorded before the fix was written. A one-sentence narrative without
   a pasted probe is not a root cause;
 - answer: what would have prevented this?
+- run the class-lift gate: name the bug's class in one sentence, define
+  the cheapest detector for it (usually a grep), and RUN it across the
+  codebase; paste the hit counts in `root-cause.md`. Sibling sites
+  found: batch them into one sweep, not N future bug reports. A
+  mechanizable class routes to `/prevent-regression`. A bug fixed only
+  where it was reported is a recurring tax.
 
 If verification fails, the root cause is unconfirmed - return to
 Phase 3; do not patch the fix.

@@ -43,6 +43,16 @@ The skill is the standing complement to `/decide`: `/decide` keeps the
 registry growing in a sound shape, `/audit-decisions` keeps it from
 rotting after the fact.
 
+## How success is judged
+
+- `drift.md` carries one row per drift symptom, each with a severity
+  and a concrete resolution command the user can run next.
+- The summary table accounts for every symptom class
+  (broken-supersession, code-ref-orphan, applies-to-missing,
+  proposed-too-long, unreferenced-decision) — none silently dropped.
+- The registry, ADRs, and production code are untouched — the run
+  writes only under `reports/audit-decisions/scan-<TS>/`.
+
 ## Core beliefs
 
 1. **The substrate has its own gravity.** Every `# decision:NNNN`
@@ -72,7 +82,8 @@ rotting after the fact.
   every code file under the project root (for `# decision:NNNN`
   reference grep).
 - **Write:** `reports/audit-decisions/scan-<TS>/drift.md`,
-  `reports/audit-decisions/scan-<TS>/raw-drift.json` (per-row evidence).
+  `reports/audit-decisions/scan-<TS>/raw-drift.json` (per-row evidence;
+  debug artifact, no downstream consumer yet).
 
 ## Pipeline
 
@@ -228,8 +239,9 @@ Severity is advisory — the user re-prioritizes based on context.
 ### Stage 5 — Write `raw-drift.json`
 
 For every drift row, capture the full evidence in a JSON sibling file
-so the heuristic is debuggable and downstream skills (e.g.,
-`/triage-debt`) can consume the structured form:
+so the heuristic is debuggable. This is a debug artifact with no
+downstream consumer yet — `/triage-debt` reads `decisions-audit.json`
+from `scripts/decisions.py audit --json` directly, not this file:
 
 ```json
 {

@@ -44,6 +44,18 @@ imports in this skill. The only artifact you produce is
 `reports/propose-boundary/<target-slug>/proposal.md` plus its
 supporting `inspection.json`.
 
+## How success is judged
+
+- `proposal.md` is complete per the template: candidate seams with raw
+  scores, proposed public API table, backward-compat shim shape,
+  caller-impact summary, and characterization-test matrix.
+- When `inspection.json` carries `defer_signals`, the proposal front
+  matter records `recommendation: defer_<reason>` — never a forced
+  refactor recommendation.
+- Zero production edits — the run writes only under
+  `reports/propose-boundary/<target-slug>/`; the hand-off to
+  `/refactor-subsystem` is named, not executed.
+
 ## Core beliefs
 
 1. **This is boundary *proposal*, not boundary *decision*.** The skill
@@ -161,7 +173,9 @@ The helper writes `inspection.json` with:
 
 Stage 2 — **scout callers (optional).** For each `proposed_public_api`
 symbol in the top candidate seam, the orchestrator dispatches a cheap
-read-only scout (Bash + grep) to confirm the call sites in
+read-only scout via `.claude/skills/_common/dispatch_scout_cheap.sh`
+(Bash + grep — no Agent tool; the allowed-tools list stays
+read-only-tight) to confirm the call sites in
 `callers_into_private_helpers`. The orchestrator may skip this if the
 helper's static analysis already covered the project root.
 
