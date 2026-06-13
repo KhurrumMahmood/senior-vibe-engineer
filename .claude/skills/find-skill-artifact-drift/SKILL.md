@@ -46,6 +46,21 @@ finds the references that have drifted from reality.
 validates the *references between the SKILL.md body and the files on
 disk*, which that contract does not cover.
 
+## How success is judged
+
+- The run creates a fresh scan dir under
+  `reports/find-skill-artifact-drift/<scan-id>/` with `detections.jsonl`,
+  `report.md`, and `findings.json`.
+- Each command's exit code is honored; stop on non-zero and report the
+  failing command instead of rendering stale detections.
+- Handoff identifiers are valid: every `findings.json` record uses one of
+  the Detector Bands pattern names and carries `file` / `lineno` evidence.
+- No silent drops: the JSONL record count matches
+  `findings.summary.findings_total` and the `findings` array length.
+- The `evidence_required` contract is met only when both `report.md` and
+  `findings.json` exist; if either is absent, mark the run incomplete.
+- Detector edits are not trusted until `scripts/smoke.py` exits 0.
+
 ## Default Target
 
 With no argument, scan every skill under `.claude/skills/`. Otherwise pass
@@ -61,8 +76,10 @@ the pre-commit gate forwards from changed files:
 Run with the project venv:
 
 ```bash
+set -euo pipefail
 SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
 REPORT_DIR="reports/find-skill-artifact-drift/$SCAN_ID"
+mkdir -p "$REPORT_DIR"
 .venv/bin/python .claude/skills/find-skill-artifact-drift/scripts/detect.py --output "$REPORT_DIR/detections.jsonl"
 .venv/bin/python .claude/skills/find-skill-artifact-drift/scripts/report.py "$REPORT_DIR/detections.jsonl" --output "$REPORT_DIR/report.md" --target "all skills"
 ln -sfn "$SCAN_ID" reports/find-skill-artifact-drift/latest
@@ -125,6 +142,14 @@ Before trusting changes to the detector, run:
 The smoke scans the good/bad fixture skills and asserts every band fires
 on the bad fixture, the good fixture stays clean, and `--gate` exits
 non-zero on the bad fixture and zero on the good one.
+
+## When things go sideways
+
+| Case | Signal | Response |
+|---|---|---|
+| Target absent | A passed skill name, directory, or `SKILL.md` path resolves to no skill, so the detector scans zero skill dirs. | Treat as an empty target, not a clean registry scan; report the unresolved target and rerun with the intended path. |
+| Zero findings | `detections.jsonl` is empty, `report.md` says `Findings: 0`, and `findings.json` exists. | Treat as clean only when the target list was intentional and the `evidence_required` files are present. |
+| Script non-zero exit | Any pipeline command exits non-zero; for `--gate`, exit 1 means Band A drift was found. | Stop the pipeline, paste the command and stderr/stdout, and do not render stale detections. |
 
 ## Judgment
 

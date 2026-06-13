@@ -1,7 +1,7 @@
 ---
 name: find-rule-surface-drift
 description: Detect drift on the agent-rules surface — oversized always-loaded files, dormant load-on-demand docs, missing-but-referenced docs, unreferenced docs, and broken links from the human onboarding entry point. SUSPECT skill governing the placement convention defined in ADR 0005 (agent-rules-design).
-argument-hint: "[--root .claude --onboarding-md ONBOARDING.md --max-root-chars 12000 --max-doc-chars 25000]"
+argument-hint: "[--root .claude --onboarding-md ONBOARDING.md --max-root-chars 30000 --max-doc-chars 50000]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -43,9 +43,24 @@ surface against ADR 0005's tiered-storage convention.
 - Output: `reports/find-rule-surface-drift/<scan-id>/`.
 - No code or doc edits; detection only.
 
+## How success is judged
+
+- The run creates a fresh scan dir under
+  `reports/find-rule-surface-drift/<scan-id>/` with `detections.jsonl`,
+  `report.md`, and `findings.json`.
+- Each command's exit code is honored; stop on non-zero and report the
+  failing command instead of rendering stale detections.
+- Handoff identifiers are valid: every `findings.json` record uses one of
+  the `pattern` names in Findings and carries `file` / `lineno` evidence.
+- No silent drops: the JSONL record count matches
+  `findings.summary.findings_total` and the `findings` array length.
+- Detector edits are not trusted until the Replay fixtures commands pass
+  for `fixtures/exercise-all/` and `fixtures/exercise-onboarding/`.
+
 ## Pipeline
 
 ```bash
+set -euo pipefail
 SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
 REPORT_DIR="reports/find-rule-surface-drift/$SCAN_ID"
 mkdir -p "$REPORT_DIR"
@@ -99,6 +114,57 @@ ceiling defaults to ~50K; legitimate inventory docs (subsystem maps,
 full catalogues) can exceed this and should either raise the threshold
 project-wide or carry a documented exemption.
 
+## Replay fixtures
+
+Run fixture output outside each fixture root so report artifacts do not
+pollute the next `unreferenced_doc` check:
+
+```bash
+set -euo pipefail
+FIXTURE_ROOT=".claude/skills/find-rule-surface-drift/fixtures/exercise-all"
+FIXTURE_OUT="reports/find-rule-surface-drift/_fixture-runs/exercise-all"
+mkdir -p "$FIXTURE_OUT"
+.venv/bin/python .claude/skills/find-rule-surface-drift/scripts/detect.py \
+  --root "$FIXTURE_ROOT" \
+  --project-root "$FIXTURE_ROOT" \
+  --onboarding-md "$FIXTURE_ROOT/NO_ONBOARDING.md" \
+  --max-root-chars 200 \
+  --max-doc-chars 200 \
+  --output "$FIXTURE_OUT/detections.jsonl"
+.venv/bin/python .claude/skills/find-rule-surface-drift/scripts/report.py \
+  --detections "$FIXTURE_OUT/detections.jsonl" \
+  --output-md "$FIXTURE_OUT/report.md" \
+  --output-json "$FIXTURE_OUT/findings.json" \
+  --target "$FIXTURE_ROOT"
+
+FIXTURE_ROOT=".claude/skills/find-rule-surface-drift/fixtures/exercise-onboarding"
+FIXTURE_OUT="reports/find-rule-surface-drift/_fixture-runs/exercise-onboarding"
+mkdir -p "$FIXTURE_OUT"
+.venv/bin/python .claude/skills/find-rule-surface-drift/scripts/detect.py \
+  --root "$FIXTURE_ROOT" \
+  --project-root "$FIXTURE_ROOT" \
+  --onboarding-md "$FIXTURE_ROOT/ONBOARDING.md" \
+  --output "$FIXTURE_OUT/detections.jsonl"
+.venv/bin/python .claude/skills/find-rule-surface-drift/scripts/report.py \
+  --detections "$FIXTURE_OUT/detections.jsonl" \
+  --output-md "$FIXTURE_OUT/report.md" \
+  --output-json "$FIXTURE_OUT/findings.json" \
+  --target "$FIXTURE_ROOT"
+```
+
+Expected buckets: `exercise-all` emits one each of `oversized_root`,
+`oversized_doc`, `dormant_doc`, `missing_doc`, and `unreferenced_doc`;
+`exercise-onboarding` emits one each of `missing_link` and
+`dormant_in_onboarding`.
+
+## When things go sideways
+
+| Case | Signal | Response |
+|---|---|---|
+| Target absent | `--root`, `--claude-md`, `--docs-subdir`, or `--onboarding-md` points at a missing surface. | Let the detector's zero-finding output stand if it exits 0; name the absent target in the report. |
+| Zero findings | `detections.jsonl` is empty and `report.md` says `Findings: 0`. | Treat as a clean scan only after confirming the intended root and onboarding path were used. |
+| Script non-zero exit | Any command exits non-zero. | Stop the pipeline, paste the command and stderr, and do not run `report.py` against stale detections. |
+
 ## Next Skills
 
 - `/fix-workflow` for executing a single migration (e.g. demote one
@@ -121,18 +187,9 @@ project-wide or carry a documented exemption.
 - `find_unreferenced` excludes `worktrees/` and `__pycache__/` from
   its grep scan. Mirrored CLAUDE.md files inside agent worktrees would
   otherwise mask every doc as "referenced."
-- Smoke-test fixtures live under `fixtures/exercise-all/`. Run them
-  with output written **outside** the fixture root (e.g. to
-  `reports/find-rule-surface-drift/_fixture-runs/exercise-all/`) so a
-  prior run's output doesn't pollute the next run's `unreferenced_doc`
-  check. With `--max-root-chars 200 --max-doc-chars 200`, all five
-  bands should each fire exactly once.
-- A second fixture under `fixtures/exercise-onboarding/` exercises the
-  ONBOARDING.md bands. Invoke with `--root <fixture> --project-root
-  <fixture> --onboarding-md <fixture>/ONBOARDING.md` and expect
-  exactly one `missing_link` (the dead link to `docs/nope.md`) and
-  one `dormant_in_onboarding` (the registered-but-unlinked
-  `unmentioned.md`).
+- Replay fixtures live under `fixtures/exercise-all/` and
+  `fixtures/exercise-onboarding/`; keep their output outside the fixture
+  roots.
 - The `unreferenced_doc` band uses `grep -l` across `.claude/`. Docs
   that are reached only via the supplementary table's trigger (and
   never named elsewhere) will fire here legitimately; treat the

@@ -10,8 +10,8 @@ This script makes the perimeter explicit (ADR 0032):
    generated / minified trees.
 2. Inventory the skill fleet: every ``SKILL.md`` with ``job: suspect``
    declares its coverage via frontmatter — the optional ``scans:`` list
-   of languages its scan surface covers, falling back to ``language:``
-   (where ``any`` covers everything).
+   of languages its scan surface covers, falling back to the exact
+   ``language:`` value. ``language: any`` covers nothing here.
 3. Report every cell at or above ``--min-loc`` with the detectors that
    cover it. Cells with **zero** covering detectors are perimeter gaps.
 

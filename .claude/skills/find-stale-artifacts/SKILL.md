@@ -61,9 +61,24 @@ belong in this skill.
 - Output: `reports/find-stale-artifacts/<scan-id>/`.
 - No deletes; detection only.
 
+## How success is judged
+
+- The run creates a fresh scan dir under
+  `reports/find-stale-artifacts/<scan-id>/` with `detections.jsonl`,
+  `report.md`, and `findings.json`.
+- Each command's exit code is honored; stop on non-zero and report the
+  failing command instead of rendering stale detections.
+- Handoff identifiers are valid: every `findings.json` record uses one of
+  the `pattern` names in Findings and carries `file` / `lineno` evidence.
+- No silent drops: the JSONL record count matches
+  `findings.summary.findings_total` and the `findings` array length.
+- A zero-finding run is successful only when those artifacts exist and
+  `report.md` says `Findings: 0`.
+
 ## Pipeline
 
 ```bash
+set -euo pipefail
 SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
 REPORT_DIR="reports/find-stale-artifacts/$SCAN_ID"
 mkdir -p "$REPORT_DIR"
@@ -124,6 +139,22 @@ The three thresholds are soft budgets:
 - `--max-toplevel-age-days 30`: top-level reports are working notes by
   convention; if a human hasn't touched one in a month, it's almost
   certainly cruft.
+
+## Replay case
+
+When `scripts/detect.py` changes, replay a disposable project with one
+`abandoned_plan`, one `stale_plan`, one old non-latest `aged_scan_dir`,
+and one old `orphan_toplevel_report`. Use low age thresholds if needed.
+The expected `findings.json` buckets are those four pattern names, and the
+record count must match `detections.jsonl`.
+
+## When things go sideways
+
+| Case | Signal | Response |
+|---|---|---|
+| Target absent | `ai-docs/plans/` or `reports/` is missing under `--root`. | Let the detector's zero-finding output stand if it exits 0; name the absent surface in the report. |
+| Zero findings | `detections.jsonl` is empty and `report.md` says `Findings: 0`. | Treat as clean only after confirming the intended `--root`, plans subdir, and reports subdir were used. |
+| Script non-zero exit | Any command exits non-zero. | Stop the pipeline, paste the command and stderr, and do not run `report.py` against stale detections. |
 
 ## Next Skills
 

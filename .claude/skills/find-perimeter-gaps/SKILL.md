@@ -45,16 +45,42 @@ detector cover?
    accepted-blind-spot entry, or a host-side lint is your synthesis,
    not the script's.
 
+## How success is judged
+
+- The run creates a fresh scan dir under
+  `reports/find-perimeter-gaps/<scan-id>/` with `report.md` and
+  `perimeter.json`.
+- The `scan.py` exit code is honored; `--fail-on-gap` exit 1 is an
+  intentional failing verdict, not a crash.
+- Handoff identifiers are valid: every `gaps` row in `perimeter.json`
+  is also present in `cells` with the same `root` and `language`.
+- No silent drops: every significant matrix row printed in `report.md`
+  is represented in `perimeter.json` `cells`, and every PERIMETER GAPS
+  row appears in `gaps`.
+- A zero-gap run is successful only when artifacts exist and `report.md`
+  says `No perimeter gaps above threshold`.
+
 ## Pipeline
 
 ### Stage 1 — Run the scan
 
 ```bash
-python3 .claude/skills/find-perimeter-gaps/scripts/scan.py \
-  --project-root <host repo> \
-  [--skills-root <host>/.claude/skills] \
-  [--min-loc 3000] [--accept sites:templates] [--skip-root data] \
-  [--output reports/perimeter/perimeter.json]
+set -euo pipefail
+PROJECT_ROOT="${PROJECT_ROOT:-.}"
+SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
+REPORT_DIR="reports/find-perimeter-gaps/$SCAN_ID"
+EXTRA_ARGS=()
+# Optional overrides:
+# EXTRA_ARGS+=(--skills-root "$PROJECT_ROOT/.claude/skills")
+# EXTRA_ARGS+=(--min-loc 3000)
+# EXTRA_ARGS+=(--accept sites:templates)
+# EXTRA_ARGS+=(--skip-root data)
+mkdir -p "$REPORT_DIR"
+.venv/bin/python .claude/skills/find-perimeter-gaps/scripts/scan.py \
+  --project-root "$PROJECT_ROOT" \
+  "${EXTRA_ARGS[@]}" \
+  --output "$REPORT_DIR/perimeter.json" \
+  > "$REPORT_DIR/report.md"
 ```
 
 Deterministic, stdlib-only. Data-like files (> `--max-file-loc`, default
@@ -81,6 +107,23 @@ gap. Do not silently fix anything. If a gap reveals that remediation
 would land in a layer with missing substrate (no module system, no
 tests), say so explicitly — that is ADR 0032 rule 3 territory and needs
 an ADR, not a refactor.
+
+## Replay case
+
+When `scripts/scan.py` changes, replay a disposable host with a
+`language: any` suspect skill, an explicit `scans: [javascript]`
+detector, and a CSS root above `--min-loc`. Expected result: CSS appears
+under PERIMETER GAPS, the `language: any` detector does not cover it,
+`--accept root:language` removes it, and `--fail-on-gap` exits 1 before
+acceptance and 0 after acceptance.
+
+## When things go sideways
+
+| Case | Signal | Response |
+|---|---|---|
+| Target absent | `scan.py` prints `[perimeter] ERROR: ... is not a directory` and exits 2. | Stop; report the bad `--project-root` and rerun against a real host repo. |
+| Zero findings | `report.md` says `No perimeter gaps above threshold` and `perimeter.json` has an empty `gaps` list. | Treat as clean only after confirming `--skills-root`, `--min-loc`, `--skip-root`, and `--accept` match the intended audit. |
+| Script non-zero exit | Exit 1 with `--fail-on-gap`, or exit 2 for usage/target errors. | For exit 1, hand off the PERIMETER GAPS rows; for exit 2, fix invocation before classifying gaps. |
 
 ## Cross-references
 

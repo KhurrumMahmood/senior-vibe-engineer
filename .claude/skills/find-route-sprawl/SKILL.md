@@ -29,18 +29,36 @@ live in a flat URL namespace.
 - Default target: the root URLconf, auto-discovered via the per-skill
   scope universe (override with `--root-urls <path/to/urls.py>`).
 - Output: `reports/route-sprawl/<scan-id>/report.md` and
-  `findings.json`.
+  `detections.jsonl` / `findings.json`.
 - No code edits, no route changes.
+
+## How success is judged
+
+- The run creates a fresh scan dir under `reports/route-sprawl/<scan-id>/`
+  with `detections.jsonl`, `report.md`, and `findings.json`.
+- Each command's exit code is honored; stop on non-zero and report the
+  failing command instead of rendering stale detections.
+- Handoff identifiers are valid: every `findings.json` record uses one of
+  the `pattern` names in Findings and carries `file` / `lineno` evidence.
+- No silent drops: the JSONL record count matches
+  `findings.summary.findings_total` and the `findings` array length.
+- A zero-finding run is successful only when those artifacts exist and
+  `report.md` says `Findings: 0`.
 
 ## Pipeline
 
 ```bash
+set -euo pipefail
 SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
 REPORT_DIR="reports/route-sprawl/$SCAN_ID"
+ROOT_URLS_ARGS=()
+# Optional override:
+# ROOT_URLS_ARGS=(--root-urls path/to/urls.py)
 mkdir -p "$REPORT_DIR"
-python3 .claude/skills/find-route-sprawl/scripts/detect.py \
+.venv/bin/python .claude/skills/find-route-sprawl/scripts/detect.py \
+  "${ROOT_URLS_ARGS[@]}" \
   --output "$REPORT_DIR/detections.jsonl"
-python3 .claude/skills/find-route-sprawl/scripts/report.py \
+.venv/bin/python .claude/skills/find-route-sprawl/scripts/report.py \
   --detections "$REPORT_DIR/detections.jsonl" \
   --output-md "$REPORT_DIR/report.md" \
   --output-json "$REPORT_DIR/findings.json" \
@@ -56,8 +74,18 @@ python3 .claude/skills/find-route-sprawl/scripts/report.py \
   global API namespace.
 - `missing_workflow_include`: workflow routes exist without an include
   boundary.
+- `scattered_route_family`: related workflow routes for the same route
+  segment are separated by a large line span.
 - `duplicate_route_alias_surface`: one named route/view has multiple
   path strings.
+
+## When things go sideways
+
+| Case | Signal | Response |
+|---|---|---|
+| Target absent | `detect.py` writes `0 findings (no urls.py found)` or the `--root-urls` path is not readable. | Keep the zero-finding artifacts if the script exits 0; otherwise stop and report the missing target. |
+| Zero findings | `detections.jsonl` is empty and `report.md` says `Findings: 0`. | Treat as a clean scan, not as a skipped scan; do not invent route-sprawl findings. |
+| Script non-zero exit | Any command exits non-zero. | Stop the pipeline, paste the command and stderr, and do not run `report.py` against stale detections. |
 
 ## Next Skills
 
