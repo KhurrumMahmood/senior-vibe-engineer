@@ -24,6 +24,12 @@ type: "always_apply"
   context docs and should not be the only copy of a must-follow rule.
 - Keep root `AGENTS.md` / `.claude/CLAUDE.md`, package signposts, and
   `.augment/rules/imported/` in sync when durable project instructions change.
+- Commit only your own work: when parallel agents or lanes share a working
+  tree, stage by the explicit file list your lane owns (never a broad
+  `git add <dir>`) and check the staged set against that list first.
+- Machine-local rules (tool/plugin choices, dispatch lanes, spend limits)
+  live in `.claude/CLAUDE.local.md` (gitignored, optional) — never in
+  shipped files.
 - Skill ecosystem changes go through `/plan-skill` unless they are tiny wording
   edits. New skills need adversarial requirements, a trigger contract,
   evidence/dogfood plan, and `scripts/skill_meta.py lint` before cataloging.

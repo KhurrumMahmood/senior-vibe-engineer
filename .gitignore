@@ -31,3 +31,6 @@ dist/
 # scripts/skill_comply/validate.py and carry absolute local paths
 # (see scripts/skill_comply/DESIGN.md).
 scripts/skill_comply/fixtures/*/conformance.json
+
+# Machine-local agent rules (see CLAUDE.md preamble)
+.claude/CLAUDE.local.md

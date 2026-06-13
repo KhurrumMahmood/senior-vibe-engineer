@@ -17,6 +17,11 @@ square-bracket tags such as `[Codex-Specific]…[/Codex-Specific]`,
 `[Codex-Launching-Claude-CLI]…[/Codex-Launching-Claude-CLI]`. Use these
 rarely, only for cross-tool bridge cases.
 
+Machine-local rules that don't generalize — tool/plugin choices, agent
+dispatch lanes, spend constraints — live in `.claude/CLAUDE.local.md`
+(gitignored, optional). Read it if present; never move shipped rules
+there, and never put tool-specific nuance in shipped files.
+
 ## What this repo is
 
 A portable senior-engineer **skill ecosystem** — skills, docs, scripts,
@@ -204,6 +209,11 @@ Fix any issues either lane finds before proceeding.
 
 - One commit per logical unit of work. Check `git diff --stat` before
   committing to avoid unrelated changes.
+- **Commit only your own work.** When parallel agents or lanes share a
+  working tree, stage by the explicit file list your lane owns — never
+  a broad `git add <dir>` — and check the staged set against that list
+  before committing. A foreign hunk falsifies the commit message and
+  misattributes another lane's work.
 - Don't amend, don't push, don't force-push, don't `reset --hard` /
   `clean -f` unless explicitly asked.
 - **No "Co-Authored-By" lines** — do not add AI co-author attribution.
