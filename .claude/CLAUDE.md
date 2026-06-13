@@ -35,6 +35,14 @@ The mantra: **"Optimal tooling for an AI-grown codebase continuously
 converts hidden structure into explicit structure, and one-off discoveries
 into repeatable guardrails."**
 
+Because this kit exists to export standards into other projects, it is
+held to its own standard first — that is the condition for it dependably
+adding value elsewhere. Skills must meet the activation standard
+(`.claude/skills/repair-skill/knowledge/skill-standard.md`); conformance
+is machine-checked where possible (`scripts/skill_comply/`); a skill
+whose text cannot be trusted at execution time is a defect even with no
+incident behind it (`/repair-skill`).
+
 Most files are framework-agnostic. Some lint rules, scripts, and helper
 modules grew up around Django/Python — the design has always anticipated
 cross-language adapters (TypeScript, Rust) and cross-framework reuse;

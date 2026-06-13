@@ -33,6 +33,9 @@ type: "always_apply"
 - Skill ecosystem changes go through `/plan-skill` unless they are tiny wording
   edits. New skills need adversarial requirements, a trigger contract,
   evidence/dogfood plan, and `scripts/skill_meta.py lint` before cataloging.
+- The kit is held to its own standard first (it exports standards): skills
+  meet `.claude/skills/repair-skill/knowledge/skill-standard.md`; text that
+  cannot be trusted at execution time is a defect even without an incident.
 - After significant skill ecosystem changes, run
   `/check-ecosystem-consistency` and review stale counts, catalog coverage,
   and possible `/which-shape` registry updates before updating its state.

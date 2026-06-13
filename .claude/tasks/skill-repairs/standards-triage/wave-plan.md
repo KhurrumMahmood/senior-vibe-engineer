@@ -25,19 +25,23 @@ commits (orchestrator verifies and commits per lane).
 
 | Lane | Skills |
 |---|---|
-| W2-1 extract family | extract-cotton-primitive (exit-code lie), extract-existing-ideas (approval set never written back), extract-state-type (Form A unimplemented), extract-workflow-registry (triple contract drift) |
+| W2-1 extract family | extract-cotton-primitive (exit-code lie), extract-existing-ideas (approval set never written back), extract-state-type (Form A unimplemented), extract-workflow-registry (triple contract drift), extract-enum (escalated: load-bearing empty knowledge/) |
 | W2-2 batch-4 NRs a | find-standard-gaps, find-transaction-overreach, find-workflow-duplication |
 | W2-3 batch-4 NRs b | find-workflow-state-gaps, introduce-fk, map-subsystem |
 | W2-4 batch-5 NRs | triage-debt (--top parse bug), unify-shadows (empty knowledge/ templates), project-interview (artifact-root contract break), query-patterns |
+| W2-5 escalated + re-derived NRs | explain-code (knowledge/ mandate vs never-read contradiction), find-test-obligation-drift, map-product-workflow, mature-existing-ideas (orphan mature.py + nonexistent /promote-idea-to-pattern handoff) |
 
 ## Wave 3 (queued)
 
 | Lane | Skills |
 |---|---|
 | W3-1 drift pair + scanners | find-folder-topology-drift, find-frontend-contract-drift (default-root contradictions), find-comment-drift, find-complexity-hotspots, find-concept-divergence, find-doc-route-drift (standard gates) |
-| W3-2 MINOR batch 1 | brainstorm-ideas, decide (template refresh), engineer-init, explain-code, extract-enum |
+| W3-2 MINOR batch 1 | brainstorm-ideas, decide (template refresh), engineer-init, architecture-fit (false stdlib claim), gut-check (self-contradictory precedents-absent mandate), impact-feature (false stdlib claim + phantom --subsystems flag) |
 | W3-3 MINOR batch 2 | find-duplication, find-frontend-duplication, find-implicit-state, find-layer-violation, find-omnibus, find-query-mutation (replay evidence + small fixes) |
-| W3-4 MINOR batch 3 | plan-feature, plan-spec, propose-boundary, propose-folder-reorganization, teach-pattern, track-idea, which-cleanup, which-skill (+ any batch-4 re-derived MINORs) |
+| W3-4 MINOR batch 3 | plan-feature, plan-spec, propose-boundary, propose-folder-reorganization, teach-pattern, track-idea, which-cleanup, which-skill |
+
+Final OK survivors after all adversarial coverage (4 of 66):
+design-it-twice, rename-concept, harvest-learnings, orient.
 
 ## Post-wave gates
 
@@ -49,6 +53,10 @@ commits (orchestrator verifies and commits per lane).
 2. Re-triage spot-check: one fresh frame review per wave's worst skill
    (different model than the fixer) before declaring the catalog stable.
 3. skill-comply / oracle growth tracks separately (Bucket-B program).
-4. Ledgered, not in waves: code-agent-runtime-port (restores cheap
-   dispatch properly), fix-workflow residual sweeps (78 bare-knowledge/
-   refs, 8 host-bound-command files, cluster: routing, dead-path appends).
+4. knowledge/-reference sweep: every SKILL.md claim about knowledge/
+   files checked for (a) target exists, (b) target non-empty, (c) the
+   mandated reader is permitted to read it (the explain-code
+   contradiction class). Folds with the 78 bare-knowledge/ residual.
+5. Ledgered, not in waves: code-agent-runtime-port (restores cheap
+   dispatch properly), fix-workflow residual sweeps (8
+   host-bound-command files, cluster: routing, dead-path appends).
