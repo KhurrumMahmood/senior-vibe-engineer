@@ -11,6 +11,8 @@ shape. Shapes map to sections:
 | Shadow helper                           | [2b](#2b-shadow-helper-shapes) |
 | Dead code                               | [2c](#2c-dead-code-deletion) |
 | Quasi-dead / broken                     | [2d](#2d-quasi-dead--broken-fix) |
+| Workflow registry cleanup               | inline checklist in `SKILL.md` Step 2 |
+| Extract service (layer violation)       | [2a](#2a-extract-helper-shapes) applied at service scope |
 
 Each section ends with a "stop condition" — if you can't satisfy it,
 abort and report to the user rather than committing half-done work.
@@ -63,8 +65,8 @@ why the duplication is intentionally local or pick a smaller target.
    caller's surrounding scaffolding (logging, error handling, input
    prep, output augmentation) in place.
 
-5. **Run the targeted test suite** (see `knowledge/` test
-   matrix) before committing. If any test fails, **do not commit** —
+5. **Run the targeted test suite** (see `knowledge/verification.md`
+   test matrix) before committing. If any test fails, **do not commit** —
    fix the issue first. If you can't figure out the fix, abort and
    report the exact test+assertion to the user.
 
@@ -139,7 +141,10 @@ authorized the deletion.
 1. **Re-verify freshness AND dispatch-registry references.** The
    dormant report is a snapshot — new callers may have landed since
    it was written, and some dispatch paths use string literals that
-   `git grep -w` alone can miss. Run BOTH checks:
+   `git grep -w` alone can miss. Run BOTH checks. The roots below
+   are the birth host's (Django) — if the host lacks them,
+   substitute the host's source/template/static roots and name the
+   substitution in your execution plan:
 
    ```bash
    # 1a. Word-boundary re-grep (catches direct symbol references):
@@ -166,8 +171,10 @@ authorized the deletion.
 3. **Prune alongside:**
    - `__all__` entries in the module
    - Import sites that pull the now-dead name
-   - URL patterns in `core/urls.py` if it was a view
-   - Admin registrations in `core/admin.py` if it was a model admin
+   - URL patterns in the host's URL modules (birth host:
+     `core/urls.py`) if it was a view
+   - Admin registrations (birth host: `core/admin.py`) if it was a
+     model admin
    - Management command references
    - Tests that exercised the deleted code (Cluster 3's lesson:
      don't keep `@skip`'d dead tests as cargo-cult coverage)
@@ -178,7 +185,10 @@ authorized the deletion.
    from `__init__.py` imports.
 
 5. **Run the full baseline test matrix** — dead code deletion is
-   high blast radius:
+   high blast radius. The command below is the birth host's; no
+   `manage.py` on the host → run the host's baseline equivalent per
+   the `knowledge/verification.md` absence fallback and name the
+   substitution:
    ```bash
    .venv/bin/python manage.py test \
      tests.test_site_capabilities tests.test_hydration_detector \
@@ -186,16 +196,21 @@ authorized the deletion.
      --settings=app.settings_test_sqlite -v 2
    ```
 
-6. **Run `django-admin check`** to catch dangling URL patterns:
+6. **Run the framework's dangling-reference check** (birth host:
+   `django-admin check`) to catch dangling URL patterns:
    ```bash
    .venv/bin/python manage.py check
    ```
+   No host equivalent → state that explicitly in the stop-condition
+   check; do not claim the check passed.
 
 ### Stop condition
 
 - Fresh re-grep returned zero new inbound references.
-- `manage.py check` passes (no dangling URLs / admin registrations).
-- Baseline + subsystem tests pass.
+- The framework's dangling-reference check passes (birth host:
+  `manage.py check`) — or the named host substitute, or its absence
+  is stated.
+- Baseline + subsystem tests pass (substitutions named).
 - Commit title starts with `Delete`.
 
 ---

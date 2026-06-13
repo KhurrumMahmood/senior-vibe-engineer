@@ -109,7 +109,7 @@ fine.
 ## R10 — Keep test scope tight but matching
 
 Don't run the full repo test suite for a single-file refactor. Use
-the test matrix in `knowledge/` — it maps cluster subsystems
+the test matrix in `knowledge/verification.md` — it maps cluster subsystems
 to test modules and is fast under the SQLite test settings.
 
 **How to apply:** Look up the touched file in the test matrix. If

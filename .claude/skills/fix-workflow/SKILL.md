@@ -1,6 +1,6 @@
 ---
 name: fix-workflow
-description: Execute a cleanup surfaced by /find-duplication, /find-dormant, or /find-semantic-duplication. Accepts a cluster ID from a triage report (e.g. `cluster:P0-1`, `delete:foo`, `semantic:SC-1`), a file path, or a raw natural-language description. Loads context, writes a regression test first, refactors in a behavior-preserving commit, adds a separate bug-fix commit if latent bugs surface, runs the verification test matrix, updates `reports/duplication/learnings.md`, and recommends the next cluster. Runs in the current worktree with full commit discipline.
+description: Execute a cleanup surfaced by /find-duplication, /find-dormant, or /find-semantic-duplication. Accepts a cluster ID from a triage report (e.g. `cluster:P0-1`, `delete:foo`, `semantic:SC-1`), a file path, or a raw natural-language description. Loads context, writes a regression test first, refactors in a behavior-preserving commit, adds a separate bug-fix commit if latent bugs surface, runs the verification test matrix, writes a cluster learnings entry, and recommends the next cluster. Runs in the current worktree with full commit discipline.
 argument-hint: "<cluster-id> | semantic:<id> | delete:<id> | <file-path> | <free-form description>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -35,12 +35,27 @@ plan and wait for user confirmation before any edits — see
 Argument Parsing below. Authorization for one cluster is never
 authorization for follow-on clusters or adjacent fixes.
 
+## How success is judged
+
+- A regression/characterization test exists **before** the fix and
+  is green at commit time (R2; §2d writes the failing test first).
+- The behavior-preserving refactor commit is separate from any
+  bug-fix commit (R1).
+- The verification matrix ran green for the touched subsystem
+  (Step 3) — plus the jscpd re-scan for dedup shapes (R14).
+- The playbook's stop condition has every box checked; no commit
+  otherwise.
+Work toward these gates from Step 1.
+
 Procedural detail lives in three knowledge files:
 
-- `knowledge/fix-shapes.md` — Step-2 playbooks for the seven shapes.
-  Read only the section matching the classified cluster.
-- `knowledge/` — worktree paths, test matrix,
-  commit verb conventions, concurrency guard commands.
+- `knowledge/fix-shapes.md` — Step-2 playbooks. Every shape routes
+  there except workflow registry cleanup, which uses the inline
+  checklist in this file. Read only the section matching the
+  classified cluster.
+- `knowledge/verification.md` — worktree + cleanliness guard
+  commands, test matrix (host-adapter), commit verbs + message
+  template, jscpd re-scan command.
 - `knowledge/learnings.md` — 14 rules from prior clusters (R1–R14).
   Read on ambiguity; don't front-load.
 - `.claude/skills/_common/interface-depth.md` — read when the cluster
@@ -53,9 +68,13 @@ The argument takes three forms. Detect which and route:
 
 ### Form A — Cluster ID from a triage report
 Pattern: `cluster:<name>`, `delete:<name>`, `fix:<name>`,
-`semantic:<name>`, or a short id like `P0-1`, `P1-agent-extract`.
+`semantic:<name>`, `layer:<name>`, or a short id like `P0-1`,
+`P1-agent-extract`.
 
 - `delete:<name>` / `fix:<name>` → load `reports/dormant/latest/report.md`
+- `layer:<name>` → load `reports/layer-violation/latest/report.md`
+  (emitted by `/find-layer-violation`; per-candidate evidence at
+  `scout/<candidate_id>.json`, machine view in `findings.json`).
 - `semantic:<name>` → load `reports/semantic-duplication/latest/triage.md`
   (emitted by `/find-semantic-duplication`; finding IDs look like
   `semantic:SC-1`, `semantic:SC-2` — the prefix is `SC-` because
@@ -69,32 +88,34 @@ Pattern: `cluster:<name>`, `delete:<name>`, `fix:<name>`,
 
 If the referenced report file does not exist, abort and tell the user
 which detection skill to run first (`/find-dormant`,
-`/find-duplication`, or `/find-semantic-duplication`) — do NOT fall
-back to scanning the codebase.
+`/find-duplication`, `/find-semantic-duplication`, or
+`/find-layer-violation`) — do NOT fall back to scanning the codebase.
 
 Find the matching cluster, extract file list + fix shape + helper
-name. Proceed to Step 1.
+name. Proceed to Step 1. If no exact ID match exists in the loaded
+report, list the available IDs and abort — do not fuzzy-match to the
+closest-looking entry.
 
 ### Form B — File path
-Pattern: starts with `core/` or matches an existing path. Example:
-`core/services/parse_json_body_helper.py`.
+Pattern: matches an existing path in the repo (birth-host example:
+`core/services/parse_json_body_helper.py`).
 
 Treat the file as the scope. No triage context — investigate from
-scratch. Run the Investigation sub-steps of `/find-duplication` on
-just that file. **Before any edits**, present the plan (file list,
-fix shape, helper name) to the user and wait for confirmation.
+scratch, answering at minimum: who calls each suspect symbol (grep
+all call sites); where the duplicate or suspect bodies actually
+diverge; whether a canonical equivalent already exists; and what
+tests cover the area. **Before any edits**, run Step 1 on that scope
+and present its execution plan (file list, fix shape, helper name)
+to the user; wait for confirmation.
 
 ### Form C — Free-form description
 Anything else — a sentence describing what to clean up.
 
-The description is your brief. Produce an execution plan with:
-- Explicit list of files that will be modified
-- Fix shape (from the table in Step 1)
-- Expected changes per file
-
-**Present this plan and wait for explicit user confirmation before
-making any edits.** Ask for clarification if target file(s) or fix
-shape can't be inferred.
+The description is your brief. Run Step 1 on it — the execution
+plan it produces (file list, fix shape, expected changes per file)
+is what you present. **Present this plan and wait for explicit
+user confirmation before making any edits.** Ask for clarification
+if target file(s) or fix shape can't be inferred.
 
 ### Approval-token contract (Forms B & C)
 
@@ -113,7 +134,7 @@ When in doubt, ask for a clean approval token — do not guess intent.
   --show-toplevel` before starting.
 - **Python:** `.venv/bin/python`. Never bare `python`.
 - **Cleanliness guard:** target files must not carry unrelated
-  uncommitted edits before starting. `knowledge/`
+  uncommitted edits before starting. `knowledge/verification.md`
   has the exact commands and abort conditions.
 
 ## Step 1 — Load context and classify the cluster
@@ -137,6 +158,7 @@ Classify into one of these shapes:
 | **Dead code** | zero inbound references | `fix-shapes.md` §2c |
 | **Quasi-dead / broken** | silently-broken, no tests | `fix-shapes.md` §2d |
 | **Workflow registry cleanup** | workflow step, boot payload, or endpoint knowledge repeated across executable layers | checklist below |
+| **Extract service (layer violation)** | entry point owns business logic — from `/find-layer-violation` | `fix-shapes.md` §2a applied at service scope + `_common/interface-depth.md`; if the extraction spans multiple commits/files, hand off to `/refactor-subsystem` |
 
 Write a one-paragraph **execution plan** to stdout:
 
@@ -151,9 +173,9 @@ Write a one-paragraph **execution plan** to stdout:
   as a follow-on finding
 
 **Form A** → plan is a self-check; proceed after writing it.
-**Forms B/C** → plan is an internal record; the user already
-approved scope during argument parsing. Don't wait for a second
-confirmation.
+**Forms B/C** → the plan was already produced and approved during
+argument parsing (Step 1 ran early); don't re-present it or wait
+for a second confirmation.
 
 ## Step 2 — Execute the fix shape
 
@@ -163,6 +185,8 @@ confirmation.
 Read the matching section of `knowledge/fix-shapes.md` (2a / 2b /
 2c / 2d) and follow it end to end. Each playbook has an explicit
 **stop condition** — do not commit unless you can check every box.
+(The workflow-registry shape uses the checklist below instead; its
+stop condition follows the checklist.)
 
 ### Workflow registry cleanup checklist
 
@@ -185,10 +209,24 @@ authority rather than local code clones:
   include.
 - Add or update a diff-scoped guard when the migrated pattern can
   recur, e.g. JS endpoint-sprawl lint with good/bad fixtures.
-- Verification must include the site workflow Django tests and, when a
-  dev server is running, `testing/test_site_pages.py`.
-- Do not touch `core/services/ai_sidecar/` or unified AI
-  workflow behavior unless the user explicitly scopes that work in.
+- Verification must include the host's site-workflow tests (birth
+  host: the site workflow Django tests and, when a dev server is
+  running, `testing/test_site_pages.py`).
+- Do not touch the host's AI-sidecar surface (birth host:
+  `core/services/ai_sidecar/`) or unified AI workflow behavior
+  unless the user explicitly scopes that work in.
+
+### Stop condition (workflow registry cleanup)
+
+- Boot-payload characterization tests written before production
+  edits, and green.
+- Every endpoint-registry key asserted equal to its `reverse(...)`
+  (or the host router's equivalent).
+- Cache-busting bumped on every touched JS include.
+- Diff-scoped guard added, or deferred with a named reason in the
+  cluster entry.
+- URL routes and view names unchanged, or the user explicitly
+  authorized route migration.
 
 ## Step 3 — Verification test matrix
 
@@ -196,14 +234,17 @@ authority rather than local code clones:
 **Post:** targeted test suites green.
 
 Run the **right** tests for the cluster, not every test in the repo.
-The matrix lives in `knowledge/` (baseline + per-
-subsystem rows). If unsure, run the superset for the file's subsystem.
+The matrix lives in `knowledge/verification.md` (baseline +
+per-subsystem rows). If the host table is unfilled, follow its
+absence fallback — run the narrowest meaningful suite for the
+touched subsystem and name the choice in your plan. If unsure, run
+the superset for the file's subsystem.
 
 ### Post-cluster jscpd re-scan (dedup-shape clusters only)
 
 After the refactor lands, re-run jscpd on the touched subdir and
 diff the clone count against `reports/duplication/latest/jscpd/`.
-Command + rationale in `knowledge/`. Fewer clones
+Command + rationale in `knowledge/verification.md`. Fewer clones
 = the refactor landed (R14).
 
 ## Step 4 — Commit discipline
@@ -218,7 +259,7 @@ Command + rationale in `knowledge/`. Fewer clones
 
 Verb conventions (`Dedup` / `Delete` / `Fix` / `Promote` /
 `Migrate`) and the commit-message template live in
-`knowledge/`.
+`knowledge/verification.md`.
 
 **Git safety:**
 - Never `--amend` a previous commit unless the user asked. New
@@ -230,9 +271,12 @@ Verb conventions (`Dedup` / `Delete` / `Fix` / `Promote` /
 - Run `git status` + `git diff --stat` before committing to confirm
   the file list matches your plan.
 
-## Step 5 — Update the learnings log
+## Step 5 — Write the cluster learnings entry
 
-Append a cluster entry to `reports/duplication/learnings.md`:
+Write a cluster entry and present it in your closing reply — it is
+the run's record: Step 6 adds follow-on findings to it, and Step 7's
+recommendation and the user's next-cluster choice consume it.
+Entry format:
 
 ```markdown
 ## Cluster N: <name> (P0/P1/P2)
@@ -259,12 +303,9 @@ detector miss?>
 then "Why:" and "How to apply:" where relevant.>
 ```
 
-Also update the **running LOC delta table** at the bottom of
-`reports/duplication/learnings.md` (the cross-cluster log — NOT the
-skill-internal `knowledge/learnings.md`). If the cluster taught
-something not already in the skill's `knowledge/learnings.md`
-R1–R14, call it out in the entry — the user decides whether to
-update the skill.
+If the cluster taught something not already in the skill's
+`knowledge/learnings.md` R1–R14, call it out in the entry — the
+user decides whether to update the skill.
 
 Append an effectiveness log entry so
 `reports/_meta/dashboard.md` can track which shapes are being
@@ -283,7 +324,16 @@ python3 scripts/log_effectiveness.py \
 ```
 
 Where `<shape>` is one of: `dedup`, `delete`, `fix`, `promote`,
-`migrate`, `shadow`.
+`migrate`, `shadow`, mapped from the Step-1 shape:
+
+| Step-1 shape | bucket |
+|---|---|
+| Pure duplication / Three-way+ clone / Policy-flag clone / Template triplication | `dedup` |
+| Shadow helper | `shadow` |
+| Dead code | `delete` |
+| Quasi-dead / broken | `fix` |
+| Workflow registry cleanup | `migrate` |
+| Extract service (layer violation) | `promote` |
 
 ## Step 6 — Surface follow-on findings
 
@@ -314,7 +364,15 @@ recurrence** and **what to fix next**:
    entry, bundled into one commit. Skip this recommendation when the
    fix was obviously one-off (a single-site data bug, a typo) — two
    clusters justify one rule, not a family.
-2. **Next cluster.** Then pick one of:
+2. **Class lift.** Name the fixed defect's class in one sentence,
+   define the cheapest detector for it (usually a grep), and RUN the
+   detector across the codebase before closing. Paste the hit count
+   in the recommendation. Siblings found → name them as one batch
+   sweep candidate, not N future clusters; class mechanizable → that
+   is the `/prevent-regression` candidate from item 1 (the
+   two-clusters-justify-one-rule threshold gates the lint, not the
+   detector run — running the detector is free).
+3. **Next cluster.** Then pick one of:
    - More clusters in the same triage → point at the next.
    - File is now fully dedup'd → suggest `/find-duplication` on an
      adjacent file or sub-package.
@@ -331,7 +389,7 @@ authorization too; it builds a proposal but does not commit.
 
 - Starting the next cluster automatically.
 - Refactoring code adjacent to the cluster target.
-- Running the full repo test suite (use `knowledge/`
+- Running the full repo test suite (use `knowledge/verification.md`
   subsystem mapping).
 - Editing files in the main worktree (concurrency guard).
 - Creating documentation unless the user explicitly asks.
@@ -363,6 +421,7 @@ authorization too; it builds a proposal but does not commit.
 .claude/skills/fix-workflow/
 ├── SKILL.md                    # this file — orchestrator
 └── knowledge/                  # loaded on demand, not front-to-back
-    ├── fix-shapes.md           # Step-2 playbooks for the 7 shapes
+    ├── fix-shapes.md           # Step-2 playbooks (registry checklist lives above)
+    ├── verification.md         # guard commands, test matrix, commit template, jscpd
     └── learnings.md            # R1–R14 from prior clusters
 ```
