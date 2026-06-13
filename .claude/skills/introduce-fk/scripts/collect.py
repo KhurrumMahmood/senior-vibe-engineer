@@ -22,7 +22,8 @@ Two input shapes:
 **Form A — finding id + findings.json.** (same layout as `/extract-enum`)
 ::
 
-    collect.py --from-finding implicit-state-0012 \\
+    .venv/bin/python .claude/skills/introduce-fk/scripts/collect.py \\
+      --from-finding implicit-state-0012 \\
       --findings reports/implicit-state/latest/findings.json \\
       --project-root /path/to/your-project \\
       --output reports/introduce-fk/<target>/targets.json
@@ -34,7 +35,7 @@ from the hits' filter-chain metadata.
 field`` string:
 ::
 
-    collect.py \\
+    .venv/bin/python .claude/skills/introduce-fk/scripts/collect.py \\
       --target "core/models/sitemaps.py::UrlCollection -> core/models/crawl_jobs.py::UrlCrawlJob via active_crawl_job" \\
       --project-root /path/to/your-project \\
       --output reports/introduce-fk/<target>/targets.json
@@ -76,7 +77,7 @@ Exit status:
     1  target resolved but 0 call sites found
     2  invocation error
 
-Stdlib-only. Runs under ``python3``.
+Stdlib-only. Invoke with ``.venv/bin/python`` from the repo root.
 """
 
 from __future__ import annotations

@@ -21,6 +21,7 @@ def _run(project: Path) -> list[dict[str, object]]:
                 str(SKILL_ROOT / "scripts" / "detect.py"),
                 "--project-root",
                 str(project),
+                ".",
                 "--no-workflow-duplication",
                 "--output",
                 str(output),
@@ -37,9 +38,38 @@ def _run(project: Path) -> list[dict[str, object]]:
         return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
+def _fixture_project(root: Path, body: str) -> Path:
+    project = root / "project"
+    templates = project / "templates"
+    templates.mkdir(parents=True)
+    (templates / "workflow.html").write_text(body, encoding="utf-8")
+    return project
+
+
 def main() -> int:
-    good = _run(SKILL_ROOT / "fixtures" / "good")
-    bad = _run(SKILL_ROOT / "fixtures" / "bad")
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_root = Path(tmp)
+        good_project = _fixture_project(
+            tmp_root / "good",
+            """
+            <div class="loading spinner">Loading export</div>
+            <div class="empty">No results</div>
+            <div class="error">Failed job</div>
+            <button disabled>Retry</button>
+            <div class="mobile responsive grid-cols">Status</div>
+            <script>fetch('/workflow/export')</script>
+            """,
+        )
+        bad_project = _fixture_project(
+            tmp_root / "bad",
+            """
+            <button>Run export</button>
+            <div>Job status</div>
+            <script>fetch('/workflow/export')</script>
+            """,
+        )
+        good = _run(good_project)
+        bad = _run(bad_project)
     if good:
         print(f"expected clean good fixtures, got {len(good)} findings", file=sys.stderr)
         return 1

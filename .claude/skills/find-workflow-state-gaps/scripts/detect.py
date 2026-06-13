@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Detect `/sites` workflow state coverage gaps."""
+"""Detect workflow state coverage gaps."""
 from __future__ import annotations
 
 import argparse
@@ -138,7 +138,7 @@ def _workflow_duplication_context(project_root: Path) -> list[dict[str, Any]]:
         return []
     module = load_module("workflow_duplication_detector", detector_path)
     records: list[dict[str, Any]] = []
-    for record in module.detect(project_root, 3, "sites", 2):
+    for record in module.detect(project_root, min_owners=3, min_active_owners=2):
         record = dict(record)
         record["pattern"] = f"state_authority_context:{record.get('pattern', 'workflow_duplication')}"
         record["summary"] = f"Workflow state/label authority context: {record.get('summary', '')}"

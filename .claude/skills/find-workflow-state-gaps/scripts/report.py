@@ -18,7 +18,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("detections", type=Path)
     parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--target", default="/sites surface")
+    parser.add_argument("--target", default="workflow surfaces")
     args = parser.parse_args(argv)
     render_report_file("Workflow-state gap audit", args.detections, args.output, args.target)
     print(f"wrote {args.output}")

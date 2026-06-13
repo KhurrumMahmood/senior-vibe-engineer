@@ -42,9 +42,11 @@ section (below).
 4. **Public surface** — grouped by file.
 5. **Responsibility clusters** — table.
 6. **Dependency graph** — two lists (internal, external) + inbound.
-7. **Convention compliance** — per-rule table.
-8. **Open questions** — flagged unexplained regions.
-9. **How to regenerate** — single line: the exact command.
+7. **Workflow participation** — links to product workflow maps when the
+   scratch data names any.
+8. **Convention compliance** — per-rule table.
+9. **Open questions** — flagged unexplained regions.
+10. **How to regenerate** — single line: the exact command.
 
 Do not add marketing prose, architectural rationale, or "notes on future
 work." Those belong in `reports/explanations/<target>.md` (the
@@ -93,7 +95,7 @@ Columns:
 - **Symbols** — top-level declarations (functions, classes, module
   vars).
 - **Public** — subset of Symbols that pass the public-surface test
-  (see `knowledge/`).
+  from Stage 2.
 - **Last commit / Last author** — from `git log -1 --format=...`.
 
 If chunking was skipped for a file (non-Python, or the chunker
@@ -182,12 +184,26 @@ Two top-level lists plus inbound. No ASCII graph drawings — they rot.
 - `core/admin.py` (bulk_recrawl action)
 - `core/tasks/crawling.py` (shared formatter reuse)
 - `static/bundles/crawl-dashboard.js` (fetch URL reference — grep'd, not AST)
-- … (15 more — see `reports/map/<name>/inbound.txt` for the full list)
+- … (15 more — see `reports/map/<name>/latest/deps.json` for the full list)
 ```
 
 Link the first column of inbound to the calling subsystem's map page
 when one exists (`[core/urls.py](urls.md)`-style). If no map page,
 leave the path plain.
+
+## Workflow participation
+
+Optional. Render only when Stage 4 wrote `workflows.json` in the scratch
+directory.
+
+```markdown
+## Workflow participation
+
+- [crawl-dashboard](../workflows/crawl-dashboard.md) — owns status JSON
+  read path and dashboard template include.
+```
+
+If no workflow map names this subsystem, omit the section entirely.
 
 ## Convention compliance
 
@@ -312,7 +328,7 @@ every view that accepts user input.
 **Inbound (34 files, truncated at 200):**
 - `core/views/crawling.py`
 - `core/views/field_config.py`
-- … (32 more — see `reports/map/input-utils/inbound.txt`)
+- … (32 more — see `reports/map/input-utils/latest/deps.json`)
 
 ## Convention compliance
 

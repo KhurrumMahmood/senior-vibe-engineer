@@ -20,6 +20,7 @@ Input files (all produced in the scratch dir):
     clusters.jsonl      — {cluster, symbols, loc_sum, domain_hint}
     deps.json           — {internal_imports: [...], external_imports:
                            [...], inbound: [...], inbound_truncated: bool}
+    workflows.json      — optional [{name, path, reason}]
     compliance.json     — {rules: [{rule, source, count}], total}
     open_questions.json — [{symbol, file, reason}]
 
@@ -28,11 +29,12 @@ Output:
     .claude/docs/subsystems/<name>.md      — the rendered doc
     reports/_meta/effectiveness.jsonl      — one appended line
 
-Stdlib-only; safe to invoke under bare ``python3``.
+Stdlib-only; invoke with ``.venv/bin/python`` from the repo root.
 
 Usage:
 
-    render_doc.py --name views-crawling \\
+    .venv/bin/python .claude/skills/map-subsystem/scripts/render_doc.py \\
+        --name views-crawling \\
         --target core/views/crawling.py \\
         --scratch reports/map/views-crawling/ \\
         --output .claude/docs/subsystems/views-crawling.md \\
@@ -71,7 +73,7 @@ def _read_json(path: Path, default):
         return default
     try:
         return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError):
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return default
 
 
@@ -216,6 +218,26 @@ def _deps_section(deps: dict) -> str:
     return "\n".join(out)
 
 
+def _workflow_section(workflows: list[dict]) -> str:
+    if not isinstance(workflows, list):
+        return ""
+    if not workflows:
+        return ""
+    out = ["## Workflow participation", ""]
+    for item in workflows:
+        name = item.get("name") or item.get("workflow") or "workflow"
+        path = item.get("path")
+        reason = item.get("reason") or item.get("role") or ""
+        if path:
+            label = f"[{name}]({path})"
+        else:
+            label = f"`{name}`"
+        suffix = f" — {reason}" if reason else ""
+        out.append(f"- {label}{suffix}")
+    out.append("")
+    return "\n".join(out)
+
+
 def _compliance_section(compliance: dict) -> str:
     rules = compliance.get("rules", [])
     if not rules:
@@ -343,6 +365,7 @@ def render(args: argparse.Namespace) -> int:
     symbols = _read_jsonl(scratch / "symbols.jsonl")
     clusters = _read_jsonl(scratch / "clusters.jsonl")
     deps = _read_json(scratch / "deps.json", {"internal_imports": [], "external_imports": [], "inbound": []})
+    workflows = _read_json(scratch / "workflows.json", [])
     compliance = _read_json(scratch / "compliance.json", {"rules": [], "total": 0})
     open_questions = _read_json(scratch / "open_questions.json", [])
 
@@ -375,6 +398,7 @@ def render(args: argparse.Namespace) -> int:
         _public_surface(symbols, files),
         _clusters_section(clusters),
         _deps_section(deps),
+        _workflow_section(workflows),
         _compliance_section(compliance),
         _open_questions(open_questions),
         _regenerate_section(args.name),

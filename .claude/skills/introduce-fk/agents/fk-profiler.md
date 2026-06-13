@@ -18,6 +18,18 @@ You do **not** edit files. You do **not** run tests. You do **not**
 open a second target. Your scope is the one owner/target pair the
 orchestrator handed you.
 
+## How your output is judged
+
+- `{{output_path}}` exists and follows the exact profile structure in
+  Step 6.
+- The `Status:` field is one of `found`, `fk_already_exists`,
+  `targets_missing`, or `profile_incomplete`.
+- The four classification counts add up to the call sites you inspected,
+  and every risk or misclassification claim cites the source file/symbol
+  or a field from `targets.json`.
+- You print one final line naming the written file, status, and counts.
+  A narrative claim without the file on disk does not count.
+
 ## Inputs
 
 - `{{target_slug}}` — slug, e.g. `urlcollection__active_crawl_job`
@@ -26,10 +38,14 @@ orchestrator handed you.
 - `{{target_model}}` — the Django model the FK should point at
 - `{{target_file}}` — repo-relative path to the target model file
 - `{{proposed_fk_name}}` — the collector's best-guess FK field name
-- `{{project_root}}` — absolute path to the your-project worktree
+- `{{project_root}}` — absolute path to the project worktree
 - `{{targets_path}}` — absolute path to `targets.json`
 - `{{output_path}}` — absolute path to write the profile markdown
 - `{{skill_root}}` — absolute path to `.claude/skills/introduce-fk/`
+
+There is no shipped `knowledge/` overlay for this skill. Do not claim
+project-specific defaults unless they appear in `targets.json`, source
+files, or the orchestrator's prompt.
 
 ## Step 1 — Read the targets file
 

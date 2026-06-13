@@ -34,7 +34,8 @@ consolidate into a proposal the human reviews before handing off to
 You do NOT write production code in this skill. You never edit the
 owner model, the target model, the callers, or a migration file. The
 only artifact you produce is `reports/introduce-fk/<target-slug>/
-proposal.md` plus its supporting `targets.json` and `profile.md`.
+proposal.md` plus its supporting `targets.json` and `profile.md`;
+Stage 4 may also append one effectiveness row under `reports/_meta/`.
 
 ## How success is judged
 
@@ -42,6 +43,9 @@ proposal.md` plus its supporting `targets.json` and `profile.md`.
   migration (nullable + backfill first; `NOT NULL` only if the
   invariant is real), the caller migration table, and an explicit
   tie-break strategy for multi-match backfill rows.
+- The run's truth artifacts exist and are cited: `targets.json`,
+  `profile.md`, `proposal.md`, plus the exact `collect.py` stderr
+  summary line and the profile status/classification counts.
 - The scout's "active X" vs "latest X" call is respected — a
   `latest_query` / `unique_hit` classification produces a documented
   misclassification note, not a forced FK.
@@ -86,14 +90,15 @@ Write toward these gates from Stage 0.
 ## Scope
 
 - **Project root:** this worktree's root.
-- **Python:** `python3` for `scripts/collect.py` (stdlib-only). The
-  skill does not import Django or touch the DB.
+- **Python:** `.venv/bin/python` for `scripts/collect.py` (stdlib-only).
+  The skill does not import Django or touch the DB.
 - **Worktree guard:** read-only — no guard required here. The
   execution skill (`/fix-workflow`) does its own worktree check.
-- **Project-specific defaults** (known tuple-identity hotspots,
-  on_delete guidance, backfill gotchas, cross-cluster model splits):
-  `knowledge/`. The scout reads that file; the
-  orchestrator does not.
+- **No shipped knowledge overlay:** this skill has no `knowledge/`
+  files. The scout uses only `targets.json`, the source files it reads,
+  and `agents/fk-profiler.md`. If the host has extra tuple-identity
+  notes, the user must provide them in the prompt or the proposal must
+  mark the missing evidence explicitly.
 
 ## Argument parsing
 
@@ -171,7 +176,7 @@ owner/target metadata, tuple-inference shape, and every call site.
 **Form A:**
 
 ```bash
-python3 .claude/skills/introduce-fk/scripts/collect.py \
+.venv/bin/python .claude/skills/introduce-fk/scripts/collect.py \
   --from-finding "${FINDING_ID}" \
   --findings reports/implicit-state/latest/findings.json \
   --owner-spec "${OWNER_FILE}::${OWNER_MODEL}" \
@@ -182,7 +187,7 @@ python3 .claude/skills/introduce-fk/scripts/collect.py \
 **Form B:**
 
 ```bash
-python3 .claude/skills/introduce-fk/scripts/collect.py \
+.venv/bin/python .claude/skills/introduce-fk/scripts/collect.py \
   --target "${OWNER_FILE}::${OWNER_MODEL} -> ${TARGET_FILE}::${TARGET_MODEL}${FK_NAME:+ via ${FK_NAME}}" \
   --project-root "$(pwd)" \
   --output "${REPORT_DIR}/targets.json"
@@ -224,6 +229,13 @@ Substitute placeholders:
   `.claude/skills/introduce-fk/`
 
 Use `subagent_type=general-purpose`.
+
+The dispatch prompt must state the verdict contract: the scout's output
+will be judged only by `profile.md` existing at `{{output_path}}`, the
+`Status:` field, the four classification counts, the call-site table,
+and source-file citations for any risk or misclassification claim.
+Ungrounded prose is not evidence. The scout writes exactly one file and
+prints a one-line file-write confirmation naming the status and counts.
 
 If the scout returns `profile_incomplete` or `targets_missing`, re-
 dispatch once with a stricter "respond only with file-write
@@ -274,7 +286,9 @@ From `targets.json.tuple_inference_shape`:
 ```
 
 **Rationale for `on_delete` / `related_name`** (from profile):
-<one-paragraph summary; see `knowledge/` for guidance>.
+<one-paragraph summary from `profile.md`; if the profile lacks evidence,
+use the default `SET_NULL` / `related_name='+'` and mark the rationale
+as an evidence gap>.
 
 ## Migration plan (two-step)
 
@@ -408,14 +422,17 @@ of this proposal — each is a new `/introduce-fk` invocation>
 ## Authorization
 
 Human review required before execution. If approved, hand the
-proposal to `/fix-workflow introduce-fk:<target-slug>` (when that
-variant ships) or to `/refactor-subsystem` for a multi-file change.
+proposal path to `/refactor-subsystem` for a multi-file migration, or
+to `/fix-workflow` only as an approved free-form execution brief. Do
+not invent an `introduce-fk:<target-slug>` fix-workflow variant.
 ````
 
-See `knowledge/` for project-specific gotchas the
-proposal's risk section must cover (concurrent-job races, stale-job
-reaper, cross-cluster model splits, schema migration duration,
-known tuple-identity hotspots).
+The risk section must cover the evidence present in `profile.md`:
+concurrent-job races, stale-job reaper needs, cross-cluster model
+splits, schema migration duration, extra discriminator kwargs, and any
+known tuple-identity hotspot supplied by the user. If one of those cannot
+be assessed from artifacts, say so in the risk row instead of inventing
+coverage.
 
 ### Stage 4 — Effectiveness log
 
@@ -423,14 +440,14 @@ known tuple-identity hotspots).
 `reports/_meta/effectiveness.jsonl`.
 
 ```bash
-CALL_SITES=$(python3 -c "import json,sys; print(len(json.load(open(sys.argv[1]))['call_sites']))" "${REPORT_DIR}/targets.json")
-OWNER=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['owner_model'])" "${REPORT_DIR}/targets.json")
-TARGET=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['target_model'])" "${REPORT_DIR}/targets.json")
-OWNER_FILE=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['owner_file'])" "${REPORT_DIR}/targets.json")
-TARGET_FILE=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['target_file'])" "${REPORT_DIR}/targets.json")
-HAS_EXISTING=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1]))['owner_has_existing_fk']).lower())" "${REPORT_DIR}/targets.json")
+CALL_SITES=$(.venv/bin/python -c "import json,sys; print(len(json.load(open(sys.argv[1]))['call_sites']))" "${REPORT_DIR}/targets.json")
+OWNER=$(.venv/bin/python -c "import json,sys; print(json.load(open(sys.argv[1]))['owner_model'])" "${REPORT_DIR}/targets.json")
+TARGET=$(.venv/bin/python -c "import json,sys; print(json.load(open(sys.argv[1]))['target_model'])" "${REPORT_DIR}/targets.json")
+OWNER_FILE=$(.venv/bin/python -c "import json,sys; print(json.load(open(sys.argv[1]))['owner_file'])" "${REPORT_DIR}/targets.json")
+TARGET_FILE=$(.venv/bin/python -c "import json,sys; print(json.load(open(sys.argv[1]))['target_file'])" "${REPORT_DIR}/targets.json")
+HAS_EXISTING=$(.venv/bin/python -c "import json,sys; print(str(json.load(open(sys.argv[1]))['owner_has_existing_fk']).lower())" "${REPORT_DIR}/targets.json")
 
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill introduce-fk \
   --scan-id "${TARGET_SLUG}" \
   --target "${OWNER_FILE}::${OWNER} -> ${TARGET_FILE}::${TARGET}" \
@@ -448,9 +465,9 @@ Report to the user in ≤10 lines:
 - Proposed `on_delete` choice.
 - Top-3 risks (one line each).
 - Path to `${REPORT_DIR}/proposal.md`.
-- Recommended next command:
-  `/fix-workflow introduce-fk:<target-slug>` (proposal-only today;
-  hand the proposal to `/refactor-subsystem` for execution).
+- Recommended next step: human reviews `${REPORT_DIR}/proposal.md`;
+  if approved, invoke `/refactor-subsystem` with the proposal path for
+  execution planning.
 
 Do NOT start the execution step yourself. The proposal is the
 handoff artifact.
@@ -481,13 +498,17 @@ handoff artifact.
 | Finding's `pattern` is `stringly_state` | Abort; tell user to run `/extract-enum` — this finding is not tuple-identity |
 | Form A without `--owner-spec` | Abort; the finding tells us the target but not the owner — prompt user for `--owner-spec FILE::OwnerModel` and retry |
 | `collect.py` returns 0 call sites | Target has no tuple-inference sites — the candidate was stale OR the owner/target pair was wrong; abort and list the models seen in tuple patterns for the user to pick again |
+| `collect.py` exits 2 | Invocation or input error. Paste stderr verbatim, fix the argument shape or missing file, and do not dispatch the scout |
 | `owner_has_existing_fk == true` | Short-circuit: the FK is already on the model. The proposal flips to "FK exists; migrate callers only" — skip the schema migration body, keep the caller-migration table and test matrix |
 | Scout classifies >50% of sites as `latest_query` | The pattern is not tuple-identity; the proposal recommends a related-query accessor (`owner.<related_set>.order_by('-created_at').first()`) and explicitly does NOT propose an FK |
 | Scout classifies >50% of sites as `unique_hit` | The pattern is "last known X" — the proposal recommends a `most_recent_<target>` cached property on the owner, not an FK |
 | Cross-cluster owner/target (different `core/models/*.py`) | The proposal must use `'core.<TargetModel>'` string ref; flag in the risk section |
 | Scout says `targets_missing` | Re-dispatch once with stricter brief; if still missing, the `targets.json` is malformed — re-run Stage 1 |
+| Scout does not write `profile.md` after two dispatches | Continue only with an explicit `profile_incomplete` proposal section that names the missing file and limits the recommendation to re-running the profile |
+| `profile.md` lacks status or classification counts | Treat the profile as incomplete; do not infer "active" vs "latest" from memory |
 | Tie-break indeterminate across sites (some `order_by('-created_at')`, others unordered) | Flag in the risk section; the backfill defaults to `-created_at` and the proposal asks the human to confirm |
 | Owner table has >1M rows | Propose the backfill as a post-deploy management command rather than inline `RunPython`; flag in migration-duration risk |
+| Effectiveness logging fails | Keep `proposal.md`; paste the logger error and do not claim the effectiveness row was written |
 
 ## Repository layout
 
@@ -498,10 +519,4 @@ handoff artifact.
 │   └── collect.py                   # Stage 1 (stdlib-only)
 ├── agents/
 │   └── fk-profiler.md               # Stage 2 scout brief
-└── knowledge/                       # scout context, never loaded by orchestrator
-    └── (host-overlay specifics).md
 ```
-
-The orchestrator (you) **never reads files in `knowledge/`**. Those
-are for the scout sub-agent. Keeping them out of your context is the
-whole point of this architecture.

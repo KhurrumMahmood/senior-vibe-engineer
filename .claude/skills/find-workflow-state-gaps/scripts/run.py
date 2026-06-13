@@ -26,7 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     project_root = args.project_root.resolve()
-    target = " ".join(args.paths) if args.paths else "/sites surface"
+    target = " ".join(args.paths) if args.paths else "workflow surfaces"
     records = detect(project_root, args.paths or None)
     report_dir = write_scan_outputs(
         "find-workflow-state-gaps",

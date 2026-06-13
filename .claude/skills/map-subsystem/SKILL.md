@@ -32,10 +32,8 @@ SUSPECT / EXPLAIN / REFACTOR invocation on the same subsystem — so it
 needs to be accurate, re-readable without the skill loaded, and
 cheaply refreshable.
 
-Procedural detail lives in two knowledge files:
+Procedural detail lives in one knowledge file:
 
-- `knowledge/` — shared conventions pointer +
-  subsystem-naming rules for this repo.
 - `knowledge/output-format.md` — the exact shape of
   `.claude/docs/subsystems/<name>.md` + worked example.
 
@@ -47,6 +45,9 @@ Procedural detail lives in two knowledge files:
   convention-compliance score.
 - On `--refresh`, the doc opens with a diff section against the prior
   version — what changed, not just what is.
+- The run cites artifact truth: pasted `render_doc.py` `wrote ...`
+  output, the final doc path, and the effectiveness-row write or the
+  exact logger failure.
 - No judgment leaked: the map counts and reports; "should be split"
   verdicts belong to the SUSPECT skills downstream.
 - Beyond the doc, writes are limited to the `reports/map/<name>/`
@@ -75,10 +76,9 @@ Write toward these gates from Stage 0.
 4. **No judgment calls in the map.** The doc reports: X is 2,400 LOC,
    imports from 14 modules, has 3 responsibility clusters. It does
    NOT say "should be split" — that's a SUSPECT skill's job.
-5. **Reusable infra only.** Reuse `scripts/chunk_file.py`,
-   `scripts/duplication_audit.py`, existing ruff config. Do not
-   introduce new scanners here — the MAP job is aggregation, not
-   detection.
+5. **Reusable infra only.** Reuse `scripts/chunk_file.py`, existing
+   lint scripts, and existing ruff config. Do not introduce new
+   scanners here — the MAP job is aggregation, not detection.
 
 ## Argument parsing
 
@@ -88,9 +88,11 @@ Two forms:
 `views-crawling`, `services-ai-training`, `services-discovery-field-matcher`.
 Names use kebab-case, match `<layer>-<domain>`.
 
-Resolve to a path using the naming table in
-`knowledge/`. If the name doesn't resolve, ask once
-for a path; don't guess.
+Resolve to a path by convention: the first segment is usually the layer
+(`views`, `services`, `tasks`, `models`, `scripts`, `skills`), and the
+remaining segments name the module or package. Check for an exact file
+or directory match before inference. If the name doesn't resolve, ask
+once for a path; don't guess.
 
 ### Form B — explicit path
 `core/views/crawling.py`, `core/services/discovery_field_matcher/`,
@@ -110,8 +112,9 @@ timestamp.
 - **Target:** a single subsystem (one file or one directory package).
 - **Worktree:** current working directory.
 - **Python:** `.venv/bin/python` (never bare `python`).
-- **Output:** `.claude/docs/subsystems/<name>.md`. Never touches any
-  other file.
+- **Output:** `.claude/docs/subsystems/<name>.md`, scratch artifacts
+  under `reports/map/<name>/`, and one effectiveness row under
+  `reports/_meta/`. Never touches production code.
 
 ## Pipeline stages
 
@@ -121,13 +124,19 @@ with `.venv/bin/python` and capture stderr.
 ### Stage 0 — Resolve target + setup
 
 **Pre:** argument parsed. **Post:** `$OUTPUT_PATH` resolved,
-`reports/map/<name>/` scratch dir exists.
+`$SCRATCH` exists under `reports/map/<name>/`.
 
 ```bash
 NAME="<resolved subsystem name>"
+TARGET="<resolved subsystem path>"
+TS=$(date -u +%Y%m%d-%H%M%S)
+REFRESH=0  # set to 1 when --refresh was passed
 OUTPUT_PATH=".claude/docs/subsystems/${NAME}.md"
-SCRATCH=$(mktemp -d)
-PRIOR="$([ -f "$OUTPUT_PATH" ] && cat "$OUTPUT_PATH" || echo "")"
+MAP_DIR="reports/map/${NAME}"
+SCRATCH="${MAP_DIR}/scan-${TS}"
+mkdir -p "${SCRATCH}" reports/_meta .claude/docs/subsystems
+ln -sfn "scan-${TS}" "${MAP_DIR}/latest"
+PRIOR_DOC="$([ -f "$OUTPUT_PATH" ] && printf '%s' "$OUTPUT_PATH" || true)"
 ```
 
 If `$OUTPUT_PATH` exists and `--refresh` was not passed, warn and
@@ -169,7 +178,10 @@ Do **not** run a full SOLID audit here — the full audit lives in
 
 **Pre:** file list. **Post:** `$SCRATCH/deps.json` with
 `{internal_imports, external_imports, inbound}` — inbound edges come
-from a repo-wide grep for `from <subsystem> import` plus `import <subsystem>`.
+from a repo-wide grep for `from <subsystem> import` plus
+`import <subsystem>`. If `.claude/docs/workflows/` contains maps that
+name the subsystem, also write `$SCRATCH/workflows.json` as a list of
+`{name, path, reason}` rows.
 
 Bounded cost: use `Grep` with glob-filtering, cap at 200 files per
 direction.
@@ -181,8 +193,10 @@ counts.
 
 Run:
 - `.venv/bin/ruff check <target> --select F,E,B,BLE --output-format=json`
-- `.venv/bin/python scripts/lint/silent_catch.py <target>` (count
-  violations).
+  and capture stdout/stderr plus exit code; non-zero means violations or
+  a tool failure, not an automatic skill failure.
+- `.venv/bin/python scripts/lint/silent_catch.py <target>` and count
+  reported violations; non-zero is recorded in `compliance.json`.
 - Future: new rule counters as `/prevent-regression` adds them.
 
 Record raw counts. Do not fail the skill on non-zero counts — that's
@@ -213,10 +227,37 @@ Format per `knowledge/output-format.md`. Structure:
    level symbols with no docstring + complex bodies). These are
    hints for a follow-on `/explain-code` run.
 
+Then run the renderer exactly:
+
+```bash
+HEADER="<one-paragraph subsystem summary>"
+PRIOR_ARGS=()
+if [ -n "${PRIOR_DOC}" ] && [ "${REFRESH:-0}" = "1" ]; then
+  PRIOR_ARGS=(--prior-doc "${PRIOR_DOC}")
+fi
+
+.venv/bin/python .claude/skills/map-subsystem/scripts/render_doc.py \
+  --name "${NAME}" \
+  --target "${TARGET}" \
+  --scratch "${SCRATCH}" \
+  --output "${OUTPUT_PATH}" \
+  "${PRIOR_ARGS[@]}" \
+  --header "${HEADER}" \
+  --effectiveness-log reports/_meta/effectiveness.jsonl
+```
+
+Paste the renderer's `wrote <output> (<bytes> bytes)` line in the
+summary. That line, the output file, and the effectiveness row are the
+truth artifacts for Stages 6-7.
+
 ### Stage 7 — Append to effectiveness log
 
-**Pre:** doc written. **Post:** one new line in
+**Pre:** renderer completed. **Post:** one new line in
 `reports/_meta/effectiveness.jsonl`.
+
+`render_doc.py` appends this row when `--effectiveness-log` is non-empty.
+Verify the row exists before claiming it. If the log write fails but the
+doc was rendered, keep the doc and report the log failure honestly.
 
 Schema:
 ```json
@@ -264,7 +305,8 @@ summary.
 - Refactoring.
 - Detecting smells (that's SUSPECT skills).
 - Proposing fixes.
-- Editing any file except `$OUTPUT_PATH` and the effectiveness log.
+- Editing durable files except `$OUTPUT_PATH` and the effectiveness log.
+- Writing scratch outside `reports/map/<name>/`.
 - Running tests.
 - Generating diagrams that require non-repo tooling (graphviz, mermaid
   renderers). Plain markdown only.
@@ -276,6 +318,10 @@ summary.
 | Target path doesn't exist | Abort with a one-line error + suggestion to re-run with the correct path |
 | `scripts/chunk_file.py` errors on a non-Python file | Flag in the doc's Files section; skip AST inventory for that file |
 | Existing doc + no `--refresh` flag | Warn and exit; don't overwrite |
+| A required scratch file is missing before Stage 6 | Stop before rendering; name the missing file and the stage that should have produced it |
+| `render_doc.py` exits non-zero | Paste stdout/stderr, do not claim the doc or effectiveness row was written |
+| `render_doc.py` writes the doc but not the effectiveness row | Keep the doc; report the missing log row and rerun only Stage 7 if needed |
+| `ruff` is unavailable or exits 2 | Record the tool failure in `compliance.json`; do not report zero violations |
 | `reports/_meta/` missing | Create it — `reports/_meta/README.md` is already tracked so the dir exists in committed state |
 
 ## Repository layout
@@ -285,7 +331,6 @@ summary.
 ├── SKILL.md                      # this file — orchestrator
 ├── scripts/
 │   └── render_doc.py             # Stages 6-7 — renders the doc + appends log
-├── agents/                       # (reserved for future scout-assisted excavation)
 └── knowledge/
     └── output-format.md          # doc structure + worked example
 ```
