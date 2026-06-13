@@ -47,16 +47,43 @@ Invocation does **not** authorize rolling the rule out. The skill
 produces a **proposal** under `reports/prevent-regression/<id>/` and
 stops. The human reviews and executes.
 
-Procedural detail lives in three knowledge files:
+Guard artifacts are **staged, not installed**: author them under the
+proposal directory at their repo-relative destination paths
+(`reports/prevent-regression/<id>/scripts/lint/<rule>.py`,
+`reports/prevent-regression/<id>/tests/lint/<rule>_bad.<ext>`, …), and
+emit wiring (pre-commit hook, CI step, `run.py` RuleSpec, CLAUDE.md
+bullet) as ready-to-apply diff blocks inside `proposal.md`. The Phase
+Pre/Post conditions below name destination paths — read each as "staged
+under the proposal directory at that relative path" until the human
+installs.
 
-- `knowledge/` — shared conventions (points at
-  `_common/skill-conventions.md`) plus custom-lint patterns we've adopted.
+## How success is judged
+
+- Guard artifact + verification recipe **emitted, never installed
+  unilaterally** — no guard artifact or wiring edit lands in the
+  working tree.
+- The skill's own verifier passes and its output is pasted, not
+  asserted: `verify_rule.py` reports BAD_RC=1, GOOD_RC=0 (Phase 3).
+- Historical fire: the rule fires on each pre-fix site via
+  `git show <anchor>^:<file>` and is clean on current HEAD (Phase 6).
+- The bad fixture covers every anti-pattern variant and the good
+  fixture proves the rule stays quiet on legitimate forms (Phase 3) —
+  the precision/recall gates a conformance harness re-runs by
+  side-effect.
+- Test-only guards (Phase 3b): the focused regression module runs
+  green, with its run output in the proposal.
+
+Procedural detail lives beside this file:
+
+- `_common/skill-conventions.md` — shared conventions (symbolic names,
+  report shapes). `knowledge/` is a host-overlay slot for custom-lint
+  patterns the host project adopts; it ships empty in this ecosystem.
 - `agents/rule-designer.md` — scout brief for pattern-shape analysis.
 - `scripts/generate_rule.py` / `scripts/verify_rule.py` — helpers.
 
 ## Argument parsing
 
-Three forms. Detect and route:
+Four forms. Detect and route:
 
 ### Form A — Cluster ID from a recent scan
 Pattern: `cluster:<id>`, `delete:<id>`, `fix:<id>`, `semantic:<id>`,
@@ -230,9 +257,11 @@ Contract for every custom rule:
   and `//` for JS.
 
 `silent_catch.py` is the Python reference implementation. For JS
-lexical guards, mirror the `no_site_endpoint_sprawl.py` shape: suffix
-expansion, template-literal/string-concat matching, blockable comments,
-and a reason-required `// noqa`.
+lexical guards (`no_site_endpoint_sprawl.py` was the source host's
+exemplar — not shipped in this ecosystem;
+<!-- host-adapter: point at a local JS lexical rule exemplar when one exists -->),
+keep this shape: suffix expansion, template-literal/string-concat
+matching, blockable comments, and a reason-required `// noqa`.
 
 ## Phase 3 — Fixtures
 
@@ -393,7 +422,8 @@ Report to the user in ≤10 lines:
 - Verification results (pass/fail).
 - Follow-on findings count (if any).
 - Path to `proposal.md`.
-- Next recommended action: `git add` + commit, or abort if
+- Next recommended action: human reviews the proposal, installs the
+  staged artifacts and wiring diffs, and commits — or abort if
   verification failed.
 
 ## Non-goals
@@ -411,8 +441,8 @@ Report to the user in ≤10 lines:
 ├── SKILL.md                         # this file — orchestrator
 ├── agents/
 │   └── rule-designer.md             # pattern-shape scout brief
-├── knowledge/
-│   └── (host-overlay specifics).md            # pointer to _common + skill-local rules
+├── knowledge/                       # host-overlay slot — ships empty;
+│                                    # conventions live in _common/skill-conventions.md
 └── scripts/
     ├── generate_rule.py             # rule scaffold generator (Phase 2)
     └── verify_rule.py               # fixture-pair verifier (Phase 3)
