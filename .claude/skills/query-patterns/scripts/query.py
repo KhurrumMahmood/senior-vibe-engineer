@@ -2,7 +2,8 @@
 """Matcher for the Tier 2 pattern library at .claude/patterns/.
 
 Usage:
-    query.py "<problem description>" [--top N] [--json] [--include-deprecated]
+    .venv/bin/python .claude/skills/query-patterns/scripts/query.py \
+        "<problem description>" [--top N] [--json] [--include-deprecated]
 
 Exit codes:
     0 at least one match scored above the relevance threshold
@@ -197,7 +198,8 @@ def render_markdown(query: str, results: list[dict], total_patterns: int, parse_
     if not results:
         if total_patterns == 0:
             lines.append("No patterns recorded yet. Capture the problem with `/track-idea intake`")
-            lines.append("and promote with `/promote-idea-to-pattern` when adoption_count >= 1.")
+            lines.append("and promote manually into `.claude/patterns/` once it satisfies")
+            lines.append("the Tier 2 gate in `.claude/docs/pattern-library.md`.")
         else:
             lines.append("Top match score: 0 (below threshold)")
             lines.append("")

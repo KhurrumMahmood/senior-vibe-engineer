@@ -46,6 +46,12 @@ The human reviews the proposal before authorizing `/fix-workflow`.
   shadow" comments are cited, not overridden.
 - One proposal per finding; the handoff target `/fix-workflow
   semantic:<id>` can execute it. Zero production-code edits here.
+- Scout profiles and final proposal claims cite artifacts: current
+  `file:line` references, capability-matrix rows, or pasted scout
+  output. Equivalence claims without citations do not satisfy the gate.
+- The final reply pastes the exact Stage 1 collection output and the
+  Stage 4 effectiveness-log output, or states the command and exit code
+  that prevented logging.
 Write toward these gates from Stage 0.
 
 ## Core beliefs
@@ -53,8 +59,9 @@ Write toward these gates from Stage 0.
 1. **Shape is load-bearing.** The scan's `consolidation_shape` field decides
    what "done" looks like. Don't propose merging shadows the scan classified
    `keep_separate_document_why` — the team already made that decision and
-   documented it in-tree. Known project-specific examples and exceptions
-   live in `knowledge/`, not in this skill file.
+   documented it in-tree. Shape-specific proposal bodies live in
+   `knowledge/proposal-templates.md`; project-specific exceptions come from
+   the triage notes, capability matrix, and in-tree comments.
 2. **One proposal per finding.** If you open a second cluster mid-run,
    stop — emit a follow-on finding and let the user invoke the skill
    again.
@@ -72,13 +79,13 @@ Write toward these gates from Stage 0.
 ## Scope
 
 - **Project root:** this worktree's root.
-- **Python:** `.venv/bin/python` for Django-touching reads; `python3` for
-  `scripts/collect_shadows.py` (stdlib-only).
+- **Python:** `.venv/bin/python` for repo scripts and Django-touching
+  reads.
 - **Worktree guard:** `/fix-workflow` will check the worktree before
   editing; this skill is read-only — no guard required here.
-- **Project-specific defaults** (known shadow patterns, fix-shape
-  mapping): `knowledge/`. Scouts read that file; the
-  orchestrator does not.
+- **Proposal templates:** `knowledge/proposal-templates.md`. The
+  orchestrator reads the section for the scan's `consolidation_shape`
+  during Stage 3; scouts do not read it.
 
 ## Argument parsing
 
@@ -142,7 +149,7 @@ notes).
 For **Form A**:
 
 ```bash
-python3 .claude/skills/unify-shadows/scripts/collect_shadows.py \
+.venv/bin/python .claude/skills/unify-shadows/scripts/collect_shadows.py \
   --triage reports/semantic-duplication/latest/triage.md \
   --finding-id "${FINDING_ID}" \
   --output "${REPORT_DIR}/targets.json"
@@ -162,6 +169,13 @@ For each target, expand `agents/shadow-profiler.md` (substitute
 `{{output_path}}`, `{{capability_matrix_path}}`) and dispatch each scout
 with `subagent_type=general-purpose`. Send every Agent call in a
 **single message** so they run concurrently.
+
+Declared-verdict dispatch: tell each scout its output will be judged only
+by whether `{{output_path}}` exists, uses the required profile sections,
+and cites current `file:line` evidence or capability-matrix rows for
+signature, callers, return contract, resource ownership, retry/error
+policy, load-bearing divergence, and tractable share opportunity. A
+claim like "same behavior" without an artifact citation is unusable.
 
 Each profile captures:
 
@@ -184,9 +198,10 @@ twice, proceed with partial profiles and flag the gap in the proposal.
 
 **Pre:** all profiles on disk. **Post:** `${REPORT_DIR}/proposal.md`.
 
-Read every profile plus the capability matrix. Write `proposal.md` with
-this structure — see `knowledge/` for the exact
-per-shape body templates:
+Read every profile, the capability matrix, and the matching section of
+`knowledge/proposal-templates.md`. Write `proposal.md` with this
+structure, substituting the selected shape-specific body under
+`## Proposed action`:
 
 ```markdown
 # Proposal — {{finding_id}}: {{cluster_title}}
@@ -233,12 +248,13 @@ One line: "Human review required before `/fix-workflow semantic:{{finding_id}}`.
 `reports/_meta/effectiveness.jsonl`.
 
 ```bash
-python3 scripts/log_effectiveness.py \
+SHAPE="$(.venv/bin/python -c 'import json,sys; print(json.load(open(sys.argv[1]))["shape"])' "${REPORT_DIR}/targets.json")"
+.venv/bin/python scripts/log_effectiveness.py \
   --skill unify-shadows \
   --scan-id "${FINDING_ID}" \
-  --target "$(python3 -c 'import json,sys; print(",".join(m["file"] for m in json.load(open(sys.argv[1]))["members"]))' "${REPORT_DIR}/targets.json")" \
-  --findings-total "$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["members"]))' "${REPORT_DIR}/targets.json")" \
-  --buckets "{\"shape\": \"$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["shape"])' "${REPORT_DIR}/targets.json")\"}"
+  --target "$(.venv/bin/python -c 'import json,sys; print(",".join(m["file"] for m in json.load(open(sys.argv[1]))["members"]))' "${REPORT_DIR}/targets.json")" \
+  --findings-total "$(.venv/bin/python -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["members"]))' "${REPORT_DIR}/targets.json")" \
+  --buckets "{\"shape_${SHAPE}\": 1}"
 ```
 
 ### Stage 5 — Summarize
@@ -251,6 +267,7 @@ Report to the user in ≤10 lines:
 - Proposed action (one sentence).
 - Path to `${REPORT_DIR}/proposal.md`.
 - Recommended next command: `/fix-workflow semantic:{{finding_id}}`.
+- Exact Stage 1 collection output and Stage 4 log output.
 
 Do NOT start `/fix-workflow` yourself. The proposal is the handoff
 artifact; the human authorizes the execution step separately.
@@ -275,6 +292,7 @@ artifact; the human authorizes the execution step separately.
 | Scout returns `profile_incomplete` on first try | Re-dispatch once with a stricter "respond only with file-write confirmation" nudge |
 | Two scouts produce contradictory caller lists | Both may be right (private method shadowed under same name) — note the conflict in the proposal and move on |
 | Capability matrix missing | Proceed without — base the divergence paragraph on the triage's `load_bearing_divergence` field and note the matrix gap |
+| `knowledge/proposal-templates.md` missing or empty | Abort before writing `proposal.md`; the per-shape body is load-bearing and must not be invented |
 | Shape is `keep_separate_document_why` but no in-tree comment | The proposal's primary action is "add the documenting comment" plus the optional share-utility; DO NOT invert to a merge |
 
 ## Repository layout
@@ -286,10 +304,20 @@ artifact; the human authorizes the execution step separately.
 │   └── collect_shadows.py           # Stage 1 (stdlib-only)
 ├── agents/
 │   └── shadow-profiler.md           # Stage 2 scout brief
-└── knowledge/                       # scout context, never loaded by orchestrator
-    └── (host-overlay specifics).md
+└── knowledge/
+    └── proposal-templates.md        # Stage 3 shape-specific bodies
 ```
 
-The orchestrator (you) **never reads files in `knowledge/`**. Those are
-for the scout sub-agents. Keeping them out of your context is the whole
-point of this architecture.
+The orchestrator reads only `knowledge/proposal-templates.md`, and only
+the section matching the scan's `consolidation_shape`. Scouts use
+`agents/shadow-profiler.md`, the target source file, and the capability
+matrix path they were handed.
+
+## Replay case
+
+For template or dispatch changes, replay with the smallest fixture triage
+that has one finding for each shape. The replay passes only when
+`collect_shadows.py` writes `targets.json`, four profile stubs can be
+placed under `profiles/`, `proposal.md` uses the matching template
+section verbatim under `## Proposed action`, and the Stage 4 log command
+prints `logged to reports/_meta/effectiveness.jsonl: unify-shadows / <id>`.

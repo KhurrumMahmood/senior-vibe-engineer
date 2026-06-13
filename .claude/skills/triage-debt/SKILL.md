@@ -51,6 +51,9 @@ re-running every detector.
 - The inputs that fed the ranking are declared — which find-* `latest`
   reports, `specs-audit.json`, `decisions-audit.json`, and
   `effectiveness.jsonl` were read, and which were missing.
+- The final reply pastes the exact command output for the Stage 1
+  script runs and the Stage 5 effectiveness log append. Claims without
+  command output do not satisfy the gate.
 - No new detection ran; no production code, spec, or decision status
   was touched — the run writes only under `reports/triage-debt/scan-<TS>/`.
 
@@ -80,13 +83,13 @@ re-running every detector.
 ## Scope (this skill itself)
 
 - **Project root:** this worktree's root.
-- **Python:** `python3` (stdlib-only).
+- **Python:** `.venv/bin/python` for repo scripts.
 - **Read:** `reports/_meta/effectiveness.jsonl`, `reports/<smell>/latest/*.md`
   (on-disk dirs use the smell name without the `find-` prefix —
   `reports/omnibus/`, not `reports/find-omnibus/`),
-  `python3 scripts/specs.py audit --json`,
-  `python3 scripts/specs.py size-check --json`,
-  `python3 scripts/decisions.py audit --json`,
+  `.venv/bin/python scripts/specs.py audit --json`,
+  `.venv/bin/python scripts/specs.py size-check --json`,
+  `.venv/bin/python scripts/decisions.py audit --json`,
   `ai-docs/decisions/` (for `parked_until:` annotations).
 - **Write:** `reports/triage-debt/scan-<TS>/queue.md`.
 - **MAY write (debug only):**
@@ -105,7 +108,37 @@ TS=$(date +%Y%m%d-%H%M%S)
 REPORT_DIR="reports/triage-debt/scan-${TS}"
 mkdir -p "${REPORT_DIR}"
 ln -sfn "scan-${TS}" reports/triage-debt/latest
-TOP_N="${1:-5}"   # honor --top N if passed
+TOP_N=5
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --top)
+            shift
+            if [ -z "${1:-}" ]; then
+                echo "error: --top requires N" >&2
+                exit 2
+            fi
+            TOP_N="$1"
+            ;;
+        --top=*)
+            TOP_N="${1#--top=}"
+            ;;
+        *)
+            echo "error: unknown argument: $1" >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
+case "${TOP_N}" in
+    ''|*[!0-9]*)
+        echo "error: --top must be a positive integer" >&2
+        exit 2
+        ;;
+    0)
+        echo "error: --top must be > 0" >&2
+        exit 2
+        ;;
+esac
 ```
 
 ### Stage 1 — Collect inputs
@@ -113,9 +146,9 @@ TOP_N="${1:-5}"   # honor --top N if passed
 In parallel (all read-only, no dependencies):
 
 ```bash
-python3 scripts/specs.py audit --json       > "${REPORT_DIR}/specs-audit.json"
-python3 scripts/specs.py size-check --json  > "${REPORT_DIR}/specs-size.json" 2>&1 || true
-python3 scripts/decisions.py audit --json   > "${REPORT_DIR}/decisions-audit.json"
+.venv/bin/python scripts/specs.py audit --json       > "${REPORT_DIR}/specs-audit.json"
+.venv/bin/python scripts/specs.py size-check --json  > "${REPORT_DIR}/specs-size.json" 2>&1 || true
+.venv/bin/python scripts/decisions.py audit --json   > "${REPORT_DIR}/decisions-audit.json"
 ls reports/_meta/effectiveness.jsonl       && cp reports/_meta/effectiveness.jsonl "${REPORT_DIR}/effectiveness.jsonl"
 ```
 
@@ -278,7 +311,7 @@ the signal._
 ### Stage 5 — Log effectiveness
 
 ```bash
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill triage-debt \
   --scan-id "scan-${TS}" \
   --target "all" \
@@ -294,6 +327,9 @@ Report to the user in ≤8 lines:
 - Total candidates / top-N called out.
 - 1-line for each top-3 with the recommended next command.
 - Stale-report count (re-run signals).
+- Paste the Stage 1 command outputs and the Stage 5 log append line. If
+  a command failed but the fallback policy allowed proceeding, include
+  the captured stderr path and exit code.
 
 ## Non-goals
 
@@ -314,3 +350,46 @@ Report to the user in ≤8 lines:
 | Every top-5 entry is the same target | Real signal — that target is the worst debt; recommend `/refactor-subsystem` if it's a file, `/decide` if it's a missing decision |
 | Top score is < 50 | Note "no urgent debt — maintenance loop is healthy"; queue.md still useful as a snapshot |
 | Candidate has no recommended-next mapping | Default to `/which-skill <target>` so the user can hand-pick |
+
+## Replay case
+
+For parser or scoring changes, replay the smallest executable boundary:
+
+```bash
+set -- --top 10
+TOP_N=5
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --top)
+            shift
+            if [ -z "${1:-}" ]; then
+                echo "error: --top requires N" >&2
+                exit 2
+            fi
+            TOP_N="$1"
+            ;;
+        --top=*)
+            TOP_N="${1#--top=}"
+            ;;
+        *)
+            echo "error: unknown argument: $1" >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
+case "${TOP_N}" in
+    ''|*[!0-9]*)
+        echo "error: --top must be a positive integer" >&2
+        exit 2
+        ;;
+    0)
+        echo "error: --top must be > 0" >&2
+        exit 2
+        ;;
+esac
+printf '{"top_n": %s}\n' "${TOP_N}" | .venv/bin/python -m json.tool
+```
+
+The replay passes only when `TOP_N` is `10`, the JSON parses, and the
+transcript is pasted into the repair or closeout report.

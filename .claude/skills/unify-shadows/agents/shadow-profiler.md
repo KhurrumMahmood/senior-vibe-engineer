@@ -16,6 +16,16 @@ to synthesize the proposal.
 You do **not** edit files. You do **not** write production code. You do
 **not** summarize the whole cluster — only your one shadow.
 
+## How output is judged
+
+- `{{output_path}}` exists and uses the exact structure in Step 4.
+- Every profile claim that affects the proposal cites a current
+  `file:line` reference or a capability-matrix row. Uncited equivalence
+  claims are treated as `profile_incomplete`.
+- `Status` is honest: write `not_found` or `profile_incomplete` when the
+  source, callers, or capability matrix cannot be read. Do not fabricate
+  a complete profile.
+
 ## Inputs
 
 - `{{finding_id}}` — e.g. `SC-3`

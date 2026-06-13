@@ -48,6 +48,22 @@ The deliverable is a draft or applied profile:
 - `.engineering/project/open-questions.md` — unresolved questions agents
   should revisit.
 
+## How success is judged
+
+- The run writes a draft scan under
+  `${ARTIFACT_ROOT}/reports/project-interview/scan-<TS>/` by default, or
+  additionally writes `.engineering/project/` only when `--apply` was
+  explicitly requested.
+- `profile.yml`, `profile.md`, `open-questions.md`, and `evidence.json`
+  exist in the same scan directory, and the final reply pastes the exact
+  `evidence_gate.py check` output for that scan.
+- `--no-host-write` runs never write inside `${PROJECT_ROOT}`. The
+  command must use an `${ARTIFACT_ROOT}` outside the host project, and
+  every later read/check uses that same artifact root.
+- User answers are captured in the draft profile, or unresolved topics are
+  left in `open-questions.md`; do not claim human approval without a
+  visible user answer.
+
 ## Forms
 
 ```bash
@@ -64,6 +80,17 @@ requires `--artifact-root` outside the host project.
 
 ## Pipeline
 
+0. Establish the artifact root for this run:
+
+   ```bash
+   PROJECT_ROOT="${PROJECT_ROOT:-$(git rev-parse --show-toplevel)}"
+   ARTIFACT_ROOT="${ARTIFACT_ROOT:-${PROJECT_ROOT}}"
+   ```
+
+   If the user invoked `--no-host-write`, set `ARTIFACT_ROOT` to a
+   directory outside `PROJECT_ROOT` before running the helper. Reuse the
+   exact same `ARTIFACT_ROOT` for every later read and evidence gate.
+
 1. Run repo-fact discovery to seed the interview:
 
    ```bash
@@ -75,7 +102,14 @@ requires `--artifact-root` outside the host project.
    Add `--no-host-write` for dogfood or `--apply` only when the user
    wants durable project state written.
 
-2. Read `profile.yml`, `profile.md`, and `open-questions.md`.
+2. Set and read the scan directory:
+
+   ```bash
+   SCAN_DIR="${ARTIFACT_ROOT}/reports/project-interview/latest"
+   ```
+
+   Read `${SCAN_DIR}/profile.yml`, `${SCAN_DIR}/profile.md`, and
+   `${SCAN_DIR}/open-questions.md`.
 3. Ask only questions that cannot be answered from the repo and that
    materially change future agent behavior:
    - What is the project for, and who is it for?
@@ -94,8 +128,11 @@ requires `--artifact-root` outside the host project.
    ```bash
    .venv/bin/python scripts/evidence_gate.py check \
      --skill project-interview \
-     --scan-dir reports/project-interview/latest
+     --scan-dir "${SCAN_DIR}"
    ```
+
+   Paste the gate output in the final reply. A claim that the artifacts
+   exist is not enough.
 
 ## How Future Skills Use The Profile
 
@@ -115,8 +152,35 @@ messy project, repeated patterns are often scars, not examples. Capture
 those under `open-questions.md` or the profile's standardization policy
 so future agents do not turn accidental consistency into doctrine.
 
-## Inspiration
+## When things go sideways
 
-This skill was inspired in part by GAIA React's agent workflow ideas,
-especially its fitness, forensics, audit, and review-gate patterns:
-https://github.com/gaia-react/gaia
+| Symptom | Action |
+|---|---|
+| `--no-host-write` fails because the artifact root is inside the project | Stop, choose an artifact root outside `${PROJECT_ROOT}`, and rerun; do not retry without `--no-host-write` |
+| The helper exits 2 | Paste stderr, fix the invocation or write-mode conflict, and do not claim a profile was produced |
+| `reports/project-interview/latest` is missing under `${ARTIFACT_ROOT}` | Use the timestamped scan directory printed by `project_adapt.py interview`; do not fall back to the repo-local reports path |
+| Evidence gate reports missing tokens | Leave the run incomplete; name the missing token and scan directory in the user reply |
+| User is unavailable for interview answers | Keep the generated draft and move unanswered items to `open-questions.md`; do not mark the profile approved |
+| `--apply` was requested but durable `.engineering/project/` writes fail | Keep the draft scan as evidence, paste the write failure, and do not claim durable profile files were written |
+
+## Replay case
+
+For artifact-root or evidence-gate changes, replay the dogfood form with a
+temporary artifact root:
+
+```bash
+ARTIFACT_ROOT="$(mktemp -d)"
+.venv/bin/python scripts/project_adapt.py interview \
+  --project-root "$(git rev-parse --show-toplevel)" \
+  --artifact-root "${ARTIFACT_ROOT}" \
+  --timestamp project-interview-smoke \
+  --no-host-write
+SCAN_DIR="${ARTIFACT_ROOT}/reports/project-interview/latest"
+.venv/bin/python scripts/evidence_gate.py check \
+  --skill project-interview \
+  --scan-dir "${SCAN_DIR}"
+```
+
+The replay passes only when the helper prints the scan directory under
+`${ARTIFACT_ROOT}` and the evidence gate prints `OK: 3/3 required evidence
+shapes present.`

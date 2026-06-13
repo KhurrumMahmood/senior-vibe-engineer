@@ -9,7 +9,7 @@ pins the shape.
 
 Usage:
 
-    python3 .claude/skills/unify-shadows/scripts/collect_shadows.py \\
+    .venv/bin/python .claude/skills/unify-shadows/scripts/collect_shadows.py \\
       --triage reports/semantic-duplication/latest/triage.md \\
       --finding-id SC-3 \\
       --output reports/unify-shadows/SC-3/targets.json
@@ -40,7 +40,8 @@ Output schema:
       ]
     }
 
-Stdlib-only; runs under bare `python3`.
+Stdlib-only; the skill invokes it with `.venv/bin/python` so the command
+shape is consistent across agents.
 """
 
 from __future__ import annotations

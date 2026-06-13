@@ -35,11 +35,13 @@ at `.claude/patterns/`. You read every pattern file's frontmatter and
 body, score against a free-text problem description, and return the
 top-N ranked matches.
 
-You do NOT modify the pattern library — promotion is
-`/promote-idea-to-pattern`, deprecation is a manual edit, research is
-`/mature-existing-ideas`. You do NOT search the Tier 1 ledger —
-unpromoted ideas don't have validated value yet, and surfacing them by
-default would dilute the signal.
+You do NOT modify the pattern library — capture new candidates with
+`/track-idea intake`, promote manually into `.claude/patterns/` when
+they satisfy the Tier 2 gate in `.claude/docs/pattern-library.md`,
+deprecation is a manual edit, and research is `/mature-existing-ideas`.
+You do NOT search the Tier 1 ledger — unpromoted ideas don't have
+validated value yet, and surfacing them by default would dilute the
+signal.
 
 The pattern format, promotion gate, qualifier graduation rules, and
 status lifecycle live in `.claude/docs/pattern-library.md`. **Read that
@@ -49,6 +51,22 @@ ambiguously.
 A lower-friction companion to this skill is the inline prompt template
 at `.claude/docs/query-patterns-inline.md` — paste-into-context for
 ad-hoc reads when a full skill invocation is overkill.
+
+## How success is judged
+
+- The matcher command is run exactly as documented with `.venv/bin/python`,
+  and the final reply pastes the matcher output plus the exit code when
+  it is nonzero.
+- Exit 0 means at least one pattern matched above threshold. Exit 1 means
+  no match or an empty library, and is a valid lookup result when the
+  rendered guidance is delivered. Exit 2 is usage error and does not count
+  as a completed lookup.
+- No pattern files, ledger files, or docs are modified by this skill. The
+  run may append one effectiveness-log line only after the matcher output
+  has been delivered.
+- No-match guidance routes to `/track-idea intake` and manual Tier 2
+  promotion per `.claude/docs/pattern-library.md`; it must not name a
+  nonexistent promotion skill.
 
 ## Core beliefs
 
@@ -94,9 +112,10 @@ If the argument is empty, abort with usage guidance.
 located.
 
 The patterns live at `${REPO_ROOT}/.claude/patterns/*.md`. If the
-directory is empty (Tier 2 not yet populated), exit 0 with a message
-recommending `/track-idea` for capture and `/promote-idea-to-pattern`
-once an idea reaches `adoption_count >= 1`.
+directory is missing or empty (Tier 2 not yet populated), the matcher
+returns exit 1 with a message recommending `/track-idea intake` for
+capture and manual Tier 2 promotion once an idea satisfies the adoption
+gate in `.claude/docs/pattern-library.md`.
 
 ### Stage 1 — Run the matcher
 
@@ -104,7 +123,7 @@ once an idea reaches `adoption_count >= 1`.
 matcher output captured.
 
 ```bash
-python3 .claude/skills/query-patterns/scripts/query.py "${PROBLEM}" \
+.venv/bin/python .claude/skills/query-patterns/scripts/query.py "${PROBLEM}" \
   [--top N] [--json] [--include-deprecated] [--project-root DIR]
 ```
 
@@ -153,8 +172,8 @@ When `total_patterns == 0`:
 Library size: 0 patterns.
 
 No patterns recorded yet. Capture the problem with /track-idea intake
-and promote with /promote-idea-to-pattern when it reaches adoption_count
->= 1.
+and promote manually into .claude/patterns/ when it satisfies the Tier 2
+gate in .claude/docs/pattern-library.md.
 ```
 
 When matches is empty:
@@ -175,7 +194,7 @@ No patterns in the library match this problem closely. Either:
 `reports/_meta/effectiveness.jsonl`.
 
 ```bash
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill query-patterns \
   --scan-id "query-$(date +%s)" \
   --target "${PROBLEM_SLUG}" \
@@ -195,7 +214,8 @@ unaided.
 
 ## Non-goals
 
-- Writing to the pattern library (that's `/promote-idea-to-pattern`).
+- Writing to the pattern library (manual Tier 2 promotion per
+  `.claude/docs/pattern-library.md`).
 - Editing pattern files (open them directly for content edits).
 - Searching the Tier 1 ledger (use `/track-idea list` instead).
 - Recommending external libraries / docs (this is project-local prior
@@ -208,9 +228,10 @@ unaided.
 | Symptom | Action |
 |---|---|
 | Empty problem description | Abort with usage example |
-| `.claude/patterns/` doesn't exist | Exit 0 with capture guidance |
+| `.claude/patterns/` doesn't exist | Treat matcher exit 1 as a valid no-match result; render capture guidance |
 | Pattern file has malformed YAML | Surface the file path and parse error; skip the file; continue with the others |
 | All scores 0 | Render the "no match" template; suggest re-wording |
+| Matcher exits 2 | Treat as invocation failure; paste stderr and do not log effectiveness |
 | Same pattern slug appears twice (file system case-collision) | Surface both; do not silently dedupe |
 | `--include-deprecated` flips a deprecated pattern to top rank | Render it; mark `[deprecated]` in the status field clearly |
 
@@ -226,18 +247,30 @@ unaided.
 The matcher uses the shared YAML frontmatter parser at
 `scripts/_lib/yaml_frontmatter.py` — same one `decisions.py`,
 `plans.py`, `skill_meta.py`, `specs.py`, and `which-skill/match.py`
-depend on.
+depend on. Use `.venv/bin/python` so PyYAML is available.
 
-## Future evolution
+## Replay case
 
-The matcher is a token-overlap heuristic, identical in spirit to
-`/which-skill`. When the library grows past ~50 patterns and patterns
-of mis-ranking emerge, it will likely evolve toward LLM-assisted
-matching — the frontmatter is written as natural-language sentences
-specifically so a language-model matcher can read them.
+For exit-code or no-match guidance changes, replay two boundaries:
 
-Until then, the heuristic version is more debuggable, faster, and
-free.
+```bash
+EMPTY_ROOT="$(mktemp -d)"
+mkdir -p "${EMPTY_ROOT}/.claude/patterns"
+.venv/bin/python .claude/skills/query-patterns/scripts/query.py \
+  "workflow registry guard" \
+  --project-root "${EMPTY_ROOT}"
+printf 'rc=%s\n' "$?"
+
+.venv/bin/python .claude/skills/query-patterns/scripts/query.py \
+  "workflow registry guard" \
+  --project-root "$(git rev-parse --show-toplevel)"
+printf 'rc=%s\n' "$?"
+```
+
+The empty-library replay passes only when the output says no patterns
+are recorded, names `/track-idea intake`, does not name a promotion skill,
+and exits `rc=1`. The populated-library replay passes when the exit code
+matches the rendered result: `rc=0` for matches, `rc=1` for no match.
 
 ## Cross-references
 
