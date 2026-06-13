@@ -8,10 +8,12 @@ two independent axes, each an ordinal ladder:
   - maturity: prototype(0) < first-users(1) < production(2)
   - stakes:   internal(0)  < external(1)    < public-adversarial(2)
 
-A project declares its (maturity, stakes) in a `.project-state.json`
-surface at the repo root (JSON so this tooling stays stdlib-only). A
-standard declares an `activation` of either `{"baseline": true}` (always
-in scope) or `{"rungs": [...]}` where each rung carries
+A project declares its (maturity, stakes) in
+`.engineering/project-state.json`, with a legacy repo-root
+`.project-state.json` fallback during the ADR 0021 transition (JSON so
+this tooling stays stdlib-only). A standard declares an `activation` of
+either `{"baseline": true}` (always in scope) or `{"rungs": [...]}` where
+each rung carries
 `{min_maturity, min_stakes}`. A rung is ACTIVE iff the declared state
 meets BOTH thresholds; a standard is IN SCOPE iff it is baseline or has
 at least one active rung.
@@ -118,7 +120,7 @@ def load_project_state(root: Path) -> dict | None:
 
 
 def assumed_max_state() -> dict:
-    """The MAX state to use when no `.project-state.json` is declared.
+    """The MAX state to use when no project-state file is declared.
 
     A fresh dict each call so a caller can annotate it without mutating
     the shared constant.

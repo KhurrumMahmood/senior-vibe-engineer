@@ -2,7 +2,7 @@
 name: find-transaction-overreach
 description: Detect Django `transaction.atomic()` blocks (and `@transaction.atomic` functions) that hold a DB connection while doing slow / external work. Runs an AST scan for HTTP calls, AI/SDK calls, cloud uploads, `time.sleep`, subprocess, and Celery dispatch inside atomic regions; collapses hits per block, fans out scout sub-agents to bucket each candidate (narrow / split / defer / legitimate / false positive), and produces a report that hands off to `/fix-workflow cluster:<symbol>`. Detection-only — never edits production code.
 argument-hint: "--target <directory>"
-allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
+allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
@@ -44,6 +44,10 @@ it, you don't.
 - `${REPORT_DIR}/report.md` and `findings.json` agree — every finding
   traces to a Stage 3 scout verdict at `scout/<candidate_id>.json`
   with the atomic-block span and slow-op category as evidence.
+- The closeout pastes the real Stage 1/2/4 command output lines
+  (`[detect_transaction_overreach]`, `[collapse_transaction_overreach]`,
+  `[report_transaction_overreach]`) and bases claims on those artifacts,
+  not on scout or orchestrator assertion.
 - Each candidate lands in one of the five buckets; `# atomic-overreach:`
   markers and `transaction.on_commit` deferrals are honored, never
   reported as actionable.
@@ -59,9 +63,10 @@ Write toward these gates from Stage 0.
 - **Project root:** this worktree's root.
 - **Python:** `python3` (the detectors are stdlib-only and run without
   the venv).
-- **Project-specific defaults** (known false-positive helper names,
-  `transaction.on_commit` conventions, `safe_dispatch` semantics,
-  detection gaps): in `knowledge/`.
+- **Scout knowledge:** `knowledge/verification.md` is the required
+  verifier context and is non-empty. Host-specific overlay files under
+  `knowledge/` are optional; if none exist, do not invent project
+  conventions.
 
 ## Pipeline stages (each has a contract)
 
@@ -100,6 +105,10 @@ that at Stage 3) — a `self._build_payload(...)` call inside an atomic
 block won't surface unless the helper name matches the
 `network_helper` rules.
 
+Optional detector flag: repeat `--skip-file-glob <glob>` to skip extra
+test or generated files. The built-in skips already exclude common test
+filenames, migrations, venvs, build outputs, and `node_modules`.
+
 ### Stage 2 — Collapse
 
 **Pre:** `hits.jsonl`. **Post:** `${REPORT_DIR}/candidates.jsonl` —
@@ -128,11 +137,12 @@ Confidence tiers (assigned by category mix):
 `${REPORT_DIR}/scout/<candidate_id>.json` for every verified candidate.
 
 This is the **only stage where LLM judgment runs**. Dispatch one
-sub-agent per candidate; each receives:
+sub-agent per selected candidate; each receives:
 
 - the candidate JSON (one line from `candidates.jsonl`),
 - the prompt template from `agents/verify.md`,
-- paths to the `knowledge/*` files,
+- the required knowledge file path
+  `.claude/skills/find-transaction-overreach/knowledge/verification.md`,
 - an output path it must write to.
 
 **Budget:** verify up to **10 high-confidence candidates by default**,
@@ -151,14 +161,17 @@ dispatch.
 For each selected candidate, expand `agents/verify.md` (substitute
 `{{candidate_id}}`, `{{candidate_json}}`, `{{project_root}}`,
 `{{skill_root}}`, `{{output_path}}`) and dispatch with
-`subagent_type=general-purpose`. Send all Agent calls in a **single
+`subagent_type=general-purpose`. Tell each scout its output will be
+judged only by the JSON file it writes at `{{output_path}}`: valid JSON,
+one of the five bucket values, required evidence fields, and notes tied
+to the candidate's block/span. Send all Agent calls in a **single
 message** so they run concurrently.
 
 If a scout returns invalid JSON, re-dispatch once with a stricter
 "respond only with file-write confirmation" nudge; skip the candidate
 if it fails twice.
 
-#### Dispatch mode — Agent tool vs cheap subprocess
+#### Dispatch mode
 
 This skill declares `scout_model: cheap` — the verify step is read-and-
 classify against the five buckets in `verify.md` (`narrow_transaction`
@@ -168,30 +181,10 @@ enclosing block and resolves whether the slow op can move outside or
 needs to defer via `on_commit`. No cross-file synthesis, no shell.
 Safe on Haiku-class scouts.
 
-For nesting-safe + low-cost fan-out, dispatch each candidate as a
-`tools/code_agent.py --read-only` subprocess via
-`.claude/skills/_common/dispatch_scout_cheap.sh`.
-
-```bash
-while read -r line; do
-    cid=$(jq -r '.candidate_id' <<<"$line")
-    out="${REPORT_DIR}/scout/${cid}.json"
-    .claude/skills/_common/dispatch_scout_cheap.sh \
-        .claude/skills/find-transaction-overreach/agents/verify.md \
-        "$out" \
-        candidate_id="$cid" \
-        candidate_json="$(jq -c . <<<"$line")" \
-        project_root="$(pwd)" \
-        skill_root=".claude/skills/find-transaction-overreach" \
-        output_path="$out" &
-done < "${REPORT_DIR}/candidates.jsonl"
-wait
-```
-
-Use the cheap subprocess by default; fall back to `Agent` when only a
-handful of candidates need verification interactively and the user is
-watching, or when the receiver helper is genuinely ambiguous (e.g.,
-a project-internal name the scout can't resolve from the local file).
+Use the Agent tool as the shipped default. Do not route through
+`.claude/skills/_common/dispatch_scout_cheap.sh` unless you first prove
+that its receiver exists in the current checkout and paste that proof;
+otherwise the documented fan-out must stay on the Agent tool path.
 
 ### Stage 4 — Report
 
@@ -252,11 +245,24 @@ The report is the source of truth — do not enumerate every candidate.
 | Symptom | Action |
 |---|---|
 | Stage 1 detect.py finds 0 hits | Target has no transaction-overreach smell (best outcome) — or the directory argument is wrong. Re-run with a valid `--target <dir>` or widen to `--target .` |
+| Stage 1 exits 2 with `not found` | The `--target` path does not exist. Stop and ask for a real file/directory; do not scan `.` as a silent fallback |
 | Stage 1 detect.py is slow (>2 min) | Shouldn't happen on a typical source tree — check for `__pycache__` entries in target. Add more `--skip-file-glob` flags if needed |
 | Stage 2 reports 0 candidates | Same as Stage 1 zero — or collapse ignored all hits (check stderr) |
+| Stage 3 cannot dispatch Agent scouts | Stop after Stage 2 and report the raw candidate count plus the missing dispatch capability. Do not fabricate scout JSON |
+| A scout JSON file is missing or invalid twice | Skip that candidate, state which `candidate_id` failed, and let Stage 4 render the remaining scout outputs |
 | Stage 3 scout buckets everything as `false_positive` | Scout is being too permissive on `celery` hits. Inspect one output; the `safe_dispatch` + `transaction.on_commit` combination IS legitimate, but `safe_dispatch` alone (no on_commit) inside an atomic block is still worth flagging |
 | Scout recommends `narrow_transaction` for a `select_for_update().get()` followed by row update | That's the canonical row-locking pattern — should be `false_positive` (the only "external" thing inside is a row read, not a slow op). Re-dispatch with the `knowledge/` row-locking note cited |
 | Report lists `# atomic-overreach:`'d candidates as actionable | Detector bug — the marker should have exempted the hit before collapse. Investigate, fix the detector's `ALLOWLIST_RE` range check |
+
+## Replay case
+
+For future repairs, replay the deterministic boundary with a temporary
+Python file containing one `with transaction.atomic(): requests.get(...)`
+block. The expected evidence is: Stage 1 writes one hit, Stage 2 writes
+one candidate, a hand-written scout JSON using one of the five buckets
+lets Stage 4 write `report.md` and `findings.json`, and the three pasted
+stderr lines show matching counts. Do not use this replay to validate
+scout quality; it validates the script/report contract only.
 
 ## Repository layout
 

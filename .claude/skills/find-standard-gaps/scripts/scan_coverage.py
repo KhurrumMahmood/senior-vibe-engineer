@@ -38,11 +38,13 @@ A "0 gaps" result is only trustworthy under `status: scanned`.
 
 Standard activation (ADR 0020): each standard may carry an `activation`
 of `{"baseline": true}` or `{"rungs": [{min_maturity, min_stakes}, ...]}`.
-The project's state is read from `<project-root>/.project-state.json`
-(maturity x stakes). A standard is gated in scope BEFORE its detector
-runs; if no state file is found, MAX (production / public-adversarial) is
-assumed so nothing is silently skipped, with a prominent warning to run
-`/orient`. See knowledge/detector-model.md and project_state.py.
+The project's state is read from
+`<project-root>/.engineering/project-state.json`, with a legacy
+`<project-root>/.project-state.json` fallback (maturity x stakes). A
+standard is gated in scope BEFORE its detector runs; if no state file is
+found, MAX (production / public-adversarial) is assumed so nothing is
+silently skipped, with a prominent warning to run `/orient`. See
+knowledge/detector-model.md and project_state.py.
 
 Stdlib-only. Read-only against the codebase.
 

@@ -46,13 +46,18 @@ work; there is no scout fan-out. The detector model (how `ast` and
 
 ## How success is judged
 
-- `coverage.md` enumerates every standard's coverage cells —
-  situation-site count, gap count, coverage % — with no standard
-  silently dropped (`manual`/`skill` standards reported as skipped).
+- `coverage.md` and `coverage.json` agree on every standard's status.
+  Grade the run by these artifacts plus the pasted `scan_coverage.py`
+  stdout/stderr, not by an executor's claim that the scan "passed".
+- `coverage.md` enumerates every in-scope standard's coverage cells —
+  situation-site count, gap count, coverage % — with no standard silently
+  dropped (`manual`/`skill` standards reported as skipped).
 - Each standard carries an explicit analyzability verdict:
-  `language_unsupported` is surfaced as "could not analyze", never
-  passed off as 0 gaps / compliant.
-- Clean standards (0 gaps) are named as positive results.
+  `gated_out`, `language_unsupported`, `no_files_matched`, and `error`
+  are surfaced as non-passing statuses, never passed off as 0 gaps /
+  compliant.
+- Clean standards are named as positive results only when their status is
+  `scanned` and their gap count is 0.
 - No production edits — the run writes only under
   `reports/standard-gaps/scan-<TS>/`.
 
@@ -74,7 +79,8 @@ work; there is no scout fan-out. The detector model (how `ast` and
 ## Scope
 
 - **Project root:** the repository root.
-- **Python:** `python3` — `scan_coverage.py` is stdlib-only.
+- **Python:** `python3` — `scan_coverage.py`, `project_state.py`, and
+  `census.py` are stdlib-only.
 - **Output:** `reports/standard-gaps/scan-<TS>/` only. Never edits code.
 
 ## Argument
@@ -88,6 +94,17 @@ with two universal example standards. On first use, copy it to
 source root, and replace the examples with the baseline standards your
 codebase should uphold. The file shape and the detector model are in
 `knowledge/detector-model.md`.
+
+Standards may include an `activation` block (ADR 0020 shape):
+`{"baseline": true}` or `{"rungs": [{"min_maturity": "...",
+"min_stakes": "..."}]}`. `scan_coverage.py` gates each standard against
+the project state before running the detector.
+
+Project state is read from `.engineering/project-state.json`, falling
+back to the legacy `.project-state.json`. If no state file exists, the
+script assumes MAX (`production` / `public-adversarial`) and prints a
+warning so no standard is silently skipped. To test a specific state
+surface, pass `--project-state <path>` explicitly.
 
 ## Pipeline
 
@@ -110,21 +127,38 @@ python3 .claude/skills/find-standard-gaps/scripts/scan_coverage.py \
 ```
 
 `scan_coverage.py` runs each standard's detector against the tree and
-writes `coverage.md` (human report) and `coverage.json` (machine —
-reserved for query_planner v1.0, not yet consumed; Stage 2 reads only
-`coverage.md`). It
-recognises `ast` (`enclosed_by` / `requires_kwarg`) and `grep`
-detectors; `manual`/`skill` standards are reported as skipped.
+writes `coverage.md` (human report) and `coverage.json` (machine
+evidence). It recognises `ast` (`enclosed_by` / `requires_kwarg`) and
+`grep` detectors; `manual`/`skill` standards are reported as skipped.
+
+Paste the script's stdout/stderr into your closeout or report. The
+summary line names the declared project state, scanned count, total gap
+count, and non-passing status counts such as `gated out`,
+`language-unsupported`, and `no-files-matched`.
+
+Optional explicit-state form, for replaying a project-state fork:
+
+```bash
+python3 .claude/skills/find-standard-gaps/scripts/scan_coverage.py \
+  --ideas "$STANDARDS" \
+  --project-root "$(pwd)" \
+  --project-state ".engineering/project-state.json" \
+  --output-dir "$REPORT_DIR"
+```
 
 ### Stage 2 — Summarize
 
-Read `coverage.md`. Report to the user in ≤10 lines:
+Read `coverage.md` and, when judging status bands, confirm the matching
+record in `coverage.json`. Report to the user in ≤10 lines:
 
 - per standard: situation-site count, gap count, coverage %;
 - the highest-priority gaps (a security/resilience standard with gaps
   outranks a style one);
-- standards that came back **clean** (0 gaps) — name them, that is a
-  positive result;
+- standards that came back **clean** (`status: scanned`, 0 gaps) — name
+  them, that is a positive result;
+- standards that were `gated_out`, `language_unsupported`,
+  `no_files_matched`, `skipped`, or `error` — name them separately and
+  do not count them as compliant;
 - path to `${REPORT_DIR}/coverage.md`.
 
 ### Stage 3 — Hand off
@@ -180,10 +214,25 @@ deciding satisfaction.
 
 | Symptom | Action |
 |---|---|
+| `--ideas` is missing, malformed JSON, or has no `ideas` array | Stop and report the exact script error. Do not synthesize a standard list from prose |
+| Explicit `--project-state <path>` does not exist, or a present state file is malformed | Stop and fix the state path/file. Do not fall back to assumed MAX for an explicit typo |
+| No project state exists at the default location | Accept the script's assumed-MAX warning, paste it, and tell the user `/orient` can declare the real `(maturity, stakes)` |
+| A standard is `gated_out` | Report it as out of scope for the declared project state. It was not scanned and is not a 0-gap pass |
 | A standard reports a huge gap count | The detector is too broad, or the situation regex matches non-code — tighten `call_matches`, or switch a `grep` standard to `ast` |
 | A `grep` standard flags comments/strings | Expected — `grep` is comment/string-blind. Convert it to an `ast` detector |
-| 0 standards scanned | All standards are `manual`/`skill`, or the standards file has no `ideas` array |
+| 0 standards scanned | Check `coverage.json`: all entries are likely `gated_out`, `manual`/`skill`, `no_files_matched`, or `error`. Report the actual statuses |
+| `no_files_matched` | Treat as a misconfigured glob or wrong project root, not as compliance |
+| `language_unsupported` | Apply the "When the target language isn't supported" branch above |
 | A gap is a deliberate exception | Not a tool failure — note it at fix time; a future `--allow` list could record approved exceptions |
+
+## Replay case
+
+For future repairs to this skill, replay a tiny standard against a
+temporary project and paste the real stdout plus the first status row from
+`coverage.json`. The expected shape is: absent project state prints the
+assumed-MAX warning; a Python `ast` standard with one unsatisfied call
+prints `state production/public-adversarial: scanned 1/1 standard(s): 1
+coverage gap(s)`; `coverage.json` records `status: scanned`.
 
 ## Census mode — discover before you declare
 
@@ -245,6 +294,7 @@ list[Site]` that returns one `Site` per occurrence with a normalised
 ├── SKILL.md                  # this file — orchestrator
 ├── scripts/
 │   ├── scan_coverage.py      # gap scan — deterministic, stdlib-only
+│   ├── project_state.py      # ADR-0020 activation gate helper
 │   └── census.py             # census mode — discover before you declare
 ├── knowledge/
 │   └── detector-model.md     # the detector model + how to add a standard

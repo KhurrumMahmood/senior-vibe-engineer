@@ -87,6 +87,32 @@ harmless. For anything structural, use `ast`.
 - `kind: manual` — no executable detector; the standard is checked by
   hand. `scan_coverage.py` skips it.
 
+## Activation gating
+
+Before any detector runs, `scan_coverage.py` asks whether the standard is
+in scope for the project's declared state. The state axes are:
+
+- `maturity`: `prototype` < `first-users` < `production`
+- `stakes`: `internal` < `external` < `public-adversarial`
+
+State is loaded from `.engineering/project-state.json`, with the legacy
+`.project-state.json` path accepted during the transition. If neither
+exists, the scanner assumes the maximum state (`production` /
+`public-adversarial`) and prints a warning so production-grade standards
+are not silently skipped.
+
+A standard can declare:
+
+- `activation: {"baseline": true}` — always in scope.
+- `activation: {"rungs": [{"min_maturity": "production",
+  "min_stakes": "external"}]}` — in scope when at least one rung is
+  satisfied by the declared state.
+
+When no `activation` block exists, the scanner treats the standard as
+baseline for backward compatibility. When a standard is not in scope, the
+output status is `gated_out`: the detector did not run, the standard did
+not pass, and its gap count must not be read as zero.
+
 ## Language support
 
 - The **`ast` detector is Python-only** — it is CPython's standard-
@@ -163,7 +189,7 @@ a real host project (2026-05-21):
   guard it" — cannot be checked by this skill today; that needs a
   configurable include-list.
 - `scan_coverage.py` reports a per-standard status. **Only `scanned` is
-  a real result.** `no_files_matched` (a misconfigured glob),
-  `language_unsupported`, and a `scanned` result with `skipped_files > 0`
-  all mean part or all of the surface went unexamined — never read them
-  as "0 gaps = compliant".
+  a real coverage result.** `gated_out` (activation thresholds not met),
+  `no_files_matched` (a misconfigured glob), `language_unsupported`, and
+  a `scanned` result with `skipped_files > 0` all mean part or all of the
+  surface went unexamined — never read them as "0 gaps = compliant".

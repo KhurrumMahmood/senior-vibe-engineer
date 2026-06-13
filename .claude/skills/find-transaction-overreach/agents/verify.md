@@ -3,11 +3,10 @@
 This file is a **prompt template** the orchestrator expands and sends
 to a sub-agent. Placeholders are double-brace `{{name}}`. The
 orchestrator fills them in and calls
-`Agent(subagent_type="general-purpose", prompt=<expanded>)` or runs
-the brief through `dispatch_scout_cheap.sh` for cheap-tier scouts.
+`Agent(subagent_type="general-purpose", prompt=<expanded>)`.
 
 Fresh sub-agent, no prior context. Everything the scout needs is
-either inline below or in the two knowledge files it will Read.
+either inline below or in `knowledge/verification.md`.
 
 ---
 
@@ -33,12 +32,11 @@ Write your output here: `{{output_path}}`
 
 Read in this order:
 
-1. `{{skill_root}}/knowledge/` (host-project overlay) — the host project conventions
-   for `transaction.on_commit`, `safe_dispatch`, `select_for_update`,
-   known false-positive helper names, and the `# atomic-overreach:`
-   allow-list marker.
-2. `{{skill_root}}/knowledge/verification.md` — the smell, the five
-   buckets, the verification checklist, the output schema.
+1. `{{skill_root}}/knowledge/verification.md` — the smell, the five
+   buckets, the verification checklist, and the output schema.
+2. Any additional `{{skill_root}}/knowledge/*.md` files if the host has
+   supplied them. Additional files are optional; if none exist, use only
+   `verification.md` and do not invent host conventions.
 
 ### Verification procedure (follow in order)
 
@@ -138,3 +136,8 @@ Do not print the JSON to your reply. Write it to `{{output_path}}` and
 respond with at most two sentences confirming you wrote the file (and
 one sentence flagging anything surprising the orchestrator should
 know).
+
+Your output will be judged only by the file at `{{output_path}}`: it must
+be valid JSON, carry exactly one of the five bucket values, preserve the
+candidate identity/span, and cite the evidence you actually read in
+`notes`. A conversational claim without the JSON file does not count.
