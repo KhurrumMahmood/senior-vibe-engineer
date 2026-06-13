@@ -30,7 +30,7 @@ consumes: [frame_review, dogfood_log, skill_context]
 produces: [repaired_skill, campaign_record, lift_report]
 evidence_required: [scout_verification, change_spec, independent_verification, lift_result]
 risk_triggers: [skill_rewrite, doctrine_surface, weak_tier_executors]
-max_overhead: "Stop if no evidence of execution-time failure exists — review first, repair second."
+max_overhead: "Stop if no evidence exists — review first, repair second. Evidence is an execution-time failure OR missing activation-standard elements (knowledge/skill-standard.md)."
 ---
 
 # /repair-skill
@@ -83,9 +83,13 @@ Write toward these gates from Stage 0.
 
 ### Stage 0 — Intake and scale
 
-Confirm the target exists and evidence of execution-time failure
-exists (frame review, dogfood log, incident, telemetry). No evidence →
-run Stage 1 as a standalone review and stop for triage.
+Confirm the target exists and evidence exists — either an
+execution-time failure (frame review, dogfood log, incident,
+telemetry) or a **standards-uplift intake**: the skill lacks elements
+of `knowledge/skill-standard.md` (dry-but-correct prose a weak
+executor won't follow is the defect; no incident required — name the
+missing elements as the findings). Neither → run Stage 1 as a
+standalone review and stop for triage.
 
 Freeze the pre-repair skill: `mkdir -p /tmp/skill-repairs-old && cp -R
 .claude/skills/<skill> /tmp/skill-repairs-old/<skill>` (probes need
