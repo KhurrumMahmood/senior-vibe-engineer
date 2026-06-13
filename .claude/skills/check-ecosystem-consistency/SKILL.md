@@ -39,6 +39,20 @@ possibly a `/which-shape` registry update. Not every new skill belongs
 in a shape, but every new skill should be consciously reviewed against
 the shape registry.
 
+## How success is judged
+
+- The script exit code is honored. If
+  `.claude/skills/check-ecosystem-consistency/scripts/check.py` exits
+  nonzero, report the failure and do not call the ecosystem consistent.
+- `report.md`, `state.json`, `findings.json`, and `evidence.json` are
+  written under `reports/check-ecosystem-consistency/scan-<UTC>/`
+  (`previous-state.json` is included when a baseline exists).
+- Every `findings.json` row is relayed complete in the user-facing
+  findings table: `pattern`, `severity`, `file`, `summary`, and
+  `recommendation`.
+- `--update-state` is run only after the findings have been reviewed and
+  any needed catalogue or `/which-shape` updates have landed.
+
 ## Forms
 
 ```bash
@@ -53,6 +67,15 @@ Script form:
 ```bash
 .venv/bin/python .claude/skills/check-ecosystem-consistency/scripts/check.py
 ```
+
+Execution contract:
+
+| Form | Script command | Contract |
+|---|---|---|
+| `/check-ecosystem-consistency` | `.venv/bin/python .claude/skills/check-ecosystem-consistency/scripts/check.py` | Snapshot the full ecosystem, compare to `.claude/ecosystem/last-state.json`, and write a timestamped report |
+| `/check-ecosystem-consistency --changed-from REF` | `.venv/bin/python .claude/skills/check-ecosystem-consistency/scripts/check.py --changed-from REF` | Include `git diff --name-only REF` paths in `report.md`; the ecosystem snapshot is still full, not limited to those paths |
+| `/check-ecosystem-consistency --staged` | `.venv/bin/python .claude/skills/check-ecosystem-consistency/scripts/check.py --staged` | Include staged `git diff --name-only --cached` paths in `report.md`; the ecosystem snapshot is still full |
+| `/check-ecosystem-consistency --update-state` | `.venv/bin/python .claude/skills/check-ecosystem-consistency/scripts/check.py --update-state` | Write `.claude/ecosystem/last-state.json` only after the preceding report's findings were reviewed and required follow-up landed |
 
 ## What It Checks
 
@@ -84,6 +107,15 @@ The script reads that state by default, but it only writes it when
 `--update-state` is passed. Use `--update-state` after the consistency
 findings have been reviewed and any needed catalogue or `/which-shape`
 updates have landed.
+
+## When things go sideways
+
+| Symptom | Action |
+|---|---|
+| `--changed-from REF` names a bad git ref and `Changed Paths` is empty unexpectedly | Re-run `git diff --name-only REF` to verify the ref, then rerun with a valid `REF`; do not treat an empty changed-path list as proof nothing changed |
+| Shape registry schema error appears in `findings.json` as `shape_registry_schema_error` | Honor the script's nonzero exit, fix `.claude/skills/which-shape/shapes.yml`, and rerun before updating state |
+| Report or state write fails | State which artifact failed to write; do not claim `report.md`, `state.json`, `findings.json`, `evidence.json`, or `.claude/ecosystem/last-state.json` landed |
+| Baseline is missing and `baseline_missing` appears in `findings.json` | Review the first report as the baseline, then rerun with `--update-state` only after accepting that snapshot |
 
 ## Relationship To `/which-shape`
 

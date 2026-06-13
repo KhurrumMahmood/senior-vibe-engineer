@@ -46,6 +46,22 @@ many repeated patterns that are exactly what the adapter should warn
 against standardizing. Discovery reports what exists; `/project-interview`
 and human review decide what deserves to become doctrine.
 
+## How success is judged
+
+- `scripts/project_adapt.py discover` writes a scan directory containing
+  `adapter.yml`, `adapter.json`, `report.md`, and `evidence.json`.
+- The scan's `evidence.json` maps the required evidence tokens
+  `adapter` and `report` to `adapter.yml` and `report.md`, satisfying
+  this skill's `evidence_required: [adapter, report]` declaration.
+- `scripts/evidence_gate.py check --skill adapt-project --scan-dir <scan>`
+  exits 0 before the run is called done.
+- Host writes are absent unless `--apply` was explicitly requested; a
+  dogfood run with `--no-host-write` uses an `--artifact-root` outside
+  the host project.
+- The summary surfaces high-confidence facts, standardization cautions,
+  sensitive surfaces, and open questions without inferring project
+  philosophy.
+
 ## Forms
 
 ```bash
@@ -183,6 +199,17 @@ A flipped allowlist (`"default": "inactive"` plus an `active` list) is
 supported for locked-down repos, but default-on is the norm. Today the
 operator records the opt-out list by hand from adaptation findings;
 auto-proposing it from discovery is a follow-on.
+
+## When things go sideways
+
+| Symptom | Action |
+|---|---|
+| `scripts/project_adapt.py discover` exits nonzero | Surface the exact stderr and stop; do not claim `adapter.yml`, `adapter.json`, `report.md`, or `evidence.json` landed |
+| `project_adapt.py` reports `--apply and --no-host-write are mutually exclusive` | Pick one mode: `--apply` for durable host state, or `--no-host-write` for dogfood/read-only evaluation |
+| `project_adapt.py` reports `--no-host-write requires --artifact-root outside --project-root` | Move `--artifact-root` outside the host project and rerun; do not write dogfood artifacts inside the repo being evaluated |
+| `scripts/evidence_gate.py check` reports no `evidence.json` manifest | Treat the adaptation as incomplete; rerun discovery or inspect the scan directory before claiming done |
+| `evidence_gate.py check` reports missing `adapter` or `report` evidence | Fix the scan so `evidence.json` points to existing `adapter.yml` and `report.md`, then rerun the gate |
+| `evidence_gate.py check` reports malformed JSON or missing scan dir | Surface the usage/data error and stop; do not fabricate a passing evidence transcript |
 
 ## Inspiration
 

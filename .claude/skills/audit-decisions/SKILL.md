@@ -18,7 +18,7 @@ not_for: |
   Authoring new ADRs (use /decide). Detecting code-level smells (use a
   find-* SUSPECT skill). Resolving the drift this skill surfaces — the
   user invokes the recommended next command per row (/decide
-  --supersede, /decide --status, etc.).
+  --supersede, /decide --amend, etc.).
 escalate_to: |
   None — this is a read-only scanner. Each drift row names the
   resolution command; the user picks one and proceeds.
@@ -158,9 +158,10 @@ For each ADR with `status: proposed`:
 - If `date:` is older than 30 days, drift row:
   - Symptom: `proposed-too-long` — `NNNN` (`<title>`) has been
     `proposed` for `<N>` days.
-  - Resolution: `/decide --status accepted NNNN` if the team decided
-    yes, `/decide --status deprecated NNNN` if no, or amend the ADR if
-    still being debated (and reset the date).
+  - Resolution: `/decide --amend NNNN` to edit the `status` field to
+    `accepted` if the team decided yes, or `deprecated` if no. If the
+    ADR is still actively debated, review it manually and leave
+    `status: proposed`.
 
 #### 2d. `applies_to:` paths missing
 
@@ -207,8 +208,8 @@ _<N> ADRs scanned. <M> drift rows surfaced._
 
 - `proposed-too-long` — ADR `0007` (`use-cerebras-for-bulk-llm`),
   proposed 2026-03-01, `<N>` days stale.
-  - Resolution: `/decide --status accepted 0007` or `/decide --status
-    deprecated 0007`.
+  - Resolution: `/decide --amend 0007` and set `status: accepted` or
+    `status: deprecated`.
 
 ### P2 — review when convenient
 
@@ -253,7 +254,7 @@ from `scripts/decisions.py audit --json` directly, not this file:
       "adr_id": "0007",
       "adr_slug": "use-cerebras-for-bulk-llm",
       "evidence": {"date": "2026-03-01", "days_old": 61},
-      "resolution_command": "/decide --status accepted 0007"
+      "resolution_command": "/decide --amend 0007"
     }
   ]
 }
@@ -285,5 +286,5 @@ Report to the user in ≤6 lines:
 | Code-ref grep returns thousands of hits | Likely a false-positive pattern (e.g., `# decision:` in third-party code); narrow the grep with `--include` paths in `core/`, `.claude/`, `ai-docs/` |
 | `applies_to:` is missing entirely on an ADR | Drift row: `applies-to-missing` with severity P1; recommend `/decide --amend NNNN` to add the field |
 | Every accepted ADR is unreferenced | The team isn't using inline refs yet; downgrade all `unreferenced-decision` to P3-info and note "consider adopting `# decision:NNNN` convention" |
-| Two ADRs have the same id | Drift row: `duplicate-id` (P0); recommend renumbering one via `/decide --renumber` |
+| Two ADRs have the same id | Drift row: `duplicate-id` (P0); there is no `/decide` renumber command. Manually edit the duplicate ADR's filename and `id` frontmatter to an unused id, then run `.venv/bin/python scripts/decisions.py rebuild` and `.venv/bin/python scripts/decisions.py audit` |
 | ADR's `superseded_by` points to itself | Drift row: `circular-supersession` (P0); recommend `/decide --amend` to break the cycle |

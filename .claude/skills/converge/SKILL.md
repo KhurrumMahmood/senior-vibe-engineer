@@ -50,6 +50,22 @@ work to be done, find the weakest one, and emit a fixed verdict with a stop
 condition and a do-not-do-next list. A verdict missing the stop condition
 or the do-not-do-next list does not count as a convergence gate.
 
+## How success is judged
+
+- The run emits the fixed JSON verdict shape with every named field:
+  `phase_status`, `strongest_nodes`, `weakest_nodes`, `next_step`,
+  `why_this_step`, `success_gate`, `stop_condition`, and
+  `do_not_do_next`.
+- Every node assessment cites artifact truth: a quoted artifact line,
+  report row, diff hunk, or command output. Assertions without pasted
+  evidence count as weak nodes.
+- The skill does not execute `next_step` or mutate production code; it
+  emits the verdict, names the handoff, and stops.
+- For substantial phases or `--report`, the run writes
+  `reports/converge/scan-<TS>/verdict.json` and `verdict.md`, then logs
+  effectiveness with bucket key `status_<phase_status>` using the
+  verdict's actual `phase_status` value.
+
 ## Stage 1 — Name the value graph
 
 Establish the small set of value dimensions for THIS work. Default
@@ -70,8 +86,11 @@ add it — do not squeeze evidence into the wrong node.
 
 ## Stage 2 — Assess each node with evidence
 
-For every node, find the strongest available evidence and cite it: a test
-run, a diff, a report path, a rendered output, a grep proving call sites.
+For every node, find the strongest available artifact and quote it: a test
+run transcript, a diff hunk, a report row, a rendered-output path plus
+observed result, or a grep output proving call sites. Evidence is the
+quoted artifact or command output itself, not the assessor's assertion
+that the artifact exists.
 Rules:
 
 - **Unknown counts as weak.** A node nobody checked is a weak node, not a
@@ -121,9 +140,11 @@ invoked with `--report`, also write it to
 TS=$(date +%Y%m%d-%H%M%S)
 mkdir -p "reports/converge/scan-${TS}" && ln -sfn "scan-${TS}" reports/converge/latest
 # after writing verdict.json / verdict.md, log one record keyed by the status:
+PHASE_STATUS=$(python3 -c "import json, pathlib; print(json.loads(pathlib.Path('reports/converge/scan-${TS}/verdict.json').read_text())['phase_status'])")
+STATUS_BUCKET="status_${PHASE_STATUS}"
 python3 scripts/log_effectiveness.py --skill converge --scan-id "scan-${TS}" \
   --target "<thread or phase name>" --findings-total 1 \
-  --buckets '{"status_repair": 1}'   # bucket key = status_<phase_status>
+  --buckets "{\"${STATUS_BUCKET}\": 1}"
 ```
 
 ## Stage 4 — Enforce the verdict's discipline
@@ -135,6 +156,16 @@ python3 scripts/log_effectiveness.py --skill converge --scan-id "scan-${TS}" \
 - `do_not_do_next` is a refusal list, not a backlog — entries are moves that
   are *tempting now*; parking-worthy items go through `/track-idea` instead.
 - Do not execute the next step inside this skill. Emit, hand off, stop.
+
+## When things go sideways
+
+| Symptom | Action |
+|---|---|
+| A node has no artifact, report row, diff hunk, or command output to cite | Mark that node weak, set `phase_status: repair`, and make the evidence gap the `next_step` |
+| `phase_status` is not one of `advance`, `repair`, `branch`, `park`, `discard` | Treat the verdict as invalid; fix the JSON before writing `verdict.json` or logging effectiveness |
+| Two next steps both look necessary | Pick the step that closes the weakest node; put the other in `do_not_do_next`, or use `phase_status: branch` if they are genuinely distinct routes |
+| `--report` was requested but `reports/converge/scan-<TS>/` cannot be written | Emit the inline verdict, state that report artifacts were not written, and do not claim `verdict.json`, `verdict.md`, or effectiveness logging happened |
+| The caller wants the named `next_step` executed immediately | Stop after the verdict and hand off to the named skill or workflow; execution is outside `/converge` |
 
 ## Known limits
 
