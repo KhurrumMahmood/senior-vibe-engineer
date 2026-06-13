@@ -2,10 +2,10 @@
 name: find-async-lifecycle-drift
 description: |
   Advisory SUSPECT scan for polling, job, cancel/resume, and export
-  lifecycle drift on `/sites`: unguarded polling, missing terminal
-  handling, stale response hazards, duplicate job starts, and missing
-  retry/cancel controls.
-argument-hint: "[paths... - defaults to the /sites route surface]"
+  lifecycle drift on configured product-workflow targets or explicit
+  paths: unguarded polling, missing terminal handling, stale response
+  hazards, duplicate job starts, and missing retry/cancel controls.
+argument-hint: "[paths... - defaults to workflow_targets(project_root); empty without .engineering/docs/product-workflows.md]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -33,15 +33,39 @@ scans: [python, javascript]
 
 # /find-async-lifecycle-drift
 
-Run this before or after `/sites` work that starts background jobs,
-polls progress, exports files, downloads pages/images, or resumes work.
-The output is advisory and should be triaged by confidence.
+Run this before or after product-workflow work that starts background
+jobs, polls progress, exports files, downloads pages/images, or resumes
+work. The output is advisory and should be triaged by confidence.
+
+Default scope is not hard-coded to `/sites`. With no positional paths,
+`scripts/run.py` passes `None` into `detect()`, and
+`product_health.expand_paths()` scans `workflow_targets(project_root)`
+from `.engineering/docs/product-workflows.md` (`## Targets`). If that
+descriptor or section is absent, the default target set is empty. To
+scan a concrete surface, pass explicit positional paths after
+`scripts/run.py`.
+
+## How success is judged
+
+- The runner exits 0 and prints the scan directory it wrote.
+- `reports/find-async-lifecycle-drift/scan-<UTC>/detections.jsonl`,
+  `report.md`, `findings.json`, and `latest` exist under the selected
+  `--project-root`.
+- The target scope is explicit in the command or comes from
+  `workflow_targets(project_root)`; do not describe a no-descriptor run
+  as a `/sites` scan.
+- Findings are grouped by async lifecycle detector bands and are treated
+  as advisory triage input, not proof that the workflow is broken.
 
 ## Pipeline
 
 ```
 .venv/bin/python .claude/skills/find-async-lifecycle-drift/scripts/run.py <paths...>
 ```
+
+`<paths...>` are positional path or glob arguments. Omit them only when
+the host repo has declared `## Targets` in
+`.engineering/docs/product-workflows.md`.
 
 The runner writes `detections.jsonl`, `report.md`, `findings.json`, and
 `latest` under `reports/find-async-lifecycle-drift/scan-<UTC>/`, and logs
@@ -58,3 +82,11 @@ an effectiveness row.
   abort, or resume controls.
 - `duplicate_job_path`: backend start/run/queue path dispatches work
   without an active/existing/running guard.
+
+## When things go sideways
+
+| Symptom | Action |
+|---|---|
+| Descriptor absent | Treat the default workflow target set as empty; pass explicit positional paths or add `## Targets` to `.engineering/docs/product-workflows.md`. |
+| Zero findings | Check whether `detections.jsonl` is empty because the workflow target set expanded to no `.py` or `.js` files; rerun with explicit paths before calling the lifecycle surface clean. |
+| Script failure | Re-run the exact `.venv/bin/python .claude/skills/find-async-lifecycle-drift/scripts/run.py ...` command, capture stderr, and fix the path/import/argparse failure before interpreting results. |

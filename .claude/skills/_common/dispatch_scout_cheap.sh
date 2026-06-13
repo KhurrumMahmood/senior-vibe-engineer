@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# dispatch_scout_cheap.sh — run a scout brief through tools/code_agent.py
-# in --read-only mode against a Haiku-class model.
+# dispatch_scout_cheap.sh — run a scout brief through the host
+# tools.code_agent adapter in --read-only mode against a Haiku-class model.
 #
 # Usage:
 #   dispatch_scout_cheap.sh <brief-template> <output-path> [<key>=<value> ...]
@@ -17,7 +17,8 @@
 #   expedient-haiku    Claude Haiku 4.5 via Expedient (default, team)
 #   cerebras           GLM-4.7 via Cerebras free tier (personal-account)
 #   expedient-coding   Expedient router → coding-tasks model
-# Any alias from tools/agent-config.json is accepted.
+# Any alias from the host model registry is accepted when the
+# <!-- host-adapter --> tools.code_agent runtime is present.
 #
 # Environment:
 #   DISPATCH_SCOUT_MODEL   override model alias (default: expedient-haiku)
@@ -27,7 +28,7 @@
 #   0 — agent exited 0 AND <output-path> exists
 #   1 — agent exited 0 but <output-path> was not written
 #   2 — agent exited nonzero
-#   3 — usage / missing brief / substitution error
+#   3 — usage / missing brief / substitution/backend error
 #
 # Why a separate script? `claude -p` uses the user's claude-code session
 # (Sonnet/Opus tier). Read-and-classify scouts don't need that judgment
@@ -65,6 +66,12 @@ VENV_PYTHON="$PROJECT_DIR/.venv/bin/python"
 
 if [[ ! -x "$VENV_PYTHON" ]]; then
     echo "dispatch_scout_cheap: missing venv python at $VENV_PYTHON" >&2
+    exit 3
+fi
+
+if ! "$VENV_PYTHON" -c 'import tools.code_agent' >/dev/null 2>&1; then
+    echo "dispatch_scout_cheap: host-adapter backend unavailable: requires the host tools.code_agent runtime; see <!-- host-adapter -->." >&2
+    echo "dispatch_scout_cheap: orchestrator should fall back to inline scouting; no fake cheap-dispatch fallback is available in this repo." >&2
     exit 3
 fi
 

@@ -2,7 +2,7 @@
 name: find-dormant
 description: Detect dead and quasi-dead code. Runs vulture + AST "defined but never referenced" checks, validates every candidate against real call sites, cross-references URL patterns with template URL-name usage, runs a git-log recency check, and produces a deletion-candidates report with evidence. Never deletes unilaterally — surfaces findings for user authorization, then hands off to `/fix-workflow`.
 argument-hint: "--target <directory>"
-allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
+allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
@@ -184,12 +184,14 @@ synthesis, no shell. That makes it safe on Haiku-class scouts and the
 right place to dogfood the cheap-fan-out path.
 
 For nesting-safe + low-cost fan-out, dispatch each candidate as a
-`tools/code_agent.py --read-only` subprocess via
+host `tools/code_agent.py --read-only` subprocess via
 `.claude/skills/_common/dispatch_scout_cheap.sh`. The `--read-only`
 flag drops bash, spawn_agent, claude_tools, and validate_jsonld — the
 scout has only read_file/write_file/glob/grep, with workdir
 containment enforced (commit `168ca3c1`). Cheap models can't
 hallucinate calls to tools that aren't in the registry.
+
+Caveat: the cheap-dispatch path requires the host `tools.code_agent` backend (`<!-- host-adapter -->`); when it is absent, fall back to inline scouting for Stage 3 and record that fallback.
 
 ```bash
 # One subprocess per candidate; parallelize with `&` + wait.
@@ -210,15 +212,17 @@ wait
 ```
 
 **Tradeoffs.** Cheap subprocess dispatch adds ~2-4s spawn per scout
-and runs Claude Haiku 4.5 through the team's Expedient gateway by
-default (see `tools/agent-config.json`); set `DISPATCH_SCOUT_MODEL`
-to swap in any other alias (e.g., `cerebras` for personal-account
-free-tier capacity). The `Agent` tool path is faster (~0s spawn) and
-uses the orchestrator's session model (Sonnet/Opus tier — more
-judgment, billed). Use the cheap subprocess by default; fall back to
-`Agent` when (a) only a handful of candidates need verification
-interactively and the user is watching, or (b) a candidate's flavor
-is genuinely ambiguous and warrants the better model.
+and runs the host adapter's default Haiku-class model; the optional
+model alias registry (`tools/agent-config.json`) is a
+`<!-- host-adapter -->` file and is not shipped in this toolkit repo.
+Set `DISPATCH_SCOUT_MODEL` only when the host adapter provides that
+alias. The `Agent` tool path is faster (~0s spawn) and uses the
+orchestrator's session model (Sonnet/Opus tier — more judgment,
+billed). Use the cheap subprocess by default when the host backend is
+available; fall back to inline scouting when it is not, or to `Agent`
+when (a) only a handful of candidates need verification interactively
+and the user is watching, or (b) a candidate's flavor is genuinely
+ambiguous and warrants the better model.
 
 ### Stage 4 — Report
 

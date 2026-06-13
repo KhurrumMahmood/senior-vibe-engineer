@@ -177,7 +177,7 @@ read-only scout via `.claude/skills/_common/dispatch_scout_cheap.sh`
 (Bash + grep — no Agent tool; the allowed-tools list stays
 read-only-tight) to confirm the call sites in
 `callers_into_private_helpers`. The orchestrator may skip this if the
-helper's static analysis already covered the project root.
+helper's static analysis already covered the project root. This cheap-dispatch path requires the host `tools.code_agent` backend (`<!-- host-adapter -->`); use inline scouting when that backend is absent.
 
 Stage 3 — **synthesize.** The orchestrator reads `inspection.json` and
 writes `proposal.md` per the template below. This is judgment work, not

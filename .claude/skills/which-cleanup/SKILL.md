@@ -117,7 +117,7 @@ and logs one line to `<project-root>/reports/_meta/effectiveness.jsonl`. Read
 is the capped (`--max-scouts`, default 5) post-sweep roster, each command already
 **scoped to the changed files**. Dispatch them as concurrent read-only scouts —
 e.g. one `_common/dispatch_scout_cheap.sh` invocation per scanner sent in a single
-message (the `find-duplication` / `find-omnibus` pattern) — then triage the union.
+message (the `find-duplication` / `find-omnibus` pattern) — then triage the union. This cheap-dispatch path requires the host `tools.code_agent` backend (`<!-- host-adapter -->`); use inline scouting when that backend is absent.
 Scope to the changed files only; never re-scan the whole repo.
 
 **Large — hand off, don't auto-run.** The sequenced plan is always in `closeout.md`.
