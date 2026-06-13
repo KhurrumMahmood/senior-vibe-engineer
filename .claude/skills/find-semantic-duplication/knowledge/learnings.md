@@ -38,9 +38,14 @@ If A calls B, they aren't duplicates. This is the most common false positive in 
 
 Signals of structural findings: two test modules covering the same feature, two benchmark result sets measuring the same thing, two report directories tracking the same analysis.
 
-### R7. Cross-domain pairs are the highest-value findings
+### R7. Cross-domain pairs are high-value when the focus actually crosses domains
 
-Domain-based grouping partitions candidates. The most interesting duplicates usually cross boundaries — a JSON-LD parser in `discovery` and another in `extraction`, a retry helper in `crawling` and another in `proxy`. After within-domain comparison completes, always run the cross-domain pass (Step 3d-cross).
+Domain-based grouping partitions candidates. The most interesting duplicates
+often cross boundaries — a JSON-LD parser in `discovery` and another in
+`extraction`, a retry helper in `crawling` and another in `proxy`. Run the
+cross-domain pass when the focus spans package/domain names and the prompt is
+bounded enough to inspect; if it is skipped, record the skip reason instead of
+silently omitting the opportunity.
 
 Provenance: `knowledge/` lists cross-domain sibling implementations observed across prior scans.
 

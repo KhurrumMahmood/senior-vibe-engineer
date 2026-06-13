@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """Detector for orphaned ideas in the Tier 1 idea ledger.
 
-Three modes:
-    --stale            in-flight ideas with no event in N days
-    --harvest          has-more-potential ideas not in-flight
+Modes:
+    --stale                 in-flight ideas with no event in N days
+    --harvest               has-more-potential ideas not in-flight
     --plan-dropouts <path>  items in a plan file missing from the ledger
+    --todo                  TODO/FIXME comments worth ledger review
+    --stale-plans           non-terminal plans silent for N days
+    --dead-prototype        candidates from a dormant-surface report
+    --attention-gap         importance-map locator audit
 
 Usage:
-    find.py [--stale|--harvest|--plan-dropouts PATH|--all]
-            [--stale-days N] [--apply-stale] [--json]
+    find.py [--stale | --harvest | --plan-dropouts PATH | --todo |
+             --stale-plans | --dead-prototype | --attention-gap | --all]
+            [--stale-days N] [--stale-plans-days N] [--min-age-days N]
+            [--min-words N] [--from-report PATH] [--apply-stale] [--json]
 
 Exit codes:
     0 success (findings may or may not be present)
@@ -661,7 +667,8 @@ def render_markdown(
     stale_plans = findings.get("stale_plans")
     if stale_plans is not None:
         lines.append(
-            f"## Stale plans (proposed, > {stale_plans_days}d silent, missing from ledger)"
+            f"## Stale plans (non-terminal, > {stale_plans_days}d silent, "
+            "not actively tracked)"
         )
         if not stale_plans:
             lines.append("- (none)")
@@ -734,7 +741,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument(
         "--stale-plans", action="store_true",
-        help="Find proposed plans > N days silent with no ledger intake",
+        help="Find non-terminal plans > N days silent without active ledger tracking",
     )
     p.add_argument(
         "--dead-prototype", action="store_true",

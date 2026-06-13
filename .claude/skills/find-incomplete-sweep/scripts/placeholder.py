@@ -157,7 +157,10 @@ def _class_is_abstract(cls: ast.ClassDef) -> bool:
     return False
 
 
-def collect_placeholders(paths: list[str]) -> tuple[list[Placeholder], int]:
+def collect_placeholders(
+    paths: list[str],
+    project_root: pathlib.Path | None = None,
+) -> tuple[list[Placeholder], int]:
     """Walk concrete functions/methods and collect placeholder-bodied ones.
 
     Skips ABC/Protocol bodies, @abstractmethod/@overload, and allow-listed empty
@@ -166,7 +169,7 @@ def collect_placeholders(paths: list[str]) -> tuple[list[Placeholder], int]:
     """
     out: list[Placeholder] = []
     scanned = 0
-    for f in _iter_files_including_tests(paths):
+    for f in _iter_files_including_tests(paths, project_root):
         try:
             src = f.read_text(encoding="utf-8")
             tree = ast.parse(src)
@@ -212,11 +215,16 @@ def _maybe_add(out, fn, cls, cls_abstract, f, src_lines, in_test):
     ))
 
 
-def _iter_files_including_tests(paths):
+def _iter_files_including_tests(
+    paths: list[str],
+    project_root: pathlib.Path | None = None,
+):
     """Like scan.iter_py_files but KEEPS tests/ (empty test bodies are in scope
     for this band). Still skips migrations / __pycache__ / .venv."""
     for p in paths:
         root = pathlib.Path(p)
+        if not root.is_absolute() and project_root is not None:
+            root = project_root / root
         if root.is_file() and root.suffix == ".py":
             yield root
             continue
@@ -227,7 +235,12 @@ def _iter_files_including_tests(paths):
             yield fp
 
 
-def _count_references(name: str, paths: list[str], own_file: str) -> int:
+def _count_references(
+    name: str,
+    paths: list[str],
+    own_file: str,
+    project_root: pathlib.Path | None = None,
+) -> int:
     """Count by-name references to a symbol across the scanned paths, excluding
     its own `def` lines. Uses `git grep`-free ripgrep-style scan via Python so it
     runs without extra deps; word-boundary match on the bare name.
@@ -239,7 +252,7 @@ def _count_references(name: str, paths: list[str], own_file: str) -> int:
     """
     pat = re.compile(rf"(?<![\w.])\.?{re.escape(name)}\b")
     count = 0
-    for fp in _iter_files_including_tests(paths):
+    for fp in _iter_files_including_tests(paths, project_root):
         try:
             text = fp.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
@@ -257,12 +270,17 @@ def _count_references(name: str, paths: list[str], own_file: str) -> int:
     return count
 
 
-def _implemented_siblings(name: str, paths: list[str], own_symbol: str) -> int:
+def _implemented_siblings(
+    name: str,
+    paths: list[str],
+    own_symbol: str,
+    project_root: pathlib.Path | None = None,
+) -> int:
     """Count methods/functions of the SAME name, elsewhere, that have a REAL
     (non-placeholder) body. A newly-added empty method among filled siblings is
     the canonical 'sweep added a sibling but left it blank' residue."""
     count = 0
-    for fp in _iter_files_including_tests(paths):
+    for fp in _iter_files_including_tests(paths, project_root):
         try:
             tree = ast.parse(fp.read_text(encoding="utf-8"))
         except (SyntaxError, UnicodeDecodeError, OSError):
@@ -274,7 +292,12 @@ def _implemented_siblings(name: str, paths: list[str], own_symbol: str) -> int:
     return count
 
 
-def apply_gates(items: list[Placeholder], paths: list[str], max_age_days: float):
+def apply_gates(
+    items: list[Placeholder],
+    paths: list[str],
+    max_age_days: float,
+    project_root: pathlib.Path | None = None,
+) -> None:
     now = time.time()
     for it in items:
         ts = _scan.line_commit_time(it.file, it.line)
@@ -284,8 +307,13 @@ def apply_gates(items: list[Placeholder], paths: list[str], max_age_days: float)
             continue
         it.age_days = round((now - ts) / 86400.0, 1)
         it.recent = it.age_days <= max_age_days
-        it.ref_count = _count_references(it.name, paths, it.file)
-        it.implemented_siblings = _implemented_siblings(it.name, paths, it.symbol)
+        it.ref_count = _count_references(it.name, paths, it.file, project_root)
+        it.implemented_siblings = _implemented_siblings(
+            it.name,
+            paths,
+            it.symbol,
+            project_root,
+        )
         referenced = it.ref_count > 0
         sibling_filled = it.implemented_siblings > 0
         if referenced and sibling_filled:
@@ -308,7 +336,19 @@ def apply_gates(items: list[Placeholder], paths: list[str], max_age_days: float)
             it.note = f"recent ({it.age_days}d) + {it.reference_asymmetry}"
 
 
-def render(items, scanned, paths, max_age_days) -> str:
+def _rel(path: str, project_root: pathlib.Path | None) -> str:
+    if project_root is None:
+        project_root = pathlib.Path.cwd()
+    return _scan.rel(path, project_root)
+
+
+def render(
+    items,
+    scanned,
+    paths,
+    max_age_days,
+    project_root: pathlib.Path | None = None,
+) -> str:
     gated = [i for i in items if i.gated_in]
     ungated = [i for i in items if not i.gated_in]
     gated.sort(key=lambda i: (i.kind, i.file, i.line))
@@ -324,7 +364,7 @@ def render(items, scanned, paths, max_age_days) -> str:
     def block(i: Placeholder) -> str:
         return "\n".join([
             f"### `{i.symbol}` — {i.kind}" + ("  (test)" if i.in_test else ""),
-            f"- location: `{_scan.rel(i.file)}:{i.line}`",
+            f"- location: `{_rel(i.file, project_root)}:{i.line}`",
             f"- age: {i.age_days}d  | refs: {i.ref_count}  | "
             f"implemented siblings: {i.implemented_siblings}",
             f"- asymmetry: {i.reference_asymmetry}",
@@ -340,22 +380,32 @@ def render(items, scanned, paths, max_age_days) -> str:
     return "\n".join(L) + "\n"
 
 
-def run(paths: list[str], max_age_days: float):
-    items, scanned = collect_placeholders(paths)
-    apply_gates(items, paths, max_age_days)
+def run(
+    paths: list[str],
+    max_age_days: float,
+    project_root: pathlib.Path | None = None,
+):
+    items, scanned = collect_placeholders(paths, project_root)
+    apply_gates(items, paths, max_age_days, project_root)
     return items, scanned
 
 
-def manifest(items, scanned, max_age_days) -> dict:
+def manifest(
+    items,
+    scanned,
+    max_age_days,
+    project_root: pathlib.Path | None = None,
+) -> dict:
     return {
         "band": "placeholder-residue",
+        "project_root": str(project_root) if project_root is not None else None,
         "files_scanned": scanned,
         "max_age_days": max_age_days,
         "raw_candidates": len(items),
         "gated_in": sum(1 for i in items if i.gated_in),
         "findings": [
             {"symbol": i.symbol, "kind": i.kind,
-             "location": f"{_scan.rel(i.file)}:{i.line}",
+             "location": f"{_rel(i.file, project_root)}:{i.line}",
              "age_days": i.age_days, "ref_count": i.ref_count,
              "implemented_siblings": i.implemented_siblings,
              "reference_asymmetry": i.reference_asymmetry,
@@ -373,16 +423,28 @@ def main():
     ap.add_argument("--max-age-days", type=float, default=120.0,
                     help="recency gate: stubs older than this are accepted debt")
     ap.add_argument("--out", default=None)
+    ap.add_argument(
+        "--project-root",
+        type=pathlib.Path,
+        default=None,
+        help="Target project root anchoring relative --paths and report labels "
+             "(default: git toplevel of cwd, else cwd)",
+    )
     args = ap.parse_args()
 
-    items, scanned = run(args.paths, args.max_age_days)
-    report = render(items, scanned, args.paths, args.max_age_days)
+    project_root = _scan.resolve_project_root(args.project_root)
+    items, scanned = run(args.paths, args.max_age_days, project_root)
+    report = render(items, scanned, args.paths, args.max_age_days, project_root)
     if args.out:
         out = pathlib.Path(args.out)
         out.mkdir(parents=True, exist_ok=True)
         (out / "placeholder_findings.md").write_text(report)
         (out / "placeholder_manifest.json").write_text(
-            json.dumps(manifest(items, scanned, args.max_age_days), indent=2))
+            json.dumps(
+                manifest(items, scanned, args.max_age_days, project_root),
+                indent=2,
+            )
+        )
         print(f"wrote {out}/placeholder_findings.md  "
               f"({sum(1 for i in items if i.gated_in)} gated-in / {len(items)} raw)")
     else:

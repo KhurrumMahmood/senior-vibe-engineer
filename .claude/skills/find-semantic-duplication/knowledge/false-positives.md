@@ -1,6 +1,8 @@
 # find-semantic-duplication — false positives
 
-Read during **Compare** (Step 3) and **Confirm** (Step 5). Mandatory before promoting any candidate to `confirmed_pairs.json`.
+Read during **Compare** (Step 3) and **Confirm** (Step 5). Mandatory before a
+candidate can survive into `scout/<finding_id>.json`, `ranked.json`, and the
+final `triage.md`.
 
 Semantic duplication is a higher-variance signal than syntactic duplication. Many things *feel* like duplicates at the summary level but aren't. These are the recurring traps.
 
@@ -36,7 +38,11 @@ One implementation lives under `tests/test_*`, `core/tests/`, `testing/`, or men
 
 This belongs in `/find-duplication`, not here. This skill exists for **semantically** equivalent code that looks textually different. If a quick tokenized comparison shows heavy overlap, reject with a note that find-duplication should catch it (it may already — check `reports/duplication/latest/`).
 
-Cheap check: if both bodies share >70% of their identifier tokens (variable names, function calls), they're likely lexical duplicates.
+Cheap check: if both bodies share >70% of their identifier tokens (variable
+names, function calls), they're likely lexical duplicates. If
+`reports/duplication/latest/triage.md` exists, cite the overlapping sibling
+finding; if it does not exist, record that the sibling report was absent and
+use the direct token-overlap check as the evidence.
 
 ### 6. Converging workflows with different end products
 

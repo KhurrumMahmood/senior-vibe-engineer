@@ -118,7 +118,9 @@ def script_option_strings(path: Path) -> set[str] | None:
         tree = ast.parse(source, filename=str(path))
     except SyntaxError:
         return None
-    opts: set[str] = set()
+    # argparse defines --help implicitly on every parser; documenting
+    # `script.py --help` is always satisfiable.
+    opts: set[str] = {"--help"}
     for node in ast.walk(tree):
         if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)):
             continue

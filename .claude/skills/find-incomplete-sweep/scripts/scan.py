@@ -558,20 +558,39 @@ def run_kwarg_band(args, project_root: pathlib.Path):
         sys.stdout.write(report)
 
 
-def run_placeholder_band(args):
+def run_placeholder_band(args, project_root: pathlib.Path):
     """The placeholder-residue band — delegates to the sibling module so neither
     band grows into an omnibus. Writes placeholder_findings.md / _manifest.json
     so the kwarg band's findings.md / manifest.json (which scout.py consumes)
     stay untouched."""
     import placeholder as _ph
-    items, scanned = _ph.run(args.paths, args.max_age_days)
-    report = _ph.render(items, scanned, args.paths, args.max_age_days)
+    items, scanned = _ph.run(
+        args.paths,
+        args.max_age_days,
+        project_root=project_root,
+    )
+    report = _ph.render(
+        items,
+        scanned,
+        args.paths,
+        args.max_age_days,
+        project_root=project_root,
+    )
     if args.out:
         out = pathlib.Path(args.out)
         out.mkdir(parents=True, exist_ok=True)
         (out / "placeholder_findings.md").write_text(report)
         (out / "placeholder_manifest.json").write_text(
-            json.dumps(_ph.manifest(items, scanned, args.max_age_days), indent=2))
+            json.dumps(
+                _ph.manifest(
+                    items,
+                    scanned,
+                    args.max_age_days,
+                    project_root=project_root,
+                ),
+                indent=2,
+            )
+        )
         print(f"wrote {out}/placeholder_findings.md  "
               f"({sum(1 for i in items if i.gated_in)} gated-in / {len(items)} raw)")
     else:
@@ -603,7 +622,7 @@ def main():
     if args.band in ("kwarg", "all"):
         run_kwarg_band(args, project_root)
     if args.band in ("placeholder", "all"):
-        run_placeholder_band(args)
+        run_placeholder_band(args, project_root)
 
 
 if __name__ == "__main__":

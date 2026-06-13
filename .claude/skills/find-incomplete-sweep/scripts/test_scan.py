@@ -58,7 +58,7 @@ class DataclassDefaultFilterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             write_pkg(root, {"m.py": code})
-            return scan.collect_default_kwargs([str(root)])
+            return scan.collect_default_kwargs([str(root)], root)
 
     def test_dc1_default_field_recognized(self):
         defaults, _ = self._defaults("""
@@ -127,8 +127,8 @@ class DataclassDefaultFilterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             write_pkg(root, {"m.py": code})
-            sites, _, _ = scan.collect_callsites([str(root)])
-            defaults, _ = scan.collect_default_kwargs([str(root)])
+            sites, _, _ = scan.collect_callsites([str(root)], root)
+            defaults, _ = scan.collect_default_kwargs([str(root)], root)
             with_filter = scan.find_candidates(
                 sites, min_callsites=4, majority_frac=0.75, min_present=3,
                 default_kwargs=defaults)
@@ -165,8 +165,8 @@ class DataclassDefaultFilterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             write_pkg(root, {"m.py": code})
-            sites, _, _ = scan.collect_callsites([str(root)])
-            defaults, _ = scan.collect_default_kwargs([str(root)])
+            sites, _, _ = scan.collect_callsites([str(root)], root)
+            defaults, _ = scan.collect_default_kwargs([str(root)], root)
             found = scan.find_candidates(
                 sites, min_callsites=4, majority_frac=0.75, min_present=3,
                 default_kwargs=defaults)
@@ -194,8 +194,8 @@ class DataclassDefaultFilterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             write_pkg(root, {"m.py": code})
-            sites, _, _ = scan.collect_callsites([str(root)])
-            defaults, _ = scan.collect_default_kwargs([str(root)])
+            sites, _, _ = scan.collect_callsites([str(root)], root)
+            defaults, _ = scan.collect_default_kwargs([str(root)], root)
             found = scan.find_candidates(
                 sites, min_callsites=4, majority_frac=0.75, min_present=3,
                 default_kwargs=defaults)
@@ -224,8 +224,8 @@ class DataclassDefaultFilterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             write_pkg(root, {"m.py": code})
-            sites, _, _ = scan.collect_callsites([str(root)])
-            defaults, _ = scan.collect_default_kwargs([str(root)])
+            sites, _, _ = scan.collect_callsites([str(root)], root)
+            defaults, _ = scan.collect_default_kwargs([str(root)], root)
             found = scan.find_candidates(
                 sites, min_callsites=4, majority_frac=0.75, min_present=3,
                 default_kwargs=defaults)
@@ -341,6 +341,49 @@ class PlaceholderBandTests(unittest.TestCase):
             self.assertFalse(by_symbol["Lonely.orphan_only"].gated_in,
                              "recent but unreferenced + no sibling should gate OUT "
                              "(route to /find-dormant)")
+
+    def test_ph6_project_root_anchors_paths_from_other_cwd(self):
+        # The placeholder band is normally invoked through scan.py. Relative
+        # --paths must anchor on --project-root, not the process cwd.
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as other:
+            root = Path(d)
+            write_pkg(root, {
+                "app/svc.py": """
+                    class Filled:
+                        def run(self):
+                            return 42
+                    class Forgotten:
+                        def run(self):
+                            raise NotImplementedError
+                """,
+                "app/caller.py": """
+                    from app.svc import Forgotten
+                    def go():
+                        return Forgotten().run()
+                """,
+            })
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.name", "t"], cwd=root, check=True)
+            subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-qm", "init"], cwd=root, check=True)
+
+            import os
+            cwd0 = os.getcwd()
+            os.chdir(other)
+            try:
+                items, scanned = placeholder.run(
+                    ["app"],
+                    max_age_days=3650.0,
+                    project_root=root,
+                )
+            finally:
+                os.chdir(cwd0)
+
+            by_symbol = {i.symbol: i for i in items}
+            self.assertEqual(scanned, 2)
+            self.assertIn("Forgotten.run", by_symbol)
+            self.assertTrue(by_symbol["Forgotten.run"].gated_in)
 
 
 if __name__ == "__main__":

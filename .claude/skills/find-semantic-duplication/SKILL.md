@@ -39,6 +39,9 @@ can still solve the same problem — this skill finds those.
   `false_positive` verdicts flow through honestly, not forced.
 - Finding IDs resolve as `/fix-workflow semantic:<id>` arguments.
 - Zero edits to production files — this is a read-only audit.
+- The closeout pastes artifact truth: validation `PASS: N/N` lines,
+  Stage 4/6/7 script output, and the path to `triage.md`. A claim that
+  scouts ran is not enough without the files and validator output.
 Write toward these gates from Stage 0.
 
 ## Scope
@@ -51,6 +54,19 @@ Write toward these gates from Stage 0.
   split-by-design exclusions, known suspects): `knowledge/`.
 - **Rejection classes** (seven for function-level, three for structural):
   `knowledge/false-positives.md` — scouts apply these, not you.
+
+## Scout dispatch contract
+
+Every Agent dispatch must declare its judged artifact:
+
+| Stage | Prompt | Judged output |
+|---|---|---|
+| Summarize | `agents/summarize.md` | JSONL at the substituted `{{output_path}}`, validated with `semantic_inventory.py validate --schema summary` |
+| Compare | `agents/compare.md` | JSON object at `candidates_<domain>.json`; empty `{"candidates": []}` is valid |
+| Confirm | `agents/confirm.md` | `scout/<finding_id>.json`; confirmed findings also write `capability_matrices/<finding_id>.md` |
+
+The orchestrator judges the run only by those artifacts. Scout replies are
+status pings; they are not the source of truth.
 
 ## Pipeline stages (each one has a contract)
 
@@ -148,7 +164,9 @@ python3 scripts/semantic_inventory.py prompts \
 
 If the focus cuts across package/domain names and the prompt size remains
 reasonable, add `--include-cross-domain`; the script writes one bounded
-`prompt_cross_domain.json` in addition to per-domain prompts.
+`prompt_cross_domain.json` in addition to per-domain prompts. If the focus is
+single-domain or the cross-domain prompt would be too large, skip this pass
+honestly and record the reason in the Stage 8 summary.
 
 For each `prompt_<domain>.json` the script wrote, expand `agents/compare.md`
 (substitute `{{prompt_path}}`, `{{output_path}}` → `candidates_<domain>.json`
@@ -196,6 +214,11 @@ For each selected finding, expand `agents/confirm.md` (substitute
 `{{output_json_path}}` → `scout/<finding_id>.json`, `{{output_matrix_path}}`
 → `capability_matrices/<finding_id>.md`, `{{callers_jsonl_path}}` →
 `callers.jsonl`) and dispatch every scout in a **single message**.
+
+The sibling syntactic-duplication report is optional. Confirm scouts check
+`reports/duplication/latest/triage.md` only if it exists; when absent, their
+JSON `notes` field records `sibling duplication report absent` and they still
+apply the direct token-overlap rejection class.
 
 ### Stage 6 — Rank
 
@@ -270,8 +293,24 @@ The triage report is the source of truth — do not enumerate every finding.
 | Stage 4 `candidates.json` empty | Compare found nothing worth confirming — report that honestly, don't force findings |
 | Stage 5 scout returns `uncertain` | Valid outcome; it flows through to `ranked.json` as a low-priority tier. Don't re-dispatch just to force a verdict |
 | Stage 5 scout returns `false_positive` with reason_code | Counts toward rejection stats; Rank filters it out |
+| `reports/duplication/latest/triage.md` is absent during Confirm | Continue; the Confirm brief requires a direct token-overlap check and an explicit note that the sibling report was absent |
 | Stage 6 ranks a Light-tier finding above a Priority-tier one | Check `rank_meta.migration_cost`: cheap migration can dominate. Inspect by hand before escalating |
 | Multi-way cluster scout fails with "too many members" | Split the cluster: confirm the two highest-similarity pairs separately, note the N-way relationship in the triage |
+
+## Replay case
+
+When changing this skill's owned scripts, replay the smallest script-level
+contracts:
+
+```bash
+.venv/bin/python .claude/skills/find-semantic-duplication/scripts/collapse_candidates.py --help
+.venv/bin/python .claude/skills/find-semantic-duplication/scripts/rank.py --help
+.venv/bin/python .claude/skills/find-semantic-duplication/scripts/report.py --help
+```
+
+For a full pipeline change, keep a tiny `reports/semantic-duplication/scan-*`
+fixture and prove `candidates.json` → `ranked.json` → `triage.md` with pasted
+script output. Do not report semantic findings from Compare-only artifacts.
 
 ## Repository layout
 

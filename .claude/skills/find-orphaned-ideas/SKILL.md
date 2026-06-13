@@ -1,6 +1,6 @@
 ---
 name: find-orphaned-ideas
-description: Detect ideas that need attention but are not getting it. Seven modes — stale (in-flight, no event in N days), harvest (has-more-potential, not in-flight), plan-dropouts (in a plan file but missing from ledger), todo (TODO/FIXME orphans in source files), stale-plans (proposed plans > N days silent with no ledger intake), dead-prototype (orphan routes/templates from a /find-dormant report), attention-gap (importance-weighted audit per ADR 0016, reads `.engineering/docs/importance-map.md`). Read-only audit by default; can optionally write `stalled` transition events when --apply-stale is set. Read .claude/docs/idea-ledger.md when authoring or debugging this skill, `.engineering/docs/todo-tuning.md` when calibrating --todo, and `.engineering/docs/importance-map.md` (plus ADR 0016) when calibrating --attention-gap.
+description: Detect ideas that need attention but are not getting it. Seven modes — stale (in-flight, no event in N days), harvest (has-more-potential, not in-flight), plan-dropouts (in a plan file but missing from ledger), todo (TODO/FIXME orphans in source files), stale-plans (non-terminal plans > N days silent without active ledger tracking), dead-prototype (orphan routes/templates from a /find-dormant report), attention-gap (importance-weighted audit per ADR 0016, reads `.engineering/docs/importance-map.md`). Read-only audit by default; can optionally write `stalled` transition events when --apply-stale is set. Read .claude/docs/idea-ledger.md when authoring or debugging this skill, `.engineering/docs/todo-tuning.md` when calibrating --todo, and `.engineering/docs/importance-map.md` (plus ADR 0016) when calibrating --attention-gap.
 argument-hint: "[--stale | --harvest | --plan-dropouts <path> | --todo | --stale-plans | --dead-prototype | --attention-gap | --all] [--from-report <path>] [--stale-days N] [--stale-plans-days N] [--min-age-days N] [--min-words N] [--apply-stale]"
 allowed-tools: Bash, Read, Edit
 user-invocable: true
@@ -45,15 +45,21 @@ reasoning about a non-trivial finding.
 
 ## How success is judged
 
-- The report keeps the seven modes separated — stale, harvest,
-  plan-dropouts, todo, stale-plans, dead-prototype, attention-gap —
-  with zero-finding sections shown as "(none)", proving each detector
+- The report keeps every requested mode separated — stale, harvest,
+  plan-dropouts, todo, stale-plans, dead-prototype, attention-gap — with
+  zero-finding sections shown as "(none)", proving each requested detector
   ran.
+- `--all` is not a full seven-mode audit. It runs the two low-cost
+  ledger-native defaults (`stale`, `harvest`). A seven-mode audit must pass
+  the path/report/config-dependent flags explicitly and provide their inputs.
 - The ledger at `.claude/ideas/log.jsonl` is untouched unless
   `--apply-stale` was set; that one exception appends auditable
   `transition` events and re-runs Stage 1 to show "0 stale findings".
-- Thresholds (`stale_days`, etc.) are surfaced in the report header so
-  the reader can recalibrate; follow-ups route to `/track-idea event`.
+- Thresholds (`stale_days`, `stale_plans_days`, TODO filters) are surfaced in
+  the report header, section heading, or saved JSON so the reader can
+  recalibrate; follow-ups route to `/track-idea event`.
+- The closeout pastes the actual detector output or saved JSON, not a claim
+  that a mode ran.
 Write toward these gates from Stage 0.
 
 ## Core beliefs
@@ -79,10 +85,10 @@ Write toward these gates from Stage 0.
 ## Argument parsing
 
 Nine forms. `--all` is the default when no mode flag is given.
-`--all` covers the three ledger-native modes (Stale, Harvest); the
-multi-source modes (Form F–I) are opt-in because their cost profiles
-differ (filesystem walks, git subprocess calls, upstream report
-dependency, declarative-config dependency).
+`--all` covers the two low-cost ledger-native modes (Stale, Harvest); the
+path/report/config-dependent modes (Plan-dropouts and Forms F–I) are opt-in
+because their inputs and cost profiles differ (filesystem walks, git
+subprocess calls, upstream report dependency, declarative-config dependency).
 
 ### Form A — Stale
 
@@ -127,8 +133,9 @@ Recommended sources:
 ```
 
 Run modes A and B together (omitting C, since it needs a path, and F/G/H/I,
-which have heavier cost profiles or external dependencies). When the
-report has any findings, suggest reads for the user.
+which have heavier cost profiles or external dependencies). This is the
+default lightweight audit, not proof that all seven detector surfaces ran.
+When the report has any findings, suggest reads for the user.
 
 ### Form E — JSON output
 
@@ -167,16 +174,18 @@ as `/extract-existing-ideas`), so re-running is idempotent.
 ```
 
 Walk `ai-docs/plans/*.md`. Read each plan's status from YAML
-front-matter or the first `**Status:**` line. Flag plans whose status
-is `proposed`, whose git mtime is older than `N` days (default 30),
-and whose stem-slug has no corresponding ledger intake.
+front-matter or the first `**Status:**` line. Flag plans whose status is one
+of `draft`, `proposed`, `scoped`, `impacted`, or `architected`, whose git or
+filesystem mtime is older than `N` days (default 30), and whose stem-slug is
+not actively tracked by an in-flight ledger intake.
 
-Output names the plan path and how long it has been silent. Slug
-match is exact (`plan-name.md` → slug `plan-name`); fuzzy matching is
-intentionally not done here — the cost of a false negative
-("hey, this might already be in the ledger") is lower than the cost
-of a false positive that misleads the user into reconfiguring an
-existing intake.
+Output names the plan path and how long it has been silent. Slug match is
+exact (`plan-name.md` → slug `plan-name`); only an in-flight ledger idea with
+that slug suppresses the finding because non-active intakes still need
+attention. Fuzzy matching is intentionally not done here — the cost of a false
+negative ("hey, this might already be in the ledger") is lower than the cost
+of a false positive that misleads the user into reconfiguring an existing
+intake.
 
 ### Form H — Dead-prototype (multi-source)
 
@@ -325,6 +334,13 @@ The default render is Markdown. Shape:
 Sections with zero findings show "(none)" rather than being omitted —
 this confirms the detector ran.
 
+For a full seven-mode audit, the report must contain all seven sections. That
+requires explicit mode flags plus real inputs for `--plan-dropouts` and
+`--dead-prototype`; use the caller's actual plan path and dormant-report JSON.
+If any required input is unavailable, run the modes that can execute and state
+which detector was skipped and why. Do not use `--all` as a substitute for this
+full-audit proof.
+
 ### Stage 3 — Optional write (--apply-stale)
 
 **Pre:** Form A active AND `--apply-stale` flag set AND findings exist.
@@ -347,18 +363,57 @@ should see "0 stale findings" on the second pass (sanity check).
 `reports/_meta/effectiveness.jsonl`.
 
 ```bash
-python3 scripts/log_effectiveness.py \
+FINDINGS_JSON="$(mktemp)"
+.venv/bin/python .claude/skills/find-orphaned-ideas/scripts/find.py --all --json \
+  > "${FINDINGS_JSON}"
+TOTAL="$(
+  .venv/bin/python -c 'import json,sys; d=json.load(open(sys.argv[1])); print(sum(len(d.get(k, [])) for k in ("stale", "harvest", "todo", "stale_plans", "dead_prototype")) + len(d.get("plan_dropouts", {}).get("items", [])) + len(d.get("attention_gap", {}).get("areas", [])))' \
+  "${FINDINGS_JSON}"
+)"
+BUCKETS="$(
+  .venv/bin/python -c 'import json,sys; d=json.load(open(sys.argv[1])); print(json.dumps({"stale": len(d.get("stale", [])), "harvest": len(d.get("harvest", [])), "plan_dropouts": len(d.get("plan_dropouts", {}).get("items", [])), "todo": len(d.get("todo", [])), "stale_plans": len(d.get("stale_plans", [])), "dead_prototype": len(d.get("dead_prototype", [])), "attention_gap_areas": len(d.get("attention_gap", {}).get("areas", []))}))' \
+  "${FINDINGS_JSON}"
+)"
+.venv/bin/python scripts/log_effectiveness.py \
   --skill find-orphaned-ideas \
   --scan-id "audit-$(date +%s)" \
   --target ".claude/ideas/log.jsonl" \
-  --findings-total $TOTAL \
-  --buckets "{\"stale\": ${N_STALE}, \"harvest\": ${N_HARVEST}, \"plan_dropouts\": ${N_DROPOUTS}, \"todo\": ${N_TODO}, \"stale_plans\": ${N_STALE_PLANS}, \"dead_prototype\": ${N_DEAD_PROTOTYPE}, \"attention_gap_areas\": ${N_ATTENTION_AREAS}}"
+  --findings-total "${TOTAL}" \
+  --buckets "${BUCKETS}"
 ```
+
+The command above logs the default `--all` audit. If the delivered report used
+different mode flags, rerun the first detector command with those same flags
+and `--json`, then derive `TOTAL` and `BUCKETS` from that JSON. Never log from
+unset shell variables.
 
 ### Stage 5 — Stop
 
 Do not auto-act on findings except via `--apply-stale`. The detector is
 advisory; the user invokes `/track-idea event` for the rest.
+
+## Dispatch and verdict contract
+
+This skill has no sub-agent dispatch. The script's Markdown or JSON output is
+the declared verdict. Judge by the emitted sections and counts:
+
+- requested mode absent from output = that detector did not run;
+- requested mode present with `(none)` or an empty JSON list = detector ran
+  cleanly;
+- non-zero list = finding bucket to route through the suggested next actions;
+- `--apply-stale` write = valid only when the follow-up stale section shows
+  zero stale findings or the error output names the partial write.
+
+Do not infer hidden results from the ledger or filesystem after the fact. Re-run
+the detector with the desired flags and paste its output.
+
+## Replay case
+
+When changing this skill or `scripts/find.py`, smoke the affected modes against
+a tiny fixture. At minimum, cover the default `--all` JSON path and any changed
+multi-source mode (`--stale-plans` for plan-status changes, `--todo` for TODO
+tuning changes, `--dead-prototype` for dormant-report parsing changes). Paste
+the command output, including exit codes when a mode intentionally returns 2.
 
 ## Non-goals
 
@@ -384,8 +439,8 @@ advisory; the user invokes `/track-idea event` for the rest.
 | `--todo` against binary or non-UTF8 file | Skip silently; the file walk continues |
 | `--todo` produces project-specific noise (vendor JS, worktrees) | Add globs to `.engineering/docs/todo-tuning.md` `## Path skip` |
 | `--todo` git mtime lookup fails (not a git repo, or file untracked) | The `--min-age-days` filter drops that file; without the filter the TODO still surfaces |
-| `--stale-plans` plan with no parseable status | Skipped (status defaults to None, which is not `proposed`) |
-| `--stale-plans` plan slug collides with an existing ledger intake | Skipped — the cross-check is exact stem-slug match |
+| `--stale-plans` plan with no parseable status | Skipped (status defaults to None, which is not one of the non-terminal statuses) |
+| `--stale-plans` plan slug collides with an in-flight ledger intake | Skipped — exact stem-slug match means `--stale` owns the watch |
 | `--dead-prototype` with no path AND no `reports/find-dormant/` scans | Exit 2 with usage error naming both options |
 | `--dead-prototype` report exists but JSON has no recognized array key | Exit 2 with the list of accepted keys |
 | Same path matches multiple new modes (e.g. TODO in a stale plan file) | Report under each section; do not deduplicate |

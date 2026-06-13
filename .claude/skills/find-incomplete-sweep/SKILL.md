@@ -63,15 +63,20 @@ is captured in the bands and gate sections below.
 ## How success is judged
 
 - Every gated-in packet in `scout_packets.json` receives exactly one
-  Step B verdict from the fixed vocabulary (`forgotten` / `deliberate`
-  / `optional` / `not-applicable`) with a one-line rationale — leaves
-  are recorded with their why, never silently dropped.
+  Step B verdict record in `<scan-dir>/scout_verdicts.json` from the fixed
+  vocabulary (`forgotten` / `deliberate` / `optional` / `not-applicable`)
+  with a one-line rationale — leaves are recorded with their why, never
+  silently dropped.
 - `<scan-dir>/triaged.md` is written forgotten-first; each `forgotten`
   carries the suggested completion and hands off to `/fix-workflow
   cluster:<finding>`.
 - The git-trajectory gate ran (unless `--no-gate` was explicit);
   likely-deliberate divergences stay in their own section.
-- Zero code edits — detection-only.
+- Zero production-code edits — detection-only. The only writes are scan
+  artifacts under the requested `--out` directory.
+- The closeout pastes detector output (`wrote ...` or the Markdown report),
+  scout packet count, and the `triaged.md` path. Claims without artifacts do
+  not count.
 Write toward these gates from the first detector run.
 
 ## Bands
@@ -95,8 +100,10 @@ Two detector bands, selected with `--band` (default `kwarg`):
 `--paths` is required — there is no default scan root, so a wrong default can
 never silently scan nothing. Pass one or more source roots (e.g. `scripts`).
 Relative paths anchor on `--project-root` (default: git toplevel of the cwd,
-else the cwd); the resolved root is recorded in `manifest.json` so `scout.py`
-re-anchors the same way.
+else the cwd). The kwarg band records the resolved root in `manifest.json` so
+`scout.py` re-anchors the same way; the placeholder band uses the same resolved
+root for path walking, report labels, reference checks, and
+`placeholder_manifest.json`.
 
 ```bash
 # Codebase audit (default): cluster every callee, flag kwarg-omission stragglers
@@ -198,6 +205,27 @@ small set, judge them inline). Each judge reads its packet plus
 Each verdict carries a one-line rationale; `forgotten` also carries a
 suggested completion (the exact kwarg to add).
 
+Write the collected judge outputs to `<scan-dir>/scout_verdicts.json`:
+
+```json
+{
+  "scan_dir": "reports/find-incomplete-sweep/scan-<TS>",
+  "verdicts": [
+    {
+      "id": "SW-01",
+      "verdict": "forgotten|deliberate|optional|not-applicable",
+      "rationale": "<one line>",
+      "completion": "<kwarg to add, only when forgotten>"
+    }
+  ]
+}
+```
+
+The dispatch prompt must tell each judge that this JSON record is the judged
+artifact and that `triaged.md` will be built from it. A judge reply without a
+record for its packet is incomplete; do not merge until every packet id is
+accounted for.
+
 The full decision rubric — including the dominant trap that the
 result-shape and optional-dataclass classes mimic a forgotten sweep — is in
 `reference/scout-rubric.md`. Keep it out of the orchestrator's context; it is
@@ -205,10 +233,11 @@ the judge's brief.
 
 ### Step C — rank and hand off
 
-Write `<scan-dir>/triaged.md`, **forgotten-first** (then `deliberate` /
-`optional` / `not-applicable`, each with rationale). Forgotten findings hand
-off to `/fix-workflow cluster:<finding>`; a recurring forgotten *type* graduates
-to `/prevent-regression`. `deliberate` / `optional` / `not-applicable` are the
+Read `<scan-dir>/scout_verdicts.json` and write `<scan-dir>/triaged.md`,
+**forgotten-first** (then `deliberate` / `optional` / `not-applicable`, each
+with rationale). Forgotten findings hand off to `/fix-workflow
+cluster:<finding>`; a recurring forgotten *type* graduates to
+`/prevent-regression`. `deliberate` / `optional` / `not-applicable` are the
 proof the scout layer collapses the detector's residual false-positive class —
 they are recorded, not actioned.
 
@@ -267,3 +296,27 @@ forgotten-sweep type to a diff-scoped lint via `/prevent-regression`.
 Pairs with `/rename-concept`: this **catches** a half-done sweep; that
 **prevents** a half-done concept rename (same failure — partial execution — at
 two altitudes).
+
+## When things go sideways
+
+| Symptom | Action |
+|---|---|
+| `--paths` is omitted | Stop; the scanner requires an explicit root so it cannot silently scan the wrong tree |
+| Relative paths resolve to the wrong tree | Re-run with `--project-root DIR`; paste the detector output that records the intended root |
+| `manifest.json` is missing before `scout.py` | Re-run the kwarg band with `--out`; do not fabricate scout packets |
+| `scout_packets.json` has zero packets | Write an empty `scout_verdicts.json`, skip `triaged.md` findings, and report "no gated-in findings" |
+| A judge omits a packet id or uses a verdict outside the fixed vocabulary | Re-dispatch that packet only; do not merge partial or invented verdicts |
+| Placeholder band reports old stable stubs only | Treat them as gated-out accepted debt; do not route to `/fix-workflow` without a gated-in hit |
+
+## Replay case
+
+Replay the script fixture suite after detector changes:
+
+```bash
+.venv/bin/python .claude/skills/find-incomplete-sweep/scripts/test_scan.py
+```
+
+For project-root anchoring changes, also run the placeholder band from a
+different cwd against a tiny fixture with `--project-root` set and paste the
+real `wrote .../placeholder_findings.md` line plus the report header showing
+`files scanned`.

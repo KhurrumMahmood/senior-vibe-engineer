@@ -36,8 +36,10 @@ not_for: |
   itself, which should also write or refresh its intent contract — that is
   `/plan-skill`. Agent-rules doc-surface drift (oversized always-loaded
   files, dormant docs, broken onboarding links) — `/find-rule-surface-drift`.
-  This skill never edits skills or contracts and never blocks a commit; it
-  is advisory unless run `--strict` in CI.
+  This skill never edits skill directories or per-skill intent contracts and
+  never blocks a commit; it is advisory unless run `--strict` in CI. By
+  default it does refresh the generated contract roll-up
+  `_index.yaml`; pass `--no-index` for a no-write audit.
 language: python
 framework: any
 ---
@@ -57,6 +59,21 @@ The guard cannot block an edit. Its job is to make silent intent erosion
 **visible** — the "no easy reversion of intent" property — so a reviewer
 notices that a skill's recorded purpose no longer matches what the skill
 now does.
+
+## How success is judged
+
+- The scan output is pasted verbatim, including the `skills=... contracts=...`
+  header, every drift-band count, any `wrote .../_index.yaml` line, and the
+  `TOTAL findings: N` line. Claims without this output do not count.
+- `missing`, `orphaned`, `malformed`, and `stale` are reported as separate
+  verdict bands; `--strict` exits 1 exactly when the total finding count is
+  non-zero.
+- The default write is declared honestly: `_index.yaml` is regenerated unless
+  `--no-index` is present. A run that must be read-only uses `--no-index` and
+  does not claim the roll-up was refreshed.
+- The skill does not edit `SKILL.md` files or per-skill contract YAML. Drift
+  rows are follow-up work for `/plan-skill` or a manual contract refresh.
+Work toward these gates from the first command.
 
 ## The skill-meta trio
 
@@ -108,6 +125,11 @@ auto-generated roll-up (per-skill born date, problem class, dogfood kind +
 confidence, duplication-risk count, stale state); pass `--no-index` to
 skip that write.
 
+If the caller asked for a read-only audit, include `--no-index` in the first
+run. If the caller asked to refresh the roll-up, omit `--no-index` and report
+the pasted `wrote .../_index.yaml` line. Do not infer that a run refreshed the
+roll-up unless that line appears.
+
 When **bootstrapping** the contracts in a fresh repo, regenerate
 `_index.yaml` *after* the contracts are committed. A roll-up written while
 they are still uncommitted records every entry as `stale: baseline
@@ -130,9 +152,10 @@ run directory. Its durable output is the regenerated `_index.yaml`
   or carries invalid enum values. Required keys: `skill`, `job`,
   `problem_class`, `intent`, `solves`, `born` (with `commit` + `date`),
   `dogfood_kind` (one of `subsystem-refactor` / `self-installed-guard` /
-  `fixture-pair` / `none-found`), and `provenance_confidence` with all
-  four axes (`textual` / `structural` / `temporal` / `dogfood`) set to
-  `high` / `med` / `low`. Capture is incomplete until these are filled.
+  `fixture-pair` / `host-attested` / `none-found`), and
+  `provenance_confidence` with all four axes (`textual` / `structural` /
+  `temporal` / `dogfood`) set to `high` / `med` / `low`. Capture is
+  incomplete until these are filled.
 - `stale` — the contract is committed, and the `SKILL.md` **frontmatter
   intent surface** changed between the contract's last commit and now. The
   comparison is intent-aware, not a raw timestamp check: the YAML frontmatter
@@ -156,13 +179,53 @@ run directory. Its durable output is the regenerated `_index.yaml`
   reading a `stale` finding makes that call.
 - **Editing skills or contracts.** This is detection only; refreshing a
   drifted contract is a follow-up (manual, or via `/plan-skill` when the
-  skill itself is being revised).
+  skill itself is being revised). The generated `_index.yaml` roll-up is the
+  single declared write, and only when `--no-index` is absent.
 - **Provenance archaeology.** Determining `born`, `dogfood_kind`,
   `dogfooded_on`, and the confidence axes from git history is the
   contract-authoring step, not this scan. The scan only verifies those
   fields are present and well-formed.
 - **Blocking commits.** Advisory by design. The only non-zero exit is the
   explicit `--strict` CI mode.
+
+## Dispatch and verdict contract
+
+This skill has no sub-agent dispatch. The declared verdict is the script's
+banded stdout plus, when enabled, the generated `_index.yaml` diff. A reviewer
+acts on the band, not on free-form interpretation:
+
+| Band | Consumer | Next action |
+|---|---|---|
+| `missing` | skill author / `/plan-skill` | author a contract before relying on recorded intent |
+| `orphaned` | maintainer | remove or restore the stale contract after checking whether the skill was intentionally deleted |
+| `malformed` | maintainer | fill the required schema-v2 fields; do not waive enum failures |
+| `stale` | reviewer | compare the current frontmatter intent to the contract and refresh the contract if intent changed |
+
+When writing a closeout, paste the command and output. Do not summarize a
+band as "clean" unless the band count shown in stdout is zero.
+
+## When things go sideways
+
+| Symptom | Action |
+|---|---|
+| The caller requires a no-write audit | Re-run with `--no-index`; state that `_index.yaml` was not refreshed |
+| `--strict` exits 1 | Treat it as a CI gate failure only if `TOTAL findings` is non-zero; paste the band counts |
+| YAML load fails for a contract | Leave it in `malformed`; do not hand-edit during this skill |
+| Git history is unavailable or shallow | Accept the script's fallback stale label and name the fallback in the report |
+| `_index.yaml` changes unexpectedly | Inspect the generated diff as an output artifact; do not revert it unless the caller asked for `--no-index` semantics |
+
+## Replay case
+
+Replay the intent-aware stale fixtures when changing the detector:
+
+```bash
+.venv/bin/python .claude/skills/find-skill-intent-drift/scripts/test_scan.py
+```
+
+The fixture set proves body-only edits stay clean, frontmatter intent edits
+flag stale, path-only and operational-key churn are ignored, absent historical
+`SKILL.md` files flag stale, and uncommitted contracts remain baseline. Paste
+the unittest output when changing this skill or its script.
 
 ## Provenance Note
 

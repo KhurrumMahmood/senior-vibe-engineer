@@ -37,7 +37,12 @@ Write the capability matrix here: `{{output_matrix_path}}`
    test and adapter reality test when choosing between `share_utilities`,
    `merge_at_*`, and `keep_separate_document_why`.
 
-Also check `reports/duplication/latest/triage.md` (the sibling find-duplication scan) for any overlap — if the candidate members appear there as syntactic duplicates, the correct path is `/find-duplication`, not here (rejection class 5).
+If `reports/duplication/latest/triage.md` exists, check it for overlap with
+the candidate members. If the file is absent, note
+`sibling duplication report absent` in `notes` and continue with the direct
+token-overlap check in F5. If the candidate members appear in the sibling
+report as syntactic duplicates, the correct path is `/find-duplication`, not
+here (rejection class 5).
 
 ### Investigation steps
 
