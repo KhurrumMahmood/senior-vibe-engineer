@@ -23,7 +23,7 @@ The script:
 
 Usage:
 
-    python3 .claude/skills/extract-state-type/scripts/collect_target.py \\
+    .venv/bin/python .claude/skills/extract-state-type/scripts/collect_target.py \\
       --file core/services/agentic_discovery_service.py \\
       --symbol AgenticDiscoveryService.discover \\
       --project-root "$(pwd)" \\
@@ -63,7 +63,7 @@ Output schema:
       "caller_count": 2
     }
 
-Stdlib-only; runs under bare `python3`.
+Stdlib-only; runs under `.venv/bin/python` or any Python 3.11+.
 """
 
 from __future__ import annotations

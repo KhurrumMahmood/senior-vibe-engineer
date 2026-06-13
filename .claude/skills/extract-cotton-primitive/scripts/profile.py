@@ -163,6 +163,13 @@ def main():
           f"(of {candidate.get('evidence', {}).get('occurrence_count', 0)} total)",
           file=sys.stderr)
     print(f"Wrote {args.output}")
+    if not callsites:
+        print(
+            "ERROR: zero representative callsites loaded; "
+            "profile artifact was written for inspection, aborting before scout",
+            file=sys.stderr,
+        )
+        return 1
     return 0
 
 

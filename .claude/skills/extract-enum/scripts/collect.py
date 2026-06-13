@@ -22,7 +22,9 @@ Two input shapes:
       --project-root /path/to/your-project \\
       --output reports/extract-enum/<target>/targets.json
 
-Loads the finding, extracts ``file``, infers ``<Model>`` and
+Loads the finding, accepts either the raw id or ``implicit-state:<id>``,
+rejects findings whose ``recommendation_hint`` / scout ``bucket`` is not
+``extract_enum_candidate``, extracts ``file``, infers ``<Model>`` and
 ``<field>`` from the finding's ``fields_touched`` / ``hits`` records,
 then runs the repo scan.
 
@@ -75,7 +77,7 @@ Exit status:
     1  target resolved but 0 literals/comparisons found
     2  invocation error (finding not resolvable, field not found)
 
-Stdlib-only. Runs under ``python3``.
+Stdlib-only. Runs under ``.venv/bin/python`` or any Python 3.11+.
 """
 
 from __future__ import annotations
@@ -610,6 +612,14 @@ def _target_slug(model_class: str | None, field_name: str, fallback_path: Path) 
     return f"{base}__{field_name}"
 
 
+def _normalize_finding_id(finding_id: str) -> str:
+    """Accept the slash-command form (`implicit-state:<id>`) and raw ids."""
+    prefix = "implicit-state:"
+    if finding_id.startswith(prefix):
+        return finding_id[len(prefix):]
+    return finding_id
+
+
 def _resolve_from_finding(
     findings_path: Path, finding_id: str
 ) -> tuple[str, str, str | None]:
@@ -623,6 +633,7 @@ def _resolve_from_finding(
     when present — needed because ``file`` is the *caller* site (where the
     smell was detected), not necessarily the file that declares the field.
     """
+    finding_id = _normalize_finding_id(finding_id)
     if not findings_path.exists():
         raise FileNotFoundError(
             f"findings file not found: {findings_path}\n"
@@ -658,6 +669,17 @@ def _resolve_from_finding(
         raise KeyError(
             f"finding {finding_id!r} not present in {findings_path}. "
             f"First 10 IDs: {ids}"
+        )
+    recommendation_hint = match.get("recommendation_hint") or match.get("bucket")
+    if recommendation_hint != "extract_enum_candidate":
+        if recommendation_hint == "introduce_fk_candidate":
+            raise ValueError(
+                f"finding {finding_id} is introduce_fk_candidate; "
+                "run /introduce-fk instead of /extract-enum"
+            )
+        raise ValueError(
+            f"finding {finding_id} is not an extract_enum_candidate "
+            f"(recommendation_hint={recommendation_hint!r})"
         )
     file = match.get("file")
     if not file:

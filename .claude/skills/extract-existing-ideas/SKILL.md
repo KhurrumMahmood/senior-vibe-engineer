@@ -46,9 +46,13 @@ a non-trivial extraction batch.
 
 ## How success is judged
 
-- A candidates JSON plus a report exist, with every candidate
-  classified NEW vs WOULD-COLLIDE against the ledger's slug set —
-  collisions surfaced for `/track-idea event`, never silently dropped.
+- `reports/extract-existing-ideas/scan-<TS>/extract-candidates.json`
+  and `report.md` exist, with every candidate classified NEW vs
+  WOULD-COLLIDE against the ledger's slug set — collisions surfaced
+  for `/track-idea event`, never silently dropped.
+- If any write occurs, `approved-candidates.json` exists and contains
+  only the user-approved survivor set; `write-report.md` is the pasted
+  `brainstorm.py` transcript.
 - No intake was written by this skill itself: survivors go through
   `brainstorm-ideas/scripts/brainstorm.py`, where dedup, validation,
   and origin discipline live.
@@ -95,22 +99,32 @@ Write toward these gates from Stage 0.
 
 ### Stage 0 — Setup
 
-**Pre:** root resolved. **Post:** candidate list in hand.
+**Pre:** root resolved. **Post:** scan directory, durable candidate
+JSON, and review report exist.
 
 ```bash
-.venv/bin/python -c "
-import sys; sys.path.insert(0, '.claude/skills/_common')
-import ideas_lib, json
-print(json.dumps(ideas_lib.extract_candidates('<root>'), indent=2))
-" > /tmp/extract-candidates.json
+TS=$(date +%Y%m%d-%H%M%S)
+REPORT_DIR="reports/extract-existing-ideas/scan-${TS}"
+mkdir -p "${REPORT_DIR}"
+ln -sfn "scan-${TS}" reports/extract-existing-ideas/latest
+
+.venv/bin/python .claude/skills/extract-existing-ideas/scripts/extract.py \
+  "<root>" \
+  --source both \
+  --project-root "$(pwd)" \
+  --out "${REPORT_DIR}/extract-candidates.json" \
+  > "${REPORT_DIR}/report.md"
 ```
 
-Or call `extract_candidates(root)` directly from a helper script.
+Use `--source backlog` or `--source lessons` when the invocation
+requested a narrower surface. Paste the helper's final `Wrote N
+candidate(s) ...` line in the run summary; the report file is the
+artifact, not a conversational reconstruction.
 
 ### Stage 1 — Dedup-preview
 
-**Pre:** candidate list resolved. **Post:** survivors classified
-(new vs. dup-against-existing).
+**Pre:** candidate list resolved. **Post:** survivor classification
+verified against the report artifact.
 
 Load the existing ledger and compute the slug-set of existing intakes.
 For each candidate, flag whether it would collide. Don't drop the
@@ -121,11 +135,12 @@ collisions — surface them so the user can decide whether to
 .venv/bin/python .claude/skills/track-idea/scripts/track.py list 2>&1
 ```
 
-### Stage 2 — Report and review
+### Stage 2 — Review
 
 **Pre:** classification done. **Post:** approved survivor set.
 
-Show the candidates grouped by source and dup status:
+Read `${REPORT_DIR}/report.md` and show the candidates grouped by
+source and dup status:
 
 ```
 Extracted N candidate(s) from <root>:
@@ -151,14 +166,39 @@ Ask the user which to drop, rewrite, or send through unchanged. Per the
 project's "no confirmation gates" rule, treat conversational approval
 as authorization. If `--write` is set, skip the review gate entirely.
 
-### Stage 3 — Hand-off to brainstorm.py
+### Stage 3 — Write the approved survivor artifact
+
+**Pre:** approved slugs resolved. **Post:**
+`${REPORT_DIR}/approved-candidates.json` contains exactly the survivor
+set the writer may consume.
+
+If the user approved every NEW candidate unchanged, keep all NEW slugs.
+If the user dropped or rewrote candidates, use the final approved slugs
+only; make any rewrite directly in `approved-candidates.json` before
+the writer stage.
+
+```bash
+APPROVED_SLUGS="slug-one,slug-two"
+.venv/bin/python .claude/skills/extract-existing-ideas/scripts/filter_candidates.py \
+  --candidates "${REPORT_DIR}/extract-candidates.json" \
+  --keep-slugs "${APPROVED_SLUGS}" \
+  --out "${REPORT_DIR}/approved-candidates.json"
+```
+
+The stderr line `wrote N approved candidate(s) ...` is the artifact
+truth for the review gate. If zero candidates survive, stop here and
+write that outcome in the final report; do not call `brainstorm.py`
+with the original candidate file.
+
+### Stage 4 — Hand-off to brainstorm.py
 
 **Pre:** approved candidate JSON path resolved. **Post:** brainstorm
 writes the survivors (dedup re-applied).
 
 ```bash
 .venv/bin/python .claude/skills/brainstorm-ideas/scripts/brainstorm.py \
-  /tmp/extract-candidates.json
+  "${REPORT_DIR}/approved-candidates.json" \
+  > "${REPORT_DIR}/write-report.md"
 ```
 
 `brainstorm.py` will:
@@ -167,7 +207,7 @@ writes the survivors (dedup re-applied).
 - Validate each survivor.
 - Append the survivors to `.claude/ideas/log.jsonl`.
 
-### Stage 4 — Report
+### Stage 5 — Report
 
 ```
 Extracted from <root>: N candidates.
@@ -180,7 +220,12 @@ Suggested next:
 - /find-orphaned-ideas in a week to catch any that go stale
 ```
 
-### Stage 5 — Stop
+Use `${REPORT_DIR}/report.md`, `${REPORT_DIR}/approved-candidates.json`,
+and `${REPORT_DIR}/write-report.md` as the source of truth for the
+counts. If `--write` was not used and the user has not approved a
+batch, the report names pending review instead of write counts.
+
+### Stage 6 — Stop
 
 Don't auto-promote. Don't auto-research. Don't write any other
 artifacts. The report names the suggested next moves; the caller drives.
@@ -218,7 +263,18 @@ reading other prose surfaces, but the writer step always goes through
 | Every candidate collides with existing intakes | Report and stop; recommend `/track-idea event` against the existing instead |
 | Extracted bullet has a backticked code identifier | Backticks stripped from the title; the slug normalizes to plain dashes |
 | `--write` requested but candidate list is large (>20) | Override the auto-write — force the review gate (the cost of a wrong bulk-write is higher than the cost of one extra confirmation cycle) |
+| User approves zero survivors | Write no `approved-candidates.json`; report "zero survivors" and stop before `brainstorm.py` |
+| Approved slug missing from `extract-candidates.json` | Fix the review list; `filter_candidates.py` exits 2 and the writer must not run |
 | Lesson body has no Rule / Why / How structure | Capture the body verbatim as summary; future `/mature-existing-ideas` pass can refine |
+
+## Replay / smoke
+
+Use `.claude/tests/ideas/fixtures/extraction-truth-set/` as the
+deterministic replay root. A valid smoke run writes
+`extract-candidates.json`, `report.md`, and then filters a known slug
+into `approved-candidates.json`; paste the real helper output. Do not
+smoke the ledger-writing stage unless the run uses `brainstorm.py
+--dry-run`.
 
 ## Repository layout
 
@@ -226,7 +282,8 @@ reading other prose surfaces, but the writer step always goes through
 .claude/skills/extract-existing-ideas/
 ├── SKILL.md                  # this file — orchestrator
 └── scripts/
-    └── extract.py            # candidate emitter (wraps ideas_lib.extract_candidates)
+    ├── extract.py            # candidate emitter (wraps ideas_lib.extract_candidates)
+    └── filter_candidates.py  # rewrites reviewed survivors before brainstorm.py
 ```
 
 ## Cross-references

@@ -46,6 +46,9 @@ supporting `targets.json` and `profile.md`.
   JS-partner notes with the idempotent-init guard, and stop condition.
 - The three-callsite, two-template rule held — below threshold the
   proposal says `defer_low_callsite_count`, never forces a primitive.
+- Stage 1 and Stage 1.5 command output is pasted into the run summary:
+  `profile.py`'s loaded-callsite count and `census.py`'s variant
+  histogram are artifact truth, not claims.
 - Zero edits to `templates/cotton/`, callsites, or JS — execution is
   `/refactor-subsystem`'s or the human's, after review.
 Write toward these gates from Stage 0.
@@ -147,9 +150,11 @@ scout to read.
 ```
 
 The profiler writes to stderr a one-line summary:
-`<category> — N representative callsites across K files`. If zero
-callsites can be loaded, exit 1 — the candidate references files that
-don't exist.
+`Profiled <category> — N representative callsites loaded ...`. It
+always writes `${REPORT_DIR}/profile.json` first so the failed input can
+be inspected. If zero callsites can be loaded, it then prints an
+`ERROR: zero representative callsites loaded` line to stderr and exits
+1. Stop there; do not dispatch the scout against an empty profile.
 
 ### Stage 1.5 — Census (variant histogram)
 
@@ -198,6 +203,12 @@ placeholders:
   `.claude/skills/extract-cotton-primitive/`
 
 Use `subagent_type=general-purpose`.
+
+Tell the scout its output is judged only by the `primitive.md` file it
+writes at `{{output_path}}`: the file must follow the agent brief's
+Output contract and include the migration table for every profiled
+callsite. A conversational claim that the primitive is designed does
+not satisfy Stage 2.
 
 If the scout returns `profile_incomplete` or
 `conventions_violation`, re-dispatch once with a stricter brief. If
@@ -301,7 +312,7 @@ single-PR extraction following the migration table.
 CALLSITE_COUNT=$(.venv/bin/python -c "import json,sys; print(len(json.load(open(sys.argv[1]))['callsites']))" "${REPORT_DIR}/profile.json")
 FILE_COUNT=$(.venv/bin/python -c "import json,sys; print(len({c['file'] for c in json.load(open(sys.argv[1]))['callsites']}))" "${REPORT_DIR}/profile.json")
 
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill extract-cotton-primitive \
   --scan-id "${TARGET_SLUG}" \
   --target "${TARGET_SLUG}" \
@@ -324,6 +335,14 @@ Report to the user in ≤10 lines:
 
 Do NOT start the execution step yourself. The proposal is the handoff
 artifact.
+
+## Replay / smoke
+
+For a script-only replay, run `profile.py` against a tiny candidates
+fixture whose occurrence points at a missing template. The required
+artifact is the pasted stdout/stderr showing `profile.json` was written
+and the process exited 1 with the zero-callsite error. This replay
+guards the Stage 1 abort contract.
 
 ## Non-goals
 

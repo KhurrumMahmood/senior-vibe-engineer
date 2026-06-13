@@ -45,6 +45,10 @@ supporting `targets.json` and `profile.md`.
   `models.TextChoices` class (never tuple-style choices), the caller
   table from `profile.md`, data-migration risks (case-variants,
   third-party bridges), test matrix, and stop condition.
+- Form A pasted output shows the exact finding gate: optional
+  `implicit-state:` prefix stripped, `recommendation_hint`/`bucket`
+  checked as `extract_enum_candidate`, then `collect.py` output
+  pasted with literal and caller counts.
 - Exactly one target per run — extra stringly-typed fields land under
   Follow-on findings, not in this proposal.
 - No file outside `reports/extract-enum/<target-slug>/` was touched;
@@ -81,7 +85,7 @@ Write toward these gates from Stage 0.
    `class X(str, Enum)`), accessed `CLASS.MEMBER` and defined next to
    the carrier it serves; this collector only walks model fields, so
    that conversion is hand-applied. (A project with a house value-enum
-   type binds this generic endpoint to it in `knowledge/`.) If a feature
+   type binds this generic endpoint in `knowledge/risk-context.md`.) If a feature
    must touch a legacy tuple-style `STATUS_CHOICES` field, consider a
    small `/extract-enum` proposal or explicit follow-up before adding
    more callers that compare bare strings.
@@ -89,12 +93,12 @@ Write toward these gates from Stage 0.
 ## Scope
 
 - **Project root:** this worktree's root.
-- **Python:** `python3` for `scripts/collect.py` (stdlib-only). The
-  skill does not import Django or touch the DB.
+- **Python:** `.venv/bin/python` for `scripts/collect.py`. The skill
+  does not import Django or touch the DB.
 - **Worktree guard:** read-only — no guard required here. The
   execution skill (`/fix-workflow`) does its own worktree check.
 - **Project-specific defaults** (known stringly-typed hotspots,
-  third-party-bridge recognition rules): `knowledge/`.
+  third-party-bridge recognition rules): `knowledge/risk-context.md`.
   The scout reads that file; the orchestrator does not.
 
 ## Argument parsing
@@ -105,10 +109,36 @@ Two forms:
 
 Pattern: `implicit-state:<id>` or `<id>` where `<id>` matches
 `implicit-state-NNNN`. Resolves against
-`reports/implicit-state/latest/findings.json`. The orchestrator reads
-the candidate's `recommendation_hint` — this skill rejects any hint
-other than `extract_enum_candidate` and recommends `/introduce-fk` for
-`introduce_fk_candidate`.
+`reports/implicit-state/latest/findings.json`.
+
+Before calling `collect.py`, strip the optional `implicit-state:`
+prefix and check the candidate's `recommendation_hint` or final scout
+`bucket`. Only `extract_enum_candidate` may proceed. For
+`introduce_fk_candidate`, abort and recommend `/introduce-fk`; for
+`enum_already_used`, `legacy_allow_list`, or any other value, abort and
+report that the candidate is not an enum-extraction target.
+
+```bash
+RAW_FINDING="<implicit-state-id-or-prefixed-id>"
+FINDING_ID="${RAW_FINDING#implicit-state:}"
+.venv/bin/python -c '
+import json, sys
+from pathlib import Path
+finding_id = sys.argv[1]
+path = Path("reports/implicit-state/latest/findings.json")
+payload = json.loads(path.read_text(encoding="utf-8"))
+records = payload.get("findings") or payload.get("candidates") or []
+for record in records:
+    if record.get("candidate_id") == finding_id or record.get("id") == finding_id:
+        hint = record.get("recommendation_hint") or record.get("bucket")
+        print(json.dumps({"candidate_id": finding_id, "hint": hint}))
+        if hint != "extract_enum_candidate":
+            raise SystemExit(f"not an extract_enum_candidate: {hint}")
+        break
+else:
+    raise SystemExit(f"finding not found: {finding_id}")
+' "${FINDING_ID}"
+```
 
 If the findings file is missing, abort and tell the user to run
 `/find-implicit-state` first — do NOT fall back to scanning.
@@ -153,7 +183,7 @@ with field declaration + literals + comparison/assignment sites.
 **Form A:**
 
 ```bash
-python3 .claude/skills/extract-enum/scripts/collect.py \
+.venv/bin/python .claude/skills/extract-enum/scripts/collect.py \
   --from-finding "${FINDING_ID}" \
   --findings reports/implicit-state/latest/findings.json \
   --project-root "$(pwd)" \
@@ -163,7 +193,7 @@ python3 .claude/skills/extract-enum/scripts/collect.py \
 **Form B:**
 
 ```bash
-python3 .claude/skills/extract-enum/scripts/collect.py \
+.venv/bin/python .claude/skills/extract-enum/scripts/collect.py \
   --target "${FILE}::${FIELD}" \
   ${MODEL_CLASS:+--model-class "${MODEL_CLASS}"} \
   --project-root "$(pwd)" \
@@ -193,6 +223,11 @@ Substitute placeholders:
   `.claude/skills/extract-enum/`
 
 Use `subagent_type=general-purpose`.
+
+Tell the scout its output is judged only by the `profile.md` file it
+writes at `{{output_path}}`: the file must follow the agent brief's
+profile structure and use `knowledge/risk-context.md` for the risk
+classification. A conversational summary does not satisfy Stage 2.
 
 If the scout returns `profile_incomplete` or `targets_missing`, re-
 dispatch once with a stricter "respond only with file-write
@@ -306,7 +341,7 @@ proposal to `/fix-workflow extract-enum:<target-slug>` (when that
 variant ships) or to `/refactor-subsystem` for a multi-file change.
 ```
 
-See `knowledge/` for project-specific gotchas the
+See `knowledge/risk-context.md` for project-specific gotchas the
 proposal's risk section should cover (third-party bridges, Celery
 resilience retries, legacy ExternalSource imports).
 
@@ -316,13 +351,13 @@ resilience retries, legacy ExternalSource imports).
 `reports/_meta/effectiveness.jsonl`.
 
 ```bash
-LITERAL_COUNT=$(python3 -c "import json,sys; print(len(json.load(open(sys.argv[1]))['literals']))" "${REPORT_DIR}/targets.json")
-CASE_VARIANTS=$(python3 -c "import json,sys; print(sum(1 for l in json.load(open(sys.argv[1]))['literals'] if l.get('case_variant_of')))" "${REPORT_DIR}/targets.json")
-CONFIRMED=$(python3 -c "import json,sys; print(len(json.load(open(sys.argv[1]))['comparison_sites']))" "${REPORT_DIR}/targets.json")
-FIELD_SYMBOL=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['field_symbol'])" "${REPORT_DIR}/targets.json")
-FIELD_FILE=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['field_file'])" "${REPORT_DIR}/targets.json")
+LITERAL_COUNT=$(.venv/bin/python -c "import json,sys; print(len(json.load(open(sys.argv[1]))['literals']))" "${REPORT_DIR}/targets.json")
+CASE_VARIANTS=$(.venv/bin/python -c "import json,sys; print(sum(1 for l in json.load(open(sys.argv[1]))['literals'] if l.get('case_variant_of')))" "${REPORT_DIR}/targets.json")
+CONFIRMED=$(.venv/bin/python -c "import json,sys; print(len(json.load(open(sys.argv[1]))['comparison_sites']))" "${REPORT_DIR}/targets.json")
+FIELD_SYMBOL=$(.venv/bin/python -c "import json,sys; print(json.load(open(sys.argv[1]))['field_symbol'])" "${REPORT_DIR}/targets.json")
+FIELD_FILE=$(.venv/bin/python -c "import json,sys; print(json.load(open(sys.argv[1]))['field_file'])" "${REPORT_DIR}/targets.json")
 
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill extract-enum \
   --scan-id "${TARGET_SLUG}" \
   --target "${FIELD_FILE}::${FIELD_SYMBOL}" \
@@ -345,6 +380,17 @@ Report to the user in ≤10 lines:
 
 Do NOT start the execution step yourself. The proposal is the handoff
 artifact.
+
+## Replay / smoke
+
+For a script-level replay, use a tiny project fixture with one
+`models.Model` subclass carrying a `status = models.CharField(...)` and
+one comparison or assignment site. Run `collect.py --target
+<fixture-model>::status --project-root <fixture-root> --output
+<tmp>/targets.json` and paste the stderr summary with literal,
+case-variant, and caller counts. For Form A, a second replay may pass a
+minimal `findings.json` containing a non-`extract_enum_candidate` bucket
+and must show `collect.py` exits 2 before scanning.
 
 ## Non-goals
 
@@ -382,7 +428,7 @@ artifact.
 ├── agents/
 │   └── enum-profiler.md             # Stage 2 scout brief
 └── knowledge/                       # scout context, never loaded by orchestrator
-    └── (host-overlay specifics).md
+    └── risk-context.md              # risk buckets and plain-enum fallback
 ```
 
 The orchestrator (you) **never reads files in `knowledge/`**. Those are

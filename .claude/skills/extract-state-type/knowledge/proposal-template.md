@@ -189,8 +189,8 @@ Rules for this block:
 - **Docstring names the source** — "Converted from the implicit
   `state = {...}` dict by /extract-state-type" — so a future reader
   can trace back.
-- **Module name matches the convention** — `<module>/state.py` per
-  `knowledge/`.
+- **Module name matches the convention** — see
+  `knowledge/state-conventions.md`.
 
 ## 5. Migration plan
 

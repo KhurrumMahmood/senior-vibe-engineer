@@ -36,9 +36,9 @@ you surface the evidence; the orchestrator writes the plan. You do
   `.claude/skills/extract-state-type/`
 - `{{output_path}}` — absolute path to write your profile markdown
 
-Consult `{{skill_root}}/knowledge/` (host-project overlay) for the
-dataclass-vs-TypedDict decision rule, the state-module location
-convention, and project-specific state hotspots. Consult
+Consult `{{skill_root}}/knowledge/state-conventions.md` for the
+dataclass-vs-TypedDict decision rule, state-module location convention,
+and dynamic-key stop condition. Consult
 `{{skill_root}}/knowledge/proposal-template.md` only if you need to
 understand what downstream sections your profile must feed.
 
@@ -116,8 +116,8 @@ convention.
 
 ## Step 3 — Classify the shape
 
-Consult `knowledge/` for the decision rule. The short
-version:
+Consult `{{skill_root}}/knowledge/state-conventions.md` for the
+decision rule. The short version:
 
 - **`@dataclass`** — the state is mutated in place across a pipeline
   of helpers. Construction-site + mutation-sites are all in the same

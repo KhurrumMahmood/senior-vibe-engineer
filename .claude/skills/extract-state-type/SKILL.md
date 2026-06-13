@@ -34,8 +34,9 @@ migration). You write the proposal; you do NOT edit production code.
 
 Procedural detail lives in the knowledge files:
 
-- `knowledge/` — shared conventions pointer +
-  extract-state-type rules.
+- `knowledge/state-conventions.md` — scout-facing rules for
+  dataclass vs `TypedDict`, state-type location, and dynamic-key stop
+  conditions.
 - `knowledge/proposal-template.md` — the exact shape of
   `reports/extract-state-type/<target>/proposal.md`.
 - `agents/state-profiler.md` — scout brief for dict-shape inference.
@@ -45,6 +46,9 @@ Procedural detail lives in the knowledge files:
 - `proposal.md` matches `knowledge/proposal-template.md`: current-shape
   key table, complete `@dataclass` / `TypedDict` definition, one caller
   row per file from the scout's grep pass, and a stop condition.
+- Stage 1 pasted output includes the exact `collect_target.py` command
+  and its `wrote ... (dict_candidates=..., callers=...)` line; Stage 2
+  is judged by the `profile.md` file the scout writes, not by a claim.
 - The characterization-test section is present and concrete — the
   shape `/fix-workflow` must write before any edit is non-optional.
 - One scout, one proposal, one target; extras go to Follow-on findings.
@@ -77,13 +81,11 @@ Write toward these gates from Stage 0.
 ## Scope
 
 - **Project root:** this worktree's root.
-- **Python:** `python3` for the helper scripts (stdlib-only).
-  `.venv/bin/python` if a scout needs to import Django models
-  (usually not — we're reasoning about dict keys, not DB rows).
+- **Python:** `.venv/bin/python` for helper scripts.
 - **Output:** `reports/extract-state-type/<target-slug>/`. Never
   touches any other file.
 - **Project-specific conventions** (known implicit-state targets,
-  dataclass location, naming): `knowledge/`.
+  dataclass location, naming): `knowledge/state-conventions.md`.
   Scouts read that file; the orchestrator does not.
 
 ## Argument parsing
@@ -94,7 +96,35 @@ Two forms:
 Pattern: `implicit-state:<candidate-id>` (the candidate-id format
 `/find-implicit-state` emits in its `candidates.jsonl`).
 
-Resolve against `reports/implicit-state/latest/candidates.jsonl`.
+Resolve manually against `reports/implicit-state/latest/candidates.jsonl`;
+`collect_target.py` does not implement `--from-finding`. Strip the
+optional `implicit-state:` prefix, read the matching JSONL record,
+extract its target `file` and `symbol`, and then continue as Form B by
+calling `collect_target.py --file ... --symbol ...`.
+
+```bash
+RAW_FINDING="<implicit-state-id-or-prefixed-id>"
+FINDING_ID="${RAW_FINDING#implicit-state:}"
+.venv/bin/python -c '
+import json, sys
+from pathlib import Path
+finding_id = sys.argv[1]
+path = Path("reports/implicit-state/latest/candidates.jsonl")
+for line in path.read_text(encoding="utf-8").splitlines():
+    record = json.loads(line)
+    if record.get("candidate_id") == finding_id or record.get("id") == finding_id:
+        print(json.dumps({
+            "file": record.get("file"),
+            "symbol": (record.get("symbols") or [None])[0],
+            "pattern": record.get("pattern"),
+            "recommendation_hint": record.get("recommendation_hint"),
+        }))
+        break
+else:
+    raise SystemExit(f"finding not found: {finding_id}")
+' "${FINDING_ID}"
+```
+
 Only candidates whose sub-shape is `implicit_dict_state` are valid
 for this skill — other sub-shapes (stringly-typed state, tuple-
 inferred identity) belong to `/extract-enum` or `/introduce-fk`.
@@ -151,7 +181,7 @@ the function signature, the dict-state parameter (by inference), and
 the caller list.
 
 ```bash
-python3 .claude/skills/extract-state-type/scripts/collect_target.py \
+.venv/bin/python .claude/skills/extract-state-type/scripts/collect_target.py \
   --file "<file-path>" \
   --symbol "<qualified-symbol>" \
   --project-root "$(pwd)" \
@@ -187,6 +217,11 @@ Dispatch **one** scout with `agents/state-profiler.md`. Substitute
 `{{target_slug}}`, `{{file_path}}`, `{{symbol}}`, `{{dict_variable}}`,
 `{{callers_path}}`, `{{project_root}}`, `{{skill_root}}`,
 `{{output_path}}`, `{{targets_json_path}}`.
+
+Tell the scout its output is judged only by `{{output_path}}`: it must
+write the profile shape from `agents/state-profiler.md`, including the
+metadata status and caller impact table. A message saying the profile is
+complete does not satisfy Stage 2 without the file.
 
 The scout:
 
@@ -258,10 +293,10 @@ Read `profile.md` and `targets.json`. Write `proposal.md` following
 
 ```bash
 FIELD_COUNT=$(grep -c '^| `' "${REPORT_DIR}/proposal.md" || echo 0)
-CALLER_COUNT=$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["callers"]))' "${REPORT_DIR}/targets.json")
+CALLER_COUNT=$(.venv/bin/python -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["callers"]))' "${REPORT_DIR}/targets.json")
 SHAPE=$(grep -oE '(dataclass|TypedDict)' "${REPORT_DIR}/proposal.md" | head -1 || echo unknown)
 
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill extract-state-type \
   --scan-id "extract-state-type-${TARGET_SLUG}-$(date -u +%Y%m%d-%H%M%S)" \
   --target "<original-target-spec>" \
@@ -285,6 +320,15 @@ Report to the user in ≤10 lines:
 
 Do not enumerate fields in the summary — the proposal is the source
 of truth.
+
+## Replay / smoke
+
+For a no-production-code replay, create a tiny Python fixture with one
+function that initializes and mutates a `state = {...}` dict, then run
+`collect_target.py --file <fixture> --symbol <function> --project-root
+<fixture-root> --output <tmp>/targets.json`. Paste the command output
+showing `dict_candidates=1` and the output JSON path. This replay proves
+the executable Form-B contract that Form A resolves into.
 
 ## Non-goals
 
@@ -327,6 +371,7 @@ of truth.
 ├── agents/
 │   └── state-profiler.md            # Stage 2 scout brief
 └── knowledge/                       # scout context, never loaded by orchestrator
+    ├── state-conventions.md         # shape decision rules
     └── proposal-template.md         # Stage 3 output template + worked example
 ```
 

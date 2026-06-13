@@ -47,14 +47,17 @@ fields:
 If `targets.json` is malformed or empty, write `{{output_path}}` with
 `status: targets_missing` and stop.
 
-## Step 2 — Read the field declaration in context
+## Step 2 — Read enum risk context and the field declaration
 
 ```bash
 cd {{project_root}}
+cat {{skill_root}}/knowledge/risk-context.md
 ```
 
-Use `Read` on `{{field_file}}` to see the declaration and any module-
-level `STATUS_CHOICES = [...]` tuple. Capture:
+Use the risk context to classify bridge literals, case variants, and
+plain-enum fallbacks. Then use `Read` on `{{field_file}}` to see the
+declaration and any module-level `STATUS_CHOICES = [...]` tuple.
+Capture:
 
 - Whether a tuple-style choices list exists (the migration endpoint is
   a `TextChoices` class, NOT a bare tuple).
