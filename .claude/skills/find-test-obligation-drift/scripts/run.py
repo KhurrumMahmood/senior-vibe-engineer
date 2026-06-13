@@ -14,7 +14,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from detect import detect  # noqa: E402
+from detect import detect, workflow_scope_patterns  # noqa: E402
 from product_health import write_scan_outputs  # noqa: E402
 
 
@@ -50,6 +50,8 @@ def main(argv: list[str] | None = None) -> int:
         project_root,
         skip_effectiveness_log=args.skip_effectiveness_log,
     )
+    print(f"workflow scope patterns: {len(workflow_scope_patterns(project_root))}")
+    print(f"findings: {len(records)}")
     print(f"wrote {report_dir}")
     return 0
 

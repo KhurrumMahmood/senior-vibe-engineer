@@ -40,12 +40,11 @@ pre/postconditions, invariants, callers, and the unexplained regions
 that remain. The two skills are complementary; run MAP first when the
 inventory is stale, then EXPLAIN when the behavior is unclear.
 
-Procedural detail lives in the knowledge files:
+Procedural detail lives in the skill-local files:
 
-- `knowledge/` — shared conventions pointer +
-  explanation-specific rules.
 - `knowledge/explanation-format.md` — the exact shape of
-  `reports/explanations/<target>.md`.
+  `reports/explanations/<target>.md`. The orchestrator reads it in
+  Stage 3 before synthesizing the top-level explanation.
 - `agents/annotate.md` — scout brief for per-symbol behavior capture.
 
 ## How success is judged
@@ -60,6 +59,11 @@ Procedural detail lives in the knowledge files:
 - Zero edits outside `reports/explanations/` — the doc is the
   contract downstream `/fix-workflow` / `/refactor-subsystem` work
   reasons against.
+- Artifact truth, not run claims: the closing summary cites the
+  inventory command output, the annotation count command, the sidecar
+  `wc -l` output, and the effectiveness-log command output when it
+  runs. A claim that a doc or sidecar was written is invalid without
+  the pasted command output or file path.
 Write toward these gates from Stage 0.
 
 ## Core beliefs
@@ -83,15 +87,14 @@ Write toward these gates from Stage 0.
 ## Scope
 
 - **Project root:** this worktree's root.
-- **Python:** `python3` for `scripts/inventory_symbols.py` (stdlib-
-  only); `.venv/bin/python` only if a scout needs to import Django
-  models (uncommon in EXPLAIN work — annotations are source-level).
+- **Python:** `.venv/bin/python` for helper scripts. The inventory
+  helper is stdlib-only, but use the repo venv for consistency.
 - **Output:** `reports/explanations/<target-slug>.md` and
   `reports/explanations/<target-slug>/annotations/<symbol>.md`. Never
   touches any other file.
-- **Project-specific conventions** (subsystem name resolution,
-  unexplained-region heuristics): `knowledge/`.
-  Scouts read that file; the orchestrator does not.
+- **Output-format conventions:** `knowledge/explanation-format.md`.
+  The orchestrator reads this file in Stage 3. Scouts do not read
+  `knowledge/`; they follow `agents/annotate.md`.
 
 ## Argument parsing
 
@@ -118,7 +121,7 @@ to confirm the path. Do NOT guess.
 
 ### Budget cap
 Cap at **15 annotated symbols per run** (see
-`knowledge/` for the ranking rule). If the target
+the Stage-1 ranking rule below). If the target
 exceeds that, the Stage-1 ranking surfaces the most useful 15 and
 the rest are listed as follow-on candidates in the summary.
 
@@ -156,7 +159,7 @@ Two paths:
 2. **No map page.** Run the AST inventory helper:
 
    ```bash
-   python3 .claude/skills/explain-code/scripts/inventory_symbols.py \
+   .venv/bin/python .claude/skills/explain-code/scripts/inventory_symbols.py \
      --target "<target-path>" \
      --output "${REPORT_DIR}/targets.json" \
      --max 15
@@ -182,6 +185,10 @@ For each target, expand `agents/annotate.md` (substitute
 `{{kind}}`, `{{project_root}}`, `{{skill_root}}`, `{{output_path}}`)
 and dispatch each scout with `subagent_type=general-purpose`. Send
 every Agent call in a **single message** so they run concurrently.
+The dispatch prompt must include the scout's declared verdict: the run
+is judged on whether `{{output_path}}` exists, uses the exact annotation
+sections from `agents/annotate.md`, cites real caller evidence, and
+records unexplained regions honestly instead of inventing behavior.
 
 Each annotation captures:
 
@@ -211,9 +218,8 @@ the gap in the synthesized doc.
 **Pre:** all annotations on disk. **Post:**
 `reports/explanations/${TARGET_SLUG}.md`.
 
-Read every annotation file. Write the top-level doc following
-`knowledge/explanation-format.md`. Structure (see knowledge file for
-the exact template):
+Read `knowledge/explanation-format.md`, then read every annotation
+file. Write the top-level doc following that format file. Structure:
 
 1. Target metadata (path, LOC, public symbol count, regenerated
    timestamp).
@@ -230,6 +236,17 @@ the exact template):
    `/find-implicit-state`, `/find-query-mutation`,
    `/find-layer-violation`).
 6. How to regenerate — literal single-line command.
+
+Also write the two sidecar files consumed by Stage 4:
+
+- `${REPORT_DIR}/unexplained.txt` — one `- <symbol> — <reason>` line
+  per unexplained region, empty file when none exist.
+- `${REPORT_DIR}/surprises.txt` — one `- <symbol> — <surprise>` line
+  per surprising behavior item, empty file when none exist.
+
+These files are mandatory Stage 3 outputs. Stage 4's missing-file
+fallback is defensive recovery for interrupted runs, not permission to
+omit the sidecars.
 
 ### Stage 4 — Effectiveness log
 
@@ -248,9 +265,9 @@ if [ -f "${REPORT_DIR}/surprises.txt" ]; then
 else
   SURPRISES=0
 fi
-PUBLIC=$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["targets"]))' "${REPORT_DIR}/targets.json")
+PUBLIC=$(.venv/bin/python -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["targets"]))' "${REPORT_DIR}/targets.json")
 
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill explain-code \
   --scan-id "explanation-${TARGET_SLUG}-$(date -u +%Y%m%d-%H%M%S)" \
   --target "<original-target-path>" \
@@ -302,10 +319,32 @@ of truth.
 | Target path doesn't exist | Abort with a one-line error + suggestion to re-run with the correct path |
 | AST walk errors on a non-Python file | Skip it, flag in the doc's "Files" metadata |
 | `targets.json` lists 0 symbols | Target is empty or private-only — abort with a one-line message |
+| `knowledge/explanation-format.md` is missing or empty | Abort before synthesis; the top-level doc shape is undefined |
+| Stage 3 cannot write `unexplained.txt` or `surprises.txt` | Stop before effectiveness logging and report the exact write failure |
 | Scout returns `annotation_incomplete` on first try | Re-dispatch once with a stricter "respond only with file-write confirmation" nudge |
 | Two scouts produce contradictory caller lists | Both may be right (method name shadowed across classes) — note the conflict in the doc and move on |
 | Map-page reference for a subsystem with no `.claude/docs/subsystems/<name>.md` | Fall back to AST inventory; do not silently produce a different output |
 | `--refresh` semantics | Not supported — re-runs always overwrite. The git history of `<target-slug>.md` is the diff. |
+
+## Replay case
+
+After material edits to this skill, prove the inventory boundary still
+works and paste the real output:
+
+```bash
+.venv/bin/python .claude/skills/explain-code/scripts/inventory_symbols.py \
+  --target .claude/skills/explain-code/scripts/inventory_symbols.py \
+  --output /tmp/explain-code-targets.json \
+  --max 3
+```
+
+Then verify `knowledge/explanation-format.md` is non-empty and that
+Stage 3 can name both sidecars:
+
+```bash
+test -s .claude/skills/explain-code/knowledge/explanation-format.md && \
+  printf 'format-present\n'
+```
 
 ## Repository layout
 
@@ -316,10 +355,6 @@ of truth.
 │   └── inventory_symbols.py         # Stage 1 AST inventory (stdlib-only)
 ├── agents/
 │   └── annotate.md                  # Stage 2 scout brief
-└── knowledge/                       # scout context, never loaded by orchestrator
+└── knowledge/                       # orchestrator output-format reference
     └── explanation-format.md        # output doc structure + worked example
 ```
-
-The orchestrator (you) **never reads files in `knowledge/`**. Those
-are for the scout sub-agents. Keeping them out of your context is the
-whole point of this architecture.

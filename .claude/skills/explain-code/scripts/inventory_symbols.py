@@ -8,7 +8,7 @@ orchestrator consumes the output to dispatch per-symbol annotation scouts.
 
 Usage:
 
-    python3 .claude/skills/explain-code/scripts/inventory_symbols.py \\
+    .venv/bin/python .claude/skills/explain-code/scripts/inventory_symbols.py \\
       --target core/services/agentic_discovery_service.py \\
       --output reports/explanations/services-agentic-discovery-service/targets.json \\
       --max 15
@@ -57,7 +57,7 @@ Output schema:
       ]
     }
 
-Stdlib-only; runs under bare `python3`.
+Stdlib-only; use `.venv/bin/python` in this repo.
 """
 
 from __future__ import annotations

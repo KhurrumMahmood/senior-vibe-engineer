@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -14,13 +15,36 @@ SKILL_ROOT = Path(__file__).resolve().parents[1]
 
 def _run(project: Path) -> list[dict[str, object]]:
     with tempfile.TemporaryDirectory() as tmp:
+        project_copy = Path(tmp) / project.name
+        shutil.copytree(project, project_copy)
+        descriptor = project_copy / ".engineering" / "docs" / "product-workflows.md"
+        descriptor.parent.mkdir(parents=True, exist_ok=True)
+        descriptor.write_text(
+            "\n".join(
+                [
+                    "# Product workflow — find-test-obligation-drift fixture",
+                    "",
+                    "## Targets",
+                    "- app/pages/sites",
+                    "- static/js/site-config-*.js",
+                    "",
+                    "## UI template globs",
+                    "- app/pages/sites/templates/**/*.html",
+                    "",
+                    "## UI script globs",
+                    "- static/js/site-config-*.js",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
         output = Path(tmp) / "detections.jsonl"
         subprocess.run(
             [
                 sys.executable,
                 str(SKILL_ROOT / "scripts" / "detect.py"),
                 "--project-root",
-                str(project),
+                str(project_copy),
                 "--output",
                 str(output),
                 ".",

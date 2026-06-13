@@ -1,7 +1,7 @@
 ---
 name: mature-existing-ideas
-description: Research an existing ledger entry (or a batch of entries carrying the needs-research marker), append research-log notes to the ledger, and optionally clear markers as evidence accumulates. The orchestrator does the research (project doc grep, external Web/Context7 lookups, prior-art surveys); the helper script appends the resulting note event(s) and marker transitions. Read .claude/docs/idea-ledger.md when authoring or debugging this skill.
-argument-hint: "<slug> | --all-needs-research | --topic <topic> [--clear-needs-research] [--clear-underdeveloped] [--adversarial] [--accept-on-loop]"
+description: Research an existing ledger entry (or a batch of entries carrying the needs-research marker), append research-log notes to the ledger through /track-idea, and optionally clear markers as evidence accumulates. The orchestrator does the research (project doc grep, optional external Web/Context7 lookups, prior-art surveys) and uses track-idea/scripts/track.py for every ledger write. Read .claude/docs/idea-ledger.md when authoring or debugging this skill.
+argument-hint: "<slug> | --all-needs-research | --topic <topic> [--external-research] [--clear-needs-research] [--clear-underdeveloped] [--adversarial] [--accept-on-loop]"
 allowed-tools: Bash, Read, WebSearch, WebFetch, Agent
 user-invocable: true
 tier: cross-cutting
@@ -23,8 +23,11 @@ escalate_to: |
   /track-idea event when the research surfaces an explicit transition
   (e.g. promote a `proposed` idea to `in-flight` once the research
   unblocks it).
-  /promote-idea-to-pattern when the research demonstrates the first
-  adoption.
+  Planned/future Tier 2 promotion when the research demonstrates the
+  first adoption. This kit currently has no installed
+  `/promote-idea-to-pattern`; until one exists, record adoption evidence
+  with `/track-idea event --kind adoption` and cite
+  `.claude/docs/pattern-library.md` as the manual promotion contract.
 language: any
 framework: any
 ---
@@ -37,9 +40,10 @@ captor flagged as needed, and write the findings back as note events
 so the next reader has context.
 
 You do NOT generate new ideas (`/brainstorm-ideas`). You do NOT
-promote to the pattern library (`/promote-idea-to-pattern`). You do
-NOT change state via transition — surface the recommendation in the
-report and let the caller invoke `/track-idea event` explicitly.
+promote to the pattern library; no promotion skill is installed in this
+kit. You do NOT change state via transition — surface the
+recommendation in the report and let the caller invoke `/track-idea
+event` explicitly.
 
 The ledger schema, marker semantics, and the full table of skill ↔
 ledger interactions live in `.claude/docs/idea-ledger.md`. **Read that
@@ -56,7 +60,14 @@ file** before reasoning about non-trivial marker transitions.
 - Sources are cited in the summary so the research path is re-walkable.
 - No state transitions executed — recommendations route to
   `/track-idea event`.
+- Ledger writes are backed by pasted `track.py` output. A claim that a
+  note, lesson, adoption, or marker event was appended is invalid unless
+  the command output is shown.
 Write toward these gates from Stage 0.
+
+Grade only by ledger events, cited source paths/URLs, adversarial
+verdict artifacts when enabled, and pasted command output. Do not
+credit private reasoning as research output.
 
 ## Core beliefs
 
@@ -143,7 +154,7 @@ and collect every projection with `needs-research` in
 summary / tags.
 
 ```bash
-python3 .claude/skills/track-idea/scripts/track.py list --marker needs-research
+.venv/bin/python .claude/skills/track-idea/scripts/track.py list --marker needs-research
 ```
 
 If no targets, exit 0 with a message — nothing to mature.
@@ -220,6 +231,10 @@ Delegate to a sub-agent with:
   `evidence-free`) focus the sub-agent's attention; `other` is
   reserved for cases the rubric doesn't cover.
 
+The dispatch prompt must tell the sub-agent that its output is judged
+only by that per-entry verdict shape and whether the rationale cites the
+delivered enrichment signals. Do not ask for a balanced review essay.
+
 Terminal behavior:
 
 - `accept` → entry flows to Stage 2 unchanged.
@@ -252,7 +267,7 @@ For each target, append a `note` event with `summary` prefixed
 the end of the summary.
 
 ```bash
-python3 .claude/skills/track-idea/scripts/track.py event <slug> \
+.venv/bin/python .claude/skills/track-idea/scripts/track.py event <slug> \
   --kind note \
   --summary "research: <synthesis paragraph(s)>. Sources: <url>, <path>, <doc-title>."
 ```
@@ -261,13 +276,27 @@ When the research warrants a marker clearance and the user requested
 it via flag, also append a marker event:
 
 ```bash
-python3 .claude/skills/track-idea/scripts/track.py event <slug> \
+.venv/bin/python .claude/skills/track-idea/scripts/track.py event <slug> \
   --kind marker --markers-removed needs-research \
   --summary "research complete: <one-line why>"
 ```
 
 If `--clear-underdeveloped` is set AND the research showed the idea is
-now well-formed, also remove `underdeveloped`.
+now well-formed, append the same marker event with
+`--markers-removed underdeveloped`.
+
+If the research surfaces a reusable rule or invalidates the original
+hypothesis, append a lesson through the same writer:
+
+```bash
+.venv/bin/python .claude/skills/track-idea/scripts/track.py lesson <slug> \
+  --title "<short lesson title>" \
+  --body "Rule: <rule>. Why: <evidence>. How to apply: <future use>."
+```
+
+Paste every `track.py` output line into the final report. If a command
+returns non-zero, stop writing additional events for that slug and
+report the exact failure.
 
 ### Stage 3 — Render the report
 
@@ -289,7 +318,8 @@ Decision: <cleared needs-research | left as-is | suggest promotion | suggest dep
 ```
 
 End with a *suggested next steps* section that names the most-actionable
-follow-ups across the batch (e.g., "promote `hydration-fast-path` —
+follow-ups across the batch (e.g., "`hydration-fast-path` is
+promotion-ready per `.claude/docs/pattern-library.md` because
 adoption_count is now 1"; "consider `/decide` on `<slug>` if the
 finding is binding").
 
@@ -301,7 +331,9 @@ recommendation; the caller decides.
 ## Non-goals
 
 - Generating new ideas (`/brainstorm-ideas`).
-- Promoting to Tier 2 (`/promote-idea-to-pattern`).
+- Promoting to Tier 2. The promotion workflow is planned but no
+  `/promote-idea-to-pattern` skill is installed in this kit; cite
+  `.claude/docs/pattern-library.md` and stop.
 - Editing a pattern's Research log section directly. (Future work: when
   patterns exist in the library, also append to the pattern's
   Research log + update `last_research_at`. Out of scope for v1.)
@@ -320,22 +352,47 @@ recommendation; the caller decides.
 | Research conclusion is "no new info" | Still write a `note` event recording the negative finding — future readers benefit from seeing that the rabbit hole was checked |
 | Marker clearance requested but research shows the idea is still under-researched | Refuse the clearance; surface the open questions and recommend a follow-up pass |
 | Research surfaces a contradiction with the original hypothesis | Log it as a `lesson` record (rule + why + how to apply) in addition to the `note` event |
+| `track.py` exits non-zero while writing a note, marker, or lesson | Stop writes for that slug, paste the exact output, and leave markers unchanged |
 | `--adversarial` requested but `.claude/docs/review-lane.md` names a missing sub-agent type | Fall back to `general-purpose` and note the substitution in the report |
 | Adversarial chunk returns a verdict for an unknown id | Treat as `other`; surface in the report so the user can decide |
 | Adversarial verdict latency > 30s per chunk for three consecutive runs | Lower the batch ceiling (e.g. 8 → 4) and re-measure before keeping the gate on by default |
 | Revision pass produces the same output as the original | Apply the default terminal behavior (`drop`); SKILL note clarifies this is the expected case |
 
+## Replay case
+
+After material edits to this skill, prove the ledger-write boundary in a
+temporary project and paste the real output:
+
+```bash
+TMPDIR=$(mktemp -d)
+mkdir -p "${TMPDIR}/.claude/ideas"
+.venv/bin/python .claude/skills/track-idea/scripts/track.py intake replay-idea \
+  --project-root "${TMPDIR}" \
+  --title "Replay idea" \
+  --origin "skill-replay" \
+  --subsystem-kind "skill" \
+  --quality-markers needs-research \
+  --summary "Replay fixture for mature-existing-ideas."
+.venv/bin/python .claude/skills/track-idea/scripts/track.py event replay-idea \
+  --project-root "${TMPDIR}" \
+  --kind note \
+  --summary "research: replay note. Sources: local fixture."
+.venv/bin/python .claude/skills/track-idea/scripts/track.py show replay-idea \
+  --project-root "${TMPDIR}" \
+  --quiet-on-list-fields
+```
+
+Do not run the replay against the real project ledger.
+
 ## Repository layout
 
 ```
 .claude/skills/mature-existing-ideas/
-├── SKILL.md                  # this file — orchestrator
-└── scripts/
-    └── mature.py             # research-event writer (uses _common/ideas_lib.py)
+└── SKILL.md                  # this file — orchestrator
 ```
 
-The orchestrator does the research; the script writes the events
-deterministically.
+The orchestrator does the research; `track-idea/scripts/track.py` writes
+the events deterministically.
 
 ## Cross-references
 

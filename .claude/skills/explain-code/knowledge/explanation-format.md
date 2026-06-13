@@ -118,6 +118,12 @@ The **Surprises** subsection is only rendered if the scout flagged
 something. If all scouts returned "No surprises", the subsection is
 omitted.
 
+Every surprise also gets written as one line to
+`${REPORT_DIR}/surprises.txt` so Stage 4 can count them without
+re-parsing markdown. One line per entry, format
+`- <symbol> — <surprise>`. Create the file even when there are no
+surprises; an empty file means the count is zero.
+
 ## Unexplained regions
 
 Aggregated from every scout's "Unexplained regions" block. Each entry
@@ -149,7 +155,8 @@ entirely — empty sections are noise.
 Every entry also gets written as one line to
 `${REPORT_DIR}/unexplained.txt` so Stage 4 can count them without
 re-parsing markdown. One line per entry, format
-`<symbol> — <reason>`.
+`- <symbol> — <reason>`. Create the file even when there are no
+unexplained regions; an empty file means the count is zero.
 
 ## Follow-on findings
 

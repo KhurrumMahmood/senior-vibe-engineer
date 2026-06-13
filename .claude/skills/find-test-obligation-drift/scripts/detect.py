@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 COMMON_DIR = PROJECT_ROOT / ".claude" / "skills" / "_common"
@@ -14,17 +14,46 @@ if str(COMMON_DIR) not in sys.path:
 from diff_resolution import changed_paths as _changed_paths  # noqa: E402
 from product_health import finding  # noqa: E402
 from product_topology import relpath, write_jsonl  # noqa: E402
+from workflows import (  # noqa: E402
+    workflow_targets,
+    workflow_ui_script_globs,
+    workflow_ui_template_globs,
+)
 
 
-def _is_backend_runtime(file: str) -> bool:
-    return file.startswith(("app/api/", "app/services/sites", "app/pages/sites")) and file.endswith(".py")
+def workflow_scope_patterns(project_root: Path) -> tuple[str, ...]:
+    """Host-declared product workflow scan patterns.
+
+    Empty means this toolkit clone has no product-workflow descriptor, so
+    product backend/UI obligations cannot be inferred honestly.
+    """
+    patterns = [
+        *workflow_targets(project_root),
+        *workflow_ui_template_globs(project_root),
+        *workflow_ui_script_globs(project_root),
+    ]
+    return tuple(dict.fromkeys(patterns))
 
 
-def _is_ui_runtime(file: str) -> bool:
-    return (
-        (file.startswith("static/js/") and file.endswith(".js"))
-        or (file.startswith(("templates/", "app/pages/sites/templates/")) and file.endswith(".html"))
-    )
+def _matches_pattern(file: str, pattern: str) -> bool:
+    normalized = pattern.strip().strip("/")
+    if not normalized:
+        return False
+    if any(char in normalized for char in "*?[]"):
+        return PurePosixPath(file).match(normalized)
+    return file == normalized or file.startswith(f"{normalized}/")
+
+
+def _is_product_scoped(file: str, scope_patterns: tuple[str, ...]) -> bool:
+    return any(_matches_pattern(file, pattern) for pattern in scope_patterns)
+
+
+def _is_backend_runtime(file: str, scope_patterns: tuple[str, ...]) -> bool:
+    return file.endswith(".py") and _is_product_scoped(file, scope_patterns)
+
+
+def _is_ui_runtime(file: str, scope_patterns: tuple[str, ...]) -> bool:
+    return file.endswith((".js", ".html")) and _is_product_scoped(file, scope_patterns)
 
 
 def _is_quality_tool(file: str) -> bool:
@@ -66,9 +95,10 @@ def detect(
     files = [relpath(path, project_root) for path in changed]
     file_set = set(files)
     records: list[dict[str, object]] = []
+    scope_patterns = workflow_scope_patterns(project_root)
 
-    backend_files = [file for file in files if _is_backend_runtime(file)]
-    ui_files = [file for file in files if _is_ui_runtime(file)]
+    backend_files = [file for file in files if _is_backend_runtime(file, scope_patterns)]
+    ui_files = [file for file in files if _is_ui_runtime(file, scope_patterns)]
     quality_files = [
         file
         for file in files
@@ -87,10 +117,11 @@ def detect(
                 "missing_backend_test_obligation",
                 first,
                 1,
-                f"{len(backend_files)} backend `/sites` file(s) changed without a touched backend test file.",
-                "Add or update targeted tests, or record why this is docs/comment-only despite touching backend runtime code.",
+                f"{len(backend_files)} backend product-workflow file(s) changed without a touched backend test file.",
+                "Add or update targeted tests for the host-declared product workflow surface, or record why this is docs/comment-only despite touching backend runtime code.",
                 project_root,
                 confidence="medium",
+                surface="product_backend",
                 next_skill="prevent-regression",
                 guard_candidate=False,
                 obligation="backend targeted or always-suite verification",
@@ -103,13 +134,14 @@ def detect(
                 "missing_ui_test_obligation",
                 first,
                 1,
-                f"{len(ui_files)} UI/template/static file(s) changed without a touched Playwright or site-page DOM contract test.",
-                "Update `testing/test_site_pages.py` or a targeted site-page DOM contract test for the affected `/sites` surface, or capture why text-only changes do not need it.",
+                f"{len(ui_files)} UI/template/static file(s) changed without a touched Playwright or DOM contract test.",
+                "Update `testing/test_site_pages.py`, Playwright coverage, or a targeted DOM contract test for the affected host-declared product workflow surface, or capture why text-only changes do not need it.",
                 project_root,
                 confidence="medium",
+                surface="product_ui",
                 next_skill="prevent-regression",
                 guard_candidate=False,
-                obligation="Playwright or site-page DOM contract verification",
+                obligation="Playwright or DOM contract verification",
             )
         )
     for root in skill_roots:
