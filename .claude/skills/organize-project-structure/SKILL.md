@@ -95,6 +95,22 @@ Use summaries to climb from concrete contents to structural boundaries:
    runtime, proof machinery, raw source material, apps, tools, tests.
    This is the ideal logical topology before constraints.
 
+Use the discovered boundaries to decide folder-worth. A boundary is a
+folder candidate when it has its own reader question, lifecycle,
+artifact set, or change cadence. It is a strong folder candidate when
+two or more of these are true:
+
+- readers would naturally ask for it by name;
+- edits inside it usually happen together and separately from neighbors;
+- it owns a distinct value-producing workflow or artifact type;
+- it has enough siblings/subparts that flat filenames would need a fake
+  prefix;
+- it needs its own README/index to explain what belongs there and what
+  does not.
+
+Pairs can stay flat when the boundary is weak. A small but distinct
+boundary can still earn a folder when the navigation key is durable.
+
 Keep the intermediate summaries short enough to review. They are not
 deliverables unless the user asks; they are the ladder that makes the
 target topology explainable instead of vibes-based.
