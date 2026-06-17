@@ -806,6 +806,12 @@ for path identity moves; escalate to the heavier transformation question
 only when the move also changes runtime behavior, public contracts, or
 the meaning of the affected objects.
 
+`/organize-project-structure` sits one layer above `/move-path`: it
+decides what the repo tree should mean to a new reader, classifies
+top-level artifacts by lifecycle, and then hands the accepted move table
+to `/move-path`. Use it when the friction is "this project layout is not
+intuitive," not merely "this file has a new home."
+
 ### 4.6 Variation governance
 
 In the §1.5 regime, variations are user-scoped deltas on top of

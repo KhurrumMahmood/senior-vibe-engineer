@@ -61,6 +61,10 @@ def test_concept_rename_strong_cues_route_to_concept_rename(tmp_path):
     assert _shape_for("rename the domain concept across the glossary and all surfaces", tmp_path) == "concept-rename"
 
 
+def test_project_structure_routes_to_project_structure_not_path_move(tmp_path):
+    assert _shape_for("make the repo top-level folder structure more intuitive", tmp_path) == "project-structure"
+
+
 def test_task_closeout_strong_cues_route_to_task_closeout(tmp_path):
     assert _shape_for("the work is finished; run a closeout cleanup over the changed files", tmp_path) == "task-closeout"
 

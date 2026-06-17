@@ -128,6 +128,43 @@ rewrite:
     assert any(s["kind"] == "exact_text_path" and s["token"] == "kb/evals/eval.md" for s in report["suggestions"])
 
 
+def test_exact_text_directory_move_updates_nested_path_tokens(tmp_path):
+    move_path = _load_move_path()
+    _write(
+        tmp_path / "README.md",
+        "Preserve inputs-1/kb and /inputs-1/kb/glossary.md#term.\n",
+    )
+    _write(tmp_path / "inputs-1" / "kb" / "glossary.md", "# Glossary\n")
+    plan = tmp_path / "moves.yml"
+    _write(
+        plan,
+        """
+moves:
+  - from: inputs-1/
+    to: source-materials/input-bundles/inputs-1/
+    mode: directory
+reference_scope:
+  include: ["**/*.md"]
+rewrite:
+  exact_text_paths: update
+""".lstrip(),
+    )
+
+    report = move_path.run_plan(
+        plan_path=plan,
+        project_root=tmp_path,
+        mode="dry-run",
+        report_dir=tmp_path / ".move-path",
+    )
+
+    rewrites = {(r["old"], r["new"]) for r in report["auto_rewrites"] if r["kind"] == "exact_text_path"}
+    assert ("inputs-1/kb", "source-materials/input-bundles/inputs-1/kb") in rewrites
+    assert (
+        "/inputs-1/kb/glossary.md#term",
+        "/source-materials/input-bundles/inputs-1/kb/glossary.md#term",
+    ) in rewrites
+
+
 def test_nested_backtick_path_can_be_repo_root_relative(tmp_path):
     move_path = _load_move_path()
     _write(tmp_path / "kb" / "index.md", "Use `kb/evals/eval.md` from here.\n")

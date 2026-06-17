@@ -14,7 +14,7 @@ Otherwise this grows into a wiki and the wiki rots.
 
 ## 1. What this repo is
 
-A self-contained ecosystem of **skills** (75 of them), supporting
+A self-contained ecosystem of **skills** (76 of them), supporting
 **docs**, **scripts**, and **ADR/plan/spec scaffolding** that AI coding
 agents (Claude Code, Codex, Augment, Cursor, Gemini) use to behave like
 senior engineers inside a host project.

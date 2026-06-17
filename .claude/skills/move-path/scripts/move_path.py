@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Iterable
 from urllib.parse import quote, unquote
 
 try:
@@ -387,6 +388,41 @@ def mode_for(plan: dict, key: str, default: str = "ignore") -> str:
     return value
 
 
+TEXT_PATH_SUFFIX_RE = r"(?:/[A-Za-z0-9._~@%+=:@#-]+)*(?:#[A-Za-z0-9._~@%+=:@#/-]+)?"
+
+
+def exact_text_path_matches(text: str, move: MoveSpec) -> Iterable[tuple[int, int, str, str, str]]:
+    """Yield exact prose path tokens under this move's source.
+
+    The exact-text pass is intentionally conservative, but directory moves
+    commonly leave plain prose like "inputs-1/kb" or "kb/evals/foo.md".
+    Match the longest path-like token rooted at move.src, then rewrite the
+    path portion while preserving an optional Markdown-style fragment.
+    """
+    for root_prefix in ("", "/"):
+        pattern = re.compile(
+            r"(?<![\w./-])"
+            + re.escape(root_prefix + move.src)
+            + r"(?P<suffix>"
+            + TEXT_PATH_SUFFIX_RE
+            + r")"
+            + r"(?![\w/-])"
+        )
+        for match in pattern.finditer(text):
+            old_token = match.group(0).rstrip(".,;:")
+            trim_count = len(match.group(0)) - len(old_token)
+            suffix = match.group("suffix")
+            if trim_count:
+                suffix = suffix[:-trim_count]
+            path_suffix, sep, fragment = suffix.partition("#")
+            target_before = move.src + path_suffix
+            target_after = after_path_for(target_before, [move])
+            if target_after == target_before:
+                continue
+            new_token = root_prefix + target_after + (sep + fragment if sep else "")
+            yield match.start(), match.end() - trim_count, old_token, target_before, new_token
+
+
 def line_for_offset(text: str, offset: int) -> int:
     return text.count("\n", 0, offset) + 1
 
@@ -532,38 +568,38 @@ def detect_references(
                 )
         if exact_text != "ignore":
             covered_ranges = [(r.start, r.end) for r in replacements if r.file_before == rel]
-            for move in moves:
-                for token in {move.src, "/" + move.src}:
-                    for match in re.finditer(r"(?<![\w./-])" + re.escape(token) + r"(?![\w./-])", text):
-                        if any(match.start() < end and start < match.end() for start, end in covered_ranges):
-                            continue
-                        after = after_path_for(token.lstrip("/"), moves)
-                        new_token = ("/" if token.startswith("/") else "") + after
-                        if exact_text == "update":
-                            add_replacement(
-                                replacements,
-                                file_before=rel,
-                                file_after=file_after,
-                                start=match.start(),
-                                end=match.end(),
-                                old=match.group(0),
-                                new=new_token,
-                                kind="exact_text_path",
-                                target_before=token.lstrip("/"),
-                                target_after=after,
+            for move in sorted(moves, key=lambda item: len(item.src), reverse=True):
+                for start, end, old_token, target_before, new_token in exact_text_path_matches(text, move):
+                    if any(start < covered_end and covered_start < end for covered_start, covered_end in covered_ranges):
+                        continue
+                    target_after = new_token.lstrip("/").split("#", 1)[0]
+                    if exact_text == "update":
+                        add_replacement(
+                            replacements,
+                            file_before=rel,
+                            file_after=file_after,
+                            start=start,
+                            end=end,
+                            old=old_token,
+                            new=new_token,
+                            kind="exact_text_path",
+                            target_before=target_before,
+                            target_after=target_after,
+                        )
+                        covered_ranges.append((start, end))
+                    else:
+                        suggestions.append(
+                            Suggestion(
+                                rel,
+                                file_after,
+                                line_for_offset(text, start),
+                                "exact_text_path",
+                                old_token,
+                                new_token,
+                                "exact text paths default to suggest",
                             )
-                        else:
-                            suggestions.append(
-                                Suggestion(
-                                    rel,
-                                    file_after,
-                                    line_for_offset(text, match.start()),
-                                    "exact_text_path",
-                                    match.group(0),
-                                    new_token,
-                                    "exact text paths default to suggest",
-                                )
-                            )
+                        )
+                        covered_ranges.append((start, end))
     return replacements, suggestions, blocked
 
 

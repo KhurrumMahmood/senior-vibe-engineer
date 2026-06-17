@@ -20,7 +20,7 @@ work to run.
 
 ## What's in the box
 
-- **`.claude/skills/`** — 75 skills covering diagnosis, construction,
+- **`.claude/skills/`** — 76 skills covering diagnosis, construction,
   and five jobs in the maintenance loop:
   - **DIAGNOSE** (`diagnose`) — turn concrete symptoms, regressions,
     flakes, and unclear failures into a reproduction loop, root cause,
@@ -42,7 +42,8 @@ work to run.
     `introduce-fk`, `unify-shadows`, `propose-folder-reorganization`) —
     read-only proposals that turn a SUSPECT finding into an
     implementation-ready brief.
-  - **REFACTOR** (`refactor-subsystem`, `fix-workflow`, `move-path`) — execute the
+  - **REFACTOR** (`refactor-subsystem`, `fix-workflow`, `move-path`,
+    `organize-project-structure`) — execute the
     cleanup with a strict spec-first protocol and characterization tests.
   - **GUARD** (`prevent-regression`) — turn a closed cleanup into a
     lint / test guardrail so the problem can't come back.

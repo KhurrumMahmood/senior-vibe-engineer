@@ -96,6 +96,25 @@ shapes:
       weight: 30
       rationale: "task names a glossary-level concept or terminology change"
 
+  - id: project-structure
+    title: Project Structure
+    summary: Redesign repo-wide folder organization around intuitive top-level ownership and artifact lifecycle.
+    first_next: "/organize-project-structure"
+    sequence:
+      - "/organize-project-structure — inventory top-level folders, classify artifact lifecycles, and propose target topology"
+      - "write a batched /move-path plan for the accepted topology"
+      - "/move-path --plan moves.yml --dry-run, review uncertainty, then apply/check"
+    stop: "Stop if the request already names a single source/destination path — use Path Move directly."
+    cues:
+      strong: [project-structure, repo-structure, repository-structure, top-level, information-architecture]
+      normal: [folder, folders, directories, layout, organize, organization, intuitive, intuitiveness, inputs, outputs, archive]
+      negative: [single, one-file, typo, glossary, terminology, identifier, bug, behavior]
+    alternatives: [path-move, concept-rename, decision-capture]
+    boost:
+      cues: [project-structure, repo-structure, repository-structure, top-level, information-architecture, intuitive, intuitiveness]
+      weight: 34
+      rationale: "task asks for repo-wide folder mental model rather than one path identity"
+
   - id: path-move
     title: Path Move
     summary: Rename or move files/directories as a deterministic batch, updating resolvable references safely.

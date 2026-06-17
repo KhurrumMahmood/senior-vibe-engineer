@@ -108,6 +108,11 @@ safety:
 - `blocked` — unsafe ambiguity; apply fails unless the plan relaxes the
   relevant safety gate.
 
+For directory moves, `exact_text_paths: update` also rewrites nested
+plain-text path tokens such as `inputs-1/kb` when they are rooted under
+the moved directory. Use `suggest` first when historical prose may be
+describing the old layout rather than linking to the current identity.
+
 ## Workflow
 
 1. Write or inspect a move plan. Include many moves in one plan when the
