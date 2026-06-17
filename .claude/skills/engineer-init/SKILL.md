@@ -45,6 +45,20 @@ repository. The only things you change on disk are the `.venv/`
 directory and (when a git repo is present) the project's pre-commit
 hook. Everything else is read-only inspection and a verification run.
 
+## How success is judged
+
+- Stage 0 confirms the working directory is an ecosystem root
+  (`requirements.txt`, `scripts/`, and `.claude/` are present).
+- Stage 2 leaves `.venv/bin/python` present and tied to this directory,
+  not a stale pre-rename venv.
+- Stage 3 resolves `PyYAML`, `ruff`, and `pre-commit` from the venv by
+  installing `requirements.txt` with `.venv/bin/python -m pip`.
+- Stage 5 prints the real runtime gates: `.venv/bin/ruff --version`,
+  `.venv/bin/python scripts/decisions.py list`, and
+  `.venv/bin/python scripts/skill_meta.py lint`. The run is done only
+  when the `skill_meta.py lint` result line is reported honestly.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Idempotent by construction.** Every stage checks state before

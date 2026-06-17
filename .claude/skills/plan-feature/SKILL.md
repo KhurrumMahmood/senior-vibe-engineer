@@ -1,7 +1,7 @@
 ---
 name: plan-feature
-description: Plan a Feature-tier change (1-3 day scope, touches one workflow, needs impact analysis but not new subsystem). Reads subsystem/workflow docs, canonical patterns, architectural smells, and the decision registry; fans out scouts per touched subsystem to map call sites, model touchpoints, and behaviors-to-preserve; surfaces decision stubs for material forks; and scaffolds a `proposed`-status spec under `ai-docs/specs/<feature-name>.md` so implementation work can resume from the spec.
-argument-hint: "<feature-name> [--subsystems <a,b,c>]"
+description: Plan a Feature-tier change (1-3 day scope, touches one workflow, needs impact analysis but not new subsystem). Reads subsystem/workflow docs, canonical patterns, architectural smells, and the decision registry; fans out scouts per touched subsystem to map call sites, model touchpoints, and behaviors-to-preserve; surfaces decision stubs for material forks; and scaffolds a proposed-lifecycle spec under `ai-docs/specs/<feature-name>.md` so implementation work can resume from the spec.
+argument-hint: "<feature-name> [--subsystems <a,b,c>] [--force]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: feature
@@ -35,7 +35,8 @@ scout_model: careful
 # /plan-feature
 
 You are the **orchestrator** for a Feature-tier plan. The deliverable
-is a `proposed`-status spec at `ai-docs/specs/<feature-name>.md` that
+is a populated `draft` spec with `lifecycle: proposed` at
+`ai-docs/specs/<feature-name>.md` that
 implementation work (`/refactor-subsystem`, manual edits, or a future
 `/build-feature`) can resume from. You produce the spec; you do NOT
 implement the feature.
@@ -51,8 +52,8 @@ write are:
   impact synthesis
 - `reports/plan-feature/scan-<TS>/scout/<subsystem>.md` — per-subsystem
   scout outputs (findings + extracted-behaviors)
-- `ai-docs/specs/<feature-name>.md` — the spec (status: proposed,
-  lifecycle: proposed, motivating_decision: linked if any)
+- `ai-docs/specs/<feature-name>.md` — the spec (status: draft after
+  fill, lifecycle: proposed, motivating_decision: linked if any)
 - One line in `reports/_meta/effectiveness.jsonl`
 
 ## How success is judged
@@ -95,9 +96,10 @@ Write toward these gates from Stage 0.
 ## Scope
 
 - **Project root:** this worktree's root.
-- **Python:** `python3` for `scripts/specs.py` and `scripts/decisions.py`
-  (stdlib-only). `.venv/bin/python` not required — this skill is
-  read-only against production code.
+- **Python:** `.venv/bin/python` for `scripts/specs.py`,
+  `scripts/decisions.py`, and `scripts/log_effectiveness.py` (they use
+  the repo dependency set even though this skill is read-only against
+  production code).
 - **Worktree guard:** none required — read-only against the codebase,
   writes only to `reports/plan-feature/` and `ai-docs/specs/`.
 - **project-specific defaults** (subsystem naming map, default scout
@@ -118,9 +120,11 @@ confirm before fanning out scouts (the inference is intentionally
 shallow — confirm-before-dispatch is the gate that keeps the scout
 budget honest).
 
-If the feature-name slug already exists at `ai-docs/specs/<name>.md`,
-abort and recommend the user `--force` after deciding whether to
-supersede or extend.
+Optional `--force` — pass through to `scripts/specs.py init --force`.
+Use it only after deciding whether the existing
+`ai-docs/specs/<name>.md` should be superseded or extended. If the
+feature-name slug already exists and `--force` was not provided, abort
+and recommend the user re-run with `--force` only after that decision.
 
 ## Pipeline
 
@@ -130,6 +134,8 @@ supersede or extend.
 symlink updated, candidate subsystem list confirmed with user.
 
 ```bash
+FEATURE_NAME="<feature-name>"
+FORCE_FLAG=""  # set to "--force" only when the user passed /plan-feature --force
 TS=$(date +%Y%m%d-%H%M%S)
 REPORT_DIR="reports/plan-feature/scan-${TS}"
 mkdir -p "${REPORT_DIR}/scout"
@@ -167,8 +173,11 @@ Agent({
     play, in-progress migrations or scaffolds, related but-not-named
     work in adjacent subsystems. Do NOT analyze the named subsystems
     themselves — the scout fan-out in Stage 2 covers those. Write
-    findings to ${REPORT_DIR}/exploration.md. Under 400 words.
-    Bullet form. Surface only — no recommendations.",
+    findings to ${REPORT_DIR}/exploration.md. Your output will be judged
+    by whether that file names cross-subsystem risks and undocumented
+    constraints the per-subsystem scouts would miss, with evidence
+    paths rather than claims. Under 400 words. Bullet form. Surface only
+    — no recommendations.",
   run_in_background: true
 })
 ```
@@ -195,8 +204,8 @@ cat .claude/docs/canonical-patterns.md
 cat .claude/docs/architectural-smells.md
 
 # Decision registry
-python3 scripts/decisions.py list --json
-python3 scripts/decisions.py audit --json
+.venv/bin/python scripts/decisions.py list --json
+.venv/bin/python scripts/decisions.py audit --json
 ```
 
 Write `${REPORT_DIR}/context.md` summarizing:
@@ -312,22 +321,23 @@ Yes → invoke. No → stub.
 ### Stage 4 — Spec scaffold
 
 **Pre:** impact.md written, decision ids (if any) captured.
-**Post:** `ai-docs/specs/<feature-name>.md` exists with status
-`proposed`.
+**Post:** `ai-docs/specs/<feature-name>.md` exists with
+`lifecycle: proposed`; after fill, `status: draft`.
 
 ```bash
-python3 scripts/specs.py init "${FEATURE_NAME}" \
+.venv/bin/python scripts/specs.py init "${FEATURE_NAME}" \
   --code-roots <root1> [--code-roots <root2> ...] \
   --title "<derived from feature-name>" \
   --lifecycle proposed \
   ${MOTIVATING_DECISION:+--motivating-decision "${MOTIVATING_DECISION}"} \
+  ${FORCE_FLAG} \
   --allow-missing
 ```
 
 `--allow-missing` because Feature-tier specs may target files that
 will be CREATED by the implementation, not files that exist yet.
 
-Then OPEN the resulting spec and fill the six sections from
+Then OPEN the resulting spec and fill the five narrative sections from
 `impact.md`:
 
 - `## Goals` — the feature's user-facing outcome (one paragraph).
@@ -354,7 +364,7 @@ SUBSYSTEM_COUNT=$(echo "${SUBSYSTEMS}" | tr ',' '\n' | wc -l)
 DECISION_COUNT=$(echo "${MOTIVATING_DECISIONS}" | tr ',' '\n' | grep -c .)
 SCOUT_FAIL=$(find "${REPORT_DIR}/scout" -name '*.md' -size 0 | wc -l)
 
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill plan-feature \
   --scan-id "scan-${TS}" \
   --target "${FEATURE_NAME}" \

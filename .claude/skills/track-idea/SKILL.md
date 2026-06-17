@@ -36,15 +36,30 @@ this skill: new ideas (`intake`), state changes and metadata events
 basic read paths (`list`, `show`) because they directly inform what to
 track next.
 
-You do NOT promote ledger entries to the Tier 2 pattern library — that's
-`/promote-idea-to-pattern`. You do NOT detect orphans — that's
-`/find-orphaned-ideas`. You do NOT extract historical ideas from the
-filesystem — that's `/extract-existing-ideas`.
+You do NOT promote ledger entries to the Tier 2 pattern library. When
+an idea is ready for Tier 2, surface the manual promotion path in
+`.claude/docs/pattern-library.md` and stop. You do NOT detect orphans
+— that's `/find-orphaned-ideas`. You do NOT extract historical ideas
+from the filesystem — that's `/extract-existing-ideas`.
 
 The ledger schema, projection rules, state machine, and the full table
 of skill ↔ ledger interactions live in `.claude/docs/idea-ledger.md`.
 **Read that file** before reasoning about a non-trivial capture; this
 SKILL.md only documents the orchestration.
+
+## How success is judged
+
+- For write forms (`intake`, `event`, `lesson`), the helper command ran,
+  validation passed, and the post-write `show` projection is surfaced
+  from real script output — not a claim that the ledger was updated.
+- The ledger remains append-only: no prior `.claude/ideas/log.jsonl`
+  lines are edited or rewritten.
+- For read forms (`list`, `show`), the script output itself is the
+  deliverable.
+- Tier 2 promotion is not executed by this skill; eligible ideas are
+  reported as manual promotion candidates per
+  `.claude/docs/pattern-library.md`.
+Write toward these gates from Stage 0.
 
 ## Core beliefs
 
@@ -189,7 +204,7 @@ For Form C (lesson), produce:
 re-read.
 
 ```bash
-python3 .claude/skills/track-idea/scripts/track.py <form> <args> [--project-root DIR]
+.venv/bin/python .claude/skills/track-idea/scripts/track.py <form> <args> [--project-root DIR]
 ```
 
 The ledger lives at `<project-root>/.claude/ideas/log.jsonl`;
@@ -210,7 +225,7 @@ prior state). It always sets `event_at` to the current UTC time.
 **Pre:** record written. **Post:** user sees the projected state.
 
 ```bash
-python3 .claude/skills/track-idea/scripts/track.py show <id> --quiet-on-list-fields
+.venv/bin/python .claude/skills/track-idea/scripts/track.py show <id> --quiet-on-list-fields
 ```
 
 Surface to the user in ≤8 lines:
@@ -220,21 +235,24 @@ Surface to the user in ≤8 lines:
   in-flight when work starts`).
 - For Form B: the new state / markers / edges / adoption count plus a
   one-line promotion hint if `adoption_count >= 1`
-  (e.g. `eligible for promotion to .claude/patterns/`).
+  (e.g. `eligible for manual Tier 2 review via .claude/docs/pattern-library.md`).
 - For Form C: the lesson is appended; if `generalizes_to` is set, note
   which other subsystem kinds may benefit.
 - For Form D / E: the read output is the work; no further action.
 
 ### Stage 4 — Stop
 
-Do not invoke `/promote-idea-to-pattern`, `/find-orphaned-ideas`, or
-any downstream skill. Surface the suggestion in the report; let the
-caller decide.
+Do not promote to Tier 2, invoke `/find-orphaned-ideas`, or invoke any
+downstream skill. Surface the suggestion in the report; let the caller
+decide. Tier 2 promotion is currently manual: read
+`.claude/docs/pattern-library.md` and update the pattern library in a
+separate, explicit task.
 
 ## Non-goals
 
 - Editing prior ledger lines (append-only — the script enforces this).
-- Promoting to the pattern library (use `/promote-idea-to-pattern`).
+- Promoting to the pattern library (manual Tier 2 work per
+  `.claude/docs/pattern-library.md`).
 - Detecting stale or orphaned ideas (`/find-orphaned-ideas`).
 - Bulk import from filesystem (`/extract-existing-ideas`).
 - Cross-project mirroring (the ledger is project-local).

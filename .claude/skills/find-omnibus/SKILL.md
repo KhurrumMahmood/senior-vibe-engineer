@@ -2,7 +2,7 @@
 name: find-omnibus
 description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Walks the target with per-language symbol-extraction adapters (exact AST for Python; column-0 declaration heuristic for JavaScript/TypeScript — ADR 0032), groups top-level symbols by head-noun cluster, counts SRP "and"s, ranks by responsibility count plus security/side-effect sensitivity and LOC, fans out scout sub-agents that apply the refactor-subsystem §1.2.5 facet-vs-domain rule, and produces a decomposition-candidates report. Never edits code — hands off to `/refactor-subsystem <spec-id>` in decomposition mode, or escalates to a substrate ADR when the target layer cannot absorb a decomposition (ADR 0032 rule 3).
 argument-hint: "--target <directory> [--language python|javascript]"
-allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
+allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
@@ -34,7 +34,7 @@ to drive a detector + a scout-verification fan-out; the judgment calls
 (facet vs domain, known false-positive shapes, decomposition sketch)
 live in the scout brief and the knowledge files, not in this prompt.
 
-The three buckets (`confirmed_omnibus`, `borderline`,
+The four buckets (`confirmed_omnibus`, `borderline`,
 `coordination_omnibus`, `facets_not_domains`), the facet-vs-domain
 evaluation rule, and the
 decomposition-sketch format are documented in
@@ -46,6 +46,9 @@ decomposition-sketch format are documented in
   `scout/<candidate_id>.json`, bucketed by the facet-vs-domain rule
   (`confirmed_omnibus` / `borderline` / `coordination_omnibus` /
   `facets_not_domains`) — no detector hit reaches `report.md` ungraded.
+- The closeout pastes the real Stage 1/2/4 stderr lines
+  (`[detect_omnibus]`, `[collapse]`, `[report]`) plus the scout JSON
+  count; claims without those artifacts do not satisfy the audit.
 - The substrate gate (ADR 0032 rule 3) ran before any decomposition
   recommendation; failing layers get "substrate ADR first", not a spec.
 - The handoff is named: `/refactor-subsystem <spec-id>` for confirmed
@@ -58,8 +61,8 @@ Write toward these gates from Stage 0.
 - **Target path:** the required `--target` argument. Must be a
   directory.
 - **Project root:** this worktree's root.
-- **Python:** `python3` (detectors are stdlib-only). `.venv/bin/python`
-  is not required — this skill is read-only and does not touch Django.
+- **Python:** `.venv/bin/python` (detectors are stdlib-only, but this
+  repo runs them through the venv for consistent tooling).
 - **Project-specific defaults** (generic-verb strip list, skip
   patterns, directory-package precedent, known false-positive
   shapes): in `knowledge/`.
@@ -72,7 +75,7 @@ Write toward these gates from Stage 0.
 ## Pipeline stages (each has a contract)
 
 Each stage reads files the previous stage wrote and writes files the
-next stage reads. Run scripts with `python3` and capture stderr so
+next stage reads. Run scripts with `.venv/bin/python` and capture stderr so
 failures surface.
 
 ### Stage 0 — Setup
@@ -94,7 +97,7 @@ record per flagged file (score-sorted by responsibility count, then
 security/side-effect sensitivity, then LOC).
 
 ```bash
-python3 .claude/skills/find-omnibus/scripts/detect.py \
+.venv/bin/python .claude/skills/find-omnibus/scripts/detect.py \
   --target <target> \
   --project-root "$(pwd)" \
   --output "${REPORT_DIR}/omnibus.jsonl"
@@ -106,7 +109,7 @@ python3 .claude/skills/find-omnibus/scripts/detect.py \
 top-30 candidates with `candidate_id` assigned.
 
 ```bash
-python3 .claude/skills/find-omnibus/scripts/collapse.py \
+.venv/bin/python .claude/skills/find-omnibus/scripts/collapse.py \
   --detections "${REPORT_DIR}/omnibus.jsonl" \
   --output "${REPORT_DIR}/candidates.jsonl" \
   --top 30
@@ -136,6 +139,13 @@ For each candidate, expand `agents/verify.md` (substitute
 `{{skill_root}}`, `{{output_path}}`) and dispatch with
 `subagent_type=general-purpose`. Send all Agent calls in a **single
 message** so they run concurrently.
+
+Declare the verdict to every scout: its output is accepted only if it
+writes valid JSON at `{{output_path}}`, uses one of the four buckets,
+records `domains_confirmed` and `facets_collapsed`, and provides
+`decomposition_depth_note` for confirmed omnibus files. When merging,
+reject or re-dispatch malformed scout files; do not let `report.py`
+turn an unverified candidate into a decomposition recommendation.
 
 If a scout returns invalid JSON or flags the verification as aborted,
 re-dispatch once with a stricter "respond only with file-write
@@ -190,7 +200,7 @@ interactively and the user is watching, or (b) a candidate is
 `${REPORT_DIR}/report.md` and `${REPORT_DIR}/findings.json`.
 
 ```bash
-python3 .claude/skills/find-omnibus/scripts/report.py \
+.venv/bin/python .claude/skills/find-omnibus/scripts/report.py \
   --candidates "${REPORT_DIR}/candidates.jsonl" \
   --scout-dir "${REPORT_DIR}/scout" \
   --output-md "${REPORT_DIR}/report.md" \
@@ -199,12 +209,12 @@ python3 .claude/skills/find-omnibus/scripts/report.py \
   --target <target>
 
 # Effectiveness log — one line per run, feeds reports/_meta/dashboard.md.
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill find-omnibus \
   --scan-id "scan-${TS}" \
   --target <target> \
-  --findings-total "$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("summary",{}).get("findings_total", len(d.get("findings", []))))' "${REPORT_DIR}/findings.json")" \
-  --buckets "$(python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])).get("summary",{}).get("buckets", {})))' "${REPORT_DIR}/findings.json")"
+  --findings-total "$(.venv/bin/python -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("summary",{}).get("findings_total", len(d.get("findings", []))))' "${REPORT_DIR}/findings.json")" \
+  --buckets "$(.venv/bin/python -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])).get("summary",{}).get("buckets", {})))' "${REPORT_DIR}/findings.json")"
 ```
 
 ### Stage 5 — Summarize
@@ -240,6 +250,18 @@ file before this call; coarse extraction can over- or under-cluster.
 
 The report is the source of truth — do not enumerate every candidate.
 
+## Replay case
+
+When `detect.py`, `collapse.py`, `report.py`, or the scout JSON schema
+changes, replay a disposable Python target with one file containing
+three independently understandable domains (for example credentials
+loading, export rendering, and task dispatch) plus one cohesive helper
+file. Expected evidence: Stage 1 writes exactly one omnibus candidate
+for the multi-domain file; Stage 2 preserves that candidate; after a
+hand-written scout JSON that buckets it as `confirmed_omnibus`, Stage 4
+writes `report.md` and `findings.json` with one decomposition
+recommendation and no finding for the cohesive helper.
+
 ## Non-goals
 
 - Executing decompositions (that's `/refactor-subsystem` after user
@@ -257,6 +279,7 @@ The report is the source of truth — do not enumerate every candidate.
 | Symptom | Action |
 |---|---|
 | Stage 1 detector reports 0 candidates | Target has no omnibus files (best outcome) — or scope is too narrow; try a wider target like the source root |
+| Any script exits non-zero | Stop at the failing stage, paste the exact command and stderr, and do not summarize downstream artifacts from a previous run |
 | Stage 1 reports a clearly-cohesive file | Raise the `and_count >= 3` threshold in `detect.py` OR add the file's shape to `knowledge/` false-positive filter |
 | Stage 2 caps too aggressively | Pass `--top 50` or higher to `collapse.py` |
 | Stage 3 scout buckets everything as `facets_not_domains` | Scout is being too aggressive at collapsing — re-dispatch citing the "3+ confirmed domains" rule from `verification.md` |

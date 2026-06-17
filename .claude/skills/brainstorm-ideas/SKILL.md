@@ -1,7 +1,7 @@
 ---
 name: brainstorm-ideas
 description: Generate a batch of candidate ledger intakes for a topic or context file, deduplicate against the existing ledger, and bulk-write the survivors as proposed-state intakes with origin AI-suggestion. The orchestrator does the creative work (reading the topic, current ledger state, project docs, and producing N candidates with title / summary / hypothesis / subsystem_kind / markers); the helper script validates against duplicates and writes. Read .claude/docs/idea-ledger.md when authoring or debugging this skill.
-argument-hint: "<topic> [--context <path>] [--n <max>] [--subsystem-kind <kind>]"
+argument-hint: "<topic> [--context <path>] [--n <max>] [--subsystem-kind <kind>] [--external-research]"
 allowed-tools: Bash, Read, Write, Edit, WebSearch, WebFetch
 user-invocable: true
 tier: cross-cutting
@@ -15,7 +15,8 @@ best_for: |
 not_for: |
   Capturing a single idea (use /track-idea intake — one record).
   Maturing an existing idea (use /mature-existing-ideas).
-  Promoting to the pattern library (use /promote-idea-to-pattern).
+  Promoting to the pattern library (future/manual Tier 2 promotion;
+  follow `.claude/docs/pattern-library.md` after adoption evidence exists).
   Brainstorming code structure / architecture forks (use /design-it-twice).
   Sourcing decision alternatives (use /decide — alternatives are part of
   the ADR template).
@@ -35,9 +36,11 @@ topic plus optional context into a batch of N candidate intakes,
 deduplicates them against the existing ledger, and writes the survivors.
 
 You do NOT mature existing ideas — that's `/mature-existing-ideas`. You
-do NOT promote to Tier 2 — that's `/promote-idea-to-pattern`. You do
-NOT design alternatives for a binding choice — that's `/decide` and
-`/design-it-twice`.
+do NOT promote to Tier 2. No invocable promotion skill ships in this
+repo yet; record adoption evidence with `/track-idea event`, then follow
+`.claude/docs/pattern-library.md` for manual Tier 2 promotion once the
+gate is met. You do NOT design alternatives for a binding choice —
+that's `/decide` and `/design-it-twice`.
 
 The ledger schema, projection rules, and the full table of skill ↔
 ledger interactions live in `.claude/docs/idea-ledger.md`. **Read that
@@ -55,6 +58,8 @@ file** before reasoning about a non-trivial batch.
   default to `underdeveloped`.
 - Candidates use the existing `subsystem_kind` vocabulary unless the
   topic genuinely needs a new kind.
+- Stage 4 quotes the helper's real stdout/stderr summary (`wrote`,
+  `skipped`, validation failures) rather than asserting writes happened.
 Write toward these gates from Stage 0.
 
 ## Core beliefs
@@ -264,5 +269,6 @@ suggestions in the report; let the caller drive.
 ## Cross-references
 
 - Schema: `.claude/docs/idea-ledger.md`
+- Manual Tier 2 promotion gate: `.claude/docs/pattern-library.md`
 - Sibling skills: `/track-idea`, `/find-orphaned-ideas`, `/mature-existing-ideas`
 - ADR motivating this system: `ai-docs/decisions/0013-idea-tracking-system.md`

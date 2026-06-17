@@ -30,6 +30,17 @@ You are **not** doing architecture-fit analysis (that's
 You are **not** scaffolding a spec. You produce ONE markdown file at
 `{{output_path}}` and nothing else.
 
+### How your output is judged
+
+- The file at `{{output_path}}` exists and contains the required
+  sections under "Output contract" below.
+- Findings cite the concrete artifacts you read: file paths, symbols,
+  tests, routes, workflows, and the behaviors-to-preserve they imply.
+- Any out-of-scope impact is isolated under that heading instead of
+  silently expanding the plan scope.
+- Chat-only summaries do not count. Write the file, then reply with a
+  short confirmation.
+
 ### Inputs
 
 - Plan name: `{{plan_name}}` (kebab-case slug, also the plan's

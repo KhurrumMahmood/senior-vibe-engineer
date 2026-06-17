@@ -28,6 +28,23 @@ You are running a **read-only SUSPECT audit**. The scanner produces
 leads, not verdicts. Treat every finding as "worth reading" until
 surrounding code, input sizes, and tests prove it actionable.
 
+## How success is judged
+
+- The run is graded only by artifacts: pasted command output plus the
+  generated `detections.jsonl`, `report.md`, `findings.json`, and
+  `latest` symlink under `reports/find-complexity-hotspots/`. Do not
+  claim a path was scanned without those artifacts.
+- The scan verdict is one of `no-hotspots`, `measure-first`,
+  `actionable-hotspot`, or `scan-blocked`. Use `measure-first` when a
+  heuristic finding may matter but needs input-size or benchmark
+  evidence before a fix is recommended.
+- The summary names the target path, total findings, bucket counts, and
+  top candidates from `report.md` or `findings.json`; never grade by
+  memory or by a raw model impression of the code.
+- The skill remains read-only. It can route to `/fix-workflow`,
+  `/refactor-subsystem`, or benchmarking work, but it never optimizes
+  code in this run.
+
 ## Scope
 
 - **Target path:** required positional argument(s). Accepts files,
@@ -49,16 +66,16 @@ is interesting enough to recommend follow-up.
 Run the single orchestrator unless you need to debug an intermediate:
 
 ```bash
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py <paths>
+.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py \
+  .claude/skills/find-complexity-hotspots
 ```
 
 Useful options:
 
 ```bash
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py <paths>
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py <paths> --max-findings 40
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py <paths> --include-tests
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py <paths> --skip-effectiveness-log
+.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py .claude/skills/find-complexity-hotspots --max-findings 40
+.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py .claude/skills/find-complexity-hotspots --include-tests
+.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py .claude/skills/find-complexity-hotspots --skip-effectiveness-log
 ```
 
 The detector can also be run directly:
@@ -67,7 +84,7 @@ The detector can also be run directly:
 .venv/bin/python .claude/skills/find-complexity-hotspots/scripts/detect.py \
   --project-root "$(pwd)" \
   --output /tmp/complexity-hotspots.jsonl \
-  <paths>
+  .claude/skills/find-complexity-hotspots
 ```
 
 ## Finding Buckets
@@ -106,6 +123,12 @@ Report in 10 lines or fewer:
 Do not enumerate every finding in chat. The report is the source of
 truth.
 
+If you dispatch an Agent to read the report, tell it this exact verdict
+contract: it must return one of `no-hotspots`, `measure-first`,
+`actionable-hotspot`, or `scan-blocked`, and every candidate must cite
+the report row or command output that supports it. Agent output without
+artifact citations is not evidence.
+
 ## Safety Notes
 
 - Scanner output is intentionally conservative and heuristic. A false
@@ -117,5 +140,29 @@ truth.
   and cache invalidation.
 - Add a benchmark or representative final-output check when the
   improvement is non-obvious.
+
+## Replay check
+
+After editing this skill or its detector contract, run:
+
+```bash
+.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py --help
+.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/smoke.py
+```
+
+The smoke script is the replay case: it scans the good/bad fixture pair
+and asserts that representative hotspot bands are emitted while the clean
+fixture stays clean. Paste the command output when using it as repair
+evidence.
+
+## When things go sideways
+
+| Symptom | Action |
+|---|---|
+| No target path was supplied | The argparse failure is the correct outcome; re-run with one or more explicit files, directories, or globs. |
+| The report shows a likely hotspot on tiny or cold data | Use verdict `measure-first`, name the unknown input size, and do not recommend an optimization yet. |
+| Detector succeeds but effectiveness logging fails | Keep the report artifacts, state the logging failure, and do not rerun the detector solely to log. |
+| A direct detector run writes JSONL but no markdown report | State that only the debug artifact exists; run `scripts/run.py` for the standard report before presenting a scan verdict. |
+| Agent triage omits report citations | Reject that dispatch output and read the report directly; do not use uncited Agent claims as findings. |
 
 Inspired by https://github.com/Kappaemme-git/codex-complexity-optimizer

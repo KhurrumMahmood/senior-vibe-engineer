@@ -2,7 +2,7 @@
 name: find-implicit-state
 description: Detect stringly-typed state comparisons and tuple-inferred identity patterns. Runs an AST scan for bare string literals compared to `.status`/`.phase`/`.state`, model fields declared without a `TextChoices` enum, and `.filter(status=..., *_at__...).first()` identity-inference shapes; collapses hits by file, fans out scout sub-agents to bucket each candidate, and produces a report that hands off to `/extract-enum` or `/introduce-fk`. Detection-only — never edits production code.
 argument-hint: "--target <directory>"
-allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
+allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
@@ -40,6 +40,10 @@ don't.
   (`extract_enum_candidate` / `introduce_fk_candidate` /
   `enum_already_used` / `legacy_allow_list`), with the hit evidence
   attached — nothing reaches `report.md` ungraded.
+- The closeout pastes the real Stage 1/2/4 stderr lines
+  (`[detect_implicit_state]`, `[collapse_implicit_state]`,
+  `[report_implicit_state]`) plus the scout JSON count; claims without
+  those artifacts do not satisfy the audit.
 - Each actionable candidate is routed to its named handoff:
   `/extract-enum <symbol>` or `/introduce-fk <symbol>`.
 - Zero edits to production code — detection-only audit.
@@ -50,8 +54,8 @@ Write toward these gates from Stage 0.
 - **Target path:** the required `--target` argument. Must be a
   directory.
 - **Project root:** this worktree's root.
-- **Python:** `python3` (the detectors are stdlib-only and run without
-  the venv).
+- **Python:** `.venv/bin/python` (the detectors are stdlib-only, but
+  this repo runs them through the venv for consistent tooling).
 - **Project-specific defaults** (known enums, tuple-identity hot
   spots, noqa conventions, detection gaps): in
   `knowledge/`.
@@ -59,7 +63,7 @@ Write toward these gates from Stage 0.
 ## Pipeline stages (each has a contract)
 
 Each stage reads files the previous stage wrote and writes files the
-next stage reads. Run scripts with `python3` and capture stderr so
+next stage reads. Run scripts with `.venv/bin/python` and capture stderr so
 failures surface.
 
 ### Stage 0 — Setup
@@ -80,7 +84,7 @@ ln -sfn "scan-${TS}" reports/implicit-state/latest
 present.
 
 ```bash
-python3 .claude/skills/find-implicit-state/scripts/detect.py \
+.venv/bin/python .claude/skills/find-implicit-state/scripts/detect.py \
   --target <target> \
   --project-root "$(pwd)" \
   --output "${REPORT_DIR}/hits.jsonl"
@@ -98,7 +102,7 @@ one record per `(file, pattern)` bucket with hit count, confidence
 tier, fields/symbols touched, and a recommendation hint.
 
 ```bash
-python3 .claude/skills/find-implicit-state/scripts/collapse.py \
+.venv/bin/python .claude/skills/find-implicit-state/scripts/collapse.py \
   --hits "${REPORT_DIR}/hits.jsonl" \
   --output "${REPORT_DIR}/candidates.jsonl"
 ```
@@ -143,6 +147,13 @@ For each selected candidate, expand `agents/verify.md` (substitute
 `{{skill_root}}`, `{{output_path}}`) and dispatch with
 `subagent_type=general-purpose`. Send all Agent calls in a **single
 message** so they run concurrently.
+
+Declare the verdict to every scout: its output is accepted only if it
+writes valid JSON at `{{output_path}}`, uses one of the four buckets,
+preserves the `candidate_id`, and includes the hit evidence fields from
+the schema. When merging, reject or re-dispatch malformed scout files;
+do not let `report.py` turn an unverified candidate into an actionable
+handoff.
 
 If a scout returns invalid JSON, re-dispatch once with a stricter
 "respond only with file-write confirmation" nudge; skip the candidate
@@ -199,7 +210,7 @@ and warrants the better model.
 `${REPORT_DIR}/report.md` and `${REPORT_DIR}/findings.json`.
 
 ```bash
-python3 .claude/skills/find-implicit-state/scripts/report.py \
+.venv/bin/python .claude/skills/find-implicit-state/scripts/report.py \
   --scout-dir "${REPORT_DIR}/scout" \
   --candidates "${REPORT_DIR}/candidates.jsonl" \
   --output-md "${REPORT_DIR}/report.md" \
@@ -208,12 +219,12 @@ python3 .claude/skills/find-implicit-state/scripts/report.py \
   --target <target>
 
 # Effectiveness log — one line per run. Buckets come from findings.json.
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill find-implicit-state \
   --scan-id "scan-${TS}" \
   --target <target> \
-  --findings-total "$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("summary",{}).get("findings_total", len(d.get("findings", []))))' "${REPORT_DIR}/findings.json")" \
-  --buckets "$(python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])).get("summary",{}).get("buckets", {})))' "${REPORT_DIR}/findings.json")"
+  --findings-total "$(.venv/bin/python -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("summary",{}).get("findings_total", len(d.get("findings", []))))' "${REPORT_DIR}/findings.json")" \
+  --buckets "$(.venv/bin/python -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])).get("summary",{}).get("buckets", {})))' "${REPORT_DIR}/findings.json")"
 ```
 
 ### Stage 5 — Summarize
@@ -231,6 +242,19 @@ Report to the user in ≤10 lines:
   cleanup).
 
 The report is the source of truth — do not enumerate every candidate.
+
+## Replay case
+
+When `detect.py`, `collapse.py`, `report.py`, or the scout JSON schema
+changes, replay a disposable Python target with one model containing
+`status = models.CharField(...)` without `TextChoices`, one function that
+compares `job.status == "pending"`, and one tuple-identity
+`.filter(status=..., *_at__...).first()` shape. Expected evidence:
+Stage 1 writes `hits.jsonl` with both stringly-state and tuple-identity
+hits; Stage 2 writes at least two candidates; after hand-written scout
+JSON files for one `extract_enum_candidate` and one
+`introduce_fk_candidate`, Stage 4 writes `report.md` and `findings.json`
+whose bucket counts match the scout files.
 
 ## Non-goals
 
@@ -250,6 +274,7 @@ The report is the source of truth — do not enumerate every candidate.
 | Symptom | Action |
 |---|---|
 | Stage 1 detect.py finds 0 hits | Target has no implicit state (best outcome) — or the directory argument is wrong. Re-run with a valid `--target <dir>` |
+| Any script exits non-zero | Stop at the failing stage, paste the exact command and stderr, and do not summarize downstream artifacts from a previous run |
 | Stage 1 detect.py is slow (>2 min) | Shouldn't happen on a typical source tree — check for `__pycache__` entries in target. Add more `--skip-file-glob` flags if needed |
 | Stage 2 reports 0 candidates | Same as Stage 1 zero — or collapse ignored all hits (check stderr) |
 | Stage 3 scout buckets everything as `enum_already_used` | Scout is being too permissive. Inspect one output; re-dispatch with "consult `knowledge/` for known enum list" |

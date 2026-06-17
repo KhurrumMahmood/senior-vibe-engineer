@@ -14,7 +14,6 @@ from product_topology import read_jsonl, render_simple_report, write_json  # noq
 
 TARGET_SCOPE_BY_NAME = {
     "sites": "sites_workflow",
-    "/sites": "sites_workflow",
     "site_config": "sites_workflow",
 }
 
@@ -27,7 +26,6 @@ def _target_scope(target: str) -> str | None:
         "site_config" in normalized
         or "templates/core/site_config" in normalized
         or "static/js/site-config" in normalized
-        or "/sites" in normalized
     ):
         return "sites_workflow"
     if "external_source" in normalized:

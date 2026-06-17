@@ -1,7 +1,7 @@
 ---
 name: find-folder-topology-drift
 description: Detect drift on the folder-topology surface — flat folders with N+ same-prefix sibling files (promote), tests-by-prefix populations that should live under a tests/ subfolder, URL-prefix views not grouped under a matching folder, same-domain helper sprawl at root level, and folder packages whose source-module count fell below the ≥3 threshold (demote). SUSPECT skill governing the placement convention defined in ADR 0006 (folder-organization). The convention is bidirectional — folders earn packaging at ≥3 siblings and lose it below ≥3.
-argument-hint: "[--root core --min-cluster-size 3 --exclude PATTERN]"
+argument-hint: "[--root PATH --min-cluster-size 3 --exclude PATTERN]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -36,11 +36,27 @@ You are the orchestrator for a SUSPECT skill that audits a Python
 package's directory layout against ADR 0006's folder-grouping
 convention.
 
+## How success is judged
+
+- The run is graded only by artifacts: the pasted detector/reporter
+  command output plus the written `detections.jsonl`, `report.md`, and
+  `findings.json` files. Do not claim a scan ran without those artifacts.
+- The scan verdict is declared as one of `clean`, `drift-found`, or
+  `scan-blocked`. `drift-found` means at least one emitted finding is
+  worth human triage; it does not authorize file moves.
+- The reported target matches the detector invocation. If `--root` is
+  omitted, describe the target as the default scope universe, not a
+  baked application folder. If `--root PATH` is supplied, echo that path
+  in the reporter's `--target` value.
+- The skill remains read-only: findings route to the next skill; this
+  skill never edits, moves, stages, or commits production files.
+
 ## Scope
 
-- **Default root:** `app/` (this project's main Django app — the
-  package on disk; the Django app-label `'core'` is decoupled per
-  ADR 0011). Override with `--root` to scan another package.
+- **Default scan universe:** no `--root`. The detector loads the
+  per-skill scope/ignore descriptors when a host repo provides them;
+  otherwise it scans the repository tree after the built-in exclusions.
+  Override with `--root PATH` to narrow the scan to one subtree.
 <!-- spec:project-structure-redesign-phase-2::IM-16 -->
 - **Default min cluster size:** 3 — the same threshold ADR 0006 sets
   for "this is a pattern, not a coincidence."
@@ -68,14 +84,26 @@ SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
 REPORT_DIR="reports/find-folder-topology-drift/$SCAN_ID"
 mkdir -p "$REPORT_DIR"
 .venv/bin/python .claude/skills/find-folder-topology-drift/scripts/detect.py \
-  --root app \
   --output "$REPORT_DIR/detections.jsonl"
 .venv/bin/python .claude/skills/find-folder-topology-drift/scripts/report.py \
   --detections "$REPORT_DIR/detections.jsonl" \
   --output-md "$REPORT_DIR/report.md" \
   --output-json "$REPORT_DIR/findings.json" \
-  --target "app/"
+  --target "default scope"
 ln -sfn "$SCAN_ID" reports/find-folder-topology-drift/latest
+```
+
+When narrowing the scan, forward the same target label to the report:
+
+```bash
+.venv/bin/python .claude/skills/find-folder-topology-drift/scripts/detect.py \
+  --root .claude/skills \
+  --output "$REPORT_DIR/detections.jsonl"
+.venv/bin/python .claude/skills/find-folder-topology-drift/scripts/report.py \
+  --detections "$REPORT_DIR/detections.jsonl" \
+  --output-md "$REPORT_DIR/report.md" \
+  --output-json "$REPORT_DIR/findings.json" \
+  --target ".claude/skills"
 ```
 
 ## Findings
@@ -109,15 +137,15 @@ The detector emits one record per finding into a JSONL file. Bands:
   in which case the proposal records `defer_in_flight`.
 
 - **`route_folder_misalignment`** *(Stage 2 — deferred)* — A URL
-  prefix in `app/urls.py` resolves to ≥3 view modules that are not
-  grouped under a matching folder under `app/views/`. The detector
+  prefix resolves to >=3 view modules that are not grouped under a
+  matching folder under the route-owned views tree. The detector
   currently emits a placeholder note when the routes file is parseable
   but the band is not yet computed; turn this on when the
   Stage 1 bands have drained their queue.
 
 - **`same_domain_helper_sprawl`** *(Stage 2 — deferred)* — Root-level
-  modules naming the same domain (e.g. seven `*scraper*.py` files at
-  `app/` root). Stage 1 catches the obvious form via
+  modules naming the same domain (e.g. seven `*scraper*.py` files at a
+  package root). Stage 1 catches the obvious form via
   `flat_prefix_cluster` whenever they share a prefix; the harder case
   (mixed prefixes, shared domain) is deferred until Stage 1 is drained.
 
@@ -158,8 +186,7 @@ the floor is honored.
   scratch-code paths instead.
 - **`--exclude PATTERN`** is glob-style and additive on top of the
   default exclusions. Use it to skip scratch-code directories per
-  project memory `project_core_vs_scratch_code.md` (e.g.
-  `--exclude 'app/management/commands/_experiments/*'`).
+  project memory (e.g. `--exclude 'scratch/*'`).
 - **Singletons are not findings.** A 400-LOC cohesive module with no
   prefix siblings is honored by ADR 0006's "singletons stay flat"
   guardrail — it never appears in this report.
@@ -182,9 +209,9 @@ order between bands; pick the largest cluster first by default
   proposal under ADR 0002's spec-first, two-commit discipline. One
   cluster per PR.
 - **`/decide`** if a finding reveals a tradeoff the ADR doesn't yet
-  cover (e.g. "we keep accepting `flat_prefix_cluster` for
-  `app/management/commands/` because it's the Django convention —
-  document the exemption formally").
+  cover (e.g. "we keep accepting `flat_prefix_cluster` for framework
+  command modules because that is the framework convention — document
+  the exemption formally").
 - **`/prevent-regression`** *(Stage 2 — deferred)* if the SUSPECT
   queue drains and folder-topology drift recurs often enough to
   justify a pre-commit lint.
@@ -197,9 +224,8 @@ order between bands; pick the largest cluster first by default
   and route alignment requires URL parsing that is out of scope for
   the first iteration.
 - The detector recurses into subdirectories. A folder with a real
-  package layout (e.g. `app/services/ai_sidecar/`) is *not*
-  flagged for its internal structure — only directly-flat folders
-  with prefix clusters are.
+  package layout is *not* flagged for its internal structure — only
+  directly-flat folders with prefix clusters are.
 - Re-runs are idempotent. The detector reads the filesystem only;
   there is no cached state.
 - ADR 0006's "custom-job and scratch code" exemption (project memory:
@@ -207,6 +233,39 @@ order between bands; pick the largest cluster first by default
   `--exclude` rather than auto-detected. The proposal step
   (`/propose-folder-reorganization`) re-reads the exemption and may
   recommend `defer_scratch_code` for findings that survived the scan.
+
+## Replay check
+
+After editing this skill or its detector contract, run the cheap replay:
+
+```bash
+.venv/bin/python .claude/skills/find-folder-topology-drift/scripts/detect.py --help
+SCAN_ID="scan-replay"
+REPORT_DIR="/tmp/find-folder-topology-drift-${SCAN_ID}"
+mkdir -p "$REPORT_DIR"
+.venv/bin/python .claude/skills/find-folder-topology-drift/scripts/detect.py \
+  --root .claude/skills/find-folder-topology-drift \
+  --output "$REPORT_DIR/detections.jsonl"
+.venv/bin/python .claude/skills/find-folder-topology-drift/scripts/report.py \
+  --detections "$REPORT_DIR/detections.jsonl" \
+  --output-md "$REPORT_DIR/report.md" \
+  --output-json "$REPORT_DIR/findings.json" \
+  --target ".claude/skills/find-folder-topology-drift"
+```
+
+Paste the command output when using it as repair evidence. The replay
+does not prove the scan is clean; it proves the documented argparse and
+reporter contract execute.
+
+## When things go sideways
+
+| Symptom | Action |
+|---|---|
+| `--root PATH` is outside `--project-root` | Treat the run as invalid for that target, state the mismatch, and re-run with a repo-relative root; do not report the fallback whole-repo scan as if it honored the root. |
+| `detections.jsonl` is missing or empty because the command did not run | Mark the scan `scan-blocked`; paste the failing command output instead of summarizing findings. |
+| Reporter fails after detector success | Keep `detections.jsonl` as the artifact truth, mark the run `scan-blocked`, and paste the reporter failure; do not hand-write `report.md`. |
+| Stage-2 deferred bands look relevant | Say they are not detected yet; route the specific design question to `/decide` or a follow-up detector change rather than fabricating findings. |
+| A finding looks like framework convention rather than drift | Keep it in the report, label it an exemption candidate, and route to `/decide` only if the convention should become durable policy. |
 
 ## Repository layout
 

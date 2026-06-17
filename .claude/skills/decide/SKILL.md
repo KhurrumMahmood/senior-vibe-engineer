@@ -44,7 +44,8 @@ backrefs after human review).
 ## How success is judged
 
 - The new/amended ADR passes Stage 3 verification:
-  `scripts/decisions.py audit` and `link-check` come back clean.
+  `.venv/bin/python scripts/decisions.py audit` and `link-check`
+  come back clean, with the real output reported.
 - Stage 1 confirmed no existing decision already covers the topic —
   a duplicate aborts into `--amend` or supersession, never a second
   ADR for the same choice.
@@ -124,7 +125,8 @@ decision, so it should usually be a supersession instead).
 /decide --list
 ```
 
-Shorthand for `python3 scripts/decisions.py list`. No new file written.
+Shorthand for `.venv/bin/python scripts/decisions.py list`. No new file
+written.
 
 Present the parsed spec back to the user (intent + target id +
 `related_smell`/`related_pattern` candidates surfaced from
@@ -146,7 +148,7 @@ exists.
 
 ```bash
 # Find next id (Forms A, B)
-NEXT_ID=$(python3 -c "
+NEXT_ID=$(.venv/bin/python -c "
 import pathlib, re
 ids = []
 for p in pathlib.Path('ai-docs/decisions').glob('[0-9][0-9][0-9][0-9]-*.md'):
@@ -171,7 +173,7 @@ Read these files (small, fast, scoped to the topic):
 - `.claude/docs/canonical-patterns.md` — search for pattern names that
   match the decision topic (case-insensitive grep on slug words)
 - `.claude/docs/architectural-smells.md` — same search for smell names
-- `python3 scripts/decisions.py list --json` — full registry (so you
+- `.venv/bin/python scripts/decisions.py list --json` — full registry (so you
   don't accidentally re-decide an already-decided question)
 
 For Form B (supersede), also read the superseded ADR's body so the
@@ -183,19 +185,30 @@ new ADR can name what changed. Quote the superseded decision's
 **Pre:** context gathered. **Post:** `${NEW_PATH}` written (Forms A,
 B) or `--amend`'d field updated (Form C).
 
-ADR shape — every section is required, even if the content is "(none)":
+Scaffold Forms A/B with the registry script, then edit the generated
+file. The scaffold is the executable source of truth for frontmatter
+shape:
+
+```bash
+.venv/bin/python scripts/decisions.py init "${SLUG}"
+```
+
+ADR shape emitted by `scripts/decisions.py init` — keep these
+frontmatter fields present, even when a value is empty:
 
 ```markdown
 ---
-id: <NNNN>
-title: <Capitalized title sentence — verb-led if possible>
+id: "<NNNN>"
+namespace: core
+title: "<Capitalized title sentence — verb-led if possible>"
 status: proposed              # proposed | accepted | superseded | deprecated
 date: <YYYY-MM-DD today>
-deciders: [<user>]            # ask if uncertain — typically the repo owner
+deciders: []                  # ask if uncertain before filling
 supersedes: []                # populated only in Form B
 superseded_by: null
-applies_to: [<dir or file glob>]
-tags: [<topic>, <area>]
+applies_to: []
+embodied_by: []               # required once accepted; see ADR 0033
+tags: []
 related_smell: <smell-anchor or null>      # from architectural-smells.md
 related_pattern: <pattern-anchor or null>  # from canonical-patterns.md
 ---
@@ -242,6 +255,10 @@ sentence; everything else exists to support it.>
   already conform>
 ```
 
+After scaffolding, fill title/body and any known `deciders`,
+`applies_to`, `tags`, `related_smell`, and `related_pattern` values.
+For Form B, edit `supersedes: [<existing-id>]` in the new ADR.
+
 For Form C (amend), edit only the requested frontmatter field via the
 `Edit` tool. Do NOT touch the body. If the amend would set `status:
 superseded` without a `superseded_by`, abort and ask for the
@@ -253,8 +270,8 @@ superseding id.
 exit 0.
 
 ```bash
-python3 scripts/decisions.py audit && \
-  python3 scripts/decisions.py link-check
+.venv/bin/python scripts/decisions.py audit && \
+  .venv/bin/python scripts/decisions.py link-check
 ```
 
 If either fails, surface the diagnostic and STOP — the ADR is on disk
@@ -270,7 +287,7 @@ but not registered. Common failures:
 `reports/_meta/effectiveness.jsonl`.
 
 ```bash
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill decide \
   --scan-id "decision-${NEXT_ID}" \
   --target "${NEW_PATH}" \

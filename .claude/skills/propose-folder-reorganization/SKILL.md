@@ -131,7 +131,7 @@ Special prefix `tests` triggers the `tests_by_prefix` band — same
 parent-path argument, prefix `tests`.
 
 If the user passes a target that isn't a real directory or has
-fewer than 2 sibling files matching the prefix, the orchestrator
+fewer than 3 sibling files matching the prefix, the orchestrator
 stops, logs `target_not_found` or `cluster_below_threshold` to the
 proposal, and returns.
 

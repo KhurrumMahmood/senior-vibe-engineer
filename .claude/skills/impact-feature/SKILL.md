@@ -50,6 +50,9 @@ proportional to the most-touched subsystem rather than to the sum.
   `impacted`.
 - A scope mismatch (impact exceeds §1) triggers a STOP and a
   re-run-`/scope-feature` recommendation — never silent expansion.
+- Stage 5 reports the real `.venv/bin/python scripts/plans.py audit`
+  output after the status edit; a claim without that output is not
+  enough.
 Write toward these gates from Stage 0.
 
 ## Core beliefs
@@ -71,7 +74,9 @@ Write toward these gates from Stage 0.
 ## Scope (this skill itself)
 
 - **Project root:** this worktree's root.
-- **Python:** `python3` (stdlib-only).
+- **Python:** `.venv/bin/python`. `scripts/plans.py` parses YAML
+  frontmatter through PyYAML from `requirements.txt`; the venv is part
+  of the contract.
 - **Read:** `ai-docs/plans/<name>.md`,
   `.claude/docs/subsystems/`, `.claude/docs/workflows/`.
 - **Write:** `reports/impact-feature/scan-<TS>/scout/<subsystem>.md`,
@@ -130,6 +135,10 @@ and returns a markdown file with:
 - `## Behaviors to preserve` — invariants the new feature must not
   break. Be specific: "X must be saved before Y because Z relies on
   the FK", "this task must run on the browser queue because Akamai".
+
+Tell every scout that its output is judged by those sections existing
+in the file at `output_path`; a reply that only summarizes findings in
+chat does not satisfy the dispatch.
 
 For shallow Agent dispatch (top-level invocation), use:
 
@@ -224,7 +233,7 @@ Edit the frontmatter `status:` line to `impacted`. Optionally update
 `subsystems:` and `workflows:` lists in frontmatter from §3-4.
 
 ```bash
-python3 scripts/plans.py audit
+.venv/bin/python scripts/plans.py audit
 ```
 
 ### Stage 6 — Summarize
@@ -253,5 +262,6 @@ Report to the user in ≤10 lines:
 | Plan status is `impacted+` | Abort; recommend next-stage skill |
 | §1 in-scope list is empty | Abort; recommend re-running `/scope-feature` |
 | Scout reports impact outside §1 in-scope list | Stop; recommend re-running `/scope-feature` to widen / narrow scope; do not silently expand the impact map |
-| Scout fails twice | Mark MISSING in §3 with `(<subsystem> impact map MISSING — re-run /impact-feature --subsystems <sub> to fill)`; proceed |
+| Scout fails twice | Mark MISSING in §3 with `(<subsystem> impact map MISSING — rerun /impact-feature <plan-name> and select this subsystem at Stage 1)`; proceed |
 | Scout finds no integration point in subsystem | Note in §3; this is a real signal — the scope may need to add a NEW subsystem (escalate to a decision via `/decide`) |
+| `plans.py audit` fails with `ModuleNotFoundError: yaml` | Runtime is not initialized. Stop and run `/engineer-init`; do not retry with bare `python3` |

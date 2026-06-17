@@ -35,6 +35,18 @@ free-text task description. Your output is one of three shapes:
 You do NOT invoke the recommended skill yourself. The user invokes it
 after reviewing the recommendation. You are an advisory tool.
 
+## How success is judged
+
+- The recommendation is rendered from the actual matcher output and
+  exit code: exit 0 means a skill recommendation, exit 1 means
+  `proceed_directly`, and exit 2 is surfaced as an error.
+- The run reads frontmatter only; it does not expand skill bodies or
+  execute the recommended skill.
+- If an effectiveness row is written, it records the actual pick
+  (`recommended` or `proceed_directly`) and includes the matcher
+  tier/job/pick notes.
+Write toward these gates from Stage 0.
+
 ## Core beliefs
 
 1. **Wrong tool selection is the highest-leverage failure mode.**
@@ -93,7 +105,7 @@ only persistent trace.
 **Pre:** task description received. **Post:** `match.py` output captured.
 
 ```bash
-python3 .claude/skills/which-skill/scripts/match.py "${TASK}" --json
+.venv/bin/python .claude/skills/which-skill/scripts/match.py "${TASK}" --json
 ```
 
 The matcher returns JSON with:
@@ -167,7 +179,7 @@ default render is the headline plus enough context to act.
 `reports/_meta/effectiveness.jsonl`.
 
 ```bash
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill which-skill \
   --scan-id "match-$(date +%s)" \
   --target "${TASK_SLUG}" \

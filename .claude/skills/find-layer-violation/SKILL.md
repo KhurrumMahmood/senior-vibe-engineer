@@ -11,7 +11,7 @@ description: |
   candidates report. Never edits code — hands off to
   `/fix-workflow layer:<candidate_id>`.
 argument-hint: "--target <directory>"
-allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
+allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
@@ -51,6 +51,10 @@ documented in
   four buckets (`extract_service` / `move_to_existing_service` /
   `broad_workflow_coordinator` / `intentional_http_coupling`), not a
   raw signal count.
+- The closeout pastes the real Stage 1/2/4 stderr lines
+  (`[detect_layer_violation]`, `[collapse]`, `[report]`) plus the
+  scout JSON count; claims without those artifacts do not satisfy the
+  audit.
 - Extract-service candidates in `report.md` are actionable: their IDs
   resolve as `/fix-workflow layer:<candidate_id>` arguments;
   coordinators route to product-topology mapping instead.
@@ -65,8 +69,8 @@ Write toward these gates from Stage 0.
   `.engineering/docs/find-layer-violation-scope.md` layer map). Accepts
   a directory for a full sweep or a single file.
 - **Project root:** this worktree's root.
-- **Python:** `python3` (detectors are stdlib-only). `.venv/bin/python`
-  is not required — this skill is read-only and does not touch Django.
+- **Python:** `.venv/bin/python` (detectors are stdlib-only, but this
+  repo runs them through the venv for consistent tooling).
 - **Project-specific defaults** (LOC budgets, HTTP-coupled exemptions,
   existing-service inventory): in `knowledge/`.
 - **Responsibility-left-in-view rule:** for omnibus views, measure what
@@ -84,7 +88,7 @@ Write toward these gates from Stage 0.
 ## Pipeline stages (each has a contract)
 
 Each stage reads files the previous stage wrote and writes files the
-next stage reads. Run scripts with `python3` and capture stderr so
+next stage reads. Run scripts with `.venv/bin/python` and capture stderr so
 failures surface.
 
 ### Stage 0 — Setup
@@ -105,7 +109,7 @@ ln -sfn "scan-${TS}" reports/layer-violation/latest
 with one record per signal-hit (score-sorted).
 
 ```bash
-python3 .claude/skills/find-layer-violation/scripts/detect.py \
+.venv/bin/python .claude/skills/find-layer-violation/scripts/detect.py \
   --target <target> \
   --project-root "$(pwd)" \
   --output "${REPORT_DIR}/layer_violations.jsonl"
@@ -122,7 +126,7 @@ A single method often fires 2–4 signals; collapse groups by
 medium = 2, low = 1).
 
 ```bash
-python3 .claude/skills/find-layer-violation/scripts/collapse.py \
+.venv/bin/python .claude/skills/find-layer-violation/scripts/collapse.py \
   --detections "${REPORT_DIR}/layer_violations.jsonl" \
   --output "${REPORT_DIR}/candidates.jsonl" \
   --top 30
@@ -152,6 +156,14 @@ For each candidate, expand `agents/verify.md` (substitute
 `{{skill_root}}`, `{{output_path}}`) and dispatch with
 `subagent_type=general-purpose`. Send all Agent calls in a **single
 message** so they run concurrently.
+
+Declare the verdict to every scout: its output is accepted only if it
+writes valid JSON at `{{output_path}}`, uses one of the four buckets,
+accounts for every detector signal in `signals_confirmed` or
+`signals_dismissed`, and gives `interface_depth_note` for service
+extractions. When merging, reject or re-dispatch malformed scout files;
+do not let `report.py` turn an unverified candidate into an actionable
+layer handoff.
 
 If a scout returns invalid JSON or flags the verification as aborted,
 re-dispatch once with a stricter "respond only with file-write
@@ -210,7 +222,7 @@ ownership is worth the cost.
 `${REPORT_DIR}/report.md` and `${REPORT_DIR}/findings.json`.
 
 ```bash
-python3 .claude/skills/find-layer-violation/scripts/report.py \
+.venv/bin/python .claude/skills/find-layer-violation/scripts/report.py \
   --candidates "${REPORT_DIR}/candidates.jsonl" \
   --scout-dir "${REPORT_DIR}/scout" \
   --output-md "${REPORT_DIR}/report.md" \
@@ -219,12 +231,12 @@ python3 .claude/skills/find-layer-violation/scripts/report.py \
   --target <target>
 
 # Effectiveness log — one line per run, feeds reports/_meta/dashboard.md.
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill find-layer-violation \
   --scan-id "scan-${TS}" \
   --target <target> \
-  --findings-total "$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("summary",{}).get("findings_total", len(d.get("findings", []))))' "${REPORT_DIR}/findings.json")" \
-  --buckets "$(python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])).get("summary",{}).get("buckets", {})))' "${REPORT_DIR}/findings.json")"
+  --findings-total "$(.venv/bin/python -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("summary",{}).get("findings_total", len(d.get("findings", []))))' "${REPORT_DIR}/findings.json")" \
+  --buckets "$(.venv/bin/python -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])).get("summary",{}).get("buckets", {})))' "${REPORT_DIR}/findings.json")"
 ```
 
 ### Stage 5 — Summarize
@@ -246,6 +258,17 @@ Report to the user in ≤10 lines:
 
 The report is the source of truth — do not enumerate every candidate.
 
+## Replay case
+
+When `detect.py`, `collapse.py`, `report.py`, or the scout JSON schema
+changes, replay a disposable Python target with one view function that
+loops over a queryset, writes two model types, and dispatches a task.
+Expected evidence: Stage 1 writes at least one
+`layer_violations.jsonl` record with multiple signals; Stage 2 collapses
+it to one candidate; after a hand-written scout JSON that accounts for
+every signal and buckets it as `extract_service`, Stage 4 writes
+`report.md` and `findings.json` with one actionable layer finding.
+
 ## Non-goals
 
 - Executing the extraction (that's `/fix-workflow` after user
@@ -266,6 +289,7 @@ The report is the source of truth — do not enumerate every candidate.
 | Symptom | Action |
 |---|---|
 | Stage 1 detector reports 0 candidates | Target has no flagged views/tasks (best outcome) — or scope is too narrow; try a wider target like the source root for a full sweep |
+| Any script exits non-zero | Stop at the failing stage, paste the exact command and stderr, and do not summarize downstream artifacts from a previous run |
 | Stage 1 over-fires on CRUD helpers | Tighten LOC budget with `--fn-budget` / `--method-budget` / `--task-budget`, or add the shape to `knowledge/` HTTP-coupled filter |
 | Stage 2 caps too aggressively | Pass `--top 50` or higher to `collapse.py` |
 | Stage 3 scout buckets everything as `intentional_http_coupling` | Scout is being too lenient — re-dispatch citing the canonical examples (`external_source.py`, `collections.py`) from `knowledge/` |

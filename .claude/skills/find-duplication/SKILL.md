@@ -2,7 +2,7 @@
 name: find-duplication
 description: Detect structural and lexical code duplication. Runs jscpd and the AST visitor in parallel, collapses overlapping clone pairs into method-identity findings, fans out sub-agent investigators, and produces a triage report with a dormant-code side-channel. Hands off to `/fix-workflow` for execution.
 argument-hint: "--target <directory>"
-allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
+allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
@@ -32,6 +32,9 @@ the scout brief and the knowledge files, not in this prompt.
   investigated finding carries a Stage 4 scout verdict at
   `scout/<finding_id>.json` — nothing dropped silently between
   `ranked.json` and `classified.json`.
+- The closeout pastes the real Stage 2/3/5 stderr lines (`[collapse]`,
+  `[rank]`, `[report]`) plus the scout JSON count; claims without those
+  artifacts do not satisfy the audit.
 - Cluster IDs in the triage report resolve as `/fix-workflow
   cluster:<id>` arguments; dormant candidates flow to the
   side-channel, never get acted on here.
@@ -133,6 +136,13 @@ For each finding, expand the `agents/investigate.md` template (substitute
 `{{output_path}}`) and dispatch with `subagent_type=general-purpose`. Send
 all Agent calls in a **single message** so they run concurrently.
 
+Declare the verdict to every scout: its output is accepted only if it
+writes valid JSON at `{{output_path}}`, uses one `fix_shape` from the
+brief, accounts for dormant candidates separately, and cites the files it
+read in `notes`. When merging, reject or re-dispatch malformed scout
+files; do not let `report.py` turn an unjudged finding into an actionable
+cluster.
+
 After the sub-agents return, combine their JSON files:
 
 ```bash
@@ -163,7 +173,7 @@ and `${REPORT_DIR}/findings.json`.
 # Effectiveness log — one line per run, feeds reports/_meta/dashboard.md.
 # Derive counts from findings.json; shape is {duplication, shadow,
 # dormant, pattern-violation, other}. See `.claude/skills/_common/skill-conventions.md`.
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill find-duplication \
   --scan-id "scan-${TS}" \
   --target <target> \
@@ -183,6 +193,18 @@ Report to the user in ≤10 lines:
 
 The triage report is the source of truth — do not enumerate every finding.
 
+## Replay case
+
+When `scripts/collapse.py`, `scripts/rank.py`, `scripts/report.py`, or
+the scout JSON schema changes, replay a disposable target containing two
+30-line Python functions with identical bodies plus one unrelated
+function. Expected evidence: Stage 1 writes a lexical report (or the
+documented skipped-lexical artifact when `--offline-ok` is needed) and
+`ast_findings.json`; Stage 2 collapses the duplicate pair into exactly
+one finding; Stage 3 preserves one ranked finding; after one hand-written
+scout JSON for that finding, Stage 5 writes `triage.md` and
+`findings.json` with one actionable finding and zero dormant candidates.
+
 ## Non-goals
 
 - Executing fixes (that's `/fix-workflow`).
@@ -196,6 +218,7 @@ The triage report is the source of truth — do not enumerate every finding.
 | Symptom | Action |
 |---|---|
 | Stage 1 jscpd is skipped | Check `${REPORT_DIR}/jscpd/skipped-lexical.json`; lexical evidence is unavailable but AST findings can still proceed |
+| Any script exits non-zero | Stop at the failing stage, paste the exact command and stderr, and do not summarize downstream artifacts from a previous run |
 | Stage 2 reports 0 findings | Target probably excluded — check `ignore_patterns` in `collapsed.json`, verify target has non-test Python files |
 | Stage 4 sub-agent returns invalid JSON | Re-dispatch with a stricter "respond with only the file write confirmation" nudge; skip finding if it fails twice |
 | Scout says "dormant" on a registered class | It skipped the registry-dispatch check — re-dispatch citing `knowledge/false-positives.md` explicitly |

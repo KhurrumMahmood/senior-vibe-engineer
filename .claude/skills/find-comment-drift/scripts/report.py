@@ -18,7 +18,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Render comment-drift findings.")
     parser.add_argument("detections", type=Path)
     parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--target", default="/sites surface")
+    parser.add_argument("--target", default="legacy default surface")
     args = parser.parse_args(argv)
 
     records = read_jsonl(args.detections)

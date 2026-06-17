@@ -81,12 +81,13 @@ Write toward these gates from Stage 0.
 ## Scope (this skill itself)
 
 - **Project root:** this worktree's root.
-- **Python:** `python3` (stdlib-only).
+- **Python:** no helper script is shipped; use shell reads/greps only.
 - **Read:** `.claude/docs/canonical-patterns.md`,
   `.claude/docs/architectural-smells.md`,
   `ai-docs/decisions/`,
   `ai-docs/specs/`,
-  `reports/<find-*>/latest/`,
+  `reports/<smell>/latest/` (on-disk report dirs omit the `find-`
+  prefix, e.g. `reports/omnibus/`, not `reports/find-omnibus/`),
   `.claude/CLAUDE.md`,
   `.pre-commit-config.yaml` and `pyproject.toml` (for lint enforcement
   evidence).

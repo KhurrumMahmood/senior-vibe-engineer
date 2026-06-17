@@ -14,15 +14,15 @@ Stage 1 detection bands:
                            the same N as the promotion bands; folders
                            earn packaging at ≥3 siblings and lose it
                            below ≥3.
-  - pages_route_mirror:    a file under `app/pages/<parent>/` whose
+  - pages_route_mirror:    a file under `pages/<parent>/` whose
                            basename starts with a token matching a
                            singularization of the parent folder name
                            (e.g. `pages/sites/site_wizard.py` — the
                            `site_` prefix duplicates the parent
                            `sites/`). Implements ADR 0010: filenames
-                           under `app/pages/` strip parent-folder
-                           prefixes so a reader who knows the route
-                           knows the file.
+                           under route-mirrored `pages/` folders strip
+                           parent-folder prefixes so a reader who
+                           knows the route knows the file.
 
 Stage 2 bands (deferred — see SKILL.md):
   - route_folder_misalignment
@@ -52,8 +52,8 @@ DEFAULT_MIN_CLUSTER_SIZE = 3
 # even when their source-module count is below threshold.
 FRAMEWORK_FOLDER_NAMES = {
     "tests",          # py.test / Django test runner discovery
-    "commands",       # core/management/commands/<cmd>.py — Django convention
-    "management",     # core/management/ — Django parent of commands
+    "commands",       # management/commands/<cmd>.py — Django convention
+    "management",     # management/ — Django parent of commands
     "templatetags",   # Django template-tag library
     "migrations",     # already excluded; defensive
     "fixtures",       # py.test fixtures package
@@ -289,7 +289,7 @@ def _scan_pages_route_mirror(
     pages_root: Path,
     project_root: Path,
 ) -> list[dict]:
-    """Find files under `app/pages/<parent>/` whose name duplicates the
+    """Find files under `pages/<parent>/` whose name duplicates the
     parent folder as a prefix.
 
     Implements ADR 0010 Stage-1 detection: filename `<token>_*.py` under
@@ -496,7 +496,7 @@ def detect(
 
     # Band 4 — pages_route_mirror (ADR 0010). Runs on any `pages/`
     # directory beneath an in-scope file (location-independent —
-    # `app/pages`, `src/pages`, …), not a baked `app/` root.
+    # `package/pages`, `src/pages`, …), not a baked application root.
     pages_roots = sorted({
         parent for f in files for parent in f.parents
         if parent.name == "pages"

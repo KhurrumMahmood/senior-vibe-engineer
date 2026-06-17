@@ -1,7 +1,7 @@
 ---
 name: find-frontend-duplication
 description: Detect duplicated UX shells, hand-rolled primitives, and JS helper forks across templates/ and static/js/. Compares Tailwind class chains and JS function definitions against the existing cotton primitive inventory to surface "should be a c-primitive but isn't" candidates. Hands off to /extract-cotton-primitive for proposals.
-argument-hint: "[--templates templates --js static/js]"
+argument-hint: "[--root <project-root>] [--min-count <n>] [--min-tokens <n>]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -38,6 +38,9 @@ for.
 - `${REPORT_DIR}/triage.md` + `findings.json` exist; every
   investigated candidate carries a Stage 4 scout verdict at
   `scout/<candidate_id>.json`, aggregated into `classified.json`.
+- The closeout pastes the real Stage 1/2/3/5 output lines (`Wrote ...`,
+  `Scanned ...`) plus the scout JSON count; claims without those
+  artifacts do not satisfy the audit.
 - Each candidate was compared against the cotton-primitive inventory
   (`cotton-inventory.json`) — "should be a c-primitive" claims name
   the existing primitive or the absence of one.
@@ -48,8 +51,10 @@ Write toward these gates from Stage 0.
 
 ## Scope
 
-- **Template root:** `templates/` (default).
-- **JS root:** `static/js/` (default).
+- **Project root:** current working directory by default. Stage 1
+  scanners accept `--root`; tune the searched template/JS files through
+  `.engineering/docs/find-frontend-duplication-scope.md`, not through
+  stale `--templates` / `--js` flags.
 - **Component primitive root:** declared by the project's `component_profile`
   (`.engineering/manifest.json`, `definitions_root` field), read by
   `cotton_inventory.py`. No baked-in path — when no `component_profile` is
@@ -72,6 +77,7 @@ so failures surface.
 
 ```bash
 TS=$(date +%Y%m%d-%H%M%S)
+PROJECT_ROOT="${PROJECT_ROOT:-$(pwd)}"
 REPORT_DIR="reports/frontend-duplication/scan-${TS}"
 mkdir -p "${REPORT_DIR}/scout"
 ln -sfn "scan-${TS}" reports/frontend-duplication/latest
@@ -80,18 +86,23 @@ ln -sfn "scan-${TS}" reports/frontend-duplication/latest
 ### Stage 1 — Detect (parallel)
 
 **Pre:** target dirs exist. **Post:** the three inventories below are
-present and non-empty.
+present. `cotton-inventory.json` may validly be empty when no
+`component_profile` is declared (`kind: none`); zero class/helper
+candidates are a clean result only when the output files exist.
 
 Run all three commands concurrently in one Bash message:
 
 ```bash
 .venv/bin/python .claude/skills/find-frontend-duplication/scripts/cotton_inventory.py \
+  --root "${PROJECT_ROOT}" \
   --out "${REPORT_DIR}/cotton-inventory.json"
 
 .venv/bin/python .claude/skills/find-frontend-duplication/scripts/frontend_class_chain_scanner.py \
+  --root "${PROJECT_ROOT}" \
   --out-dir "${REPORT_DIR}/class-chains"
 
 .venv/bin/python .claude/skills/find-frontend-duplication/scripts/frontend_helper_scanner.py \
+  --root "${PROJECT_ROOT}" \
   --out "${REPORT_DIR}/helpers.json"
 ```
 
@@ -162,6 +173,13 @@ For each candidate, expand the `agents/investigate.md` template
 `subagent_type=general-purpose`. Send all Agent calls in a **single
 message** so they run concurrently.
 
+Declare the verdict to every scout: its output is accepted only if it
+writes valid JSON at `{{output_path}}`, uses one `recommendation` from
+the brief, applies the three-callsite/two-template rule, and names the
+files it verified. When merging, reject or re-dispatch malformed scout
+files; do not let `report.py` turn an unjudged candidate into an
+extraction recommendation.
+
 After the sub-agents return, combine their JSON files:
 
 ```bash
@@ -188,7 +206,7 @@ pathlib.Path('${REPORT_DIR}/classified.json').write_text(json.dumps(out, indent=
   --scan-id "scan-${TS}"
 
 # Effectiveness log
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill find-frontend-duplication \
   --scan-id "scan-${TS}" \
   --target templates+static/js \
@@ -212,6 +230,18 @@ Report to the user in ≤10 lines:
 The triage report is the source of truth — do not enumerate every
 candidate.
 
+## Replay case
+
+When any Stage 1 scanner, `collapse.py`, `rank.py`, `report.py`, or the
+scout JSON schema changes, replay a disposable project with a declared
+`component_profile.kind = cotton`, one primitive, three repeated alert
+shells across two templates, and two same-name JS helper forks. Expected
+evidence: Stage 1 writes all three inventory files even if the primitive
+inventory is empty in a `kind: none` variant; Stage 2 emits at least one
+`alert-shell` or `helper-fork` candidate; Stage 3 ranks it; after one
+hand-written scout JSON, Stage 5 writes `triage.md` and `findings.json`
+with the same candidate count shown in `classified.json`.
+
 ## Non-goals
 
 - Executing extractions or migrations (that's
@@ -228,6 +258,7 @@ candidate.
 | Symptom | Action |
 |---|---|
 | Stage 1 cotton-inventory empty | No `component_profile` declared (`kind: none`), or its `definitions_root` is unset/missing on disk; check `.engineering/manifest.json` |
+| Any script exits non-zero | Stop at the failing stage, paste the exact command and stderr/stdout, and do not summarize downstream artifacts from a previous run |
 | Stage 2 reports 0 candidates | min-tokens / min-count thresholds may be too high — re-run scanners with `--min-count 2 --min-tokens 2` |
 | Stage 4 sub-agent recommends "extract" for a single-callsite chain | Re-dispatch citing `knowledge/extraction-thresholds.md` (3+ callsites across 2+ templates) |
 | Stage 4 confabulates a non-existent file path | Re-dispatch with stricter "verify each cited file exists by listing it" preamble; skip if it fails twice |

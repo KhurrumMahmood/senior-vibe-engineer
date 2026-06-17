@@ -7,7 +7,7 @@ description: |
   public class docstrings, stale terminology, JavaScript functions that
   deserve real JSDoc, thin ceremonial JSDoc, noisy HTML comments, and
   fragile doc references.
-argument-hint: "[paths... - defaults to the /sites route surface]"
+argument-hint: "[paths... - no paths uses the detector's legacy default surface]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -37,12 +37,28 @@ missing natural JSDoc, and noisy template comments.
 This skill never edits code and never blocks commits. It writes findings
 under `reports/find-comment-drift/scan-<UTC>/` so a cleanup pass can use
 the report as a checklist. The commit-time `comment-drift` lint imports the
-same detector but fails only the bad-comment subset on the live `/sites`
-surface; JSDoc candidates and thin docstrings remain advisory here.
+same detector but fails only the bad-comment subset on the legacy
+site-workflow surface; JSDoc candidates and thin docstrings remain
+advisory here.
+
+## How success is judged
+
+- The run is graded only by artifacts: pasted detector/reporter output
+  plus `detections.jsonl`, `report.md`, and `findings.json`. Do not
+  claim comments were audited without those files.
+- The scan verdict is one of `clean`, `advisory-findings`, or
+  `scan-blocked`. `advisory-findings` means the report has rows for
+  human triage; it does not authorize edits.
+- Every summary cites the report artifacts: total findings, bucket
+  counts, and the top examples must come from `report.md` or
+  `findings.json`, not from memory or preference.
+- The skill remains read-only. Preserve, delete, or rewrite comments
+  only in a separate cleanup pass after a human selects findings.
 
 ## Default Target
 
-If the caller does not provide paths, scan the `/sites` route surface:
+If the caller does not provide paths, the current detector uses its
+legacy site-workflow default surface:
 
 ```
 app/pages/sites
@@ -104,13 +120,32 @@ Run with the project venv:
 ```
 SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
 REPORT_DIR="reports/find-comment-drift/$SCAN_ID"
-.venv/bin/python .claude/skills/find-comment-drift/scripts/detect.py --output "$REPORT_DIR/detections.jsonl" [--project-root DIR] <paths...>
-.venv/bin/python .claude/skills/find-comment-drift/scripts/report.py "$REPORT_DIR/detections.jsonl" --output "$REPORT_DIR/report.md" --target "<paths...>"
+mkdir -p "$REPORT_DIR"
+.venv/bin/python .claude/skills/find-comment-drift/scripts/detect.py \
+  --output "$REPORT_DIR/detections.jsonl"
+.venv/bin/python .claude/skills/find-comment-drift/scripts/report.py \
+  "$REPORT_DIR/detections.jsonl" \
+  --output "$REPORT_DIR/report.md" \
+  --target "legacy default surface"
 ln -sfn "$SCAN_ID" reports/find-comment-drift/latest
 ```
 
 Relative scan paths anchor on `--project-root`, which defaults to the
 git toplevel of the cwd (else the cwd) — matching the sibling detectors.
+For portable repo scans, pass explicit paths and use the same label in
+the reporter:
+
+```
+REPORT_DIR="/tmp/find-comment-drift-portable"
+mkdir -p "$REPORT_DIR"
+.venv/bin/python .claude/skills/find-comment-drift/scripts/detect.py \
+  --output "$REPORT_DIR/detections.jsonl" \
+  .claude/skills/find-comment-drift
+.venv/bin/python .claude/skills/find-comment-drift/scripts/report.py \
+  "$REPORT_DIR/detections.jsonl" \
+  --output "$REPORT_DIR/report.md" \
+  --target ".claude/skills/find-comment-drift"
+```
 
 If shell process substitution or symlinks are awkward in the current
 environment, create the directory with any equivalent safe command. The
@@ -152,6 +187,10 @@ The smoke test scans good/bad Python, JavaScript, and Django-template
 fixtures and asserts that every detector band has at least one bad
 fixture while the good fixtures stay clean.
 
+Use this smoke output as the replay case for detector or contract
+repairs. Paste the command output; do not summarize it as "smoke passed"
+without the transcript.
+
 ## Judgment
 
 Treat findings as a senior-engineer review queue, not a mechanical patch
@@ -160,3 +199,13 @@ non-obvious history, race conditions, cross-layer contracts, or template
 gotchas. Prefer deleting narration over rewriting it. Prefer JSDoc when a
 JavaScript function is public-ish, shared, async, global, or has a real
 input/output/side-effect contract.
+
+## When things go sideways
+
+| Symptom | Action |
+|---|---|
+| No explicit paths were passed and the host repo lacks the legacy default files | Mark the verdict `scan-blocked` for the intended target, then re-run with explicit repo-relative paths. Do not treat a zero-file default scan as a clean audit. |
+| Detector writes `detections.jsonl` but reporter fails | Keep the JSONL as artifact truth, mark `scan-blocked`, and paste the reporter failure; do not hand-write `report.md`. |
+| A finding preserves important intent or safety context | Classify it as `noise` or `keep-comment` in the human summary and cite the adjacent code; do not rewrite it inside this skill. |
+| Smoke test fails after detector edits | Stop and fix the detector or fixture expectation before trusting any new report. |
+| A malformed file cannot be parsed | Report the parser failure and the file path, then continue only if the detector produced an explicit artifact for the skipped file. |

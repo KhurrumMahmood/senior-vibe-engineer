@@ -596,7 +596,11 @@ def scan_files(files: Iterable[Path], project_root: Path) -> list[Finding]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Detect comment/docstring/JSDoc drift.")
-    parser.add_argument("paths", nargs="*", help="Files or directories to scan. Defaults to the /sites surface.")
+    parser.add_argument(
+        "paths",
+        nargs="*",
+        help="Files or directories to scan. Defaults to the legacy site-workflow surface.",
+    )
     parser.add_argument("--output", required=True, type=Path, help="JSONL output path.")
     parser.add_argument("--project-root", type=Path, default=None,
                         help="Target project root anchoring relative paths "

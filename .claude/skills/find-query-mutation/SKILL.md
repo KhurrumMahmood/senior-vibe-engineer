@@ -2,7 +2,7 @@
 name: find-query-mutation
 description: Detect read-named methods that mutate persisted state. Runs an AST scan for functions named `get_*` / `fetch_*` / `load_*` / `list_*` / `find_*` / `check_*` whose body calls `.save()` / `.delete()` / `.update()` / `.create()` / `.bulk_create()` / `.bulk_update()` / `.update_or_create()` / `.get_or_create()`; collapses hits per function, fans out scout sub-agents to bucket each candidate (rename / split / legitimate warming / stdlib false positive), and produces a report that hands off to `/fix-workflow cluster:<symbol>`. Detection-only — never edits production code.
 argument-hint: "--target <directory>"
-allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
+allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
@@ -40,6 +40,10 @@ scouts read it, you don't.
   (`rename_to_mutator` / `split_reader_and_mutator` /
   `legitimate_cache_warming` / `false_positive_stdlib_wrapper`) —
   no detector hit reaches `report.md` ungraded or silently dropped.
+- The closeout pastes the real Stage 1/2/4 stderr lines
+  (`[detect_query_mutation]`, `[collapse_query_mutation]`,
+  `[report_query_mutation]`) plus the scout JSON count; claims without
+  those artifacts do not satisfy the audit.
 - Actionable symbols in the report resolve as `/fix-workflow
   cluster:<symbol>` arguments; `# hidden-mutation:` markers honored.
 - Zero edits to production code — detection-only audit.
@@ -50,8 +54,8 @@ Write toward these gates from Stage 0.
 - **Target path:** the required `--target` argument. Must be a
   directory.
 - **Project root:** this worktree's root.
-- **Python:** `python3` (the detectors are stdlib-only and run without
-  the venv).
+- **Python:** `.venv/bin/python` (the detectors are stdlib-only, but
+  this repo runs them through the venv for consistent tooling).
 - **Project-specific defaults** (known receiver shapes, legitimate
   cache-warming sites, hidden-mutation conventions, detection gaps):
   in `knowledge/`.
@@ -59,7 +63,7 @@ Write toward these gates from Stage 0.
 ## Pipeline stages (each has a contract)
 
 Each stage reads files the previous stage wrote and writes files the
-next stage reads. Run scripts with `python3` and capture stderr so
+next stage reads. Run scripts with `.venv/bin/python` and capture stderr so
 failures surface.
 
 ### Stage 0 — Setup
@@ -80,7 +84,7 @@ ln -sfn "scan-${TS}" reports/query-mutation/latest
 present.
 
 ```bash
-python3 .claude/skills/find-query-mutation/scripts/detect.py \
+.venv/bin/python .claude/skills/find-query-mutation/scripts/detect.py \
   --target <target> \
   --project-root "$(pwd)" \
   --output "${REPORT_DIR}/hits.jsonl"
@@ -99,7 +103,7 @@ one record per `(file, symbol)` bucket with hit count, confidence
 tier, and mutation methods touched.
 
 ```bash
-python3 .claude/skills/find-query-mutation/scripts/collapse.py \
+.venv/bin/python .claude/skills/find-query-mutation/scripts/collapse.py \
   --hits "${REPORT_DIR}/hits.jsonl" \
   --output "${REPORT_DIR}/candidates.jsonl"
 ```
@@ -148,6 +152,13 @@ For each selected candidate, expand `agents/verify.md` (substitute
 `{{skill_root}}`, `{{output_path}}`) and dispatch with
 `subagent_type=general-purpose`. Send all Agent calls in a **single
 message** so they run concurrently.
+
+Declare the verdict to every scout: its output is accepted only if it
+writes valid JSON at `{{output_path}}`, preserves the `candidate_id`,
+uses one of the four buckets, and carries `recommendation_hint_symbol`
+for actionable buckets. When merging, reject or re-dispatch malformed
+scout files; do not let `report.py` turn an unverified candidate into a
+rename/split recommendation.
 
 If a scout returns invalid JSON, re-dispatch once with a stricter
 "respond only with file-write confirmation" nudge; skip the candidate
@@ -206,7 +217,7 @@ can't easily see).
 `${REPORT_DIR}/report.md` and `${REPORT_DIR}/findings.json`.
 
 ```bash
-python3 .claude/skills/find-query-mutation/scripts/report.py \
+.venv/bin/python .claude/skills/find-query-mutation/scripts/report.py \
   --scout-dir "${REPORT_DIR}/scout" \
   --candidates "${REPORT_DIR}/candidates.jsonl" \
   --output-md "${REPORT_DIR}/report.md" \
@@ -215,12 +226,12 @@ python3 .claude/skills/find-query-mutation/scripts/report.py \
   --target <target>
 
 # Effectiveness log — one line per run. Buckets come from findings.json.
-python3 scripts/log_effectiveness.py \
+.venv/bin/python scripts/log_effectiveness.py \
   --skill find-query-mutation \
   --scan-id "scan-${TS}" \
   --target <target> \
-  --findings-total "$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("summary",{}).get("findings_total", len(d.get("findings", []))))' "${REPORT_DIR}/findings.json")" \
-  --buckets "$(python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])).get("summary",{}).get("buckets", {})))' "${REPORT_DIR}/findings.json")"
+  --findings-total "$(.venv/bin/python -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("summary",{}).get("findings_total", len(d.get("findings", []))))' "${REPORT_DIR}/findings.json")" \
+  --buckets "$(.venv/bin/python -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])).get("summary",{}).get("buckets", {})))' "${REPORT_DIR}/findings.json")"
 ```
 
 ### Stage 5 — Summarize
@@ -236,6 +247,19 @@ Report to the user in ≤10 lines:
   for top actionable, or `/find-query-mutation` again after cleanup).
 
 The report is the source of truth — do not enumerate every candidate.
+
+## Replay case
+
+When `detect.py`, `collapse.py`, `report.py`, or the scout JSON schema
+changes, replay a disposable Python target with one read-named function
+that calls `.save()` on a model-like receiver, one `get_context_data`
+function that only mutates a dict, and one `# hidden-mutation:` marked
+cache-warmer. Expected evidence: Stage 1 writes a hit for the unmarked
+model mutation and does not write the marked cache-warmer; Stage 2
+collapses the model mutation to one candidate; after a hand-written
+scout JSON that buckets it as `rename_to_mutator`, Stage 4 writes
+`report.md` and `findings.json` with one actionable finding and no
+actionable finding for the dict wrapper.
 
 ## Non-goals
 
@@ -256,6 +280,7 @@ The report is the source of truth — do not enumerate every candidate.
 | Symptom | Action |
 |---|---|
 | Stage 1 detect.py finds 0 hits | Target has no query-mutation smell (best outcome) — or the directory argument is wrong. Re-run with a valid `--target <dir>` |
+| Any script exits non-zero | Stop at the failing stage, paste the exact command and stderr, and do not summarize downstream artifacts from a previous run |
 | Stage 1 detect.py is slow (>2 min) | Shouldn't happen on a typical source tree — check for `__pycache__` entries in target. Add more `--skip-file-glob` flags if needed |
 | Stage 2 reports 0 candidates | Same as Stage 1 zero — or collapse ignored all hits (check stderr) |
 | Stage 3 scout buckets everything as `false_positive_stdlib_wrapper` | Scout is being too permissive. Inspect one output; re-dispatch with "re-check whether the receiver is `self` inside a `models.Model` subclass" |

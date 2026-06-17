@@ -25,7 +25,10 @@ markdown report:
 
 You are **not** designing the feature, picking between alternatives, or
 writing implementation code. You produce a single markdown file at
-`{{output_path}}` and nothing else.
+`{{output_path}}` and nothing else. Your output will be judged by
+whether it answers the two questions above with artifact evidence
+(paths, symbols, tests, callers, invariants) and explicitly states any
+source it could not read.
 
 ### Inputs
 

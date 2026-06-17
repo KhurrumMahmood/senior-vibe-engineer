@@ -134,7 +134,8 @@ Write toward these gates from Stage 0.
   - `.claude/docs/precedents.yml` — implementation case law. If the
     host project ships this file, precedent-conflict matching feeds the
     `decided-but-still-smell` bucket alongside ADR matches. If the file
-    is absent, skip silently and rely on ADR matching only.
+    is absent, rely on ADR matching only and state in the report that
+    precedent matching was unavailable for this run.
 - **Write:** `reports/gut-check/scan-<TS>/<target-slug>.md`.
 - **No code edits.** No file moves. No production touches. The skill
   writes one report and reports the path back.
@@ -482,7 +483,7 @@ Long inline argument; mode inferred as `architecture`.
 | Every reaction is style-preference | Re-read the target more critically; if there's genuinely nothing strong/weak, emit the "No reactions" output rather than padding |
 | Reactions all conflict with the same ADR | The ADR may itself be due for a fresh look — surface that observation in the Notes section and recommend `/decide` to amend, or `/audit-decisions` if the ADR's `applies_to:` paths look stale |
 | Inline summary is ambiguous | Push back: ask for a file path, a snippet, or a longer description; gut-check needs concrete grounding |
-| Host project has no `precedents.yml` | Skip precedent matching silently; ADR-only matching still works |
+| Host project has no `precedents.yml` | Use ADR-only matching and write a report note that precedent matching was unavailable for this run |
 
 ## Repository layout
 

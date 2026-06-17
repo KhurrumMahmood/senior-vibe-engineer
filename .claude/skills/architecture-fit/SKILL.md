@@ -54,6 +54,9 @@ expected; `/plan-spec` will require those to be resolved (via
   pending)` — never buried in prose.
 - Plan status advances to `architected`; no ADR is authored by this
   skill itself, and no spec is scaffolded.
+- Stage 5 reports the real `.venv/bin/python scripts/plans.py audit`
+  output after the status edit; a claim without that output is not
+  enough.
 Write toward these gates from Stage 0.
 
 ## Core beliefs
@@ -78,7 +81,9 @@ Write toward these gates from Stage 0.
 ## Scope (this skill itself)
 
 - **Project root:** this worktree's root.
-- **Python:** `python3` (stdlib-only).
+- **Python:** `.venv/bin/python`. The registry scripts parse YAML
+  frontmatter through PyYAML from `requirements.txt`; the venv is part
+  of the contract.
 - **Read:** `ai-docs/plans/<name>.md`, `ai-docs/decisions/` (full),
   `.claude/docs/canonical-patterns.md`,
   `.claude/docs/architectural-smells.md`.
@@ -102,8 +107,8 @@ status is `architected+`, abort and recommend the next-stage skill.
 ### Stage 1 — Load constraints
 
 ```bash
-python3 scripts/decisions.py audit --json
-python3 scripts/decisions.py list --json
+.venv/bin/python scripts/decisions.py audit --json
+.venv/bin/python scripts/decisions.py list --json
 ```
 
 Read `.claude/docs/canonical-patterns.md` and
@@ -190,7 +195,7 @@ either authored as an ADR or explicitly waived._
 Edit the frontmatter `status:` line to `architected`.
 
 ```bash
-python3 scripts/plans.py audit
+.venv/bin/python scripts/plans.py audit
 ```
 
 ### Stage 6 — Summarize
@@ -228,3 +233,4 @@ Report to the user in ≤10 lines:
 | User invokes `/decide` inline but it fails | Record the fork as P0 pending in §6; do not block plan progression |
 | Every fork is P0 with 5+ candidates | Plan may be too ambitious — recommend re-running `/scope-feature` to narrow before continuing |
 | No applicable patterns / decisions / smells | Note "no constraining priors" in §5; this is fine for greenfield work but worth flagging |
+| Registry scripts fail with `ModuleNotFoundError: yaml` | Runtime is not initialized. Stop and run `/engineer-init`; do not retry with bare `python3` |
