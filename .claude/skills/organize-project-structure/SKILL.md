@@ -1,6 +1,6 @@
 ---
 name: organize-project-structure
-description: Design and execute a repo-wide folder-structure reorganization around intuitive top-level ownership, artifact lifecycle, and reader navigation. Use when a project has historical top-level folders, source/input/output dumps, KB/spec/eval/runtime boundaries, or a proposed directory map that needs review, move planning, dry-run validation, reference updates, and safe handoff to /move-path. Not for one-off file moves or Python package prefix clusters.
+description: Design and execute a repo-wide folder-structure reorganization around intuitive top-level ownership, artifact lifecycle, reader navigation, and framework/tool constraints. Use when a project has historical top-level folders, source/input/output dumps, KB/spec/eval/runtime boundaries, or a proposed directory map that needs recursive folder summaries, ideal-vs-constrained topology review, move planning, dry-run validation, reference updates, and safe handoff to /move-path. Not for one-off file moves or Python package prefix clusters.
 argument-hint: "[--target .] [--apply]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 user-invocable: true
@@ -8,10 +8,12 @@ tier: system
 job: refactor
 best_for: |
   Whole-project information architecture: making a repo root easier to
-  skim, demoting historical inputs/outputs from the top level, separating
-  source material from doctrine, splitting idea lifecycle from specs,
-  deciding where evals/runtime/apps/scripts/tests belong, and producing a
-  batched /move-path plan with dry-run review before edits.
+  skim, demoting historical inputs/outputs from the top level, summarizing
+  folder purpose/value at multiple abstraction levels, separating source
+  material from doctrine, splitting idea lifecycle from specs, adapting an
+  ideal topology to framework constraints, deciding where
+  evals/runtime/apps/scripts/tests belong, and producing a batched
+  /move-path plan with dry-run review before edits.
 not_for: |
   Single file or folder rename/move with known destination (use
   /move-path directly). Python package topology drift such as prefix
@@ -26,9 +28,10 @@ framework: any
 # /organize-project-structure
 
 You are the orchestrator for repo-wide folder-structure redesign. Your
-job is to choose a clearer mental model, preserve source material, write
-a deterministic move plan, run `/move-path --dry-run`, review uncertainty,
-then apply only when the dry run matches the intended topology.
+job is to infer the clearer mental model, adapt it to hard project
+constraints, preserve source material, write a deterministic move plan,
+run `/move-path --dry-run`, review uncertainty, then apply only when the
+dry run matches the intended topology.
 
 Read `_common/structural-design-principles.md` before judging the target
 tree. The floor is framework/tool correctness; above the floor, optimize
@@ -39,8 +42,9 @@ for skim, find, cluster, and stranger tests.
 Separate design judgment from mechanical movement:
 
 ```text
-inventory -> lifecycle classification -> target topology -> move-path plan
--> dry-run report -> apply/check -> update signposts
+inventory -> folder value summaries -> repeated abstraction -> ideal topology
+-> constraint overlay -> target topology -> move-path plan -> dry-run report
+-> apply/check -> update signposts
 ```
 
 Do not hand-edit broad references when `/move-path` can resolve them.
@@ -71,6 +75,48 @@ Top-level folders must earn their position by being a durable reader
 navigation key. Historical names like `inputs-1/`, `inputs-2/`, and
 `outputs/` usually fail that test; preserve them under a source-material
 or archive owner instead of deleting or flattening them.
+
+## Abstraction Ladder
+
+Use summaries to climb from concrete contents to structural boundaries:
+
+1. **Folder summaries.** For each top-level folder and major subfolder,
+   summarize what work happens there, what value gets created, what
+   artifacts are produced or consumed, and what reader question the
+   folder answers. For code, sample entry points and public APIs; for
+   docs, sample headings and cross-links; for data, sample manifests or
+   READMEs before large payloads.
+2. **Second-pass summary.** Summarize the summaries. Look for repeated
+   ownership patterns, lifecycle phases, hidden parallel hierarchies,
+   source-vs-derived confusion, and names that describe history instead
+   of current purpose.
+3. **Third-pass summary.** Summarize the second pass into the smallest
+   useful set of navigation keys: e.g. doctrine, ideas, contracts,
+   runtime, proof machinery, raw source material, apps, tools, tests.
+   This is the ideal logical topology before constraints.
+
+Keep the intermediate summaries short enough to review. They are not
+deliverables unless the user asks; they are the ladder that makes the
+target topology explainable instead of vibes-based.
+
+## Constraint Overlay
+
+After proposing the ideal logical topology, apply constraints before
+writing the move plan:
+
+- Framework/runtime conventions: Next.js `app/` or `pages/`, Python
+  package/import roots, Django app layout, build config discovery, test
+  runner discovery, static asset discovery.
+- Tooling contracts: CI paths, deployment manifests, codegen outputs,
+  docs/link checkers, package metadata, `.gitignore`, data loader paths,
+  notebook/report expectations.
+- Human constraints: preferred names, backwards-compatible public paths,
+  source-package preservation, review scope, rollback story.
+
+Constraints do not erase the ideal model; they explain where the final
+target topology intentionally bends. If a constraint is merely manual
+reference-update cost, prefer improving `/move-path` or adding an
+adapter over keeping an unintuitive layout.
 
 ## Target Tree Rules
 
