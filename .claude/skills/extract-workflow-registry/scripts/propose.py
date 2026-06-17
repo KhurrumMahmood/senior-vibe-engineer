@@ -96,7 +96,10 @@ def _load_workflow_map(
             f"workflow map not found: {workflow_map}. "
             f"Run /map-product-workflow {workflow} first or pass --workflow-map."
         )
-    text = map_path.read_text(encoding="utf-8")
+    try:
+        text = map_path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"workflow map is not valid UTF-8: {workflow_map}") from exc
 
     descriptor_steps = {
         step["route_name"]: step for step in workflow_steps(project_root)

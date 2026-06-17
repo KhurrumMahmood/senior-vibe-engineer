@@ -213,6 +213,11 @@ templates to update)`.
       via `__init__.py`, OR every such caller updates in the same
       commit),
   (5) run the always-suite + targeted backend suite.
+- For Markdown-heavy path references, docs, repo-layout moves, or any
+  packaging batch where deterministic path rewriting is the main risk,
+  use `/move-path` to dry-run and apply the filesystem/reference portion
+  instead of hand-maintaining relative links. Keep behavior-preserving
+  characterization and import-contract work in this skill.
 - Phase 6 verification: the topology-drift detector reports zero
   findings under the cluster's new path; pre-commit lint registry
   resolves cleanly with `--all`; one Playwright pass on any UI route

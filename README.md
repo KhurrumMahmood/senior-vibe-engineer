@@ -20,7 +20,7 @@ work to run.
 
 ## What's in the box
 
-- **`.claude/skills/`** — 63 skills covering diagnosis, construction,
+- **`.claude/skills/`** — 75 skills covering diagnosis, construction,
   and five jobs in the maintenance loop:
   - **DIAGNOSE** (`diagnose`) — turn concrete symptoms, regressions,
     flakes, and unclear failures into a reproduction loop, root cause,
@@ -42,7 +42,7 @@ work to run.
     `introduce-fk`, `unify-shadows`, `propose-folder-reorganization`) —
     read-only proposals that turn a SUSPECT finding into an
     implementation-ready brief.
-  - **REFACTOR** (`refactor-subsystem`, `fix-workflow`) — execute the
+  - **REFACTOR** (`refactor-subsystem`, `fix-workflow`, `move-path`) — execute the
     cleanup with a strict spec-first protocol and characterization tests.
   - **GUARD** (`prevent-regression`) — turn a closed cleanup into a
     lint / test guardrail so the problem can't come back.
@@ -142,7 +142,7 @@ things commonly block them:
 .claude/
   CLAUDE.md                 # lean root guide for all agents
   docs/                     # doctrine: canonical patterns, smells, catalogue
-  skills/                   # 63 skills, each a self-contained dir
+  skills/                   # 75 skills, each a self-contained dir
     _common/                # shared scout-dispatch, scripts, posture docs
     <skill-name>/SKILL.md   # the agent-facing skill definition
 ai-docs/

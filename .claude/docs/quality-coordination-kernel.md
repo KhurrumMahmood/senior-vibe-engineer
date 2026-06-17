@@ -798,6 +798,14 @@ planning chain (`scope-feature → impact-feature → architecture-fit
 → plan-spec`), or do they need their own chain that explicitly
 addresses the A→B-specific concerns?
 
+`/move-path` is the first narrow transformation primitive: it does not
+change behavior or architectural semantics, but it does apply a batched
+filesystem A→B transform with a virtual after-tree, deterministic
+reference rewriting, dry-run review, and post-apply verification. Use it
+for path identity moves; escalate to the heavier transformation question
+only when the move also changes runtime behavior, public contracts, or
+the meaning of the affected objects.
+
 ### 4.6 Variation governance
 
 In the §1.5 regime, variations are user-scoped deltas on top of

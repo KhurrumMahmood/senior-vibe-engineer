@@ -326,6 +326,8 @@ is approved; when a SUSPECT cluster has a known fix shape.
 | Skill | What it does | When |
 |---|---|---|
 | `/fix-workflow` | Executes one cluster (duplication, dormant, shadow, etc.) end-to-end — reads target, picks a fix-shape playbook, edits, tests, commits | After any `/find-*` audit; for targeted cleanups. |
+| `/move-path` | Deterministic batched file/directory moves with virtual after-tree reference rewriting, dry-run/apply/check modes, Git-aware moves, Markdown/backtick/path reference updates, and blocked/suggested uncertainty buckets. | When many files or folders need to be renamed or moved and repo references should update in one batch. Especially useful for Markdown-heavy docs/KBS, repo-layout reshapes, and safe path moves before committing. Not for glossary-level concept renames or behavior-changing subsystem splits. |
+| `/rename-concept` | Read-only assessment of a glossary-worthy domain-concept rename: scope gate, lifecycle table, and two-band completeness gate for identifier/prose drift. Escalates to `/move-path` only when the concept rename also requires filesystem path moves. | When a domain term is being superseded across glossary, code identifiers, prose, and cross-tool mirrors. Not for local file moves or narrow symbol renames. |
 | `/refactor-subsystem` | Multi-file, spec-driven, scout-fanned structural refactor with two-commit discipline and characterization tests | For splits (omnibus → package), migrations (N shadows → typed interface), and decompositions (god-class → directory package). |
 | `/unify-shadows` (execute mode) | Hands a finished proposal to `/fix-workflow semantic:<id>` | Pairs with the proposal-mode invocation. |
 

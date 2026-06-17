@@ -41,6 +41,8 @@ not_for: |
   (see below).
 escalate_to: |
   /decide — to author the ADR content for the decision step of the lifecycle.
+  /move-path — if the concept rename also requires moving/renaming files or
+  directories and updating path references as a deterministic batch.
   /refactor-subsystem — if the rename needs structural module moves beyond
   identifier/string renames.
   /find-concept-divergence — the completeness gate runs it; escalate if it
@@ -143,6 +145,9 @@ intended v1 follow-up, gated so a human reviews the plan + the dry-run diff +
 the long-tail inventory before applying. Until then:
 
 - the **identifier sweep** is a manual / IDE step the human performs;
+- **path moves** that are part of the rename should use `/move-path` with a
+  reviewed `moves.yml` plan; it updates filesystem/path references, not
+  identifier or prose terminology;
 - the **guard lint** (`no_<old>_references`) is authored by hand and wired into
   the lint runner by a human;
 - the lifecycle steps assess.py *reports on* but does not author are: the ADR
