@@ -1,0 +1,53 @@
+schema_version: 2
+
+skill: repair-skill
+job: meta
+problem_class: "evidence-backed repair of an existing skill (META)"
+intent: >
+  Repair an existing skill whose execution text has proven misleading,
+  incomplete, or under-constrained by running a staged review, scout,
+  change-spec, implementation, independent verification, lift probe, and
+  optional real-host dogfood loop.
+solves: >
+  Skills can look plausible while failing at execution time. Without a repair
+  protocol, agents patch symptoms directly, invent unsupported text, skip
+  independent verification, or fail to prove that the weakest executor now
+  behaves better. repair-skill makes the repair evidence-backed and replayable.
+born:
+  commit: "unknown"
+  date: "2026-06-17"
+  sibling_births: []
+dogfood_kind: none-found
+dogfooded_on: []
+reports_dir: .claude/tasks/skill-repairs/<skill>/
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: [knowledge/skill-standard.md]
+  contract: []
+related_skills: [plan-skill, check-ecosystem-consistency, prevent-regression, track-idea]
+duplication_risk:
+  - with: plan-skill
+    relation: sequential
+    disambiguator: "repair-skill fixes an existing skill from evidence; plan-skill designs a new skill or a redesign when repair discovers the shape is wrong."
+  - with: check-ecosystem-consistency
+    relation: sibling-different-layer
+    disambiguator: "repair-skill is a targeted repair campaign; check-ecosystem-consistency audits cross-skill invariants and routes findings."
+  - with: prevent-regression
+    relation: sequential
+    disambiguator: "repair-skill can discover a repeatable defect class; prevent-regression turns that class into a guard or test."
+provenance_confidence:
+  textual: high
+  structural: med
+  temporal: low
+  dogfood: low
+evidence:
+  - "SKILL.md defines the staged repair loop, campaign record location, independent verifier, lift probes, and closeout gates."
+  - "No intent contract existed before the 2026-06-17 catalog stabilization pass."
+gaps:
+  - "Birth commit/date should be backfilled from git history if this contract becomes part of a broader stale-contract cleanup."
+  - "No run evidence recorded in this pass."

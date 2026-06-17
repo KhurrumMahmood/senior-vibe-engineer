@@ -30,7 +30,7 @@ rewrite:
             plan_path=plan,
             project_root=root,
             mode="dry-run",
-            report_dir=root / ".move-path",
+            report_dir=root / ".engineering" / "local" / "move-path",
         )
         assert report["summary"]["auto_rewrites"] == 1
         assert not report["blocked"]

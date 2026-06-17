@@ -1,0 +1,57 @@
+schema_version: 2
+
+skill: organize-project-structure
+job: plan
+problem_class: "repo-wide project information architecture under constraints (PLAN)"
+intent: >
+  Arrive at an ideal or near-ideal folder topology by summarizing folder value,
+  abstracting lifecycle boundaries, applying framework/tool/human constraints,
+  classifying confusing names by context, and separating deterministic move
+  plans from judgment-based follow-up.
+solves: >
+  Repos that accrete historical inputs, outputs, partial KBs, specs, evals, and
+  source dumps become hard to navigate. Without a planning skill, agents either
+  preserve confusing chronology at the top level, keep meaningless operational
+  labels without naming context, or perform broad unstructured moves with unsafe
+  reference rewrites.
+born:
+  commit: "c08e6dc"
+  date: "2026-06-17"
+  sibling_births: []
+dogfood_kind: host-attested
+dogfooded_on:
+  - "Dogfooded on host-a Fable to split source-materials, kb, idea-lab, specs, and evals while avoiding aspirational runtime folders."
+reports_dir: none
+run_evidence:
+  count: 0
+  first: null
+  latest: null
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: [skill-catalog.md, README.md, quality-coordination-kernel.md]
+  contract: []
+related_skills: [move-path, find-folder-topology-drift, propose-folder-reorganization, rename-concept, refactor-subsystem]
+duplication_risk:
+  - with: move-path
+    relation: sequential
+    disambiguator: "organize-project-structure decides the topology and move batch; move-path applies the deterministic path/reference portion after dry-run review."
+  - with: propose-folder-reorganization
+    relation: sibling-different-layer
+    disambiguator: "organize-project-structure is repo-wide lifecycle/information architecture; propose-folder-reorganization is a read-only per-prefix Python cluster proposal after find-folder-topology-drift."
+  - with: rename-concept
+    relation: sibling-different-layer
+    disambiguator: "organize-project-structure may rename confusing files/folders as topology, but glossary/domain terminology rename completion routes to rename-concept."
+provenance_confidence:
+  textual: high
+  structural: med
+  temporal: high
+  dogfood: med
+evidence:
+  - "c08e6dc — skill born and wired into README, skill catalog, which-shape, and move-path guidance."
+  - "95017ff — reframed as planning-first rather than direct execution."
+  - "Fable reorg exposed durable lessons: preserve provenance labels only when they are context, rename meaningless operational labels by default, keep generated reports under .engineering/local, and run operational path residue checks beyond Markdown links."
+  - "Fable stale-manifest miss reinforced the micro-tool loop: when a repeatable cleanup risk is concrete, add a deterministic helper to the owning skill with assumptions, output, and tests."
+gaps:
+  - "No dedicated helper script; correctness depends on human/LLM summaries plus move-path dry-run/check and project-native validation."
+  - "Needs continued dogfood on repos with framework constraints such as Next.js, Django, Python packages, and mixed runtime/apps layouts."

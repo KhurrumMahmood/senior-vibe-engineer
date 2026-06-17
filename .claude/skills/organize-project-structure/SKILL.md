@@ -82,6 +82,16 @@ navigation key. Historical names like `inputs-1/`, `inputs-2/`, and
 `outputs/` usually fail that test; preserve them under a source-material
 or archive owner instead of deleting or flattening them.
 
+For every confusing name, make the context decision explicit:
+
+- **Provenance label** — keep the old name as a source identity, but move it
+  under a clearer owner such as `source-materials/input-bundles/`.
+- **Operational label** — rename it by default when the current name is
+  meaningless, chronology-based, or misleading. The move plan should prefer the
+  clearer name, not merely tuck the confusing name one level deeper.
+- **Compatibility label** — keep it only when framework/tool contracts, public
+  paths, or explicit human preference require the old spelling.
+
 ## Abstraction Ladder
 
 Use summaries to climb from concrete contents to structural boundaries:
@@ -185,6 +195,7 @@ reference_scope:
     - "**/*.html"
   exclude:
     - ".git/**"
+    - ".engineering/local/**"
     - ".move-path/**"
     - "node_modules/**"
     - ".venv/**"
@@ -204,6 +215,52 @@ After `/move-path --dry-run`, inspect:
   intentionally unchanged labels?
 - blocked findings: do not apply until resolved.
 - Git impact: tracked moves should preserve history with `git mv`.
+
+## Output Contract
+
+When you hand off a proposed or applied topology change, include a compact
+naming-context table for confusing names. Each row should state:
+
+- old name and proposed/current new name;
+- context: provenance, operational, or compatibility;
+- default action: preserve under clearer owner, rename, or keep with reason;
+- constraint or evidence that justifies any non-default choice.
+
+For operational labels, the default action is **rename**. Keeping names such as
+`outputs`, `tmp`, `old`, `final`, `inputs-1`, or date/sequence labels in an
+active navigation path requires a compatibility or explicit human-preference
+reason. If the old spelling is useful only as history, preserve it as provenance
+inside a clearer owner instead.
+
+## Dogfood Learnings
+
+- Do not create aspirational runtime folders just because they appear in an
+  ideal tree. Add `src/`, `apps/`, `tests/`, or framework-specific roots only
+  when the project already has that execution surface or the user explicitly
+  chooses to scaffold it.
+- Treat historical source labels as both identities and citations. Paths such
+  as `inputs-1`, `outputs`, or `datasets` may be moved mechanically, but bare
+  prose mentions often describe provenance and should usually stay as source
+  labels or become `source-materials/...` only after review.
+- Keep source snapshots intact under their new owner. Do not flatten imported
+  packages during the same pass that demotes them from the top level.
+- Add signposts in the same change as the moves. New lifecycle owners need a
+  README or index that says what belongs there, what does not, and when a thing
+  graduates elsewhere.
+- After manual follow-up edits, rerun `/move-path --check`, then inspect
+  `git status`, `git diff --stat`, and `git diff --cached --check`. Normalize
+  the index before commit so pure `git mv` changes and signpost/reference
+  edits do not get stranded in separate states.
+- Put generated move reports under `.engineering/local/move-path/` and ignore
+  that local scratch area. A clean worktree can still hide ignored artifacts, so
+  make that intentional.
+- For moved JSON/CSV/manifests/scripts, run an operational residue pass. These
+  files may contain absolute paths or command examples that are not Markdown
+  links and will not be proved by link checks alone.
+- When a concrete repeatable cleanup risk appears, build or improve a tiny
+  deterministic helper with stated assumptions, machine-readable output, and
+  fixture coverage. Integrate useful helpers back into the owning
+  engineering-skill instead of leaving them as one-off project scripts.
 
 ## Handoff
 

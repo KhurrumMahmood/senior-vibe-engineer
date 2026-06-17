@@ -49,12 +49,14 @@ forms are reported, not rewritten.
 python3 .claude/skills/move-path/scripts/move_path.py --plan moves.yml --dry-run
 python3 .claude/skills/move-path/scripts/move_path.py --plan moves.yml --apply
 python3 .claude/skills/move-path/scripts/move_path.py --plan moves.yml --check
+python3 .claude/skills/move-path/scripts/audit_path_residue.py --plan moves.yml
+python3 .claude/skills/move-path/scripts/audit_path_residue.py --plan moves.yml --exclude 'source-materials/input-bundles/**'
 ```
 
 Useful options:
 
 - `--project-root DIR` — default is git toplevel, else cwd.
-- `--report-dir DIR` — default `.move-path/`.
+- `--report-dir DIR` — default `.engineering/local/move-path/`.
 - `--stage` — stage moved and rewritten paths after apply.
 - `--allow-dirty-touched` — bypass dirty touched-file refusal.
 - `--json` — print the JSON report to stdout.
@@ -82,6 +84,7 @@ reference_scope:
     - "**/*.json"
   exclude:
     - ".git/**"
+    - ".engineering/local/**"
     - "datasets/**"
     - "inputs-*/**"
     - "claude-logs/**"
@@ -118,11 +121,16 @@ describing the old layout rather than linking to the current identity.
 1. Write or inspect a move plan. Include many moves in one plan when the
    intended transform is one conceptual batch.
 2. Run `--dry-run`.
-3. Read `.move-path/report.md` and `.move-path/report.json`.
+3. Read `.engineering/local/move-path/report.md` and
+   `.engineering/local/move-path/report.json`.
 4. Resolve `blocked` findings. Review `suggest` findings.
 5. Run `--apply` only after the dry-run report matches the intended
    transform.
 6. Run `--check` after manual follow-up edits or before commit.
+7. When moved areas include machine-readable manifests, scripts, command
+   examples, generated reports, or absolute local paths, run
+   `audit_path_residue.py` and review its assumptions, samples, and spot
+   checks.
 
 ## Git Rules
 
@@ -133,6 +141,37 @@ describing the old layout rather than linking to the current identity.
 - Dirty touched files block apply by default.
 - `--stage` stages changed old and new paths after apply; otherwise the
   tool leaves the index alone.
+- After manual reference or signpost edits, run `--check` before commit. If
+  `--stage` was not used, stage the move and rewrite surfaces together so the
+  commit is a coherent topology change.
+- Keep generated reports under `.engineering/local/move-path/` or clean them
+  before handoff. Reports are review artifacts, not source files, unless the
+  project explicitly wants to retain them.
+- Review low-similarity renames with `git diff -M10 --find-renames` when
+  content rewrites make Git show a moved file as delete/add at the default
+  threshold.
+
+## Operational Residue Audit
+
+Use `scripts/audit_path_residue.py` when a move touches operational artifacts
+that may store paths outside Markdown links: JSON/CSV manifests, lockfiles,
+scripts, notebooks, generated reports, command examples, or copied absolute
+paths. The helper scans the move plan's reference scope for old relative,
+root-relative, absolute POSIX, and Windows-style path spellings, then writes:
+
+- assumptions that define what the scan can and cannot prove;
+- machine-readable findings in
+  `.engineering/local/move-path/path-residue-audit.json`;
+- a Markdown review report with sampled contexts and spot checks showing
+  whether old and new paths exist.
+
+Use repeated `--exclude` flags for known preserved provenance areas when the
+goal is operational cleanup rather than source-history rewriting.
+
+When a repeatable residue pattern appears during manual cleanup, prefer adding
+or refining a deterministic micro-tool here over relying on an LLM-only sweep.
+Keep the helper narrow, fixture-backed, and explicit about what would disprove
+its assumptions.
 
 ## AI Review
 

@@ -1,0 +1,59 @@
+schema_version: 2
+
+skill: move-path
+job: refactor
+problem_class: "deterministic filesystem path move / reference rewrite (REFACTOR)"
+intent: >
+  Plan, dry-run, apply, and verify batched file or directory moves with a
+  virtual after-tree, identity-resolved Markdown/HTML/backtick/exact-path
+  reference rewrites, Git-aware moves, explicit uncertainty buckets, and
+  operational residue audits for embedded path data.
+solves: >
+  Everyday path moves are deceptively high blast: ad-hoc mv plus search/replace
+  misses relative links, absolute spellings, Windows spellings, Git rename
+  behavior, stale residues, and path values embedded in manifests or scripts.
+  This skill keeps the mechanical portion deterministic and leaves only
+  ambiguous residues for review.
+born:
+  commit: "57f69a5"
+  date: "2026-06-17"
+  sibling_births: []
+dogfood_kind: fixture-pair
+dogfooded_on:
+  - "Unit tests in tests/test_move_path.py exercise virtual after-tree Markdown rewrites, apply/check behavior, exact-text directory paths, Windows-style references, and broken-link blocking."
+  - "Unit tests in tests/test_move_path.py exercise absolute manifest residue detection and the audit_path_residue helper."
+  - "Dogfooded on host-a Fable to move historical top-level source bundles into source-materials/ and product/eval documents into specs/ and evals/."
+reports_dir: .engineering/local/move-path
+run_evidence:
+  count: 1
+  first: "fable project-structure reorg, 2026-06-17"
+  latest: "fable project-structure reorg, 2026-06-17"
+embodies_decisions:
+  adr: []
+  precedent: []
+  doc: []
+  contract: []
+related_skills: [organize-project-structure, rename-concept, refactor-subsystem]
+duplication_risk:
+  - with: organize-project-structure
+    relation: sequential
+    disambiguator: "organize-project-structure designs the target topology and separates judgment from mechanics; move-path executes only a reviewed move table and deterministic reference updates."
+  - with: rename-concept
+    relation: sibling-different-layer
+    disambiguator: "move-path changes filesystem identity and path references; rename-concept assesses glossary/domain terminology and identifier/prose completeness."
+  - with: refactor-subsystem
+    relation: sibling-different-layer
+    disambiguator: "move-path is behavior-neutral path movement; refactor-subsystem is spec-first behavioral/module refactoring with characterization tests."
+provenance_confidence:
+  textual: high
+  structural: high
+  temporal: high
+  dogfood: med
+evidence:
+  - "57f69a5 — skill born with script, smoke, and tests."
+  - "tests/test_move_path.py — deterministic behavior coverage."
+  - "Fable reorg used the skill in dry-run/apply/check mode, exposing useful follow-up fixes for noisy residue and report placement."
+  - "Fable claude-log manifest miss became a fixture-backed audit_path_residue micro-tool."
+gaps:
+  - "Language import adapters remain intentionally deferred; code_imports defaults to ignore."
+  - "Plain prose still requires review; embedded path data is scanned by the residue auditor but not auto-rewritten unless a safer adapter is added."

@@ -27,7 +27,15 @@ except ImportError:  # pragma: no cover - exercised only in minimal hosts.
 
 
 DEFAULT_INCLUDES = ["**/*.md", "**/*.mdx", "**/*.yml", "**/*.yaml", "**/*.json", "**/*.html"]
-DEFAULT_EXCLUDES = [".git/**", ".move-path/**", "node_modules/**", ".venv/**", "__pycache__/**"]
+DEFAULT_EXCLUDES = [
+    ".git/**",
+    ".engineering/local/**",
+    ".move-path/**",
+    "node_modules/**",
+    ".venv/**",
+    "__pycache__/**",
+]
+DEFAULT_REPORT_DIR = ".engineering/local/move-path"
 LOCAL_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 MD_LINK_RE = re.compile(r"(!?)\[([^\]]*)\]\(([^)\n]+)\)")
 HTML_REF_RE = re.compile(r"(?P<attr>\b(?:href|src)=)(?P<quote>['\"])(?P<target>[^'\"]+)(?P=quote)")
@@ -686,29 +694,105 @@ def current_paths(root: Path) -> set[str]:
 
 def old_path_residue(root: Path, moves: list[MoveSpec], files: list[str]) -> list[Suggestion]:
     suggestions: list[Suggestion] = []
-    tokens = []
-    for move in moves:
-        tokens.append((move.src, move.dst))
-        tokens.append(("/" + move.src, "/" + move.dst))
+    tokens = path_residue_tokens(root, moves)
     for rel in files:
         try:
             text = _read_text(root / rel)
         except OSError:
             continue
-        for old, new in tokens:
-            for match in re.finditer(r"(?<![\w./-])" + re.escape(old) + r"(?![\w./-])", text):
+        for old, new, token_kind in tokens:
+            pattern = residue_pattern(old)
+            for match in re.finditer(pattern, text):
+                token = match.group(0)
+                target_after = residue_match_target(old, new, token)
+                if is_current_relative_reference(root, rel, token, target_after):
+                    continue
                 suggestions.append(
                     Suggestion(
                         file_before=rel,
                         file_after=rel,
                         lineno=line_for_offset(text, match.start()),
                         kind="old_path_residue",
-                        token=match.group(0),
-                        target_after=new,
-                        reason="old path remains after move",
+                        token=token,
+                        target_after=target_after,
+                        reason=f"old {token_kind} path remains after move",
                     )
                 )
     return suggestions
+
+
+def path_residue_tokens(root: Path, moves: list[MoveSpec]) -> list[tuple[str, str, str]]:
+    tokens: list[tuple[str, str, str]] = []
+    seen: set[tuple[str, str, str]] = set()
+
+    def add(old: str, new: str, kind: str) -> None:
+        key = (old, new, kind)
+        if old and key not in seen:
+            tokens.append(key)
+            seen.add(key)
+
+    for move in moves:
+        src = move.src.rstrip("/")
+        dst = move.dst.rstrip("/")
+        src_abs = (root / src).as_posix()
+        dst_abs = (root / dst).as_posix()
+        src_win = src.replace("/", "\\")
+        dst_win = dst.replace("/", "\\")
+        src_abs_win = src_abs.replace("/", "\\")
+        dst_abs_win = dst_abs.replace("/", "\\")
+
+        # Bare top-level directory names like "outputs" or "datasets" are
+        # often ordinary prose or preserved source labels. Treat them as
+        # residue only when they still appear as path prefixes. File moves and
+        # nested paths are path-shaped enough to scan exactly.
+        path_shaped = "/" in move.src or "." in Path(move.src).name
+        if path_shaped:
+            add(move.src, move.dst, "relative")
+            add("/" + move.src, "/" + move.dst, "root-relative")
+            add(src_abs, dst_abs, "absolute-posix")
+            add(src_win, dst_win, "relative-windows")
+            add(src_abs_win, dst_abs_win, "absolute-windows")
+
+        if move.mode == "directory":
+            add(src + "/", dst + "/", "relative-prefix")
+            add("/" + src + "/", "/" + dst + "/", "root-relative-prefix")
+            add(src_abs + "/", dst_abs + "/", "absolute-posix-prefix")
+            add(src_win + "\\", dst_win + "\\", "relative-windows-prefix")
+            add(src_abs_win + "\\", dst_abs_win + "\\", "absolute-windows-prefix")
+
+    return tokens
+
+
+def residue_pattern(old: str) -> str:
+    path_char = r"[\w./\\:-]"
+    pattern = r"(?<!" + path_char + r")" + re.escape(old)
+    if not old.endswith(("/", "\\")):
+        pattern += r"(?!" + path_char + r")"
+    else:
+        pattern += path_char + "*"
+    return pattern
+
+
+def residue_match_target(old: str, new: str, token: str) -> str:
+    if old.endswith(("/", "\\")):
+        return new + token[len(old):]
+    return new
+
+
+def is_current_relative_reference(root: Path, rel: str, token: str, target_after: str) -> bool:
+    if token.startswith(("/", "\\")):
+        return False
+    if re.match(r"^[A-Za-z]:[\\/]", token):
+        return False
+    if target_after.startswith(("/", "\\")):
+        return False
+    if re.match(r"^[A-Za-z]:[\\/]", target_after):
+        return False
+    try:
+        candidate = repo_rel((root / Path(rel).parent / token.replace("\\", "/")).resolve(), root)
+    except ValueError:
+        return False
+    return candidate.rstrip("/") == target_after.replace("\\", "/").rstrip("/")
 
 
 def git_root(cwd: Path) -> Path | None:
@@ -757,7 +841,7 @@ def move_one(root: Path, src: str, dst: str) -> None:
     use_git = is_git_repo(root) and git_tracked(root, src)
     case_only = src.lower() == dst.lower() and src != dst
     if case_only:
-        tmp_rel = f".move-path/tmp/{next(tempfile._get_candidate_names())}-{Path(src).name}"
+        tmp_rel = f"{DEFAULT_REPORT_DIR}/tmp/{next(tempfile._get_candidate_names())}-{Path(src).name}"
         tmp_path = root / tmp_rel
         tmp_path.parent.mkdir(parents=True, exist_ok=True)
         if use_git:
@@ -989,7 +1073,7 @@ def main(argv: list[str] | None = None) -> int:
     report_dir = args.report_dir
     root = args.project_root or git_root(Path.cwd()) or Path.cwd()
     if report_dir is None:
-        report_dir = root / ".move-path"
+        report_dir = root / DEFAULT_REPORT_DIR
     payload = run_plan(
         plan_path=args.plan,
         project_root=root,

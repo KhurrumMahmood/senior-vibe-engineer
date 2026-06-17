@@ -12,6 +12,7 @@ dist/
 .ruff_cache/
 .pytest_cache/
 .mypy_cache/
+.playwright-mcp/
 
 # macOS
 .DS_Store

@@ -6,10 +6,23 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MOVE_PATH = REPO_ROOT / ".claude" / "skills" / "move-path" / "scripts" / "move_path.py"
+AUDIT_PATH_RESIDUE = REPO_ROOT / ".claude" / "skills" / "move-path" / "scripts" / "audit_path_residue.py"
 
 
 def _load_move_path():
     spec = importlib.util.spec_from_file_location("move_path_under_test", MOVE_PATH)
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _load_audit_path_residue():
+    script_dir = str(AUDIT_PATH_RESIDUE.parent)
+    if script_dir not in sys.path:
+        sys.path.insert(0, script_dir)
+    spec = importlib.util.spec_from_file_location("audit_path_residue_under_test", AUDIT_PATH_RESIDUE)
     assert spec and spec.loader
     mod = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = mod
@@ -47,7 +60,7 @@ rewrite:
         plan_path=plan,
         project_root=tmp_path,
         mode="dry-run",
-        report_dir=tmp_path / ".move-path",
+        report_dir=tmp_path / ".engineering" / "local" / "move-path",
     )
 
     rewrites = {(r["file_before"], r["old"], r["new"]) for r in report["auto_rewrites"]}
@@ -86,7 +99,7 @@ rewrite:
         plan_path=plan,
         project_root=tmp_path,
         mode="dry-run",
-        report_dir=tmp_path / ".move-path",
+        report_dir=tmp_path / ".engineering" / "local" / "move-path",
     )
 
     assert any(
@@ -120,7 +133,7 @@ rewrite:
         plan_path=plan,
         project_root=tmp_path,
         mode="apply",
-        report_dir=tmp_path / ".move-path",
+        report_dir=tmp_path / ".engineering" / "local" / "move-path",
     )
 
     assert not (tmp_path / "docs" / "old.md").exists()
@@ -155,7 +168,7 @@ rewrite:
         plan_path=plan,
         project_root=tmp_path,
         mode="dry-run",
-        report_dir=tmp_path / ".move-path",
+        report_dir=tmp_path / ".engineering" / "local" / "move-path",
     )
 
     assert any(r["kind"] == "backtick_path" and r["new"] == "specs/eval.md" for r in report["auto_rewrites"])
@@ -188,7 +201,7 @@ rewrite:
         plan_path=plan,
         project_root=tmp_path,
         mode="dry-run",
-        report_dir=tmp_path / ".move-path",
+        report_dir=tmp_path / ".engineering" / "local" / "move-path",
     )
 
     rewrites = {(r["old"], r["new"]) for r in report["auto_rewrites"] if r["kind"] == "exact_text_path"}
@@ -197,6 +210,111 @@ rewrite:
         "/inputs-1/kb/glossary.md#term",
         "/source-materials/input-bundles/inputs-1/kb/glossary.md#term",
     ) in rewrites
+
+
+def test_check_residue_ignores_bare_root_directory_words(tmp_path):
+    move_path = _load_move_path()
+    _write(tmp_path / "source-materials" / "extraction-outputs" / "run.json", "{}\n")
+    _write(
+        tmp_path / "README.md",
+        "outputs are produced by scorers.\n"
+        "Use outputs/run.json only in old instructions.\n"
+        "The new path source-materials/extraction-outputs/run.json is fine.\n",
+    )
+    plan = tmp_path / "moves.yml"
+    _write(
+        plan,
+        """
+moves:
+  - from: outputs/
+    to: source-materials/extraction-outputs/
+    mode: directory
+reference_scope:
+  include: ["**/*.md"]
+""".lstrip(),
+    )
+
+    report = move_path.run_plan(
+        plan_path=plan,
+        project_root=tmp_path,
+        mode="check",
+        report_dir=tmp_path / ".engineering" / "local" / "move-path",
+    )
+
+    tokens = [s["token"] for s in report["suggestions"]]
+    assert "outputs" not in tokens
+    assert "outputs/run.json" in tokens
+    assert report["blocked"] == []
+
+
+def test_check_residue_flags_absolute_manifest_paths(tmp_path):
+    move_path = _load_move_path()
+    old_abs = (tmp_path / "claude-logs" / "snapshot" / "raw" / "session.jsonl").as_posix()
+    _write(tmp_path / "source-materials" / "claude-logs" / "snapshot" / "raw" / "session.jsonl", "{}\n")
+    _write(tmp_path / "source-materials" / "claude-logs" / "snapshot" / "manifest.json", f'{{"destination": "{old_abs}"}}\n')
+    plan = tmp_path / "moves.yml"
+    _write(
+        plan,
+        """
+moves:
+  - from: claude-logs/
+    to: source-materials/claude-logs/
+    mode: directory
+reference_scope:
+  include: ["**/*.json"]
+""".lstrip(),
+    )
+
+    report = move_path.run_plan(
+        plan_path=plan,
+        project_root=tmp_path,
+        mode="check",
+        report_dir=tmp_path / ".engineering" / "local" / "move-path",
+    )
+
+    assert any(
+        s["kind"] == "old_path_residue"
+        and s["token"] == old_abs
+        and s["target_after"].endswith("/source-materials/claude-logs/snapshot/raw/session.jsonl")
+        for s in report["suggestions"]
+    )
+    assert report["blocked"] == []
+
+
+def test_path_residue_audit_reports_assumptions_and_samples(tmp_path):
+    audit_path_residue = _load_audit_path_residue()
+    old_abs = (tmp_path / "claude-logs" / "snapshot" / "raw" / "session.jsonl").as_posix()
+    _write(tmp_path / "source-materials" / "claude-logs" / "snapshot" / "raw" / "session.jsonl", "{}\n")
+    _write(tmp_path / "source-materials" / "claude-logs" / "snapshot" / "manifest.json", f'{{"destination": "{old_abs}"}}\n')
+    plan = tmp_path / "moves.yml"
+    _write(
+        plan,
+        """
+moves:
+  - from: claude-logs/
+    to: source-materials/claude-logs/
+    mode: directory
+reference_scope:
+  include: ["**/*.json"]
+""".lstrip(),
+    )
+
+    payload = audit_path_residue.audit(plan_path=plan, project_root=tmp_path, max_samples=5)
+
+    assert payload["assumptions"]
+    assert payload["summary"]["findings"] == 1
+    assert payload["samples"][0]["old"] == old_abs
+    assert old_abs in payload["samples"][0]["excerpt"]
+    assert payload["spot_checks"][0]["old_exists"] is False
+    assert payload["spot_checks"][0]["new_exists"] is True
+
+    filtered = audit_path_residue.audit(
+        plan_path=plan,
+        project_root=tmp_path,
+        max_samples=5,
+        extra_excludes=["source-materials/**"],
+    )
+    assert filtered["summary"]["findings"] == 0
 
 
 def test_nested_backtick_path_can_be_repo_root_relative(tmp_path):
@@ -221,7 +339,7 @@ rewrite:
         plan_path=plan,
         project_root=tmp_path,
         mode="dry-run",
-        report_dir=tmp_path / ".move-path",
+        report_dir=tmp_path / ".engineering" / "local" / "move-path",
     )
 
     assert any(
@@ -267,7 +385,7 @@ safety:
             plan_path=plan,
             project_root=tmp_path,
             mode="apply",
-            report_dir=tmp_path / ".move-path",
+            report_dir=tmp_path / ".engineering" / "local" / "move-path",
         )
     except SystemExit as exc:
         assert "broken links" in str(exc)

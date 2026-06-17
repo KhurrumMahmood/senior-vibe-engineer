@@ -28,6 +28,10 @@ work to run.
   - **CONSTRUCT** (`plan-skill` now; future constructive pattern writers) —
     make write-time patterns explicit before drift exists, starting with
     adversarial skill planning and dogfood gates.
+  - **PROJECT STRUCTURE** (`organize-project-structure`) — redesign repo
+    information architecture under framework/tool/human constraints, then
+    hand deterministic move batches to `move-path` when the target topology is
+    clear.
   - **MAP** (`map-subsystem`, `map-product-workflow`) — durable inventory
     docs for a subsystem or user-visible workflow.
   - **SUSPECT** (`find-duplication`, `find-dormant`, `find-omnibus`,
