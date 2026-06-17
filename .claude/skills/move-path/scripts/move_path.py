@@ -342,9 +342,10 @@ def rewrite_target(
     if resolved is None:
         return None, None, None
     after = after_path_for(resolved, moves)
-    if after == resolved:
+    new_target = format_reference(resolved, after, referrer_after, original_target)
+    if after == resolved and new_target == original_target:
         return None, resolved, after
-    return format_reference(resolved, after, referrer_after, original_target), resolved, after
+    return new_target, resolved, after
 
 
 def normalize_inline_path_token(token: str, root: Path) -> str | None:

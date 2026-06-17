@@ -1,19 +1,22 @@
 ---
 name: organize-project-structure
-description: Design and execute a repo-wide folder-structure reorganization around intuitive top-level ownership, artifact lifecycle, reader navigation, and framework/tool constraints. Use when a project has historical top-level folders, source/input/output dumps, KB/spec/eval/runtime boundaries, or a proposed directory map that needs recursive folder summaries, ideal-vs-constrained topology review, move planning, dry-run validation, reference updates, and safe handoff to /move-path. Not for one-off file moves or Python package prefix clusters.
-argument-hint: "[--target .] [--apply]"
+description: Arrive at an ideal or near-ideal repo folder structure and organization approach under framework/tool/human constraints. Use when a project has historical top-level folders, source/input/output dumps, KB/spec/eval/runtime boundaries, or a proposed directory map that needs recursive folder summaries, ideal-vs-constrained topology review, boundary discovery, folder-worth judgment, deterministic move-plan options, dry-run validation, and a safe implementation approach. Not for one-off file moves or Python package prefix clusters.
+argument-hint: "[--target .] [--plan-only|--dry-run]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 user-invocable: true
 tier: system
-job: refactor
+job: plan
 best_for: |
   Whole-project information architecture: making a repo root easier to
   skim, demoting historical inputs/outputs from the top level, summarizing
   folder purpose/value at multiple abstraction levels, separating source
   material from doctrine, splitting idea lifecycle from specs, adapting an
   ideal topology to framework constraints, deciding where
-  evals/runtime/apps/scripts/tests belong, and producing a batched
-  /move-path plan with dry-run review before edits.
+  evals/runtime/apps/scripts/tests belong, and producing an
+  implementation approach. When safe, this may include a batched
+  /move-path plan with dry-run review; when not safe, the output is a
+  human/LLM decision brief with deterministic and judgment-based parts
+  separated.
 not_for: |
   Single file or folder rename/move with known destination (use
   /move-path directly). Python package topology drift such as prefix
@@ -29,9 +32,10 @@ framework: any
 
 You are the orchestrator for repo-wide folder-structure redesign. Your
 job is to infer the clearer mental model, adapt it to hard project
-constraints, preserve source material, write a deterministic move plan,
-run `/move-path --dry-run`, review uncertainty, then apply only when the
-dry run matches the intended topology.
+constraints, preserve source material, and arrive at a near-ideal target
+topology plus an implementation approach. Use deterministic movement when
+the move table and reference behavior are clear; otherwise separate what
+can be automated from what needs human/LLM judgment.
 
 Read `_common/structural-design-principles.md` before judging the target
 tree. The floor is framework/tool correctness; above the floor, optimize
@@ -43,12 +47,14 @@ Separate design judgment from mechanical movement:
 
 ```text
 inventory -> folder value summaries -> repeated abstraction -> ideal topology
--> constraint overlay -> target topology -> move-path plan -> dry-run report
--> apply/check -> update signposts
+-> constraint overlay -> target topology -> implementation approach
+-> optional move-path plan/dry-run -> decision -> apply/check if chosen
 ```
 
 Do not hand-edit broad references when `/move-path` can resolve them.
-Do not let an LLM do unstructured path rewrites.
+Do not let an LLM do unstructured path rewrites. Do not apply a move plan
+just because the skill can write one; applying is a decision after the
+dry-run report and constraints are reviewed.
 
 ## Classification Pass
 
@@ -125,7 +131,7 @@ target topology explainable instead of vibes-based.
 ## Constraint Overlay
 
 After proposing the ideal logical topology, apply constraints before
-writing the move plan:
+solidifying the target topology:
 
 - Framework/runtime conventions: Next.js `app/` or `pages/`, Python
   package/import roots, Django app layout, build config discovery, test
@@ -138,8 +144,9 @@ writing the move plan:
 
 Constraints do not erase the ideal model; they explain where the final
 target topology intentionally bends. If a constraint is merely manual
-reference-update cost, prefer improving `/move-path` or adding an
-adapter over keeping an unintuitive layout.
+reference-update cost, consider improving `/move-path` or adding an
+adapter over keeping an unintuitive layout, but do not pretend all
+constraints are automatable.
 
 ## Target Tree Rules
 
@@ -159,9 +166,11 @@ adapter over keeping an unintuitive layout.
 
 ## Move Planning
 
-Use `/move-path` for execution. Write one YAML plan for the conceptual
-batch, with `exact_text_paths: update` only after reviewing that plain
-path prose should move mechanically too.
+Use `/move-path` for the deterministic part when the move table is clear.
+Write one YAML plan for the conceptual batch, with `exact_text_paths:
+update` only after reviewing that plain path prose should move
+mechanically too. If the uncertainty bucket is large, stop at a dry-run
+report and a decision brief.
 
 Recommended reference scope for docs-heavy repos:
 
@@ -182,8 +191,8 @@ reference_scope:
     - "__pycache__/**"
 ```
 
-Use one batch for one mental-model migration. Split only when two move
-groups have different reviewers or rollback stories.
+Use one batch for one mental-model migration. Split when move groups have
+different reviewers, rollback stories, or confidence levels.
 
 ## Dry-Run Review
 
@@ -200,7 +209,10 @@ After `/move-path --dry-run`, inspect:
 
 Before final handoff:
 
-- run `/move-path --check`;
+- state the ideal topology, the constrained target topology, and why
+  they differ;
+- separate deterministic moves from judgment/manual follow-up;
+- if moves were applied, run `/move-path --check`;
 - run project-native link/test checks if they exist;
 - report any historical references intentionally left unchanged;
 - do not update ecosystem or project state snapshots just to silence

@@ -98,12 +98,12 @@ shapes:
 
   - id: project-structure
     title: Project Structure
-    summary: Redesign repo-wide folder organization around intuitive top-level ownership and artifact lifecycle.
+    summary: Design a near-ideal repo folder topology under framework/tool/human constraints.
     first_next: "/organize-project-structure"
     sequence:
-      - "/organize-project-structure — inventory top-level folders, classify artifact lifecycles, and propose target topology"
-      - "write a batched /move-path plan for the accepted topology"
-      - "/move-path --plan moves.yml --dry-run, review uncertainty, then apply/check"
+      - "/organize-project-structure — summarize folder purpose/value, abstract boundaries, and propose ideal then constrained topology"
+      - "separate deterministic moves from judgment/manual follow-up"
+      - "optionally write a /move-path plan and dry-run it; apply/check only after the report is accepted"
     stop: "Stop if the request already names a single source/destination path — use Path Move directly."
     cues:
       strong: [project-structure, repo-structure, repository-structure, top-level, information-architecture]

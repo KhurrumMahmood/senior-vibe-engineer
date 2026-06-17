@@ -64,6 +64,40 @@ rewrite:
     assert report["blocked"] == []
 
 
+def test_moved_file_rewrites_links_to_unmoved_targets(tmp_path):
+    move_path = _load_move_path()
+    _write(tmp_path / "kb" / "page.md", "[Synthesis](synthesis/thing.md)\n")
+    _write(tmp_path / "kb" / "synthesis" / "thing.md", "# Thing\n")
+    plan = tmp_path / "moves.yml"
+    _write(
+        plan,
+        """
+moves:
+  - from: kb/page.md
+    to: specs/product/page.md
+reference_scope:
+  include: ["**/*.md"]
+rewrite:
+  markdown_links: update
+""".lstrip(),
+    )
+
+    report = move_path.run_plan(
+        plan_path=plan,
+        project_root=tmp_path,
+        mode="dry-run",
+        report_dir=tmp_path / ".move-path",
+    )
+
+    assert any(
+        r["file_before"] == "kb/page.md"
+        and r["old"] == "synthesis/thing.md"
+        and r["new"] == "../../kb/synthesis/thing.md"
+        for r in report["auto_rewrites"]
+    )
+    assert report["summary"]["post_broken_links"] == 0
+
+
 def test_apply_moves_files_and_updates_links(tmp_path):
     move_path = _load_move_path()
     _write(tmp_path / "docs" / "index.md", "[Old](old.md)\n")
