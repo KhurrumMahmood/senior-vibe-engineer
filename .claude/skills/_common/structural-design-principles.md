@@ -165,6 +165,13 @@ an ongoing test, not a one-time top-level redesign.
    ADR 0006), but the principle stands at any depth: prefix sprawl
    is a folder asking to be born.
 
+   Generalize this beyond literal prefixes: when the same name is acting
+   as a tag across several siblings, and those siblings naturally change
+   together or answer the same reader question, prefer a real container.
+   Four renaming-related skills usually belong under a `renaming/`
+   boundary unless a discovery mechanism or framework requires a flat
+   registry.
+
 These rules compose. A purpose-aligned top level (rule 1) is
 depth-zero. A folder for a prefix cluster (rule 5) only makes sense
 if it narrows scope (rule 2). A folder's README (rule 4) explains

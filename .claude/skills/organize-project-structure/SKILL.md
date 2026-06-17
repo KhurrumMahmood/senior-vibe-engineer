@@ -105,11 +105,18 @@ two or more of these are true:
 - it owns a distinct value-producing workflow or artifact type;
 - it has enough siblings/subparts that flat filenames would need a fake
   prefix;
+- its name is being used as a tag on multiple siblings instead of as a
+  container, e.g. several rename/move skills that naturally read as a
+  `renaming/` cluster;
 - it needs its own README/index to explain what belongs there and what
   does not.
 
 Pairs can stay flat when the boundary is weak. A small but distinct
 boundary can still earn a folder when the navigation key is durable.
+When possible, prefer colocating the cluster under a real folder over
+sprinkling a shared tag through filenames or sibling names. Keep the tag
+flat only when a framework, discovery mechanism, or strong reader
+preference requires it.
 
 Keep the intermediate summaries short enough to review. They are not
 deliverables unless the user asks; they are the ladder that makes the
