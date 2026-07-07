@@ -32,7 +32,7 @@ not_for: |
   pattern fixes the team has decided NOT to enforce broadly (just
   fix in place).
 language: python
-framework: django
+framework: any
 ---
 
 # /prevent-regression

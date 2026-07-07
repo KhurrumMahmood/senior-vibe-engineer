@@ -27,6 +27,18 @@ import textwrap
 from collections import defaultdict
 from pathlib import Path
 
+# Route Python parsing through the shared per-language adapter registry
+# (ADR 0032). The inventory/call-graph analysis is Python-specific, so
+# this stays a Python-only consumer: ask the registry for the file's
+# adapter and only proceed when it exposes the raw `ast.Module`
+# (CAP_PYTHON_AST), keeping the existing AST walk. Wire the repo
+# `scripts/` dir onto sys.path so the package imports standalone.
+_SCRIPTS_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
+
 
 # ============================================================
 # SCHEMAS — Communication contracts between phases and agents
@@ -438,14 +450,24 @@ def cmd_collect(args):
     roots, focus_roots = _scan_roots(args)
 
     for filepath in _iter_py_files(roots):
+        # Route through the shared adapter registry; this analysis needs
+        # the raw Python AST, so skip any file whose adapter can't supply
+        # it (non-Python suffix, or no adapter) rather than crash.
+        adapter = get_adapter(filepath)
+        if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+            continue
         try:
             with open(filepath, "r", encoding="utf-8") as f:
                 source = f.read()
                 source_lines = source.splitlines(keepends=True)
-            tree = ast.parse(source)
-        except (SyntaxError, UnicodeDecodeError) as e:
+        except UnicodeDecodeError as e:
             parse_errors += 1
             print(f"WARN: {filepath}: {e}", file=sys.stderr)
+            continue
+        tree = adapter.parse(source)
+        if tree is None:
+            parse_errors += 1
+            print(f"WARN: {filepath}: SyntaxError", file=sys.stderr)
             continue
 
         files_scanned += 1

@@ -95,9 +95,10 @@ Write toward these gates from Stage 0.
 ## Scope
 
 - **Project root:** the working directory.
-- **Python:** `.venv/bin/python` for the helper script (it AST-parses
-  Python source and walks the project to build the import graph;
-  stdlib-only — no Django imports needed).
+- **Python:** `.venv/bin/python` for the helper script (it routes
+  Python parsing through the shared per-language adapter registry
+  (ADR 0032; Python-only here) and walks the project to build the
+  import graph; stdlib-only — no Django imports needed).
 - **Output:** `reports/propose-folder-reorganization/<target-slug>/`.
   Never touches any other file.
 - **Read-only.** No file moves, no edits, no Edit tool. The

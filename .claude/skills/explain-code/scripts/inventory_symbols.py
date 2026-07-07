@@ -69,6 +69,22 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# Route Python parsing through the shared per-language adapter registry
+# (ADR 0032). This skill's ranking is Python-AST-specific (branch counts,
+# docstrings, `__all__`, module-level constants, `__init__` handling) —
+# detail the language-neutral Symbol record cannot carry — so it stays a
+# Python-only consumer: it asks the registry for the file's adapter and
+# only proceeds when that adapter exposes the raw `ast.Module`
+# (CAP_PYTHON_AST), keeping the existing AST walk. Wire the repo
+# `scripts/` dir onto sys.path so the package imports when this skill
+# script runs standalone.
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
+
 
 BRANCH_NODE_TYPES: tuple[type[ast.AST], ...] = (
     ast.If,
@@ -142,16 +158,22 @@ def _inventory_file(path: Path, repo_root: Path) -> tuple[list[dict[str, Any]], 
     `total_symbol_count` counts every top-level declaration (private + public)
     for the summary stats. Public methods on public classes also count.
     """
+    # Route through the shared adapter registry; this analysis needs the
+    # raw Python AST, so skip any file whose adapter can't supply it
+    # (non-Python suffix, or no adapter) rather than crash.
+    adapter = get_adapter(path)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        return [], 0
+
     try:
         source = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
         print(f"warn: cannot read {path}: {exc}", file=sys.stderr)
         return [], 0
 
-    try:
-        tree = ast.parse(source)
-    except SyntaxError as exc:
-        print(f"warn: cannot parse {path}: {exc}", file=sys.stderr)
+    tree = adapter.parse(source)
+    if tree is None:
+        print(f"warn: cannot parse {path}", file=sys.stderr)
         return [], 0
 
     dunder_all = _dunder_all(tree)

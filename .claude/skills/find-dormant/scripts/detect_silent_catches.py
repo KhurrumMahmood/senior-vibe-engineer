@@ -36,6 +36,20 @@ import json
 import sys
 from pathlib import Path
 
+# Route Python parsing through the shared per-language adapter registry
+# (ADR 0032). The silent-catch analysis is Python-specific (ExceptHandler
+# shapes, logger-call recognition), so this stays a Python-only consumer:
+# ask the registry for the file's adapter and only proceed when it exposes
+# the raw `ast.Module` (CAP_PYTHON_AST), keeping the existing AST walk.
+# Wire the repo `scripts/` dir onto sys.path so the package imports when
+# this skill script runs standalone.
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
+
 
 _DEFAULT_SKIP_DIRS: frozenset[str] = frozenset({
     "migrations", "__pycache__", "staticfiles", "node_modules",
@@ -124,9 +138,18 @@ def _is_logger_call(stmt: ast.stmt) -> bool:
 
 
 def _scan_file(filepath: Path, rel: str) -> list[dict[str, object]]:
+    # Route through the shared adapter registry; this analysis needs the
+    # raw Python AST, so skip any file whose adapter can't supply it
+    # (non-Python suffix, or no adapter) rather than crash.
+    adapter = get_adapter(filepath)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        return []
     try:
-        tree = ast.parse(filepath.read_text(encoding="utf-8"))
-    except (OSError, SyntaxError, UnicodeDecodeError):
+        source = filepath.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
+    tree = adapter.parse(source)
+    if tree is None:
         return []
 
     out: list[dict[str, object]] = []

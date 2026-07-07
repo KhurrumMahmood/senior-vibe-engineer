@@ -118,7 +118,9 @@ These live in `.claude/docs/canonical-patterns.md` as documentation;
   match test scope to the change.
 - **Frontmatter**: Validate with
   `.venv/bin/python scripts/skill_meta.py lint`.
-- **Templates**: Never auto-format Django HTML (breaks `{% %}` tags).
+- **Templates**: Never auto-format templates that embed agent syntax —
+  any engine with embedded tags (Django `{% %}`, Jinja, Liquid, etc.) —
+  because formatters break the tag parser.
 - **Symbolic names, never raw line numbers** in comments, docstrings,
   or report prose.
 

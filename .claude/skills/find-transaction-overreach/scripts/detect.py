@@ -68,6 +68,16 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# Route Python parsing through the shared per-language adapter registry so
+# this detector capability-gates on Python and gracefully skips other
+# languages instead of crashing on them. The analysis below stays exact
+# Python-AST / Django-specific (labels python/django are unchanged).
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
+
 
 # -- Slow-op classifiers -----------------------------------------------------
 
@@ -338,13 +348,15 @@ def _atomic_blocks(
 def _scan_file(
     filepath: Path, rel: str,
 ) -> list[dict[str, Any]]:
+    adapter = get_adapter(filepath)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        return []
     try:
         src = filepath.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return []
-    try:
-        tree = ast.parse(src, filename=str(filepath))
-    except SyntaxError:
+    tree = adapter.parse(src)
+    if tree is None:
         return []
     src_lines = src.splitlines()
     blocks = _atomic_blocks(tree)

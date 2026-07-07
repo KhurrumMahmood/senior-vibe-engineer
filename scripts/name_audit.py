@@ -31,6 +31,19 @@ import pathlib
 import sys
 from collections import defaultdict
 
+# Route Python parsing through the shared per-language adapter registry
+# (ADR 0032). The name-collision / signature analysis is Python-specific
+# (param-list canonicalization, @property/@staticmethod handling), so this
+# stays a Python-only consumer: ask the registry for the file's adapter
+# and only proceed when it exposes the raw `ast.Module` (CAP_PYTHON_AST),
+# keeping the existing AST walk. Wire the repo `scripts/` dir onto
+# sys.path so the package imports standalone.
+_SCRIPTS_DIR = str(pathlib.Path(__file__).resolve().parent)
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
+
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SKIP_NAME_PREFIXES = ("tests_", "test_")
@@ -114,10 +127,16 @@ def collect(targets: list[pathlib.Path]):
         if not target.exists():
             continue
         for path in iter_py_files(target):
-            try:
-                tree = ast.parse(path.read_text(), filename=str(path))
-            except SyntaxError as e:
-                print(f"# parse fail: {path}: {e}", file=sys.stderr)
+            # Route through the shared adapter registry; this analysis
+            # needs the raw Python AST, so skip any file whose adapter
+            # can't supply it (non-Python suffix, or no adapter) rather
+            # than crash.
+            adapter = get_adapter(path)
+            if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+                continue
+            tree = adapter.parse(path.read_text())
+            if tree is None:
+                print(f"# parse fail: {path}: SyntaxError", file=sys.stderr)
                 continue
             # Top-level defs
             for node in tree.body:

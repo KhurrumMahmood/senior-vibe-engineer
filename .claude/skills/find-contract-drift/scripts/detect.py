@@ -14,6 +14,15 @@ COMMON_DIR = PROJECT_ROOT / ".claude" / "skills" / "_common"
 if str(COMMON_DIR) not in sys.path:
     sys.path.insert(0, str(COMMON_DIR))
 
+# Route the Python parse path (the registry-key extraction in
+# ``_literal_dict_keys``) through the shared per-language adapter so it
+# capability-gates on Python and gracefully skips non-Python inputs
+# instead of crashing. The regex/template scanning paths are untouched.
+_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
+
 from product_health import (  # noqa: E402
     expand_paths,
     finding,
@@ -106,9 +115,11 @@ def _namespace_exports(js_paths: list[Path]) -> dict[str, set[str]]:
 def _literal_dict_keys(path: Path, attr_names: set[str]) -> set[str]:
     if not path.exists():
         return set()
-    try:
-        tree = ast.parse(read_text(path), filename=str(path))
-    except SyntaxError:
+    adapter = get_adapter(path)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        return set()
+    tree = adapter.parse(read_text(path))
+    if tree is None:
         return set()
     keys: set[str] = set()
     for node in ast.walk(tree):

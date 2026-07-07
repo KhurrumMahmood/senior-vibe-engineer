@@ -92,6 +92,14 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+# Route Python parsing through the shared per-language adapter registry
+# (ADR 0032) so this collector capability-gates on Python and gracefully
+# skips non-Python / unparseable inputs instead of crashing.
+_SCRIPTS_DIR = str(Path(__file__).resolve().parents[4] / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
+
 STATE_FIELD_NAMES = frozenset({"status", "phase", "state"})
 TIME_LOOKUP_SUFFIXES = (
     "__gt", "__gte", "__lt", "__lte", "__range", "__isnull",
@@ -319,9 +327,11 @@ def _scan_file_for_pattern(
         src = file_path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return []
-    try:
-        tree = ast.parse(src, filename=str(file_path))
-    except SyntaxError:
+    adapter = get_adapter(file_path)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        return []
+    tree = adapter.parse(src)
+    if tree is None:
         return []
     src_lines = src.splitlines()
     out: list[dict[str, Any]] = []
@@ -380,9 +390,11 @@ def _find_model_class(
         src = file_path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
-    try:
-        tree = ast.parse(src, filename=str(file_path))
-    except SyntaxError:
+    adapter = get_adapter(file_path)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        return None
+    tree = adapter.parse(src)
+    if tree is None:
         return None
 
     for node in ast.walk(tree):

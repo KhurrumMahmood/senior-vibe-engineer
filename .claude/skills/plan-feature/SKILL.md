@@ -27,8 +27,8 @@ delegate_from: |
   /which-skill recommends /plan-feature when task description matches
   feature-tier signals (single workflow, cross-file, "add" / "expose"
   / "wire up").
-language: python
-framework: django
+language: any
+framework: any
 scout_model: careful
 ---
 

@@ -23,6 +23,18 @@ COMMON_DIR = PROJECT_ROOT / ".claude" / "skills" / "_common"
 if str(COMMON_DIR) not in sys.path:
     sys.path.insert(0, str(COMMON_DIR))
 
+# Route Python parsing through the shared per-language adapter registry
+# (ADR 0032). The complexity analysis is Python/Django-specific (nested
+# loops, ORM-in-loop, branch scoring), so this stays a Python-only
+# consumer: ask the registry for the file's adapter and only proceed when
+# it exposes the raw `ast.Module` (CAP_PYTHON_AST), keeping the existing
+# visitor. Wire the repo `scripts/` dir onto sys.path so the package
+# imports when this skill script runs standalone.
+_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
 from product_health import finding, normalize_record  # noqa: E402
 
 
@@ -426,10 +438,18 @@ def detect(
     project_root = project_root.resolve()
     records: list[dict[str, Any]] = []
     for path in _iter_python_files(project_root, paths, include_tests):
+        # Route through the shared adapter registry; this analysis needs
+        # the raw Python AST, so skip any file whose adapter can't supply
+        # it (non-Python suffix, or no adapter) rather than crash.
+        adapter = get_adapter(path)
+        if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+            continue
         try:
             text = path.read_text(encoding="utf-8")
-            tree = ast.parse(text, filename=str(path))
-        except (OSError, UnicodeDecodeError, SyntaxError):
+        except (OSError, UnicodeDecodeError):
+            continue
+        tree = adapter.parse(text)
+        if tree is None:
             continue
         visitor = ComplexityVisitor(path, project_root)
         visitor.visit(tree)

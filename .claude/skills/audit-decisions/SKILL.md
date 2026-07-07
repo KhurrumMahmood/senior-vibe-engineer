@@ -27,8 +27,8 @@ delegate_from: |
   decision registry healthy", "are any ADRs stale", "did we orphan any
   # decision: refs". /triage-debt's decision-drift signal also points
   here for full context.
-language: python
-framework: django
+language: any
+framework: any
 ---
 
 # /audit-decisions

@@ -24,6 +24,20 @@ import json
 import os
 import sys
 from collections import defaultdict
+from pathlib import Path
+
+# Route Python parsing through the shared per-language adapter registry
+# (ADR 0032). The duplication analysis is Python-specific (request.GET
+# AST shapes, `_safe_*`/`_call_llm` clone detection, signature
+# fingerprints), so this stays a Python-only consumer: ask the registry
+# for the file's adapter and only proceed when it exposes the raw
+# `ast.Module` (CAP_PYTHON_AST), keeping the existing AST walks. Wire the
+# repo `scripts/` dir onto sys.path so the package imports standalone.
+_SCRIPTS_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
 
 
 # Host-declared canonical home(s) for `_safe_*` helpers, supplied via
@@ -57,12 +71,21 @@ def _iter_py_files(root):
 
 
 def _parse(path):
+    # Route through the shared adapter registry; this analysis needs the
+    # raw Python AST, so skip any file whose adapter can't supply it
+    # (non-Python suffix, or no adapter) rather than crash.
+    adapter = get_adapter(path)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        return None, None
     try:
         with open(path, "r", encoding="utf-8") as fh:
             src = fh.read()
-        return ast.parse(src), src
-    except (SyntaxError, UnicodeDecodeError):
+    except UnicodeDecodeError:
         return None, None
+    tree = adapter.parse(src)
+    if tree is None:
+        return None, None
+    return tree, src
 
 
 def _is_request_attr(node):

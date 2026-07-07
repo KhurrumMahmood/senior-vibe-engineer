@@ -25,6 +25,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import scope as _scope  # noqa: E402
 import workflows  # noqa: E402
 
+# Route Python parsing through the shared per-language adapter registry
+# (ADR 0032) so the route / surface / provider scanners capability-gate on
+# Python and gracefully skip non-Python / unparseable inputs. This module
+# lives in `_common`; wire the repo `scripts/` dir for the adapter import.
+_SCRIPTS_DIR = str(Path(__file__).resolve().parents[3] / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
+
 SKIP_DIRS = {
     ".git",
     ".venv",
@@ -398,9 +407,11 @@ def extract_routes(
         scanned.add(key)
         if not path.exists():
             return
-        try:
-            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        except SyntaxError:
+        adapter = get_adapter(path)
+        if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+            return
+        tree = adapter.parse(path.read_text(encoding="utf-8"))
+        if tree is None:
             return
         imports = _urlpatterns_imports(tree, project_root)
         for node in ast.walk(tree):
@@ -521,10 +532,15 @@ def extract_python_surface(project_root: Path, paths: list[Path] | None = None) 
     for path in paths:
         if not path.exists():
             continue
+        adapter = get_adapter(path)
+        if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+            continue
         try:
             source = path.read_text(encoding="utf-8")
-            tree = ast.parse(source, filename=str(path))
-        except (OSError, SyntaxError):
+        except OSError:
+            continue
+        tree = adapter.parse(source)
+        if tree is None:
             continue
         visitor = _PythonSurfaceVisitor(path, project_root, source.splitlines())
         visitor.visit(tree)
@@ -655,9 +671,15 @@ def status_provider_names(project_root: Path, paths: list[Path] | None = None) -
         paths = _scope.iter_paths(project_root, _scope.Scope(), extensions=frozenset({".py"}))
     providers: list[dict[str, Any]] = []
     for path in paths:
+        adapter = get_adapter(path)
+        if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+            continue
         try:
-            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        except (OSError, SyntaxError):
+            source = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        tree = adapter.parse(source)
+        if tree is None:
             continue
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):

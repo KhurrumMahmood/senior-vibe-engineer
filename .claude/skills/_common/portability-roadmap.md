@@ -112,6 +112,47 @@ when ported.
 project asking for a "split this fat module" skill should not be offered
 a Django-bound `/refactor-subsystem` clone.
 
+**Label-flip pass (2026-06-17).** A coupling audit found many skills
+carried `framework: django` / `language: python` whose *concept* encodes
+no host-stack assumption — the label was host-origin bias, and it was
+wrongly *withholding* portable skills from non-Django projects via
+`/which-skill`. The seam's rule (per `skill-frontmatter.md`) is that the
+fields declare the assumptions the skill *encodes*, not the language its
+helper scripts are written in. So:
+
+- Pure-judgment / planning / decision skills that only read ADRs, plans,
+  patterns, or reason about scope (`architecture-fit`, `audit-decisions`,
+  `impact-feature`, `plan-feature`, `plan-spec`, `scope-feature`,
+  `triage-debt`, `teach-pattern`) → `language: any, framework: any`.
+- `prevent-regression` → `framework: any` but kept `language: python`
+  (its guard-generation path emits Python lint rules).
+- `find-omnibus` → `language: any` because it now genuinely processes
+  JS/TS through the shared language-adapter seam (see below).
+- Detectors whose analysis is genuinely Python-AST-bound (the ORM /
+  layer / state / FK detectors) **kept** `language: python` even after
+  migrating onto the adapter — routing through the seam standardizes
+  parsing but does not make their analysis language-neutral. The honest
+  label tracks analysis coverage, not plumbing.
+- `map-product-workflow` / `extract-workflow-registry` **kept**
+  `framework: django` — they parse Django `ROOT_URLCONF` / `urlpatterns`
+  directly, which is a real Django assumption.
+
+## The language-adapter seam (landed 2026-06-17)
+
+Roadmap trigger #2 ("a skill needs a clean `_lib/` import path to express
+genuine portability") effectively fired: the analyzer-adapter pattern of
+ADR 0032 was extracted from inside `find-omnibus` into the first
+cross-cutting shared `_lib` module, `scripts/_lib/lang_adapter/`, and ~21
+AST consumers were migrated onto it. See ADR 0032 → *Implementation
+status* for the full inventory and the deliberate non-migration boundary.
+
+This is a partial, opportunistic landing — not the full directory reorg.
+One wart it introduces, to be cleaned up when the reorg proper happens:
+skill scripts reach `scripts/_lib/lang_adapter` by inserting the repo
+`scripts/` dir on `sys.path`, a cross-tree import that the eventual
+`_lib/{core,language,framework,repo}` layout will replace with a clean
+import path.
+
 ## When the reorg actually happens
 
 Trigger conditions, any of which is enough:

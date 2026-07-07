@@ -94,6 +94,14 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
 import scope as _scope  # noqa: E402
 
+# Route Python parsing through the shared per-language adapter registry
+# (ADR 0032) so this collector capability-gates on Python and gracefully
+# skips non-Python / unparseable inputs instead of crashing.
+_SCRIPTS_DIR = str(Path(__file__).resolve().parents[4] / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
+
 STATE_FIELD_CALLS = frozenset({"CharField", "TextField"})
 
 _DEFAULT_SKIP_DIRS: frozenset[str] = frozenset({
@@ -344,9 +352,11 @@ def _find_field_declaration(
         src = file_path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
-    try:
-        tree = ast.parse(src, filename=str(file_path))
-    except SyntaxError:
+    adapter = get_adapter(file_path)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        return None
+    tree = adapter.parse(src)
+    if tree is None:
         return None
 
     found: dict[str, Any] | None = None
@@ -514,9 +524,11 @@ def _scan_comparisons_and_assignments(
             src = file_path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
-        try:
-            tree = ast.parse(src, filename=str(file_path))
-        except SyntaxError:
+        adapter = get_adapter(file_path)
+        if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+            continue
+        tree = adapter.parse(src)
+        if tree is None:
             continue
         try:
             rel = str(file_path.relative_to(project_root))

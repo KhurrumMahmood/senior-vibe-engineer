@@ -25,6 +25,33 @@ import json
 import sys
 from pathlib import Path
 
+# Route Python parsing through the shared per-language adapter registry
+# (ADR 0032). Reorganization analysis is Python/Django-specific — dotted
+# module-path resolution, relative-import rewrites, framework-convention
+# directories — and the cluster's public-symbol surface includes
+# module-level constants and annotated assignments the language-neutral
+# Symbol record doesn't carry, so this stays a Python-only consumer: it
+# asks the registry for the file's adapter and only proceeds when that
+# adapter exposes the raw `ast.Module` (CAP_PYTHON_AST), keeping the
+# existing AST walk. Wire the repo `scripts/` dir onto sys.path so the
+# package imports when this skill script runs standalone.
+#
+# This script is named `inspect.py`. When run as `__main__`, its own
+# directory is `sys.path[0]`, which would shadow the stdlib `inspect`
+# module that the adapter package's import chain pulls in (via
+# dataclasses / abc) and cause a circular import. Drop the script's own
+# directory from sys.path before importing the adapter so stdlib
+# `inspect` resolves correctly. The script imports no sibling modules,
+# so removing its own directory is safe.
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+_SELF_DIR = str(Path(__file__).resolve().parent)
+sys.path[:] = [p for p in sys.path if Path(p or ".").resolve() != Path(_SELF_DIR)]
+_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
+
 DEFAULT_MIN_CLUSTER_SIZE = 3
 
 DEFAULT_EXCLUDE_DIR_NAMES = {
@@ -130,13 +157,18 @@ def _public_symbols(path: Path) -> list[str]:
     assignments are included (they are often constants the cluster
     re-exports).
     """
+    # Route through the shared adapter registry; this analysis needs the
+    # raw Python AST, so skip any file whose adapter can't supply it
+    # (non-Python suffix, or no adapter) rather than crash.
+    adapter = get_adapter(path)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        return []
     try:
         source = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return []
-    try:
-        tree = ast.parse(source, filename=str(path))
-    except SyntaxError:
+    tree = adapter.parse(source)
+    if tree is None:
         return []
 
     symbols: list[str] = []

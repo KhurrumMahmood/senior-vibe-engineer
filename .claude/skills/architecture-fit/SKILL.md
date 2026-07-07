@@ -25,8 +25,8 @@ escalate_to: |
 delegate_from: |
   /impact-feature recommends /architecture-fit once §3-4 are filled
   and status is impacted.
-language: python
-framework: django
+language: any
+framework: any
 ---
 
 # /architecture-fit

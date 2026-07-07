@@ -26,8 +26,8 @@ delegate_from: |
   /which-skill recommends /scope-feature when the task description
   matches System-tier signals (cross-subsystem, "new ...", "merge X
   and Y", "extract Z").
-language: python
-framework: django
+language: any
+framework: any
 ---
 
 # /scope-feature

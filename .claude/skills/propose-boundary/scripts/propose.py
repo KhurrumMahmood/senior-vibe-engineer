@@ -32,6 +32,22 @@ from dataclasses import dataclass, asdict
 from itertools import combinations
 from pathlib import Path
 
+# Route Python parsing through the shared per-language adapter registry
+# (ADR 0032). Boundary-seam analysis is Python-AST-specific — call-edge
+# graph, import direction, module-level constants, a public/private/
+# constant Symbol shape the language-neutral record doesn't carry — so
+# this stays a Python-only consumer: it asks the registry for the file's
+# adapter and only proceeds when that adapter exposes the raw
+# `ast.Module` (CAP_PYTHON_AST), keeping the existing AST walks. Wire the
+# repo `scripts/` dir onto sys.path so the package imports when this
+# skill script runs standalone.
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
+
 DEFAULT_CO_EDIT_DAYS = 90
 DEFAULT_MIN_CLUSTER_SIZE = 3
 DEFAULT_SEAM_THRESHOLD = 0.4
@@ -122,13 +138,18 @@ def _public_name(name: str) -> bool:
 
 
 def _extract_symbols(file: Path, project_root: Path) -> list[Symbol]:
+    # Route through the shared adapter registry; this analysis needs the
+    # raw Python AST, so skip any file whose adapter can't supply it
+    # (non-Python suffix, or no adapter) rather than crash.
+    adapter = get_adapter(file)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        return []
     try:
         source = file.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return []
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
+    tree = adapter.parse(source)
+    if tree is None:
         return []
     rel = str(file.relative_to(project_root))
     symbols: list[Symbol] = []
@@ -187,13 +208,17 @@ def _extract_skill_md_phases(skill_md: Path, project_root: Path) -> list[Symbol]
 
 def _extract_call_edges(file: Path, project_root: Path, symbol_names: set[str]) -> list[tuple[str, str]]:
     """Return (caller_name, callee_name) for calls inside file whose callee resolves to a symbol in scope."""
+    # Route through the shared adapter registry; the call-edge walk needs
+    # the raw Python AST, so skip any file whose adapter can't supply it.
+    adapter = get_adapter(file)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        return []
     try:
         source = file.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return []
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
+    tree = adapter.parse(source)
+    if tree is None:
         return []
     edges: list[tuple[str, str]] = []
     for node in ast.walk(tree):

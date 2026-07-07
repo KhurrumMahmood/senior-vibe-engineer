@@ -26,8 +26,8 @@ escalate_to: |
 delegate_from: |
   /which-skill recommends /triage-debt for vague prompts like "what
   should I clean up next" or "what's the worst tech debt right now".
-language: python
-framework: django
+language: any
+framework: any
 ---
 
 # /triage-debt

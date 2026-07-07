@@ -13,6 +13,14 @@ COMMON_DIR = PROJECT_ROOT / ".claude" / "skills" / "_common"
 if str(COMMON_DIR) not in sys.path:
     sys.path.insert(0, str(COMMON_DIR))
 
+# Route the Python AST scan through the shared per-language adapter
+# registry (ADR 0032) so it capability-gates on Python; the JavaScript
+# regex scan below is unaffected.
+_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
 from product_health import expand_paths, finding, line_for_offset, read_text  # noqa: E402
 from product_topology import write_jsonl  # noqa: E402
 
@@ -142,9 +150,11 @@ class _DispatchVisitor(ast.NodeVisitor):
 
 def _scan_python(path: Path, project_root: Path) -> list[dict[str, object]]:
     text = read_text(path)
-    try:
-        tree = ast.parse(text, filename=str(path))
-    except SyntaxError:
+    adapter = get_adapter(path)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        return []
+    tree = adapter.parse(text)
+    if tree is None:
         return []
     visitor = _DispatchVisitor(text)
     visitor.visit(tree)

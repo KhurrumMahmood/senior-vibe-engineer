@@ -3,7 +3,9 @@
 
 Language-general by architecture (ADR 0032): the clustering, scoring and
 reporting below are language-neutral; per-language **symbol extraction
-adapters** (keyed by file extension) feed them top-level symbols.
+adapters** (keyed by file extension) feed them top-level symbols. Those
+adapters now live in the shared ``_lib.lang_adapter`` package and are
+selected here via ``get_adapter(path)``:
 
 - ``python-ast`` adapter: full ``ast`` walk (exact), including god-class
   method expansion.
@@ -63,12 +65,26 @@ each candidate as ``confirmed_omnibus``, ``facets_not_domains``, or
 from __future__ import annotations
 
 import argparse
-import ast
 import fnmatch
 import json
 import re
 import sys
 from pathlib import Path
+
+# Per-language symbol extraction now lives in the shared adapter package
+# (ADR 0032's seam, extracted from this file). Wire the repo ``scripts/``
+# dir onto sys.path so the package imports when this skill script runs
+# standalone, then route by file suffix via ``get_adapter``.
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _lib.lang_adapter import Symbol, get_adapter, iter_adapters  # noqa: E402
+
+# Languages the registered adapters cover, derived from the shared seam —
+# drives the ``--language`` CLI filter and the extension set to walk.
+_LANGUAGES: tuple[str, ...] = tuple(sorted({a.language for a in iter_adapters()}))
 
 
 _DEFAULT_SKIP_DIRS: frozenset[str] = frozenset({
@@ -191,14 +207,6 @@ def _cluster_key(name: str) -> str:
     return "_unclassified"
 
 
-def _node_loc(node: ast.AST) -> int:
-    start = getattr(node, "lineno", None)
-    end = getattr(node, "end_lineno", None) or start
-    if start is None or end is None:
-        return 0
-    return max(1, end - start + 1)
-
-
 def _risk_signals(rel: str, source: str, symbol_names: list[str]) -> tuple[int, list[str]]:
     haystack = "\n".join([rel, *symbol_names, source]).lower()
     signals = [
@@ -209,121 +217,27 @@ def _risk_signals(rel: str, source: str, symbol_names: list[str]) -> tuple[int, 
     return len(signals), signals
 
 
-def _python_symbols(source: str) -> list[tuple[str, str, int]] | None:
-    """Python adapter: exact ``ast`` extraction.
-
-    Returns ``(symbol_name, cluster_name, loc)`` triples — cluster_name
-    is the name fed to head-noun extraction (method name for expanded
-    god-class methods, so ``Service.parse_html`` clusters as ``html``
-    not ``Service``). ``None`` means unparseable.
-    """
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return None
-    symbols: list[tuple[str, str, int]] = []
-    for node in tree.body:
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            if node.name.startswith("__") and node.name.endswith("__"):
-                continue
-            symbols.append((node.name, node.name, _node_loc(node)))
-        elif isinstance(node, ast.ClassDef):
-            if node.name.startswith("__") and node.name.endswith("__"):
-                continue
-            # God-class expansion: when a class exposes 3+ non-dunder
-            # methods the method names drive the SRP signal (a service
-            # class with `get_samples`, `save_samples`, `generate_html`,
-            # `parse_html`, `send_feedback` is genuinely multi-domain).
-            # Small classes count as a single symbol by the class name.
-            method_nodes = [
-                m for m in node.body
-                if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))
-                and not (m.name.startswith("__") and m.name.endswith("__"))
-            ]
-            if len(method_nodes) >= 3:
-                for m in method_nodes:
-                    symbols.append(
-                        (f"{node.name}.{m.name}", m.name, _node_loc(m))
-                    )
-            else:
-                symbols.append((node.name, node.name, _node_loc(node)))
-    return symbols
-
-
-_JS_DECL = re.compile(
-    r"^(?:"
-    r"(?:async\s+)?function\s+(?P<fn>[A-Za-z_$][\w$]*)\s*\("
-    r"|(?:const|let|var)\s+(?P<assigned>[A-Za-z_$][\w$]*)\s*=\s*"
-    r"(?:async\s*)?(?:function\b|\([^)\n]*\)\s*=>|[A-Za-z_$][\w$]*\s*=>)"
-    r"|class\s+(?P<cls>[A-Za-z_$][\w$]*)"
-    r"|window\.(?P<ns>[A-Za-z_$][\w$]*)\s*="
-    r")",
-    re.MULTILINE,
-)
-
-
-def _javascript_symbols(source: str) -> list[tuple[str, str, int]] | None:
-    """JavaScript/TypeScript adapter: column-0 declaration heuristic.
-
-    Counts top-level function declarations, function-valued const/let/var
-    assignments, class declarations, and ``window.X =`` namespace
-    exports. Symbol LOC is the span to the next top-level declaration —
-    coarse, but ranking-grade. Known under-detection: IIFE-wrapped
-    module bodies (declarations indented one level) yield no symbols;
-    such files come back ``None``-equivalent (empty) rather than wrong.
-    """
-    lines = source.splitlines()
-    matches: list[tuple[int, str]] = []  # (line_index, name)
-    for m in _JS_DECL.finditer(source):
-        name = m.group("fn") or m.group("assigned") or m.group("cls") or m.group("ns")
-        if not name:
-            continue
-        line_index = source.count("\n", 0, m.start())
-        matches.append((line_index, name))
-    symbols: list[tuple[str, str, int]] = []
-    for i, (line_index, name) in enumerate(matches):
-        end = matches[i + 1][0] if i + 1 < len(matches) else len(lines)
-        loc = max(1, end - line_index)
-        symbols.append((name, name, loc))
-    return symbols
-
-
-# Extension → (adapter_name, extractor). The analysis below is
-# language-neutral; this table is the only per-language seam (ADR 0032).
-_ANALYZERS: dict[str, tuple[str, object]] = {
-    ".py": ("python-ast", _python_symbols),
-    ".js": ("js-heuristic", _javascript_symbols),
-    ".mjs": ("js-heuristic", _javascript_symbols),
-    ".cjs": ("js-heuristic", _javascript_symbols),
-    ".ts": ("js-heuristic", _javascript_symbols),
-    ".tsx": ("js-heuristic", _javascript_symbols),
-}
-
-_LANGUAGE_BY_ADAPTER: dict[str, str] = {
-    "python-ast": "python",
-    "js-heuristic": "javascript",
-}
-
-
 def _scan_file(filepath: Path, rel: str) -> dict[str, object] | None:
-    adapter_name, extractor = _ANALYZERS[filepath.suffix.lower()]
+    adapter = get_adapter(filepath)
+    if adapter is None:
+        return None
     try:
         source = filepath.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
-    extracted = extractor(source)  # type: ignore[operator]
+    extracted: list[Symbol] | None = adapter.extract_symbols(source, path=rel)
     if extracted is None:
         return None
 
     file_loc = len(source.splitlines())
     clusters: dict[str, dict[str, object]] = {}
     symbol_names: list[str] = []
-    for symbol_name, cluster_name, loc in extracted:
-        symbol_names.append(symbol_name)
-        key = _cluster_key(cluster_name)
+    for sym in extracted:
+        symbol_names.append(sym.name)
+        key = _cluster_key(sym.cluster_name)
         bucket = clusters.setdefault(key, {"symbols": [], "loc": 0})
-        bucket["symbols"].append(symbol_name)  # type: ignore[arg-type]
-        bucket["loc"] = int(bucket["loc"]) + loc  # type: ignore[operator]
+        bucket["symbols"].append(sym.name)  # type: ignore[arg-type]
+        bucket["loc"] = int(bucket["loc"]) + sym.loc  # type: ignore[operator]
 
     # SRP "and"-count: clusters with ≥2 symbols are genuine clusters;
     # single-symbol clusters are noise. Exclude _unclassified from the
@@ -368,8 +282,8 @@ def _scan_file(filepath: Path, rel: str) -> dict[str, object] | None:
     return {
         "type": "omnibus",
         "file": rel,
-        "language": _LANGUAGE_BY_ADAPTER[adapter_name],
-        "analyzer": adapter_name,
+        "language": adapter.language,
+        "analyzer": adapter.name,
         "loc": file_loc,
         "cluster_count": len(ordered_clusters),
         "and_count": and_count,
@@ -394,7 +308,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--skip-path-glob", action="append", default=[],
                    help="Extra relative-path globs to skip (repeatable)")
     p.add_argument("--language", action="append", default=[],
-                   choices=sorted(set(_LANGUAGE_BY_ADAPTER.values())),
+                   choices=list(_LANGUAGES),
                    help="Restrict to these languages (default: all adapters)")
     args = p.parse_args(argv)
 
@@ -415,11 +329,12 @@ def main(argv: list[str] | None = None) -> int:
     skip_paths = _DEFAULT_SKIP_PATH_GLOBS + tuple(args.skip_path_glob)
     project_root = args.project_root.resolve()
 
-    wanted = set(args.language) or set(_LANGUAGE_BY_ADAPTER.values())
+    wanted = set(args.language) or set(_LANGUAGES)
     extensions = frozenset(
         ext
-        for ext, (adapter_name, _) in _ANALYZERS.items()
-        if _LANGUAGE_BY_ADAPTER[adapter_name] in wanted
+        for adapter in iter_adapters()
+        if adapter.language in wanted
+        for ext in adapter.extensions
     )
     files = _walk_source_files(
         args.target.resolve(), skip_files, skip_paths, project_root, extensions,

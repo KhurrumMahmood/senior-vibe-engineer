@@ -23,8 +23,8 @@ escalate_to: |
 delegate_from: |
   /architecture-fit recommends /plan-spec once §5-6 are filled and
   status is architected.
-language: python
-framework: django
+language: any
+framework: any
 ---
 
 # /plan-spec

@@ -87,8 +87,10 @@ supporting `inspection.json`.
 
 - **Project root:** the working directory.
 - **Python:** the host project's venv python (`.venv/bin/python` or
-  equivalent) for the helper script — it AST-parses Python sources and
-  shells out to `git log` for co-edit frequency; stdlib + git only.
+  equivalent) for the helper script — it routes Python parsing through
+  the shared per-language adapter registry (ADR 0032; Python-only here,
+  skipping files whose adapter can't supply the raw AST) and shells out
+  to `git log` for co-edit frequency; stdlib + git only.
 - **Output:** `reports/propose-boundary/<target-slug>/`. Never touches
   any other file.
 - **Read-only.** No file moves, no edits, no Edit tool. The

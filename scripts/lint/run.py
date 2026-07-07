@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 """Run ecosystem AST lint rules with one source of scope truth.
 
-Host projects extend RULES with their own rule specs — keep the
-generic rules here, add domain-specific ones in an overlay file or by
-appending to RULES at import time.
+The runner machinery — suffix dispatch, git/diff scoping, per-rule
+include/exclude filtering — is framework-agnostic. The shipped DEFAULT
+``RULES`` tuple and its path globs are NOT: they encode Django/host
+conventions (``services/``, ``views/``, ``tasks/``, ``migrations/``,
+the ``app/``|``src/`` layout) and are meant to be overridden per host.
+
+Host projects extend or replace RULES with their own rule specs — keep
+the generic runner here, add domain-specific rules in an overlay file
+or by appending to RULES at import time.
 
 The default scopes target a host project's app/ or src/ layout. The
 ``--self`` flag instead points the framework-agnostic rules at the
@@ -52,6 +58,8 @@ _DEFAULT_PYTHON_INCLUDE = (
 _DEFAULT_PYTHON_BROAD = r"^(?:app|src)/.*\.py$"
 
 
+# Host-specific default seam: these rule specs and their path globs encode
+# Django/host conventions. Override or replace per host project.
 RULES: tuple[RuleSpec, ...] = (
     RuleSpec(
         name="silent-catch",

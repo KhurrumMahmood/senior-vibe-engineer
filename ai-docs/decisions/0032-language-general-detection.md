@@ -11,7 +11,8 @@ applies_to:
   - .claude/skills/find-omnibus/
   - .claude/skills/find-perimeter-gaps/
   - .claude/docs/architectural-smells.md
-embodied_by: ["skill:find-perimeter-gaps", "skill:find-omnibus"]
+  - scripts/_lib/lang_adapter/
+embodied_by: ["skill:find-perimeter-gaps", "skill:find-omnibus", "script:scripts/_lib/lang_adapter/__init__.py"]
 tags: [portability, detectors, perimeter, substrate]
 related_smell: omnibus-module
 related_pattern: null
@@ -114,8 +115,57 @@ three rules:
   overstates coverage; decompose recommendations into layers whose
   substrate is missing.
 
+## Implementation status
+
+*Updated 2026-06-17.* Rule 1's analyzer-adapter pattern, originally a
+private seam inside `find-omnibus/scripts/detect.py`, is now a shared,
+reusable package at `scripts/_lib/lang_adapter/` (a `LanguageAdapter` ABC,
+a `python-ast` adapter wrapping stdlib `ast`, a `js-heuristic` adapter for
+`.js/.mjs/.cjs/.ts/.tsx`, an extension-keyed registry, and two capability
+flags — `CAP_SYMBOLS` and `CAP_PYTHON_AST`). The extraction is byte-for-byte
+faithful to the original find-omnibus extractors.
+
+~21 AST consumers were migrated onto the registry:
+
+- **find-omnibus** was re-pointed at the shared package and its private
+  adapter code deleted; output is byte-identical, and it is now relabeled
+  `language: any` (it genuinely processes JS/TS — verified end-to-end on a
+  TypeScript fixture, `analyzer: js-heuristic`).
+- The **deep Python-AST detectors** (semantic_inventory, name_audit,
+  duplication_audit, find-complexity-hotspots, find-implicit-state,
+  find-query-mutation, find-layer-violation, find-transaction-overreach,
+  find-contract-drift, find-dormant, find-async-lifecycle-drift,
+  find-duplication, extract-enum, extract-state-type, introduce-fk,
+  propose-boundary, propose-folder-reorganization, explain-code, and the
+  shared `_common/product_topology.py`) now parse through the registry
+  behind a `CAP_PYTHON_AST` gate: they skip non-Python inputs gracefully
+  instead of relying on `SyntaxError`, but their analysis stays
+  Python-specific so they correctly keep `language: python`. This is
+  standardization onto the seam, not generalization — an honest
+  distinction.
+
+The deliberate boundary: the `scripts/lint/*` rules and infra parsers that
+read the ecosystem's *own* Python/Markdown (specs, skill_comply, chunk_file,
+find-skill-artifact-drift, find-standard-gaps) were **not** migrated —
+they are Python-by-purpose and `path_utils` already scopes them to `.py`.
+
+Two known precision limits of the v1 `js-heuristic` adapter (consistent with
+this ADR's "expected under-detection must be documented" rule), each a
+candidate for the heuristic→real-parser graduation: it matches only
+column-0 declarations, so `export function` / `export const` (common in
+ESM/TS) are missed; and find-omnibus's clustering still strips a
+host-tuned generic-verb list, so non-matching verbs under-cluster.
+
+Known wart pending the `_lib/{core,language,framework,repo}` reorg: skill
+scripts reach the package by inserting the repo `scripts/` dir on
+`sys.path` (`PROJECT_ROOT / "scripts"`), a cross-tree import the reorg in
+`_common/portability-roadmap.md` will formalize.
+
 ## Verification
 
+- `tests/test_lang_adapter.py` pins the shared package: Python/JS symbol
+  extraction, god-class expansion, dunder skip, registry routing,
+  capability flags, and `PythonAdapter.parse` None-on-SyntaxError.
 - `tests/test_omnibus_language_adapters.py` pins: the Python adapter
   reproduces pre-ADR behavior; the JavaScript adapter flags a synthetic
   multi-domain JS file and stays silent on a cohesive one.

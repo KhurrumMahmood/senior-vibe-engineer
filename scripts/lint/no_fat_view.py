@@ -11,6 +11,14 @@ SUSPECT skill's job. Size is the cheapest signal that catches most of
 the same targets without false positives from legitimately-branching
 views.
 
+The LOC-budget machinery is framework-agnostic, but the default
+view-*detection* heuristics are Django-shaped: ``VIEW_BASE_HINTS``
+holds Django/DRF view base-class names, and ``HTTP_METHODS`` holds
+Django's HTTP-method handler names. These two constants are the
+per-framework override seam — a host on another stack (e.g. FastAPI,
+Express) should replace their contents to match its view base classes
+and handler names; the detection logic and budgets stay unchanged.
+
 Rules:
 
 - A **view function** is any module-level function whose name starts
@@ -58,6 +66,7 @@ from path_utils import expand_python_paths
 DEFAULT_FN_BUDGET = 80
 DEFAULT_METHOD_BUDGET = 120
 
+# Framework seam: Django/DRF view base classes. Override per host stack.
 VIEW_BASE_HINTS = (
     "View",
     "APIView",
@@ -74,6 +83,7 @@ VIEW_BASE_HINTS = (
     "RedirectView",
 )
 
+# Framework seam: Django HTTP-method handler names. Override per host stack.
 HTTP_METHODS = {"get", "post", "put", "patch", "delete", "head", "options"}
 
 NOQA_RE = re.compile(r"#\s*noqa:\s*fat-view:\s*\S")

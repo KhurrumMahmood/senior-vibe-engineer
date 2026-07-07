@@ -28,8 +28,8 @@ delegate_from: |
   Mid-orchestration, /plan-feature and /architecture-fit MAY invoke
   /teach-pattern --for-agent when they need to brief themselves on a
   rule before deciding.
-language: python
-framework: django
+language: any
+framework: any
 ---
 
 # /teach-pattern

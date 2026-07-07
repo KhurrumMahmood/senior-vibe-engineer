@@ -76,6 +76,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# Route Python parsing through the shared per-language adapter registry
+# (ADR 0032) so this collector capability-gates on Python and gracefully
+# skips non-Python / unparseable inputs instead of crashing.
+_SCRIPTS_DIR = str(Path(__file__).resolve().parents[4] / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
+
 
 DICT_STATE_TYPE_HINTS = {"dict", "Dict", "Mapping", "MutableMapping"}
 SKIP_DIRS = {".venv", "__pycache__", "migrations", "node_modules", "staticfiles"}
@@ -337,10 +345,17 @@ def main() -> int:
         print(f"error: cannot read target file: {exc}", file=sys.stderr)
         return 2
 
-    try:
-        tree = ast.parse(source)
-    except SyntaxError as exc:
-        print(f"error: cannot parse target file: {exc}", file=sys.stderr)
+    adapter = get_adapter(args.file)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        print(
+            f"error: cannot parse target file: {args.file} is not a "
+            "Python source (no python_ast adapter)",
+            file=sys.stderr,
+        )
+        return 2
+    tree = adapter.parse(source)
+    if tree is None:
+        print(f"error: cannot parse target file: {args.file}", file=sys.stderr)
         return 2
 
     node, kind, class_name = _find_symbol(tree, args.symbol)

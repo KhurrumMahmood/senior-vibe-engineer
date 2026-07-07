@@ -67,6 +67,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
 import scope as _scope  # noqa: E402
 
+# Route Python parsing through the shared per-language adapter registry so
+# this detector capability-gates on Python and gracefully skips other
+# languages instead of crashing on them. The analysis below stays exact
+# Python-AST / Django-specific (labels python/django are unchanged).
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
+
 # Headings in find-layer-violation-scope.md that declare each layer's globs.
 _LAYER_SECTION_MAP = {"view": {"views", "view"}, "task": {"tasks", "task"}}
 
@@ -551,13 +561,15 @@ def scan_file(
     view_globs: tuple[str, ...] = (),
     task_globs: tuple[str, ...] = (),
 ) -> list[dict[str, object]]:
+    adapter = get_adapter(filepath)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        return []
     try:
         source = filepath.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return []
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
+    tree = adapter.parse(source)
+    if tree is None:
         return []
 
     lines = source.splitlines()
