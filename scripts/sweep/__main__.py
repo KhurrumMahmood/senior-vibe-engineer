@@ -165,6 +165,7 @@ def _packet(args: argparse.Namespace) -> int:
         verification=args.verification,
         expected_delta=expected,
         token_budget=args.token_budget,
+        root=args.root,
         parser_run_context=_manifest_context(args.root),
     )
     content = canonical_json_bytes(document)
@@ -307,7 +308,7 @@ def _parser() -> argparse.ArgumentParser:
 
     packet = subcommands.add_parser("packet", help="create a fresh actionable sweep packet")
     packet.add_argument("--manifest", type=Path, required=True)
-    packet.add_argument("--root", type=Path)
+    packet.add_argument("--root", type=Path, required=True)
     packet.add_argument("--judgments", type=Path, required=True)
     packet.add_argument("--finding-id", action="append", required=True)
     packet.add_argument("--scope", action="append", required=True)

@@ -124,7 +124,7 @@ def stage_sweep_packet(
     """Stage a schema-valid sweep packet without weakening its closed shape."""
     from sweep.schemas import validate_packet
 
-    validated = validate_packet(packet)
+    validated = validate_packet(packet, root=root)
     safe_id = re.sub(r"[^A-Za-z0-9_-]+", "-", item_id).strip("-")
     if not safe_id:
         raise ValueError(f"item id {item_id!r} reduces to an empty slug")

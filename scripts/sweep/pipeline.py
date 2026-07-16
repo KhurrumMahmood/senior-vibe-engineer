@@ -138,6 +138,8 @@ def build_judgment_input(
     while selected and len(canonical_json_bytes(result)) > byte_limit:
         selected.pop()
         result = document_for(selected)
+    if not selected and offset < len(ordered):
+        raise ValueError("byte_limit cannot hold one complete judgment finding")
     if len(canonical_json_bytes(result)) > byte_limit:
         raise ValueError("byte_limit cannot hold the judgment input envelope")
     return result
@@ -437,6 +439,7 @@ def build_packet(
     verification: str,
     expected_delta: Mapping[str, Any],
     token_budget: int,
+    root: Path,
     parser_run_context: ParserRunContext | None = None,
 ) -> dict[str, Any]:
     """Build a bounded packet only from fresh actionable judgments."""
@@ -478,7 +481,7 @@ def build_packet(
         "manifest_hash": document["hashes"]["semantic"],
         "judgment_hash": validated["judgment_hash"],
     }
-    validate_packet(packet)
+    validate_packet(packet, root=root)
     return packet
 
 
@@ -643,7 +646,7 @@ def verify_packet(
 ) -> dict[str, Any]:
     """Verify a packet through the harness-owned command/rescan/diff boundary."""
     parser_run_context = _parser_context_for_manifest(before_manifest, root=root)
-    validated_packet = validate_packet(packet)
+    validated_packet = validate_packet(packet, root=root)
     before = _validated_manifest(
         before_manifest,
         parser_run_context=parser_run_context,
@@ -698,6 +701,24 @@ def verify_packet(
         raise VerificationGateError(f"harness rescan failed: {exc}") from exc
     if scan_evidence["exit_code"] != 0:
         raise VerificationGateError("harness rescan failed: scan evidence is not successful")
+    if after["scope"] != before["scope"]:
+        raise VerificationGateError("harness rescan scope does not match the bound manifest")
+    before_battery = [
+        (row["provider"], row["language"], row["provider_kind"])
+        for row in before["providers"]
+    ]
+    after_battery = [
+        (row["provider"], row["language"], row["provider_kind"])
+        for row in after["providers"]
+    ]
+    if after_battery != before_battery:
+        raise VerificationGateError(
+            "harness rescan provider battery does not match the bound manifest"
+        )
+    if after["capability_registry_version"] != before["capability_registry_version"]:
+        raise VerificationGateError(
+            "harness rescan registry version does not match the bound manifest"
+        )
     canonical_after = canonical_json_bytes(after)
     if (
         scan_evidence["stdout_sha256"] != hashlib.sha256(canonical_after).hexdigest()

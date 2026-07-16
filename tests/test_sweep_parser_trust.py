@@ -34,6 +34,8 @@ install_detection_isolation()
 attempts = [
     lambda: socket.getaddrinfo('example.com', 443),
     lambda: socket.socket().connect(('127.0.0.1', 9)),
+    lambda: socket.socket().connect_ex(('127.0.0.1', 9)),
+    lambda: socket.socket().sendto(b'x', ('127.0.0.1', 9)),
     lambda: urllib.request.urlopen('https://example.com'),
     lambda: builtins.__import__('openai'),
     lambda: builtins.__import__('anthropic'),

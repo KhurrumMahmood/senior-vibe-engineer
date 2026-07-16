@@ -234,10 +234,14 @@ def test_im_9_im_10_judgment_and_packet_cli_match_library_artifacts(tmp_path: Pa
 
     identifier = manifest["findings"][0]["id"]
     path = manifest["findings"][0]["location"]["path"]
+    scoped = tmp_path / path
+    scoped.parent.mkdir(parents=True, exist_ok=True)
+    scoped.write_text("fixture\n", encoding="utf-8")
     expected_delta = {"fixed": [identifier], "allowed_new": [], "metrics": []}
     expected_path.write_bytes(canonical_json_bytes(expected_delta))
     packet_result = _run_cli(
-        "packet", "--manifest", str(source), "--judgments", str(judgment_path),
+        "packet", "--manifest", str(source), "--root", str(tmp_path),
+        "--judgments", str(judgment_path),
         "--finding-id", identifier, "--scope", path, "--recipe", "fix it",
         "--verification", ".venv/bin/python -m pytest -q", "--expected-delta",
         str(expected_path), "--token-budget", "8000", "--out", str(packet_path),
@@ -248,6 +252,7 @@ def test_im_9_im_10_judgment_and_packet_cli_match_library_artifacts(tmp_path: Pa
             manifest, judgment, finding_ids=[identifier], scope=[path], recipe="fix it",
             verification=".venv/bin/python -m pytest -q", expected_delta=expected_delta,
             token_budget=8_000,
+            root=tmp_path,
         )
     )
     assert packet_result.returncode == 0 and packet_result.stdout == expected_packet
@@ -262,11 +267,15 @@ def test_im_11_verify_cli_runs_command_derives_scope_rescans_and_emits_evidence(
     judgment = _judgment(before)
     fixed_id = before["findings"][0]["id"]
     changed_path = before["findings"][0]["location"]["path"]
+    changed = tmp_path / changed_path
+    changed.parent.mkdir(parents=True)
+    changed.write_text("before\n")
     packet = build_packet(
         before, judgment, finding_ids=[fixed_id], scope=[changed_path], recipe="fix it",
         verification="/usr/bin/true",
         expected_delta={"fixed": [fixed_id], "allowed_new": [], "metrics": []},
         token_budget=8_000,
+        root=tmp_path,
     )
     before_path = tmp_path / "before.json"
     after_path = tmp_path / "after.json"
@@ -281,9 +290,6 @@ def test_im_11_verify_cli_runs_command_derives_scope_rescans_and_emits_evidence(
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     subprocess.run(["git", "config", "user.email", "fixture@example.test"], cwd=tmp_path, check=True)
     subprocess.run(["git", "config", "user.name", "Fixture"], cwd=tmp_path, check=True)
-    changed = tmp_path / changed_path
-    changed.parent.mkdir(parents=True)
-    changed.write_text("before\n")
     subprocess.run(["git", "add", changed_path], cwd=tmp_path, check=True)
     subprocess.run(["git", "commit", "-qm", "fixture"], cwd=tmp_path, check=True)
     changed.write_text("after\n")

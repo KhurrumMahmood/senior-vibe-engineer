@@ -155,7 +155,8 @@ def test_im_15_live_host_runs_scan_judgment_packet_harness_diff_and_ratchet(
         recipe=f"apply the checked-in {host} after fixture",
         verification="/usr/bin/true",
         expected_delta={"fixed": sorted(identifiers), "allowed_new": [], "metrics": []},
-        token_budget=packet_budget_ceiling(changed),
+        token_budget=packet_budget_ceiling(changed, root=work),
+        root=work,
         parser_run_context=parser_context,
     )
     scanner = tmp_path / "sweep_cli.py"

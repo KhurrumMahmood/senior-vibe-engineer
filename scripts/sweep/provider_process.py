@@ -26,6 +26,13 @@ def install_detection_isolation() -> None:
     """Deny network access and model-provider imports inside the detector child."""
     socket.getaddrinfo = _forbidden_network
     socket.socket.connect = _forbidden_network
+    socket.socket.connect_ex = _forbidden_network
+    socket.socket.sendto = _forbidden_network
+    if hasattr(socket.socket, "sendmsg"):
+        socket.socket.sendmsg = _forbidden_network
+    socket.gethostbyname = _forbidden_network
+    socket.gethostbyname_ex = _forbidden_network
+    socket.gethostbyaddr = _forbidden_network
     urllib.request.urlopen = _forbidden_network
     original_import = builtins.__import__
 

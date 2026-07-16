@@ -93,6 +93,9 @@ def test_stage_sweep_validates_and_preserves_closed_packet_with_separate_metadat
     tmp_path, capsys
 ):
     q = _load_queue_mod()
+    scoped = tmp_path / "app/a.py"
+    scoped.parent.mkdir(parents=True)
+    scoped.write_text("fixture\n")
     packet_path = tmp_path / "packet.json"
     packet_path.write_text(json.dumps(_packet()))
 
@@ -117,6 +120,9 @@ def test_stage_sweep_validates_and_preserves_closed_packet_with_separate_metadat
 
 def test_stage_sweep_rejects_loose_and_over_budget_packets(tmp_path, capsys):
     q = _load_queue_mod()
+    scoped = tmp_path / "app/a.py"
+    scoped.parent.mkdir(parents=True)
+    scoped.write_text("fixture\n")
     packet_path = tmp_path / "packet.json"
     packet_path.write_text(json.dumps({"recipe": "loose bypass", "scope": ["app/a.py"]}))
     assert q.main([

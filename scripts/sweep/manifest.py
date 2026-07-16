@@ -553,8 +553,20 @@ def build_diff(
     """Classify fixed/new/persisting findings, honoring valid one-release aliases."""
     before = _validated_manifest(before, parser_run_context=parser_run_context)
     after = _validated_manifest(after, parser_run_context=parser_run_context)
-    if before["scope"]["case_sensitive"] != after["scope"]["case_sensitive"]:
-        raise ManifestIdentityError("manifests with different case policies cannot be compared")
+    if before["scope"] != after["scope"]:
+        raise ManifestIdentityError("manifests with different scopes cannot be compared")
+    before_battery = [
+        (row["provider"], row["language"], row["provider_kind"])
+        for row in before["providers"]
+    ]
+    after_battery = [
+        (row["provider"], row["language"], row["provider_kind"])
+        for row in after["providers"]
+    ]
+    if before_battery != after_battery:
+        raise ManifestIdentityError("manifests with different provider batteries cannot be compared")
+    if before["capability_registry_version"] != after["capability_registry_version"]:
+        raise ManifestIdentityError("manifests with different registry versions cannot be compared")
 
     before_by_id = {row["id"]: row for row in before["findings"]}
     after_by_id = {row["id"]: row for row in after["findings"]}

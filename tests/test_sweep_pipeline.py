@@ -87,6 +87,31 @@ def _manifest(findings: list[FindingInput], *, revision: str = REVISION) -> dict
     )
 
 
+def _empty_manifest_with_boundary(
+    *,
+    scope: str = "src",
+    provider_name: str = "ruff",
+) -> dict[str, object]:
+    provider = _provider()
+    provider["provider"] = provider_name
+    provider["scope"] = {
+        "paths": [scope],
+        "case_sensitive": True,
+        "roots": [scope],
+        "exclusions": [],
+    }
+    return build_manifest(
+        capability_registry_version=1,
+        paths=[scope],
+        case_sensitive=True,
+        roots=[scope],
+        exclusions=[],
+        source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
+        providers=[provider],
+        findings=[],
+    )
+
+
 def _outcomes(manifest, outcomes: dict[int, str] | None = None):
     outcomes = outcomes or {}
     return [
@@ -132,6 +157,14 @@ def _verification(argv=None, exit_code: int = 0, *, fault: str | None = None) ->
     }
 
 
+def _materialize_scope(root: Path, paths: list[str], *, size: int = 1) -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    for rendered in paths:
+        target = root / rendered
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"x" * size)
+
+
 def test_im_9_judgment_input_is_deterministic_id_addressable_and_bounded() -> None:
     manifest = _manifest([_finding(index, message_size=2_000) for index in range(80)])
 
@@ -140,6 +173,9 @@ def test_im_9_judgment_input_is_deterministic_id_addressable_and_bounded() -> No
 
     assert first == second
     assert len(canonical_json_bytes(first)) <= 65_536
+
+    with pytest.raises(ValueError, match="one complete judgment finding"):
+        build_judgment_input(manifest, byte_limit=191)
     assert len(first["findings"]) == 50
     assert first["omitted"] == 30
     assert first["offset"] == 0 and first["next_offset"] == 50 and first["total"] == 80
@@ -180,7 +216,10 @@ def test_im_9_import_rejects_unknown_duplicate_and_stale_outcomes() -> None:
 
 
 @pytest.mark.parametrize("bad", ["uncertain", "failed"])
-def test_im_9_uncertain_failed_and_missing_judgments_block_every_ordinary_consumer(bad: str) -> None:
+def test_im_9_uncertain_failed_and_missing_judgments_block_every_ordinary_consumer(
+    bad: str,
+    tmp_path: Path,
+) -> None:
     manifest = _manifest([_finding(1), _finding(2)])
     incomplete = build_judgment(
         manifest,
@@ -203,6 +242,7 @@ def test_im_9_uncertain_failed_and_missing_judgments_block_every_ordinary_consum
                 verification="python -m pytest -q",
                 expected_delta={"fixed": [manifest["findings"][0]["id"]], "allowed_new": [], "metrics": []},
                 token_budget=8_000,
+                root=tmp_path,
             )
 
 
@@ -234,11 +274,15 @@ def test_im_9_judged_digest_excludes_not_actionable_and_has_content_hash() -> No
         validate_judged_digest(malformed_id)
 
 
-def test_im_10_packet_is_fresh_actionable_scoped_structured_and_budgeted() -> None:
+def test_im_10_packet_is_fresh_actionable_scoped_structured_and_budgeted(
+    tmp_path: Path,
+) -> None:
     manifest = _manifest([_finding(1), _finding(2)])
     judgment = _judgment(manifest, {1: "not_actionable"})
     identifier = manifest["findings"][0]["id"]
     path = manifest["findings"][0]["location"]["path"]
+    second_path = manifest["findings"][1]["location"]["path"]
+    _materialize_scope(tmp_path, [path, second_path], size=1_048_576)
     expected = {"fixed": [identifier], "allowed_new": [], "metrics": []}
 
     packet = build_packet(
@@ -249,7 +293,8 @@ def test_im_10_packet_is_fresh_actionable_scoped_structured_and_budgeted() -> No
         recipe="replace the unsafe construct",
         verification="python -m pytest -q tests/test_example.py",
         expected_delta=expected,
-        token_budget=packet_budget_ceiling([path]),
+        token_budget=packet_budget_ceiling([path], root=tmp_path),
+        root=tmp_path,
     )
 
     assert validate_packet(packet) == packet
@@ -265,6 +310,7 @@ def test_im_10_packet_is_fresh_actionable_scoped_structured_and_budgeted() -> No
             verification="python -m pytest -q",
             expected_delta={"fixed": [], "allowed_new": [], "metrics": []},
             token_budget=8_000,
+            root=tmp_path,
         )
     with pytest.raises(SchemaValidationError, match="scope"):
         build_packet(
@@ -276,6 +322,7 @@ def test_im_10_packet_is_fresh_actionable_scoped_structured_and_budgeted() -> No
             verification="python -m pytest -q",
             expected_delta=expected,
             token_budget=8_000,
+            root=tmp_path,
         )
     with pytest.raises(SchemaValidationError, match="4096 UTF-8 bytes"):
         build_packet(
@@ -287,15 +334,22 @@ def test_im_10_packet_is_fresh_actionable_scoped_structured_and_budgeted() -> No
             verification="python -m pytest -q",
             expected_delta=expected,
             token_budget=8_000,
+            root=tmp_path,
         )
 
+    assert packet_budget_ceiling([path], root=tmp_path) == 100_000
 
-def test_im_11_harness_runs_verification_then_rescans_and_emits_bound_evidence() -> None:
+
+def test_im_11_harness_runs_verification_then_rescans_and_emits_bound_evidence(
+    tmp_path: Path,
+) -> None:
     before = _manifest([_finding(1), _finding(2)])
     after = _manifest([_finding(2)])
     judgment = _judgment(before, {1: "not_actionable"})
     identifier = before["findings"][0]["id"]
     path = before["findings"][0]["location"]["path"]
+    root = tmp_path / "fixture-root"
+    _materialize_scope(root, [path])
     packet = build_packet(
         before,
         judgment,
@@ -305,6 +359,7 @@ def test_im_11_harness_runs_verification_then_rescans_and_emits_bound_evidence()
         verification="python -m pytest -q tests/test_example.py",
         expected_delta={"fixed": [identifier], "allowed_new": [], "metrics": []},
         token_budget=8_000,
+        root=root,
     )
     events: list[str] = []
 
@@ -320,7 +375,7 @@ def test_im_11_harness_runs_verification_then_rescans_and_emits_bound_evidence()
         packet,
         before,
         judgment,
-        root=Path("/tmp/fixture-root"),
+        root=root,
         changed_path_reader=lambda _: [path],
         verification_runner=run_verification,
         scanner=rescan,
@@ -335,11 +390,15 @@ def test_im_11_harness_runs_verification_then_rescans_and_emits_bound_evidence()
     assert evidence["evidence_hash"]
 
 
-def test_im_11_harness_rejects_self_attestation_scope_staleness_and_delta_bypass() -> None:
+def test_im_11_harness_rejects_self_attestation_scope_staleness_and_delta_bypass(
+    tmp_path: Path,
+) -> None:
     before = _manifest([_finding(1)])
     judgment = _judgment(before)
     identifier = before["findings"][0]["id"]
     path = before["findings"][0]["location"]["path"]
+    root = tmp_path / "root"
+    _materialize_scope(root, [path])
     packet = build_packet(
         before,
         judgment,
@@ -349,6 +408,7 @@ def test_im_11_harness_rejects_self_attestation_scope_staleness_and_delta_bypass
         verification="python -m pytest -q",
         expected_delta={"fixed": [identifier], "allowed_new": [], "metrics": []},
         token_budget=8_000,
+        root=root,
     )
 
     with pytest.raises(SchemaValidationError, match="unknown fields"):
@@ -356,7 +416,7 @@ def test_im_11_harness_rejects_self_attestation_scope_staleness_and_delta_bypass
             {**packet, "executor_report": "PASS"},
             before,
             judgment,
-            root=Path("/tmp/root"),
+            root=root,
             changed_path_reader=lambda _: [path],
             verification_runner=lambda argv, _: _verification(argv),
             scanner=lambda: _harness_scan(_manifest([])),
@@ -366,7 +426,7 @@ def test_im_11_harness_rejects_self_attestation_scope_staleness_and_delta_bypass
             packet,
             before,
             judgment,
-            root=Path("/tmp/root"),
+            root=root,
             changed_path_reader=lambda _: ["src/other.py"],
             verification_runner=lambda argv, _: _verification(argv),
             scanner=lambda: _harness_scan(_manifest([])),
@@ -379,7 +439,7 @@ def test_im_11_harness_rejects_self_attestation_scope_staleness_and_delta_bypass
             packet,
             before,
             stale,
-            root=Path("/tmp/root"),
+            root=root,
             changed_path_reader=lambda _: [path],
             verification_runner=lambda argv, _: _verification(argv),
             scanner=lambda: _harness_scan(_manifest([])),
@@ -397,7 +457,7 @@ def test_im_11_harness_rejects_self_attestation_scope_staleness_and_delta_bypass
             packet,
             before,
             judgment,
-            root=Path("/tmp/root"),
+            root=root,
             changed_path_reader=lambda _: [path],
             verification_runner=lambda argv, _: _verification(argv, 1),
             scanner=forbidden_scan,
@@ -409,20 +469,47 @@ def test_im_11_harness_rejects_self_attestation_scope_staleness_and_delta_bypass
             packet,
             before,
             judgment,
-            root=Path("/tmp/root"),
+            root=root,
             changed_path_reader=lambda _: [path],
             verification_runner=lambda argv, _: _verification(argv),
             scanner=lambda: _harness_scan(before),
         )
 
+    with pytest.raises(VerificationGateError, match="scope does not match"):
+        verify_packet(
+            packet,
+            before,
+            judgment,
+            root=root,
+            changed_path_reader=lambda _: [path],
+            verification_runner=lambda argv, _: _verification(argv),
+            scanner=lambda: _harness_scan(_empty_manifest_with_boundary(scope="unrelated")),
+        )
 
-def test_im_11_new_findings_are_rejected_unless_structurally_allowed() -> None:
+    with pytest.raises(VerificationGateError, match="provider battery does not match"):
+        verify_packet(
+            packet,
+            before,
+            judgment,
+            root=root,
+            changed_path_reader=lambda _: [path],
+            verification_runner=lambda argv, _: _verification(argv),
+            scanner=lambda: _harness_scan(_empty_manifest_with_boundary(provider_name="other")),
+        )
+
+
+def test_im_11_new_findings_are_rejected_unless_structurally_allowed(
+    tmp_path: Path,
+) -> None:
     before = _manifest([_finding(1)])
     after = _manifest([_finding(2)])
     judgment = _judgment(before)
     fixed_id = before["findings"][0]["id"]
     new_id = after["findings"][0]["id"]
     path = before["findings"][0]["location"]["path"]
+    new_path = after["findings"][0]["location"]["path"]
+    root = tmp_path / "root"
+    _materialize_scope(root, [path, new_path])
 
     def packet(allowed_new):
         return build_packet(
@@ -434,6 +521,7 @@ def test_im_11_new_findings_are_rejected_unless_structurally_allowed() -> None:
             verification="python -m pytest -q",
             expected_delta={"fixed": [fixed_id], "allowed_new": allowed_new, "metrics": []},
             token_budget=8_000,
+            root=root,
         )
 
     with pytest.raises(VerificationGateError, match="unexpected new"):
@@ -441,7 +529,7 @@ def test_im_11_new_findings_are_rejected_unless_structurally_allowed() -> None:
             packet([]),
             before,
             judgment,
-            root=Path("/tmp/root"),
+            root=root,
             changed_path_reader=lambda _: [path],
             verification_runner=lambda argv, _: _verification(argv),
             scanner=lambda: _harness_scan(after),
@@ -451,7 +539,7 @@ def test_im_11_new_findings_are_rejected_unless_structurally_allowed() -> None:
         packet([new_id]),
         before,
         judgment,
-        root=Path("/tmp/root"),
+        root=root,
         changed_path_reader=lambda _: [path],
         verification_runner=lambda argv, _: _verification(argv),
         scanner=lambda: _harness_scan(after),
@@ -481,6 +569,7 @@ def test_im_11_verification_command_is_not_shell_interpreted(tmp_path: Path) -> 
     identifier = before["findings"][0]["id"]
     path = before["findings"][0]["location"]["path"]
     marker = tmp_path / "shell-bypass"
+    _materialize_scope(tmp_path, [path])
     packet = build_packet(
         before,
         judgment,
@@ -490,6 +579,7 @@ def test_im_11_verification_command_is_not_shell_interpreted(tmp_path: Path) -> 
         verification=f"/usr/bin/true ; /usr/bin/touch {marker}",
         expected_delta={"fixed": [identifier], "allowed_new": [], "metrics": []},
         token_budget=8_000,
+        root=tmp_path,
     )
 
     evidence = verify_packet(

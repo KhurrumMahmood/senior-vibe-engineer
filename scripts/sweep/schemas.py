@@ -942,13 +942,27 @@ def validate_judgment(document: Any) -> Mapping[str, Any]:
     return judgment
 
 
-def packet_budget_ceiling(scope: Sequence[str]) -> int:
-    """Return the deterministic AC-5.7 budget ceiling for normalized scope."""
-    scope_bytes = sum(len(path.encode("utf-8")) for path in scope)
+def packet_budget_ceiling(scope: Sequence[str], *, root: Path) -> int:
+    """Return the deterministic AC-5.7 ceiling from actual scoped file bytes."""
+    try:
+        canonical_root = root.resolve(strict=True)
+    except OSError as exc:
+        _fail("packet.scope", f"cannot resolve packet root: {exc}")
+    scope_bytes = 0
+    for index, rendered in enumerate(scope):
+        normalized = _repo_path(rendered, f"packet.scope[{index}]", allow_root=False)
+        try:
+            candidate = canonical_root.joinpath(normalized).resolve(strict=True)
+            candidate.relative_to(canonical_root)
+        except (OSError, ValueError) as exc:
+            _fail(f"packet.scope[{index}]", f"cannot resolve a contained scoped file: {exc}")
+        if not candidate.is_file():
+            _fail(f"packet.scope[{index}]", "must identify a regular file")
+        scope_bytes += candidate.stat().st_size
     return min(100_000, max(8_000, 8_000 + math.ceil(scope_bytes / 4)))
 
 
-def validate_packet(document: Any) -> Mapping[str, Any]:
+def validate_packet(document: Any, *, root: Path | None = None) -> Mapping[str, Any]:
     packet = _mapping(document, "packet")
     _version(packet, "packet")
     _required(
@@ -1011,7 +1025,7 @@ def validate_packet(document: Any) -> Mapping[str, Any]:
         _number(metric["before"], f"packet.expected_delta.metrics[{index}].before")
         _number(metric["after"], f"packet.expected_delta.metrics[{index}].after")
     budget = _integer(packet["token_budget"], "packet.token_budget", minimum=1)
-    ceiling = packet_budget_ceiling(scope)
+    ceiling = packet_budget_ceiling(scope, root=root) if root is not None else 100_000
     if budget > ceiling:
         _fail("packet.token_budget", f"must not exceed deterministic ceiling {ceiling}")
     _sha256(packet["manifest_hash"], "packet.manifest_hash")
