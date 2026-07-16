@@ -22,7 +22,12 @@ from _lib.lang_adapter import ANALYSIS_INTERFACE_VERSION, AnalysisFailure, iter_
 
 from .manifest import FindingInput
 from .process import CapturedProcess, capture_process
-from .schemas import FAILURE_KINDS, SCHEMA_VERSION, validate_provider_observation
+from .schemas import (
+    FAILURE_KINDS,
+    SCHEMA_VERSION,
+    parser_command_binding,
+    validate_provider_observation,
+)
 from .serialization import canonical_json_bytes
 
 
@@ -368,7 +373,7 @@ def _command(
         "--language",
         language,
         "--project-root",
-        project_root.as_posix(),
+        project_root.resolve().as_posix(),
     ]
     for path in scope["paths"]:
         argv.extend(("--path", path))
@@ -442,8 +447,9 @@ def _completed_observation(
     scope: Mapping[str, Any],
     command: Mapping[str, Any],
     captured: CapturedProcess,
-    finding_count: int,
+    completion: Mapping[str, Any],
 ) -> dict[str, Any]:
+    finding_count = int(completion["finding_count"])
     observation = {
         "schema_version": SCHEMA_VERSION,
         "provider": provider,
@@ -459,6 +465,19 @@ def _completed_observation(
         "raw": dict(captured.raw),
         "status": "completed",
         "failure": None,
+        "completion": {
+            **dict(completion),
+            "stdout_sha256": captured.raw["stdout_sha256"],
+            "stdout_bytes": captured.raw["stdout_bytes"],
+            "stderr_sha256": captured.raw["stderr_sha256"],
+            "stderr_bytes": captured.raw["stderr_bytes"],
+            "command_scope_sha256": parser_command_binding(
+                command,
+                provider=provider,
+                language=language,
+                scope=scope,
+            ),
+        },
     }
     return dict(validate_provider_observation(observation))
 
@@ -486,6 +505,7 @@ def _failed_observation(
         "exit": {"code": captured.returncode, "classification": "tool_failure"},
         "raw": dict(captured.raw),
         "status": "failed",
+        "completion": None,
         "failure": {
             "schema_version": SCHEMA_VERSION,
             "kind": failure_kind,
@@ -517,7 +537,12 @@ def _failure_from_stderr(stderr: bytes | None) -> tuple[str, str, Mapping[str, A
         )
 
 
-def _parse_records(stdout: bytes, *, provider: str, language: str) -> list[dict[str, Any]]:
+def _parse_records(
+    stdout: bytes,
+    *,
+    provider: str,
+    language: str,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for number, line in enumerate(stdout.splitlines(), start=1):
         if not line.strip():
@@ -538,7 +563,7 @@ def _parse_records(stdout: bytes, *, provider: str, language: str) -> list[dict[
     expected = _completion_record(provider, language, len(records))
     if rows[-1] != expected:
         raise _CompletionFailure("provider completion record does not match its payload")
-    return records
+    return records, rows[-1]
 
 
 def _run_provider(
@@ -642,7 +667,11 @@ def _run_provider(
         return EcosystemProviderRun(observation, ())
 
     try:
-        records = _parse_records(captured.stdout, provider=provider, language=language)
+        records, completion = _parse_records(
+            captured.stdout,
+            provider=provider,
+            language=language,
+        )
         normalizer = _complexity_finding if provider == "cx" else _omnibus_finding
         findings = tuple(normalizer(record, observation_index) for record in records)
     except _CompletionFailure as exc:
@@ -679,7 +708,7 @@ def _run_provider(
         scope=scope,
         command=command,
         captured=captured,
-        finding_count=len(findings),
+        completion=completion,
     )
     return EcosystemProviderRun(observation, findings)
 

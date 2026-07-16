@@ -15,6 +15,8 @@ from typing import Any
 
 from _lib.finding_identity import FINDING_ID_SCHEMA_VERSION, FindingIdentity
 
+from .serialization import canonical_sha256
+
 
 SCHEMA_VERSION = 1
 # spec:portable-batch-sweep::IM-2
@@ -40,6 +42,9 @@ JUDGMENT_OUTCOMES = frozenset({"actionable", "not_actionable", "uncertain", "fai
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _FINDING_ID = re.compile(r"f2_[0-9a-f]{24}")
 _LEGACY_ID = re.compile(r"(?:f2_[0-9a-f]{24}|[0-9a-f]{12})")
+_EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+_PARSER_PROVIDER_KIND = "parser-backed-ecosystem"
+_PARSER_PROVIDERS = frozenset({"cx", "omnibus"})
 _VERSIONED_ENVELOPES = frozenset(
     {"failure", "provider_observation", "manifest", "diff", "judgment", "packet"}
 )
@@ -197,29 +202,148 @@ def _validate_scope(
     return scope
 
 
+def parser_command_binding(
+    command_document: Any,
+    *,
+    provider: str,
+    language: str,
+    scope: Mapping[str, Any],
+    path: str = "provider_observation.command",
+) -> str:
+    """Parse one exact parser-process argv and bind it to normalized provenance."""
+    command = _mapping(command_document, path)
+    argv = _sequence(command.get("argv"), f"{path}.argv")
+    if len(argv) < 10 or not all(isinstance(argument, str) for argument in argv):
+        _fail(f"{path}.argv", "must contain the canonical parser provider command")
+    executable = _text(command.get("executable"), f"{path}.executable")
+    if argv[0] != executable:
+        _fail(f"{path}.argv[0]", "must exactly match command.executable")
+    _text(argv[1], f"{path}.argv[1]")
+
+    cursor = 2
+
+    def required_value(flag: str) -> str:
+        nonlocal cursor
+        if cursor + 1 >= len(argv) or argv[cursor] != flag:
+            _fail(f"{path}.argv[{cursor}]", f"must be {flag}")
+        value = argv[cursor + 1]
+        if not value or value.startswith("--"):
+            _fail(f"{path}.argv[{cursor + 1}]", f"must be the value for {flag}")
+        cursor += 2
+        return value
+
+    command_provider = required_value("--provider")
+    command_language = required_value("--language")
+    project_root = required_value("--project-root")
+    if command_provider != provider:
+        _fail(f"{path}.argv", "provider flag must match provider_observation.provider")
+    if command_language != language:
+        _fail(f"{path}.argv", "language flag must match provider_observation.language")
+    if command_provider not in _PARSER_PROVIDERS:
+        _fail(f"{path}.argv", "parser provider flag is not recognized")
+    if (command_provider, command_language) not in {
+        ("cx", "python"),
+        ("omnibus", "python"),
+        ("omnibus", "typescript"),
+    }:
+        _fail(f"{path}.argv", "parser provider/language pair is not supported")
+    if "\\" in project_root:
+        _fail(f"{path}.argv", "project root must use POSIX separators")
+    canonical_project_root = PurePosixPath(project_root)
+    if (
+        not canonical_project_root.is_absolute()
+        or canonical_project_root.as_posix() != project_root
+        or ".." in canonical_project_root.parts
+    ):
+        _fail(f"{path}.argv", "project root must be an absolute normalized path")
+
+    values: dict[str, list[str]] = {"--path": [], "--root": [], "--exclude": []}
+    order = {"--path": 0, "--root": 1, "--exclude": 2}
+    last_order = 0
+    case_sensitive: bool | None = None
+    while cursor < len(argv):
+        flag = argv[cursor]
+        if flag == "--case-sensitive":
+            if cursor != len(argv) - 2 or case_sensitive is not None:
+                _fail(f"{path}.argv[{cursor}]", "case policy must be the single final flag")
+            rendered = argv[cursor + 1]
+            if rendered not in {"true", "false"}:
+                _fail(f"{path}.argv[{cursor + 1}]", "case policy must be true or false")
+            case_sensitive = rendered == "true"
+            cursor += 2
+            continue
+        if flag not in values:
+            _fail(f"{path}.argv[{cursor}]", "unknown or misplaced parser provider flag")
+        if cursor + 1 >= len(argv):
+            _fail(f"{path}.argv[{cursor}]", "flag requires a value")
+        flag_order = order[flag]
+        if flag_order < last_order:
+            _fail(f"{path}.argv[{cursor}]", "parser provider flags are misordered")
+        last_order = flag_order
+        rendered = argv[cursor + 1]
+        if not rendered or rendered.startswith("--"):
+            _fail(f"{path}.argv[{cursor + 1}]", f"must be the value for {flag}")
+        values[flag].append(rendered)
+        cursor += 2
+    if case_sensitive is None:
+        _fail(f"{path}.argv", "missing final --case-sensitive flag")
+
+    parsed_scope = {
+        "paths": values["--path"],
+        "case_sensitive": case_sensitive,
+        "roots": values["--root"],
+        "exclusions": values["--exclude"],
+    }
+    _validate_scope(parsed_scope, f"{path}.scope", paths_nonempty=False)
+    if dict(parsed_scope) != dict(scope):
+        _fail(f"{path}.argv", "parsed command scope must exactly match provider_observation.scope")
+    if command.get("output_format") != "canonical-jsonl":
+        _fail(f"{path}.output_format", "parser providers require canonical-jsonl")
+    return canonical_sha256(
+        {
+            "provider": command_provider,
+            "language": command_language,
+            "project_root": project_root,
+            "scope": parsed_scope,
+            "command": dict(command),
+        }
+    )
+
+
 def validate_provider_observation(document: Any) -> Mapping[str, Any]:
     observation = _mapping(document, "provider_observation")
     _version(observation, "provider_observation")
+    provider_kind = _text(
+        observation.get("provider_kind"),
+        "provider_observation.provider_kind",
+    )
+    fields = (
+        "provider",
+        "language",
+        "provider_kind",
+        "scope",
+        "command",
+        "tool_version",
+        "exit",
+        "raw",
+        "status",
+        "failure",
+    )
+    if provider_kind == _PARSER_PROVIDER_KIND:
+        fields = (*fields, "completion")
     _required(
         observation,
-        (
-            "provider",
-            "language",
-            "provider_kind",
-            "scope",
-            "command",
-            "tool_version",
-            "exit",
-            "raw",
-            "status",
-            "failure",
-        ),
+        fields,
         "provider_observation",
     )
     provider = _text(observation["provider"], "provider_observation.provider")
-    _text(observation["language"], "provider_observation.language")
-    _text(observation["provider_kind"], "provider_observation.provider_kind")
-    _text(observation["tool_version"], "provider_observation.tool_version")
+    language = _text(observation["language"], "provider_observation.language")
+    tool_version = _text(observation["tool_version"], "provider_observation.tool_version")
+    if tool_version.startswith("analysis-v") and provider_kind != _PARSER_PROVIDER_KIND:
+        _fail(
+            "provider_observation.provider_kind",
+            "analysis detector versions require the parser-backed observation contract",
+        )
 
     command = _mapping(observation["command"], "provider_observation.command")
     _required(
@@ -253,7 +377,7 @@ def validate_provider_observation(document: Any) -> Mapping[str, Any]:
     if status not in PROVIDER_STATUSES:
         _fail("provider_observation.status", f"must be one of {sorted(PROVIDER_STATUSES)}")
     failure = observation["failure"]
-    _validate_scope(
+    scope = _validate_scope(
         observation["scope"],
         "provider_observation.scope",
         paths_nonempty=status == "completed",
@@ -288,6 +412,75 @@ def validate_provider_observation(document: Any) -> Mapping[str, Any]:
             _fail("provider_observation.failure.provider", "must match the observation provider")
         if exit_state["classification"] != "tool_failure":
             _fail("provider_observation.exit", "failed observation must be a tool failure")
+
+    if provider_kind == _PARSER_PROVIDER_KIND:
+        binding = parser_command_binding(
+            command,
+            provider=provider,
+            language=language,
+            scope=scope,
+        )
+        completion = observation["completion"]
+        if status == "failed":
+            if completion is not None:
+                _fail(
+                    "provider_observation.completion",
+                    "failed parser observation must not carry completion evidence",
+                )
+            return observation
+        completed = _mapping(completion, "provider_observation.completion")
+        _version(completed, "provider_observation.completion")
+        _required(
+            completed,
+            (
+                "schema_version",
+                "type",
+                "provider",
+                "language",
+                "finding_count",
+                "stdout_sha256",
+                "stdout_bytes",
+                "stderr_sha256",
+                "stderr_bytes",
+                "command_scope_sha256",
+            ),
+            "provider_observation.completion",
+        )
+        if completed["type"] != "provider_completion":
+            _fail("provider_observation.completion.type", "must identify provider_completion")
+        if completed["provider"] != provider:
+            _fail("provider_observation.completion.provider", "must match the observation provider")
+        if completed["language"] != language:
+            _fail("provider_observation.completion.language", "must match the observation language")
+        finding_count = _integer(
+            completed["finding_count"],
+            "provider_observation.completion.finding_count",
+        )
+        if completed["stdout_sha256"] != raw["stdout_sha256"]:
+            _fail("provider_observation.completion.stdout_sha256", "must match captured stdout")
+        if completed["stdout_bytes"] != raw["stdout_bytes"]:
+            _fail("provider_observation.completion.stdout_bytes", "must match captured stdout")
+        if completed["stderr_sha256"] != raw["stderr_sha256"]:
+            _fail("provider_observation.completion.stderr_sha256", "must match captured stderr")
+        if completed["stderr_bytes"] != raw["stderr_bytes"]:
+            _fail("provider_observation.completion.stderr_bytes", "must match captured stderr")
+        if raw["stdout_bytes"] == 0:
+            _fail("provider_observation.raw.stdout_bytes", "completed parser stdout must not be empty")
+        if raw["stderr_bytes"] != 0 or raw["stderr_sha256"] != _EMPTY_SHA256:
+            _fail("provider_observation.raw", "completed parser observation must have empty stderr")
+        if completed["command_scope_sha256"] != binding:
+            _fail(
+                "provider_observation.completion.command_scope_sha256",
+                "must bind the exact parsed command and observation scope",
+            )
+        if exit_state["code"] != 0:
+            _fail("provider_observation.exit.code", "completed parser process must exit zero")
+        expected_classification = "diagnostics" if finding_count else "clean"
+        if exit_state["classification"] != expected_classification:
+            _fail(
+                "provider_observation.exit.classification",
+                "must agree with parser completion finding_count",
+            )
     return observation
 
 
@@ -516,6 +709,15 @@ def validate_manifest(document: Any, *, allow_prototype: bool = False) -> Mappin
                 f"manifest.providers[{index}].scope",
                 "must exactly match manifest scope",
             )
+        if observation["provider_kind"] == _PARSER_PROVIDER_KIND:
+            observed_count = sum(
+                row["provenance"]["observation_index"] == index for row in findings
+            )
+            if observation["completion"]["finding_count"] != observed_count:
+                _fail(
+                    f"manifest.providers[{index}].completion.finding_count",
+                    "must match findings whose provenance references this observation",
+                )
     identifiers = [row["id"] for row in findings]
     if len(identifiers) != len(set(identifiers)):
         _fail("manifest.findings", "duplicate finding id")
