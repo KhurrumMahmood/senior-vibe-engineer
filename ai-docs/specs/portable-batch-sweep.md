@@ -309,12 +309,12 @@ WP5 verification must assert ADR 0003 still points to AC-8.9.
 
 ### Slice 3 — public commands, digest, diff, and ratchet (WP1/WP2 ready)
 
-- [ ] IM-7: Implement CLI help and `scan`, `digest`, `diff`, and `ratchet` with
+- [x] IM-7: Implement CLI help and `scan`, `digest`, `diff`, and `ratchet` with
   deterministic ordering, typed exit codes, atomic output, 64-KiB/50-finding
   digest bounds, correct sets/metrics, auditable accepts, and automatic
   tighten-on-improvement that never runs after a partial scan.
   <!-- spec:portable-batch-sweep::IM-7 -->
-- [ ] IM-8: Prove the library and CLI produce the same canonical artifacts and
+- [x] IM-8: Prove the library and CLI produce the same canonical artifacts and
   that no runtime path depends on prototype evidence, current working directory,
   an activated shell, or machine-local tool lookup order.
   <!-- spec:portable-batch-sweep::IM-8 -->

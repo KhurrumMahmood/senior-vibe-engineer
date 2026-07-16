@@ -5,6 +5,10 @@ Evidence capture date: 2026-07-16
 Functional implementation revision:
 `d2654f3f1183f2679d66dc0dc35833c654e690c7`.
 
+Main-line integration plus the stale-semantic-hash rejection repair is exact at
+`877d88eb03b1b161d3773fb9da39dd70db9c8477`. The content addresses below bind
+that repaired revision.
+
 This record covers only IM-7 and IM-8. It advances AC-5.1, AC-5.3, AC-5.4,
 and the bounded-artifact part of AC-5.5, but it does not claim any master WP5
 acceptance criterion complete. Judgment gates, status/queue consumers, packet
@@ -96,8 +100,8 @@ Runtime identity: GPT-5 Codex. Model variant and effort setting were not exposed
 |---|---:|---|
 | `scripts/sweep/__init__.py` | 2,224 | `57a2be119632424bb99144922134899e1f661c74055762bf518d498a746f115d` |
 | `scripts/sweep/__main__.py` | 6,497 | `0ff70a581cb640b5f1b77f160167ca63ea2f3694db16d9b89800f38c2e09e252` |
-| `scripts/sweep/commands.py` | 10,168 | `81e00e3aaaafe8d71b402dc9b3577c0dc2b34dffb3b67078cbb978ced29196a4` |
-| `tests/test_sweep_cli.py` | 12,134 | `0f00bafe3d1488197ff0dbb4d1a5d04feec4b7ae6e58e7d74e701f7685f2924d` |
+| `scripts/sweep/commands.py` | 10,191 | `9adc9d858fbb1d7e676d592da3054754aab2fa87f4a83b46f086afa5d8532b62` |
+| `tests/test_sweep_cli.py` | 12,385 | `7916ff466c8385a81e9e61563074ce6e1103e31a819214b8dbed13e1bb96892c` |
 
 Any subsequent content change invalidates the hashes in this record.
 
