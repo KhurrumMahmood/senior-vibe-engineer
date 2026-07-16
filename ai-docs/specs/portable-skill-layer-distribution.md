@@ -9,6 +9,7 @@ code_roots:
   - scripts/_lib/skill_catalog.py
   - scripts/_lib/binding_loader.py
   - scripts/_lib/skill_installer.py
+  - scripts/_lib/skill_dispatch.py
   - scripts/installer_selection.py
   - scripts/distribution_probe.py
   - scripts/skill_installer.py
@@ -22,6 +23,7 @@ code_roots:
   - tests/test_extract_enum_binding.py
   - tests/test_distribution_surfaces.py
   - tests/test_skill_installer.py
+  - tests/test_skill_dispatch.py
   - tests/test_wp3_move_gate.py
   - tests/test_core_framework_leakage.py
 ---
@@ -128,6 +130,19 @@ The following text is preserved verbatim from the master plan.
   compatibility mode. Substantial routed work uses a fresh no-context worker
   when available, with selected-only parent execution as the context/authority
   or no-sub-agent fallback.
+- “Loaded only after deterministic routing” does not exclude ADR 0042's
+  explicit named-activation path. The two paths are disjoint: routed execution
+  reads selected content directly from the store without changing discovery;
+  explicit activation changes the manifest-owned public discovery set and then
+  preserves the surface's unchanged invocation form.
+- `which-shape` remains a shape recommender and `which-skill` remains a skill
+  ranker. Neither is silently redefined as an executor. The versioned
+  dispatcher owns the exact-one selection, clarification, direct-work, error,
+  pack, lane, and result decisions.
+- The router-only count is the toolkit-owned discovery set. Host-owned
+  instructions remain untouched and are recorded separately. Bootstrap
+  headers that the surface injects outside a worker pack are not pack members
+  but must be enumerated in context evidence.
 
 ## Architecture
 
@@ -163,6 +178,91 @@ bounded dispatch record containing the selected canonical name, source and
 rendered hashes, bindings, task-local inputs, execution lane (`fresh-worker` or
 `selected-only-parent`), and result-artifact hash. No dispatch pack may contain
 metadata or bodies for an unselected skill.
+
+ADR 0042's surface table is normative. The bundle records the exact public
+identity and generated path for each surface, including Codex's
+`engineering-skills:` namespace. Augment, Cursor, and Gemini must prove the
+literal `use skill <public-name>` explicit request selects an activated
+instruction; they cannot substitute file existence for invocation evidence.
+For each portfolio/mode/surface, evidence records both the exact sorted
+canonical procedure set and exact sorted public-name set including aliases.
+Host-owned discoveries are a third, preserved set and never contribute to a
+toolkit count.
+
+The bootstrap embeds a manifest-relative locator and expected manifest,
+bundle, inventory, registry, profile, and router hashes. The dispatcher reads
+only that manifest-selected catalog, uses the pinned normalization/scorer/
+threshold, and takes an explicit root or ordered root set. It returns exactly
+`selected`, `clarification_required`, `proceed_directly`, or `error`.
+Automatic selection requires one compatible candidate strictly above every
+runner-up and above threshold. A tie, low-confidence shape, or simultaneous
+multi-procedure need asks one user question without loading candidate bodies.
+`proceed_directly` loads nothing; all invalid trust/profile/binding states are
+errors. One canonical procedure can carry an independently ordered ADR 0041
+binding sequence for each selected root. Sequential loop skills receive
+separate selections and packs.
+
+Activation records have exact shape `{public_name, canonical_target}`.
+Persistent records are cumulative, project-scoped, and idempotent; temporary
+records require an invocation id and recoverably disappear at every terminal
+outcome. Alias activation preserves the alias as the discovered name while
+validating the canonical target. Router execution never creates an activation
+record. The default public set is the two routers; named mode adds exactly the
+requested public records; full discovery is the exact selected canonical
+portfolio plus all aliases. Activating the canonical name and one alias creates
+two public entries backed by one stored procedure by design.
+
+The capability registry must declare verified or unsupported fresh-worker
+support per surface, including launcher, version range, zero-conversation-turn
+proof, injection, cancellation, result, and enforceable budget mechanisms.
+Catalog inventory rows declare `execution_class: inline|substantial` and any
+parent requirement. A substantial task uses a verified worker unless the
+record has one ADR 0042 fallback reason. Runtime launch/capacity/timeout/
+cancellation/budget failures never invent parent authority; they fail until
+the user explicitly authorizes a retry or parent execution. A surface unable
+to inject one selected skill remains unsupported and cannot turn on full
+discovery implicitly.
+
+`DispatchPackV1` and `DispatchResultV1` use canonical JSON and ADR 0042's exact
+131,072/65,536-byte ceilings. Packs include policy/schema versions, canonical
+and public names, content hashes, per-root ordered bindings, normalized task
+arguments, allowlisted non-skill dependencies, lane/reason, and budgets.
+Results use the five normative statuses and out-of-band content-addressed
+artifacts. The default runtime policy is one worker, depth one, one attempt,
+1,200 seconds, 32,768 total model tokens, 8,192 output tokens, no detachment,
+and no worker activation, redispatch, or child spawn. Oversize or unenforceable
+budgets fail visibly. Parent fallback uses the identical pack/result schema.
+
+The lifecycle manifest implements ADR 0042's complete state tuple and separate
+ownership for store, bootstrap, named/full projections, activation records,
+journal, and generated links. One lifecycle lock and generation transaction
+covers all requested surfaces. Success requires post-commit native discovery
+on each through the adapter's declared offline non-model check; a surface
+without that check is unsupported for transactional lifecycle acceptance. A
+separate pinned-runtime/model invocation probe remains required for support but
+is outside the deterministic lifecycle command. Any failure or interrupted
+command restores the exact previous state before another command runs.
+Update/downgrade preserves only still-valid
+activations, rollback retains exactly the current and previous validated
+generation, and garbage collection removes only unmodified, unreferenced,
+owned objects. Modified owned content stops the entire operation. Host
+symlinks/escapes fail; an owned internal link is permitted only when manifest-
+hashed, contained, and discovery-proven for that surface.
+
+Migration inventories every supported legacy ambient layout and prior toolkit
+manifest, adopting/removing only byte-identical known toolkit content. Modified
+known or host/unknown content stops with a diff, and router-only cannot pass
+while a legacy toolkit header remains ambient. Compatibility ranges cover the
+manifest reader, bundle, catalog, routers, delegation policy, and surface.
+Unsupported versions and side-by-side versions in one namespace fail closed;
+explicit local-bundle downgrade uses the same transaction and validation.
+
+Every deterministic lifecycle, activation, catalog, and routing operation is
+network-, package-manager-, download-, and model-call-free under a denied-
+network harness. Persisted records contain hashes/lengths and routing metadata,
+not raw prompts, conversation, source/result bodies, or credentials. Raw
+artifacts are ephemeral unless the user explicitly requests mode-`0600` local
+retention with a deletion policy. Canary-secret fixtures enforce the boundary.
 
 ## Characterization requirements
 
@@ -302,7 +402,16 @@ evidence contract in the same logical change.
   preserves the exact AR-1 applicable set. For every portfolio, separately
   snapshot the non-discovered catalog contents and default activation set;
   default activation is exactly `which-shape` plus `which-skill`, with no other
-  skill header exposed.
+  skill header exposed. For every surface and portfolio also snapshot the exact
+  sorted canonical-procedure set, exact sorted public-name set including
+  aliases, and preserved host-owned discovery set in router-only, initial named
+  activation of a non-router, named alias activation, cumulative canonical+
+  alias activation, and full-discovery modes. Canonical router-only count is
+  two; initial non-router named activation count is three; all other counts are
+  derived from and must equal the checked-in exact sets rather than a loose
+  total. Pin ADR 0042's public syntax/path/namespace table, including Codex's
+  `engineering-skills:` namespace and literal instruction requests on
+  instruction-backed surfaces.
   <!-- spec:portable-skill-layer-distribution::IM-13 -->
 - [ ] IM-14: **Offline bundle contract.** Add a checksummed versioned manifest
   containing inventory/registry hashes, owned paths and hashes, projections,
@@ -310,6 +419,19 @@ evidence contract in the same logical change.
   activation mode, explicitly activated names, and delegation/fallback policy.
   Base install performs no network or package-manager action and defaults to
   router-only activation; `full-discovery` requires an explicit manifest mode.
+  The bootstrap embeds the manifest-relative trusted catalog locator and all
+  expected hashes; ranking declares task normalization, scorer/threshold
+  version, root semantics, and the four dispatcher outcomes. Manifest schema
+  pins the surface activation contract, `{public_name, canonical_target}`
+  activation records, temporary invocation ids, per-surface verified/
+  unsupported worker capability, catalog `execution_class`/parent
+  requirements, allowed fallback reasons, and `DispatchPackV1`/
+  `DispatchResultV1`. Enforce the exact 131,072-byte pack, 65,536-byte result,
+  one-worker/depth-one/one-attempt, 1,200-second, 32,768-total-token,
+  8,192-output-token, no-detached/no-child/no-redispatch defaults. Persist only
+  hashes, lengths, routing metadata, budgets, status, and artifact hashes; raw
+  task/conversation/source/result/credential content is not manifest or
+  telemetry data.
   <!-- spec:portable-skill-layer-distribution::IM-14 -->
 - [ ] IM-15: **Transactional lifecycle.** Stage, validate, and atomically
   install/update; verify all owned content; uninstall only unmodified owned
@@ -318,7 +440,24 @@ evidence contract in the same logical change.
   staging without host mutation. Prove every lifecycle command idempotent.
   Activation/deactivation and router-only↔full-discovery transitions use the
   same ownership/collision/rollback guarantees and never copy a procedure into
-  an automatically discovered path without explicit activation.
+  an automatically discovered path without explicit activation. Implement the
+  full lifecycle tuple and separate ownership classes from ADR 0042. One
+  project lock and recovery journal cover the complete requested surface set;
+  no success is published before native discovery agrees on every surface, and
+  startup recovery restores the exact prior manifest/tree/discovery/
+  activations after any interruption. Add cumulative persistent activation,
+  invocation-scoped temporary activation and terminal cleanup, exact
+  deactivation, explicit local-bundle downgrade and rollback, update-time
+  activation/alias/binding validation, current+previous generation retention,
+  owned-reference garbage collection, all-or-nothing modified-owned handling,
+  same-namespace side-by-side rejection, and the manifest-contained generated-
+  link policy. Characterize and migrate every supported pre-amendment ambient
+  layout and prior manifest: adopt/retire only known byte-identical toolkit
+  content; modified known or host/unknown content stops with a diff; no
+  router-only success may leave a legacy toolkit header ambient. Pin reader/
+  bundle/catalog/router/delegation/surface compatibility ranges. Every
+  deterministic lifecycle, activation, catalog, and routing command runs under
+  denied network and proves no package manager, download, or model call.
   <!-- spec:portable-skill-layer-distribution::IM-15 -->
 - [ ] IM-16: **Cold-host matrix.** Exercise v1→v2→uninstall and repeated
   operations in isolated `HOME`/XDG/Codex roots for all four AR-10 fixtures;
@@ -326,7 +465,19 @@ evidence contract in the same logical change.
   inspect actual discovery after each lifecycle step: router-only exposes two
   headers, a named activation exposes only that additional skill, and explicit
   full-discovery exposes the selected portfolio without changing the catalog
-  store or host-owned files.
+  store or host-owned files. Run the exact-set matrix from IM-13 through
+  activate-repeat/deactivate-repeat, canonical+alias cumulative activation,
+  temporary success/failure/cancellation/startup recovery, router-only↔named↔
+  full transitions, v1→v2 with preserved and stale activation, compatible
+  downgrade, rollback, interrupted multi-surface commit, concurrent-lock
+  rejection, modified-owned stop, host namespace collision, host symlink/
+  escape, allowed owned-link discovery, and uninstall. Native evidence must
+  enumerate the expected set; where a runtime has no list command it must
+  positively invoke every expected public name and negatively invoke an
+  unselected name. That separately recorded invocation probe is outside the
+  denied-network/model lifecycle command, performs no lifecycle mutation, and
+  cannot make a failed lifecycle check pass. Structural output cannot satisfy
+  any of the five surfaces.
   <!-- spec:portable-skill-layer-distribution::IM-16 -->
 
 ### Slice 7 — First value and release evidence
@@ -339,12 +490,30 @@ evidence contract in the same logical change.
   route through `which-shape`/`which-skill`, then run the selected skill in a
   fresh no-context worker with a bounded task pack. Also prove the selected-only
   parent fallback on a no-sub-agent fixture. Neither lane may receive an
-  unrelated skill header or body.
+  unrelated skill header or body. Exercise all dispatcher outcomes: strict
+  unique winner, user-confirmed tie/low confidence, `proceed_directly`, and
+  trust/profile/binding `error`. Prove per-root ordered bindings for a mixed-
+  root single-skill selection and separate serial packs when two procedures are
+  user-confirmed. Worker evidence binds the registry capability declaration,
+  zero conversation turns, enumerated platform/bootstrap context, exact pack/
+  result bytes and hashes, budgets, result status, and absence of unselected
+  skill content. Parent fallback must use one allowed reason and the identical
+  schemas. Spawn/timeout/capacity/cancellation/budget failures must not fall
+  back or retry without explicit user confirmation. Oversize, recursion,
+  redispatch, activation, child-spawn, detached-work, and unenforceable-budget
+  attacks fail. A canary secret is absent from manifest, logs, evidence,
+  stdout, and errors; retained raw artifacts require explicit mode-`0600` local
+  retention and a deletion policy.
   <!-- spec:portable-skill-layer-distribution::IM-17 -->
 - [ ] IM-18: **Reference and regression gate.** Require clean metadata,
   contracts/index, intent/artifact drift, decision links, catalog references,
   focused tests, Ruff, and the full suite. Evidence is content-addressed and
-  generated checks have read-only stale detection.
+  generated checks have read-only stale detection. Also require read-only
+  surface-contract, catalog-locator, dispatcher-schema, privacy, compatibility-
+  matrix, migration-inventory, activation-state, recovery-journal, denied-
+  network, and exact-discovery-set checks. Generated evidence cannot retain raw
+  task/result content or self-report freshness, worker capability, discovery,
+  budget enforcement, or network denial.
   <!-- spec:portable-skill-layer-distribution::IM-18 -->
 
 ## Code and fixture surface
@@ -360,12 +529,15 @@ evidence contract in the same logical change.
 | `scripts/_lib/skill_catalog.py` | inventory discovery and placement validation |
 | `scripts/_lib/binding_loader.py` | per-profile-root selection and execution evidence |
 | `scripts/_lib/skill_installer.py`, `scripts/skill_installer.py` | offline bundle and transactional lifecycle |
+| `scripts/_lib/skill_dispatch.py` | trusted catalog locator, exact-one dispatcher, pack/result schemas, worker/fallback policy |
 | `scripts/distribution_probe.py` | projection plus separate runtime-evidence verification |
 | `scripts/wp3_move_gate.py` | ADR 0024/0028 safety-only pre-move gate |
 | `scripts/lint/no_core_framework_leakage.py` | diff/all-mode content and frontmatter guard |
 | `scripts/skill_meta.py`, `scripts/_lib/skill_activation.py`, `scripts/manifest.py` | consume authoritative inventory where readiness/selection matters |
 | `tests/fixtures/wp3/hosts/{core-only,typescript-react,django,mixed}` | cold hosts, ownership sentinels, collisions, lifecycle states |
 | `tests/fixtures/wp3/surfaces/{claude-code,codex,augment,cursor,gemini}` | exact-version projection and runtime evidence fixtures |
+| `tests/fixtures/wp3/activation/{legacy-ambient,prior-manifest,collisions,symlinks,interrupted}` | migration, ownership, recovery, and version-transition fixtures |
+| `tests/fixtures/wp3/dispatch/{unique,tie,no-match,error,mixed-root,privacy}` | dispatcher outcomes, per-root packs, fallback, bounds, and canary fixtures |
 | `tests/fixtures/wp3/extract-enum` | pinned input, raw output, semantic oracle, invalid form |
 | `tests/fixtures/wp3/move-gate` | retired prose and broken self-anchor negative fixture |
 | `tests/fixtures/wp3/bundles/{v1,v2,corrupt}` | update, rollback, corruption, and idempotence cases |
@@ -388,8 +560,8 @@ verifier recomputes hashes and outcomes; it does not trust a boolean `passed`.
 | AC-3.2 | five exact-version runtime discovery records, unchanged-name/alias outcomes, contracts/catalog/index reference checks |
 | AC-3.3 | per-root selection JSON with ordered overlays and negative ambiguity/incompatibility/root-leak outputs |
 | AC-3.4 | pre/post semantic oracle hashes, normalization report, final Django proposal output, existing test results |
-| AC-3.5 | three name/content/selection snapshots and negative cross-layer leakage scans |
-| AC-3.6 | lifecycle tree/ownership hashes, rollback/collision diffs, idempotence runs, timed useful-run transcript and deny-read proof |
+| AC-3.5 | three name/content/selection snapshots, exact canonical/public/alias/host discovery sets for every mode and surface, and negative cross-layer/unselected-content scans |
+| AC-3.6 | lifecycle state/tree/ownership hashes, migration/version/rollback/collision/recovery diffs, idempotence and denied-network runs, dispatcher/pack/result/fallback/budget/privacy records, timed useful-run transcript, canary-secret absence, and deny-read proof |
 | AC-3.7 | exact two-band commands/output, substantive review, proposal/self-anchor inventory, pins, rewrite/unhandled report, import-and-asset smoke, full-diff scan, non-rewrite acknowledgment, fired-rule lesson, blocking fixture |
 
 Runtime discovery evidence from a different machine must additionally carry
@@ -409,6 +581,7 @@ must fail on stale generated artifacts rather than silently rewriting them.
   tests/test_extract_enum_binding.py \
   tests/test_distribution_surfaces.py \
   tests/test_skill_installer.py \
+  tests/test_skill_dispatch.py \
   tests/test_wp3_move_gate.py \
   tests/test_capability_consumers.py \
   tests/test_skill_activation.py \
@@ -421,7 +594,16 @@ must fail on stale generated artifacts rather than silently rewriting them.
   --bundle tests/fixtures/wp3/bundles/v2
 .venv/bin/python scripts/skill_installer.py exercise \
   --fixtures tests/fixtures/wp3/hosts \
-  --bundle tests/fixtures/wp3/bundles/v2
+  --bundle tests/fixtures/wp3/bundles/v2 \
+  --deny-network
+.venv/bin/python scripts/skill_installer.py migration-check \
+  --fixtures tests/fixtures/wp3/activation \
+  --bundle tests/fixtures/wp3/bundles/v2 \
+  --deny-network
+.venv/bin/python scripts/skill_installer.py dispatch-check \
+  --fixtures tests/fixtures/wp3/dispatch \
+  --bundle tests/fixtures/wp3/bundles/v2 \
+  --deny-network
 .venv/bin/python scripts/distribution_probe.py verify-matrix \
   --fixtures tests/fixtures/wp3/surfaces \
   --evidence reports/portable-skill-ecosystem-completion/WP3/surface-matrix.json
@@ -478,11 +660,11 @@ produces both bands.
 | Criterion | Attacks that must fail |
 |---|---|
 | AC-3.1 | missing/duplicate/unknown skill; two layers; N=2 domain; unregistered domain; Django/Celery in prose, link, or code fence; case variant; inline compatibility exception; dishonest frontmatter; core text copied into binding; missing placement question |
-| AC-3.2 | projection exists but runtime cannot discover it; omitted surface; wrong version; source/hash-only instruction with no procedure; renamed trigger without alias; alias loop/collision/stale target; dangling contract/catalog path |
+| AC-3.2 | projection exists but runtime cannot discover/invoke it; omitted surface; wrong version; wrong public syntax/path/namespace; Codex loses `engineering-skills:`; instruction surface treats file presence as invocation; source/hash-only instruction with no procedure; renamed trigger without alias; alias loop/collision/stale or changed target; dangling contract/catalog path |
 | AC-3.3 | global mixed-stack selection; first-installed winner; two same-precedence candidates; incompatible explicit choice; zero required match silently falls back; Vite inferred as React; malformed/tampered profile; root A binding selected for root B; evidence omits overlay |
 | AC-3.4 | comparator normalizes a missing literal/site/risk; Django remains in core; wire values, ordering, or case variants change; invalid routing starts passing; only collector intermediate output is compared; absent binding passes |
-| AC-3.5 | snapshots check counts but not names/content; inferred legacy core leaks framework content; TypeScript portfolio is empty or includes Django; Django loses an AR-1 name; mixed-root selection broadens globally |
-| AC-3.6 | host file overwritten; traversal/symlink escape; corrupted checksum; partial update; retired owned path remains; modified owned file overwritten/deleted; second install/uninstall changes state; hidden network access; timing excludes setup; starter reads kernel |
+| AC-3.5 | snapshots check counts but not exact canonical/public/alias/host sets; router-only exposes an alias or third toolkit header; named activation exposes canonical and alias unexpectedly; full discovery omits aliases; host skill counted as toolkit; structural file counted as runtime discovery; inferred legacy core leaks framework content; TypeScript portfolio is empty or includes Django; Django loses an AR-1 name; mixed-root selection broadens globally |
+| AC-3.6 | ambient scan or checkout-relative catalog lookup; unverified hash/locator; ranking tie broken by order; shape treated as procedure; no-match loads a body; router error becomes direct work; alias activation changes public name; temporary activation survives a terminal outcome; routed work changes discovery; undeclared/forged worker capability; disallowed fallback; launch failure silently falls back/retries; inherited conversation; unselected skill/dependency in pack; oversize/truncated pack/result; recursion/redispatch/activation/child/detached worker; unenforced deadline/token budget; raw prompt/result/secret in persisted output; canary leak; host file overwritten; traversal/host symlink/escape; corrupted checksum; partial multi-surface update; missing lifecycle lock/recovery; retired owned path remains; modified owned file overwritten/deleted; stale activation silently dropped/remapped; legacy ambient header remains; unknown legacy content adopted; incompatible reader/surface silently uses full discovery; side-by-side namespace; second lifecycle operation changes state; hidden network/package/model/download; timing excludes setup; starter reads kernel |
 | AC-3.7 | generic noisy `avoid:`; only one findings band checked; identifiers renamed while prose stays stale; unhandled self-anchor omitted; import smoke never reads the asset; staged-only rather than full-diff scan; directory accepted where file required; no fired-rule lesson; path moved before gate; ADR status/embodiment changed |
 
 ## Completion risks and stop conditions
@@ -490,6 +672,14 @@ produces both bands.
 - **Cursor/Augment discovery:** if exact-version tool-observed discovery cannot
   be produced, structural projection work may land but WP3 and AC-3.2 remain
   open. No simulation waiver exists in this spec.
+- **Routed activation:** if any surface lacks an exact public identity,
+  manifest-relative trusted locator, enforceable worker declaration, selected-
+  only injection path, native exact-set proof, or safe explicit-activation
+  path, router-only work for that surface may not claim completion and may not
+  fall back to full discovery.
+- **Legacy migration:** if an ambient entry cannot be proven byte-identical to
+  a known toolkit release, migration stops and leaves it host-owned. No
+  ownership guess or partial router-only success is permitted.
 - **Tracked moves:** if IM-3/IM-4 are not already landed and green, no
   foundation or exemplar tracked-path move may proceed. Keeping canonical
   roots flat is the preferred WP3 course.
