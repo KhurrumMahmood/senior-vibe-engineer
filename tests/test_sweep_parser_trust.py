@@ -33,6 +33,7 @@ from sweep.provider_process import DetectionIsolationError, install_detection_is
 install_detection_isolation()
 attempts = [
     lambda: socket.getaddrinfo('example.com', 443),
+    lambda: socket.getnameinfo(('127.0.0.1', 80), 0),
     lambda: socket.socket().connect(('127.0.0.1', 9)),
     lambda: socket.socket().connect_ex(('127.0.0.1', 9)),
     lambda: socket.socket().sendto(b'x', ('127.0.0.1', 9)),

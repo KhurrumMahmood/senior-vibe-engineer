@@ -25,6 +25,7 @@ def _forbidden_network(*_args: object, **_kwargs: object) -> NoReturn:
 def install_detection_isolation() -> None:
     """Deny network access and model-provider imports inside the detector child."""
     socket.getaddrinfo = _forbidden_network
+    socket.getnameinfo = _forbidden_network
     socket.socket.connect = _forbidden_network
     socket.socket.connect_ex = _forbidden_network
     socket.socket.sendto = _forbidden_network
