@@ -457,7 +457,9 @@ The parser-backed block is forbidden before IM-12 passes. The live native-tool
 matrix is explicit and must not be replaced by saved outputs:
 
 ```bash
-.venv/bin/python -m pytest -q -m sweep_live tests/test_sweep_pipeline.py
+.venv/bin/python -m pytest -q -m sweep_live \
+  tests/test_sweep_native_shims.py \
+  tests/test_sweep_live_pipeline.py
 .venv/bin/python -m pytest -q tests/test_render_status.py
 .venv/bin/ruff check \
   scripts/sweep scripts/sweep_shims.py scripts/_lib/finding_identity.py \
