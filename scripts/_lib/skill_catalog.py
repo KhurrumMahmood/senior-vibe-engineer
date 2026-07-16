@@ -23,6 +23,7 @@ DEFAULT_INVENTORY_PATH = (
     DEFAULT_SKILLS_DIR / "_common" / "skill-catalog-inventory.yml"
 )
 SCHEMA_VERSION = 1
+# spec:portable-skill-layer-distribution::IM-1
 READINESS_STATES = frozenset(
     {
         "inventory-only",

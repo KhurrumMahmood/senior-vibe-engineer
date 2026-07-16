@@ -207,6 +207,7 @@ def cmd_lint(args, skills_dir: Path) -> int:
             new_contract_skills.append(sm.parent.name)
         all_errors.extend(errs)
         all_warnings.extend(warns)
+    # spec:portable-skill-layer-distribution::IM-2
     inventory_path = args.catalog_inventory
     if inventory_path is None and skills_dir.resolve() == DEFAULT_SKILLS_DIR.resolve():
         inventory_path = DEFAULT_INVENTORY_PATH

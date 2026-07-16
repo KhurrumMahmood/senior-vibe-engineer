@@ -209,12 +209,12 @@ evidence contract in the same logical change.
 
 ### Slice 1 — Catalog and placement contract
 
-- [ ] IM-1: **Authoritative inventory reader.** Add
+- [x] IM-1: **Authoritative inventory reader.** Add
   `.claude/skills/_common/skill-catalog-inventory.yml` and a shared reader that
   validates exact discovered-skill coverage, registered layer/binding IDs,
   readiness, one-layer placement, N=1/≥3 rules, and AR-3 membership.
   <!-- spec:portable-skill-layer-distribution::IM-1 -->
-- [ ] IM-2: **Honest authoring contract.** Extend skill metadata validation and
+- [x] IM-2: **Honest authoring contract.** Extend skill metadata validation and
   `/plan-skill` placement questions without forcing deferred WP8 rows to claim
   completed migration. <!-- spec:portable-skill-layer-distribution::IM-2 -->
 
