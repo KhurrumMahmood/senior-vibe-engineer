@@ -98,14 +98,14 @@ Completion rules:
 
 ## Progress summary
 
-Last updated: 2026-07-16 by Codex (WP4 verification failed; WP2 routing/perimeter slice complete)
+Last updated: 2026-07-16 by Codex (WP2 implemented; independent verification pending)
 
 | State | Count |
 |---|---:|
 | not_started | 7 |
-| in_progress | 2 |
+| in_progress | 1 |
 | blocked | 0 |
-| implemented | 0 |
+| implemented | 1 |
 | verified | 2 |
 
 ## Master tracker
@@ -114,7 +114,7 @@ Last updated: 2026-07-16 by Codex (WP4 verification failed; WP2 routing/perimete
 |---|---|---|---|---|---|---|
 | WP0 Trusted baseline and plan consolidation | verified | Codex | — | AC-0.1–AC-0.5 | `reports/portable-skill-ecosystem-completion/WP0/final-verification.md` (plus linked implementation/attempt/pre-retirement records) | All five ACs independently passed at clean revision `fae13d4`; next dependency-ready package is WP1. |
 | WP1 Canonical stack and capability contract | verified | Codex | WP0 | AC-1.1–AC-1.7 | `reports/portable-skill-ecosystem-completion/WP1/final-verification.md` (plus implementation evidence and three retained failed attempts) | All seven ACs independently passed at clean revision `8b8b09a`; dependency-sized WP2/WP4 specs are promoted without weakening the master ledger. |
-| WP2 Capability-aware host profiling and routing | in_progress | Codex | WP1 | AC-2.1–AC-2.6 | `ai-docs/specs/portable-host-profile-routing.md`; `reports/portable-skill-ecosystem-completion/WP2/host-profile-slice.md`; `reports/portable-skill-ecosystem-completion/WP2/adaptation-perimeter-slice.md`; `reports/portable-skill-ecosystem-completion/WP2/routing-perimeter-slice.md` | Profiler, idempotent/perimeter-gated adaptation, shared four-surface activation, full evidence-negative matrix, and whole-codebase preflight pass implementer checks through `4cda6cf`. Current action: profile-selected product surfaces, Class C equivalence, full WP2 conformance, and independent verification; last completed AC: none; last evidence revision: `4cda6cf`. |
+| WP2 Capability-aware host profiling and routing | implemented | Codex | WP1 | AC-2.1–AC-2.6 | `ai-docs/specs/portable-host-profile-routing.md`; `reports/portable-skill-ecosystem-completion/WP2/host-profile-slice.md`; `reports/portable-skill-ecosystem-completion/WP2/adaptation-perimeter-slice.md`; `reports/portable-skill-ecosystem-completion/WP2/routing-perimeter-slice.md`; `reports/portable-skill-ecosystem-completion/WP2/final-implementation.md` | All six ACs pass implementer checks at clean implementation revision `849556f`: 210 focused tests and the 502-test full suite pass; spec coverage/inventory, metadata, Ruff, Class A inventory, route replay, and seed-root guard are clean. Current action: fresh-context read-only AC-2.1–AC-2.6 verification; last completed AC by implementer: AC-2.6; last evidence revision: `849556f`. |
 | WP3 Load-bearing layers, bindings, and installer | not_started | — | WP1, WP2 | AC-3.1–AC-3.7 | — | Implement the packaging/discovery decision and exemplar binding. |
 | WP4 Multi-language analysis substrate | in_progress | Codex | WP1 | AC-4.1–AC-4.6 | `reports/portable-skill-ecosystem-completion/WP4/implementation-evidence.md`; `reports/portable-skill-ecosystem-completion/WP4/verification-attempt-1.md`; `reports/portable-skill-ecosystem-completion/WP4/verification-attempt-2.md` | Attempt 2 passed AC-4.1–AC-4.5 and failed AC-4.6: the platform matrix is hard-coded/single-platform and the 40-line synthetic large fixture is not representative or external-shaped. Current action: execution-derived matrix, real external-shaped corpus, and linked exact-revision Linux-x86_64 run; last evidence revision: `11164af`. |
 | WP5 Productized batch sweep and native shims | not_started | — | WP1, WP2; WP4 for parser-backed members | AC-5.1–AC-5.7 | — | Promote ADR 0036 prototype; preserve the ADR 0003 integration seam for ordered closure in AC-8.9. |
@@ -998,6 +998,7 @@ reported no P0 blockers and returned `READY`.
 | 2026-07-16 | `/root/wp4_reverification` | Fresh-context revision `11164af` passed AC-4.1–AC-4.5 and failed AC-4.6. Every attempt-1 parser/routing/deadline/golden/span/cold-process defect passed replay, but a hard-coded single-platform matrix cannot prove cross-platform determinism and the synthetic 40-line large fixture is not a representative external-shaped corpus. Current action: derive platform records from execution, add an external-shaped corpus, and obtain a linked Linux-x86_64 run at the exact revision; last evidence revision: `11164af`. | WP4 → `in_progress`; summary now 7 not started / 2 in progress / 2 verified. |
 | 2026-07-16 | Codex | Implemented profile-driven, host-owned, idempotent, perimeter-gated adaptation at `bfc6d86`. Canonical host-profile mode now requires registry-compatible hashed detector implementations and executable support fixtures; rejected evidence and reason-bearing exclusions remain visible. Mandatory audit bypass and stale-attestation fixtures fail as required; focused tests: 22 passed; skill metadata and Ruff passed. Current action: shared activation, whole-codebase routing, remaining evidence negatives, and Class B/C work; last completed AC: none; last evidence revision: `bfc6d86`. | WP2 remains `in_progress`; no summary-count change. |
 | 2026-07-16 | Codex | Implemented shared profile-derived activation and completed honest-perimeter routing at `4cda6cf`. `/which-skill`, `/which-shape`, `/which-cleanup`, and the activation manifest now project one per-root language/framework/layer/binding/capability decision; a TypeScript host excludes Django skills with identical reasons across all four surfaces. Missing/incompatible/uninstalled/stale/non-executable perimeter evidence is a gap, and whole-codebase health routing cannot bypass the audit. Exact-revision focused suite: 149 passed; skill metadata, spec coverage/inventory, and Ruff passed. Current action: Class B/C neutrality and final WP2 conformance; last completed AC: none; last evidence revision: `4cda6cf`. | WP2 remains `in_progress`; no summary-count change. |
+| 2026-07-16 | Codex | Completed WP2 implementation at `849556f`: durable profile-authenticated component/surface selection, neutral product-health fallbacks, ignore-first Class C equivalence, actual selected-file script resolution, generic consolidated boot-payload handling, hard-coded seed-root guard, and decode-safe profile/evidence reads. Exact-revision matrix: 210 passed/1 intentional skip; full suite: 502 passed/1 intentional skip; all spec, inventory, metadata, Ruff, Class A, route replay, and seed-root gates passed. Current action: fresh no-context AC-2.1–AC-2.6 verification; last completed AC by implementer: AC-2.6; last evidence revision: `849556f`. | WP2 → `implemented`; summary now 7 not started / 1 in progress / 1 implemented / 2 verified. |
 
 ## Promotion notes
 
