@@ -64,8 +64,9 @@ never fully executes and a project that never reaches coherent form.
   seven-subsystem emergent grouping, `drift-scan-framework`,
   immune-system tier naming, memory-map decision table,
   `execution-funnel.md` doctrine, and convention-quad codification into
-  the `portable-skill-ecosystem-completion` plan (amend its WP3/WP5 or add a
-  W7) the next time that plan is touched — with the recorded cautions
+  the `portable-skill-ecosystem-completion` plan (amend WP3/WP5 or add a
+  clearly named dependency-sized successor spec) the next time that plan is
+  touched — with the recorded cautions
   (ADR 0023 dispatcher boundary is deliberate; `orient` is not an
   orphan). *Done when:* the portable-skill-ecosystem-completion plan or one of
   its dependency-sized successor specs names them, or each is parked with a

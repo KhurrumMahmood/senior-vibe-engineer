@@ -193,9 +193,9 @@ row names another owner):
 
 | Predecessor item | Current-state finding at WP0 | Exact completion owner |
 |---|---|---|
-| W1 classify every skill and resolve discovery/package mechanics | Not completed; ADR 0034 remains pending on the predecessor | D1/D4, AC-3.1–AC-3.6, AC-8.7 |
+| W1 classify every skill and resolve discovery/package mechanics; ADR 0024/0028 govern rename/move commits | Not completed; ADR 0034 remains pending on the predecessor | D1/D4, AC-3.1–AC-3.6, ADR 0024/0028 behavior AC-7.1/AC-7.2, AC-8.7 |
 | W1 update routers, activation manifest, perimeter, contracts index, catalog | Not layer-aware yet | AC-2.3–AC-2.5, AC-3.2/AC-3.5, AC-8.7, AC-9.1 |
-| W2 de-flavor incidentally coupled core procedures | Partial/unmeasured | AC-3.1 and full-catalog leakage gate AC-8.7 |
+| W2 de-flavor named incidentally coupled procedures by relocating Django examples/defaults and correcting frontmatter | Partial/unmeasured | Exact procedure/example/frontmatter requirements AC-3.1 and full-catalog leakage gate AC-8.7 |
 | W3 concept + binding default and five named families (typed state, read mutation, unguarded dispatch, implicit relation/FK, handler LOC), with extract-enum first | Not completed | D2, inventory/exemplar AC-3.1/AC-3.3/AC-3.4, TypeScript proof AC-6.3/AC-6.6, and mandatory five-family catalog completion AC-8.7 |
 | W4 descriptor-driven component inventory, graceful no-profile behavior | Implemented in `cotton_inventory.py`; must remain regression-pinned | AC-2.6 |
 | W4 neutral product-health surface labels | Not completed: `product_health.py` still emits `sites_*` labels | AC-2.6 |
@@ -380,11 +380,18 @@ compatibility aliases, install manifests, and cold-host installer.
   proposed validated layer, while this package migrates only the foundation
   and exemplar needed by WP6. Placement validation enforces ADR 0034's N=1
   allowance for shipping-contract layers, ≥3 threshold for domain cohesion
-  folders, concept+binding default, and `/plan-skill` placement question. A
-  core skill cannot name framework-specific APIs outside a declared binding or
-  example boundary; a diff-scoped lint enforces this without false positives
-  on legitimate compatibility prose. Full catalog rollout is gated by AC-8.7
-  after the TypeScript exemplar.
+  folders, concept+binding default, and `/plan-skill` placement question. For
+  the predecessor's incidentally coupled set—the plan-* chain,
+  `refactor-subsystem`, `prevent-regression`, and every inventory sibling with
+  the same shape—the universal procedure remains in core, Django-specific
+  examples/defaults move to a declared binding or non-core appendix, and
+  `language:`/`framework:` frontmatter is corrected to the validated honest
+  values. A core-layer `SKILL.md` body may not name Django or Celery; that
+  content may exist only in its declared file under `bindings/`.
+  Compatibility/migration prose belongs in non-core documentation, not an
+  inline exception. A diff-scoped lint and
+  good/bad fixtures enforce both the content boundary and frontmatter truth.
+  Full catalog rollout is gated by AC-8.7 after the TypeScript exemplar.
 - **AC-3.2:** The selected discovery mechanism works in every supported agent
   surface in the versioned matrix from AC-1.6. Existing skill invocation names
   resolve unchanged or through tested aliases, and contracts/catalog links
@@ -515,15 +522,35 @@ Deliverables: safe change primitives, invariant-to-guard compiler contract,
 and Python/TypeScript golden transformations.
 
 - **AC-7.1:** Rename/move/reference-edit operations use parser/index evidence,
-  produce reviewable patches before apply, preserve strings/wire identifiers
-  unless explicitly mapped, and are idempotent on second execution. Post-move
-  verification also resolves file-relative/self-anchored asset references from
-  their new location; import success alone cannot satisfy the gate.
+  produce reviewable patches before apply, and are idempotent on second
+  execution. Before a layout move they enumerate every conserved wire surface
+  (task/job name, serialized discriminator, stored string reference, routing
+  key, namespace/registry key), preserve each byte-for-byte at the new location
+  through an explicit override, update only source import paths, and refuse an
+  old-path re-export shim; a wire-name change requires its own accepted ADR.
+  For every self-anchored path in a moving file, the proposal records presence,
+  the tool safely re-derives tractable literal parent-walks and reports every
+  unhandled shape, a pre-move pin test proves the intended target exists, and a
+  disk-anchored detector scans the full diff after the move and blocks missing
+  files/directories or file/directory type mismatches. Import success alone
+  cannot satisfy the gate.
 - **AC-7.2:** Python and TypeScript golden projects cover definitions,
   imports/exports, references, aliases, comments/strings, tests, and ambiguous
-  symbols, preserved wire identifiers, and self-anchored asset paths. Unsafe
-  ambiguity or an unresolved post-move asset stops with an actionable diagnostic
-  rather than a partial edit.
+  symbols. ADR 0024's identifier-plus-prose completeness bands run for any
+  move-induced rename. ADR 0027 fixtures characterize every named wire surface,
+  explicit preserved-name overrides, no old-path shim, and refusal of a wire
+  rename without a separate decision; a pre-merge AST/native lint rejects a
+  missing/mismatched override or layout-derived discriminator, and the shared
+  contributor context links the preservation rule. ADR 0028 fixtures cover
+  deeper/shallower moves, depth-agnostic paths, non-literal/unhandled shapes,
+  idempotency, project-root validation, mandatory per-path pins, and full-diff
+  detection of missing files, missing directories, and directory-where-file
+  mismatches. The move-tool docs enumerate every deliberately non-rewritten
+  reference class, a per-batch import smoke resolves exported path constants,
+  and any fired path gate writes the rule/cause/application to the running
+  lessons log. Unsafe ambiguity, an unreviewed unhandled shape, missing pin, or
+  unresolved post-move target stops with an actionable diagnostic rather than
+  a partial edit.
 - **AC-7.3:** A versioned guard-generation contract maps a common invariant to
   language-native enforcement while preserving language-specific escape hatches,
   messages, test fixtures, and autofix safety. Generated guards are editable,
@@ -608,7 +635,15 @@ and retired stale provenance.
 - **AC-9.1:** README, skill catalog, portability roadmap, manifests, contracts,
   ADR implementation sections, and install docs agree with generated counts,
   current support levels, adapter capabilities, and paths. A drift check guards
-  values that can be generated or cross-validated.
+  values that can be generated or cross-validated. After every catalog/path
+  migration, the exact reference-clean gate runs
+  `.venv/bin/python scripts/skill_meta.py lint`, regenerates
+  `.claude/contracts/skills/_index.yaml` with
+  `.venv/bin/python .claude/skills/find-skill-intent-drift/scripts/scan.py --strict`,
+  runs `.venv/bin/python .claude/skills/find-skill-artifact-drift/scripts/detect.py --gate`,
+  and runs `.venv/bin/python scripts/decisions.py audit`; all exit 0, the index
+  write is present in output and committed, and active docs, routers, and
+  contracts contain no dangling prior skill path/name.
 - **AC-9.2:** Separate core-only, Python/Django, and TypeScript/Node install
   paths are documented from a clean host through first verified result,
   update, troubleshooting, and uninstall. Two fresh-context dry runs complete
@@ -890,6 +925,7 @@ reported no P0 blockers and returned `READY`.
 | 2026-07-16 | Codex | Started WP0 at HEAD `ad685e3f47fd6fb3debe4880735a5bf20eb79cae`; only dirty path is this new plan file. Current action: AC-0.1 full baseline; last completed AC: none; last evidence revision: none. | WP0 → `in_progress`; summary now 10 not started / 1 in progress. |
 | 2026-07-16 | Codex | Repaired the browser prerequisite documentation, deterministic triage clock, stale contracts/state/counts/manifest labels, decision revisit triggers, and contract artifact-drift coverage; mapped and retired the predecessor at implementation commit `9eecd1e`. Last completed AC by implementer: AC-0.4; current action: fresh-context AC-0.1–AC-0.5 verification; last evidence revision: `9eecd1e`. | WP0 → `implemented`; summary now 10 not started / 1 implemented. |
 | 2026-07-16 | `/root/wp0_fresh_verifier` | Fresh-context revision `8c7e9b2` passed AC-0.1–AC-0.4 and failed AC-0.5: three active references remained stale, W3 lost three of five named families, ADR 0027/0028 lacked formal disposition, W6 lost its one-diagram deliverable, and retirement sequencing was unsupported. Current action: repair those exact gaps and verify mapping before re-retirement; last evidence revision: `8c7e9b2`. | WP0 → `in_progress`; summary now 10 not started / 1 in progress. |
+| 2026-07-16 | `/root/wp0_preretirement_mapping` | Pre-retirement revision `dac41d0` returned `FAIL — DO NOT RETIRE`: W2 relocation/frontmatter and literal leakage rules were weak, ADR 0027/0028 behavior was partial, Success 6's four exact commands existed only in ledger prose, and the consistency plan used an ambiguous W7 label. Current action: make each requirement executable in AC text and repeat zero-unmapped review; last evidence revision: `dac41d0`. | No status-count change; predecessor remains `scoped`, WP0 remains `in_progress`. |
 
 ## Promotion notes
 
