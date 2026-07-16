@@ -339,14 +339,14 @@ scan_targets:
     evidence_contract: native-tool-fixture
 
 sweep_targets:
-  python: [ruff, complexity-hotspots, omnibus]
+  python: [ruff, cx, omnibus]
   javascript: [eslint]
   typescript: [eslint, typescript-compiler, omnibus]
   rust: [clippy]
   go: [go-vet]
 
 sweep_providers:
-  complexity-hotspots:
+  cx:
     languages: [python]
     provider_kind: parser-backed-ecosystem
     runner: complexity

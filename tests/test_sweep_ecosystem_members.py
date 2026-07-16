@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+from _lib.capability_registry import load_registry
 from sweep import ecosystem as ecosystem_module
 from sweep import process as process_module
 from sweep.ecosystem import (
@@ -124,6 +125,7 @@ def test_complexity_characterization_is_preserved_through_observation_contract()
     }
     assert len(bad.findings) == 6
     assert all(finding.provider == "cx" for finding in bad.findings)
+    assert load_registry().data["sweep_providers"]["cx"]["runner"] == "complexity"
     assert all(finding.language == "python" for finding in bad.findings)
     replay = subprocess.run(
         bad.observation["command"]["argv"],

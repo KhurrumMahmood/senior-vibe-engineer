@@ -685,7 +685,7 @@ def test_registry_owns_native_and_parser_backed_sweep_portfolio():
 
     assert registry.data["sweep_targets"]["python"] == [
         "ruff",
-        "complexity-hotspots",
+        "cx",
         "omnibus",
     ]
     assert registry.data["sweep_targets"]["typescript"] == [
@@ -693,7 +693,7 @@ def test_registry_owns_native_and_parser_backed_sweep_portfolio():
         "typescript-compiler",
         "omnibus",
     ]
-    assert registry.data["sweep_providers"]["complexity-hotspots"] == {
+    assert registry.data["sweep_providers"]["cx"] == {
         "languages": ["python"],
         "provider_kind": "parser-backed-ecosystem",
         "runner": "complexity",
@@ -713,7 +713,7 @@ def test_registry_owns_native_and_parser_backed_sweep_portfolio():
         for provider, _entry in registry.sweep_providers_for(
             "python", provider_kind="parser-backed-ecosystem"
         )
-    ] == ["complexity-hotspots", "omnibus"]
+    ] == ["cx", "omnibus"]
 
 
 def test_registry_rejects_unknown_sweep_provider_selector():
@@ -725,7 +725,7 @@ def test_registry_rejects_unknown_sweep_provider_selector():
 
 def test_registry_rejects_malformed_parser_backed_provider(tmp_path):
     payload = yaml.safe_load(load_registry().path.read_text(encoding="utf-8"))
-    payload["sweep_providers"]["complexity-hotspots"].pop("runner")
+    payload["sweep_providers"]["cx"].pop("runner")
     target = tmp_path / "registry.yml"
     target.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
