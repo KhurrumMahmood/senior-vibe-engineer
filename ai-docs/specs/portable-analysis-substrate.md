@@ -11,6 +11,7 @@ motivating_decision: "0039"
 code_roots:
   - scripts/_lib/lang_adapter
   - scripts/analysis_portfolio_spike.py
+  - scripts/analysis_fact_benchmark.py
   - tests/fixtures/analysis_portfolio_spike
 ---
 
@@ -63,44 +64,52 @@ informal reports. Tool versions, licenses, platform support, deterministic
 installation, corpus hashes, machine identity, cold/warm timings, peak memory,
 and variance are pinned. A budget miss reopens ADR 0039.
 
+The AC-1.7 evidence predeclared precision/recall, warm-runtime, and install-size
+ceilings but omitted the cold-runtime and memory ceilings later referenced by
+AC-4.6. Before the productized-provider benchmark is run, this spec closes that
+underspecification with additive gates: cold and warm analysis are each at most
+1.0 second for both fixtures; peak process RSS is at most 128 MiB; peak traced
+Python allocation is at most 64 MiB; and warm-run coefficient of variation is
+at most 20%. These gates add constraints without weakening the master AC.
+
 ## Implementation
 
-- [ ] AR-1: **Python compatibility oracle.** Pin current Python symbols,
+- [x] AR-1: **Python compatibility oracle.** Pin current Python symbols,
   imports, definitions, references, calls, writes, locations, and failure
   behavior consumed by repository tools.
-- [ ] AR-2: **Consumer inventory.** Trace every adapter/fact consumer and map
+- [x] AR-2: **Consumer inventory.** Trace every adapter/fact consumer and map
   each requested fact to a named capability before shaping the interface.
-- [ ] AR-3: **D3 oracle.** Preserve the AC-1.7 corpus hash, semantic oracle,
+- [x] AR-3: **D3 oracle.** Preserve the AC-1.7 corpus hash, semantic oracle,
   selected portfolio, versions, and all predeclared budgets.
-- [ ] AR-4: **Identity oracle.** Pin fact ordering, source locations, and every
+- [x] AR-4: **Identity oracle.** Pin fact ordering, source locations, and every
   input that downstream stable finding identities consume.
-- [ ] AR-5: **Failure oracle.** Characterize unsupported, missing-tool,
+- [x] AR-5: **Failure oracle.** Characterize unsupported, missing-tool,
   broken-tool, malformed-file, and corrupt-output paths; none may equal clean.
-- [ ] IM-1: **Versioned fact contract.** Implement capabilities, normalized
+- [x] IM-1: **Versioned fact contract.** Implement capabilities, normalized
   fact types, provider discovery, version negotiation, deterministic ordering,
   and typed contextual failures. <!-- spec:portable-analysis-substrate::IM-1 -->
-- [ ] IM-2: **Tree-sitter baseline.** Implement reproducibly pinned providers
+- [x] IM-2: **Tree-sitter baseline.** Implement reproducibly pinned providers
   for the accepted languages and expose only the accepted capability subset.
   <!-- spec:portable-analysis-substrate::IM-2 -->
-- [ ] IM-3: **Real TypeScript parser.** Cover exported functions/consts,
+- [x] IM-3: **Real TypeScript parser.** Cover exported functions/consts,
   classes, arrows, nested scopes, JS/TS extensions, malformed input, and exact
   source locations in golden tests. <!-- spec:portable-analysis-substrate::IM-3 -->
-- [ ] IM-4: **TypeScript semantics.** Use the stable compiler API for only
+- [x] IM-4: **TypeScript semantics.** Use the stable compiler API for only
   those definition/reference/type capabilities justified by named consumers.
   <!-- spec:portable-analysis-substrate::IM-4 -->
-- [ ] IM-5: **Python adapter.** Preserve the AR-1 oracle behind the common
+- [x] IM-5: **Python adapter.** Preserve the AR-1 oracle behind the common
   interface and reject unsupported facts explicitly.
   <!-- spec:portable-analysis-substrate::IM-5 -->
-- [ ] IM-6: **Rust/Go subset.** Implement facts required by accepted
+- [x] IM-6: **Rust/Go subset.** Implement facts required by accepted
   sweep/perimeter consumers and publish explicit capability gaps.
   <!-- spec:portable-analysis-substrate::IM-6 -->
-- [ ] IM-7: **Fault injection.** Test absent and broken tools, timeouts,
+- [x] IM-7: **Fault injection.** Test absent and broken tools, timeouts,
   malformed files, corrupt parser output, and unsupported capabilities with
   adapter/file/capability context. <!-- spec:portable-analysis-substrate::IM-7 -->
-- [ ] IM-8: **Golden corpus.** Add deterministic small/large fixtures and
+- [x] IM-8: **Golden corpus.** Add deterministic small/large fixtures and
   golden facts for Python, JS/TS, Rust, and Go, including stable locations and
   ordering. <!-- spec:portable-analysis-substrate::IM-8 -->
-- [ ] IM-9: **Budget gate.** Rerun the pinned D3 benchmark, record platform,
+- [x] IM-9: **Budget gate.** Rerun the pinned D3 benchmark, record platform,
   machine, tool versions, license/install facts, cold/warm runtime, peak memory,
   and variance, and fail on any threshold miss.
   <!-- spec:portable-analysis-substrate::IM-9 -->
@@ -109,13 +118,23 @@ and variance are pinned. A budget miss reopens ADR 0039.
 
 ### User-facing
 
-- Pending implementation findings about setup clarity and surfaced capability
-  gaps.
+- A single pinned Python dependency pair provides real parsing for all five
+  accepted subject languages; no language-specific runtime is required for
+  syntax facts.
+- Unsupported and failed requests now name the adapter, path, capability, and
+  failure class, so users can distinguish “no findings” from “not analyzed.”
 
 ### Technical
 
-- Pending implementation findings about provider boundaries, parser behavior,
-  and benchmark variance.
+- TSX's grammar accepts both `.ts` and JSX-bearing `.tsx`, avoiding a second
+  extension-only provider while retaining separate JavaScript/TypeScript IDs.
+- Syntax-reference occurrences exactly reproduce the pinned D3 reference
+  oracle. ADR 0039's compiler API remains reserved for a future named semantic
+  definition/reference/type consumer; none of the 21 inventoried consumers
+  requires it.
+- The initial baseline search omitted hidden skill paths. The corrected
+  evidence records 21 production consumers and preserves the raw Python AST
+  compatibility seam for 20 of them.
 
 ## Exceptions
 

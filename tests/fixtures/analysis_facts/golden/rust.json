@@ -1,0 +1,7 @@
+{
+  "adapter": "rust-syntax",
+  "fact_count": 15,
+  "facts_sha256": "aa351b6b20fe1220975684d3799ea5fd75ace5aa7382c57caa76e81e78ff949c",
+  "interface_version": 1,
+  "schema_version": 1
+}

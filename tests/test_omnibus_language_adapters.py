@@ -102,7 +102,7 @@ class OmnibusLanguageAdapterTests(unittest.TestCase):
             self.assertIn("static/omnibus.js", files)
             self.assertNotIn("static/cohesive.js", files)
             rec = next(r for r in records if r["file"] == "static/omnibus.js")
-            self.assertEqual(rec["analyzer"], "js-heuristic")
+            self.assertEqual(rec["analyzer"], "javascript-syntax")
             self.assertEqual(rec["language"], "javascript")
             self.assertGreaterEqual(rec["and_count"], 3)
             cluster_names = {c["name"] for c in rec["clusters"]}

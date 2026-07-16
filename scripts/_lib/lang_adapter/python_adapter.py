@@ -10,7 +10,22 @@ from __future__ import annotations
 
 import ast
 
-from .base import CAP_PYTHON_AST, CAP_SYMBOLS, LanguageAdapter, Symbol
+from .base import (
+    ANALYSIS_INTERFACE_VERSION,
+    CAP_CALLS,
+    CAP_DEFINITIONS,
+    CAP_IMPORTS,
+    CAP_PYTHON_AST,
+    CAP_REFERENCES,
+    CAP_SYMBOLS,
+    CAP_WRITES,
+    FACT_CAPABILITIES,
+    AnalysisFailure,
+    AnalysisResult,
+    Fact,
+    LanguageAdapter,
+    Symbol,
+)
 
 # Threshold at which a class's methods drive the SRP signal individually
 # rather than the class counting as a single symbol. Mirrors find-omnibus.
@@ -50,13 +65,15 @@ def _render_decorator(node: ast.AST) -> str:
     return ""
 
 
+# spec:portable-analysis-substrate::IM-5
 class PythonAdapter(LanguageAdapter):
     """Exact ``ast``-based extractor for Python sources."""
 
     name = "python-ast"
+    provider_version = "python-ast-v1"
     language = "python"
     extensions = (".py",)
-    capabilities = frozenset({CAP_SYMBOLS, CAP_PYTHON_AST})
+    capabilities = FACT_CAPABILITIES | {CAP_PYTHON_AST}
 
     def parse(self, source: str) -> ast.Module | None:
         """Return the raw ``ast.Module`` tree, or ``None`` on ``SyntaxError``.
@@ -147,3 +164,94 @@ class PythonAdapter(LanguageAdapter):
                         )
                     )
         return symbols
+
+    def analyze(
+        self,
+        source: str,
+        *,
+        path: str,
+        capabilities: set[str] | frozenset[str],
+    ) -> AnalysisResult:
+        requested = self.require_capabilities(capabilities, path=path)
+        tree = self.parse(source)
+        if tree is None:
+            raise AnalysisFailure(
+                "parse_error",
+                adapter=self.name,
+                path=path,
+                capability=requested[0] if requested else CAP_SYMBOLS,
+                detail="Python syntax error",
+            )
+
+        facts: list[Fact] = []
+
+        def add(capability: str, name: str, node: ast.AST, kind: str, parent: str | None = None) -> None:
+            if capability not in requested or not name:
+                return
+            line = int(getattr(node, "lineno", 1) or 1)
+            column = int(getattr(node, "col_offset", 0) or 0) + 1
+            end_line = int(getattr(node, "end_lineno", line) or line)
+            end_column = int(getattr(node, "end_col_offset", column) or column) + 1
+            facts.append(Fact(capability, name, path, line, column, end_line, end_column, kind, parent))
+
+        if CAP_SYMBOLS in requested:
+            for symbol in self.extract_symbols(source, path=path) or []:
+                facts.append(
+                    Fact(
+                        CAP_SYMBOLS,
+                        symbol.name,
+                        path,
+                        symbol.lineno,
+                        1,
+                        symbol.end_lineno,
+                        1,
+                        symbol.kind,
+                        symbol.parent,
+                    )
+                )
+
+        parent_by_node: dict[ast.AST, str | None] = {}
+        for parent in ast.walk(tree):
+            owner = getattr(parent, "name", None) if isinstance(parent, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) else None
+            for child in ast.iter_child_nodes(parent):
+                parent_by_node[child] = owner or parent_by_node.get(parent)
+
+        for node in ast.walk(tree):
+            parent = parent_by_node.get(node)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                add(CAP_DEFINITIONS, node.name, node, type(node).__name__.lower(), parent)
+            elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+                add(CAP_DEFINITIONS, node.id, node, "assignment", parent)
+                add(CAP_WRITES, node.id, node, "assignment", parent)
+            elif isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Store):
+                add(CAP_WRITES, _render_expression(node), node, "assignment", parent)
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    add(CAP_IMPORTS, alias.name, node, "import", parent)
+            elif isinstance(node, ast.ImportFrom):
+                add(CAP_IMPORTS, node.module or "." * node.level, node, "import", parent)
+            elif isinstance(node, ast.Call):
+                add(CAP_CALLS, _render_expression(node.func), node.func, "call", parent)
+            elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+                add(CAP_REFERENCES, node.id, node, "reference", parent)
+            elif isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load):
+                add(CAP_REFERENCES, _render_expression(node), node, "reference", parent)
+
+        return AnalysisResult(
+            ANALYSIS_INTERFACE_VERSION,
+            self.name,
+            self.provider_version,
+            self.language,
+            path,
+            requested,
+            tuple(sorted(set(facts), key=Fact.sort_key)),
+        )
+
+
+def _render_expression(node: ast.AST) -> str:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        base = _render_expression(node.value)
+        return f"{base}.{node.attr}" if base else node.attr
+    return ""

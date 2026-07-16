@@ -1,0 +1,7 @@
+{
+  "adapter": "go-syntax",
+  "fact_count": 15,
+  "facts_sha256": "edc98f219fa0b521eaa86e88d563fb24a9d7e233c6ec6829459028cd6864dce4",
+  "interface_version": 1,
+  "schema_version": 1
+}

@@ -1,0 +1,7 @@
+{
+  "adapter": "python-ast",
+  "fact_count": 18,
+  "facts_sha256": "aa835c15d53fa75b864c0f801bd70a78fe2ca23e66cc73b16a5cbe08a9011ec5",
+  "interface_version": 1,
+  "schema_version": 1
+}

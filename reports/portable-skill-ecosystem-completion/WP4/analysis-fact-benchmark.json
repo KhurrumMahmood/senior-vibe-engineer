@@ -1,0 +1,86 @@
+{
+  "analysis_interface_version": 1,
+  "budgets": {
+    "maximum_cold_seconds": 1.0,
+    "maximum_install_bytes": 25000000,
+    "maximum_peak_python_bytes": 67108864,
+    "maximum_peak_rss_bytes": 134217728,
+    "maximum_warm_cv": 0.2,
+    "maximum_warm_seconds": 1.0,
+    "minimum_precision": 1.0,
+    "minimum_recall": 1.0
+  },
+  "corpus": "tests/fixtures/analysis_portfolio_spike",
+  "corpus_sha256": "da03a77d5818deb2c2acd531e3875ad4053ff278d8cc11f17784d57f38d2cf4f",
+  "fixtures": {
+    "large": {
+      "cold_seconds": 0.028593,
+      "deterministic": true,
+      "facts_sha256": "9a95acb8c9be4f7f6fff4ace54e22171f5253dba2d64d8984425ca0223891b2d",
+      "input_bytes": 3457,
+      "peak_python_bytes": 686157,
+      "peak_rss_bytes": 31997952,
+      "runs": 7,
+      "warm_cv": 0.0099,
+      "warm_mean_seconds": 0.029572,
+      "warm_stdev_seconds": 0.000293
+    },
+    "small": {
+      "cold_seconds": 0.004518,
+      "deterministic": true,
+      "facts_sha256": "79ab49d20aa30bd684c96c3b052517a228410f2090473ea6fc639a7f35354f39",
+      "input_bytes": 431,
+      "peak_python_bytes": 128831,
+      "peak_rss_bytes": 31096832,
+      "runs": 7,
+      "warm_cv": 0.029549,
+      "warm_mean_seconds": 0.00483,
+      "warm_stdev_seconds": 0.000143
+    }
+  },
+  "metrics": {
+    "calls": {
+      "false_negative": [],
+      "false_positive": [],
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "definitions": {
+      "false_negative": [],
+      "false_positive": [],
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "imports": {
+      "false_negative": [],
+      "false_positive": [],
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "references": {
+      "false_negative": [],
+      "false_positive": [],
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "writes": {
+      "false_negative": [],
+      "false_positive": [],
+      "precision": 1.0,
+      "recall": 1.0
+    }
+  },
+  "passed": true,
+  "schema_version": 1,
+  "toolchain": {
+    "deterministic_setup": ".venv/bin/python -m pip install tree-sitter==0.26.0 tree-sitter-language-pack==1.12.5",
+    "install_size_bytes": 5089262,
+    "platform": "Darwin-arm64",
+    "python": "3.11.10",
+    "tree_sitter": "0.26.0",
+    "tree_sitter_language_pack": "1.12.5",
+    "tree_sitter_license": "MIT"
+  },
+  "variance_method": "first run is cold; six same-process warm runs; population CV",
+  "violations": []
+}

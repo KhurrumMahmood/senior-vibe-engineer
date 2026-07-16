@@ -25,6 +25,7 @@ from _lib.lang_adapter import (  # noqa: E402
     CAP_PYTHON_AST,
     CAP_SYMBOLS,
     JavaScriptAdapter,
+    TypeScriptAdapter,
     PythonAdapter,
     Symbol,
     adapter_for_suffix,
@@ -119,7 +120,7 @@ class JavaScriptExtractionTests(unittest.TestCase):
         names = {s.name for s in self.symbols}
         self.assertEqual(
             names,
-            {"loadInvoice", "fetchShipment", "CustomerWidget", "bootInventory"},
+            {"loadInvoice", "fetchShipment", "CustomerWidget", "render", "bootInventory"},
         )
 
     def test_kinds(self) -> None:
@@ -127,22 +128,25 @@ class JavaScriptExtractionTests(unittest.TestCase):
         self.assertEqual(by["loadInvoice"].kind, "function")  # function decl
         self.assertEqual(by["fetchShipment"].kind, "function")  # const-arrow
         self.assertEqual(by["CustomerWidget"].kind, "class")  # class decl
+        self.assertEqual(by["render"].kind, "method")  # parsed class method
         self.assertEqual(by["bootInventory"].kind, "function")  # window.X =
 
     def test_js_symbol_shape(self) -> None:
         for s in self.symbols:
-            self.assertIsNone(s.parent)
             self.assertEqual(s.decorators, ())
             self.assertFalse(s.is_dunder)
             self.assertEqual(s.cluster_name, s.name)
             self.assertGreaterEqual(s.loc, 1)
 
     def test_never_returns_none(self) -> None:
-        # The JS heuristic never raises; unparseable / empty -> [].
+        # The real parser accepts empty input and nested declarations.
         self.assertEqual(JavaScriptAdapter().extract_symbols(""), [])
-        # IIFE-wrapped / indented bodies under-detect to empty, not None.
         indented = "(function () {\n  function hidden() {}\n})();\n"
-        self.assertEqual(JavaScriptAdapter().extract_symbols(indented), [])
+        self.assertEqual(
+            {symbol.name for symbol in JavaScriptAdapter().extract_symbols(indented)},
+            {"hidden"},
+        )
+        self.assertIsNone(JavaScriptAdapter().extract_symbols("function broken( {\n"))
 
 
 class RegistryTests(unittest.TestCase):
@@ -151,17 +155,19 @@ class RegistryTests(unittest.TestCase):
         self.assertIsInstance(adapter_for_suffix(".py"), PythonAdapter)
 
     def test_js_family_routes_to_javascript_adapter(self) -> None:
-        for path in ("x.ts", "x.tsx", "x.js", "x.mjs", "x.cjs"):
+        for path in ("x.js", "x.mjs", "x.cjs"):
             self.assertIsInstance(get_adapter(path), JavaScriptAdapter, path)
+        for path in ("x.ts", "x.tsx"):
+            self.assertIsInstance(get_adapter(path), TypeScriptAdapter, path)
 
     def test_case_insensitive_suffix(self) -> None:
         self.assertIsInstance(get_adapter("X.PY"), PythonAdapter)
-        self.assertIsInstance(get_adapter("X.TSX"), JavaScriptAdapter)
+        self.assertIsInstance(get_adapter("X.TSX"), TypeScriptAdapter)
 
     def test_unknown_suffix_returns_none(self) -> None:
         self.assertIsNone(get_adapter("README.md"))
         self.assertIsNone(get_adapter("noext"))
-        self.assertIsNone(adapter_for_suffix(".rs"))
+        self.assertIsNotNone(adapter_for_suffix(".rs"))
 
     def test_supported_extensions(self) -> None:
         exts = supported_extensions()
@@ -174,7 +180,7 @@ class RegistryTests(unittest.TestCase):
         # JS adapter claims 5 extensions but appears once.
         self.assertEqual(len(adapters), len({id(a) for a in adapters}))
         languages = {a.language for a in adapters}
-        self.assertEqual(languages, {"python", "javascript"})
+        self.assertEqual(languages, {"python", "javascript", "typescript", "rust", "go"})
 
 
 class CapabilityTests(unittest.TestCase):
