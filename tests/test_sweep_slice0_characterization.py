@@ -116,7 +116,7 @@ def test_ar_4_resolution_stays_registry_driven_without_activation_manifest_coupl
     assert "Enum" not in source
 
 
-def test_ar_5_parser_fixture_behavior_is_frozen_without_promoting_parser_runtime():
+def test_ar_5_parser_fixture_behavior_stays_frozen_after_slice_5_promotion():
     evidence = _load("characterization.json")["ar_5"]
 
     assert evidence == {
@@ -130,8 +130,9 @@ def test_ar_5_parser_fixture_behavior_is_frozen_without_promoting_parser_runtime
         path.read_text(encoding="utf-8")
         for path in sorted(ROOT.joinpath("scripts/sweep").glob("*.py"))
     )
-    assert "find-complexity-hotspots" not in sweep_sources
-    assert "find-omnibus" not in sweep_sources
+    assert "find-complexity-hotspots" in sweep_sources
+    assert "find-omnibus" in sweep_sources
+    assert ".claude/tasks/sweep-prototype" not in sweep_sources
 
 
 def test_ar_6_judgment_and_packet_schemas_are_manifest_bound_and_non_nullable():

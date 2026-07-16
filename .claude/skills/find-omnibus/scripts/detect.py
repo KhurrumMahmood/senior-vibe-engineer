@@ -7,15 +7,11 @@ adapters** (keyed by file extension) feed them top-level symbols. Those
 adapters now live in the shared ``_lib.lang_adapter`` package and are
 selected here via ``get_adapter(path)``:
 
-- ``python-ast`` adapter: full ``ast`` walk (exact), including god-class
+- ``python-ast`` adapter: exact Python syntax facts, including god-class
   method expansion.
-- ``js-heuristic`` adapter: column-0 declaration scan for JavaScript /
-  TypeScript (``function name(``, ``const name = (…) =>``, ``class
-  Name``, ``window.Name =``). Deliberately coarse — IIFE-wrapped or
-  deeply indented module bodies under-detect; if that proves material,
-  the adapter graduates to a real parser per ADR 0032 rather than
-  growing regex epicycles. Findings carry the adapter name so reviewers
-  can calibrate trust.
+- Tree-sitter adapters: exact normalized syntax facts for JavaScript,
+  TypeScript/TSX, Rust, and Go. WP5's batch-sweep member deliberately selects
+  only Python and TypeScript; Rust and Go retain their native sweep shims.
 
 For each source file, groups top-level declarations into **domain
 clusters** by extracting the head-noun(s) from the symbol name:
@@ -80,7 +76,13 @@ _SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
-from _lib.lang_adapter import Symbol, get_adapter, iter_adapters  # noqa: E402
+from _lib.lang_adapter import (  # noqa: E402
+    CAP_SYMBOLS,
+    AnalysisFailure,
+    Symbol,
+    get_adapter,
+    iter_adapters,
+)
 
 # Languages the registered adapters cover, derived from the shared seam —
 # drives the ``--language`` CLI filter and the extension set to walk.
@@ -218,16 +220,30 @@ def _risk_signals(rel: str, source: str, symbol_names: list[str]) -> tuple[int, 
 
 
 def _scan_file(filepath: Path, rel: str) -> dict[str, object] | None:
-    adapter = get_adapter(filepath)
-    if adapter is None:
-        return None
+    adapter = get_adapter(filepath, capability=CAP_SYMBOLS)
     try:
         source = filepath.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        return None
-    extracted: list[Symbol] | None = adapter.extract_symbols(source, path=rel)
-    if extracted is None:
-        return None
+    except (OSError, UnicodeDecodeError) as exc:
+        raise AnalysisFailure(
+            "tool_failure",
+            adapter=adapter.name,
+            path=rel,
+            capability=CAP_SYMBOLS,
+            detail=f"could not read source: {exc}",
+        ) from exc
+    result = adapter.analyze(source, path=rel, capabilities={CAP_SYMBOLS})
+    extracted = [
+        Symbol(
+            name=fact.name,
+            cluster_name=fact.name.rsplit(".", 1)[-1],
+            kind=fact.kind,
+            lineno=fact.line,
+            end_lineno=fact.end_line,
+            loc=max(1, fact.end_line - fact.line + 1),
+            parent=fact.parent,
+        )
+        for fact in result.for_capability(CAP_SYMBOLS)
+    ]
 
     file_loc = len(source.splitlines())
     clusters: dict[str, dict[str, object]] = {}
@@ -295,6 +311,68 @@ def _scan_file(filepath: Path, rel: str) -> dict[str, object] | None:
     }
 
 
+def detect(
+    target: Path,
+    project_root: Path,
+    *,
+    languages: set[str] | frozenset[str] | None = None,
+    skip_file_globs: tuple[str, ...] = (),
+    skip_path_globs: tuple[str, ...] = (),
+) -> list[dict[str, object]]:
+    """Return parser-backed candidates or raise a contextual analysis failure."""
+    records, _file_count = _detect_with_file_count(
+        target,
+        project_root,
+        languages=languages,
+        skip_file_globs=skip_file_globs,
+        skip_path_globs=skip_path_globs,
+    )
+    return records
+
+
+def _detect_with_file_count(
+    target: Path,
+    project_root: Path,
+    *,
+    languages: set[str] | frozenset[str] | None = None,
+    skip_file_globs: tuple[str, ...] = (),
+    skip_path_globs: tuple[str, ...] = (),
+) -> tuple[list[dict[str, object]], int]:
+    """Return candidates and the number of files from the same single walk."""
+    if not target.exists():
+        raise ValueError(f"target not found: {target}")
+    if not target.is_dir():
+        raise ValueError(f"target is not a directory: {target}")
+    wanted = set(languages or _LANGUAGES)
+    unknown = sorted(wanted - set(_LANGUAGES))
+    if unknown:
+        raise ValueError(f"unsupported omnibus languages: {unknown}")
+    extensions = frozenset(
+        ext
+        for adapter in iter_adapters()
+        if adapter.language in wanted
+        for ext in adapter.extensions
+    )
+    files = _walk_source_files(
+        target.resolve(),
+        _DEFAULT_SKIP_FILE_GLOBS + tuple(skip_file_globs),
+        _DEFAULT_SKIP_PATH_GLOBS + tuple(skip_path_globs),
+        project_root.resolve(),
+        extensions,
+    )
+    records: list[dict[str, object]] = []
+    for filepath in files:
+        try:
+            rel = filepath.relative_to(project_root.resolve()).as_posix()
+        except ValueError:
+            rel = filepath.as_posix()
+        record = _scan_file(filepath, rel)
+        if record is not None:
+            records.append(record)
+    ordered = sorted(records, key=lambda row: (-int(row["score"]), str(row["file"])))
+    return ordered, len(files)
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--target", required=True, type=Path,
@@ -325,33 +403,15 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
-    skip_files = _DEFAULT_SKIP_FILE_GLOBS + tuple(args.skip_file_glob)
-    skip_paths = _DEFAULT_SKIP_PATH_GLOBS + tuple(args.skip_path_glob)
     project_root = args.project_root.resolve()
-
     wanted = set(args.language) or set(_LANGUAGES)
-    extensions = frozenset(
-        ext
-        for adapter in iter_adapters()
-        if adapter.language in wanted
-        for ext in adapter.extensions
+    records, file_count = _detect_with_file_count(
+        args.target,
+        project_root,
+        languages=wanted,
+        skip_file_globs=tuple(args.skip_file_glob),
+        skip_path_globs=tuple(args.skip_path_glob),
     )
-    files = _walk_source_files(
-        args.target.resolve(), skip_files, skip_paths, project_root, extensions,
-    )
-    records: list[dict[str, object]] = []
-    for filepath in files:
-        try:
-            rel = str(filepath.relative_to(project_root))
-        except ValueError:
-            rel = str(filepath)
-        rec = _scan_file(filepath, rel)
-        if rec is not None:
-            records.append(rec)
-
-    # Sort by score descending so collapse.py sees the worst offenders
-    # first.
-    records.sort(key=lambda r: (-int(r["score"]), str(r["file"])))
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w") as fh:
@@ -359,7 +419,7 @@ def main(argv: list[str] | None = None) -> int:
             fh.write(json.dumps(r) + "\n")
     print(
         f"[detect_omnibus] wrote {args.output} "
-        f"({len(records)} omnibus candidates across {len(files)} files)",
+        f"({len(records)} omnibus candidates across {file_count} files)",
         file=sys.stderr,
     )
     return 0

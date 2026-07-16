@@ -34,7 +34,11 @@ _SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
-from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
+from _lib.lang_adapter import (  # noqa: E402
+    CAP_PYTHON_AST,
+    AnalysisFailure,
+    get_adapter,
+)
 from product_health import finding, normalize_record  # noqa: E402
 
 
@@ -438,19 +442,40 @@ def detect(
     project_root = project_root.resolve()
     records: list[dict[str, Any]] = []
     for path in _iter_python_files(project_root, paths, include_tests):
-        # Route through the shared adapter registry; this analysis needs
-        # the raw Python AST, so skip any file whose adapter can't supply
-        # it (non-Python suffix, or no adapter) rather than crash.
-        adapter = get_adapter(path)
-        if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
-            continue
+        # The nested-control-flow visitor still requires Python's compatibility
+        # syntax tree, but parse ownership and failure classification belong to
+        # the verified WP4 adapter. The normalized request proves malformed
+        # input cannot become a clean zero before the compatibility tree is used.
+        adapter = get_adapter(path, capability=CAP_PYTHON_AST)
         try:
             text = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            continue
-        tree = adapter.parse(text)
+        except (OSError, UnicodeDecodeError) as exc:
+            raise AnalysisFailure(
+                "tool_failure",
+                adapter=adapter.name,
+                path=path.as_posix(),
+                capability=CAP_PYTHON_AST,
+                detail=f"could not read source: {exc}",
+            ) from exc
+        adapter.analyze(text, path=path.as_posix(), capabilities={CAP_PYTHON_AST})
+        parse = getattr(adapter, "parse", None)
+        if not callable(parse):
+            raise AnalysisFailure(
+                "unsupported_capability",
+                adapter=adapter.name,
+                path=path.as_posix(),
+                capability=CAP_PYTHON_AST,
+                detail="adapter advertises no Python compatibility-tree accessor",
+            )
+        tree = parse(text)
         if tree is None:
-            continue
+            raise AnalysisFailure(
+                "parse_error",
+                adapter=adapter.name,
+                path=path.as_posix(),
+                capability=CAP_PYTHON_AST,
+                detail="Python syntax error",
+            )
         visitor = ComplexityVisitor(path, project_root)
         visitor.visit(tree)
         records.extend(visitor.records)
