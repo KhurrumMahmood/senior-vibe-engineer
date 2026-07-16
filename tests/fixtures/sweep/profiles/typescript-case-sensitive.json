@@ -1,0 +1,14 @@
+{
+  "case_sensitive": true,
+  "exclusions": [],
+  "languages": [
+    "typescript"
+  ],
+  "paths": [
+    "."
+  ],
+  "roots": [
+    "."
+  ],
+  "schema_version": 1
+}

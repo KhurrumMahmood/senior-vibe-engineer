@@ -45,6 +45,39 @@ def test_required_mixed_profile_is_canonical_and_content_addressed():
     assert profile.sha256 == "13bb953249510890e58d3d78b6d1de3289b948b9d790c05a699aa91d99bedd50"
 
 
+@pytest.mark.parametrize("language", ["go", "python", "rust", "typescript"])
+def test_required_single_language_profiles_are_strict_and_match_live_hosts(language):
+    profile = load_sweep_profile(
+        REPO_ROOT / f"tests/fixtures/sweep/profiles/{language}-case-sensitive.json"
+    )
+
+    assert profile.languages == (language,)
+    assert profile.paths == (".",)
+    assert profile.roots == (".",)
+    assert profile.exclusions == ()
+    for state in ("before", "after", "clean"):
+        assert (REPO_ROOT / f"tests/fixtures/sweep/hosts/{language}/{state}").is_dir()
+
+
+def test_required_mixed_host_contains_every_live_tool_project_boundary():
+    required = {
+        "pyproject.toml",
+        "package.json",
+        "tsconfig.json",
+        "eslint.config.mjs",
+        "Cargo.toml",
+        "Cargo.lock",
+        "go.mod",
+    }
+    mixed = REPO_ROOT / "tests/fixtures/sweep/hosts/mixed"
+
+    for state in ("before", "after", "clean"):
+        root = mixed / state
+        assert required.issubset(
+            path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()
+        )
+
+
 @pytest.mark.parametrize(
     ("mutation", "message"),
     [

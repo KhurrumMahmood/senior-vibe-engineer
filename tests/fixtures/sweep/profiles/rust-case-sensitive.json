@@ -1,0 +1,14 @@
+{
+  "case_sensitive": true,
+  "exclusions": [],
+  "languages": [
+    "rust"
+  ],
+  "paths": [
+    "."
+  ],
+  "roots": [
+    "."
+  ],
+  "schema_version": 1
+}
