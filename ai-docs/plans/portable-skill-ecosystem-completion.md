@@ -98,12 +98,12 @@ Completion rules:
 
 ## Progress summary
 
-Last updated: 2026-07-16 by Codex (WP2/WP4 successor specs promoted; implementation next)
+Last updated: 2026-07-16 by Codex (WP2 and WP4 characterization in progress)
 
 | State | Count |
 |---|---:|
-| not_started | 9 |
-| in_progress | 0 |
+| not_started | 7 |
+| in_progress | 2 |
 | blocked | 0 |
 | implemented | 0 |
 | verified | 2 |
@@ -114,9 +114,9 @@ Last updated: 2026-07-16 by Codex (WP2/WP4 successor specs promoted; implementat
 |---|---|---|---|---|---|---|
 | WP0 Trusted baseline and plan consolidation | verified | Codex | — | AC-0.1–AC-0.5 | `reports/portable-skill-ecosystem-completion/WP0/final-verification.md` (plus linked implementation/attempt/pre-retirement records) | All five ACs independently passed at clean revision `fae13d4`; next dependency-ready package is WP1. |
 | WP1 Canonical stack and capability contract | verified | Codex | WP0 | AC-1.1–AC-1.7 | `reports/portable-skill-ecosystem-completion/WP1/final-verification.md` (plus implementation evidence and three retained failed attempts) | All seven ACs independently passed at clean revision `8b8b09a`; dependency-sized WP2/WP4 specs are promoted without weakening the master ledger. |
-| WP2 Capability-aware host profiling and routing | not_started | — | WP1 | AC-2.1–AC-2.6 | `ai-docs/specs/portable-host-profile-routing.md` | Start the promoted spec; characterize Class A, route-sprawl, routing, and host-ownership baselines before edits. |
+| WP2 Capability-aware host profiling and routing | in_progress | Codex | WP1 | AC-2.1–AC-2.6 | `ai-docs/specs/portable-host-profile-routing.md` | At start revision `db0fed1`, characterize Class A, route-sprawl, routing, and host-ownership baselines before edits; last completed AC: none. |
 | WP3 Load-bearing layers, bindings, and installer | not_started | — | WP1, WP2 | AC-3.1–AC-3.7 | — | Implement the packaging/discovery decision and exemplar binding. |
-| WP4 Multi-language analysis substrate | not_started | — | WP1 | AC-4.1–AC-4.6 | `ai-docs/specs/portable-analysis-substrate.md` | Start the promoted spec; pin current Python consumers/results and D3 corpus/budgets before edits. |
+| WP4 Multi-language analysis substrate | in_progress | Codex | WP1 | AC-4.1–AC-4.6 | `ai-docs/specs/portable-analysis-substrate.md` | At start revision `db0fed1`, pin current Python consumers/results and D3 corpus/budgets before edits; last completed AC: none. |
 | WP5 Productized batch sweep and native shims | not_started | — | WP1, WP2; WP4 for parser-backed members | AC-5.1–AC-5.7 | — | Promote ADR 0036 prototype; preserve the ADR 0003 integration seam for ordered closure in AC-8.9. |
 | WP6 TypeScript end-to-end vertical slice | not_started | — | WP3, WP4, WP5 | AC-6.1–AC-6.6 | — | Prove concept → detection → change → guard on a real TS fixture. |
 | WP7 Language-aware refactoring and guard generation | not_started | — | WP4, WP6 | AC-7.1–AC-7.7 | — | Generalize safe changes and suppression contracts without a giant universal AST. |
@@ -990,6 +990,7 @@ reported no P0 blockers and returned `READY`.
 | 2026-07-16 | Codex | Closed the third verifier's remaining paths at implementation revision `14eaa3a`: the guard now evaluates comprehension/generator sources, computed string receivers, generic call arguments, and `dict.fromkeys`; native executable discovery uses an immutable module-load/process-start `PATH` snapshot, with the caller/CI sanitation boundary explicitly assigned to WP8. Claim-time `PATH` poisoning tests pass. Full suite: 446 passed/1 unrelated skip; metadata, plan, ADR, consumer, Ruff, D1, and D3 checks remain green. Last completed AC by implementer: AC-1.7; current action: fourth clean zero-context verification; last evidence revision: `14eaa3a`. | WP1 → `implemented`; summary now 9 not started / 1 implemented / 1 verified. |
 | 2026-07-16 | `/root/wp1_concise_verifier` + Codex | Final fresh-context revision `8b8b09a` reran the full suite, 36 focused tests, 21 retained attacks, all audits/guards/Ruff, D1 projection/plugin validation, and D3 budgets; issued PASS for AC-1.1–AC-1.7 with no blockers or unsupported WP1 claims. Current action: scaffold dependency-sized child plans/specs under the master ledger; last evidence revision: `8b8b09a`. | WP1 → `verified`; summary now 9 not started / 2 verified. |
 | 2026-07-16 | Codex | Promoted dependency-sized successor plans/specs for WP2 (`portable-host-profile-routing`, AC-2.1–AC-2.6) and WP4 (`portable-analysis-substrate`, AC-4.1–AC-4.6), preserving the master acceptance wording and recording audited code roots. Current action: audit the specs and begin characterization. | No status-count change; WP2 and WP4 remain `not_started` until their implementation checkpoints are recorded. |
+| 2026-07-16 | Codex | Started WP2 and WP4 from clean revision `db0fed1` after their shared WP1 dependency passed. Current actions are the mandatory pre-change characterization oracles in each successor spec; last completed AC: none; last evidence revision: none. | WP2 and WP4 → `in_progress`; summary now 7 not started / 2 in progress / 2 verified. |
 
 ## Promotion notes
 
