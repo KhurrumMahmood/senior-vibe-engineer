@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+import analysis_fact_benchmark as benchmark
 from analysis_fact_benchmark import build_report
 
 from _lib.lang_adapter import (
@@ -282,6 +283,67 @@ def test_productized_provider_meets_pinned_d3_and_small_large_budgets():
         for score in report["metrics"].values()
     )
     assert report["variance_method"].startswith("fresh subprocess cold")
+
+
+def test_benchmark_platform_record_is_execution_derived(monkeypatch):
+    monkeypatch.setattr(benchmark.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(benchmark.platform, "machine", lambda: "x86_64")
+
+    execution = benchmark._platform_execution()
+
+    assert execution["platform_key"] == "Linux-x86_64"
+    assert execution["system"] == "Linux"
+    assert execution["machine"] == "x86_64"
+    assert "Darwin" not in json.dumps(execution)
+
+
+def test_external_large_fixture_has_pinned_provenance_and_real_shape():
+    provenance = benchmark._load_external_corpus()
+    fixture = benchmark.FACT_FIXTURES / provenance["local_path"]
+
+    assert provenance["upstream_revision"] == "c63de15a992d37f0d6cec03ac7631872838602cb"
+    assert provenance["upstream_path"] == "src/compiler/symbolWalker.ts"
+    assert provenance["local_path"] == "external/typescript-symbol-walker-v5.9.3.ts"
+    assert provenance["license"] == "Apache-2.0"
+    assert provenance["source_sha256"] == hashlib.sha256(fixture.read_bytes()).hexdigest()
+    assert provenance["input_bytes"] == fixture.stat().st_size >= 7_000
+    assert provenance["input_lines"] == len(fixture.read_text(encoding="utf-8").splitlines()) >= 180
+    assert provenance["selection_rationale"]
+
+
+def test_platform_comparison_requires_all_contract_platforms_and_stable_results():
+    base = build_report(source_revision="a" * 40)
+    base["platform_execution"] = {
+        "platform_key": "Darwin-arm64",
+        "system": "Darwin",
+        "machine": "arm64",
+        "python": "3.11.10",
+        "python_series": "3.11",
+        "tree_sitter": "0.26.0",
+        "tree_sitter_language_pack": "1.12.5",
+    }
+    linux = json.loads(json.dumps(base))
+    linux["platform_execution"] = {
+        "platform_key": "Linux-x86_64",
+        "system": "Linux",
+        "machine": "x86_64",
+        "python": "3.11.10",
+        "python_series": "3.11",
+        "tree_sitter": "0.26.0",
+        "tree_sitter_language_pack": "1.12.5",
+    }
+
+    with pytest.raises(ValueError, match="missing required platform"):
+        benchmark.compare_platform_reports([base])
+
+    matrix = benchmark.compare_platform_reports([base, linux])
+    assert matrix["passed"] is True
+    assert matrix["cross_platform_deterministic"] is True
+    assert sorted(matrix["executions"]) == ["Darwin-arm64", "Linux-x86_64"]
+
+    linux["stable_result_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="stable result"):
+        benchmark.compare_platform_reports([base, linux])
 
 
 def test_python_symbol_facts_publish_precise_full_spans():

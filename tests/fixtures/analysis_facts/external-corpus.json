@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "project": "microsoft/TypeScript",
+  "upstream_repository": "https://github.com/microsoft/TypeScript",
+  "upstream_tag": "v5.9.3",
+  "upstream_revision": "c63de15a992d37f0d6cec03ac7631872838602cb",
+  "upstream_path": "src/compiler/symbolWalker.ts",
+  "upstream_raw_sha256": "6aec8fecf7d57abd557bdbd4a9744ba2a1f3d8fcc9e9b84721158bd4f284300a",
+  "local_path": "external/typescript-symbol-walker-v5.9.3.ts",
+  "source_sha256": "f468759c595c804f5c1ac171814ee43de0b030fa6d08c527525d6e3a24493306",
+  "normalization": [
+    "CRLF line endings converted to LF"
+  ],
+  "license": "Apache-2.0",
+  "license_path": "external/LICENSE-TypeScript.txt",
+  "license_sha256": "527adf9d4c760f7367c2aeffed6a89afba8ba40ea1b0efbc8f56496ad30ea9cf",
+  "license_normalization": [
+    "Trailing whitespace removed"
+  ],
+  "input_bytes": 7961,
+  "input_lines": 216,
+  "selection_rationale": "A pinned production TypeScript compiler module that traverses real compiler symbol/type graphs and contains imports, exported and nested functions, callback/function types, generics, unions, arrays, bit flags, loops, arrow callbacks, try/finally control flow, calls, reads, and writes. It is more than twice the retired synthetic fixture by bytes and five times its line count, exercises structurally varied real-world syntax, and remains within the predeclared one-second cold budget.",
+  "retrieved_on": "2026-07-16"
+}

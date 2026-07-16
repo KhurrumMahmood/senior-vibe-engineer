@@ -64,6 +64,21 @@ informal reports. Tool versions, licenses, platform support, deterministic
 installation, corpus hashes, machine identity, cold/warm timings, peak memory,
 and variance are pinned. A budget miss reopens ADR 0039.
 
+The WP4 benchmark support contract requires executed records from
+Darwin-arm64 and Linux-x86_64 at one exact implementation revision with Python
+3.11, Tree-sitter 0.26.0, and tree-sitter-language-pack 1.12.5. Windows is not
+claimed by this release. The benchmark derives each execution identity from
+the running system and accepts the matrix only when both required records have
+the same source-tree and stable-result hashes. The machine-readable authority
+is `tests/fixtures/analysis_facts/platform-contract.json`.
+
+The representative large fixture is the pinned
+`microsoft/TypeScript@v5.9.3` compiler `symbolWalker.ts` module, normalized
+only from CRLF to LF and retained under its Apache-2.0 license. Its upstream
+revision, raw and normalized hashes, size, license, and selection rationale are
+validated from `tests/fixtures/analysis_facts/external-corpus.json`; the
+repeated synthetic stress fixture is not release evidence.
+
 The AC-1.7 evidence predeclared precision/recall, warm-runtime, and install-size
 ceilings but omitted the cold-runtime and memory ceilings later referenced by
 AC-4.6. Before the productized-provider benchmark is run, this spec closes that
@@ -106,9 +121,10 @@ at most 20%. These gates add constraints without weakening the master AC.
 - [x] IM-7: **Fault injection.** Test absent and broken tools, timeouts,
   malformed files, corrupt parser output, and unsupported capabilities with
   adapter/file/capability context. <!-- spec:portable-analysis-substrate::IM-7 -->
-- [x] IM-8: **Golden corpus.** Add deterministic small/large fixtures and
-  golden facts for Python, JS/TS, Rust, and Go, including stable locations and
-  ordering. <!-- spec:portable-analysis-substrate::IM-8 -->
+- [x] IM-8: **Golden corpus.** Add deterministic small fixtures and a pinned
+  representative external TypeScript fixture, plus golden facts for Python,
+  JS/TS, Rust, and Go, including stable locations and ordering.
+  <!-- spec:portable-analysis-substrate::IM-8 -->
 - [x] IM-9: **Budget gate.** Rerun the pinned D3 benchmark, record platform,
   machine, tool versions, license/install facts, cold/warm runtime, peak memory,
   and variance, and fail on any threshold miss.
