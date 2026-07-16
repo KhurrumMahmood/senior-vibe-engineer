@@ -1,0 +1,35 @@
+{
+  "cross_platform_deterministic": true,
+  "executions": {
+    "Darwin-arm64": {
+      "passed": true,
+      "python": "3.11.10",
+      "report_sha256": "807e7a46e7d8ff08b7021dd850b80e3b42d7e4250104bfbcebe7e8882e33ec67",
+      "source_revision": "c4f18fed2aac709856069fd952ed13ddc838128b",
+      "source_tree_sha256": "d37f8dccebe14660a3332dd77ab4e67e2b0a27561b5647a96265a3680925aefc",
+      "stable_result_sha256": "63f4b893aba9b430a8956e90addc58fc3f169c9ba0722acbcad31286bb0f4272",
+      "tree_sitter": "0.26.0",
+      "tree_sitter_language_pack": "1.12.5"
+    },
+    "Linux-x86_64": {
+      "passed": true,
+      "python": "3.11.15",
+      "report_sha256": "c9b6d4a8b0fdf16d15f50aab40ac71cb47c1aada360f80028474783d26ce8076",
+      "source_revision": "c4f18fed2aac709856069fd952ed13ddc838128b",
+      "source_tree_sha256": "d37f8dccebe14660a3332dd77ab4e67e2b0a27561b5647a96265a3680925aefc",
+      "stable_result_sha256": "63f4b893aba9b430a8956e90addc58fc3f169c9ba0722acbcad31286bb0f4272",
+      "tree_sitter": "0.26.0",
+      "tree_sitter_language_pack": "1.12.5"
+    }
+  },
+  "passed": true,
+  "platform_contract_sha256": "b4ade500477983a29b17503e5378a831ccee4f262f20ee0167c57ae559d471f6",
+  "required_platforms": [
+    "Darwin-arm64",
+    "Linux-x86_64"
+  ],
+  "schema_version": 1,
+  "source_revision": "c4f18fed2aac709856069fd952ed13ddc838128b",
+  "source_tree_sha256": "d37f8dccebe14660a3332dd77ab4e67e2b0a27561b5647a96265a3680925aefc",
+  "stable_result_sha256": "63f4b893aba9b430a8956e90addc58fc3f169c9ba0722acbcad31286bb0f4272"
+}
