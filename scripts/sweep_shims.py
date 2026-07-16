@@ -5,20 +5,39 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from typing import Any
 
 from _lib.capability_registry import CapabilityRegistry, load_registry
+from sweep.native import ProviderContract, provider_contracts_from_registry
+
+
+def resolve_native_providers(
+    languages: list[str],
+    *,
+    registry: CapabilityRegistry | None = None,
+) -> dict[str, tuple[ProviderContract, ...]]:
+    """Resolve each language's native sweep providers from the canonical registry."""
+    registry = registry or load_registry()
+    unknown = sorted(set(languages) - registry.identifiers("languages"))
+    if unknown:
+        raise ValueError(f"unregistered languages: {unknown}")
+    return {
+        language: provider_contracts_from_registry(language, registry=registry)
+        for language in languages
+    }
 
 
 def resolve_shims(
     languages: list[str],
     *,
     registry: CapabilityRegistry | None = None,
-) -> dict[str, dict[str, str]]:
+) -> dict[str, dict[str, Any]]:
     registry = registry or load_registry()
     unknown = sorted(set(languages) - registry.identifiers("languages"))
     if unknown:
         raise ValueError(f"unregistered languages: {unknown}")
-    resolved: dict[str, dict[str, str]] = {}
+    native = resolve_native_providers(languages, registry=registry)
+    resolved: dict[str, dict[str, Any]] = {}
     for language in languages:
         entry = registry.data["scan_targets"].get(language)
         if not entry:
@@ -37,6 +56,10 @@ def resolve_shims(
                 "provider": entry["adapter"],
                 "evidence_contract": entry["evidence_contract"],
             }
+        if native[language]:
+            resolved[language]["native_providers"] = [
+                contract.provider for contract in native[language]
+            ]
     return resolved
 
 

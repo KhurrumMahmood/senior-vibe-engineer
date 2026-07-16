@@ -507,8 +507,8 @@ def load_registry(path: Path | None = None) -> CapabilityRegistry:
         raise RegistryError("unsupported capability registry or contract version")
     for key in (
         "schemas", "runtime", "evidence_tools", "languages", "frameworks", "tools", "project_root", "layers",
-        "bindings", "capabilities", "scan_targets", "support", "agent_surfaces", "completion_capabilities",
-        "completion_floor",
+        "bindings", "capabilities", "scan_targets", "sweep_targets", "sweep_providers",
+        "support", "agent_surfaces", "completion_capabilities", "completion_floor",
     ):
         _require_mapping(data, key)
 
@@ -574,6 +574,74 @@ def load_registry(path: Path | None = None) -> CapabilityRegistry:
             raise RegistryError(f"scan_targets.{target} requires an adapter or shim")
         if entry.get("support") not in support_states:
             raise RegistryError(f"scan_targets.{target} names unknown support state")
+    provider_ids = set(data["sweep_providers"])
+    for provider, entry in data["sweep_providers"].items():
+        prefix = f"sweep_providers.{provider}"
+        if not isinstance(entry, dict):
+            raise RegistryError(f"{prefix} must be a mapping")
+        languages = entry.get("languages")
+        if (
+            not isinstance(languages, list)
+            or not languages
+            or any(language not in language_ids for language in languages)
+        ):
+            raise RegistryError(f"{prefix}.languages must name registered languages")
+        for field in ("executable", "argv", "version_argv"):
+            values = entry.get(field)
+            if (
+                not isinstance(values, list)
+                or not values
+                or any(not isinstance(value, str) or not value for value in values)
+            ):
+                raise RegistryError(f"{prefix}.{field} must be a non-empty string list")
+        pattern = entry.get("version_pattern")
+        if not isinstance(pattern, str):
+            raise RegistryError(f"{prefix}.version_pattern must be a string")
+        try:
+            re.compile(pattern)
+        except re.error as exc:
+            raise RegistryError(f"{prefix}.version_pattern is invalid: {exc}") from exc
+        if entry.get("provider_kind") != "native":
+            raise RegistryError(f"{prefix}.provider_kind must be 'native'")
+        if entry.get("output_stream") not in {"stdout", "stderr", "stdout-or-stderr"}:
+            raise RegistryError(f"{prefix}.output_stream is not recognized")
+        if not isinstance(entry.get("output_format"), str) or not entry["output_format"]:
+            raise RegistryError(f"{prefix}.output_format must be a non-empty string")
+        for field in ("timeout_seconds", "output_byte_limit", "semantic_rule_version"):
+            value = entry.get(field)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+                raise RegistryError(f"{prefix}.{field} must be positive")
+        for field in ("clean_exit_codes", "diagnostic_exit_codes"):
+            values = entry.get(field)
+            if (
+                not isinstance(values, list)
+                or any(type(value) is not int or value < 0 for value in values)
+                or len(values) != len(set(values))
+            ):
+                raise RegistryError(f"{prefix}.{field} must be unique non-negative integers")
+        if set(entry["clean_exit_codes"]) & set(entry["diagnostic_exit_codes"]):
+            raise RegistryError(f"{prefix} exit classifications must be disjoint")
+    for language, providers in data["sweep_targets"].items():
+        if language not in language_ids:
+            raise RegistryError(f"sweep_targets.{language} is not a registered language")
+        if (
+            not isinstance(providers, list)
+            or not providers
+            or any(provider not in provider_ids for provider in providers)
+            or len(providers) != len(set(providers))
+        ):
+            raise RegistryError(
+                f"sweep_targets.{language} must name unique registered providers"
+            )
+        incompatible = [
+            provider
+            for provider in providers
+            if language not in data["sweep_providers"][provider]["languages"]
+        ]
+        if incompatible:
+            raise RegistryError(
+                f"sweep_targets.{language} names incompatible providers: {incompatible}"
+            )
     for surface, entry in data["agent_surfaces"].items():
         if not isinstance(entry, dict) or not str(entry.get("minimum_surface_version", "")).strip():
             raise RegistryError(f"agent_surfaces.{surface} requires a pinned minimum surface version")

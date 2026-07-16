@@ -323,6 +323,85 @@ scan_targets:
     support: unsupported
     evidence_contract: native-tool-fixture
 
+sweep_targets:
+  python: [ruff]
+  javascript: [eslint]
+  typescript: [eslint, typescript-compiler]
+  rust: [clippy]
+  go: [go-vet]
+
+sweep_providers:
+  ruff:
+    languages: [python]
+    provider_kind: native
+    executable: [.venv/bin/ruff, ruff]
+    argv: [check, --output-format, json, --no-cache, .]
+    version_argv: [--version]
+    version_pattern: '^ruff [0-9]+\.[0-9]+\.[0-9]+$'
+    timeout_seconds: 30
+    output_format: ruff-json
+    output_stream: stdout
+    output_byte_limit: 1048576
+    clean_exit_codes: [0]
+    diagnostic_exit_codes: [1]
+    semantic_rule_version: 1
+  eslint:
+    languages: [javascript, typescript]
+    provider_kind: native
+    executable: [node_modules/.bin/eslint, eslint]
+    argv: [--format, json, .]
+    version_argv: [--version]
+    version_pattern: '^v?[0-9]+\.[0-9]+\.[0-9]+$'
+    timeout_seconds: 30
+    output_format: eslint-json
+    output_stream: stdout
+    output_byte_limit: 1048576
+    clean_exit_codes: [0]
+    diagnostic_exit_codes: [1]
+    semantic_rule_version: 1
+  typescript-compiler:
+    languages: [typescript]
+    provider_kind: native
+    executable: [node_modules/.bin/tsc, tsc]
+    argv: [--pretty, 'false', --noEmit, --project, tsconfig.json]
+    version_argv: [--version]
+    version_pattern: '^Version [0-9]+\.[0-9]+\.[0-9]+$'
+    timeout_seconds: 30
+    output_format: typescript-diagnostics-text
+    output_stream: stdout
+    output_byte_limit: 1048576
+    clean_exit_codes: [0]
+    diagnostic_exit_codes: [1, 2]
+    semantic_rule_version: 1
+  clippy:
+    languages: [rust]
+    provider_kind: native
+    executable: [cargo]
+    argv: [clippy, --message-format, json, --all-targets, --all-features]
+    version_argv: [clippy, --version]
+    version_pattern: '^clippy [0-9]+\.[0-9]+\.[0-9]+(?: .*)?$'
+    timeout_seconds: 120
+    output_format: cargo-json-lines
+    output_stream: stdout
+    output_byte_limit: 4194304
+    clean_exit_codes: [0]
+    diagnostic_exit_codes: []
+    semantic_rule_version: 1
+  go-vet:
+    languages: [go]
+    provider_kind: native
+    executable: [go]
+    argv: [vet, -json, ./...]
+    version_argv: [tool, vet, '-V=full']
+    version_pattern: '^vet version go[0-9]+\.[0-9]+(?:\.[0-9]+)?(?: .*)?$'
+    timeout_seconds: 120
+    output_format: go-vet-json
+    output_stream: stdout-or-stderr
+    output_byte_limit: 4194304
+    clean_exit_codes: [0]
+    diagnostic_exit_codes: [1]
+    semantic_rule_version: 1
+
 support:
   verification_issuer:
     id: cross-stack-conformance-v1
