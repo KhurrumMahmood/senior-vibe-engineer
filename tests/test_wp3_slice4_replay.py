@@ -70,9 +70,24 @@ def _minimal_manifest(module, path: Path, revision: str, tree: str) -> dict:
     return payload
 
 
-def test_commands_use_explicit_shared_interpreter_without_local_venv(tmp_path):
+def test_explicit_interpreter_contract_ignores_checkout_local_shim(
+    tmp_path, monkeypatch
+):
     module = _load_replay()
-    assert not (REPO_ROOT / ".venv").exists()
+    checkout = tmp_path / "checkout"
+    local_shim = checkout / ".venv" / "bin" / "python"
+    local_shim.parent.mkdir(parents=True)
+    local_shim.write_text(
+        "#!/bin/sh\n"
+        "if [ \"$1\" = \"--version\" ]; then\n"
+        "  echo 'Python 0.0.0-local-shim'\n"
+        "  exit 0\n"
+        "fi\n"
+        "touch local-shim-used\n"
+        "exit 42\n",
+        encoding="utf-8",
+    )
+    local_shim.chmod(0o755)
 
     commands = module._commands(
         tmp_path, python=sys.executable, include_verification=True
@@ -84,6 +99,48 @@ def test_commands_use_explicit_shared_interpreter_without_local_venv(tmp_path):
     )
     assert all(".venv/bin/python" not in argv for _command_id, argv in commands)
     assert module._python_contract(sys.executable)["version_output_sha256"]
+
+    monkeypatch.setattr(module, "_validate_git_binding", lambda *args, **kwargs: None)
+    monkeypatch.setattr(module, "_principal_sources", lambda *args, **kwargs: [])
+    monkeypatch.setattr(module, "_pytest_collected", lambda *args, **kwargs: 0)
+    monkeypatch.setattr(module, "_artifacts", lambda *args, **kwargs: [])
+    monkeypatch.setattr(
+        module,
+        "_replay_commands",
+        lambda _output_root, token: [
+            (
+                "explicit-interpreter-sentinel",
+                [
+                    token,
+                    "-c",
+                    "from pathlib import Path; Path('explicit-used').write_text('yes')",
+                ],
+            )
+        ],
+    )
+    output_root = tmp_path / "output"
+    manifest = tmp_path / "manifest.json"
+    explicit_python = str(Path(sys.executable).absolute())
+    payload = module.record(
+        output_root,
+        manifest,
+        reviewed_revision="0" * 40,
+        reviewed_tree="1" * 40,
+        include_verification=False,
+        python=explicit_python,
+        evidence_report_path=None,
+        repo_root=checkout,
+    )
+
+    assert payload["python"] == module._python_contract(explicit_python)
+    assert payload["commands"][0]["argv"][0] == module.PYTHON_ARGV_TOKEN
+    assert (checkout / "explicit-used").read_text(encoding="utf-8") == "yes"
+    assert not (checkout / "local-shim-used").exists()
+    module.verify(manifest, python=explicit_python, repo_root=checkout)
+
+    with pytest.raises(ValueError, match="runtime contract does not match"):
+        module.verify(manifest, python=str(local_shim), repo_root=checkout)
+    assert not (checkout / "local-shim-used").exists()
 
 
 def test_verify_rejects_fabricated_revision_and_tree(tmp_path, monkeypatch):
