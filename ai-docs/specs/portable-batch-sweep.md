@@ -7,6 +7,7 @@ motivating_decision: "0036"
 code_roots:
   - scripts/sweep
   - scripts/sweep_shims.py
+  - scripts/check_wp5_wp4_entry_gate.py
   - scripts/_lib/finding_identity.py
   - scripts/status.py
   - scripts/queue_status.py
@@ -22,6 +23,7 @@ code_roots:
   - tests/test_sweep_slice0_characterization.py
   - tests/test_sweep_manifest.py
   - tests/test_sweep_native_shims.py
+  - tests/test_wp5_wp4_entry_gate.py
   - tests/test_sweep_pipeline.py
   - tests/test_sweep_ecosystem_members.py
   - tests/test_finding_identity.py
@@ -334,7 +336,7 @@ WP5 verification must assert ADR 0003 still points to AC-8.9.
 
 ### Slice 5 — parser-backed ecosystem members (blocked until WP4 verified)
 
-- [ ] IM-12: Gate entry by inspecting the master tracker and WP4 final
+- [x] IM-12: Gate entry by inspecting the master tracker and WP4 final
   verification. Record the exact verified substrate revision and rerun the
   analysis fact, adapter, failure, deterministic-golden, and budget contracts;
   stop if any AC-4.1–AC-4.6 evidence is absent/stale.
