@@ -9,6 +9,7 @@ motivating_decision: "0038"
 # never auto-tick here; track them via the spec checklist and
 # audit-only `<!-- spec: -->` markers in the changed files.
 code_roots:
+  - scripts/_lib/host_profile.py
   - scripts/project_adapt.py
   - scripts/manifest.py
   - .claude/skills/which-skill
@@ -85,10 +86,10 @@ evidence is a coverage gap, never a clean scan.
   visible in human- and machine-readable output.
 - [ ] AR-8: **Shared-routing oracle.** Characterize the current active-set
   answer from all four routing/manifest surfaces before consolidation.
-- [ ] IM-1: **Profile contract.** Implement the versioned profile schema,
+- [x] IM-1: **Profile contract.** Implement the versioned profile schema,
   deterministic serialization, validation, per-assertion evidence, and
   multi-root composition. <!-- spec:portable-host-profile-routing::IM-1 -->
-- [ ] IM-2: **Five-host profiler.** Add Python/Django,
+- [x] IM-2: **Five-host profiler.** Add Python/Django,
   TypeScript/Node/React, Rust, Go, and mixed-monorepo fixtures with good/bad
   profile oracles for roots, exclusions, commands, and evidence.
   <!-- spec:portable-host-profile-routing::IM-2 -->
