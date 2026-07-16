@@ -98,21 +98,21 @@ Completion rules:
 
 ## Progress summary
 
-Last updated: 2026-07-16 by Codex (WP0 baseline start)
+Last updated: 2026-07-16 by Codex (WP0 implemented; verification pending)
 
 | State | Count |
 |---|---:|
 | not_started | 10 |
-| in_progress | 1 |
+| in_progress | 0 |
 | blocked | 0 |
-| implemented | 0 |
+| implemented | 1 |
 | verified | 0 |
 
 ## Master tracker
 
 | Work package | Status | Owner | Depends on | Acceptance criteria | Evidence / verifier | Blocker or next action |
 |---|---|---|---|---|---|---|
-| WP0 Trusted baseline and plan consolidation | in_progress | Codex | — | AC-0.1–AC-0.5 | `reports/portable-skill-ecosystem-completion/WP0/` (pending) | AC-0.1 baseline capture at `ad685e3`; no AC completed yet. |
+| WP0 Trusted baseline and plan consolidation | implemented | Codex | — | AC-0.1–AC-0.5 | `reports/portable-skill-ecosystem-completion/WP0/evidence.md`; fresh verifier pending | Implementation checkpoint `9eecd1e`; rerun all ACs and audit the W1–W6 mapping from a clean fresh context. |
 | WP1 Canonical stack and capability contract | not_started | — | WP0 | AC-1.1–AC-1.7 | — | Resolve D1–D5 and implement one validated registry. |
 | WP2 Capability-aware host profiling and routing | not_started | — | WP1 | AC-2.1–AC-2.6 | — | Make adaptation, routing, perimeter, and inherited Class B/C surfaces use the same profile. |
 | WP3 Load-bearing layers, bindings, and installer | not_started | — | WP1, WP2 | AC-3.1–AC-3.6 | — | Implement the packaging/discovery decision and exemplar binding. |
@@ -876,6 +876,7 @@ reported no P0 blockers and returned `READY`.
 | 2026-07-16 | final fresh-context readiness verifier + Codex | Final check exposed residual AC-10.4/10.5 evidence coupling and same-HEAD dirty-state staleness; linearized evidence and strengthened workspace hashing/clean-checkout rules. | No implementation status change; final readiness recheck required. |
 | 2026-07-16 | final bounded fresh-context gate | Reported no P0 blocker and returned `READY`. | Plan approved for `/goal` creation; implementation remains `not_started`. |
 | 2026-07-16 | Codex | Started WP0 at HEAD `ad685e3f47fd6fb3debe4880735a5bf20eb79cae`; only dirty path is this new plan file. Current action: AC-0.1 full baseline; last completed AC: none; last evidence revision: none. | WP0 → `in_progress`; summary now 10 not started / 1 in progress. |
+| 2026-07-16 | Codex | Repaired the browser prerequisite documentation, deterministic triage clock, stale contracts/state/counts/manifest labels, decision revisit triggers, and contract artifact-drift coverage; mapped and retired the predecessor at implementation commit `9eecd1e`. Last completed AC by implementer: AC-0.4; current action: fresh-context AC-0.1–AC-0.5 verification; last evidence revision: `9eecd1e`. | WP0 → `implemented`; summary now 10 not started / 1 implemented. |
 
 ## Promotion notes
 
