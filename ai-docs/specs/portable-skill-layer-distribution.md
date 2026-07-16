@@ -189,8 +189,9 @@ canonical procedure set and exact sorted public-name set including aliases.
 Host-owned discoveries are a third, preserved set and never contribute to a
 toolkit count.
 
-The bootstrap embeds a manifest-relative locator and expected manifest,
-bundle, inventory, registry, profile, and router hashes. The dispatcher reads
+The bootstrap embeds a manifest-relative locator plus release-root and bundle-
+index hashes; the forward trust graph binds inventory, registry, profile,
+router, and generated-manifest content. The dispatcher reads
 only that manifest-selected catalog, uses the pinned normalization/scorer/
 threshold, and takes an explicit root or ordered root set. It returns exactly
 `selected`, `clarification_required`, `proceed_directly`, or `error`.
@@ -202,15 +203,47 @@ errors. One canonical procedure can carry an independently ordered ADR 0041
 binding sequence for each selected root. Sequential loop skills receive
 separate selections and packs.
 
+Bootstrap never embeds a manifest digest. An out-of-band digest roots
+`release-root-v1.json`; that hashes the bundle index, installer, surface
+contract, schemas, and exact alias/legacy/compatibility tables; the bundle
+index hashes immutable catalog/router/procedure/binding/asset blobs and
+projection recipes; the self-hashed installed manifest points only forward to
+that verified release and hashes generated projections. All JSON is exact-
+schema RFC 8785 canonical UTF-8; files hash raw bytes; tree digests use sorted
+NFC relative POSIX `{path,size,sha256}` rows; self-digests omit exactly their
+own digest field. Duplicate/unknown keys, non-integer numbers, invalid Unicode,
+non-NFC/traversing/duplicate/symlink paths, noncanonical JSON, or backward
+digest edges fail.
+
+Structured routers use checked-in `WhichShapeResultV1` and
+`WhichSkillResultV1` schemas. IDs and constants are exactly those in ADR 0042:
+`ascii-wordset-v1`, `which-shape-lexical-v1` with `+12/+4/-10`, context `-4`,
+high/medium boundaries `40/24`, and `which-skill-overlap-v1` with
+`+5/-10/+2/+8/+3/+6` and threshold `5`. The total outcome table covers
+malformed/error, explicit valid/invalid names, shape ties/low confidence, zero
+compatible candidates, below-threshold direct work, strict unique winners,
+skill ties, and answered clarification. Unlisted combinations fail; no order
+is a tiebreaker.
+
 Activation records have exact shape `{public_name, canonical_target}`.
 Persistent records are cumulative, project-scoped, and idempotent; temporary
 records require an invocation id and recoverably disappear at every terminal
 outcome. Alias activation preserves the alias as the discovered name while
 validating the canonical target. Router execution never creates an activation
-record. The default public set is the two routers; named mode adds exactly the
-requested public records; full discovery is the exact selected canonical
-portfolio plus all aliases. Activating the canonical name and one alias creates
-two public entries backed by one stored procedure by design.
+record. The mode enum is exactly `router-only|full-discovery`; there is no named
+or temporary mode. The router-only public set is the two routers plus requested
+persistent/temporary activation records; full discovery is the exact selected
+canonical portfolio plus all aliases and deduplicates activation records by
+public name. Activating the canonical name and one alias creates two public
+entries backed by one stored procedure by design.
+
+Temporary activation requires a registry-verified per-surface terminal wrapper
+and pre-discovery startup recovery. It correlates a lowercase UUIDv4 invocation
+through `created/exposed/running/terminal/cleaned`, accepts every terminal
+result, removes under the lifecycle lock, and proves the name is no longer
+discovered before `cleaned`. If either callback or crash cleanup cannot be
+proved, that surface declares temporary activation unsupported rather than
+best-effort.
 
 The capability registry must declare verified or unsupported fresh-worker
 support per surface, including launcher, version range, zero-conversation-turn
@@ -221,20 +254,37 @@ record has one ADR 0042 fallback reason. Runtime launch/capacity/timeout/
 cancellation/budget failures never invent parent authority; they fail until
 the user explicitly authorizes a retry or parent execution. A surface unable
 to inject one selected skill remains unsupported and cannot turn on full
-discovery implicitly.
+discovery implicitly. Post-worker parent execution uses only
+`user_confirmed_after_worker_failure`, binds a schema-valid failed dispatch,
+failure kind, consumed budget, and side-effect disposition. `unknown` side
+effects prohibit continuation; `committed_known` requires a hashed
+`resume_without_repeating` plan; `none|rolled_back` permit a confirmed retry.
+The continuation has a new dispatch id, same workflow id, ordinal two, prior
+dispatch id, and only remaining cumulative budget.
 
-`DispatchPackV1` and `DispatchResultV1` use canonical JSON and ADR 0042's exact
-131,072/65,536-byte ceilings. Packs include policy/schema versions, canonical
-and public names, content hashes, per-root ordered bindings, normalized task
-arguments, allowlisted non-skill dependencies, lane/reason, and budgets.
-Results use the five normative statuses and out-of-band content-addressed
-artifacts. The default runtime policy is one worker, depth one, one attempt,
-1,200 seconds, 32,768 total model tokens, 8,192 output tokens, no detachment,
-and no worker activation, redispatch, or child spawn. Oversize or unenforceable
-budgets fail visibly. Parent fallback uses the identical pack/result schema.
+Exact checked-in draft-2020-12 schemas for `DispatchPackV1` and
+`DispatchResultV1` recursively reject additional properties and enforce ADR
+0042's RFC-8785 serialization, UUID/id/hash/path/string/list/body/dependency and
+131,072/65,536-byte bounds. The pack explicitly carries the selected inline
+procedure and ordered inline bindings; supporting assets are verified read-
+only store dependencies, never ambient instructions. Results enforce bounded
+summary/error fields and at most 16 contained regular-file artifacts using
+`artifact://sha256/<digest>`, 16-MiB each/64-MiB aggregate, with raw-byte
+verification and no symlink/hard-link escape. Invalid/oversize records fail,
+not truncate.
+
+The one-lane limit is project-wide across worker and parent workflows and uses
+a dispatch lock. The monotonic 1,200-second workflow deadline begins before
+router execution and never pauses or resets. The cumulative 32,768 input-plus-
+output token and 8,192 output-token budgets include platform/system/tool,
+failed, cancelled, worker, and parent usage across both possible dispatches.
+The same wrapper enforces parent and worker lanes; unavailable accounting fails
+closed. Depth is one, each dispatch has one attempt, only a confirmed worker-
+failure continuation may create ordinal two, and no detached, activation,
+redispatch, or child-spawn behavior is allowed.
 
 The lifecycle manifest implements ADR 0042's complete state tuple and separate
-ownership for store, bootstrap, named/full projections, activation records,
+ownership for store, bootstrap, activation/full-discovery projections, activation records,
 journal, and generated links. One lifecycle lock and generation transaction
 covers all requested surfaces. Success requires post-commit native discovery
 on each through the adapter's declared offline non-model check; a surface
@@ -249,20 +299,30 @@ owned objects. Modified owned content stops the entire operation. Host
 symlinks/escapes fail; an owned internal link is permitted only when manifest-
 hashed, contained, and discovery-proven for that surface.
 
-Migration inventories every supported legacy ambient layout and prior toolkit
-manifest, adopting/removing only byte-identical known toolkit content. Modified
-known or host/unknown content stops with a diff, and router-only cannot pass
-while a legacy toolkit header remains ambient. Compatibility ranges cover the
-manifest reader, bundle, catalog, routers, delegation policy, and surface.
-Unsupported versions and side-by-side versions in one namespace fail closed;
-explicit local-bundle downgrade uses the same transaction and validation.
+Before implementation, exact schema-closed `aliases-v1.json`,
+`legacy-layouts-v1.json`, and `compatibility-v1.json` are checked in. Alias rows
+declare every surface spelling and lifetime even when the table is empty;
+legacy rows declare exact layouts, versions/ranges, paths, known release/tree
+hashes, ownership markers, and action. Compatibility uses ADR 0042's exact v1/
+registry-1/profile-2/router-ID and five exact surface-version bounds. No value
+is inferred. Migration adopts/removes only a listed byte-identical entry;
+modified known or host/unknown content stops with a diff, router-only cannot
+pass while a legacy toolkit header remains ambient, and unsupported/side-by-
+side versions fail closed. Explicit local-bundle downgrade uses the same
+transaction and validation.
 
 Every deterministic lifecycle, activation, catalog, and routing operation is
 network-, package-manager-, download-, and model-call-free under a denied-
 network harness. Persisted records contain hashes/lengths and routing metadata,
 not raw prompts, conversation, source/result bodies, or credentials. Raw
-artifacts are ephemeral unless the user explicitly requests mode-`0600` local
-retention with a deletion policy. Canary-secret fixtures enforce the boundary.
+pack/body/input/output/result/artifact staging uses umask `077`, `0700`
+directories, and `0600` files with no links, and is deleted after handoff for
+all five terminal statuses plus startup recovery. Cleanup failure blocks new
+dispatch. The `0600` closed journal holds only ids/states/relative paths/hashes/
+lengths/budgets/cleanup state. Explicit retention promotes a verified artifact
+to a separate `0700`/`0600` user-confirmed root with expiry/deletion policy and
+leaves no raw copy. Canary-secret fixtures enforce absence from durable output
+and post-terminal staging.
 
 ## Characterization requirements
 
@@ -406,7 +466,8 @@ evidence contract in the same logical change.
   sorted canonical-procedure set, exact sorted public-name set including
   aliases, and preserved host-owned discovery set in router-only, initial named
   activation of a non-router, named alias activation, cumulative canonical+
-  alias activation, and full-discovery modes. Canonical router-only count is
+  alias activation, and full-discovery states. The mode field remains exactly
+  `router-only|full-discovery`; activation records are orthogonal. Canonical router-only count is
   two; initial non-router named activation count is three; all other counts are
   derived from and must equal the checked-in exact sets rather than a loose
   total. Pin ADR 0042's public syntax/path/namespace table, including Codex's
@@ -419,16 +480,30 @@ evidence contract in the same logical change.
   activation mode, explicitly activated names, and delegation/fallback policy.
   Base install performs no network or package-manager action and defaults to
   router-only activation; `full-discovery` requires an explicit manifest mode.
-  The bootstrap embeds the manifest-relative trusted catalog locator and all
-  expected hashes; ranking declares task normalization, scorer/threshold
-  version, root semantics, and the four dispatcher outcomes. Manifest schema
+  Check in release-root, bundle-index, installed-manifest, and surface-
+  activation-contract v1 schemas and implement
+  ADR 0042's exact acyclic external-root trust graph, RFC-8785/digest domains,
+  raw-file/tree/self-digest algorithms, and no bootstrap→manifest digest edge.
+  The bootstrap embeds only its locator and release/bundle digests. Check in
+  exact closed `WhichShapeResultV1`/`WhichSkillResultV1` schemas and pin
+  `ascii-wordset-v1`, `which-shape-lexical-v1` (+12/+4/-10, -4 context,
+  40/24 confidence), and `which-skill-overlap-v1`
+  (+5/-10/+2/+8/+3/+6, threshold 5). Exercise the total outcome table for
+  malformed, explicit valid/invalid, zero compatible, below threshold, unique,
+  tie, low-confidence, and answered-clarification inputs. Manifest schema
   pins the surface activation contract, `{public_name, canonical_target}`
   activation records, temporary invocation ids, per-surface verified/
   unsupported worker capability, catalog `execution_class`/parent
   requirements, allowed fallback reasons, and `DispatchPackV1`/
-  `DispatchResultV1`. Enforce the exact 131,072-byte pack, 65,536-byte result,
-  one-worker/depth-one/one-attempt, 1,200-second, 32,768-total-token,
-  8,192-output-token, no-detached/no-child/no-redispatch defaults. Persist only
+  `DispatchResultV1`. Check in their exact recursive-additional-properties-
+  false draft-2020-12 schemas and enforce canonical serialization, per-field
+  UUID/id/hash/root/binding/task/dependency/body/result/error/artifact bounds,
+  explicit inline procedure/bindings, verified store assets, and artifact URI/
+  containment/hash rules. Enforce the exact 131,072-byte pack, 65,536-byte
+  result, project-wide lock, depth-one/one-attempt-per-dispatch, monotonic
+  1,200-second workflow deadline, cumulative 32,768 input+output/8,192 output-
+  token budgets across worker/parent continuations, and no-detached/no-child/
+  no-redispatch defaults. Persist only
   hashes, lengths, routing metadata, budgets, status, and artifact hashes; raw
   task/conversation/source/result/credential content is not manifest or
   telemetry data.
@@ -446,13 +521,18 @@ evidence contract in the same logical change.
   no success is published before native discovery agrees on every surface, and
   startup recovery restores the exact prior manifest/tree/discovery/
   activations after any interruption. Add cumulative persistent activation,
-  invocation-scoped temporary activation and terminal cleanup, exact
+  invocation-scoped temporary activation only on surfaces with a verified
+  correlated terminal wrapper/pre-discovery crash cleanup (otherwise explicit
+  unsupported), exact
   deactivation, explicit local-bundle downgrade and rollback, update-time
   activation/alias/binding validation, current+previous generation retention,
   owned-reference garbage collection, all-or-nothing modified-owned handling,
   same-namespace side-by-side rejection, and the manifest-contained generated-
-  link policy. Characterize and migrate every supported pre-amendment ambient
-  layout and prior manifest: adopt/retire only known byte-identical toolkit
+  link policy. Before implementation check in exact closed
+  `aliases-v1.json`, `legacy-layouts-v1.json`, and `compatibility-v1.json` with
+  ADR 0042's concrete v1/registry-1/profile-2/router and exact five-surface
+  bounds. Characterize and migrate every supported pre-amendment ambient
+  layout and prior manifest from that inventory: adopt/retire only known byte-identical toolkit
   content; modified known or host/unknown content stops with a diff; no
   router-only success may leave a legacy toolkit header ambient. Pin reader/
   bundle/catalog/router/delegation/surface compatibility ranges. Every
@@ -467,8 +547,8 @@ evidence contract in the same logical change.
   full-discovery exposes the selected portfolio without changing the catalog
   store or host-owned files. Run the exact-set matrix from IM-13 through
   activate-repeat/deactivate-repeat, canonical+alias cumulative activation,
-  temporary success/failure/cancellation/startup recovery, router-only↔named↔
-  full transitions, v1→v2 with preserved and stale activation, compatible
+  temporary success/failure/cancellation/startup recovery, router-only↔full-
+  discovery transitions with zero/one/multiple activation records, v1→v2 with preserved and stale activation, compatible
   downgrade, rollback, interrupted multi-surface commit, concurrent-lock
   rejection, modified-owned stop, host namespace collision, host symlink/
   escape, allowed owned-link discovery, and uninstall. Native evidence must
@@ -499,11 +579,18 @@ evidence contract in the same logical change.
   result bytes and hashes, budgets, result status, and absence of unselected
   skill content. Parent fallback must use one allowed reason and the identical
   schemas. Spawn/timeout/capacity/cancellation/budget failures must not fall
-  back or retry without explicit user confirmation. Oversize, recursion,
+  back or retry without an exact `user_confirmed_after_worker_failure` record
+  binding the failed dispatch/result, failure kind, time/tokens, side-effect
+  disposition, plan hash, new dispatch id, ordinal two, and remaining cumulative
+  budget. Unknown side effects and parent-lane enforcement/accounting failures
+  stop. Oversize, recursion,
   redispatch, activation, child-spawn, detached-work, and unenforceable-budget
   attacks fail. A canary secret is absent from manifest, logs, evidence,
   stdout, and errors; retained raw artifacts require explicit mode-`0600` local
-  retention and a deletion policy.
+  retention and a deletion policy. Verify umask `077`, `0700` directories,
+  `0600` files/journal, no links/raw journal content, deletion after handoff for
+  every terminal status, pre-discovery startup cleanup, cleanup-failure lockout,
+  and no raw copy after explicit artifact promotion.
   <!-- spec:portable-skill-layer-distribution::IM-17 -->
 - [ ] IM-18: **Reference and regression gate.** Require clean metadata,
   contracts/index, intent/artifact drift, decision links, catalog references,
@@ -522,6 +609,8 @@ evidence contract in the same logical change.
 |---|---|
 | `.claude/skills/_common/capability-registry.yml` | selected layer/binding/domain vocabulary only; no consumer-local enum |
 | `.claude/skills/_common/skill-catalog-inventory.yml` | exact 76-row placement/readiness authority |
+| `.claude/skills/_common/distribution/{release-root-v1,bundle-index-v1,installed-manifest-v1,surface-activation-contract-v1,which-shape-result-v1,which-skill-result-v1,dispatch-pack-v1,dispatch-result-v1}.schema.json` | exact closed schemas, canonical digest domains, lifecycle, router, and dispatch wire contracts |
+| `.claude/skills/_common/distribution/{aliases-v1,legacy-layouts-v1,compatibility-v1}.json` | exact aliases, migratable legacy releases/layouts, and closed compatibility bounds |
 | `.claude/skills/_common/skill-frontmatter.md` | honest layer/binding/readiness authoring contract |
 | `.claude/docs/skill-catalog.md` | invocation and binding links generated/reference-checked |
 | `.claude/skills/plan-skill/SKILL.md` | N=1, ≥3, and concept+binding placement question |
@@ -536,8 +625,8 @@ evidence contract in the same logical change.
 | `scripts/skill_meta.py`, `scripts/_lib/skill_activation.py`, `scripts/manifest.py` | consume authoritative inventory where readiness/selection matters |
 | `tests/fixtures/wp3/hosts/{core-only,typescript-react,django,mixed}` | cold hosts, ownership sentinels, collisions, lifecycle states |
 | `tests/fixtures/wp3/surfaces/{claude-code,codex,augment,cursor,gemini}` | exact-version projection and runtime evidence fixtures |
-| `tests/fixtures/wp3/activation/{legacy-ambient,prior-manifest,collisions,symlinks,interrupted}` | migration, ownership, recovery, and version-transition fixtures |
-| `tests/fixtures/wp3/dispatch/{unique,tie,no-match,error,mixed-root,privacy}` | dispatcher outcomes, per-root packs, fallback, bounds, and canary fixtures |
+| `tests/fixtures/wp3/activation/{legacy-ambient,prior-manifest,collisions,symlinks,interrupted,temporary-callback}` | migration, ownership, recovery, temporary cleanup, and version-transition fixtures |
+| `tests/fixtures/wp3/dispatch/{unique,tie,no-match,error,malformed,explicit,mixed-root,worker-failure,privacy}` | total dispatcher outcomes, per-root packs, fallback/side-effects, bounds, and canary fixtures |
 | `tests/fixtures/wp3/extract-enum` | pinned input, raw output, semantic oracle, invalid form |
 | `tests/fixtures/wp3/move-gate` | retired prose and broken self-anchor negative fixture |
 | `tests/fixtures/wp3/bundles/{v1,v2,corrupt}` | update, rollback, corruption, and idempotence cases |
@@ -561,7 +650,7 @@ verifier recomputes hashes and outcomes; it does not trust a boolean `passed`.
 | AC-3.3 | per-root selection JSON with ordered overlays and negative ambiguity/incompatibility/root-leak outputs |
 | AC-3.4 | pre/post semantic oracle hashes, normalization report, final Django proposal output, existing test results |
 | AC-3.5 | three name/content/selection snapshots, exact canonical/public/alias/host discovery sets for every mode and surface, and negative cross-layer/unselected-content scans |
-| AC-3.6 | lifecycle state/tree/ownership hashes, migration/version/rollback/collision/recovery diffs, idempotence and denied-network runs, dispatcher/pack/result/fallback/budget/privacy records, timed useful-run transcript, canary-secret absence, and deny-read proof |
+| AC-3.6 | release-root/trust-graph/digest recomputation; exact schema/table hashes; lifecycle state/tree/ownership hashes; migration/version/rollback/collision/recovery/temporary-cleanup diffs; idempotence and denied-network runs; total dispatcher/pack/result/fallback/side-effect/cumulative-budget/privacy records; terminal raw-deletion and permission proof; timed useful-run transcript; canary-secret absence; and deny-read proof |
 | AC-3.7 | exact two-band commands/output, substantive review, proposal/self-anchor inventory, pins, rewrite/unhandled report, import-and-asset smoke, full-diff scan, non-rewrite acknowledgment, fired-rule lesson, blocking fixture |
 
 Runtime discovery evidence from a different machine must additionally carry
@@ -590,6 +679,8 @@ must fail on stale generated artifacts rather than silently rewriting them.
 .venv/bin/python scripts/skill_meta.py lint --strict --quiet
 .venv/bin/python scripts/lint/no_core_framework_leakage.py --all
 .venv/bin/python scripts/skill_installer.py catalog-check
+.venv/bin/python scripts/skill_installer.py contract-check \
+  --contracts .claude/skills/_common/distribution
 .venv/bin/python scripts/skill_installer.py verify-bundle \
   --bundle tests/fixtures/wp3/bundles/v2
 .venv/bin/python scripts/skill_installer.py exercise \
@@ -664,7 +755,7 @@ produces both bands.
 | AC-3.3 | global mixed-stack selection; first-installed winner; two same-precedence candidates; incompatible explicit choice; zero required match silently falls back; Vite inferred as React; malformed/tampered profile; root A binding selected for root B; evidence omits overlay |
 | AC-3.4 | comparator normalizes a missing literal/site/risk; Django remains in core; wire values, ordering, or case variants change; invalid routing starts passing; only collector intermediate output is compared; absent binding passes |
 | AC-3.5 | snapshots check counts but not exact canonical/public/alias/host sets; router-only exposes an alias or third toolkit header; named activation exposes canonical and alias unexpectedly; full discovery omits aliases; host skill counted as toolkit; structural file counted as runtime discovery; inferred legacy core leaks framework content; TypeScript portfolio is empty or includes Django; Django loses an AR-1 name; mixed-root selection broadens globally |
-| AC-3.6 | ambient scan or checkout-relative catalog lookup; unverified hash/locator; ranking tie broken by order; shape treated as procedure; no-match loads a body; router error becomes direct work; alias activation changes public name; temporary activation survives a terminal outcome; routed work changes discovery; undeclared/forged worker capability; disallowed fallback; launch failure silently falls back/retries; inherited conversation; unselected skill/dependency in pack; oversize/truncated pack/result; recursion/redispatch/activation/child/detached worker; unenforced deadline/token budget; raw prompt/result/secret in persisted output; canary leak; host file overwritten; traversal/host symlink/escape; corrupted checksum; partial multi-surface update; missing lifecycle lock/recovery; retired owned path remains; modified owned file overwritten/deleted; stale activation silently dropped/remapped; legacy ambient header remains; unknown legacy content adopted; incompatible reader/surface silently uses full discovery; side-by-side namespace; second lifecycle operation changes state; hidden network/package/model/download; timing excludes setup; starter reads kernel |
+| AC-3.6 | bootstrap↔manifest/bundle digest cycle or mutable mutual attestation; wrong digest domain/canonicalization/path ordering/self-field; unknown/duplicate JSON field; missing exact schema/alias/legacy/compatibility table; unbounded/inferred version; ambient scan or checkout-relative catalog lookup; unverified hash/locator; wrong normalizer/scorer/weight/threshold; uncovered outcome; ranking tie broken by order; shape treated as procedure; no-match loads a body; router error becomes direct work; mode outside exact two-value enum; alias activation changes public name; temporary activation without verified terminal wrapper/pre-discovery recovery or survives a terminal outcome; routed work changes discovery; undeclared/forged worker capability; disallowed fallback; worker failure fallback lacks prior result/new id/side-effect disposition/plan hash or resets budget; unknown side effects continue; two project lanes; deadline starts late/pauses; token counter omits input/system/tool/failed/parent usage; parent accounting unenforced; inherited conversation; selected procedure not explicitly delivered; unselected skill/dependency in pack; schema/per-field/artifact bound bypass; artifact URI/hash/containment/link attack; oversize/truncated pack/result; recursion/redispatch/activation/child/detached worker; raw prompt/result/secret in manifest/journal/evidence; wrong file/dir permissions; terminal/startup raw staging survives; cleanup failure permits new dispatch; retained artifact leaves raw copy; canary leak; host file overwritten; traversal/host symlink/escape; corrupted checksum; partial multi-surface update; missing lifecycle lock/recovery; retired owned path remains; modified owned file overwritten/deleted; stale activation silently dropped/remapped; legacy ambient header remains; unknown legacy content adopted; incompatible reader/surface silently uses full discovery; side-by-side namespace; second lifecycle operation changes state; hidden network/package/model/download; timing excludes setup; starter reads kernel |
 | AC-3.7 | generic noisy `avoid:`; only one findings band checked; identifiers renamed while prose stays stale; unhandled self-anchor omitted; import smoke never reads the asset; staged-only rather than full-diff scan; directory accepted where file required; no fired-rule lesson; path moved before gate; ADR status/embodiment changed |
 
 ## Completion risks and stop conditions
@@ -677,6 +768,10 @@ produces both bands.
   only injection path, native exact-set proof, or safe explicit-activation
   path, router-only work for that surface may not claim completion and may not
   fall back to full discovery.
+- **Wire/trust prerequisites:** implementation may not begin until the acyclic
+  release trust graph, all six exact JSON Schemas, and exact alias/legacy/
+  compatibility tables are checked in and validated. Prose examples or
+  implementation-owned defaults cannot substitute for those artifacts.
 - **Legacy migration:** if an ambient entry cannot be proven byte-identical to
   a known toolkit release, migration stops and leaves it host-owned. No
   ownership guess or partial router-only success is permitted.
