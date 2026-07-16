@@ -183,16 +183,6 @@ class TreeSitterAdapter(LanguageAdapter):
     def _write_name(self, node: Any, source: bytes) -> str:
         return _field_text(node, "left", source) if node.type == "assignment_expression" else ""
 
-    def _parent_name(self, node: Any, source: bytes) -> str | None:
-        parent = node.parent
-        while parent is not None:
-            if parent.type in self.definition_types:
-                name = self._definition_name(parent, source)
-                if name:
-                    return name
-            parent = parent.parent
-        return None
-
     def analyze(
         self,
         source: str,
@@ -227,7 +217,7 @@ class TreeSitterAdapter(LanguageAdapter):
         root = self._parse(source_bytes, path=path, capability=primary)
         facts: list[Fact] = []
         definition_positions: set[tuple[int, int]] = set()
-        reference_candidates: list[tuple[Any, str]] = []
+        reference_candidates: list[tuple[Any, str, str | None]] = []
 
         def add(capability: str, name: str, node: Any, kind: str, parent: str | None = None) -> None:
             if capability not in requested or not name:
@@ -246,57 +236,69 @@ class TreeSitterAdapter(LanguageAdapter):
                 )
             )
 
-        stack = [root]
+        stack: list[tuple[Any, str | None]] = [(root, None)]
         while stack:
-            node = stack.pop()
-            stack.extend(reversed(node.named_children))
+            node, enclosing_definition = stack.pop()
+            child_enclosing_definition = enclosing_definition
             if node.type in self.definition_types:
                 name_node = self._definition_node(node)
                 name = self._definition_name(node, source_bytes)
                 if name_node is not None:
                     definition_positions.add((name_node.start_byte, name_node.end_byte))
-                parent = self._parent_name(node, source_bytes)
                 kind = self._definition_kind(node)
-                add(CAP_DEFINITIONS, name, name_node or node, kind, parent)
-                add(CAP_SYMBOLS, name, name_node or node, kind, parent)
+                add(CAP_DEFINITIONS, name, name_node or node, kind, enclosing_definition)
+                add(CAP_SYMBOLS, name, name_node or node, kind, enclosing_definition)
+                child_enclosing_definition = name or enclosing_definition
             if node.type == "assignment_expression":
                 right = node.child_by_field_name("right")
                 left = node.child_by_field_name("left")
                 if right is not None and right.type in {"arrow_function", "function_expression"} and left is not None:
                     assigned = _node_text(left, source_bytes).rsplit(".", 1)[-1]
                     definition_positions.add((left.start_byte, left.end_byte))
-                    add(CAP_DEFINITIONS, assigned, left, "function", self._parent_name(node, source_bytes))
-                    add(CAP_SYMBOLS, assigned, left, "function", self._parent_name(node, source_bytes))
+                    add(CAP_DEFINITIONS, assigned, left, "function", enclosing_definition)
+                    add(CAP_SYMBOLS, assigned, left, "function", enclosing_definition)
             if node.type in self.import_node_types:
                 add(CAP_IMPORTS, self._import_name(node, source_bytes), node, "import")
             if node.type == "call_expression":
                 function = node.child_by_field_name("function")
-                add(CAP_CALLS, _node_text(function, source_bytes) if function else "", function or node, "call", self._parent_name(node, source_bytes))
+                add(
+                    CAP_CALLS,
+                    _node_text(function, source_bytes) if function else "",
+                    function or node,
+                    "call",
+                    enclosing_definition,
+                )
             write = self._write_name(node, source_bytes)
             if write:
                 left = node.child_by_field_name("left")
-                add(CAP_WRITES, write, left or node, "assignment", self._parent_name(node, source_bytes))
+                add(CAP_WRITES, write, left or node, "assignment", enclosing_definition)
             if node.type in IDENTIFIER_TYPES:
-                reference_candidates.append((node, _node_text(node, source_bytes)))
+                reference_candidates.append(
+                    (node, _node_text(node, source_bytes), enclosing_definition)
+                )
+            stack.extend(
+                (child, child_enclosing_definition)
+                for child in reversed(node.named_children)
+            )
 
         # spec:portable-analysis-substrate::IM-4
         # These are deterministic syntax references. ADR 0039 reserves a
         # project-pinned compiler provider for a future named semantic
         # definition/reference/type consumer; none exists in the inventory.
         if CAP_REFERENCES in requested:
-            counts = Counter(name for _, name in reference_candidates)
+            counts = Counter(name for _, name, _ in reference_candidates)
             definition_counts = Counter(
                 name
-                for node, name in reference_candidates
+                for node, name, _ in reference_candidates
                 if (node.start_byte, node.end_byte) in definition_positions
             )
-            for node, name in reference_candidates:
+            for node, name, parent in reference_candidates:
                 position = (node.start_byte, node.end_byte)
                 has_non_definition_occurrence = counts[name] > definition_counts[name]
                 if position not in definition_positions and (
                     has_non_definition_occurrence or definition_counts[name] == 0
                 ):
-                    add(CAP_REFERENCES, name, node, "reference", self._parent_name(node, source_bytes))
+                    add(CAP_REFERENCES, name, node, "reference", parent)
 
         return AnalysisResult(
             ANALYSIS_INTERFACE_VERSION,
