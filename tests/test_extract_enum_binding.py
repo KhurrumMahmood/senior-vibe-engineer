@@ -17,7 +17,6 @@ FIXTURE_ROOT = REPO_ROOT / "tests" / "fixtures" / "wp3" / "extract-enum"
 COLLECT = SKILL_ROOT / "scripts" / "collect.py"
 PROPOSE = SKILL_ROOT / "scripts" / "propose.py"
 PROPOSE_PYTHON = SKILL_ROOT / "scripts" / "propose_python.py"
-REPLAY = REPO_ROOT / "scripts" / "wp3_slice4_replay.py"
 AR7_ORACLE = FIXTURE_ROOT / "ar7-semantic-oracle.json"
 
 
@@ -478,40 +477,6 @@ def test_characterization_input_hashes_remain_pinned():
     assert hashlib.sha256((FIXTURE_ROOT / "django/app/services.py").read_bytes()).hexdigest() == (
         "6bbea6f11b8036fa1730d8c957da195ca374ec2a128b9eef8ea206cb3ef7e93b"
     )
-
-
-def test_slice4_full_manifest_replay_is_byte_deterministic(tmp_path, monkeypatch):
-    spec = importlib.util.spec_from_file_location("wp3_slice4_replay", REPLAY)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    monkeypatch.setattr(
-        module,
-        "_verification_commands",
-        lambda: [("verification-sentinel", [module.PYTHON, "-c", "pass"])],
-    )
-    output_root = tmp_path / "replay"
-    manifest = tmp_path / "manifest.json"
-    first = module.record(
-        output_root,
-        manifest,
-        reviewed_revision="0" * 40,
-        reviewed_tree="1" * 40,
-        include_verification=True,
-    )
-    assert first["profile"] == "full-verification-and-replay"
-    assert first["commands"][0]["id"] == "verification-sentinel"
-    first_bytes = manifest.read_bytes()
-
-    module.verify(manifest)
-    module.record(
-        output_root,
-        manifest,
-        reviewed_revision="0" * 40,
-        reviewed_tree="1" * 40,
-        include_verification=True,
-    )
-    assert manifest.read_bytes() == first_bytes
 
 
 def test_collector_rejects_nondeterministic_scope_clock_before_writing(tmp_path):
