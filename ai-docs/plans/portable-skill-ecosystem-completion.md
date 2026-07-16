@@ -115,7 +115,7 @@ Last updated: 2026-07-16 by Codex (router-activation contract independently veri
 | WP0 Trusted baseline and plan consolidation | verified | Codex | — | AC-0.1–AC-0.5 | `reports/portable-skill-ecosystem-completion/WP0/final-verification.md` (plus linked implementation/attempt/pre-retirement records) | All five ACs independently passed at clean revision `fae13d4`; next dependency-ready package is WP1. |
 | WP1 Canonical stack and capability contract | verified | Codex | WP0 | AC-1.1–AC-1.7 | `reports/portable-skill-ecosystem-completion/WP1/final-verification.md` (plus implementation evidence and three retained failed attempts) | All seven ACs independently passed at clean revision `8b8b09a`; dependency-sized WP2/WP4 specs are promoted without weakening the master ledger. |
 | WP2 Capability-aware host profiling and routing | verified | Codex | WP1 | AC-2.1–AC-2.6 | `ai-docs/specs/portable-host-profile-routing.md`; `reports/portable-skill-ecosystem-completion/WP2/host-profile-slice.md`; `reports/portable-skill-ecosystem-completion/WP2/adaptation-perimeter-slice.md`; `reports/portable-skill-ecosystem-completion/WP2/routing-perimeter-slice.md`; `reports/portable-skill-ecosystem-completion/WP2/final-implementation.md`; `reports/portable-skill-ecosystem-completion/WP2/verification-attempt-1.md`; `reports/portable-skill-ecosystem-completion/WP2/final-verification.md` | Fresh `/root/wp2_clean_verifier` passed AC-2.1–AC-2.6 at clean-start revision `363a818`: 506 passed/1 skip full suite, 196 focused, contract/spec/Ruff/Class A/B/C/route replay green, and independent malformed-input checks passed. WP3 is now dependency-ready; WP4 remains active independently. |
-| WP3 Load-bearing layers, bindings, and installer | in_progress | Codex | WP1, WP2 | AC-3.1–AC-3.7 | `ai-docs/specs/portable-skill-layer-distribution.md`; `reports/portable-skill-ecosystem-completion/WP3/characterization.md`; `reports/portable-skill-ecosystem-completion/WP3/slice-1-evidence.md`; `reports/portable-skill-ecosystem-completion/WP3/slice-2-evidence.md`; `reports/portable-skill-ecosystem-completion/WP3/slice-3-evidence.md`; `reports/portable-skill-ecosystem-completion/WP3/slice-4-evidence.md`; `reports/portable-skill-ecosystem-completion/WP3/slice-4-repair-command-manifest.json` | AR-1–AR-12 and IM-1–IM-9 are complete. Fresh main-line review passed IM-7–IM-9 and AC-3.3/AC-3.4 at exact evidence HEAD `9d5b943` over reviewed revision `8eb9407`: all 17 replay commands, 693 collected tests, binding negatives, explicit-interpreter portability, and exact Django semantic equivalence passed. Fresh review failed IM-10–IM-12 at `26a8752`; repair `6b2d341` claims IM-10/IM-12 and native discovery on 4/5 surfaces, with fresh review active and Cursor honestly unavailable for IM-11/AC-3.2. Native probes also prove exact router-only/full inventories in Claude/Codex. Amendment review at `a37bf76` and fresh re-review at `1654ae5` both returned `NOT READY`; the second found nine remaining trust, fallback, scorer/outcome, schema, temporary-activation, mode, inventory/compatibility, resource-accounting, and cleanup gaps. ADR 0042 and IM-13–IM-18 now contain a second additive requirements repair with no implementation credit. Current action: independently re-review this repair, finish Slice 5 verification/Cursor evidence, then implement IM-13–IM-18; the recorded Slice-4 `/tmp` artifact set must become clean-machine self-bootstrapping under IM-18 before WP10. |
+| WP3 Load-bearing layers, bindings, and installer | in_progress | Codex | WP1, WP2 | AC-3.1–AC-3.7 | `ai-docs/specs/portable-skill-layer-distribution.md`; `reports/portable-skill-ecosystem-completion/WP3/characterization.md`; `reports/portable-skill-ecosystem-completion/WP3/slice-1-evidence.md`; `reports/portable-skill-ecosystem-completion/WP3/slice-2-evidence.md`; `reports/portable-skill-ecosystem-completion/WP3/slice-3-evidence.md`; `reports/portable-skill-ecosystem-completion/WP3/slice-4-evidence.md`; `reports/portable-skill-ecosystem-completion/WP3/slice-4-repair-command-manifest.json` | AR-1–AR-12 and IM-1–IM-9 are complete. Fresh main-line review passed IM-7–IM-9 and AC-3.3/AC-3.4 at exact evidence HEAD `9d5b943` over reviewed revision `8eb9407`: all 17 replay commands, 693 collected tests, binding negatives, explicit-interpreter portability, and exact Django semantic equivalence passed. Fresh review failed IM-10–IM-12 at `26a8752`; repair `6b2d341` claims IM-10/IM-12 and native discovery on 4/5 surfaces, with fresh review active and Cursor honestly unavailable for IM-11/AC-3.2. Native probes also prove exact router-only/full inventories in Claude/Codex. Amendment review at `a37bf76`, fresh re-review at `1654ae5`, and fresh verifier review at `8e8ef108` all returned `NOT READY`; the third found six bootstrap, threshold/precedence, serial-pack, worker-continuation, mode, and schema-staging contradictions. ADR 0042 and IM-13–IM-18 now contain a third additive requirements repair with no implementation credit. Current action: independently re-review this repair, finish Slice 5 verification/Cursor evidence, then implement IM-13–IM-18; the recorded Slice-4 `/tmp` artifact set must become clean-machine self-bootstrapping under IM-18 before WP10. |
 | WP4 Multi-language analysis substrate | verified | Codex | WP1 | AC-4.1–AC-4.6 | `reports/portable-skill-ecosystem-completion/WP4/implementation-evidence.md` (superseded benchmark narrative); `reports/portable-skill-ecosystem-completion/WP4/verification-attempt-1.md`; `reports/portable-skill-ecosystem-completion/WP4/verification-attempt-2.md`; `reports/portable-skill-ecosystem-completion/WP4/ac-4.6-repair-evidence.md` (superseded repair); `reports/portable-skill-ecosystem-completion/WP4/verification-attempt-3.md`; `reports/portable-skill-ecosystem-completion/WP4/ac-4.6-integrity-repair-evidence.md` (superseded repair); `reports/portable-skill-ecosystem-completion/WP4/verification-attempt-4.md`; `reports/portable-skill-ecosystem-completion/WP4/ac-4.6-source-provenance-repair-evidence.md`; `reports/portable-skill-ecosystem-completion/WP4/final-source-verification.md`; `reports/portable-skill-ecosystem-completion/WP4/clean-reverification.md`; `reports/portable-skill-ecosystem-completion/WP4/darwin-arm64.json`; `reports/portable-skill-ecosystem-completion/WP4/linux-x86_64.json`; `reports/portable-skill-ecosystem-completion/WP4/platform-matrix.json`; `reports/portable-skill-ecosystem-completion/WP4/adversarial-comparison.txt` | Fresh `/root/wp4_clean_reverification` passed AC-4.1–AC-4.6 at exact clean revision `d1a6316`: 549 passed full suite, 17/17 `/which-cleanup` plus root/trivial/25-file history replay, 65/65 focused on both Darwin-arm64 and Linux-x86_64, deterministic matrix and budgets green, and every retained attempt-1–4 attack rejected. WP4 is complete and parser-backed WP5 work is dependency-ready. |
 | WP5 Productized batch sweep and native shims | in_progress | Codex | WP1, WP2; WP4 for parser-backed members | AC-5.1–AC-5.7 | `ai-docs/specs/portable-batch-sweep.md`; `reports/portable-skill-ecosystem-completion/WP5/characterization.md`; `reports/portable-skill-ecosystem-completion/WP5/slice-0-evidence.md`; `reports/portable-skill-ecosystem-completion/WP5/slice-1-evidence.md`; `reports/portable-skill-ecosystem-completion/WP5/slice-2-evidence.md`; `reports/portable-skill-ecosystem-completion/WP5/slice-3-command-evidence.md`; `reports/portable-skill-ecosystem-completion/WP5/slice-5-entry-evidence.md`; `reports/portable-skill-ecosystem-completion/WP5/slice-5-parser-evidence.md` | AR-1–AR-12, IM-1–IM-8, and IM-12–IM-14 are complete. Fresh main-line verification passed parser IM-13/IM-14 at exact evidence HEAD `8b36354` over reviewed revision `0e45d54`: 162 focused, 751/4 full-suite, relocated checkout, trusted runtime-context negatives, registry-owned parser selection, and strict mixed profile all passed. Judgment/consumer/packet/harness code for IM-9–IM-11 remains implementation-ahead and uncredited pending integrated evidence. Public `scan` is still native-only and does not consume the strict profile/parser battery. Current action: unify the public profile-driven scan and verify IM-9–IM-11, then execute the live five-host IM-15 boundary and ADR IM-16. |
 | WP6 TypeScript end-to-end vertical slice | not_started | — | WP3, WP4, WP5 | AC-6.1–AC-6.6 | — | Prove concept → detection → change → guard on a real TS fixture. |
@@ -454,8 +454,10 @@ particular:
   `$engineering-skills:which-*` namespace; Augment, Cursor, and Gemini prove
   the literal `use skill <public-name>` explicit request after activation.
   Router-only has the exact two-name canonical set, an initial non-router named
-  activation has the exact three-name set, and every named/alias/full mode is
-  checked against an exact sorted public set rather than only a count.
+  activation has the exact three-name set, and both exact modes
+  `router-only|full-discovery` with zero/one/multiple canonical-or-alias
+  activation-record states are checked against exact sorted public sets rather
+  than only counts. Names and aliases are activation selections, not modes.
 - Bootstrap code locates the non-discovered store only through a manifest-
   relative, content-addressed, hash-verified locator. Ranking consumes the
   manifest-selected portfolio, explicit root(s), and a versioned normalization,
@@ -480,7 +482,8 @@ particular:
 - `DispatchPackV1` and `DispatchResultV1` have the exact schemas, hashes,
   selected-only dependency boundary, five result statuses, 131,072/65,536-byte
   limits, project-wide one-lane/depth-one/one-attempt-per-dispatch policy,
-  typed confirmed second dispatch, 1,200-second deadline, cumulative 32,768-
+  bounded ordinary serial packs plus a typed confirmed second dispatch only
+  within the failed pack, 1,200-second deadline, cumulative 32,768-
   total-token and 8,192-output-token limits, and no detached, recursive,
   redispatching, activating, or child-spawning worker. Parent fallback uses the
   same contracts. Platform/bootstrap instructions visible outside the pack are
@@ -513,12 +516,18 @@ particular:
 
 - Trust is the exact acyclic chain `out-of-band release-root SHA-256 →
   release-root-v1 → bundle-index-v1 → immutable raw blobs/recipes → self-
-  hashed installed manifest → generated projections`. Bootstrap contains a
-  relative manifest locator and release/bundle digests but never a manifest
-  digest. Exact-schema RFC 8785 JSON, raw-file SHA-256, NFC sorted POSIX tree
-  rows, and single-field self-digest domains are mandatory.
-- Checked-in closed schemas precede implementation for shape/skill router
-  results, `DispatchPackV1`, and `DispatchResultV1`. Normalizer/scorer IDs and
+  hashed installed manifest → generated projections`. Bootstrap contains its
+  surface identity, relative manifest locator, release/bundle digests, both
+  complete router procedures, and their declared non-skill runtime files, but
+  never a manifest digest. The installed manifest hashes every bootstrap file
+  and the tree digest over all and only those files. Exact-schema RFC 8785 JSON,
+  raw-file SHA-256, NFC sorted POSIX tree rows, and single-field self-digest
+  domains are mandatory.
+- IM-14 phase 1 checks in and validates all eight closed schemas—release root,
+  bundle index, installed manifest, surface activation contract, shape/skill
+  router results, `DispatchPackV1`, and `DispatchResultV1`—before consumer code;
+  authoring those schemas is itself the permitted first implementation phase.
+  Normalizer/scorer IDs and
   constants are exactly `ascii-wordset-v1`, `which-shape-lexical-v1`
   (`+12/+4/-10`, context `-4`, boundaries `40/24`), and
   `which-skill-overlap-v1` (`+5/-10/+2/+8/+3/+6`, threshold `5`). The total
@@ -531,18 +540,20 @@ particular:
   contained regular-file `artifact://sha256/<digest>` contract. Per-field and
   131,072/65,536-byte envelope limits fail rather than truncate.
 - Initial parent fallback keeps the four declared reasons. After worker
-  failure, only `user_confirmed_after_worker_failure` is valid and binds the
-  failed result/id/attempt/kind, time and input/output tokens, exact
-  `none|rolled_back|committed_known|unknown` side-effect disposition, and a
-  hashed resume/retry plan. `unknown` stops; continuation has a new dispatch
-  id, ordinal two, and only remaining cumulative budget.
+  failure or cancellation, the terminal `failed|cancelled` result has a status-
+  consistent kind. `none|rolled_back` permit a confirmed fresh-worker retry or
+  selected-only parent continuation; `committed_known` permits only parent
+  `resume_without_repeating`; `unknown` stops. Each continuation binds the
+  result and plan hash, same workflow pack ordinal, new dispatch id, attempt
+  ordinal two, exact lane/reason, and only remaining cumulative budget; only
+  the parent uses fallback reason `user_confirmed_after_worker_failure`.
 - Temporary activation requires a verified surface terminal wrapper plus pre-
   discovery crash cleanup correlated by invocation UUID through
   `created/exposed/running/terminal/cleaned`; otherwise it is unsupported. The
   mode enum is exactly `router-only|full-discovery`; named and temporary
   exposure exists only as activation records.
 - Exact checked-in `aliases-v1.json`, `legacy-layouts-v1.json`, and
-  `compatibility-v1.json` precede implementation. Compatibility is closed to
+  `compatibility-v1.json` join IM-14 phase 1 before consumer code. Compatibility is closed to
   v1 wire/policy/catalog/registry contracts, profile schema 2, the two router
   IDs, and the five exact pinned surface versions until a tested table update.
   Unlisted aliases/layouts/versions/hashes are unknown and fail closed.
@@ -550,7 +561,10 @@ particular:
   The monotonic 1,200-second deadline begins before routing and never pauses or
   resets. The cumulative 32,768 input+output and 8,192 output token limits
   include system/tool, failed/cancelled, worker, retry, and parent usage; the
-  same wrapper enforces parent accounting or fails closed.
+  same wrapper enforces parent accounting or fails closed. An ordinary user-
+  confirmed procedure sequence uses at most 16 strictly increasing pack
+  ordinals with attempt one; it is not a retry/fallback and each pack alone may
+  use attempt two after a typed worker-terminal failure.
 - Raw invocation directories/files use umask `077`, modes `0700`/`0600`, and no
   links. Packs, bodies, inputs, stdout/stderr, results, and unretained artifacts
   are deleted after handoff for every terminal status and during startup
@@ -1157,6 +1171,8 @@ reported no P0 blockers and returned `READY`.
 | 2026-07-16 | Codex | Repaired the router-activation requirements additively in ADR 0042, AC-3.5/AC-3.6's normative interpretation, and successor IM-13–IM-18: exact surface identities, dispatcher outcomes, locator/trust, activation semantics, delegation and fallback, bounded schemas, transactional lifecycle/migration, privacy, exact discovery sets, resource limits, and denied-network behavior are now pinned. Existing AC-3.1–AC-3.7 text and completed IM-1–IM-9 credit are unchanged. | No status-count change; WP3 remains `in_progress`. The requirements repair has no implementation credit and requires a new independent readiness review before IM-13–IM-18 implementation. |
 | 2026-07-16 | fresh router-activation re-review (model/effort not exposed) | Fresh review of exact repair revision `1654ae5` returned `NOT READY` with nine residual blockers: cyclic/unspecified trust domains, worker-failure fallback state, unpinned scorer/outcome schemas, incomplete dispatch wire schemas/artifacts, unverifiable temporary cleanup, a spurious named mode, inferred alias/legacy/compatibility data, ambiguous concurrency/deadline/token scope, and incomplete terminal raw-data deletion/permissions. | No status-count change and no implementation credit; IM-13–IM-18 remained unchecked. |
 | 2026-07-16 | Codex/GPT-5 (effort not exposed) | Applied a second additive requirements repair: acyclic externally rooted RFC-8785 trust graph; typed confirmed post-worker continuation; exact router IDs/weights/threshold/outcome table; checked-in closed schemas and data tables; temporary terminal-wrapper support gate; exact two-value mode; concrete compatibility bounds; project-wide cumulative enforcement; and terminal/startup protected raw cleanup are now normative in ADR 0042, the successor spec, and AC-3.5/AC-3.6 interpretation. | No status-count change; WP3 remains `in_progress`, IM-13–IM-18 remain unchecked, and independent readiness re-review is still required. |
+| 2026-07-16 | fresh router-activation verifier (model/effort not exposed) | Fresh review of exact repair revision `8e8ef108` returned `NOT READY` with six P1 contradictions: bootstrap contents/digest domain; threshold operator and answered-clarification precedence; serial packs versus dispatch count; worker retry versus parent continuation and cancellation status; exact mode vocabulary; and eight-schema cardinality/non-self-blocking staging. | No status-count change and no implementation credit; IM-13–IM-18 remained unchecked. |
+| 2026-07-16 | Codex/GPT-5 (effort not exposed) | Applied a third additive requirements repair: the bootstrap content/tree-digest domain now includes both routers and runtime files without a manifest digest; score `>= 5` and clarification precedence are exact; ordinary serial pack ordinals are separate from typed second attempts; worker retry/parent continuation lanes and cancellation status are closed; the two-value mode enum is uniform; and all eight schemas are IM-14 phase 1 before consumer code. | No status-count change; WP3 remains `in_progress`, IM-13–IM-18 remain unchecked, and independent readiness re-review is still required. |
 | 2026-07-16 | Codex + `/root/wp5_native_shims` | Implemented WP5 Slice 2 IM-5/IM-6 at functional revision `91fd269` and evidence revision `33d69c4`. The canonical registry now owns five native provider contracts; bounded subprocess/version/raw-artifact handling and strict parsers retain native IDs, locations, severity, versions, and provenance while rejecting missing binary, unexpected exit, parse failure, timeout, truncation, overflow, corruption, schema mismatch, and missing completion. Non-live shared regression passed 72/72; live Ruff/ESLint/TypeScript/Clippy/Go-vet before+clean matrix passed 5/5 with no skips; full repository Ruff, registry guard, spec coverage 7/28, and inventory passed. Current action: IM-13/IM-14 and IM-7/IM-8; last completed WP5 AC: none. | WP5 remains `in_progress`; no summary-count change. |
 | 2026-07-16 | Codex | Implemented WP5 Slice 3 IM-7/IM-8 at main-line revision `877d88e`: public scan/digest/diff/ratchet commands, canonical library/CLI byte equivalence, explicit provider executable identity, typed failures without success-manifest publication, 50-finding/64-KiB digest ceilings, exact auditable accepts, safe baseline tightening, and stale-hash/partial-scan rejection. Ten command tests and the 51-test shared sweep regression passed; all commit hooks, Ruff, and strict spec inventory passed. Current action: repair fresh adversarial findings in parser IM-13/IM-14, then continue judgment/consumer/harness IM-9–IM-11; last completed WP5 AC: none. | WP5 remains `in_progress`; no summary-count change. |
 | 2026-07-16 | `/root/wp3_binding_final_verify` | Fresh read-only review at `65b546f` passed functional IM-7/IM-8 and the semantic mutation matrix but failed IM-9 plus the owned AC-3.3/AC-3.4 evidence boundary: replay hard-coded a checkout-local venv, did not resolve revision/tree against Git, omitted persisted positive/negative binding-selection artifacts, and retained stale hashes/counts in the active report. Current action: portable interpreter and Git-bound replay repair at `026980f`, followed by a new fresh verifier. | WP3 remains `in_progress`; no summary-count change and no Slice-4 acceptance credit. |

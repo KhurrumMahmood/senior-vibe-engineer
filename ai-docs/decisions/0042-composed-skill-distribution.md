@@ -117,25 +117,38 @@ incompatible data fails closed without loading a body or changing activation.
 The trust graph is acyclic and has one external root. Installation requires an
 out-of-band `expected_release_root_sha256` for canonical
 `release-root-v1.json`; the root document has no self-digest and hashes
-`bundle-index-v1.json`, the installer entrypoint, the surface contract, the
-four router/dispatch schemas, and the alias/legacy/compatibility tables.
+`bundle-index-v1.json`, the installer entrypoint, the surface contract, all
+eight schemas—release root, bundle index, installed manifest, surface
+activation contract, `WhichShapeResultV1`, `WhichSkillResultV1`,
+`DispatchPackV1`, and `DispatchResultV1`—and the alias/legacy/compatibility
+tables.
 `bundle-index-v1.json` hashes raw catalog, registry, router, procedure, binding,
 asset, and projection-recipe blobs. It does not hash the mutable installed
 manifest or generated bootstrap projections. The installed manifest records
 the verified release-root and bundle-index digests, state, and generated file
 hashes; its `manifest_sha256` is computed over the document with only that
-field omitted. A bootstrap contains only its surface identity, a relative
-manifest locator, and the release-root/bundle-index digests. The manifest may
-hash the bootstrap because the bootstrap never hashes the manifest. Runtime
+field omitted. A generated bootstrap's exact content set is its surface
+identity, relative manifest locator, release-root and bundle-index digests,
+the complete `which-shape` and `which-skill` router procedures, and every
+declared non-skill runtime file needed by those procedures. Router procedure
+and runtime bytes are generated only from bundle-indexed immutable blobs or
+projection recipes. The installed manifest hashes every generated bootstrap
+file and a bootstrap tree digest over all and only its `{path,size,sha256}`
+rows using the tree-digest rule below. No bootstrap field or embedded file
+contains the installed-manifest digest. The manifest may hash the bootstrap
+because the bootstrap never hashes the manifest. Runtime
 verification follows `out-of-band root → release root → bundle index → immutable
 blobs/recipes → self-hashed installed manifest → generated projections`; no
 edge points backward and no digest is accepted merely because two mutable
 documents agree.
 
-Before installer implementation, exact draft-2020-12 schemas with recursive
-`additionalProperties: false` are checked in for release root, bundle index,
-installed manifest, and surface activation contract as well as the four router/
-dispatch records below. The release root hashes each schema raw blob. The
+As IM-14 phase 1, before installer or dispatcher code consumes these
+contracts, exact draft-2020-12 schemas with recursive
+`additionalProperties: false` are checked in for all eight records: release root, bundle index,
+installed manifest, surface activation contract, `WhichShapeResultV1`,
+`WhichSkillResultV1`, `DispatchPackV1`, and `DispatchResultV1`. Authoring and
+validating those schemas is the first implementation phase, not work blocked
+by this prerequisite. The release root hashes each schema raw blob. The
 installed-manifest schema requires exactly the forward digests, complete state
 tuple, owned-path classes, generated-file rows, recovery/cleanup state, and its
 single self-digest field; adapters cannot add private trust fields.
@@ -155,8 +168,9 @@ rules apply before any implementation-specific object parsing or rendering.
 
 `which-shape` remains an advisory shape router. It never counts as selecting a
 procedure and may return alternatives or request clarification. `which-skill`
-remains an advisory ranker. Before dispatcher implementation, the repository
-must check in exact additional-properties-false JSON Schemas named
+remains an advisory ranker. In IM-14 phase 1, before dispatcher code consumes
+router output, the repository must check in exact additional-properties-false
+JSON Schemas named
 `WhichShapeResultV1` and `WhichSkillResultV1`; malformed or unknown-field router
 output is an error.
 
@@ -206,12 +220,12 @@ to this total table; no unlisted combination is accepted:
 | Input condition, in precedence order | Outcome |
 |---|---|
 | Malformed task/router/profile/catalog/binding data, unknown schema field, failed router, explicit unknown/incompatible name, or zero compatible candidates because required applicability/binding constraints excluded them | `error` |
+| User answers a prior clarification with one valid canonical name or alias | `selected` with `selection_basis=user_confirmed` and the prior clarification id |
 | Explicit valid canonical public name or alias supplied by the user | `selected` with `selection_basis=user_explicit` |
 | Shape `clarification|required_context`, shape top-score tie, shape score below 24, or a step requiring simultaneous different procedures | `clarification_required` |
 | Valid quick classification, or compatible ranked candidates exist but every score is below 5 | `proceed_directly` |
 | One compatible skill is the sole highest scorer at or above 5, including when other lower candidates also exceed 5 | `selected` with `selection_basis=unique_winner` |
 | Two or more compatible skills tie for highest score at or above 5 | `clarification_required` |
-| User answers a prior clarification with one valid canonical name or alias | `selected` with `selection_basis=user_confirmed` and the prior clarification id |
 
 `selected` contains exactly one canonical procedure. Directory, registry,
 discovery, installation, and input enumeration order are never tie-breakers.
@@ -289,24 +303,34 @@ one selected procedure without broad discovery is unsupported for this mode;
 it may not silently switch to `full-discovery`. An allowed parent fallback
 uses the same selected-only pack and result contract as a worker.
 
-Initial parent execution may use only the four reasons above. Parent execution
-after a worker failure uses the distinct reason
-`user_confirmed_after_worker_failure` and is prohibited until a schema-valid
-failed result records the prior `dispatch_id`, attempt ordinal, one failure
-kind (`spawn_failed`, `capacity_exhausted`, `timeout`, `cancelled`,
-`budget_exhausted`, or `worker_failed`), consumed time/input/output tokens, and
+Initial parent execution may use only the four reasons above. A worker terminal
+failure binds a schema-valid `DispatchResultV1` whose status is `failed` or
+`cancelled`, the prior `dispatch_id`, `workflow_pack_ordinal`,
+`attempt_ordinal: 1`, consumed time/input/output tokens, and
 `side_effect_disposition` (`none`, `rolled_back`, `committed_known`, or
-`unknown`). `unknown` prohibits retry or fallback. `committed_known` requires a
-content-addressed side-effect ledger and a user-confirmed
-`resume_without_repeating` plan; `none` or `rolled_back` permits a user-
-confirmed retry. The confirmation record hashes the failed result and exact
-resume/retry plan. The parent receives a new `dispatch_id`, the same
-`workflow_id`, `attempt_ordinal: 2`, `prior_dispatch_id`, and only the remaining
-cumulative deadline/token budget. Reusing a dispatch id, resetting a budget,
-omitting the side-effect disposition, or starting a second lane fails closed.
+`unknown`). Status `failed` requires exactly one of `spawn_failed`,
+`capacity_exhausted`, `timeout`, `budget_exhausted`, or `worker_failed`; status
+`cancelled` requires `failure_kind: cancelled`. `unknown` prohibits retry or
+fallback. `committed_known` permits only a parent continuation with a content-
+addressed side-effect ledger and user-confirmed `resume_without_repeating`
+plan. `none` or `rolled_back` permits either a confirmed fresh-worker retry or
+a confirmed selected-only parent continuation.
 
-Before dispatcher implementation, exact checked-in draft-2020-12 JSON Schemas
-`dispatch-pack-v1.schema.json` and `dispatch-result-v1.schema.json` must set
+Both continuations hash the terminal result and exact retry/resume plan, use a
+new `dispatch_id`, the same `workflow_id` and `workflow_pack_ordinal`,
+`attempt_ordinal: 2`, `prior_dispatch_id`, and only the remaining cumulative
+deadline/token budget. A worker retry has `execution_lane: fresh-worker`,
+`fallback_reason: null`, and
+`continuation_reason: user_confirmed_worker_retry`. A parent continuation has
+`execution_lane: selected-only-parent`,
+`fallback_reason: user_confirmed_after_worker_failure`, and
+`continuation_reason: user_confirmed_parent_continuation`. Reusing a dispatch
+id, resetting a budget, omitting the side-effect disposition, creating a third
+attempt for the pack, or starting a second concurrent lane fails closed.
+
+As part of IM-14 phase 1, before dispatcher code consumes them, exact checked-
+in draft-2020-12 JSON Schemas `dispatch-pack-v1.schema.json` and
+`dispatch-result-v1.schema.json` must set
 `additionalProperties: false` recursively, require every field, and encode the
 following closed contracts. Both documents use the RFC-8785 canonicalization
 and digest domains above. Unknown/missing fields, duplicate keys, noncanonical
@@ -315,6 +339,14 @@ JSON, or a schema/digest mismatch fail before execution or result handoff.
 `DispatchPackV1` is at most 131,072 canonical bytes. `workflow_id`,
 `dispatch_id`, `prior_dispatch_id`, `invocation_id`, and clarification ids are
 lowercase UUIDv4 strings; absent optional relationships are JSON `null`.
+`workflow_pack_ordinal` is an integer from 1 through 16, and
+`attempt_ordinal` is `1|2`. `execution_lane` is
+`fresh-worker|selected-only-parent`; `continuation_reason` is exactly one of
+`initial_selection`, `confirmed_sequence_step`,
+`user_confirmed_worker_retry`, or `user_confirmed_parent_continuation`;
+`fallback_reason` is null, one of the four initial parent reasons, or
+`user_confirmed_after_worker_failure`, with the combinations constrained as
+above.
 Canonical/public skill and binding IDs match
 `[a-z0-9][a-z0-9-]{0,63}`. Hashes are 64 lowercase hex characters. There are
 1–32 normalized absolute project roots, each at most 4,096 UTF-8 bytes; at most
@@ -333,8 +365,11 @@ surface injects outside the pack are enumerated separately in evidence.
 “Fresh” means zero inherited conversation turns, not absence of those declared
 platform instructions.
 
-`DispatchResultV1` is at most 65,536 canonical bytes and has one of `success`,
-`needs_input`, `needs_authority`, `failed`, or `cancelled`. Summary is at most
+`DispatchResultV1` is at most 65,536 canonical bytes and repeats the exact
+`workflow_id`, `dispatch_id`, `prior_dispatch_id`, `workflow_pack_ordinal`,
+`attempt_ordinal`, `execution_lane`, `continuation_reason`, and
+`fallback_reason` from its pack. It has one of `success`, `needs_input`,
+`needs_authority`, `failed`, or `cancelled`. Summary is at most
 8,192 UTF-8 bytes; error code/message are at most 128/2,048 bytes; token and
 timing counters are nonnegative integers; and there are at most 16 artifact
 records. An artifact record has exactly `uri`, `name`, `media_type`, `size`,
@@ -350,9 +385,15 @@ fail before launch; invalid or oversize results become a minimal schema-valid
 
 The default project-wide execution policy permits one active worker or parent
 execution lane across all dispatcher workflows, enforced by one dispatch lock.
-Delegation depth is one and each dispatch has one attempt. A workflow may have
-a second dispatch only through the typed, user-confirmed worker-failure path
-below. The 1,200-second deadline starts on the local monotonic clock when the
+Delegation depth is one and each dispatch has one attempt. A user-confirmed
+ordinary serial procedure sequence has at most 16 packs: each selected
+procedure receives a new `dispatch_id`, the next `workflow_pack_ordinal`,
+`attempt_ordinal: 1`, and `continuation_reason: confirmed_sequence_step` (the
+first uses `initial_selection`). This is an ordinary sequence step, not a
+retry or fallback. Each workflow pack may have at most one second dispatch,
+and only through the typed user-confirmed worker-terminal-failure path above;
+that dispatch keeps the pack ordinal and uses `attempt_ordinal: 2`. The
+1,200-second deadline starts on the local monotonic clock when the
 dispatcher first accepts task input, before either router runs, never pauses,
 and is not reset by clarification, retry, fallback, or restart. The workflow
 budget is cumulative across worker and parent dispatches: at most 32,768 total
@@ -363,7 +404,9 @@ the lock, deadline, and counters in worker and parent lanes; missing or
 unenforceable parent/worker accounting fails closed. No detached work is
 allowed. A worker cannot activate skills, redispatch routers, or spawn a child.
 Multi-skill loops return to the dispatcher and create a new bounded pack under
-the same workflow budget for each serial selection.
+the same workflow budget for each serial selection; they never reuse a pack
+ordinal or consume the failure-continuation attempt merely by advancing the
+confirmed sequence.
 
 ### Lifecycle, migration, offline scope, and privacy
 
@@ -397,8 +440,9 @@ resolved-target hashes, the target stays inside an owned store, and the pinned
 surface discovery probe proves link traversal; otherwise the adapter must use
 owned directories plus the recovery journal.
 
-Before any installer/dispatcher implementation, the repository checks in
-exact, schema-closed `aliases-v1.json`, `legacy-layouts-v1.json`, and
+In IM-14 phase 1, before installer/dispatcher/lifecycle code consumes them, the
+repository checks in exact, schema-closed `aliases-v1.json`,
+`legacy-layouts-v1.json`, and
 `compatibility-v1.json`. The alias table lists every public alias, canonical
 target, surface spelling, introduced version, and retirement version; an empty
 table is explicit and no alias may be inferred from directories or prose. The

@@ -189,14 +189,18 @@ canonical procedure set and exact sorted public-name set including aliases.
 Host-owned discoveries are a third, preserved set and never contribute to a
 toolkit count.
 
-The bootstrap embeds a manifest-relative locator plus release-root and bundle-
-index hashes; the forward trust graph binds inventory, registry, profile,
-router, and generated-manifest content. The dispatcher reads
+The bootstrap embeds the complete `which-shape` and `which-skill` procedures,
+their declared non-skill runtime files, surface identity, a manifest-relative
+locator, and release-root/bundle-index hashes; it never embeds a manifest
+digest. The installed manifest hashes every generated bootstrap file and the
+tree digest of all and only those files, whose procedure/runtime bytes derive
+from bundle-indexed immutable blobs or recipes. The forward trust graph binds
+inventory, registry, profile, router, and generated-manifest content. The dispatcher reads
 only that manifest-selected catalog, uses the pinned normalization/scorer/
 threshold, and takes an explicit root or ordered root set. It returns exactly
 `selected`, `clarification_required`, `proceed_directly`, or `error`.
 Automatic selection requires one compatible candidate strictly above every
-runner-up and above threshold. A tie, low-confidence shape, or simultaneous
+runner-up with score `>= 5`. A tie, low-confidence shape, or simultaneous
 multi-procedure need asks one user question without loading candidate bodies.
 `proceed_directly` loads nothing; all invalid trust/profile/binding states are
 errors. One canonical procedure can carry an independently ordered ADR 0041
@@ -222,8 +226,9 @@ high/medium boundaries `40/24`, and `which-skill-overlap-v1` with
 `+5/-10/+2/+8/+3/+6` and threshold `5`. The total outcome table covers
 malformed/error, explicit valid/invalid names, shape ties/low confidence, zero
 compatible candidates, below-threshold direct work, strict unique winners,
-skill ties, and answered clarification. Unlisted combinations fail; no order
-is a tiebreaker.
+skill ties, and answered clarification. An answered clarification is evaluated
+before generic explicit-name input so `selection_basis=user_confirmed` is
+reachable. Unlisted combinations fail; no order is a tiebreaker.
 
 Activation records have exact shape `{public_name, canonical_target}`.
 Persistent records are cumulative, project-scoped, and idempotent; temporary
@@ -254,13 +259,20 @@ record has one ADR 0042 fallback reason. Runtime launch/capacity/timeout/
 cancellation/budget failures never invent parent authority; they fail until
 the user explicitly authorizes a retry or parent execution. A surface unable
 to inject one selected skill remains unsupported and cannot turn on full
-discovery implicitly. Post-worker parent execution uses only
-`user_confirmed_after_worker_failure`, binds a schema-valid failed dispatch,
-failure kind, consumed budget, and side-effect disposition. `unknown` side
-effects prohibit continuation; `committed_known` requires a hashed
-`resume_without_repeating` plan; `none|rolled_back` permit a confirmed retry.
-The continuation has a new dispatch id, same workflow id, ordinal two, prior
-dispatch id, and only remaining cumulative budget.
+discovery implicitly. Post-worker continuation binds a schema-valid terminal
+result with status `failed` or `cancelled`, failure kind, consumed budget,
+side-effect disposition, prior dispatch id, workflow pack ordinal, and attempt
+ordinal one. `failed` permits only spawn/capacity/timeout/budget/worker failure
+kinds; `cancelled` requires the cancelled kind. `unknown` side effects prohibit
+continuation; `committed_known` permits only a selected-only parent continuation
+with a hashed `resume_without_repeating` plan; `none|rolled_back` permit either
+a fresh-worker retry or selected-only parent continuation. Both use a new
+dispatch id, same workflow id and pack ordinal, attempt ordinal two, prior id,
+and only remaining cumulative budget. Worker retry pins lane `fresh-worker`,
+null fallback, and reason `user_confirmed_worker_retry`; parent continuation
+pins lane `selected-only-parent`, fallback
+`user_confirmed_after_worker_failure`, and reason
+`user_confirmed_parent_continuation`.
 
 Exact checked-in draft-2020-12 schemas for `DispatchPackV1` and
 `DispatchResultV1` recursively reject additional properties and enforce ADR
@@ -277,11 +289,15 @@ The one-lane limit is project-wide across worker and parent workflows and uses
 a dispatch lock. The monotonic 1,200-second workflow deadline begins before
 router execution and never pauses or resets. The cumulative 32,768 input-plus-
 output token and 8,192 output-token budgets include platform/system/tool,
-failed, cancelled, worker, and parent usage across both possible dispatches.
-The same wrapper enforces parent and worker lanes; unavailable accounting fails
-closed. Depth is one, each dispatch has one attempt, only a confirmed worker-
-failure continuation may create ordinal two, and no detached, activation,
-redispatch, or child-spawn behavior is allowed.
+failed, cancelled, worker, and parent usage across every serial pack and its
+possible failure continuation. The same wrapper enforces parent and worker
+lanes; unavailable accounting fails closed. Depth is one and each dispatch has
+one attempt. A user-confirmed ordinary sequence has at most 16 packs with
+strictly increasing `workflow_pack_ordinal`, new dispatch ids, attempt one, and
+`initial_selection|confirmed_sequence_step`; it is not a retry or fallback.
+Only a confirmed worker-terminal-failure continuation may create attempt two
+for the same pack ordinal. No pack has a third attempt, and no detached,
+activation, redispatch, or child-spawn behavior is allowed.
 
 The lifecycle manifest implements ADR 0042's complete state tuple and separate
 ownership for store, bootstrap, activation/full-discovery projections, activation records,
@@ -299,7 +315,7 @@ owned objects. Modified owned content stops the entire operation. Host
 symlinks/escapes fail; an owned internal link is permitted only when manifest-
 hashed, contained, and discovery-proven for that surface.
 
-Before implementation, exact schema-closed `aliases-v1.json`,
+In IM-14 phase 1, before lifecycle code consumes them, exact schema-closed `aliases-v1.json`,
 `legacy-layouts-v1.json`, and `compatibility-v1.json` are checked in. Alias rows
 declare every surface spelling and lifetime even when the table is empty;
 legacy rows declare exact layouts, versions/ranges, paths, known release/tree
@@ -480,12 +496,19 @@ evidence contract in the same logical change.
   activation mode, explicitly activated names, and delegation/fallback policy.
   Base install performs no network or package-manager action and defaults to
   router-only activation; `full-discovery` requires an explicit manifest mode.
-  Check in release-root, bundle-index, installed-manifest, and surface-
-  activation-contract v1 schemas and implement
+  Phase 1 checks in and validates all eight exact schemas—release-root,
+  bundle-index, installed-manifest, surface-activation-contract,
+  `WhichShapeResultV1`, `WhichSkillResultV1`, `DispatchPackV1`, and
+  `DispatchResultV1`—before installer or dispatcher code consumes them. Schema
+  authoring is the first IM-14 implementation phase and is not blocked by this
+  prerequisite. Then implement
   ADR 0042's exact acyclic external-root trust graph, RFC-8785/digest domains,
   raw-file/tree/self-digest algorithms, and no bootstrap→manifest digest edge.
-  The bootstrap embeds only its locator and release/bundle digests. Check in
-  exact closed `WhichShapeResultV1`/`WhichSkillResultV1` schemas and pin
+  The generated bootstrap contains surface identity, locator, release/bundle
+  digests, both complete router procedures, and their declared runtime files;
+  it never contains a manifest digest. The manifest hashes every bootstrap
+  file and their exact tree-digest domain. Check in the exact closed
+  `WhichShapeResultV1`/`WhichSkillResultV1` schemas and pin
   `ascii-wordset-v1`, `which-shape-lexical-v1` (+12/+4/-10, -4 context,
   40/24 confidence), and `which-skill-overlap-v1`
   (+5/-10/+2/+8/+3/+6, threshold 5). Exercise the total outcome table for
@@ -498,11 +521,14 @@ evidence contract in the same logical change.
   `DispatchResultV1`. Check in their exact recursive-additional-properties-
   false draft-2020-12 schemas and enforce canonical serialization, per-field
   UUID/id/hash/root/binding/task/dependency/body/result/error/artifact bounds,
-  explicit inline procedure/bindings, verified store assets, and artifact URI/
+  explicit inline procedure/bindings, verified store assets, workflow pack and
+  attempt ordinals, lane/reason combinations, and artifact URI/
   containment/hash rules. Enforce the exact 131,072-byte pack, 65,536-byte
   result, project-wide lock, depth-one/one-attempt-per-dispatch, monotonic
   1,200-second workflow deadline, cumulative 32,768 input+output/8,192 output-
-  token budgets across worker/parent continuations, and no-detached/no-child/
+  token budgets across every ordinary serial pack and worker/parent
+  continuation, at most 16 confirmed sequence packs, at most two dispatches
+  per pack only after a typed terminal worker failure, and no-detached/no-child/
   no-redispatch defaults. Persist only
   hashes, lengths, routing metadata, budgets, status, and artifact hashes; raw
   task/conversation/source/result/credential content is not manifest or
@@ -528,7 +554,7 @@ evidence contract in the same logical change.
   activation/alias/binding validation, current+previous generation retention,
   owned-reference garbage collection, all-or-nothing modified-owned handling,
   same-namespace side-by-side rejection, and the manifest-contained generated-
-  link policy. Before implementation check in exact closed
+  link policy. As IM-14 phase 1, before lifecycle consumer code, check in exact closed
   `aliases-v1.json`, `legacy-layouts-v1.json`, and `compatibility-v1.json` with
   ADR 0042's concrete v1/registry-1/profile-2/router and exact five-surface
   bounds. Characterize and migrate every supported pre-amendment ambient
@@ -579,10 +605,12 @@ evidence contract in the same logical change.
   result bytes and hashes, budgets, result status, and absence of unselected
   skill content. Parent fallback must use one allowed reason and the identical
   schemas. Spawn/timeout/capacity/cancellation/budget failures must not fall
-  back or retry without an exact `user_confirmed_after_worker_failure` record
-  binding the failed dispatch/result, failure kind, time/tokens, side-effect
-  disposition, plan hash, new dispatch id, ordinal two, and remaining cumulative
-  budget. Unknown side effects and parent-lane enforcement/accounting failures
+  back or retry without an exact confirmation record binding the terminal
+  `failed|cancelled` dispatch/result, status-consistent failure kind,
+  time/tokens, side-effect disposition, plan hash, new dispatch id, same pack
+  ordinal, attempt ordinal two, exact retry/parent lane and continuation reason,
+  parent-only `user_confirmed_after_worker_failure` fallback reason, and
+  remaining cumulative budget. Unknown side effects and parent-lane enforcement/accounting failures
   stop. Oversize, recursion,
   redispatch, activation, child-spawn, detached-work, and unenforceable-budget
   attacks fail. A canary secret is absent from manifest, logs, evidence,
@@ -768,9 +796,11 @@ produces both bands.
   only injection path, native exact-set proof, or safe explicit-activation
   path, router-only work for that surface may not claim completion and may not
   fall back to full discovery.
-- **Wire/trust prerequisites:** implementation may not begin until the acyclic
-  release trust graph, all six exact JSON Schemas, and exact alias/legacy/
-  compatibility tables are checked in and validated. Prose examples or
+- **Wire/trust prerequisites:** IM-14 phase 1 is to check in and validate the
+  acyclic release trust graph, all eight exact JSON Schemas, and exact alias/
+  legacy/compatibility tables. Schema/table creation itself is permitted and
+  is not self-blocked; installer, dispatcher, and lifecycle code that consumes
+  those contracts may not begin until phase 1 passes. Prose examples or
   implementation-owned defaults cannot substitute for those artifacts.
 - **Legacy migration:** if an ambient entry cannot be proven byte-identical to
   a known toolkit release, migration stops and leaves it host-owned. No
