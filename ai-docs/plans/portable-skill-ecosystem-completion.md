@@ -115,12 +115,12 @@ Last updated: 2026-07-16 by Codex (WP0 verification failure under repair)
 | WP0 Trusted baseline and plan consolidation | in_progress | Codex | — | AC-0.1–AC-0.5 | `reports/portable-skill-ecosystem-completion/WP0/evidence.md`; `verification-attempt-1.md` | AC-0.1–AC-0.4 passed; repair AC-0.5 inheritance/reference/sequencing failures, obtain pre-retirement zero-unmapped verdict, then retire and reverify. |
 | WP1 Canonical stack and capability contract | not_started | — | WP0 | AC-1.1–AC-1.7 | — | Resolve D1–D5 and implement one validated registry. |
 | WP2 Capability-aware host profiling and routing | not_started | — | WP1 | AC-2.1–AC-2.6 | — | Make adaptation, routing, perimeter, and inherited Class B/C surfaces use the same profile. |
-| WP3 Load-bearing layers, bindings, and installer | not_started | — | WP1, WP2 | AC-3.1–AC-3.6 | — | Implement the packaging/discovery decision and exemplar binding. |
+| WP3 Load-bearing layers, bindings, and installer | not_started | — | WP1, WP2 | AC-3.1–AC-3.7 | — | Implement the packaging/discovery decision and exemplar binding. |
 | WP4 Multi-language analysis substrate | not_started | — | WP1 | AC-4.1–AC-4.6 | — | Provide parser-backed normalized facts with explicit capability failures. |
-| WP5 Productized batch sweep and native shims | not_started | — | WP1, WP2; WP4 for parser-backed members | AC-5.1–AC-5.8 | — | Promote ADR 0036 prototype and resolve the canonical findings-ledger relationship. |
+| WP5 Productized batch sweep and native shims | not_started | — | WP1, WP2; WP4 for parser-backed members | AC-5.1–AC-5.7 | — | Promote ADR 0036 prototype; preserve the ADR 0003 integration seam for ordered closure in AC-8.9. |
 | WP6 TypeScript end-to-end vertical slice | not_started | — | WP3, WP4, WP5 | AC-6.1–AC-6.6 | — | Prove concept → detection → change → guard on a real TS fixture. |
 | WP7 Language-aware refactoring and guard generation | not_started | — | WP4, WP6 | AC-7.1–AC-7.7 | — | Generalize safe changes and suppression contracts without a giant universal AST. |
-| WP8 Cross-stack conformance and skill execution harness | not_started | — | WP2–WP7 | AC-8.1–AC-8.8 | — | Gate support labels on behavior, metadata, and inherited topology decisions. |
+| WP8 Cross-stack conformance and skill execution harness | not_started | — | WP2–WP7 | AC-8.1–AC-8.10 | — | Gate support labels and close the ordered predecessor embodiment backlog. |
 | WP9 Documentation, onboarding, compatibility, and release | not_started | — | WP3, WP5, WP8 | AC-9.1–AC-9.6 | — | Make installation and claims reproducible for newcomers. |
 | WP10 Independent completion verification | not_started | — | WP0–WP9 | AC-10.1–AC-10.5 | — | Fresh integrator validates every criterion and release surface. |
 
@@ -193,7 +193,7 @@ row names another owner):
 
 | Predecessor item | Current-state finding at WP0 | Exact completion owner |
 |---|---|---|
-| W1 classify every skill and resolve discovery/package mechanics; ADR 0024/0028 govern rename/move commits | Not completed; ADR 0034 remains pending on the predecessor | D1/D4, AC-3.1–AC-3.6, ADR 0024/0028 behavior AC-7.1/AC-7.2, AC-8.7 |
+| W1 classify every skill and resolve discovery/package mechanics; ADR 0024/0028 govern rename/move commits | Not completed; ADR 0034 remains pending on the predecessor | D1/D4, AC-3.1–AC-3.6, pre-WP7 move gate AC-3.7, generalized ADR 0024/0028 behavior AC-7.1/AC-7.2, AC-8.7 |
 | W1 update routers, activation manifest, perimeter, contracts index, catalog | Not layer-aware yet | AC-2.3–AC-2.5, AC-3.2/AC-3.5, AC-8.7, AC-9.1 |
 | W2 de-flavor named incidentally coupled procedures by relocating Django examples/defaults and correcting frontmatter | Partial/unmeasured | Exact procedure/example/frontmatter requirements AC-3.1 and full-catalog leakage gate AC-8.7 |
 | W3 concept + binding default and five named families (typed state, read mutation, unguarded dispatch, implicit relation/FK, handler LOC), with extract-enum first | Not completed | D2, inventory/exemplar AC-3.1/AC-3.3/AC-3.4, TypeScript proof AC-6.3/AC-6.6, and mandatory five-family catalog completion AC-8.7 |
@@ -205,15 +205,24 @@ row names another owner):
 | W5 ADR 0028 post-move asset-path verification | Still proposed | Behavior AC-7.1/AC-7.2 and formal disposition/embodiment AC-7.7 |
 | W5 ADR 0029 route-mirrored page topology detector | Still proposed | AC-8.8 |
 | W5 ADR 0030 cohesive workflow-trio detector | Still proposed | AC-8.8 |
-| W5 ADR 0003 canonical findings ledger/outcome linkage | Still proposed; overlaps ADR 0036 manifest identity | AC-5.4/AC-5.5/AC-5.8 |
+| W5 ADR 0003 canonical findings ledger/outcome linkage | Still proposed; overlaps ADR 0036 manifest identity and must follow 0026–0030 | AC-5.4/AC-5.5 preserve the seam; ordered formal closure AC-8.9 |
+| W5/Success baseline ADR 0031 | Already accepted and embodied since the predecessor baseline; must not regress | AC-8.10 baseline/no-regression proof |
 | W6 onboarding-flow as one diagram and lite three-skill starter | Not completed in the required explicit form | AC-9.2 explicitly requires both the single funnel diagram and lite portfolio |
 | W6 per-stack portfolios, packaging decision, ≤20-minute first value | Not completed | D1, AC-3.5/AC-3.6, AC-9.2/AC-9.6 |
 | Success 1 layer-aware non-Django install, honest routers, and perimeter coverage | Not completed | Router/perimeter AC-2.3/AC-2.5, install AC-3.5/AC-3.6, release fixture AC-9.6 |
 | Success 2 no framework leakage in core | Not completed | AC-3.1, AC-8.7 |
 | Success 3 extract-enum binding round-trip | Not completed | AC-3.4, AC-6.6 |
-| Success 4 embodiment backlog shrinks without regression | Baseline audited above; no proposed item may remain unresolved | AC-5.8, AC-7.6/AC-7.7, AC-8.8, AC-9.4 |
+| Success 4 embodiment backlog shrinks against the stated 0026–0031 + 0003 baseline without old or new regression | ADR 0031 is already resolved; all remaining named items require ordered closure | AC-7.6/AC-7.7, AC-8.8–AC-8.10, AC-9.4 |
 | Success 5 documented ≤20-minute first value and named starter | Not completed | AC-3.6, AC-9.2 |
-| Success 6 reference-clean moves (`skill_meta`, contracts index, artifact drift Band A, decision audit, docs/routers/contracts) | Not completed | Move/reference mechanics AC-3.2 and AC-7.1/AC-7.2; full catalog/aliases/contracts AC-8.7; exact metadata/contracts/index/docs/decision/artifact-drift release gates AC-9.1/AC-9.4 |
+| Success 6 reference-clean moves (`skill_meta`, contracts index, artifact drift Band A, decision audit, docs/routers/contracts) | Not completed | Move/reference mechanics AC-3.2/AC-3.7 and AC-7.1/AC-7.2; full catalog/aliases/contracts AC-8.7; exact metadata/contracts/index/docs/decision/artifact-drift release gates AC-9.1/AC-9.4 |
+
+The predecessor W5 order remains binding: ADR 0026 → 0027 → 0028 →
+0029/0030 → 0003. Therefore AC-7.6 completes before AC-7.7 (which resolves
+0027 before 0028); WP7 is verified before WP8 starts; AC-8.8 completes before
+AC-8.9; and AC-8.10 proves this sequence from the tracker, commits, and evidence.
+A later item may move early only through an accepted ADR that names the owner,
+dependency reason, risks, and revisit trigger; absent that artifact, early work
+is an acceptance failure.
 
 ## 1. Scope & Bounds
 
@@ -410,6 +419,19 @@ compatibility aliases, install manifests, and cold-host installer.
 - **AC-3.6:** On clean fixture hosts, install, verify, update, and uninstall are
   idempotent and do not overwrite host-owned files. A newcomer reaches one
   useful verified skill run in 20 minutes or less using only documented steps.
+- **AC-3.7:** Before any WP3 foundation or exemplar commit moves/renames a
+  tracked path, a WP3-local move gate applies ADR 0024 and ADR 0028 without
+  waiting for the generalized WP7 tooling. Every retired concept phrasing is
+  added to a distinctively scoped `avoid:` entry; both
+  `superseded_co_occurrence` and `avoid_term_hit` are clean; affected prose is
+  substantively corrected; and the evidence records the exact two-band
+  commands/output. For every moving self-anchored path the proposal inventory,
+  target pin, tractable rewrite/unhandled report, per-batch import smoke, and
+  full-diff disk scan are complete and clean; the move-tool non-rewrite list is
+  read, and any fired rule is captured in the running lessons log. A fixture
+  move containing retired prose and a broken self-anchored path proves this
+  gate blocks the commit. AC-7.1/AC-7.2 later generalize the same behavior; they
+  are not permission to defer it from WP3.
 
 ### WP4 — Multi-language analysis substrate
 
@@ -479,12 +501,6 @@ shims, diff/ratchet, and skill wiring.
   delta, and a bounded budget. Bypass and judge-failure integration tests prove
   each gate, and network/model-call instrumentation proves the detection stage
   is agent-free.
-- **AC-5.8:** ADR 0003 is resolved against ADR 0036 rather than left proposed:
-  accept/amend it with one canonical finding/outcome ledger keyed by the stable
-  manifest identity, or reject/supersede it with an ADR explaining why the
-  manifest/event substrate replaces it. The implemented outcome supports
-  cross-skill path queries and finding → judgment → packet → fix/commit →
-  verification linkage, with schema/round-trip tests and accurate `embodied_by`.
 
 ### WP6 — TypeScript end-to-end vertical slice
 
@@ -536,8 +552,11 @@ and Python/TypeScript golden transformations.
   cannot satisfy the gate.
 - **AC-7.2:** Python and TypeScript golden projects cover definitions,
   imports/exports, references, aliases, comments/strings, tests, and ambiguous
-  symbols. ADR 0024's identifier-plus-prose completeness bands run for any
-  move-induced rename. ADR 0027 fixtures characterize every named wire surface,
+  symbols. For every move-induced rename, ADR 0024's distinctively scoped
+  retired phrasings are present in the canonical concept's `avoid:` entries,
+  both `superseded_co_occurrence` and `avoid_term_hit` are clean, and affected
+  prose is corrected rather than merely deleting the old term. ADR 0027
+  fixtures characterize every named wire surface,
   explicit preserved-name overrides, no old-path shim, and refusal of a wire
   rename without a separate decision; a pre-merge AST/native lint rejects a
   missing/mismatched override or layout-derived discriminator, and the shared
@@ -568,8 +587,8 @@ and Python/TypeScript golden transformations.
   fixture-backed evidence for a safer per-language contract. Empty reasons,
   unknown project codes, native/project collisions, and allowed suppressions
   have executable tests; no accepted ADR remains `pending:`.
-- **AC-7.7:** Proposed ADRs 0027 and 0028 are each formally resolved, not left
-  indefinitely proposed after their behavior lands. Each is either accepted
+- **AC-7.7:** Proposed ADRs 0027 and 0028 are formally resolved in that order,
+  not left indefinitely proposed after their behavior lands. Each is either accepted
   with accurate `embodied_by` links to the wire-identifier and post-move asset
   verification implementation/tests, or rejected/superseded with the AC-7.2
   golden-project evidence demonstrating the selected safer invariant. Decision
@@ -626,6 +645,23 @@ context verification protocol.
   near-miss fixtures, or reject/supersede it with representative evidence that
   the rule is not portable or is subsumed by another invariant. Decision audits
   are clean and no `pending:` reference points at unfinished predecessor work.
+- **AC-8.9:** Only after AC-8.8 passes, ADR 0003 is resolved against ADR 0036
+  rather than left proposed: accept/amend it with one canonical finding/outcome
+  ledger keyed by the stable manifest identity, or reject/supersede it with an
+  ADR explaining why the manifest/event substrate replaces it. The implemented
+  outcome supports cross-skill path queries and finding → judgment → packet →
+  fix/commit → verification linkage, with schema/round-trip tests and accurate
+  `embodied_by`.
+- **AC-8.10:** A checked-in embodiment-baseline report names the predecessor's
+  exact baseline set—ADRs 0026, 0027, 0028, 0029, 0030, 0031, and 0003—and its
+  WP0 state. At WP8 completion, `scripts/decisions.py link-check` shows strictly
+  fewer pending or empty embodiments than that stated baseline; every item has
+  an accepted/rejected/superseded disposition or accurate implementation link;
+  no previously embodied item (including 0031) regressed; and no new empty or
+  stale `pending:` embodiment was introduced anywhere in the decision corpus.
+  Commit/evidence timestamps prove the binding order AC-7.6 → ADR 0027 then
+  0028 in AC-7.7 → AC-8.8 → AC-8.9. The gate fails on an order violation or a
+  reduction achieved by deleting/renaming a baseline record without disposition.
 
 ### WP9 — Documentation, onboarding, compatibility, and release
 
@@ -926,6 +962,7 @@ reported no P0 blockers and returned `READY`.
 | 2026-07-16 | Codex | Repaired the browser prerequisite documentation, deterministic triage clock, stale contracts/state/counts/manifest labels, decision revisit triggers, and contract artifact-drift coverage; mapped and retired the predecessor at implementation commit `9eecd1e`. Last completed AC by implementer: AC-0.4; current action: fresh-context AC-0.1–AC-0.5 verification; last evidence revision: `9eecd1e`. | WP0 → `implemented`; summary now 10 not started / 1 implemented. |
 | 2026-07-16 | `/root/wp0_fresh_verifier` | Fresh-context revision `8c7e9b2` passed AC-0.1–AC-0.4 and failed AC-0.5: three active references remained stale, W3 lost three of five named families, ADR 0027/0028 lacked formal disposition, W6 lost its one-diagram deliverable, and retirement sequencing was unsupported. Current action: repair those exact gaps and verify mapping before re-retirement; last evidence revision: `8c7e9b2`. | WP0 → `in_progress`; summary now 10 not started / 1 in progress. |
 | 2026-07-16 | `/root/wp0_preretirement_mapping` | Pre-retirement revision `dac41d0` returned `FAIL — DO NOT RETIRE`: W2 relocation/frontmatter and literal leakage rules were weak, ADR 0027/0028 behavior was partial, Success 6's four exact commands existed only in ledger prose, and the consistency plan used an ambiguous W7 label. Current action: make each requirement executable in AC text and repeat zero-unmapped review; last evidence revision: `dac41d0`. | No status-count change; predecessor remains `scoped`, WP0 remains `in_progress`. |
+| 2026-07-16 | `/root/wp0_preretirement_recheck` | Pre-retirement revision `3c84750` returned `FAIL — DO NOT RETIRE`: WP3 moves could precede the ADR 0024/0028 gate, ADR 0024's exact two-band/prose requirements were partial, the inherited W5 order was inverted by early ADR 0003 closure, and Success 4 lacked the exact 0026–0031 + 0003 baseline regression comparison. Current action: add the pre-WP7 move gate, preserve the declared order, and add the baseline-relative closure gate; last evidence revision: `3c84750`. | No status-count change; predecessor remains `scoped`, WP0 remains `in_progress`. |
 
 ## Promotion notes
 
