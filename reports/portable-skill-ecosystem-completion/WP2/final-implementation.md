@@ -34,7 +34,7 @@ issue PASS for every AC before the tracker can say `verified`.
 
 | Command | Exit | Result |
 |---|---:|---|
-| WP2-focused pytest matrix covering host profile, adaptation, perimeter, activation, all four routers, Class A/B/C, scope/route topology, registry consumers/guard, engineering home, and decode safety | 0 | `210 passed, 1 skipped` |
+| WP2-focused pytest matrix covering host profile, adaptation, perimeter, activation, all four routers, Class A/B/C, scope/route topology, registry consumers/guard, engineering home, and decode safety | 0 | `209 passed, 1 skipped` (`210 collected`) |
 | `.venv/bin/python -m pytest -q` | 0 | `502 passed, 1 skipped` |
 | `.venv/bin/python scripts/skill_meta.py lint --quiet` | 0 | `OK — 76 skills, 76 declaring new contract` |
 | `.venv/bin/python scripts/specs.py coverage portable-host-profile-routing` | 0 | IM-1–IM-9 present; eight ARs documented; no lag/ahead/orphans |
