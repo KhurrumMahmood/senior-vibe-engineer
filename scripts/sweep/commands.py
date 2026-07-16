@@ -12,9 +12,11 @@ from typing import Any
 
 from _lib.capability_registry import load_registry
 
+from .ecosystem import run_complexity_provider, run_omnibus_provider
 from .manifest import FindingInput, build_diff, build_manifest
-from .native import execute_provider, provider_contracts_from_registry
+from .native import ProviderExecutionError, execute_provider, provider_contracts_from_registry
 from .pipeline import render_judged_digest
+from .profile import SweepProfile
 from .schemas import validate_diff, validate_manifest
 from .serialization import canonical_json_bytes
 
@@ -136,6 +138,101 @@ def scan_native(
         case_sensitive=case_sensitive,
         roots=tuple(scopes),
         exclusions=(),
+        source=_normalized_source(source),
+        providers=observations,
+        findings=findings,
+        repo_root=host_root,
+    )
+
+
+def scan_profile(
+    *,
+    root: Path | str,
+    profile: SweepProfile,
+    source: Mapping[str, Any],
+    executables: Mapping[str, Path | str],
+) -> dict[str, Any]:
+    """Run one registry-selected native and parser battery from a strict profile."""
+    host_root = Path(root).resolve()
+    if not host_root.is_dir():
+        raise ValueError(f"scan root is not a directory: {host_root}")
+    registry = load_registry()
+    plan: list[tuple[str, str, str]] = []
+    for language in profile.languages:
+        for provider, entry in registry.sweep_providers_for(language):
+            if language not in entry["languages"]:
+                raise ValueError(
+                    f"registry provider {provider} does not declare language {language}"
+                )
+            plan.append((provider, language, entry["provider_kind"]))
+    if len(plan) != len(set(plan)):
+        raise ValueError("registry sweep battery contains duplicate provider/language rows")
+    plan.sort()
+
+    native_contracts = {
+        (contract.provider, contract.language): contract
+        for language in profile.languages
+        for contract in provider_contracts_from_registry(language, registry=registry)
+    }
+    expected_tools = {
+        provider for provider, _language, kind in plan if kind == "native"
+    }
+    supplied_tools = set(executables)
+    if supplied_tools != expected_tools:
+        missing = sorted(expected_tools - supplied_tools)
+        unknown = sorted(supplied_tools - expected_tools)
+        raise ValueError(
+            f"explicit tool map mismatch: missing={missing}, unknown={unknown}"
+        )
+
+    observations: list[Mapping[str, Any]] = []
+    findings: list[FindingInput] = []
+    for observation_index, (provider, language, kind) in enumerate(plan):
+        if kind == "native":
+            contract = native_contracts[(provider, language)]
+            executable = Path(executables[provider]).absolute()
+            result = execute_provider(
+                replace(contract, executable_candidates=(str(executable),)),
+                root=host_root,
+                observation_index=observation_index,
+                case_sensitive=profile.case_sensitive,
+            )
+        elif provider == "cx" and language == "python":
+            result = run_complexity_provider(
+                host_root,
+                profile.paths,
+                observation_index=observation_index,
+                roots=profile.roots,
+                exclusions=profile.exclusions,
+                case_sensitive=profile.case_sensitive,
+            )
+        elif provider == "omnibus":
+            result = run_omnibus_provider(
+                host_root,
+                profile.paths,
+                language=language,
+                observation_index=observation_index,
+                roots=profile.roots,
+                exclusions=profile.exclusions,
+                case_sensitive=profile.case_sensitive,
+            )
+        else:
+            raise ValueError(
+                f"unsupported registry parser provider row: {provider}/{language}/{kind}"
+            )
+        if result.observation["status"] != "completed":
+            raise ProviderExecutionError(
+                result.observation["failure"], result.observation
+            )
+        observations.append(result.observation)
+        findings.extend(result.findings)
+
+    return build_manifest(
+        capability_registry_version=registry.schema_version,
+        paths=profile.paths,
+        case_sensitive=profile.case_sensitive,
+        roots=profile.roots,
+        exclusions=profile.exclusions,
         source=_normalized_source(source),
         providers=observations,
         findings=findings,

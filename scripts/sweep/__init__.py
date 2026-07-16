@@ -33,6 +33,7 @@ from .commands import (
     apply_ratchet,
     render_digest,
     scan_native,
+    scan_profile,
 )
 from .native import (
     ProviderContract,
@@ -111,6 +112,7 @@ __all__ = [
     "run_scan_command",
     "run_verification_command",
     "scan_native",
+    "scan_profile",
     "validate_diff",
     "validate_failure",
     "validate_judgment",

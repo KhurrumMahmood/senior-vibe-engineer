@@ -17,6 +17,7 @@ from .schemas import (
     JUDGMENT_OUTCOMES,
     SCHEMA_VERSION,
     SchemaValidationError,
+    trusted_parser_run_context,
     validate_judgment,
     validate_packet,
 )
@@ -493,7 +494,10 @@ def run_scan_command(command: str, root: Path) -> HarnessScan:
         raise VerificationGateError("harness scan command failed")
     try:
         raw = json.loads(capture.stdout)
-        manifest = _validated_manifest(raw)
+        manifest = _validated_manifest(
+            raw,
+            parser_run_context=trusted_parser_run_context(root),
+        )
     except (json.JSONDecodeError, UnicodeDecodeError, SchemaValidationError) as exc:
         raise VerificationGateError(f"harness scan emitted an invalid manifest: {exc}") from exc
     if capture.stdout != canonical_json_bytes(manifest):

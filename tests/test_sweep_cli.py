@@ -19,9 +19,11 @@ from sweep.commands import (
     apply_ratchet,
     render_digest,
     scan_native,
+    scan_profile,
 )
 from sweep.manifest import FindingInput, build_manifest, write_manifest
 from sweep.pipeline import build_judgment, build_judgment_input, build_packet
+from sweep.profile import load_sweep_profile
 from sweep.serialization import canonical_json_bytes
 from sweep.schemas import SchemaValidationError
 
@@ -501,6 +503,81 @@ def test_im_8_scan_cli_uses_explicit_tool_and_is_cwd_path_and_activation_indepen
     assert library["status"] == "complete"
     assert library["providers"][0]["status"] == "completed"
     assert library["total"] == 0
+
+
+def test_im_14_profile_scan_cli_runs_one_registry_selected_mixed_battery(
+    tmp_path: Path,
+) -> None:
+    host = tmp_path / "host"
+    host.mkdir()
+    (host / "module.py").write_text("def small():\n    return 1\n", encoding="utf-8")
+    tool = tmp_path / "fixed-ruff"
+    tool.write_text(
+        "#!/bin/sh\n"
+        "if [ \"$1\" = \"--version\" ]; then echo 'ruff 0.9.9'; exit 0; fi\n"
+        "printf '[]'\n",
+        encoding="utf-8",
+    )
+    tool.chmod(0o755)
+    profile_path = tmp_path / "profile.json"
+    profile_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "languages": ["python"],
+                "paths": ["."],
+                "roots": ["."],
+                "exclusions": [],
+                "case_sensitive": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "manifest.json"
+    source = {
+        "revision": REVISION,
+        "dirty": False,
+        "dirty_state_hash": EMPTY_SHA256,
+    }
+
+    library = scan_profile(
+        root=host,
+        profile=load_sweep_profile(profile_path),
+        source=source,
+        executables={"ruff": tool},
+    )
+    result = _run_cli(
+        "scan",
+        "--root",
+        str(host),
+        "--out",
+        str(output),
+        "--profile",
+        str(profile_path),
+        "--revision",
+        REVISION,
+        "--clean",
+        "--dirty-state-hash",
+        EMPTY_SHA256,
+        "--tool",
+        f"ruff={tool}",
+        cwd=tmp_path,
+        path="/usr/bin:/bin",
+    )
+
+    assert result.returncode == 0, result.stderr.decode()
+    assert output.read_bytes() == canonical_json_bytes(library)
+    assert result.stdout == output.read_bytes()
+    assert library["status"] == "complete"
+    assert [
+        (provider["provider"], provider["language"], provider["provider_kind"])
+        for provider in library["providers"]
+    ] == [
+        ("cx", "python", "parser-backed-ecosystem"),
+        ("omnibus", "python", "parser-backed-ecosystem"),
+        ("ruff", "python", "native"),
+    ]
+    assert all(provider["status"] == "completed" for provider in library["providers"])
 
 
 def test_im_8_failed_provider_has_typed_exit_and_publishes_no_manifest(tmp_path: Path) -> None:
