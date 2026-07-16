@@ -136,10 +136,54 @@ language: python
 framework: django
 ```
 
-Allowed values today: `language: python | typescript | rust | any` and
-`framework: django | none | any`. Use `any` only for skills that are
-genuinely framework-agnostic (e.g. `/which-skill`, which only reads
-frontmatter).
+Allowed values come from `capability-registry.yml`; validators must not
+duplicate the list. `any` means that the procedure itself is portable. It does
+not mean the skill scans or changes every language. Under the strict contract,
+an `any` claim names and proves each `portable_subjects` entry.
+
+Codex's native trigger mechanism uses `name` and `description`; the additional
+fields are this multi-agent toolkit's routing, installation, and conformance
+contract. Surface projections must preserve the trigger fields even when a
+surface does not consume the additional metadata directly.
+
+### Versioned capability contract
+
+New portability claims opt into the strict schema. Legacy frontmatter remains
+readable until the WP8 catalog migration, but it cannot be used as verified
+support evidence.
+
+```yaml
+capability_contract: 1
+layer: framework
+binding: react
+bindings: [javascript-typescript, react]
+support: experimental
+capabilities: [analysis.symbols, analysis.imports]
+portable_subjects: [typescript]
+capability_evidence:
+  typescript: [test:tests/fixtures/react-routing]
+support_evidence:
+  fixture_results: pass
+  tool_versions: {typescript: 5.9.3}
+  platform: macos-arm64
+scans: [typescript]
+```
+
+- `layer`, `binding`, and optional `bindings` use registry identifiers.
+- `capabilities` uses qualified `analysis.*`, `refactor.*`, or `guard.*`
+  identifiers from the registry.
+- `capability_evidence` maps each claimed subject or scan target to non-empty
+  evidence references. A scan also needs a registered adapter/native shim and
+  a skill-local executable.
+- `support_evidence` is evaluated mechanically. `experimental` requires a
+  passing fixture result, pinned tool versions, and platform evidence;
+  `verified` additionally requires a deterministic command and evidence hash.
+- Frameworks and tools are separate categories: React is a framework; Vite and
+  Vitest are tools.
+
+Keep the core `SKILL.md` concise. Put language/framework-specific idioms and
+commands in one-level `bindings/<binding-id>.md` overlays so only the selected
+variant is loaded. Do not copy the core procedure into a binding.
 
 ### `scout_model`
 

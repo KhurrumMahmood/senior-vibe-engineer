@@ -37,6 +37,7 @@ _lib_parent = str(SCRIPT_PATH.parent)
 if _lib_parent not in sys.path:
     sys.path.insert(0, _lib_parent)
 from _lib.yaml_frontmatter import FrontmatterError, parse  # noqa: E402
+from _lib.capability_registry import load_registry  # noqa: E402
 
 EXISTING_REQUIRED = {"name", "description", "argument-hint", "allowed-tools", "user-invocable"}
 NEW_CONTRACT_REQUIRED = {"tier", "job", "best_for", "not_for", "language", "framework"}
@@ -56,9 +57,9 @@ VALID_JOBS = {
     "diagnose",
     "meta",
 }
-VALID_LANGUAGES = {"python", "typescript", "rust", "any"}
-VALID_FRAMEWORKS = {"django", "none", "any"}
 VALID_SCOUT_MODELS = {"cheap", "careful"}
+
+CAPABILITY_REGISTRY = load_registry()
 
 # PR B-lite: optional task-packet fields. Type-only validation for now —
 # values stay free-form so the taxonomy can stabilize from real usage
@@ -125,10 +126,12 @@ def lint_skill(skill_md: Path, strict: bool) -> tuple[list[str], list[str], bool
             errors.append(f"{rel}: invalid tier {fm['tier']!r}; allowed: {sorted(VALID_TIERS)}")
         if "job" in fm and fm["job"] not in VALID_JOBS:
             errors.append(f"{rel}: invalid job {fm['job']!r}; allowed: {sorted(VALID_JOBS)}")
-        if "language" in fm and fm["language"] not in VALID_LANGUAGES:
-            errors.append(f"{rel}: invalid language {fm['language']!r}; allowed: {sorted(VALID_LANGUAGES)}")
-        if "framework" in fm and fm["framework"] not in VALID_FRAMEWORKS:
-            errors.append(f"{rel}: invalid framework {fm['framework']!r}; allowed: {sorted(VALID_FRAMEWORKS)}")
+        valid_languages = CAPABILITY_REGISTRY.identifiers("languages")
+        valid_frameworks = CAPABILITY_REGISTRY.identifiers("frameworks")
+        if "language" in fm and fm["language"] not in valid_languages:
+            errors.append(f"{rel}: invalid language {fm['language']!r}; allowed: {sorted(valid_languages)}")
+        if "framework" in fm and fm["framework"] not in valid_frameworks:
+            errors.append(f"{rel}: invalid framework {fm['framework']!r}; allowed: {sorted(valid_frameworks)}")
         if "best_for" in fm and not str(fm["best_for"] or "").strip():
             errors.append(f"{rel}: best_for is empty")
         if "not_for" in fm and not str(fm["not_for"] or "").strip():
@@ -137,6 +140,12 @@ def lint_skill(skill_md: Path, strict: bool) -> tuple[list[str], list[str], bool
         # Legacy skill in non-strict mode — flag missing not_for as the
         # PR2 audit target, but only as a warning.
         warnings.append(f"{rel}: legacy skill — does not declare new contract (PR2 will backfill)")
+
+    for message in CAPABILITY_REGISTRY.validate_skill_contract(
+        fm,
+        skill_dir=skill_md.parent,
+    ):
+        errors.append(f"{rel}: {message}")
 
     # Optional scout_model — hint to the orchestrator about model class for
     # parallel scout fan-out spawned by this skill. Default is `careful`

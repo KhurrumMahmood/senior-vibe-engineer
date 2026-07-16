@@ -58,8 +58,11 @@ def test_discover_react_repo_detects_node_stack(tmp_path):
 
     adapter = project_adapt.discover_project(tmp_path)
 
-    assert "javascript/typescript" in adapter["stack"]["languages"]
+    assert {"javascript", "typescript"} <= set(adapter["stack"]["languages"])
     assert "react" in adapter["stack"]["frameworks"]
+    assert "vite" in adapter["stack"]["tools"]
+    assert "vitest" in adapter["stack"]["tools"]
+    assert "vite" not in adapter["stack"]["frameworks"]
     assert "pnpm" in adapter["stack"]["package_managers"]
     assert any("pnpm test" in command for command in adapter["commands"]["test"])
 

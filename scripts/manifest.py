@@ -33,11 +33,17 @@ _COMMON = REPO_ROOT / ".claude" / "skills" / "_common"
 if str(_COMMON) not in sys.path:
     sys.path.insert(0, str(_COMMON))
 import engineering_home as eh  # noqa: E402
+from _lib.capability_registry import load_registry  # noqa: E402
+
+CAPABILITY_REGISTRY = load_registry()
 
 
 def _load_raw(root: Path) -> dict:
     """Manifest dict for mutation, defaulting to a fresh versioned stub."""
-    return eh.read_manifest(root) or {"version": eh.MANIFEST_VERSION}
+    manifest = eh.read_manifest(root) or {"version": eh.MANIFEST_VERSION}
+    manifest.setdefault("capability_registry_version", CAPABILITY_REGISTRY.schema_version)
+    manifest.setdefault("capability_contract_version", CAPABILITY_REGISTRY.contract_version)
+    return manifest
 
 
 def _write(root: Path, manifest: dict) -> None:
@@ -104,6 +110,51 @@ def cmd_activate(root: Path, skill: str) -> int:
     return 0
 
 
+def validate_manifest(root: Path) -> list[str]:
+    manifest = eh.read_manifest(root)
+    if manifest is None:
+        return []
+    errors: list[str] = []
+    registry_version = manifest.get("capability_registry_version")
+    contract_version = manifest.get("capability_contract_version")
+    if registry_version not in (None, CAPABILITY_REGISTRY.schema_version):
+        errors.append("manifest capability_registry_version does not match registry")
+    if contract_version not in (None, CAPABILITY_REGISTRY.contract_version):
+        errors.append("manifest capability_contract_version does not match registry")
+    selection = manifest.get("capability_selection")
+    if selection is not None:
+        if not isinstance(selection, dict):
+            errors.append("manifest capability_selection must be a mapping")
+        else:
+            stack = {
+                "languages": selection.get("languages", []),
+                "frameworks": selection.get("frameworks", []),
+                "tools": selection.get("tools", []),
+            }
+            errors.extend(CAPABILITY_REGISTRY.validate_stack(stack, prefix="manifest.capability_selection"))
+            unknown_layers = sorted(
+                set(selection.get("layers", [])) - CAPABILITY_REGISTRY.identifiers("layers")
+            )
+            unknown_bindings = sorted(
+                set(selection.get("bindings", [])) - CAPABILITY_REGISTRY.identifiers("bindings")
+            )
+            if unknown_layers:
+                errors.append(f"manifest capability_selection.layers contains unregistered identifiers: {unknown_layers}")
+            if unknown_bindings:
+                errors.append(f"manifest capability_selection.bindings contains unregistered identifiers: {unknown_bindings}")
+    return errors
+
+
+def cmd_validate(root: Path) -> int:
+    errors = validate_manifest(root)
+    if errors:
+        for error in errors:
+            print(error)
+        return 1
+    print("manifest OK")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Skill-activation manifest CLI.")
     parser.add_argument(
@@ -117,6 +168,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("show", help="Print the activation block.")
+    sub.add_parser("validate", help="Validate activation and capability selection fields.")
     p_is = sub.add_parser("is-active", help="Exit 0 if active, 1 if inactive.")
     p_is.add_argument("skill")
     p_de = sub.add_parser("deactivate", help="Opt a skill out (with reason).")
@@ -129,6 +181,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "show":
         return cmd_show(root)
+    if args.command == "validate":
+        return cmd_validate(root)
     if args.command == "is-active":
         return cmd_is_active(root, args.skill)
     if args.command == "deactivate":

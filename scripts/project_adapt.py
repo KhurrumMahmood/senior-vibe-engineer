@@ -30,9 +30,11 @@ REPO_ROOT = SCRIPT_PATH.parent.parent
 # convention (ADR 0021). Stdlib + PyYAML script; engineering_home is stdlib.
 sys.path.insert(0, str(REPO_ROOT / ".claude" / "skills" / "_common"))
 import engineering_home as _eh  # noqa: E402
+from _lib.capability_registry import load_registry  # noqa: E402
 
-ADAPTER_SCHEMA_VERSION = 1
-PROFILE_SCHEMA_VERSION = 1
+CAPABILITY_REGISTRY = load_registry()
+ADAPTER_SCHEMA_VERSION = 2
+PROFILE_SCHEMA_VERSION = 2
 TIMESTAMP_RE = re.compile(r"^scan-\d{8}-\d{6}$")
 
 DOC_NAMES = (
@@ -155,35 +157,66 @@ def detect_stack(root: Path) -> dict[str, Any]:
     package_paths = [p for p in package_paths if not _is_ignored_path(p)]
     package_text = "\n".join(_read_text(p) for p in package_paths[:8])
 
+    corpus = (requirements + "\n" + pyproject + "\n" + package_text).lower()
+    registry = CAPABILITY_REGISTRY.data
     languages: list[str] = []
     frameworks: list[str] = []
-    package_managers: list[str] = []
+    tools: list[str] = []
 
-    if (root / "manage.py").exists() or (root / "pyproject.toml").exists() or requirements:
-        languages.append("python")
-    if package_paths:
-        languages.append("javascript/typescript")
-    if (root / "manage.py").exists() or _contains_any(requirements + pyproject, ("django",)):
-        frameworks.append("django")
-    if _contains_any(package_text, ('"react"', '"@types/react"', "react-router")):
-        frameworks.append("react")
-    if _contains_any(package_text, ("vite", "vitest")):
-        frameworks.append("vite/vitest")
-    if (root / "pnpm-lock.yaml").exists():
-        package_managers.append("pnpm")
-    if (root / "package-lock.json").exists():
-        package_managers.append("npm")
-    if (root / "yarn.lock").exists():
-        package_managers.append("yarn")
-    if (root / "requirements.txt").exists() or (root / "pyproject.toml").exists():
-        package_managers.append("pip")
-    if package_paths and not any(manager in package_managers for manager in ("pnpm", "npm", "yarn")):
-        package_managers.append("npm")
+    for identifier, entry in registry["languages"].items():
+        if not entry.get("subject"):
+            continue
+        markers = entry.get("project_markers", [])
+        marker_hit = any((root / marker).exists() for marker in markers)
+        extension_hit = any(
+            next(
+                (path for path in root.rglob(f"*{extension}") if not _is_ignored_path(path)),
+                None,
+            )
+            is not None
+            for extension in entry.get("extensions", [])
+        )
+        if marker_hit or extension_hit:
+            languages.append(identifier)
+
+    for identifier, entry in registry["frameworks"].items():
+        if identifier in {"any", "none"}:
+            continue
+        marker_hit = any((root / marker).exists() for marker in entry.get("file_markers", []))
+        token_hit = _contains_any(corpus, tuple(str(token).lower() for token in entry.get("package_tokens", [])))
+        if marker_hit or token_hit:
+            frameworks.append(identifier)
+
+    for identifier, entry in registry["tools"].items():
+        marker_hit = any((root / marker).exists() for marker in entry.get("file_markers", []))
+        token_hit = _contains_any(corpus, tuple(str(token).lower() for token in entry.get("package_tokens", [])))
+        if marker_hit or token_hit:
+            tools.append(identifier)
+
+    package_managers = [
+        identifier
+        for identifier in tools
+        if "package-manager" in registry["tools"][identifier].get("roles", [])
+    ]
+    if package_paths and not package_managers:
+        fallback = next(
+            (
+                identifier
+                for identifier, entry in registry["tools"].items()
+                if entry.get("fallback_for") == "package.json"
+            ),
+            None,
+        )
+        if fallback:
+            tools.append(fallback)
+            package_managers.append(fallback)
 
     return {
         "languages": sorted(set(languages)),
         "frameworks": sorted(set(frameworks)),
+        "tools": sorted(set(tools)),
         "package_managers": sorted(set(package_managers)),
+        "project_roots": [{"path": ".", "kind": "repository"}],
         "markers": _list_existing(
             root,
             (
@@ -215,17 +248,22 @@ def detect_commands(root: Path, stack: dict[str, Any]) -> dict[str, Any]:
     elif (root / "pyproject.toml").exists():
         commands["lint"].append("ruff check <path>")
     package_paths = [root / "package.json", *sorted(root.glob("*/package.json"))]
+    manager_commands = {
+        identifier: CAPABILITY_REGISTRY.data["tools"][identifier].get("run_script_command")
+        for identifier in stack.get("package_managers", [])
+        if identifier in CAPABILITY_REGISTRY.data["tools"]
+    }
+    script_prefix = next((value for value in manager_commands.values() if value), "npm run")
     for path in package_paths:
         pkg = _load_package_json(path)
         scripts = pkg.get("scripts") if isinstance(pkg.get("scripts"), dict) else {}
-        prefix = "pnpm" if (path.parent / "pnpm-lock.yaml").exists() or (root / "pnpm-lock.yaml").exists() else "npm run"
         for name in scripts:
             if "test" in name:
-                commands["test"].append(f"cd {_rel(path.parent, root)} && {prefix} {name}")
+                commands["test"].append(f"cd {_rel(path.parent, root)} && {script_prefix} {name}")
             if "lint" in name or "typecheck" in name:
-                commands["lint"].append(f"cd {_rel(path.parent, root)} && {prefix} {name}")
+                commands["lint"].append(f"cd {_rel(path.parent, root)} && {script_prefix} {name}")
             if name in {"dev", "start"}:
-                commands["dev"].append(f"cd {_rel(path.parent, root)} && {prefix} {name}")
+                commands["dev"].append(f"cd {_rel(path.parent, root)} && {script_prefix} {name}")
     return {k: sorted(set(v)) for k, v in commands.items()}
 
 
@@ -345,6 +383,8 @@ def discover_project(project_root: Path) -> dict[str, Any]:
     stack = detect_stack(root)
     adapter: dict[str, Any] = {
         "schema_version": ADAPTER_SCHEMA_VERSION,
+        "capability_registry_version": CAPABILITY_REGISTRY.schema_version,
+        "capability_contract_version": CAPABILITY_REGISTRY.contract_version,
         "generated_at": utc_now(),
         "project": {"name": root.name, "root": str(root)},
         "stack": stack,
@@ -386,6 +426,8 @@ def build_profile_from_discovery(adapter: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "schema_version": PROFILE_SCHEMA_VERSION,
+        "capability_registry_version": CAPABILITY_REGISTRY.schema_version,
+        "capability_contract_version": CAPABILITY_REGISTRY.contract_version,
         "generated_at": utc_now(),
         "user_approved": False,
         "project": {
@@ -614,6 +656,15 @@ def validate_adapter_payload(payload: dict[str, Any]) -> list[str]:
         errors.append("adapter.project must be a mapping")
     if not isinstance(payload.get("standardization"), dict):
         errors.append("adapter.standardization must be a mapping")
+    stack = payload.get("stack")
+    if isinstance(stack, dict):
+        errors.extend(CAPABILITY_REGISTRY.validate_stack(stack, prefix="adapter.stack"))
+    else:
+        errors.append("adapter.stack must be a mapping")
+    if payload.get("capability_registry_version") != CAPABILITY_REGISTRY.schema_version:
+        errors.append("adapter capability_registry_version does not match registry")
+    if payload.get("capability_contract_version") != CAPABILITY_REGISTRY.contract_version:
+        errors.append("adapter capability_contract_version does not match registry")
     return errors
 
 
@@ -626,6 +677,13 @@ def validate_profile_payload(payload: dict[str, Any]) -> list[str]:
         errors.append("unsupported profile schema_version")
     if not isinstance(payload.get("needs_user_input"), dict):
         errors.append("profile.needs_user_input must be a mapping")
+    if payload.get("capability_registry_version") != CAPABILITY_REGISTRY.schema_version:
+        errors.append("profile capability_registry_version does not match registry")
+    if payload.get("capability_contract_version") != CAPABILITY_REGISTRY.contract_version:
+        errors.append("profile capability_contract_version does not match registry")
+    stack = payload.get("known_from_repo", {}).get("stack") if isinstance(payload.get("known_from_repo"), dict) else None
+    if isinstance(stack, dict):
+        errors.extend(CAPABILITY_REGISTRY.validate_stack(stack, prefix="profile.known_from_repo.stack"))
     return errors
 
 

@@ -1,0 +1,388 @@
+schema_version: 1
+contract_version: 1
+
+schemas:
+  skill_contract:
+    version: 1
+    required: [capability_contract, language, framework, layer, binding, support, capabilities, capability_evidence, support_evidence]
+    fields:
+      language: language-id
+      framework: framework-id
+      layer: layer-id
+      binding: binding-id
+      bindings: [binding-id]
+      scans: [scan-target-id]
+      capabilities: [capability-id]
+      portable_subjects: [language-id]
+      capability_evidence: subject-to-evidence-list
+      support: support-state-id
+      support_evidence: evidence-map
+  stack_profile:
+    version: 2
+    required: [project_roots, languages, frameworks, tools]
+    fields:
+      project_roots: [project-root]
+      languages: [language-id]
+      frameworks: [framework-id]
+      tools: [tool-id]
+  completion_claim:
+    version: 1
+    fields:
+      stack: stack-id
+      capabilities: capability-to-support-state
+      agent_surfaces: agent-surface-to-support-state
+  finding_identity:
+    version: 2
+    hash_fields: [schema, provider, rule, language, path, semantic_anchor, occurrence]
+    volatile_fields: [line, column, severity, metrics, message, tool_version]
+
+runtime:
+  language: python
+  version: ">=3.11"
+  dependency_file: requirements.txt
+
+languages:
+  any:
+    subject: false
+    extensions: []
+    project_markers: []
+  python:
+    subject: true
+    installation_subject: true
+    extensions: [.py, .pyi]
+    project_markers: [pyproject.toml, requirements.txt, manage.py]
+  javascript:
+    subject: true
+    installation_subject: true
+    extensions: [.js, .mjs, .cjs, .jsx]
+    project_markers: [package.json]
+  typescript:
+    subject: true
+    installation_subject: true
+    extensions: [.ts, .tsx, .mts, .cts]
+    project_markers: [tsconfig.json]
+  rust:
+    subject: true
+    installation_subject: true
+    extensions: [.rs]
+    project_markers: [Cargo.toml]
+  go:
+    subject: true
+    installation_subject: true
+    extensions: [.go]
+    project_markers: [go.mod]
+  templates:
+    subject: true
+    extensions: [.html, .htm, .jinja, .j2]
+    project_markers: []
+  css:
+    subject: true
+    extensions: [.css, .scss]
+    project_markers: []
+  shell:
+    subject: true
+    extensions: [.sh, .bash]
+    project_markers: []
+  markdown:
+    subject: true
+    extensions: [.md, .mdx]
+    project_markers: []
+  java:
+    subject: true
+    extensions: [.java]
+    project_markers: [pom.xml]
+  kotlin:
+    subject: true
+    extensions: [.kt, .kts]
+    project_markers: []
+  ruby:
+    subject: true
+    extensions: [.rb]
+    project_markers: [Gemfile]
+  php:
+    subject: true
+    extensions: [.php]
+    project_markers: [composer.json]
+  sql:
+    subject: true
+    extensions: [.sql]
+    project_markers: []
+
+frameworks:
+  any:
+    languages: [any]
+    package_tokens: []
+    file_markers: []
+  none:
+    languages: [any]
+    package_tokens: []
+    file_markers: []
+  django:
+    languages: [python]
+    package_tokens: [django]
+    file_markers: [manage.py]
+  react:
+    languages: [javascript, typescript]
+    package_tokens: [react, "@types/react", react-router]
+    file_markers: []
+
+tools:
+  pip:
+    roles: [package-manager]
+    file_markers: [requirements.txt, pyproject.toml]
+    package_tokens: []
+  npm:
+    roles: [package-manager]
+    file_markers: [package-lock.json]
+    package_tokens: []
+    run_script_command: npm run
+    fallback_for: package.json
+  pnpm:
+    roles: [package-manager]
+    file_markers: [pnpm-lock.yaml]
+    package_tokens: []
+    run_script_command: pnpm
+  yarn:
+    roles: [package-manager]
+    file_markers: [yarn.lock]
+    package_tokens: []
+    run_script_command: yarn
+  pytest:
+    roles: [test]
+    file_markers: []
+    package_tokens: [pytest]
+  ruff:
+    roles: [lint]
+    file_markers: []
+    package_tokens: [ruff]
+  vite:
+    roles: [build, dev-server]
+    file_markers: [vite.config.js, vite.config.ts]
+    package_tokens: [vite]
+  vitest:
+    roles: [test]
+    file_markers: []
+    package_tokens: [vitest]
+  eslint:
+    roles: [lint]
+    file_markers: [eslint.config.js, eslint.config.mjs]
+    package_tokens: [eslint]
+  typescript-compiler:
+    roles: [build, typecheck, analysis]
+    file_markers: [tsconfig.json]
+    package_tokens: [typescript]
+  cargo:
+    roles: [package-manager, build, test]
+    file_markers: [Cargo.toml]
+    package_tokens: []
+  rustc:
+    roles: [compiler, analysis]
+    file_markers: [Cargo.toml]
+    package_tokens: []
+  go-toolchain:
+    roles: [package-manager, build, test, analysis]
+    file_markers: [go.mod]
+    package_tokens: []
+
+project_root:
+  identity: canonical-realpath
+  multi_root: true
+  root_markers: [pyproject.toml, requirements.txt, package.json, tsconfig.json, Cargo.toml, go.mod]
+
+layers:
+  core:
+    binding_kinds: [none]
+  language:
+    binding_kinds: [language]
+  framework:
+    binding_kinds: [framework]
+  domain:
+    binding_kinds: [domain]
+  host-overlay:
+    binding_kinds: [host]
+
+bindings:
+  core:
+    kind: none
+    layer: core
+    languages: [any]
+    frameworks: [any, none]
+  python:
+    kind: language
+    layer: language
+    languages: [python]
+    frameworks: [any, none]
+  javascript-typescript:
+    kind: language
+    layer: language
+    languages: [javascript, typescript]
+    frameworks: [any, none]
+  rust:
+    kind: language
+    layer: language
+    languages: [rust]
+    frameworks: [any, none]
+  go:
+    kind: language
+    layer: language
+    languages: [go]
+    frameworks: [any, none]
+  django:
+    kind: framework
+    layer: framework
+    languages: [python]
+    frameworks: [django]
+  react:
+    kind: framework
+    layer: framework
+    languages: [javascript, typescript]
+    frameworks: [react]
+
+capabilities:
+  analysis:
+    - symbols
+    - imports
+    - definitions
+    - references
+    - calls
+    - writes
+    - syntax-tree
+    - type-facts
+  refactor:
+    - enum-migration
+    - rename
+    - move
+    - reference-edit
+  guard:
+    - native-rule
+    - ratchet
+    - fault-visible
+
+scan_targets:
+  python:
+    adapter: python-ast
+    support: experimental
+    evidence_contract: executable-skill-script
+  javascript:
+    adapter: javascript-syntax
+    support: experimental
+    evidence_contract: executable-skill-script
+  typescript:
+    adapter: typescript-syntax
+    support: experimental
+    evidence_contract: executable-skill-script
+  templates:
+    adapter: text-template
+    support: experimental
+    evidence_contract: executable-skill-script
+  markdown:
+    adapter: structured-text
+    support: experimental
+    evidence_contract: executable-skill-script
+  rust:
+    shim: cargo
+    support: unsupported
+    evidence_contract: native-tool-fixture
+  go:
+    shim: go-toolchain
+    support: unsupported
+    evidence_contract: native-tool-fixture
+
+support:
+  states:
+    unsupported:
+      rank: 0
+      required_evidence: []
+    experimental:
+      rank: 1
+      required_evidence: [fixture_results, tool_versions, platform]
+    verified:
+      rank: 2
+      required_evidence: [fixture_results, tool_versions, platform, deterministic_command, evidence_hash]
+  transitions:
+    promote:
+      unsupported: experimental
+      experimental: verified
+    demote_on:
+      - fixture_failure
+      - missing_required_evidence
+      - tool_version_outside_verified_range
+      - unsupported_platform
+
+agent_surfaces:
+  claude-code:
+    minimum_contract_version: 1
+    discovery: claude-skill-directory-v1
+  codex:
+    minimum_contract_version: 1
+    discovery: codex-plugin-manifest-v1
+  augment:
+    minimum_contract_version: 1
+    discovery: augment-imported-rules-v1
+  cursor:
+    minimum_contract_version: 1
+    discovery: cursor-project-instructions-v1
+  gemini:
+    minimum_contract_version: 1
+    discovery: gemini-project-instructions-v1
+
+completion_floor:
+  matrix_version: 1
+  change_control: adr-amendment-and-migration-review
+  required_agent_surfaces: [claude-code, codex, augment, cursor, gemini]
+  stacks:
+    python-django:
+      languages: [python]
+      frameworks: [django]
+      required:
+        - profile
+        - routing
+        - perimeter
+        - installation
+        - analysis.required-facts
+        - sweep.batch
+        - refactor.enum
+        - guard.native
+        - catalog.compatibility
+      experimental_allowed: [detector.optional-new-family]
+    typescript-node-react:
+      languages: [typescript]
+      frameworks: [react]
+      required:
+        - profile
+        - routing
+        - perimeter
+        - installation
+        - analysis.symbols
+        - analysis.imports
+        - analysis.definitions
+        - analysis.references
+        - analysis.calls
+        - analysis.writes
+        - sweep.batch
+        - detector.omnibus
+        - detector.typed-state
+        - refactor.enum
+        - guard.native
+      experimental_allowed: [catalog.broader]
+    rust:
+      languages: [rust]
+      frameworks: [none]
+      required: [profile, routing, perimeter, installation, sweep.native, failure.loud, composition.mixed-host]
+      experimental_allowed: [analysis.parser-refactor, detector.non-native]
+    go:
+      languages: [go]
+      frameworks: [none]
+      required: [profile, routing, perimeter, installation, sweep.native, failure.loud, composition.mixed-host]
+      experimental_allowed: [analysis.parser-refactor, detector.non-native]
+    mixed-monorepo:
+      languages: [python, typescript, rust, go]
+      frameworks: [django, react]
+      required:
+        - profile.per-root
+        - binding.isolation
+        - routing
+        - perimeter
+        - sweep.native-aggregation
+        - finding-id.non-colliding
+      experimental_allowed: [refactor.cross-language-semantic]

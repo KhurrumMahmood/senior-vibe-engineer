@@ -48,3 +48,45 @@ def test_construct_and_diagnose_are_valid_skill_jobs(tmp_path, capsys):
         "construct-fixture",
         "diagnose-fixture",
     ]
+
+
+def test_versioned_contract_is_validated_by_canonical_registry(tmp_path, capsys):
+    skills_dir = tmp_path / "skills"
+    skill_dir = skills_dir / "bad-capability"
+    skill_dir.mkdir(parents=True)
+    skill_dir.joinpath("SKILL.md").write_text(
+        """---
+name: bad-capability
+description: Strict capability fixture.
+argument-hint: "<target>"
+allowed-tools: Read
+user-invocable: true
+tier: maintenance
+job: suspect
+best_for: Strict schema validation.
+not_for: Production use.
+language: any
+framework: any
+capability_contract: 1
+layer: framework
+binding: react
+support: verified
+capabilities: [analysis.telepathy]
+capability_evidence:
+  python: [test:python-fixture]
+portable_subjects: [python, typescript]
+scans: [css]
+---
+""",
+        encoding="utf-8",
+    )
+
+    rc = skill_meta.main(["--skills-dir", str(skills_dir), "lint", "--json"])
+
+    assert rc == 1
+    errors = json.loads(capsys.readouterr().out)["errors"]
+    assert any("invalid names" in error for error in errors)
+    assert any("binding 'react'" in error for error in errors)
+    assert any("every portable subject" in error for error in errors)
+    assert any("no registered adapter or shim" in error for error in errors)
+    assert any("executable skill script" in error for error in errors)

@@ -34,6 +34,9 @@ _lib_parent = str(REPO_ROOT / "scripts")
 if _lib_parent not in sys.path:
     sys.path.insert(0, _lib_parent)
 from _lib.yaml_frontmatter import FrontmatterError, parse  # noqa: E402
+from _lib.capability_registry import load_registry  # noqa: E402
+
+CAPABILITY_REGISTRY = load_registry()
 
 _common_dir = str(REPO_ROOT / ".claude" / "skills" / "_common")
 if _common_dir not in sys.path:
@@ -222,6 +225,14 @@ def load_skills(skills_dir: Path) -> list[dict]:
             continue
         if not fm:
             continue
+        language = fm.get("language")
+        framework = fm.get("framework")
+        if language is not None and language not in CAPABILITY_REGISTRY.identifiers("languages"):
+            print(f"warning: skipping {sm.name}: unregistered language {language!r}", file=sys.stderr)
+            continue
+        if framework is not None and framework not in CAPABILITY_REGISTRY.identifiers("frameworks"):
+            print(f"warning: skipping {sm.name}: unregistered framework {framework!r}", file=sys.stderr)
+            continue
         try:
             fm["_path"] = str(sm.relative_to(REPO_ROOT))
         except ValueError:
@@ -318,6 +329,8 @@ def cmd_match(args, skills_dir: Path) -> int:
 
     out = {
         "task": task,
+        "capability_registry_version": CAPABILITY_REGISTRY.schema_version,
+        "capability_contract_version": CAPABILITY_REGISTRY.contract_version,
         "inferred_tier": inferred_tier,
         "inferred_job": inferred_job,
         "tier_hints": tier_hits,
@@ -329,6 +342,10 @@ def cmd_match(args, skills_dir: Path) -> int:
                 "score": score,
                 "tier": sk.get("tier", ""),
                 "job": sk.get("job", ""),
+                "language": sk.get("language", ""),
+                "framework": sk.get("framework", ""),
+                "layer": sk.get("layer", ""),
+                "binding": sk.get("binding", ""),
                 "rationale": rationale,
                 "path": sk.get("_path", ""),
                 "task_packet": _build_task_packet(sk),

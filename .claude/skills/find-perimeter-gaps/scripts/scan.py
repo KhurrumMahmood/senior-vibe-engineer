@@ -30,31 +30,13 @@ import json
 import sys
 from pathlib import Path
 
-LANGUAGE_BY_EXTENSION: dict[str, str] = {
-    ".py": "python",
-    ".pyi": "python",
-    ".js": "javascript",
-    ".mjs": "javascript",
-    ".cjs": "javascript",
-    ".jsx": "javascript",
-    ".ts": "typescript",
-    ".tsx": "typescript",
-    ".html": "templates",
-    ".htm": "templates",
-    ".jinja": "templates",
-    ".j2": "templates",
-    ".css": "css",
-    ".scss": "css",
-    ".sh": "shell",
-    ".bash": "shell",
-    ".go": "go",
-    ".rs": "rust",
-    ".java": "java",
-    ".kt": "kotlin",
-    ".rb": "ruby",
-    ".php": "php",
-    ".sql": "sql",
-}
+REPO_ROOT = Path(__file__).resolve().parents[4]
+SCRIPTS_DIR = REPO_ROOT / "scripts"
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+from _lib.capability_registry import load_registry  # noqa: E402
+
+CAPABILITY_REGISTRY = load_registry()
 
 SKIP_DIRS: frozenset[str] = frozenset({
     ".git", ".venv", "venv", "node_modules", "__pycache__",
@@ -85,7 +67,7 @@ def _iter_source_files(
     for path in sorted(project_root.rglob("*")):
         if not path.is_file():
             continue
-        language = LANGUAGE_BY_EXTENSION.get(path.suffix.lower())
+        language = CAPABILITY_REGISTRY.language_for_extension(path.suffix)
         if language is None:
             continue
         try:
