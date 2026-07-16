@@ -88,7 +88,9 @@ def _git_tree_files(project_root: Path, paths: Sequence[str]) -> dict[str, bytes
             relative = member.name.rstrip("/")
             if member.issym() or member.islnk():
                 raise ValueError(f"symlinked source is not distributable: {relative}")
-            if not member.isfile() or _is_cache_artifact(relative):
+            if _is_cache_artifact(relative):
+                raise ValueError(f"committed cache artifact is not distributable: {relative}")
+            if not member.isfile():
                 continue
             extracted = archive.extractfile(member)
             if extracted is None:
@@ -112,6 +114,27 @@ def _require_clean_tracked_sources(project_root: Path, paths: Sequence[str]) -> 
     dirty = _dirty_tracked_paths(project_root, paths)
     if dirty:
         raise ValueError(f"dirty load-bearing source state: {dirty}")
+
+
+def _require_exact_worktree_sources(project_root: Path, sources: Sequence[str]) -> None:
+    """Reject every live source entry not present in the reviewed HEAD archive."""
+    reviewed = set(_git_tree_files(project_root, sources))
+    actual: set[str] = set()
+    for source in sorted(set(sources)):
+        source_root = project_root / source
+        if not source_root.is_dir():
+            continue
+        actual.update(
+            path.relative_to(project_root).as_posix()
+            for path in source_root.rglob("*")
+            if path.is_file() or path.is_symlink()
+        )
+    extras = sorted(actual - reviewed)
+    if extras:
+        raise ValueError(f"untracked or ignored load-bearing files: {extras}")
+    missing = sorted(reviewed - actual)
+    if missing:
+        raise ValueError(f"reviewed load-bearing files are absent from the worktree: {missing}")
 
 
 def _directory_tree_hash(path: Path) -> str:
@@ -196,9 +219,19 @@ def _validate_reference_semantics(
             errors.append(f"contracts index is invalid YAML: {exc}")
         else:
             rows = index.get("skills") if isinstance(index, dict) else None
+            if not isinstance(rows, list):
+                errors.append("contracts index skills must be a list")
+                rows = []
+            invalid_rows = [
+                position
+                for position, row in enumerate(rows)
+                if not isinstance(row, dict) or not isinstance(row.get("skill"), str)
+            ]
+            if invalid_rows:
+                errors.append(f"contracts index has invalid skill rows: {invalid_rows}")
             indexed_name_rows = [
-                row.get("skill")
-                for row in rows or []
+                row["skill"]
+                for row in rows
                 if isinstance(row, dict) and isinstance(row.get("skill"), str)
             ]
             duplicates = sorted(
@@ -207,9 +240,28 @@ def _validate_reference_semantics(
             if duplicates:
                 errors.append(f"contracts index has duplicate skill rows: {duplicates}")
             indexed_names = set(indexed_name_rows)
-            missing = sorted(set(skill_names) - indexed_names)
+            reviewed_skill_files = _git_tree_files(root, [".claude/skills"])
+            allowed_index_names = {
+                path.parts[2]
+                for relative in reviewed_skill_files
+                if len((path := PurePosixPath(relative)).parts) == 4
+                and path.parts[:2] == (".claude", "skills")
+                and path.parts[2] != "_common"
+                and path.name == "SKILL.md"
+            }
+            unknown = sorted(indexed_names - allowed_index_names)
+            if unknown:
+                errors.append(f"contracts index has unknown skill rows: {unknown}")
+            missing = sorted(allowed_index_names - indexed_names)
             if missing:
-                errors.append(f"contracts index omits distribution-ready skills: {missing}")
+                errors.append(f"contracts index omits canonical skills: {missing}")
+            declared_count = index.get("skill_count") if isinstance(index, dict) else None
+            if (
+                not isinstance(declared_count, int)
+                or isinstance(declared_count, bool)
+                or declared_count != len(rows)
+            ):
+                errors.append("contracts index skill_count differs from row count")
     if contract_names != set(skill_names):
         missing = sorted(set(skill_names) - contract_names)
         if missing:
@@ -278,6 +330,7 @@ def build_bundle_inventory(
     skills: list[dict[str, Any]] = []
     ready_entries = [entry for entry in catalog.entries if entry.readiness in READY_STATES]
     ready_sources = [(root / entry.path).parent.relative_to(root).as_posix() for entry in ready_entries]
+    _require_exact_worktree_sources(root, ready_sources)
     source_file_sets = _source_file_sets(root, ready_sources)
     for entry, source in zip(ready_entries, ready_sources, strict=True):
         source_files = source_file_sets[source]
@@ -568,6 +621,10 @@ def validate_bundle_inventory(
     else:
         if dirty:
             errors.append(f"dirty load-bearing source state: {dirty}")
+    try:
+        _require_exact_worktree_sources(root, source_paths)
+    except ValueError as exc:
+        errors.append(str(exc))
     registry_relative = selected_registry.path.resolve().relative_to(root).as_posix()
     registry_blob = _git_tree_files(root, [registry_relative]).get(registry_relative)
     if registry_blob is None or _sha256_bytes(registry_blob) != inventory.get("registry_sha256"):

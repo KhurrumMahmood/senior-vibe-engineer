@@ -693,7 +693,7 @@ later installer slices must extend this block when their interfaces land.
 Checks must fail on stale artifacts rather than silently rewriting them.
 
 ```bash
-.venv/bin/python -m pytest -q \
+PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q \
   tests/test_skill_catalog_layers.py \
   tests/test_binding_loader.py \
   tests/test_extract_enum_binding.py \
@@ -721,7 +721,7 @@ Checks must fail on stale artifacts rather than silently rewriting them.
 .venv/bin/python scripts/specs.py inventory-check \
   portable-skill-layer-distribution
 .venv/bin/ruff check <exact changed Python paths>
-.venv/bin/python -m pytest
+PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest
 ```
 
 Before any real WP3 tracked-path move, evidence must also retain these exact
@@ -818,7 +818,8 @@ The distribution probe now exceeds the narrative-inventory threshold. Its
 structural helpers are `_sha256_bytes`, `_canonical_bytes`, `_tree_hash`,
 `_git_output`, `_is_cache_artifact`, `_git_tree_files`,
 `_dirty_tracked_paths`, `_require_clean_tracked_sources`,
-`_directory_tree_hash`, `_path_is_clean`, `_row_hash`, `_bundle_hash`,
+`_require_exact_worktree_sources`, `_directory_tree_hash`, `_path_is_clean`,
+`_row_hash`, `_bundle_hash`,
 `_document_hash`, `_reference_paths`, `_validate_reference_semantics`,
 `_source_file_sets`, `_load_catalog_from_git`, `build_bundle_inventory`,
 `_alias_targets`, `validate_bundle_inventory`, `_resolved_aliases`,

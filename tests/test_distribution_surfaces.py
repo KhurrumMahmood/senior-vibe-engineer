@@ -103,26 +103,9 @@ def test_bundle_binds_every_load_bearing_reference(inventory: dict[str, Any]) ->
     assert inventory["registry_contract_version"] == 1
 
 
-def test_bundle_uses_only_clean_tracked_git_tree_files(tmp_path: Path) -> None:
+def test_bundle_rejects_untracked_or_ignored_load_bearing_files(tmp_path: Path) -> None:
     fixture = _clone_fixture(tmp_path)
-    cache = fixture / ".claude/skills/extract-enum/__pycache__/propose.cpython-311.pyc"
-    cache.parent.mkdir()
-    cache.write_bytes(b"foreign bytecode\n")
-    fixture.joinpath(".claude/skills/extract-enum/untracked-notes.txt").write_text(
-        "foreign resource\n", encoding="utf-8"
-    )
-    untracked_skill = fixture / ".claude/skills/untracked-skill/SKILL.md"
-    untracked_skill.parent.mkdir()
-    untracked_skill.write_text("---\nname: untracked-skill\n---\n", encoding="utf-8")
-
     clean = build_bundle_inventory(fixture, registry=_fixture_registry(fixture))
-    extract_enum = next(skill for skill in clean["skills"] if skill["name"] == "extract-enum")
-
-    assert "__pycache__/propose.cpython-311.pyc" not in {
-        row["path"] for row in extract_enum["files"]
-    }
-    assert "untracked-notes.txt" not in {row["path"] for row in extract_enum["files"]}
-    assert "untracked-skill" not in {skill["name"] for skill in clean["skills"]}
     assert clean["source_revision"] == subprocess.run(
         ["git", "rev-parse", "HEAD"],
         cwd=fixture,
@@ -138,10 +121,41 @@ def test_bundle_uses_only_clean_tracked_git_tree_files(tmp_path: Path) -> None:
         check=True,
     ).stdout.strip()
 
+    cache = fixture / ".claude/skills/extract-enum/__pycache__/propose.cpython-311.pyc"
+    cache.parent.mkdir()
+    cache.write_bytes(b"foreign bytecode\n")
+    assert subprocess.run(
+        ["git", "check-ignore", str(cache)], cwd=fixture, check=False
+    ).returncode == 0
+
+    with pytest.raises(ValueError, match="untracked or ignored load-bearing files"):
+        build_bundle_inventory(fixture, registry=_fixture_registry(fixture))
+
+    cache.unlink()
+    fixture.joinpath(".claude/skills/extract-enum/untracked-notes.txt").write_text(
+        "foreign resource\n", encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match="untracked or ignored load-bearing files"):
+        build_bundle_inventory(fixture, registry=_fixture_registry(fixture))
+
+    fixture.joinpath(".claude/skills/extract-enum/untracked-notes.txt").unlink()
     fixture.joinpath(".claude/skills/extract-enum/SKILL.md").write_text(
         "dirty load-bearing source\n", encoding="utf-8"
     )
     with pytest.raises(ValueError, match="dirty load-bearing source"):
+        build_bundle_inventory(fixture, registry=_fixture_registry(fixture))
+
+
+def test_bundle_rejects_committed_cache_artifact(tmp_path: Path) -> None:
+    fixture = _clone_fixture(tmp_path)
+    cache = fixture / ".claude/skills/extract-enum/scripts/__pycache__/propose.cpython-311.pyc"
+    cache.parent.mkdir()
+    cache.write_bytes(b"committed bytecode\n")
+    subprocess.run(["git", "add", "-f", str(cache)], cwd=fixture, check=True)
+    subprocess.run(["git", "commit", "--quiet", "-m", "fixture cache"], cwd=fixture, check=True)
+
+    with pytest.raises(ValueError, match="committed cache artifact"):
         build_bundle_inventory(fixture, registry=_fixture_registry(fixture))
 
 
@@ -175,6 +189,34 @@ def test_bundle_rejects_duplicate_contract_index_rows_before_set_collapse(
     subprocess.run(["git", "commit", "--quiet", "-m", "fixture duplicate"], cwd=fixture, check=True)
 
     with pytest.raises(ValueError, match="contracts index has duplicate skill rows"):
+        build_bundle_inventory(fixture, registry=_fixture_registry(fixture))
+
+
+@pytest.mark.parametrize(
+    ("attack", "message"),
+    [
+        ("unknown", "contracts index has unknown skill rows"),
+        ("count", "contracts index skill_count differs from row count"),
+    ],
+)
+def test_bundle_rejects_unknown_contract_index_rows_and_count_mismatch(
+    tmp_path: Path, attack: str, message: str
+) -> None:
+    fixture = _clone_fixture(tmp_path)
+    index_path = fixture / ".claude/contracts/skills/_index.yaml"
+    index = yaml.safe_load(index_path.read_text(encoding="utf-8"))
+    if attack == "unknown":
+        foreign = copy.deepcopy(index["skills"][0])
+        foreign["skill"] = "foreign-skill"
+        index["skills"].append(foreign)
+        index["skill_count"] += 1
+    else:
+        index["skill_count"] += 1
+    index_path.write_text(yaml.safe_dump(index, sort_keys=False), encoding="utf-8")
+    subprocess.run(["git", "add", str(index_path)], cwd=fixture, check=True)
+    subprocess.run(["git", "commit", "--quiet", "-m", "fixture index"], cwd=fixture, check=True)
+
+    with pytest.raises(ValueError, match=message):
         build_bundle_inventory(fixture, registry=_fixture_registry(fixture))
 
 
@@ -737,3 +779,24 @@ def test_documented_current_acceptance_commands_name_real_tests_and_flags() -> N
     assert all((ROOT / path).is_file() for path in documented_tests)
     assert "--check-index" not in command_section
     assert "--strict --no-index" in command_section
+
+
+def test_documented_strict_intent_drift_acceptance_is_clean_and_read_only() -> None:
+    index_path = ROOT / ".claude/contracts/skills/_index.yaml"
+    before = index_path.read_bytes()
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / ".claude/skills/find-skill-intent-drift/scripts/scan.py"),
+            "--strict",
+            "--no-index",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout
+    assert "TOTAL findings: 0" in result.stdout
+    assert index_path.read_bytes() == before
