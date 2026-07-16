@@ -23,7 +23,7 @@ Public surface::
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 
 # --- Capability constants -------------------------------------------------
@@ -111,7 +111,17 @@ class Fact:
         )
 
     def to_dict(self) -> dict[str, object]:
-        return asdict(self)
+        return {
+            "capability": self.capability,
+            "name": self.name,
+            "path": self.path,
+            "line": self.line,
+            "column": self.column,
+            "end_line": self.end_line,
+            "end_column": self.end_column,
+            "kind": self.kind,
+            "parent": self.parent,
+        }
 
 
 # spec:portable-analysis-substrate::IM-8
