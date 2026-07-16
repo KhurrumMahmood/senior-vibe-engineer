@@ -208,14 +208,16 @@ and TypeScript omnibus members complete deterministically. A bounded static
 scan found no network or model import/call in the provider or detectors; the
 only match is a literal omnibus risk-term list used to inspect source text.
 
-`scripts/specs.py coverage portable-batch-sweep` reports IM-13 and IM-14 as
-the expected two implementation-ahead items because this lane was explicitly
-forbidden from editing the specification. Strict inventory remains `CLEAN`.
+`scripts/specs.py coverage portable-batch-sweep` reports five
+implementation-ahead items: the separately implemented main-line IM-9,
+IM-10, and IM-11 surfaces plus parser-owned IM-13 and IM-14. This evidence
+claims only the latter two and leaves every checkmark unchanged until fresh
+verification. Strict inventory remains `CLEAN`.
 Capability-consumer, skill, decision, plan, and decision-link guards passed.
 The repository-wide spec audit retained its pre-existing unrelated
 `status-projection-and-presentation` orphan drift and exited 1; the WP5 spec's
-own coverage and strict inventory checks passed, with only the expected
-IM-13/IM-14 implementation-ahead entries.
+own coverage and strict inventory checks passed with those five explicit
+implementation-ahead entries and no lag or orphan references.
 
 ## Environment and content hashes
 
