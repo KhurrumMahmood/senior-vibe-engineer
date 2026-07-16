@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import copy
 import importlib.util
+import hashlib
 import json
+import subprocess
 import sys
 import urllib.request
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
+from sweep import ecosystem as ecosystem_module
 from sweep.ecosystem import (
     PARSER_ECOSYSTEM_LANGUAGES,
     run_complexity_provider,
@@ -134,7 +139,7 @@ def test_single_language_manifests_include_parser_backed_observations(
 
 
 def test_mixed_manifest_composes_parser_members_without_replacing_native_rust_go() -> None:
-    complexity = run_complexity_provider(REPO_ROOT, [COMPLEXITY_BAD], observation_index=1)
+    complexity = run_complexity_provider(REPO_ROOT, [FIXTURES], observation_index=1)
     omnibus_python = run_omnibus_provider(
         REPO_ROOT,
         [FIXTURES / "python"],
@@ -211,6 +216,169 @@ def test_parser_failure_returns_failed_observation_and_cannot_publish_clean_zero
         assert run.findings == ()
         with pytest.raises(SchemaValidationError, match="publishable manifest requires"):
             _manifest(run)
+
+
+def test_recorded_command_replays_exact_completed_artifacts(tmp_path: Path) -> None:
+    run = run_omnibus_provider(
+        REPO_ROOT,
+        [FIXTURES / "typescript"],
+        language="typescript",
+        observation_index=0,
+    )
+    replay = subprocess.run(
+        run.observation["command"]["argv"],
+        cwd=tmp_path,
+        capture_output=True,
+        check=False,
+    )
+
+    assert run.observation["command"]["executable"] == run.observation["command"]["argv"][0]
+    assert run.observation["command"]["argv"][1].endswith("scripts/sweep/provider_process.py")
+    assert replay.returncode == run.observation["exit"]["code"]
+    assert hashlib.sha256(replay.stdout).hexdigest() == run.observation["raw"]["stdout_sha256"]
+    assert hashlib.sha256(replay.stderr).hexdigest() == run.observation["raw"]["stderr_sha256"]
+    assert len(replay.stdout) == run.observation["raw"]["stdout_bytes"]
+    assert len(replay.stderr) == run.observation["raw"]["stderr_bytes"]
+
+
+def test_provider_timeout_and_overflow_retain_actual_artifact_provenance(monkeypatch) -> None:
+    monkeypatch.setattr(ecosystem_module, "_TIMEOUT_SECONDS", 0.001)
+    timed_out = run_omnibus_provider(
+        REPO_ROOT,
+        [FIXTURES / "typescript"],
+        language="typescript",
+        observation_index=0,
+    )
+    assert timed_out.observation["status"] == "failed"
+    assert timed_out.observation["failure"]["kind"] == "timeout"
+    assert timed_out.findings == ()
+
+    monkeypatch.setattr(ecosystem_module, "_TIMEOUT_SECONDS", 300)
+    monkeypatch.setattr(ecosystem_module, "_OUTPUT_BYTE_LIMIT", 32)
+    overflow = run_omnibus_provider(
+        REPO_ROOT,
+        [FIXTURES / "typescript"],
+        language="typescript",
+        observation_index=0,
+    )
+    assert overflow.observation["status"] == "failed"
+    assert overflow.observation["failure"]["kind"] == "output_overflow"
+    assert overflow.observation["raw"]["stdout_bytes"] > 32
+    assert overflow.observation["failure"]["details"]["stdout_sha256"] == (
+        overflow.observation["raw"]["stdout_sha256"]
+    )
+    assert overflow.findings == ()
+
+    false_clean = copy.deepcopy(overflow.observation)
+    false_clean.update(status="completed", failure=None)
+    false_clean["exit"] = {"code": 0, "classification": "diagnostics"}
+    with pytest.raises(SchemaValidationError, match="artifact exceeds"):
+        validate_provider_observation(false_clean)
+
+
+def test_missing_complexity_scope_is_failed_and_never_publishable() -> None:
+    missing = run_complexity_provider(
+        REPO_ROOT,
+        ["definitely-missing-scope"],
+        observation_index=0,
+    )
+
+    assert missing.observation["status"] == "failed"
+    assert missing.observation["exit"]["classification"] == "tool_failure"
+    assert missing.observation["failure"]["kind"] == "schema_mismatch"
+    assert missing.findings == ()
+    with pytest.raises(SchemaValidationError, match="publishable manifest requires"):
+        _manifest(missing)
+
+    wrong_language = run_omnibus_provider(
+        REPO_ROOT,
+        [FIXTURES / "python"],
+        language="typescript",
+        observation_index=0,
+    )
+    assert wrong_language.observation["status"] == "failed"
+    assert wrong_language.observation["failure"]["kind"] == "schema_mismatch"
+    assert wrong_language.findings == ()
+
+
+def test_manifest_rejects_out_of_scope_findings_and_unbound_observation_indexes() -> None:
+    omnibus = run_omnibus_provider(
+        REPO_ROOT,
+        [FIXTURES / "python"],
+        language="python",
+        observation_index=0,
+    )
+    declared = ["tests/fixtures/sweep/ecosystem/python"]
+    outside = replace(omnibus.findings[0], path="outside/omnibus.py")
+    with pytest.raises(SchemaValidationError, match="declared scope"):
+        build_manifest(
+            capability_registry_version=1,
+            paths=declared,
+            case_sensitive=True,
+            roots=declared,
+            exclusions=[],
+            source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
+            providers=[omnibus.observation],
+            findings=[outside],
+            repo_root=REPO_ROOT,
+        )
+
+    unbound = replace(omnibus.findings[0], observation_index=999)
+    with pytest.raises(SchemaValidationError, match="observation_index"):
+        build_manifest(
+            capability_registry_version=1,
+            paths=declared,
+            case_sensitive=True,
+            roots=declared,
+            exclusions=[],
+            source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
+            providers=[omnibus.observation],
+            findings=[unbound],
+            repo_root=REPO_ROOT,
+        )
+
+    complexity = run_complexity_provider(REPO_ROOT, [FIXTURES], observation_index=0)
+    bound_omnibus = run_omnibus_provider(
+        REPO_ROOT,
+        [FIXTURES / "python"],
+        language="python",
+        observation_index=1,
+    )
+    wrong_provider = replace(bound_omnibus.findings[0], observation_index=0)
+    with pytest.raises(SchemaValidationError, match="expected .*omnibus.*python"):
+        build_manifest(
+            capability_registry_version=1,
+            paths=["tests/fixtures/sweep/ecosystem"],
+            case_sensitive=True,
+            roots=["tests/fixtures/sweep/ecosystem"],
+            exclusions=[],
+            source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
+            providers=[complexity.observation, bound_omnibus.observation],
+            findings=[wrong_provider],
+            repo_root=REPO_ROOT,
+        )
+
+
+def test_complexity_uses_one_typed_parse_and_reuses_the_tree(monkeypatch) -> None:
+    detector = ecosystem_module._load_detector(
+        REPO_ROOT / ".claude/skills/find-complexity-hotspots/scripts/detect.py",
+        "sweep_complexity_parse_count",
+    )
+    source = COMPLEXITY_BAD / "hotspots.py"
+    adapter = detector.get_adapter(source, capability=detector.CAP_PYTHON_AST)
+    original = adapter.parse
+    calls = 0
+
+    def counted(text: str):
+        nonlocal calls
+        calls += 1
+        return original(text)
+
+    monkeypatch.setattr(adapter, "parse", counted)
+    records = detector.detect(REPO_ROOT, [source.as_posix()], max_findings=500)
+
+    assert len(records) == 6
+    assert calls == 1
 
 
 def test_parser_members_are_deterministic_agent_free_and_reject_rust_go_claims(monkeypatch) -> None:

@@ -432,6 +432,48 @@ def _positive_int(raw: str) -> int:
     return value
 
 
+def _typed_python_tree(adapter: Any, text: str, path: Path) -> ast.Module:
+    """Parse once through the WP4 compatibility seam with typed failures."""
+    parse = getattr(adapter, "parse", None)
+    if not callable(parse):
+        raise AnalysisFailure(
+            "unsupported_capability",
+            adapter=adapter.name,
+            path=path.as_posix(),
+            capability=CAP_PYTHON_AST,
+            detail="adapter advertises no Python compatibility-tree accessor",
+        )
+    try:
+        tree = parse(text)
+    except AnalysisFailure:
+        raise
+    except Exception as exc:
+        raise AnalysisFailure(
+            "corrupt_output",
+            adapter=adapter.name,
+            path=path.as_posix(),
+            capability=CAP_PYTHON_AST,
+            detail=f"invalid compatibility-tree output: {exc}",
+        ) from exc
+    if tree is None:
+        raise AnalysisFailure(
+            "parse_error",
+            adapter=adapter.name,
+            path=path.as_posix(),
+            capability=CAP_PYTHON_AST,
+            detail="Python syntax error",
+        )
+    if not isinstance(tree, ast.Module):
+        raise AnalysisFailure(
+            "corrupt_output",
+            adapter=adapter.name,
+            path=path.as_posix(),
+            capability=CAP_PYTHON_AST,
+            detail=f"expected ast.Module, got {type(tree).__name__}",
+        )
+    return tree
+
+
 def detect(
     project_root: Path,
     paths: list[str],
@@ -442,10 +484,9 @@ def detect(
     project_root = project_root.resolve()
     records: list[dict[str, Any]] = []
     for path in _iter_python_files(project_root, paths, include_tests):
-        # The nested-control-flow visitor still requires Python's compatibility
-        # syntax tree, but parse ownership and failure classification belong to
-        # the verified WP4 adapter. The normalized request proves malformed
-        # input cannot become a clean zero before the compatibility tree is used.
+        # The nested-control-flow visitor requires Python's compatibility tree.
+        # Parse exactly once and reuse that tree; the typed wrapper converts the
+        # compatibility seam's optional/exceptional outcomes into loud failures.
         adapter = get_adapter(path, capability=CAP_PYTHON_AST)
         try:
             text = path.read_text(encoding="utf-8")
@@ -457,25 +498,7 @@ def detect(
                 capability=CAP_PYTHON_AST,
                 detail=f"could not read source: {exc}",
             ) from exc
-        adapter.analyze(text, path=path.as_posix(), capabilities={CAP_PYTHON_AST})
-        parse = getattr(adapter, "parse", None)
-        if not callable(parse):
-            raise AnalysisFailure(
-                "unsupported_capability",
-                adapter=adapter.name,
-                path=path.as_posix(),
-                capability=CAP_PYTHON_AST,
-                detail="adapter advertises no Python compatibility-tree accessor",
-            )
-        tree = parse(text)
-        if tree is None:
-            raise AnalysisFailure(
-                "parse_error",
-                adapter=adapter.name,
-                path=path.as_posix(),
-                capability=CAP_PYTHON_AST,
-                detail="Python syntax error",
-            )
+        tree = _typed_python_tree(adapter, text, path)
         visitor = ComplexityVisitor(path, project_root)
         visitor.visit(tree)
         records.extend(visitor.records)

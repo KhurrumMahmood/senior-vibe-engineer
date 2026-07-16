@@ -213,9 +213,15 @@ def validate_provider_observation(document: Any) -> Mapping[str, Any]:
 
     exit_state = _mapping(observation["exit"], "provider_observation.exit")
     _required(exit_state, ("code", "classification"), "provider_observation.exit")
-    _integer(exit_state["code"], "provider_observation.exit.code")
+    if type(exit_state["code"]) is not int:
+        _fail("provider_observation.exit.code", "must be an integer process return code")
     if exit_state["classification"] not in EXIT_CLASSIFICATIONS:
         _fail("provider_observation.exit.classification", "is not recognized")
+
+    status = observation["status"]
+    if status not in PROVIDER_STATUSES:
+        _fail("provider_observation.status", f"must be one of {sorted(PROVIDER_STATUSES)}")
+    failure = observation["failure"]
 
     raw = _mapping(observation["raw"], "provider_observation.raw")
     _required(
@@ -227,13 +233,14 @@ def validate_provider_observation(document: Any) -> Mapping[str, Any]:
     _sha256(raw["stderr_sha256"], "provider_observation.raw.stderr_sha256")
     stdout_bytes = _integer(raw["stdout_bytes"], "provider_observation.raw.stdout_bytes")
     stderr_bytes = _integer(raw["stderr_bytes"], "provider_observation.raw.stderr_bytes")
-    if stdout_bytes > byte_limit or stderr_bytes > byte_limit:
+    overflow_failure = (
+        status == "failed"
+        and isinstance(failure, Mapping)
+        and failure.get("kind") == "output_overflow"
+    )
+    if (stdout_bytes > byte_limit or stderr_bytes > byte_limit) and not overflow_failure:
         _fail("provider_observation.raw", "artifact exceeds command output_byte_limit")
 
-    status = observation["status"]
-    if status not in PROVIDER_STATUSES:
-        _fail("provider_observation.status", f"must be one of {sorted(PROVIDER_STATUSES)}")
-    failure = observation["failure"]
     if status == "completed":
         if failure is not None:
             _fail("provider_observation.failure", "completed observation must not carry a failure")
@@ -411,6 +418,41 @@ def validate_manifest(document: Any, *, allow_prototype: bool = False) -> Mappin
         _validate_finding(row, f"manifest.findings[{index}]", case_sensitive=scope["case_sensitive"])
         for index, row in enumerate(rows)
     ]
+    scope_paths = scope["paths"]
+    roots = scope["roots"]
+    exclusions = scope["exclusions"]
+
+    def within(path: str, boundary: str) -> bool:
+        return boundary == "." or path == boundary or path.startswith(f"{boundary}/")
+
+    for index, row in enumerate(findings):
+        path = row["identity"]["path"]
+        if not any(within(path, boundary) for boundary in scope_paths) or not any(
+            within(path, boundary) for boundary in roots
+        ):
+            _fail(
+                f"manifest.findings[{index}].identity.path",
+                "must remain inside the declared scope paths and roots",
+            )
+        if any(within(path, boundary) for boundary in exclusions):
+            _fail(
+                f"manifest.findings[{index}].identity.path",
+                "must not fall under a declared exclusion",
+            )
+        observation_index = row["provenance"]["observation_index"]
+        if observation_index >= len(validated_providers):
+            _fail(
+                f"manifest.findings[{index}].provenance.observation_index",
+                "must reference the canonical provider array",
+            )
+        observation = validated_providers[observation_index]
+        expected = (row["identity"]["provider"], row["identity"]["language"])
+        actual = (observation["provider"], observation["language"])
+        if actual != expected:
+            _fail(
+                f"manifest.findings[{index}].provenance.observation_index",
+                f"references provider/language {actual!r}, expected {expected!r}",
+            )
     identifiers = [row["id"] for row in findings]
     if len(identifiers) != len(set(identifiers)):
         _fail("manifest.findings", "duplicate finding id")
