@@ -248,7 +248,7 @@ def _source_tree_hash() -> str:
             if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
         ),
     ]
-    for path in sorted(files):
+    for path in sorted(files, key=lambda item: item.relative_to(REPO_ROOT).as_posix()):
         digest.update(path.relative_to(REPO_ROOT).as_posix().encode("utf-8"))
         digest.update(b"\0")
         digest.update(path.read_bytes())
