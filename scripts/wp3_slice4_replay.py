@@ -13,6 +13,7 @@ from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+PYTHON_ARGV_TOKEN = "{python-interpreter}"
 FIXTURE_ROOT = "tests/fixtures/wp3/extract-enum"
 FIXED_SCOPE_CLOCK = "2000-01-01T00:00:00+00:00"
 EVIDENCE_REPORT_REL = (
@@ -79,6 +80,19 @@ def _normalize_python(value: str) -> str:
     if not path.is_file():
         raise ValueError(f"explicit Python interpreter is not a file: {path}")
     return str(path)
+
+
+def _python_contract(python: str) -> dict[str, Any]:
+    result = subprocess.run(
+        [python, "--version"], capture_output=True, check=False
+    )
+    if result.returncode != 0:
+        raise ValueError("explicit Python interpreter did not report its version")
+    output = result.stdout + result.stderr
+    return {
+        "argv_token": PYTHON_ARGV_TOKEN,
+        "version_output_sha256": _sha256(output),
+    }
 
 
 def _verification_commands(python: str) -> list[tuple[str, list[str]]]:
@@ -216,20 +230,26 @@ def _replay_commands(
 def _commands(
     output_root: Path, *, python: str, include_verification: bool
 ) -> list[tuple[str, list[str]]]:
-    selected_python = _normalize_python(python)
+    _normalize_python(python)
     verification = (
-        _verification_commands(selected_python) if include_verification else []
+        _verification_commands(PYTHON_ARGV_TOKEN) if include_verification else []
     )
-    return [*verification, *_replay_commands(output_root, selected_python)]
+    return [*verification, *_replay_commands(output_root, PYTHON_ARGV_TOKEN)]
 
 
 def _run(
     command_id: str,
     argv: list[str],
     *,
+    python: str,
     repo_root: Path = REPO_ROOT,
 ) -> dict[str, Any]:
-    result = subprocess.run(argv, cwd=repo_root, capture_output=True, check=False)
+    if not argv or argv[0] != PYTHON_ARGV_TOKEN:
+        raise ValueError(f"replay command {command_id!r} lacks the Python argv token")
+    executed_argv = [python, *argv[1:]]
+    result = subprocess.run(
+        executed_argv, cwd=repo_root, capture_output=True, check=False
+    )
     if result.returncode != 0:
         detail = (result.stdout + result.stderr).decode("utf-8", errors="replace")
         raise ValueError(f"replay command {command_id!r} failed: {detail}")
@@ -408,7 +428,9 @@ def _render_evidence_report(payload: dict[str, Any], *, output_root: Path) -> by
         f"- Implementation revision: `{payload['reviewed_revision']}`",
         f"- Implementation tree: `{payload['reviewed_tree']}`",
         f"- Evidence relationship: only `{', '.join(EVIDENCE_PATHS)}` may change afterward.",
-        f"- Explicit Python interpreter: `{payload['python']}`",
+        f"- Python argv token: `{payload['python']['argv_token']}`",
+        "- Python version-output SHA-256: "
+        f"`{payload['python']['version_output_sha256']}`",
         f"- Collected tests: `{payload['verification']['pytest_collected']}`",
         "",
         "## Command evidence",
@@ -507,7 +529,12 @@ def record(
     _validate_git_binding(git_binding, repo_root=repo_root)
     output_root.mkdir(parents=True, exist_ok=True)
     commands = [
-        _run(command_id, argv, repo_root=repo_root)
+        _run(
+            command_id,
+            argv,
+            python=selected_python,
+            repo_root=repo_root,
+        )
         for command_id, argv in _commands(
             output_root,
             python=selected_python,
@@ -519,7 +546,7 @@ def record(
         "reviewed_revision": reviewed_revision,
         "reviewed_tree": reviewed_tree,
         "allowed_evidence_paths": list(EVIDENCE_PATHS),
-        "python": selected_python,
+        "python": _python_contract(selected_python),
         "artifact_root": output_root.as_posix(),
         "profile": (
             "full-verification-and-replay"
@@ -563,8 +590,8 @@ def verify(
 ) -> None:
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     selected_python = _normalize_python(python)
-    if payload.get("python") != selected_python:
-        raise ValueError("manifest Python interpreter does not match --python")
+    if payload.get("python") != _python_contract(selected_python):
+        raise ValueError("manifest Python runtime contract does not match --python")
     _validate_git_binding(payload, repo_root=repo_root)
     _verify_checksum(manifest_path)
     output_root = Path(payload["artifact_root"])
@@ -621,7 +648,12 @@ def verify(
     ]:
         raise ValueError("manifest command list is not the canonical Slice 4 replay")
     actual_commands = [
-        _run(command_id, argv, repo_root=repo_root)
+        _run(
+            command_id,
+            argv,
+            python=selected_python,
+            repo_root=repo_root,
+        )
         for command_id, argv in canonical_commands
     ]
     if actual_commands != expected_commands:

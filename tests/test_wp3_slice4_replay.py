@@ -58,7 +58,7 @@ def _minimal_manifest(module, path: Path, revision: str, tree: str) -> dict:
         "generated_replay_artifacts": [],
         "principal_sources": [],
         "profile": "replay-only",
-        "python": str(Path(sys.executable).absolute()),
+        "python": module._python_contract(str(Path(sys.executable).absolute())),
         "reviewed_revision": revision,
         "reviewed_tree": tree,
         "schema_version": 1,
@@ -78,10 +78,12 @@ def test_commands_use_explicit_shared_interpreter_without_local_venv(tmp_path):
         tmp_path, python=sys.executable, include_verification=True
     )
 
-    expected = str(Path(sys.executable).absolute())
     assert commands
-    assert all(argv[0] == expected for _command_id, argv in commands)
+    assert all(
+        argv[0] == module.PYTHON_ARGV_TOKEN for _command_id, argv in commands
+    )
     assert all(".venv/bin/python" not in argv for _command_id, argv in commands)
+    assert module._python_contract(sys.executable)["version_output_sha256"]
 
 
 def test_verify_rejects_fabricated_revision_and_tree(tmp_path, monkeypatch):
@@ -193,7 +195,7 @@ def test_full_manifest_replay_is_byte_identical_and_rejects_tampering(
         evidence_report_path=evidence_report,
     )
     assert first["profile"] == "full-verification-and-replay"
-    assert first["python"] == python
+    assert first["python"] == module._python_contract(python)
     first_bytes = manifest.read_bytes()
     first_report = evidence_report.read_bytes()
 
