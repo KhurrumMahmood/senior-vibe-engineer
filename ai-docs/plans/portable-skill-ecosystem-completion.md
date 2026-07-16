@@ -98,14 +98,14 @@ Completion rules:
 
 ## Progress summary
 
-Last updated: 2026-07-16 by Codex (WP1 started)
+Last updated: 2026-07-16 by Codex (WP1 implemented; verification pending)
 
 | State | Count |
 |---|---:|
 | not_started | 9 |
-| in_progress | 1 |
+| in_progress | 0 |
 | blocked | 0 |
-| implemented | 0 |
+| implemented | 1 |
 | verified | 1 |
 
 ## Master tracker
@@ -113,7 +113,7 @@ Last updated: 2026-07-16 by Codex (WP1 started)
 | Work package | Status | Owner | Depends on | Acceptance criteria | Evidence / verifier | Blocker or next action |
 |---|---|---|---|---|---|---|
 | WP0 Trusted baseline and plan consolidation | verified | Codex | — | AC-0.1–AC-0.5 | `reports/portable-skill-ecosystem-completion/WP0/final-verification.md` (plus linked implementation/attempt/pre-retirement records) | All five ACs independently passed at clean revision `fae13d4`; next dependency-ready package is WP1. |
-| WP1 Canonical stack and capability contract | in_progress | Codex | WP0 | AC-1.1–AC-1.7 | `reports/portable-skill-ecosystem-completion/WP1/` (pending) | Resolve D1–D5 from current discovery/tool evidence, then implement one validated registry and support floor. |
+| WP1 Canonical stack and capability contract | implemented | Codex | WP0 | AC-1.1–AC-1.7 | `reports/portable-skill-ecosystem-completion/WP1/implementation-evidence.md`; independent verifier pending | Fresh-context verifier must rerun every AC at the clean committed tracker revision. |
 | WP2 Capability-aware host profiling and routing | not_started | — | WP1 | AC-2.1–AC-2.6 | — | Make adaptation, routing, perimeter, and inherited Class B/C surfaces use the same profile. |
 | WP3 Load-bearing layers, bindings, and installer | not_started | — | WP1, WP2 | AC-3.1–AC-3.7 | — | Implement the packaging/discovery decision and exemplar binding. |
 | WP4 Multi-language analysis substrate | not_started | — | WP1 | AC-4.1–AC-4.6 | — | Provide parser-backed normalized facts with explicit capability failures. |
@@ -981,6 +981,7 @@ reported no P0 blockers and returned `READY`.
 | 2026-07-16 | `/root/wp0_zero_unmapped` + Codex | Fresh-context revision `25fab54` passed W1–W6, Success 1–6, all acceptance amendments, and active/hidden reference inspection with `ZERO UNMAPPED — READY TO RETIRE`. The next commit records the signed verdict and retires the predecessor; current action: final full WP0 verification; last evidence revision: `25fab54`. | Predecessor → `abandoned`; WP0 → `implemented`; summary now 10 not started / 1 implemented. |
 | 2026-07-16 | `/root/wp0_final_verifier` + Codex | Final fresh-context verification at clean revision `fae13d4` reran all required commands and issued PASS for AC-0.1–AC-0.5 with no missing evidence or unsupported claims. Current action: start WP1; last evidence revision: `fae13d4`. | WP0 → `verified`; summary now 10 not started / 1 verified. |
 | 2026-07-16 | Codex | Started WP1 after verified WP0 checkpoint `c53bb7d`. Last completed AC: none; current action: inventory current registries/discovery surfaces and produce D1–D5 decision evidence; last evidence revision: none. | WP1 → `in_progress`; summary now 9 not started / 1 in progress / 1 verified. |
+| 2026-07-16 | Codex | Implemented AC-1.1–AC-1.7 across commits `3531214`, `fe0f226`, `f396c54`, and `a40d478`: one registry and strict compatibility schema, seven guarded consumers, mechanical support/floor gates, accepted D1–D5 ADRs, a generated surface prototype, a pinned D3 spike, and finding identity v2. Full suite: 426 passed/1 unrelated skip. Current action: clean committed fresh-context verification; last implementation evidence revision: `a40d478`. | WP1 → `implemented`; summary now 9 not started / 1 implemented / 1 verified. |
 
 ## Promotion notes
 
