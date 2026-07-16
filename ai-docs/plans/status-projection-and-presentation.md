@@ -72,7 +72,8 @@ the routers in actual project state).
 - Skill-catalog reorganization and naming — owned by the
   `portable-skill-ecosystem-completion` plan (WP3/WP8, ADR 0034).
 - The ADR 0003 findings-ledger schema itself — owned by
-  `portable-skill-ecosystem-completion` WP5/WP9; this plan ships one reader seam
+  `portable-skill-ecosystem-completion` AC-8.9 in WP8; this plan ships one
+  reader seam
   so the projection adopts whatever 0003 lands.
 - Track B composition machinery (operator/lens/pattern cards,
   composition ledger, TOC goal router — ledger:

@@ -200,6 +200,7 @@ row names another owner):
 | W4 descriptor-driven component inventory, graceful no-profile behavior | Implemented in `cotton_inventory.py`; must remain regression-pinned | AC-2.6 |
 | W4 neutral product-health surface labels | Not completed: `product_health.py` still emits `sites_*` labels | AC-2.6 |
 | W4 scope integration for folder-topology and frontend-contract detectors | Implemented through shared ignore-first scope; must remain regression-pinned | AC-2.6 |
+| W4 `find-route-sprawl` clean-exemplar and already-landed Class A baseline | Existing evidence, not new implementation scope; preserve as the comparison oracle | AC-2.6 requires a WP2 snapshot plus green route-sprawl/Class A characterization tests before and after the Class B/C work |
 | W5 ADR 0026 reason-mandatory project-lint suppression | Still proposed | AC-7.6 |
 | W5 ADR 0027 wire-identifier preservation | Still proposed; invariant already named by refactor criteria | Behavior AC-7.1/AC-7.2 and formal disposition/embodiment AC-7.7 |
 | W5 ADR 0028 post-move asset-path verification | Still proposed | Behavior AC-7.1/AC-7.2 and formal disposition/embodiment AC-7.7 |
@@ -220,9 +221,9 @@ The predecessor W5 order remains binding: ADR 0026 → 0027 → 0028 →
 0029/0030 → 0003. Therefore AC-7.6 completes before AC-7.7 (which resolves
 0027 before 0028); WP7 is verified before WP8 starts; AC-8.8 completes before
 AC-8.9; and AC-8.10 proves this sequence from the tracker, commits, and evidence.
-A later item may move early only through an accepted ADR that names the owner,
-dependency reason, risks, and revisit trigger; absent that artifact, early work
-is an acceptance failure.
+There is no early-work exception inside this program: changing the order first
+requires an explicit acceptance-criteria amendment and a fresh-context plan
+review before implementation begins.
 
 ## 1. Scope & Bounds
 
@@ -378,7 +379,13 @@ routing, and honest perimeter coverage.
   and frontend-contract detectors enumerate through the shared ignore-first
   scope; and product-health records use neutral, profile-derived surface labels
   with no `sites_*`/seed-host fallback. Good/bad fixtures prove each behavior,
-  and a repo search finds no executable hard-coded seed-host root on these paths.
+  and a repo search finds no executable hard-coded seed-host root on these
+  paths. Before editing, WP2 evidence records the already-landed Class A test
+  inventory and the current `find-route-sprawl` ignore-first discovery/output
+  as the clean comparison oracle. Those Class A tests and route-sprawl
+  characterization fixtures remain green after the Class B/C changes, and the
+  two migrated Class C detectors have equivalence fixtures against that
+  exemplar's root/scope/extension/marker-selection behavior.
 
 ### WP3 — Load-bearing layers, bindings, and installer
 
@@ -418,7 +425,8 @@ compatibility aliases, install manifests, and cold-host installer.
   cover all three.
 - **AC-3.6:** On clean fixture hosts, install, verify, update, and uninstall are
   idempotent and do not overwrite host-owned files. A newcomer reaches one
-  useful verified skill run in 20 minutes or less using only documented steps.
+  useful verified skill run in 20 minutes or less using only documented steps
+  and without reading the quality-coordination kernel document.
 - **AC-3.7:** Before any WP3 foundation or exemplar commit moves/renames a
   tracked path, a WP3-local move gate applies ADR 0024 and ADR 0028 without
   waiting for the generalized WP7 tooling. Every retired concept phrasing is
@@ -431,7 +439,9 @@ compatibility aliases, install manifests, and cold-host installer.
   read, and any fired rule is captured in the running lessons log. A fixture
   move containing retired prose and a broken self-anchored path proves this
   gate blocks the commit. AC-7.1/AC-7.2 later generalize the same behavior; they
-  are not permission to defer it from WP3.
+  are not permission to defer it from WP3. This is a safety-only application of
+  existing ADR 0024/0028 rules to early moves: it neither changes either ADR's
+  status/`embodied_by` nor counts as W5 implementation or formal disposition.
 
 ### WP4 — Multi-language analysis substrate
 
@@ -686,8 +696,11 @@ and retired stale provenance.
   first value in 20 minutes or less without unstated repository knowledge. The
   onboarding presents the complete discovery → install → first useful run →
   next-step funnel as one diagram and includes an explicit lite mode with a
-  named three-skill starter portfolio, what governance it omits, and the
-  concrete cost/risk of each omission, preserving predecessor W6.
+  named three-skill starter portfolio. Each of those three skills runs
+  standalone; governance is explicitly optional rather than an unstated
+  prerequisite. The guide names what governance is omitted and the concrete
+  cost/risk of each omission, and the timed first-value run does not require
+  reading the quality-coordination kernel document, preserving predecessor W6.
 - **AC-9.3:** A compatibility guide covers legacy flat paths/invocation names,
   aliases, manifest/schema migrations, binding selection changes, deprecation
   duration, rollback, and how host overlays remain host-owned.
@@ -963,6 +976,7 @@ reported no P0 blockers and returned `READY`.
 | 2026-07-16 | `/root/wp0_fresh_verifier` | Fresh-context revision `8c7e9b2` passed AC-0.1–AC-0.4 and failed AC-0.5: three active references remained stale, W3 lost three of five named families, ADR 0027/0028 lacked formal disposition, W6 lost its one-diagram deliverable, and retirement sequencing was unsupported. Current action: repair those exact gaps and verify mapping before re-retirement; last evidence revision: `8c7e9b2`. | WP0 → `in_progress`; summary now 10 not started / 1 in progress. |
 | 2026-07-16 | `/root/wp0_preretirement_mapping` | Pre-retirement revision `dac41d0` returned `FAIL — DO NOT RETIRE`: W2 relocation/frontmatter and literal leakage rules were weak, ADR 0027/0028 behavior was partial, Success 6's four exact commands existed only in ledger prose, and the consistency plan used an ambiguous W7 label. Current action: make each requirement executable in AC text and repeat zero-unmapped review; last evidence revision: `dac41d0`. | No status-count change; predecessor remains `scoped`, WP0 remains `in_progress`. |
 | 2026-07-16 | `/root/wp0_preretirement_recheck` | Pre-retirement revision `3c84750` returned `FAIL — DO NOT RETIRE`: WP3 moves could precede the ADR 0024/0028 gate, ADR 0024's exact two-band/prose requirements were partial, the inherited W5 order was inverted by early ADR 0003 closure, and Success 4 lacked the exact 0026–0031 + 0003 baseline regression comparison. Current action: add the pre-WP7 move gate, preserve the declared order, and add the baseline-relative closure gate; last evidence revision: `3c84750`. | No status-count change; predecessor remains `scoped`, WP0 remains `in_progress`. |
+| 2026-07-16 | `/root/wp0_preretirement_final` | Pre-retirement revision `3042c39` returned `FAIL — DO NOT RETIRE`: route-sprawl/Class A baseline facts lacked preservation criteria; the WP3 safety gate was ambiguous with formal W5 order and an ADR escape weakened that order; lite mode did not say standalone/governance optional; first value did not exclude kernel reading; and one status-projection owner was stale. Current action: make baseline preservation and onboarding claims exact, distinguish safety from embodiment, remove the order escape, and repair the owner; last evidence revision: `3042c39`. | No status-count change; predecessor remains `scoped`, WP0 remains `in_progress`. |
 
 ## Promotion notes
 
