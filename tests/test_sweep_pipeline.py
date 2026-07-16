@@ -35,10 +35,10 @@ def _provider() -> dict[str, object]:
         "provider": "ruff",
         "language": "python",
         "provider_kind": "native",
-        "scope": {"paths": ["."], "case_sensitive": True, "roots": ["."], "exclusions": []},
+        "scope": {"paths": ["src"], "case_sensitive": True, "roots": ["src"], "exclusions": []},
         "command": {
             "executable": "/tool/ruff",
-            "argv": ["check", "."],
+            "argv": ["check", "src"],
             "timeout_seconds": 30,
             "output_format": "json",
             "output_byte_limit": 1_048_576,
