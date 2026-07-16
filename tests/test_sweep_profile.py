@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
 
 import pytest
 
 from sweep.profile import SweepProfileError, load_sweep_profile, validate_sweep_profile
+from sweep.commands import scan_profile
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -76,6 +78,62 @@ def test_required_mixed_host_contains_every_live_tool_project_boundary():
         assert required.issubset(
             path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()
         )
+
+
+def test_mixed_clean_profile_composes_every_registry_provider(tmp_path):
+    versions_and_outputs = {
+        "ruff": ("ruff 0.6.9", "[]\n"),
+        "eslint": ("v9.38.0", "[]\n"),
+        "typescript-compiler": ("Version 5.9.3", ""),
+        "clippy": (
+            "clippy 0.1.89 (29483883e 2025-08-04)",
+            '{"reason":"build-finished","success":true}\n',
+        ),
+        "go-vet": ("vet version go1.24.6", "{}\n"),
+    }
+    tools = {}
+    for provider, (version, output) in versions_and_outputs.items():
+        executable = tmp_path / provider
+        executable.write_text(
+            "#!/bin/sh\n"
+            "case \"$*\" in\n"
+            f"  *--version*|tool\\ vet\\ -V=full) printf '%s\\n' '{version}';;\n"
+            f"  *) printf '%s' '{output}';;\n"
+            "esac\n",
+            encoding="utf-8",
+        )
+        executable.chmod(0o755)
+        tools[provider] = executable
+
+    profile = load_sweep_profile(
+        REPO_ROOT / "tests/fixtures/sweep/profiles/mixed-case-sensitive.json"
+    )
+    manifest = scan_profile(
+        root=REPO_ROOT / "tests/fixtures/sweep/hosts/mixed/clean",
+        profile=profile,
+        source={
+            "revision": "a" * 40,
+            "dirty": False,
+            "dirty_state_hash": hashlib.sha256(b"").hexdigest(),
+        },
+        executables=tools,
+    )
+
+    assert manifest["status"] == "complete"
+    assert manifest["total"] == 0
+    assert [
+        (row["provider"], row["language"])
+        for row in manifest["providers"]
+    ] == [
+        ("clippy", "rust"),
+        ("cx", "python"),
+        ("eslint", "typescript"),
+        ("go-vet", "go"),
+        ("omnibus", "python"),
+        ("omnibus", "typescript"),
+        ("ruff", "python"),
+        ("typescript-compiler", "typescript"),
+    ]
 
 
 @pytest.mark.parametrize(
