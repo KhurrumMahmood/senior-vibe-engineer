@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 import threading
 from pathlib import Path
 
@@ -355,6 +356,46 @@ def test_external_large_fixture_has_pinned_provenance_and_real_shape():
     assert provenance["selection_rationale"]
 
 
+def test_explicit_evidence_revision_rejects_dirty_consumed_corpus(
+    monkeypatch, tmp_path
+):
+    repository = tmp_path / "repository"
+    corpus = repository / "tests" / "fixtures" / "analysis_portfolio_spike"
+    corpus.mkdir(parents=True)
+    config = corpus / "tsconfig.json"
+    config.write_text('{"compilerOptions": {}}\n', encoding="utf-8")
+    for command in (
+        ["git", "init", "-q"],
+        ["git", "config", "user.email", "wp4@example.invalid"],
+        ["git", "config", "user.name", "WP4 Test"],
+        ["git", "add", "."],
+        ["git", "commit", "-qm", "fixture"],
+    ):
+        subprocess.run(command, cwd=repository, check=True)
+    revision = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repository,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    monkeypatch.setattr(benchmark, "REPO_ROOT", repository)
+    monkeypatch.setattr(
+        benchmark,
+        "SOURCE_SCOPE",
+        ("tests/fixtures/analysis_portfolio_spike",),
+    )
+
+    assert benchmark._source_revision(revision) == revision
+    committed_hash = benchmark._source_tree_hash_at_revision(revision)
+    assert benchmark._source_tree_hash() == committed_hash
+
+    config.write_text('{\n  "compilerOptions": {}\n}\n', encoding="utf-8")
+    with pytest.raises(ValueError, match="clean relevant source tree"):
+        benchmark._source_revision(revision)
+    assert benchmark._source_tree_hash() != committed_hash
+
+
 def test_platform_comparison_requires_all_contract_platforms_and_stable_results(
     monkeypatch, product_benchmark_report
 ):
@@ -455,6 +496,95 @@ def test_platform_comparison_recomputes_budgets_and_binds_git_revision(
 
     with pytest.raises(ValueError, match="must equal the checked-out Git commit"):
         benchmark._source_revision("b" * 40)
+
+
+@pytest.mark.parametrize(
+    ("field", "forged"),
+    [
+        ("upstream_raw_sha256", "0" * 64),
+        ("license_upstream_raw_sha256", "0" * 64),
+        ("normalization", ["forged normalization"]),
+        ("license_normalization", ["forged normalization"]),
+        ("source_sha256", "0" * 64),
+        ("license_sha256", "0" * 64),
+    ],
+)
+def test_platform_comparison_binds_full_external_provenance_for_both_reports(
+    monkeypatch, product_benchmark_report, field, forged
+):
+    base = _comparison_ready(product_benchmark_report)
+    revision = base["source_revision"]
+    working_source_hash = base["source_tree_sha256"]
+    revision_hash = benchmark._source_tree_hash_at_revision
+
+    def source_hash(value):
+        return working_source_hash if value == revision else revision_hash(value)
+
+    monkeypatch.setattr(benchmark, "_source_tree_hash_at_revision", source_hash)
+    base["platform_execution"].update(
+        {
+            "platform_key": "Darwin-arm64",
+            "system": "Darwin",
+            "machine": "arm64",
+            "python": "3.11.10",
+        }
+    )
+    linux = json.loads(json.dumps(base))
+    linux["platform_execution"].update(
+        {
+            "platform_key": "Linux-x86_64",
+            "system": "Linux",
+            "machine": "x86_64",
+            "python": "3.11.15",
+        }
+    )
+    for report in (base, linux):
+        report["external_corpus"][field] = forged
+        report["stable_result_sha256"] = benchmark._hash_json(
+            benchmark._stable_projection(report)
+        )
+
+    with pytest.raises(ValueError, match="external corpus provenance"):
+        benchmark.compare_platform_reports([base, linux])
+
+
+def test_platform_comparison_binds_corpus_hash_for_both_reports(
+    monkeypatch, product_benchmark_report
+):
+    base = _comparison_ready(product_benchmark_report)
+    revision = base["source_revision"]
+    working_source_hash = base["source_tree_sha256"]
+    revision_hash = benchmark._source_tree_hash_at_revision
+
+    def source_hash(value):
+        return working_source_hash if value == revision else revision_hash(value)
+
+    monkeypatch.setattr(benchmark, "_source_tree_hash_at_revision", source_hash)
+    base["platform_execution"].update(
+        {
+            "platform_key": "Darwin-arm64",
+            "system": "Darwin",
+            "machine": "arm64",
+            "python": "3.11.10",
+        }
+    )
+    linux = json.loads(json.dumps(base))
+    linux["platform_execution"].update(
+        {
+            "platform_key": "Linux-x86_64",
+            "system": "Linux",
+            "machine": "x86_64",
+            "python": "3.11.15",
+        }
+    )
+    for report in (base, linux):
+        report["corpus_sha256"] = "0" * 64
+        report["stable_result_sha256"] = benchmark._hash_json(
+            benchmark._stable_projection(report)
+        )
+
+    with pytest.raises(ValueError, match="corpus hash"):
+        benchmark.compare_platform_reports([base, linux])
 
 
 def test_python_symbol_facts_publish_precise_full_spans():

@@ -14,6 +14,7 @@ import sys
 import time
 import tracemalloc
 from pathlib import Path
+from collections.abc import Callable
 from typing import Any
 
 from _lib.lang_adapter import FACT_CAPABILITIES, AnalysisResult, TypeScriptAdapter
@@ -29,7 +30,27 @@ SOURCE_SCOPE = (
     "requirements.txt",
     "scripts/_lib/lang_adapter",
     "tests/fixtures/analysis_facts",
+    "tests/fixtures/analysis_portfolio_spike",
 )
+EXTERNAL_CORPUS_RELATIVE = "tests/fixtures/analysis_facts"
+CORPUS_RELATIVE = "tests/fixtures/analysis_portfolio_spike"
+EXPECTED_EXTERNAL_PROVENANCE = {
+    "project": "microsoft/TypeScript",
+    "upstream_repository": "https://github.com/microsoft/TypeScript",
+    "upstream_tag": "v5.9.3",
+    "upstream_revision": "c63de15a992d37f0d6cec03ac7631872838602cb",
+    "upstream_path": "src/compiler/symbolWalker.ts",
+    "upstream_raw_sha256": "6aec8fecf7d57abd557bdbd4a9744ba2a1f3d8fcc9e9b84721158bd4f284300a",
+    "local_path": "external/typescript-symbol-walker-v5.9.3.ts",
+    "normalization": ["CRLF line endings converted to LF"],
+    "license": "Apache-2.0",
+    "license_path": "external/LICENSE-TypeScript.txt",
+    "license_upstream_raw_sha256": "a7d00bfd54525bc694b6e32f64c7ebcf5e6b7ae3657be5cc12767bce74654a47",
+    "license_normalization": [
+        "CRLF line endings converted to LF",
+        "Trailing whitespace removed",
+    ],
+}
 RUNS = 7
 BUDGETS = {
     "maximum_cold_seconds": 1.0,
@@ -93,8 +114,11 @@ def _load_json_mapping(path: Path, label: str) -> dict[str, Any]:
     return payload
 
 
-def _load_external_corpus() -> dict[str, Any]:
-    provenance = _load_json_mapping(EXTERNAL_CORPUS, "external corpus provenance")
+def _validate_external_corpus(
+    provenance: dict[str, Any],
+    *,
+    read_relative_bytes: Callable[[str], bytes],
+) -> dict[str, Any]:
     required = {
         "schema_version",
         "project",
@@ -118,39 +142,48 @@ def _load_external_corpus() -> dict[str, Any]:
     }
     if set(provenance) != required or provenance.get("schema_version") != 1:
         raise ValueError("external corpus provenance has an invalid schema")
-    for field in (
-        "upstream_revision",
-        "upstream_raw_sha256",
-        "source_sha256",
-        "license_upstream_raw_sha256",
-        "license_sha256",
-    ):
-        length = 40 if field == "upstream_revision" else 64
+    for field in ("source_sha256", "license_sha256"):
+        length = 64
         if not _is_hex_digest(provenance.get(field), length):
             raise ValueError(f"external corpus {field} is not a valid digest")
-    if provenance.get("normalization") != ["CRLF line endings converted to LF"]:
-        raise ValueError("external corpus normalization contract is invalid")
-    if provenance.get("license_normalization") != [
-        "CRLF line endings converted to LF",
-        "Trailing whitespace removed",
-    ]:
-        raise ValueError("external corpus license normalization contract is invalid")
-    fixture = FACT_FIXTURES / str(provenance["local_path"])
-    license_path = FACT_FIXTURES / str(provenance["license_path"])
-    if not fixture.is_file() or not license_path.is_file():
-        raise ValueError("external corpus source or license is missing")
-    source_hash = hashlib.sha256(fixture.read_bytes()).hexdigest()
-    license_hash = hashlib.sha256(license_path.read_bytes()).hexdigest()
-    source_lines = len(fixture.read_text(encoding="utf-8").splitlines())
+    for field, expected in EXPECTED_EXTERNAL_PROVENANCE.items():
+        if provenance.get(field) != expected:
+            raise ValueError(f"external corpus {field} differs from the pinned provenance")
+    local_path = Path(str(provenance["local_path"]))
+    license_relative = Path(str(provenance["license_path"]))
+    if (
+        local_path.is_absolute()
+        or license_relative.is_absolute()
+        or ".." in local_path.parts
+        or ".." in license_relative.parts
+    ):
+        raise ValueError("external corpus paths must remain inside the fixture root")
+    try:
+        source_bytes = read_relative_bytes(local_path.as_posix())
+        license_bytes = read_relative_bytes(license_relative.as_posix())
+        source_text = source_bytes.decode("utf-8")
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise ValueError(f"external corpus source or license is unreadable: {exc}") from exc
+    source_hash = hashlib.sha256(source_bytes).hexdigest()
+    license_hash = hashlib.sha256(license_bytes).hexdigest()
+    source_lines = len(source_text.splitlines())
     if source_hash != provenance.get("source_sha256"):
         raise ValueError("external corpus source hash does not match provenance")
     if license_hash != provenance.get("license_sha256"):
         raise ValueError("external corpus license hash does not match provenance")
-    if fixture.stat().st_size != provenance.get("input_bytes") or source_lines != provenance.get("input_lines"):
+    if len(source_bytes) != provenance.get("input_bytes") or source_lines != provenance.get("input_lines"):
         raise ValueError("external corpus size does not match provenance")
     if provenance.get("license") != "Apache-2.0" or not str(provenance.get("selection_rationale", "")).strip():
         raise ValueError("external corpus requires a supported license and selection rationale")
     return provenance
+
+
+def _load_external_corpus() -> dict[str, Any]:
+    provenance = _load_json_mapping(EXTERNAL_CORPUS, "external corpus provenance")
+    return _validate_external_corpus(
+        provenance,
+        read_relative_bytes=lambda relative: (FACT_FIXTURES / relative).read_bytes(),
+    )
 
 
 def _load_platform_contract() -> dict[str, Any]:
@@ -235,20 +268,26 @@ def _source_revision(explicit: str | None = None) -> str:
     return revision
 
 
+def _included_source_file(path: Path) -> bool:
+    return path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
+
+
+def _working_source_files() -> list[Path]:
+    files: set[Path] = set()
+    for relative in SOURCE_SCOPE:
+        target = REPO_ROOT / relative
+        if target.is_file():
+            files.add(target)
+        elif target.is_dir():
+            files.update(path for path in target.rglob("*") if _included_source_file(path))
+        else:
+            raise ValueError(f"benchmark source scope path is missing: {relative}")
+    return sorted(files, key=lambda item: item.relative_to(REPO_ROOT).as_posix())
+
+
 def _source_tree_hash() -> str:
     digest = hashlib.sha256()
-    roots = [REPO_ROOT / "scripts" / "_lib" / "lang_adapter", FACT_FIXTURES]
-    files = [
-        REPO_ROOT / "scripts" / "analysis_fact_benchmark.py",
-        REPO_ROOT / "requirements.txt",
-        *(
-            path
-            for root in roots
-            for path in root.rglob("*")
-            if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
-        ),
-    ]
-    for path in sorted(files, key=lambda item: item.relative_to(REPO_ROOT).as_posix()):
+    for path in _working_source_files():
         digest.update(path.relative_to(REPO_ROOT).as_posix().encode("utf-8"))
         digest.update(b"\0")
         digest.update(path.read_bytes())
@@ -256,7 +295,7 @@ def _source_tree_hash() -> str:
     return digest.hexdigest()
 
 
-def _source_tree_hash_at_revision(revision: str) -> str:
+def _verified_revision(revision: str) -> str:
     if not _is_hex_digest(revision, 40):
         raise ValueError("source revision must be a 40-character Git SHA")
     verified = subprocess.run(
@@ -268,8 +307,13 @@ def _source_tree_hash_at_revision(revision: str) -> str:
     )
     if verified.returncode != 0 or verified.stdout.strip().lower() != revision.lower():
         raise ValueError("source revision is not a repository commit")
+    return revision.lower()
+
+
+def _git_paths_at_revision(revision: str, scopes: tuple[str, ...]) -> list[str]:
+    _verified_revision(revision)
     listing = subprocess.run(
-        ["git", "ls-tree", "-r", "--name-only", revision, "--", *SOURCE_SCOPE],
+        ["git", "ls-tree", "-r", "--name-only", revision, "--", *scopes],
         cwd=REPO_ROOT,
         check=False,
         capture_output=True,
@@ -284,21 +328,59 @@ def _source_tree_hash_at_revision(revision: str) -> str:
     )
     if not names:
         raise ValueError("source revision has no benchmark source files")
+    return names
+
+
+def _git_blob_at_revision(revision: str, name: str) -> bytes:
+    blob = subprocess.run(
+        ["git", "cat-file", "blob", f"{revision}:{name}"],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+    )
+    if blob.returncode != 0:
+        raise ValueError(f"cannot read source revision path: {name}")
+    return blob.stdout
+
+
+def _source_tree_hash_at_revision(revision: str) -> str:
+    names = _git_paths_at_revision(revision, SOURCE_SCOPE)
     digest = hashlib.sha256()
     for name in names:
-        blob = subprocess.run(
-            ["git", "cat-file", "blob", f"{revision}:{name}"],
-            cwd=REPO_ROOT,
-            check=False,
-            capture_output=True,
-        )
-        if blob.returncode != 0:
-            raise ValueError(f"cannot read source revision path: {name}")
         digest.update(name.encode("utf-8"))
         digest.update(b"\0")
-        digest.update(blob.stdout)
+        digest.update(_git_blob_at_revision(revision, name))
         digest.update(b"\0")
     return digest.hexdigest()
+
+
+def _tree_hash_at_revision(revision: str, root: str) -> str:
+    names = _git_paths_at_revision(revision, (root,))
+    prefix = Path(root)
+    digest = hashlib.sha256()
+    for name in names:
+        relative = Path(name).relative_to(prefix).as_posix()
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(_git_blob_at_revision(revision, name))
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _load_external_corpus_at_revision(revision: str) -> dict[str, Any]:
+    manifest_path = f"{EXTERNAL_CORPUS_RELATIVE}/external-corpus.json"
+    try:
+        provenance = json.loads(_git_blob_at_revision(revision, manifest_path).decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"committed external corpus provenance is invalid: {exc}") from exc
+    if not isinstance(provenance, dict):
+        raise ValueError("committed external corpus provenance must be a JSON object")
+    return _validate_external_corpus(
+        provenance,
+        read_relative_bytes=lambda relative: _git_blob_at_revision(
+            revision, f"{EXTERNAL_CORPUS_RELATIVE}/{relative}"
+        ),
+    )
 
 
 def _install_size() -> int:
@@ -461,6 +543,7 @@ def _stable_projection(report: dict[str, Any]) -> dict[str, Any]:
     return {
         "schema_version": report["schema_version"],
         "analysis_interface_version": report["analysis_interface_version"],
+        "corpus": report["corpus"],
         "corpus_sha256": report["corpus_sha256"],
         "metrics": report["metrics"],
         "fixtures": {
@@ -482,19 +565,7 @@ def _stable_projection(report: dict[str, Any]) -> dict[str, Any]:
             key: report["platform_execution"][key]
             for key in ("python_series", "tree_sitter", "tree_sitter_language_pack")
         },
-        "external_corpus": {
-            key: report["external_corpus"][key]
-            for key in (
-                "upstream_revision",
-                "upstream_path",
-                "source_sha256",
-                "license",
-                "license_sha256",
-                "input_bytes",
-                "input_lines",
-                "selection_rationale",
-            )
-        },
+        "external_corpus": report["external_corpus"],
         "platform_contract_sha256": report["platform_contract_sha256"],
     }
 
@@ -510,6 +581,7 @@ def compare_platform_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
     revisions: set[str] = set()
     source_hashes: set[str] = set()
     stable_hashes: set[str] = set()
+    revision_inputs: dict[str, tuple[str, dict[str, Any]]] = {}
     required_tools = contract["required_tool_versions"]
     for report in reports:
         if report.get("schema_version") != 2 or report.get("passed") is not True:
@@ -541,6 +613,18 @@ def compare_platform_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
         source_hash = report.get("source_tree_sha256")
         if not _is_hex_digest(source_hash, 64) or source_hash != _source_tree_hash_at_revision(revision):
             raise ValueError(f"{key}: source tree hash is missing or stale")
+        if revision not in revision_inputs:
+            revision_inputs[revision] = (
+                _tree_hash_at_revision(revision, CORPUS_RELATIVE),
+                _load_external_corpus_at_revision(revision),
+            )
+        expected_corpus_hash, expected_external = revision_inputs[revision]
+        if report.get("corpus") != CORPUS_RELATIVE:
+            raise ValueError(f"{key}: benchmark corpus path differs from the contract")
+        if report.get("corpus_sha256") != expected_corpus_hash:
+            raise ValueError(f"{key}: benchmark corpus hash is not bound to the source revision")
+        if report.get("external_corpus") != expected_external:
+            raise ValueError(f"{key}: external corpus provenance is not bound to the source revision")
         stable_hash = report.get("stable_result_sha256")
         if not _is_hex_digest(stable_hash, 64) or stable_hash != _hash_json(_stable_projection(report)):
             raise ValueError(f"{key}: stable result hash is invalid")
@@ -581,6 +665,10 @@ def compare_platform_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
 
 # spec:portable-analysis-substrate::IM-9
 def build_report(*, source_revision: str | None = None) -> dict[str, Any]:
+    revision = _source_revision(source_revision)
+    working_source_hash = _source_tree_hash()
+    if source_revision is not None and working_source_hash != _source_tree_hash_at_revision(revision):
+        raise ValueError("benchmark source tree differs from the declared Git revision")
     corpus_paths = sorted((CORPUS / "src").glob("*.ts"))
     corpus_results, _ = _analyze(corpus_paths)
     actual: dict[str, set[str]] = {name: set() for name in CAPABILITY_TO_ORACLE.values()}
@@ -600,8 +688,8 @@ def build_report(*, source_revision: str | None = None) -> dict[str, Any]:
     report = {
         "schema_version": 2,
         "analysis_interface_version": 1,
-        "source_revision": _source_revision(source_revision),
-        "source_tree_sha256": _source_tree_hash(),
+        "source_revision": revision,
+        "source_tree_sha256": working_source_hash,
         "corpus": str(CORPUS.relative_to(REPO_ROOT)),
         "corpus_sha256": _hash_tree(CORPUS),
         "external_corpus": external,
@@ -631,6 +719,8 @@ def build_report(*, source_revision: str | None = None) -> dict[str, Any]:
         "passed": not violations,
     }
     report["stable_result_sha256"] = _hash_json(_stable_projection(report))
+    if source_revision is not None and _source_tree_hash() != working_source_hash:
+        raise ValueError("benchmark source tree changed during report generation")
     return report
 
 
