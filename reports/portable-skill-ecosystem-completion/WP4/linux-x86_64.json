@@ -44,34 +44,34 @@
   },
   "fixtures": {
     "external_large": {
-      "cold_seconds": 0.926453,
+      "cold_seconds": 0.632526,
       "deterministic": true,
       "facts_sha256": "6474a8c3e5b945e3d0d4e9269574f8e004a0df4957cc420d83c15c83aaf7a9e4",
       "input_bytes": 7961,
       "input_files": 1,
       "input_lines": 216,
       "input_sha256": "99401365d588dc0afd5e06c2b191d9bc8adabe3893e72aae7f851af7b4f71c56",
-      "peak_python_bytes": 1183588,
-      "peak_rss_bytes": 31502336,
+      "peak_python_bytes": 946226,
+      "peak_rss_bytes": 31408128,
       "runs": 7,
-      "warm_cv": 0.01067,
-      "warm_mean_seconds": 0.865938,
-      "warm_stdev_seconds": 0.00924
+      "warm_cv": 0.0029,
+      "warm_mean_seconds": 0.063796,
+      "warm_stdev_seconds": 0.000185
     },
     "small": {
-      "cold_seconds": 0.808382,
+      "cold_seconds": 0.629167,
       "deterministic": true,
       "facts_sha256": "79ab49d20aa30bd684c96c3b052517a228410f2090473ea6fc639a7f35354f39",
       "input_bytes": 431,
       "input_files": 1,
       "input_lines": 18,
       "input_sha256": "ec7f8ec91affdde563e7fc898b8ac952469c81e7d0d306c8f4d7520e556876d0",
-      "peak_python_bytes": 125601,
-      "peak_rss_bytes": 28819456,
+      "peak_python_bytes": 86019,
+      "peak_rss_bytes": 29224960,
       "runs": 7,
-      "warm_cv": 0.009251,
-      "warm_mean_seconds": 0.0816,
-      "warm_stdev_seconds": 0.000755
+      "warm_cv": 0.019397,
+      "warm_mean_seconds": 0.008987,
+      "warm_stdev_seconds": 0.000174
     }
   },
   "metrics": {
@@ -144,17 +144,17 @@
     "tree_sitter_language_pack": "1.12.5"
   },
   "schema_version": 2,
-  "source_revision": "e45e009c7dfb3c9e4619ea2aaa5c3bc6ab1b5921",
-  "source_tree_sha256": "8927ef259c15221898187050ef81683cffc41bed39ed77f8cc4f3f23ee0b7361",
-  "stable_result_sha256": "63f4b893aba9b430a8956e90addc58fc3f169c9ba0722acbcad31286bb0f4272",
+  "source_revision": "01874df5d8d73b5fc74bf7a6e04fa51936a694ff",
+  "source_tree_sha256": "92aca126917a35a078f4b3d40f72de46c2e707a4580def146094425cd4cc70f0",
+  "stable_result_sha256": "a8c3596589629e79af1a601ae14c620ddb0d0127887225245c30d543311e7674",
   "toolchain": {
     "deterministic_setup": ".venv/bin/python -m pip install tree-sitter==0.26.0 tree-sitter-language-pack==1.12.5",
-    "install_size_bytes": 7676817,
+    "install_size_bytes": 7676949,
     "python": "3.11.15",
     "tree_sitter": "0.26.0",
     "tree_sitter_language_pack": "1.12.5",
     "tree_sitter_license": "MIT"
   },
-  "variance_method": "fresh subprocess cold (startup and provider load included); six same-process warm runs; population CV",
+  "variance_method": "fresh subprocess cold (startup and provider load included); one untimed same-process provider warm-up; six measured same-process warm runs without allocation instrumentation; one separate traced-memory run; population CV",
   "violations": []
 }

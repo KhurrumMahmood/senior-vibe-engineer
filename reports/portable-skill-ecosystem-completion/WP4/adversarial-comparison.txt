@@ -1,5 +1,35 @@
-REJECT PASS cold budget: Linux-x86_64: reported violations do not match benchmark values
-REJECT PASS RSS budget: Linux-x86_64: reported violations do not match benchmark values
-REJECT PASS install budget: Linux-x86_64: reported violations do not match benchmark values
-REJECT PASS forged revision: source revision is not a repository commit
-ALL ATTEMPT-3 ATTACKS REJECTED
+Exact revision: 01874df5d8d73b5fc74bf7a6e04fa51936a694ff
+Inputs: darwin-arm64.json, linux-x86_64.json
+Comparator baseline: PASS; cross_platform_deterministic=true; violations=[]
+
+REJECT missing platform: missing required platform executions: ['Linux-x86_64']
+REJECT duplicate platform: duplicate platform execution: Darwin-arm64
+REJECT cold budget/pass forgery: Linux-x86_64: reported violations do not match benchmark values
+REJECT RSS budget/pass forgery: Linux-x86_64: reported violations do not match benchmark values
+REJECT install budget/pass forgery: Linux-x86_64: reported violations do not match benchmark values
+REJECT pass-state forgery: platform report must be schema v2 and budget-passing
+REJECT budget-value forgery: Linux-x86_64: benchmark budgets differ from the contract
+REJECT budget-key forgery: Linux-x86_64: benchmark budgets differ from the contract
+REJECT fixture-set forgery: benchmark fixtures do not match the required corpus
+REJECT run-count forgery: small: benchmark result or run count is invalid
+REJECT coordinated forged revision: source revision is not a repository commit
+REJECT different real revision: Linux-x86_64: source tree hash is missing or stale
+REJECT coordinated stale source tree: Darwin-arm64: source tree hash is missing or stale
+REJECT wrong execution tool version: Linux-x86_64: tree_sitter must be 0.26.0
+REJECT wrong toolchain version: Linux-x86_64: toolchain record differs from execution
+REJECT stable-payload tamper: Linux-x86_64: stable result hash is invalid
+REJECT malformed report shape: platform report must be schema v2 and budget-passing
+REJECT coordinated external provenance upstream_raw_sha256: Darwin-arm64: external corpus provenance is not bound to the source revision
+REJECT coordinated external provenance license_upstream_raw_sha256: Darwin-arm64: external corpus provenance is not bound to the source revision
+REJECT coordinated external provenance normalization: Darwin-arm64: external corpus provenance is not bound to the source revision
+REJECT coordinated external provenance license_normalization: Darwin-arm64: external corpus provenance is not bound to the source revision
+REJECT coordinated external provenance source_sha256: Darwin-arm64: external corpus provenance is not bound to the source revision
+REJECT coordinated external provenance license_sha256: Darwin-arm64: external corpus provenance is not bound to the source revision
+REJECT coordinated D3 corpus hash: Darwin-arm64: benchmark corpus hash is not bound to the source revision
+ALL ATTEMPT-3/4 COMPARATOR ATTACKS REJECTED
+
+Targeted committed-corpus/provenance regression:
+PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -vv -p no:cacheprovider tests/test_analysis_facts.py -k 'explicit_evidence_revision or platform_comparison'
+Result: 10 passed, 29 deselected in 1.42s.
+This includes dirty consumed-D3-corpus rejection and coordinated two-report
+source/license/raw-upstream/normalization/corpus forgery rejection.
