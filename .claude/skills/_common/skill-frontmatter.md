@@ -161,23 +161,45 @@ support: experimental
 capabilities: [analysis.symbols, analysis.imports]
 portable_subjects: [typescript]
 capability_evidence:
-  typescript: [test:tests/fixtures/react-routing]
+  typescript:
+    - kind: test
+      path: tests/typescript-routing.py
+      sha256: <64-lowercase-hex>
 support_evidence:
-  fixture_results: pass
-  tool_versions: {typescript: 5.9.3}
-  platform: macos-arm64
+  claim: {kind: skill, id: <skill-directory-name>}
+  fixture:
+    command: [<absolute-current-python>, tests/typescript-routing.py]
+    cwd: .
+    expected_stdout_sha256: <64-lowercase-hex>
+  artifacts:
+    - kind: test
+      path: tests/typescript-routing.py
+      sha256: <64-lowercase-hex>
+  tools:
+    - name: python-runtime
+      command: [<absolute-current-python>, --version]
+  platforms:
+    - {system: Darwin, machine: arm64}
+  evidence_hash: <canonical-envelope-sha256>
 scans: [typescript]
 ```
 
 - `layer`, `binding`, and optional `bindings` use registry identifiers.
 - `capabilities` uses qualified `analysis.*`, `refactor.*`, or `guard.*`
   identifiers from the registry.
-- `capability_evidence` maps each claimed subject or scan target to non-empty
-  evidence references. A scan also needs a registered adapter/native shim and
-  a skill-local executable.
-- `support_evidence` is evaluated mechanically. `experimental` requires a
-  passing fixture result, pinned tool versions, and platform evidence;
-  `verified` additionally requires a deterministic command and evidence hash.
+- `capability_evidence` maps each claimed subject or scan target to hashed,
+  skill-relative file attestations and must include a test witness. Every
+  declared capability test must be the single attested test directly executed
+  by the fixture command, so multi-subject `any` and `scans:` coverage is
+  actually executed. Use one attested integration-test wrapper when a suite has
+  multiple underlying files. A scan also needs a registered adapter/native shim
+  and a non-empty skill-local executable.
+- `support_evidence` is evaluated mechanically: the validator checks artifact
+  and envelope hashes, claim identity, command shape, registry-owned executable
+  and tool-version policies, platform names, and scan support ceilings. The
+  fixture command must execute an attested test artifact. Promotion reruns that
+  test and the tool probes on the current platform; bare booleans, generic
+  evidence, or support labels cannot promote a claim.
 - Frameworks and tools are separate categories: React is a framework; Vite and
   Vitest are tools.
 

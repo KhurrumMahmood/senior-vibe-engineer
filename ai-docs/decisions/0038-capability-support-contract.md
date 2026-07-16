@@ -63,16 +63,26 @@ readable without acquiring new support claims; WP8 converts the catalog and
 then removes that compatibility lane.
 
 Support has three states: `unsupported`, `experimental`, and `verified`.
-Promotion is one step at a time. Experimental claims require passing fixture
-results plus tool versions and platform evidence. Verified claims additionally
-require a deterministic command and evidence hash. Missing/stale evidence,
-fixture failure, an out-of-range tool version, or an unsupported platform
-mechanically demotes the claim to `unsupported`; prose cannot override this.
+Promotion is one step at a time. Every promotable claim carries a canonical
+evidence envelope bound to that exact skill, stack capability, or versioned
+agent surface. The fixture command must execute a hashed test artifact; tool
+commands must use registry-owned executable and argument policies; stdout,
+artifact, envelope, tool-version, and platform checks are mechanical. Missing,
+stale, generic, cross-claim, timed-out, out-of-range, or off-platform evidence
+demotes the claim to `unsupported`; prose cannot override this. Scan claims are
+also capped by the registered adapter/shim support ceiling. For strict skill
+contracts, every per-subject and scan-target capability test must be included
+in the single integration-test artifact directly executed by the fixture
+command. Multi-file suites use that attested wrapper, preventing ignored extra
+arguments or unattached hashes from masquerading as executable `language: any`
+coverage.
 
 The completion floor is a separate versioned block. Every required cell must
-exist and be `verified`; `unsupported`, `experimental`, and omission all fail.
-Changing the floor requires an ADR amendment and migration-impact review, so a
-release cannot make itself green by lowering the target.
+exist and be `verified` with evidence bound to that cell; agent surfaces also
+carry a pinned compatible surface version. `unsupported`, `experimental`, a
+bare label, evidence reused from another cell, and omission all fail. Changing
+the floor requires an ADR amendment and migration-impact review, so a release
+cannot make itself green by lowering the target.
 
 ## Alternatives considered
 
@@ -109,7 +119,9 @@ ADR are disallowed.
 
 - `tests/test_capability_registry.py` exercises extension by data, invalid
   capability/layer/binding combinations, `any` evidence, scan evidence,
-  framework/tool confusion, support demotion, and ungameable floor cells.
+  framework/tool confusion, support demotion, claim binding, executed and
+  hashed test evidence, path containment, tool policy ownership, and ungameable
+  floor cells.
 - `scripts/check_capability_registry_consumers.py` and
   `tests/test_capability_registry_guard.py` prove the load-bearing consumers
   import the registry and do not recreate the retired enums.

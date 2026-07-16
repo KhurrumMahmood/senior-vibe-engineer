@@ -8,9 +8,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import re
 from typing import Any, Iterable
 
 import yaml
+
+from _lib.support_evidence import (
+    attested_paths,
+    canonical_evidence_hash,
+    validate_file_attestations,
+    validate_support_evidence,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -125,6 +133,8 @@ class CapabilityRegistry:
         states = self.data["support"]["states"]
         if support not in states:
             errors.append(f"support is not registered: {support!r}")
+        evidence_root = skill_dir or REPO_ROOT
+        capability_test_paths: set[Path] = set()
         if not isinstance(evidence, dict) or not evidence:
             errors.append("capability_evidence must be a non-empty subject-to-evidence mapping")
             evidence = {}
@@ -133,14 +143,29 @@ class CapabilityRegistry:
             if unknown_subjects:
                 errors.append(f"capability_evidence has unregistered subjects: {unknown_subjects}")
             for subject, entries in evidence.items():
-                if not isinstance(entries, list) or not entries or any(
-                    not isinstance(item, str) or not item.strip() for item in entries
-                ):
-                    errors.append(f"capability_evidence.{subject} must be a non-empty list of strings")
+                errors.extend(
+                    validate_file_attestations(
+                        entries,
+                        root=evidence_root,
+                        field=f"capability_evidence.{subject}",
+                        required_kinds={"test"},
+                    )
+                )
+                capability_test_paths.update(
+                    attested_paths(entries, root=evidence_root, kind="test")
+                )
 
         if support in states:
             evaluated, reasons = self.evaluate_support(
-                {"state": support, "evidence": support_evidence}
+                {"state": support, "evidence": support_evidence},
+                root=evidence_root,
+                execute=False,
+                expected_claim=(
+                    {"kind": "skill", "id": skill_dir.name}
+                    if skill_dir is not None
+                    else None
+                ),
+                required_test_paths=capability_test_paths,
             )
             if evaluated != support:
                 errors.append(
@@ -168,11 +193,21 @@ class CapabilityRegistry:
                 errors.append(f"scans target {target!r} has no evidence contract")
             if target not in evidence:
                 errors.append(f"scans target {target!r} has no matching capability_evidence entry")
+            if support in states:
+                requested_rank = states[support]["rank"]
+                ceiling_rank = states[entry["support"]]["rank"]
+                if requested_rank > ceiling_rank:
+                    errors.append(
+                        f"scans target {target!r} support ceiling is {entry['support']!r}, "
+                        f"not requested {support!r}"
+                    )
 
         if scans and skill_dir is not None:
             scripts = skill_dir / "scripts"
             executable = scripts.is_dir() and any(
-                path.is_file() and path.suffix in {".py", ".sh", ".js", ".mjs", ".ts"}
+                path.is_file()
+                and path.stat().st_size > 0
+                and path.suffix in {".py", ".sh", ".js", ".mjs", ".ts"}
                 for path in scripts.rglob("*")
             )
             if not executable:
@@ -202,22 +237,35 @@ class CapabilityRegistry:
                 errors.append(f"bindings contains unregistered identifiers: {unknown_bindings}")
         return errors
 
-    def evaluate_support(self, claim: dict[str, Any]) -> tuple[str, list[str]]:
+    def evaluate_support(
+        self,
+        claim: dict[str, Any],
+        *,
+        root: Path | None = None,
+        execute: bool = True,
+        ceiling: str | None = None,
+        expected_claim: dict[str, str] | None = None,
+        required_test_paths: set[Path] | None = None,
+    ) -> tuple[str, list[str]]:
         """Mechanically demote a support claim when required evidence is stale/missing."""
         requested = claim.get("state", "unsupported")
         states = self.data["support"]["states"]
         if requested not in states:
             return "unsupported", [f"unregistered support state: {requested!r}"]
-        evidence = claim.get("evidence") if isinstance(claim.get("evidence"), dict) else {}
-        missing = [key for key in states[requested]["required_evidence"] if not evidence.get(key)]
-        failures = []
-        if evidence.get("fixture_results") not in (None, "pass"):
-            failures.append("fixture_failure")
-        if evidence.get("tool_version_in_range") is False:
-            failures.append("tool_version_outside_verified_range")
-        if evidence.get("platform_supported") is False:
-            failures.append("unsupported_platform")
-        reasons = [f"missing_required_evidence:{key}" for key in missing] + failures
+        if requested == "unsupported":
+            return requested, []
+        if ceiling not in (None, *states):
+            return "unsupported", [f"unregistered support ceiling: {ceiling!r}"]
+        if ceiling is not None and states[requested]["rank"] > states[ceiling]["rank"]:
+            return "unsupported", [f"support_ceiling:{ceiling}"]
+        reasons = validate_support_evidence(
+            claim.get("evidence"),
+            root=(root or REPO_ROOT).resolve(),
+            execute=execute,
+            tool_policies=self.data["evidence_tools"],
+            expected_claim=expected_claim,
+            required_test_paths=required_test_paths,
+        )
         if reasons:
             return "unsupported", reasons
         return requested, []
@@ -226,13 +274,19 @@ class CapabilityRegistry:
         self,
         current: str,
         evidence: dict[str, Any],
+        *,
+        root: Path | None = None,
+        ceiling: str | None = None,
     ) -> tuple[str, list[str]]:
         """Promote at most one state, or demote immediately when evidence is stale."""
         states = self.data["support"]["states"]
         if current not in states:
             return "unsupported", [f"unregistered support state: {current!r}"]
         current_state, current_reasons = self.evaluate_support(
-            {"state": current, "evidence": evidence}
+            {"state": current, "evidence": evidence},
+            root=root,
+            execute=True,
+            ceiling=ceiling,
         )
         if current != "unsupported" and current_state == "unsupported":
             return "unsupported", current_reasons
@@ -240,28 +294,95 @@ class CapabilityRegistry:
         if next_state is None:
             return current, []
         evaluated, reasons = self.evaluate_support(
-            {"state": next_state, "evidence": evidence}
+            {"state": next_state, "evidence": evidence},
+            root=root,
+            execute=True,
+            ceiling=ceiling,
         )
         return (next_state, []) if evaluated == next_state else (current, reasons)
 
-    def validate_completion_claims(self, claims: dict[str, Any]) -> list[str]:
+    def validate_completion_claims(
+        self,
+        claims: dict[str, Any],
+        *,
+        evidence_root: Path | None = None,
+        execute_evidence: bool = True,
+    ) -> list[str]:
         """Required floor cells must exist and be verified, never unsupported."""
         errors: list[str] = []
+        root = (evidence_root or REPO_ROOT).resolve()
+        evidence_cache: dict[tuple[str, str], tuple[str, list[str]]] = {}
+
+        def evaluate_verified(
+            claim: dict[str, Any], expected_claim: dict[str, str]
+        ) -> tuple[str, list[str]]:
+            evidence = claim.get("evidence")
+            cache_hash = (
+                canonical_evidence_hash(evidence)
+                if isinstance(evidence, dict)
+                else repr(evidence)
+            )
+            key = (str(claim.get("state")), f"{expected_claim!r}:{cache_hash}")
+            if key not in evidence_cache:
+                evidence_cache[key] = self.evaluate_support(
+                    claim,
+                    root=root,
+                    execute=execute_evidence,
+                    ceiling="verified",
+                    expected_claim=expected_claim,
+                )
+            return evidence_cache[key]
         floor_data = self.data["completion_floor"]
         stacks = floor_data["stacks"]
         stack_matrix = claims.get("stacks", {}) if isinstance(claims.get("stacks"), dict) else {}
         for stack_id, floor in stacks.items():
             stack_claims = stack_matrix.get(stack_id, {})
             for capability in floor["required"]:
-                state = stack_claims.get(capability)
+                claim = stack_claims.get(capability)
+                if not isinstance(claim, dict):
+                    errors.append(f"{stack_id}.{capability} must be an evidence-backed claim, got {claim!r}")
+                    continue
+                state, reasons = evaluate_verified(
+                    claim,
+                    {"kind": "stack-capability", "id": f"{stack_id}.{capability}"},
+                )
                 if state != "verified":
-                    errors.append(f"{stack_id}.{capability} must be verified, got {state!r}")
+                    errors.append(
+                        f"{stack_id}.{capability} must be verified with valid evidence, "
+                        f"got {claim.get('state')!r}: {reasons}"
+                    )
         surface_claims = claims.get("agent_surfaces", {}) if isinstance(claims.get("agent_surfaces"), dict) else {}
         for surface in floor_data["required_agent_surfaces"]:
-            state = surface_claims.get(surface)
+            claim = surface_claims.get(surface)
+            if not isinstance(claim, dict):
+                errors.append(f"agent_surfaces.{surface} must be an evidence-backed claim, got {claim!r}")
+                continue
+            minimum = str(self.data["agent_surfaces"][surface]["minimum_surface_version"])
+            actual = str(claim.get("surface_version", ""))
+            if not _surface_version_satisfies(actual, minimum):
+                errors.append(
+                    f"agent_surfaces.{surface} version {actual!r} does not satisfy pinned minimum {minimum!r}"
+                )
+            state, reasons = evaluate_verified(
+                claim,
+                {"kind": "agent-surface", "id": f"{surface}@{actual}"},
+            )
             if state != "verified":
-                errors.append(f"agent_surfaces.{surface} must be verified, got {state!r}")
+                errors.append(
+                    f"agent_surfaces.{surface} must be verified with valid evidence, "
+                    f"got {claim.get('state')!r}: {reasons}"
+                )
         return errors
+
+
+def _surface_version_satisfies(actual: str, minimum: str) -> bool:
+    numeric = re.compile(r"^\d+(?:\.\d+)*$")
+    if numeric.fullmatch(actual) and numeric.fullmatch(minimum):
+        actual_parts = tuple(int(part) for part in actual.split("."))
+        minimum_parts = tuple(int(part) for part in minimum.split("."))
+        width = max(len(actual_parts), len(minimum_parts))
+        return actual_parts + (0,) * (width - len(actual_parts)) >= minimum_parts + (0,) * (width - len(minimum_parts))
+    return actual == minimum
 
 
 def _require_mapping(data: dict[str, Any], key: str) -> dict[str, Any]:
@@ -282,8 +403,8 @@ def load_registry(path: Path | None = None) -> CapabilityRegistry:
     if data.get("schema_version") != 1 or data.get("contract_version") != 1:
         raise RegistryError("unsupported capability registry or contract version")
     for key in (
-        "schemas", "runtime", "languages", "frameworks", "tools", "project_root", "layers",
-        "bindings", "capabilities", "scan_targets", "support", "agent_surfaces",
+        "schemas", "runtime", "evidence_tools", "languages", "frameworks", "tools", "project_root", "layers",
+        "bindings", "capabilities", "scan_targets", "support", "agent_surfaces", "completion_capabilities",
         "completion_floor",
     ):
         _require_mapping(data, key)
@@ -291,6 +412,29 @@ def load_registry(path: Path | None = None) -> CapabilityRegistry:
     language_ids = set(data["languages"])
     framework_ids = set(data["frameworks"])
     layer_ids = set(data["layers"])
+    for tool, policy in data["evidence_tools"].items():
+        pattern = policy.get("version_pattern") if isinstance(policy, dict) else None
+        if not isinstance(pattern, str):
+            raise RegistryError(f"evidence_tools.{tool} requires a version_pattern")
+        try:
+            re.compile(pattern)
+        except re.error as exc:
+            raise RegistryError(f"evidence_tools.{tool} has invalid version_pattern: {exc}") from exc
+        argv_tail = policy.get("argv_tail")
+        if (
+            not isinstance(argv_tail, list)
+            or any(not isinstance(value, str) for value in argv_tail)
+        ):
+            raise RegistryError(f"evidence_tools.{tool}.argv_tail must be a list of strings")
+        executable = policy.get("executable")
+        if executable != "current-python" and (
+            not isinstance(executable, list)
+            or not executable
+            or any(not isinstance(value, str) or not value for value in executable)
+        ):
+            raise RegistryError(
+                f"evidence_tools.{tool}.executable must be current-python or a non-empty name list"
+            )
     for binding, entry in data["bindings"].items():
         if not isinstance(entry, dict):
             raise RegistryError(f"bindings.{binding} must be a mapping")
@@ -313,6 +457,18 @@ def load_registry(path: Path | None = None) -> CapabilityRegistry:
             raise RegistryError(f"agent_surfaces.{surface} requires a pinned minimum surface version")
         if not str(entry.get("discovery", "")).strip():
             raise RegistryError(f"agent_surfaces.{surface} requires a discovery contract")
+    completion_ids = set(data["completion_capabilities"])
+    for stack, floor in data["completion_floor"]["stacks"].items():
+        referenced = set(floor.get("required", [])) | set(floor.get("experimental_allowed", []))
+        unknown = sorted(referenced - completion_ids)
+        if unknown:
+            raise RegistryError(f"completion_floor.stacks.{stack} names undefined outcomes: {unknown}")
+    unknown_surfaces = sorted(
+        set(data["completion_floor"]["required_agent_surfaces"])
+        - set(data["agent_surfaces"])
+    )
+    if unknown_surfaces:
+        raise RegistryError(f"completion_floor names undefined agent surfaces: {unknown_surfaces}")
     return CapabilityRegistry(data=data, path=registry_path)
 
 

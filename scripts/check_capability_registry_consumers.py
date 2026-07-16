@@ -37,6 +37,14 @@ def _assigned_names(node: ast.AST) -> set[str]:
     return set()
 
 
+def _literal_strings(node: ast.AST) -> set[str]:
+    return {
+        child.value
+        for child in ast.walk(node)
+        if isinstance(child, ast.Constant) and isinstance(child.value, str)
+    }
+
+
 def check_consumers(root: Path = REPO_ROOT) -> list[str]:
     errors: list[str] = []
     registry = load_registry()
@@ -66,15 +74,30 @@ def check_consumers(root: Path = REPO_ROOT) -> list[str]:
                 if duplicates:
                     errors.append(f"{relative}: forbidden duplicate registry assignment {duplicates}")
             if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
-                values = {
-                    child.value
-                    for child in node.elts
-                    if isinstance(child, ast.Constant) and isinstance(child.value, str)
-                }
+                values = _literal_strings(node)
                 duplicated_ids = sorted(values & stack_ids)
                 if len(duplicated_ids) >= 2:
                     errors.append(
                         f"{relative}: hard-codes stack identifier collection {duplicated_ids}"
+                    )
+            if isinstance(node, ast.Dict):
+                values = _literal_strings(node)
+                duplicated_ids = sorted(values & stack_ids)
+                if len(duplicated_ids) >= 2:
+                    errors.append(
+                        f"{relative}: hard-codes stack identifier dictionary {duplicated_ids}"
+                    )
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "dict"
+            ):
+                duplicated_ids = sorted(
+                    {keyword.arg for keyword in node.keywords if keyword.arg} & stack_ids
+                )
+                if len(duplicated_ids) >= 2:
+                    errors.append(
+                        f"{relative}: hard-codes stack identifier dictionary {duplicated_ids}"
                     )
         if not imported:
             errors.append(f"{relative}: does not import the canonical capability registry")

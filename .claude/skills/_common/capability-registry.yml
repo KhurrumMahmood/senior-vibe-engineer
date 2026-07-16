@@ -14,9 +14,9 @@ schemas:
       scans: [scan-target-id]
       capabilities: [capability-id]
       portable_subjects: [language-id]
-      capability_evidence: subject-to-evidence-list
+      capability_evidence: subject-to-hashed-file-attestations
       support: support-state-id
-      support_evidence: evidence-map
+      support_evidence: deterministic-evidence-envelope
   stack_profile:
     version: 2
     required: [project_roots, languages, frameworks, tools]
@@ -29,8 +29,8 @@ schemas:
     version: 1
     fields:
       stack: stack-id
-      capabilities: capability-to-support-state
-      agent_surfaces: agent-surface-to-support-state
+      capabilities: capability-to-bound-evidence-claim
+      agent_surfaces: agent-surface-to-versioned-bound-evidence-claim
   finding_identity:
     version: 2
     hash_fields: [schema, provider, rule, language, path, semantic_anchor, occurrence]
@@ -40,6 +40,36 @@ runtime:
   language: python
   version: ">=3.11"
   dependency_file: requirements.txt
+
+evidence_tools:
+  python-runtime:
+    version_pattern: '^Python 3\.(?:11|12|13|14)\.'
+    argv_tail: [--version]
+    executable: current-python
+  node-runtime:
+    version_pattern: '^v(?:20|22)\.'
+    argv_tail: [--version]
+    executable: [node]
+  tree-sitter:
+    version_pattern: '^0\.26\.0$'
+    argv_tail: [-c, "import importlib.metadata; print(importlib.metadata.version('tree-sitter'))"]
+    executable: current-python
+  tree-sitter-language-pack:
+    version_pattern: '^1\.12\.5$'
+    argv_tail: [-c, "import importlib.metadata; print(importlib.metadata.version('tree-sitter-language-pack'))"]
+    executable: current-python
+  ast-grep:
+    version_pattern: '^ast-grep 0\.44\.1$'
+    argv_tail: [--version]
+    executable: [ast-grep, sg]
+  typescript-compiler-api:
+    version_pattern: '^Version 5\.9\.3$'
+    argv_tail: [--version]
+    executable: [tsc]
+  typescript-native-compiler:
+    version_pattern: '^Version 7\.0\.2$'
+    argv_tail: [--version]
+    executable: [tsc]
 
 languages:
   any:
@@ -295,10 +325,10 @@ support:
       required_evidence: []
     experimental:
       rank: 1
-      required_evidence: [fixture_results, tool_versions, platform]
+      required_evidence: [fixture_command, fixture_stdout_hash, artifact_hashes, tool_probes, platforms, evidence_hash]
     verified:
       rank: 2
-      required_evidence: [fixture_results, tool_versions, platform, deterministic_command, evidence_hash]
+      required_evidence: [fixture_command, fixture_stdout_hash, artifact_hashes, tool_probes, platforms, evidence_hash]
   transitions:
     promote:
       unsupported: experimental
@@ -330,6 +360,37 @@ agent_surfaces:
     minimum_contract_version: 1
     minimum_surface_version: 0.45.0
     discovery: gemini-project-instructions-v1
+
+completion_capabilities:
+  profile: {owner_wp: WP2}
+  profile.per-root: {owner_wp: WP2}
+  routing: {owner_wp: WP2}
+  perimeter: {owner_wp: WP2}
+  installation: {owner_wp: WP3}
+  binding.isolation: {owner_wp: WP3}
+  composition.mixed-host: {owner_wp: WP3}
+  analysis.symbols: {owner_wp: WP4}
+  analysis.imports: {owner_wp: WP4}
+  analysis.definitions: {owner_wp: WP4}
+  analysis.references: {owner_wp: WP4}
+  analysis.calls: {owner_wp: WP4}
+  analysis.writes: {owner_wp: WP4}
+  analysis.required-facts: {owner_wp: WP4}
+  analysis.parser-refactor: {owner_wp: WP4}
+  sweep.batch: {owner_wp: WP5}
+  sweep.native: {owner_wp: WP5}
+  sweep.native-aggregation: {owner_wp: WP5}
+  failure.loud: {owner_wp: WP5}
+  finding-id.non-colliding: {owner_wp: WP5}
+  detector.omnibus: {owner_wp: WP6}
+  detector.typed-state: {owner_wp: WP6}
+  detector.non-native: {owner_wp: WP6}
+  refactor.enum: {owner_wp: WP7}
+  refactor.cross-language-semantic: {owner_wp: WP7}
+  guard.native: {owner_wp: WP7}
+  catalog.compatibility: {owner_wp: WP8}
+  catalog.broader: {owner_wp: WP8}
+  detector.optional-new-family: {owner_wp: WP8}
 
 completion_floor:
   matrix_version: 1
