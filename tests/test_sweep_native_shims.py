@@ -236,6 +236,46 @@ def test_im_6_saved_clean_output_is_completed_zero_not_failure(
     assert result.observation["exit"]["classification"] == "clean"
 
 
+def test_native_observation_scope_matches_case_policy_and_full_root() -> None:
+    result = normalize_provider_output(
+        _contract("python", "ruff"),
+        root=HOSTS / "python" / "clean",
+        stdout=_bytes("ruff/empty.json"),
+        stderr=b"",
+        exit_code=0,
+        tool_version="ruff 0.6.9",
+        executable="/saved/ruff",
+        case_sensitive=False,
+    )
+
+    assert result.observation["scope"] == {
+        "paths": ["."],
+        "case_sensitive": False,
+        "roots": ["."],
+        "exclusions": [],
+    }
+
+
+def test_native_execution_uses_shared_strict_combined_output_bound(tmp_path) -> None:
+    contract = replace(
+        _contract("python", "ruff"),
+        executable_candidates=(sys.executable,),
+        argv=("-c", "import os; os.write(1, b'x' * 1048576)"),
+        output_byte_limit=31,
+    )
+
+    with pytest.raises(ProviderExecutionError) as caught:
+        execute_provider(
+            contract,
+            root=tmp_path,
+            tool_version="ruff 0.6.9",
+        )
+
+    observation = caught.value.observation
+    assert caught.value.failure["kind"] == "output_overflow"
+    assert observation["raw"]["stdout_bytes"] + observation["raw"]["stderr_bytes"] == 32
+
+
 def _failure_kind(call) -> str:
     with pytest.raises(ProviderExecutionError) as caught:
         call()

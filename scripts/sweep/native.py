@@ -5,10 +5,7 @@ import hashlib
 import os
 import re
 import shutil
-import signal
-import subprocess
 import tempfile
-import time
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -18,6 +15,7 @@ from _lib.capability_registry import CapabilityRegistry, load_registry
 
 from ._native_parsers import NativeOutputError, parse_native_output
 from .manifest import FindingInput
+from .process import CapturedProcess, capture_process
 from .schemas import SCHEMA_VERSION, validate_failure, validate_provider_observation
 
 
@@ -57,14 +55,6 @@ class ProviderExecutionError(RuntimeError):
         self.failure = failure
         self.observation = observation
         super().__init__(f"{failure['kind']}: {failure['message']}")
-
-
-@dataclass(frozen=True)
-class _Capture:
-    code: int
-    stdout: bytes
-    stderr: bytes
-    fault: str | None = None
 
 
 def _toolkit_root(registry: CapabilityRegistry) -> Path:
@@ -153,6 +143,16 @@ def _raw_document(stdout: bytes, stderr: bytes) -> dict[str, Any]:
     }
 
 
+def _scope_document(*, case_sensitive: bool) -> dict[str, Any]:
+    """Native provider commands execute from and cover the complete host root."""
+    return {
+        "paths": ["."],
+        "case_sensitive": case_sensitive,
+        "roots": ["."],
+        "exclusions": [],
+    }
+
+
 def _exit_code(code: int) -> int:
     return code if code >= 0 else 128 + abs(code)
 
@@ -168,6 +168,7 @@ def _failed(
     exit_code: int,
     stdout: bytes,
     stderr: bytes,
+    case_sensitive: bool = True,
 ) -> ProviderExecutionError:
     failure = {
         "schema_version": SCHEMA_VERSION,
@@ -181,6 +182,7 @@ def _failed(
         "provider": contract.provider,
         "language": contract.language,
         "provider_kind": contract.provider_kind,
+        "scope": _scope_document(case_sensitive=case_sensitive),
         "command": _command_document(contract, executable),
         "tool_version": tool_version or "unavailable",
         "exit": {"code": _exit_code(exit_code), "classification": "tool_failure"},
@@ -202,6 +204,7 @@ def _decode(
     exit_code: int,
     stdout: bytes,
     stderr: bytes,
+    case_sensitive: bool = True,
 ) -> str:
     try:
         return payload.decode("utf-8")
@@ -216,6 +219,7 @@ def _decode(
             exit_code=exit_code,
             stdout=stdout,
             stderr=stderr,
+            case_sensitive=case_sensitive,
         ) from exc
 
 
@@ -242,6 +246,7 @@ def normalize_provider_output(
     tool_version: str,
     executable: str,
     observation_index: int = 0,
+    case_sensitive: bool = True,
 ) -> ProviderResult:
     """Validate and normalize complete captured bytes; never accept a prefix."""
     raw_size = len(stdout) + len(stderr)
@@ -256,6 +261,7 @@ def normalize_provider_output(
             exit_code=exit_code,
             stdout=stdout[: contract.output_byte_limit],
             stderr=stderr[: contract.output_byte_limit],
+            case_sensitive=case_sensitive,
         )
     try:
         payload = _selected_payload(contract, stdout, stderr)
@@ -270,6 +276,7 @@ def normalize_provider_output(
             exit_code=exit_code,
             stdout=stdout,
             stderr=stderr,
+            case_sensitive=case_sensitive,
         ) from exc
     text = _decode(
         contract,
@@ -279,6 +286,7 @@ def normalize_provider_output(
         exit_code=exit_code,
         stdout=stdout,
         stderr=stderr,
+        case_sensitive=case_sensitive,
     )
     recognized = contract.clean_exit_codes | contract.diagnostic_exit_codes
     if exit_code not in recognized:
@@ -292,6 +300,7 @@ def normalize_provider_output(
             exit_code=exit_code,
             stdout=stdout,
             stderr=stderr,
+            case_sensitive=case_sensitive,
         )
     try:
         findings = parse_native_output(
@@ -311,6 +320,7 @@ def normalize_provider_output(
             exit_code=exit_code,
             stdout=stdout,
             stderr=stderr,
+            case_sensitive=case_sensitive,
         ) from exc
     classification = (
         "diagnostics"
@@ -322,6 +332,7 @@ def normalize_provider_output(
         "provider": contract.provider,
         "language": contract.language,
         "provider_kind": contract.provider_kind,
+        "scope": _scope_document(case_sensitive=case_sensitive),
         "command": _command_document(contract, executable),
         "tool_version": tool_version,
         "exit": {"code": exit_code, "classification": classification},
@@ -333,16 +344,6 @@ def normalize_provider_output(
     return ProviderResult(observation=observation, findings=findings)
 
 
-def _kill_process_group(process: subprocess.Popen[bytes]) -> None:
-    try:
-        os.killpg(process.pid, signal.SIGKILL)
-    except (ProcessLookupError, PermissionError, OSError):
-        try:
-            process.kill()
-        except ProcessLookupError:
-            return
-
-
 def _capture(
     argv: Sequence[str],
     *,
@@ -350,39 +351,14 @@ def _capture(
     timeout_seconds: float,
     output_byte_limit: int,
     env: Mapping[str, str] | None,
-) -> _Capture:
-    with tempfile.TemporaryDirectory(prefix="sweep-provider-") as temporary:
-        stdout_path = Path(temporary) / "stdout"
-        stderr_path = Path(temporary) / "stderr"
-        with stdout_path.open("wb") as stdout_file, stderr_path.open("wb") as stderr_file:
-            process = subprocess.Popen(
-                list(argv),
-                cwd=cwd,
-                env=dict(env) if env is not None else None,
-                stdout=stdout_file,
-                stderr=stderr_file,
-                start_new_session=True,
-            )
-            deadline = time.monotonic() + timeout_seconds
-            fault: str | None = None
-            while process.poll() is None:
-                size = stdout_path.stat().st_size + stderr_path.stat().st_size
-                if size > output_byte_limit:
-                    fault = "output_overflow"
-                    _kill_process_group(process)
-                    break
-                if time.monotonic() >= deadline:
-                    fault = "timeout"
-                    _kill_process_group(process)
-                    break
-                time.sleep(0.01)
-            process.wait()
-        return _Capture(
-            code=_exit_code(process.returncode),
-            stdout=stdout_path.read_bytes(),
-            stderr=stderr_path.read_bytes(),
-            fault=fault,
-        )
+) -> CapturedProcess:
+    return capture_process(
+        argv,
+        cwd=cwd,
+        env=env,
+        timeout_seconds=timeout_seconds,
+        output_byte_limit=output_byte_limit,
+    )
 
 
 def _probe_version(
@@ -391,6 +367,7 @@ def _probe_version(
     executable: Path,
     root: Path,
     env: Mapping[str, str] | None,
+    case_sensitive: bool,
 ) -> str:
     capture = _capture(
         (str(executable), *contract.version_argv),
@@ -410,6 +387,7 @@ def _probe_version(
             exit_code=capture.code,
             stdout=capture.stdout,
             stderr=capture.stderr,
+            case_sensitive=case_sensitive,
         )
     if capture.code != 0:
         raise _failed(
@@ -422,6 +400,7 @@ def _probe_version(
             exit_code=capture.code,
             stdout=capture.stdout,
             stderr=capture.stderr,
+            case_sensitive=case_sensitive,
         )
     combined = b"\n".join(part for part in (capture.stdout.strip(), capture.stderr.strip()) if part)
     version = _decode(
@@ -432,6 +411,7 @@ def _probe_version(
         exit_code=capture.code,
         stdout=capture.stdout,
         stderr=capture.stderr,
+        case_sensitive=case_sensitive,
     ).strip()
     if re.fullmatch(contract.version_pattern, version) is None:
         raise _failed(
@@ -444,6 +424,7 @@ def _probe_version(
             exit_code=capture.code,
             stdout=capture.stdout,
             stderr=capture.stderr,
+            case_sensitive=case_sensitive,
         )
     return version
 
@@ -478,12 +459,14 @@ def _execute_discovered(
     env: Mapping[str, str] | None = None,
     tool_version: str | None = None,
     observation_index: int = 0,
+    case_sensitive: bool = True,
 ) -> ProviderResult:
     version = tool_version or _probe_version(
         contract,
         executable=executable,
         root=root,
         env=env,
+        case_sensitive=case_sensitive,
     )
     capture = _capture(
         (str(executable), *contract.argv),
@@ -504,8 +487,9 @@ def _execute_discovered(
             executable=str(executable),
             tool_version=version,
             exit_code=capture.code,
-            stdout=capture.stdout[: contract.output_byte_limit],
-            stderr=capture.stderr[: contract.output_byte_limit],
+            stdout=capture.stdout,
+            stderr=capture.stderr,
+            case_sensitive=case_sensitive,
         )
     result = normalize_provider_output(
         contract,
@@ -516,6 +500,7 @@ def _execute_discovered(
         tool_version=version,
         executable=str(executable),
         observation_index=observation_index,
+        case_sensitive=case_sensitive,
     )
     if artifact_dir is not None:
         destination = Path(artifact_dir)
@@ -532,6 +517,7 @@ def execute_provider(
     env: Mapping[str, str] | None = None,
     tool_version: str | None = None,
     observation_index: int = 0,
+    case_sensitive: bool = True,
 ) -> ProviderResult:
     """Execute one provider with bounded capture, group timeout, and atomic raw artifacts."""
     host_root = Path(root).resolve()
@@ -547,6 +533,7 @@ def execute_provider(
             exit_code=127,
             stdout=b"",
             stderr=b"",
+            case_sensitive=case_sensitive,
         )
     if contract.provider == "clippy":
         with tempfile.TemporaryDirectory(prefix="sweep-cargo-target-") as cargo_target:
@@ -560,6 +547,7 @@ def execute_provider(
                 env=execution_env,
                 tool_version=tool_version,
                 observation_index=observation_index,
+                case_sensitive=case_sensitive,
             )
     return _execute_discovered(
         contract,
@@ -569,4 +557,5 @@ def execute_provider(
         env=env,
         tool_version=tool_version,
         observation_index=observation_index,
+        case_sensitive=case_sensitive,
     )

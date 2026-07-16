@@ -35,6 +35,7 @@ def _provider() -> dict[str, object]:
         "provider": "ruff",
         "language": "python",
         "provider_kind": "native",
+        "scope": {"paths": ["."], "case_sensitive": True, "roots": ["."], "exclusions": []},
         "command": {
             "executable": "/tool/ruff",
             "argv": ["check", "."],

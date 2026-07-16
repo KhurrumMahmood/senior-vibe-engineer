@@ -121,7 +121,12 @@ def scan_native(
     ):
         executable = Path(executables[contract.provider]).absolute()
         pinned = replace(contract, executable_candidates=(str(executable),))
-        result = execute_provider(pinned, root=host_root, observation_index=index)
+        result = execute_provider(
+            pinned,
+            root=host_root,
+            observation_index=index,
+            case_sensitive=case_sensitive,
+        )
         observations.append(result.observation)
         findings.extend(result.findings)
 
