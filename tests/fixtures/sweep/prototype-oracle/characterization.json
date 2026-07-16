@@ -1,0 +1,71 @@
+{
+  "ar_1": {
+    "candidate_families": ["cx", "omnibus", "ruff", "strdisp"],
+    "digest_top": 1,
+    "fixed": ["fixed-id"],
+    "new": ["new-id"],
+    "persisting": ["persist-id"],
+    "ratchet": {
+      "growth_fails": true,
+      "fix_and_improvement_tighten": true,
+      "explicit_accept_absorbs_growth": true
+    },
+    "source_manifest_sha256": "c89752953b3d8a8d37ae3553e8e9c11ba9a8a31effd18f382beb0b2659d7dfe9",
+    "copied_manifest_sha256": "40d24908eef52c2b52e8ffbf6a254e8d0e31bf06f4d3b760cc22390315481bf5",
+    "copy_normalization": {
+      "target": "/workspace/engineering-skills",
+      "reason": "machine-local absolute target redacted"
+    },
+    "source_digest_sha256": "0332e783c419099db5b721cb74f139ac90d2f7ee2161bd62609224b31ae189ea"
+  },
+  "ar_2": {
+    "reverse_not_preserve": [
+      "sha1_identity",
+      "hard_coded_provider_paths",
+      "silent_json_failure",
+      "failed_scan_exit_zero",
+      "raw_count_consumption",
+      "executor_adjacent_verification"
+    ]
+  },
+  "ar_5": {
+    "complexity_bad_findings": 6,
+    "complexity_good_findings": 0,
+    "omnibus_fixture_cases": 4,
+    "invalid_python_currently_becomes_clean_zero": true,
+    "required_reversal": "typed_provider_failure"
+  },
+  "ar_6": {
+    "legacy_projection_tests_passed": 21,
+    "raw_unjudged_currently_available": true,
+    "required_gate": "fresh_manifest_bound_judgment"
+  },
+  "ar_8": {
+    "host_kinds": ["go", "mixed", "python", "rust", "typescript"],
+    "clean_zero_requires_all_providers_complete": true,
+    "failed_scan_has_empty_findings": true
+  },
+  "ar_9": {
+    "provider": "ruff",
+    "native_rule": "F401",
+    "line": 1,
+    "start_column": 21,
+    "end_column": 25,
+    "stdout_sha256": "750dea77a33dd12b94f5fec8814f2eacb91efa038cd33781d730d41ff7f650a4",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "ar_10": {
+    "detection_is_agent_free": true,
+    "denied_calls": ["dns", "http", "model", "socket"]
+  },
+  "ar_11": {
+    "executor_claim": "PASS (executor says so)",
+    "has_harness_manifest": false,
+    "has_harness_diff": false,
+    "required_result": "reject"
+  },
+  "ar_12": {
+    "wp5_may_change": ["0036", "0040"],
+    "wp5_must_not_own": ["0003", "AC-8.9"]
+  }
+}

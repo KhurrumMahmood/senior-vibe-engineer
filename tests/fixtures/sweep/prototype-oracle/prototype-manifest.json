@@ -1,0 +1,67 @@
+{
+ "target": "/workspace/engineering-skills",
+ "scope": [
+  ".claude/skills/find-complexity-hotspots/fixtures"
+ ],
+ "counts": {
+  "cx": 6
+ },
+ "total": 6,
+ "errors": {},
+ "findings": [
+  {
+   "id": "011a6cd88c34",
+   "rule": "cx:django-query-in-loop",
+   "path": ".claude/skills/find-complexity-hotspots/fixtures/bad/hotspots.py",
+   "symbol": "query_inside_loop",
+   "severity": 3,
+   "summary": "`query_inside_loop` calls `Site.objects.get` inside a loop; this may be N+1 ORM work or repeated query shaping.",
+   "line": 40
+  },
+  {
+   "id": "dac219221c4c",
+   "rule": "cx:nested-loop",
+   "path": ".claude/skills/find-complexity-hotspots/fixtures/bad/hotspots.py",
+   "symbol": "nested_lookup",
+   "severity": 3,
+   "summary": "`nested_lookup` contains a loop nested under another loop; large inputs may turn this into repeated pairwise scans.",
+   "line": 9
+  },
+  {
+   "id": "f564686bc6fe",
+   "rule": "cx:high-branch-function",
+   "path": ".claude/skills/find-complexity-hotspots/fixtures/bad/hotspots.py",
+   "symbol": "high_branch",
+   "severity": 2,
+   "summary": "`high_branch` has approximate branch score 18 over 39 LOC.",
+   "line": 45
+  },
+  {
+   "id": "557518c5e120",
+   "rule": "cx:membership-scan-in-loop",
+   "path": ".claude/skills/find-complexity-hotspots/fixtures/bad/hotspots.py",
+   "symbol": "membership_scan",
+   "severity": 2,
+   "summary": "`membership_scan` performs membership testing inside a loop; list/QuerySet/string membership can become repeated linear work.",
+   "line": 18
+  },
+  {
+   "id": "ca5f84f3f00b",
+   "rule": "cx:sort-in-loop",
+   "path": ".claude/skills/find-complexity-hotspots/fixtures/bad/hotspots.py",
+   "symbol": "sort_inside_loop",
+   "severity": 2,
+   "summary": "`sort_inside_loop` sorts inside a loop; repeated O(n log n) work can dominate larger collections.",
+   "line": 26
+  },
+  {
+   "id": "529e4d595d50",
+   "rule": "cx:repeated-scan-in-loop",
+   "path": ".claude/skills/find-complexity-hotspots/fixtures/bad/hotspots.py",
+   "symbol": "repeated_scan",
+   "severity": 1,
+   "summary": "`repeated_scan` calls `any` inside a loop; this may repeatedly scan another collection.",
+   "line": 33
+  }
+ ]
+}

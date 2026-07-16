@@ -1,0 +1,262 @@
+{
+  "bad": [
+    {
+      "name": "future manifest version",
+      "schema": "manifest",
+      "document": {"schema_version": 2}
+    },
+    {
+      "name": "activation manifest is not a sweep manifest",
+      "schema": "manifest",
+      "document": {"version": 1, "skills": {}}
+    },
+    {
+      "name": "completed provider cannot carry failure",
+      "schema": "provider_observation",
+      "document": {
+        "schema_version": 1,
+        "provider": "ruff",
+        "language": "python",
+        "provider_kind": "native",
+        "command": {
+          "executable": ".venv/bin/ruff",
+          "argv": ["check"],
+          "timeout_seconds": 30,
+          "output_format": "json",
+          "output_byte_limit": 1048576
+        },
+        "tool_version": "0.6.9",
+        "exit": {"code": 0, "classification": "clean"},
+        "raw": {
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stderr_bytes": 0
+        },
+        "status": "completed",
+        "failure": {
+          "schema_version": 1,
+          "kind": "parse_failure",
+          "provider": "ruff",
+          "message": "malformed output",
+          "details": {}
+        }
+      }
+    },
+    {
+      "name": "diff sets overlap",
+      "schema": "diff",
+      "document": {
+        "schema_version": 1,
+        "before_manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "after_manifest_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "fixed": ["f2_398c5d50d0cf8f1a7a86cfb8"],
+        "new": ["f2_398c5d50d0cf8f1a7a86cfb8"],
+        "persisting": [],
+        "metric_changes": [],
+        "accepts": []
+      }
+    },
+    {
+      "name": "judgment reason is mandatory",
+      "schema": "judgment",
+      "document": {
+        "schema_version": 1,
+        "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "judge": {"identity": "reviewer", "version": "1"},
+        "outcomes": [{"finding_id": "f2_398c5d50d0cf8f1a7a86cfb8", "outcome": "actionable", "reason": "", "evidence": "review:1"}],
+        "judgment_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "executor prose is not harness evidence",
+      "schema": "packet",
+      "document": {"verification": "PASS (executor says so)", "status": "done"}
+    },
+    {
+      "name": "unknown typed failure",
+      "schema": "failure",
+      "document": {
+        "schema_version": 1,
+        "kind": "something_went_wrong",
+        "provider": "ruff",
+        "message": "unknown",
+        "details": {}
+      }
+    }
+  ],
+  "unknown_field_attacks": [
+    {"schema": "failure", "path": [], "field": "surprise"},
+    {"schema": "provider_observation", "path": ["command"], "field": "surprise"},
+    {"schema": "manifest", "path": ["scope"], "field": "surprise"},
+    {"schema": "diff", "path": ["metric_changes", 0], "field": "surprise"},
+    {"schema": "judgment", "path": ["judge"], "field": "surprise"},
+    {"schema": "packet", "path": ["expected_delta"], "field": "surprise"}
+  ],
+  "good": {
+    "failure": {
+      "schema_version": 1,
+      "kind": "parse_failure",
+      "provider": "ruff",
+      "message": "malformed JSON output",
+      "details": {"artifact": "stdout"}
+    },
+    "provider_observation": {
+      "schema_version": 1,
+      "provider": "ruff",
+      "language": "python",
+      "provider_kind": "native",
+      "command": {
+        "executable": ".venv/bin/ruff",
+        "argv": ["check", "--output-format", "json", "src"],
+        "timeout_seconds": 30,
+        "output_format": "json",
+        "output_byte_limit": 1048576
+      },
+      "tool_version": "0.6.9",
+      "exit": {"code": 1, "classification": "diagnostics"},
+      "raw": {
+        "stdout_sha256": "750dea77a33dd12b94f5fec8814f2eacb91efa038cd33781d730d41ff7f650a4",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 421,
+        "stderr_bytes": 0
+      },
+      "status": "completed",
+      "failure": null
+    },
+    "failed_provider_observation": {
+      "schema_version": 1,
+      "provider": "ruff",
+      "language": "python",
+      "provider_kind": "native",
+      "command": {
+        "executable": ".venv/bin/ruff",
+        "argv": ["check", "--output-format", "json", "src"],
+        "timeout_seconds": 30,
+        "output_format": "json",
+        "output_byte_limit": 1048576
+      },
+      "tool_version": "0.6.9",
+      "exit": {"code": 2, "classification": "tool_failure"},
+      "raw": {
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 0,
+        "stderr_bytes": 0
+      },
+      "status": "failed",
+      "failure": {
+        "schema_version": 1,
+        "kind": "parse_failure",
+        "provider": "ruff",
+        "message": "malformed JSON output",
+        "details": {"artifact": "stdout"}
+      }
+    },
+    "manifest": {
+      "schema_version": 1,
+      "finding_id_schema": 2,
+      "capability_registry_version": 1,
+      "scope": {
+        "paths": ["src"],
+        "case_sensitive": true,
+        "roots": ["src"],
+        "exclusions": ["src/generated"]
+      },
+      "source": {
+        "revision": "29352227a54428c3c574be9514ccbcc9ade67895",
+        "dirty": false,
+        "dirty_state_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "status": "complete",
+      "providers": [
+        {
+          "schema_version": 1,
+          "provider": "ruff",
+          "language": "python",
+          "provider_kind": "native",
+          "command": {
+            "executable": ".venv/bin/ruff",
+            "argv": ["check", "--output-format", "json", "src"],
+            "timeout_seconds": 30,
+            "output_format": "json",
+            "output_byte_limit": 1048576
+          },
+          "tool_version": "0.6.9",
+          "exit": {"code": 1, "classification": "diagnostics"},
+          "raw": {
+            "stdout_sha256": "750dea77a33dd12b94f5fec8814f2eacb91efa038cd33781d730d41ff7f650a4",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_bytes": 421,
+            "stderr_bytes": 0
+          },
+          "status": "completed",
+          "failure": null
+        }
+      ],
+      "findings": [
+        {
+          "finding_id_schema": 2,
+          "id": "f2_398c5d50d0cf8f1a7a86cfb8",
+          "identity": {
+            "schema": 2,
+            "provider": "ruff",
+            "rule": "F401:v1",
+            "language": "python",
+            "path": "src/example.py",
+            "semantic_anchor": "native:F401:unused-import",
+            "occurrence": 0
+          },
+          "legacy_ids": [],
+          "native_rule_id": "F401",
+          "rule_semantic_key": "F401:v1",
+          "native_severity": "error",
+          "severity": 2,
+          "location": {"path": "src/example.py", "line": 1, "column": 21, "end_line": 1, "end_column": 25},
+          "message": "`pathlib.Path` imported but unused",
+          "summary": "Unused import",
+          "metrics": {"count": 1},
+          "provenance": {"provider": "ruff", "observation_index": 0}
+        }
+      ],
+      "counts": {"ruff": 1},
+      "total": 1,
+      "hashes": {
+        "semantic": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "artifacts": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    "diff": {
+      "schema_version": 1,
+      "before_manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "after_manifest_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "fixed": ["f2_111111111111111111111111"],
+      "new": ["f2_222222222222222222222222"],
+      "persisting": ["f2_398c5d50d0cf8f1a7a86cfb8"],
+      "metric_changes": [{"finding_id": "f2_398c5d50d0cf8f1a7a86cfb8", "metric": "count", "before": 2, "after": 1}],
+      "accepts": []
+    },
+    "judgment": {
+      "schema_version": 1,
+      "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "judge": {"identity": "reviewer", "version": "1"},
+      "outcomes": [{"finding_id": "f2_398c5d50d0cf8f1a7a86cfb8", "outcome": "actionable", "reason": "Confirmed unused import", "evidence": "review:1"}],
+      "judgment_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "packet": {
+      "schema_version": 1,
+      "finding_ids": ["f2_398c5d50d0cf8f1a7a86cfb8"],
+      "scope": ["src/example.py"],
+      "recipe": "Remove the unused pathlib.Path import without changing runtime behavior.",
+      "verification": ".venv/bin/python -m pytest -q tests/test_example.py",
+      "expected_delta": {
+        "fixed": ["f2_398c5d50d0cf8f1a7a86cfb8"],
+        "allowed_new": [],
+        "metrics": []
+      },
+      "token_budget": 8000,
+      "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "judgment_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  }
+}
