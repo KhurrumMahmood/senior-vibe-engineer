@@ -1,4 +1,5 @@
 """Contract tests for the versioned portable analysis fact interface."""
+
 from __future__ import annotations
 
 import hashlib
@@ -90,7 +91,9 @@ def test_interface_uses_canonical_versioned_capabilities():
 def test_typescript_real_parser_handles_required_declarations_and_locations():
     source = (FIXTURES / "typescript-small.tsx").read_text(encoding="utf-8")
     adapter = TypeScriptAdapter()
-    result = adapter.analyze(source, path="src/typescript-small.tsx", capabilities=FACT_CAPABILITIES)
+    result = adapter.analyze(
+        source, path="src/typescript-small.tsx", capabilities=FACT_CAPABILITIES
+    )
 
     definitions = set(_names(result, CAP_DEFINITIONS))
     assert {"exported", "load", "Widget", "nested", "local", "render"} <= definitions
@@ -194,20 +197,25 @@ def test_parser_faults_are_typed_and_never_clean(monkeypatch, mode: str, code: s
     adapter = TypeScriptAdapter()
 
     if mode == "missing":
-        monkeypatch.setattr(adapter, "_load_parser", lambda: (_ for _ in ()).throw(ImportError("gone")))
+        monkeypatch.setattr(
+            adapter, "_load_parser", lambda: (_ for _ in ()).throw(ImportError("gone"))
+        )
     elif mode == "broken":
+
         class BrokenParser:
             def parse(self, source):
                 raise RuntimeError("boom")
 
         monkeypatch.setattr(adapter, "_load_parser", lambda: BrokenParser())
     elif mode == "timeout":
+
         class TimedOutParser:
             def parse(self, source):
                 raise TimeoutError("deadline exceeded")
 
         monkeypatch.setattr(adapter, "_load_parser", lambda: TimedOutParser())
     else:
+
         class CorruptParser:
             def parse(self, source):
                 return object()
@@ -227,11 +235,13 @@ def test_malformed_root_variants_are_typed(monkeypatch, mode: str):
     adapter = TypeScriptAdapter()
 
     if mode == "missing_named_children":
+
         class Root:
             children = ()
             has_error = False
 
     else:
+
         class Root:
             has_error = False
 
@@ -308,7 +318,10 @@ def test_golden_fact_files_match_deterministic_adapter_output():
 
 def test_productized_provider_reports_pinned_d3_and_budget_outcomes(product_benchmark_report):
     report = product_benchmark_report
-    assert report["corpus_sha256"] == "da03a77d5818deb2c2acd531e3875ad4053ff278d8cc11f17784d57f38d2cf4f"
+    assert (
+        report["corpus_sha256"]
+        == "da03a77d5818deb2c2acd531e3875ad4053ff278d8cc11f17784d57f38d2cf4f"
+    )
     computed = benchmark._budget_violations(
         report["metrics"],
         report["fixtures"],
@@ -316,13 +329,11 @@ def test_productized_provider_reports_pinned_d3_and_budget_outcomes(product_benc
     )
     assert report["violations"] == computed
     assert report["passed"] is (not computed)
-    assert all(
-        score["precision"] == score["recall"] == 1.0
-        for score in report["metrics"].values()
-    )
+    assert all(score["precision"] == score["recall"] == 1.0 for score in report["metrics"].values())
     assert report["variance_method"] == (
         "fresh subprocess cold (startup and provider load included); one untimed "
-        "same-process provider warm-up; six measured same-process warm runs; population CV"
+        "same-process provider warm-up; six measured same-process warm runs without "
+        "allocation instrumentation; one separate traced-memory run; population CV"
     )
 
 
@@ -369,9 +380,7 @@ def test_external_large_fixture_has_pinned_provenance_and_real_shape():
     assert provenance["selection_rationale"]
 
 
-def test_explicit_evidence_revision_rejects_dirty_consumed_corpus(
-    monkeypatch, tmp_path
-):
+def test_explicit_evidence_revision_rejects_dirty_consumed_corpus(monkeypatch, tmp_path):
     repository = tmp_path / "repository"
     corpus = repository / "tests" / "fixtures" / "analysis_portfolio_spike"
     corpus.mkdir(parents=True)
@@ -553,9 +562,7 @@ def test_platform_comparison_binds_full_external_provenance_for_both_reports(
     )
     for report in (base, linux):
         report["external_corpus"][field] = forged
-        report["stable_result_sha256"] = benchmark._hash_json(
-            benchmark._stable_projection(report)
-        )
+        report["stable_result_sha256"] = benchmark._hash_json(benchmark._stable_projection(report))
 
     with pytest.raises(ValueError, match="external corpus provenance"):
         benchmark.compare_platform_reports([base, linux])
@@ -592,9 +599,7 @@ def test_platform_comparison_binds_corpus_hash_for_both_reports(
     )
     for report in (base, linux):
         report["corpus_sha256"] = "0" * 64
-        report["stable_result_sha256"] = benchmark._hash_json(
-            benchmark._stable_projection(report)
-        )
+        report["stable_result_sha256"] = benchmark._hash_json(benchmark._stable_projection(report))
 
     with pytest.raises(ValueError, match="corpus hash"):
         benchmark.compare_platform_reports([base, linux])

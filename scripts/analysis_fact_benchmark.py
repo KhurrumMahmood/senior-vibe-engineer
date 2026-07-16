@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Benchmark the productized WP4 fact provider against the pinned D3 oracle."""
+
 from __future__ import annotations
 
 import argparse
@@ -173,9 +174,14 @@ def _validate_external_corpus(
         raise ValueError("external corpus source hash does not match provenance")
     if license_hash != provenance.get("license_sha256"):
         raise ValueError("external corpus license hash does not match provenance")
-    if len(source_bytes) != provenance.get("input_bytes") or source_lines != provenance.get("input_lines"):
+    if len(source_bytes) != provenance.get("input_bytes") or source_lines != provenance.get(
+        "input_lines"
+    ):
         raise ValueError("external corpus size does not match provenance")
-    if provenance.get("license") != "Apache-2.0" or not str(provenance.get("selection_rationale", "")).strip():
+    if (
+        provenance.get("license") != "Apache-2.0"
+        or not str(provenance.get("selection_rationale", "")).strip()
+    ):
         raise ValueError("external corpus requires a supported license and selection rationale")
     return provenance
 
@@ -190,17 +196,24 @@ def _load_external_corpus() -> dict[str, Any]:
 
 def _load_platform_contract() -> dict[str, Any]:
     contract = _load_json_mapping(PLATFORM_CONTRACT, "platform contract")
-    if set(contract) != {
-        "schema_version",
-        "required_platforms",
-        "required_tool_versions",
-        "excluded_platforms",
-    } or contract.get("schema_version") != 1:
+    if (
+        set(contract)
+        != {
+            "schema_version",
+            "required_platforms",
+            "required_tool_versions",
+            "excluded_platforms",
+        }
+        or contract.get("schema_version") != 1
+    ):
         raise ValueError("platform contract has an invalid schema")
     required = contract.get("required_platforms")
     if not isinstance(required, list) or not required:
         raise ValueError("platform contract requires executed platforms")
-    if any(not isinstance(row, dict) or set(row) != {"platform_key", "system", "machine"} for row in required):
+    if any(
+        not isinstance(row, dict) or set(row) != {"platform_key", "system", "machine"}
+        for row in required
+    ):
         raise ValueError("platform contract required-platform rows are invalid")
     keys = [row["platform_key"] for row in required]
     if len(keys) != len(required) or keys != sorted(set(keys)):
@@ -208,11 +221,16 @@ def _load_platform_contract() -> dict[str, Any]:
     if any(row["platform_key"] != f"{row['system']}-{row['machine']}" for row in required):
         raise ValueError("platform contract keys must derive from system and machine")
     tools = contract.get("required_tool_versions")
-    if not isinstance(tools, dict) or set(tools) != {
-        "python_series",
-        "tree_sitter",
-        "tree_sitter_language_pack",
-    } or any(not isinstance(value, str) or not value for value in tools.values()):
+    if (
+        not isinstance(tools, dict)
+        or set(tools)
+        != {
+            "python_series",
+            "tree_sitter",
+            "tree_sitter_language_pack",
+        }
+        or any(not isinstance(value, str) or not value for value in tools.values())
+    ):
         raise ValueError("platform contract tool versions are invalid")
     excluded = contract.get("excluded_platforms")
     if not isinstance(excluded, list) or any(
@@ -404,7 +422,9 @@ def _rss_bytes() -> int:
 def _analyze(paths: list[Path]) -> tuple[list[AnalysisResult], str]:
     adapter = TypeScriptAdapter()
     results = [
-        adapter.analyze(path.read_text(encoding="utf-8"), path=path.name, capabilities=FACT_CAPABILITIES)
+        adapter.analyze(
+            path.read_text(encoding="utf-8"), path=path.name, capabilities=FACT_CAPABILITIES
+        )
         for path in paths
     ]
     encoded = json.dumps(
@@ -437,13 +457,16 @@ def _benchmark(paths: list[Path]) -> dict[str, Any]:
     durations: list[float] = []
     digests: list[str] = []
     cold = _cold_probe(paths)
-    tracemalloc.start()
     _, warmup_digest = _analyze(paths)
     for _ in range(RUNS - 1):
         started = time.perf_counter()
         _, digest = _analyze(paths)
         durations.append(time.perf_counter() - started)
         digests.append(digest)
+    # Measure allocation separately so tracemalloc's instrumentation overhead
+    # is not mislabeled as provider runtime (especially under emulation).
+    tracemalloc.start()
+    _, memory_digest = _analyze(paths)
     _, peak_python = tracemalloc.get_traced_memory()
     tracemalloc.stop()
     warm_mean = statistics.mean(durations)
@@ -456,7 +479,7 @@ def _benchmark(paths: list[Path]) -> dict[str, Any]:
         "warm_cv": round(warm_stdev / warm_mean if warm_mean else 0.0, 6),
         "peak_python_bytes": peak_python,
         "peak_rss_bytes": max(_rss_bytes(), int(cold["peak_rss_bytes"])),
-        "deterministic": len({cold["digest"], warmup_digest, *digests}) == 1,
+        "deterministic": len({cold["digest"], warmup_digest, memory_digest, *digests}) == 1,
         "facts_sha256": cold["digest"],
         "input_sha256": _hash_paths(paths),
         "input_bytes": sum(path.stat().st_size for path in paths),
@@ -577,9 +600,7 @@ def compare_platform_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
     """Validate required platform executions and deterministic stable outputs."""
     contract = _load_platform_contract()
     contract_hash = _hash_json(contract)
-    required_rows = {
-        row["platform_key"]: row for row in contract["required_platforms"]
-    }
+    required_rows = {row["platform_key"]: row for row in contract["required_platforms"]}
     executions: dict[str, dict[str, Any]] = {}
     revisions: set[str] = set()
     source_hashes: set[str] = set()
@@ -614,7 +635,9 @@ def compare_platform_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
         if not _is_hex_digest(revision, 40):
             raise ValueError(f"{key}: exact source revision is missing")
         source_hash = report.get("source_tree_sha256")
-        if not _is_hex_digest(source_hash, 64) or source_hash != _source_tree_hash_at_revision(revision):
+        if not _is_hex_digest(source_hash, 64) or source_hash != _source_tree_hash_at_revision(
+            revision
+        ):
             raise ValueError(f"{key}: source tree hash is missing or stale")
         if revision not in revision_inputs:
             revision_inputs[revision] = (
@@ -627,9 +650,13 @@ def compare_platform_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
         if report.get("corpus_sha256") != expected_corpus_hash:
             raise ValueError(f"{key}: benchmark corpus hash is not bound to the source revision")
         if report.get("external_corpus") != expected_external:
-            raise ValueError(f"{key}: external corpus provenance is not bound to the source revision")
+            raise ValueError(
+                f"{key}: external corpus provenance is not bound to the source revision"
+            )
         stable_hash = report.get("stable_result_sha256")
-        if not _is_hex_digest(stable_hash, 64) or stable_hash != _hash_json(_stable_projection(report)):
+        if not _is_hex_digest(stable_hash, 64) or stable_hash != _hash_json(
+            _stable_projection(report)
+        ):
             raise ValueError(f"{key}: stable result hash is invalid")
         revisions.add(revision)
         source_hashes.add(source_hash)
@@ -670,7 +697,9 @@ def compare_platform_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
 def build_report(*, source_revision: str | None = None) -> dict[str, Any]:
     revision = _source_revision(source_revision)
     working_source_hash = _source_tree_hash()
-    if source_revision is not None and working_source_hash != _source_tree_hash_at_revision(revision):
+    if source_revision is not None and working_source_hash != _source_tree_hash_at_revision(
+        revision
+    ):
         raise ValueError("benchmark source tree differs from the declared Git revision")
     corpus_paths = sorted((CORPUS / "src").glob("*.ts"))
     corpus_results, _ = _analyze(corpus_paths)
@@ -717,7 +746,7 @@ def build_report(*, source_revision: str | None = None) -> dict[str, Any]:
             "small": "18-line TSX component with imports, exports, class/method, nested scope, JSX, call, reference, and write facts",
             "external_large": external["selection_rationale"],
         },
-        "variance_method": "fresh subprocess cold (startup and provider load included); one untimed same-process provider warm-up; six measured same-process warm runs; population CV",
+        "variance_method": "fresh subprocess cold (startup and provider load included); one untimed same-process provider warm-up; six measured same-process warm runs without allocation instrumentation; one separate traced-memory run; population CV",
         "violations": violations,
         "passed": not violations,
     }
