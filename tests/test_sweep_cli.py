@@ -18,6 +18,7 @@ from sweep.commands import (
 )
 from sweep.manifest import FindingInput, build_manifest, write_manifest
 from sweep.serialization import canonical_json_bytes
+from sweep.schemas import SchemaValidationError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -119,6 +120,11 @@ def test_im_7_digest_is_deterministic_and_hard_bounded() -> None:
     tiny = render_digest(manifest, byte_limit=512)
     assert len(tiny) <= 512
     assert b"more findings omitted" in tiny
+
+    tampered = copy.deepcopy(manifest)
+    tampered["findings"][0]["summary"] = "changed after hashing"
+    with pytest.raises(SchemaValidationError, match="must bind"):
+        render_digest(tampered)
 
 
 def test_im_7_digest_cli_matches_library_bytes(tmp_path: Path) -> None:

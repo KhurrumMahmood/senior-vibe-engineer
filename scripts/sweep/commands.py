@@ -12,7 +12,7 @@ from typing import Any
 
 from _lib.capability_registry import load_registry
 
-from .manifest import FindingInput, build_diff, build_manifest
+from .manifest import FindingInput, _validated_manifest, build_diff, build_manifest
 from .native import execute_provider, provider_contracts_from_registry
 from .schemas import validate_diff, validate_manifest
 
@@ -150,7 +150,7 @@ def render_digest(
     byte_limit: int = DIGEST_BYTE_LIMIT,
 ) -> bytes:
     """Render a bounded ID-addressable view; never copy the full finding set."""
-    document = validate_manifest(manifest)
+    document = _validated_manifest(manifest)
     if not 1 <= finding_limit <= DIGEST_FINDING_LIMIT:
         raise ValueError(f"finding_limit must be between 1 and {DIGEST_FINDING_LIMIT}")
     if not 1 <= byte_limit <= DIGEST_BYTE_LIMIT:
