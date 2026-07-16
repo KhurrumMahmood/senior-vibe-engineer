@@ -107,6 +107,7 @@ class CapabilityRegistry:
         evidence = metadata.get("capability_evidence")
         support_evidence = metadata.get("support_evidence")
         scans = metadata.get("scans", [])
+        scan_implementations = metadata.get("scan_implementations", {})
         capabilities = metadata.get("capabilities", [])
 
         if language not in self.identifiers("languages"):
@@ -134,7 +135,7 @@ class CapabilityRegistry:
         if support not in states:
             errors.append(f"support is not registered: {support!r}")
         evidence_root = skill_dir or REPO_ROOT
-        capability_test_paths: set[Path] = set()
+        capability_test_paths_by_subject: dict[str, set[Path]] = {}
         if not isinstance(evidence, dict) or not evidence:
             errors.append("capability_evidence must be a non-empty subject-to-evidence mapping")
             evidence = {}
@@ -151,8 +152,8 @@ class CapabilityRegistry:
                         required_kinds={"test"},
                     )
                 )
-                capability_test_paths.update(
-                    attested_paths(entries, root=evidence_root, kind="test")
+                capability_test_paths_by_subject[subject] = attested_paths(
+                    entries, root=evidence_root, kind="test"
                 )
 
         if support in states:
@@ -165,7 +166,7 @@ class CapabilityRegistry:
                     if skill_dir is not None
                     else None
                 ),
-                required_test_paths=capability_test_paths,
+                required_test_paths_by_subject=capability_test_paths_by_subject,
             )
             if evaluated != support:
                 errors.append(
@@ -182,6 +183,19 @@ class CapabilityRegistry:
         if not isinstance(scans, list) or any(not isinstance(v, str) for v in scans):
             errors.append("scans must be a list of strings")
             scans = []
+        if not isinstance(scan_implementations, dict):
+            errors.append("scan_implementations must be a target-to-attestation mapping")
+            scan_implementations = {}
+        unknown_implementations = sorted(set(scan_implementations) - set(scans))
+        if unknown_implementations:
+            errors.append(
+                f"scan_implementations names undeclared scan targets: {unknown_implementations}"
+            )
+        for target in sorted(set(scans) - set(scan_implementations)):
+            errors.append(
+                f"scans target {target!r} requires an explicit scan_implementations "
+                "attestation for its executable skill script"
+            )
         for target in scans:
             entry = self.data["scan_targets"].get(target)
             if not entry:
@@ -193,6 +207,62 @@ class CapabilityRegistry:
                 errors.append(f"scans target {target!r} has no evidence contract")
             if target not in evidence:
                 errors.append(f"scans target {target!r} has no matching capability_evidence entry")
+            implementation = scan_implementations.get(target)
+            if isinstance(implementation, dict):
+                mechanism = entry.get("adapter") or entry.get("shim")
+                if implementation.get("mechanism") != mechanism:
+                    errors.append(
+                        f"scan_implementations.{target}.mechanism must be {mechanism!r}"
+                    )
+                attestation = {
+                    "kind": "script",
+                    "path": implementation.get("path"),
+                    "sha256": implementation.get("sha256"),
+                }
+                errors.extend(
+                    validate_file_attestations(
+                        [attestation],
+                        root=evidence_root,
+                        field=f"scan_implementations.{target}",
+                        required_kinds={"script"},
+                    )
+                )
+                script_path = implementation.get("path")
+                if not isinstance(script_path, str) or not Path(script_path).parts or Path(script_path).parts[0] != "scripts":
+                    errors.append(
+                        f"scan_implementations.{target}.path must be under the skill scripts directory"
+                    )
+                elif Path(script_path).suffix not in {
+                    ".py",
+                    ".sh",
+                    ".js",
+                    ".mjs",
+                    ".ts",
+                }:
+                    errors.append(
+                        f"scan_implementations.{target}.path must use an executable script suffix"
+                    )
+                implementation_paths = attested_paths(
+                    [attestation], root=evidence_root, kind="script"
+                )
+                target_test_paths = capability_test_paths_by_subject.get(target, set())
+                if implementation_paths != target_test_paths:
+                    errors.append(
+                        f"scan_implementations.{target} must itself be the distinct "
+                        "capability test executed for that scan target"
+                    )
+                support_artifacts = (
+                    support_evidence.get("artifacts")
+                    if isinstance(support_evidence, dict)
+                    else None
+                )
+                if (
+                    not isinstance(support_artifacts, list)
+                    or attestation not in support_artifacts
+                ):
+                    errors.append(
+                        f"scan_implementations.{target} must be identically attested as a support artifact"
+                    )
             if support in states:
                 requested_rank = states[support]["rank"]
                 ceiling_rank = states[entry["support"]]["rank"]
@@ -201,17 +271,6 @@ class CapabilityRegistry:
                         f"scans target {target!r} support ceiling is {entry['support']!r}, "
                         f"not requested {support!r}"
                     )
-
-        if scans and skill_dir is not None:
-            scripts = skill_dir / "scripts"
-            executable = scripts.is_dir() and any(
-                path.is_file()
-                and path.stat().st_size > 0
-                and path.suffix in {".py", ".sh", ".js", ".mjs", ".ts"}
-                for path in scripts.rglob("*")
-            )
-            if not executable:
-                errors.append("scans claims require an executable skill script")
 
         if language == "any":
             declared = metadata.get("portable_subjects")
@@ -226,6 +285,14 @@ class CapabilityRegistry:
                     errors.append(
                         "language 'any' requires capability_evidence entries for every portable subject: "
                         f"{missing_evidence}"
+                    )
+                declared_paths = [
+                    next(iter(capability_test_paths_by_subject.get(subject, set())), None)
+                    for subject in declared
+                ]
+                if None not in declared_paths and len(declared_paths) != len(set(declared_paths)):
+                    errors.append(
+                        "language 'any' requires a distinct executable integration test per portable subject"
                     )
         if not isinstance(available_bindings, list) or any(
             not isinstance(value, str) for value in available_bindings
@@ -245,7 +312,7 @@ class CapabilityRegistry:
         execute: bool = True,
         ceiling: str | None = None,
         expected_claim: dict[str, str] | None = None,
-        required_test_paths: set[Path] | None = None,
+        required_test_paths_by_subject: dict[str, set[Path]] | None = None,
     ) -> tuple[str, list[str]]:
         """Mechanically demote a support claim when required evidence is stale/missing."""
         requested = claim.get("state", "unsupported")
@@ -264,7 +331,9 @@ class CapabilityRegistry:
             execute=execute,
             tool_policies=self.data["evidence_tools"],
             expected_claim=expected_claim,
-            required_test_paths=required_test_paths,
+            required_test_paths_by_subject=required_test_paths_by_subject,
+            verification_issuer=self.data["support"]["verification_issuer"],
+            require_verified_issuer=requested == "verified",
         )
         if reasons:
             return "unsupported", reasons
@@ -312,6 +381,36 @@ class CapabilityRegistry:
         errors: list[str] = []
         root = (evidence_root or REPO_ROOT).resolve()
         evidence_cache: dict[tuple[str, str], tuple[str, list[str]]] = {}
+        evidence_digest_owners: dict[str, str] = {}
+
+        def register_unique_test_evidence(
+            claim: dict[str, Any], claim_id: str
+        ) -> None:
+            evidence = claim.get("evidence")
+            artifacts = evidence.get("artifacts") if isinstance(evidence, dict) else None
+            digests = (
+                {
+                    item.get("sha256")
+                    for item in artifacts
+                    if isinstance(item, dict) and item.get("kind") == "test"
+                }
+                if isinstance(artifacts, list)
+                else set()
+            )
+            digests.discard(None)
+            if len(digests) != 1:
+                errors.append(
+                    f"{claim_id} must carry exactly one capability-specific test digest"
+                )
+                return
+            digest = next(iter(digests))
+            owner = evidence_digest_owners.get(str(digest))
+            if owner is not None and owner != claim_id:
+                errors.append(
+                    f"{claim_id} reuses generic test evidence from {owner}: {digest}"
+                )
+            else:
+                evidence_digest_owners[str(digest)] = claim_id
 
         def evaluate_verified(
             claim: dict[str, Any], expected_claim: dict[str, str]
@@ -342,9 +441,11 @@ class CapabilityRegistry:
                 if not isinstance(claim, dict):
                     errors.append(f"{stack_id}.{capability} must be an evidence-backed claim, got {claim!r}")
                     continue
+                claim_id = f"{stack_id}.{capability}"
+                register_unique_test_evidence(claim, claim_id)
                 state, reasons = evaluate_verified(
                     claim,
-                    {"kind": "stack-capability", "id": f"{stack_id}.{capability}"},
+                    {"kind": "stack-capability", "id": claim_id},
                 )
                 if state != "verified":
                     errors.append(
@@ -363,9 +464,11 @@ class CapabilityRegistry:
                 errors.append(
                     f"agent_surfaces.{surface} version {actual!r} does not satisfy pinned minimum {minimum!r}"
                 )
+            claim_id = f"{surface}@{actual}"
+            register_unique_test_evidence(claim, f"agent_surfaces.{claim_id}")
             state, reasons = evaluate_verified(
                 claim,
-                {"kind": "agent-surface", "id": f"{surface}@{actual}"},
+                {"kind": "agent-surface", "id": claim_id},
             )
             if state != "verified":
                 errors.append(
@@ -445,6 +548,25 @@ def load_registry(path: Path | None = None) -> CapabilityRegistry:
         if not set(entry.get("frameworks", [])).issubset(framework_ids):
             raise RegistryError(f"bindings.{binding} names unknown frameworks")
     support_states = set(data["support"]["states"])
+    issuer = data["support"].get("verification_issuer")
+    if not isinstance(issuer, dict) or issuer.get("status") not in {
+        "unavailable",
+        "verified",
+    }:
+        raise RegistryError(
+            "support.verification_issuer must declare unavailable or verified status"
+        )
+    if not all(str(issuer.get(field, "")).strip() for field in ("id", "owner_wp", "path")):
+        raise RegistryError(
+            "support.verification_issuer requires id, owner_wp, and path"
+        )
+    if issuer["status"] == "verified" and not (
+        isinstance(issuer.get("sha256"), str)
+        and re.fullmatch(r"[0-9a-f]{64}", issuer["sha256"])
+    ):
+        raise RegistryError(
+            "verified support.verification_issuer requires a lowercase SHA-256"
+        )
     for target, entry in data["scan_targets"].items():
         if target not in language_ids:
             raise RegistryError(f"scan_targets.{target} is not a registered language")

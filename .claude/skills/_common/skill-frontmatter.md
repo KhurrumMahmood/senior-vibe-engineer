@@ -167,13 +167,21 @@ capability_evidence:
       sha256: <64-lowercase-hex>
 support_evidence:
   claim: {kind: skill, id: <skill-directory-name>}
-  fixture:
-    command: [<absolute-current-python>, tests/typescript-routing.py]
-    cwd: .
-    expected_stdout_sha256: <64-lowercase-hex>
+  fixtures:
+    - subject: typescript
+      command: [<absolute-current-python>, tests/typescript-routing.py]
+      cwd: .
+      expected_observation:
+        claim: {kind: skill, id: <skill-directory-name>}
+        result: pass
+        subject: typescript
+      expected_stdout_sha256: <canonical-observation-sha256>
   artifacts:
     - kind: test
       path: tests/typescript-routing.py
+      sha256: <64-lowercase-hex>
+    - kind: script
+      path: scripts/scan.py
       sha256: <64-lowercase-hex>
   tools:
     - name: python-runtime
@@ -182,6 +190,11 @@ support_evidence:
     - {system: Darwin, machine: arm64}
   evidence_hash: <canonical-envelope-sha256>
 scans: [typescript]
+scan_implementations:
+  typescript:
+    mechanism: typescript-syntax
+    path: scripts/scan.py
+    sha256: <same-script-sha256-as-support-artifact>
 ```
 
 - `layer`, `binding`, and optional `bindings` use registry identifiers.
@@ -189,17 +202,26 @@ scans: [typescript]
   identifiers from the registry.
 - `capability_evidence` maps each claimed subject or scan target to hashed,
   skill-relative file attestations and must include a test witness. Every
-  declared capability test must be the single attested test directly executed
-  by the fixture command, so multi-subject `any` and `scans:` coverage is
-  actually executed. Use one attested integration-test wrapper when a suite has
-  multiple underlying files. A scan also needs a registered adapter/native shim
-  and a non-empty skill-local executable.
+  subject must have a distinct single attested integration test directly
+  executed by its own fixture, so multi-subject `any` and `scans:` coverage is
+  actually executed rather than sharing a generic witness. Use one wrapper per
+  subject when a suite has multiple underlying files. Every scan target also
+  needs an exact mechanism/path/hash entry in `scan_implementations`, repeated
+  identically as a `kind: script` support artifact under the skill's `scripts/`
+  directory. That same path is the target's `kind: test` capability evidence
+  and is directly executed by its subject fixture; an unrelated nonempty script
+  cannot satisfy a scan claim.
 - `support_evidence` is evaluated mechanically: the validator checks artifact
   and envelope hashes, claim identity, command shape, registry-owned executable
   and tool-version policies, platform names, and scan support ceilings. The
-  fixture command must execute an attested test artifact. Promotion reruns that
-  test and the tool probes on the current platform; bare booleans, generic
-  evidence, or support labels cannot promote a claim.
+  fixtures must emit canonical JSON observations naming the exact claim and
+  subject. Promotion reruns them and registry-discovered (not claimant-path)
+  tool probes on the current platform. Completion-floor cells additionally
+  require unique capability-specific test digests; bare booleans, relabeled
+  generic evidence, or support labels cannot promote a claim. `verified`
+  promotion also requires the registry-pinned cross-stack conformance issuer;
+  that issuer is deliberately `unavailable` until WP8 implements and hashes the
+  harness, so WP1 cannot self-certify the future completion floor.
 - Frameworks and tools are separate categories: React is a framework; Vite and
   Vitest are tools.
 

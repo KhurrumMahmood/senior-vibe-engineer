@@ -17,6 +17,7 @@ schemas:
       capability_evidence: subject-to-hashed-file-attestations
       support: support-state-id
       support_evidence: deterministic-evidence-envelope
+      scan_implementations: scan-target-to-hashed-script-attestation
   stack_profile:
     version: 2
     required: [project_roots, languages, frameworks, tools]
@@ -319,16 +320,22 @@ scan_targets:
     evidence_contract: native-tool-fixture
 
 support:
+  verification_issuer:
+    id: cross-stack-conformance-v1
+    owner_wp: WP8
+    status: unavailable
+    path: scripts/cross_stack_conformance.py
+    sha256: null
   states:
     unsupported:
       rank: 0
       required_evidence: []
     experimental:
       rank: 1
-      required_evidence: [fixture_command, fixture_stdout_hash, artifact_hashes, tool_probes, platforms, evidence_hash]
+      required_evidence: [subject_fixtures, canonical_observations, artifact_hashes, tool_probes, platforms, evidence_hash]
     verified:
       rank: 2
-      required_evidence: [fixture_command, fixture_stdout_hash, artifact_hashes, tool_probes, platforms, evidence_hash]
+      required_evidence: [subject_fixtures, canonical_observations, artifact_hashes, tool_probes, platforms, evidence_hash]
   transitions:
     promote:
       unsupported: experimental

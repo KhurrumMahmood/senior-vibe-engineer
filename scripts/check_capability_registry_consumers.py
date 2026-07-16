@@ -45,6 +45,58 @@ def _literal_strings(node: ast.AST) -> set[str]:
     }
 
 
+def _static_collection_strings(node: ast.AST) -> set[str]:
+    """Recover strings from simple, side-effect-free computed collections."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return {node.value}
+    if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+        return {value for child in node.elts for value in _static_collection_strings(child)}
+    if isinstance(node, ast.Dict):
+        return {
+            value
+            for child in [*node.keys, *node.values]
+            if child is not None
+            for value in _static_collection_strings(child)
+        }
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        return _static_collection_strings(node.left) | _static_collection_strings(node.right)
+    if not isinstance(node, ast.Call):
+        return set()
+    if (
+        isinstance(node.func, ast.Attribute)
+        and node.func.attr == "split"
+        and isinstance(node.func.value, ast.Constant)
+        and isinstance(node.func.value.value, str)
+        and not node.keywords
+        and len(node.args) <= 1
+        and (
+            not node.args
+            or (
+                isinstance(node.args[0], ast.Constant)
+                and isinstance(node.args[0].value, str)
+            )
+        )
+    ):
+        separator = node.args[0].value if node.args else None
+        return set(node.func.value.value.split(separator))
+    if isinstance(node.func, ast.Name) and node.func.id in {
+        "dict", "list", "set", "tuple", "zip"
+    }:
+        values = {
+            value
+            for argument in node.args
+            for value in _static_collection_strings(argument)
+        }
+        values.update(keyword.arg for keyword in node.keywords if keyword.arg)
+        values.update(
+            value
+            for keyword in node.keywords
+            for value in _static_collection_strings(keyword.value)
+        )
+        return values
+    return set()
+
+
 def check_consumers(root: Path = REPO_ROOT) -> list[str]:
     errors: list[str] = []
     registry = load_registry()
@@ -69,10 +121,23 @@ def check_consumers(root: Path = REPO_ROOT) -> list[str]:
                 duplicates = sorted(names & FORBIDDEN_ASSIGNMENTS)
                 if duplicates:
                     errors.append(f"{relative}: forbidden duplicate registry assignment {duplicates}")
+                computed_ids = sorted(_static_collection_strings(node.value) & stack_ids)
+                if len(computed_ids) >= 2:
+                    errors.append(
+                        f"{relative}: hard-codes computed stack identifier collection {computed_ids}"
+                    )
             if isinstance(node, ast.AnnAssign):
                 duplicates = sorted(_assigned_names(node.target) & FORBIDDEN_ASSIGNMENTS)
                 if duplicates:
                     errors.append(f"{relative}: forbidden duplicate registry assignment {duplicates}")
+                if node.value is not None:
+                    computed_ids = sorted(
+                        _static_collection_strings(node.value) & stack_ids
+                    )
+                    if len(computed_ids) >= 2:
+                        errors.append(
+                            f"{relative}: hard-codes computed stack identifier collection {computed_ids}"
+                        )
             if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
                 values = _literal_strings(node)
                 duplicated_ids = sorted(values & stack_ids)

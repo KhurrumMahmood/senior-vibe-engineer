@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import platform
 import sys
 
@@ -14,24 +15,56 @@ from _lib.support_evidence import (
 )
 
 
-def _write_valid_evidence(root, *, claim=None):
-    contract_test = root / "contract_test.py"
-    contract_test.write_text("print('verified-fixture')\n", encoding="utf-8")
-    evidence = {
-        "claim": claim or {"kind": "skill", "id": root.name},
-        "fixture": {
-            "command": [sys.executable, "contract_test.py"],
-            "cwd": ".",
-            "expected_stdout_sha256": sha256_bytes(b"verified-fixture\n"),
-            "timeout_seconds": 10,
-        },
-        "artifacts": [
+def _write_valid_evidence(root, *, claim=None, subjects=None):
+    claim = claim or {"kind": "skill", "id": root.name}
+    subjects = subjects or (
+        ["typescript"] if claim["kind"] == "skill" else [claim["id"]]
+    )
+    artifacts = []
+    fixtures = []
+    capability_evidence = {}
+    for subject in subjects:
+        token = sha256_bytes(
+            json.dumps(
+                {"claim": claim, "subject": subject},
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        )[:16]
+        filename = f"contract_test_{token}.py"
+        contract_test = root / filename
+        observation = {"claim": claim, "result": "pass", "subject": subject}
+        contract_test.write_text(
+            "import json\n"
+            f"observation = {observation!r}\n"
+            "print(json.dumps(observation, sort_keys=True, separators=(',', ':')))\n",
+            encoding="utf-8",
+        )
+        attestation = {
+            "kind": "test",
+            "path": filename,
+            "sha256": sha256_file(contract_test),
+        }
+        expected_bytes = (
+            json.dumps(observation, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            + b"\n"
+        )
+        artifacts.append(attestation)
+        fixtures.append(
             {
-                "kind": "test",
-                "path": "contract_test.py",
-                "sha256": sha256_file(contract_test),
-            },
-        ],
+                "subject": subject,
+                "command": [sys.executable, filename],
+                "cwd": ".",
+                "expected_observation": observation,
+                "expected_stdout_sha256": sha256_bytes(expected_bytes),
+                "timeout_seconds": 10,
+            }
+        )
+        capability_evidence[subject] = [attestation]
+    evidence = {
+        "claim": claim,
+        "fixtures": fixtures,
+        "artifacts": artifacts,
         "tools": [
             {
                 "name": "python-runtime",
@@ -43,15 +76,6 @@ def _write_valid_evidence(root, *, claim=None):
         ],
     }
     evidence["evidence_hash"] = canonical_evidence_hash(evidence)
-    capability_evidence = {
-        "typescript": [
-            {
-                "kind": "test",
-                "path": "contract_test.py",
-                "sha256": sha256_file(contract_test),
-            }
-        ]
-    }
     return evidence, capability_evidence
 
 
@@ -188,7 +212,58 @@ def test_strict_contract_requires_every_capability_test_to_execute(tmp_path):
 
     errors = registry.validate_skill_contract(metadata, skill_dir=tmp_path)
 
-    assert any("does not execute all capability evidence tests" in error for error in errors)
+    assert any("must attest exactly one integration test" in error for error in errors)
+
+
+def test_strict_contract_rejects_shared_generic_any_evidence(tmp_path):
+    registry = load_registry()
+    metadata = _strict_skill(
+        tmp_path,
+        language="any",
+        framework="any",
+        layer="core",
+        binding="core",
+        portable_subjects=["python", "typescript"],
+    )
+    metadata["capability_evidence"]["python"] = metadata["capability_evidence"][
+        "typescript"
+    ]
+
+    errors = registry.validate_skill_contract(metadata, skill_dir=tmp_path)
+
+    assert any("distinct executable integration test" in error for error in errors)
+    assert any("fixture subjects must exactly match" in error for error in errors)
+
+
+def test_strict_contract_accepts_distinct_executable_any_evidence(tmp_path):
+    registry = load_registry()
+    support_evidence, capability_evidence = _write_valid_evidence(
+        tmp_path, subjects=["python", "typescript"]
+    )
+    metadata = _strict_skill(
+        tmp_path,
+        language="any",
+        framework="any",
+        layer="core",
+        binding="core",
+        portable_subjects=["python", "typescript"],
+        capability_evidence=capability_evidence,
+        support_evidence=support_evidence,
+    )
+
+    errors = registry.validate_skill_contract(metadata, skill_dir=tmp_path)
+    state, reasons = registry.evaluate_support(
+        {"state": "experimental", "evidence": support_evidence},
+        root=tmp_path,
+        expected_claim={"kind": "skill", "id": tmp_path.name},
+        required_test_paths_by_subject={
+            subject: {tmp_path / entries[0]["path"]}
+            for subject, entries in capability_evidence.items()
+        },
+    )
+
+    assert errors == []
+    assert (state, reasons) == ("experimental", [])
 
 
 def test_strict_contract_rejects_scan_without_adapter_or_executable(tmp_path):
@@ -198,7 +273,6 @@ def test_strict_contract_rejects_scan_without_adapter_or_executable(tmp_path):
     errors = registry.validate_skill_contract(metadata, skill_dir=tmp_path)
 
     assert any("no registered adapter or shim" in error for error in errors)
-    assert any("executable skill script" in error for error in errors)
 
 
 def test_verified_scan_rejects_empty_script_fake_command_hash_platform_and_ceiling(tmp_path):
@@ -208,10 +282,12 @@ def test_verified_scan_rejects_empty_script_fake_command_hash_platform_and_ceili
     (scripts / "empty.py").write_text("", encoding="utf-8")
     metadata = _strict_skill(tmp_path, scans=["typescript"], support="verified")
     metadata["support_evidence"] = {
-        "fixture": {
+        "claim": {"kind": "skill", "id": tmp_path.name},
+        "fixtures": [{
+            "subject": "typescript",
             "command": False,
             "expected_stdout_sha256": "bad",
-        },
+        }],
         "artifacts": metadata["capability_evidence"]["typescript"],
         "tools": [],
         "platforms": [{"system": "Atlantis", "machine": "dream"}],
@@ -224,7 +300,66 @@ def test_verified_scan_rejects_empty_script_fake_command_hash_platform_and_ceili
     assert any("lowercase SHA-256" in error for error in errors)
     assert any("not a supported platform" in error for error in errors)
     assert any("support ceiling is 'experimental'" in error for error in errors)
-    assert any("executable skill script" in error for error in errors)
+    assert any("explicit scan_implementations attestation" in error for error in errors)
+
+
+def test_scan_requires_exact_hashed_mechanism_and_support_attestation(tmp_path):
+    registry = load_registry()
+    metadata = _strict_skill(tmp_path, scans=["typescript"])
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    scanner = scripts / "scan.py"
+    original_test = tmp_path / metadata["capability_evidence"]["typescript"][0]["path"]
+    scanner.write_text(original_test.read_text(encoding="utf-8"), encoding="utf-8")
+    scanner_test_attestation = {
+        "kind": "test",
+        "path": "scripts/scan.py",
+        "sha256": sha256_file(scanner),
+    }
+    scanner_attestation = {
+        "kind": "script",
+        "path": "scripts/scan.py",
+        "sha256": sha256_file(scanner),
+    }
+    metadata["capability_evidence"]["typescript"] = [scanner_test_attestation]
+    metadata["support_evidence"]["artifacts"] = [
+        scanner_test_attestation,
+        scanner_attestation,
+    ]
+    metadata["support_evidence"]["fixtures"][0]["command"] = [
+        sys.executable,
+        "scripts/scan.py",
+    ]
+    metadata["scan_implementations"] = {
+        "typescript": {
+            "mechanism": "typescript-syntax",
+            "path": "scripts/scan.py",
+            "sha256": sha256_file(scanner),
+        }
+    }
+    metadata["support_evidence"]["evidence_hash"] = canonical_evidence_hash(
+        metadata["support_evidence"]
+    )
+
+    assert registry.validate_skill_contract(metadata, skill_dir=tmp_path) == []
+
+    metadata["scan_implementations"]["typescript"]["mechanism"] = "trust-me"
+    errors = registry.validate_skill_contract(metadata, skill_dir=tmp_path)
+    assert any("mechanism must be 'typescript-syntax'" in error for error in errors)
+
+
+def test_scan_rejects_unrelated_nonempty_script_without_target_attestation(tmp_path):
+    registry = load_registry()
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "unrelated.py").write_text(
+        "print('I do not scan anything')\n", encoding="utf-8"
+    )
+    metadata = _strict_skill(tmp_path, scans=["typescript"])
+
+    errors = registry.validate_skill_contract(metadata, skill_dir=tmp_path)
+
+    assert any("explicit scan_implementations attestation" in error for error in errors)
 
 
 def test_stack_validation_rejects_react_vite_category_confusion():
@@ -240,7 +375,8 @@ def test_stack_validation_rejects_react_vite_category_confusion():
 def test_support_claims_demote_mechanically_when_evidence_is_stale(tmp_path):
     registry = load_registry()
     evidence, _capability = _write_valid_evidence(tmp_path)
-    (tmp_path / "contract_test.py").write_text("# changed after attestation\n", encoding="utf-8")
+    stale_path = tmp_path / evidence["artifacts"][0]["path"]
+    stale_path.write_text("# changed after attestation\n", encoding="utf-8")
 
     state, reasons = registry.evaluate_support(
         {"state": "verified", "evidence": evidence},
@@ -259,7 +395,8 @@ def test_support_promotion_is_one_step_and_tied_to_tool_fixture_evidence(tmp_pat
     assert (state, reasons) == ("experimental", [])
 
     state, reasons = registry.transition_support("experimental", evidence, root=tmp_path)
-    assert (state, reasons) == ("verified", [])
+    assert state == "experimental"
+    assert any("conformance issuer" in reason for reason in reasons)
 
     state, reasons = registry.transition_support(
         "experimental", evidence, root=tmp_path, ceiling="experimental"
@@ -299,11 +436,36 @@ def test_support_promotion_uses_registry_tool_policy_not_claimed_pattern(tmp_pat
     assert any("current Python runtime" in reason for reason in reasons)
 
 
+def test_native_tool_probe_must_use_registry_discovered_executable(tmp_path):
+    registry = load_registry()
+    evidence, _capability = _write_valid_evidence(tmp_path)
+    fake_dir = tmp_path / "fake"
+    fake_dir.mkdir()
+    fake_node = fake_dir / "node"
+    fake_node.write_text("#!/bin/sh\necho 'v22.99.0'\n", encoding="utf-8")
+    fake_node.chmod(0o755)
+    evidence["tools"] = [
+        {"name": "node-runtime", "command": [str(fake_node), "--version"]}
+    ]
+    evidence["evidence_hash"] = canonical_evidence_hash(evidence)
+
+    state, reasons = registry.evaluate_support(
+        {"state": "verified", "evidence": evidence}, root=tmp_path
+    )
+
+    assert state == "unsupported"
+    assert any("registry-discovered tool" in reason for reason in reasons)
+
+
 def test_support_rejects_unbound_claim_unexecuted_test_and_escaping_symlink(tmp_path):
     registry = load_registry()
     evidence, _capability = _write_valid_evidence(tmp_path)
     evidence["claim"] = {"kind": "skill", "id": "someone-else"}
-    evidence["fixture"]["command"] = [sys.executable, "-c", "print('verified-fixture')"]
+    evidence["fixtures"][0]["command"] = [
+        sys.executable,
+        "-c",
+        "print('verified-fixture')",
+    ]
     outside = tmp_path.parent / "outside-evidence.py"
     outside.write_text("print('verified-fixture')\n", encoding="utf-8")
     (tmp_path / "escape.py").symlink_to(outside)
@@ -359,7 +521,9 @@ def test_completion_floor_rejects_missing_or_unsupported_required_cells(tmp_path
         },
     }
 
-    assert registry.validate_completion_claims(claims, evidence_root=tmp_path) == []
+    initial_errors = registry.validate_completion_claims(claims, evidence_root=tmp_path)
+    assert initial_errors
+    assert all("conformance issuer" in error for error in initial_errors)
 
     claims["stacks"]["rust"].pop("failure.loud")
     claims["stacks"]["go"]["failure.loud"] = "unsupported"
@@ -392,6 +556,7 @@ def test_completion_floor_rejects_evidence_reused_for_another_cell(tmp_path):
     errors = registry.validate_completion_claims(claims, evidence_root=tmp_path)
 
     assert any("typescript-node-react.profile" in error and "must be bound" in error for error in errors)
+    assert any("reuses generic test evidence" in error for error in errors)
 
 
 def test_completion_floor_rejects_bare_verified_labels_and_old_surface_version():
@@ -433,7 +598,7 @@ def test_completion_claims_cli_fails_bare_verified_labels(tmp_path, capsys):
     assert '"status": "fail"' in capsys.readouterr().out
 
 
-def test_completion_claims_cli_structural_mode_cannot_pass_gate(tmp_path, capsys):
+def test_completion_claims_cli_cannot_pass_before_verified_issuer(tmp_path, capsys):
     registry = load_registry()
     claims = {
         "stacks": {
@@ -474,8 +639,10 @@ def test_completion_claims_cli_structural_mode_cannot_pass_gate(tmp_path, capsys
         [str(path), "--evidence-root", str(tmp_path), "--no-execute"]
     )
 
-    assert rc == 3
-    assert '"status": "structural-only"' in capsys.readouterr().out
+    assert rc == 1
+    output = capsys.readouterr().out
+    assert '"status": "fail"' in output
+    assert "conformance issuer" in output
 
 
 def test_registry_rejects_binding_that_names_unknown_language(tmp_path):

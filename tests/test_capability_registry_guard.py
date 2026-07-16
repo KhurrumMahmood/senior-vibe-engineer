@@ -48,3 +48,20 @@ def test_guard_rejects_nested_and_constructor_dictionary_registries(tmp_path):
     ]
     assert any("python" in error and "typescript" in error for error in dictionary_errors)
     assert any("rust" in error and "go" in error for error in dictionary_errors)
+
+
+def test_guard_rejects_split_and_zip_computed_registries(tmp_path):
+    _copy_guard_surface(tmp_path)
+    consumer = tmp_path / "scripts" / "manifest.py"
+    consumer.write_text(
+        consumer.read_text(encoding="utf-8")
+        + '\nMY_CATALOG = "python typescript rust go".split()\n'
+        + '\nOTHER_CATALOG = dict(zip("python typescript".split(), ({}, {})))\n',
+        encoding="utf-8",
+    )
+
+    errors = check_consumers(tmp_path)
+
+    computed = [error for error in errors if "computed stack identifier" in error]
+    assert any("python" in error and "go" in error for error in computed)
+    assert any("python" in error and "typescript" in error for error in computed)

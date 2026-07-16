@@ -135,7 +135,9 @@ def validate_support_evidence(
     execute: bool,
     tool_policies: dict[str, Any],
     expected_claim: dict[str, str] | None = None,
-    required_test_paths: set[Path] | None = None,
+    required_test_paths_by_subject: dict[str, set[Path]] | None = None,
+    verification_issuer: dict[str, Any] | None = None,
+    require_verified_issuer: bool = False,
 ) -> list[str]:
     """Validate an evidence envelope and optionally rerun all probes."""
     if not isinstance(evidence, dict):
@@ -152,31 +154,44 @@ def validate_support_evidence(
         errors.append(
             f"support_evidence.claim must be bound to {expected_claim!r}, got {claim!r}"
         )
-    fixture = evidence.get("fixture")
-    fixture_command: list[str] = []
-    fixture_cwd = root
-    if not isinstance(fixture, dict):
-        errors.append("support_evidence.fixture must be a mapping")
-    else:
-        fixture_command, command_errors = _validate_command(
-            fixture.get("command"), field="support_evidence.fixture.command", root=root
-        )
-        errors.extend(command_errors)
-        cwd_value = fixture.get("cwd", ".")
-        cwd_path, cwd_errors = _safe_relative_path(
-            cwd_value, root, field="support_evidence.fixture.cwd"
-        )
-        errors.extend(cwd_errors)
-        if cwd_path is not None:
-            fixture_cwd = cwd_path
-            if not fixture_cwd.is_dir():
-                errors.append("support_evidence.fixture.cwd does not exist or is not a directory")
-        expected_stdout = fixture.get("expected_stdout_sha256")
-        if not isinstance(expected_stdout, str) or not HEX_256_RE.fullmatch(expected_stdout):
-            errors.append("support_evidence.fixture.expected_stdout_sha256 must be a lowercase SHA-256 digest")
-        timeout = fixture.get("timeout_seconds", 30)
-        if not isinstance(timeout, int) or isinstance(timeout, bool) or not 1 <= timeout <= 300:
-            errors.append("support_evidence.fixture.timeout_seconds must be an integer from 1 to 300")
+    if require_verified_issuer:
+        if (
+            not isinstance(verification_issuer, dict)
+            or verification_issuer.get("status") != "verified"
+        ):
+            owner = (
+                verification_issuer.get("owner_wp")
+                if isinstance(verification_issuer, dict)
+                else "unknown"
+            )
+            errors.append(
+                "verified support is unavailable until the registry-pinned "
+                f"conformance issuer is verified by {owner}"
+            )
+        else:
+            expected_issuer = {
+                "id": verification_issuer.get("id"),
+                "path": verification_issuer.get("path"),
+                "sha256": verification_issuer.get("sha256"),
+            }
+            if evidence.get("issuer") != expected_issuer:
+                errors.append(
+                    f"support_evidence.issuer must equal registry-pinned {expected_issuer!r}"
+                )
+            errors.extend(
+                validate_file_attestations(
+                    [
+                        {
+                            "kind": "script",
+                            "path": expected_issuer["path"],
+                            "sha256": expected_issuer["sha256"],
+                        }
+                    ],
+                    root=root,
+                    field="support_evidence.issuer",
+                    required_kinds={"script"},
+                )
+            )
 
     artifacts = evidence.get("artifacts")
     errors.extend(
@@ -185,28 +200,115 @@ def validate_support_evidence(
         )
     )
     attested_tests = attested_paths(artifacts, root=root, kind="test")
-    if fixture_command and fixture_cwd.is_dir():
-        executed_test: Path | None = None
-        executable_path = Path(fixture_command[0]).resolve()
-        if len(fixture_command) == 1 and executable_path in attested_tests:
-            executed_test = executable_path
-        elif len(fixture_command) == 2:
-            candidate = (fixture_cwd / fixture_command[1]).resolve()
-            if candidate in attested_tests:
-                executed_test = candidate
-        if executed_test is None:
-            errors.append(
-                "support_evidence.fixture.command must directly execute exactly one attested "
-                "test artifact; use a test wrapper for multi-file suites"
+    fixtures = evidence.get("fixtures")
+    fixture_runs: list[tuple[str, dict[str, Any], list[str], Path, bytes]] = []
+    seen_fixture_subjects: set[str] = set()
+    executed_tests_by_subject: dict[str, Path] = {}
+    if not isinstance(fixtures, list) or not fixtures:
+        errors.append("support_evidence.fixtures must be a non-empty list")
+    else:
+        for index, fixture in enumerate(fixtures):
+            prefix = f"support_evidence.fixtures[{index}]"
+            if not isinstance(fixture, dict):
+                errors.append(f"{prefix} must be a mapping")
+                continue
+            subject = fixture.get("subject")
+            if not isinstance(subject, str) or not subject.strip():
+                errors.append(f"{prefix}.subject must be a non-empty string")
+                subject = f"invalid-{index}"
+            elif subject in seen_fixture_subjects:
+                errors.append(f"{prefix}.subject is duplicated: {subject!r}")
+            seen_fixture_subjects.add(subject)
+            command, command_errors = _validate_command(
+                fixture.get("command"), field=f"{prefix}.command", root=root
             )
-        missing_required_tests = (required_test_paths or set()) - (
-            {executed_test} if executed_test is not None else set()
+            errors.extend(command_errors)
+            fixture_cwd = root
+            cwd_path, cwd_errors = _safe_relative_path(
+                fixture.get("cwd", "."), root, field=f"{prefix}.cwd"
+            )
+            errors.extend(cwd_errors)
+            if cwd_path is not None:
+                fixture_cwd = cwd_path
+                if not fixture_cwd.is_dir():
+                    errors.append(f"{prefix}.cwd does not exist or is not a directory")
+            timeout = fixture.get("timeout_seconds", 30)
+            if not isinstance(timeout, int) or isinstance(timeout, bool) or not 1 <= timeout <= 300:
+                errors.append(f"{prefix}.timeout_seconds must be an integer from 1 to 300")
+            expected_observation = fixture.get("expected_observation")
+            required_observation = {
+                "claim": claim,
+                "result": "pass",
+                "subject": subject,
+            }
+            if expected_observation != required_observation:
+                errors.append(
+                    f"{prefix}.expected_observation must equal {required_observation!r}"
+                )
+            expected_bytes = (
+                json.dumps(
+                    required_observation, sort_keys=True, separators=(",", ":")
+                ).encode("utf-8")
+                + b"\n"
+            )
+            expected_stdout = fixture.get("expected_stdout_sha256")
+            expected_hash = sha256_bytes(expected_bytes)
+            if expected_stdout != expected_hash:
+                errors.append(
+                    f"{prefix}.expected_stdout_sha256 must equal the canonical observation "
+                    f"digest {expected_hash}"
+                )
+            executed_test: Path | None = None
+            if command and fixture_cwd.is_dir():
+                executable_path = Path(command[0]).resolve()
+                if len(command) == 1 and executable_path in attested_tests:
+                    executed_test = executable_path
+                elif len(command) == 2:
+                    candidate = (fixture_cwd / command[1]).resolve()
+                    if candidate in attested_tests:
+                        executed_test = candidate
+            if executed_test is None:
+                errors.append(
+                    f"{prefix}.command must directly execute exactly one attested test "
+                    "artifact; use a test wrapper for multi-file suites"
+                )
+            else:
+                executed_tests_by_subject[subject] = executed_test
+            fixture_runs.append((subject, fixture, command, fixture_cwd, expected_bytes))
+
+    expected_subjects = (
+        set(required_test_paths_by_subject)
+        if required_test_paths_by_subject is not None
+        else (
+            {str(expected_claim.get("id"))}
+            if isinstance(expected_claim, dict)
+            else set(seen_fixture_subjects)
         )
-        if missing_required_tests:
-            missing = sorted(str(path.relative_to(root.resolve())) for path in missing_required_tests)
+    )
+    if seen_fixture_subjects != expected_subjects:
+        errors.append(
+            "support_evidence fixture subjects must exactly match claim subjects: "
+            f"expected {sorted(expected_subjects)}, got {sorted(seen_fixture_subjects)}"
+        )
+    if required_test_paths_by_subject is not None:
+        all_required_paths: list[Path] = []
+        for subject, paths in required_test_paths_by_subject.items():
+            all_required_paths.extend(paths)
+            if len(paths) != 1:
+                errors.append(
+                    f"capability_evidence.{subject} must attest exactly one integration test"
+                )
+                continue
+            if executed_tests_by_subject.get(subject) not in paths:
+                expected = sorted(str(path.relative_to(root.resolve())) for path in paths)
+                errors.append(
+                    f"support_evidence fixture for {subject!r} does not execute its "
+                    f"capability evidence test: {expected}"
+                )
+        if len(all_required_paths) != len(set(all_required_paths)):
             errors.append(
-                "support_evidence.fixture.command does not execute all capability evidence tests: "
-                f"{missing}"
+                "capability subjects must use distinct integration-test artifacts; "
+                "shared generic evidence is not portable coverage"
             )
 
     tools = evidence.get("tools")
@@ -254,9 +356,15 @@ def validate_support_evidence(
                         f"{prefix}.command must use the current Python runtime {sys.executable!r}"
                     )
             elif isinstance(executable_policy, list):
-                if not command or Path(command[0]).name not in executable_policy:
+                discovered_paths = {
+                    Path(discovered).resolve()
+                    for executable_name in executable_policy
+                    if (discovered := shutil.which(executable_name)) is not None
+                }
+                if not command or resolved_executable not in discovered_paths:
                     errors.append(
-                        f"{prefix}.command executable must be one of {executable_policy!r}"
+                        f"{prefix}.command executable must resolve to a registry-discovered "
+                        f"tool named by {executable_policy!r}"
                     )
             else:
                 errors.append(f"{prefix}.name has no registry-owned executable policy: {name!r}")
@@ -299,26 +407,26 @@ def validate_support_evidence(
         )
         return errors
 
-    assert isinstance(fixture, dict)
-    try:
-        fixture_result = subprocess.run(
-            fixture_command,
-            cwd=fixture_cwd,
-            text=False,
-            capture_output=True,
-            check=False,
-            timeout=fixture.get("timeout_seconds", 30),
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        return [*errors, f"support fixture could not complete: {exc}"]
-    if fixture_result.returncode != 0:
-        errors.append(f"support fixture exited {fixture_result.returncode}")
-    expected_stdout = fixture["expected_stdout_sha256"]
-    actual_stdout = sha256_bytes(fixture_result.stdout)
-    if actual_stdout != expected_stdout:
-        errors.append(
-            f"support fixture stdout hash mismatch: expected {expected_stdout}, got {actual_stdout}"
-        )
+    for subject, fixture, command, fixture_cwd, expected_bytes in fixture_runs:
+        try:
+            fixture_result = subprocess.run(
+                command,
+                cwd=fixture_cwd,
+                text=False,
+                capture_output=True,
+                check=False,
+                timeout=fixture.get("timeout_seconds", 30),
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            errors.append(f"support fixture {subject!r} could not complete: {exc}")
+            continue
+        if fixture_result.returncode != 0:
+            errors.append(f"support fixture {subject!r} exited {fixture_result.returncode}")
+        if fixture_result.stdout != expected_bytes:
+            errors.append(
+                f"support fixture {subject!r} observation mismatch: expected "
+                f"{expected_bytes!r}, got {fixture_result.stdout!r}"
+            )
 
     for command, pattern, name in tool_commands:
         try:

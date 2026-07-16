@@ -58,31 +58,42 @@ Versioned skill contracts are strict. A skill opting into
 registered capabilities. `language: any` is not universal coverage: it
 requires an explicit `portable_subjects` list and per-subject executable
 evidence. Every `scans:` target requires a registered adapter or native shim,
-an evidence contract, and a skill-local executable. Old frontmatter remains
-readable without acquiring new support claims; WP8 converts the catalog and
-then removes that compatibility lane.
+an evidence contract, and an exact mechanism/path/hash attestation for its
+skill-local implementation, repeated in the support envelope. Old frontmatter
+remains readable without acquiring new support claims; WP8 converts the catalog
+and then removes that compatibility lane.
 
 Support has three states: `unsupported`, `experimental`, and `verified`.
 Promotion is one step at a time. Every promotable claim carries a canonical
 evidence envelope bound to that exact skill, stack capability, or versioned
-agent surface. The fixture command must execute a hashed test artifact; tool
-commands must use registry-owned executable and argument policies; stdout,
-artifact, envelope, tool-version, and platform checks are mechanical. Missing,
-stale, generic, cross-claim, timed-out, out-of-range, or off-platform evidence
-demotes the claim to `unsupported`; prose cannot override this. Scan claims are
-also capped by the registered adapter/shim support ceiling. For strict skill
-contracts, every per-subject and scan-target capability test must be included
-in the single integration-test artifact directly executed by the fixture
-command. Multi-file suites use that attested wrapper, preventing ignored extra
-arguments or unattached hashes from masquerading as executable `language: any`
-coverage.
+agent surface. Each subject fixture directly executes a distinct hashed test
+artifact and must emit a canonical JSON observation naming the exact claim and
+subject. Tool commands use registry-owned arguments and must resolve to the
+actual runtime/discovered executable, not a claimant-controlled lookalike.
+Stdout, artifact, envelope, tool-version, and platform checks are mechanical.
+Missing, stale, generic, cross-claim, timed-out, out-of-range, or off-platform
+evidence demotes the claim to `unsupported`; prose cannot override this. Scan
+claims are also capped by the registered adapter/shim support ceiling and must
+attest the exact scan implementation. That implementation is itself the
+target's distinct, directly executed capability test; “some nonempty script”
+cannot satisfy a scan claim. Multi-file suites use a distinct attested wrapper
+per subject.
+
+Self-authored deterministic fixtures may establish `experimental` support, but
+`verified` promotion requires the registry-pinned cross-stack conformance
+issuer. The issuer remains explicitly `unavailable` with WP8 ownership until
+that harness exists and its path/hash are pinned. Consequently WP1's completion
+gate must fail today; it cannot certify future floor cells with locally
+relabeled print-only scripts.
 
 The completion floor is a separate versioned block. Every required cell must
 exist and be `verified` with evidence bound to that cell; agent surfaces also
-carry a pinned compatible surface version. `unsupported`, `experimental`, a
-bare label, evidence reused from another cell, and omission all fail. Changing
-the floor requires an ADR amendment and migration-impact review, so a release
-cannot make itself green by lowering the target.
+carry a pinned compatible surface version. Test digests are unique across
+required cells/surfaces, and the canonical observation embeds the exact claim.
+`unsupported`, `experimental`, a bare label, relabeled/rehashed generic
+evidence, evidence reused from another cell, and omission all fail. Changing the
+floor requires an ADR amendment and migration-impact review, so a release cannot
+make itself green by lowering the target.
 
 ## Alternatives considered
 
@@ -120,7 +131,8 @@ ADR are disallowed.
 - `tests/test_capability_registry.py` exercises extension by data, invalid
   capability/layer/binding combinations, `any` evidence, scan evidence,
   framework/tool confusion, support demotion, claim binding, executed and
-  hashed test evidence, path containment, tool policy ownership, and ungameable
+  hashed distinct test evidence, canonical observations, explicit scan
+  implementations, path containment, discovered-tool ownership, and ungameable
   floor cells.
 - `scripts/check_capability_registry_consumers.py` and
   `tests/test_capability_registry_guard.py` prove the load-bearing consumers
