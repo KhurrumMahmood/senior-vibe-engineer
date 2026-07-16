@@ -25,8 +25,10 @@ CORPUS = REPO_ROOT / "tests" / "fixtures" / "analysis_portfolio_spike"
 FACT_FIXTURES = REPO_ROOT / "tests" / "fixtures" / "analysis_facts"
 EXTERNAL_CORPUS = FACT_FIXTURES / "external-corpus.json"
 PLATFORM_CONTRACT = FACT_FIXTURES / "platform-contract.json"
+COLD_PROBE = REPO_ROOT / "scripts" / "analysis_fact_cold_probe.py"
 SOURCE_SCOPE = (
     "scripts/analysis_fact_benchmark.py",
+    "scripts/analysis_fact_cold_probe.py",
     "requirements.txt",
     "scripts/_lib/lang_adapter",
     "tests/fixtures/analysis_facts",
@@ -416,7 +418,7 @@ def _analyze(paths: list[Path]) -> tuple[list[AnalysisResult], str]:
 def _cold_probe(paths: list[Path]) -> dict[str, Any]:
     started = time.perf_counter()
     completed = subprocess.run(
-        [sys.executable, str(Path(__file__).resolve()), "--cold-probe", *(str(path) for path in paths)],
+        [sys.executable, str(COLD_PROBE), *(str(path) for path in paths)],
         check=True,
         capture_output=True,
         text=True,

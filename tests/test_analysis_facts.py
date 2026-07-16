@@ -323,6 +323,16 @@ def test_productized_provider_reports_pinned_d3_and_budget_outcomes(product_benc
     assert report["variance_method"].startswith("fresh subprocess cold")
 
 
+def test_minimal_cold_probe_matches_in_process_fact_digest():
+    paths = [FIXTURES / "typescript-small.tsx"]
+    _, expected = benchmark._analyze(paths)
+    observed = benchmark._cold_probe(paths)
+
+    assert observed["digest"] == expected
+    assert observed["seconds"] >= 0
+    assert observed["peak_rss_bytes"] > 0
+
+
 def test_benchmark_platform_record_is_execution_derived(monkeypatch):
     monkeypatch.setattr(benchmark.platform, "system", lambda: "Linux")
     monkeypatch.setattr(benchmark.platform, "machine", lambda: "x86_64")
