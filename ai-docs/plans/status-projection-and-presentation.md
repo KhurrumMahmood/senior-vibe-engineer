@@ -110,7 +110,8 @@ the routers in actual project state).
 - Decision 0013 — the idea ledger (projection rules in
   `idea-ledger.md`) is the in-flight-ideas source.
 - Decision 0003 (proposed) — coordination point, not conflict: single
-  reader seam so the findings-ledger schema slots in when W5 lands.
+  reader seam so the findings-ledger schema slots in when
+  portable-skill-ecosystem-completion AC-8.9 lands in WP8.
 - Pattern "Parallel writers route through a shared producer"
   (Decided in 0004) — `status.py` is the canonical producer; the lens
   renderer consumes `status.json` and never recomputes state.
