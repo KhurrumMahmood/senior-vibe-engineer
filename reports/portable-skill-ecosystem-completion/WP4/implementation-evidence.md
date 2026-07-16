@@ -1,6 +1,7 @@
 # WP4 implementation evidence
 
 Implementation base: `db0fed19c7c783d04314dacbc4da73b7a4b3bbf7`.
+Implementation revision: `e30fcb41e04be7532d2fc5c1244ea7dc675d124a`.
 This is implementer evidence for fresh-context verification; it is not the
 independent PASS record required to move WP4 to `verified`.
 
