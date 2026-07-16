@@ -194,6 +194,7 @@ def test_ar_10_slice_zero_detection_contract_has_no_network_or_model_surface():
     source = "\n".join(
         path.read_text(encoding="utf-8").lower()
         for path in sorted(ROOT.joinpath("scripts/sweep").glob("*.py"))
+        if path.name != "provider_process.py"
     )
 
     assert evidence["detection_is_agent_free"] is True

@@ -277,6 +277,17 @@ def test_im_10_packet_is_fresh_actionable_scoped_structured_and_budgeted() -> No
             expected_delta=expected,
             token_budget=8_000,
         )
+    with pytest.raises(SchemaValidationError, match="4096 UTF-8 bytes"):
+        build_packet(
+            manifest,
+            judgment,
+            finding_ids=[identifier],
+            scope=[path],
+            recipe="x" * 4_097,
+            verification="python -m pytest -q",
+            expected_delta=expected,
+            token_budget=8_000,
+        )
 
 
 def test_im_11_harness_runs_verification_then_rescans_and_emits_bound_evidence() -> None:

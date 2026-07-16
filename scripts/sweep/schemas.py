@@ -19,7 +19,7 @@ from typing import Any
 
 from _lib.finding_identity import FINDING_ID_SCHEMA_VERSION, FindingIdentity
 
-from .serialization import canonical_sha256
+from .serialization import canonical_json_bytes, canonical_sha256
 
 
 SCHEMA_VERSION = 1
@@ -42,6 +42,10 @@ FAILURE_KINDS = frozenset(
 PROVIDER_STATUSES = frozenset({"completed", "failed"})
 EXIT_CLASSIFICATIONS = frozenset({"clean", "diagnostics", "tool_failure"})
 JUDGMENT_OUTCOMES = frozenset({"actionable", "not_actionable", "uncertain", "failed"})
+PACKET_FINDING_LIMIT = 50
+PACKET_SCOPE_LIMIT = 50
+PACKET_TEXT_BYTE_LIMIT = 4_096
+PACKET_BYTE_LIMIT = 65_536
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _FINDING_ID = re.compile(r"f2_[0-9a-f]{24}")
@@ -967,14 +971,23 @@ def validate_packet(document: Any) -> Mapping[str, Any]:
         lambda value, path: _finding_id(value, path),
         nonempty=True,
     )
+    if len(finding_ids) > PACKET_FINDING_LIMIT:
+        _fail("packet.finding_ids", f"must contain at most {PACKET_FINDING_LIMIT} items")
     scope = _sorted_unique_strings(
         packet["scope"],
         "packet.scope",
         lambda value, path: _repo_path(value, path, allow_root=False),
         nonempty=True,
     )
-    _text(packet["recipe"], "packet.recipe")
-    _text(packet["verification"], "packet.verification")
+    if len(scope) > PACKET_SCOPE_LIMIT:
+        _fail("packet.scope", f"must contain at most {PACKET_SCOPE_LIMIT} paths")
+    for name in ("recipe", "verification"):
+        value = _text(packet[name], f"packet.{name}")
+        if len(value.encode("utf-8")) > PACKET_TEXT_BYTE_LIMIT:
+            _fail(
+                f"packet.{name}",
+                f"must not exceed {PACKET_TEXT_BYTE_LIMIT} UTF-8 bytes",
+            )
     delta = _mapping(packet["expected_delta"], "packet.expected_delta")
     _required(delta, ("fixed", "allowed_new", "metrics"), "packet.expected_delta")
     fixed = _sorted_unique_strings(
@@ -1003,4 +1016,6 @@ def validate_packet(document: Any) -> Mapping[str, Any]:
         _fail("packet.token_budget", f"must not exceed deterministic ceiling {ceiling}")
     _sha256(packet["manifest_hash"], "packet.manifest_hash")
     _sha256(packet["judgment_hash"], "packet.judgment_hash")
+    if len(canonical_json_bytes(packet)) > PACKET_BYTE_LIMIT:
+        _fail("packet", f"must not exceed {PACKET_BYTE_LIMIT} canonical JSON bytes")
     return packet
