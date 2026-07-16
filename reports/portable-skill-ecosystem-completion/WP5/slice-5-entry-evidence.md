@@ -6,7 +6,7 @@ Gate execution revision:
 `30bc3aca236f1281cfc181fce1e8fb8cc5bf3320`.
 
 Functional implementation revision:
-`9b9c1aadd2e78c4447653d3e32b37770ec9a27fb`.
+`644b94793f146008bc6b86e0be4df6f5d680ea09`.
 
 Verified WP4 substrate revision:
 `d1a6316f0c57abc5e2162c477d6d56f51165cf14`, tree
@@ -114,7 +114,7 @@ Darwin-arm64 live report passed every budget and reproduced the verified
 source-tree and stable-result hashes. The recomputed committed-platform matrix
 was byte-identical to `platform-matrix.json`.
 
-The gate JSON SHA-256 was
+The original gate JSON SHA-256 was
 `ec5857b0ad6a0ecf89dcecc64a18e819cd20a8f99e7dd1c8167197130f106a7b`.
 Its live report was intentionally temporary because timing fields are
 machine/run provenance; its SHA-256 was
@@ -125,7 +125,7 @@ machine/run provenance; its SHA-256 was
 ```text
 .venv/bin/python -m pytest --override-ini addopts= -q \
   -p no:cacheprovider tests/test_wp5_wp4_entry_gate.py
-8 passed in 0.11s; exit 0
+9 passed in 0.15s; exit 0
 
 .venv/bin/ruff check \
   scripts/check_wp5_wp4_entry_gate.py tests/test_wp5_wp4_entry_gate.py
@@ -152,8 +152,8 @@ claimed.
 
 | Owned path | SHA-256 |
 |---|---|
-| `scripts/check_wp5_wp4_entry_gate.py` | `769c4e0875bfde97c5faf9a93313354ef2aba3e18533be0724904fa11510ae24` |
-| `tests/test_wp5_wp4_entry_gate.py` | `142e2285892adc4909329b9fb1d7708f7a45e338e2e632f8cf66f415dd6e9725` |
+| `scripts/check_wp5_wp4_entry_gate.py` | `457b242c3542b15d58c096e9e5a5a2e3e9460af4106921a2e3e7826ff6f9d43b` |
+| `tests/test_wp5_wp4_entry_gate.py` | `f6b36b4427d2aa4e2fd5bd7c62ceeebf90e7f941a4b537b3ca781c66a5160132` |
 
 At capture, the shared worktree also contained unrelated agent-policy logs,
 WP3 core-leakage fixtures/tests, and WP5 native registry/shim/adapters/fixtures
@@ -164,3 +164,14 @@ tests, fixtures, and WP4 spec scopes were clean.
 Current action: IM-12 is complete and IM-13/IM-14 may now begin against only
 the verified WP4 interface. Last fully completed WP5 acceptance criterion:
 none.
+
+## Shared-worktree interpreter repair
+
+An isolated parser-member worktree exposed that the first gate revision
+required a checkout-local `.venv`, contradicting the repository contract that
+sub-agents may use an explicit shared virtualenv. Commits `5c9de34` and
+`644b947` changed the check to require a real `pyvenv.cfg`-backed interpreter
+without resolving its Python symlink to the base interpreter. The clean
+committed `644b947` gate then reran all 65 contracts, the live Darwin budget,
+and the deterministic matrix successfully; its JSON SHA-256 is
+`aae1124495b44dcff6d20e4e20af01f29b3d89a4ba325e6830d45fd8b575d9a4`.
