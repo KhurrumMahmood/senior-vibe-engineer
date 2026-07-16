@@ -1,8 +1,8 @@
 """Runtime schemas for the batch-sweep artifact boundary.
 
-These validators define Slice 0's closed version-1 envelopes. They validate
-already-normalized data; later slices own provider execution, identity
-assignment, migration, writing, and command behavior.
+These validators define the closed version-1 envelopes. They validate
+already-normalized data; the manifest module owns identity assignment,
+legacy migration, and writing while later slices own command behavior.
 """
 from __future__ import annotations
 
@@ -414,6 +414,22 @@ def validate_manifest(document: Any, *, allow_prototype: bool = False) -> Mappin
     identifiers = [row["id"] for row in findings]
     if len(identifiers) != len(set(identifiers)):
         _fail("manifest.findings", "duplicate finding id")
+    current_ids = set(identifiers)
+    alias_owners: dict[str, str] = {}
+    for index, row in enumerate(findings):
+        for alias in row["legacy_ids"]:
+            if alias in current_ids:
+                _fail(
+                    f"manifest.findings[{index}].legacy_ids",
+                    "legacy alias must not reference a current finding id",
+                )
+            previous_owner = alias_owners.get(alias)
+            if previous_owner is not None:
+                _fail(
+                    f"manifest.findings[{index}].legacy_ids",
+                    f"legacy alias {alias} is claimed by multiple findings",
+                )
+            alias_owners[alias] = row["id"]
     finding_order = [
         (
             row["identity"]["provider"],
