@@ -23,6 +23,7 @@ code_roots:
   - tests/test_distribution_surfaces.py
   - tests/test_skill_installer.py
   - tests/test_wp3_move_gate.py
+  - tests/test_core_framework_leakage.py
 ---
 
 # Portable skill layers, bindings, discovery, and installation
@@ -234,12 +235,12 @@ evidence contract in the same logical change.
 
 ### Slice 3 — Foundation boundary
 
-- [ ] IM-5: **Core leakage lint.** Add a diff-scoped lint that rejects Django
+- [x] IM-5: **Core leakage lint.** Add a diff-scoped lint that rejects Django
   or Celery in a migrated core `SKILL.md` body, including examples and links,
   while permitting declared files under `bindings/`; reject dishonest
   frontmatter and duplicated core procedure text.
   <!-- spec:portable-skill-layer-distribution::IM-5 -->
-- [ ] IM-6: **Foundation de-flavoring.** Migrate exactly the AR-3 set:
+- [x] IM-6: **Foundation de-flavoring.** Migrate exactly the AR-3 set:
   universal procedure in core, framework examples/defaults in declared
   bindings or non-core appendices, and honest language/framework metadata.
   Compatibility prose cannot be an inline lint exception.
