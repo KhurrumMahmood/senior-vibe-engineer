@@ -696,6 +696,7 @@ def test_registry_owns_native_and_parser_backed_sweep_portfolio():
     assert registry.data["sweep_providers"]["cx"] == {
         "languages": ["python"],
         "provider_kind": "parser-backed-ecosystem",
+        "scope_contract": "declared-scope",
         "runner": "complexity",
         "timeout_seconds": 30,
         "output_format": "json-lines",
@@ -730,6 +731,16 @@ def test_registry_rejects_malformed_parser_backed_provider(tmp_path):
     target.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
     with pytest.raises(RegistryError, match="parser-backed fields must be exactly"):
+        load_registry(target)
+
+
+def test_registry_rejects_false_provider_scope_capability(tmp_path):
+    payload = yaml.safe_load(load_registry().path.read_text(encoding="utf-8"))
+    payload["sweep_providers"]["ruff"]["scope_contract"] = "declared-scope"
+    target = tmp_path / "registry.yml"
+    target.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+
+    with pytest.raises(RegistryError, match="native provider requires full-root"):
         load_registry(target)
 
 

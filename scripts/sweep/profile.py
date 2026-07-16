@@ -171,6 +171,23 @@ def validate_sweep_profile(
     ]
     if fully_excluded:
         raise SweepProfileError(f"scope paths are fully excluded: {fully_excluded}")
+    selected_providers = {
+        provider
+        for language in languages
+        for provider in registry.data["sweep_targets"][language]
+    }
+    full_root_providers = sorted(
+        provider
+        for provider in selected_providers
+        if registry.data["sweep_providers"][provider]["scope_contract"] == "full-root"
+    )
+    if full_root_providers and (
+        paths != (".",) or roots != (".",) or exclusions
+    ):
+        raise SweepProfileError(
+            "selected full-root providers cannot execute narrowed paths or exclusions: "
+            f"{full_root_providers}"
+        )
     return SweepProfile(
         languages=tuple(languages),
         paths=paths,

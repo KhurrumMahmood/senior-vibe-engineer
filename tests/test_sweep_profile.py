@@ -14,7 +14,7 @@ def _profile() -> dict[str, object]:
         "languages": ["go", "python", "rust", "typescript"],
         "paths": ["."],
         "roots": ["."],
-        "exclusions": ["vendor"],
+        "exclusions": [],
         "case_sensitive": True,
     }
 
@@ -40,7 +40,10 @@ def test_profile_is_strict_deterministic_and_registry_backed(tmp_path):
         (lambda row: row.update(languages=["css"]), "lack a registered sweep battery"),
         (lambda row: row.update(paths=["../src"]), "outside the repository"),
         (lambda row: row.update(paths=["src"], roots=["packages"]), "outside roots"),
-        (lambda row: row.update(paths=["vendor"]), "fully excluded"),
+        (
+            lambda row: row.update(paths=["vendor"], exclusions=["vendor"]),
+            "fully excluded",
+        ),
         (lambda row: row.update(exclusions=["../vendor"]), "outside the repository"),
     ],
 )
@@ -58,6 +61,14 @@ def test_case_insensitive_profile_rejects_equivalent_duplicates():
     document["paths"] = ["SRC", "src"]
 
     with pytest.raises(SweepProfileError, match="case-equivalent duplicates"):
+        validate_sweep_profile(document)
+
+
+def test_profile_rejects_scope_native_tools_do_not_execute():
+    document = _profile()
+    document.update(paths=["src"], roots=["."], exclusions=[])
+
+    with pytest.raises(SweepProfileError, match="full-root providers"):
         validate_sweep_profile(document)
 
 

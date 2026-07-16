@@ -349,6 +349,7 @@ sweep_providers:
   cx:
     languages: [python]
     provider_kind: parser-backed-ecosystem
+    scope_contract: declared-scope
     runner: complexity
     timeout_seconds: 30
     output_format: json-lines
@@ -357,6 +358,7 @@ sweep_providers:
   omnibus:
     languages: [python, typescript]
     provider_kind: parser-backed-ecosystem
+    scope_contract: declared-scope
     runner: omnibus
     timeout_seconds: 30
     output_format: json-lines
@@ -365,6 +367,7 @@ sweep_providers:
   ruff:
     languages: [python]
     provider_kind: native
+    scope_contract: full-root
     executable: [.venv/bin/ruff, ruff]
     argv: [check, --output-format, json, --no-cache, .]
     version_argv: [--version]
@@ -379,6 +382,7 @@ sweep_providers:
   eslint:
     languages: [javascript, typescript]
     provider_kind: native
+    scope_contract: full-root
     executable: [node_modules/.bin/eslint, eslint]
     argv: [--format, json, .]
     version_argv: [--version]
@@ -393,6 +397,7 @@ sweep_providers:
   typescript-compiler:
     languages: [typescript]
     provider_kind: native
+    scope_contract: full-root
     executable: [node_modules/.bin/tsc, tsc]
     argv: [--pretty, 'false', --noEmit, --project, tsconfig.json]
     version_argv: [--version]
@@ -407,6 +412,7 @@ sweep_providers:
   clippy:
     languages: [rust]
     provider_kind: native
+    scope_contract: full-root
     executable: [cargo]
     argv: [clippy, --message-format, json, --all-targets, --all-features]
     version_argv: [clippy, --version]
@@ -421,6 +427,7 @@ sweep_providers:
   go-vet:
     languages: [go]
     provider_kind: native
+    scope_contract: full-root
     executable: [go]
     argv: [vet, -json, ./...]
     version_argv: [tool, vet, '-V=full']

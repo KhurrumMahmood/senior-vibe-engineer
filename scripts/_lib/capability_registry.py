@@ -621,6 +621,7 @@ def load_registry(path: Path | None = None) -> CapabilityRegistry:
         common_fields = {
             "languages",
             "provider_kind",
+            "scope_contract",
             "timeout_seconds",
             "output_format",
             "output_byte_limit",
@@ -632,7 +633,13 @@ def load_registry(path: Path | None = None) -> CapabilityRegistry:
                 raise RegistryError(f"{prefix}.{field} must be positive")
         if not isinstance(entry.get("output_format"), str) or not entry["output_format"]:
             raise RegistryError(f"{prefix}.output_format must be a non-empty string")
+        if entry.get("scope_contract") not in {"full-root", "declared-scope"}:
+            raise RegistryError(f"{prefix}.scope_contract is not recognized")
         if provider_kind == "parser-backed-ecosystem":
+            if entry["scope_contract"] != "declared-scope":
+                raise RegistryError(
+                    f"{prefix} parser-backed provider requires declared-scope"
+                )
             expected_fields = common_fields | {"runner"}
             if set(entry) != expected_fields:
                 raise RegistryError(
@@ -645,6 +652,8 @@ def load_registry(path: Path | None = None) -> CapabilityRegistry:
             raise RegistryError(
                 f"{prefix}.provider_kind must be 'native' or 'parser-backed-ecosystem'"
             )
+        if entry["scope_contract"] != "full-root":
+            raise RegistryError(f"{prefix} native provider requires full-root")
         expected_fields = common_fields | {
             "executable",
             "argv",
