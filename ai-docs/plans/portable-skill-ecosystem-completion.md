@@ -98,21 +98,21 @@ Completion rules:
 
 ## Progress summary
 
-Last updated: 2026-07-16 by Codex (WP0 reimplemented; final verification pending)
+Last updated: 2026-07-16 by Codex (WP0 verified; WP1 next)
 
 | State | Count |
 |---|---:|
 | not_started | 10 |
 | in_progress | 0 |
 | blocked | 0 |
-| implemented | 1 |
-| verified | 0 |
+| implemented | 0 |
+| verified | 1 |
 
 ## Master tracker
 
 | Work package | Status | Owner | Depends on | Acceptance criteria | Evidence / verifier | Blocker or next action |
 |---|---|---|---|---|---|---|
-| WP0 Trusted baseline and plan consolidation | implemented | Codex | — | AC-0.1–AC-0.5 | `evidence.md`; failed attempt records; `pre-retirement-verification.md`; final verifier pending | Pre-retirement zero-unmapped verdict passed at `25fab54`; predecessor retired in the next checkpoint. Rerun full AC-0.1–AC-0.5 matrix on the clean post-retirement revision. |
+| WP0 Trusted baseline and plan consolidation | verified | Codex | — | AC-0.1–AC-0.5 | `reports/portable-skill-ecosystem-completion/WP0/final-verification.md` (plus linked implementation/attempt/pre-retirement records) | All five ACs independently passed at clean revision `fae13d4`; next dependency-ready package is WP1. |
 | WP1 Canonical stack and capability contract | not_started | — | WP0 | AC-1.1–AC-1.7 | — | Resolve D1–D5 and implement one validated registry. |
 | WP2 Capability-aware host profiling and routing | not_started | — | WP1 | AC-2.1–AC-2.6 | — | Make adaptation, routing, perimeter, and inherited Class B/C surfaces use the same profile. |
 | WP3 Load-bearing layers, bindings, and installer | not_started | — | WP1, WP2 | AC-3.1–AC-3.7 | — | Implement the packaging/discovery decision and exemplar binding. |
@@ -979,6 +979,7 @@ reported no P0 blockers and returned `READY`.
 | 2026-07-16 | `/root/wp0_preretirement_final` | Pre-retirement revision `3042c39` returned `FAIL — DO NOT RETIRE`: route-sprawl/Class A baseline facts lacked preservation criteria; the WP3 safety gate was ambiguous with formal W5 order and an ADR escape weakened that order; lite mode did not say standalone/governance optional; first value did not exclude kernel reading; and one status-projection owner was stale. Current action: make baseline preservation and onboarding claims exact, distinguish safety from embodiment, remove the order escape, and repair the owner; last evidence revision: `3042c39`. | No status-count change; predecessor remains `scoped`, WP0 remains `in_progress`. |
 | 2026-07-16 | `/root/wp0_preretirement_gate` | Pre-retirement revision `771c3db` passed every W1–W6 and Success 1–6 mapping but returned `FAIL — DO NOT RETIRE` because one active status-projection sentence still said ADR 0003 landed with W5 instead of AC-8.9/WP8. Current action: correct that sole contradiction and repeat the zero-unmapped gate; last evidence revision: `771c3db`. | No status-count change; predecessor remains `scoped`, WP0 remains `in_progress`. |
 | 2026-07-16 | `/root/wp0_zero_unmapped` + Codex | Fresh-context revision `25fab54` passed W1–W6, Success 1–6, all acceptance amendments, and active/hidden reference inspection with `ZERO UNMAPPED — READY TO RETIRE`. The next commit records the signed verdict and retires the predecessor; current action: final full WP0 verification; last evidence revision: `25fab54`. | Predecessor → `abandoned`; WP0 → `implemented`; summary now 10 not started / 1 implemented. |
+| 2026-07-16 | `/root/wp0_final_verifier` + Codex | Final fresh-context verification at clean revision `fae13d4` reran all required commands and issued PASS for AC-0.1–AC-0.5 with no missing evidence or unsupported claims. Current action: start WP1; last evidence revision: `fae13d4`. | WP0 → `verified`; summary now 10 not started / 1 verified. |
 
 ## Promotion notes
 
