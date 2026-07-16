@@ -36,6 +36,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 import engineering_home as _eh  # noqa: E402
 from _lib.skill_activation import (  # noqa: E402
+    ActivationError,
     decide_catalog_activation,
     load_skill_metadata,
 )
@@ -544,9 +545,18 @@ def route(
 
     score, winner, rationale = ranked[0]
     confidence = "high" if score >= 40 else "medium" if score >= 24 else "low"
-    activation_steps = _activation_steps(
-        winner["first_next"], winner["sequence"], project_root, skills_dir
-    )
+    activation_error: str | None = None
+    try:
+        activation_steps = _activation_steps(
+            winner["first_next"], winner["sequence"], project_root, skills_dir
+        )
+    except ActivationError as exc:
+        activation_steps = []
+        activation_error = str(exc)
+        rationale = [
+            "skill activation is incomplete because the host profile is invalid",
+            *rationale,
+        ]
     perimeter = _whole_codebase_perimeter(
         str(winner["id"]), project_root, skills_dir
     )
@@ -569,6 +579,8 @@ def route(
         "inactive_steps": _inactive_steps(activation_steps),
         "perimeter_audit": perimeter,
     }
+    if activation_error is not None:
+        recommendation["activation_error"] = activation_error
     alternatives = [
         {
             "shape": shape["id"],

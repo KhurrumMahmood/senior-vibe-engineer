@@ -10,6 +10,7 @@ motivating_decision: "0038"
 # audit-only `<!-- spec: -->` markers in the changed files.
 code_roots:
   - scripts/_lib/host_profile.py
+  - scripts/_lib/perimeter_audit.py
   - scripts/_lib/skill_activation.py
   - scripts/project_adapt.py
   - scripts/manifest.py

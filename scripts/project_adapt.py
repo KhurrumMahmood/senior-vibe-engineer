@@ -16,7 +16,6 @@ import argparse
 import datetime as _dt
 import json
 import re
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -33,6 +32,10 @@ sys.path.insert(0, str(REPO_ROOT / ".claude" / "skills" / "_common"))
 import engineering_home as _eh  # noqa: E402
 from _lib.capability_registry import load_registry  # noqa: E402
 from _lib.host_profile import profile_host, validate_host_profile  # noqa: E402
+from _lib.perimeter_audit import (  # noqa: E402
+    run_perimeter_audit,
+    validate_perimeter_artifacts,
+)
 
 CAPABILITY_REGISTRY = load_registry()
 ADAPTER_SCHEMA_VERSION = 3
@@ -593,49 +596,6 @@ def _update_latest(scan_dir: Path) -> None:
         pass
 
 
-# spec:portable-host-profile-routing::IM-4
-def run_perimeter_audit(
-    project_root: Path,
-    host_profile_path: Path,
-    scan_dir: Path,
-) -> dict[str, Any]:
-    """Run the mandatory profile-derived perimeter audit and return its payload."""
-    perimeter_json = scan_dir / "perimeter.json"
-    completed = subprocess.run(
-        [
-            sys.executable,
-            str(REPO_ROOT / ".claude" / "skills" / "find-perimeter-gaps" / "scripts" / "scan.py"),
-            "--project-root",
-            str(project_root),
-            "--skills-root",
-            str(REPO_ROOT / ".claude" / "skills"),
-            "--host-profile",
-            str(host_profile_path),
-            "--output",
-            str(perimeter_json),
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-        timeout=120,
-    )
-    (scan_dir / "perimeter.md").write_text(completed.stdout, encoding="utf-8")
-    if completed.returncode != 0:
-        raise RuntimeError(
-            "mandatory perimeter audit failed: "
-            f"exit={completed.returncode} stderr={completed.stderr.strip()}"
-        )
-    if not perimeter_json.is_file() or not (scan_dir / "perimeter.md").is_file():
-        raise RuntimeError("mandatory perimeter audit did not produce required artifacts")
-    try:
-        payload = json.loads(perimeter_json.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise RuntimeError(f"mandatory perimeter audit produced invalid JSON: {exc}") from exc
-    if not isinstance(payload, dict) or not isinstance(payload.get("gaps"), list):
-        raise RuntimeError("mandatory perimeter audit produced an invalid result shape")
-    return payload
-
-
 def write_discovery(
     project_root: Path,
     artifact_root: Path,
@@ -655,9 +615,12 @@ def write_discovery(
     scan_dir.mkdir(parents=True, exist_ok=True)
     _safe_yaml_dump(scan_dir / "host-profile.yml", host_profile)
     _write_json(scan_dir / "host-profile.json", host_profile)
-    perimeter = run_perimeter_audit(project_root, scan_dir / "host-profile.json", scan_dir)
-    if not isinstance(perimeter, dict):
-        raise RuntimeError("mandatory perimeter audit was bypassed")
+    returned_perimeter = run_perimeter_audit(
+        project_root,
+        scan_dir / "host-profile.json",
+        scan_dir,
+    )
+    perimeter = validate_perimeter_artifacts(scan_dir, host_profile, returned_perimeter)
     gaps = perimeter["gaps"]
     adapter["adoption"] = {
         "status": "ready" if not gaps else "incomplete_coverage",

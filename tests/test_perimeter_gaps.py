@@ -16,6 +16,7 @@ Plain ``unittest`` so the same file runs under Django's test runner
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import platform
 import sys
@@ -119,6 +120,13 @@ def _write_skill_metadata(skill_dir: Path, metadata: dict) -> None:
         f"---\n{yaml.safe_dump(metadata, sort_keys=False)}---\n\n# /{metadata['name']}\n",
         encoding="utf-8",
     )
+
+
+def _rehash_profile(profile: dict) -> None:
+    unhashed = dict(profile)
+    unhashed.pop("profile_sha256", None)
+    encoded = json.dumps(unhashed, sort_keys=True, separators=(",", ":")).encode()
+    profile["profile_sha256"] = hashlib.sha256(encoded).hexdigest()
 
 
 class PerimeterGapsTests(unittest.TestCase):
@@ -296,6 +304,32 @@ class PerimeterGapsTests(unittest.TestCase):
                 payload["accepted_exclusions"],
                 [{"root": ".", "language": "typescript", "reason": "temporary migration gap"}],
             )
+
+    def test_profile_mode_rejects_rehashed_malformed_profile_before_false_clean(self) -> None:
+        scan = _load_scan()
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "host"
+            root.mkdir()
+            (root / "package.json").write_text('{"devDependencies":{"typescript":"5.9.3"}}')
+            (root / "tsconfig.json").write_text("{}\n")
+            (root / "src").mkdir()
+            (root / "src" / "large.ts").write_text("export const value = 1;\n" * 1200)
+            profile = profile_host(root)
+            profile["roots"][0]["code_roots"] = "src"
+            _rehash_profile(profile)
+            profile_path = Path(d) / "host-profile.json"
+            profile_path.write_text(json.dumps(profile), encoding="utf-8")
+            output = Path(d) / "perimeter.json"
+
+            rc = scan.main([
+                "--project-root", str(root),
+                "--host-profile", str(profile_path),
+                "--output", str(output),
+                "--fail-on-gap",
+            ])
+
+            self.assertEqual(rc, 2)
+            self.assertFalse(output.exists())
 
     def test_accepted_exclusion_without_reason_is_rejected(self) -> None:
         scan = _load_scan()

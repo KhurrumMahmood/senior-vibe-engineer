@@ -1,6 +1,8 @@
 """Canonical deterministic host-profile contract for WP2."""
 from __future__ import annotations
 
+import copy
+import hashlib
 import json
 from pathlib import Path
 
@@ -56,6 +58,13 @@ def _assert_evidenced(profile: dict) -> None:
             for item in root["evidence"]
         }
         assert asserted <= evidenced
+
+
+def _rehash(profile: dict) -> None:
+    unhashed = dict(profile)
+    unhashed.pop("profile_sha256", None)
+    encoded = json.dumps(unhashed, sort_keys=True, separators=(",", ":")).encode()
+    profile["profile_sha256"] = hashlib.sha256(encoded).hexdigest()
 
 
 # spec:portable-host-profile-routing::IM-2
@@ -132,6 +141,71 @@ def test_validator_rejects_unregistered_and_unevidenced_assertions(tmp_path):
 
     assert any("unregistered" in error and "bogus" in error for error in errors)
     assert any("no evidence" in error and "react" in error for error in errors)
+
+
+def test_validator_rejects_rehashed_malformed_nested_shapes_and_aggregates(tmp_path):
+    _seed_django(tmp_path)
+    valid = profile_host(tmp_path)
+    mutations = {
+        "unknown top field": lambda item: item.__setitem__("unexpected", True),
+        "boolean schema version": lambda item: item.__setitem__("schema_version", True),
+        "boolean registry version": lambda item: item.__setitem__(
+            "capability_registry_version", True
+        ),
+        "boolean contract version": lambda item: item.__setitem__(
+            "capability_contract_version", True
+        ),
+        "project mapping": lambda item: item.__setitem__("project", "sample"),
+        "project name": lambda item: item["project"].__setitem__("name", 7),
+        "root mapping": lambda item: item["roots"].__setitem__(0, "app"),
+        "root path": lambda item: item["roots"][0].__setitem__("path", 7),
+        "root traversal": lambda item: item["roots"][0].__setitem__("path", "../app"),
+        "languages": lambda item: item["roots"][0].__setitem__("languages", "python"),
+        "code roots": lambda item: item["roots"][0].__setitem__("code_roots", "app"),
+        "commands mapping": lambda item: item["roots"][0].__setitem__("commands", []),
+        "command list": lambda item: item["roots"][0]["commands"].__setitem__(
+            "test", "pytest"
+        ),
+        "empty command": lambda item: item["roots"][0]["commands"].__setitem__(
+            "test", [" "]
+        ),
+        "evidence list": lambda item: item["roots"][0].__setitem__("evidence", "marker"),
+        "evidence path": lambda item: item["roots"][0]["evidence"][0].__setitem__(
+            "path", 7
+        ),
+        "evidence identifier": lambda item: item["roots"][0]["evidence"][0].__setitem__(
+            "identifier", 7
+        ),
+        "evidence kind": lambda item: item["roots"][0]["evidence"][0].__setitem__(
+            "kind", 7
+        ),
+        "aggregate languages": lambda item: item["stack"].__setitem__("languages", []),
+        "aggregate mapping": lambda item: item.__setitem__("stack", []),
+        "project roots": lambda item: item["stack"].__setitem__("project_roots", "app"),
+        "exclusion pattern": lambda item: item["exclusions"][0].__setitem__(
+            "pattern", 7
+        ),
+        "exclusion reason": lambda item: item["exclusions"][0].__setitem__("reason", 7),
+        "component kind": lambda item: item["component_profile"].__setitem__("kind", 7),
+        "component root": lambda item: item["component_profile"].__setitem__(
+            "definitions_root", 7
+        ),
+        "component pattern": lambda item: item["component_profile"].__setitem__(
+            "reference_pattern", 7
+        ),
+        "component extensions": lambda item: item["component_profile"].__setitem__(
+            "extensions", ".html"
+        ),
+        "surface label": lambda item: item.__setitem__("surface_labels", {"app": 7}),
+        "surface selector": lambda item: item.__setitem__("surface_labels", {7: "app"}),
+        "missing block": lambda item: item.pop("component_profile"),
+    }
+
+    for label, mutate in mutations.items():
+        candidate = copy.deepcopy(valid)
+        mutate(candidate)
+        _rehash(candidate)
+        assert validate_host_profile(candidate), label
 
 
 def test_profile_component_and_surface_defaults_are_neutral(tmp_path):

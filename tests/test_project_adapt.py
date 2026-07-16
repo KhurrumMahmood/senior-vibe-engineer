@@ -219,9 +219,51 @@ def test_adaptation_cannot_bypass_perimeter_artifact(monkeypatch, tmp_path):
     project = tmp_path / "project"
     artifacts = tmp_path / "artifacts"
     seed_django_repo(project)
-    monkeypatch.setattr(project_adapt, "run_perimeter_audit", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        project_adapt,
+        "run_perimeter_audit",
+        lambda *args, **kwargs: {"gaps": []},
+    )
 
     with pytest.raises(RuntimeError, match="mandatory perimeter audit"):
+        project_adapt.write_discovery(
+            project,
+            artifacts,
+            timestamp="20260517-120000",
+            apply=False,
+            no_host_write=True,
+        )
+
+    scan_dir = artifacts / "reports" / "adapt-project" / "scan-20260517-120000"
+    assert not (scan_dir / "perimeter.json").exists()
+    assert not (scan_dir / "perimeter.md").exists()
+
+
+def test_adaptation_rejects_perimeter_artifacts_bound_to_another_profile(
+    monkeypatch, tmp_path
+):
+    project = tmp_path / "project"
+    artifacts = tmp_path / "artifacts"
+    seed_django_repo(project)
+
+    def forged_audit(_project, _profile_path, scan_dir):
+        payload = {
+            "schema_version": 2,
+            "coverage_mode": "executable-evidence",
+            "host_profile_sha256": "not-this-profile",
+            "profile_exclusions": [],
+            "accepted_exclusions": [],
+            "detectors": [],
+            "cells": [],
+            "gaps": [],
+        }
+        (scan_dir / "perimeter.json").write_text(json.dumps(payload), encoding="utf-8")
+        (scan_dir / "perimeter.md").write_text("# forged\n", encoding="utf-8")
+        return payload
+
+    monkeypatch.setattr(project_adapt, "run_perimeter_audit", forged_audit)
+
+    with pytest.raises(RuntimeError, match="host profile"):
         project_adapt.write_discovery(
             project,
             artifacts,

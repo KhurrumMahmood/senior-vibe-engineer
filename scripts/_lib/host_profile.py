@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .capability_registry import CapabilityRegistry, load_registry
@@ -337,49 +337,259 @@ def validate_host_profile(
 ) -> list[str]:
     selected_registry = registry or load_registry()
     errors: list[str] = []
-    if payload.get("schema_version") != HOST_PROFILE_SCHEMA_VERSION:
+    if not isinstance(payload, dict):
+        return ["host-profile must be a mapping"]
+
+    def require_keys(value: object, expected: set[str], prefix: str) -> bool:
+        if not isinstance(value, dict):
+            errors.append(f"{prefix} must be a mapping")
+            return False
+        missing = sorted(expected - set(value))
+        extra = sorted(set(value) - expected)
+        if missing:
+            errors.append(f"{prefix} is missing fields: {missing}")
+        if extra:
+            errors.append(f"{prefix} has unknown fields: {extra}")
+        return not missing and not extra
+
+    def string_list(value: object, prefix: str) -> list[str] | None:
+        if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+            errors.append(f"{prefix} must be a list of strings")
+            return None
+        if any(not item.strip() for item in value):
+            errors.append(f"{prefix} entries must be non-empty")
+        if value != sorted(set(value)):
+            errors.append(f"{prefix} must be unique and sorted")
+        return value
+
+    def relative_path(value: object, prefix: str, *, allow_empty: bool = False) -> bool:
+        if not isinstance(value, str) or (not value and not allow_empty):
+            errors.append(f"{prefix} must be a {'possibly empty ' if allow_empty else 'non-empty '}string")
+            return False
+        if not value:
+            return True
+        candidate = PurePosixPath(value)
+        if (
+            "\\" in value
+            or "\x00" in value
+            or candidate.is_absolute()
+            or ".." in candidate.parts
+            or candidate.as_posix() != value
+        ):
+            errors.append(f"{prefix} must be a normalized relative POSIX path")
+            return False
+        return True
+
+    top_fields = {
+        "schema_version",
+        "capability_registry_version",
+        "capability_contract_version",
+        "project",
+        "roots",
+        "stack",
+        "exclusions",
+        "component_profile",
+        "surface_labels",
+        "profile_sha256",
+    }
+    require_keys(payload, top_fields, "host-profile")
+    if (
+        type(payload.get("schema_version")) is not int
+        or payload.get("schema_version") != HOST_PROFILE_SCHEMA_VERSION
+    ):
         errors.append("unsupported host-profile schema_version")
-    if payload.get("capability_registry_version") != selected_registry.schema_version:
+    if (
+        type(payload.get("capability_registry_version")) is not int
+        or payload.get("capability_registry_version") != selected_registry.schema_version
+    ):
         errors.append("host-profile capability_registry_version does not match registry")
-    if payload.get("capability_contract_version") != selected_registry.contract_version:
+    if (
+        type(payload.get("capability_contract_version")) is not int
+        or payload.get("capability_contract_version") != selected_registry.contract_version
+    ):
         errors.append("host-profile capability_contract_version does not match registry")
-    roots = payload.get("roots")
-    if not isinstance(roots, list) or not roots:
+    project = payload.get("project")
+    if require_keys(project, {"name"}, "host-profile.project"):
+        name = project.get("name")
+        if not isinstance(name, str) or not name.strip():
+            errors.append("host-profile.project.name must be a non-empty string")
+
+    roots_value = payload.get("roots")
+    if not isinstance(roots_value, list) or not roots_value:
         errors.append("host-profile roots must be a non-empty list")
-        return errors
+        roots: list[object] = []
+    else:
+        roots = roots_value
     paths = [item.get("path") for item in roots if isinstance(item, dict)]
-    if paths != sorted(paths) or len(paths) != len(set(paths)):
+    if (
+        len(paths) != len(roots)
+        or any(not isinstance(path, str) for path in paths)
+        or paths != sorted(set(paths))
+    ):
         errors.append("host-profile root paths must be unique and sorted")
+    root_stacks: list[dict[str, list[str]]] = []
     for index, item in enumerate(roots):
+        prefix = f"host-profile.roots[{index}]"
         if not isinstance(item, dict):
-            errors.append(f"host-profile roots[{index}] must be a mapping")
+            errors.append(f"{prefix} must be a mapping")
             continue
-        stack = {category: item.get(category, []) for category in ("languages", "frameworks", "tools")}
-        errors.extend(selected_registry.validate_stack(stack, prefix=f"host-profile.roots[{index}]"))
+        require_keys(
+            item,
+            {"path", "languages", "frameworks", "tools", "code_roots", "commands", "evidence"},
+            prefix,
+        )
+        relative_path(item.get("path"), f"{prefix}.path")
+        stack: dict[str, list[str]] = {}
+        for category in ("languages", "frameworks", "tools"):
+            identifiers = string_list(item.get(category), f"{prefix}.{category}")
+            stack[category] = identifiers or []
+        if all(isinstance(item.get(category), list) for category in stack):
+            errors.extend(selected_registry.validate_stack(stack, prefix=prefix))
+        root_stacks.append(stack)
+
+        code_roots = string_list(item.get("code_roots"), f"{prefix}.code_roots")
+        for root_index, code_root in enumerate(code_roots or []):
+            relative_path(code_root, f"{prefix}.code_roots[{root_index}]")
+
+        commands = item.get("commands")
+        if require_keys(commands, set(COMMAND_KINDS), f"{prefix}.commands"):
+            for command_kind in COMMAND_KINDS:
+                string_list(commands.get(command_kind), f"{prefix}.commands.{command_kind}")
+
         evidence = item.get("evidence")
-        observed = {
-            (record.get("category"), record.get("identifier"))
-            for record in evidence
-            if isinstance(record, dict)
-        } if isinstance(evidence, list) else set()
-        for category, identifiers in stack.items():
-            if not isinstance(identifiers, list):
+        if not isinstance(evidence, list):
+            errors.append(f"{prefix}.evidence must be a list")
+            evidence = []
+        observed: set[tuple[str, str]] = set()
+        evidence_order: list[tuple[str, str, str]] = []
+        for evidence_index, record in enumerate(evidence):
+            evidence_prefix = f"{prefix}.evidence[{evidence_index}]"
+            if not require_keys(
+                record,
+                {"category", "identifier", "kind", "path"},
+                evidence_prefix,
+            ):
                 continue
+            category = record.get("category")
+            identifier = record.get("identifier")
+            kind = record.get("kind")
+            evidence_path = record.get("path")
+            if category not in {"languages", "frameworks", "tools"}:
+                errors.append(f"{evidence_prefix}.category is invalid")
+            if not isinstance(identifier, str) or not identifier:
+                errors.append(f"{evidence_prefix}.identifier must be a non-empty string")
+            if kind not in {"marker", "extension", "package-token", "fallback-marker"}:
+                errors.append(f"{evidence_prefix}.kind is invalid")
+            path_ok = relative_path(evidence_path, f"{evidence_prefix}.path")
+            if isinstance(category, str) and isinstance(identifier, str):
+                if category in stack and identifier not in stack[category]:
+                    errors.append(f"{evidence_prefix} does not match an asserted stack identifier")
+                observed.add((category, identifier))
+            if (
+                isinstance(category, str)
+                and isinstance(identifier, str)
+                and isinstance(evidence_path, str)
+                and path_ok
+            ):
+                evidence_order.append((category, identifier, evidence_path))
+        if len(evidence_order) != len(evidence) or evidence_order != sorted(set(evidence_order)):
+            errors.append(f"{prefix}.evidence must be unique and sorted")
+        for category, identifiers in stack.items():
             for identifier in identifiers:
                 if (category, identifier) not in observed:
                     errors.append(
-                        f"host-profile.roots[{index}].{category}.{identifier} has no evidence"
+                        f"{prefix}.{category}.{identifier} has no evidence"
                     )
-        commands = item.get("commands")
-        if not isinstance(commands, dict) or set(commands) != set(COMMAND_KINDS):
-            errors.append(f"host-profile.roots[{index}].commands has invalid shape")
+
+    stack_value = payload.get("stack")
+    stack_fields = {"languages", "frameworks", "tools", "project_roots"}
+    if require_keys(stack_value, stack_fields, "host-profile.stack"):
+        aggregate: dict[str, list[str]] = {}
+        for category in ("languages", "frameworks", "tools"):
+            values = string_list(stack_value.get(category), f"host-profile.stack.{category}")
+            aggregate[category] = values or []
+        errors.extend(selected_registry.validate_stack(aggregate, prefix="host-profile.stack"))
+        expected_aggregate = {
+            category: sorted({identifier for root_stack in root_stacks for identifier in root_stack[category]})
+            for category in ("languages", "frameworks", "tools")
+        }
+        if aggregate != expected_aggregate:
+            errors.append("host-profile.stack does not equal the aggregate root stack")
+
+        project_roots = stack_value.get("project_roots")
+        if not isinstance(project_roots, list):
+            errors.append("host-profile.stack.project_roots must be a list")
+        else:
+            projected_paths: list[str] = []
+            for project_index, record in enumerate(project_roots):
+                project_prefix = f"host-profile.stack.project_roots[{project_index}]"
+                if not require_keys(record, {"path", "kind"}, project_prefix):
+                    continue
+                if relative_path(record.get("path"), f"{project_prefix}.path"):
+                    projected_paths.append(record["path"])
+                if record.get("kind") != "code":
+                    errors.append(f"{project_prefix}.kind must be 'code'")
+            if projected_paths != paths:
+                errors.append("host-profile.stack.project_roots must exactly project root paths")
+
     exclusions = payload.get("exclusions")
-    if not isinstance(exclusions, list) or any(
-        not isinstance(item, dict) or not item.get("pattern") or not item.get("reason")
-        for item in exclusions or []
+    if not isinstance(exclusions, list):
+        errors.append("host-profile.exclusions must be a list")
+    else:
+        patterns: list[str] = []
+        for index, item in enumerate(exclusions):
+            prefix = f"host-profile.exclusions[{index}]"
+            if not require_keys(item, {"pattern", "reason"}, prefix):
+                continue
+            pattern = item.get("pattern")
+            reason = item.get("reason")
+            if not isinstance(pattern, str) or not pattern.strip():
+                errors.append(f"{prefix}.pattern must be a non-empty string")
+            else:
+                patterns.append(pattern)
+            if not isinstance(reason, str) or not reason.strip():
+                errors.append(f"{prefix}.reason must be a non-empty string")
+        if len(patterns) != len(set(patterns)):
+            errors.append("host-profile exclusion patterns must be unique")
+
+    component = payload.get("component_profile")
+    if require_keys(
+        component,
+        {"kind", "definitions_root", "reference_pattern", "extensions"},
+        "host-profile.component_profile",
     ):
-        errors.append("host-profile exclusions require pattern and reason")
+        if not isinstance(component.get("kind"), str) or not component["kind"].strip():
+            errors.append("host-profile.component_profile.kind must be a non-empty string")
+        relative_path(
+            component.get("definitions_root"),
+            "host-profile.component_profile.definitions_root",
+            allow_empty=True,
+        )
+        if not isinstance(component.get("reference_pattern"), str):
+            errors.append("host-profile.component_profile.reference_pattern must be a string")
+        extensions = string_list(
+            component.get("extensions"),
+            "host-profile.component_profile.extensions",
+        )
+        if extensions is not None and any(
+            not extension.startswith(".") or "/" in extension or "\\" in extension
+            for extension in extensions
+        ):
+            errors.append("host-profile.component_profile.extensions must be file suffixes")
+
+    labels = payload.get("surface_labels")
+    if not isinstance(labels, dict):
+        errors.append("host-profile.surface_labels must be a mapping")
+    else:
+        for selector, label in labels.items():
+            if not isinstance(selector, str) or not selector.strip():
+                errors.append("host-profile.surface_labels selectors must be non-empty strings")
+            if not isinstance(label, str) or not label.strip():
+                errors.append("host-profile.surface_labels values must be non-empty strings")
+
     claimed_hash = payload.get("profile_sha256")
+    if not isinstance(claimed_hash, str):
+        errors.append("host-profile profile_sha256 must be a string")
     unhashed = dict(payload)
     unhashed.pop("profile_sha256", None)
     if claimed_hash != _profile_hash(unhashed):

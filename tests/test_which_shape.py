@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -29,6 +30,13 @@ skill_compact = _load_module("skill_use_compact", COMPACT_PATH)
 
 def _shape_for(task: str, project_root: Path) -> str:
     return route.route(task, project_root)["recommendation"]["shape"]
+
+
+def _rehash_profile(profile: dict) -> None:
+    unhashed = dict(profile)
+    unhashed.pop("profile_sha256", None)
+    encoded = json.dumps(unhashed, sort_keys=True, separators=(",", ":")).encode()
+    profile["profile_sha256"] = hashlib.sha256(encoded).hexdigest()
 
 
 def test_unknown_inherited_repo_routes_to_project_intake(tmp_path):
@@ -81,6 +89,30 @@ def test_whole_codebase_route_invokes_perimeter_and_withholds_clean_conclusion(t
     assert perimeter["status"] == "incomplete_coverage"
     assert perimeter["coverage_mode"] == "executable-evidence"
     assert perimeter["gaps"][0]["language"] == "typescript"
+
+
+def test_whole_codebase_route_rejects_rehashed_malformed_profile(tmp_path):
+    (tmp_path / "package.json").write_text('{"devDependencies":{"typescript":"5.9.3"}}')
+    (tmp_path / "tsconfig.json").write_text("{}\n")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "large.ts").write_text("export const value = 1;\n" * 3200)
+    profile = profile_host(tmp_path)
+    profile["roots"][0]["commands"]["test"] = "npm test"
+    _rehash_profile(profile)
+    profile_path = tmp_path / ".engineering" / "project" / "host-profile.json"
+    profile_path.parent.mkdir(parents=True)
+    profile_path.write_text(json.dumps(profile), encoding="utf-8")
+
+    result = route.route("audit the whole codebase with a broad health sweep", tmp_path)
+
+    perimeter = result["recommendation"]["perimeter_audit"]
+    assert perimeter["invoked"] is True
+    assert perimeter["exit_code"] == 2
+    assert perimeter["status"] == "error"
+    assert "invalid host profile" in result["recommendation"]["activation_error"]
+    assert result["recommendation"]["rationale"][0].startswith(
+        "whole-codebase perimeter is incomplete"
+    )
 
 
 def test_repeated_failure_routes_to_regression_prevention(tmp_path):
