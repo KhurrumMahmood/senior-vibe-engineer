@@ -36,6 +36,10 @@ def test_registry_exposes_one_versioned_vocabulary():
     assert "vite" in registry.identifiers("tools")
     assert "vite" not in registry.identifiers("frameworks")
     assert registry.language_for_extension(".tsx") == "typescript"
+    assert all(
+        entry.get("minimum_surface_version") and entry.get("discovery")
+        for entry in registry.data["agent_surfaces"].values()
+    )
 
 
 def test_future_language_is_registered_by_data_not_validator_code(tmp_path):

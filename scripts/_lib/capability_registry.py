@@ -308,6 +308,11 @@ def load_registry(path: Path | None = None) -> CapabilityRegistry:
             raise RegistryError(f"scan_targets.{target} requires an adapter or shim")
         if entry.get("support") not in support_states:
             raise RegistryError(f"scan_targets.{target} names unknown support state")
+    for surface, entry in data["agent_surfaces"].items():
+        if not isinstance(entry, dict) or not str(entry.get("minimum_surface_version", "")).strip():
+            raise RegistryError(f"agent_surfaces.{surface} requires a pinned minimum surface version")
+        if not str(entry.get("discovery", "")).strip():
+            raise RegistryError(f"agent_surfaces.{surface} requires a discovery contract")
     return CapabilityRegistry(data=data, path=registry_path)
 
 

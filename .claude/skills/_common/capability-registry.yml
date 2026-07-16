@@ -312,18 +312,23 @@ support:
 agent_surfaces:
   claude-code:
     minimum_contract_version: 1
+    minimum_surface_version: 2.1.211
     discovery: claude-skill-directory-v1
   codex:
     minimum_contract_version: 1
+    minimum_surface_version: 0.144.1
     discovery: codex-plugin-manifest-v1
   augment:
     minimum_contract_version: 1
+    minimum_surface_version: imported-rules-v1
     discovery: augment-imported-rules-v1
   cursor:
     minimum_contract_version: 1
+    minimum_surface_version: project-rules-v1
     discovery: cursor-project-instructions-v1
   gemini:
     minimum_contract_version: 1
+    minimum_surface_version: 0.45.0
     discovery: gemini-project-instructions-v1
 
 completion_floor:
