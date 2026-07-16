@@ -1,7 +1,7 @@
 ---
 name: shareable-core-reorganization
 title: "Shareable-core reorganization: layering, generalization, distribution"
-status: abandoned
+status: scoped
 date: 2026-06-11
 authors: [khurrum, claude-code]
 motivating_decision: "0034"
@@ -12,11 +12,10 @@ workflows: []
 
 # Shareable-core reorganization: layering, generalization, distribution
 
-> Abandoned 2026-07-16 as a duplicate execution authority. Every W1–W6
-> deliverable and success criterion is mapped in the detailed inheritance
-> ledger of `portable-skill-ecosystem-completion.md`; implementation and
-> verification continue there. This file remains as historical scope and
-> decision provenance only.
+> Retirement pending. `portable-skill-ecosystem-completion.md` is the intended
+> successor and contains the detailed W1–W6 inheritance ledger, but AC-0.5
+> requires a fresh-context zero-unmapped verdict before this plan may be marked
+> `abandoned`. Do not start new execution here while that verification runs.
 
 Make the ecosystem easily shareable: a host project (Django today,
 TypeScript/other tomorrow) installs only what applies to it, gets honest

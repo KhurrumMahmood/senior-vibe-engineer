@@ -266,7 +266,7 @@ collect scripts, ci.yml, example settings).
   (revisit when that proves false → the deferred localhost server).
 - ADR 0003 (findings ledger, proposed) — coordination, not conflict:
   one reader seam so `findings.jsonl` slots in as a projection source
-  when shareable-core W5 lands; the projection does not pre-build
+  when portable-skill-ecosystem-completion AC-5.8 lands; the projection does not pre-build
   against the unaccepted schema.
 - ADR 0013 (idea ledger) — in-flight-ideas section reads through
   `ideas_lib.project_all` only.

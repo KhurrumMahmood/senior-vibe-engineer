@@ -98,28 +98,28 @@ Completion rules:
 
 ## Progress summary
 
-Last updated: 2026-07-16 by Codex (WP0 implemented; verification pending)
+Last updated: 2026-07-16 by Codex (WP0 verification failure under repair)
 
 | State | Count |
 |---|---:|
 | not_started | 10 |
-| in_progress | 0 |
+| in_progress | 1 |
 | blocked | 0 |
-| implemented | 1 |
+| implemented | 0 |
 | verified | 0 |
 
 ## Master tracker
 
 | Work package | Status | Owner | Depends on | Acceptance criteria | Evidence / verifier | Blocker or next action |
 |---|---|---|---|---|---|---|
-| WP0 Trusted baseline and plan consolidation | implemented | Codex | — | AC-0.1–AC-0.5 | `reports/portable-skill-ecosystem-completion/WP0/evidence.md`; fresh verifier pending | Implementation checkpoint `9eecd1e`; rerun all ACs and audit the W1–W6 mapping from a clean fresh context. |
+| WP0 Trusted baseline and plan consolidation | in_progress | Codex | — | AC-0.1–AC-0.5 | `reports/portable-skill-ecosystem-completion/WP0/evidence.md`; `verification-attempt-1.md` | AC-0.1–AC-0.4 passed; repair AC-0.5 inheritance/reference/sequencing failures, obtain pre-retirement zero-unmapped verdict, then retire and reverify. |
 | WP1 Canonical stack and capability contract | not_started | — | WP0 | AC-1.1–AC-1.7 | — | Resolve D1–D5 and implement one validated registry. |
 | WP2 Capability-aware host profiling and routing | not_started | — | WP1 | AC-2.1–AC-2.6 | — | Make adaptation, routing, perimeter, and inherited Class B/C surfaces use the same profile. |
 | WP3 Load-bearing layers, bindings, and installer | not_started | — | WP1, WP2 | AC-3.1–AC-3.6 | — | Implement the packaging/discovery decision and exemplar binding. |
 | WP4 Multi-language analysis substrate | not_started | — | WP1 | AC-4.1–AC-4.6 | — | Provide parser-backed normalized facts with explicit capability failures. |
 | WP5 Productized batch sweep and native shims | not_started | — | WP1, WP2; WP4 for parser-backed members | AC-5.1–AC-5.8 | — | Promote ADR 0036 prototype and resolve the canonical findings-ledger relationship. |
 | WP6 TypeScript end-to-end vertical slice | not_started | — | WP3, WP4, WP5 | AC-6.1–AC-6.6 | — | Prove concept → detection → change → guard on a real TS fixture. |
-| WP7 Language-aware refactoring and guard generation | not_started | — | WP4, WP6 | AC-7.1–AC-7.6 | — | Generalize safe changes and suppression contracts without a giant universal AST. |
+| WP7 Language-aware refactoring and guard generation | not_started | — | WP4, WP6 | AC-7.1–AC-7.7 | — | Generalize safe changes and suppression contracts without a giant universal AST. |
 | WP8 Cross-stack conformance and skill execution harness | not_started | — | WP2–WP7 | AC-8.1–AC-8.8 | — | Gate support labels on behavior, metadata, and inherited topology decisions. |
 | WP9 Documentation, onboarding, compatibility, and release | not_started | — | WP3, WP5, WP8 | AC-9.1–AC-9.6 | — | Make installation and claims reproducible for newcomers. |
 | WP10 Independent completion verification | not_started | — | WP0–WP9 | AC-10.1–AC-10.5 | — | Fresh integrator validates every criterion and release surface. |
@@ -196,24 +196,24 @@ row names another owner):
 | W1 classify every skill and resolve discovery/package mechanics | Not completed; ADR 0034 remains pending on the predecessor | D1/D4, AC-3.1–AC-3.6, AC-8.7 |
 | W1 update routers, activation manifest, perimeter, contracts index, catalog | Not layer-aware yet | AC-2.3–AC-2.5, AC-3.2/AC-3.5, AC-8.7, AC-9.1 |
 | W2 de-flavor incidentally coupled core procedures | Partial/unmeasured | AC-3.1 and full-catalog leakage gate AC-8.7 |
-| W3 concept + binding default and extract-enum exemplar | Not completed | D2, AC-3.3/AC-3.4, AC-6.3/AC-6.6, AC-7.3–AC-7.5 |
+| W3 concept + binding default and five named families (typed state, read mutation, unguarded dispatch, implicit relation/FK, handler LOC), with extract-enum first | Not completed | D2, inventory/exemplar AC-3.1/AC-3.3/AC-3.4, TypeScript proof AC-6.3/AC-6.6, and mandatory five-family catalog completion AC-8.7 |
 | W4 descriptor-driven component inventory, graceful no-profile behavior | Implemented in `cotton_inventory.py`; must remain regression-pinned | AC-2.6 |
 | W4 neutral product-health surface labels | Not completed: `product_health.py` still emits `sites_*` labels | AC-2.6 |
 | W4 scope integration for folder-topology and frontend-contract detectors | Implemented through shared ignore-first scope; must remain regression-pinned | AC-2.6 |
 | W5 ADR 0026 reason-mandatory project-lint suppression | Still proposed | AC-7.6 |
-| W5 ADR 0027 wire-identifier preservation | Still proposed; invariant already named by refactor criteria | AC-7.1/AC-7.2 |
-| W5 ADR 0028 post-move asset-path verification | Still proposed | AC-7.1/AC-7.2 |
+| W5 ADR 0027 wire-identifier preservation | Still proposed; invariant already named by refactor criteria | Behavior AC-7.1/AC-7.2 and formal disposition/embodiment AC-7.7 |
+| W5 ADR 0028 post-move asset-path verification | Still proposed | Behavior AC-7.1/AC-7.2 and formal disposition/embodiment AC-7.7 |
 | W5 ADR 0029 route-mirrored page topology detector | Still proposed | AC-8.8 |
 | W5 ADR 0030 cohesive workflow-trio detector | Still proposed | AC-8.8 |
 | W5 ADR 0003 canonical findings ledger/outcome linkage | Still proposed; overlaps ADR 0036 manifest identity | AC-5.4/AC-5.5/AC-5.8 |
-| W6 onboarding-flow and lite three-skill starter | Not completed in the required explicit form | AC-9.2 |
+| W6 onboarding-flow as one diagram and lite three-skill starter | Not completed in the required explicit form | AC-9.2 explicitly requires both the single funnel diagram and lite portfolio |
 | W6 per-stack portfolios, packaging decision, ≤20-minute first value | Not completed | D1, AC-3.5/AC-3.6, AC-9.2/AC-9.6 |
-| Success 1 layer-aware non-Django install | Not completed | AC-3.5/AC-3.6, AC-9.6 |
+| Success 1 layer-aware non-Django install, honest routers, and perimeter coverage | Not completed | Router/perimeter AC-2.3/AC-2.5, install AC-3.5/AC-3.6, release fixture AC-9.6 |
 | Success 2 no framework leakage in core | Not completed | AC-3.1, AC-8.7 |
 | Success 3 extract-enum binding round-trip | Not completed | AC-3.4, AC-6.6 |
-| Success 4 embodiment backlog shrinks without regression | Baseline audited above; no proposed item may remain unresolved | AC-5.8, AC-7.6, AC-8.8, AC-9.4 |
+| Success 4 embodiment backlog shrinks without regression | Baseline audited above; no proposed item may remain unresolved | AC-5.8, AC-7.6/AC-7.7, AC-8.8, AC-9.4 |
 | Success 5 documented ≤20-minute first value and named starter | Not completed | AC-3.6, AC-9.2 |
-| Success 6 reference-clean moves | Not completed | AC-3.2, AC-7.1/AC-7.2, AC-8.7, AC-9.1 |
+| Success 6 reference-clean moves (`skill_meta`, contracts index, artifact drift Band A, decision audit, docs/routers/contracts) | Not completed | Move/reference mechanics AC-3.2 and AC-7.1/AC-7.2; full catalog/aliases/contracts AC-8.7; exact metadata/contracts/index/docs/decision/artifact-drift release gates AC-9.1/AC-9.4 |
 
 ## 1. Scope & Bounds
 
@@ -541,6 +541,12 @@ and Python/TypeScript golden transformations.
   fixture-backed evidence for a safer per-language contract. Empty reasons,
   unknown project codes, native/project collisions, and allowed suppressions
   have executable tests; no accepted ADR remains `pending:`.
+- **AC-7.7:** Proposed ADRs 0027 and 0028 are each formally resolved, not left
+  indefinitely proposed after their behavior lands. Each is either accepted
+  with accurate `embodied_by` links to the wire-identifier and post-move asset
+  verification implementation/tests, or rejected/superseded with the AC-7.2
+  golden-project evidence demonstrating the selected safer invariant. Decision
+  audit/link checks are clean and neither item retains a stale `pending:` path.
 
 ### WP8 — Cross-stack conformance and skill execution harness
 
@@ -580,8 +586,13 @@ context verification protocol.
   migration inventory from AC-3.1 is executed or explicitly classified outside
   the completion floor. Every shipped skill has one validated placement,
   routing/installation honors it, de-flavoring is complete for core skills,
-  aliases and contract paths pass, and no framework leakage lint fails. This is
-  the full-rollout gate; WP3 alone does not authorize a pre-exemplar mass move.
+  aliases and contract paths pass, and no framework leakage lint fails. The
+  predecessor's five named concept/binding families—typed state, read-named
+  mutation, unguarded dispatch, implicit relation-to-explicit-FK, and handler
+  LOC budget—each have a framework-neutral core procedure plus a thin Django
+  binding with characterization evidence; none may be replaced by an arbitrary
+  two-family sample. This is the full-rollout gate; WP3 alone does not
+  authorize a pre-exemplar mass move.
 - **AC-8.8:** Proposed ADRs 0029 and 0030 are each resolved rather than silently
   carried forever. For each, either accept and embody the topology/workflow
   invariant in the appropriate framework binding with detector good/bad/
@@ -602,9 +613,10 @@ and retired stale provenance.
   paths are documented from a clean host through first verified result,
   update, troubleshooting, and uninstall. Two fresh-context dry runs complete
   first value in 20 minutes or less without unstated repository knowledge. The
-  onboarding includes an explicit lite mode with a named three-skill starter
-  portfolio, what governance it omits, and the concrete cost/risk of each
-  omission, preserving predecessor W6.
+  onboarding presents the complete discovery → install → first useful run →
+  next-step funnel as one diagram and includes an explicit lite mode with a
+  named three-skill starter portfolio, what governance it omits, and the
+  concrete cost/risk of each omission, preserving predecessor W6.
 - **AC-9.3:** A compatibility guide covers legacy flat paths/invocation names,
   aliases, manifest/schema migrations, binding selection changes, deprecation
   duration, rollback, and how host overlays remain host-owned.
@@ -877,6 +889,7 @@ reported no P0 blockers and returned `READY`.
 | 2026-07-16 | final bounded fresh-context gate | Reported no P0 blocker and returned `READY`. | Plan approved for `/goal` creation; implementation remains `not_started`. |
 | 2026-07-16 | Codex | Started WP0 at HEAD `ad685e3f47fd6fb3debe4880735a5bf20eb79cae`; only dirty path is this new plan file. Current action: AC-0.1 full baseline; last completed AC: none; last evidence revision: none. | WP0 → `in_progress`; summary now 10 not started / 1 in progress. |
 | 2026-07-16 | Codex | Repaired the browser prerequisite documentation, deterministic triage clock, stale contracts/state/counts/manifest labels, decision revisit triggers, and contract artifact-drift coverage; mapped and retired the predecessor at implementation commit `9eecd1e`. Last completed AC by implementer: AC-0.4; current action: fresh-context AC-0.1–AC-0.5 verification; last evidence revision: `9eecd1e`. | WP0 → `implemented`; summary now 10 not started / 1 implemented. |
+| 2026-07-16 | `/root/wp0_fresh_verifier` | Fresh-context revision `8c7e9b2` passed AC-0.1–AC-0.4 and failed AC-0.5: three active references remained stale, W3 lost three of five named families, ADR 0027/0028 lacked formal disposition, W6 lost its one-diagram deliverable, and retirement sequencing was unsupported. Current action: repair those exact gaps and verify mapping before re-retirement; last evidence revision: `8c7e9b2`. | WP0 → `in_progress`; summary now 10 not started / 1 in progress. |
 
 ## Promotion notes
 

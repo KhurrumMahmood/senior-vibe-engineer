@@ -10,6 +10,7 @@ deciders: [khurrum]
 supersedes: []
 superseded_by: null
 applies_to: [.claude/skills/refactor-subsystem/, .claude/skills/propose-folder-reorganization/]
+embodied_by: ["pending:portable-skill-ecosystem-completion AC-7.7 formal disposition"]
 tags: [refactor, safety, path-integrity]
 related_smell: null
 related_pattern: null

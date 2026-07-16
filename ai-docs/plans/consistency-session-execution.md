@@ -67,8 +67,9 @@ never fully executes and a project that never reaches coherent form.
   the `portable-skill-ecosystem-completion` plan (amend its WP3/WP5 or add a
   W7) the next time that plan is touched — with the recorded cautions
   (ADR 0023 dispatcher boundary is deliberate; `orient` is not an
-  orphan). *Done when:* shareable-core plan §1 names them, or each is
-  parked with a reason in the ledger.
+  orphan). *Done when:* the portable-skill-ecosystem-completion plan or one of
+  its dependency-sized successor specs names them, or each is parked with a
+  reason in the ledger.
 - **W-D — Standing skill candidates from this session.**
   `summary-pyramid-skill` and `port-meta-audit` each reach a
   `/plan-skill` intake (or explicit park). The kit-gap analysis
