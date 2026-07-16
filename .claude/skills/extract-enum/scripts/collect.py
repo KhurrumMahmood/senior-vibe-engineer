@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Enumerate literals + callers for one stringly-typed state field.
+"""Enumerate literals and callers for one Python string-valued carrier.
 
-Stage-1 collector for `/extract-enum`. Given a target `Model.<field>`,
+Stage-1 collector for `/extract-enum`. Given a target `Carrier.<field>`,
 walks the repository and produces ``targets.json`` with:
 
 - Field declaration metadata (file path, current CharField/TextField
@@ -283,6 +283,10 @@ def _is_models_field_call(call: ast.Call) -> bool:
     return False
 
 
+def _models_field_name(call: ast.Call) -> str:
+    return call.func.attr if isinstance(call.func, ast.Attribute) else call.func.id
+
+
 def _inside_model_class(path: list[ast.AST]) -> tuple[bool, str | None]:
     """Return (is_inside, class_name) walking outward from the node."""
     for node in reversed(path):
@@ -412,6 +416,8 @@ def _find_field_declaration(
                     else:
                         if isinstance(node.value, ast.Call) and _is_models_field_call(node.value):
                             found = {
+                                "carrier_kind": "django-model-field",
+                                "field_constructor": _models_field_name(node.value),
                                 "field_file": rel,
                                 "field_symbol": f"{cls}.{field_name}",
                                 "model_class": cls or "<unknown>",
@@ -424,6 +430,68 @@ def _find_field_declaration(
 
     visit(tree, [])
     return found
+
+
+def _find_python_attribute_declaration(
+    file_path: Path,
+    rel: str,
+    field_name: str,
+    carrier_class: str | None,
+) -> dict[str, Any] | None:
+    """Locate a plain-Python string attribute without importing host code."""
+    try:
+        src = file_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    adapter = get_adapter(file_path)
+    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
+        return None
+    tree = adapter.parse(src)
+    if tree is None:
+        return None
+
+    for node in tree.body:
+        if not isinstance(node, ast.ClassDef):
+            continue
+        if carrier_class is not None and node.name != carrier_class:
+            continue
+        for statement in node.body:
+            annotation: str | None = None
+            default: str | None = None
+            if isinstance(statement, ast.AnnAssign):
+                if not isinstance(statement.target, ast.Name) or statement.target.id != field_name:
+                    continue
+                annotation = ast.unparse(statement.annotation)
+                if statement.value is not None:
+                    default = _string_literal_value(statement.value)
+            elif isinstance(statement, ast.Assign):
+                if (
+                    len(statement.targets) != 1
+                    or not isinstance(statement.targets[0], ast.Name)
+                    or statement.targets[0].id != field_name
+                ):
+                    continue
+                default = _string_literal_value(statement.value)
+            else:
+                continue
+            if annotation not in {None, "str", "builtins.str"} and default is None:
+                continue
+            if annotation is None and default is None:
+                continue
+            current: dict[str, Any] = {}
+            if annotation is not None:
+                current["annotation"] = annotation
+            if default is not None:
+                current["default"] = default
+            return {
+                "carrier_kind": "python-attribute",
+                "field_file": rel,
+                "field_symbol": f"{node.name}.{field_name}",
+                "model_class": node.name,
+                "field_name": field_name,
+                "current_kwargs": current,
+            }
+    return None
 
 
 def _scan_comparisons_and_assignments(
@@ -863,9 +931,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: field file not found: {field_path}", file=sys.stderr)
         return 2
 
-    decl = _find_field_declaration(
-        field_path, rel_file, field_name, model_class
-    )
+    decl = _find_field_declaration(field_path, rel_file, field_name, model_class)
+    if decl is None:
+        decl = _find_python_attribute_declaration(
+            field_path, rel_file, field_name, model_class
+        )
     if decl is None and model_class:
         # The finding's file may be a caller site, not the model declaration.
         # Fall back to searching the in-scope tree for `class <model_class>(`.
@@ -875,9 +945,11 @@ def main(argv: list[str] | None = None) -> int:
                 alt_rel = str(alt_path.relative_to(project_root))
             except ValueError:
                 alt_rel = str(alt_path)
-            alt_decl = _find_field_declaration(
-                alt_path, alt_rel, field_name, model_class
-            )
+            alt_decl = _find_field_declaration(alt_path, alt_rel, field_name, model_class)
+            if alt_decl is None:
+                alt_decl = _find_python_attribute_declaration(
+                    alt_path, alt_rel, field_name, model_class
+                )
             if alt_decl is not None:
                 print(
                     f"[collect_extract_enum] note: {rel_file!r} is a caller "
@@ -890,18 +962,15 @@ def main(argv: list[str] | None = None) -> int:
                 decl = alt_decl
     if decl is None:
         print(
-            f"error: no Model subclass in {rel_file} declares "
-            f"`{field_name}` as CharField/TextField"
-            + (f" (model={model_class})" if model_class else ""),
+            f"error: no supported Python carrier in {rel_file} declares "
+            f"string attribute `{field_name}`"
+            + (f" (carrier={model_class})" if model_class else ""),
             file=sys.stderr,
         )
         print(
-            "hint: if the carrier is NOT a Django model field (a dataclass "
-            "attribute, function return, module constant, or command-internal "
-            "sentinel), the endpoint is a plain str-valued Enum (enum.StrEnum "
-            "on 3.11+, or class X(str, Enum)), not TextChoices — this collector "
-            "only walks model fields. Apply it by hand; do not # noqa a "
-            "first-party sentinel.",
+            "hint: supported declarations are a model CharField/TextField or "
+            "a class attribute with a str annotation/string default; module "
+            "constants and function return values require an explicit carrier first.",
             file=sys.stderr,
         )
         return 2
@@ -928,6 +997,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     target = {
+        "carrier_kind": decl["carrier_kind"],
         "target_slug": _target_slug(
             decl["model_class"], field_name, field_path
         ),
@@ -935,6 +1005,11 @@ def main(argv: list[str] | None = None) -> int:
         "field_name": field_name,
         "field_file": decl["field_file"],
         "field_symbol": decl["field_symbol"],
+        **(
+            {"field_constructor": decl["field_constructor"]}
+            if "field_constructor" in decl
+            else {}
+        ),
         "current_kwargs": decl["current_kwargs"],
         "declared_choices": _resolve_declared_choices(
             field_path,

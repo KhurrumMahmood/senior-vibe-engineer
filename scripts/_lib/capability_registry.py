@@ -515,6 +515,13 @@ def load_registry(path: Path | None = None) -> CapabilityRegistry:
     language_ids = set(data["languages"])
     framework_ids = set(data["frameworks"])
     layer_ids = set(data["layers"])
+    for language, entry in data["languages"].items():
+        if not isinstance(entry, dict):
+            raise RegistryError(f"languages.{language} must be a mapping")
+        if type(entry.get("binding_required")) is not bool:
+            raise RegistryError(
+                f"languages.{language}.binding_required must be an explicit boolean"
+            )
     for tool, policy in data["evidence_tools"].items():
         pattern = policy.get("version_pattern") if isinstance(policy, dict) else None
         if not isinstance(pattern, str):

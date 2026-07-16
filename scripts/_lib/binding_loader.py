@@ -212,13 +212,7 @@ def _select_for_root(
     required_subjects = {
         language
         for language in root.get("languages", ())
-        if (
-            registry.data["languages"].get(language, {}).get("subject")
-            and (
-                registry.data["languages"].get(language, {}).get("installation_subject")
-                or registry.data["languages"].get(language, {}).get("project_markers")
-            )
-        )
+        if registry.data["languages"].get(language, {}).get("binding_required") is True
     }
     covered_subjects: set[str] = set()
     for identifier in selected[1:]:

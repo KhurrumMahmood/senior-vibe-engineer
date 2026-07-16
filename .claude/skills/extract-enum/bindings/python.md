@@ -30,10 +30,19 @@ field keyword arguments, a referenced two-column choice constant, literals,
 comparison and assignment sites, and caller counts. It skips tests, generated
 trees, environments, dependencies, and migrations.
 
-For a non-framework carrier, propose a string-valued enum (`enum.StrEnum` on
-3.11+, or `class X(str, Enum)`) next to the carrier. Keep every member value
-identical to the existing serialized string. This binding does not authorize
-schema or data edits.
+For a plain class/dataclass string attribute, render the deterministic Python
+endpoint:
+
+```bash
+.venv/bin/python .claude/skills/extract-enum/scripts/propose_python.py \
+  --targets "${REPORT_DIR}/targets.json" \
+  --output "${REPORT_DIR}/proposed_enum.py" \
+  --semantic-output "${REPORT_DIR}/semantic.json"
+```
+
+The renderer emits `enum.StrEnum` next to the carrier, preserves every member
+wire value, and fails closed on unsupported carriers or member-name collisions.
+This binding does not authorize schema or data edits.
 
 ## Failure contract
 

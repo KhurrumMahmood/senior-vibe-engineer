@@ -150,6 +150,38 @@ def test_registered_subject_without_a_declared_binding_fails_zero_match(tmp_path
         compose_skill_bindings(skill, _entry(("core", "python", "django")), profile)
 
 
+@pytest.mark.parametrize(
+    ("filename", "source", "subject"),
+    (("app.kt", "val status = \"pending\"\n", "kotlin"), ("schema.sql", "select 1;\n", "sql")),
+)
+def test_explicit_binding_required_subjects_fail_without_a_match(
+    tmp_path, filename, source, subject
+):
+    _write(tmp_path / filename, source)
+    profile = profile_host(tmp_path)
+    skill = _skill(tmp_path, ("core", "python", "django"))
+
+    with pytest.raises(BindingLoadError, match=rf"zero compatible.*{subject}"):
+        compose_skill_bindings(skill, _entry(("core", "python", "django")), profile)
+
+
+def test_incidental_languages_do_not_require_bindings_in_a_mixed_root(tmp_path):
+    _seed_python(tmp_path)
+    _write(tmp_path / "README.md", "# Notes\n")
+    _write(tmp_path / "page.html", "<p>Notes</p>\n")
+    _write(tmp_path / "style.css", "p { color: black; }\n")
+    _write(tmp_path / "setup.sh", "#!/bin/sh\n")
+    profile = profile_host(tmp_path)
+    skill = _skill(tmp_path, ("core", "python"))
+
+    render = compose_skill_bindings(skill, _entry(("core", "python")), profile)[0]
+
+    assert {"markdown", "templates", "css", "shell"} <= set(
+        profile["roots"][0]["languages"]
+    )
+    assert render.selected_bindings == ("core", "python")
+
+
 def test_one_selected_binding_cannot_hide_an_uncovered_subject_in_the_same_root(tmp_path):
     _seed_python(tmp_path)
     _seed_typescript(tmp_path)

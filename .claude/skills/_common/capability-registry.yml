@@ -75,67 +75,82 @@ evidence_tools:
 languages:
   any:
     subject: false
+    binding_required: false
     extensions: []
     project_markers: []
   python:
     subject: true
+    binding_required: true
     installation_subject: true
     extensions: [.py, .pyi]
     project_markers: [pyproject.toml, requirements.txt, manage.py]
   javascript:
     subject: true
+    binding_required: true
     installation_subject: true
     extensions: [.js, .mjs, .cjs, .jsx]
     project_markers: [package.json]
   typescript:
     subject: true
+    binding_required: true
     installation_subject: true
     extensions: [.ts, .tsx, .mts, .cts]
     project_markers: [tsconfig.json]
   rust:
     subject: true
+    binding_required: true
     installation_subject: true
     extensions: [.rs]
     project_markers: [Cargo.toml]
   go:
     subject: true
+    binding_required: true
     installation_subject: true
     extensions: [.go]
     project_markers: [go.mod]
   templates:
     subject: true
+    binding_required: false
     extensions: [.html, .htm, .jinja, .j2]
     project_markers: []
   css:
     subject: true
+    binding_required: false
     extensions: [.css, .scss]
     project_markers: []
   shell:
     subject: true
+    binding_required: false
     extensions: [.sh, .bash]
     project_markers: []
   markdown:
     subject: true
+    binding_required: false
     extensions: [.md, .mdx]
     project_markers: []
   java:
     subject: true
+    binding_required: true
     extensions: [.java]
     project_markers: [pom.xml]
   kotlin:
     subject: true
+    binding_required: true
     extensions: [.kt, .kts]
     project_markers: []
   ruby:
     subject: true
+    binding_required: true
     extensions: [.rb]
     project_markers: [Gemfile]
   php:
     subject: true
+    binding_required: true
     extensions: [.php]
     project_markers: [composer.json]
   sql:
     subject: true
+    binding_required: true
     extensions: [.sql]
     project_markers: []
 

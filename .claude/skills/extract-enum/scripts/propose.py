@@ -18,7 +18,8 @@ ALLOWED_NORMALIZATIONS = [
 ]
 VOLATILE_KEYS = frozenset({"generated_at", "timestamp", "scan_id"})
 BRIDGE_HINT = re.compile(r"vendor|bridge|webhook|external|import", re.IGNORECASE)
-WIRE_IDENTITY_KEYS = frozenset({"literal", "value", "wire_value", "name", "symbol"})
+PATH_KEYS = frozenset({"file", "field_file", "path"})
+TARGET_PATH_KEY = "target"
 
 
 def _member_name(value: str) -> str:
@@ -37,6 +38,8 @@ def _site(site: dict[str, Any]) -> dict[str, str]:
 # spec:portable-skill-layer-distribution::IM-9
 def build_semantics(targets: dict[str, Any]) -> dict[str, Any]:
     """Build the framework binding's final semantic contract."""
+    if targets.get("carrier_kind") != "django-model-field":
+        raise ValueError("Django renderer requires carrier_kind 'django-model-field'")
     literals = [
         {
             "case_variant_of": item.get("case_variant_of"),
@@ -136,21 +139,21 @@ def _normalized(
     value: Any,
     *,
     key: str = "",
-    temporary_roots: tuple[str, ...] = (),
+    directory_root: str | None = None,
 ) -> Any:
     if isinstance(value, dict):
         return {
             item_key: _normalized(
                 item_value,
                 key=item_key,
-                temporary_roots=temporary_roots,
+                directory_root=directory_root,
             )
             for item_key, item_value in sorted(value.items())
             if item_key not in VOLATILE_KEYS
         }
     if isinstance(value, list):
         rows = [
-            _normalized(item, key=key, temporary_roots=temporary_roots)
+            _normalized(item, key=key, directory_root=directory_root)
             for item in value
         ]
         if key.endswith("_unordered_table"):
@@ -158,12 +161,12 @@ def _normalized(
         return rows
     if isinstance(value, str):
         text = value
-        if key not in WIRE_IDENTITY_KEYS:
-            for root in temporary_roots:
-                prefix = root.rstrip("/")
-                if text == prefix or text.startswith(prefix + "/"):
-                    text = "<TEMP_ROOT>" + text[len(prefix):]
-                    break
+        if directory_root is not None and key in PATH_KEYS:
+            text = _normalize_directory_path(text, directory_root)
+        elif directory_root is not None and key == TARGET_PATH_KEY:
+            path, separator, identity = text.partition("::")
+            if separator:
+                text = _normalize_directory_path(path, directory_root) + separator + identity
         if key.endswith("_markdown"):
             text = re.sub(r"\s+", " ", text).strip()
         return text
@@ -172,33 +175,48 @@ def _normalized(
 
 def _contains_temporary_root(
     value: Any,
-    roots: tuple[str, ...],
+    root: str | None,
     *,
     key: str = "",
 ) -> bool:
     if isinstance(value, dict):
         return any(
-            _contains_temporary_root(item_value, roots, key=item_key)
+            _contains_temporary_root(item_value, root, key=item_key)
             for item_key, item_value in value.items()
             if item_key not in VOLATILE_KEYS
         )
     if isinstance(value, list):
-        return any(_contains_temporary_root(item, roots, key=key) for item in value)
-    if not isinstance(value, str) or key in WIRE_IDENTITY_KEYS:
+        return any(_contains_temporary_root(item, root, key=key) for item in value)
+    if not isinstance(value, str) or root is None:
         return False
-    return any(
-        value == root.rstrip("/") or value.startswith(root.rstrip("/") + "/")
-        for root in roots
-    )
+    candidate = value.partition("::")[0] if key == TARGET_PATH_KEY else value
+    if key not in PATH_KEYS and key != TARGET_PATH_KEY:
+        return False
+    return candidate == root or candidate.startswith(root + "/")
 
 
-def _validate_temporary_roots(values: list[str]) -> tuple[str, ...]:
-    roots = tuple(values)
-    if len(roots) != len(set(roots)):
-        raise ValueError("--temporary-root values must be unique")
-    if any(not value.startswith("/") or value == "/" or "\x00" in value for value in roots):
-        raise ValueError("--temporary-root values must be non-root absolute paths")
-    return roots
+def _normalize_directory_path(value: str, root: str) -> str:
+    if value == root or value.startswith(root + "/"):
+        return "<TEMP_ROOT>" + value[len(root):]
+    return value
+
+
+def _validate_directory_roots(
+    actual_root: str | None,
+    expected_root: str | None,
+) -> tuple[str | None, str | None]:
+    if (actual_root is None) != (expected_root is None):
+        raise ValueError("--actual-root and --expected-root must be provided together")
+    normalized: list[str | None] = []
+    for label, value in (("--actual-root", actual_root), ("--expected-root", expected_root)):
+        if value is None:
+            normalized.append(None)
+            continue
+        root = value.rstrip("/")
+        if not root.startswith("/") or root == "/" or "\x00" in root:
+            raise ValueError(f"{label} must be a non-root absolute directory path")
+        normalized.append(root)
+    return normalized[0], normalized[1]
 
 
 def _differences(actual: Any, expected: Any, path: str = "$", *, limit: int = 20) -> list[str]:
@@ -235,20 +253,35 @@ def compare_semantics(
     actual: dict[str, Any],
     expected: dict[str, Any],
     *,
-    temporary_roots: tuple[str, ...] = (),
+    actual_root: str | None = None,
+    expected_root: str | None = None,
 ) -> list[str]:
     """Apply only AR-8 normalizations, then report semantic differences."""
+    actual_root, expected_root = _validate_directory_roots(actual_root, expected_root)
     return _differences(
-        _normalized(actual, temporary_roots=temporary_roots),
-        _normalized(expected, temporary_roots=temporary_roots),
+        _normalized(actual, directory_root=actual_root),
+        _normalized(expected, directory_root=expected_root),
     )
 
 
-def render_proposal(semantics: dict[str, Any]) -> str:
+def render_proposal(semantics: dict[str, Any], *, field_constructor: str) -> str:
     target = semantics["target"]
     model = target["model_class"]
     class_name = f"{model}Status"
     kwargs = semantics["current_kwargs"]
+    if field_constructor not in {"CharField", "TextField"}:
+        raise ValueError(f"unsupported model field constructor: {field_constructor!r}")
+    field_lines = [
+        f"{target['target'].split('::')[1]} = models.{field_constructor}(",
+    ]
+    if "max_length" in kwargs:
+        field_lines.append(f"    max_length={kwargs['max_length']!r},")
+    field_lines.append(f"    choices={class_name}.choices,")
+    if "default" in kwargs:
+        field_lines.append(
+            f"    default={class_name}.{_member_name(str(kwargs['default']))},"
+        )
+    field_lines.append(")")
     lines = [
         f"# Proposal — extract-enum: {target['field_symbol']}",
         "",
@@ -270,6 +303,14 @@ def render_proposal(semantics: dict[str, Any]) -> str:
         )
     lines.extend(
         [
+            "```",
+            "",
+            "## Field change",
+            "",
+            "Preserve the existing field constructor and unrelated keyword arguments; replace only the enum contract:",
+            "",
+            "```python",
+            *field_lines,
             "```",
             "",
             "## Caller migration",
@@ -295,6 +336,37 @@ def render_proposal(semantics: dict[str, Any]) -> str:
         lines.append(f"- `{risk['kind']}`{literal}: `{risk['action']}`.")
     lines.extend(
         [
+            "",
+            "## Pre-deploy distinct-value audit",
+            "",
+            "Run this read-only query against production before adding the choices validator:",
+            "",
+            "```python",
+            f"list({model}.objects.values_list('{target['target'].split('::')[1]}', flat=True).distinct())",
+            "```",
+            "",
+            "Every returned value must be a proposed member wire value or an explicitly mapped legacy value.",
+            "",
+            "## Data-normalization migration",
+            "",
+            "Add a reversible data migration for every case/legacy value above. Run it before the schema migration that enables `choices`.",
+            "",
+            "## Schema migration",
+            "",
+            "After the distinct-value audit and data normalization, generate and inspect the field-only migration:",
+            "",
+            "```text",
+            ".venv/bin/python manage.py makemigrations",
+            ".venv/bin/python manage.py migrate",
+            "```",
+            "",
+            "## Characterization tests",
+            "",
+            "Pin every current member wire value, default, case-risk mapping, and bridge behavior before editing callers.",
+            "",
+            "## Subsystem tests",
+            "",
+            "Run the narrow model/service tests that read, write, filter, serialize, and deserialize this field, then run the stringly-status lint.",
             "",
             "## Stop condition",
             "",
@@ -332,15 +404,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--semantic-output", type=Path)
     parser.add_argument("--oracle", type=Path)
     parser.add_argument("--normalization-report", type=Path)
-    parser.add_argument(
-        "--temporary-root",
-        action="append",
-        default=[],
-        help="Exact temporary absolute prefix allowed to normalize in both semantic inputs",
-    )
+    parser.add_argument("--actual-root", help="Temporary directory root for the actual artifact")
+    parser.add_argument("--expected-root", help="Temporary directory root for the oracle artifact")
     args = parser.parse_args(argv)
     try:
-        temporary_roots = _validate_temporary_roots(args.temporary_root)
+        actual_root, expected_root = _validate_directory_roots(
+            args.actual_root, args.expected_root
+        )
         if args.compare:
             if args.oracle is None:
                 raise ValueError("--compare requires --oracle")
@@ -348,22 +418,34 @@ def main(argv: list[str] | None = None) -> int:
         else:
             if args.output is None or args.semantic_output is None:
                 raise ValueError("--targets requires --output and --semantic-output")
-            semantic = build_semantics(_read_json(args.targets))
+            targets = _read_json(args.targets)
+            semantic = build_semantics(targets)
             args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_text(render_proposal(semantic), encoding="utf-8")
+            args.output.write_text(
+                render_proposal(
+                    semantic,
+                    field_constructor=str(targets["field_constructor"]),
+                ),
+                encoding="utf-8",
+            )
             _write_json(args.semantic_output, semantic)
         oracle = _read_json(args.oracle) if args.oracle is not None else None
         differences = (
-            compare_semantics(semantic, oracle, temporary_roots=temporary_roots)
+            compare_semantics(
+                semantic,
+                oracle,
+                actual_root=actual_root,
+                expected_root=expected_root,
+            )
             if oracle is not None
             else []
         )
         applied_temporary_root = bool(
-            temporary_roots
+            actual_root is not None
             and oracle is not None
             and (
-                _contains_temporary_root(semantic, temporary_roots)
-                or _contains_temporary_root(oracle, temporary_roots)
+                _contains_temporary_root(semantic, actual_root)
+                or _contains_temporary_root(oracle, expected_root)
             )
         )
         report = {

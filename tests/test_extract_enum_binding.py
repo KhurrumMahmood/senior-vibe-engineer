@@ -16,6 +16,7 @@ SKILL_ROOT = REPO_ROOT / ".claude" / "skills" / "extract-enum"
 FIXTURE_ROOT = REPO_ROOT / "tests" / "fixtures" / "wp3" / "extract-enum"
 COLLECT = SKILL_ROOT / "scripts" / "collect.py"
 PROPOSE = SKILL_ROOT / "scripts" / "propose.py"
+PROPOSE_PYTHON = SKILL_ROOT / "scripts" / "propose_python.py"
 AR7_ORACLE = FIXTURE_ROOT / "ar7-semantic-oracle.json"
 
 
@@ -53,6 +54,7 @@ def test_core_is_neutral_and_declared_bindings_hold_stack_mechanics():
     python_binding = (SKILL_ROOT / "bindings" / "python.md").read_text(encoding="utf-8")
     assert "python" in python_binding.casefold()
     assert "scripts/collect.py" in python_binding
+    assert "scripts/propose_python.py" in python_binding
     django = (SKILL_ROOT / "bindings" / "django.md").read_text(encoding="utf-8").casefold()
     assert "textchoices" in django
     assert "migration" in django
@@ -100,7 +102,33 @@ def test_django_fixture_reaches_final_proposal_and_matches_ar7_semantics(tmp_pat
     assert json.loads(semantic.read_text(encoding="utf-8")) == json.loads(
         AR7_ORACLE.read_text(encoding="utf-8")
     )
-    assert "class JobStatus(models.TextChoices)" in proposal.read_text(encoding="utf-8")
+    proposal_text = proposal.read_text(encoding="utf-8")
+    assert "class JobStatus(models.TextChoices)" in proposal_text
+    for section in (
+        "## Field change",
+        "## Pre-deploy distinct-value audit",
+        "## Schema migration",
+        "## Data-normalization migration",
+        "## Characterization tests",
+        "## Subsystem tests",
+    ):
+        assert section in proposal_text
+    assert "choices=JobStatus.choices" in proposal_text
+    assert "default=JobStatus.PENDING" in proposal_text
+    assert ".values_list('status', flat=True).distinct()" in proposal_text
+    assert "makemigrations" in proposal_text
+    assert "migrate" in proposal_text
+    wrong_renderer = _run(
+        str(PROPOSE_PYTHON),
+        "--targets",
+        str(targets),
+        "--output",
+        str(tmp_path / "wrong.py"),
+        "--semantic-output",
+        str(tmp_path / "wrong.json"),
+    )
+    assert wrong_renderer.returncode == 2
+    assert "plain-Python renderer requires carrier_kind" in wrong_renderer.stderr
     assert json.loads(normalization.read_text(encoding="utf-8")) == {
         "allowed": [
             "temporary_absolute_roots",
@@ -129,7 +157,7 @@ def test_ar8_does_not_normalize_missing_literals_or_changed_wire_values(tmp_path
     assert "wire_value" in result.stderr
 
 
-def test_ar8_normalizes_only_an_explicit_temporary_root_prefix():
+def test_ar8_normalizes_only_typed_path_roots_and_preserves_target_identity():
     spec = importlib.util.spec_from_file_location("extract_enum_propose", PROPOSE)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
@@ -142,16 +170,115 @@ def test_ar8_normalizes_only_an_explicit_temporary_root_prefix():
     assert module.compare_semantics(
         actual,
         expected,
-        temporary_roots=("/tmp/oracle-root", "/tmp/run-root"),
+        actual_root="/tmp/run-root",
+        expected_root="/tmp/oracle-root",
     ) == []
+
+    actual["target"]["field_file"] = "/tmp/run-root/app/renamed.py"
+    assert module.compare_semantics(
+        actual,
+        expected,
+        actual_root="/tmp/run-root",
+        expected_root="/tmp/oracle-root",
+    )
+    actual["target"]["field_file"] = "/tmp/run-root/app/models.py"
+
+    actual["target"]["target"] = "/tmp/run-root/app/models.py::phase::Job"
+    expected["target"]["target"] = "/tmp/oracle-root/app/models.py::status::Job"
+    assert module.compare_semantics(
+        actual,
+        expected,
+        actual_root="/tmp/run-root",
+        expected_root="/tmp/oracle-root",
+    )
+    actual["target"]["target"] = "/tmp/run-root/app/models.py::status::Task"
+    assert module.compare_semantics(
+        actual,
+        expected,
+        actual_root="/tmp/run-root",
+        expected_root="/tmp/oracle-root",
+    )
 
     actual["literals"][0]["value"] = "/tmp/run-root/pending"
     expected["literals"][0]["value"] = "/tmp/oracle-root/pending"
     assert module.compare_semantics(
         actual,
         expected,
-        temporary_roots=("/tmp/oracle-root", "/tmp/run-root"),
+        actual_root="/tmp/run-root",
+        expected_root="/tmp/oracle-root",
     )
+
+
+def test_ar8_cli_requires_typed_actual_and_expected_roots_together(tmp_path):
+    result = _run(
+        str(PROPOSE),
+        "--compare",
+        str(AR7_ORACLE),
+        "--oracle",
+        str(AR7_ORACLE),
+        "--actual-root",
+        "/tmp/run-root",
+    )
+
+    assert result.returncode == 2
+    assert "--actual-root and --expected-root must be provided together" in result.stderr
+
+
+def test_python_fixture_collects_plain_carrier_and_renders_executable_strenum(tmp_path):
+    project = FIXTURE_ROOT / "python"
+    fixture_run = _run(str(project / "app.py"))
+    assert fixture_run.returncode == 0, fixture_run.stderr
+
+    targets = tmp_path / "targets.json"
+    collected = _run(
+        str(COLLECT),
+        "--target",
+        "app.py::status::Job",
+        "--project-root",
+        str(project),
+        "--output",
+        str(targets),
+    )
+    assert collected.returncode == 0, collected.stderr
+    target_payload = json.loads(targets.read_text(encoding="utf-8"))
+    assert target_payload["carrier_kind"] == "python-attribute"
+    assert target_payload["field_symbol"] == "Job.status"
+
+    enum_module = tmp_path / "job_status.py"
+    semantic = tmp_path / "python-semantic.json"
+    proposed = _run(
+        str(PROPOSE_PYTHON),
+        "--targets",
+        str(targets),
+        "--output",
+        str(enum_module),
+        "--semantic-output",
+        str(semantic),
+    )
+    assert proposed.returncode == 0, proposed.stderr
+    rendered = enum_module.read_text(encoding="utf-8")
+    assert "from enum import StrEnum" in rendered
+    assert "class JobStatus(StrEnum):" in rendered
+    assert "PENDING = 'pending'" in rendered
+    assert "RUNNING = 'running'" in rendered
+    executable = _run(str(enum_module))
+    assert executable.returncode == 0, executable.stderr
+    semantic_payload = json.loads(semantic.read_text(encoding="utf-8"))
+    assert [member["wire_value"] for member in semantic_payload["members"]] == [
+        "pending",
+        "running",
+    ]
+    wrong_renderer = _run(
+        str(PROPOSE),
+        "--targets",
+        str(targets),
+        "--output",
+        str(tmp_path / "wrong.md"),
+        "--semantic-output",
+        str(tmp_path / "wrong-semantic.json"),
+    )
+    assert wrong_renderer.returncode == 2
+    assert "Django renderer requires carrier_kind" in wrong_renderer.stderr
 
 
 def test_existing_form_a_invalid_routing_remains_rejected(tmp_path):

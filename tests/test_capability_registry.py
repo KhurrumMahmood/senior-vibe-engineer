@@ -5,6 +5,7 @@ import os
 import platform
 import sys
 
+import pytest
 import yaml
 
 import capability_claims
@@ -119,6 +120,7 @@ def test_future_language_is_registered_by_data_not_validator_code(tmp_path):
     payload = yaml.safe_load(source.read_text(encoding="utf-8"))
     payload["languages"]["zig"] = {
         "subject": True,
+        "binding_required": True,
         "extensions": [".zig"],
         "project_markers": ["build.zig"],
     }
@@ -129,6 +131,16 @@ def test_future_language_is_registered_by_data_not_validator_code(tmp_path):
 
     assert "zig" in registry.identifiers("languages")
     assert registry.language_for_extension(".zig") == "zig"
+
+
+def test_registry_requires_explicit_binding_requiredness_for_every_language(tmp_path):
+    payload = yaml.safe_load(load_registry().path.read_text(encoding="utf-8"))
+    del payload["languages"]["kotlin"]["binding_required"]
+    target = tmp_path / "registry.yml"
+    target.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+
+    with pytest.raises(RegistryError, match="languages.kotlin.binding_required"):
+        load_registry(target)
 
 
 def test_strict_contract_accepts_hashed_fixture_and_tool_evidence(tmp_path):

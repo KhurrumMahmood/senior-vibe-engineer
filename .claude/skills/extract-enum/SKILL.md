@@ -35,8 +35,8 @@ value. Produce evidence and a proposal; never edit production code.
 - `targets.json` identifies exactly one carrier, its current keyword/options
   contract, every literal and count, case variants, comparisons, assignments,
   and caller files.
-- `semantic.json` and `proposal.md` reach the selected binding's final output
-  boundary. Every identifier, target path, literal, count, site,
+- `semantic.json` and the selected binding's proposal artifact reach its final
+  output boundary. Every identifier, target path, literal, count, site,
   classification, member order, wire value, risk, and stop condition is
   preserved.
 - Candidate-form routing accepts only `extract_enum_candidate`; every other
@@ -122,11 +122,13 @@ writes, with every target site represented. If the scout fails twice, record
 ### Stage 3 — Render and verify the final proposal
 
 Load the selected framework or language output overlay and execute its final
-render command. The command must write both `proposal.md` and `semantic.json`.
+render command. The command must write `semantic.json` plus the overlay's
+declared proposal artifact (`proposal.md` or an executable enum module).
 
-For a replay oracle, compare semantics after only these normalizations:
-temporary absolute roots, timestamps/scan IDs, Markdown whitespace, and table
-ordering explicitly declared irrelevant. Do not normalize identifiers,
+For a replay oracle, pass separate actual and expected temporary directory
+roots and compare semantics after only these normalizations: typed path fields
+under those roots, timestamps/scan IDs, Markdown whitespace, and table ordering
+explicitly declared irrelevant. Preserve every relative path suffix. Do not normalize identifiers,
 targets, literals, counts, sites, classifications, keyword/options data,
 member names/order, wire values, risks, or stop decisions.
 
@@ -143,9 +145,10 @@ work here.
 
 ## Replay
 
-Use a tiny fixture with one carrier field, a declared three-value vocabulary,
-two valid comparisons, one case variant, one bridge literal, and one
-assignment. Run the selected collector and final renderer. The replay passes
+Use the framework fixture with one carrier field, a declared three-value
+vocabulary, two valid comparisons, one case variant, one bridge literal, and
+one assignment. Also run the plain-language fixture through its executable
+enum renderer. The replay passes
 only when the semantic comparator exits zero and records no normalization
 beyond the four allowed categories. Separately replay a non-extraction
 candidate and require exit 2, empty stdout, exact routing stderr, and no output
