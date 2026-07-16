@@ -279,6 +279,7 @@ def rerun_contracts(
     return commands, live_summary
 
 
+# spec:portable-batch-sweep::IM-12
 def check(*, preflight_only: bool = False) -> dict[str, Any]:
     tracker_text = (REPO_ROOT / TRACKER).read_text(encoding="utf-8")
     report_path = REPO_ROOT / FINAL_REPORT
