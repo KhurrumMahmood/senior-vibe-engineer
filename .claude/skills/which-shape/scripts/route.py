@@ -445,7 +445,7 @@ def _whole_codebase_perimeter(
         )
         try:
             payload = json.loads(output.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
             return {
                 "status": "error",
                 "invoked": True,

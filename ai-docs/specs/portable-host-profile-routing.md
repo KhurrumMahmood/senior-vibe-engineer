@@ -13,6 +13,13 @@ code_roots:
   - scripts/_lib/skill_activation.py
   - scripts/project_adapt.py
   - scripts/manifest.py
+  - .claude/skills/_common/engineering_home.py
+  - .claude/skills/_common/product_health.py
+  - .claude/skills/find-frontend-contract-drift/scripts/detect.py
+  - .claude/skills/find-frontend-contract-drift/scripts/report.py
+  - .claude/skills/find-frontend-duplication/scripts/cotton_inventory.py
+  - .claude/skills/find-folder-topology-drift/scripts/detect.py
+  - tests/test_class_bc_portability.py
   - .claude/skills/which-skill
   - .claude/skills/which-shape
   - .claude/skills/which-cleanup
@@ -108,13 +115,13 @@ evidence is a coverage gap, never a clean scan.
   version-compatible executable evidence; retain visible reason-bearing
   exclusions; require whole-codebase routing to invoke it.
   <!-- spec:portable-host-profile-routing::IM-6 -->
-- [ ] IM-7: **Profile-selected inventory.** Replace seed-host component and
+- [x] IM-7: **Profile-selected inventory.** Replace seed-host component and
   product-surface fallbacks with declared inventories and neutral labels;
   undeclared inventory is empty. <!-- spec:portable-host-profile-routing::IM-7 -->
-- [ ] IM-8: **Ignore-first Class C migration.** Migrate folder-topology and
+- [x] IM-8: **Ignore-first Class C migration.** Migrate folder-topology and
   frontend-contract enumeration to the shared scope and prove equivalence to
   the route-sprawl exemplar. <!-- spec:portable-host-profile-routing::IM-8 -->
-- [ ] IM-9: **Conformance and regression.** Add good/bad/bypass/idempotency,
+- [x] IM-9: **Conformance and regression.** Add good/bad/bypass/idempotency,
   cross-router agreement, negative Django-on-TypeScript, hard-coded-root search,
   Class A, and route-sprawl regression tests.
   <!-- spec:portable-host-profile-routing::IM-9 -->
@@ -123,7 +130,8 @@ evidence is a coverage gap, never a clean scan.
 
 ### User-facing
 
-- Pending implementation and fixture-based usability findings.
+- Host component and surface declarations now travel in the authenticated
+  durable profile; undeclared repositories receive neutral, empty behavior.
 
 ### Technical
 
@@ -136,6 +144,9 @@ evidence is a coverage gap, never a clean scan.
 - Whole-codebase health routing needs an executed perimeter preflight. Missing
   profiles and rejected evidence fail the coverage claim rather than becoming
   clean scans.
+- Frontend shared-script discovery resolves references only against the
+  ignore-first selected file set; ambiguous suffix matches abstain instead of
+  silently choosing a host-specific path.
 
 ## Exceptions
 

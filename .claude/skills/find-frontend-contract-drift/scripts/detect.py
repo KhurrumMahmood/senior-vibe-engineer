@@ -10,6 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
 import scope as _scope  # noqa: E402
+from product_health import infer_surface  # noqa: E402
 from product_topology import extract_window_accesses, write_jsonl  # noqa: E402
 
 SKILL_NAME = "find-frontend-contract-drift"
@@ -40,7 +41,14 @@ FUNCTION_DECL_RE = re.compile(
     re.MULTILINE,
 )
 WINDOW_METHOD_CALL_RE = re.compile(r"window\.([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)\s*\(")
-STATIC_JS_RE = re.compile(r"{%\s*static\s+['\"]js/([^'\"]+\.js)['\"]\s*%}")
+STATIC_ASSET_RE = re.compile(
+    r"{%\s*static\s+['\"]([^'\"]+\.(?:[cm]?js|jsx|tsx?))['\"]\s*%}"
+)
+SCRIPT_SRC_RE = re.compile(
+    r"<script\b[^>]*\bsrc\s*=\s*['\"]([^'\"]+\.(?:[cm]?js|jsx|tsx?)(?:[?#][^'\"]*)?)['\"]",
+    re.IGNORECASE,
+)
+SCRIPT_EXTENSIONS = {".cjs", ".js", ".jsx", ".mjs", ".ts", ".tsx"}
 SCRIPT_BLOCK_RE = re.compile(r"<script\b[^>]*>(.*?)</script>", re.IGNORECASE | re.DOTALL)
 FETCH_RE = re.compile(r"\bfetch\s*\(")
 CALLBACK_BLOCK_START_RE = re.compile(
@@ -79,39 +87,21 @@ ELEMENT_LOOKUP_RE = re.compile(
     rf"(?:!!\s*)?document\.getElementById\(\s*['\"]({ELEMENT_MARKER_NAME_RE})['\"]\s*\)",
     re.IGNORECASE,
 )
-CANONICAL_BOOT_GLOBAL = "SITES_CONFIG"
-COMPAT_BOOT_GLOBALS = {
-    "DISCOVERY_LOCKED",
-    "PRODUCT_URL_FILTER_ENABLED",
-    "PRODUCT_URL_REGEX",
-    "SETUP_MODE",
-    "SIDEBAR_CURRENT_TAB",
-    "SITEMAP_DISCOVERY_STATUS",
-    "TEMPLATE_SITE_ID",
-}
-
-
 def _is_boot_global(name: str) -> bool:
     return name.isupper() or name.endswith("Config") or name.endswith("CONFIG")
 
 
-def _is_sites_config_compat_assignment(name: str, accesses: list[object]) -> bool:
-    if name not in COMPAT_BOOT_GLOBALS:
-        return False
-    return any("window.SITES_CONFIG" in str(access.evidence) for access in accesses)
+def _consolidated_boot_global(assigned_by_template: dict[str, list[object]]) -> str | None:
+    """Recognize one consolidated payload by shape, never by a host-owned name."""
+    boot_names = sorted(name for name in assigned_by_template if _is_boot_global(name))
+    return boot_names[0] if len(boot_names) == 1 else None
 
 
-def _workflow_scope(file: str) -> str:
-    if file.startswith("templates/core/site_config") or file.startswith("static/js/site-config"):
-        return "sites_workflow"
-    if "external_source" in file:
-        return "other_product_surface"
-    return "repo_wide"
-
-
-def _with_scope(finding: dict[str, object]) -> dict[str, object]:
+def _with_scope(
+    finding: dict[str, object], project_root: Path
+) -> dict[str, object]:
     file = str(finding.get("file", ""))
-    finding["workflow_scope"] = _workflow_scope(file)
+    finding["workflow_scope"] = infer_surface(file, project_root)
     return finding
 
 
@@ -407,7 +397,8 @@ def _auto_init_findings(
                             "`document.body.dataset`, `body.classList.contains(...)`, "
                             "or a `[data-*]` selector before fetching or mutating DOM."
                         ),
-                    }
+                    },
+                    project_root,
                 )
             )
     return findings
@@ -418,18 +409,51 @@ def _is_shared_template(path: Path, project_root: Path) -> bool:
     return (
         "base" in path.name
         or "/includes/" in rel
-        or rel.endswith("site_config_base.html")
     )
 
 
-def _shared_script_files(template_paths: list[Path], project_root: Path) -> set[str]:
+def _script_references(text: str) -> set[str]:
+    references = {match.group(1) for match in STATIC_ASSET_RE.finditer(text)}
+    references.update(
+        match.group(1).split("?", 1)[0].split("#", 1)[0]
+        for match in SCRIPT_SRC_RE.finditer(text)
+    )
+    return references
+
+
+def _resolve_script_reference(
+    reference: str, js_paths: list[Path], project_root: Path
+) -> str | None:
+    normalized = reference.replace("\\", "/")
+    while normalized.startswith("./") or normalized.startswith("/"):
+        normalized = normalized[2:] if normalized.startswith("./") else normalized[1:]
+    candidates = [normalized]
+    if normalized.startswith("static/"):
+        candidates.append(normalized.removeprefix("static/"))
+    relative_paths = [path.relative_to(project_root).as_posix() for path in js_paths]
+    for candidate in candidates:
+        if candidate in relative_paths:
+            return candidate
+    suffix_matches = sorted(
+        rel
+        for rel in relative_paths
+        if any(rel.endswith(f"/{candidate}") for candidate in candidates)
+    )
+    return suffix_matches[0] if len(suffix_matches) == 1 else None
+
+
+def _shared_script_files(
+    template_paths: list[Path], js_paths: list[Path], project_root: Path
+) -> set[str]:
     files: set[str] = set()
     for path in template_paths:
         if not path.exists() or not _is_shared_template(path, project_root):
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
-        for match in STATIC_JS_RE.finditer(text):
-            files.add(f"static/js/{match.group(1)}")
+        for reference in _script_references(text):
+            resolved = _resolve_script_reference(reference, js_paths, project_root)
+            if resolved is not None:
+                files.add(resolved)
     return files
 
 
@@ -507,7 +531,8 @@ def _shared_template_auto_init_findings(
                                 "Gate the exported initializer on a page marker before "
                                 "starting fetch/polling or DOM mutation from a shared template."
                             ),
-                        }
+                        },
+                        project_root,
                     )
                 )
     return findings
@@ -545,6 +570,7 @@ def _is_under(path: Path, root: Path) -> bool:
         return False
 
 
+# spec:portable-host-profile-routing::IM-8
 def detect(
     *,
     project_root: Path,
@@ -560,14 +586,14 @@ def detect(
     # `--js-root` overrides are a per-invocation narrowing applied on top of
     # the extension-selected set, not a layout assumption.
     template_paths = _scope.iter_paths(project_root, scope, extensions={".html"})
-    js_paths = _scope.iter_paths(project_root, scope, extensions={".js"})
+    js_paths = _scope.iter_paths(project_root, scope, extensions=SCRIPT_EXTENSIONS)
     if template_root is not None:
         template_paths = [p for p in template_paths if _is_under(p, template_root)]
     if js_root is not None:
         js_paths = [p for p in js_paths if _is_under(p, js_root)]
     functions_by_file = _function_blocks(js_paths, project_root)
     exports = _namespace_exports(js_paths, project_root, functions_by_file)
-    shared_js_files = _shared_script_files(template_paths, project_root)
+    shared_js_files = _shared_script_files(template_paths, js_paths, project_root)
     template_accesses = extract_window_accesses(project_root, template_paths)
     js_accesses = extract_window_accesses(project_root, js_paths)
 
@@ -579,12 +605,8 @@ def detect(
     assigned_by_template = defaultdict(list)
     for access in template_assignments:
         assigned_by_template[access.name].append(access)
-    sites_config_compat_aliases = {
-        name
-        for name, accesses in assigned_by_template.items()
-        if _is_sites_config_compat_assignment(name, accesses)
-    }
     assigned_by_js = {access.name for access in js_assignments}
+    consolidated_boot_global = _consolidated_boot_global(assigned_by_template)
     reads_by_name = defaultdict(list)
     for access in js_reads:
         reads_by_name[access.name].append(access)
@@ -594,9 +616,7 @@ def detect(
         name
         for name in assigned_by_template
         if (
-            name != CANONICAL_BOOT_GLOBAL
-            and name not in sites_config_compat_aliases
-            and _is_boot_global(name)
+            _is_boot_global(name)
         )
     )
     if len(boot_names) > boot_threshold:
@@ -609,13 +629,14 @@ def detect(
                     "lineno": first.lineno,
                     "globals": boot_names,
                     "summary": f"{len(boot_names)} template-injected `window.*` boot globals were found.",
-                    "recommendation": "Replace scattered globals with one typed `window.SITES_CONFIG` payload.",
-                }
+                    "recommendation": "Replace scattered globals with one typed workflow boot payload.",
+                },
+                project_root,
             )
         )
 
     for name, accesses in sorted(assigned_by_template.items()):
-        if name == CANONICAL_BOOT_GLOBAL or name in sites_config_compat_aliases:
+        if name == consolidated_boot_global:
             continue
         if _is_boot_global(name):
             findings.append(
@@ -628,7 +649,8 @@ def detect(
                         "read_count": len(reads_by_name.get(name, [])),
                         "summary": f"`window.{name}` is assigned directly by a template.",
                         "recommendation": "Prefer adding this field to the canonical workflow boot payload.",
-                    }
+                    },
+                    project_root,
                 )
             )
 
@@ -657,7 +679,8 @@ def detect(
                             "Prefer reading this value through the canonical boot payload "
                             "or a frontend config accessor."
                         ),
-                    }
+                    },
+                    project_root,
                 )
             )
             continue
@@ -670,13 +693,14 @@ def detect(
                     "global": name,
                     "summary": f"JS reads `window.{name}` but no template or JS assignment was found in the scanned roots.",
                     "recommendation": "Declare the value in the boot payload or remove the implicit dependency.",
-                }
+                },
+                project_root,
             )
         )
 
     read_counts = Counter(access.name for access in js_reads)
     for name, count in sorted(read_counts.items()):
-        if name == CANONICAL_BOOT_GLOBAL or name in BROWSER_GLOBALS or name in sites_config_compat_aliases:
+        if name in BROWSER_GLOBALS or name == consolidated_boot_global:
             continue
         if count >= 4 and name in assigned_by_template:
             first = reads_by_name[name][0]
@@ -690,7 +714,8 @@ def detect(
                         "read_count": count,
                         "summary": f"`window.{name}` is read {count} times across JS modules.",
                         "recommendation": "Route repeated reads through a single frontend config accessor.",
-                    }
+                    },
+                    project_root,
                 )
             )
     for path in js_paths:

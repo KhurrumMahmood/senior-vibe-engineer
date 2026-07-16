@@ -9,37 +9,29 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
+from product_health import infer_surface  # noqa: E402
 from product_topology import read_jsonl, render_simple_report, write_json  # noqa: E402
 
 
-TARGET_SCOPE_BY_NAME = {
-    "sites": "sites_workflow",
-    "site_config": "sites_workflow",
-}
+def _target_scope(target: str, project_root: Path) -> str | None:
+    normalized = target.replace("\\", "/").strip()
+    if normalized.lower() in {"", ".", "all", "repo", "repository"}:
+        return None
+    return infer_surface(normalized, project_root)
 
 
-def _target_scope(target: str) -> str | None:
-    normalized = target.lower().replace("\\", "/")
-    if TARGET_SCOPE_BY_NAME.get(normalized):
-        return TARGET_SCOPE_BY_NAME[normalized]
-    if (
-        "site_config" in normalized
-        or "templates/core/site_config" in normalized
-        or "static/js/site-config" in normalized
-    ):
-        return "sites_workflow"
-    if "external_source" in normalized:
-        return "other_product_surface"
-    return None
-
-
-def _with_scope_summary(markdown: str, records: list[dict[str, object]], target: str) -> str:
+def _with_scope_summary(
+    markdown: str,
+    records: list[dict[str, object]],
+    target: str,
+    project_root: Path,
+) -> str:
     scope_counts: dict[str, int] = {}
     for record in records:
         scope = str(record.get("workflow_scope") or "unknown")
         scope_counts[scope] = scope_counts.get(scope, 0) + 1
 
-    target_scope = _target_scope(target)
+    target_scope = _target_scope(target, project_root)
     lines = ["## Scope Summary", ""]
     if target_scope:
         target_count = scope_counts.get(target_scope, 0)
@@ -72,7 +64,7 @@ def main() -> int:
 
     records = read_jsonl(args.detections)
     markdown, findings = render_simple_report("Frontend-contract drift audit", records, args.target)
-    markdown = _with_scope_summary(markdown, records, args.target)
+    markdown = _with_scope_summary(markdown, records, args.target, args.project_root.resolve())
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.write_text(markdown, encoding="utf-8")
     write_json(findings, args.output_json)

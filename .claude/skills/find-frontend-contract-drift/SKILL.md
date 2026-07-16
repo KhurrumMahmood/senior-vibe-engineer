@@ -49,7 +49,8 @@ implicit global variables instead of a documented boot payload.
 - Default template/JS roots: unset. The detector loads the per-skill
   scope/ignore descriptors when a host repo provides them; otherwise it
   scans the repository tree for `.html` and `.js` files after the shared
-  exclusions.
+  exclusions. Script selection includes JavaScript and TypeScript-family
+  extensions (`.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, and `.tsx`).
 - Use `--template-root PATH` or `--js-root PATH` only to narrow one side
   of the scan for this invocation.
 - Output: `reports/frontend-contract-drift/<scan-id>/`.

@@ -292,7 +292,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.host_profile:
         try:
             loaded = json.loads(args.host_profile.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
             print(f"[perimeter] ERROR: invalid host profile: {exc}", file=sys.stderr)
             return 2
         if not isinstance(loaded, dict):
