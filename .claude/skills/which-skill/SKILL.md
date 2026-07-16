@@ -1,6 +1,6 @@
 ---
 name: which-skill
-description: Recommend a skill (or "no planning skill applies — proceed directly") for a free-text task description. Reads every SKILL.md frontmatter — tier, job, best_for, not_for, language, framework — and ranks candidates by token overlap. Defends against agent misapplication (the most common failure mode is invoking heavy planning machinery for a one-line fix). Two purposes — recommend the right skill, and surface metadata mismatches when the recommender consistently picks wrong.
+description: Recommend a profile-compatible skill (or "no planning skill applies — proceed directly") for a free-text task description. Rank SKILL.md frontmatter by relevance, then filter through the canonical host profile, selected layers/bindings, optional required capabilities, and host activation overrides. Use to prevent both task-shape misapplication and stack-incompatible recommendations.
 argument-hint: "<task description>"
 allowed-tools: Bash, Read
 user-invocable: true
@@ -67,14 +67,23 @@ Write toward these gates from Stage 0.
    keep.
 4. **Read frontmatter, not bodies.** SKILL.md bodies are long. The
    matcher only needs the frontmatter (`tier`, `job`, `best_for`,
-   `not_for`, `description`, `name`) — that's what
+   `not_for`, `description`, `name`, stack, layer, binding, and capability
+   fields) — that's what
    `scripts/match.py` reads. Don't expand to body content; the contract
    lives in frontmatter by design.
+5. **Relevance cannot override applicability.** When
+   `.engineering/project/host-profile.json` exists, every candidate is
+   resolved through `scripts/_lib/skill_activation.py`. A manual allowlist
+   cannot make an incompatible binding active. Without a canonical profile,
+   the migration-era manual activation behavior remains visible in the
+   decision reasons.
 
 ## Argument parsing
 
-Single argument: a free-text task description. No flags, no structured
-input.
+The user-facing form takes one free-text task description. The script also
+accepts repeatable `--require-capability`, `--require-layer`, and
+`--require-binding` constraints for orchestrators that already know the
+execution requirement.
 
 Examples:
 
@@ -119,9 +128,14 @@ The matcher returns JSON with:
   `{}` if it declares none. Omitted entirely on the `proceed_directly`
   path.
 - `candidates[]` — ranked list with score, tier, job, rationale per
-  skill. Each candidate carries its own `task_packet` so a downstream
+  skill. Each candidate carries its shared `activation` decision and its own
+  `task_packet` so a downstream
   orchestrator can inspect the runner-up shapes without re-reading
   SKILL.md.
+- `excluded_inactive[]` — every otherwise-material candidate rejected by the
+  canonical activation decision, including all exclusion reasons. This is
+  where a Django-bound high scorer appears on a TypeScript host; it is never
+  silently omitted.
 
 The `task_packet` is the contract that lets a calling agent route work
 without re-reading the SKILL.md — it answers "use this skill, on these
@@ -231,7 +245,7 @@ move.
 .claude/skills/which-skill/
 ├── SKILL.md                  # this file — orchestrator
 └── scripts/
-    └── match.py              # the matcher (uses scripts/_lib/yaml_frontmatter)
+    └── match.py              # relevance matcher + shared activation projection
 ```
 
 No `knowledge/` directory — the matcher's heuristics live in
@@ -241,6 +255,8 @@ this file. There's no scout brief because there's no fan-out.
 The matcher shares the YAML frontmatter parser at
 `scripts/_lib/yaml_frontmatter.py` with `decisions.py`, `plans.py`,
 `skill_meta.py`, and `specs.py` — a fix to one parser reaches all five.
+Applicability comes only from `scripts/_lib/skill_activation.py`, shared with
+`/which-shape`, `/which-cleanup`, and `scripts/manifest.py`.
 
 ## Future evolution
 

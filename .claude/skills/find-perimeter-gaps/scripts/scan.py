@@ -261,6 +261,7 @@ def _parse_acceptances(values: list[str]) -> tuple[dict[tuple[str, str], str], l
     return accepted, errors
 
 
+# spec:portable-host-profile-routing::IM-6
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--project-root", required=True, type=Path)

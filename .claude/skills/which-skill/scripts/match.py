@@ -35,13 +35,12 @@ if _lib_parent not in sys.path:
     sys.path.insert(0, _lib_parent)
 from _lib.yaml_frontmatter import FrontmatterError, parse  # noqa: E402
 from _lib.capability_registry import load_registry  # noqa: E402
+from _lib.skill_activation import (  # noqa: E402
+    ActivationError,
+    decide_catalog_activation,
+)
 
 CAPABILITY_REGISTRY = load_registry()
-
-_common_dir = str(REPO_ROOT / ".claude" / "skills" / "_common")
-if _common_dir not in sys.path:
-    sys.path.insert(0, _common_dir)
-import engineering_home as eh  # noqa: E402
 
 # Optional task-packet fields surfaced on the winning candidate (PR B-lite).
 TASK_PACKET_FIELDS = (
@@ -305,24 +304,41 @@ def cmd_match(args, skills_dir: Path) -> int:
     threshold = args.threshold
     project_root = args.project_root.resolve()
 
-    # Activation gate — a skill the host has opted out of cannot be
-    # recommended for this repo, no matter how well it scores. Drop inactive
-    # skills from the candidate pool; surface any that *would* have qualified
-    # (score >= threshold) with their recorded reason, so a suppressed
-    # high-scorer is explained rather than silently missing.
+    try:
+        activation = decide_catalog_activation(
+            skills,
+            project_root=project_root,
+            required_capabilities=args.require_capability,
+            required_layers=args.require_layer,
+            required_bindings=args.require_binding,
+        )
+    except ActivationError as exc:
+        print(f"error: cannot resolve skill activation: {exc}", file=sys.stderr)
+        return 2
+
+    # Activation gate — profile incompatibility or a host opt-out cannot be
+    # overruled by textual ranking. Material exclusions (candidates that would
+    # otherwise clear the score threshold) stay visible with every reason.
     active_ranked = []
     excluded_inactive = []
     for score, sk, rationale in ranked:
         name = sk.get("name", "")
-        if name and not eh.is_skill_active(project_root, name):
+        decision = activation.get(name)
+        if decision is not None and not decision.active:
             if score >= threshold:
+                display_reason = "; ".join(decision.exclusion_reasons)
+                manual_prefix = "host activation manifest opt-out: "
+                if len(decision.exclusion_reasons) == 1 and display_reason.startswith(manual_prefix):
+                    display_reason = display_reason.removeprefix(manual_prefix)
                 excluded_inactive.append({
                     "name": name,
                     "score": score,
-                    "reason": eh.inactive_reason(project_root, name) or "",
+                    "reason": display_reason,
+                    "reasons": list(decision.exclusion_reasons),
+                    "activation": decision.as_dict(),
                 })
             continue
-        active_ranked.append((score, sk, rationale))
+        active_ranked.append((score, sk, rationale, decision))
 
     top = active_ranked[: args.top]
     above = [r for r in top if r[0] >= threshold]
@@ -349,8 +365,9 @@ def cmd_match(args, skills_dir: Path) -> int:
                 "rationale": rationale,
                 "path": sk.get("_path", ""),
                 "task_packet": _build_task_packet(sk),
+                "activation": decision.as_dict() if decision is not None else None,
             }
-            for score, sk, rationale in top
+            for score, sk, rationale, decision in top
         ],
     }
     if not above:
@@ -372,7 +389,7 @@ def cmd_match(args, skills_dir: Path) -> int:
             print(out["rationale"])
             print()
             print("Top candidates anyway (none above threshold):")
-            for score, sk, _rationale in top:
+            for score, sk, _rationale, _decision in top:
                 print(f"  {sk.get('name', '?'):<25} score={score}")
             if excluded_inactive:
                 print()
@@ -395,13 +412,16 @@ def cmd_match(args, skills_dir: Path) -> int:
         )
         print()
         print("Top candidates:")
-        for score, sk, rationale in above:
+        for score, sk, rationale, decision in above:
             print(
                 f"  /{sk.get('name', '?')} (tier={sk.get('tier', '?')}, "
                 f"job={sk.get('job', '?')}, score={score})"
             )
             for r in rationale:
                 print(f"    - {r}")
+            if decision is not None:
+                for reason in decision.reasons:
+                    print(f"    - activation: {reason}")
         if out["task_packet"]:
             print()
             print(f"Task packet for /{out['recommendation']}:")
@@ -410,7 +430,7 @@ def cmd_match(args, skills_dir: Path) -> int:
         if len(above) < len(top):
             print()
             print("Below threshold (shown for context):")
-            for score, sk, _rationale in top[len(above):]:
+            for score, sk, _rationale, _decision in top[len(above):]:
                 print(f"  /{sk.get('name', '?'):<25} score={score}")
         if excluded_inactive:
             print()
@@ -444,6 +464,18 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--threshold", type=int, default=5,
         help="Minimum score to count as a real recommendation (default: 5)",
+    )
+    p.add_argument(
+        "--require-capability", action="append", default=[],
+        help="Require a registry capability claim (repeatable)",
+    )
+    p.add_argument(
+        "--require-layer", action="append", default=[],
+        help="Require a logical skill layer (repeatable)",
+    )
+    p.add_argument(
+        "--require-binding", action="append", default=[],
+        help="Require an advertised binding (repeatable)",
     )
     p.add_argument("--json", action="store_true", help="Emit JSON instead of text")
     args = p.parse_args(argv)

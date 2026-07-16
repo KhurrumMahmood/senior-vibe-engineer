@@ -69,6 +69,7 @@ def build(
         "unmatched": unmatched,
         "checklist": checklist,
         "dropped": roster["dropped"],
+        "inactive": roster.get("inactive", []),
         "fanout": fanout,
         "notes": notes,
     }
@@ -161,6 +162,13 @@ def render_md(c: dict[str, Any]) -> str:
     if c["dropped"]:
         names = ", ".join(f"/{d['skill']}" for d in c["dropped"])
         lines.append(f"> Registry-related but not closeout scans (dropped): {names}")
+        lines.append("")
+    if c.get("inactive"):
+        lines.append("> Profile-incompatible or host-disabled skills (not recommended):")
+        for item in c["inactive"]:
+            lines.append(
+                f"> - /{item['skill']}: {'; '.join(item['activation_reasons'])}"
+            )
         lines.append("")
 
     if n_paths:

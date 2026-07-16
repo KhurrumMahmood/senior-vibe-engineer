@@ -9,7 +9,9 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -28,8 +30,15 @@ SKILL_TOKEN_RE = re.compile(r"/([a-z][a-z0-9]+(?:-[a-z0-9]+)*)")
 COMMON_DIR = REPO_ROOT / ".claude" / "skills" / "_common"
 if str(COMMON_DIR) not in sys.path:
     sys.path.insert(0, str(COMMON_DIR))
+SCRIPTS_DIR = REPO_ROOT / "scripts"
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
 
 import engineering_home as _eh  # noqa: E402
+from _lib.skill_activation import (  # noqa: E402
+    decide_catalog_activation,
+    load_skill_metadata,
+)
 from skill_use import log_event  # noqa: E402
 
 SCHEMA_VERSION = 1
@@ -347,26 +356,114 @@ def _score_shape(
     return score, rationale or ["fallback shape candidate"]
 
 
-def _inactive_steps(
+def _activation_steps(
     first_next: str, sequence: list[str], project_root: Path, skills_dir: Path
-) -> list[dict[str, str]]:
-    """Concrete skill steps in a shape that the host has opted out of.
+) -> list[dict[str, Any]]:
+    """Canonical decisions for every concrete skill step in a shape.
 
     Scans the recommended loop's text for `/skill-name` references, keeps only
-    those that name a real skill (a `<skills_dir>/<name>/SKILL.md` exists) and
-    are inactive for this repo, and returns each with its recorded reason.
-    Generic placeholders like `/find-*` resolve to no skill and are ignored.
+    those that name a real skill, and projects the shared profile-derived
+    activation decision. Generic placeholders like `/find-*` are ignored.
     """
-    out: dict[str, str] = {}
+    decisions = decide_catalog_activation(
+        load_skill_metadata(skills_dir),
+        project_root=project_root,
+    )
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
     for part in [first_next, *sequence]:
         for name in SKILL_TOKEN_RE.findall(part):
-            if name in out:
+            if name in seen:
                 continue
-            if not (skills_dir / name / "SKILL.md").is_file():
+            decision = decisions.get(name)
+            if decision is None:
                 continue
-            if not _eh.is_skill_active(project_root, name):
-                out[name] = _eh.inactive_reason(project_root, name) or ""
-    return [{"skill": name, "reason": reason} for name, reason in out.items()]
+            seen.add(name)
+            out.append(decision.as_dict())
+    return out
+
+
+def _inactive_steps(steps: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """Backward-compatible inactive projection with a concise display reason."""
+    out: list[dict[str, str]] = []
+    prefix = "host activation manifest opt-out: "
+    for step in steps:
+        if step["active"]:
+            continue
+        reasons = list(step["exclusion_reasons"])
+        reason = "; ".join(reasons)
+        if len(reasons) == 1 and reason.startswith(prefix):
+            reason = reason.removeprefix(prefix)
+        out.append({"skill": str(step["skill"]), "reason": reason})
+    return out
+
+
+def _whole_codebase_perimeter(
+    shape_id: str,
+    project_root: Path,
+    skills_dir: Path,
+) -> dict[str, Any] | None:
+    """Run the mandatory perimeter preflight for the whole-codebase route."""
+    if shape_id != "health-audit":
+        return None
+    profile_path = _eh.project_dir(project_root) / "host-profile.json"
+    if not profile_path.is_file():
+        return {
+            "status": "incomplete_coverage",
+            "invoked": False,
+            "reason": "canonical host profile is missing; whole-codebase coverage cannot be concluded",
+            "gaps": [],
+            "accepted_exclusions": [],
+        }
+    scanner = (
+        REPO_ROOT
+        / ".claude"
+        / "skills"
+        / "find-perimeter-gaps"
+        / "scripts"
+        / "scan.py"
+    )
+    with tempfile.TemporaryDirectory(prefix="which-shape-perimeter-") as directory:
+        output = Path(directory) / "perimeter.json"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(scanner),
+                "--project-root",
+                str(project_root),
+                "--skills-root",
+                str(skills_dir),
+                "--host-profile",
+                str(profile_path),
+                "--output",
+                str(output),
+                "--fail-on-gap",
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        try:
+            payload = json.loads(output.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {
+                "status": "error",
+                "invoked": True,
+                "exit_code": result.returncode,
+                "reason": result.stderr.strip() or "perimeter audit produced no valid report",
+                "gaps": [],
+                "accepted_exclusions": [],
+            }
+    gaps = payload.get("gaps", [])
+    return {
+        "status": "covered" if result.returncode == 0 and not gaps else "incomplete_coverage",
+        "invoked": True,
+        "exit_code": result.returncode,
+        "coverage_mode": payload.get("coverage_mode"),
+        "host_profile_sha256": payload.get("host_profile_sha256"),
+        "gaps": gaps,
+        "accepted_exclusions": payload.get("accepted_exclusions", []),
+    }
 
 
 # spec:status-projection-and-presentation::IM-9
@@ -447,6 +544,17 @@ def route(
 
     score, winner, rationale = ranked[0]
     confidence = "high" if score >= 40 else "medium" if score >= 24 else "low"
+    activation_steps = _activation_steps(
+        winner["first_next"], winner["sequence"], project_root, skills_dir
+    )
+    perimeter = _whole_codebase_perimeter(
+        str(winner["id"]), project_root, skills_dir
+    )
+    if perimeter and perimeter["status"] != "covered":
+        rationale = [
+            "whole-codebase perimeter is incomplete; no complete health conclusion is available",
+            *rationale,
+        ]
     recommendation = {
         "shape": winner["id"],
         "title": winner["title"],
@@ -457,9 +565,9 @@ def route(
         "sequence": winner["sequence"],
         "stop": winner["stop"],
         "rationale": rationale + load_status_signals(project_root, status_path),
-        "inactive_steps": _inactive_steps(
-            winner["first_next"], winner["sequence"], project_root, skills_dir
-        ),
+        "activation_steps": activation_steps,
+        "inactive_steps": _inactive_steps(activation_steps),
+        "perimeter_audit": perimeter,
     }
     alternatives = [
         {
@@ -489,9 +597,19 @@ def render_markdown(result: dict[str, Any]) -> str:
         "",
         f"Recommended shape: {rec['title']} (`{rec['shape']}`)",
         f"Confidence: {rec['confidence']} (score={rec['score']})",
-        "",
-        "Why:",
     ]
+    perimeter = rec.get("perimeter_audit")
+    if perimeter is not None:
+        lines.extend(
+            [
+                "",
+                f"Perimeter preflight: {perimeter['status']} "
+                f"(invoked={perimeter['invoked']}, gaps={len(perimeter['gaps'])})",
+            ]
+        )
+        if perimeter.get("reason"):
+            lines.append(f"Perimeter reason: {perimeter['reason']}")
+    lines.extend(["", "Why:"])
     lines.extend(f"- {line}" for line in rec["rationale"])
     lines.extend(["", f"First next: {rec['first_next']}", "", "Loop:"])
     lines.extend(f"- {step}" for step in rec["sequence"])
@@ -580,7 +698,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, indent=2, sort_keys=True))
     else:
         print(render_markdown(result), end="")
-    return 0
+    perimeter = result["recommendation"].get("perimeter_audit")
+    return 1 if perimeter is not None and perimeter["status"] != "covered" else 0
 
 
 if __name__ == "__main__":

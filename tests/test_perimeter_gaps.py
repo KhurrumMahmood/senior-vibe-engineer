@@ -109,6 +109,18 @@ def _write_evidenced_typescript_skill(skills_root: Path, name: str = "find-types
     return skill_dir
 
 
+def _read_skill_metadata(skill_dir: Path) -> dict:
+    text = skill_dir.joinpath("SKILL.md").read_text(encoding="utf-8")
+    return yaml.safe_load(text.split("---", 2)[1])
+
+
+def _write_skill_metadata(skill_dir: Path, metadata: dict) -> None:
+    skill_dir.joinpath("SKILL.md").write_text(
+        f"---\n{yaml.safe_dump(metadata, sort_keys=False)}---\n\n# /{metadata['name']}\n",
+        encoding="utf-8",
+    )
+
+
 class PerimeterGapsTests(unittest.TestCase):
     def _build_host(self, root: Path) -> Path:
         skills = root / ".claude" / "skills"
@@ -294,6 +306,140 @@ class PerimeterGapsTests(unittest.TestCase):
                 scan.main(["--project-root", str(root), "--accept", "frontend:css"]),
                 2,
             )
+
+    def test_profile_mode_treats_uninstalled_detector_as_gap(self) -> None:
+        scan = _load_scan()
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "host"
+            root.mkdir()
+            (root / "package.json").write_text('{"devDependencies":{"typescript":"5.9.3"}}')
+            (root / "tsconfig.json").write_text("{}\n")
+            (root / "src").mkdir()
+            (root / "src" / "large.ts").write_text("export const value = 1;\n" * 1200)
+            profile_path = Path(d) / "host-profile.json"
+            profile_path.write_text(json.dumps(profile_host(root)), encoding="utf-8")
+            skills = Path(d) / "empty-skills"
+            skills.mkdir()
+            output = Path(d) / "perimeter.json"
+
+            rc = scan.main([
+                "--project-root", str(root),
+                "--skills-root", str(skills),
+                "--host-profile", str(profile_path),
+                "--min-loc", "1000",
+                "--output", str(output),
+                "--fail-on-gap",
+            ])
+
+            self.assertEqual(rc, 1)
+            payload = json.loads(output.read_text())
+            self.assertEqual(payload["detectors"], [])
+            self.assertEqual(payload["gaps"][0]["language"], "typescript")
+
+    def test_profile_mode_rejects_detector_with_missing_evidence_contract(self) -> None:
+        scan = _load_scan()
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "host"
+            root.mkdir()
+            (root / "package.json").write_text('{"devDependencies":{"typescript":"5.9.3"}}')
+            (root / "tsconfig.json").write_text("{}\n")
+            (root / "src").mkdir()
+            (root / "src" / "large.ts").write_text("export const value = 1;\n" * 1200)
+            profile_path = Path(d) / "host-profile.json"
+            profile_path.write_text(json.dumps(profile_host(root)), encoding="utf-8")
+            skills = Path(d) / "skills"
+            _write_skill(
+                skills,
+                "find-typescript-shape",
+                "name: find-typescript-shape\njob: suspect\nlanguage: typescript\nscans: [typescript]",
+            )
+            output = Path(d) / "perimeter.json"
+
+            rc = scan.main([
+                "--project-root", str(root),
+                "--skills-root", str(skills),
+                "--host-profile", str(profile_path),
+                "--min-loc", "1000",
+                "--output", str(output),
+                "--fail-on-gap",
+            ])
+
+            self.assertEqual(rc, 1)
+            candidate = json.loads(output.read_text())["gaps"][0]["rejected_coverage_candidates"][0]
+            self.assertIn("missing capability_contract", candidate["reasons"])
+
+    def test_profile_mode_rejects_version_incompatible_detector(self) -> None:
+        scan = _load_scan()
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "host"
+            root.mkdir()
+            (root / "package.json").write_text('{"devDependencies":{"typescript":"5.9.3"}}')
+            (root / "tsconfig.json").write_text("{}\n")
+            (root / "src").mkdir()
+            (root / "src" / "large.ts").write_text("export const value = 1;\n" * 1200)
+            profile_path = Path(d) / "host-profile.json"
+            profile_path.write_text(json.dumps(profile_host(root)), encoding="utf-8")
+            skills = Path(d) / "skills"
+            skill = _write_evidenced_typescript_skill(skills)
+            metadata = _read_skill_metadata(skill)
+            metadata["capability_contract"] = 999
+            _write_skill_metadata(skill, metadata)
+            output = Path(d) / "perimeter.json"
+
+            rc = scan.main([
+                "--project-root", str(root),
+                "--skills-root", str(skills),
+                "--host-profile", str(profile_path),
+                "--min-loc", "1000",
+                "--output", str(output),
+                "--fail-on-gap",
+            ])
+
+            self.assertEqual(rc, 1)
+            reasons = json.loads(output.read_text())["gaps"][0]["rejected_coverage_candidates"][0]["reasons"]
+            self.assertTrue(any("capability_contract must be 1" in reason for reason in reasons))
+
+    def test_profile_mode_executes_evidence_and_rejects_wrong_output(self) -> None:
+        scan = _load_scan()
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "host"
+            root.mkdir()
+            (root / "package.json").write_text('{"devDependencies":{"typescript":"5.9.3"}}')
+            (root / "tsconfig.json").write_text("{}\n")
+            (root / "src").mkdir()
+            (root / "src" / "large.ts").write_text("export const value = 1;\n" * 1200)
+            profile_path = Path(d) / "host-profile.json"
+            profile_path.write_text(json.dumps(profile_host(root)), encoding="utf-8")
+            skills = Path(d) / "skills"
+            skill = _write_evidenced_typescript_skill(skills)
+            scanner = skill / "scripts" / "scan.py"
+            scanner.write_text("print('wrong output')\n", encoding="utf-8")
+            digest = sha256_file(scanner)
+            metadata = _read_skill_metadata(skill)
+            metadata["capability_evidence"]["typescript"][0]["sha256"] = digest
+            metadata["scan_implementations"]["typescript"]["sha256"] = digest
+            for artifact in metadata["support_evidence"]["artifacts"]:
+                if artifact["path"] == "scripts/scan.py":
+                    artifact["sha256"] = digest
+            metadata["support_evidence"].pop("evidence_hash")
+            metadata["support_evidence"]["evidence_hash"] = canonical_evidence_hash(
+                metadata["support_evidence"]
+            )
+            _write_skill_metadata(skill, metadata)
+            output = Path(d) / "perimeter.json"
+
+            rc = scan.main([
+                "--project-root", str(root),
+                "--skills-root", str(skills),
+                "--host-profile", str(profile_path),
+                "--min-loc", "1000",
+                "--output", str(output),
+                "--fail-on-gap",
+            ])
+
+            self.assertEqual(rc, 1)
+            reasons = json.loads(output.read_text())["gaps"][0]["rejected_coverage_candidates"][0]["reasons"]
+            self.assertTrue(any("stdout" in reason or "observation" in reason for reason in reasons))
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ motivating_decision: "0038"
 # audit-only `<!-- spec: -->` markers in the changed files.
 code_roots:
   - scripts/_lib/host_profile.py
+  - scripts/_lib/skill_activation.py
   - scripts/project_adapt.py
   - scripts/manifest.py
   - .claude/skills/which-skill
@@ -70,21 +71,21 @@ evidence is a coverage gap, never a clean scan.
 
 ## Implementation
 
-- [ ] AR-1: **Current-host oracle.** Record the current Python/Django
+- [x] AR-1: **Current-host oracle.** Record the current Python/Django
   adaptation result before changing profile or routing behavior.
-- [ ] AR-2: **Host ownership oracle.** Pin merge/no-overwrite behavior for
+- [x] AR-2: **Host ownership oracle.** Pin merge/no-overwrite behavior for
   existing instruction and identity files, plus adaptation rerun idempotency.
-- [ ] AR-3: **Registry oracle.** Pin rejection of unregistered identifiers at
+- [x] AR-3: **Registry oracle.** Pin rejection of unregistered identifiers at
   every profile/adaptation boundary.
-- [ ] AR-4: **Class A oracle.** Inventory the already-landed Class A tests and
+- [x] AR-4: **Class A oracle.** Inventory the already-landed Class A tests and
   retain their exact green command/output evidence.
-- [ ] AR-5: **Route-sprawl oracle.** Capture ignore-first discovery, selected
+- [x] AR-5: **Route-sprawl oracle.** Capture ignore-first discovery, selected
   roots/extensions/markers, and clean-exemplar output before Class C changes.
-- [ ] AR-6: **Honest-coverage oracle.** Pin missing, incompatible, uninstalled,
+- [x] AR-6: **Honest-coverage oracle.** Pin missing, incompatible, uninstalled,
   and non-executable evidence as coverage gaps rather than zero findings.
-- [ ] AR-7: **Exclusion oracle.** Pin accepted exclusions as reason-bearing and
+- [x] AR-7: **Exclusion oracle.** Pin accepted exclusions as reason-bearing and
   visible in human- and machine-readable output.
-- [ ] AR-8: **Shared-routing oracle.** Characterize the current active-set
+- [x] AR-8: **Shared-routing oracle.** Characterize the current active-set
   answer from all four routing/manifest surfaces before consolidation.
 - [x] IM-1: **Profile contract.** Implement the versioned profile schema,
   deterministic serialization, validation, per-assertion evidence, and
@@ -99,11 +100,11 @@ evidence is a coverage gap, never a clean scan.
 - [x] IM-4: **Mandatory perimeter integration.** Put the perimeter audit on
   the adaptation success path and add a bypass fixture that must fail.
   <!-- spec:portable-host-profile-routing::IM-4 -->
-- [ ] IM-5: **Shared activation.** Implement one profile-derived activation
+- [x] IM-5: **Shared activation.** Implement one profile-derived activation
   decision with inclusion/exclusion reasons and migrate `/which-skill`,
   `/which-shape`, `/which-cleanup`, and manifests to it.
   <!-- spec:portable-host-profile-routing::IM-5 -->
-- [ ] IM-6: **Honest perimeter.** Join requirements to installed,
+- [x] IM-6: **Honest perimeter.** Join requirements to installed,
   version-compatible executable evidence; retain visible reason-bearing
   exclusions; require whole-codebase routing to invoke it.
   <!-- spec:portable-host-profile-routing::IM-6 -->
@@ -126,8 +127,15 @@ evidence is a coverage gap, never a clean scan.
 
 ### Technical
 
-- Pending implementation findings about profile composition, evidence joins,
-  and routing convergence.
+- Manual activation is a narrowing override, not compatibility evidence. A
+  host allowlist cannot activate a language/framework/binding that the profile
+  does not select.
+- Mixed hosts must resolve activation per canonical profile root and union the
+  applicable results; global stack selection would manufacture binding
+  ambiguity.
+- Whole-codebase health routing needs an executed perimeter preflight. Missing
+  profiles and rejected evidence fail the coverage claim rather than becoming
+  clean scans.
 
 ## Exceptions
 

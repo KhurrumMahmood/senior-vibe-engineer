@@ -92,9 +92,12 @@ def check_version(root: Path | str) -> tuple[bool, int | None]:
     return (found == MANIFEST_VERSION), found
 
 
-# --- Skill activation (which skills apply to this project) ------------------
-# Activation answers "does this skill apply to THIS repo at all?" — pure
-# applicability, declared per project in the manifest's `skills` block. The
+# --- Manual skill overrides (legacy/raw accessors) --------------------------
+# These accessors normalize only the manifest's name-level override block.
+# Canonical profile/layer/binding applicability lives in
+# scripts/_lib/skill_activation.py; routers and scripts/manifest.py resolve
+# through that shared API. The raw accessors remain for compatibility and for
+# mutation UIs that need to inspect only the host's explicit choices. The
 # normal case is "most skills apply": `default: active` with a short opt-out
 # list (`inactive`), each entry carrying a human reason ("no frontend", "no
 # route surface", ...). This is orthogonal to ADR 0020 maturity x stakes

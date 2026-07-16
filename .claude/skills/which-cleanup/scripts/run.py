@@ -168,6 +168,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     roster = select_scanners.select(report, band=band, has_doc_change=has_doc_change,
                                     has_rename_signal=has_rename_signal)
+    roster = select_scanners.apply_activation(roster, project_root)
 
     c = closeout_mod.build(
         target=target, scope_band=band, axis_breakdown=classify.axis_breakdown(inputs),

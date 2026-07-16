@@ -6,6 +6,8 @@ from pathlib import Path
 
 import yaml
 
+from _lib.host_profile import profile_host
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ROUTE_PATH = REPO_ROOT / ".claude" / "skills" / "which-shape" / "scripts" / "route.py"
 PROJECT_PATH = REPO_ROOT / ".claude" / "skill-use" / "project.py"
@@ -43,6 +45,42 @@ def test_messy_slow_cleanup_routes_to_legacy_stabilization(tmp_path):
 
 def test_broad_audit_routes_to_health_audit(tmp_path):
     assert _shape_for("what should we audit for a broad health sweep", tmp_path) == "health-audit"
+
+
+def test_whole_codebase_route_reports_incomplete_before_profile_exists(tmp_path):
+    result = route.route("audit the whole codebase with a broad health sweep", tmp_path)
+
+    perimeter = result["recommendation"]["perimeter_audit"]
+    assert perimeter["status"] == "incomplete_coverage"
+    assert perimeter["invoked"] is False
+    assert result["recommendation"]["rationale"][0].startswith(
+        "whole-codebase perimeter is incomplete"
+    )
+
+
+def test_whole_codebase_route_invokes_perimeter_and_withholds_clean_conclusion(tmp_path):
+    (tmp_path / "package.json").write_text('{"devDependencies":{"typescript":"5.9.3"}}')
+    (tmp_path / "tsconfig.json").write_text("{}\n")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "large.ts").write_text("export const value = 1;\n" * 3200)
+    profile_path = tmp_path / ".engineering" / "project" / "host-profile.json"
+    profile_path.parent.mkdir(parents=True)
+    profile_path.write_text(json.dumps(profile_host(tmp_path)), encoding="utf-8")
+    empty_skills = tmp_path / "empty-skills"
+    empty_skills.mkdir()
+
+    result = route.route(
+        "audit the whole codebase with a broad health sweep",
+        tmp_path,
+        skills_dir=empty_skills,
+    )
+
+    perimeter = result["recommendation"]["perimeter_audit"]
+    assert perimeter["invoked"] is True
+    assert perimeter["exit_code"] == 1
+    assert perimeter["status"] == "incomplete_coverage"
+    assert perimeter["coverage_mode"] == "executable-evidence"
+    assert perimeter["gaps"][0]["language"] == "typescript"
 
 
 def test_repeated_failure_routes_to_regression_prevention(tmp_path):

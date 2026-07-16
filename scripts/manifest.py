@@ -5,16 +5,18 @@ Activation is *applicability*: which skills apply to THIS repo at all. The
 normal case is "most skills apply" — `default: active` with a short opt-out
 list (`skills.inactive`), each entry carrying a human reason. This CLI manages
 that default-active opt-out list; the flipped allowlist form
-(`default: inactive` + `skills.active`) is an advanced manual override read by
-`engineering_home.is_skill_active` but not written here.
+(`default: inactive` + `skills.active`) remains an advanced manual override.
+Canonical `resolve`/`is-active` answers come from the shared host-profile
+decision API; a manual entry can narrow compatibility but never broaden it.
 
 Activation is orthogonal to ADR 0020 maturity x stakes rung-gating
 (`project-state.json`), which selects which *standards* fire — not whether a
 whole skill runs.
 
 Subcommands:
-  show                          Print the activation block (default + inactive).
-  is-active <skill>             Exit 0 if the skill applies here, 1 if inactive.
+  show                          Print manual activation overrides.
+  resolve                       Print canonical profile-derived decisions.
+  is-active <skill>             Exit 0 if the canonical decision is active.
   deactivate <skill> <reason>   Opt a skill out (records the reason).
   activate <skill>              Opt a skill back in (drop from inactive).
 
@@ -34,8 +36,15 @@ if str(_COMMON) not in sys.path:
     sys.path.insert(0, str(_COMMON))
 import engineering_home as eh  # noqa: E402
 from _lib.capability_registry import load_registry  # noqa: E402
+from _lib.skill_activation import (  # noqa: E402
+    ActivationError,
+    decide_catalog_activation,
+    load_host_profile,
+    load_skill_metadata,
+)
 
 CAPABILITY_REGISTRY = load_registry()
+DEFAULT_SKILLS_DIR = REPO_ROOT / ".claude" / "skills"
 
 
 def _load_raw(root: Path) -> dict:
@@ -66,6 +75,7 @@ def _skills_block(manifest: dict) -> dict:
 
 def cmd_show(root: Path) -> int:
     activation = eh.skill_activation(root)
+    print("manual overrides:")
     print(f"default: {activation['default']}")
     inactive = activation["inactive"]
     if inactive:
@@ -81,12 +91,72 @@ def cmd_show(root: Path) -> int:
     return 0
 
 
-def cmd_is_active(root: Path, skill: str) -> int:
-    if eh.is_skill_active(root, skill):
-        print(f"{skill}: active")
+def _resolved_catalog(
+    root: Path,
+    skills_dir: Path,
+    profile_path: Path | None,
+) -> dict:
+    profile = load_host_profile(root, profile_path=profile_path)
+    return decide_catalog_activation(
+        load_skill_metadata(skills_dir),
+        project_root=root,
+        profile=profile,
+    )
+
+
+def cmd_resolve(
+    root: Path,
+    skills_dir: Path,
+    profile_path: Path | None,
+    *,
+    as_json: bool,
+) -> int:
+    try:
+        decisions = _resolved_catalog(root, skills_dir, profile_path)
+    except ActivationError as exc:
+        print(f"activation resolution failed: {exc}", file=sys.stderr)
+        return 2
+    payload = {
+        "active": [name for name, decision in decisions.items() if decision.active],
+        "inactive": {
+            name: list(decision.exclusion_reasons)
+            for name, decision in decisions.items()
+            if not decision.active
+        },
+        "decisions": {
+            name: decision.as_dict() for name, decision in decisions.items()
+        },
+    }
+    if as_json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print("active:")
+        for name in payload["active"]:
+            print(f"  - {name}")
+        print("inactive:")
+        for name, reasons in payload["inactive"].items():
+            print(f"  - {name}: {'; '.join(reasons)}")
+    return 0
+
+
+def cmd_is_active(
+    root: Path,
+    skill: str,
+    skills_dir: Path,
+    profile_path: Path | None,
+) -> int:
+    try:
+        decision = _resolved_catalog(root, skills_dir, profile_path).get(skill)
+    except ActivationError as exc:
+        print(f"activation resolution failed: {exc}", file=sys.stderr)
+        return 2
+    if decision is None:
+        print(f"unknown skill: {skill}", file=sys.stderr)
+        return 2
+    if decision.active:
+        print(f"{skill}: active ({'; '.join(decision.reasons)})")
         return 0
-    reason = eh.inactive_reason(root, skill)
-    print(f"{skill}: inactive" + (f" ({reason})" if reason else ""))
+    print(f"{skill}: inactive ({'; '.join(decision.exclusion_reasons)})")
     return 1
 
 
@@ -166,8 +236,22 @@ def main(argv: list[str] | None = None) -> int:
             "(default: this toolkit repo, for dogfooding)."
         ),
     )
+    parser.add_argument(
+        "--skills-dir",
+        type=Path,
+        default=DEFAULT_SKILLS_DIR,
+        help="Canonical skill catalog to resolve (default: this toolkit catalog).",
+    )
+    parser.add_argument(
+        "--profile",
+        type=Path,
+        default=None,
+        help="Canonical host-profile JSON (default: durable project profile).",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("show", help="Print the activation block.")
+    p_resolve = sub.add_parser("resolve", help="Resolve the canonical active set.")
+    p_resolve.add_argument("--json", action="store_true")
     sub.add_parser("validate", help="Validate activation and capability selection fields.")
     p_is = sub.add_parser("is-active", help="Exit 0 if active, 1 if inactive.")
     p_is.add_argument("skill")
@@ -181,10 +265,22 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "show":
         return cmd_show(root)
+    if args.command == "resolve":
+        return cmd_resolve(
+            root,
+            args.skills_dir.resolve(),
+            args.profile.resolve() if args.profile else None,
+            as_json=args.json,
+        )
     if args.command == "validate":
         return cmd_validate(root)
     if args.command == "is-active":
-        return cmd_is_active(root, args.skill)
+        return cmd_is_active(
+            root,
+            args.skill,
+            args.skills_dir.resolve(),
+            args.profile.resolve() if args.profile else None,
+        )
     if args.command == "deactivate":
         return cmd_deactivate(root, args.skill, args.reason)
     if args.command == "activate":

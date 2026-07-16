@@ -149,6 +149,7 @@ def audit(
     subsystems = sorted({s for f in files if (s := for_path(f, registry))})
     report = report_for_files(files, registry, include_checklist=False)
     roster = select_scanners.select(report, band="large")  # widest implied set for the audit
+    roster = select_scanners.apply_activation(roster, project_root)
 
     implied: dict[str, list[dict[str, Any]]] = {}
     for band_key, items in roster["buckets"].items():

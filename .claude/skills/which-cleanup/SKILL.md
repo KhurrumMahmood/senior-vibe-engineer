@@ -83,6 +83,8 @@ Pass `--project-root <dir>` to target a project explicitly.
 resolve scope ─► classify band ─► select tiered roster ─► escalate by band
 (diff_resolution)  (classify.py)   (subsystems.yaml +       (closeout.py)
                                     each skill's job:)
+                                      │
+                                      └─ shared host-profile activation filter
 ```
 
 The roster is read **live** from the registry: each touched subsystem contributes
@@ -92,6 +94,11 @@ bucketed into point-in-time tiers by reading each skill's own `job:` frontmatter
 guard-tail). A small universal floor (`find-comment-drift`,
 `find-test-obligation-drift`, `prevent-regression`; plus `find-doc-link-rot` on doc
 changes and `find-concept-divergence` on large rename-prone shapes) is always added.
+Before recommendation, every roster member passes through
+`scripts/_lib/skill_activation.py`. Profile-incompatible and manually disabled
+skills move to the explicit `inactive` list with reasons; they never enter the
+checklist, fan-out, or backward coverage expectation. This is the same decision
+projected by `/which-skill`, `/which-shape`, and `scripts/manifest.py`.
 
 ## Pipeline
 

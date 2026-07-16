@@ -34,7 +34,12 @@ Recommend an operating loop, not a single tool. `/which-skill` answers
 "which skill?" after the work shape is clear. `/which-shape` answers
 "what kind of work are we doing?"
 
-This is advisory-only in v1. It never invokes the recommended skills.
+This is advisory-only in v1. It never invokes the recommended loop skills.
+The `health-audit` whole-codebase entry is the one mandatory preflight: it
+executes `/find-perimeter-gaps` against the canonical host profile before it
+can present a coverage conclusion. Missing profiles, gaps, or audit failures
+are reported as `incomplete_coverage`; they are not converted into a clean
+whole-codebase claim.
 
 ## Forms
 
@@ -86,6 +91,12 @@ The recommendation includes:
 - short loop sequence;
 - stop/reassess condition;
 - alternatives.
+- `activation_steps` for every concrete skill named by the winning loop, with
+  shared profile-derived inclusion/exclusion reasons;
+- `inactive_steps`, a concise projection of the excluded concrete steps.
+- `perimeter_audit` on the whole-codebase `health-audit` shape, including
+  whether the preflight ran, its gaps/exclusions, and whether coverage is
+  complete. The CLI exits 1 when this preflight is incomplete.
 
 If the script reports `confidence: low` — or any rationale line reads
 "fallback shape candidate" — do not present a single shape. Present the
@@ -117,7 +128,13 @@ block.
 
 The router reads `.engineering/project/adapter.yml`,
 `.engineering/project/profile.yml`, and
-`.engineering/project/open-questions.md` when present.
+`.engineering/project/open-questions.md` when present. Skill applicability is
+resolved separately from the canonical
+`.engineering/project/host-profile.json` through
+`scripts/_lib/skill_activation.py`, the same API used by `/which-skill`,
+`/which-cleanup`, and the activation manifest CLI. The loop stays advisory,
+but every concrete incompatible step is surfaced rather than silently treated
+as runnable.
 
 Missing project context is a routing signal, not a universal blocker.
 Broad unknown-project prompts should route to `project-intake`; narrow

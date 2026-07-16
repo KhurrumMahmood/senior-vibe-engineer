@@ -5,6 +5,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import yaml
+
+from _lib.host_profile import profile_host
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MATCHER = REPO_ROOT / ".claude" / "skills" / "which-skill" / "scripts" / "match.py"
 
@@ -86,6 +90,25 @@ def _seed_manifest(root: Path, payload: dict) -> None:
     (eng / "manifest.json").write_text(json.dumps(payload) + "\n", encoding="utf-8")
 
 
+def _seed_typescript_profile(root: Path) -> None:
+    root.joinpath("package.json").write_text(
+        json.dumps(
+            {
+                "dependencies": {"react": "19.0.0"},
+                "devDependencies": {"typescript": "5.9.3"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    root.joinpath("tsconfig.json").write_text("{}\n", encoding="utf-8")
+    source = root / "src"
+    source.mkdir()
+    source.joinpath("App.tsx").write_text("export const App = () => <main />;\n", encoding="utf-8")
+    profile_path = root / ".engineering" / "project" / "host-profile.json"
+    profile_path.parent.mkdir(parents=True)
+    profile_path.write_text(json.dumps(profile_host(root)), encoding="utf-8")
+
+
 def test_skill_recommendable_when_no_manifest(tmp_path):
     # tmp_path has no .engineering/manifest.json => every skill applies, so the
     # frontend-dup prompt surfaces find-frontend-duplication as a candidate.
@@ -109,3 +132,85 @@ def test_inactive_skill_excluded_from_recommendation(tmp_path):
     assert payload["recommendation"] != "find-frontend-duplication"
     excluded = {e["name"]: e["reason"] for e in payload.get("excluded_inactive", [])}
     assert excluded.get("find-frontend-duplication") == "no frontend here"
+
+
+def test_typescript_profile_never_recommends_django_bound_skill(tmp_path):
+    _seed_typescript_profile(tmp_path)
+
+    _returncode, payload = _run_match_against(FRONTEND_DUP_PROMPT, tmp_path)
+
+    assert payload["recommendation"] != "find-frontend-duplication"
+    assert all(candidate["framework"] != "django" for candidate in payload["candidates"])
+    excluded = {
+        item["name"]: item for item in payload["excluded_inactive"]
+    }
+    assert "find-frontend-duplication" in excluded
+    assert excluded["find-frontend-duplication"]["activation"]["active"] is False
+    assert any(
+        "no profile root matches" in reason
+        for reason in excluded["find-frontend-duplication"]["reasons"]
+    )
+
+
+def test_matcher_enforces_required_capability_layer_and_binding(tmp_path):
+    _seed_typescript_profile(tmp_path)
+    skills = tmp_path / "skills"
+    for name, capabilities in (
+        ("find-symbols", ["analysis.symbols"]),
+        ("find-calls", ["analysis.calls"]),
+    ):
+        skill_dir = skills / name
+        skill_dir.mkdir(parents=True)
+        metadata = {
+            "name": name,
+            "description": "Find symbols in TypeScript source.",
+            "tier": "maintenance",
+            "job": "suspect",
+            "best_for": "find symbols",
+            "not_for": "",
+            "language": "typescript",
+            "framework": "react",
+            "layer": "framework",
+            "binding": "react",
+            "bindings": [],
+            "capabilities": capabilities,
+        }
+        skill_dir.joinpath("SKILL.md").write_text(
+            f"---\n{yaml.safe_dump(metadata, sort_keys=False)}---\n# /{name}\n",
+            encoding="utf-8",
+        )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(MATCHER),
+            "find symbols",
+            "--json",
+            "--skills-dir",
+            str(skills),
+            "--project-root",
+            str(tmp_path),
+            "--require-capability",
+            "analysis.symbols",
+            "--require-layer",
+            "framework",
+            "--require-binding",
+            "react",
+            "--threshold",
+            "0",
+            "--top",
+            "10",
+        ],
+        cwd=REPO_ROOT,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    payload = json.loads(result.stdout)
+
+    assert result.returncode == 0
+    assert payload["recommendation"] == "find-symbols"
+    assert payload["candidates"][0]["activation"]["active"] is True
+    rejected = {item["name"]: item for item in payload["excluded_inactive"]}
+    assert "find-calls" in rejected
+    assert any("required capabilities" in reason for reason in rejected["find-calls"]["reasons"])
