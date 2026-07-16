@@ -7,6 +7,7 @@ date: 2026-05-14
 deciders: []
 supersedes: []
 superseded_by: null
+revisit_when: ["the first host boundary refactor uses this framework and supplies project-calibrated thresholds and deciders"]
 applies_to:
   - .claude/skills/propose-boundary/
   - .claude/skills/refactor-subsystem/

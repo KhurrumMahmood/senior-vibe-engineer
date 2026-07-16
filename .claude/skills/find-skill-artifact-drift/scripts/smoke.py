@@ -22,20 +22,32 @@ DETECT = SCRIPT_DIR / "detect.py"
 
 EXPECTED_BAD_PATTERNS = {
     "missing_script_ref",
+    "missing_contract_script_ref",
     "missing_documented_flag",
     "bash_tool_undeclared",
     "orphan_script",
     "evidence_contract_unbacked",
     "not_for_tooltell_conflict",
 }
-BAND_A = {"missing_script_ref", "missing_documented_flag", "bash_tool_undeclared"}
+BAND_A = {
+    "missing_script_ref",
+    "missing_contract_script_ref",
+    "missing_documented_flag",
+    "bash_tool_undeclared",
+}
 
 
-def run_detect(skills_dir: Path) -> list[dict]:
+def run_detect(skills_dir: Path, contracts_dir: Path) -> list[dict]:
     with tempfile.TemporaryDirectory() as tmp:
         output = Path(tmp) / "detections.jsonl"
         subprocess.run(
-            [sys.executable, str(DETECT), "--skills-dir", str(skills_dir), "--output", str(output)],
+            [
+                sys.executable,
+                str(DETECT),
+                "--skills-dir", str(skills_dir),
+                "--contracts-dir", str(contracts_dir),
+                "--output", str(output),
+            ],
             check=True,
             text=True,
             capture_output=True,
@@ -47,16 +59,22 @@ def run_detect(skills_dir: Path) -> list[dict]:
         return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
-def gate_returncode(skills_dir: Path) -> int:
+def gate_returncode(skills_dir: Path, contracts_dir: Path) -> int:
     return subprocess.run(
-        [sys.executable, str(DETECT), "--skills-dir", str(skills_dir), "--gate"],
+        [
+            sys.executable,
+            str(DETECT),
+            "--skills-dir", str(skills_dir),
+            "--contracts-dir", str(contracts_dir),
+            "--gate",
+        ],
         text=True,
         capture_output=True,
     ).returncode
 
 
 def main() -> int:
-    bad = run_detect(FIXTURES / "bad")
+    bad = run_detect(FIXTURES / "bad", FIXTURES / "contracts" / "bad")
     bad_patterns = {record["pattern"] for record in bad}
     missing = EXPECTED_BAD_PATTERNS - bad_patterns
     if missing:
@@ -68,17 +86,17 @@ def main() -> int:
             print(f"band mismatch for {record['pattern']}: {record['band']} != {expected_band}", file=sys.stderr)
             return 1
 
-    good = run_detect(FIXTURES / "good")
+    good = run_detect(FIXTURES / "good", FIXTURES / "contracts" / "good")
     if good:
         print("good fixtures produced unexpected findings:", file=sys.stderr)
         for record in good:
             print(json.dumps(record, sort_keys=True), file=sys.stderr)
         return 1
 
-    if gate_returncode(FIXTURES / "bad") != 1:
+    if gate_returncode(FIXTURES / "bad", FIXTURES / "contracts" / "bad") != 1:
         print("--gate should exit 1 on the bad fixture", file=sys.stderr)
         return 1
-    if gate_returncode(FIXTURES / "good") != 0:
+    if gate_returncode(FIXTURES / "good", FIXTURES / "contracts" / "good") != 0:
         print("--gate should exit 0 on the good fixture", file=sys.stderr)
         return 1
 

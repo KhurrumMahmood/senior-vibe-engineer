@@ -1,0 +1,886 @@
+---
+name: portable-skill-ecosystem-completion
+title: "Portable skill ecosystem completion: trusted baseline, capability contracts, bindings, and distribution"
+status: architected
+date: 2026-07-16
+authors: [khurrum, codex]
+motivating_decision: "0034"
+successor_spec: null
+subsystems: [skills, contracts, routing, project-adaptation, language-analysis, framework-bindings, sweep-harness, installer, verification]
+workflows: [host-adoption, skill-routing, detection-to-guard, ecosystem-release]
+---
+
+# Portable skill ecosystem completion
+
+Turn the current Python/Django-grown ecosystem into a trustworthy portable
+toolkit whose skills, routing, analysis, installation, and support claims are
+correct for Python/Django, TypeScript/Node/React, Rust, Go, and mixed hosts.
+
+This is the authoritative completion plan for the portability work identified
+by the 2026-07-16 comparison of `engineering-skills`,
+`engineering-skills-2`, and `engineering-skills-3`. It supersedes the
+portability/distribution portions of `shareable-core-reorganization.md` and
+requires explicit disposition of that plan's remaining scope; the predecessor
+stays active until WP0 proves the inheritance mapping, retires it, and repairs
+inbound links.
+
+The governing distinction is:
+
+> The toolkit runtime may remain Python. “Language agnostic” means the subject
+> repository can be understood, changed, and guarded through an explicit,
+> tested capability contract. It does not mean every script is rewritten in
+> every language.
+
+## How to use this file as the progress tracker
+
+This file is both the design plan and the source of truth for execution.
+
+1. Read **Current state**, **Open decisions**, the dependency graph, and the
+   tracker before selecting work.
+2. Select only a dependency-ready work package. Change its tracker status to
+   `in_progress`, add an owner, and add a dated entry to the change log before
+   editing implementation files. For each active package, the change log must
+   name the last completed AC, current action, and last evidence revision after
+   every meaningful slice; package status alone is not a sufficient checkpoint.
+3. Implement the smallest slice that satisfies the package's acceptance
+   criteria. Store durable evidence under
+   `reports/portable-skill-ecosystem-completion/<work-package>/` and link it
+   from the tracker row. Generated machine output may be JSON; reviewer
+   conclusions may be Markdown.
+4. The implementer may move a row to `implemented`, never directly to
+   `verified`. Record every command run, its exit status, and the relevant
+   artifact or concise result in the evidence record.
+5. A read-only verifier with no conversation context (`fork_turns: none`)
+   independently reads this plan, the changed files, and the evidence; reruns
+   deterministic checks; and reports PASS or FAIL for every AC ID. Prefer
+   GPT-5.6 Luna when that model is selectable; otherwise use an available
+   lightweight model and record the actual verifier/model. Model preference
+   must never weaken or block verification.
+6. Move the row to `verified` only when all its AC IDs pass and the verifier's
+   result is linked. A failure returns the row to `in_progress` and is entered
+   in the change log.
+7. Update the summary counts after every status change. On resumption, the
+   next agent should be able to continue using this file and linked evidence
+   without needing prior chat context. Every evidence record must include the
+   repository revision, dirty-file list, platform, dependency/tool versions,
+   command and exit status, and hashes of generated evidence. Verification
+   should use a clean committed state. If an intermediate verifier must inspect
+   a dirty state, the record includes a content hash for every dirty file plus
+   a full patch artifact; any workspace-content change makes the evidence stale
+   even when HEAD and the dirty path list are unchanged. Evidence from a
+   different revision is stale until the verifier explicitly revalidates it.
+   A later revision or workspace change touching an AC's implementation or
+   evidence demotes its WP from `verified` to `implemented`; a fresh verifier
+   may retain `verified` only by recording why the change is unrelated and
+   confirming all relevant hashes.
+
+Allowed status values:
+
+- `not_started` — no implementation work has begun.
+- `in_progress` — active work or failed verification is being addressed.
+- `blocked` — a named external decision or dependency prevents progress; the
+  blocker and unblock condition must be written in the tracker.
+- `implemented` — implementation is complete but independent verification is
+  pending.
+- `verified` — every listed AC has independent PASS evidence.
+
+Completion rules:
+
+- Every WP0–WP10 tracker row is `verified`.
+- Every acceptance criterion has a durable PASS record from a fresh-context
+  verifier, including the command/output or inspection evidence used.
+- All P0 decisions are resolved by accepted ADRs; no material decision remains
+  only in this plan or in chat history.
+- WP10's final integrator independently reruns the release gate and reports no
+  missing evidence, unsupported claim, unresolved blocker, or stale tracker
+  entry.
+- The `/goal` may be marked complete only after those conditions hold.
+
+## Progress summary
+
+Last updated: 2026-07-16 by Codex (WP0 baseline start)
+
+| State | Count |
+|---|---:|
+| not_started | 10 |
+| in_progress | 1 |
+| blocked | 0 |
+| implemented | 0 |
+| verified | 0 |
+
+## Master tracker
+
+| Work package | Status | Owner | Depends on | Acceptance criteria | Evidence / verifier | Blocker or next action |
+|---|---|---|---|---|---|---|
+| WP0 Trusted baseline and plan consolidation | in_progress | Codex | — | AC-0.1–AC-0.5 | `reports/portable-skill-ecosystem-completion/WP0/` (pending) | AC-0.1 baseline capture at `ad685e3`; no AC completed yet. |
+| WP1 Canonical stack and capability contract | not_started | — | WP0 | AC-1.1–AC-1.7 | — | Resolve D1–D5 and implement one validated registry. |
+| WP2 Capability-aware host profiling and routing | not_started | — | WP1 | AC-2.1–AC-2.6 | — | Make adaptation, routing, perimeter, and inherited Class B/C surfaces use the same profile. |
+| WP3 Load-bearing layers, bindings, and installer | not_started | — | WP1, WP2 | AC-3.1–AC-3.6 | — | Implement the packaging/discovery decision and exemplar binding. |
+| WP4 Multi-language analysis substrate | not_started | — | WP1 | AC-4.1–AC-4.6 | — | Provide parser-backed normalized facts with explicit capability failures. |
+| WP5 Productized batch sweep and native shims | not_started | — | WP1, WP2; WP4 for parser-backed members | AC-5.1–AC-5.8 | — | Promote ADR 0036 prototype and resolve the canonical findings-ledger relationship. |
+| WP6 TypeScript end-to-end vertical slice | not_started | — | WP3, WP4, WP5 | AC-6.1–AC-6.6 | — | Prove concept → detection → change → guard on a real TS fixture. |
+| WP7 Language-aware refactoring and guard generation | not_started | — | WP4, WP6 | AC-7.1–AC-7.6 | — | Generalize safe changes and suppression contracts without a giant universal AST. |
+| WP8 Cross-stack conformance and skill execution harness | not_started | — | WP2–WP7 | AC-8.1–AC-8.8 | — | Gate support labels on behavior, metadata, and inherited topology decisions. |
+| WP9 Documentation, onboarding, compatibility, and release | not_started | — | WP3, WP5, WP8 | AC-9.1–AC-9.6 | — | Make installation and claims reproducible for newcomers. |
+| WP10 Independent completion verification | not_started | — | WP0–WP9 | AC-10.1–AC-10.5 | — | Fresh integrator validates every criterion and release surface. |
+
+## Current state and problem statement
+
+The current repository is the most advanced of the three compared versions:
+it has the broadest skill corpus and the strongest architectural doctrine,
+conformance tools, ADR workflow, and initial adapter/sweep work. Version 3 is
+the cleanest stable baseline; version 2 is intermediate. The current repo is
+also the least internally trustworthy because some documentation, generated
+state, contracts, and tests lag the rapid evolution.
+
+Audit snapshot (2026-07-16; values are evidence inputs, not eternal truths):
+
+- 76 top-level skills. Declared coupling: 33 `any/any`, 5 `any/django`,
+  15 `python/any`, and 23 `python/django`.
+- Test run: 401 passed and 2 failed. One failure was environmental
+  (Playwright browser binary absent); one exposed a real time-dependent test
+  defect in `tests/test_triage_audit.py`.
+- Only 11 of 53 script-backed skills had explicit behavior smokes; 42 passed
+  only an import-floor check.
+- Stale or contradictory artifacts included README skill counts and adapter
+  claims, `.claude/ecosystem/last-state.json`,
+  `.engineering/manifest.json` reasons, and a contract referring to a deleted
+  `mature.py` implementation.
+- `/which-skill` claims language/framework filtering but does not use a
+  canonical host stack/capability profile.
+- Stack vocabularies disagree: `skill_meta.py` accepts a narrow closed set,
+  perimeter logic recognizes more values, and project adaptation can emit
+  React/Vite values the metadata validator does not understand.
+- `scans:` is operationally meaningful but absent from the validated
+  frontmatter contract.
+- The shared adapter offers symbol extraction and Python AST access; the
+  JavaScript heuristic misses common ESM/TypeScript declarations such as
+  `export function` and `export const`, while deep consumers remain Python
+  specific.
+- ADR 0034's core/language/framework/domain placement is not load-bearing:
+  there is no binding loader, layer-aware manifest, core-only install, or
+  verified non-Django host installation.
+- ADR 0036's sweep is still a Python-oriented prototype rather than a
+  supported multi-language pipeline.
+
+Problem class: this is a **platform extraction and state transformation**,
+not a metadata cleanup. It changes the toolkit from a flat, implicitly
+Python/Django product into a layered host-adaptive system while preserving
+existing Django behavior and skill names.
+
+### Predecessor inheritance matrix
+
+WP0 must verify this mapping against the current repository before retiring
+the predecessor. “Separate disposition” is not permission to forget work: it
+requires a named owner, accepted ADR or active plan, evidence of current state,
+and a revisit/completion trigger.
+
+| `shareable-core-reorganization` scope | Disposition in this program |
+|---|---|
+| W1 layer migration | WP1 capability/layer schema, WP2 routing, WP3 foundation, WP8 catalog rollout |
+| W2 incidental de-flavoring | WP3 core leakage rule and WP8 full-catalog rollout |
+| W3 concept + binding extraction | WP3 extract-enum exemplar, WP6 TypeScript binding, WP7 guard generation |
+| W4 Class B/C de-baking | WP2 must classify and verify the component-profile, neutral-surface, and Class C scope work; unfinished items receive exact ACs in a successor spec before predecessor retirement |
+| W5 ADR 0026–0030 and 0003 backlog | WP0 audits each item as implemented, rejected, or still proposed; every unfinished item is mapped to an exact AC/successor plan and owner before predecessor retirement |
+| W6 on-ramp and distribution | WP3 installer plus WP9 onboarding, lite-mode/three-skill starter, compatibility, and release |
+
+No predecessor workstream may be labeled “covered” solely because a new work
+package has a similar name. The WP0 verification evidence must map each
+original deliverable and success criterion, not just W1–W6 headings.
+
+Detailed inheritance ledger (owner is the active goal coordinator until a WP
+row names another owner):
+
+| Predecessor item | Current-state finding at WP0 | Exact completion owner |
+|---|---|---|
+| W1 classify every skill and resolve discovery/package mechanics | Not completed; ADR 0034 remains pending on the predecessor | D1/D4, AC-3.1–AC-3.6, AC-8.7 |
+| W1 update routers, activation manifest, perimeter, contracts index, catalog | Not layer-aware yet | AC-2.3–AC-2.5, AC-3.2/AC-3.5, AC-8.7, AC-9.1 |
+| W2 de-flavor incidentally coupled core procedures | Partial/unmeasured | AC-3.1 and full-catalog leakage gate AC-8.7 |
+| W3 concept + binding default and extract-enum exemplar | Not completed | D2, AC-3.3/AC-3.4, AC-6.3/AC-6.6, AC-7.3–AC-7.5 |
+| W4 descriptor-driven component inventory, graceful no-profile behavior | Implemented in `cotton_inventory.py`; must remain regression-pinned | AC-2.6 |
+| W4 neutral product-health surface labels | Not completed: `product_health.py` still emits `sites_*` labels | AC-2.6 |
+| W4 scope integration for folder-topology and frontend-contract detectors | Implemented through shared ignore-first scope; must remain regression-pinned | AC-2.6 |
+| W5 ADR 0026 reason-mandatory project-lint suppression | Still proposed | AC-7.6 |
+| W5 ADR 0027 wire-identifier preservation | Still proposed; invariant already named by refactor criteria | AC-7.1/AC-7.2 |
+| W5 ADR 0028 post-move asset-path verification | Still proposed | AC-7.1/AC-7.2 |
+| W5 ADR 0029 route-mirrored page topology detector | Still proposed | AC-8.8 |
+| W5 ADR 0030 cohesive workflow-trio detector | Still proposed | AC-8.8 |
+| W5 ADR 0003 canonical findings ledger/outcome linkage | Still proposed; overlaps ADR 0036 manifest identity | AC-5.4/AC-5.5/AC-5.8 |
+| W6 onboarding-flow and lite three-skill starter | Not completed in the required explicit form | AC-9.2 |
+| W6 per-stack portfolios, packaging decision, ≤20-minute first value | Not completed | D1, AC-3.5/AC-3.6, AC-9.2/AC-9.6 |
+| Success 1 layer-aware non-Django install | Not completed | AC-3.5/AC-3.6, AC-9.6 |
+| Success 2 no framework leakage in core | Not completed | AC-3.1, AC-8.7 |
+| Success 3 extract-enum binding round-trip | Not completed | AC-3.4, AC-6.6 |
+| Success 4 embodiment backlog shrinks without regression | Baseline audited above; no proposed item may remain unresolved | AC-5.8, AC-7.6, AC-8.8, AC-9.4 |
+| Success 5 documented ≤20-minute first value and named starter | Not completed | AC-3.6, AC-9.2 |
+| Success 6 reference-clean moves | Not completed | AC-3.2, AC-7.1/AC-7.2, AC-8.7, AC-9.1 |
+
+## 1. Scope & Bounds
+
+### In scope
+
+- Repair the repository's baseline trust so subsequent portability claims are
+  measured against green, current artifacts.
+- Define one canonical, extensible stack and capability registry consumed by
+  metadata validation, project profiling, routers, perimeter auditing,
+  installers, adapters, smokes, and sweep shims.
+- Make ADR 0034 layers load-bearing through discovery, activation, concept
+  bindings, installation, and leakage checks.
+- Build language-analysis facts sufficient for portable detectors,
+  refactorings, and guards, using native parsers/indexes where precision needs
+  them and native linters where they are already authoritative.
+- Productize ADR 0036's stable-manifest sweep with Python, TypeScript, Rust,
+  and Go shims.
+- Prove a complete TypeScript path before broad porting: profile → route →
+  detect → propose → change → guard → rescan.
+- Gate every language/framework/support claim on fixture-backed behavior and
+  independently verified evidence.
+- Preserve current Python/Django behavior and existing public skill invocation
+  names or provide tested compatibility aliases.
+
+### Out of scope / non-goals
+
+- Rewriting the toolkit runtime in each supported language.
+- Porting all 76 skills before the TypeScript vertical slice proves the
+  architecture and reveals the real cost.
+- Designing a giant universal AST. The shared layer owns bounded facts and
+  capability contracts, not a lossless representation of every language.
+- Maintaining full per-language copies of a concept skill.
+- Restructuring host repositories merely because this toolkit adopts internal
+  layers.
+- Claiming production support for a stack that lacks a passing conformance
+  fixture and behavior smoke.
+- Building a knowledge graph, telemetry platform, or autonomous model-routing
+  system unless an acceptance criterion demonstrates that a smaller indexed
+  artifact cannot meet the need.
+
+## 2. Success Criteria and work packages
+
+### WP0 — Trusted baseline and plan consolidation
+
+Deliverables: reproducible baseline report, repaired tests/artifacts, and one
+authoritative active portability plan.
+
+- **AC-0.1:** From a clean checkout with documented prerequisites,
+  `.venv/bin/python -m pytest` exits 0. Browser-dependent tests either run
+  after a documented deterministic setup command or fail preflight with a
+  precise setup instruction; they are not silently skipped to obtain green.
+- **AC-0.2:** The time-dependent triage test uses an injected/fixed clock or
+  otherwise deterministic boundary. A regression test fails if wall-clock
+  time is reintroduced into that scenario.
+- **AC-0.3:** README counts/claims, `.claude/ecosystem/last-state.json`,
+  `.engineering/manifest.json`, skill contracts, and actual files agree.
+  Artifact-drift checks detect a contract naming a deleted implementation.
+- **AC-0.4:** `scripts/plans.py audit`, `scripts/decisions.py audit`, decision
+  link checks, skill metadata lint, ecosystem consistency, and the narrowest
+  relevant self-lints all exit 0; exact commands are recorded in evidence.
+- **AC-0.5:** Before `shareable-core-reorganization.md` is abandoned, a
+  line-item W1–W6 inheritance record maps every predecessor deliverable and
+  success criterion to an exact AC/successor spec or to an accepted ADR-backed
+  disposition with owner and revisit trigger. A fresh-context verifier reports
+  zero unmapped items. Only then is the predecessor marked `abandoned` with a
+  pointer here and every active inbound reference updated or deliberately
+  retained as historical provenance.
+
+### WP1 — Canonical stack and capability contract
+
+Deliverables: accepted ADRs for D1–D5, one registry/schema, validators, and a
+machine-readable support vocabulary.
+
+- **AC-1.1:** A versioned schema distinguishes toolkit runtime, subject
+  languages, frameworks, build/test tools, project roots, layers, bindings,
+  `scans`, analysis/refactoring/guard capabilities, support level, and
+  evidence. Unknown future language/framework identifiers can be registered
+  without editing multiple validators.
+- **AC-1.2:** `skill_meta.py`, project adaptation, `/which-skill`, perimeter
+  auditing, activation manifests, installer selection, and sweep shims import
+  or consume the same registry. A repository search plus a guard test proves
+  there is no second hard-coded stack enumeration on those paths.
+- **AC-1.3:** Schema validation rejects invalid capability names, unsupported
+  layer/binding combinations, `language: any` without sufficient executable
+  coverage, `scans:` claims without a matching adapter/shim/evidence entry,
+  and React/Vite-style framework/tool confusion.
+- **AC-1.4:** Support states are explicit (`unsupported`, `experimental`,
+  `verified`, or the ADR-selected equivalents) with mechanical promotion and
+  demotion rules tied to fixture results and tool versions.
+- **AC-1.5:** Accepted ADRs resolve D1–D5 and record rejected alternatives,
+  migration compatibility, dependency/toolchain costs, and revisit triggers.
+  `decisions.py audit` and link checks exit 0.
+- **AC-1.6:** A versioned, machine-readable completion-floor matrix defines
+  the minimum verified capabilities and supported agent surfaces for every
+  target stack. The conformance gate fails when the floor below is unmet; a
+  stack cannot pass by labeling required cells `unsupported` or by omitting
+  them. Changes to the floor require an ADR amendment and migration impact
+  review.
+- **AC-1.7:** Before D3 is accepted, a time-boxed spike executes the same pinned
+  syntax/semantic corpus through the viable tool candidates and records
+  precision/recall, unsupported constructs, cold/warm runtime, install size,
+  licenses, supported platforms, deterministic CI setup, and maintenance
+  ownership. WP4 implements the selected portfolio and must meet or improve
+  the predeclared acceptance budgets rather than merely recording performance.
+
+Minimum completion floor (D4 may refine names, but not silently weaken these
+outcomes):
+
+| Host stack | Must be `verified` at program completion | May remain `experimental` |
+|---|---|---|
+| Python/Django | profile, routing, perimeter, installation, required analysis facts, batch sweep, enum/refactor/guard exemplar, existing applicable catalog compatibility | newly introduced optional detector families outside the current catalog |
+| TypeScript/Node/React | profile, routing, perimeter, installation, real-parser symbols/imports/definitions/references/calls/writes needed by WP6, batch sweep, omnibus + typed-state detection, enum migration, executable guard | broader catalog beyond the WP6/WP7 invariant portfolio |
+| Rust | profile, routing, perimeter, install selection, native sweep shim, loud failure semantics, mixed-host composition | parser-backed refactoring and non-native structural detectors |
+| Go | profile, routing, perimeter, install selection, native sweep shim, loud failure semantics, mixed-host composition | parser-backed refactoring and non-native structural detectors |
+| Mixed monorepo | per-root profile composition, layer/binding isolation, routing, perimeter, native sweep aggregation, stable non-colliding identities across languages | cross-language semantic refactoring |
+
+The supported-agent-surface matrix is versioned alongside this floor. “Every
+supported agent surface” elsewhere in the plan means every surface named in
+that matrix at its pinned minimum version, not an open-ended claim.
+
+### WP2 — Capability-aware host profiling and routing
+
+Deliverables: a canonical host profile, adapter migration, explainable
+routing, and honest perimeter coverage.
+
+- **AC-2.1:** One profiler produces schema-valid deterministic profiles for
+  Python/Django, TypeScript/Node/React, Rust, Go, and a mixed monorepo fixture,
+  including code roots, generated/vendor exclusions, build/test commands, and
+  detected evidence for every stack assertion.
+- **AC-2.2:** `/adapt-project` consumes the profile and never emits identifiers
+  rejected by metadata validation. It invokes `/find-perimeter-gaps` against
+  the resulting profile before reporting adoption success, surfaces uncovered
+  cells and visible accepted exclusions, and has fixture-backed integration
+  tests proving the call cannot be bypassed. Re-running adaptation is
+  idempotent and preserves host-owned instructions rather than installing
+  toolkit identity text as the host's identity.
+- **AC-2.3:** `/which-skill` filters by required capabilities/layers/bindings,
+  explains every inclusion and material exclusion, and does not recommend a
+  Django-bound skill for the TypeScript fixture. Tests prove the documented
+  language/framework filtering behavior.
+- **AC-2.4:** `/which-shape`, `/which-cleanup`, activation manifests, and
+  `/which-skill` cannot disagree on whether a skill is active for the same
+  profile; a shared conformance test checks the routing surfaces.
+- **AC-2.5:** `/find-perimeter-gaps` uses the canonical registry and treats a
+  root as covered only when an installed, version-compatible capability has
+  executable scan evidence. Accepted exclusions require a reason and remain
+  visible in output. The “audit the whole codebase” routing entry point invokes
+  this audit and fails or reports incomplete coverage before presenting a
+  whole-codebase conclusion; an end-to-end fixture test pins that integration.
+- **AC-2.6:** The predecessor Class B/C de-baking contract is complete and
+  regression-pinned: component inventory is selected by the host component
+  profile and degrades to an empty inventory when undeclared; folder-topology
+  and frontend-contract detectors enumerate through the shared ignore-first
+  scope; and product-health records use neutral, profile-derived surface labels
+  with no `sites_*`/seed-host fallback. Good/bad fixtures prove each behavior,
+  and a repo search finds no executable hard-coded seed-host root on these paths.
+
+### WP3 — Load-bearing layers, bindings, and installer
+
+Deliverables: discovery-compatible layer namespace, binding contract,
+compatibility aliases, install manifests, and cold-host installer.
+
+- **AC-3.1:** A complete catalog inventory assigns every skill exactly one
+  proposed validated layer, while this package migrates only the foundation
+  and exemplar needed by WP6. Placement validation enforces ADR 0034's N=1
+  allowance for shipping-contract layers, ≥3 threshold for domain cohesion
+  folders, concept+binding default, and `/plan-skill` placement question. A
+  core skill cannot name framework-specific APIs outside a declared binding or
+  example boundary; a diff-scoped lint enforces this without false positives
+  on legitimate compatibility prose. Full catalog rollout is gated by AC-8.7
+  after the TypeScript exemplar.
+- **AC-3.2:** The selected discovery mechanism works in every supported agent
+  surface in the versioned matrix from AC-1.6. Existing skill invocation names
+  resolve unchanged or through tested aliases, and contracts/catalog links
+  remain reference-clean.
+- **AC-3.3:** A binding loader selects bindings from the canonical host profile,
+  rejects ambiguous/incompatible bindings, and exposes the selected binding
+  in execution evidence. Core procedure text is not duplicated into bindings.
+- **AC-3.4:** `extract-enum` is split into a framework-neutral invariant and a
+  Django binding. Before implementation, a pinned input/output baseline and
+  allowed normalization rules define semantic equivalence. On the Django
+  fixture the post-split result matches that oracle and existing tests pass.
+- **AC-3.5:** A core-only install exposes zero Django/framework-native skills;
+  a TypeScript portfolio exposes core + TypeScript + selected bindings; a
+  Django portfolio preserves the current applicable catalog. Snapshot tests
+  cover all three.
+- **AC-3.6:** On clean fixture hosts, install, verify, update, and uninstall are
+  idempotent and do not overwrite host-owned files. A newcomer reaches one
+  useful verified skill run in 20 minutes or less using only documented steps.
+
+### WP4 — Multi-language analysis substrate
+
+Deliverables: capability-based adapters, parser/index integrations, normalized
+facts, golden fixtures, and explicit failure behavior.
+
+- **AC-4.1:** A documented analysis interface exposes only the facts required
+  by real consumers—at minimum symbols, imports, definitions, references,
+  calls, and writes—with per-adapter capability discovery and versioning.
+  Framework facts such as routes remain bindings, not universal syntax facts.
+- **AC-4.2:** WP4 implements D3's selected Tree-sitter/ast-grep and/or
+  SCIP/LSP/native-compiler portfolio and reruns AC-1.7's pinned benchmark.
+  Results meet the predeclared precision, performance, platform, licensing,
+  and deterministic-install budgets; a budget miss reopens D3 rather than
+  being accepted as a recorded limitation.
+- **AC-4.3:** The TypeScript adapter uses a real parser and correctly handles
+  `export function`, `export const`, classes, arrow functions, nested scopes,
+  `.js/.mjs/.cjs/.ts/.tsx`, malformed input, and source locations in golden
+  tests. The known heuristic under-detection is removed or explicitly retired.
+- **AC-4.4:** Python behavior remains regression-pinned. Rust and Go provide at
+  least the fact subset needed by their accepted sweep shims and perimeter
+  claims; missing facts remain explicit capability gaps.
+- **AC-4.5:** Requesting an unsupported capability produces a typed skip/error
+  with adapter, file, and missing-capability context. It can never appear as a
+  successful zero-finding scan. Tests inject missing/broken tools and corrupt
+  parser output.
+- **AC-4.6:** Golden fact files and adapter contract tests are deterministic
+  across supported platforms/tool versions and meet the predeclared cold/warm
+  runtime and memory budgets from AC-1.7 on representative small and large
+  fixtures. Evidence records the benchmark machine and variance; exceeding the
+  allowed threshold fails the criterion.
+
+### WP5 — Productized batch sweep and native shims
+
+Deliverables: supported sweep CLI/library, versioned manifest, native-tool
+shims, diff/ratchet, and skill wiring.
+
+- **AC-5.1:** The ADR 0036 prototype is promoted from `.claude/tasks/` to a
+  supported `scripts/` package with CLI help, schema versioning, deterministic
+  output order, stable IDs, unit/integration tests, and no dependency on
+  prototype evidence paths at runtime.
+- **AC-5.2:** Shims normalize Ruff, ESLint plus TypeScript compiler diagnostics,
+  Clippy, Go vet/staticcheck (ADR-selected portfolio), and ecosystem detectors
+  into the shared manifest while retaining native rule IDs, locations,
+  severity, tool versions, and raw-output provenance.
+- **AC-5.3:** Missing binaries, nonzero tool exits, parse failures, timeouts,
+  truncated output, and schema mismatches fail loudly and distinguish tool
+  failure from a clean zero-finding result. Fault-injection tests cover each.
+- **AC-5.4:** `scan`, `digest`, `diff`, and `ratchet` commands reproduce ADR
+  0036 semantics using D5's canonical identity rules: fixed/new/persisting sets
+  are correct; deliberate accepts are auditable; improvement tightens rather
+  than loosens the baseline. Adversarial/property tests cover multiple
+  symbol-less instances of one native rule in one file, normalized/renamed
+  paths, case behavior, hash collision handling, tool-version semantic
+  changes, and manifest-schema migration without false deduplication.
+- **AC-5.5:** Agents consume bounded digests and finding IDs, not raw full-repo
+  findings. The harness, not the executor, performs the post-change rescan and
+  rejects self-attested success without manifest evidence.
+- **AC-5.6:** Python, TypeScript, Rust, Go, and mixed fixtures run through the
+  final manifest/diff boundary in CI. ADR 0036 `embodied_by` points to the
+  productized paths and contains no productization-pending reference.
+- **AC-5.7:** Detection performs no model or network calls. Every finding that
+  can enter ranking, a dashboard, a planner packet, or a fix has a recorded
+  judgment outcome; judge failure/uncertainty blocks execution; raw counts
+  cannot directly drive ranking, dashboards, or fixes. Planner packets contain
+  finding IDs, bounded scope, recipe, verification command, expected manifest
+  delta, and a bounded budget. Bypass and judge-failure integration tests prove
+  each gate, and network/model-call instrumentation proves the detection stage
+  is agent-free.
+- **AC-5.8:** ADR 0003 is resolved against ADR 0036 rather than left proposed:
+  accept/amend it with one canonical finding/outcome ledger keyed by the stable
+  manifest identity, or reject/supersede it with an ADR explaining why the
+  manifest/event substrate replaces it. The implemented outcome supports
+  cross-skill path queries and finding → judgment → packet → fix/commit →
+  verification linkage, with schema/round-trip tests and accurate `embodied_by`.
+
+### WP6 — TypeScript end-to-end vertical slice
+
+Deliverables: one complete non-Python maintenance loop proving the architecture.
+
+- **AC-6.1:** A representative TypeScript/Node/React fixture contains pinned
+  good and bad cases for an omnibus module and stringly state, uses ordinary
+  ESM exports, and can run lint, typecheck, and tests deterministically.
+- **AC-6.2:** `find-omnibus` uses the real TypeScript analysis capability and
+  reports the pinned bad module with stable evidence while remaining silent on
+  the predeclared cohesive and allowed-near-miss controls. The fixture oracle,
+  including the exact expected candidate set and minimum precision/recall, is
+  frozen before detector changes. A second fixture with no module system,
+  tests, or consolidated infrastructure helpers must produce ADR 0032's
+  `re-architect — substrate decision required` handoff rather than executable
+  decomposition advice.
+- **AC-6.3:** The framework-neutral enum invariant plus a TypeScript binding
+  detects the pinned stringly-state case and proposes/applies an idiomatic
+  typed enum migration without changing external/wire values.
+- **AC-6.4:** `/prevent-regression` compiles the invariant into an executable
+  ESLint or Semgrep/native guard that fails on the bad case and passes after
+  migration. The guard includes tests for a near-miss that must remain allowed.
+- **AC-6.5:** One command or documented orchestration executes profile → route
+  → detect → judge/propose → apply → native tests → guard → rescan/diff and
+  proves the expected finding was fixed with zero new findings. The orchestration
+  records the module/test/helper substrate check before offering refactor work
+  and refuses apply when that gate fails.
+- **AC-6.6:** The Django exemplar is rerun in the same CI change and retains
+  equivalent output. No TypeScript implementation detail leaks into the core
+  invariant or Django binding.
+
+### WP7 — Language-aware refactoring and guard generation
+
+Deliverables: safe change primitives, invariant-to-guard compiler contract,
+and Python/TypeScript golden transformations.
+
+- **AC-7.1:** Rename/move/reference-edit operations use parser/index evidence,
+  produce reviewable patches before apply, preserve strings/wire identifiers
+  unless explicitly mapped, and are idempotent on second execution. Post-move
+  verification also resolves file-relative/self-anchored asset references from
+  their new location; import success alone cannot satisfy the gate.
+- **AC-7.2:** Python and TypeScript golden projects cover definitions,
+  imports/exports, references, aliases, comments/strings, tests, and ambiguous
+  symbols, preserved wire identifiers, and self-anchored asset paths. Unsafe
+  ambiguity or an unresolved post-move asset stops with an actionable diagnostic
+  rather than a partial edit.
+- **AC-7.3:** A versioned guard-generation contract maps a common invariant to
+  language-native enforcement while preserving language-specific escape hatches,
+  messages, test fixtures, and autofix safety. Generated guards are editable,
+  deterministic, and carry provenance to the invariant.
+- **AC-7.4:** At least two invariant families—typed state and read-named
+  mutation or another ADR-approved pair—produce passing Python and TypeScript
+  guards with bad/good/allowed-near-miss fixtures.
+- **AC-7.5:** Characterization tests prove existing Python refactor/guard output
+  is preserved or intentionally migrated with release notes and compatibility
+  handling.
+- **AC-7.6:** ADR 0026's project-lint suppression contract is resolved for the
+  multi-language guard portfolio: accepted implementations use a dedicated,
+  reason-mandatory project namespace without corrupting native Ruff/ESLint/
+  Clippy/Go suppression semantics, or the ADR is rejected/superseded with
+  fixture-backed evidence for a safer per-language contract. Empty reasons,
+  unknown project codes, native/project collisions, and allowed suppressions
+  have executable tests; no accepted ADR remains `pending:`.
+
+### WP8 — Cross-stack conformance and skill execution harness
+
+Deliverables: fixture matrix, behavior-smoke policy, support gate, and fresh-
+context verification protocol.
+
+- **AC-8.1:** A checked-in conformance matrix maps every supported stack and
+  every skill capability claim to a fixture, command, expected result, support
+  level, and evidence owner. No cell says “supported” without an executable
+  test or a machine-validated non-applicability reason. The gate also compares
+  the matrix to AC-1.6's minimum floor and fails on a missing or downgraded
+  required cell.
+- **AC-8.2:** Every script-backed skill has an explicit behavior smoke, or a
+  schema-valid exemption naming why import-only verification is sufficient and
+  its expiry/revisit trigger. Exemptions are limited to predeclared categories,
+  require an owner, expire in at most 90 days, and cannot cover a skill making
+  a `verified` behavior claim. The smoke runner has a `--require-all` gate that
+  fails on untested, expired, unknown, or impermissibly exempted entries.
+- **AC-8.3:** Every prompt/judgment-only skill has a structured output contract
+  and either a deterministic artifact validator or a representative witness
+  test drawn from a versioned minimum corpus selected before harness
+  implementation. The plan does not claim model judgment is fully deterministic;
+  it verifies required steps/evidence, mutation boundaries, and evaluator
+  uncertainty. Corpus reduction or permissive expected-output changes require
+  independent approval and a recorded rationale.
+- **AC-8.4:** Support promotion to `verified` requires the full relevant matrix;
+  regression automatically demotes or blocks release. Tests prove a metadata
+  edit alone cannot promote support.
+- **AC-8.5:** Each work package's verification prompt is self-contained,
+  launched with `fork_turns: none`, read-only by default, and requires a PASS/
+  FAIL verdict per AC ID plus rerun evidence. Verifier identity/model and any
+  unavailable checks are recorded.
+- **AC-8.6:** CI executes the applicable matrix on Linux; platform-dependent
+  behavior has an additional supported-platform runner or an explicit support
+  limitation. Tool versions and fixture lockfiles make results reproducible.
+- **AC-8.7:** After WP6 verifies the concept/binding architecture, the catalog
+  migration inventory from AC-3.1 is executed or explicitly classified outside
+  the completion floor. Every shipped skill has one validated placement,
+  routing/installation honors it, de-flavoring is complete for core skills,
+  aliases and contract paths pass, and no framework leakage lint fails. This is
+  the full-rollout gate; WP3 alone does not authorize a pre-exemplar mass move.
+- **AC-8.8:** Proposed ADRs 0029 and 0030 are each resolved rather than silently
+  carried forever. For each, either accept and embody the topology/workflow
+  invariant in the appropriate framework binding with detector good/bad/
+  near-miss fixtures, or reject/supersede it with representative evidence that
+  the rule is not portable or is subsumed by another invariant. Decision audits
+  are clean and no `pending:` reference points at unfinished predecessor work.
+
+### WP9 — Documentation, onboarding, compatibility, and release
+
+Deliverables: current docs, fast onboarding, migration guide, release gate,
+and retired stale provenance.
+
+- **AC-9.1:** README, skill catalog, portability roadmap, manifests, contracts,
+  ADR implementation sections, and install docs agree with generated counts,
+  current support levels, adapter capabilities, and paths. A drift check guards
+  values that can be generated or cross-validated.
+- **AC-9.2:** Separate core-only, Python/Django, and TypeScript/Node install
+  paths are documented from a clean host through first verified result,
+  update, troubleshooting, and uninstall. Two fresh-context dry runs complete
+  first value in 20 minutes or less without unstated repository knowledge. The
+  onboarding includes an explicit lite mode with a named three-skill starter
+  portfolio, what governance it omits, and the concrete cost/risk of each
+  omission, preserving predecessor W6.
+- **AC-9.3:** A compatibility guide covers legacy flat paths/invocation names,
+  aliases, manifest/schema migrations, binding selection changes, deprecation
+  duration, rollback, and how host overlays remain host-owned.
+- **AC-9.4:** Every accepted ADR touched by the program has accurate
+  `embodied_by`, implementation status, verification, and supersession links.
+  No `pending:` entry names completed work or a deleted path.
+- **AC-9.5:** Release notes state which stacks/capabilities are verified versus
+  experimental, list toolchain prerequisites and known limits, and make no
+  broader “language agnostic” claim than the conformance matrix supports.
+- **AC-9.6:** A release candidate installed into clean Django and TypeScript
+  fixtures passes installer verification, routing, representative skill runs,
+  native tests, sweep, artifact drift, and uninstall without modifying
+  unrelated host files.
+
+### WP10 — Independent completion verification
+
+Deliverable: a durable final verification report and mechanically closed goal.
+
+- **AC-10.1:** A fresh-context integrator audits every acceptance criterion in
+  WP0–WP9 and fails
+  if any tracker status, evidence link, command, verifier identity, or claimed
+  result is absent, stale, non-reproducible, or scoped more narrowly than the
+  criterion.
+- **AC-10.2:** From clean checkouts/fixtures the integrator reruns the documented
+  release gate: unit/integration tests, browser setup/tests, skill smokes,
+  metadata/contracts/artifact drift, plan/ADR audits, core leakage lint,
+  conformance matrix, installer portfolios, TypeScript vertical slice, and
+  sweep manifest/diff/ratchet. WP10 verification runs only from a clean,
+  committed checkout; dirty-state exceptions allowed for intermediate WPs do
+  not apply.
+- **AC-10.3:** At least one fresh-context verifier independently validates each
+  work package. The final integrator did not implement the work it verifies;
+  exceptions require user approval and a second independent verifier.
+- **AC-10.4:** The report at
+  `reports/portable-skill-ecosystem-completion/final-verification.md` contains
+  a PASS/FAIL row for every AC in WP0–WP9 and AC-10.1–AC-10.3, exact
+  revisions/tool versions, commands, links to evidence, limitations, and an
+  explicit unsupported-claims search. AC-10.4 PASS evidence is the final
+  verifier's inspection of this completed report; the report does not need to
+  contain a verdict about itself and is not mutated afterward.
+- **AC-10.5:** After independent PASS evidence exists for AC-10.1–AC-10.4, the
+  final verifier validates the
+  prepared closure state and issues a signed `READY TO CLOSE` verdict. The
+  verdict explicitly confirms that every prerequisite AC through AC-10.4 has
+  PASS evidence, successor specs are closure-ready, tracker transitions are
+  prepared, summary arithmetic is correct, and the active goal is the goal
+  named by this plan. Issuing this
+  verdict itself is the durable PASS evidence for AC-10.5; it need not be
+  inserted into AC-10.4's immutable report. Issuing the verdict—not changing
+  tracker/spec/goal state—is the full acceptance boundary for AC-10.5.
+
+Administrative closure protocol (runs only after AC-10.5 PASS; it is not an
+acceptance criterion and therefore is not self-referential):
+
+1. The coordinator applies the already-reviewed tracker transitions, including
+   WP10 → `verified`, and sets the summary to 11 verified/0 otherwise.
+2. The coordinator closes the successor specs named in the ready-to-close
+   evidence and runs plan/spec/decision consistency checks while the goal is
+   still active. Any failure stops closure and returns the affected WP to
+   `implemented`.
+3. After those checks pass, the coordinator marks the `/goal` complete as the
+   final state change and reports the goal tool's final usage/result. Goal
+   completion is never used as evidence for an AC.
+
+## 3. Impact Map
+
+| Surface | Expected change | Key consumers / evidence |
+|---|---|---|
+| `.claude/skills/**/SKILL.md` and bindings | placement, capability metadata, de-flavored core procedures | discovery, routing, contracts, skill catalog, smoke runner |
+| `.claude/skills/_common/` | capability/binding doctrine and loader conventions | skill authors, adapters, installers |
+| `scripts/skill_meta.py` and frontmatter parsers | versioned metadata and capability validation | CI, skill authoring, routers |
+| `scripts/_lib/lang_adapter/` | normalized fact capabilities and real TS parsing | detectors, refactor tools, perimeter |
+| project adaptation/profile scripts | canonical host profile and evidence | installer, routers, sweeps, host manifests |
+| `which-*` and perimeter skills | capability/layer filtering and explanations | host skill selection |
+| `.engineering/manifest.json` and activation state | layer/binding/support selection | installed catalogs, consistency checks |
+| sweep prototype and `scripts/` | supported manifest pipeline and native shims | SUSPECT, GUARD, CI, convergence |
+| refactor and guard tooling | language-aware transformations and native rules | REFACTOR/GUARD loop |
+| `.claude/contracts/skills/` | updated paths, executable evidence, drift detection | conformance and skill quality |
+| tests/fixtures/CI | stack matrix and cold-host installs | support promotion and release |
+| README/docs/ADRs/plans/specs | honest support, setup, provenance | users and future agents |
+
+Repository-wide call-site tracing is required before changing skill paths,
+metadata keys, manifest fields, adapter capabilities, or public commands.
+Search documentation, contracts, generated indexes, tests, fixtures, hooks,
+and host-adaptation templates—not only Python imports.
+
+## 4. Blast Radius and behavior to preserve
+
+- Current Python/Django skill output, invocation names, host adoption, and
+  conformance commands remain operational through the migration.
+- Existing host-owned `CLAUDE.md`/`AGENTS.md`, settings, manifests, hooks, and
+  ignore files are merged intentionally and never overwritten silently.
+- Stable finding IDs remain stable across line movement and tool upgrades unless
+  the schema migration explicitly documents and tests the identity change.
+- Wire identifiers, database values, routes, public exports, and user-facing
+  names do not change as a side effect of enum/refactor generalization.
+- Missing adapters, parsers, or native tools fail visibly; a zero-finding result
+  always means a successful scan over a declared scope.
+- Core procedures remain framework-neutral without erasing useful framework
+  guidance; bindings retain idiomatic, executable instructions.
+- Git history may contain old paths, but active docs/contracts/manifests cannot
+  rely on deleted implementations.
+
+Staging rule: every work package must leave the repository releasable. Schema
+changes use read-old/write-new compatibility before deleting old readers.
+Path moves use aliases/redirects until all supported surfaces are verified.
+
+## 5. Architecture Fit
+
+- **ADR 0032:** keep concept analysis separate from language adapters, but
+  graduate heuristics when they demonstrably under-detect. Capabilities and
+  explicit failures extend its honesty rule.
+- **ADR 0034:** core/language/framework/domain placement becomes a shipping and
+  routing contract; concept + binding remains the default. The actual discovery
+  mechanism is resolved by D1/D2 before moves.
+- **ADR 0036:** productize zero-token detection, stable manifest identity,
+  digest-bounded agent work, independent harness verification, judgment before
+  fixes, and structural ratchets.
+- **Quality coordination kernel:** use mechanical gates, output schemas,
+  composable contracts, and independent witnesses. Model tiering follows
+  harness rigor; it does not substitute for it.
+- **Canonical maintenance loop:** MAP/profile → SUSPECT/detect → EXPLAIN/judge
+  → REFACTOR/change → GUARD/native rule. WP6 must prove the complete loop.
+- **Smallest responsible interface:** normalized facts are introduced only for
+  active consumers. Language-native tools remain native behind adapters.
+
+Architectural smells explicitly guarded against: format-equivalence gaps
+(duplicate registries/writers), product-topology drift (routers disagreeing),
+folder-topology decoration (layers not used by installation), missing boundary
+(core vs. binding), stringly state (capability/support vocabularies), and silent
+query-like mutation (profile/detection commands changing hosts unexpectedly).
+
+## 6. Open Decisions (P0; resolve in WP1)
+
+| ID | Decision | Required evidence | Exit artifact |
+|---|---|---|---|
+| D1 | Distribution/discovery: Codex plugin, versioned installer, compatible folder layout, or a composed approach | discovery tests in supported agents, offline/update/uninstall needs, alias behavior | accepted ADR + prototype |
+| D2 | Binding selection and loading convention | host-profile integration, ambiguity handling, skill author ergonomics, core leakage test | accepted ADR + extract-enum exemplar design |
+| D3 | Analysis tool portfolio: Tree-sitter/ast-grep and SCIP/LSP/native compiler indexes | fixture precision, install determinism, licensing, performance, semantic coverage | accepted ADR + benchmark/evaluation evidence |
+| D4 | Capability/support schema and promotion thresholds | current skill metadata, stack profiler needs, conformance failure semantics, version compatibility | accepted ADR + versioned schema |
+| D5 | Stable finding identity and schema evolution | path normalization, missing-symbol multiplicity, collisions, renames/moves, case semantics, tool-version changes, mixed-language namespaces | accepted ADR amendment/new ADR + adversarial identity corpus |
+
+Decision order: D4 defines the vocabulary and completion floor; AC-1.7 supplies
+the evidence for D3; D5 fixes identity before manifests become evidence; D2
+consumes the capability vocabulary; D1 packages the resulting layers.
+Prototypes may run in parallel, but no layer move, stable baseline, or verified
+support label lands before its governing decision is accepted.
+
+## 7. Dependency graph, milestones, and promotion
+
+```mermaid
+flowchart LR
+  WP0["WP0 trusted baseline"] --> WP1["WP1 capability contract"]
+  WP1 --> WP2["WP2 profile and routing"]
+  WP1 --> WP4["WP4 analysis substrate"]
+  WP2 --> WP3["WP3 layers and installer"]
+  WP1 --> WP3
+  WP2 --> WP5["WP5 batch sweep"]
+  WP4 --> WP5
+  WP3 --> WP6["WP6 TypeScript vertical slice"]
+  WP4 --> WP6
+  WP5 --> WP6
+  WP6 --> WP7["WP7 refactor and guards"]
+  WP2 --> WP8["WP8 conformance harness"]
+  WP3 --> WP8
+  WP4 --> WP8
+  WP5 --> WP8
+  WP6 --> WP8
+  WP7 --> WP8
+  WP8 --> WP9["WP9 release and onboarding"]
+  WP3 --> WP9
+  WP5 --> WP9
+  WP9 --> WP10["WP10 independent verification"]
+```
+
+Milestones:
+
+- **M0 — Trust restored:** WP0 verified.
+- **M1 — Vocabulary frozen:** WP1 verified; D1–D5 accepted.
+- **M2 — Portable substrate usable:** WP2–WP5 verified.
+- **M3 — Non-Python loop proven:** WP6–WP7 verified.
+- **M4 — Claims gated:** WP8 verified.
+- **M5 — Releasable and independently proven:** WP9–WP10 verified.
+
+Internal sequencing: WP5's manifest core and native shims may start after WP1
+and WP2; only its parser-backed ecosystem members wait for WP4. WP3 builds the
+layer/binding/installer foundation and one exemplar before WP6; the full catalog
+migration is deliberately delayed to AC-8.7 so the exemplar can invalidate the
+design without forcing a mass rollback.
+
+Promotion strategy: after WP1 resolves the P0 decisions, use `/plan-spec` to
+create dependency-sized successor specs rather than one multi-month omnibus
+spec. Record their IDs here and in the tracker. This plan remains the master
+completion ledger until WP10, even when implementation details move into specs.
+
+## Risk register
+
+| Risk | Detection | Mitigation / stop condition |
+|---|---|---|
+| Metadata-only portability | support claim exists without executable fixture | AC-1.3, AC-8.4, and release unsupported-claims search block promotion |
+| Duplicate stack vocabularies | same concept enumerated in multiple routers/validators | one registry plus search/guard in AC-1.2 |
+| Silent parser/tool failure reported as clean | zero findings with missing/broken adapter | typed failure and fault injection in AC-4.5/AC-5.3 |
+| Framework leakage into core | Django/React APIs appear in core procedure | binding boundary and diff lint in AC-3.1 |
+| Premature generic IR | shared fact model grows without two consumers | require named consumers and ADR justification for each capability |
+| Toolchain/licensing/CI cost | parser/index cannot install reproducibly | D3 evaluation; reject tools that cannot meet CI/install budget |
+| Fixture overfitting | synthetic tests pass, ordinary projects fail | cold-host fixtures plus at least one representative external-shaped corpus |
+| Breaking skill discovery/path identity | nested moves hide skills or break contracts | D1 prototype, aliases, artifact-drift and supported-agent discovery tests |
+| Scope expansion to all skills/languages | work spreads before vertical slice proves value | WP6 gate; portfolio expansion after measured exemplar only |
+| Independent verifier rubber-stamps evidence | verifier reads implementer narrative only | fresh context, read-only reruns, per-AC verdict, final integrator |
+| Long-running work becomes unresumable | tracker/evidence not updated | change-log and status update are part of each package completion gate |
+
+## Verification protocol template
+
+Every verifier prompt must include: repository root, `.venv/bin/python`, plan
+path, work package/AC IDs, revision, evidence paths, exact expected commands,
+read-only instruction, and this required response schema:
+
+```text
+Verifier: <agent id and actual model if known>
+Revision: <git revision plus dirty-file list>
+Workspace state: <clean, or content hash per dirty file + full patch artifact>
+Platform: <OS/architecture and supported-surface version>
+Toolchain: <dependency and native-tool versions>
+Work package: <WPn>
+AC-n.n: PASS|FAIL — <rerun/inspection evidence>
+...
+Evidence hashes: <path = digest>
+Missing or ambiguous evidence: <none or list>
+Unsupported claims found: <none or list>
+Overall: PASS|FAIL
+```
+
+The implementer must not paraphrase a FAIL into success. If a check cannot run,
+the criterion remains unverified unless the criterion itself explicitly permits
+inspection evidence and the verifier explains why that evidence is sufficient.
+
+## Adversarial plan-review disposition
+
+Fresh-context (`fork_turns: none`), read-only reviewers assessed the initial
+draft and successive revisions on 2026-07-16. Earlier passes returned
+`NOT READY` with the findings below; after correction, the final bounded gate
+reported no P0 blockers and returned `READY`.
+
+| Priority/finding | Disposition in this revision |
+|---|---|
+| P0 predecessor scope could disappear | Added line-item inheritance protocol, W1–W6 mapping, and stronger AC-0.5. |
+| P0 no minimum support floor | Added AC-1.6 and explicit per-stack completion floor consumed by AC-8.1. |
+| P0 ADR 0036 central commitments absent | Added AC-5.7 for agent-free detection, mandatory judgment, no raw-count consumers, and planner packets. |
+| P0 stable identity ambiguous/collision-prone | Added D5 and adversarial identity/schema migration requirements to AC-5.4. |
+| P0 final closure circular | Initial fix separated the ready-to-close verdict; the readiness recheck below caught and removed the remaining state-transition circularity. |
+| P1 D3 evidence/dependency inversion | Added pre-decision AC-1.7 spike; AC-4.2 now implements and rechecks its budgets. |
+| P1 mass layer move before exemplar / unnecessary sweep blocking | Split WP3 foundation from AC-8.7 rollout; documented WP5 internal sequencing. |
+| P1 ADR 0032/0034 obligations missing | Added substrate failure fixture to AC-6.2/6.5 and authoring/N=1/≥3 rules to AC-3.1. |
+| P1/P2 gameable/stale evidence | Added pinned oracles/budgets, bounded smoke exemptions, preselected witness corpus, versioned surface matrix, and revision/platform/tool/hash evidence fields. |
+| Readiness recheck: ADR 0032 perimeter entry points missing | AC-2.2 and AC-2.5 now require fixture-backed `/adapt-project` and whole-codebase-audit invocation. |
+| Readiness recheck: closure still circular | AC-10.5 now ends at `READY TO CLOSE`; state transitions moved to a non-AC administrative protocol, with goal completion last. |
+| Readiness recheck: weak slice checkpoints/stale-state transition | Usage rules now require per-slice AC/action/revision checkpoints and demotion/revalidation on relevant revisions. |
+| Final recheck: AC-10.4/10.5 evidence still cross-referenced | AC-10.4's immutable report ends at AC-10.3; independent inspection proves AC-10.4, then the signed ready verdict proves AC-10.5. |
+| Final recheck: dirty files could change at the same HEAD/path list | Clean committed verification is preferred and mandatory for WP10; intermediate dirty evidence requires per-file hashes and a full patch, with demotion on any content change. |
+| Final bounded gate | Fresh-context reviewer reported no remaining P0 blocker in closure linearity, dirty-state invalidation, perimeter entry points, or tracker completion rules; verdict `READY`. |
+
+## Change log
+
+| Date | Actor | Change | Tracker effect |
+|---|---|---|---|
+| 2026-07-16 | Codex | Created master plan from the comparative repository and portability audit. | All WP0–WP10 initialized `not_started`. |
+| 2026-07-16 | fresh-context adversarial reviewer + Codex | Reviewer returned `NOT READY`; incorporated all five P0 findings and the concrete P1/P2 amendments listed above. | No implementation status change; plan readiness requires a second independent check. |
+| 2026-07-16 | second fresh-context readiness verifier + Codex | Recheck found two blockers; added perimeter entry-point tests and separated AC verification from administrative closure, plus checkpoint/staleness rules. | No implementation status change; structural validation rerun. |
+| 2026-07-16 | final fresh-context readiness verifier + Codex | Final check exposed residual AC-10.4/10.5 evidence coupling and same-HEAD dirty-state staleness; linearized evidence and strengthened workspace hashing/clean-checkout rules. | No implementation status change; final readiness recheck required. |
+| 2026-07-16 | final bounded fresh-context gate | Reported no P0 blocker and returned `READY`. | Plan approved for `/goal` creation; implementation remains `not_started`. |
+| 2026-07-16 | Codex | Started WP0 at HEAD `ad685e3f47fd6fb3debe4880735a5bf20eb79cae`; only dirty path is this new plan file. Current action: AC-0.1 full baseline; last completed AC: none; last evidence revision: none. | WP0 → `in_progress`; summary now 10 not started / 1 in progress. |
+
+## Promotion notes
+
+Not yet promoted. WP1 must resolve D1–D5 before implementation specs are
+scaffolded. When promoted, list every successor spec, its owned AC IDs, and any
+criterion wording changed during decomposition. Changes to acceptance meaning
+require an explicit plan amendment and independent review; specs may add detail
+but may not silently weaken this plan.

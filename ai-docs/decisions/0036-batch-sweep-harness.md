@@ -11,7 +11,7 @@ revisit_when: ["productization moves the prototype out of .claude/tasks/sweep-pr
 supersedes: []
 superseded_by: null
 applies_to: [.claude/tasks/sweep-prototype/]
-embodied_by: ["script:.claude/tasks/sweep-prototype/sweep.py", "pending:productization — scripts/ promotion + battery expansion + skill wiring, tracked via the shareable-core-reorganization plan"]
+embodied_by: ["script:.claude/tasks/sweep-prototype/sweep.py", "pending:productization — scripts/ promotion + battery expansion + skill wiring, tracked via the portable-skill-ecosystem-completion plan WP5"]
 tags: [sweep, manifest, batch, compute, convergence, ratchet, guard, detection]
 related_smell: null
 related_pattern: null

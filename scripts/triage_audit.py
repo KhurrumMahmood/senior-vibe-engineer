@@ -2,7 +2,7 @@
 
 CLI:
     triage_audit.py --effectiveness PATH --findings PATH --dismissals PATH
-                    [--grace-days 7] [--json OUT] [--md OUT]
+                    [--grace-days 7] [--now ISO-8601] [--json OUT] [--md OUT]
 
 Exit codes:
     0  — all scans with findings_total > 0 are accounted for (or within grace)
@@ -52,6 +52,16 @@ def _parse_ts(raw: Any) -> datetime | None:
         return dt
     except ValueError:
         return None
+
+
+def _parse_cli_timestamp(raw: str) -> datetime:
+    """Parse an explicit audit clock for reproducible CLI runs."""
+    parsed = _parse_ts(raw)
+    if parsed is None:
+        raise argparse.ArgumentTypeError(
+            "must be an ISO-8601 timestamp, for example 2026-06-11T12:00:00Z"
+        )
+    return parsed.astimezone(timezone.utc)
 
 
 def _load_jsonl(path: Path) -> tuple[list[dict], int]:
@@ -412,6 +422,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="Path to dismissals.jsonl")
     parser.add_argument("--grace-days", type=int, default=7,
                         help="Days before a scan becomes due (default: 7)")
+    parser.add_argument(
+        "--now",
+        type=_parse_cli_timestamp,
+        default=None,
+        help="UTC audit clock for reproducible runs (default: current time)",
+    )
     parser.add_argument("--json", dest="json_out", metavar="OUT",
                         help="Write JSON result to this path")
     parser.add_argument("--md", dest="md_out", metavar="OUT",
@@ -428,6 +444,7 @@ def main(argv: list[str] | None = None) -> int:
             findings_path=Path(args.findings),
             dismissals_path=Path(args.dismissals),
             grace_days=args.grace_days,
+            now=args.now,
         )
     except Exception as exc:  # noqa: BLE001
         print(f"ERROR: {exc}", file=sys.stderr)

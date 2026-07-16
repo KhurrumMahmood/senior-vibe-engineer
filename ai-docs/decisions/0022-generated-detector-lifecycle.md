@@ -7,6 +7,7 @@ date: 2026-05-22
 deciders: []
 supersedes: []
 superseded_by: null
+revisit_when: ["the first synthesized detector is proposed for promotion from advisory output into a frozen or gating host rule"]
 applies_to: [".claude/skills/find-frontend-duplication/scripts/cotton_inventory.py", ".claude/skills/find-standard-gaps/scripts/scan_coverage.py", ".claude/skills/orient/"]
 tags: [detectors, lifecycle, synthesis, gating, enforcement, coverage-ratchet, freeze, crystallization, advisory, generated-vs-curated]
 related_smell: null

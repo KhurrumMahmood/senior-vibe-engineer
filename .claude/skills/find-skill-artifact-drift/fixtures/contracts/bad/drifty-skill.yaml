@@ -1,0 +1,4 @@
+schema_version: 2
+skill: drifty-skill
+evidence:
+  - "scripts/vanished.py present and executable"

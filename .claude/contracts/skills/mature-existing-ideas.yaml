@@ -49,7 +49,7 @@ provenance_confidence:
   dogfood: low
 evidence:
   - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
-  - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scripts/mature.py present (append-only note/marker writer), no oracle pair (structural med)"
+  - "No skill-local scripts or fixture pair. SKILL.md delegates every ledger write to the existing track-idea/scripts/track.py writer and requires pasted command output; orchestration remains prompt-only (structural med)."
   - "SKILL.md flags --adversarial / --accept-on-loop with a review-lane.md gate — research is review-gated"
 gaps:
   - "No reports dir and no commit-textual evidence of a specific ledger entry it first matured; outputs append to the ledger log, not attributable to this skill vs sibling writers, so dogfood_kind is none-found."

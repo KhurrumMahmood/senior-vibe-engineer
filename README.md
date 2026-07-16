@@ -71,9 +71,9 @@ work to run.
   `no_fat_view`, `no_bare_delay`, `no_comment_drift`,
   `codegen_emits_new_paths`, `run_jscpd`).
 - **`ai-docs/`** — the ADR / plan / spec workflow that pairs with the
-  skills. Nine ADRs ship as the foundation; the ones marked *(proposed)*
-  are calibrated starting points an adopting project confirms or
-  supersedes:
+  skills. Nine starter ADRs are highlighted below; the full live registry is
+  under `ai-docs/decisions/`. Entries marked *(proposed)* are calibrated
+  starting points an adopting project confirms or supersedes:
   - `0001-textchoices-for-state` — string state fields → typed enums.
   - `0002-spec-first-refactor` — refactors author a spec before code.
   - `0003-canonical-findings-ledger` *(proposed)* — findings get an ID
@@ -103,7 +103,7 @@ work to run.
 ```bash
 # Install deps and pre-commit hooks — or run /engineer-init to do all this
 python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+.venv/bin/python -m pip install -r requirements.txt
 .venv/bin/pre-commit install   # requires a git repo; skip if unversioned
 
 # Try a skill (under Claude Code; Codex/Augment vary)
@@ -111,6 +111,15 @@ python3 -m venv .venv
 /which-skill "I need to clean up duplicated workflow modules"
 /find-duplication app/services
 /triage-debt
+```
+
+To run the complete repository suite, including the Playwright renderer smoke,
+install the optional browser prerequisite explicitly:
+
+```bash
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m playwright install chromium --only-shell
+.venv/bin/python -m pytest
 ```
 
 Skills are designed to be invoked by AI coding agents inside a host
@@ -146,7 +155,7 @@ things commonly block them:
 .claude/
   CLAUDE.md                 # lean root guide for all agents
   docs/                     # doctrine: canonical patterns, smells, catalogue
-  skills/                   # 75 skills, each a self-contained dir
+  skills/                   # 76 skills, each a self-contained dir
     _common/                # shared scout-dispatch, scripts, posture docs
     <skill-name>/SKILL.md   # the agent-facing skill definition
 ai-docs/
@@ -174,9 +183,11 @@ reports/
   illustration.** The AST lint rules (`no_query_mutation`, `no_bare_delay`, …)
   are Django/Celery detectors, and the patterns' only proven instances are
   Django. `.claude/skills/_common/portability-roadmap.md` holds the cross-language
-  porting contract and the design anticipates TypeScript/Rust adapters — but
-  **no non-Django adapter exists yet**, so "portable" is a roadmap, not a
-  current property.
+  porting contract. A shared JavaScript/TypeScript heuristic adapter now extracts
+  top-level symbols and powers `/find-omnibus`, but it misses common ESM exports
+  and the deeper semantic detectors remain Python-specific. No non-Django host
+  portfolio has passed end-to-end installation and conformance yet, so
+  "portable" is a partially embodied roadmap, not a verified product claim.
 
 ## Where to read next
 

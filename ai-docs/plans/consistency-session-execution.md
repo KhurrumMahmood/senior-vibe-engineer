@@ -64,7 +64,7 @@ never fully executes and a project that never reaches coherent form.
   seven-subsystem emergent grouping, `drift-scan-framework`,
   immune-system tier naming, memory-map decision table,
   `execution-funnel.md` doctrine, and convention-quad codification into
-  the `shareable-core-reorganization` plan (amend its W1/W5 or add a
+  the `portable-skill-ecosystem-completion` plan (amend its WP3/WP5 or add a
   W7) the next time that plan is touched — with the recorded cautions
   (ADR 0023 dispatcher boundary is deliberate; `orient` is not an
   orphan). *Done when:* shareable-core plan §1 names them, or each is

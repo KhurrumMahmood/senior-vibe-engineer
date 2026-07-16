@@ -7,6 +7,7 @@ date: 2026-06-08
 deciders: [khurrum]
 supersedes: []
 superseded_by: null
+revisit_when: ["a second cross-surface concept rename shows the two-band identifier-plus-prose completeness gate is too weak or too noisy"]
 applies_to: [".claude/skills/rename-concept/", ".claude/contracts/concepts.yaml", ".claude/skills/find-concept-divergence/"]
 embodied_by: ["skill:rename-concept"]
 tags: [skills, rename, concept-glossary, completeness, prose]

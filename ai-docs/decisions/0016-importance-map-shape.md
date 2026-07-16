@@ -7,6 +7,7 @@ date: 2026-05-14
 deciders: []
 supersedes: []
 superseded_by: null
+revisit_when: ["a host adopts --attention-gap and its importance map reveals that the proposed locator or tier shape cannot express a real high-value area"]
 applies_to:
   - .claude/skills/find-orphaned-ideas/
   - .engineering/docs/importance-map.md

@@ -7,6 +7,7 @@ date: 2026-05-21
 deciders: []
 supersedes: []
 superseded_by: null
+revisit_when: ["a host implements or standardizes controls for untrusted content entering prompts or model-generated code reaching execution"]
 applies_to: []
 tags: [security, prompt-injection, code-execution, llm, trust-boundary, crawled-content, ai-runtime]
 related_smell: null

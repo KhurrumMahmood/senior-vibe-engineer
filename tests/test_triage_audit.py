@@ -415,8 +415,22 @@ def test_exit_0_all_within_grace(tmp_path):
         "--findings", str(fin),
         "--dismissals", str(dis),
         "--grace-days", "7",
+        "--now", NOW.strftime("%Y-%m-%dT%H:%M:%SZ"),
     ])
     assert rc == 0
+
+
+def test_cli_rejects_invalid_explicit_clock(tmp_path):
+    eff = _eff(tmp_path, [])
+    fin = _find(tmp_path, [])
+    dis = _dism(tmp_path, [])
+    rc = triage_audit.main([
+        "--effectiveness", str(eff),
+        "--findings", str(fin),
+        "--dismissals", str(dis),
+        "--now", "not-a-timestamp",
+    ])
+    assert rc == 2
 
 
 # ---- output format ----------------------------------------------------------

@@ -70,9 +70,9 @@ the routers in actual project state).
 - Full `/which-shape` v2 interactivity (consent-to-invoke, button
   forks; ledger: `which-shape-v2-grounded-router`).
 - Skill-catalog reorganization and naming — owned by the
-  `shareable-core-reorganization` plan (W1, ADR 0034).
+  `portable-skill-ecosystem-completion` plan (WP3/WP8, ADR 0034).
 - The ADR 0003 findings-ledger schema itself — owned by
-  `shareable-core-reorganization` W5; this plan ships one reader seam
+  `portable-skill-ecosystem-completion` WP5/WP9; this plan ships one reader seam
   so the projection adopts whatever 0003 lands.
 - Track B composition machinery (operator/lens/pattern cards,
   composition ledger, TOC goal router — ledger:

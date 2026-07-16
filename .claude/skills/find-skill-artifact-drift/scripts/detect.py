@@ -12,8 +12,9 @@ Two bands, mirroring every other suspect-lane gate in this repo:
 
 * **Band A — deterministic reference integrity.** Unambiguous, low
   false-positive checks safe to *gate* a commit on (``--gate``): a documented
-  script that exists nowhere, a documented ``--flag`` the script's argparse
-  never defines, a ``bash`` code block with no ``Bash`` in ``allowed-tools``.
+  script or contract evidence reference that exists nowhere, a documented
+  ``--flag`` the script's argparse never defines, a ``bash`` code block with no
+  ``Bash`` in ``allowed-tools``.
 * **Band B — structural proxies for semantic claims.** Heuristic signals that
   a human should read, never block a commit: an orphan script the body never
   mentions, a declared ``produces:``/``evidence_required:`` artifact the body
@@ -44,7 +45,13 @@ from _lib.yaml_frontmatter import FrontmatterError, parse  # noqa: E402
 from product_topology import relpath, write_jsonl  # noqa: E402
 
 DEFAULT_SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
-BAND_A = {"missing_script_ref", "missing_documented_flag", "bash_tool_undeclared"}
+DEFAULT_CONTRACTS_DIR = PROJECT_ROOT / ".claude" / "contracts" / "skills"
+BAND_A = {
+    "missing_script_ref",
+    "missing_contract_script_ref",
+    "missing_documented_flag",
+    "bash_tool_undeclared",
+}
 
 # A token only counts as a concrete script reference if it carries a .py
 # suffix; templated tokens (placeholders, globs, shell expansion) are never
@@ -279,10 +286,38 @@ def scan_skill(skill_dir: Path) -> list[Finding]:
     return findings
 
 
-def scan_skills(skill_dirs: list[Path]) -> list[Finding]:
+def scan_contract(skill_dir: Path, contracts_dir: Path) -> list[Finding]:
+    """Find stale concrete script references in a skill's evidence contract."""
+    contract_path = contracts_dir / f"{skill_dir.name}.yaml"
+    try:
+        text = contract_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
+
+    lines = text.splitlines()
+    findings: list[Finding] = []
+    for token in dict.fromkeys(SCRIPT_REF_RE.findall(text)):
+        if any(c in token for c in TEMPLATE_CHARS):
+            continue
+        if resolve_script(token, skill_dir) is None:
+            findings.append(emit(
+                "missing_contract_script_ref",
+                contract_path,
+                line_of(lines, token),
+                f"Evidence contract references `{token}`, which does not exist for "
+                f"skill `{skill_dir.name}` or at repo level.",
+                "Correct the evidence to describe the current implementation, restore "
+                "the script, or remove the stale claim.",
+            ))
+    return findings
+
+
+def scan_skills(skill_dirs: list[Path], contracts_dir: Path | None = None) -> list[Finding]:
     findings: list[Finding] = []
     for skill_dir in skill_dirs:
         findings.extend(scan_skill(skill_dir))
+        if contracts_dir is not None:
+            findings.extend(scan_contract(skill_dir, contracts_dir))
     return sorted(findings, key=lambda f: (f.file, f.band, f.pattern, f.lineno, f.summary))
 
 
@@ -309,6 +344,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Detect SKILL.md ↔ artifact drift.")
     parser.add_argument("skills", nargs="*", help="Skill names/dirs to scan (default: all).")
     parser.add_argument("--skills-dir", type=Path, default=DEFAULT_SKILLS_DIR)
+    parser.add_argument("--contracts-dir", type=Path, default=DEFAULT_CONTRACTS_DIR)
     parser.add_argument("--output", type=Path, help="JSONL output path (advisory mode).")
     parser.add_argument(
         "--gate",
@@ -318,8 +354,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     skills_dir = args.skills_dir.resolve()
+    contracts_dir = args.contracts_dir.resolve()
     skill_dirs = collect_skill_dirs(args.skills, skills_dir)
-    findings = scan_skills(skill_dirs)
+    findings = scan_skills(skill_dirs, contracts_dir)
 
     if args.gate:
         band_a = [f for f in findings if f.band == "A"]

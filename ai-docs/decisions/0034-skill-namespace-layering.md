@@ -10,7 +10,7 @@ revisit_when: ["the harness's skill discovery cannot express the layering even v
 supersedes: []
 superseded_by: null
 applies_to: [.claude/skills/]
-embodied_by: ["pending:ai-docs/plans/shareable-core-reorganization.md"]
+embodied_by: ["pending:ai-docs/plans/portable-skill-ecosystem-completion.md"]
 tags: [skills, namespace, portability, coupling, domain, structure]
 related_smell: null
 related_pattern: null

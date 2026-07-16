@@ -1,8 +1,8 @@
 ---
 name: find-skill-artifact-drift
 description: |
-  SUSPECT scan for instruction-artifact coherence: a SKILL.md that
-  promises scripts, flags, tools, or evidence its files no longer
+  SUSPECT scan for instruction-artifact coherence: a SKILL.md or evidence
+  contract that promises scripts, flags, tools, or evidence its files no longer
   provide. Band A is deterministic reference integrity (a documented
   script that exists nowhere, a documented --flag the script's argparse
   never defines, a bash block with no Bash in allowed-tools) and is safe
@@ -100,6 +100,10 @@ false-positive checks the `--gate` subset enforces:
 - `missing_script_ref`: the body references a `scripts/<file>.py` that
   resolves in neither the skill's own `scripts/`, the repo `scripts/`,
   nor a sibling skill (`<other-skill>/scripts/<file>.py`).
+- `missing_contract_script_ref`: `.claude/contracts/skills/<skill>.yaml`
+  references a concrete `scripts/<file>.py` that resolves in neither the
+  skill nor the repo. Historical evidence must describe the current artifact
+  honestly; a deleted implementation cannot remain labeled “present.”
 - `missing_documented_flag`: a fenced command runs a resolvable script
   with a `--flag` that script's argparse never defines.
 - `bash_tool_undeclared`: the body has a `bash`/`sh`/`shell` code block
