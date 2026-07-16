@@ -1,7 +1,8 @@
 # WP4 implementation evidence
 
 Implementation base: `db0fed19c7c783d04314dacbc4da73b7a4b3bbf7`.
-Implementation revision: `e30fcb41e04be7532d2fc5c1244ea7dc675d124a`.
+Initial implementation revision: `e30fcb4fe0ae2fd194017bdc0c908554891ac9b2`.
+Verification-gap repair revision: `d12b730a4afc9bb403f7a2b78c70e5629691047e`.
 This is implementer evidence for fresh-context verification; it is not the
 independent PASS record required to move WP4 to `verified`.
 
@@ -14,7 +15,7 @@ independent PASS record required to move WP4 to `verified`.
 - Immutable facts include capability, name, canonical caller-supplied path,
   precise 1-based start/end locations, kind, and optional parent. Results are
   deterministically sorted and serializable.
-- `AnalysisFailure` distinguishes unsupported capability, parse error, missing
+- `AnalysisFailure` distinguishes unsupported language/capability, parse error, missing
   tool, tool failure, tool timeout, and corrupt parser output, always including
   adapter, file, capability, and detail.
 - Pinned Tree-sitter 0.26.0 plus language-pack 1.12.5 replaces the JavaScript/
@@ -36,20 +37,26 @@ independent PASS record required to move WP4 to `verified`.
   unchanged. Optional ast-grep, conditional native compiler semantics, and
   deferred SCIP/LSP retain ADR 0039's dispositions.
 - **AC-4.3:** Parser tests cover exported functions/const arrows, classes,
-  methods, nested functions/arrows, `.js/.mjs/.cjs/.ts/.tsx`, JSX, malformed
+  methods, nested functions/arrows, `.js/.mjs/.cjs/.jsx/.ts/.tsx/.mts/.cts`, JSX, malformed
   input, calls/writes/references, parent scope, and exact locations. The known
   hidden/indented under-detection is retired.
 - **AC-4.4:** Existing Python symbol tests remain byte-shape compatible and the
   new Python golden pins all six normalized families. Rust and Go providers
   expose the accepted syntax subset; `analysis.type-facts` remains an explicit
   unsupported capability.
-- **AC-4.5:** Fault injection proves unsupported, missing, broken, timed-out,
-  corrupt, and malformed requests raise contextual typed failures rather than
-  return zero facts.
-- **AC-4.6:** Hash-backed goldens pin facts and locations for Python, TS, Rust,
-  and Go. The product benchmark runs seven times on committed small/large TS
-  fixtures and enforces the additive cold/warm/RSS/Python-memory/variance gates
-  recorded in the spec before measurement.
+- **AC-4.5:** Fault injection proves strict unsupported-extension discovery,
+  missing/broken tools, cooperative and actually blocking timeouts, malformed
+  root variants, and malformed source all raise contextual typed failures.
+  Tree-sitter parsing has a substrate-enforced five-second deadline, and the
+  public provider wrapper converts unexpected traversal/output exceptions into
+  `corrupt_output` instead of leaking or returning zero facts.
+- **AC-4.6:** Hash-backed goldens now hash every fact field, including path,
+  end location, and parent. Python symbol facts derive precise columns and end
+  spans from their original AST nodes. Cold time is measured in a fresh child
+  process including interpreter/provider startup; six separate same-process
+  runs supply warm mean/variance. The report declares Darwin-arm64 as the only
+  executed platform, Linux as a candidate that cannot be claimed until it
+  executes, and Windows as outside the current release contract.
 
 ## Verification results
 
@@ -57,10 +64,10 @@ independent PASS record required to move WP4 to `verified`.
 PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -p no:cacheprovider \
   tests/test_analysis_facts.py tests/test_lang_adapter.py \
   tests/test_omnibus_language_adapters.py
-45 passed in 0.41s
+52 passed in 0.53s
 
 PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -p no:cacheprovider
-465 passed, 1 skipped in 17.62s
+477 passed, 1 skipped in 16.86s
 
 .venv/bin/python scripts/specs.py coverage portable-analysis-substrate
 9 implemented, 5 documented, no lag/ahead/orphans
@@ -85,8 +92,8 @@ The current product benchmark records:
 
 | Fixture | Input | Cold | Warm mean | Warm CV | Peak Python | Peak RSS |
 |---|---:|---:|---:|---:|---:|---:|
-| small | 431 B | 0.004518 s | 0.004830 s | 0.029549 | 128,831 B | 31,096,832 B |
-| large | 3,457 B | 0.028593 s | 0.029572 s | 0.009900 | 686,157 B | 31,997,952 B |
+| small | 431 B | 0.084476 s | 0.004756 s | 0.024436 | 124,982 B | 31,866,880 B |
+| large | 3,457 B | 0.081308 s | 0.028097 s | 0.011455 | 666,682 B | 32,768,000 B |
 
 All five D3 fact families are precision/recall 1.0. The runtime install is
 5,089,262 bytes. Every declared product and D3 budget passes with no violation.
@@ -107,3 +114,5 @@ experimental until WP8's registry-pinned conformance issuer can validate all
 declared surfaces. No current named consumer requires semantic type facts or
 cross-file definition resolution; ADR 0039 therefore keeps the TypeScript
 Compiler API conditional rather than imposing a Node dependency on every host.
+The product benchmark SHA-256 at the repair revision is
+`a13e8b0b5e0a1159048b49bd711c53692086e305fbebb1d380acd5dc7e8aabab`.

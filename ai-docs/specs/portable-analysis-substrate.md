@@ -135,6 +135,13 @@ at most 20%. These gates add constraints without weakening the master AC.
 - The initial baseline search omitted hidden skill paths. The corrected
   evidence records 21 production consumers and preserves the raw Python AST
   compatibility seam for 20 of them.
+- Registry parity matters at the discovery boundary: `.jsx`, `.mts`, `.cts`,
+  and `.pyi` must route through the canonical provider set, while an unknown
+  suffix raises a typed `unsupported_language` failure rather than returning
+  an optional value that can be mistaken for a clean scan.
+- A valid cold budget includes interpreter and provider loading. The benchmark
+  therefore measures cold analysis in a fresh subprocess; in-process runs are
+  warm evidence only.
 
 ## Exceptions
 
