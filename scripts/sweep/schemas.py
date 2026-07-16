@@ -443,13 +443,6 @@ def validate_manifest(document: Any, *, allow_prototype: bool = False) -> Mappin
             boundary = boundary.casefold()
         return boundary == "." or path == boundary or path.startswith(f"{boundary}/")
 
-    def intersects(first: str, second: str, *, case_sensitive: bool) -> bool:
-        return within(first, second, case_sensitive=case_sensitive) or within(
-            second,
-            first,
-            case_sensitive=case_sensitive,
-        )
-
     for index, observation in enumerate(validated_providers):
         observed_scope = observation["scope"]
         if observed_scope["case_sensitive"] != scope["case_sensitive"]:
@@ -518,35 +511,10 @@ def validate_manifest(document: Any, *, allow_prototype: bool = False) -> Mappin
             )
     for index, observation in enumerate(validated_providers):
         observed_scope = observation["scope"]
-        paths_covered = all(
-            any(
-                within(path, boundary, case_sensitive=scope["case_sensitive"])
-                for boundary in observed_scope["paths"]
-            )
-            for path in scope["paths"]
-        )
-        roots_covered = all(
-            any(
-                within(root, boundary, case_sensitive=scope["case_sensitive"])
-                for boundary in observed_scope["roots"]
-            )
-            for root in scope["roots"]
-        )
-        exclusions_covered = all(
-            not any(
-                intersects(exclusion, path, case_sensitive=scope["case_sensitive"])
-                for path in scope["paths"]
-            )
-            or any(
-                within(exclusion, declared, case_sensitive=scope["case_sensitive"])
-                for declared in scope["exclusions"]
-            )
-            for exclusion in observed_scope["exclusions"]
-        )
-        if not (paths_covered and roots_covered and exclusions_covered):
+        if dict(observed_scope) != dict(scope):
             _fail(
                 f"manifest.providers[{index}].scope",
-                "does not cover manifest scope",
+                "must exactly match manifest scope",
             )
     identifiers = [row["id"] for row in findings]
     if len(identifiers) != len(set(identifiers)):

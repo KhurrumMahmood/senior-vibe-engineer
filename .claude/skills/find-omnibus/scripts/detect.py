@@ -154,7 +154,20 @@ def _walk_source_files(
     skip_path_globs: tuple[str, ...],
     project_root: Path,
     extensions: frozenset[str],
+    roots: tuple[Path, ...],
+    exclusions: tuple[Path, ...],
+    case_sensitive: bool,
 ) -> list[Path]:
+    def within(path: Path, boundary: Path) -> bool:
+        rendered_path = path.as_posix()
+        rendered_boundary = boundary.as_posix()
+        if not case_sensitive:
+            rendered_path = rendered_path.casefold()
+            rendered_boundary = rendered_boundary.casefold()
+        return rendered_path == rendered_boundary or rendered_path.startswith(
+            f"{rendered_boundary}/"
+        )
+
     files: list[Path] = []
     for path in sorted(target.rglob("*")):
         if not path.is_file() or path.suffix.lower() not in extensions:
@@ -168,6 +181,10 @@ def _walk_source_files(
         except ValueError:
             rel = path.as_posix()
         if any(fnmatch.fnmatchcase(rel, g) for g in skip_path_globs):
+            continue
+        if not any(within(path, root) for root in roots):
+            continue
+        if any(within(path, exclusion) for exclusion in exclusions):
             continue
         files.append(path)
     return files
@@ -318,27 +335,36 @@ def detect(
     languages: set[str] | frozenset[str] | None = None,
     skip_file_globs: tuple[str, ...] = (),
     skip_path_globs: tuple[str, ...] = (),
+    roots: tuple[str | Path, ...] | None = None,
+    exclusions: tuple[str | Path, ...] = (),
+    case_sensitive: bool = True,
 ) -> list[dict[str, object]]:
     """Return parser-backed candidates or raise a contextual analysis failure."""
-    records, _file_count = _detect_with_file_count(
+    records, _file_count = detect_with_file_count(
         target,
         project_root,
         languages=languages,
         skip_file_globs=skip_file_globs,
         skip_path_globs=skip_path_globs,
+        roots=roots,
+        exclusions=exclusions,
+        case_sensitive=case_sensitive,
     )
     return records
 
 
-def _detect_with_file_count(
+def select_source_files(
     target: Path,
     project_root: Path,
     *,
     languages: set[str] | frozenset[str] | None = None,
     skip_file_globs: tuple[str, ...] = (),
     skip_path_globs: tuple[str, ...] = (),
-) -> tuple[list[dict[str, object]], int]:
-    """Return candidates and the number of files from the same single walk."""
+    roots: tuple[str | Path, ...] | None = None,
+    exclusions: tuple[str | Path, ...] = (),
+    case_sensitive: bool = True,
+) -> list[Path]:
+    """Return the exact files eligible under the omnibus selection contract."""
     if not target.exists():
         raise ValueError(f"target not found: {target}")
     if not target.is_dir():
@@ -353,17 +379,53 @@ def _detect_with_file_count(
         if adapter.language in wanted
         for ext in adapter.extensions
     )
-    files = _walk_source_files(
+    project_root = project_root.resolve()
+
+    def resolved(raw: str | Path) -> Path:
+        path = Path(raw)
+        return (path if path.is_absolute() else project_root / path).resolve()
+
+    root_paths = tuple(resolved(root) for root in (roots or (project_root,)))
+    excluded_paths = tuple(resolved(path) for path in exclusions)
+    return _walk_source_files(
         target.resolve(),
         _DEFAULT_SKIP_FILE_GLOBS + tuple(skip_file_globs),
         _DEFAULT_SKIP_PATH_GLOBS + tuple(skip_path_globs),
-        project_root.resolve(),
+        project_root,
         extensions,
+        root_paths,
+        excluded_paths,
+        case_sensitive,
     )
+
+
+def detect_with_file_count(
+    target: Path,
+    project_root: Path,
+    *,
+    languages: set[str] | frozenset[str] | None = None,
+    skip_file_globs: tuple[str, ...] = (),
+    skip_path_globs: tuple[str, ...] = (),
+    roots: tuple[str | Path, ...] | None = None,
+    exclusions: tuple[str | Path, ...] = (),
+    case_sensitive: bool = True,
+) -> tuple[list[dict[str, object]], int]:
+    """Return candidates and the exact selected-file count from one walk."""
+    files = select_source_files(
+        target,
+        project_root,
+        languages=languages,
+        skip_file_globs=skip_file_globs,
+        skip_path_globs=skip_path_globs,
+        roots=roots,
+        exclusions=exclusions,
+        case_sensitive=case_sensitive,
+    )
+    project_root = project_root.resolve()
     records: list[dict[str, object]] = []
     for filepath in files:
         try:
-            rel = filepath.relative_to(project_root.resolve()).as_posix()
+            rel = filepath.relative_to(project_root).as_posix()
         except ValueError:
             rel = filepath.as_posix()
         record = _scan_file(filepath, rel)
@@ -405,7 +467,7 @@ def main(argv: list[str] | None = None) -> int:
 
     project_root = args.project_root.resolve()
     wanted = set(args.language) or set(_LANGUAGES)
-    records, file_count = _detect_with_file_count(
+    records, file_count = detect_with_file_count(
         args.target,
         project_root,
         languages=wanted,

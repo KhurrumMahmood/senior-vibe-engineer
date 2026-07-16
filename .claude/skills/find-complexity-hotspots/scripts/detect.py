@@ -386,8 +386,31 @@ def select_python_files(
     project_root: Path,
     paths: Iterable[str],
     include_tests: bool = False,
+    *,
+    roots: Iterable[str | Path] | None = None,
+    exclusions: Iterable[str | Path] = (),
+    case_sensitive: bool = True,
 ) -> list[Path]:
     """Return the exact files eligible under the detector's selection contract."""
+    project_root = project_root.resolve()
+
+    def resolved(raw: str | Path) -> Path:
+        path = Path(raw)
+        return (path if path.is_absolute() else project_root / path).resolve()
+
+    root_paths = [resolved(root) for root in (roots or (project_root,))]
+    excluded_paths = [resolved(path) for path in exclusions]
+
+    def within(path: Path, boundary: Path) -> bool:
+        rendered_path = path.as_posix()
+        rendered_boundary = boundary.as_posix()
+        if not case_sensitive:
+            rendered_path = rendered_path.casefold()
+            rendered_boundary = rendered_boundary.casefold()
+        return rendered_path == rendered_boundary or rendered_path.startswith(
+            f"{rendered_boundary}/"
+        )
+
     found: list[Path] = []
     for raw in paths:
         raw_path = Path(raw)
@@ -408,6 +431,10 @@ def select_python_files(
         if parts & SKIP_DIRS:
             continue
         if not include_tests and any(fnmatch.fnmatchcase(path.name, glob) for glob in TEST_GLOBS):
+            continue
+        if not any(within(path, root) for root in root_paths):
+            continue
+        if any(within(path, exclusion) for exclusion in excluded_paths):
             continue
         clean.append(path.resolve())
     return sorted(dict.fromkeys(clean))
@@ -484,11 +511,21 @@ def detect(
     paths: list[str],
     *,
     include_tests: bool = False,
-    max_findings: int = 80,
+    max_findings: int | None = 80,
+    roots: Iterable[str | Path] | None = None,
+    exclusions: Iterable[str | Path] = (),
+    case_sensitive: bool = True,
 ) -> list[dict[str, Any]]:
     project_root = project_root.resolve()
     records: list[dict[str, Any]] = []
-    for path in select_python_files(project_root, paths, include_tests):
+    for path in select_python_files(
+        project_root,
+        paths,
+        include_tests,
+        roots=roots,
+        exclusions=exclusions,
+        case_sensitive=case_sensitive,
+    ):
         # The nested-control-flow visitor requires Python's compatibility tree.
         # Parse exactly once and reuse that tree; the typed wrapper converts the
         # compatibility seam's optional/exceptional outcomes into loud failures.
@@ -518,7 +555,7 @@ def detect(
             int(r.get("lineno") or 1),
         )
     )
-    return records[:max_findings]
+    return records if max_findings is None else records[:max_findings]
 
 
 def main(argv: list[str] | None = None) -> int:

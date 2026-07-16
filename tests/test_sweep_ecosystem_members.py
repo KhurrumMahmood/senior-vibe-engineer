@@ -7,8 +7,10 @@ import importlib.util
 import hashlib
 import json
 import os
+import signal
 import subprocess
 import sys
+import time
 import urllib.request
 from dataclasses import replace
 from pathlib import Path
@@ -68,7 +70,7 @@ def _native_observation(provider: str, language: str, path: str) -> dict[str, ob
         "scope": {
             "paths": [path],
             "case_sensitive": True,
-            "roots": ["."],
+            "roots": [path],
             "exclusions": [],
         },
         "command": {
@@ -109,6 +111,20 @@ def test_complexity_characterization_is_preserved_through_observation_contract()
     assert len(bad.findings) == 6
     assert all(finding.provider == "cx" for finding in bad.findings)
     assert all(finding.language == "python" for finding in bad.findings)
+    replay = subprocess.run(
+        bad.observation["command"]["argv"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        check=False,
+    )
+    completion = json.loads(replay.stdout.splitlines()[-1])
+    assert completion == {
+        "type": "provider_completion",
+        "schema_version": 1,
+        "provider": "cx",
+        "language": "python",
+        "finding_count": 6,
+    }
 
     assert validate_provider_observation(good.observation) == good.observation
     assert good.observation["status"] == "completed"
@@ -329,6 +345,19 @@ def test_complexity_scope_excluded_by_exact_detector_selection_fails_loudly(
         assert run.observation["failure"]["kind"] == "schema_mismatch"
         assert run.findings == ()
 
+    valid = tmp_path / "valid.py"
+    valid.write_text(
+        "def nested(rows):\n"
+        "    for outer in rows:\n"
+        "        for inner in rows:\n"
+        "            print(outer, inner)\n",
+        encoding="utf-8",
+    )
+    selected = run_complexity_provider(tmp_path, [valid], observation_index=0)
+    assert selected.observation["status"] == "completed"
+    assert selected.observation["scope"]["roots"] == ["."]
+    assert len(selected.findings) == 1
+
 
 def test_manifest_rejects_out_of_scope_findings_and_unbound_observation_indexes() -> None:
     omnibus = run_omnibus_provider(
@@ -399,10 +428,10 @@ def test_observation_scope_is_canonical_and_cannot_under_cover_manifest() -> Non
     assert narrow.observation["scope"] == {
         "paths": ["tests/fixtures/sweep/ecosystem/python"],
         "case_sensitive": True,
-        "roots": ["."],
+        "roots": ["tests/fixtures/sweep/ecosystem/python"],
         "exclusions": [],
     }
-    with pytest.raises(SchemaValidationError, match="does not cover manifest scope"):
+    with pytest.raises(SchemaValidationError, match="must exactly match manifest scope"):
         build_manifest(
             capability_registry_version=1,
             paths=["tests/fixtures/sweep/ecosystem"],
@@ -477,6 +506,12 @@ def test_bounded_capture_retains_only_limit_plus_one_and_deadline_wins(monkeypat
 
     completed = CompletedProcess()
     monkeypatch.setattr(process_module.subprocess, "Popen", lambda *_args, **_kwargs: completed)
+    killed_groups: list[tuple[int, int]] = []
+    monkeypatch.setattr(
+        process_module.os,
+        "killpg",
+        lambda pid, sig: killed_groups.append((pid, sig)),
+    )
     ticks = iter((0.0, 2.0))
     expired = capture_process(
         ["already-completed"],
@@ -490,6 +525,268 @@ def test_bounded_capture_retains_only_limit_plus_one_and_deadline_wins(monkeypat
     assert expired.timed_out is True
     assert expired.returncode == 0
     assert expired.fault == "timeout"
+    assert killed_groups == [(1, signal.SIGKILL)]
+
+
+@pytest.mark.parametrize(
+    ("lines", "description"),
+    [
+        ([], "absent"),
+        (
+            [
+                {
+                    "type": "provider_completion",
+                    "schema_version": 1,
+                    "provider": "omnibus",
+                    "language": "python",
+                    "finding_count": 0,
+                },
+                {
+                    "type": "provider_completion",
+                    "schema_version": 1,
+                    "provider": "omnibus",
+                    "language": "python",
+                    "finding_count": 0,
+                },
+            ],
+            "duplicate",
+        ),
+        (
+            [
+                {
+                    "type": "provider_completion",
+                    "schema_version": 1,
+                    "provider": "omnibus",
+                    "language": "python",
+                    "finding_count": 0,
+                },
+                {"unexpected": "record after completion"},
+            ],
+            "misplaced",
+        ),
+        (
+            [
+                {
+                    "type": "provider_completion",
+                    "schema_version": 1,
+                    "provider": "cx",
+                    "language": "python",
+                    "finding_count": 0,
+                }
+            ],
+            "mismatched",
+        ),
+    ],
+)
+def test_provider_requires_one_final_matching_completion_sentinel(
+    tmp_path: Path,
+    monkeypatch,
+    lines: list[dict[str, object]],
+    description: str,
+) -> None:
+    script = tmp_path / f"{description}.py"
+    script.write_text(
+        "import json\n"
+        f"rows = {lines!r}\n"
+        "for row in rows:\n"
+        "    print(json.dumps(row, sort_keys=True, separators=(',', ':')))\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(ecosystem_module, "_PROVIDER_PROCESS", script)
+
+    run = run_omnibus_provider(
+        REPO_ROOT,
+        [FIXTURES / "python"],
+        language="python",
+        observation_index=0,
+    )
+
+    assert run.observation["status"] == "failed"
+    assert run.observation["failure"]["kind"] == "missing_completion"
+    assert run.findings == ()
+
+
+def test_scope_provenance_is_executed_and_must_equal_manifest_scope(tmp_path: Path) -> None:
+    python_scope = [FIXTURES / "python"]
+    typescript_scope = [FIXTURES / "typescript"]
+    wrong_root = run_complexity_provider(
+        REPO_ROOT,
+        python_scope,
+        roots=typescript_scope,
+        observation_index=0,
+    )
+    assert wrong_root.observation["status"] == "failed"
+    assert wrong_root.observation["failure"]["kind"] == "schema_mismatch"
+
+    source = tmp_path / "src"
+    source.mkdir()
+    nested = (
+        "def nested(rows):\n"
+        "    for outer in rows:\n"
+        "        for inner in rows:\n"
+        "            print(outer, inner)\n"
+    )
+    (source / "included.py").write_text(nested, encoding="utf-8")
+    (source / "excluded.py").write_text(nested, encoding="utf-8")
+    filtered = run_complexity_provider(
+        tmp_path,
+        ["src"],
+        roots=["src"],
+        exclusions=["src/excluded.py"],
+        observation_index=0,
+    )
+    assert filtered.observation["scope"] == {
+        "paths": ["src"],
+        "case_sensitive": True,
+        "roots": ["src"],
+        "exclusions": ["src/excluded.py"],
+    }
+    assert {finding.path for finding in filtered.findings} == {"src/included.py"}
+    assert build_manifest(
+        capability_registry_version=1,
+        paths=["src"],
+        case_sensitive=True,
+        roots=["src"],
+        exclusions=["src/excluded.py"],
+        source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
+        providers=[filtered.observation],
+        findings=filtered.findings,
+        repo_root=tmp_path,
+    )["total"] == 1
+
+    complexity = run_complexity_provider(REPO_ROOT, [FIXTURES], observation_index=0)
+    with pytest.raises(SchemaValidationError, match="must exactly match manifest scope"):
+        build_manifest(
+            capability_registry_version=1,
+            paths=["tests/fixtures/sweep/ecosystem/typescript"],
+            case_sensitive=True,
+            roots=["tests/fixtures/sweep/ecosystem/typescript"],
+            exclusions=[],
+            source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
+            providers=[complexity.observation],
+            findings=[],
+            repo_root=REPO_ROOT,
+        )
+
+    omnibus = run_omnibus_provider(
+        REPO_ROOT,
+        python_scope,
+        language="python",
+        observation_index=0,
+    )
+    excluded = omnibus.findings[0].path
+    with pytest.raises(
+        SchemaValidationError,
+        match="must exactly match manifest scope|declared exclusion",
+    ):
+        build_manifest(
+            capability_registry_version=1,
+            paths=["tests/fixtures/sweep/ecosystem/python"],
+            case_sensitive=True,
+            roots=["tests/fixtures/sweep/ecosystem/python"],
+            exclusions=[excluded],
+            source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
+            providers=[omnibus.observation],
+            findings=omnibus.findings,
+            repo_root=REPO_ROOT,
+        )
+
+
+def test_omnibus_scope_with_only_detector_excluded_files_fails_loudly(tmp_path: Path) -> None:
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "test_only.py").write_text("def harmless():\n    return 1\n", encoding="utf-8")
+
+    run = run_omnibus_provider(
+        tmp_path,
+        ["src"],
+        language="python",
+        observation_index=0,
+    )
+
+    assert run.observation["status"] == "failed"
+    assert run.observation["failure"]["kind"] == "schema_mismatch"
+    assert run.findings == ()
+
+
+def test_complexity_provider_never_publishes_a_capped_prefix(tmp_path: Path) -> None:
+    source = tmp_path / "src"
+    source.mkdir()
+    functions = "\n".join(
+        f"def nested_{index}(rows):\n"
+        "    for outer in rows:\n"
+        "        for inner in rows:\n"
+        "            print(outer, inner)\n"
+        for index in range(501)
+    )
+    (source / "many.py").write_text(functions, encoding="utf-8")
+
+    run = run_complexity_provider(tmp_path, ["src"], observation_index=0)
+    manifest = build_manifest(
+        capability_registry_version=1,
+        paths=["src"],
+        case_sensitive=True,
+        roots=["src"],
+        exclusions=[],
+        source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
+        providers=[run.observation],
+        findings=run.findings,
+        repo_root=tmp_path,
+    )
+
+    assert run.observation["status"] == "completed"
+    assert len(run.findings) == 501
+    assert manifest["total"] == 501
+
+
+@pytest.mark.parametrize("fault", ["timeout", "output_overflow"])
+def test_capture_kills_descendant_group_after_leader_exits(tmp_path: Path, fault: str) -> None:
+    pid_path = tmp_path / f"{fault}.pid"
+    if fault == "timeout":
+        child = "import time; time.sleep(60)"
+        timeout_seconds = 0.05
+        output_byte_limit = 1_048_576
+    else:
+        child = (
+            "import os,time; time.sleep(.05); "
+            "\ntry: os.write(1, b'x' * 1048576)"
+            "\nexcept BrokenPipeError: pass"
+            "\ntime.sleep(60)"
+        )
+        timeout_seconds = 5
+        output_byte_limit = 31
+    leader = (
+        "import pathlib,subprocess,sys; "
+        f"child=subprocess.Popen([sys.executable, '-c', {child!r}]); "
+        f"pathlib.Path({str(pid_path)!r}).write_text(str(child.pid))"
+    )
+    descendant_pid: int | None = None
+    try:
+        captured = capture_process(
+            [sys.executable, "-c", leader],
+            cwd=tmp_path,
+            env=None,
+            timeout_seconds=timeout_seconds,
+            output_byte_limit=output_byte_limit,
+        )
+        descendant_pid = int(pid_path.read_text(encoding="utf-8"))
+
+        assert captured.fault == fault
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            try:
+                os.kill(descendant_pid, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(0.01)
+        else:
+            pytest.fail("descendant survived timeout/overflow process-group termination")
+    finally:
+        if descendant_pid is not None:
+            try:
+                os.kill(descendant_pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
 
 
 def test_complexity_uses_one_typed_parse_and_reuses_the_tree(monkeypatch) -> None:

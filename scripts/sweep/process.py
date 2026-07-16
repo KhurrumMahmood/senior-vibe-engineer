@@ -49,11 +49,9 @@ def _raw_record(stdout: bytes, stderr: bytes) -> dict[str, Any]:
 
 
 def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:
-    if process.poll() is not None:
-        return
     try:
         os.killpg(process.pid, signal.SIGKILL)
-    except (AttributeError, ProcessLookupError, PermissionError):
+    except ProcessLookupError:
         if process.poll() is None:
             process.kill()
 
@@ -67,7 +65,7 @@ def capture_process(
     output_byte_limit: int,
     monotonic: Callable[[], float] | None = None,
 ) -> CapturedProcess:
-    """Run ``argv`` with strict deadline and per-stream bounded pipe capture."""
+    """Run ``argv`` with strict deadline and combined bounded pipe capture."""
     if timeout_seconds <= 0:
         raise ValueError("timeout_seconds must be positive")
     if output_byte_limit < 1:

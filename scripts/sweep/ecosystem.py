@@ -58,6 +58,10 @@ class _ScopeFailure(ValueError):
         super().__init__(message)
 
 
+class _CompletionFailure(ValueError):
+    """A zero-exit provider payload without one exact final completion record."""
+
+
 def _detector_path(skill: str) -> Path:
     return _TOOLKIT_ROOT / ".claude" / "skills" / skill / "scripts" / "detect.py"
 
@@ -105,6 +109,16 @@ def _raw_bytes(records: Sequence[Mapping[str, Any]]) -> bytes:
     return b"".join(canonical_json_bytes(dict(record)) for record in records)
 
 
+def _completion_record(provider: str, language: str, finding_count: int) -> dict[str, Any]:
+    return {
+        "type": "provider_completion",
+        "schema_version": SCHEMA_VERSION,
+        "provider": provider,
+        "language": language,
+        "finding_count": finding_count,
+    }
+
+
 def _raw_record(stdout: bytes, stderr: bytes) -> dict[str, Any]:
     return {
         "stdout_sha256": hashlib.sha256(stdout).hexdigest(),
@@ -114,13 +128,20 @@ def _raw_record(stdout: bytes, stderr: bytes) -> dict[str, Any]:
     }
 
 
-def _validate_scopes(
+@dataclass(frozen=True)
+class _ExecutedScope:
+    paths: tuple[Path, ...]
+    roots: tuple[Path, ...]
+    exclusions: tuple[Path, ...]
+    case_sensitive: bool
+
+
+def _validate_scope(
     project_root: Path,
-    scopes: Sequence[str | Path],
+    scope: Mapping[str, Any],
     *,
     provider: str,
-    language: str | None = None,
-) -> tuple[Path, ...]:
+) -> _ExecutedScope:
     try:
         root = project_root.resolve(strict=True)
     except OSError as exc:
@@ -130,99 +151,114 @@ def _validate_scopes(
         ) from exc
     if not root.is_dir():
         raise _ScopeFailure("project root must be a directory", project_root=root.as_posix())
-    if not scopes:
-        raise _ScopeFailure("provider requires at least one scope", scopes=[])
-    if provider == "omnibus" and len(scopes) != 1:
+    case_sensitive = scope.get("case_sensitive")
+    if not isinstance(case_sensitive, bool):
+        raise _ScopeFailure("provider scope requires an explicit case policy")
+
+    def resolve_entries(name: str, *, strict: bool) -> tuple[Path, ...]:
+        values = scope.get(name)
+        if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
+            raise _ScopeFailure(f"provider scope {name} must be an array of paths")
+        if values != sorted(set(values)):
+            raise _ScopeFailure(f"provider scope {name} must be sorted and unique")
+        resolved: list[Path] = []
+        for rendered in values:
+            if any(character in rendered for character in "*?[]"):
+                raise _ScopeFailure("scope globs are not executable provider paths", path=rendered)
+            candidate = root / rendered
+            try:
+                candidate = candidate.resolve(strict=strict)
+            except OSError as exc:
+                raise _ScopeFailure(
+                    f"scope {name[:-1]} is missing or unreadable",
+                    path=rendered,
+                ) from exc
+            try:
+                candidate.relative_to(root)
+            except ValueError as exc:
+                raise _ScopeFailure(
+                    f"scope {name[:-1]} escapes the project root",
+                    path=rendered,
+                ) from exc
+            resolved.append(candidate)
+        return tuple(resolved)
+
+    paths = resolve_entries("paths", strict=True)
+    roots = resolve_entries("roots", strict=True)
+    exclusions = resolve_entries("exclusions", strict=False)
+    if not paths:
+        raise _ScopeFailure("provider requires at least one scope path", paths=[])
+    if not roots or not all(boundary.is_dir() for boundary in roots):
+        raise _ScopeFailure("provider roots must be existing directories")
+    if provider == "omnibus" and len(paths) != 1:
         raise _ScopeFailure(
-            "one omnibus observation requires exactly one scope",
-            scopes=[str(scope) for scope in scopes],
+            "one omnibus observation requires exactly one scope path",
+            paths=[path.as_posix() for path in paths],
         )
 
-    validated: list[Path] = []
-    for raw in scopes:
-        rendered = str(raw)
-        if any(character in rendered for character in "*?[]"):
-            raise _ScopeFailure("scope globs are not executable provider scopes", scope=rendered)
-        requested = Path(raw)
-        candidate = requested if requested.is_absolute() else root / requested
-        try:
-            candidate = candidate.resolve(strict=True)
-        except OSError as exc:
-            raise _ScopeFailure("scope is missing or unreadable", scope=rendered) from exc
-        try:
-            candidate.relative_to(root)
-        except ValueError as exc:
+    def within(path: Path, boundary: Path) -> bool:
+        rendered_path = path.as_posix()
+        rendered_boundary = boundary.as_posix()
+        if not case_sensitive:
+            rendered_path = rendered_path.casefold()
+            rendered_boundary = rendered_boundary.casefold()
+        return rendered_path == rendered_boundary or rendered_path.startswith(
+            f"{rendered_boundary}/"
+        )
+
+    for path in paths:
+        if not any(within(path, boundary) for boundary in roots):
             raise _ScopeFailure(
-                "scope escapes the project root",
-                scope=rendered,
-                resolved=candidate.as_posix(),
-            ) from exc
+                "scope path is outside the executed roots",
+                path=path.as_posix(),
+            )
         if provider == "cx" and not (
-            candidate.is_dir() or (candidate.is_file() and candidate.suffix.lower() == ".py")
+            path.is_dir() or (path.is_file() and path.suffix.lower() == ".py")
         ):
             raise _ScopeFailure(
                 "complexity scope must be a Python file or directory",
-                scope=rendered,
+                path=path.as_posix(),
             )
-        if provider == "cx" and candidate.is_dir() and not any(
-            child.is_file() and child.suffix.lower() == ".py"
-            for child in candidate.rglob("*.py")
-        ):
-            raise _ScopeFailure(
-                "complexity directory contains no eligible Python source",
-                scope=rendered,
-            )
-        if provider == "omnibus" and not candidate.is_dir():
-            raise _ScopeFailure("omnibus scope must be a directory", scope=rendered)
-        if provider == "omnibus":
-            extensions = {
-                extension
-                for adapter in iter_adapters()
-                if adapter.language == language
-                for extension in adapter.extensions
-            }
-            if not extensions or not any(
-                child.is_file() and child.suffix.lower() in extensions
-                for child in candidate.rglob("*")
-            ):
-                raise _ScopeFailure(
-                    "omnibus directory contains no source for the requested language",
-                    scope=rendered,
-                    language=language,
-                )
-        validated.append(candidate)
-    if len(validated) != len(set(validated)):
-        raise _ScopeFailure("provider scopes must not contain duplicates")
-    return tuple(validated)
+        if provider == "omnibus" and not path.is_dir():
+            raise _ScopeFailure("omnibus scope must be a directory", path=path.as_posix())
+    if any(not any(within(exclusion, boundary) for boundary in roots) for exclusion in exclusions):
+        raise _ScopeFailure("scope exclusions must remain inside executed roots")
+    return _ExecutedScope(paths, roots, exclusions, case_sensitive)
 
 
 def _detect_complexity_records(
     project_root: Path,
-    scopes: Sequence[str | Path],
+    scope: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
-    validated = _validate_scopes(project_root, scopes, provider="cx")
+    executed = _validate_scope(project_root, scope, provider="cx")
     module = _load_detector(_detector_path("find-complexity-hotspots"), "_sweep_cx_process")
     selected = module.select_python_files(
         project_root.resolve(),
-        [path.as_posix() for path in validated],
+        [path.as_posix() for path in executed.paths],
         include_tests=False,
+        roots=executed.roots,
+        exclusions=executed.exclusions,
+        case_sensitive=executed.case_sensitive,
     )
     if not selected:
         raise _ScopeFailure(
             "complexity scope contains no files eligible under the detector selection contract",
-            scopes=[path.as_posix() for path in validated],
+            paths=[path.as_posix() for path in executed.paths],
         )
     return module.detect(
         project_root.resolve(),
         [path.as_posix() for path in selected],
         include_tests=False,
-        max_findings=500,
+        max_findings=None,
+        roots=executed.roots,
+        exclusions=executed.exclusions,
+        case_sensitive=executed.case_sensitive,
     )
 
 
 def _detect_omnibus_records(
     project_root: Path,
-    scopes: Sequence[str | Path],
+    scope: Mapping[str, Any],
     *,
     language: str,
 ) -> list[dict[str, Any]]:
@@ -231,14 +267,23 @@ def _detect_omnibus_records(
             "parser-backed omnibus supports only python and typescript",
             language=language,
         )
-    target = _validate_scopes(
-        project_root,
-        scopes,
-        provider="omnibus",
-        language=language,
-    )[0]
+    executed = _validate_scope(project_root, scope, provider="omnibus")
+    target = executed.paths[0]
     module = _load_detector(_detector_path("find-omnibus"), "_sweep_omnibus_process")
-    records = module.detect(target, project_root.resolve(), languages={language})
+    records, selected_count = module.detect_with_file_count(
+        target,
+        project_root.resolve(),
+        languages={language},
+        roots=executed.roots,
+        exclusions=executed.exclusions,
+        case_sensitive=executed.case_sensitive,
+    )
+    if selected_count == 0:
+        raise _ScopeFailure(
+            "omnibus scope contains no files eligible under the detector selection contract",
+            path=target.as_posix(),
+            language=language,
+        )
     unique = {canonical_json_bytes(record): record for record in records}
     return sorted(unique.values(), key=lambda row: (-int(row["score"]), str(row["file"])))
 
@@ -255,17 +300,26 @@ def provider_process_main(argv: list[str] | None = None) -> int:
     parser.add_argument("--provider", required=True, choices=("cx", "omnibus"))
     parser.add_argument("--language", required=True)
     parser.add_argument("--project-root", required=True, type=Path)
-    parser.add_argument("--scope", action="append", default=[])
+    parser.add_argument("--path", action="append", default=[])
+    parser.add_argument("--root", action="append", default=[])
+    parser.add_argument("--exclude", action="append", default=[])
+    parser.add_argument("--case-sensitive", required=True, choices=("true", "false"))
     args = parser.parse_args(argv)
+    scope = {
+        "paths": args.path,
+        "case_sensitive": args.case_sensitive == "true",
+        "roots": args.root,
+        "exclusions": args.exclude,
+    }
     try:
         if args.provider == "cx":
             if args.language != "python":
                 raise _ScopeFailure("complexity provider supports only python")
-            records = _detect_complexity_records(args.project_root, args.scope)
+            records = _detect_complexity_records(args.project_root, scope)
         else:
             records = _detect_omnibus_records(
                 args.project_root,
-                args.scope,
+                scope,
                 language=args.language,
             )
     except _ScopeFailure as exc:
@@ -293,7 +347,9 @@ def provider_process_main(argv: list[str] | None = None) -> int:
             )
         )
         return 2
-    sys.stdout.buffer.write(_raw_bytes(records))
+    sys.stdout.buffer.write(
+        _raw_bytes([*records, _completion_record(args.provider, args.language, len(records))])
+    )
     return 0
 
 
@@ -302,7 +358,7 @@ def _command(
     provider: str,
     language: str,
     project_root: Path,
-    scopes: Sequence[str | Path],
+    scope: Mapping[str, Any],
 ) -> dict[str, Any]:
     argv = [
         sys.executable,
@@ -314,8 +370,13 @@ def _command(
         "--project-root",
         project_root.as_posix(),
     ]
-    for scope in scopes:
-        argv.extend(("--scope", Path(scope).as_posix()))
+    for path in scope["paths"]:
+        argv.extend(("--path", path))
+    for root in scope["roots"]:
+        argv.extend(("--root", root))
+    for exclusion in scope["exclusions"]:
+        argv.extend(("--exclude", exclusion))
+    argv.extend(("--case-sensitive", "true" if scope["case_sensitive"] else "false"))
     return {
         "executable": sys.executable,
         "argv": argv,
@@ -329,24 +390,47 @@ def _scope_provenance(
     project_root: Path,
     scopes: Sequence[str | Path],
     *,
+    roots: Sequence[str | Path] | None,
+    exclusions: Sequence[str | Path],
     case_sensitive: bool,
 ) -> dict[str, Any]:
     root = project_root.resolve()
-    paths: set[str] = set()
-    for raw in scopes:
-        requested = Path(raw)
-        candidate = requested if requested.is_absolute() else root / requested
-        try:
-            relative = candidate.resolve().relative_to(root).as_posix()
-        except ValueError:
-            continue
-        normalized = relative or "."
-        paths.add(normalized if case_sensitive else normalized.casefold())
+    invalid = False
+
+    def normalized(values: Sequence[str | Path]) -> list[str]:
+        nonlocal invalid
+        paths: set[str] = set()
+        for raw in values:
+            requested = Path(raw)
+            candidate = requested if requested.is_absolute() else root / requested
+            try:
+                relative = candidate.resolve().relative_to(root).as_posix()
+            except ValueError:
+                invalid = True
+                continue
+            rendered = relative or "."
+            paths.add(rendered if case_sensitive else rendered.casefold())
+        return sorted(paths)
+
+    paths = normalized(scopes)
+    if roots is None:
+        default_roots: list[str | Path] = []
+        for raw in scopes:
+            requested = Path(raw)
+            candidate = requested if requested.is_absolute() else root / requested
+            default_roots.append(candidate.parent if candidate.is_file() else raw)
+        roots = default_roots
+    canonical_roots = normalized(roots)
+    canonical_exclusions = normalized(exclusions)
+    if invalid:
+        paths = []
+        canonical_roots = ["."]
+        canonical_exclusions = []
     return {
-        "paths": sorted(paths),
+        "paths": paths,
         "case_sensitive": case_sensitive,
-        "roots": ["."],
-        "exclusions": [],
+        "roots": canonical_roots,
+        "exclusions": canonical_exclusions,
     }
 
 
@@ -358,6 +442,7 @@ def _completed_observation(
     scope: Mapping[str, Any],
     command: Mapping[str, Any],
     captured: CapturedProcess,
+    finding_count: int,
 ) -> dict[str, Any]:
     observation = {
         "schema_version": SCHEMA_VERSION,
@@ -369,7 +454,7 @@ def _completed_observation(
         "tool_version": _tool_version(detector_path, language),
         "exit": {
             "code": captured.returncode,
-            "classification": "diagnostics" if captured.raw["stdout_bytes"] else "clean",
+            "classification": "diagnostics" if finding_count else "clean",
         },
         "raw": dict(captured.raw),
         "status": "completed",
@@ -432,8 +517,8 @@ def _failure_from_stderr(stderr: bytes | None) -> tuple[str, str, Mapping[str, A
         )
 
 
-def _parse_records(stdout: bytes) -> list[dict[str, Any]]:
-    records: list[dict[str, Any]] = []
+def _parse_records(stdout: bytes, *, provider: str, language: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     for number, line in enumerate(stdout.splitlines(), start=1):
         if not line.strip():
             continue
@@ -443,7 +528,16 @@ def _parse_records(stdout: bytes) -> list[dict[str, Any]]:
             raise ValueError(f"invalid provider JSONL at line {number}: {exc}") from exc
         if not isinstance(row, dict):
             raise ValueError(f"provider JSONL line {number} must be an object")
-        records.append(row)
+        rows.append(row)
+    completion_indexes = [
+        index for index, row in enumerate(rows) if row.get("type") == "provider_completion"
+    ]
+    if completion_indexes != [len(rows) - 1]:
+        raise _CompletionFailure("provider requires exactly one final completion record")
+    records = rows[:-1]
+    expected = _completion_record(provider, language, len(records))
+    if rows[-1] != expected:
+        raise _CompletionFailure("provider completion record does not match its payload")
     return records
 
 
@@ -455,18 +549,22 @@ def _run_provider(
     project_root: Path,
     scopes: Sequence[str | Path],
     observation_index: int,
+    roots: Sequence[str | Path] | None,
+    exclusions: Sequence[str | Path],
     case_sensitive: bool,
 ) -> EcosystemProviderRun:
+    scope = _scope_provenance(
+        project_root,
+        scopes,
+        roots=roots,
+        exclusions=exclusions,
+        case_sensitive=case_sensitive,
+    )
     command = _command(
         provider=provider,
         language=language,
         project_root=project_root,
-        scopes=scopes,
-    )
-    scope = _scope_provenance(
-        project_root,
-        scopes,
-        case_sensitive=case_sensitive,
+        scope=scope,
     )
     try:
         captured = capture_process(
@@ -544,9 +642,22 @@ def _run_provider(
         return EcosystemProviderRun(observation, ())
 
     try:
-        records = _parse_records(captured.stdout or b"")
+        records = _parse_records(captured.stdout, provider=provider, language=language)
         normalizer = _complexity_finding if provider == "cx" else _omnibus_finding
         findings = tuple(normalizer(record, observation_index) for record in records)
+    except _CompletionFailure as exc:
+        observation = _failed_observation(
+            provider=provider,
+            language=language,
+            detector_path=detector_path,
+            scope=scope,
+            command=command,
+            captured=captured,
+            failure_kind="missing_completion",
+            message=str(exc),
+            details={"stdout_sha256": captured.raw["stdout_sha256"]},
+        )
+        return EcosystemProviderRun(observation, ())
     except Exception as exc:  # noqa: BLE001 - provider output boundary
         observation = _failed_observation(
             provider=provider,
@@ -568,6 +679,7 @@ def _run_provider(
         scope=scope,
         command=command,
         captured=captured,
+        finding_count=len(findings),
     )
     return EcosystemProviderRun(observation, findings)
 
@@ -662,6 +774,8 @@ def run_complexity_provider(
     scopes: Sequence[str | Path],
     *,
     observation_index: int,
+    roots: Sequence[str | Path] | None = None,
+    exclusions: Sequence[str | Path] = (),
     case_sensitive: bool = True,
 ) -> EcosystemProviderRun:
     """Execute the characterized Python complexity provider in isolation."""
@@ -673,6 +787,8 @@ def run_complexity_provider(
         project_root=repo_root,
         scopes=scopes,
         observation_index=observation_index,
+        roots=roots,
+        exclusions=exclusions,
         case_sensitive=case_sensitive,
     )
 
@@ -684,6 +800,8 @@ def run_omnibus_provider(
     *,
     language: str,
     observation_index: int,
+    roots: Sequence[str | Path] | None = None,
+    exclusions: Sequence[str | Path] = (),
     case_sensitive: bool = True,
 ) -> EcosystemProviderRun:
     """Execute one eligible parser-backed omnibus language observation."""
@@ -697,5 +815,7 @@ def run_omnibus_provider(
         project_root=repo_root,
         scopes=scopes,
         observation_index=observation_index,
+        roots=roots,
+        exclusions=exclusions,
         case_sensitive=case_sensitive,
     )
