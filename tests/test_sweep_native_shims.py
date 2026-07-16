@@ -51,6 +51,16 @@ def test_im_5_registry_resolves_every_native_provider_without_local_enums():
     assert all(row.provider_kind == "native" for rows in resolved.values() for row in rows)
 
 
+def test_native_resolution_filters_registry_owned_parser_backed_members():
+    resolved = resolve_native_providers(["python", "typescript"])
+
+    assert [row.provider for row in resolved["python"]] == ["ruff"]
+    assert [row.provider for row in resolved["typescript"]] == [
+        "eslint",
+        "typescript-compiler",
+    ]
+
+
 @pytest.mark.parametrize(
     ("language", "provider", "stdout_fixture", "stderr_fixture", "exit_code", "version", "rule", "path"),
     [

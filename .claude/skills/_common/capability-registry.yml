@@ -339,13 +339,29 @@ scan_targets:
     evidence_contract: native-tool-fixture
 
 sweep_targets:
-  python: [ruff]
+  python: [ruff, complexity-hotspots, omnibus]
   javascript: [eslint]
-  typescript: [eslint, typescript-compiler]
+  typescript: [eslint, typescript-compiler, omnibus]
   rust: [clippy]
   go: [go-vet]
 
 sweep_providers:
+  complexity-hotspots:
+    languages: [python]
+    provider_kind: parser-backed-ecosystem
+    runner: complexity
+    timeout_seconds: 30
+    output_format: json-lines
+    output_byte_limit: 1048576
+    semantic_rule_version: 1
+  omnibus:
+    languages: [python, typescript]
+    provider_kind: parser-backed-ecosystem
+    runner: omnibus
+    timeout_seconds: 30
+    output_format: json-lines
+    output_byte_limit: 1048576
+    semantic_rule_version: 1
   ruff:
     languages: [python]
     provider_kind: native

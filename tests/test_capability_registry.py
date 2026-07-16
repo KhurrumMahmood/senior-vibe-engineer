@@ -680,6 +680,40 @@ def test_registry_rejects_binding_that_names_unknown_language(tmp_path):
         raise AssertionError("invalid registry unexpectedly loaded")
 
 
+def test_registry_owns_native_and_parser_backed_sweep_portfolio():
+    registry = load_registry()
+
+    assert registry.data["sweep_targets"]["python"] == [
+        "ruff",
+        "complexity-hotspots",
+        "omnibus",
+    ]
+    assert registry.data["sweep_targets"]["typescript"] == [
+        "eslint",
+        "typescript-compiler",
+        "omnibus",
+    ]
+    assert registry.data["sweep_providers"]["complexity-hotspots"] == {
+        "languages": ["python"],
+        "provider_kind": "parser-backed-ecosystem",
+        "runner": "complexity",
+        "timeout_seconds": 30,
+        "output_format": "json-lines",
+        "output_byte_limit": 1_048_576,
+        "semantic_rule_version": 1,
+    }
+
+
+def test_registry_rejects_malformed_parser_backed_provider(tmp_path):
+    payload = yaml.safe_load(load_registry().path.read_text(encoding="utf-8"))
+    payload["sweep_providers"]["complexity-hotspots"].pop("runner")
+    target = tmp_path / "registry.yml"
+    target.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+
+    with pytest.raises(RegistryError, match="parser-backed fields must be exactly"):
+        load_registry(target)
+
+
 def test_registry_rejects_undefined_completion_floor_outcome(tmp_path):
     payload = yaml.safe_load(load_registry().path.read_text(encoding="utf-8"))
     payload["completion_floor"]["stacks"]["rust"]["required"].append("magic.unregistered")

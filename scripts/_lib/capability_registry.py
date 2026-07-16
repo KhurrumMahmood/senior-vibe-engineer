@@ -593,6 +593,47 @@ def load_registry(path: Path | None = None) -> CapabilityRegistry:
             or any(language not in language_ids for language in languages)
         ):
             raise RegistryError(f"{prefix}.languages must name registered languages")
+        provider_kind = entry.get("provider_kind")
+        common_fields = {
+            "languages",
+            "provider_kind",
+            "timeout_seconds",
+            "output_format",
+            "output_byte_limit",
+            "semantic_rule_version",
+        }
+        for field in ("timeout_seconds", "output_byte_limit", "semantic_rule_version"):
+            value = entry.get(field)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+                raise RegistryError(f"{prefix}.{field} must be positive")
+        if not isinstance(entry.get("output_format"), str) or not entry["output_format"]:
+            raise RegistryError(f"{prefix}.output_format must be a non-empty string")
+        if provider_kind == "parser-backed-ecosystem":
+            expected_fields = common_fields | {"runner"}
+            if set(entry) != expected_fields:
+                raise RegistryError(
+                    f"{prefix} parser-backed fields must be exactly {sorted(expected_fields)}"
+                )
+            if not isinstance(entry.get("runner"), str) or not entry["runner"]:
+                raise RegistryError(f"{prefix}.runner must be a non-empty string")
+            continue
+        if provider_kind != "native":
+            raise RegistryError(
+                f"{prefix}.provider_kind must be 'native' or 'parser-backed-ecosystem'"
+            )
+        expected_fields = common_fields | {
+            "executable",
+            "argv",
+            "version_argv",
+            "version_pattern",
+            "output_stream",
+            "clean_exit_codes",
+            "diagnostic_exit_codes",
+        }
+        if set(entry) != expected_fields:
+            raise RegistryError(
+                f"{prefix} native fields must be exactly {sorted(expected_fields)}"
+            )
         for field in ("executable", "argv", "version_argv"):
             values = entry.get(field)
             if (
@@ -608,16 +649,8 @@ def load_registry(path: Path | None = None) -> CapabilityRegistry:
             re.compile(pattern)
         except re.error as exc:
             raise RegistryError(f"{prefix}.version_pattern is invalid: {exc}") from exc
-        if entry.get("provider_kind") != "native":
-            raise RegistryError(f"{prefix}.provider_kind must be 'native'")
         if entry.get("output_stream") not in {"stdout", "stderr", "stdout-or-stderr"}:
             raise RegistryError(f"{prefix}.output_stream is not recognized")
-        if not isinstance(entry.get("output_format"), str) or not entry["output_format"]:
-            raise RegistryError(f"{prefix}.output_format must be a non-empty string")
-        for field in ("timeout_seconds", "output_byte_limit", "semantic_rule_version"):
-            value = entry.get(field)
-            if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
-                raise RegistryError(f"{prefix}.{field} must be positive")
         for field in ("clean_exit_codes", "diagnostic_exit_codes"):
             values = entry.get(field)
             if (

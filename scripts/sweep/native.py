@@ -80,6 +80,8 @@ def provider_contracts_from_registry(
     contracts: list[ProviderContract] = []
     for provider in providers:
         entry = registry.data["sweep_providers"][provider]
+        if entry["provider_kind"] != "native":
+            continue
         contracts.append(
             ProviderContract(
                 provider=provider,
