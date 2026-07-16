@@ -400,7 +400,7 @@ def _render_evidence_report(payload: dict[str, Any], *, output_root: Path) -> by
     lines = [
         "# WP3 Slice 4 deterministic evidence",
         "",
-        "This generated report supersedes every earlier Slice 4 evidence claim. ",
+        "This generated report supersedes every earlier Slice 4 evidence claim.",
         "Its hashes and counts are reconstructed and checked by `wp3_slice4_replay.py`.",
         "",
         "## Git and runtime binding",
