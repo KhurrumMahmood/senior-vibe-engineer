@@ -104,12 +104,13 @@ counted separately from the toolkit-owned set.
 
 The bootstrap projection contains the two complete router procedures plus
 their declared non-skill runtime files. Those supporting files are not skill
-headers. It also contains a manifest-relative catalog locator, manifest schema
-version, and the externally rooted release-root and bundle-index digests that
-bind inventory, registry, profile, and router content. It never contains an
-expected installed-manifest digest. Routers resolve the non-discovered catalog only through that
-locator; they may not search ambient skill roots, assume a checkout-relative
-`.claude/skills` path, or trust the working directory. They verify the locator,
+headers. It also contains fixed `schema_version: 1`, a manifest-relative
+catalog locator, and the externally rooted release-root and bundle-index
+digests that bind inventory, registry, profile, and router content. It never
+contains an expected installed-manifest digest. Routers resolve the non-
+discovered catalog only through that locator; they may not search ambient skill
+roots, assume a checkout-relative `.claude/skills` path, or trust the working
+directory. They verify the locator,
 manifest, selected catalog row, and rendered content before reading catalog
 frontmatter or loading a procedure. Missing, stale, corrupt, traversing, or
 incompatible data fails closed without loading a body or changing activation.
@@ -128,14 +129,16 @@ manifest or generated bootstrap projections. The installed manifest records
 the verified release-root and bundle-index digests, state, and generated file
 hashes; its `manifest_sha256` is computed over the document with only that
 field omitted. A generated bootstrap's exact content set is its surface
-identity, relative manifest locator, release-root and bundle-index digests,
-the complete `which-shape` and `which-skill` router procedures, and every
-declared non-skill runtime file needed by those procedures. Router procedure
-and runtime bytes are generated only from bundle-indexed immutable blobs or
-projection recipes. The installed manifest hashes every generated bootstrap
-file and a bootstrap tree digest over all and only its `{path,size,sha256}`
-rows using the tree-digest rule below. No bootstrap field or embedded file
-contains the installed-manifest digest. The manifest may hash the bootstrap
+identity, fixed `schema_version: 1`, relative manifest locator, release-root
+and bundle-index digests, the complete `which-shape` and `which-skill` router
+procedures, and every declared non-skill runtime file needed by those
+procedures. Router procedure and runtime bytes are generated only from bundle-
+indexed immutable blobs or projection recipes. The installed manifest hashes
+every generated bootstrap file's raw bytes, including the bytes encoding
+`schema_version: 1`, and a
+bootstrap tree digest over all and only its `{path,size,sha256}` rows using the
+tree-digest rule below. No bootstrap field or embedded file contains the
+installed-manifest digest. The manifest may hash the bootstrap
 because the bootstrap never hashes the manifest. Runtime
 verification follows `out-of-band root → release root → bundle index → immutable
 blobs/recipes → self-hashed installed manifest → generated projections`; no

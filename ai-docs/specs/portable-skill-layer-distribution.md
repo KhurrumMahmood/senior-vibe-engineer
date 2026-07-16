@@ -190,12 +190,14 @@ Host-owned discoveries are a third, preserved set and never contribute to a
 toolkit count.
 
 The bootstrap embeds the complete `which-shape` and `which-skill` procedures,
-their declared non-skill runtime files, surface identity, a manifest-relative
-locator, and release-root/bundle-index hashes; it never embeds a manifest
-digest. The installed manifest hashes every generated bootstrap file and the
-tree digest of all and only those files, whose procedure/runtime bytes derive
-from bundle-indexed immutable blobs or recipes. The forward trust graph binds
-inventory, registry, profile, router, and generated-manifest content. The dispatcher reads
+their declared non-skill runtime files, surface identity, fixed
+`schema_version: 1`, a manifest-relative locator, and release-root/bundle-index
+hashes; it never embeds a manifest digest. The installed manifest hashes every
+generated bootstrap file's raw bytes, including the bytes encoding that fixed
+schema-version field, and the tree digest of all and only those files. Their
+procedure/runtime bytes derive from bundle-indexed immutable blobs or recipes.
+The forward trust graph binds inventory, registry, profile, router, and
+generated-manifest content. The dispatcher reads
 only that manifest-selected catalog, uses the pinned normalization/scorer/
 threshold, and takes an explicit root or ordered root set. It returns exactly
 `selected`, `clarification_required`, `proceed_directly`, or `error`.
@@ -504,10 +506,12 @@ evidence contract in the same logical change.
   prerequisite. Then implement
   ADR 0042's exact acyclic external-root trust graph, RFC-8785/digest domains,
   raw-file/tree/self-digest algorithms, and no bootstrap→manifest digest edge.
-  The generated bootstrap contains surface identity, locator, release/bundle
-  digests, both complete router procedures, and their declared runtime files;
-  it never contains a manifest digest. The manifest hashes every bootstrap
-  file and their exact tree-digest domain. Check in the exact closed
+  The generated bootstrap contains surface identity, fixed
+  `schema_version: 1`, locator, release/bundle digests, both complete router
+  procedures, and their declared runtime files; it never contains a manifest
+  digest. The manifest hashes every bootstrap file's raw bytes, including that
+  fixed schema-version field, and the exact tree digest over all and only those
+  files. Check in the exact closed
   `WhichShapeResultV1`/`WhichSkillResultV1` schemas and pin
   `ascii-wordset-v1`, `which-shape-lexical-v1` (+12/+4/-10, -4 context,
   40/24 confidence), and `which-skill-overlap-v1`

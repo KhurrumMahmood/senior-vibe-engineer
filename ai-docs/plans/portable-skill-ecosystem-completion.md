@@ -517,10 +517,11 @@ particular:
 - Trust is the exact acyclic chain `out-of-band release-root SHA-256 →
   release-root-v1 → bundle-index-v1 → immutable raw blobs/recipes → self-
   hashed installed manifest → generated projections`. Bootstrap contains its
-  surface identity, relative manifest locator, release/bundle digests, both
-  complete router procedures, and their declared non-skill runtime files, but
-  never a manifest digest. The installed manifest hashes every bootstrap file
-  and the tree digest over all and only those files. Exact-schema RFC 8785 JSON,
+  surface identity, fixed `schema_version: 1`, relative manifest locator,
+  release/bundle digests, both complete router procedures, and their declared
+  non-skill runtime files, but never a manifest digest. The installed manifest
+  hashes every bootstrap file's raw bytes, including that fixed field, and the
+  tree digest over all and only those files. Exact-schema RFC 8785 JSON,
   raw-file SHA-256, NFC sorted POSIX tree rows, and single-field self-digest
   domains are mandatory.
 - IM-14 phase 1 checks in and validates all eight closed schemas—release root,
