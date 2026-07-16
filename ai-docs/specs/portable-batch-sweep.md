@@ -166,6 +166,20 @@ The manifest records:
 - canonical semantic and artifact hashes so consumers can bind judgments,
   packets, baselines, and evidence to the exact manifest.
 
+The public scan CLI derives source provenance from the Git repository containing
+the declared scan root; callers do not supply authoritative provenance.
+`revision` is the resolved `HEAD^{commit}`. For tracked-only changes beneath
+that root, `dirty_state_hash` is exactly the SHA-256 of
+`git diff --binary HEAD --`; sorted non-ignored untracked paths, types, and raw
+bytes extend that stream with deterministic framing. The CLI captures the
+source before and after provider execution and fails if it moves.
+Legacy `--revision`, `--clean`/`--dirty`, and `--dirty-state-hash` options are
+optional compatibility assertions only and fail on disagreement. Direct
+library construction may still inject source metadata for saved-output and
+schema fixtures, but harness verification resolves Git independently, binds
+the after manifest to the observed HEAD/diff, and rejects source movement
+during or after rescan.
+
 Canonical ordering is provider, language, canonical rule semantic key, path,
 semantic anchor, occurrence, then finding ID. Object serialization uses sorted
 keys and a terminal newline. Volatile run time and machine fields are retained
