@@ -194,6 +194,9 @@ def test_im_15_live_host_runs_scan_judgment_packet_harness_diff_and_ratchet(
         scanner=lambda: run_scan_command(scan_command, work),
     )
     assert evidence["verdict"] == "verified"
+    assert evidence["diff"]["fixed"] == sorted(identifiers)
+    assert evidence["diff"]["new"] == []
+    assert evidence["diff"]["persisting"] == []
 
     ratchet = apply_ratchet(
         before,
@@ -204,7 +207,8 @@ def test_im_15_live_host_runs_scan_judgment_packet_harness_diff_and_ratchet(
     assert ratchet.violations == ()
     assert ratchet.tighten is True
 
-    clean_root = HOSTS / host / "clean"
+    clean_root = tmp_path / f"{host}-clean"
+    shutil.copytree(HOSTS / host / "clean", clean_root)
     clean = scan_profile(
         root=clean_root,
         profile=profile,
