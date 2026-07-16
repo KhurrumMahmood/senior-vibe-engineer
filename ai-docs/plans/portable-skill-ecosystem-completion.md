@@ -98,14 +98,14 @@ Completion rules:
 
 ## Progress summary
 
-Last updated: 2026-07-16 by Codex (WP4 implemented; WP2 in progress)
+Last updated: 2026-07-16 by Codex (WP4 verification failed; WP2 in progress)
 
 | State | Count |
 |---|---:|
 | not_started | 7 |
-| in_progress | 1 |
+| in_progress | 2 |
 | blocked | 0 |
-| implemented | 1 |
+| implemented | 0 |
 | verified | 2 |
 
 ## Master tracker
@@ -114,9 +114,9 @@ Last updated: 2026-07-16 by Codex (WP4 implemented; WP2 in progress)
 |---|---|---|---|---|---|---|
 | WP0 Trusted baseline and plan consolidation | verified | Codex | — | AC-0.1–AC-0.5 | `reports/portable-skill-ecosystem-completion/WP0/final-verification.md` (plus linked implementation/attempt/pre-retirement records) | All five ACs independently passed at clean revision `fae13d4`; next dependency-ready package is WP1. |
 | WP1 Canonical stack and capability contract | verified | Codex | WP0 | AC-1.1–AC-1.7 | `reports/portable-skill-ecosystem-completion/WP1/final-verification.md` (plus implementation evidence and three retained failed attempts) | All seven ACs independently passed at clean revision `8b8b09a`; dependency-sized WP2/WP4 specs are promoted without weakening the master ledger. |
-| WP2 Capability-aware host profiling and routing | in_progress | Codex | WP1 | AC-2.1–AC-2.6 | `ai-docs/specs/portable-host-profile-routing.md` | At start revision `db0fed1`, characterize Class A, route-sprawl, routing, and host-ownership baselines before edits; last completed AC: none. |
+| WP2 Capability-aware host profiling and routing | in_progress | Codex | WP1 | AC-2.1–AC-2.6 | `ai-docs/specs/portable-host-profile-routing.md`; `reports/portable-skill-ecosystem-completion/WP2/host-profile-slice.md` | Canonical five-host profiler slice passes implementer checks at `38f9c6c`; current action: profile-driven, host-owned, idempotent adaptation plus mandatory perimeter; last completed AC: none; last evidence revision: `38f9c6c`. |
 | WP3 Load-bearing layers, bindings, and installer | not_started | — | WP1, WP2 | AC-3.1–AC-3.7 | — | Implement the packaging/discovery decision and exemplar binding. |
-| WP4 Multi-language analysis substrate | implemented | Codex | WP1 | AC-4.1–AC-4.6 | `reports/portable-skill-ecosystem-completion/WP4/implementation-evidence.md` | Implementation revision `e30fcb4`; all six ACs pass implementer checks and the full suite is green. Current action: clean fresh-context verification; last evidence revision: `e30fcb4`. |
+| WP4 Multi-language analysis substrate | in_progress | Codex | WP1 | AC-4.1–AC-4.6 | `reports/portable-skill-ecosystem-completion/WP4/implementation-evidence.md`; `reports/portable-skill-ecosystem-completion/WP4/verification-attempt-1.md` | Fresh verifier passed AC-4.1–AC-4.4 and failed AC-4.5/AC-4.6. Current action: enforce blocking deadlines and typed malformed-root/discovery failures; repair cold measurement, full location goldens, Python spans, and multi-platform evidence; last evidence revision: `2029139`. |
 | WP5 Productized batch sweep and native shims | not_started | — | WP1, WP2; WP4 for parser-backed members | AC-5.1–AC-5.7 | — | Promote ADR 0036 prototype; preserve the ADR 0003 integration seam for ordered closure in AC-8.9. |
 | WP6 TypeScript end-to-end vertical slice | not_started | — | WP3, WP4, WP5 | AC-6.1–AC-6.6 | — | Prove concept → detection → change → guard on a real TS fixture. |
 | WP7 Language-aware refactoring and guard generation | not_started | — | WP4, WP6 | AC-7.1–AC-7.7 | — | Generalize safe changes and suppression contracts without a giant universal AST. |
@@ -992,6 +992,8 @@ reported no P0 blockers and returned `READY`.
 | 2026-07-16 | Codex | Promoted dependency-sized successor plans/specs for WP2 (`portable-host-profile-routing`, AC-2.1–AC-2.6) and WP4 (`portable-analysis-substrate`, AC-4.1–AC-4.6), preserving the master acceptance wording and recording audited code roots. Current action: audit the specs and begin characterization. | No status-count change; WP2 and WP4 remain `not_started` until their implementation checkpoints are recorded. |
 | 2026-07-16 | Codex | Started WP2 and WP4 from clean revision `db0fed1` after their shared WP1 dependency passed. Current actions are the mandatory pre-change characterization oracles in each successor spec; last completed AC: none; last evidence revision: none. | WP2 and WP4 → `in_progress`; summary now 7 not started / 2 in progress / 2 verified. |
 | 2026-07-16 | Codex | Implemented WP4 at revision `e30fcb4`: versioned canonical fact requests, typed contextual failures, parser-backed JS/TS/TSX/Rust/Go providers, Python compatibility, deterministic goldens, exact D3 rerun, and enforced small/large runtime-memory-variance budgets. Full suite: 465 passed/1 unrelated browser skip; spec coverage/inventory, plans/ADRs, Ruff, and all product/D3 budgets passed. Current action: clean fresh-context AC-4.1–AC-4.6 verification; last evidence revision: `e30fcb4`. | WP4 → `implemented`; summary now 7 not started / 1 in progress / 1 implemented / 2 verified. |
+| 2026-07-16 | Codex | Implemented the first WP2 slice at `38f9c6c`: a deterministic, versioned, registry-backed host profile for Python/Django, TypeScript/Node/React, Rust, Go, and mixed monorepos, with reason-bearing exclusions, commands, code roots, per-assertion evidence, and content validation. Focused tests: 5 passed; Ruff passed. Current action: integrate the profile into host-owned/idempotent adaptation and mandatory perimeter; last completed AC: none; last evidence revision: `38f9c6c`. | WP2 remains `in_progress`; no summary-count change. |
+| 2026-07-16 | `/root/wp1_final_reverification` | Fresh-context verification of clean revision `2029139` passed AC-4.1–AC-4.4 and failed AC-4.5/AC-4.6. Adversarial probes exposed untyped malformed-root paths, no substrate-enforced blocking deadline, silent unknown/`.jsx` discovery, an already-warm “cold” benchmark, incomplete location goldens, imprecise Python symbol columns, and no executed second-platform evidence. Current action: correct every failed path and rerun exact verification; last evidence revision: `2029139`. | WP4 → `in_progress`; summary now 7 not started / 2 in progress / 2 verified. |
 
 ## Promotion notes
 
