@@ -98,22 +98,22 @@ Completion rules:
 
 ## Progress summary
 
-Last updated: 2026-07-16 by Codex (WP1 third correction set implemented; verification pending)
+Last updated: 2026-07-16 by Codex (WP1 independently verified; successor decomposition next)
 
 | State | Count |
 |---|---:|
 | not_started | 9 |
 | in_progress | 0 |
 | blocked | 0 |
-| implemented | 1 |
-| verified | 1 |
+| implemented | 0 |
+| verified | 2 |
 
 ## Master tracker
 
 | Work package | Status | Owner | Depends on | Acceptance criteria | Evidence / verifier | Blocker or next action |
 |---|---|---|---|---|---|---|
 | WP0 Trusted baseline and plan consolidation | verified | Codex | — | AC-0.1–AC-0.5 | `reports/portable-skill-ecosystem-completion/WP0/final-verification.md` (plus linked implementation/attempt/pre-retirement records) | All five ACs independently passed at clean revision `fae13d4`; next dependency-ready package is WP1. |
-| WP1 Canonical stack and capability contract | implemented | Codex | WP0 | AC-1.1–AC-1.7 | `reports/portable-skill-ecosystem-completion/WP1/implementation-evidence.md`; `verification-attempt-1.md`, `verification-attempt-2.md`, and `verification-attempt-3.md` (FAIL, retained) | Fourth fresh zero-context verifier must rerun all ACs at implementation revision `14eaa3a`. |
+| WP1 Canonical stack and capability contract | verified | Codex | WP0 | AC-1.1–AC-1.7 | `reports/portable-skill-ecosystem-completion/WP1/final-verification.md` (plus implementation evidence and three retained failed attempts) | All seven ACs independently passed at clean revision `8b8b09a`; create dependency-sized successor plans/specs without weakening the master ledger. |
 | WP2 Capability-aware host profiling and routing | not_started | — | WP1 | AC-2.1–AC-2.6 | — | Make adaptation, routing, perimeter, and inherited Class B/C surfaces use the same profile. |
 | WP3 Load-bearing layers, bindings, and installer | not_started | — | WP1, WP2 | AC-3.1–AC-3.7 | — | Implement the packaging/discovery decision and exemplar binding. |
 | WP4 Multi-language analysis substrate | not_started | — | WP1 | AC-4.1–AC-4.6 | — | Provide parser-backed normalized facts with explicit capability failures. |
@@ -988,6 +988,7 @@ reported no P0 blockers and returned `READY`.
 | 2026-07-16 | Codex | Closed the second verifier's four bypasses at implementation revision `e80456a`: statically computed split/zip/dict registries are guarded; portable subjects require distinct executed tests and canonical claim observations; each scan implementation is path/hash/mechanism-bound, support-attested, and directly executed; native tools must resolve to registry-discovered executables; and `verified`/the full floor require a WP8-owned pinned conformance issuer that remains honestly unavailable. Full suite: 445 passed/1 unrelated skip; all metadata, plan, ADR, consumer, Ruff, D1 projection, and D3 budget checks passed. Last completed AC by implementer: AC-1.7; current action: third clean zero-context verification; last evidence revision: `e80456a`. | WP1 → `implemented`; summary now 9 not started / 1 implemented / 1 verified. |
 | 2026-07-16 | `/root/wp1_final_reverification` | Fresh-context revision `dde997d` passed AC-1.1/1.3/1.5/1.6/1.7 and failed AC-1.2/1.4. Comprehension/generator/computed-receiver/`dict.fromkeys` registries escaped, and prepending claimant binaries to ambient `PATH` redefined “discovered” native tools. The distinct-subject/scan model and WP8 verification-issuer boundary passed adversarial replay. Current action: cover simple computed AST containers and replace ambient-PATH trust with a pre-claim trusted discovery snapshot; last evidence revision: `dde997d`. | WP1 → `in_progress`; summary now 9 not started / 1 in progress / 1 verified. |
 | 2026-07-16 | Codex | Closed the third verifier's remaining paths at implementation revision `14eaa3a`: the guard now evaluates comprehension/generator sources, computed string receivers, generic call arguments, and `dict.fromkeys`; native executable discovery uses an immutable module-load/process-start `PATH` snapshot, with the caller/CI sanitation boundary explicitly assigned to WP8. Claim-time `PATH` poisoning tests pass. Full suite: 446 passed/1 unrelated skip; metadata, plan, ADR, consumer, Ruff, D1, and D3 checks remain green. Last completed AC by implementer: AC-1.7; current action: fourth clean zero-context verification; last evidence revision: `14eaa3a`. | WP1 → `implemented`; summary now 9 not started / 1 implemented / 1 verified. |
+| 2026-07-16 | `/root/wp1_concise_verifier` + Codex | Final fresh-context revision `8b8b09a` reran the full suite, 36 focused tests, 21 retained attacks, all audits/guards/Ruff, D1 projection/plugin validation, and D3 budgets; issued PASS for AC-1.1–AC-1.7 with no blockers or unsupported WP1 claims. Current action: scaffold dependency-sized child plans/specs under the master ledger; last evidence revision: `8b8b09a`. | WP1 → `verified`; summary now 9 not started / 2 verified. |
 
 ## Promotion notes
 
