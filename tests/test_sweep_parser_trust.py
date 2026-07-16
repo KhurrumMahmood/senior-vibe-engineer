@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import copy
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -20,6 +22,39 @@ from sweep.serialization import canonical_sha256
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = REPO_ROOT / "tests/fixtures/sweep/ecosystem"
 EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+
+def test_im_9_parser_child_installs_network_and_model_isolation_before_detection() -> None:
+    script = """
+import builtins
+import socket
+import urllib.request
+from sweep.provider_process import DetectionIsolationError, install_detection_isolation
+install_detection_isolation()
+attempts = [
+    lambda: socket.getaddrinfo('example.com', 443),
+    lambda: socket.socket().connect(('127.0.0.1', 9)),
+    lambda: urllib.request.urlopen('https://example.com'),
+    lambda: builtins.__import__('openai'),
+    lambda: builtins.__import__('anthropic'),
+]
+for attempt in attempts:
+    try:
+        attempt()
+    except DetectionIsolationError:
+        continue
+    raise SystemExit('isolation bypassed')
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=REPO_ROOT,
+        env={"PYTHONPATH": str(REPO_ROOT / "scripts")},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
 
 
 def _build(observation, findings, *, repo_root: Path = REPO_ROOT):
