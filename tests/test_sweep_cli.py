@@ -510,7 +510,12 @@ def test_im_14_profile_scan_cli_runs_one_registry_selected_mixed_battery(
 ) -> None:
     host = tmp_path / "host"
     host.mkdir()
-    (host / "module.py").write_text("def small():\n    return 1\n", encoding="utf-8")
+    (host / "module.py").write_text(
+        (ROOT / "tests/fixtures/sweep/ecosystem/python/complexity.py").read_text(
+            encoding="utf-8"
+        ),
+        encoding="utf-8",
+    )
     tool = tmp_path / "fixed-ruff"
     tool.write_text(
         "#!/bin/sh\n"
@@ -578,6 +583,88 @@ def test_im_14_profile_scan_cli_runs_one_registry_selected_mixed_battery(
         ("ruff", "python", "native"),
     ]
     assert all(provider["status"] == "completed" for provider in library["providers"])
+    assert library["total"] > 0
+
+    judgment_input = tmp_path / "judgment-input.json"
+    judgment_input_result = _run_cli(
+        "judgment-input",
+        "--manifest",
+        str(output),
+        "--root",
+        str(host),
+        "--out",
+        str(judgment_input),
+        cwd=tmp_path,
+    )
+    assert judgment_input_result.returncode == 0, judgment_input_result.stderr.decode()
+    assert json.loads(judgment_input.read_text(encoding="utf-8"))["manifest_hash"] == library[
+        "hashes"
+    ]["semantic"]
+
+    missing_root = _run_cli(
+        "judgment-input",
+        "--manifest",
+        str(output),
+        "--out",
+        str(tmp_path / "untrusted.json"),
+        cwd=tmp_path,
+    )
+    assert missing_root.returncode == 3
+    assert b"trusted run context" in missing_root.stderr
+
+    outcomes = tmp_path / "outcomes.json"
+    outcomes.write_text(
+        json.dumps(
+            [
+                {
+                    "finding_id": row["id"],
+                    "outcome": "actionable",
+                    "reason": "fixture reason",
+                    "evidence": "fixture:evidence",
+                }
+                for row in library["findings"]
+            ]
+        ),
+        encoding="utf-8",
+    )
+    judgment = tmp_path / "judgment.json"
+    judgment_result = _run_cli(
+        "judgment-import",
+        "--manifest",
+        str(output),
+        "--root",
+        str(host),
+        "--outcomes",
+        str(outcomes),
+        "--judge-identity",
+        "fixture-judge",
+        "--judge-version",
+        "1.0",
+        "--out",
+        str(judgment),
+        cwd=tmp_path,
+    )
+    assert judgment_result.returncode == 0, judgment_result.stderr.decode()
+
+    digest = tmp_path / "digest.json"
+    digest_result = _run_cli(
+        "digest",
+        "--manifest",
+        str(output),
+        "--root",
+        str(host),
+        "--judgments",
+        str(judgment),
+        "--purpose",
+        "agent",
+        "--out",
+        str(digest),
+        cwd=tmp_path,
+    )
+    assert digest_result.returncode == 0, digest_result.stderr.decode()
+    assert json.loads(digest.read_text(encoding="utf-8"))["total_actionable"] == library[
+        "total"
+    ]
 
 
 def test_im_8_failed_provider_has_typed_exit_and_publishes_no_manifest(tmp_path: Path) -> None:

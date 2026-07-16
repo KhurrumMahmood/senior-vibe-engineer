@@ -544,10 +544,15 @@ def _reject_alias_cycles(
         visit(identifier)
 
 
-def build_diff(before: Mapping[str, Any], after: Mapping[str, Any]) -> dict[str, Any]:
+def build_diff(
+    before: Mapping[str, Any],
+    after: Mapping[str, Any],
+    *,
+    parser_run_context: ParserRunContext | None = None,
+) -> dict[str, Any]:
     """Classify fixed/new/persisting findings, honoring valid one-release aliases."""
-    before = _validated_manifest(before)
-    after = _validated_manifest(after)
+    before = _validated_manifest(before, parser_run_context=parser_run_context)
+    after = _validated_manifest(after, parser_run_context=parser_run_context)
     if before["scope"]["case_sensitive"] != after["scope"]["case_sensitive"]:
         raise ManifestIdentityError("manifests with different case policies cannot be compared")
 

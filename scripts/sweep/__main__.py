@@ -99,12 +99,14 @@ def _scan(args: argparse.Namespace) -> int:
 
 
 def _digest(args: argparse.Namespace) -> int:
+    parser_run_context = _manifest_context(args.root)
     content = render_digest(
         _read_manifest(args.manifest, root=args.root),
         _read_json(args.judgments, "judgment"),
         purpose=args.purpose,
         finding_limit=args.top,
         byte_limit=args.byte_limit,
+        parser_run_context=parser_run_context,
     )
     atomic_write_bytes(args.out, content)
     sys.stdout.buffer.write(content)
@@ -119,11 +121,13 @@ def _read_json(path: Path, label: str) -> object:
 
 
 def _judgment_input(args: argparse.Namespace) -> int:
+    parser_run_context = _manifest_context(args.root)
     document = build_judgment_input(
         _read_manifest(args.manifest, root=args.root),
         offset=args.offset,
         finding_limit=args.top,
         byte_limit=args.byte_limit,
+        parser_run_context=parser_run_context,
     )
     content = canonical_json_bytes(document)
     atomic_write_bytes(args.out, content)
@@ -140,6 +144,7 @@ def _judgment_import(args: argparse.Namespace) -> int:
         judge_identity=args.judge_identity,
         judge_version=args.judge_version,
         outcomes=outcomes,
+        parser_run_context=_manifest_context(args.root),
     )
     content = canonical_json_bytes(document)
     atomic_write_bytes(args.out, content)
@@ -160,6 +165,7 @@ def _packet(args: argparse.Namespace) -> int:
         verification=args.verification,
         expected_delta=expected,
         token_budget=args.token_budget,
+        parser_run_context=_manifest_context(args.root),
     )
     content = canonical_json_bytes(document)
     atomic_write_bytes(args.out, content)
@@ -187,9 +193,11 @@ def _verify(args: argparse.Namespace) -> int:
 
 
 def _diff(args: argparse.Namespace) -> int:
+    parser_run_context = _manifest_context(args.root)
     document = build_diff(
         _read_manifest(args.before, root=args.root),
         _read_manifest(args.after, root=args.root),
+        parser_run_context=parser_run_context,
     )
     content = canonical_json_bytes(document)
     atomic_write_bytes(args.out, content)
@@ -210,9 +218,15 @@ def _read_accepts(path: Path | None) -> list[dict[str, str]]:
 
 
 def _ratchet(args: argparse.Namespace) -> int:
+    parser_run_context = _manifest_context(args.root)
     baseline = _read_manifest(args.baseline, root=args.root)
     current = _read_manifest(args.current, root=args.root)
-    result = apply_ratchet(baseline, current, accepts=_read_accepts(args.accept_file))
+    result = apply_ratchet(
+        baseline,
+        current,
+        accepts=_read_accepts(args.accept_file),
+        parser_run_context=parser_run_context,
+    )
     content = canonical_json_bytes(result.diff)
     atomic_write_bytes(args.out, content)
     sys.stdout.buffer.write(content)
@@ -224,7 +238,7 @@ def _ratchet(args: argparse.Namespace) -> int:
         write_manifest(
             args.baseline,
             current,
-            parser_run_context=_manifest_context(args.root),
+            parser_run_context=parser_run_context,
         )
     return EXIT_OK
 

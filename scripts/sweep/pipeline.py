@@ -15,6 +15,7 @@ from .manifest import _validated_manifest, build_diff
 from .native import _capture
 from .schemas import (
     JUDGMENT_OUTCOMES,
+    ParserRunContext,
     SCHEMA_VERSION,
     SchemaValidationError,
     trusted_parser_run_context,
@@ -48,6 +49,22 @@ class HarnessScan:
     evidence: Mapping[str, Any]
 
 
+def _parser_context_for_manifest(
+    manifest: Mapping[str, Any],
+    *,
+    root: Path,
+) -> ParserRunContext | None:
+    """Require an external runtime identity only when parser providers are present."""
+    providers = manifest.get("providers")
+    if isinstance(providers, Sequence) and any(
+        isinstance(row, Mapping)
+        and row.get("provider_kind") == "parser-backed-ecosystem"
+        for row in providers
+    ):
+        return trusted_parser_run_context(root)
+    return None
+
+
 def _clip(value: object, limit: int) -> str:
     text = " ".join(str(value).split())
     if len(text) <= limit:
@@ -76,9 +93,13 @@ def build_judgment_input(
     offset: int = 0,
     finding_limit: int = JUDGMENT_FINDING_LIMIT,
     byte_limit: int = JUDGMENT_BYTE_LIMIT,
+    parser_run_context: ParserRunContext | None = None,
 ) -> dict[str, Any]:
     """Return one bounded classification batch; it is not an ordinary digest."""
-    document = _validated_manifest(manifest)
+    document = _validated_manifest(
+        manifest,
+        parser_run_context=parser_run_context,
+    )
     if not 1 <= finding_limit <= JUDGMENT_FINDING_LIMIT:
         raise ValueError(f"finding_limit must be between 1 and {JUDGMENT_FINDING_LIMIT}")
     if type(offset) is not int or offset < 0:
@@ -125,9 +146,14 @@ def build_judgment_input(
 def import_judgment_outcomes(
     manifest: Mapping[str, Any],
     outcomes: Sequence[Mapping[str, Any]],
+    *,
+    parser_run_context: ParserRunContext | None = None,
 ) -> list[dict[str, str]]:
     """Validate run-local outcomes without silently accepting foreign IDs."""
-    document = _validated_manifest(manifest)
+    document = _validated_manifest(
+        manifest,
+        parser_run_context=parser_run_context,
+    )
     known = {row["id"] for row in document["findings"]}
     required = {"finding_id", "outcome", "reason", "evidence"}
     imported: list[dict[str, str]] = []
@@ -164,14 +190,22 @@ def build_judgment(
     judge_identity: str,
     judge_version: str,
     outcomes: Sequence[Mapping[str, Any]],
+    parser_run_context: ParserRunContext | None = None,
 ) -> dict[str, Any]:
     """Build one content-addressed run-local judgment artifact."""
-    document = _validated_manifest(manifest)
+    document = _validated_manifest(
+        manifest,
+        parser_run_context=parser_run_context,
+    )
     result = {
         "schema_version": SCHEMA_VERSION,
         "manifest_hash": document["hashes"]["semantic"],
         "judge": {"identity": judge_identity, "version": judge_version},
-        "outcomes": import_judgment_outcomes(document, outcomes),
+        "outcomes": import_judgment_outcomes(
+            document,
+            outcomes,
+            parser_run_context=parser_run_context,
+        ),
         "judgment_hash": "0" * 64,
     }
     result["judgment_hash"] = canonical_sha256(_judgment_projection(result))
@@ -184,8 +218,12 @@ def _validated_judgment(
     judgment: Mapping[str, Any],
     *,
     require_complete: bool,
+    parser_run_context: ParserRunContext | None = None,
 ) -> Mapping[str, Any]:
-    document = _validated_manifest(manifest)
+    document = _validated_manifest(
+        manifest,
+        parser_run_context=parser_run_context,
+    )
     try:
         validated = validate_judgment(judgment)
     except (SchemaValidationError, KeyError, TypeError) as exc:
@@ -323,16 +361,25 @@ def render_judged_digest(
     purpose: str,
     finding_limit: int = JUDGMENT_FINDING_LIMIT,
     byte_limit: int = JUDGMENT_BYTE_LIMIT,
+    parser_run_context: ParserRunContext | None = None,
 ) -> dict[str, Any]:
     """Render the only ordinary digest/ranking/dashboard input."""
-    document = _validated_manifest(manifest)
+    document = _validated_manifest(
+        manifest,
+        parser_run_context=parser_run_context,
+    )
     if purpose not in ORDINARY_PURPOSES:
         raise ValueError(f"purpose must be one of {sorted(ORDINARY_PURPOSES)}")
     if not 1 <= finding_limit <= JUDGMENT_FINDING_LIMIT:
         raise ValueError(f"finding_limit must be between 1 and {JUDGMENT_FINDING_LIMIT}")
     if not 1 <= byte_limit <= JUDGMENT_BYTE_LIMIT:
         raise ValueError(f"byte_limit must be between 1 and {JUDGMENT_BYTE_LIMIT}")
-    validated = _validated_judgment(document, judgment, require_complete=True)
+    validated = _validated_judgment(
+        document,
+        judgment,
+        require_complete=True,
+        parser_run_context=parser_run_context,
+    )
     outcomes = {row["finding_id"]: row for row in validated["outcomes"]}
     actionable = [row for row in _ordered_findings(document) if outcomes[row["id"]]["outcome"] == "actionable"]
     selected = actionable[:finding_limit]
@@ -390,10 +437,19 @@ def build_packet(
     verification: str,
     expected_delta: Mapping[str, Any],
     token_budget: int,
+    parser_run_context: ParserRunContext | None = None,
 ) -> dict[str, Any]:
     """Build a bounded packet only from fresh actionable judgments."""
-    document = _validated_manifest(manifest)
-    validated = _validated_judgment(document, judgment, require_complete=True)
+    document = _validated_manifest(
+        manifest,
+        parser_run_context=parser_run_context,
+    )
+    validated = _validated_judgment(
+        document,
+        judgment,
+        require_complete=True,
+        parser_run_context=parser_run_context,
+    )
     selected = sorted(set(finding_ids))
     if not selected:
         raise JudgmentGateError("packet requires at least one finding ID")
@@ -586,9 +642,18 @@ def verify_packet(
     changed_path_reader: Callable[[Path], Sequence[str]] = read_changed_paths,
 ) -> dict[str, Any]:
     """Verify a packet through the harness-owned command/rescan/diff boundary."""
+    parser_run_context = _parser_context_for_manifest(before_manifest, root=root)
     validated_packet = validate_packet(packet)
-    before = _validated_manifest(before_manifest)
-    validated_judgment = _validated_judgment(before, judgment, require_complete=True)
+    before = _validated_manifest(
+        before_manifest,
+        parser_run_context=parser_run_context,
+    )
+    validated_judgment = _validated_judgment(
+        before,
+        judgment,
+        require_complete=True,
+        parser_run_context=parser_run_context,
+    )
     if validated_packet["manifest_hash"] != before["hashes"]["semantic"]:
         raise VerificationGateError("packet manifest hash is stale")
     if validated_packet["judgment_hash"] != validated_judgment["judgment_hash"]:
@@ -622,7 +687,10 @@ def verify_packet(
         scan_result = scanner()
         if not isinstance(scan_result, HarnessScan):
             raise TypeError("scanner did not return HarnessScan")
-        after = _validated_manifest(scan_result.manifest)
+        after = _validated_manifest(
+            scan_result.manifest,
+            parser_run_context=parser_run_context,
+        )
         scan_evidence = _validated_execution_evidence(
             scan_result.evidence, label="scan", include_fault=False
         )
@@ -650,7 +718,11 @@ def verify_packet(
             f"post-verification paths outside packet scope: {final_out_of_scope}"
         )
 
-    diff = build_diff(before, after)
+    diff = build_diff(
+        before,
+        after,
+        parser_run_context=parser_run_context,
+    )
     expected = validated_packet["expected_delta"]
     if diff["fixed"] != expected["fixed"]:
         raise VerificationGateError(

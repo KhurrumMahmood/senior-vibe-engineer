@@ -17,7 +17,7 @@ from .manifest import FindingInput, build_diff, build_manifest
 from .native import ProviderExecutionError, execute_provider, provider_contracts_from_registry
 from .pipeline import render_judged_digest
 from .profile import SweepProfile
-from .schemas import validate_diff, validate_manifest
+from .schemas import ParserRunContext, validate_diff, validate_manifest
 from .serialization import canonical_json_bytes
 
 
@@ -247,6 +247,7 @@ def render_digest(
     purpose: str,
     finding_limit: int = DIGEST_FINDING_LIMIT,
     byte_limit: int = DIGEST_BYTE_LIMIT,
+    parser_run_context: ParserRunContext | None = None,
 ) -> bytes:
     """Render the judgment-gated ordinary digest as canonical JSON bytes."""
     return canonical_json_bytes(
@@ -256,6 +257,7 @@ def render_digest(
             purpose=purpose,
             finding_limit=finding_limit,
             byte_limit=byte_limit,
+            parser_run_context=parser_run_context,
         )
     )
 
@@ -295,11 +297,16 @@ def apply_ratchet(
     current: Mapping[str, Any],
     *,
     accepts: Sequence[Mapping[str, Any]],
+    parser_run_context: ParserRunContext | None = None,
 ) -> RatchetResult:
     """Classify regressions and tightening without mutating either manifest."""
-    baseline = validate_manifest(baseline)
-    current = validate_manifest(current)
-    diff = build_diff(baseline, current)
+    baseline = validate_manifest(baseline, parser_run_context=parser_run_context)
+    current = validate_manifest(current, parser_run_context=parser_run_context)
+    diff = build_diff(
+        baseline,
+        current,
+        parser_run_context=parser_run_context,
+    )
     grown = {
         row["finding_id"]
         for row in diff["metric_changes"]
