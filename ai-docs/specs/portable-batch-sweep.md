@@ -341,12 +341,12 @@ WP5 verification must assert ADR 0003 still points to AC-8.9.
   analysis fact, adapter, failure, deterministic-golden, and budget contracts;
   stop if any AC-4.1–AC-4.6 evidence is absent/stale.
   <!-- spec:portable-batch-sweep::IM-12 -->
-- [ ] IM-13: Only after IM-12, wire the characterized complexity-hotspot and
+- [x] IM-13: Only after IM-12, wire the characterized complexity-hotspot and
   omnibus detectors through the provider observation contract, replace
   prototype inline parser ownership where facts support it, and return typed
   provider failures rather than clean zero. Do not invent facts outside the
   verified WP4 interface. <!-- spec:portable-batch-sweep::IM-13 -->
-- [ ] IM-14: Add parser-backed Python and TypeScript observations to single and
+- [x] IM-14: Add parser-backed Python and TypeScript observations to single and
   mixed fixture manifests without weakening native Rust/Go shims or claiming
   parser-backed Rust/Go detector support. <!-- spec:portable-batch-sweep::IM-14 -->
 
