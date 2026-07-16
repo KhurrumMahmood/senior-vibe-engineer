@@ -1,5 +1,12 @@
 # WP4 AC-4.6 repair evidence
 
+> **Superseded after verification attempt 3:** This report preserves the first
+> AC-4.6 repair at implementation revision `c4f18fe` and its associated
+> platform replay. Attempt 3 found four remaining evidence-integrity defects.
+> The authoritative repaired implementation and exact-revision platform
+> evidence are recorded in `ac-4.6-integrity-repair-evidence.md`; this file is
+> historical and must not be used as the current acceptance record.
+
 Implementation revision: c4f18fed2aac709856069fd952ed13ddc838128b.
 
 This is implementer evidence for fresh-context verification. It does not move

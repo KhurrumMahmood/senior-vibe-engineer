@@ -1,0 +1,5 @@
+REJECT PASS cold budget: Linux-x86_64: reported violations do not match benchmark values
+REJECT PASS RSS budget: Linux-x86_64: reported violations do not match benchmark values
+REJECT PASS install budget: Linux-x86_64: reported violations do not match benchmark values
+REJECT PASS forged revision: source revision is not a repository commit
+ALL ATTEMPT-3 ATTACKS REJECTED
