@@ -439,6 +439,7 @@ def test_platform_comparison_requires_all_contract_platforms_and_stable_results(
         "tree_sitter": "0.26.0",
         "tree_sitter_language_pack": "1.12.5",
     }
+    base["toolchain"]["python"] = "3.11.10"
     linux = json.loads(json.dumps(base))
     linux["platform_execution"] = {
         "platform_key": "Linux-x86_64",
@@ -483,6 +484,7 @@ def test_platform_comparison_recomputes_budgets_and_binds_git_revision(
         "tree_sitter": "0.26.0",
         "tree_sitter_language_pack": "1.12.5",
     }
+    base["toolchain"]["python"] = "3.11.10"
     linux = json.loads(json.dumps(base))
     linux["platform_execution"] = {
         "platform_key": "Linux-x86_64",
@@ -559,6 +561,7 @@ def test_platform_comparison_binds_full_external_provenance_for_both_reports(
             "python": "3.11.10",
         }
     )
+    base["toolchain"]["python"] = "3.11.10"
     linux = json.loads(json.dumps(base))
     linux["platform_execution"].update(
         {
@@ -597,6 +600,7 @@ def test_platform_comparison_binds_corpus_hash_for_both_reports(
             "python": "3.11.10",
         }
     )
+    base["toolchain"]["python"] = "3.11.10"
     linux = json.loads(json.dumps(base))
     linux["platform_execution"].update(
         {
