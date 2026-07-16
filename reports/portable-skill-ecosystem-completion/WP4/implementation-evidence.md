@@ -1,5 +1,13 @@
 # WP4 implementation evidence
 
+> **Superseded AC-4.6 evidence:** This report and
+> `analysis-fact-benchmark.json` preserve the initial schema-v1 implementation
+> history only. Their synthetic `large` fixture, platform narrative, timings,
+> and claim that the file is current were superseded after verification attempt
+> 2. Current AC-4.6 evidence begins with `ac-4.6-repair-evidence.md` and its
+> linked schema-v2 platform reports; later verification attempts remain the
+> authoritative disposition when they identify further repair work.
+
 Implementation base: `db0fed19c7c783d04314dacbc4da73b7a4b3bbf7`.
 Initial implementation revision: `e30fcb4fe0ae2fd194017bdc0c908554891ac9b2`.
 Verification-gap repair revision: `d12b730a4afc9bb403f7a2b78c70e5629691047e`.

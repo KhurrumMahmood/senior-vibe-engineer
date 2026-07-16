@@ -24,6 +24,12 @@ CORPUS = REPO_ROOT / "tests" / "fixtures" / "analysis_portfolio_spike"
 FACT_FIXTURES = REPO_ROOT / "tests" / "fixtures" / "analysis_facts"
 EXTERNAL_CORPUS = FACT_FIXTURES / "external-corpus.json"
 PLATFORM_CONTRACT = FACT_FIXTURES / "platform-contract.json"
+SOURCE_SCOPE = (
+    "scripts/analysis_fact_benchmark.py",
+    "requirements.txt",
+    "scripts/_lib/lang_adapter",
+    "tests/fixtures/analysis_facts",
+)
 RUNS = 7
 BUDGETS = {
     "maximum_cold_seconds": 1.0,
@@ -102,6 +108,7 @@ def _load_external_corpus() -> dict[str, Any]:
         "normalization",
         "license",
         "license_path",
+        "license_upstream_raw_sha256",
         "license_sha256",
         "license_normalization",
         "input_bytes",
@@ -111,13 +118,22 @@ def _load_external_corpus() -> dict[str, Any]:
     }
     if set(provenance) != required or provenance.get("schema_version") != 1:
         raise ValueError("external corpus provenance has an invalid schema")
-    for field in ("upstream_revision", "upstream_raw_sha256", "source_sha256", "license_sha256"):
+    for field in (
+        "upstream_revision",
+        "upstream_raw_sha256",
+        "source_sha256",
+        "license_upstream_raw_sha256",
+        "license_sha256",
+    ):
         length = 40 if field == "upstream_revision" else 64
         if not _is_hex_digest(provenance.get(field), length):
             raise ValueError(f"external corpus {field} is not a valid digest")
     if provenance.get("normalization") != ["CRLF line endings converted to LF"]:
         raise ValueError("external corpus normalization contract is invalid")
-    if provenance.get("license_normalization") != ["Trailing whitespace removed"]:
+    if provenance.get("license_normalization") != [
+        "CRLF line endings converted to LF",
+        "Trailing whitespace removed",
+    ]:
         raise ValueError("external corpus license normalization contract is invalid")
     fixture = FACT_FIXTURES / str(provenance["local_path"])
     license_path = FACT_FIXTURES / str(provenance["license_path"])
@@ -191,19 +207,32 @@ def _platform_execution() -> dict[str, str]:
 
 
 def _source_revision(explicit: str | None = None) -> str:
-    if explicit:
-        if not _is_hex_digest(explicit, 40):
-            raise ValueError("source revision must be a 40-character Git SHA")
-        return explicit.lower()
     completed = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
+        ["git", "rev-parse", "--verify", "HEAD^{commit}"],
         cwd=REPO_ROOT,
         check=False,
         capture_output=True,
         text=True,
     )
     revision = completed.stdout.strip().lower()
-    return revision if completed.returncode == 0 and len(revision) == 40 else "unavailable"
+    if completed.returncode != 0 or not _is_hex_digest(revision, 40):
+        raise ValueError("benchmark evidence requires a Git checkout")
+    if explicit is None:
+        return revision
+    if not _is_hex_digest(explicit, 40):
+        raise ValueError("source revision must be a 40-character Git SHA")
+    if explicit.lower() != revision:
+        raise ValueError("source revision must equal the checked-out Git commit")
+    status = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=all", "--", *SOURCE_SCOPE],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if status.returncode != 0 or status.stdout.strip():
+        raise ValueError("benchmark evidence requires a clean relevant source tree")
+    return revision
 
 
 def _source_tree_hash() -> str:
@@ -223,6 +252,51 @@ def _source_tree_hash() -> str:
         digest.update(path.relative_to(REPO_ROOT).as_posix().encode("utf-8"))
         digest.update(b"\0")
         digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _source_tree_hash_at_revision(revision: str) -> str:
+    if not _is_hex_digest(revision, 40):
+        raise ValueError("source revision must be a 40-character Git SHA")
+    verified = subprocess.run(
+        ["git", "rev-parse", "--verify", f"{revision}^{{commit}}"],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if verified.returncode != 0 or verified.stdout.strip().lower() != revision.lower():
+        raise ValueError("source revision is not a repository commit")
+    listing = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", revision, "--", *SOURCE_SCOPE],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if listing.returncode != 0:
+        raise ValueError("cannot enumerate source revision")
+    names = sorted(
+        name
+        for name in listing.stdout.splitlines()
+        if "__pycache__" not in Path(name).parts and Path(name).suffix != ".pyc"
+    )
+    if not names:
+        raise ValueError("source revision has no benchmark source files")
+    digest = hashlib.sha256()
+    for name in names:
+        blob = subprocess.run(
+            ["git", "cat-file", "blob", f"{revision}:{name}"],
+            cwd=REPO_ROOT,
+            check=False,
+            capture_output=True,
+        )
+        if blob.returncode != 0:
+            raise ValueError(f"cannot read source revision path: {name}")
+        digest.update(name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(blob.stdout)
         digest.update(b"\0")
     return digest.hexdigest()
 
@@ -318,6 +392,71 @@ def _score(expected: set[str], actual: set[str]) -> dict[str, Any]:
     }
 
 
+def _budget_violations(
+    metrics: dict[str, Any],
+    fixtures: dict[str, Any],
+    install_size: int,
+) -> list[str]:
+    if set(metrics) != set(CAPABILITY_TO_ORACLE.values()):
+        raise ValueError("benchmark metrics do not match the required fact families")
+    if set(fixtures) != {"small", "external_large"}:
+        raise ValueError("benchmark fixtures do not match the required corpus")
+    if not isinstance(install_size, int) or isinstance(install_size, bool) or install_size < 0:
+        raise ValueError("benchmark install size is invalid")
+    violations: list[str] = []
+    for family, score in metrics.items():
+        if not isinstance(score, dict):
+            raise ValueError(f"{family}: metric result is invalid")
+        for field, budget in (
+            ("precision", "minimum_precision"),
+            ("recall", "minimum_recall"),
+        ):
+            value = score.get(field)
+            if not isinstance(value, (int, float)) or isinstance(value, bool):
+                raise ValueError(f"{family}: {field} is invalid")
+            if value < BUDGETS[budget]:
+                violations.append(f"{family}: {field} budget missed")
+    for name, result in fixtures.items():
+        if not isinstance(result, dict) or result.get("runs") != RUNS:
+            raise ValueError(f"{name}: benchmark result or run count is invalid")
+        if result.get("deterministic") is not True:
+            violations.append(f"{name}: non-deterministic facts")
+        for field, budget in (
+            ("cold_seconds", "maximum_cold_seconds"),
+            ("warm_mean_seconds", "maximum_warm_seconds"),
+            ("peak_rss_bytes", "maximum_peak_rss_bytes"),
+            ("peak_python_bytes", "maximum_peak_python_bytes"),
+            ("warm_cv", "maximum_warm_cv"),
+        ):
+            value = result.get(field)
+            if not isinstance(value, (int, float)) or isinstance(value, bool) or value < 0:
+                raise ValueError(f"{name}: {field} is invalid")
+            if value > BUDGETS[budget]:
+                violations.append(f"{name}: {field}={value} exceeds {BUDGETS[budget]}")
+    if install_size > BUDGETS["maximum_install_bytes"]:
+        violations.append("tree-sitter install-size budget missed")
+    return violations
+
+
+def _validate_report_budgets(report: dict[str, Any], platform_key: str) -> None:
+    if report.get("budgets") != BUDGETS:
+        raise ValueError(f"{platform_key}: benchmark budgets differ from the contract")
+    toolchain = report.get("toolchain")
+    if not isinstance(toolchain, dict):
+        raise ValueError(f"{platform_key}: toolchain record is invalid")
+    metrics = report.get("metrics")
+    fixtures = report.get("fixtures")
+    if not isinstance(metrics, dict) or not isinstance(fixtures, dict):
+        raise ValueError(f"{platform_key}: benchmark results are invalid")
+    computed = _budget_violations(metrics, fixtures, toolchain.get("install_size_bytes"))
+    if report.get("violations") != computed:
+        raise ValueError(f"{platform_key}: reported violations do not match benchmark values")
+    if report.get("passed") is not (not computed):
+        raise ValueError(f"{platform_key}: reported pass state does not match benchmark values")
+    if computed:
+        raise ValueError(f"{platform_key}: benchmark budgets failed: {computed}")
+
+
 def _stable_projection(report: dict[str, Any]) -> dict[str, Any]:
     return {
         "schema_version": report["schema_version"],
@@ -372,7 +511,6 @@ def compare_platform_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
     source_hashes: set[str] = set()
     stable_hashes: set[str] = set()
     required_tools = contract["required_tool_versions"]
-    current_source_hash = _source_tree_hash()
     for report in reports:
         if report.get("schema_version") != 2 or report.get("passed") is not True:
             raise ValueError("platform report must be schema v2 and budget-passing")
@@ -391,6 +529,7 @@ def compare_platform_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             raise ValueError(f"unexpected platform execution: {key!r}")
         if key in executions:
             raise ValueError(f"duplicate platform execution: {key}")
+        _validate_report_budgets(report, str(key))
         if any(execution.get(field) != expected[field] for field in ("system", "machine")):
             raise ValueError(f"platform execution identity does not match contract: {key}")
         for tool, version in required_tools.items():
@@ -400,7 +539,7 @@ def compare_platform_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
         if not _is_hex_digest(revision, 40):
             raise ValueError(f"{key}: exact source revision is missing")
         source_hash = report.get("source_tree_sha256")
-        if not _is_hex_digest(source_hash, 64) or source_hash != current_source_hash:
+        if not _is_hex_digest(source_hash, 64) or source_hash != _source_tree_hash_at_revision(revision):
             raise ValueError(f"{key}: source tree hash is missing or stale")
         stable_hash = report.get("stable_result_sha256")
         if not _is_hex_digest(stable_hash, 64) or stable_hash != _hash_json(_stable_projection(report)):
@@ -457,26 +596,7 @@ def build_report(*, source_revision: str | None = None) -> dict[str, Any]:
         "external_large": _benchmark([FACT_FIXTURES / external["local_path"]]),
     }
     install_size = _install_size()
-    violations: list[str] = []
-    for family, score in metrics.items():
-        if score["precision"] < BUDGETS["minimum_precision"]:
-            violations.append(f"{family}: precision budget missed")
-        if score["recall"] < BUDGETS["minimum_recall"]:
-            violations.append(f"{family}: recall budget missed")
-    for name, result in fixtures.items():
-        if not result["deterministic"]:
-            violations.append(f"{name}: non-deterministic facts")
-        for field, budget in (
-            ("cold_seconds", "maximum_cold_seconds"),
-            ("warm_mean_seconds", "maximum_warm_seconds"),
-            ("peak_rss_bytes", "maximum_peak_rss_bytes"),
-            ("peak_python_bytes", "maximum_peak_python_bytes"),
-            ("warm_cv", "maximum_warm_cv"),
-        ):
-            if result[field] > BUDGETS[budget]:
-                violations.append(f"{name}: {field}={result[field]} exceeds {BUDGETS[budget]}")
-    if install_size > BUDGETS["maximum_install_bytes"]:
-        violations.append("tree-sitter install-size budget missed")
+    violations = _budget_violations(metrics, fixtures, install_size)
     report = {
         "schema_version": 2,
         "analysis_interface_version": 1,

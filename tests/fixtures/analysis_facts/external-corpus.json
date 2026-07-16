@@ -13,8 +13,10 @@
   ],
   "license": "Apache-2.0",
   "license_path": "external/LICENSE-TypeScript.txt",
+  "license_upstream_raw_sha256": "a7d00bfd54525bc694b6e32f64c7ebcf5e6b7ae3657be5cc12767bce74654a47",
   "license_sha256": "527adf9d4c760f7367c2aeffed6a89afba8ba40ea1b0efbc8f56496ad30ea9cf",
   "license_normalization": [
+    "CRLF line endings converted to LF",
     "Trailing whitespace removed"
   ],
   "input_bytes": 7961,

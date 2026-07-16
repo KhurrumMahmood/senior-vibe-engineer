@@ -1,8 +1,8 @@
 """Contract tests for the versioned portable analysis fact interface."""
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 import threading
 from pathlib import Path
 
@@ -305,14 +305,29 @@ def test_external_large_fixture_has_pinned_provenance_and_real_shape():
     assert provenance["upstream_path"] == "src/compiler/symbolWalker.ts"
     assert provenance["local_path"] == "external/typescript-symbol-walker-v5.9.3.ts"
     assert provenance["license"] == "Apache-2.0"
+    assert provenance["license_upstream_raw_sha256"] == (
+        "a7d00bfd54525bc694b6e32f64c7ebcf5e6b7ae3657be5cc12767bce74654a47"
+    )
+    assert provenance["license_normalization"] == [
+        "CRLF line endings converted to LF",
+        "Trailing whitespace removed",
+    ]
     assert provenance["source_sha256"] == hashlib.sha256(fixture.read_bytes()).hexdigest()
     assert provenance["input_bytes"] == fixture.stat().st_size >= 7_000
     assert provenance["input_lines"] == len(fixture.read_text(encoding="utf-8").splitlines()) >= 180
     assert provenance["selection_rationale"]
 
 
-def test_platform_comparison_requires_all_contract_platforms_and_stable_results():
-    base = build_report(source_revision="a" * 40)
+def test_platform_comparison_requires_all_contract_platforms_and_stable_results(monkeypatch):
+    base = build_report()
+    revision = base["source_revision"]
+    working_source_hash = base["source_tree_sha256"]
+    revision_hash = benchmark._source_tree_hash_at_revision
+
+    def source_hash(value):
+        return working_source_hash if value == revision else revision_hash(value)
+
+    monkeypatch.setattr(benchmark, "_source_tree_hash_at_revision", source_hash)
     base["platform_execution"] = {
         "platform_key": "Darwin-arm64",
         "system": "Darwin",
@@ -344,6 +359,61 @@ def test_platform_comparison_requires_all_contract_platforms_and_stable_results(
     linux["stable_result_sha256"] = "0" * 64
     with pytest.raises(ValueError, match="stable result"):
         benchmark.compare_platform_reports([base, linux])
+
+
+def test_platform_comparison_recomputes_budgets_and_binds_git_revision(monkeypatch):
+    base = build_report()
+    revision = base["source_revision"]
+    working_source_hash = base["source_tree_sha256"]
+    revision_hash = benchmark._source_tree_hash_at_revision
+
+    def source_hash(value):
+        return working_source_hash if value == revision else revision_hash(value)
+
+    monkeypatch.setattr(benchmark, "_source_tree_hash_at_revision", source_hash)
+    base["platform_execution"] = {
+        "platform_key": "Darwin-arm64",
+        "system": "Darwin",
+        "machine": "arm64",
+        "python": "3.11.10",
+        "python_series": "3.11",
+        "tree_sitter": "0.26.0",
+        "tree_sitter_language_pack": "1.12.5",
+    }
+    linux = json.loads(json.dumps(base))
+    linux["platform_execution"] = {
+        "platform_key": "Linux-x86_64",
+        "system": "Linux",
+        "machine": "x86_64",
+        "python": "3.11.15",
+        "python_series": "3.11",
+        "tree_sitter": "0.26.0",
+        "tree_sitter_language_pack": "1.12.5",
+    }
+
+    for section, field, value in (
+        ("small", "cold_seconds", 999.0),
+        ("external_large", "peak_rss_bytes", 999_000_000),
+    ):
+        tampered = json.loads(json.dumps(linux))
+        tampered["fixtures"][section][field] = value
+        with pytest.raises(ValueError, match="reported violations"):
+            benchmark.compare_platform_reports([base, tampered])
+
+    oversized = json.loads(json.dumps(linux))
+    oversized["toolchain"]["install_size_bytes"] = 999_000_000
+    with pytest.raises(ValueError, match="reported violations"):
+        benchmark.compare_platform_reports([base, oversized])
+
+    forged_base = json.loads(json.dumps(base))
+    forged_linux = json.loads(json.dumps(linux))
+    forged_base["source_revision"] = "b" * 40
+    forged_linux["source_revision"] = "b" * 40
+    with pytest.raises(ValueError, match="not a repository commit"):
+        benchmark.compare_platform_reports([forged_base, forged_linux])
+
+    with pytest.raises(ValueError, match="must equal the checked-out Git commit"):
+        benchmark._source_revision("b" * 40)
 
 
 def test_python_symbol_facts_publish_precise_full_spans():
