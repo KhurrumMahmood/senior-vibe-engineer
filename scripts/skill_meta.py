@@ -15,7 +15,7 @@ Two enforcement modes:
    skills to enforced.
 
 Subcommands:
-  lint              Validate every SKILL.md under .claude/skills/
+  lint              Validate every SKILL.md and its catalog inventory
   show <name>       Print parsed frontmatter for one skill (debug)
 
 Frontmatter parsing comes from scripts/_lib/yaml_frontmatter.py (PyYAML).
@@ -38,6 +38,11 @@ if _lib_parent not in sys.path:
     sys.path.insert(0, _lib_parent)
 from _lib.yaml_frontmatter import FrontmatterError, parse  # noqa: E402
 from _lib.capability_registry import load_registry  # noqa: E402
+from _lib.skill_catalog import (  # noqa: E402
+    CatalogError,
+    DEFAULT_INVENTORY_PATH,
+    load_catalog,
+)
 
 EXISTING_REQUIRED = {"name", "description", "argument-hint", "allowed-tools", "user-invocable"}
 NEW_CONTRACT_REQUIRED = {"tier", "job", "best_for", "not_for", "language", "framework"}
@@ -195,12 +200,30 @@ def cmd_lint(args, skills_dir: Path) -> int:
     all_errors: list[str] = []
     all_warnings: list[str] = []
     new_contract_skills: list[str] = []
+    catalog_rows: int | None = None
     for sm in skill_files:
         errs, warns, declares_new_contract = lint_skill(sm, strict=args.strict)
         if declares_new_contract:
             new_contract_skills.append(sm.parent.name)
         all_errors.extend(errs)
         all_warnings.extend(warns)
+    inventory_path = args.catalog_inventory
+    if inventory_path is None and skills_dir.resolve() == DEFAULT_SKILLS_DIR.resolve():
+        inventory_path = DEFAULT_INVENTORY_PATH
+    if inventory_path is not None:
+        project_root = REPO_ROOT if skills_dir.resolve() == DEFAULT_SKILLS_DIR.resolve() else skills_dir.parent.parent
+        try:
+            catalog = load_catalog(
+                inventory_path,
+                skills_dir=skills_dir,
+                project_root=project_root,
+                registry=CAPABILITY_REGISTRY,
+            )
+            catalog_rows = len(catalog.entries)
+        except CatalogError as exc:
+            all_errors.extend(
+                f"{inventory_path}: {line}" for line in str(exc).splitlines()
+            )
     if args.json:
         print(json.dumps({
             "skills_total": len(skill_files),
@@ -208,6 +231,7 @@ def cmd_lint(args, skills_dir: Path) -> int:
             "strict": args.strict,
             "errors_total": len(all_errors),
             "warnings_total": len(all_warnings),
+            "catalog_rows": catalog_rows,
             "errors": all_errors,
             "warnings": all_warnings,
         }, indent=2))
@@ -244,6 +268,14 @@ def cmd_show(args, skills_dir: Path) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Skill frontmatter linter.")
     parser.add_argument("--skills-dir", type=Path, default=DEFAULT_SKILLS_DIR)
+    parser.add_argument(
+        "--catalog-inventory",
+        type=Path,
+        help=(
+            "Validate this authoritative placement inventory; the repository "
+            "inventory is automatic for the default skills directory"
+        ),
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("lint", help="Validate every SKILL.md")
     p.add_argument("--json", action="store_true")

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import skill_meta
+from _lib.skill_catalog import CatalogError
 
 
 def _write_skill(skills_dir: Path, name: str, *, job: str) -> None:
@@ -90,3 +91,31 @@ scans: [css]
     assert any("every portable subject" in error for error in errors)
     assert any("no registered adapter or shim" in error for error in errors)
     assert any("executable skill script" in error for error in errors)
+
+
+def test_catalog_inventory_errors_are_part_of_metadata_lint(
+    tmp_path, capsys, monkeypatch
+):
+    skills_dir = tmp_path / "skills"
+    _write_skill(skills_dir, "construct-fixture", job="construct")
+    inventory = tmp_path / "inventory.yml"
+    inventory.write_text("schema_version: 1\nskills: []\n", encoding="utf-8")
+
+    def fail_catalog(*args, **kwargs):
+        raise CatalogError("inventory does not cover the discovered skill")
+
+    monkeypatch.setattr(skill_meta, "load_catalog", fail_catalog)
+    rc = skill_meta.main([
+        "--skills-dir",
+        str(skills_dir),
+        "--catalog-inventory",
+        str(inventory),
+        "lint",
+        "--json",
+    ])
+
+    assert rc == 1
+    errors = json.loads(capsys.readouterr().out)["errors"]
+    assert errors == [
+        f"{inventory}: inventory does not cover the discovered skill"
+    ]

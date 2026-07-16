@@ -1,0 +1,956 @@
+# Authoritative WP3 placement inventory. Readiness is migration planning
+# state only; it is not capability support or verification evidence.
+schema_version: 1
+rationales:
+  universal-concept:
+    description: Framework- and language-neutral concept or procedure.
+    layer: core
+    placement: concept
+  universal-django-binding:
+    description: Universal concept with Django-specific idioms in a thin binding.
+    layer: core
+    placement: concept-plus-binding
+  universal-python-binding:
+    description: Universal concept with Python-specific mechanics in a thin binding.
+    layer: core
+    placement: concept-plus-binding
+  universal-python-django-bindings:
+    description: Universal concept with Python mechanics and Django idioms in thin bindings.
+    layer: core
+    placement: concept-plus-binding
+  python-runtime-native:
+    description: Irreducibly Python runtime bootstrap.
+    layer: language
+    placement: native
+  django-framework-native:
+    description: Irreducibly Django-native concept.
+    layer: framework
+    placement: native
+ar3_de_flavor_members:
+  - architecture-fit
+  - decide
+  - design-it-twice
+  - fix-workflow
+  - impact-feature
+  - organize-project-structure
+  - plan-feature
+  - plan-skill
+  - plan-spec
+  - prevent-regression
+  - propose-folder-reorganization
+  - refactor-subsystem
+  - scope-feature
+  - which-skill
+skills:
+  - name: adapt-project
+    path: .claude/skills/adapt-project/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: architecture-fit
+    path: .claude/skills/architecture-fit/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: foundation-ready
+    rationale: universal-concept
+    ar3_foundation_member: true
+  - name: audit-decisions
+    path: .claude/skills/audit-decisions/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: brainstorm-ideas
+    path: .claude/skills/brainstorm-ideas/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: check-ecosystem-consistency
+    path: .claude/skills/check-ecosystem-consistency/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: converge
+    path: .claude/skills/converge/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: decide
+    path: .claude/skills/decide/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, django]
+    placement: concept-plus-binding
+    readiness: foundation-ready
+    rationale: universal-django-binding
+    ar3_foundation_member: true
+  - name: design-it-twice
+    path: .claude/skills/design-it-twice/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, django]
+    placement: concept-plus-binding
+    readiness: foundation-ready
+    rationale: universal-django-binding
+    ar3_foundation_member: true
+  - name: diagnose
+    path: .claude/skills/diagnose/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: engineer-init
+    path: .claude/skills/engineer-init/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: language
+    binding: python
+    bindings: [python]
+    placement: native
+    readiness: deferred-to-wp8
+    rationale: python-runtime-native
+    ar3_foundation_member: false
+  - name: explain-code
+    path: .claude/skills/explain-code/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: extract-cotton-primitive
+    path: .claude/skills/extract-cotton-primitive/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: framework
+    binding: django
+    bindings: [django]
+    placement: native
+    readiness: deferred-to-wp8
+    rationale: django-framework-native
+    ar3_foundation_member: false
+  - name: extract-enum
+    path: .claude/skills/extract-enum/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: exemplar-ready
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: extract-existing-ideas
+    path: .claude/skills/extract-existing-ideas/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: extract-state-type
+    path: .claude/skills/extract-state-type/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: extract-workflow-registry
+    path: .claude/skills/extract-workflow-registry/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-async-lifecycle-drift
+    path: .claude/skills/find-async-lifecycle-drift/SKILL.md
+    current:
+      language: any
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-django-binding
+    ar3_foundation_member: false
+  - name: find-comment-drift
+    path: .claude/skills/find-comment-drift/SKILL.md
+    current:
+      language: any
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-django-binding
+    ar3_foundation_member: false
+  - name: find-complexity-hotspots
+    path: .claude/skills/find-complexity-hotspots/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-concept-divergence
+    path: .claude/skills/find-concept-divergence/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-contract-drift
+    path: .claude/skills/find-contract-drift/SKILL.md
+    current:
+      language: any
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-django-binding
+    ar3_foundation_member: false
+  - name: find-dead-route-surface
+    path: .claude/skills/find-dead-route-surface/SKILL.md
+    current:
+      language: any
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-django-binding
+    ar3_foundation_member: false
+  - name: find-doc-route-drift
+    path: .claude/skills/find-doc-route-drift/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-dormant
+    path: .claude/skills/find-dormant/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-duplication
+    path: .claude/skills/find-duplication/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-folder-topology-drift
+    path: .claude/skills/find-folder-topology-drift/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, python]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-binding
+    ar3_foundation_member: false
+  - name: find-frontend-contract-drift
+    path: .claude/skills/find-frontend-contract-drift/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-frontend-duplication
+    path: .claude/skills/find-frontend-duplication/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-implicit-state
+    path: .claude/skills/find-implicit-state/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-incomplete-sweep
+    path: .claude/skills/find-incomplete-sweep/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-layer-violation
+    path: .claude/skills/find-layer-violation/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-omnibus
+    path: .claude/skills/find-omnibus/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: find-orphaned-ideas
+    path: .claude/skills/find-orphaned-ideas/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: find-perimeter-gaps
+    path: .claude/skills/find-perimeter-gaps/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: find-query-mutation
+    path: .claude/skills/find-query-mutation/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-route-sprawl
+    path: .claude/skills/find-route-sprawl/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-rule-surface-drift
+    path: .claude/skills/find-rule-surface-drift/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, python]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-binding
+    ar3_foundation_member: false
+  - name: find-semantic-duplication
+    path: .claude/skills/find-semantic-duplication/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-skill-artifact-drift
+    path: .claude/skills/find-skill-artifact-drift/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, python]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-binding
+    ar3_foundation_member: false
+  - name: find-skill-intent-drift
+    path: .claude/skills/find-skill-intent-drift/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, python]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-binding
+    ar3_foundation_member: false
+  - name: find-stale-artifacts
+    path: .claude/skills/find-stale-artifacts/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, python]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-binding
+    ar3_foundation_member: false
+  - name: find-standard-gaps
+    path: .claude/skills/find-standard-gaps/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-test-obligation-drift
+    path: .claude/skills/find-test-obligation-drift/SKILL.md
+    current:
+      language: any
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-django-binding
+    ar3_foundation_member: false
+  - name: find-transaction-overreach
+    path: .claude/skills/find-transaction-overreach/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-workflow-duplication
+    path: .claude/skills/find-workflow-duplication/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: find-workflow-state-gaps
+    path: .claude/skills/find-workflow-state-gaps/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: fix-workflow
+    path: .claude/skills/fix-workflow/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: foundation-ready
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: true
+  - name: gut-check
+    path: .claude/skills/gut-check/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: harvest-learnings
+    path: .claude/skills/harvest-learnings/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: impact-feature
+    path: .claude/skills/impact-feature/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: foundation-ready
+    rationale: universal-concept
+    ar3_foundation_member: true
+  - name: introduce-fk
+    path: .claude/skills/introduce-fk/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: map-product-workflow
+    path: .claude/skills/map-product-workflow/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: map-subsystem
+    path: .claude/skills/map-subsystem/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, python]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-binding
+    ar3_foundation_member: false
+  - name: mature-existing-ideas
+    path: .claude/skills/mature-existing-ideas/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: move-path
+    path: .claude/skills/move-path/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, python]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-binding
+    ar3_foundation_member: false
+  - name: organize-project-structure
+    path: .claude/skills/organize-project-structure/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, django]
+    placement: concept-plus-binding
+    readiness: foundation-ready
+    rationale: universal-django-binding
+    ar3_foundation_member: true
+  - name: orient
+    path: .claude/skills/orient/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: plan-feature
+    path: .claude/skills/plan-feature/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: foundation-ready
+    rationale: universal-concept
+    ar3_foundation_member: true
+  - name: plan-skill
+    path: .claude/skills/plan-skill/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: foundation-ready
+    rationale: universal-concept
+    ar3_foundation_member: true
+  - name: plan-spec
+    path: .claude/skills/plan-spec/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: foundation-ready
+    rationale: universal-concept
+    ar3_foundation_member: true
+  - name: prevent-regression
+    path: .claude/skills/prevent-regression/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: foundation-ready
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: true
+  - name: project-interview
+    path: .claude/skills/project-interview/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: propose-boundary
+    path: .claude/skills/propose-boundary/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, python]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-binding
+    ar3_foundation_member: false
+  - name: propose-folder-reorganization
+    path: .claude/skills/propose-folder-reorganization/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: foundation-ready
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: true
+  - name: query-patterns
+    path: .claude/skills/query-patterns/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: refactor-subsystem
+    path: .claude/skills/refactor-subsystem/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: foundation-ready
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: true
+  - name: rename-concept
+    path: .claude/skills/rename-concept/SKILL.md
+    current:
+      language: python
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, python]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-binding
+    ar3_foundation_member: false
+  - name: repair-skill
+    path: .claude/skills/repair-skill/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: scope-feature
+    path: .claude/skills/scope-feature/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: foundation-ready
+    rationale: universal-concept
+    ar3_foundation_member: true
+  - name: teach-pattern
+    path: .claude/skills/teach-pattern/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: track-idea
+    path: .claude/skills/track-idea/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: triage-debt
+    path: .claude/skills/triage-debt/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: unify-shadows
+    path: .claude/skills/unify-shadows/SKILL.md
+    current:
+      language: python
+      framework: django
+    layer: core
+    binding: core
+    bindings: [core, python, django]
+    placement: concept-plus-binding
+    readiness: deferred-to-wp8
+    rationale: universal-python-django-bindings
+    ar3_foundation_member: false
+  - name: which-cleanup
+    path: .claude/skills/which-cleanup/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: deferred-to-wp8
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: which-shape
+    path: .claude/skills/which-shape/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core]
+    placement: concept
+    readiness: foundation-ready
+    rationale: universal-concept
+    ar3_foundation_member: false
+  - name: which-skill
+    path: .claude/skills/which-skill/SKILL.md
+    current:
+      language: any
+      framework: any
+    layer: core
+    binding: core
+    bindings: [core, django]
+    placement: concept-plus-binding
+    readiness: foundation-ready
+    rationale: universal-django-binding
+    ar3_foundation_member: true
