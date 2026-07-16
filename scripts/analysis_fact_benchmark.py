@@ -565,6 +565,41 @@ def _validate_report_budgets(report: dict[str, Any], platform_key: str) -> None:
         raise ValueError(f"{platform_key}: benchmark budgets failed: {computed}")
 
 
+def _validate_toolchain(
+    report: dict[str, Any],
+    execution: dict[str, Any],
+    required_tools: dict[str, str],
+    platform_key: str,
+) -> None:
+    toolchain = report.get("toolchain")
+    if not isinstance(toolchain, dict) or set(toolchain) != {
+        "deterministic_setup",
+        "install_size_bytes",
+        "python",
+        "tree_sitter",
+        "tree_sitter_language_pack",
+        "tree_sitter_license",
+    }:
+        raise ValueError(f"{platform_key}: toolchain record is invalid")
+    if (
+        toolchain.get("python") != execution.get("python")
+        or toolchain.get("tree_sitter") != execution.get("tree_sitter")
+        or toolchain.get("tree_sitter_language_pack") != execution.get("tree_sitter_language_pack")
+    ):
+        raise ValueError(f"{platform_key}: toolchain record differs from execution")
+    if (
+        ".".join(str(toolchain["python"]).split(".")[:2]) != required_tools["python_series"]
+        or toolchain.get("tree_sitter") != required_tools["tree_sitter"]
+        or toolchain.get("tree_sitter_language_pack") != required_tools["tree_sitter_language_pack"]
+    ):
+        raise ValueError(f"{platform_key}: toolchain versions differ from the contract")
+    if (
+        toolchain.get("tree_sitter_license") != "MIT"
+        or not str(toolchain.get("deterministic_setup", "")).strip()
+    ):
+        raise ValueError(f"{platform_key}: toolchain provenance is invalid")
+
+
 def _stable_projection(report: dict[str, Any]) -> dict[str, Any]:
     return {
         "schema_version": report["schema_version"],
@@ -631,6 +666,7 @@ def compare_platform_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
         for tool, version in required_tools.items():
             if execution.get(tool) != version:
                 raise ValueError(f"{key}: {tool} must be {version}")
+        _validate_toolchain(report, execution, required_tools, str(key))
         revision = report.get("source_revision")
         if not _is_hex_digest(revision, 40):
             raise ValueError(f"{key}: exact source revision is missing")

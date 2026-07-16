@@ -449,7 +449,6 @@ def test_platform_comparison_requires_all_contract_platforms_and_stable_results(
         "tree_sitter": "0.26.0",
         "tree_sitter_language_pack": "1.12.5",
     }
-
     with pytest.raises(ValueError, match="missing required platform"):
         benchmark.compare_platform_reports([base])
 
@@ -494,6 +493,7 @@ def test_platform_comparison_recomputes_budgets_and_binds_git_revision(
         "tree_sitter": "0.26.0",
         "tree_sitter_language_pack": "1.12.5",
     }
+    linux["toolchain"]["python"] = "3.11.15"
 
     for section, field, value in (
         ("small", "cold_seconds", 999.0),
@@ -508,6 +508,14 @@ def test_platform_comparison_recomputes_budgets_and_binds_git_revision(
     oversized["toolchain"]["install_size_bytes"] = 999_000_000
     with pytest.raises(ValueError, match="reported violations"):
         benchmark.compare_platform_reports([base, oversized])
+
+    wrong_toolchain = json.loads(json.dumps(linux))
+    wrong_toolchain["toolchain"]["tree_sitter"] = "0.25.0"
+    wrong_toolchain["stable_result_sha256"] = benchmark._hash_json(
+        benchmark._stable_projection(wrong_toolchain)
+    )
+    with pytest.raises(ValueError, match="toolchain record differs from execution"):
+        benchmark.compare_platform_reports([base, wrong_toolchain])
 
     forged_base = json.loads(json.dumps(base))
     forged_linux = json.loads(json.dumps(linux))
@@ -560,6 +568,7 @@ def test_platform_comparison_binds_full_external_provenance_for_both_reports(
             "python": "3.11.15",
         }
     )
+    linux["toolchain"]["python"] = "3.11.15"
     for report in (base, linux):
         report["external_corpus"][field] = forged
         report["stable_result_sha256"] = benchmark._hash_json(benchmark._stable_projection(report))
@@ -597,6 +606,7 @@ def test_platform_comparison_binds_corpus_hash_for_both_reports(
             "python": "3.11.15",
         }
     )
+    linux["toolchain"]["python"] = "3.11.15"
     for report in (base, linux):
         report["corpus_sha256"] = "0" * 64
         report["stable_result_sha256"] = benchmark._hash_json(benchmark._stable_projection(report))
