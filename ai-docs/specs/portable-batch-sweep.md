@@ -299,10 +299,10 @@ WP5 verification must assert ADR 0003 still points to AC-8.9.
 
 ### Slice 2 — native provider execution (WP1/WP2 ready)
 
-- [ ] IM-5: Make `sweep_shims.py` resolve providers from the canonical registry
+- [x] IM-5: Make `sweep_shims.py` resolve providers from the canonical registry
   and implement Ruff, ESLint, TypeScript compiler-diagnostic, Clippy, and Go vet
   adapters through the shared execution contract. <!-- spec:portable-batch-sweep::IM-5 -->
-- [ ] IM-6: Add saved raw-output fixtures and live minimal projects for each
+- [x] IM-6: Add saved raw-output fixtures and live minimal projects for each
   provider; retain native IDs/locations/severity/versions/provenance and inject
   missing binary, unexpected exit, parse failure, timeout, truncation, output
   overflow/corruption, and schema mismatch. <!-- spec:portable-batch-sweep::IM-6 -->
