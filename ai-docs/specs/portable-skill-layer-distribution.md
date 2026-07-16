@@ -121,6 +121,13 @@ The following text is preserved verbatim from the master plan.
 - Canonical skill roots remain under flat `.claude/skills/` during WP3 unless
   actual discovery evidence first proves a move safe. Binding extraction does
   not itself require moving the canonical `extract-enum` root.
+- Installation and ambient activation are separate contracts. The default
+  install exposes only `which-shape` and `which-skill`; all other selected
+  procedures remain content-addressed in a non-discovered catalog store and
+  are loaded only after deterministic routing. `full-discovery` is an explicit
+  compatibility mode. Substantial routed work uses a fresh no-context worker
+  when available, with selected-only parent execution as the context/authority
+  or no-sub-agent fallback.
 
 ## Architecture
 
@@ -149,7 +156,13 @@ Each supported surface receives a deterministic projection from the same
 bundle inventory. A surface adapter separates projection validation from
 runtime discovery evidence. Invocation names remain stable; aliases are
 versioned manifest data and are accepted only with collision, cycle, and
-stale-target checks.
+stale-target checks. Projection has separate storage and activation views: the
+storage view contains the selected portfolio outside automatic discovery; the
+default activation view contains exactly the two routers. The router emits a
+bounded dispatch record containing the selected canonical name, source and
+rendered hashes, bindings, task-local inputs, execution lane (`fresh-worker` or
+`selected-only-parent`), and result-artifact hash. No dispatch pack may contain
+metadata or bodies for an unselected skill.
 
 ## Characterization requirements
 
@@ -286,22 +299,34 @@ evidence contract in the same logical change.
   hash, layer, selected binding, and alias sets for core-only,
   TypeScript/React, and Django. Core-only has zero framework-native content;
   TypeScript proves projection/selection without WP6 behavior; Django
-  preserves the exact AR-1 applicable set.
+  preserves the exact AR-1 applicable set. For every portfolio, separately
+  snapshot the non-discovered catalog contents and default activation set;
+  default activation is exactly `which-shape` plus `which-skill`, with no other
+  skill header exposed.
   <!-- spec:portable-skill-layer-distribution::IM-13 -->
 - [ ] IM-14: **Offline bundle contract.** Add a checksummed versioned manifest
   containing inventory/registry hashes, owned paths and hashes, projections,
-  invocations, aliases, and required canonical profile. Base install performs
-  no network or package-manager action.
+  invocations, aliases, required canonical profile, catalog-store paths,
+  activation mode, explicitly activated names, and delegation/fallback policy.
+  Base install performs no network or package-manager action and defaults to
+  router-only activation; `full-discovery` requires an explicit manifest mode.
   <!-- spec:portable-skill-layer-distribution::IM-14 -->
 - [ ] IM-15: **Transactional lifecycle.** Stage, validate, and atomically
   install/update; verify all owned content; uninstall only unmodified owned
   paths. Reject host collisions, modified-owned content, traversal, symlink
   escape, duplicate targets, corrupt checksums/manifests, and interrupted
   staging without host mutation. Prove every lifecycle command idempotent.
+  Activation/deactivation and router-only↔full-discovery transitions use the
+  same ownership/collision/rollback guarantees and never copy a procedure into
+  an automatically discovered path without explicit activation.
   <!-- spec:portable-skill-layer-distribution::IM-15 -->
 - [ ] IM-16: **Cold-host matrix.** Exercise v1→v2→uninstall and repeated
   operations in isolated `HOME`/XDG/Codex roots for all four AR-10 fixtures;
-  compare host-owned hashes before and after every operation.
+  compare host-owned hashes before and after every operation. On every surface,
+  inspect actual discovery after each lifecycle step: router-only exposes two
+  headers, a named activation exposes only that additional skill, and explicit
+  full-discovery exposes the selected portfolio without changing the catalog
+  store or host-owned files.
   <!-- spec:portable-skill-layer-distribution::IM-16 -->
 
 ### Slice 7 — First value and release evidence
@@ -310,7 +335,11 @@ evidence contract in the same logical change.
   steps, including installation and verification, discover/select/run the
   AR-12 skill, validate useful output, finish within 1,200 seconds, and prove
   the kernel document was not read. Record local execution verification only;
-  do not issue WP8 support-state promotion.
+  do not issue WP8 support-state promotion. Begin from router-only activation;
+  route through `which-shape`/`which-skill`, then run the selected skill in a
+  fresh no-context worker with a bounded task pack. Also prove the selected-only
+  parent fallback on a no-sub-agent fixture. Neither lane may receive an
+  unrelated skill header or body.
   <!-- spec:portable-skill-layer-distribution::IM-17 -->
 - [ ] IM-18: **Reference and regression gate.** Require clean metadata,
   contracts/index, intent/artifact drift, decision links, catalog references,

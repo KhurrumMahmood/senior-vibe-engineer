@@ -5,8 +5,8 @@ title: "Distribute one canonical catalog through versioned surface-specific inst
 status: accepted
 date: 2026-07-16
 deciders: [khurrum, codex]
-assumes: ["supported agents do not share one native skill-discovery mechanism", "public invocation names and host-owned files must survive the migration"]
-revisit_when: ["all supported agents adopt one compatible plugin/skill manifest", "a surface cannot consume a generated projection without hand-edited copies", "offline install/update/uninstall cannot be made transactional"]
+assumes: ["supported agents do not share one native skill-discovery mechanism", "public invocation names and host-owned files must survive the migration", "ambient skill metadata consumes shared agent context"]
+revisit_when: ["all supported agents adopt one compatible plugin/skill manifest", "a surface cannot consume a generated projection without hand-edited copies", "offline install/update/uninstall cannot be made transactional", "supported surfaces provide zero-cost lazy skill discovery with equivalent delegation"]
 supersedes: []
 superseded_by: null
 applies_to: [.claude/skills/, .augment/, .cursor/, .gemini/]
@@ -37,11 +37,12 @@ Use a composed distribution model:
    logical layer is registry/frontmatter data until discovery tests authorize
    physical moves.
 2. A versioned installer reads an approved host profile, uses ADR 0041's
-   selector, and materializes a surface-specific projection. Claude consumes a
-   compatible skill directory; Codex consumes a plugin manifest/package;
-   Augment consumes generated imported rules; Cursor and Gemini receive their
-   supported project-instruction/discovery projections. Generated projections
-   are never edited as canonical sources.
+   selector, and materializes two distinct outputs: a content-addressed catalog
+   store outside automatic discovery, and a surface-specific activation
+   projection. Claude consumes a compatible skill directory; Codex consumes a
+   plugin manifest/package; Augment consumes generated imported rules; Cursor
+   and Gemini receive their supported project-instruction/discovery
+   projections. Generated projections are never edited as canonical sources.
 3. The supported-surface matrix and its discovery-contract versions live in
    ADR 0038's registry. “Supported everywhere” means exactly those pinned
    surfaces—not every current or future agent.
@@ -56,6 +57,22 @@ Use a composed distribution model:
    diff; they are never overwritten silently.
 6. Public skill names stay stable. Path moves ship aliases for every supported
    surface until the compatibility matrix proves old and new invocation paths.
+7. The default activation projection is **router-only**. It exposes
+   `which-shape` and `which-skill` while keeping other selected portfolio
+   procedures available in the catalog store without placing all of their
+   headers into ambient agent context. A versioned `full-discovery` mode is an
+   explicit opt-in compatibility choice, never the default.
+8. Routing is deterministic and profile-aware. The router selects exactly one
+   canonical procedure and its compatible binding set from the catalog. On a
+   surface with local sub-agent support, substantial execution runs in a fresh,
+   no-conversation-context worker that receives only the selected procedure,
+   bindings, project root/runtime facts, and task-local inputs. The parent
+   receives a bounded result or artifact, not the entire skill catalog.
+9. Work requiring the parent's conversational state, user interaction, or
+   authority may execute in the parent after loading only the selected
+   procedure. Surfaces without sub-agents use the same selected-only local
+   fallback. Direct public invocation remains available through explicit
+   activation or `full-discovery` mode and retains alias compatibility.
 
 `scripts/installer_selection.py` is the WP1 selection prototype. WP3 builds the
 filesystem materializer and surface discovery probes before any catalog-wide
@@ -76,6 +93,13 @@ move; WP8 performs the rollout only after the exemplar invalidation window.
   ambiguous.
 - **Overwrite host configuration with toolkit defaults.** Rejected because
   host-owned instructions and safety settings are outside installer authority.
+- **Expose every installed skill through automatic discovery.** Rejected as the
+  default because even metadata-only headers consume shared context and make
+  unrelated work pay for the whole catalog. Retained only as an explicit
+  compatibility mode.
+- **Always execute routed work in the parent.** Rejected because independent
+  maintenance workflows can be isolated with a bounded task pack. Parent-local
+  execution remains the fallback when context or authority cannot be delegated.
 
 ## Consequences
 
@@ -85,7 +109,10 @@ from manifests. The installer becomes a critical compatibility component and
 must maintain surface adapters, checksums, merge semantics, and aliases.
 Physical layer moves are delayed until discovery evidence exists. Manual
 projection edits, untracked owned paths, and destructive host-file replacement
-are disallowed.
+are disallowed. Installation no longer implies ambient activation: manifests
+must separately own the catalog store, bootstrap projection, optional explicit
+activations, and delegation/fallback policy. This adds routing and context-budget
+tests to the release boundary.
 
 ## Verification
 
@@ -93,4 +120,8 @@ The WP1 prototype and consumer test prove registry-driven selection. WP3 must
 add cold-host fixtures for every supported surface, offline install, update,
 uninstall, collision preservation, alias invocation, and discovery. Those
 tests replace the pending embodiment before this decision is considered fully
-productized.
+productized. The default fixture must expose only `which-shape` and
+`which-skill`, prove all other portfolio procedures remain selectable from the
+non-discovered store, demonstrate selected-only fresh-worker execution and
+selected-only parent fallback, and show `full-discovery` requires an explicit
+mode change.

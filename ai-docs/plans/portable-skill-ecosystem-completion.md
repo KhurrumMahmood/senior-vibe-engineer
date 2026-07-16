@@ -427,6 +427,22 @@ compatibility aliases, install manifests, and cold-host installer.
   idempotent and do not overwrite host-owned files. A newcomer reaches one
   useful verified skill run in 20 minutes or less using only documented steps
   and without reading the quality-coordination kernel document.
+
+**User-directed context-minimal activation amendment (2026-07-16):** AC-3.5
+and AC-3.6 additionally distinguish installed catalog content from ambient
+activation. The default install stores the selected portfolio outside automatic
+discovery and exposes exactly `which-shape` and `which-skill`; all other skill
+headers/bodies load only after deterministic routing. Substantial routed work
+uses a fresh no-conversation-context sub-agent with only the selected procedure,
+bindings, runtime/root facts, and task-local inputs when the surface supports
+it. Context/authority-dependent work and surfaces without sub-agents use a
+selected-only parent fallback. Direct invocation remains available through
+explicit named activation, and full ambient discovery is versioned opt-in.
+Acceptance evidence must count discovered headers on all five surfaces, prove
+unselected procedures remain absent from worker and parent packs, bind bounded
+dispatch/result artifacts, and exercise activation/update/uninstall rollback.
+This is additive and does not weaken the original portfolio, lifecycle,
+first-value, alias, or five-surface runtime-discovery requirements.
 - **AC-3.7:** Before any WP3 foundation or exemplar commit moves/renames a
   tracked path, a WP3-local move gate applies ADR 0024 and ADR 0028 without
   waiting for the generalized WP7 tooling. Every retired concept phrasing is
@@ -1022,6 +1038,7 @@ reported no P0 blockers and returned `READY`.
 | 2026-07-16 | Codex + `/root/wp5_wp4_entry_gate` | Implemented WP5 IM-12 at functional revision `9b9c1aa` and evidence revision `a676ec9`. The machine gate requires the authoritative verified WP4 tracker row, exact clean-verifier/report/evidence hashes, verified revision/tree ancestry, clean unchanged substrate, both platform/tool records, and full reruns: 65 WP4 contracts, live Darwin budgets, and byte-identical matrix recomputation. Eight adversarial gate tests and Ruff pass; preflight-only mode cannot claim entry. Current action: IM-5/IM-6 and now-unblocked IM-13/IM-14; last completed WP5 AC: none. | WP5 remains `in_progress`; no summary-count change. |
 | 2026-07-16 | Codex + `/root/wp3_core_deflavor` | Implemented WP3 Slice 3 IM-5/IM-6 at functional revision `ccc6a5d` and evidence revision `5117abb`. A source-aware staged/CI/all lint scans before/after rename blobs, registry-owned framework vocabulary, active prose/code fields, metadata, declared bindings, procedure duplication, and a strict owner/reason/≤90-day allowlist that cannot cover verified claims. Exactly 8 contaminated AR-3 core bodies gained thin Django overlays; 6 already-clean members and routing-only `which-shape`/`engineer-init` were untouched. Focused suite passed 88/88; all-mode lint, 76-skill strict metadata, Ruff, spec coverage 6/30, and inventory passed. Current action: IM-7–IM-9; last completed WP3 AC: none. | WP3 remains `in_progress`; no summary-count change. |
 | 2026-07-16 | Codex | The first isolated WP5 parser-member worktree correctly failed IM-12 before edits because the gate required a checkout-local `.venv`; resolving the venv Python symlink then exposed a second failure that bypassed venv site-packages. Commits `5c9de34` and `644b947` now require a real explicit virtualenv while preserving its invoked interpreter path. At clean committed `644b947`, 9 gate tests, all 65 WP4 contracts, live Darwin budgets, and deterministic matrix recomputation pass. Current action: resume isolated IM-13/IM-14. | WP5 remains `in_progress`; no summary-count change. |
+| 2026-07-16 | Khurrum + Codex | Added the context-minimal activation amendment to accepted ADR 0042, the WP3 successor spec, and AC-3.5/AC-3.6 interpretation: installation and ambient activation are separate; router-only is the default; the catalog remains content-addressed outside discovery; substantial selected work uses bounded fresh no-context workers with a selected-only parent fallback; full discovery is opt-in. Current action: independent no-context review of the additive amendment before installer implementation. | No status-count change; WP3 remains `in_progress`, and the amendment cannot be credited until independently reviewed and implemented. |
 | 2026-07-16 | Codex + `/root/wp5_native_shims` | Implemented WP5 Slice 2 IM-5/IM-6 at functional revision `91fd269` and evidence revision `33d69c4`. The canonical registry now owns five native provider contracts; bounded subprocess/version/raw-artifact handling and strict parsers retain native IDs, locations, severity, versions, and provenance while rejecting missing binary, unexpected exit, parse failure, timeout, truncation, overflow, corruption, schema mismatch, and missing completion. Non-live shared regression passed 72/72; live Ruff/ESLint/TypeScript/Clippy/Go-vet before+clean matrix passed 5/5 with no skips; full repository Ruff, registry guard, spec coverage 7/28, and inventory passed. Current action: IM-13/IM-14 and IM-7/IM-8; last completed WP5 AC: none. | WP5 remains `in_progress`; no summary-count change. |
 | 2026-07-16 | Codex | Implemented WP5 Slice 3 IM-7/IM-8 at main-line revision `877d88e`: public scan/digest/diff/ratchet commands, canonical library/CLI byte equivalence, explicit provider executable identity, typed failures without success-manifest publication, 50-finding/64-KiB digest ceilings, exact auditable accepts, safe baseline tightening, and stale-hash/partial-scan rejection. Ten command tests and the 51-test shared sweep regression passed; all commit hooks, Ruff, and strict spec inventory passed. Current action: repair fresh adversarial findings in parser IM-13/IM-14, then continue judgment/consumer/harness IM-9–IM-11; last completed WP5 AC: none. | WP5 remains `in_progress`; no summary-count change. |
 
