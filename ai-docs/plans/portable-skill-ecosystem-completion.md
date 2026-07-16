@@ -98,14 +98,14 @@ Completion rules:
 
 ## Progress summary
 
-Last updated: 2026-07-16 by Codex (WP1 second verification corrections in progress)
+Last updated: 2026-07-16 by Codex (WP1 second correction set implemented; verification pending)
 
 | State | Count |
 |---|---:|
 | not_started | 9 |
-| in_progress | 1 |
+| in_progress | 0 |
 | blocked | 0 |
-| implemented | 0 |
+| implemented | 1 |
 | verified | 1 |
 
 ## Master tracker
@@ -113,7 +113,7 @@ Last updated: 2026-07-16 by Codex (WP1 second verification corrections in progre
 | Work package | Status | Owner | Depends on | Acceptance criteria | Evidence / verifier | Blocker or next action |
 |---|---|---|---|---|---|---|
 | WP0 Trusted baseline and plan consolidation | verified | Codex | — | AC-0.1–AC-0.5 | `reports/portable-skill-ecosystem-completion/WP0/final-verification.md` (plus linked implementation/attempt/pre-retirement records) | All five ACs independently passed at clean revision `fae13d4`; next dependency-ready package is WP1. |
-| WP1 Canonical stack and capability contract | in_progress | Codex | WP0 | AC-1.1–AC-1.7 | `reports/portable-skill-ecosystem-completion/WP1/implementation-evidence.md`; `verification-attempt-1.md` and `verification-attempt-2.md` (FAIL, retained) | Close computed registries, shared generic evidence, unrelated scan scripts, and basename-spoofed native tools; then rerun every AC. |
+| WP1 Canonical stack and capability contract | implemented | Codex | WP0 | AC-1.1–AC-1.7 | `reports/portable-skill-ecosystem-completion/WP1/implementation-evidence.md`; `verification-attempt-1.md` and `verification-attempt-2.md` (FAIL, retained) | Third fresh zero-context verifier must rerun all ACs at implementation revision `e80456a`. |
 | WP2 Capability-aware host profiling and routing | not_started | — | WP1 | AC-2.1–AC-2.6 | — | Make adaptation, routing, perimeter, and inherited Class B/C surfaces use the same profile. |
 | WP3 Load-bearing layers, bindings, and installer | not_started | — | WP1, WP2 | AC-3.1–AC-3.7 | — | Implement the packaging/discovery decision and exemplar binding. |
 | WP4 Multi-language analysis substrate | not_started | — | WP1 | AC-4.1–AC-4.6 | — | Provide parser-backed normalized facts with explicit capability failures. |
@@ -985,6 +985,7 @@ reported no P0 blockers and returned `READY`.
 | 2026-07-16 | `/root/wp1_fresh_verifier` | Fresh-context revision `e20e521` passed AC-1.1/1.5/1.7 and failed AC-1.2/1.3/1.4/1.6. Adversarial probes proved dictionary registries escaped the guard, evidence strings and self-reported booleans were forgeable, and bare `verified` labels gamed the floor. Current action: bind every claim to validated artifacts and expand the guard; last evidence revision: `e20e521`. | WP1 → `in_progress`; summary now 9 not started / 1 in progress / 1 verified. |
 | 2026-07-16 | Codex | Corrected all four failed paths at implementation revision `fe083d5`: recursive/constructor registry guards; contained, hashed, directly executed per-subject evidence; exact claim binding; registry-owned tool executables/arguments/version ranges; timeouts/platform/scan ceilings; and evidence-backed, version-pinned completion cells whose structural-only mode cannot pass. Full suite: 439 passed/1 unrelated skip; all metadata, plan, ADR, consumer, Ruff, D1 projection, and D3 budget checks passed. Last completed AC by implementer: AC-1.7; current action: clean zero-context re-verification of every AC; last evidence revision: `fe083d5`. | WP1 → `implemented`; summary now 9 not started / 1 implemented / 1 verified. |
 | 2026-07-16 | `/root/wp1_reverification` | Fresh-context revision `4519e6a` again passed AC-1.1/1.5/1.7 and failed AC-1.2/1.3/1.4/1.6. Executable probes bypassed the guard with split/zip registries, reused one generic print-only test across subjects and all 49 floor/surface claims, accepted an unrelated nonempty scan script, and promoted a claimant-owned fake `node` binary by basename. Current action: make registry detection evaluate static computed collections, bind scan implementations and distinct subject/cell evidence, and require discovered native tool paths; last evidence revision: `4519e6a`. | WP1 → `in_progress`; summary now 9 not started / 1 in progress / 1 verified. |
+| 2026-07-16 | Codex | Closed the second verifier's four bypasses at implementation revision `e80456a`: statically computed split/zip/dict registries are guarded; portable subjects require distinct executed tests and canonical claim observations; each scan implementation is path/hash/mechanism-bound, support-attested, and directly executed; native tools must resolve to registry-discovered executables; and `verified`/the full floor require a WP8-owned pinned conformance issuer that remains honestly unavailable. Full suite: 445 passed/1 unrelated skip; all metadata, plan, ADR, consumer, Ruff, D1 projection, and D3 budget checks passed. Last completed AC by implementer: AC-1.7; current action: third clean zero-context verification; last evidence revision: `e80456a`. | WP1 → `implemented`; summary now 9 not started / 1 implemented / 1 verified. |
 
 ## Promotion notes
 

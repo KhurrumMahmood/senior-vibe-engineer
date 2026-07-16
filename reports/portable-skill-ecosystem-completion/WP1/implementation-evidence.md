@@ -1,6 +1,6 @@
 # WP1 implementation evidence
 
-Implementation revision: `fe083d5` (clean worktree after removing automatic
+Implementation revision: `e80456a` (clean worktree after removing automatic
 test-run telemetry). Platform: macOS 26.5.1 / Darwin 25.5.0 / arm64.
 
 Toolchain: Python 3.11.10, pytest 9.0.3, PyYAML 6.0.3, Ruff 0.6.9,
@@ -13,11 +13,11 @@ tree-sitter-language-pack 1.12.5, ast-grep 0.44.1, TypeScript compiler API
 | AC | Result | Evidence |
 |---|---|---|
 | AC-1.1 | implemented | `.claude/skills/_common/capability-registry.yml` contains versioned skill, stack, completion, and finding schemas plus separate runtime/language/framework/tool/root/layer/binding/scan/capability/support/evidence fields. `tests/test_capability_registry.py::test_future_language_is_registered_by_data_not_validator_code` proves registry-only extension. |
-| AC-1.2 | implemented | `scripts/check_capability_registry_consumers.py` reports `OK — 7 consumers use the canonical capability registry`; its AST guard covers list/set/tuple literals, ordinary and nested dictionaries, `dict(...)` constructors, retired assignment names, and composite identifiers across metadata, adaptation, routing, perimeter, activation manifest, installer selection, and sweep shims. Planted variants in `tests/test_capability_registry_guard.py` prove arbitrarily named dictionaries fail. |
-| AC-1.3 | implemented | Strict contract tests reject unknown capabilities, layer/binding mismatch, fabricated `language: any` evidence, unexecuted per-subject evidence, unregistered/unproved scan targets, empty scan executables, scan support above its registered ceiling, and Vite-as-framework category confusion. Every subject/scan test must be the same attested integration test directly executed by the fixture command. Legacy frontmatter is read-only compatibility and cannot be cited as strict verified support. |
-| AC-1.4 | implemented | Registry states are `unsupported`, `experimental`, and `verified`; `evaluate_support` and `transition_support` enforce one-step promotion and immediate demotion. Evidence is canonically hashed and bound to an exact claim; the evaluator checks contained artifact paths/hashes, directly executes the attested test with a bounded timeout, hashes stdout, uses registry-owned tool executables/arguments/version ranges, and verifies the current platform. Tests cover stale files, cross-claim reuse, symlink escape, fake commands/runtimes, bad hashes, imaginary platforms, tool drift, and support ceilings. |
+| AC-1.2 | implemented | `scripts/check_capability_registry_consumers.py` reports `OK — 7 consumers use the canonical capability registry`; its AST guard covers literal, nested, and simple statically computed collections, including `.split()`, `zip()`, `dict(...)`, constructors, and concatenation, plus retired assignment names and composite identifiers. Planted arbitrary-name/nested/constructor/split/zip variants all fail. |
+| AC-1.3 | implemented | Strict contracts reject unknown capabilities, layer/binding mismatch, fabricated or shared `language: any` evidence, unexecuted per-subject evidence, unregistered/unproved scan targets, empty/unrelated scan scripts, scan support above its registered ceiling, and framework/tool confusion. Every portable subject has a distinct directly executed integration test and canonical observation. Every scan maps its registered mechanism to an exact contained script path/hash; that script is identically attested as a support artifact and is itself the target test executed by the fixture. Legacy frontmatter cannot acquire strict support. |
+| AC-1.4 | implemented | Registry states are `unsupported`, `experimental`, and `verified`; one-step promotion and immediate demotion are mechanical. Evidence is canonically hashed/bound; fixtures emit claim+subject canonical JSON, paths/hashes are contained and fresh, execution is timeout-bounded, and tool probes use registry-owned arguments/version ranges and the actually discovered executable path. Tests cover stale files, generic/cross-claim reuse, symlink escape, false/timeout commands, fake Python/native tools, bad hashes, platforms, tool drift, and ceilings. Self-authored fixtures can reach `experimental`; `verified` is deliberately unavailable until WP8 pins the cross-stack conformance issuer path/hash. |
 | AC-1.5 | implemented | Accepted ADRs 0038–0042 resolve D4, D3, D5, D2, and D1 respectively. Every ADR records alternatives, compatibility/migration, costs, and revisit triggers. Decision audit and link check exit 0. |
-| AC-1.6 | implemented | `completion_floor.matrix_version: 1` defines every target stack, every required outcome with a WP owner, and five pinned agent surfaces. `validate_completion_claims` requires each cell/surface to carry AC-1.4 evidence bound to its exact identity; surfaces additionally carry a compatible pinned surface version. Tests prove omission, bare labels, reused evidence, stale evidence, old surface versions, and structural-only CLI runs cannot pass. Floor change control requires an ADR amendment plus migration review. |
+| AC-1.6 | implemented | `completion_floor.matrix_version: 1` defines every target stack, required outcome/WP owner, and five pinned agent surfaces. Each eventual cell/surface must carry AC-1.4 evidence, a unique test digest, an exact canonical observation, and (for surfaces) a compatible pinned version. The registry-pinned verification issuer is honestly `unavailable`/WP8-owned, so the gate currently rejects even well-shaped or relabeled/rehashed full-floor claims instead of self-certifying future work. Omission, labels, reuse, stale evidence, old versions, generic print scripts, and structural-only runs all fail. Floor changes require an ADR amendment plus migration review. |
 | AC-1.7 | implemented | `analysis-portfolio-spike.json` records the pinned corpus/hash, candidates, precision/recall, unsupported facts, cold/warm runtime, install size, licenses, platform limits, deterministic setup, owners, selection, and WP4 budgets. The exact rerun below passed all declared budgets. |
 
 ## Commands and results
@@ -26,7 +26,7 @@ All commands ran from the repository root.
 
 ```text
 .venv/bin/python -m pytest -q
-439 passed, 1 skipped in 15.78s
+445 passed, 1 skipped in 14.70s
 
 .venv/bin/python scripts/check_capability_registry_consumers.py
 OK — 7 consumers use the canonical capability registry
@@ -62,10 +62,10 @@ npm install --prefix /tmp/.../node \
 ```
 
 The rerun returned precision/recall 1.0 for every supported fact family.
-Warm runtime/install size were: Tree-sitter 0.041601 s / 5,089,280 bytes;
-ast-grep 0.065503 s / 154,339,105 bytes; TypeScript compiler API 0.627614 s /
+Warm runtime/install size were: Tree-sitter 0.039996 s / 5,089,280 bytes;
+ast-grep 0.067538 s / 154,339,105 bytes; TypeScript compiler API 0.645308 s /
 23,625,066 bytes. The rerun JSON SHA-256 was
-`f6e1b2f0a020eb54ced5121afa45dd6b956e52715e0484b09da7a34f37fd0948`.
+`a79eb2e269058b6cf96f5cebcb527bd66d45b439005fb33c8ff43523a91fcc25`.
 
 D1 surface-projection probe:
 
@@ -86,7 +86,7 @@ decision and generated projection contract, not those later acceptance claims.
 ## Evidence hashes
 
 - `.claude/skills/_common/capability-registry.yml`:
-  `b1635234f7aff520143945ba2b9a84de045f980d1ff05af866b5c73cab824d87`
+  `87efcec9402cb5c17fcc41c305a035d2e3166cc5fea11ad0d2ea5cbf99372508`
 - `reports/portable-skill-ecosystem-completion/WP1/analysis-portfolio-spike.json`:
   `eaec37c970c564483f8d0ca02325d6b570593b9b627c18865767d862ab922de1`
 - `tests/fixtures/analysis_portfolio_spike/oracle.json`:
@@ -108,11 +108,11 @@ decision and generated projection contract, not those later acceptance claims.
 
 ## Failed-gate correction record
 
-The first fresh-context verifier failed AC-1.2, AC-1.3, AC-1.4, and AC-1.6 at
-revision `e20e521`; its full findings remain durable in
-`verification-attempt-1.md`. Revision `fe083d5` addresses every required
-correction and adds adversarial regression tests for the exact planted
-variants plus nested registries, cross-claim evidence reuse, symlink escape,
-unexecuted subject tests, spoofed runtimes, and non-promotable structural-only
-completion checks. WP1 remains `in_progress` until a new zero-context verifier
-reruns all seven acceptance criteria from a clean committed revision.
+The first and second fresh-context verifiers failed AC-1.2, AC-1.3, AC-1.4,
+and AC-1.6 at revisions `e20e521` and `4519e6a`; their full findings remain in
+`verification-attempt-1.md` and `verification-attempt-2.md`. Revision `e80456a`
+addresses both attack sets: computed registries; distinct subject fixtures;
+exact executed scan implementations; canonical claim observations; discovered
+native executables; unique floor evidence; and a registry-pinned conformance
+issuer that prevents WP1 from certifying work owned by WP8. WP1 remains
+`in_progress` until a third zero-context verifier reruns all seven criteria.
