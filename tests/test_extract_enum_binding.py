@@ -17,6 +17,7 @@ FIXTURE_ROOT = REPO_ROOT / "tests" / "fixtures" / "wp3" / "extract-enum"
 COLLECT = SKILL_ROOT / "scripts" / "collect.py"
 PROPOSE = SKILL_ROOT / "scripts" / "propose.py"
 PROPOSE_PYTHON = SKILL_ROOT / "scripts" / "propose_python.py"
+REPLAY = REPO_ROOT / "scripts" / "wp3_slice4_replay.py"
 AR7_ORACLE = FIXTURE_ROOT / "ar7-semantic-oracle.json"
 
 
@@ -118,6 +119,7 @@ def test_django_fixture_reaches_final_proposal_and_matches_ar7_semantics(tmp_pat
     assert ".values_list('status', flat=True).distinct()" in proposal_text
     assert "makemigrations" in proposal_text
     assert "migrate" in proposal_text
+    assert "PENDING = 'pending', 'Pending'" in proposal_text
     wrong_renderer = _run(
         str(PROPOSE_PYTHON),
         "--targets",
@@ -243,6 +245,15 @@ def test_python_fixture_collects_plain_carrier_and_renders_executable_strenum(tm
     target_payload = json.loads(targets.read_text(encoding="utf-8"))
     assert target_payload["carrier_kind"] == "python-attribute"
     assert target_payload["field_symbol"] == "Job.status"
+    assert target_payload["declared_choices"] == [
+        {"label": "pending", "wire_value": "pending"},
+        {"label": "running", "wire_value": "running"},
+    ]
+    assert {item["kind"] for item in target_payload["site_classifications"]} == {
+        "assignment",
+        "bridge",
+        "confirmed",
+    }
 
     enum_module = tmp_path / "job_status.py"
     semantic = tmp_path / "python-semantic.json"
@@ -261,6 +272,7 @@ def test_python_fixture_collects_plain_carrier_and_renders_executable_strenum(tm
     assert "class JobStatus(StrEnum):" in rendered
     assert "PENDING = 'pending'" in rendered
     assert "RUNNING = 'running'" in rendered
+    assert "vendor_queued" not in rendered
     executable = _run(str(enum_module))
     assert executable.returncode == 0, executable.stderr
     semantic_payload = json.loads(semantic.read_text(encoding="utf-8"))
@@ -268,6 +280,7 @@ def test_python_fixture_collects_plain_carrier_and_renders_executable_strenum(tm
         "pending",
         "running",
     ]
+    assert semantic_payload["bridge_sites"][0]["literal"] == "vendor_queued"
     wrong_renderer = _run(
         str(PROPOSE),
         "--targets",
@@ -279,6 +292,161 @@ def test_python_fixture_collects_plain_carrier_and_renders_executable_strenum(tm
     )
     assert wrong_renderer.returncode == 2
     assert "Django renderer requires carrier_kind" in wrong_renderer.stderr
+
+
+def test_python_renderer_fails_closed_on_missing_or_dynamic_site_classification(tmp_path):
+    project = FIXTURE_ROOT / "python"
+    targets = tmp_path / "targets.json"
+    collected = _run(
+        str(COLLECT),
+        "--target",
+        "app.py::status::Job",
+        "--project-root",
+        str(project),
+        "--output",
+        str(targets),
+    )
+    assert collected.returncode == 0, collected.stderr
+    payload = json.loads(targets.read_text(encoding="utf-8"))
+
+    payload["site_classifications"] = payload["site_classifications"][:-1]
+    missing = tmp_path / "missing.json"
+    missing.write_text(json.dumps(payload), encoding="utf-8")
+    result = _run(
+        str(PROPOSE_PYTHON),
+        "--targets",
+        str(missing),
+        "--output",
+        str(tmp_path / "missing.py"),
+        "--semantic-output",
+        str(tmp_path / "missing-semantic.json"),
+    )
+    assert result.returncode == 2
+    assert "exhaustive site classifications" in result.stderr
+
+    payload = json.loads(targets.read_text(encoding="utf-8"))
+    payload["site_classifications"][0]["kind"] = "dynamic"
+    dynamic = tmp_path / "dynamic.json"
+    dynamic.write_text(json.dumps(payload), encoding="utf-8")
+    result = _run(
+        str(PROPOSE_PYTHON),
+        "--targets",
+        str(dynamic),
+        "--output",
+        str(tmp_path / "dynamic.py"),
+        "--semantic-output",
+        str(tmp_path / "dynamic-semantic.json"),
+    )
+    assert result.returncode == 2
+    assert "unresolved dynamic ownership" in result.stderr
+
+    payload = json.loads(targets.read_text(encoding="utf-8"))
+    comparison = next(
+        item
+        for item in payload["site_classifications"]
+        if item["site_type"] == "comparison" and item["kind"] == "confirmed"
+    )
+    comparison["kind"] = "assignment"
+    incompatible = tmp_path / "incompatible.json"
+    incompatible.write_text(json.dumps(payload), encoding="utf-8")
+    result = _run(
+        str(PROPOSE_PYTHON),
+        "--targets",
+        str(incompatible),
+        "--output",
+        str(tmp_path / "incompatible.py"),
+        "--semantic-output",
+        str(tmp_path / "incompatible-semantic.json"),
+    )
+    assert result.returncode == 2
+    assert "comparison site has incompatible classification" in result.stderr
+
+
+def test_django_preserves_safe_kwargs_and_declared_labels_at_final_boundary(tmp_path):
+    project = FIXTURE_ROOT / "django-options"
+    targets = tmp_path / "targets.json"
+    proposal = tmp_path / "proposal.md"
+    semantic = tmp_path / "semantic.json"
+    collected = _run(
+        str(COLLECT),
+        "--target",
+        "app/models.py::state::Ticket",
+        "--project-root",
+        str(project),
+        "--output",
+        str(targets),
+    )
+    assert collected.returncode == 0, collected.stderr
+    payload = json.loads(targets.read_text(encoding="utf-8"))
+    assert payload["current_kwargs"] == {
+        "blank": True,
+        "choices_ref": "STATE_CHOICES",
+        "db_index": True,
+        "default": "pending",
+        "help_text": "Workflow state",
+        "max_length": 32,
+        "null": True,
+    }
+
+    proposed = _run(
+        str(PROPOSE),
+        "--targets",
+        str(targets),
+        "--output",
+        str(proposal),
+        "--semantic-output",
+        str(semantic),
+    )
+    assert proposed.returncode == 0, proposed.stderr
+    semantics = json.loads(semantic.read_text(encoding="utf-8"))
+    assert semantics["members"] == [
+        {"label": "Awaiting triage", "name": "PENDING", "wire_value": "pending"},
+        {"label": "In progress", "name": "RUNNING", "wire_value": "running"},
+    ]
+    text = proposal.read_text(encoding="utf-8")
+    assert "PENDING = 'pending', 'Awaiting triage'" in text
+    assert "RUNNING = 'running', 'In progress'" in text
+    for option in (
+        "null=True",
+        "blank=True",
+        "db_index=True",
+        "help_text='Workflow state'",
+    ):
+        assert option in text
+
+
+def test_django_collector_fails_closed_on_dynamic_or_unsupported_field_kwargs(tmp_path):
+    project = tmp_path / "project"
+    models = project / "app" / "models.py"
+    models.parent.mkdir(parents=True)
+    models.write_text(
+        "from django.db import models\n"
+        "CHOICES = ((\"pending\", \"Pending\"),)\n"
+        "def label(): return \"dynamic\"\n"
+        "class Job(models.Model):\n"
+        "    status = models.CharField(max_length=16, default=\"pending\", "
+        "choices=CHOICES, help_text=label())\n",
+        encoding="utf-8",
+    )
+    (project / "app" / "services.py").write_text(
+        "def check(job): return job.status == \"pending\"\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "targets.json"
+
+    result = _run(
+        str(COLLECT),
+        "--target",
+        "app/models.py::status::Job",
+        "--project-root",
+        str(project),
+        "--output",
+        str(output),
+    )
+
+    assert result.returncode == 2
+    assert "unsupported or dynamic field keyword 'help_text'" in result.stderr
+    assert not output.exists()
 
 
 def test_existing_form_a_invalid_routing_remains_rejected(tmp_path):
@@ -310,3 +478,58 @@ def test_characterization_input_hashes_remain_pinned():
     assert hashlib.sha256((FIXTURE_ROOT / "django/app/services.py").read_bytes()).hexdigest() == (
         "6bbea6f11b8036fa1730d8c957da195ca374ec2a128b9eef8ea206cb3ef7e93b"
     )
+
+
+def test_slice4_full_manifest_replay_is_byte_deterministic(tmp_path):
+    output_root = tmp_path / "replay"
+    manifest = tmp_path / "manifest.json"
+    first = _run(
+        str(REPLAY),
+        "record",
+        "--output-root",
+        str(output_root),
+        "--manifest",
+        str(manifest),
+        "--reviewed-revision",
+        "0" * 40,
+        "--reviewed-tree",
+        "1" * 40,
+    )
+    assert first.returncode == 0, first.stderr
+    first_bytes = manifest.read_bytes()
+
+    verified = _run(str(REPLAY), "verify", "--manifest", str(manifest))
+    assert verified.returncode == 0, verified.stderr
+    second = _run(
+        str(REPLAY),
+        "record",
+        "--output-root",
+        str(output_root),
+        "--manifest",
+        str(manifest),
+        "--reviewed-revision",
+        "0" * 40,
+        "--reviewed-tree",
+        "1" * 40,
+    )
+    assert second.returncode == 0, second.stderr
+    assert manifest.read_bytes() == first_bytes
+
+
+def test_collector_rejects_nondeterministic_scope_clock_before_writing(tmp_path):
+    output = tmp_path / "targets.json"
+    result = _run(
+        str(COLLECT),
+        "--target",
+        "app.py::status::Job",
+        "--project-root",
+        str(FIXTURE_ROOT / "python"),
+        "--output",
+        str(output),
+        "--scope-written-at",
+        "2000-01-01T00:00:00",
+    )
+
+    assert result.returncode == 2
+    assert "--scope-written-at must include a UTC offset" in result.stderr
+    assert not output.exists()

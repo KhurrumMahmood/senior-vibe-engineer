@@ -50,7 +50,9 @@ claim. Write toward these gates from Stage 0.
 ## Core invariant
 
 1. **Closed vocabulary first.** Include only states owned by the carrier.
-   Values owned by an external bridge remain boundary mappings, not members.
+   Require one classification for every collected site. Values owned by an
+   external bridge remain boundary mappings, not members; any dynamic or
+   unresolved ownership keeps the proposal closed.
 2. **Wire identity is immutable in the proposal.** Member names may improve;
    persisted and exchanged values may not silently change.
 3. **Variants are evidence.** A spelling/case variant is a compatibility risk,
@@ -113,6 +115,11 @@ Derive members only from the carrier's declared vocabulary when one exists.
 Member names are symbolic; wire values retain exact spelling and order. If the
 declared vocabulary and collected literals differ, retain both sets and add a
 reconciliation risk.
+
+For a plain-language carrier, require a declared vocabulary and an exhaustive
+site-classification artifact. Reject missing/duplicate classifications and
+stop on every dynamic site. Never derive members from the unclassified literal
+inventory.
 
 Use `agents/enum-profiler.md` only when deterministic evidence cannot classify
 a site. Tell the scout its output is judged solely by the profile artifact it

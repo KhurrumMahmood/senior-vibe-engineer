@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import json
 from pathlib import Path
 import re
@@ -19,28 +20,82 @@ def build_semantics(targets: dict[str, Any]) -> dict[str, Any]:
     """Build a framework-neutral enum proposal without importing host code."""
     if targets.get("carrier_kind") != "python-attribute":
         raise ValueError("plain-Python renderer requires carrier_kind 'python-attribute'")
-    values = sorted(
-        {
-            str(item["value"])
-            for item in targets["literals"]
-            if item.get("case_variant_of") is None
-        }
-    )
-    if not values:
-        raise ValueError("targets contain no canonical string literals")
+    choices = targets.get("declared_choices")
+    if not isinstance(choices, list) or not choices:
+        raise ValueError(
+            "plain-Python rendering requires a declared carrier vocabulary"
+        )
+    values = [str(choice["wire_value"]) for choice in choices]
+    if len(values) != len(set(values)):
+        raise ValueError("declared carrier vocabulary contains duplicate wire values")
     members = [{"name": _member_name(value), "wire_value": value} for value in values]
     names = [member["name"] for member in members]
     if len(names) != len(set(names)):
         raise ValueError("canonical wire values collide after enum-member normalization")
-    variants = sorted(
-        str(item["value"])
-        for item in targets["literals"]
-        if item.get("case_variant_of") is not None
+    classifications = targets.get("site_classifications")
+    if not isinstance(classifications, list):
+        raise ValueError("plain-Python rendering requires exhaustive site classifications")
+
+    def key(item: dict[str, Any], site_type: str | None = None) -> tuple[object, ...]:
+        return (
+            site_type or item.get("site_type"),
+            item.get("file"),
+            item.get("symbol"),
+            item.get("literal"),
+            item.get("lineno"),
+        )
+
+    expected = Counter(
+        key(site, site_type)
+        for site_type, sites in (
+            ("comparison", targets["comparison_sites"]),
+            ("assignment", targets["assignment_sites"]),
+        )
+        for site in sites
     )
+    provided = Counter(key(item) for item in classifications if isinstance(item, dict))
+    if provided != expected or len(classifications) != sum(provided.values()):
+        raise ValueError("plain-Python rendering requires exhaustive site classifications")
+    allowed = {"assignment", "bridge", "case_risk", "confirmed", "dynamic"}
+    if any(item.get("kind") not in allowed for item in classifications):
+        raise ValueError("site classifications contain an unsupported kind")
+    dynamic = [item for item in classifications if item["kind"] == "dynamic"]
+    if dynamic:
+        raise ValueError("unresolved dynamic ownership blocks plain-Python rendering")
+    allowed_by_site_type = {
+        "assignment": {"assignment", "bridge", "case_risk"},
+        "comparison": {"bridge", "case_risk", "confirmed"},
+    }
+    for item in classifications:
+        site_type = item["site_type"]
+        if item["kind"] not in allowed_by_site_type[site_type]:
+            raise ValueError(
+                f"{site_type} site has incompatible classification {item['kind']!r}"
+            )
+    wire_values = set(values)
+    folded_values = {value.casefold() for value in values}
+    for item in classifications:
+        literal = str(item["literal"])
+        kind = item["kind"]
+        if kind in {"assignment", "confirmed"} and literal not in wire_values:
+            raise ValueError(f"{kind} site is outside the declared carrier vocabulary")
+        if kind == "case_risk" and (
+            literal in wire_values or literal.casefold() not in folded_values
+        ):
+            raise ValueError("case-risk site does not match a declared wire value")
+
+    def classified(kind: str) -> list[dict[str, Any]]:
+        return [item for item in classifications if item["kind"] == kind]
+
+    variants = sorted(str(item["literal"]) for item in classified("case_risk"))
     carrier = str(targets["model_class"])
     field = str(targets["field_name"])
     return {
         "carrier_kind": "python-attribute",
+        "assignment_sites": classified("assignment"),
+        "bridge_sites": classified("bridge"),
+        "case_risk_sites": classified("case_risk"),
+        "confirmed_sites": classified("confirmed"),
         "members": members,
         "risks": [
             {
@@ -50,10 +105,6 @@ def build_semantics(targets: dict[str, Any]) -> dict[str, Any]:
             }
             for value in variants
         ],
-        "sites": {
-            "assignments": targets["assignment_sites"],
-            "comparisons": targets["comparison_sites"],
-        },
         "stop": {
             "execute": False,
             "required": [

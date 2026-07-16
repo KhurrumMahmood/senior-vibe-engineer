@@ -84,8 +84,10 @@ from __future__ import annotations
 
 import argparse
 import ast
+from datetime import datetime
 import fnmatch
 import json
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -103,12 +105,24 @@ if _SCRIPTS_DIR not in sys.path:
 from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
 
 STATE_FIELD_CALLS = frozenset({"CharField", "TextField"})
+BRIDGE_HINT = re.compile(r"vendor|bridge|webhook|external|import", re.IGNORECASE)
 
 _DEFAULT_SKIP_DIRS: frozenset[str] = frozenset({
     "migrations", "__pycache__", "staticfiles", "node_modules",
     ".git", ".venv", "venv", "dist", "build",
     "reference_code",
 })
+
+
+def _validate_scope_written_at(value: str | None) -> None:
+    if value is None:
+        return
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError("--scope-written-at must be an ISO-8601 timestamp") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError("--scope-written-at must include a UTC offset")
 _DEFAULT_SKIP_FILE_GLOBS: tuple[str, ...] = (
     "tests_*.py", "test_*.py", "tests.py", "conftest.py",
 )
@@ -311,22 +325,20 @@ def _segment_source(src_lines: list[str], node: ast.AST, limit: int = 240) -> st
 
 
 def _extract_field_kwargs(call: ast.Call) -> dict[str, Any]:
-    """Best-effort extraction of interesting CharField kwargs."""
+    """Extract every literal-safe field kwarg or fail before proposing."""
+    if call.args:
+        raise ValueError("positional model field arguments are unsupported; use explicit keywords")
     out: dict[str, Any] = {}
     for kw in call.keywords:
         if kw.arg is None:
-            continue
+            raise ValueError("unpacked model field keyword arguments are unsupported")
         value = kw.value
-        if kw.arg == "max_length" and isinstance(value, ast.Constant):
-            out["max_length"] = value.value
-            continue
         if kw.arg == "default":
             lit = _string_literal_value(value)
             if lit is not None:
                 out["default"] = lit
-            elif isinstance(value, ast.Attribute):
-                # e.g. default=JobStatus.PENDING (already migrated)
-                out["default"] = ast.unparse(value)
+            else:
+                raise ValueError("unsupported or dynamic field keyword 'default'")
             continue
         if kw.arg == "choices":
             # Tuple-style: choices=STATUS_CHOICES (a Name) or choices=[(...)].
@@ -335,15 +347,30 @@ def _extract_field_kwargs(call: ast.Call) -> dict[str, Any]:
             elif isinstance(value, (ast.List, ast.Tuple)):
                 pairs: list[list[str]] = []
                 for elt in value.elts:
-                    if isinstance(elt, (ast.Tuple, ast.List)) and len(elt.elts) == 2:
-                        a = _string_literal_value(elt.elts[0])
-                        b = _string_literal_value(elt.elts[1])
-                        if a is not None and b is not None:
-                            pairs.append([a, b])
-                if pairs:
-                    out["tuple_choices"] = pairs
+                    if not isinstance(elt, (ast.Tuple, ast.List)) or len(elt.elts) != 2:
+                        raise ValueError("inline choices must contain literal two-column rows")
+                    a = _string_literal_value(elt.elts[0])
+                    b = _string_literal_value(elt.elts[1])
+                    if a is None or b is None:
+                        raise ValueError("inline choices must contain literal string pairs")
+                    pairs.append([a, b])
+                if not pairs:
+                    raise ValueError("inline choices must not be empty")
+                out["tuple_choices"] = pairs
             elif isinstance(value, ast.Attribute):
                 out["choices_ref"] = ast.unparse(value)
+            else:
+                raise ValueError("unsupported or dynamic field keyword 'choices'")
+            continue
+        try:
+            literal = ast.literal_eval(value)
+        except (ValueError, TypeError):
+            raise ValueError(
+                f"unsupported or dynamic field keyword {kw.arg!r}"
+            ) from None
+        if not isinstance(literal, (str, int, float, bool, type(None), list, tuple, dict)):
+            raise ValueError(f"unsupported field keyword value for {kw.arg!r}")
+        out[kw.arg] = literal
     return out
 
 
@@ -483,8 +510,34 @@ def _find_python_attribute_declaration(
                 current["annotation"] = annotation
             if default is not None:
                 current["default"] = default
+            values_name = f"{field_name.upper()}_VALUES"
+            declared_choices: list[dict[str, str]] = []
+            for candidate in node.body:
+                if not isinstance(candidate, (ast.Assign, ast.AnnAssign)):
+                    continue
+                targets = candidate.targets if isinstance(candidate, ast.Assign) else [candidate.target]
+                if not any(
+                    isinstance(target, ast.Name) and target.id == values_name
+                    for target in targets
+                ):
+                    continue
+                raw_values = candidate.value
+                if not isinstance(raw_values, (ast.List, ast.Tuple)):
+                    raise ValueError(
+                        f"{node.name}.{values_name} must be a literal string sequence"
+                    )
+                for item in raw_values.elts:
+                    wire_value = _string_literal_value(item)
+                    if wire_value is None:
+                        raise ValueError(
+                            f"{node.name}.{values_name} must contain only string literals"
+                        )
+                    declared_choices.append(
+                        {"wire_value": wire_value, "label": wire_value}
+                    )
             return {
                 "carrier_kind": "python-attribute",
+                "declared_choices": declared_choices,
                 "field_file": rel,
                 "field_symbol": f"{node.name}.{field_name}",
                 "model_class": node.name,
@@ -492,6 +545,46 @@ def _find_python_attribute_declaration(
                 "current_kwargs": current,
             }
     return None
+
+
+def _classify_python_sites(
+    comparisons: list[dict[str, Any]],
+    assignments: list[dict[str, Any]],
+    declared_choices: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    wire_values = {choice["wire_value"] for choice in declared_choices}
+    folded = {value.casefold() for value in wire_values}
+    classified: list[dict[str, Any]] = []
+    for site_type, sites in (("comparison", comparisons), ("assignment", assignments)):
+        for site in sites:
+            literal = str(site["literal"])
+            evidence = " ".join(
+                (str(site["file"]), str(site["symbol"]), str(site.get("evidence", "")))
+            )
+            if literal in wire_values:
+                kind = "confirmed" if site_type == "comparison" else "assignment"
+            elif literal.casefold() in folded:
+                kind = "case_risk"
+            elif BRIDGE_HINT.search(evidence):
+                kind = "bridge"
+            else:
+                kind = "dynamic"
+            classified.append(
+                {
+                    "file": str(site["file"]),
+                    "kind": kind,
+                    "lineno": int(site["lineno"]),
+                    "literal": literal,
+                    "site_type": site_type,
+                    "symbol": str(site["symbol"]),
+                }
+            )
+    return sorted(
+        classified,
+        key=lambda item: (
+            item["site_type"], item["file"], item["lineno"], item["symbol"], item["literal"]
+        ),
+    )
 
 
 def _scan_comparisons_and_assignments(
@@ -868,7 +961,12 @@ def _find_model_declaration_file(
 
 
 # spec:status-projection-and-presentation::IM-5
-def _write_scope_sidecar(artifact_dir: Path, paths: list[str]) -> None:
+def _write_scope_sidecar(
+    artifact_dir: Path,
+    paths: list[str],
+    *,
+    written_at: str | None = None,
+) -> None:
     """scope.json sidecar (ADR 0037) — declares which repo paths this
     artifact's conclusions depend on, so the status projection can flag
     input drift. Strictly additive; silently skipped when the toolkit
@@ -881,7 +979,7 @@ def _write_scope_sidecar(artifact_dir: Path, paths: list[str]) -> None:
     spec = importlib.util.spec_from_file_location("artifact_scope", helper)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    mod.write_scope(artifact_dir, paths)
+    mod.write_scope(artifact_dir, paths, written_at=written_at)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -899,7 +997,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model-class", default=None,
                         help="Optional: narrow to a specific Model subclass "
                              "when the field name is reused across models")
+    parser.add_argument(
+        "--scope-written-at",
+        help="Explicit ISO-8601 clock for deterministic scope.json replay",
+    )
     args = parser.parse_args(argv)
+
+    try:
+        _validate_scope_written_at(args.scope_written_at)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
 
     project_root = args.project_root.resolve()
 
@@ -931,11 +1039,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: field file not found: {field_path}", file=sys.stderr)
         return 2
 
-    decl = _find_field_declaration(field_path, rel_file, field_name, model_class)
-    if decl is None:
-        decl = _find_python_attribute_declaration(
-            field_path, rel_file, field_name, model_class
-        )
+    try:
+        decl = _find_field_declaration(field_path, rel_file, field_name, model_class)
+        if decl is None:
+            decl = _find_python_attribute_declaration(
+                field_path, rel_file, field_name, model_class
+            )
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     if decl is None and model_class:
         # The finding's file may be a caller site, not the model declaration.
         # Fall back to searching the in-scope tree for `class <model_class>(`.
@@ -945,11 +1057,15 @@ def main(argv: list[str] | None = None) -> int:
                 alt_rel = str(alt_path.relative_to(project_root))
             except ValueError:
                 alt_rel = str(alt_path)
-            alt_decl = _find_field_declaration(alt_path, alt_rel, field_name, model_class)
-            if alt_decl is None:
-                alt_decl = _find_python_attribute_declaration(
-                    alt_path, alt_rel, field_name, model_class
-                )
+            try:
+                alt_decl = _find_field_declaration(alt_path, alt_rel, field_name, model_class)
+                if alt_decl is None:
+                    alt_decl = _find_python_attribute_declaration(
+                        alt_path, alt_rel, field_name, model_class
+                    )
+            except ValueError as exc:
+                print(f"error: {exc}", file=sys.stderr)
+                return 2
             if alt_decl is not None:
                 print(
                     f"[collect_extract_enum] note: {rel_file!r} is a caller "
@@ -1011,15 +1127,25 @@ def main(argv: list[str] | None = None) -> int:
             else {}
         ),
         "current_kwargs": decl["current_kwargs"],
-        "declared_choices": _resolve_declared_choices(
-            field_path,
-            decl["current_kwargs"].get("choices_ref"),
+        "declared_choices": (
+            decl.get("declared_choices")
+            or [
+                {"wire_value": row[0], "label": row[1]}
+                for row in decl["current_kwargs"].get("tuple_choices", [])
+            ]
+            or _resolve_declared_choices(
+                field_path, decl["current_kwargs"].get("choices_ref")
+            )
         ),
         "literals": literals,
         "comparison_sites": comparisons,
         "assignment_sites": assignments,
         "callers_by_file": _callers_by_file(comparisons, assignments),
     }
+    if decl["carrier_kind"] == "python-attribute":
+        target["site_classifications"] = _classify_python_sites(
+            comparisons, assignments, target["declared_choices"]
+        )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
@@ -1029,6 +1155,7 @@ def main(argv: list[str] | None = None) -> int:
     _write_scope_sidecar(
         args.output.parent,
         sorted({decl["field_file"], *target["callers_by_file"]}),
+        written_at=args.scope_written_at,
     )
 
     # Stderr summary.

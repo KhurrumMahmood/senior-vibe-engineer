@@ -52,11 +52,25 @@ def build_semantics(targets: dict[str, Any]) -> dict[str, Any]:
     choices = targets.get("declared_choices")
     if not isinstance(choices, list) or not choices:
         raise ValueError("targets have no resolved declared choices; framework binding cannot infer wire identity")
+    if any(
+        not isinstance(choice, dict)
+        or not isinstance(choice.get("wire_value"), str)
+        or not isinstance(choice.get("label"), str)
+        for choice in choices
+    ):
+        raise ValueError("declared choices must carry exact string wire_value and label pairs")
     members = [
-        {"name": _member_name(str(choice["wire_value"])), "wire_value": str(choice["wire_value"])}
+        {
+            "label": str(choice["label"]),
+            "name": _member_name(str(choice["wire_value"])),
+            "wire_value": str(choice["wire_value"]),
+        }
         for choice in choices
     ]
     wire_values = {member["wire_value"] for member in members}
+    default = targets["current_kwargs"].get("default")
+    if default is not None and default not in wire_values:
+        raise ValueError("field default is not one of the declared choice wire values")
     confirmed: list[dict[str, str]] = []
     legacy: list[dict[str, str]] = []
     bridges: list[dict[str, str]] = []
@@ -271,16 +285,17 @@ def render_proposal(semantics: dict[str, Any], *, field_constructor: str) -> str
     kwargs = semantics["current_kwargs"]
     if field_constructor not in {"CharField", "TextField"}:
         raise ValueError(f"unsupported model field constructor: {field_constructor!r}")
-    field_lines = [
-        f"{target['target'].split('::')[1]} = models.{field_constructor}(",
-    ]
-    if "max_length" in kwargs:
-        field_lines.append(f"    max_length={kwargs['max_length']!r},")
+    field_lines = [f"{target['target'].split('::')[1]} = models.{field_constructor}("]
+    for option, value in sorted(kwargs.items()):
+        if option in {"choices_ref", "tuple_choices"}:
+            continue
+        if option == "default":
+            field_lines.append(
+                f"    default={class_name}.{_member_name(str(value))},"
+            )
+        else:
+            field_lines.append(f"    {option}={value!r},")
     field_lines.append(f"    choices={class_name}.choices,")
-    if "default" in kwargs:
-        field_lines.append(
-            f"    default={class_name}.{_member_name(str(kwargs['default']))},"
-        )
     field_lines.append(")")
     lines = [
         f"# Proposal — extract-enum: {target['field_symbol']}",
@@ -296,10 +311,9 @@ def render_proposal(semantics: dict[str, Any], *, field_constructor: str) -> str
         "",
         f"class {class_name}(models.TextChoices):",
     ]
-    labels = {member["wire_value"]: member["wire_value"].replace("_", " ").title() for member in semantics["members"]}
     for member in semantics["members"]:
         lines.append(
-            f"    {member['name']} = {member['wire_value']!r}, {labels[member['wire_value']]!r}"
+            f"    {member['name']} = {member['wire_value']!r}, {member['label']!r}"
         )
     lines.extend(
         [

@@ -25,7 +25,25 @@ SIDECAR_NAME = "scope.json"
 SIDECAR_VERSION = 1
 
 
-def write_scope(artifact_dir: Path, paths: list[str], note: str | None = None) -> Path:
+def _written_at(value: str | None) -> str:
+    if value is None:
+        return datetime.now(timezone.utc).isoformat()
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError("written_at must be an ISO-8601 timestamp") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError("written_at must include a UTC offset")
+    return parsed.astimezone(timezone.utc).isoformat()
+
+
+def write_scope(
+    artifact_dir: Path,
+    paths: list[str],
+    note: str | None = None,
+    *,
+    written_at: str | None = None,
+) -> Path:
     """Write the sidecar next to an artifact; returns the sidecar path.
 
     `paths` are repo-relative POSIX paths (files or directory prefixes).
@@ -35,7 +53,7 @@ def write_scope(artifact_dir: Path, paths: list[str], note: str | None = None) -
     payload: dict[str, Any] = {
         "version": SIDECAR_VERSION,
         "paths": sorted({str(p) for p in paths}),
-        "written_at": datetime.now(timezone.utc).isoformat(),
+        "written_at": _written_at(written_at),
     }
     if note:
         payload["note"] = note

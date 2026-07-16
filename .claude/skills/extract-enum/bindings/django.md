@@ -7,7 +7,10 @@ binding after the Python language binding.
 
 For a model `CharField` or `TextField`, propose a `models.TextChoices` class,
 not a tuple-style choices list. Preserve the declared choice order and wire
-values. Change the field default to the matching enum member and set
+values, including each declared human label exactly. Preserve every literal-
+safe field keyword such as `null`, `blank`, `db_index`, and `help_text`;
+unsupported positional, unpacked, or dynamic options stop collection rather
+than disappearing from the proposal. Change the field default to the matching enum member and set
 `choices=<Enum>.choices` only during the later execution skill.
 
 Render the deterministic proposal boundary:

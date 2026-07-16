@@ -30,6 +30,13 @@ field keyword arguments, a referenced two-column choice constant, literals,
 comparison and assignment sites, and caller counts. It skips tests, generated
 trees, environments, dependencies, and migrations.
 
+For a plain class/dataclass attribute, declare the owned wire vocabulary as a
+literal class sequence named `<FIELD>_VALUES` (for example `STATUS_VALUES`).
+The collector emits exactly one ownership classification per occurrence. The
+renderer stops if the vocabulary/classifications are absent or duplicated, or
+if any occurrence remains dynamic. Bridge and case-risk literals never become
+members.
+
 For a plain class/dataclass string attribute, render the deterministic Python
 endpoint:
 
