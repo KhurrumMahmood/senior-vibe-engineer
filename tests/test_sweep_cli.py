@@ -21,6 +21,7 @@ from sweep.commands import (
     scan_native,
     scan_profile,
 )
+from sweep.git_source import capture_git_source
 from sweep.manifest import FindingInput, build_manifest, write_manifest
 from sweep.pipeline import build_judgment, build_judgment_input, build_packet
 from sweep.profile import load_sweep_profile
@@ -128,6 +129,19 @@ def _run_cli(*args: str, cwd: Path, path: str | None = None) -> subprocess.Compl
         stderr=subprocess.PIPE,
         check=False,
     )
+
+
+def _init_repository(root: Path) -> dict[str, object]:
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "fixture@example.test"], cwd=root, check=True
+    )
+    subprocess.run(["git", "config", "user.name", "Fixture"], cwd=root, check=True)
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(
+        ["git", "commit", "-qm", "fixture", "--allow-empty"], cwd=root, check=True
+    )
+    return capture_git_source(root)
 
 
 def test_im_7_digest_is_deterministic_and_hard_bounded() -> None:
@@ -262,20 +276,33 @@ def test_im_9_im_10_judgment_and_packet_cli_match_library_artifacts(tmp_path: Pa
 def test_im_11_verify_cli_runs_command_derives_scope_rescans_and_emits_evidence(
     tmp_path: Path,
 ) -> None:
-    before = _manifest([_finding(1), _finding(2)])
-    after = _manifest([_finding(2)])
-    judgment = _judgment(before)
-    fixed_id = before["findings"][0]["id"]
-    changed_path = before["findings"][0]["location"]["path"]
-    changed = tmp_path / changed_path
+    root = tmp_path / "repo"
+    root.mkdir()
+    changed_path = _finding(1).path
+    changed = root / changed_path
     changed.parent.mkdir(parents=True)
     changed.write_text("before\n")
+    clean_source = _init_repository(root)
+    before = _manifest([_finding(1), _finding(2)], revision=str(clean_source["revision"]))
+    judgment = _judgment(before)
+    fixed_id = before["findings"][0]["id"]
+    changed.write_text("after\n")
+    after = build_manifest(
+        capability_registry_version=1,
+        paths=["src"],
+        case_sensitive=True,
+        roots=["src"],
+        exclusions=[],
+        source=capture_git_source(root),
+        providers=[_provider()],
+        findings=[_finding(2)],
+    )
     packet = build_packet(
         before, judgment, finding_ids=[fixed_id], scope=[changed_path], recipe="fix it",
         verification="/usr/bin/true",
         expected_delta={"fixed": [fixed_id], "allowed_new": [], "metrics": []},
         token_budget=8_000,
-        root=tmp_path,
+        root=root,
     )
     before_path = tmp_path / "before.json"
     after_path = tmp_path / "after.json"
@@ -287,28 +314,15 @@ def test_im_11_verify_cli_runs_command_derives_scope_rescans_and_emits_evidence(
     judgment_path.write_bytes(canonical_json_bytes(judgment))
     packet_path.write_bytes(canonical_json_bytes(packet))
 
-    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
-    subprocess.run(["git", "config", "user.email", "fixture@example.test"], cwd=tmp_path, check=True)
-    subprocess.run(["git", "config", "user.name", "Fixture"], cwd=tmp_path, check=True)
-    subprocess.run(["git", "add", changed_path], cwd=tmp_path, check=True)
-    subprocess.run(["git", "commit", "-qm", "fixture"], cwd=tmp_path, check=True)
-    changed.write_text("after\n")
-
     scanner = tmp_path / "scanner.py"
     scanner.write_text(
         "from pathlib import Path\nimport sys\n"
         "sys.stdout.buffer.write(Path(sys.argv[1]).read_bytes())\n"
     )
-    subprocess.run(
-        ["git", "add", "before.json", "after.json", "judgment.json", "packet.json", "scanner.py"],
-        cwd=tmp_path,
-        check=True,
-    )
-    subprocess.run(["git", "commit", "-qm", "harness inputs"], cwd=tmp_path, check=True)
     scan_command = shlex.join([str(PYTHON), str(scanner), str(after_path)])
     result = _run_cli(
         "verify", "--packet", str(packet_path), "--before-manifest", str(before_path),
-        "--judgments", str(judgment_path), "--root", str(tmp_path),
+        "--judgments", str(judgment_path), "--root", str(root),
         "--scan-command", scan_command, "--out", str(output), cwd=tmp_path,
     )
 
@@ -472,13 +486,14 @@ def test_im_8_scan_cli_uses_explicit_tool_and_is_cwd_path_and_activation_indepen
     )
     tool.chmod(0o755)
     output = tmp_path / "manifest.json"
+    source = _init_repository(host)
 
     library = scan_native(
         root=host,
         languages=("python",),
         scopes=(".",),
         case_sensitive=True,
-        source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
+        source=source,
         executables={"ruff": tool},
     )
     result = _run_cli(
@@ -492,11 +507,6 @@ def test_im_8_scan_cli_uses_explicit_tool_and_is_cwd_path_and_activation_indepen
         "--scope",
         ".",
         "--case-sensitive",
-        "--revision",
-        REVISION,
-        "--clean",
-        "--dirty-state-hash",
-        EMPTY_SHA256,
         "--tool",
         f"ruff={tool}",
         cwd=tmp_path,
@@ -509,6 +519,90 @@ def test_im_8_scan_cli_uses_explicit_tool_and_is_cwd_path_and_activation_indepen
     assert library["status"] == "complete"
     assert library["providers"][0]["status"] == "completed"
     assert library["total"] == 0
+
+
+@pytest.mark.parametrize(
+    "assertion",
+    [
+        ("--revision", "0" * 40),
+        ("--dirty",),
+        ("--dirty-state-hash", "0" * 64),
+    ],
+)
+def test_scan_cli_rejects_forged_legacy_source_assertions(
+    tmp_path: Path, assertion: tuple[str, ...]
+) -> None:
+    host = tmp_path / "host"
+    host.mkdir()
+    _init_repository(host)
+    tool = tmp_path / "fixed-ruff"
+    tool.write_text(
+        "#!/bin/sh\n"
+        "if [ \"$1\" = \"--version\" ]; then echo 'ruff 0.9.9'; exit 0; fi\n"
+        "printf '[]'\n",
+        encoding="utf-8",
+    )
+    tool.chmod(0o755)
+    output = tmp_path / "manifest.json"
+
+    result = _run_cli(
+        "scan",
+        "--root",
+        str(host),
+        "--out",
+        str(output),
+        "--language",
+        "python",
+        "--case-sensitive",
+        *assertion,
+        "--tool",
+        f"ruff={tool}",
+        cwd=tmp_path,
+        path="/usr/bin:/bin",
+    )
+
+    assert result.returncode == 3
+    assert b"does not match Git" in result.stderr
+    assert not output.exists()
+
+
+def test_scan_cli_rejects_source_movement_during_provider_execution(
+    tmp_path: Path,
+) -> None:
+    host = tmp_path / "host"
+    host.mkdir()
+    tracked = host / "sample.py"
+    tracked.write_text("before\n", encoding="utf-8")
+    _init_repository(host)
+    tool = tmp_path / "mutating-ruff"
+    tool.write_text(
+        "#!/bin/sh\n"
+        f"if [ \"$1\" = \"--version\" ]; then printf 'after\\n' > "
+        f"{shlex.quote(str(tracked))}; echo 'ruff 0.9.9'; exit 0; fi\n"
+        "printf '[]'\n",
+        encoding="utf-8",
+    )
+    tool.chmod(0o755)
+    output = tmp_path / "manifest.json"
+
+    result = _run_cli(
+        "scan",
+        "--root",
+        str(host),
+        "--out",
+        str(output),
+        "--language",
+        "python",
+        "--case-sensitive",
+        "--tool",
+        f"ruff={tool}",
+        cwd=tmp_path,
+        path="/usr/bin:/bin",
+    )
+
+    assert result.returncode == 3
+    assert b"Git source changed while the sweep scan was running" in result.stderr
+    assert not output.exists()
 
 
 def test_im_14_profile_scan_cli_runs_one_registry_selected_mixed_battery(
@@ -545,11 +639,7 @@ def test_im_14_profile_scan_cli_runs_one_registry_selected_mixed_battery(
         encoding="utf-8",
     )
     output = tmp_path / "manifest.json"
-    source = {
-        "revision": REVISION,
-        "dirty": False,
-        "dirty_state_hash": EMPTY_SHA256,
-    }
+    source = _init_repository(host)
 
     library = scan_profile(
         root=host,
@@ -566,10 +656,10 @@ def test_im_14_profile_scan_cli_runs_one_registry_selected_mixed_battery(
         "--profile",
         str(profile_path),
         "--revision",
-        REVISION,
+        str(source["revision"]),
         "--clean",
         "--dirty-state-hash",
-        EMPTY_SHA256,
+        str(source["dirty_state_hash"]),
         "--tool",
         f"ruff={tool}",
         cwd=tmp_path,
@@ -685,6 +775,7 @@ def test_im_8_failed_provider_has_typed_exit_and_publishes_no_manifest(tmp_path:
     )
     tool.chmod(0o755)
     output = tmp_path / "manifest.json"
+    source = _init_repository(host)
 
     result = _run_cli(
         "scan",
@@ -696,10 +787,10 @@ def test_im_8_failed_provider_has_typed_exit_and_publishes_no_manifest(tmp_path:
         "python",
         "--case-sensitive",
         "--revision",
-        REVISION,
+        str(source["revision"]),
         "--clean",
         "--dirty-state-hash",
-        EMPTY_SHA256,
+        str(source["dirty_state_hash"]),
         "--tool",
         f"ruff={tool}",
         cwd=tmp_path,

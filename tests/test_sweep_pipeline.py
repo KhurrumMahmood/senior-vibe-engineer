@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from sweep.git_source import capture_git_source
 from sweep.manifest import FindingInput, build_manifest
 from sweep.pipeline import (
     HarnessScan,
@@ -19,7 +20,7 @@ from sweep.pipeline import (
     read_changed_paths,
     render_judged_digest,
     validate_judged_digest,
-    verify_packet,
+    verify_packet as _verify_packet,
 )
 from sweep.schemas import SchemaValidationError, packet_budget_ceiling, validate_packet
 from sweep.serialization import canonical_json_bytes
@@ -74,17 +75,29 @@ def _finding(index: int, *, count: int = 1, message_size: int = 20) -> FindingIn
     )
 
 
-def _manifest(findings: list[FindingInput], *, revision: str = REVISION) -> dict[str, object]:
+def _manifest(
+    findings: list[FindingInput],
+    *,
+    revision: str = REVISION,
+    source: dict[str, object] | None = None,
+) -> dict[str, object]:
     return build_manifest(
         capability_registry_version=1,
         paths=["src"],
         case_sensitive=True,
         roots=["src"],
         exclusions=[],
-        source={"revision": revision, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
+        source=source
+        or {"revision": revision, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
         providers=[_provider()],
         findings=findings,
     )
+
+
+def verify_packet(packet, before_manifest, judgment, **kwargs):
+    """Keep synthetic harness cases deterministic; Git binding has focused tests below."""
+    kwargs.setdefault("source_reader", lambda _root: before_manifest["source"])
+    return _verify_packet(packet, before_manifest, judgment, **kwargs)
 
 
 def _empty_manifest_with_boundary(
@@ -560,6 +573,114 @@ def test_im_11_changed_paths_are_harness_derived_from_git(tmp_path: Path) -> Non
     (tmp_path / "src" / "new.py").write_text("new\n")
 
     assert read_changed_paths(tmp_path) == ["src/new.py", "src/tracked.py"]
+
+
+def test_im_11_harness_binds_rescan_manifest_to_actual_git_source(
+    tmp_path: Path,
+) -> None:
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "fixture@example.test"],
+        cwd=tmp_path,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Fixture"], cwd=tmp_path, check=True
+    )
+    path = "src/file_001.py"
+    _materialize_scope(tmp_path, [path])
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "fixture"], cwd=tmp_path, check=True)
+    clean_source = capture_git_source(tmp_path)
+    before = _manifest([_finding(1)], source=clean_source)
+    judgment = _judgment(before)
+    identifier = before["findings"][0]["id"]
+    (tmp_path / path).write_text("fixed\n", encoding="utf-8")
+    dirty_source = capture_git_source(tmp_path)
+    after = _manifest([], source=dirty_source)
+    packet = build_packet(
+        before,
+        judgment,
+        finding_ids=[identifier],
+        scope=[path],
+        recipe="fix it",
+        verification="/usr/bin/true",
+        expected_delta={"fixed": [identifier], "allowed_new": [], "metrics": []},
+        token_budget=8_000,
+        root=tmp_path,
+    )
+
+    evidence = _verify_packet(
+        packet,
+        before,
+        judgment,
+        root=tmp_path,
+        verification_runner=lambda argv, _root: _verification(argv),
+        scanner=lambda: _harness_scan(after),
+    )
+
+    assert evidence["verdict"] == "verified"
+    assert dirty_source["dirty"] is True
+
+
+def test_im_11_harness_rejects_forged_or_moving_git_source(tmp_path: Path) -> None:
+    before = _manifest([_finding(1)])
+    judgment = _judgment(before)
+    identifier = before["findings"][0]["id"]
+    path = before["findings"][0]["location"]["path"]
+    _materialize_scope(tmp_path, [path])
+    packet = build_packet(
+        before,
+        judgment,
+        finding_ids=[identifier],
+        scope=[path],
+        recipe="fix it",
+        verification="/usr/bin/true",
+        expected_delta={"fixed": [identifier], "allowed_new": [], "metrics": []},
+        token_budget=8_000,
+        root=tmp_path,
+    )
+    dirty_source = {
+        "revision": REVISION,
+        "dirty": True,
+        "dirty_state_hash": "d" * 64,
+    }
+
+    with pytest.raises(VerificationGateError, match="does not match Git HEAD"):
+        _verify_packet(
+            packet,
+            before,
+            judgment,
+            root=tmp_path,
+            changed_path_reader=lambda _root: [path],
+            verification_runner=lambda argv, _root: _verification(argv),
+            scanner=lambda: _harness_scan(_manifest([])),
+            source_reader=lambda _root: dirty_source,
+        )
+
+    wrong_head = {**dirty_source, "revision": "b" * 40}
+    with pytest.raises(VerificationGateError, match="does not match Git HEAD"):
+        _verify_packet(
+            packet,
+            before,
+            judgment,
+            root=tmp_path,
+            scanner=lambda: _harness_scan(_manifest([], source=dirty_source)),
+            source_reader=lambda _root: wrong_head,
+        )
+
+    snapshots = iter((dirty_source, dirty_source, {**dirty_source, "dirty_state_hash": "e" * 64}))
+    with pytest.raises(VerificationGateError, match="changed while the harness rescan"):
+        _verify_packet(
+            packet,
+            before,
+            judgment,
+            root=tmp_path,
+            changed_path_reader=lambda _root: [path],
+            verification_runner=lambda argv, _root: _verification(argv),
+            scanner=lambda: _harness_scan(_manifest([], source=dirty_source)),
+            source_reader=lambda _root: next(snapshots),
+        )
 
 
 def test_im_11_verification_command_is_not_shell_interpreted(tmp_path: Path) -> None:

@@ -20,6 +20,7 @@ from .commands import (
     scan_native,
     scan_profile,
 )
+from .git_source import capture_git_source
 from .manifest import ManifestIdentityError, build_diff, read_manifest, write_manifest
 from .native import ProviderExecutionError
 from .pipeline import (
@@ -50,11 +51,19 @@ def _tool_map(values: Sequence[str]) -> dict[str, Path]:
 
 
 def _source(args: argparse.Namespace) -> dict[str, object]:
-    return {
+    source = capture_git_source(args.root)
+    assertions = {
         "revision": args.revision,
         "dirty": args.dirty,
         "dirty_state_hash": args.dirty_state_hash,
     }
+    for name, expected in assertions.items():
+        if expected is not None and expected != source[name]:
+            raise ValueError(
+                f"asserted source {name} does not match Git: "
+                f"expected {expected!r}, observed {source[name]!r}"
+            )
+    return source
 
 
 def _manifest_context(root: Path | None):
@@ -67,6 +76,7 @@ def _read_manifest(path: Path, *, root: Path | None = None) -> dict[str, object]
 
 def _scan(args: argparse.Namespace) -> int:
     tools = _tool_map(args.tool)
+    source = _source(args)
     if args.profile is not None:
         if args.scope or args.case_sensitive is not None:
             raise ValueError(
@@ -75,7 +85,7 @@ def _scan(args: argparse.Namespace) -> int:
         manifest = scan_profile(
             root=args.root,
             profile=load_sweep_profile(args.profile),
-            source=_source(args),
+            source=source,
             executables=tools,
         )
     else:
@@ -86,9 +96,11 @@ def _scan(args: argparse.Namespace) -> int:
             languages=args.language,
             scopes=args.scope or (".",),
             case_sensitive=args.case_sensitive,
-            source=_source(args),
+            source=source,
             executables=tools,
         )
+    if capture_git_source(args.root) != source:
+        raise ValueError("Git source changed while the sweep scan was running")
     written = write_manifest(
         args.out,
         manifest,
@@ -261,11 +273,12 @@ def _parser() -> argparse.ArgumentParser:
     case.add_argument("--case-sensitive", action="store_true", dest="case_sensitive")
     case.add_argument("--case-insensitive", action="store_false", dest="case_sensitive")
     scan.set_defaults(case_sensitive=None)
-    dirty = scan.add_mutually_exclusive_group(required=True)
+    dirty = scan.add_mutually_exclusive_group()
     dirty.add_argument("--dirty", action="store_true", dest="dirty")
     dirty.add_argument("--clean", action="store_false", dest="dirty")
-    scan.add_argument("--revision", required=True)
-    scan.add_argument("--dirty-state-hash", required=True)
+    scan.set_defaults(dirty=None)
+    scan.add_argument("--revision")
+    scan.add_argument("--dirty-state-hash")
     scan.add_argument(
         "--tool",
         action="append",

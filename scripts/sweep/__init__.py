@@ -22,6 +22,7 @@ from .manifest import (
     read_manifest,
     write_manifest,
 )
+from .git_source import capture_git_source
 from .commands import (
     EXIT_CHANGED,
     EXIT_INPUT,
@@ -95,6 +96,7 @@ __all__ = [
     "build_judgment",
     "build_judgment_input",
     "build_packet",
+    "capture_git_source",
     "canonical_json_bytes",
     "canonical_json_text",
     "canonical_sha256",

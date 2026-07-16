@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from .git_source import capture_git_source
 from .manifest import _validated_manifest, build_diff
 from .native import _capture
 from .schemas import (
@@ -633,6 +634,29 @@ def _validated_execution_evidence(
     return dict(value)
 
 
+def _read_git_source(
+    reader: Callable[[Path], Mapping[str, Any]], root: Path, *, label: str
+) -> dict[str, Any]:
+    try:
+        source = reader(root)
+    except Exception as exc:
+        raise VerificationGateError(f"cannot inspect {label} Git source: {exc}") from exc
+    required = {"revision", "dirty", "dirty_state_hash"}
+    if not isinstance(source, Mapping) or set(source) != required:
+        raise VerificationGateError(f"{label} Git source has invalid fields")
+    revision = source["revision"]
+    if not isinstance(revision, str) or not revision:
+        raise VerificationGateError(f"{label} Git source has invalid revision")
+    if type(source["dirty"]) is not bool:
+        raise VerificationGateError(f"{label} Git source has invalid dirty flag")
+    digest = source["dirty_state_hash"]
+    if not isinstance(digest, str) or len(digest) != 64 or any(
+        character not in "0123456789abcdef" for character in digest
+    ):
+        raise VerificationGateError(f"{label} Git source has invalid dirty-state hash")
+    return dict(source)
+
+
 # spec:portable-batch-sweep::IM-11
 def verify_packet(
     packet: Mapping[str, Any],
@@ -643,6 +667,7 @@ def verify_packet(
     scanner: Callable[[], HarnessScan],
     verification_runner: Callable[[Sequence[str], Path], Mapping[str, Any]] = run_verification_command,
     changed_path_reader: Callable[[Path], Sequence[str]] = read_changed_paths,
+    source_reader: Callable[[Path], Mapping[str, Any]] = capture_git_source,
 ) -> dict[str, Any]:
     """Verify a packet through the harness-owned command/rescan/diff boundary."""
     parser_run_context = _parser_context_for_manifest(before_manifest, root=root)
@@ -651,6 +676,9 @@ def verify_packet(
         before_manifest,
         parser_run_context=parser_run_context,
     )
+    initial_source = _read_git_source(source_reader, root, label="initial")
+    if before["source"]["revision"] != initial_source["revision"]:
+        raise VerificationGateError("bound manifest revision does not match Git HEAD")
     validated_judgment = _validated_judgment(
         before,
         judgment,
@@ -686,6 +714,7 @@ def verify_packet(
     if verification["exit_code"] != 0 or verification.get("fault"):
         raise VerificationGateError("verification command failed")
 
+    pre_scan_source = _read_git_source(source_reader, root, label="pre-scan")
     try:
         scan_result = scanner()
         if not isinstance(scan_result, HarnessScan):
@@ -699,6 +728,13 @@ def verify_packet(
         )
     except Exception as exc:
         raise VerificationGateError(f"harness rescan failed: {exc}") from exc
+    post_scan_source = _read_git_source(source_reader, root, label="post-scan")
+    if post_scan_source != pre_scan_source:
+        raise VerificationGateError("Git source changed while the harness rescan was running")
+    if dict(after["source"]) != post_scan_source:
+        raise VerificationGateError("harness rescan source does not match Git HEAD/diff")
+    if after["source"]["revision"] != before["source"]["revision"]:
+        raise VerificationGateError("harness rescan revision does not match the bound manifest")
     if scan_evidence["exit_code"] != 0:
         raise VerificationGateError("harness rescan failed: scan evidence is not successful")
     if after["scope"] != before["scope"]:
@@ -738,6 +774,9 @@ def verify_packet(
         raise VerificationGateError(
             f"post-verification paths outside packet scope: {final_out_of_scope}"
         )
+    final_source = _read_git_source(source_reader, root, label="final")
+    if final_source != post_scan_source:
+        raise VerificationGateError("Git source changed after the harness rescan")
 
     diff = build_diff(
         before,
