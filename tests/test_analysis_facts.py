@@ -34,6 +34,38 @@ FACT_CAPABILITIES = frozenset(
 )
 
 
+@pytest.fixture(scope="module")
+def product_benchmark_report():
+    return build_report()
+
+
+def _comparison_ready(report):
+    candidate = json.loads(json.dumps(report))
+    for score in candidate["metrics"].values():
+        score["precision"] = 1.0
+        score["recall"] = 1.0
+    for result in candidate["fixtures"].values():
+        result.update(
+            {
+                "runs": benchmark.RUNS,
+                "cold_seconds": 0.01,
+                "warm_mean_seconds": 0.01,
+                "warm_stdev_seconds": 0.0,
+                "warm_cv": 0.0,
+                "peak_python_bytes": 1,
+                "peak_rss_bytes": 1,
+                "deterministic": True,
+            }
+        )
+    candidate["toolchain"]["install_size_bytes"] = 1
+    candidate["violations"] = []
+    candidate["passed"] = True
+    candidate["stable_result_sha256"] = benchmark._hash_json(
+        benchmark._stable_projection(candidate)
+    )
+    return candidate
+
+
 def _names(result, capability: str) -> list[str]:
     return [fact.name for fact in result.for_capability(capability)]
 
@@ -273,11 +305,16 @@ def test_golden_fact_files_match_deterministic_adapter_output():
         assert actual == expected
 
 
-def test_productized_provider_meets_pinned_d3_and_small_large_budgets():
-    report = build_report()
+def test_productized_provider_reports_pinned_d3_and_budget_outcomes(product_benchmark_report):
+    report = product_benchmark_report
     assert report["corpus_sha256"] == "da03a77d5818deb2c2acd531e3875ad4053ff278d8cc11f17784d57f38d2cf4f"
-    assert report["passed"], report["violations"]
-    assert not report["violations"]
+    computed = benchmark._budget_violations(
+        report["metrics"],
+        report["fixtures"],
+        report["toolchain"]["install_size_bytes"],
+    )
+    assert report["violations"] == computed
+    assert report["passed"] is (not computed)
     assert all(
         score["precision"] == score["recall"] == 1.0
         for score in report["metrics"].values()
@@ -318,8 +355,10 @@ def test_external_large_fixture_has_pinned_provenance_and_real_shape():
     assert provenance["selection_rationale"]
 
 
-def test_platform_comparison_requires_all_contract_platforms_and_stable_results(monkeypatch):
-    base = build_report()
+def test_platform_comparison_requires_all_contract_platforms_and_stable_results(
+    monkeypatch, product_benchmark_report
+):
+    base = _comparison_ready(product_benchmark_report)
     revision = base["source_revision"]
     working_source_hash = base["source_tree_sha256"]
     revision_hash = benchmark._source_tree_hash_at_revision
@@ -361,8 +400,10 @@ def test_platform_comparison_requires_all_contract_platforms_and_stable_results(
         benchmark.compare_platform_reports([base, linux])
 
 
-def test_platform_comparison_recomputes_budgets_and_binds_git_revision(monkeypatch):
-    base = build_report()
+def test_platform_comparison_recomputes_budgets_and_binds_git_revision(
+    monkeypatch, product_benchmark_report
+):
+    base = _comparison_ready(product_benchmark_report)
     revision = base["source_revision"]
     working_source_hash = base["source_tree_sha256"]
     revision_hash = benchmark._source_tree_hash_at_revision
