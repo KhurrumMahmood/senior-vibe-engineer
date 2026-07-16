@@ -1,5 +1,7 @@
 """Versioned contracts shared by the productized batch-sweep pipeline."""
 
+# spec:portable-batch-sweep::IM-1
+
 from .schemas import (
     DEFAULT_MANIFEST_PATH,
     SchemaValidationError,

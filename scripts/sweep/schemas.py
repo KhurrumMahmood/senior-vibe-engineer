@@ -17,6 +17,7 @@ from _lib.finding_identity import FINDING_ID_SCHEMA_VERSION, FindingIdentity
 
 
 SCHEMA_VERSION = 1
+# spec:portable-batch-sweep::IM-2
 DEFAULT_MANIFEST_PATH = ".engineering/sweep/manifest.json"
 
 FAILURE_KINDS = frozenset(

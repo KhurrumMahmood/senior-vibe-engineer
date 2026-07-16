@@ -19,6 +19,7 @@ code_roots:
   - ai-docs/decisions/0036-batch-sweep-harness.md
   - ai-docs/decisions/0040-stable-finding-identity-v2.md
   - tests/fixtures/sweep
+  - tests/test_sweep_slice0_characterization.py
   - tests/test_sweep_manifest.py
   - tests/test_sweep_native_shims.py
   - tests/test_sweep_pipeline.py
@@ -274,10 +275,10 @@ WP5 verification must assert ADR 0003 still points to AC-8.9.
 
 ### Slice 0 — freeze executable oracles (WP1/WP2 ready)
 
-- [ ] IM-1: Add `tests/fixtures/sweep/prototype-oracle/` and the AR-1–AR-12
+- [x] IM-1: Add `tests/fixtures/sweep/prototype-oracle/` and the AR-1–AR-12
   characterization tests before product code. The fixture is copied evidence,
   not a runtime import from `.claude/tasks/`. <!-- spec:portable-batch-sweep::IM-1 -->
-- [ ] IM-2: Define manifest, provider observation, diff, judgment, packet, and
+- [x] IM-2: Define manifest, provider observation, diff, judgment, packet, and
   typed-failure schemas plus deterministic JSON/hash helpers in
   `scripts/sweep/`; validate adversarial bad fixtures before accepting good
   ones. <!-- spec:portable-batch-sweep::IM-2 -->
