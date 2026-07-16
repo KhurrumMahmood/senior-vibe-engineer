@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import platform
 import sys
 
@@ -436,7 +437,7 @@ def test_support_promotion_uses_registry_tool_policy_not_claimed_pattern(tmp_pat
     assert any("current Python runtime" in reason for reason in reasons)
 
 
-def test_native_tool_probe_must_use_registry_discovered_executable(tmp_path):
+def test_native_tool_probe_ignores_claim_time_path_poisoning(tmp_path, monkeypatch):
     registry = load_registry()
     evidence, _capability = _write_valid_evidence(tmp_path)
     fake_dir = tmp_path / "fake"
@@ -448,6 +449,9 @@ def test_native_tool_probe_must_use_registry_discovered_executable(tmp_path):
         {"name": "node-runtime", "command": [str(fake_node), "--version"]}
     ]
     evidence["evidence_hash"] = canonical_evidence_hash(evidence)
+    monkeypatch.setenv(
+        "PATH", f"{fake_dir}{os.pathsep}{os.environ.get('PATH', '')}"
+    )
 
     state, reasons = registry.evaluate_support(
         {"state": "verified", "evidence": evidence}, root=tmp_path

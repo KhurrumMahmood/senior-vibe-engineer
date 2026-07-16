@@ -215,8 +215,9 @@ scan_implementations:
   and envelope hashes, claim identity, command shape, registry-owned executable
   and tool-version policies, platform names, and scan support ceilings. The
   fixtures must emit canonical JSON observations naming the exact claim and
-  subject. Promotion reruns them and registry-discovered (not claimant-path)
-  tool probes on the current platform. Completion-floor cells additionally
+  subject. Promotion reruns them and tool probes resolved against the immutable
+  process-start discovery path (not a claim-time `PATH` or claimant path) on the
+  current platform. Completion-floor cells additionally
   require unique capability-specific test digests; bare booleans, relabeled
   generic evidence, or support labels cannot promote a claim. `verified`
   promotion also requires the registry-pinned cross-stack conformance issuer;

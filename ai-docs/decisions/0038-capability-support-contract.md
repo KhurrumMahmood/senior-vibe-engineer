@@ -69,7 +69,12 @@ evidence envelope bound to that exact skill, stack capability, or versioned
 agent surface. Each subject fixture directly executes a distinct hashed test
 artifact and must emit a canonical JSON observation naming the exact claim and
 subject. Tool commands use registry-owned arguments and must resolve to the
-actual runtime/discovered executable, not a claimant-controlled lookalike.
+actual runtime/discovered executable, not a claimant-controlled lookalike. The
+trust boundary is the process-start `PATH`, snapshotted when the evidence module
+loads before claim data is read; later claim/test mutation of ambient `PATH`
+cannot redefine discovery. A caller that launches the whole conformance process
+with an untrusted `PATH` is outside this claim boundary and must sanitize its
+environment at the WP8 harness/CI entry point.
 Stdout, artifact, envelope, tool-version, and platform checks are mechanical.
 Missing, stale, generic, cross-claim, timed-out, out-of-range, or off-platform
 evidence demotes the claim to `unsupported`; prose cannot override this. Scan

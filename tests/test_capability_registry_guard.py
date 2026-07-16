@@ -65,3 +65,22 @@ def test_guard_rejects_split_and_zip_computed_registries(tmp_path):
     computed = [error for error in errors if "computed stack identifier" in error]
     assert any("python" in error and "go" in error for error in computed)
     assert any("python" in error and "typescript" in error for error in computed)
+
+
+def test_guard_rejects_comprehension_generator_and_computed_method_registries(tmp_path):
+    _copy_guard_surface(tmp_path)
+    consumer = tmp_path / "scripts" / "manifest.py"
+    consumer.write_text(
+        consumer.read_text(encoding="utf-8")
+        + '\nA = [x for x in "python typescript".split()]\n'
+        + '\nB = tuple(x for x in "rust go".split())\n'
+        + '\nC = ("python" + " typescript").split()\n'
+        + '\nD = dict.fromkeys("rust go".split())\n',
+        encoding="utf-8",
+    )
+
+    errors = check_consumers(tmp_path)
+
+    computed = [error for error in errors if "computed stack identifier" in error]
+    assert sum("python" in error and "typescript" in error for error in computed) >= 2
+    assert sum("rust" in error and "go" in error for error in computed) >= 2

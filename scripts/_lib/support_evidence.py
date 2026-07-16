@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import platform
 import re
 import shutil
@@ -14,6 +15,7 @@ from typing import Any
 
 KNOWN_SYSTEMS = {"Darwin", "Linux", "Windows"}
 HEX_256_RE = re.compile(r"^[0-9a-f]{64}$")
+TRUSTED_STARTUP_PATH = os.environ.get("PATH", "")
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -359,7 +361,10 @@ def validate_support_evidence(
                 discovered_paths = {
                     Path(discovered).resolve()
                     for executable_name in executable_policy
-                    if (discovered := shutil.which(executable_name)) is not None
+                    for discovered in [
+                        shutil.which(executable_name, path=TRUSTED_STARTUP_PATH)
+                    ]
+                    if discovered is not None
                 }
                 if not command or resolved_executable not in discovered_paths:
                     errors.append(

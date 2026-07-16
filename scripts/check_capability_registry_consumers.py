@@ -60,13 +60,30 @@ def _static_collection_strings(node: ast.AST) -> set[str]:
         }
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
         return _static_collection_strings(node.left) | _static_collection_strings(node.right)
+    if isinstance(node, (ast.ListComp, ast.SetComp, ast.GeneratorExp)):
+        return _static_collection_strings(node.elt) | {
+            value
+            for generator in node.generators
+            for source in [generator.iter, *generator.ifs]
+            for value in _static_collection_strings(source)
+        }
+    if isinstance(node, ast.DictComp):
+        return (
+            _static_collection_strings(node.key)
+            | _static_collection_strings(node.value)
+            | {
+                value
+                for generator in node.generators
+                for source in [generator.iter, *generator.ifs]
+                for value in _static_collection_strings(source)
+            }
+        )
     if not isinstance(node, ast.Call):
         return set()
     if (
         isinstance(node.func, ast.Attribute)
         and node.func.attr == "split"
-        and isinstance(node.func.value, ast.Constant)
-        and isinstance(node.func.value.value, str)
+        and _static_string(node.func.value) is not None
         and not node.keywords
         and len(node.args) <= 1
         and (
@@ -78,7 +95,9 @@ def _static_collection_strings(node: ast.AST) -> set[str]:
         )
     ):
         separator = node.args[0].value if node.args else None
-        return set(node.func.value.value.split(separator))
+        receiver = _static_string(node.func.value)
+        assert receiver is not None
+        return set(receiver.split(separator))
     if isinstance(node.func, ast.Name) and node.func.id in {
         "dict", "list", "set", "tuple", "zip"
     }:
@@ -94,7 +113,30 @@ def _static_collection_strings(node: ast.AST) -> set[str]:
             for value in _static_collection_strings(keyword.value)
         )
         return values
-    return set()
+    values = {
+        value
+        for argument in node.args
+        for value in _static_collection_strings(argument)
+    }
+    values.update(
+        value
+        for keyword in node.keywords
+        for value in _static_collection_strings(keyword.value)
+    )
+    if isinstance(node.func, ast.Attribute):
+        values.update(_static_collection_strings(node.func.value))
+    return values
+
+
+def _static_string(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        left = _static_string(node.left)
+        right = _static_string(node.right)
+        if left is not None and right is not None:
+            return left + right
+    return None
 
 
 def check_consumers(root: Path = REPO_ROOT) -> list[str]:
