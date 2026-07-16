@@ -220,14 +220,14 @@ evidence contract in the same logical change.
 
 ### Slice 2 — Early-move safety gate
 
-- [ ] IM-3: **WP3-local move gate.** Before any tracked foundation/exemplar
+- [x] IM-3: **WP3-local move gate.** Before any tracked foundation/exemplar
   move, require scoped retired/avoid terms, exact ADR 0024 two-band evidence,
   substantive prose review, self-anchor inventory and target pins,
   tractable/unhandled classification, per-batch import-and-asset smoke,
   full-diff disk scan, non-rewrite-list acknowledgment, and fired-rule lesson
   capture. Do not mutate ADR status or embodiment metadata.
   <!-- spec:portable-skill-layer-distribution::IM-3 -->
-- [ ] IM-4: **Blocking move fixture.** Prove a fixture containing stale retired
+- [x] IM-4: **Blocking move fixture.** Prove a fixture containing stale retired
   prose and a broken self-anchored asset path cannot pass the gate; identifier-
   only cleanup and file-exists-only smoke also fail.
   <!-- spec:portable-skill-layer-distribution::IM-4 -->
