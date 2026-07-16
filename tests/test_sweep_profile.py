@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import copy
 import json
+from pathlib import Path
 
 import pytest
 
 from sweep.profile import SweepProfileError, load_sweep_profile, validate_sweep_profile
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _profile() -> dict[str, object]:
@@ -30,6 +34,15 @@ def test_profile_is_strict_deterministic_and_registry_backed(tmp_path):
     assert first == second
     assert first.as_document() == document
     assert first.sha256 == second.sha256
+
+
+def test_required_mixed_profile_is_canonical_and_content_addressed():
+    profile = load_sweep_profile(
+        REPO_ROOT / "tests/fixtures/sweep/profiles/mixed-case-sensitive.json"
+    )
+
+    assert profile.as_document() == _profile()
+    assert profile.sha256 == "13bb953249510890e58d3d78b6d1de3289b948b9d790c05a699aa91d99bedd50"
 
 
 @pytest.mark.parametrize(
