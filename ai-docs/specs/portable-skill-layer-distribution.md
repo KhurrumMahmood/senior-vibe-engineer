@@ -8,11 +8,8 @@ motivating_decision: "0042"
 code_roots:
   - scripts/_lib/skill_catalog.py
   - scripts/_lib/binding_loader.py
-  - scripts/_lib/skill_installer.py
-  - scripts/_lib/skill_dispatch.py
   - scripts/installer_selection.py
   - scripts/distribution_probe.py
-  - scripts/skill_installer.py
   - scripts/wp3_move_gate.py
   - scripts/lint/no_core_framework_leakage.py
   - scripts/skill_meta.py
@@ -22,8 +19,6 @@ code_roots:
   - tests/test_binding_loader.py
   - tests/test_extract_enum_binding.py
   - tests/test_distribution_surfaces.py
-  - tests/test_skill_installer.py
-  - tests/test_skill_dispatch.py
   - tests/test_wp3_move_gate.py
   - tests/test_core_framework_leakage.py
 ---
@@ -692,8 +687,10 @@ evidence missing any field leaves IM-11 and AC-3.2 open.
 
 ## Deterministic interfaces and acceptance commands
 
-The implementation must provide read-only check modes. Acceptance commands
-must fail on stale generated artifacts rather than silently rewriting them.
+The current Slice 5 implementation provides a read-only matrix verifier.
+Acceptance commands below name only implemented commands and existing tests;
+later installer slices must extend this block when their interfaces land.
+Checks must fail on stale artifacts rather than silently rewriting them.
 
 ```bash
 .venv/bin/python -m pytest -q \
@@ -701,8 +698,6 @@ must fail on stale generated artifacts rather than silently rewriting them.
   tests/test_binding_loader.py \
   tests/test_extract_enum_binding.py \
   tests/test_distribution_surfaces.py \
-  tests/test_skill_installer.py \
-  tests/test_skill_dispatch.py \
   tests/test_wp3_move_gate.py \
   tests/test_capability_consumers.py \
   tests/test_skill_activation.py \
@@ -710,36 +705,13 @@ must fail on stale generated artifacts rather than silently rewriting them.
 
 .venv/bin/python scripts/skill_meta.py lint --strict --quiet
 .venv/bin/python scripts/lint/no_core_framework_leakage.py --all
-.venv/bin/python scripts/skill_installer.py catalog-check
-.venv/bin/python scripts/skill_installer.py contract-check \
-  --contracts .claude/skills/_common/distribution
-.venv/bin/python scripts/skill_installer.py verify-bundle \
-  --bundle tests/fixtures/wp3/bundles/v2
-.venv/bin/python scripts/skill_installer.py exercise \
-  --fixtures tests/fixtures/wp3/hosts \
-  --bundle tests/fixtures/wp3/bundles/v2 \
-  --deny-network
-.venv/bin/python scripts/skill_installer.py migration-check \
-  --fixtures tests/fixtures/wp3/activation \
-  --bundle tests/fixtures/wp3/bundles/v2 \
-  --deny-network
-.venv/bin/python scripts/skill_installer.py dispatch-check \
-  --fixtures tests/fixtures/wp3/dispatch \
-  --bundle tests/fixtures/wp3/bundles/v2 \
-  --deny-network
 .venv/bin/python scripts/distribution_probe.py verify-matrix \
-  --fixtures tests/fixtures/wp3/surfaces \
-  --evidence reports/portable-skill-ecosystem-completion/WP3/surface-matrix.json
-.venv/bin/python scripts/wp3_move_gate.py fixture-check \
-  tests/fixtures/wp3/move-gate
-.venv/bin/python scripts/skill_installer.py replay-first-value \
-  --fixture tests/fixtures/wp3/hosts/core-only \
-  --max-seconds 1200 \
-  --deny-read .claude/docs/quality-coordination-kernel.md
+  . --fixtures "$WP3_SURFACE_FIXTURES" --evidence "$WP3_SURFACE_EVIDENCE" \
+  --runtime-root "$WP3_RUNTIME_ROOT"
 
 .venv/bin/python \
   .claude/skills/find-skill-intent-drift/scripts/scan.py \
-  --strict --check-index
+  --strict --no-index
 .venv/bin/python \
   .claude/skills/find-skill-artifact-drift/scripts/detect.py --gate
 .venv/bin/python scripts/decisions.py audit
@@ -843,12 +815,15 @@ produces both bands.
 ## Known symbol inventory
 
 The distribution probe now exceeds the narrative-inventory threshold. Its
-structural helpers are `_sha256_bytes`, `_sha256`, `_canonical_bytes`,
-`_tree_hash`, `_path_is_clean`, `_row_hash`, `_bundle_hash`, `_document_hash`,
-`_reference_paths`, `_validate_reference_semantics`, `_source_files`,
-`build_bundle_inventory`, `_alias_targets`, `validate_bundle_inventory`,
-`_resolved_aliases`, `_alias_skill`, `_expected_projection_files`,
-`build_projections`, and `validate_projections`.
+structural helpers are `_sha256_bytes`, `_canonical_bytes`, `_tree_hash`,
+`_git_output`, `_is_cache_artifact`, `_git_tree_files`,
+`_dirty_tracked_paths`, `_require_clean_tracked_sources`,
+`_directory_tree_hash`, `_path_is_clean`, `_row_hash`, `_bundle_hash`,
+`_document_hash`, `_reference_paths`, `_validate_reference_semantics`,
+`_source_file_sets`, `_load_catalog_from_git`, `build_bundle_inventory`,
+`_alias_targets`, `validate_bundle_inventory`, `_resolved_aliases`,
+`_alias_skill`, `_expected_projection_files`, `build_projections`, and
+`validate_projections`.
 
 Runtime collection and validation are `_run`, `_command_record`,
 `_git_revision`, `_git_tree`, `_platform_record`, `_reset_directory`,

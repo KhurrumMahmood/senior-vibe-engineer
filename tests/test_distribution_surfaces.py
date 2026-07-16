@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -10,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 from distribution_probe import (
     build_bundle_inventory,
@@ -30,6 +32,29 @@ def _resign(inventory: dict[str, Any]) -> None:
     payload.pop("bundle_sha256", None)
     content = (json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n").encode()
     inventory["bundle_sha256"] = hashlib.sha256(content).hexdigest()
+
+
+def _clone_fixture(tmp_path: Path) -> Path:
+    fixture = tmp_path / "project"
+    subprocess.run(
+        ["git", "clone", "--quiet", "--no-hardlinks", str(ROOT), str(fixture)],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.email", "tests@example.invalid"],
+        cwd=fixture,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Distribution Tests"],
+        cwd=fixture,
+        check=True,
+    )
+    return fixture
+
+
+def _fixture_registry(fixture: Path):
+    return load_registry(fixture / ".claude/skills/_common/capability-registry.yml")
 
 
 @pytest.fixture(scope="module")
@@ -78,6 +103,81 @@ def test_bundle_binds_every_load_bearing_reference(inventory: dict[str, Any]) ->
     assert inventory["registry_contract_version"] == 1
 
 
+def test_bundle_uses_only_clean_tracked_git_tree_files(tmp_path: Path) -> None:
+    fixture = _clone_fixture(tmp_path)
+    cache = fixture / ".claude/skills/extract-enum/__pycache__/propose.cpython-311.pyc"
+    cache.parent.mkdir()
+    cache.write_bytes(b"foreign bytecode\n")
+    fixture.joinpath(".claude/skills/extract-enum/untracked-notes.txt").write_text(
+        "foreign resource\n", encoding="utf-8"
+    )
+    untracked_skill = fixture / ".claude/skills/untracked-skill/SKILL.md"
+    untracked_skill.parent.mkdir()
+    untracked_skill.write_text("---\nname: untracked-skill\n---\n", encoding="utf-8")
+
+    clean = build_bundle_inventory(fixture, registry=_fixture_registry(fixture))
+    extract_enum = next(skill for skill in clean["skills"] if skill["name"] == "extract-enum")
+
+    assert "__pycache__/propose.cpython-311.pyc" not in {
+        row["path"] for row in extract_enum["files"]
+    }
+    assert "untracked-notes.txt" not in {row["path"] for row in extract_enum["files"]}
+    assert "untracked-skill" not in {skill["name"] for skill in clean["skills"]}
+    assert clean["source_revision"] == subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=fixture,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert clean["source_tree"] == subprocess.run(
+        ["git", "rev-parse", "HEAD^{tree}"],
+        cwd=fixture,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+    fixture.joinpath(".claude/skills/extract-enum/SKILL.md").write_text(
+        "dirty load-bearing source\n", encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="dirty load-bearing source"):
+        build_bundle_inventory(fixture, registry=_fixture_registry(fixture))
+
+
+def test_projection_rejects_collision_after_cursor_primary_remap(tmp_path: Path) -> None:
+    fixture = _clone_fixture(tmp_path)
+    collision = fixture / ".claude/skills/extract-enum/SKILL.mdc"
+    collision.write_text("foreign canonical resource\n", encoding="utf-8")
+    subprocess.run(["git", "add", str(collision)], cwd=fixture, check=True)
+    subprocess.run(["git", "commit", "--quiet", "-m", "fixture collision"], cwd=fixture, check=True)
+    inventory = build_bundle_inventory(fixture, registry=_fixture_registry(fixture))
+
+    with pytest.raises(ValueError, match="cursor: projection target collision"):
+        build_projections(
+            inventory,
+            fixture,
+            tmp_path / "matrix",
+            registry=_fixture_registry(fixture),
+        )
+
+
+def test_bundle_rejects_duplicate_contract_index_rows_before_set_collapse(
+    tmp_path: Path,
+) -> None:
+    fixture = _clone_fixture(tmp_path)
+    index_path = fixture / ".claude/contracts/skills/_index.yaml"
+    index = yaml.safe_load(index_path.read_text(encoding="utf-8"))
+    index["skills"].append(copy.deepcopy(index["skills"][0]))
+    index["skill_count"] += 1
+    index_path.write_text(yaml.safe_dump(index, sort_keys=False), encoding="utf-8")
+    subprocess.run(["git", "add", str(index_path)], cwd=fixture, check=True)
+    subprocess.run(["git", "commit", "--quiet", "-m", "fixture duplicate"], cwd=fixture, check=True)
+
+    with pytest.raises(ValueError, match="contracts index has duplicate skill rows"):
+        build_bundle_inventory(fixture, registry=_fixture_registry(fixture))
+
+
 @pytest.mark.parametrize(
     "relative",
     [
@@ -89,15 +189,14 @@ def test_bundle_binds_every_load_bearing_reference(inventory: dict[str, Any]) ->
 def test_bundle_validation_rejects_tampered_reference_file(
     tmp_path: Path, inventory: dict[str, Any], relative: str
 ) -> None:
-    fixture = tmp_path / "project"
-    shutil.copytree(ROOT / ".claude", fixture / ".claude")
+    fixture = _clone_fixture(tmp_path)
     target = fixture / relative
     target.write_text("broken: true\n", encoding="utf-8")
-    registry = load_registry(fixture / ".claude/skills/_common/capability-registry.yml")
+    registry = _fixture_registry(fixture)
 
     errors = validate_bundle_inventory(inventory, fixture, registry=registry)
 
-    assert any("reference hash differs" in error for error in errors)
+    assert any("dirty load-bearing source state" in error for error in errors)
 
 
 def test_projection_validation_rejects_surface_divergence(
@@ -281,7 +380,9 @@ def test_runtime_evidence_is_separate_and_records_typed_unavailable(
         assert record["platform"]["system"]
         assert record["inventory_sha256"] == evidence["inventory_sha256"]
         assert record["manifest_sha256"] == evidence["manifest_sha256"]
-    assert validate_runtime_evidence(evidence, inventory, ROOT, output, manifest) == []
+    assert validate_runtime_evidence(
+        evidence, inventory, ROOT, output, manifest, tmp_path / "home"
+    ) == []
 
 
 def test_runtime_evidence_binds_exact_gemini_and_auggie_commands_and_outputs(
@@ -305,7 +406,7 @@ def test_runtime_evidence_binds_exact_gemini_and_auggie_commands_and_outputs(
                 f"{name} [Enabled]\n  Description: test\n" for name in names
             )
             return subprocess.CompletedProcess(command, 0, stdout.encode(), b"")
-        stdout = "\n".join(f".augment/rules/imported/{name}/SKILL.md" for name in names)
+        stdout = f".augment/rules/imported/{_cwd.name}/SKILL.md"
         return subprocess.CompletedProcess(command, 0, stdout.encode(), b"MCP warning\n")
 
     evidence = collect_runtime_evidence(
@@ -331,6 +432,33 @@ def test_runtime_evidence_binds_exact_gemini_and_auggie_commands_and_outputs(
     assert len(gemini["discovery_probe"]["output_sha256"]) == 64
     assert len(augment["discovery_probes"][0]["output_sha256"]) == 64
     assert augment["discovery_probes"][0]["stderr"] == "MCP warning\n"
+
+    attacked = copy.deepcopy(evidence)
+    attacked["records"]["gemini"]["version_probe"]["exit_code"] = 37
+    errors = validate_runtime_evidence(
+        attacked, inventory, ROOT, output, manifest, tmp_path / "home"
+    )
+    assert any("version probe failed" in error for error in errors)
+
+    attacked = copy.deepcopy(evidence)
+    attacked["records"]["augment"]["reason"] = "moved fixture accepted"
+    errors = validate_runtime_evidence(
+        attacked, inventory, ROOT, output, manifest, tmp_path / "home"
+    )
+    assert any("reason differs" in error for error in errors)
+
+    augment_probe = evidence["records"]["augment"]["discovery_probes"][0]
+    augment_cwd = Path(augment_probe["cwd"])
+    moved = tmp_path / "outside-runtime-root" / augment_cwd.name
+    moved.parent.mkdir()
+    shutil.move(str(augment_cwd), moved)
+    attacked = copy.deepcopy(evidence)
+    attacked_probe = attacked["records"]["augment"]["discovery_probes"][0]
+    attacked_probe["cwd"] = str(moved)
+    errors = validate_runtime_evidence(
+        attacked, inventory, ROOT, output, manifest, tmp_path / "home"
+    )
+    assert any("permitted runtime root" in error for error in errors)
 
 
 def test_runtime_evidence_uses_native_non_model_claude_and_codex_discovery(
@@ -378,19 +506,25 @@ def test_runtime_evidence_uses_native_non_model_claude_and_codex_discovery(
 
     assert evidence["records"]["claude-code"]["status"] == "verified"
     assert evidence["records"]["codex"]["status"] == "verified"
-    assert validate_runtime_evidence(evidence, inventory, ROOT, output, manifest) == []
+    assert validate_runtime_evidence(
+        evidence, inventory, ROOT, output, manifest, tmp_path / "home"
+    ) == []
 
     attacked = copy.deepcopy(evidence)
     attacked["records"]["codex"]["discovery_probe"]["argv"][-1] = "foreign"
     attacked["records"]["codex"]["discovery_probes"][0]["argv"][-1] = "foreign"
-    errors = validate_runtime_evidence(attacked, inventory, ROOT, output, manifest)
+    errors = validate_runtime_evidence(
+        attacked, inventory, ROOT, output, manifest, tmp_path / "home"
+    )
     assert any("prompt-input discovery" in error for error in errors)
 
     claude_cwd = Path(evidence["records"]["claude-code"]["setup_probes"][0]["cwd"])
     claude_cwd.joinpath(
         "marketplace/plugins/engineering-skills/skills/plan-feature/SKILL.md"
     ).write_text("foreign package\n", encoding="utf-8")
-    errors = validate_runtime_evidence(evidence, inventory, ROOT, output, manifest)
+    errors = validate_runtime_evidence(
+        evidence, inventory, ROOT, output, manifest, tmp_path / "home"
+    )
     assert any("marketplace package differs" in error for error in errors)
 
 
@@ -465,7 +599,9 @@ def test_runtime_evidence_validation_rejects_foreign_or_tampered_bindings(
     for label, attack in attacks.items():
         attacked = copy.deepcopy(evidence)
         attack(attacked)
-        errors = validate_runtime_evidence(attacked, inventory, ROOT, output, manifest)
+        errors = validate_runtime_evidence(
+            attacked, inventory, ROOT, output, manifest, tmp_path / "home"
+        )
         assert errors, label
 
 
@@ -497,7 +633,9 @@ def test_runtime_evidence_validation_rejects_tampered_command_output(
     )
     evidence["records"]["gemini"]["discovery_probe"]["stdout"] += "tampered\n"
 
-    errors = validate_runtime_evidence(evidence, inventory, ROOT, output, manifest)
+    errors = validate_runtime_evidence(
+        evidence, inventory, ROOT, output, manifest, tmp_path / "home"
+    )
 
     assert any("output hash" in error for error in errors)
 
@@ -533,7 +671,9 @@ def test_runtime_collection_never_verifies_a_structurally_invalid_projection(
     )
 
     assert evidence["records"]["gemini"]["status"] != "verified"
-    errors = validate_runtime_evidence(evidence, inventory, ROOT, output, manifest)
+    errors = validate_runtime_evidence(
+        evidence, inventory, ROOT, output, manifest, tmp_path / "home"
+    )
     assert any("structural" in error for error in errors)
 
 
@@ -564,8 +704,12 @@ def test_verify_matrix_cli_is_read_only_and_rejects_tampered_evidence(
         str(output),
         "--evidence",
         str(evidence_path),
+        "--runtime-root",
+        str(tmp_path / "home"),
     ]
 
+    index_path = ROOT / ".claude/contracts/skills/_index.yaml"
+    before_index = index_path.read_bytes()
     clean = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=False)
     evidence["records"]["cursor"]["fixture_sha256"] = "0" * 64
     evidence_path.write_text(
@@ -575,6 +719,21 @@ def test_verify_matrix_cli_is_read_only_and_rejects_tampered_evidence(
     attacked = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=False)
 
     assert clean.returncode == 0
+    assert index_path.read_bytes() == before_index
     assert '"result": "pass"' in clean.stdout
     assert attacked.returncode == 1
     assert "foreign or stale" in attacked.stdout
+
+
+def test_documented_current_acceptance_commands_name_real_tests_and_flags() -> None:
+    spec = (ROOT / "ai-docs/specs/portable-skill-layer-distribution.md").read_text(
+        encoding="utf-8"
+    )
+    command_section = spec.split("## Deterministic interfaces and acceptance commands", 1)[1]
+    command_section = command_section.split("## Adversarial acceptance matrix", 1)[0]
+    documented_tests = set(re.findall(r"tests/[A-Za-z0-9_/-]+\.py", command_section))
+
+    assert documented_tests
+    assert all((ROOT / path).is_file() for path in documented_tests)
+    assert "--check-index" not in command_section
+    assert "--strict --no-index" in command_section
