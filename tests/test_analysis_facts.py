@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import threading
 from pathlib import Path
 
 import pytest
@@ -71,7 +72,7 @@ def test_typescript_real_parser_handles_required_declarations_and_locations():
     assert tuple(result.facts) == tuple(sorted(result.facts, key=lambda fact: fact.sort_key()))
 
 
-@pytest.mark.parametrize("suffix", [".js", ".mjs", ".cjs", ".ts", ".tsx"])
+@pytest.mark.parametrize("suffix", [".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".mts", ".cts"])
 def test_javascript_typescript_extensions_use_real_parser(suffix: str):
     adapter = get_adapter(f"src/module{suffix}")
     source = "export const visible = () => {\n  function nested() { return 1; }\n  return nested();\n};\n"
@@ -187,6 +188,58 @@ def test_parser_faults_are_typed_and_never_clean(monkeypatch, mode: str, code: s
     assert raised.value.capability == CAP_SYMBOLS
 
 
+@pytest.mark.parametrize("mode", ["missing_named_children", "raising_children"])
+def test_malformed_root_variants_are_typed(monkeypatch, mode: str):
+    adapter = TypeScriptAdapter()
+
+    if mode == "missing_named_children":
+        class Root:
+            children = ()
+            has_error = False
+
+    else:
+        class Root:
+            has_error = False
+
+            @property
+            def children(self):
+                raise RuntimeError("corrupt children")
+
+    class Tree:
+        root_node = Root()
+
+    class Parser:
+        def parse(self, source):
+            return Tree()
+
+    monkeypatch.setattr(adapter, "_load_parser", lambda: Parser())
+    with pytest.raises(AnalysisFailure) as raised:
+        adapter.analyze("const ok = 1;\n", path="src/corrupt.ts", capabilities={CAP_SYMBOLS})
+    assert raised.value.code == "corrupt_output"
+    assert raised.value.path == "src/corrupt.ts"
+    assert raised.value.capability == CAP_SYMBOLS
+
+
+def test_blocking_parser_has_substrate_enforced_deadline(monkeypatch):
+    adapter = TypeScriptAdapter()
+    adapter.parse_timeout_seconds = 0.02
+    release = threading.Event()
+
+    class BlockingParser:
+        def parse(self, source):
+            release.wait(5)
+
+    monkeypatch.setattr(adapter, "_load_parser", lambda: BlockingParser())
+    try:
+        with pytest.raises(AnalysisFailure) as raised:
+            adapter.analyze("const ok = 1;\n", path="src/blocked.ts", capabilities={CAP_SYMBOLS})
+        assert raised.value.code == "tool_timeout"
+        assert raised.value.path == "src/blocked.ts"
+        assert raised.value.capability == CAP_SYMBOLS
+    finally:
+        release.set()
+
+
 def test_golden_fact_files_match_deterministic_adapter_output():
     cases = {
         "typescript": (TypeScriptAdapter(), FIXTURES / "typescript-small.tsx"),
@@ -200,16 +253,19 @@ def test_golden_fact_files_match_deterministic_adapter_output():
             path=fixture.name,
             capabilities=FACT_CAPABILITIES,
         )
-        facts = [
-            [fact.capability, fact.name, fact.line, fact.column, fact.kind]
-            for fact in result.facts
-        ]
-        encoded = json.dumps(facts, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+        facts = [fact.to_dict() for fact in result.facts]
+        encoded = json.dumps(
+            facts,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            sort_keys=True,
+        ).encode("utf-8")
         actual = {
             "schema_version": 1,
             "interface_version": result.interface_version,
             "adapter": result.adapter,
             "fact_count": len(facts),
+            "fact_shape": "full-location-v1",
             "facts_sha256": hashlib.sha256(encoded).hexdigest(),
         }
         expected = json.loads((FIXTURES / "golden" / f"{name}.json").read_text(encoding="utf-8"))
@@ -225,3 +281,19 @@ def test_productized_provider_meets_pinned_d3_and_small_large_budgets():
         score["precision"] == score["recall"] == 1.0
         for score in report["metrics"].values()
     )
+    assert report["variance_method"].startswith("fresh subprocess cold")
+
+
+def test_python_symbol_facts_publish_precise_full_spans():
+    source = (FIXTURES / "python-small.py").read_text(encoding="utf-8")
+    result = PythonAdapter().analyze(
+        source,
+        path="src/python-small.py",
+        capabilities={CAP_SYMBOLS},
+    )
+    by_name = {fact.name: fact for fact in result.facts}
+
+    convert = by_name["convert"]
+    assert (convert.line, convert.column, convert.end_line, convert.end_column) == (8, 1, 10, 17)
+    runner = by_name["Runner"]
+    assert (runner.line, runner.column, runner.end_line, runner.end_column) == (13, 1, 15, 29)

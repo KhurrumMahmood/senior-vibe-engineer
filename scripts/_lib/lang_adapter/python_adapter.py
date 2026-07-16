@@ -72,7 +72,7 @@ class PythonAdapter(LanguageAdapter):
     name = "python-ast"
     provider_version = "python-ast-v1"
     language = "python"
-    extensions = (".py",)
+    extensions = (".py", ".pyi")
     capabilities = FACT_CAPABILITIES | {CAP_PYTHON_AST}
 
     def parse(self, source: str) -> ast.Module | None:
@@ -105,23 +105,31 @@ class PythonAdapter(LanguageAdapter):
         if tree is None:
             return None
 
-        symbols: list[Symbol] = []
+        return [symbol for symbol, _ in self._symbol_records(tree)]
+
+    def _symbol_records(self, tree: ast.Module) -> list[tuple[Symbol, ast.AST]]:
+        """Return legacy symbols paired with their precise source AST nodes."""
+
+        records: list[tuple[Symbol, ast.AST]] = []
         for node in tree.body:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 if _is_dunder(node.name):
                     continue
                 kind = "async_function" if isinstance(node, ast.AsyncFunctionDef) else "function"
-                symbols.append(
-                    Symbol(
-                        name=node.name,
-                        cluster_name=node.name,
-                        kind=kind,
-                        lineno=node.lineno,
-                        end_lineno=node.end_lineno or node.lineno,
-                        loc=_node_loc(node),
-                        parent=None,
-                        is_dunder=False,
-                        decorators=_decorator_names(node),
+                records.append(
+                    (
+                        Symbol(
+                            name=node.name,
+                            cluster_name=node.name,
+                            kind=kind,
+                            lineno=node.lineno,
+                            end_lineno=node.end_lineno or node.lineno,
+                            loc=_node_loc(node),
+                            parent=None,
+                            is_dunder=False,
+                            decorators=_decorator_names(node),
+                        ),
+                        node,
                     )
                 )
             elif isinstance(node, ast.ClassDef):
@@ -136,34 +144,40 @@ class PythonAdapter(LanguageAdapter):
                 if len(method_nodes) >= _GOD_CLASS_METHOD_THRESHOLD:
                     for m in method_nodes:
                         kind = "async_method" if isinstance(m, ast.AsyncFunctionDef) else "method"
-                        symbols.append(
-                            Symbol(
-                                name=f"{node.name}.{m.name}",
-                                cluster_name=m.name,
-                                kind=kind,
-                                lineno=m.lineno,
-                                end_lineno=m.end_lineno or m.lineno,
-                                loc=_node_loc(m),
-                                parent=node.name,
-                                is_dunder=False,
-                                decorators=_decorator_names(m),
+                        records.append(
+                            (
+                                Symbol(
+                                    name=f"{node.name}.{m.name}",
+                                    cluster_name=m.name,
+                                    kind=kind,
+                                    lineno=m.lineno,
+                                    end_lineno=m.end_lineno or m.lineno,
+                                    loc=_node_loc(m),
+                                    parent=node.name,
+                                    is_dunder=False,
+                                    decorators=_decorator_names(m),
+                                ),
+                                m,
                             )
                         )
                 else:
-                    symbols.append(
-                        Symbol(
-                            name=node.name,
-                            cluster_name=node.name,
-                            kind="class",
-                            lineno=node.lineno,
-                            end_lineno=node.end_lineno or node.lineno,
-                            loc=_node_loc(node),
-                            parent=None,
-                            is_dunder=False,
-                            decorators=_decorator_names(node),
+                    records.append(
+                        (
+                            Symbol(
+                                name=node.name,
+                                cluster_name=node.name,
+                                kind="class",
+                                lineno=node.lineno,
+                                end_lineno=node.end_lineno or node.lineno,
+                                loc=_node_loc(node),
+                                parent=None,
+                                is_dunder=False,
+                                decorators=_decorator_names(node),
+                            ),
+                            node,
                         )
                     )
-        return symbols
+        return records
 
     def analyze(
         self,
@@ -195,20 +209,8 @@ class PythonAdapter(LanguageAdapter):
             facts.append(Fact(capability, name, path, line, column, end_line, end_column, kind, parent))
 
         if CAP_SYMBOLS in requested:
-            for symbol in self.extract_symbols(source, path=path) or []:
-                facts.append(
-                    Fact(
-                        CAP_SYMBOLS,
-                        symbol.name,
-                        path,
-                        symbol.lineno,
-                        1,
-                        symbol.end_lineno,
-                        1,
-                        symbol.kind,
-                        symbol.parent,
-                    )
-                )
+            for symbol, node in self._symbol_records(tree):
+                add(CAP_SYMBOLS, symbol.name, node, symbol.kind, symbol.parent)
 
         parent_by_node: dict[ast.AST, str | None] = {}
         for parent in ast.walk(tree):

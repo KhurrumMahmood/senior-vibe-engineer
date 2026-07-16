@@ -1,7 +1,8 @@
 {
   "adapter": "typescript-syntax",
   "fact_count": 41,
-  "facts_sha256": "f7bf920354fa566e43c4b3bfe378f9bf6c88be6f6fbad3f503c7060c0c77f3ff",
+  "fact_shape": "full-location-v1",
+  "facts_sha256": "dda8368b8c0b1618fdc138c4a730757f731de6c60663664d989ea63cab58771d",
   "interface_version": 1,
   "schema_version": 1
 }

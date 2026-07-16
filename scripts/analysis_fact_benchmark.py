@@ -9,6 +9,8 @@ import json
 import platform
 import resource
 import statistics
+import subprocess
+import sys
 import time
 import tracemalloc
 from pathlib import Path
@@ -80,31 +82,51 @@ def _analyze(paths: list[Path]) -> tuple[list[AnalysisResult], str]:
     return results, hashlib.sha256(encoded).hexdigest()
 
 
+def _cold_probe(paths: list[Path]) -> dict[str, Any]:
+    started = time.perf_counter()
+    completed = subprocess.run(
+        [sys.executable, str(Path(__file__).resolve()), "--cold-probe", *(str(path) for path in paths)],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=BUDGETS["maximum_cold_seconds"] + 5.0,
+    )
+    elapsed = time.perf_counter() - started
+    payload = json.loads(completed.stdout)
+    return {
+        "seconds": elapsed,
+        "digest": payload["digest"],
+        "peak_rss_bytes": payload["peak_rss_bytes"],
+    }
+
+
 def _benchmark(paths: list[Path]) -> dict[str, Any]:
     durations: list[float] = []
     digests: list[str] = []
+    cold = _cold_probe(paths)
     tracemalloc.start()
-    for _ in range(RUNS):
+    for _ in range(RUNS - 1):
         started = time.perf_counter()
         _, digest = _analyze(paths)
         durations.append(time.perf_counter() - started)
         digests.append(digest)
     _, peak_python = tracemalloc.get_traced_memory()
     tracemalloc.stop()
-    warm = durations[1:]
-    warm_mean = statistics.mean(warm)
-    warm_stdev = statistics.pstdev(warm)
+    warm_mean = statistics.mean(durations)
+    warm_stdev = statistics.pstdev(durations)
     return {
         "runs": RUNS,
-        "cold_seconds": round(durations[0], 6),
+        "cold_seconds": round(cold["seconds"], 6),
         "warm_mean_seconds": round(warm_mean, 6),
         "warm_stdev_seconds": round(warm_stdev, 6),
         "warm_cv": round(warm_stdev / warm_mean if warm_mean else 0.0, 6),
         "peak_python_bytes": peak_python,
-        "peak_rss_bytes": _rss_bytes(),
-        "deterministic": len(set(digests)) == 1,
-        "facts_sha256": digests[0],
+        "peak_rss_bytes": max(_rss_bytes(), int(cold["peak_rss_bytes"])),
+        "deterministic": len({cold["digest"], *digests}) == 1,
+        "facts_sha256": cold["digest"],
         "input_bytes": sum(path.stat().st_size for path in paths),
+        "input_files": len(paths),
+        "input_lines": sum(len(path.read_text(encoding="utf-8").splitlines()) for path in paths),
     }
 
 
@@ -175,7 +197,16 @@ def build_report() -> dict[str, Any]:
                 "tree-sitter-language-pack==1.12.5"
             ),
         },
-        "variance_method": "first run is cold; six same-process warm runs; population CV",
+        "fixture_rationale": {
+            "small": "18-line TSX component with imports, exports, class/method, nested scope, JSX, call, reference, and write facts",
+            "large": "40-line dense module with 40 exported typed functions and chained calls; 3,457 bytes (8x the small fixture) exercises linear traversal and fact growth",
+        },
+        "platform_matrix": {
+            "Darwin-arm64": "executed at this revision",
+            "Linux-x86_64": "candidate; must execute before Linux support is claimed",
+            "Windows": "not supported by the current release contract",
+        },
+        "variance_method": "fresh subprocess cold (startup and provider load included); six same-process warm runs; population CV",
         "violations": violations,
         "passed": not violations,
     }
@@ -183,8 +214,15 @@ def build_report() -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--cold-probe", type=Path, nargs="+")
     args = parser.parse_args(argv)
+    if args.cold_probe:
+        _, digest = _analyze(args.cold_probe)
+        print(json.dumps({"digest": digest, "peak_rss_bytes": _rss_bytes()}))
+        return 0
+    if args.output is None:
+        parser.error("--output is required unless --cold-probe is used")
     report = build_report()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")

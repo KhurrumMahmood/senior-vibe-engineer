@@ -22,6 +22,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from _lib.lang_adapter import (  # noqa: E402
+    AnalysisFailure,
     CAP_PYTHON_AST,
     CAP_SYMBOLS,
     JavaScriptAdapter,
@@ -152,27 +153,33 @@ class JavaScriptExtractionTests(unittest.TestCase):
 class RegistryTests(unittest.TestCase):
     def test_py_routes_to_python_adapter(self) -> None:
         self.assertIsInstance(get_adapter("a/b/c.py"), PythonAdapter)
+        self.assertIsInstance(get_adapter("a/b/c.pyi"), PythonAdapter)
         self.assertIsInstance(adapter_for_suffix(".py"), PythonAdapter)
 
     def test_js_family_routes_to_javascript_adapter(self) -> None:
-        for path in ("x.js", "x.mjs", "x.cjs"):
+        for path in ("x.js", "x.mjs", "x.cjs", "x.jsx"):
             self.assertIsInstance(get_adapter(path), JavaScriptAdapter, path)
-        for path in ("x.ts", "x.tsx"):
+        for path in ("x.ts", "x.tsx", "x.mts", "x.cts"):
             self.assertIsInstance(get_adapter(path), TypeScriptAdapter, path)
 
     def test_case_insensitive_suffix(self) -> None:
         self.assertIsInstance(get_adapter("X.PY"), PythonAdapter)
         self.assertIsInstance(get_adapter("X.TSX"), TypeScriptAdapter)
 
-    def test_unknown_suffix_returns_none(self) -> None:
-        self.assertIsNone(get_adapter("README.md"))
-        self.assertIsNone(get_adapter("noext"))
+    def test_unknown_suffix_is_a_typed_failure(self) -> None:
+        for path in ("README.md", "noext"):
+            with self.assertRaises(AnalysisFailure) as raised:
+                get_adapter(path)
+            self.assertEqual(raised.exception.code, "unsupported_language")
+            self.assertEqual(raised.exception.path, path)
+            self.assertEqual(raised.exception.capability, CAP_SYMBOLS)
         self.assertIsNotNone(adapter_for_suffix(".rs"))
 
     def test_supported_extensions(self) -> None:
         exts = supported_extensions()
         self.assertIn(".py", exts)
-        for ext in (".js", ".mjs", ".cjs", ".ts", ".tsx"):
+        self.assertIn(".pyi", exts)
+        for ext in (".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".mts", ".cts"):
             self.assertIn(ext, exts)
 
     def test_iter_adapters_deduplicated(self) -> None:

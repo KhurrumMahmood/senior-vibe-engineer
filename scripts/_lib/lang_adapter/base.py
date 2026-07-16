@@ -268,9 +268,29 @@ def adapter_for_suffix(suffix: str) -> LanguageAdapter | None:
     return _REGISTRY.get(suffix.lower())
 
 
-def get_adapter(path: str | Path) -> LanguageAdapter | None:
-    """Return the adapter for ``path`` by its file suffix, or ``None``."""
-    return adapter_for_suffix(Path(path).suffix)
+def get_adapter(
+    path: str | Path,
+    *,
+    capability: str = CAP_SYMBOLS,
+) -> LanguageAdapter:
+    """Return the adapter for ``path`` or raise a contextual typed failure.
+
+    ``adapter_for_suffix`` remains the explicit optional registry probe. This
+    higher-level selection boundary is strict so an analysis request cannot
+    silently turn an unsupported file type into a clean zero-result.
+    """
+    rendered = str(path)
+    suffix = Path(path).suffix
+    adapter = adapter_for_suffix(suffix)
+    if adapter is None:
+        raise AnalysisFailure(
+            "unsupported_language",
+            adapter="registry",
+            path=rendered,
+            capability=capability,
+            detail=f"no adapter registered for suffix {suffix or '<none>'}",
+        )
+    return adapter
 
 
 def supported_extensions() -> frozenset[str]:

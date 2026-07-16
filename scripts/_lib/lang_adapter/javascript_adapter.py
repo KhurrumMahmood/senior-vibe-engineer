@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import Counter
+import threading
 from typing import Any
 
 from .base import (
@@ -57,6 +58,7 @@ class TreeSitterAdapter(LanguageAdapter):
     definition_types = DEFINITION_TYPES
     import_node_types = {"import_statement"}
     capabilities = FACT_CAPABILITIES
+    parse_timeout_seconds = 5.0
 
     def _load_parser(self):
         from tree_sitter_language_pack import get_parser
@@ -82,26 +84,63 @@ class TreeSitterAdapter(LanguageAdapter):
                 capability=capability,
                 detail=str(exc),
             ) from exc
-        try:
-            tree = parser.parse(source)
-        except TimeoutError as exc:
+        outcome: dict[str, Any] = {}
+        completed = threading.Event()
+
+        def run_parse() -> None:
+            try:
+                outcome["tree"] = parser.parse(source)
+            except BaseException as exc:  # noqa: BLE001 - provider boundary
+                outcome["error"] = exc
+            finally:
+                completed.set()
+
+        worker = threading.Thread(
+            target=run_parse,
+            name=f"{self.name}-parse",
+            daemon=True,
+        )
+        worker.start()
+        if not completed.wait(self.parse_timeout_seconds):
             raise AnalysisFailure(
                 "tool_timeout",
                 adapter=self.name,
                 path=path,
                 capability=capability,
-                detail=str(exc),
-            ) from exc
-        except Exception as exc:
+                detail=f"parser exceeded {self.parse_timeout_seconds:.3f}s deadline",
+            )
+        error = outcome.get("error")
+        if isinstance(error, TimeoutError):
+            raise AnalysisFailure(
+                "tool_timeout",
+                adapter=self.name,
+                path=path,
+                capability=capability,
+                detail=str(error),
+            ) from error
+        if isinstance(error, Exception):
             raise AnalysisFailure(
                 "tool_failure",
                 adapter=self.name,
                 path=path,
                 capability=capability,
-                detail=str(exc),
+                detail=str(error),
+            ) from error
+        tree = outcome.get("tree")
+        try:
+            root = getattr(tree, "root_node", None)
+            children = root.children
+            named_children = root.named_children
+            has_error = root.has_error
+        except Exception as exc:
+            raise AnalysisFailure(
+                "corrupt_output",
+                adapter=self.name,
+                path=path,
+                capability=capability,
+                detail=f"parser result has no valid root node: {exc}",
             ) from exc
-        root = getattr(tree, "root_node", None)
-        if root is None or not hasattr(root, "children") or not hasattr(root, "has_error"):
+        if root is None or children is None or named_children is None:
             raise AnalysisFailure(
                 "corrupt_output",
                 adapter=self.name,
@@ -109,7 +148,7 @@ class TreeSitterAdapter(LanguageAdapter):
                 capability=capability,
                 detail="parser result has no valid root node",
             )
-        if root.has_error:
+        if has_error:
             raise AnalysisFailure(
                 "parse_error",
                 adapter=self.name,
@@ -155,6 +194,27 @@ class TreeSitterAdapter(LanguageAdapter):
         return None
 
     def analyze(
+        self,
+        source: str,
+        *,
+        path: str,
+        capabilities: set[str] | frozenset[str],
+    ) -> AnalysisResult:
+        primary = sorted(capabilities)[0] if capabilities else CAP_SYMBOLS
+        try:
+            return self._analyze(source, path=path, capabilities=capabilities)
+        except AnalysisFailure:
+            raise
+        except Exception as exc:
+            raise AnalysisFailure(
+                "corrupt_output",
+                adapter=self.name,
+                path=path,
+                capability=primary,
+                detail=f"invalid parser output: {exc}",
+            ) from exc
+
+    def _analyze(
         self,
         source: str,
         *,
@@ -275,7 +335,7 @@ class JavaScriptAdapter(TreeSitterAdapter):
     name = "javascript-syntax"
     language = "javascript"
     grammar = "javascript"
-    extensions = (".js", ".mjs", ".cjs")
+    extensions = (".js", ".mjs", ".cjs", ".jsx")
 
 
 # spec:portable-analysis-substrate::IM-3
@@ -285,4 +345,4 @@ class TypeScriptAdapter(TreeSitterAdapter):
     # The TSX grammar accepts both TypeScript and JSX-bearing TSX, so one
     # deterministic provider covers both registered extensions.
     grammar = "tsx"
-    extensions = (".ts", ".tsx")
+    extensions = (".ts", ".tsx", ".mts", ".cts")
