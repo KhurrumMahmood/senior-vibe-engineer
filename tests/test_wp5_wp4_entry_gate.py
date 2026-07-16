@@ -73,3 +73,11 @@ def test_dependency_record_scope_includes_tracker_and_all_bound_evidence() -> No
     assert {str(path) for path in gate.EVIDENCE_SHA256} <= set(
         gate.DEPENDENCY_RECORD_PATHS
     )
+
+
+def test_entry_gate_accepts_an_explicit_venv_shared_by_worktrees(monkeypatch) -> None:
+    assert Path(gate._require_venv_interpreter()).is_file()
+
+    monkeypatch.setattr(gate.sys, "base_prefix", gate.sys.prefix)
+    with pytest.raises(gate.GateFailure, match="virtualenv"):
+        gate._require_venv_interpreter()

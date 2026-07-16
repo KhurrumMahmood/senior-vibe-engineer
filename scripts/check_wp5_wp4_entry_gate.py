@@ -213,12 +213,18 @@ def _command_record(argv: list[str]) -> dict[str, Any]:
     return {"argv": argv, "exit_code": result.returncode, "stdout": result.stdout.strip()}
 
 
+def _require_venv_interpreter() -> str:
+    """Accept an explicit real venv, including one shared by Git worktrees."""
+    prefix = Path(sys.prefix).resolve()
+    if sys.prefix == sys.base_prefix or not prefix.joinpath("pyvenv.cfg").is_file():
+        raise GateFailure("entry gate must run with an explicit virtualenv interpreter")
+    return str(Path(sys.executable).resolve())
+
+
 def rerun_contracts(
     head: str, matrix: dict[str, Any]
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    python = str(REPO_ROOT / ".venv/bin/python")
-    if Path(sys.executable).resolve() != Path(python).resolve():
-        raise GateFailure("entry gate must run with .venv/bin/python")
+    python = _require_venv_interpreter()
     commands = [
         _command_record([
             python,
