@@ -285,11 +285,11 @@ WP5 verification must assert ADR 0003 still points to AC-8.9.
 
 ### Slice 1 — manifest core and identity migration (WP1/WP2 ready)
 
-- [ ] IM-3: Implement the single manifest writer on ADR 0040 identity v2,
+- [x] IM-3: Implement the single manifest writer on ADR 0040 identity v2,
   deterministic anonymous occurrence assignment, collision rejection,
   explicit case policy, semantic-rule versioning, schema-1 write path, and
   prototype legacy aliases. <!-- spec:portable-batch-sweep::IM-3 -->
-- [ ] IM-4: Implement read-old/write-new migration and property tests for
+- [x] IM-4: Implement read-old/write-new migration and property tests for
   fixed/new/persisting correctness across normalized/renamed paths, ambiguous
   aliases, case modes, tool upgrades, semantic rule changes, digest collisions,
   and manifest versions without false deduplication.
