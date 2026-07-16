@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Project status projection — one derived, versioned status.json.
 
-Composes existing sources (plans, decisions, specs, idea ledger, sweep
-manifest digest, proposal chains, queue) into
+Composes existing sources (plans, decisions, specs, idea ledger, judged sweep
+digest, proposal chains, queue) into
 `.engineering/local/status.json` per ADR 0037. Deterministic, agent-free,
 read-only: every section degrades to an absent-marker when its source is
 missing (exit 0 — ADR 0023 precedent), and nothing here ever writes into
@@ -36,6 +36,7 @@ if _scripts_dir not in sys.path:
 
 from _lib import artifact_scope, status_schema  # noqa: E402
 from _lib.status_schema import absent  # noqa: E402
+from sweep.pipeline import JudgmentGateError, validate_judged_digest  # noqa: E402
 
 import plans as plans_mod  # noqa: E402
 import specs as specs_mod  # noqa: E402
@@ -119,11 +120,10 @@ def section_in_flight(root: Path) -> dict[str, Any]:
     }
 
 
-def resolve_sweep_manifest(root: Path, override: Path | None) -> Path | None:
-    """The one path-resolver indirection for sweep artifacts (plan §3)."""
+def resolve_sweep_digest(root: Path, override: Path | None) -> Path | None:
+    """Resolve only the judgment-gated sweep projection, never raw findings."""
     candidates = [override] if override else [
-        root / ".engineering" / "local" / "sweep" / "manifest.json",
-        root / ".claude" / "tasks" / "sweep-prototype" / "manifest.json",
+        root / ".engineering" / "local" / "sweep" / "digest.json",
     ]
     for c in candidates:
         if c and c.is_file():
@@ -131,33 +131,32 @@ def resolve_sweep_manifest(root: Path, override: Path | None) -> Path | None:
     return None
 
 
-def section_structural_health(root: Path, manifest_override: Path | None) -> dict[str, Any]:
-    manifest_path = resolve_sweep_manifest(root, manifest_override)
-    if manifest_path is None:
-        return absent("no sweep manifest found")
+def section_structural_health(root: Path, digest_override: Path | None) -> dict[str, Any]:
+    digest_path = resolve_sweep_digest(root, digest_override)
+    if digest_path is None:
+        return absent("no judged sweep digest found")
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        digest = json.loads(digest_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        return absent(f"sweep manifest unreadable: {exc}")
-    findings = manifest.get("findings")
-    if not isinstance(findings, list):
-        return absent("sweep manifest has no findings list (unrecognized shape)")
-    # Digest tier ONLY (ADR 0036/0037): ids, rule names, severity, counts,
-    # totals, timestamp. Never paths, symbols, or summaries.
-    severity_hist: dict[str, int] = {}
-    for f in findings:
-        sev = str(f.get("severity", "?"))
-        severity_hist[sev] = severity_hist.get(sev, 0) + 1
-    mtime = datetime.fromtimestamp(manifest_path.stat().st_mtime, tz=timezone.utc)
+        return absent(f"judged sweep digest unreadable: {exc}")
+    try:
+        validated = validate_judged_digest(digest)
+    except JudgmentGateError as exc:
+        return absent(f"judged sweep digest invalid: {exc}")
+    mtime = datetime.fromtimestamp(digest_path.stat().st_mtime, tz=timezone.utc)
     return {
         "available": True,
-        "manifest_path": str(manifest_path),
-        "manifest_mtime": mtime.isoformat(),
-        "total": manifest.get("total", len(findings)),
-        "counts": manifest.get("counts", {}),
-        "severity_histogram": dict(sorted(severity_hist.items())),
-        "detector_errors": sorted((manifest.get("errors") or {}).keys()),
-        "finding_ids": sorted(str(f.get("id")) for f in findings if f.get("id")),
+        "digest_path": str(digest_path),
+        "digest_mtime": mtime.isoformat(),
+        "manifest_hash": validated["manifest_hash"],
+        "judgment_hash": validated["judgment_hash"],
+        "digest_hash": validated["digest_hash"],
+        "total_actionable": validated["total_actionable"],
+        "omitted_actionable": validated["omitted_actionable"],
+        "counts": dict(validated["counts"]),
+        "severity_histogram": dict(validated["severity_histogram"]),
+        "outcomes": dict(validated["outcomes"]),
+        "finding_ids": list(validated["finding_ids"]),
     }
 
 
@@ -290,11 +289,11 @@ def section_goals(root: Path) -> dict[str, Any]:
 # --- assembly ----------------------------------------------------------------
 
 
-def build_status(root: Path, sweep_manifest: Path | None = None) -> dict[str, Any]:
+def build_status(root: Path, sweep_digest: Path | None = None) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
     builders: dict[str, Callable[[], dict[str, Any]]] = {
         "lifecycle": lambda: section_lifecycle(root),
-        "structural_health": lambda: section_structural_health(root, sweep_manifest),
+        "structural_health": lambda: section_structural_health(root, sweep_digest),
         "pending_approvals": lambda: section_pending_approvals(root, now),
         "in_flight": lambda: section_in_flight(root),
         "staleness": lambda: section_staleness(root, now),
@@ -323,12 +322,17 @@ def main(argv: list[str] | None = None) -> int:
         "--out", type=Path, default=None,
         help="Output path (default: <root>/.engineering/local/status.json).",
     )
-    parser.add_argument("--sweep-manifest", type=Path, default=None)
+    parser.add_argument(
+        "--sweep-digest",
+        type=Path,
+        default=None,
+        help="Judgment-gated sweep digest override; raw manifests are rejected.",
+    )
     parser.add_argument("--print", action="store_true", dest="print_doc")
     args = parser.parse_args(argv)
 
     root = args.root.resolve()
-    doc = build_status(root, args.sweep_manifest)
+    doc = build_status(root, args.sweep_digest)
     errors = status_schema.validate(doc)
     if errors:  # contract self-check; a failure here is a producer bug
         for e in errors:

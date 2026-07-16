@@ -12,9 +12,11 @@ from typing import Any
 
 from _lib.capability_registry import load_registry
 
-from .manifest import FindingInput, _validated_manifest, build_diff, build_manifest
+from .manifest import FindingInput, build_diff, build_manifest
 from .native import execute_provider, provider_contracts_from_registry
+from .pipeline import render_judged_digest
 from .schemas import validate_diff, validate_manifest
+from .serialization import canonical_json_bytes
 
 
 EXIT_OK = 0
@@ -136,73 +138,24 @@ def scan_native(
     )
 
 
-def _clip(value: object, limit: int) -> str:
-    text = " ".join(str(value).split())
-    if len(text) <= limit:
-        return text
-    return f"{text[: max(0, limit - 1)]}…"
-
-
 def render_digest(
     manifest: Mapping[str, Any],
+    judgment: Mapping[str, Any],
     *,
+    purpose: str,
     finding_limit: int = DIGEST_FINDING_LIMIT,
     byte_limit: int = DIGEST_BYTE_LIMIT,
 ) -> bytes:
-    """Render a bounded ID-addressable view; never copy the full finding set."""
-    document = _validated_manifest(manifest)
-    if not 1 <= finding_limit <= DIGEST_FINDING_LIMIT:
-        raise ValueError(f"finding_limit must be between 1 and {DIGEST_FINDING_LIMIT}")
-    if not 1 <= byte_limit <= DIGEST_BYTE_LIMIT:
-        raise ValueError(f"byte_limit must be between 1 and {DIGEST_BYTE_LIMIT}")
-    ordered = sorted(
-        document["findings"],
-        key=lambda row: (
-            -row["severity"],
-            row["identity"]["provider"],
-            row["rule_semantic_key"],
-            row["identity"]["path"],
-            row["identity"]["semantic_anchor"],
-            row["id"],
-        ),
-    )
-    selected = ordered[:finding_limit]
-
-    def encode(rows: Sequence[Mapping[str, Any]]) -> bytes:
-        lines = [
-            f"# sweep digest ({document['total']} findings)",
-            "",
-            f"Manifest: `{document['hashes']['semantic']}`",
-            "Counts: "
-            + ", ".join(f"{name}={count}" for name, count in document["counts"].items()),
-            "",
-        ]
-        for row in rows:
-            location = row["location"]
-            position = f":{location['line']}" if location["line"] is not None else ""
-            lines.append(
-                f"- `{row['id']}` s{row['severity']} "
-                f"{_clip(row['rule_semantic_key'], 96)} "
-                f"{_clip(location['path'], 240)}{position} — {_clip(row['summary'], 320)}"
-            )
-        omitted = len(ordered) - len(rows)
-        lines.extend(
-            [
-                "",
-                f"{omitted} more findings omitted; full findings stay in the manifest.",
-            ]
+    """Render the judgment-gated ordinary digest as canonical JSON bytes."""
+    return canonical_json_bytes(
+        render_judged_digest(
+            manifest,
+            judgment,
+            purpose=purpose,
+            finding_limit=finding_limit,
+            byte_limit=byte_limit,
         )
-        return ("\n".join(lines) + "\n").encode("utf-8")
-
-    content = encode(selected)
-    # Fixed per-field clipping keeps the normal 50-row artifact well below 64 KiB.
-    # A smaller caller-provided byte bound reduces rows, never truncates UTF-8/IDs.
-    while selected and len(content) > byte_limit:
-        selected.pop()
-        content = encode(selected)
-    if len(content) > byte_limit:
-        raise ValueError("byte_limit cannot hold the digest header")
-    return content
+    )
 
 
 def _validated_accepts(

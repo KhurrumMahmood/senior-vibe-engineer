@@ -17,6 +17,10 @@ from pathlib import Path
 
 import pytest
 
+from sweep.manifest import FindingInput, build_manifest
+from sweep.pipeline import build_judgment, render_judged_digest
+from sweep.serialization import canonical_json_bytes
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -100,26 +104,73 @@ def test_validate_flags_missing_section():
 # --- structural health: digest tier only (AR-6) ------------------------------
 
 
-def test_sweep_digest_has_ids_and_counts_but_no_raw_findings(tmp_path):
-    manifest = tmp_path / "manifest.json"
-    manifest.write_text(json.dumps({
-        "target": "x", "scope": ["src"], "counts": {"ruff": 2}, "total": 2,
-        "errors": {"cx": "boom"},
-        "findings": [
-            {"id": "aaa111", "rule": "ruff:E501", "path": "src/x.py",
-             "symbol": "", "severity": 1, "summary": "long line"},
-            {"id": "bbb222", "rule": "ruff:F401", "path": "src/y.py",
-             "symbol": "", "severity": 2, "summary": "unused import"},
-        ],
-    }))
-    section = build(tmp_path, sweep_manifest=manifest)["sections"]["structural_health"]
+def _judged_dashboard_digest() -> dict:
+    empty_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    finding = FindingInput(
+        provider="ruff", language="python", native_rule_id="F401",
+        rule_semantic_key="F401:v1", path="src/x.py", semantic_anchor="module",
+        native_severity="warning", severity=2, message="unused import",
+        summary="unused import", metrics={}, observation_index=0, line=1,
+    )
+    provider = {
+        "schema_version": 1, "provider": "ruff", "language": "python",
+        "provider_kind": "native",
+        "command": {"executable": "/tool/ruff", "argv": ["check", "."],
+                    "timeout_seconds": 30, "output_format": "json",
+                    "output_byte_limit": 1_048_576},
+        "tool_version": "ruff 0.9.9", "exit": {"code": 0, "classification": "diagnostics"},
+        "raw": {"stdout_sha256": empty_hash, "stderr_sha256": empty_hash,
+                "stdout_bytes": 0, "stderr_bytes": 0},
+        "status": "completed", "failure": None,
+    }
+    manifest = build_manifest(
+        capability_registry_version=1, paths=["src"], case_sensitive=True,
+        roots=["src"], exclusions=[],
+        source={"revision": "a" * 40, "dirty": False, "dirty_state_hash": empty_hash},
+        providers=[provider], findings=[finding],
+    )
+    identifier = manifest["findings"][0]["id"]
+    judgment = build_judgment(
+        manifest, judge_identity="fixture", judge_version="1",
+        outcomes=[{"finding_id": identifier, "outcome": "actionable",
+                   "reason": "real", "evidence": "fixture:evidence"}],
+    )
+    return render_judged_digest(manifest, judgment, purpose="dashboard")
+
+
+def test_sweep_digest_has_judgment_hashes_ids_and_counts_but_no_raw_findings(tmp_path):
+    digest_path = tmp_path / "digest.json"
+    digest = _judged_dashboard_digest()
+    digest_path.write_bytes(canonical_json_bytes(digest))
+    section = build(tmp_path, sweep_digest=digest_path)["sections"]["structural_health"]
     assert section["available"] is True
-    assert section["total"] == 2
-    assert section["counts"] == {"ruff": 2}
-    assert section["finding_ids"] == ["aaa111", "bbb222"]
-    assert section["detector_errors"] == ["cx"]
+    assert section["total_actionable"] == 1
+    assert section["counts"] == {"ruff": 1}
+    assert section["finding_ids"] == digest["finding_ids"]
+    assert section["manifest_hash"] == digest["manifest_hash"]
+    assert section["judgment_hash"] == digest["judgment_hash"]
     blob = json.dumps(section)
     assert "src/x.py" not in blob and "long line" not in blob  # digest tier only
+
+
+def test_structural_health_rejects_raw_or_tampered_digest_and_has_no_prototype_fallback(tmp_path):
+    raw = tmp_path / "manifest.json"
+    raw.write_text(json.dumps({"findings": [], "total": 0}))
+    section = build(tmp_path, sweep_digest=raw)["sections"]["structural_health"]
+    assert section["available"] is False
+    assert "invalid" in section["reason"]
+
+    digest = _judged_dashboard_digest()
+    digest["total_actionable"] = 99
+    raw.write_bytes(canonical_json_bytes(digest))
+    section = build(tmp_path, sweep_digest=raw)["sections"]["structural_health"]
+    assert section["available"] is False
+    assert "invalid" in section["reason"]
+
+    prototype = tmp_path / ".claude" / "tasks" / "sweep-prototype" / "manifest.json"
+    prototype.parent.mkdir(parents=True)
+    prototype.write_text(json.dumps({"findings": []}))
+    assert build(tmp_path)["sections"]["structural_health"]["available"] is False
 
 
 # --- pending approvals (IM-3, AR-11) -----------------------------------------

@@ -21,6 +21,13 @@ from .commands import (
 )
 from .manifest import ManifestIdentityError, build_diff, read_manifest, write_manifest
 from .native import ProviderExecutionError
+from .pipeline import (
+    build_judgment,
+    build_judgment_input,
+    build_packet,
+    run_scan_command,
+    verify_packet,
+)
 from .schemas import SchemaValidationError
 from .serialization import canonical_json_bytes
 
@@ -65,9 +72,86 @@ def _scan(args: argparse.Namespace) -> int:
 def _digest(args: argparse.Namespace) -> int:
     content = render_digest(
         read_manifest(args.manifest),
-        finding_limit=args.finding_limit,
+        _read_json(args.judgments, "judgment"),
+        purpose=args.purpose,
+        finding_limit=args.top,
         byte_limit=args.byte_limit,
     )
+    atomic_write_bytes(args.out, content)
+    sys.stdout.buffer.write(content)
+    return EXIT_OK
+
+
+def _read_json(path: Path, label: str) -> object:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"cannot read {label} JSON: {exc}") from exc
+
+
+def _judgment_input(args: argparse.Namespace) -> int:
+    document = build_judgment_input(
+        read_manifest(args.manifest),
+        offset=args.offset,
+        finding_limit=args.top,
+        byte_limit=args.byte_limit,
+    )
+    content = canonical_json_bytes(document)
+    atomic_write_bytes(args.out, content)
+    sys.stdout.buffer.write(content)
+    return EXIT_OK
+
+
+def _judgment_import(args: argparse.Namespace) -> int:
+    outcomes = _read_json(args.outcomes, "outcomes")
+    if not isinstance(outcomes, list):
+        raise ValueError("outcomes JSON must be an array")
+    document = build_judgment(
+        read_manifest(args.manifest),
+        judge_identity=args.judge_identity,
+        judge_version=args.judge_version,
+        outcomes=outcomes,
+    )
+    content = canonical_json_bytes(document)
+    atomic_write_bytes(args.out, content)
+    sys.stdout.buffer.write(content)
+    return EXIT_OK
+
+
+def _packet(args: argparse.Namespace) -> int:
+    expected = _read_json(args.expected_delta, "expected delta")
+    if not isinstance(expected, dict):
+        raise ValueError("expected delta JSON must be an object")
+    document = build_packet(
+        read_manifest(args.manifest),
+        _read_json(args.judgments, "judgment"),
+        finding_ids=args.finding_id,
+        scope=args.scope,
+        recipe=args.recipe,
+        verification=args.verification,
+        expected_delta=expected,
+        token_budget=args.token_budget,
+    )
+    content = canonical_json_bytes(document)
+    atomic_write_bytes(args.out, content)
+    sys.stdout.buffer.write(content)
+    return EXIT_OK
+
+
+def _verify(args: argparse.Namespace) -> int:
+    packet = _read_json(args.packet, "packet")
+    judgment = _read_json(args.judgments, "judgment")
+    if not isinstance(packet, dict) or not isinstance(judgment, dict):
+        raise ValueError("packet and judgment JSON must be objects")
+    before = read_manifest(args.before_manifest)
+    evidence = verify_packet(
+        packet,
+        before,
+        judgment,
+        root=args.root,
+        scanner=lambda: run_scan_command(args.scan_command, args.root),
+    )
+    content = canonical_json_bytes(evidence)
     atomic_write_bytes(args.out, content)
     sys.stdout.buffer.write(content)
     return EXIT_OK
@@ -134,12 +218,61 @@ def _parser() -> argparse.ArgumentParser:
     )
     scan.set_defaults(handler=_scan)
 
-    digest = subcommands.add_parser("digest", help="write a bounded manifest digest")
-    digest.add_argument("manifest", type=Path)
+    judgment_input = subcommands.add_parser(
+        "judgment-input", help="write one bounded classification batch"
+    )
+    judgment_input.add_argument("--manifest", type=Path, required=True)
+    judgment_input.add_argument("--out", type=Path, required=True)
+    judgment_input.add_argument("--offset", type=int, default=0)
+    judgment_input.add_argument("--top", type=int, default=50)
+    judgment_input.add_argument("--byte-limit", type=int, default=65_536)
+    judgment_input.set_defaults(handler=_judgment_input)
+
+    judgment_import = subcommands.add_parser(
+        "judgment-import", help="validate and bind run-local outcomes"
+    )
+    judgment_import.add_argument("--manifest", type=Path, required=True)
+    judgment_import.add_argument("--outcomes", type=Path, required=True)
+    judgment_import.add_argument("--judge-identity", required=True)
+    judgment_import.add_argument("--judge-version", required=True)
+    judgment_import.add_argument("--out", type=Path, required=True)
+    judgment_import.set_defaults(handler=_judgment_import)
+
+    digest = subcommands.add_parser("digest", help="write a judgment-gated bounded digest")
+    digest.add_argument("--manifest", type=Path, required=True)
+    digest.add_argument("--judgments", type=Path, required=True)
+    digest.add_argument("--purpose", choices=("agent", "dashboard", "rank"), required=True)
     digest.add_argument("--out", type=Path, required=True)
-    digest.add_argument("--finding-limit", type=int, default=50)
+    digest.add_argument("--top", type=int, default=50)
     digest.add_argument("--byte-limit", type=int, default=65_536)
     digest.set_defaults(handler=_digest)
+
+    packet = subcommands.add_parser("packet", help="create a fresh actionable sweep packet")
+    packet.add_argument("--manifest", type=Path, required=True)
+    packet.add_argument("--judgments", type=Path, required=True)
+    packet.add_argument("--finding-id", action="append", required=True)
+    packet.add_argument("--scope", action="append", required=True)
+    packet.add_argument("--recipe", required=True)
+    packet.add_argument("--verification", required=True)
+    packet.add_argument("--expected-delta", type=Path, required=True)
+    packet.add_argument("--token-budget", type=int, required=True)
+    packet.add_argument("--out", type=Path, required=True)
+    packet.set_defaults(handler=_packet)
+
+    verify = subcommands.add_parser(
+        "verify", help="run harness-owned verification, rescan, and expected-delta gates"
+    )
+    verify.add_argument("--packet", type=Path, required=True)
+    verify.add_argument("--before-manifest", type=Path, required=True)
+    verify.add_argument("--judgments", type=Path, required=True)
+    verify.add_argument("--root", type=Path, required=True)
+    verify.add_argument(
+        "--scan-command",
+        required=True,
+        help="Harness-selected shell-free scanner command emitting one canonical manifest.",
+    )
+    verify.add_argument("--out", type=Path, required=True)
+    verify.set_defaults(handler=_verify)
 
     diff = subcommands.add_parser("diff", help="compare two complete manifests")
     diff.add_argument("before", type=Path)

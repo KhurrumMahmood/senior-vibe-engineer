@@ -10,7 +10,24 @@ import importlib.util
 import json
 from pathlib import Path
 
+from sweep.schemas import validate_packet
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
+FINDING_ID = "f2_0123456789abcdef01234567"
+
+
+def _packet() -> dict:
+    return {
+        "schema_version": 1,
+        "finding_ids": [FINDING_ID],
+        "scope": ["app/a.py"],
+        "recipe": "remove the finding",
+        "verification": ".venv/bin/python -m pytest -q tests/test_a.py",
+        "expected_delta": {"fixed": [FINDING_ID], "allowed_new": [], "metrics": []},
+        "token_budget": 8_000,
+        "manifest_hash": "a" * 64,
+        "judgment_hash": "b" * 64,
+    }
 
 
 def _load_queue_mod():
@@ -31,7 +48,7 @@ def test_stage_hook_list_roundtrip(tmp_path, capsys):
     assert q.main(["--root", str(tmp_path), "list"]) == 0
     assert "queue empty" in capsys.readouterr().out
 
-    # stage a packet-compatible item
+    # stage a legacy flat item; new sweep items use stage-sweep below
     rc = q.main([
         "--root", str(tmp_path), "stage", "fix-dispatch",
         "--recipe", "collapse the 30-branch dispatch",
@@ -70,6 +87,48 @@ def test_stage_hook_list_roundtrip(tmp_path, capsys):
 def test_stage_rejects_unsafe_id(tmp_path, capsys):
     q = _load_queue_mod()
     assert q.main(["--root", str(tmp_path), "stage", "///", "--recipe", "r"]) == 2
+
+
+def test_stage_sweep_validates_and_preserves_closed_packet_with_separate_metadata(
+    tmp_path, capsys
+):
+    q = _load_queue_mod()
+    packet_path = tmp_path / "packet.json"
+    packet_path.write_text(json.dumps(_packet()))
+
+    assert q.main([
+        "--root", str(tmp_path), "stage-sweep", "sweep-one",
+        "--packet", str(packet_path), "--origin", "sweep:test",
+    ]) == 0
+    staged = json.loads(
+        (tmp_path / ".engineering" / "local" / "queue" / "sweep-one.json").read_text()
+    )
+    assert staged["kind"] == "sweep_packet"
+    assert staged["origin"] == "sweep:test"
+    assert staged["status"] == "staged" and staged["staged_at"]
+    assert validate_packet(staged["packet"]) == _packet()
+    assert not ({"recipe", "scope", "expected_delta"} & set(staged))
+
+    capsys.readouterr()
+    assert q.main(["--root", str(tmp_path), "list"]) == 0
+    listed = capsys.readouterr().out
+    assert "sweep-one" in listed and "remove the finding" in listed
+
+
+def test_stage_sweep_rejects_loose_and_over_budget_packets(tmp_path, capsys):
+    q = _load_queue_mod()
+    packet_path = tmp_path / "packet.json"
+    packet_path.write_text(json.dumps({"recipe": "loose bypass", "scope": ["app/a.py"]}))
+    assert q.main([
+        "--root", str(tmp_path), "stage-sweep", "bad", "--packet", str(packet_path)
+    ]) == 2
+    assert not (tmp_path / ".engineering" / "local" / "queue" / "bad.json").exists()
+
+    packet_path.write_text(json.dumps({**_packet(), "token_budget": 100_001}))
+    assert q.main([
+        "--root", str(tmp_path), "stage-sweep", "too-large", "--packet", str(packet_path)
+    ]) == 2
+    assert "deterministic ceiling" in capsys.readouterr().err
 
 
 def test_hook_surfaces_silent_non_terminal_plans(tmp_path, capsys):
