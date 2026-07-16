@@ -290,6 +290,7 @@ def test_renamed_skill_scans_before_and_after_blobs(tmp_path):
     assert any(item.source == "before" for item in _violations(*documents))
 
 
+# spec:portable-skill-layer-distribution::IM-6
 def test_repository_foundation_set_is_clean_and_routing_surfaces_stay_excluded():
     result = subprocess.run(
         [sys.executable, "scripts/lint/no_core_framework_leakage.py", "--all"],

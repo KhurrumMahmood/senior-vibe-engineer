@@ -264,6 +264,7 @@ def _normalized_paragraphs(text: str) -> set[str]:
     return paragraphs
 
 
+# spec:portable-skill-layer-distribution::IM-5
 def lint_documents(
     documents: Iterable[Document],
     *,
