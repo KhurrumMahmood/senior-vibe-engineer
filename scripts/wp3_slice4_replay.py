@@ -27,13 +27,76 @@ EXPECTED_ARTIFACT_PATHS = {
     "python/semantic.json",
     "python/targets.json",
 }
+RUFF_PATHS = [
+    ".claude/skills/extract-enum/scripts/collect.py",
+    ".claude/skills/extract-enum/scripts/propose.py",
+    ".claude/skills/extract-enum/scripts/propose_python.py",
+    "scripts/_lib/artifact_scope.py",
+    "scripts/wp3_slice4_replay.py",
+    "tests/test_extract_enum_binding.py",
+    "tests/test_artifact_scope_adoption.py",
+    "tests/fixtures/wp3/extract-enum/python/app.py",
+    "tests/fixtures/wp3/extract-enum/django-options/app/models.py",
+    "tests/fixtures/wp3/extract-enum/django-options/app/services.py",
+]
 
 
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def _commands(output_root: Path) -> list[tuple[str, list[str]]]:
+def _verification_commands() -> list[tuple[str, list[str]]]:
+    # Disabling pytest's terminal plugin removes elapsed-time output while
+    # preserving the exit-code contract, so exact output hashes are replayable.
+    return [
+        ("python-version", [PYTHON, "--version"]),
+        ("pytest-version", [PYTHON, "-m", "pytest", "--version"]),
+        ("ruff-version", [PYTHON, "-m", "ruff", "--version"]),
+        (
+            "focused-repair",
+            [
+                PYTHON,
+                "-m",
+                "pytest",
+                "-p",
+                "no:terminal",
+                "tests/test_extract_enum_binding.py",
+                "tests/test_artifact_scope_adoption.py",
+                "tests/test_status.py",
+                "tests/test_skill_detector_reads.py",
+            ],
+        ),
+        ("full-suite", [PYTHON, "-m", "pytest", "-p", "no:terminal"]),
+        ("ruff-changed", [PYTHON, "-m", "ruff", "check", *RUFF_PATHS]),
+        (
+            "skill-meta",
+            [PYTHON, "scripts/skill_meta.py", "lint", "--strict", "--quiet"],
+        ),
+        (
+            "core-leakage",
+            [PYTHON, "scripts/lint/no_core_framework_leakage.py", "--all"],
+        ),
+        (
+            "artifact-drift",
+            [
+                PYTHON,
+                ".claude/skills/find-skill-artifact-drift/scripts/detect.py",
+                "--gate",
+            ],
+        ),
+        (
+            "spec-inventory",
+            [
+                PYTHON,
+                "scripts/specs.py",
+                "inventory-check",
+                "portable-skill-layer-distribution",
+            ],
+        ),
+    ]
+
+
+def _replay_commands(output_root: Path) -> list[tuple[str, list[str]]]:
     root = output_root.as_posix()
     collect = ".claude/skills/extract-enum/scripts/collect.py"
     return [
@@ -102,6 +165,13 @@ def _commands(output_root: Path) -> list[tuple[str, list[str]]]:
     ]
 
 
+def _commands(
+    output_root: Path, *, include_verification: bool
+) -> list[tuple[str, list[str]]]:
+    verification = _verification_commands() if include_verification else []
+    return [*verification, *_replay_commands(output_root)]
+
+
 def _run(command_id: str, argv: list[str]) -> dict[str, Any]:
     result = subprocess.run(argv, cwd=REPO_ROOT, capture_output=True, check=False)
     if result.returncode != 0:
@@ -147,18 +217,29 @@ def record(
     *,
     reviewed_revision: str,
     reviewed_tree: str,
+    include_verification: bool = True,
 ) -> dict[str, Any]:
     if not re.fullmatch(r"[0-9a-f]{40}", reviewed_revision):
         raise ValueError("reviewed_revision must be a lowercase 40-character Git object ID")
     if not re.fullmatch(r"[0-9a-f]{40}", reviewed_tree):
         raise ValueError("reviewed_tree must be a lowercase 40-character Git object ID")
     output_root.mkdir(parents=True, exist_ok=True)
-    commands = [_run(command_id, argv) for command_id, argv in _commands(output_root)]
+    commands = [
+        _run(command_id, argv)
+        for command_id, argv in _commands(
+            output_root, include_verification=include_verification
+        )
+    ]
     payload = {
         "schema_version": 1,
         "reviewed_revision": reviewed_revision,
         "reviewed_tree": reviewed_tree,
         "artifact_root": output_root.as_posix(),
+        "profile": (
+            "full-verification-and-replay"
+            if include_verification
+            else "replay-only"
+        ),
         "scope_written_at": FIXED_SCOPE_CLOCK,
         "commands": commands,
         "generated_replay_artifacts": _artifacts(output_root),
@@ -175,7 +256,13 @@ def verify(manifest_path: Path) -> None:
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     output_root = Path(payload["artifact_root"])
     expected_commands = payload["commands"]
-    canonical_commands = _commands(output_root)
+    profile = payload.get("profile")
+    if profile not in {"full-verification-and-replay", "replay-only"}:
+        raise ValueError("manifest has an unsupported replay profile")
+    canonical_commands = _commands(
+        output_root,
+        include_verification=profile == "full-verification-and-replay",
+    )
     expected_invocations = [
         (recorded.get("id"), recorded.get("argv"), recorded.get("cwd"))
         for recorded in expected_commands
@@ -203,6 +290,11 @@ def main(argv: list[str] | None = None) -> int:
     record_parser.add_argument("--manifest", required=True, type=Path)
     record_parser.add_argument("--reviewed-revision", required=True)
     record_parser.add_argument("--reviewed-tree", required=True)
+    record_parser.add_argument(
+        "--replay-only",
+        action="store_true",
+        help="Record only final pipeline replay commands (intended for narrow tests)",
+    )
     verify_parser = subparsers.add_parser("verify")
     verify_parser.add_argument("--manifest", required=True, type=Path)
     args = parser.parse_args(argv)
@@ -213,6 +305,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.manifest,
                 reviewed_revision=args.reviewed_revision,
                 reviewed_tree=args.reviewed_tree,
+                include_verification=not args.replay_only,
             )
         else:
             verify(args.manifest)

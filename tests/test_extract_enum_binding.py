@@ -480,39 +480,37 @@ def test_characterization_input_hashes_remain_pinned():
     )
 
 
-def test_slice4_full_manifest_replay_is_byte_deterministic(tmp_path):
+def test_slice4_full_manifest_replay_is_byte_deterministic(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("wp3_slice4_replay", REPLAY)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(
+        module,
+        "_verification_commands",
+        lambda: [("verification-sentinel", [module.PYTHON, "-c", "pass"])],
+    )
     output_root = tmp_path / "replay"
     manifest = tmp_path / "manifest.json"
-    first = _run(
-        str(REPLAY),
-        "record",
-        "--output-root",
-        str(output_root),
-        "--manifest",
-        str(manifest),
-        "--reviewed-revision",
-        "0" * 40,
-        "--reviewed-tree",
-        "1" * 40,
+    first = module.record(
+        output_root,
+        manifest,
+        reviewed_revision="0" * 40,
+        reviewed_tree="1" * 40,
+        include_verification=True,
     )
-    assert first.returncode == 0, first.stderr
+    assert first["profile"] == "full-verification-and-replay"
+    assert first["commands"][0]["id"] == "verification-sentinel"
     first_bytes = manifest.read_bytes()
 
-    verified = _run(str(REPLAY), "verify", "--manifest", str(manifest))
-    assert verified.returncode == 0, verified.stderr
-    second = _run(
-        str(REPLAY),
-        "record",
-        "--output-root",
-        str(output_root),
-        "--manifest",
-        str(manifest),
-        "--reviewed-revision",
-        "0" * 40,
-        "--reviewed-tree",
-        "1" * 40,
+    module.verify(manifest)
+    module.record(
+        output_root,
+        manifest,
+        reviewed_revision="0" * 40,
+        reviewed_tree="1" * 40,
+        include_verification=True,
     )
-    assert second.returncode == 0, second.stderr
     assert manifest.read_bytes() == first_bytes
 
 
