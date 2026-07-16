@@ -455,7 +455,7 @@ evidence contract in the same logical change.
 
 ### Slice 5 — Surface discovery and compatibility
 
-- [ ] IM-10: **Five-surface projection.** Generate complete procedures and
+- [x] IM-10: **Five-surface projection.** Generate complete procedures and
   metadata for Claude Code, Codex, Augment, Cursor, and Gemini from one bundle
   inventory; validate canonical hashes, expected locations/formats, and
   reference-clean contracts/catalog entries.
@@ -466,7 +466,7 @@ evidence contract in the same logical change.
   Externally executed Cursor/Augment evidence is acceptable only with all those
   bindings; structural checks cannot satisfy this item.
   <!-- spec:portable-skill-layer-distribution::IM-11 -->
-- [ ] IM-12: **Compatibility aliases.** Preserve invocation names unchanged or
+- [x] IM-12: **Compatibility aliases.** Preserve invocation names unchanged or
   emit versioned tested aliases; reject alias collisions, cycles, stale
   targets, and surface-specific divergence.
   <!-- spec:portable-skill-layer-distribution::IM-12 -->
@@ -842,7 +842,18 @@ produces both bands.
 
 ## Known symbol inventory
 
-This is a greenfield dependency-sized spec. The declared Python roots either
-do not exist yet or are small existing prototypes. AR-1/AR-2 provide the
-authoritative catalog inventory before implementation; `inventory-check` must
-be rerun after the concrete symbols land.
+The distribution probe now exceeds the narrative-inventory threshold. Its
+structural helpers are `_sha256_bytes`, `_sha256`, `_canonical_bytes`,
+`_tree_hash`, `_path_is_clean`, `_row_hash`, `_bundle_hash`, `_document_hash`,
+`_reference_paths`, `_validate_reference_semantics`, `_source_files`,
+`build_bundle_inventory`, `_alias_targets`, `validate_bundle_inventory`,
+`_resolved_aliases`, `_alias_skill`, `_expected_projection_files`,
+`build_projections`, and `validate_projections`.
+
+Runtime collection and validation are `_run`, `_command_record`,
+`_git_revision`, `_git_tree`, `_platform_record`, `_reset_directory`,
+`_prepare_claude_marketplace`, `_prepare_codex_marketplace`,
+`_claude_detail_names`, `_nested_strings`, `_codex_prompt_names`,
+`collect_runtime_evidence`, `_validate_command_record`,
+`_expected_runtime_version`, `_probe_observed_version`, and
+`validate_runtime_evidence`. CLI entry points are `_load_json` and `main`.

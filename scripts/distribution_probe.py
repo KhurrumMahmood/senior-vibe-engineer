@@ -10,19 +10,24 @@ import argparse
 import hashlib
 import json
 import os
+import platform
 import re
 import shutil
 import subprocess
 import sys
+from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path, PurePosixPath
 from typing import Any
+
+import yaml
 
 from _lib.capability_registry import CapabilityRegistry, load_registry
 from _lib.skill_catalog import DEFAULT_INVENTORY_PATH, load_catalog
 
 
 SCHEMA_VERSION = 1
+PROJECTION_MODE = "full-discovery"
 READY_STATES = frozenset({"foundation-ready", "exemplar-ready"})
 SURFACE_LAYOUTS = {
     "augment": (".augment/rules/imported", "SKILL.md"),
@@ -34,6 +39,8 @@ SURFACE_LAYOUTS = {
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 HASH_RE = re.compile(r"^[0-9a-f]{64}$")
 VERSIONED_ALIAS_RE = re.compile(r"^(.+)-v([1-9][0-9]*)$")
+PUBLIC_CATALOG_PATH = PurePosixPath(".claude/docs/skill-catalog.md")
+CONTRACTS_INDEX_PATH = PurePosixPath(".claude/contracts/skills/_index.yaml")
 
 
 def _sha256_bytes(content: bytes) -> str:
@@ -68,6 +75,73 @@ def _bundle_hash(inventory: Mapping[str, Any]) -> str:
     payload = dict(inventory)
     payload.pop("bundle_sha256", None)
     return _sha256_bytes(_canonical_bytes(payload))
+
+
+def _document_hash(value: Mapping[str, Any]) -> str:
+    return _sha256_bytes(_canonical_bytes(dict(value)))
+
+
+def _reference_paths(
+    root: Path,
+    registry: CapabilityRegistry,
+    catalog_path: Path,
+    skill_names: Sequence[str],
+) -> list[str]:
+    paths = {
+        registry.path.resolve().relative_to(root).as_posix(),
+        catalog_path.resolve().relative_to(root).as_posix(),
+        PUBLIC_CATALOG_PATH.as_posix(),
+        CONTRACTS_INDEX_PATH.as_posix(),
+        *(f".claude/contracts/skills/{name}.yaml" for name in skill_names),
+    }
+    return sorted(paths)
+
+
+def _validate_reference_semantics(
+    root: Path, skill_names: Sequence[str], errors: list[str]
+) -> None:
+    public_catalog = root / PUBLIC_CATALOG_PATH
+    if public_catalog.is_file():
+        text = public_catalog.read_text(encoding="utf-8")
+        for name in skill_names:
+            if f"/{name}" not in text:
+                errors.append(f"public catalog has no invocation entry for {name!r}")
+
+    contract_names: set[str] = set()
+    for name in skill_names:
+        path = root / f".claude/contracts/skills/{name}.yaml"
+        if not path.is_file():
+            continue
+        try:
+            contract = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except yaml.YAMLError as exc:
+            errors.append(f"skill contract {path.relative_to(root)} is invalid YAML: {exc}")
+            continue
+        if not isinstance(contract, dict) or contract.get("skill") != name:
+            errors.append(f"skill contract for {name!r} does not declare the same skill")
+        else:
+            contract_names.add(name)
+
+    index_path = root / CONTRACTS_INDEX_PATH
+    if index_path.is_file():
+        try:
+            index = yaml.safe_load(index_path.read_text(encoding="utf-8"))
+        except yaml.YAMLError as exc:
+            errors.append(f"contracts index is invalid YAML: {exc}")
+        else:
+            rows = index.get("skills") if isinstance(index, dict) else None
+            indexed_names = {
+                row.get("skill")
+                for row in rows or []
+                if isinstance(row, dict) and isinstance(row.get("skill"), str)
+            }
+            missing = sorted(set(skill_names) - indexed_names)
+            if missing:
+                errors.append(f"contracts index omits distribution-ready skills: {missing}")
+    if contract_names != set(skill_names):
+        missing = sorted(set(skill_names) - contract_names)
+        if missing:
+            errors.append(f"skill contracts are missing or invalid for: {missing}")
 
 
 def _source_files(skill_dir: Path) -> list[Path]:
@@ -125,11 +199,18 @@ def build_bundle_inventory(
     inventory: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "registry_version": selected_registry.schema_version,
+        "registry_contract_version": selected_registry.contract_version,
         "registry_sha256": _sha256(selected_registry.path),
         "catalog_sha256": _sha256(selected_catalog),
         "skills": skills,
         "aliases": [dict(alias) for alias in aliases],
     }
+    inventory["reference_files"] = [
+        {"path": relative, "sha256": _sha256(root / relative)}
+        for relative in _reference_paths(
+            root, selected_registry, selected_catalog, [skill["name"] for skill in skills]
+        )
+    ]
     inventory["bundle_sha256"] = _bundle_hash(inventory)
     errors = validate_bundle_inventory(inventory, root, registry=selected_registry)
     if errors:
@@ -140,6 +221,7 @@ def build_bundle_inventory(
 def _alias_targets(
     inventory: Mapping[str, Any], errors: list[str]
 ) -> dict[str, str]:
+    # spec:portable-skill-layer-distribution::IM-12
     canonical = {
         skill.get("name")
         for skill in inventory.get("skills", [])
@@ -155,8 +237,17 @@ def _alias_targets(
             continue
         name, target, version = alias["name"], alias["target"], alias["version"]
         match = VERSIONED_ALIAS_RE.fullmatch(name) if isinstance(name, str) else None
-        if not match or not isinstance(version, int) or int(match.group(2)) != version:
-            errors.append(f"alias {name!r} must be a versioned name ending in -v<version>")
+        if (
+            not isinstance(name, str)
+            or not NAME_RE.fullmatch(name)
+            or not match
+            or not isinstance(version, int)
+            or isinstance(version, bool)
+            or int(match.group(2)) != version
+        ):
+            errors.append(
+                f"alias {name!r} must be a safe public invocation ending in -v<version>"
+            )
             continue
         if name in canonical or name in aliases:
             errors.append(f"alias collision: {name!r}")
@@ -193,8 +284,9 @@ def validate_bundle_inventory(
     root = project_root.resolve()
     selected_registry = registry or load_registry()
     expected_top = {
-        "schema_version", "registry_version", "registry_sha256", "catalog_sha256",
-        "skills", "aliases", "bundle_sha256",
+        "schema_version", "registry_version", "registry_contract_version",
+        "registry_sha256", "catalog_sha256", "reference_files", "skills", "aliases",
+        "bundle_sha256",
     }
     if set(inventory) != expected_top:
         errors.append(f"bundle inventory fields differ: {sorted(set(inventory) ^ expected_top)}")
@@ -202,6 +294,8 @@ def validate_bundle_inventory(
         errors.append(f"schema_version must be {SCHEMA_VERSION}")
     if inventory.get("registry_version") != selected_registry.schema_version:
         errors.append("registry version differs from the canonical registry")
+    if inventory.get("registry_contract_version") != selected_registry.contract_version:
+        errors.append("registry contract version differs from the canonical registry")
     if inventory.get("registry_sha256") != _sha256(selected_registry.path):
         errors.append("registry hash differs from the canonical registry")
     if inventory.get("bundle_sha256") != _bundle_hash(inventory):
@@ -294,6 +388,48 @@ def validate_bundle_inventory(
                     errors.append(f"skill {skill['name']!r} catalog row link is stale")
     else:
         errors.append("all skills must link one canonical catalog inventory")
+
+    reference_rows = inventory.get("reference_files")
+    declared_references: dict[str, str] = {}
+    if not isinstance(reference_rows, list):
+        errors.append("reference_files must be a list")
+    else:
+        reference_paths: list[str] = []
+        for index, row in enumerate(reference_rows):
+            if not isinstance(row, dict) or set(row) != {"path", "sha256"}:
+                errors.append(f"reference_files[{index}] must contain exactly path and sha256")
+                continue
+            relative, expected_hash = row["path"], row["sha256"]
+            if not _path_is_clean(relative):
+                errors.append(f"reference_files[{index}] has an invalid relative path")
+                continue
+            reference_paths.append(relative)
+            if not isinstance(expected_hash, str) or not HASH_RE.fullmatch(expected_hash):
+                errors.append(f"reference_files[{index}] has an invalid hash")
+                continue
+            path = root / relative
+            if not path.is_file():
+                errors.append(f"reference file is missing: {relative}")
+            elif _sha256(path) != expected_hash:
+                errors.append(f"reference hash differs for {relative}")
+            declared_references[relative] = expected_hash
+        duplicates = sorted(
+            path for path, count in Counter(reference_paths).items() if count > 1
+        )
+        if duplicates:
+            errors.append(f"duplicate reference paths: {duplicates}")
+        if reference_paths != sorted(reference_paths):
+            errors.append("reference_files must be sorted by path")
+        if len(catalog_paths) == 1:
+            expected_references = _reference_paths(
+                root,
+                selected_registry,
+                root / next(iter(catalog_paths)),
+                names,
+            )
+            if set(declared_references) != set(expected_references):
+                errors.append("reference_files differ from the load-bearing reference set")
+    _validate_reference_semantics(root, names, errors)
     _alias_targets(inventory, errors)
     return errors
 
@@ -372,6 +508,7 @@ def build_projections(
     registry: CapabilityRegistry | None = None,
 ) -> dict[str, Any]:
     """Project one validated bundle inventory into all registered surfaces."""
+    # spec:portable-skill-layer-distribution::IM-10
     selected_registry = registry or load_registry()
     errors = validate_bundle_inventory(inventory, project_root, registry=selected_registry)
     if errors:
@@ -401,6 +538,7 @@ def build_projections(
     all_files = {path: content for files in expected.values() for path, content in files.items()}
     manifest: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
+        "projection_mode": PROJECTION_MODE,
         "registry_version": selected_registry.schema_version,
         "registry_sha256": inventory["registry_sha256"],
         "bundle_sha256": inventory["bundle_sha256"],
@@ -423,17 +561,21 @@ def validate_projections(
     """Validate structural projections only; never return runtime support claims."""
     selected_registry = registry or load_registry()
     errors = validate_bundle_inventory(inventory, project_root, registry=selected_registry)
+    if errors:
+        return errors
     expected = _expected_projection_files(inventory, project_root, selected_registry)
     expected_surfaces = set(selected_registry.identifiers("agent_surfaces"))
     surfaces = manifest.get("surfaces", {})
     expected_manifest_fields = {
-        "schema_version", "registry_version", "registry_sha256", "bundle_sha256",
-        "projection_sha256", "surfaces",
+        "schema_version", "projection_mode", "registry_version", "registry_sha256",
+        "bundle_sha256", "projection_sha256", "surfaces",
     }
     if set(manifest) != expected_manifest_fields:
         errors.append("projection manifest fields differ from the structural contract")
     if manifest.get("schema_version") != SCHEMA_VERSION:
         errors.append("projection schema version differs from the structural contract")
+    if manifest.get("projection_mode") != PROJECTION_MODE:
+        errors.append("projection mode must be the explicit full-discovery portfolio")
     if manifest.get("registry_version") != selected_registry.schema_version:
         errors.append("projection registry version differs from the canonical registry")
     if not isinstance(surfaces, dict) or set(surfaces) != expected_surfaces:
@@ -456,6 +598,16 @@ def validate_projections(
         ):
             errors.append(f"{surface}: minimum surface version differs from the registry")
         declared = surface_manifest.get("files", [])
+        declared_paths = [
+            row.get("path") for row in declared if isinstance(row, dict)
+        ]
+        duplicate_targets = sorted(
+            path
+            for path, count in Counter(declared_paths).items()
+            if isinstance(path, str) and count > 1
+        )
+        if duplicate_targets:
+            errors.append(f"{surface}: duplicate manifest targets: {duplicate_targets}")
         declared_map = {
             row.get("path"): row.get("sha256") for row in declared if isinstance(row, dict)
         }
@@ -504,7 +656,7 @@ def _command_record(
 ) -> dict[str, Any]:
     raw = result.stdout + result.stderr
     return {
-        "command": list(command),
+        "argv": list(command),
         "cwd": str(cwd.resolve()),
         "exit_code": result.returncode,
         "stdout": result.stdout.decode("utf-8", errors="replace"),
@@ -518,6 +670,140 @@ def _git_revision(project_root: Path) -> str:
         ["git", "rev-parse", "HEAD"], cwd=project_root, capture_output=True, text=True, check=True
     )
     return result.stdout.strip()
+
+
+def _git_tree(project_root: Path) -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD^{tree}"],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout.strip()
+
+
+def _platform_record() -> dict[str, str]:
+    return {
+        "system": platform.system(),
+        "release": platform.release(),
+        "machine": platform.machine(),
+    }
+
+
+def _reset_directory(path: Path) -> None:
+    if path.exists():
+        shutil.rmtree(path)
+    path.mkdir(parents=True)
+
+
+def _prepare_claude_marketplace(
+    projection_root: Path, runtime_home: Path
+) -> tuple[Path, Path, dict[str, str]]:
+    workspace = runtime_home / "claude-code-runtime"
+    _reset_directory(workspace)
+    marketplace = workspace / "marketplace"
+    plugin = marketplace / "plugins" / "engineering-skills"
+    (plugin / ".claude-plugin").mkdir(parents=True)
+    shutil.copytree(projection_root / ".claude" / "skills", plugin / "skills")
+    plugin_manifest = {
+        "name": "engineering-skills",
+        "version": "1.0.0",
+        "description": "Full-discovery projection of portable engineering skills.",
+        "author": {"name": "engineering-skills"},
+        "license": "MIT",
+    }
+    (plugin / ".claude-plugin" / "plugin.json").write_bytes(
+        _canonical_bytes(plugin_manifest)
+    )
+    marketplace_manifest = {
+        "name": "engineering-skills-local",
+        "description": "Isolated local discovery fixture.",
+        "owner": {"name": "engineering-skills"},
+        "plugins": [
+            {
+                "name": "engineering-skills",
+                "source": "./plugins/engineering-skills",
+                "description": "Full-discovery projection of portable engineering skills.",
+            }
+        ],
+    }
+    manifest_dir = marketplace / ".claude-plugin"
+    manifest_dir.mkdir(parents=True)
+    (manifest_dir / "marketplace.json").write_bytes(_canonical_bytes(marketplace_manifest))
+    home = workspace / "home"
+    home.mkdir()
+    env = dict(os.environ)
+    env["HOME"] = str(home)
+    return workspace, marketplace, env
+
+
+def _prepare_codex_marketplace(
+    projection_root: Path, runtime_home: Path
+) -> tuple[Path, Path, dict[str, str]]:
+    workspace = runtime_home / "codex-runtime"
+    _reset_directory(workspace)
+    marketplace = workspace / "marketplace"
+    plugin = marketplace / "plugins" / "engineering-skills"
+    shutil.copytree(projection_root, plugin)
+    marketplace_manifest = {
+        "name": "engineering-skills-local",
+        "interface": {"displayName": "Engineering Skills Local"},
+        "plugins": [
+            {
+                "name": "engineering-skills",
+                "source": {"source": "local", "path": "./plugins/engineering-skills"},
+                "policy": {"installation": "AVAILABLE", "authentication": "ON_USE"},
+                "category": "Developer Tools",
+            }
+        ],
+    }
+    manifest_dir = marketplace / ".agents" / "plugins"
+    manifest_dir.mkdir(parents=True)
+    (manifest_dir / "marketplace.json").write_bytes(_canonical_bytes(marketplace_manifest))
+    home = workspace / "home"
+    codex_home = workspace / "codex-home"
+    project = workspace / "project"
+    home.mkdir()
+    codex_home.mkdir()
+    project.mkdir()
+    env = dict(os.environ)
+    env["HOME"] = str(home)
+    env["CODEX_HOME"] = str(codex_home)
+    return project, marketplace, env
+
+
+def _claude_detail_names(output: str) -> set[str]:
+    match = re.search(r"(?m)^\s*Skills \([0-9]+\)\s+(.+)$", output)
+    if not match:
+        return set()
+    return {name.strip() for name in match.group(1).split(",") if name.strip()}
+
+
+def _nested_strings(value: Any) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [text for item in value for text in _nested_strings(item)]
+    if isinstance(value, dict):
+        return [text for item in value.values() for text in _nested_strings(item)]
+    return []
+
+
+def _codex_prompt_names(output: str) -> set[str]:
+    try:
+        payload = json.loads(output)
+    except json.JSONDecodeError:
+        return set()
+    names: set[str] = set()
+    for text in _nested_strings(payload):
+        names.update(
+            re.findall(
+                r"(?m)^- engineering-skills:([a-z0-9]+(?:-[a-z0-9]+)*):",
+                text,
+            )
+        )
+    return names
 
 
 def collect_runtime_evidence(
@@ -543,11 +829,17 @@ def collect_runtime_evidence(
     }
     common = {
         "registry_version": selected_registry.schema_version,
+        "registry_contract_version": selected_registry.contract_version,
         "registry_sha256": inventory["registry_sha256"],
         "source_revision": _git_revision(project_root),
+        "source_tree": _git_tree(project_root),
         "source_sha256": _tree_hash(source_files),
         "bundle_sha256": inventory["bundle_sha256"],
+        "inventory_sha256": _document_hash(inventory),
+        "manifest_sha256": _document_hash(manifest),
         "projection_sha256": manifest["projection_sha256"],
+        "projection_mode": manifest["projection_mode"],
+        "platform": _platform_record(),
         "structural_validation": {
             "result": "pass" if not structural_errors else "fail",
             "errors": structural_errors,
@@ -569,9 +861,12 @@ def collect_runtime_evidence(
             "surface_contract_version": str(contract["minimum_surface_version"]),
             "discovery_contract": contract["discovery"],
             "fixture_sha256": _tree_hash(fixture_files),
+            "projection_path": str(root.resolve()),
+            "projection_mode": manifest["projection_mode"],
             "status": "unavailable",
             "reason": "runtime executable is unavailable",
             "version_probe": None,
+            "setup_probes": [],
             "discovery_probe": None,
             "discovery_probes": [],
         }
@@ -586,19 +881,135 @@ def collect_runtime_evidence(
         version_command = [executable, "--version"]
         version_result = runner(version_command, root, None)
         record["version_probe"] = _command_record(version_command, root, version_result)
-        expected_version = str(contract["minimum_surface_version"])
+        expected_version = _expected_runtime_version(surface, selected_registry)
         observed_version = (version_result.stdout + version_result.stderr).decode(
             "utf-8", errors="replace"
         )
-        version_is_pinned = expected_version[0].isdigit()
-        exact_version = re.search(
-            rf"(?<![0-9.]){re.escape(expected_version)}(?![0-9.])", observed_version
+        exact_version = (
+            re.search(
+                rf"(?<![0-9.]){re.escape(expected_version)}(?![0-9.])",
+                observed_version,
+            )
+            if expected_version
+            else True
         )
-        if version_result.returncode != 0 or (version_is_pinned and not exact_version):
+        if version_result.returncode != 0 or not exact_version:
             record["status"] = "unsupported"
             record["reason"] = f"runtime version does not match pinned {expected_version}"
             records[surface] = record
             continue
+
+        invocation_names = sorted(
+            [skill["name"] for skill in inventory["skills"]]
+            + list(_resolved_aliases(inventory))
+        )
+        if surface == "claude-code":
+            workspace, marketplace, env = _prepare_claude_marketplace(
+                root, runtime_home
+            )
+            setup_commands = [
+                [executable, "plugin", "validate", str(marketplace)],
+                [executable, "plugin", "marketplace", "add", str(marketplace)],
+                [
+                    executable,
+                    "plugin",
+                    "install",
+                    "engineering-skills@engineering-skills-local",
+                ],
+                [executable, "plugin", "list", "--json"],
+            ]
+            setup_failed = False
+            for command in setup_commands:
+                result = runner(command, workspace, env)
+                record["setup_probes"].append(_command_record(command, workspace, result))
+                if result.returncode != 0:
+                    setup_failed = True
+                    break
+            if setup_failed:
+                record["status"] = "unsupported"
+                record["reason"] = "isolated local Claude plugin setup failed"
+                records[surface] = record
+                continue
+            command = [
+                executable,
+                "plugin",
+                "details",
+                "engineering-skills@engineering-skills-local",
+            ]
+            result = runner(command, workspace, env)
+            probe = _command_record(command, workspace, result)
+            record["discovery_probe"] = probe
+            record["discovery_probes"] = [probe]
+            observed = _claude_detail_names(
+                result.stdout.decode("utf-8", errors="replace")
+            )
+            if result.returncode == 0 and observed == set(invocation_names) and not structural_errors:
+                record["status"] = "verified"
+                record["reason"] = "Claude plugin details listed the exact full-discovery skill set"
+            elif structural_errors:
+                record["status"] = "unsupported"
+                record["reason"] = "structural validation failed; runtime proof is inadmissible"
+            else:
+                record["status"] = "unsupported"
+                record["reason"] = "Claude plugin details differed from the full-discovery skill set"
+            records[surface] = record
+            continue
+
+        if surface == "codex":
+            project, marketplace, env = _prepare_codex_marketplace(root, runtime_home)
+            setup_commands = [
+                [
+                    executable,
+                    "plugin",
+                    "marketplace",
+                    "add",
+                    str(marketplace),
+                    "--json",
+                ],
+                [
+                    executable,
+                    "plugin",
+                    "add",
+                    "engineering-skills@engineering-skills-local",
+                    "--json",
+                ],
+                [executable, "plugin", "list"],
+            ]
+            setup_failed = False
+            for command in setup_commands:
+                result = runner(command, project, env)
+                record["setup_probes"].append(_command_record(command, project, result))
+                if result.returncode != 0:
+                    setup_failed = True
+                    break
+            auth_output = "".join(
+                probe["stdout"] for probe in record["setup_probes"]
+            )
+            if setup_failed or '"authPolicy": "ON_USE"' not in auth_output:
+                record["status"] = "unsupported"
+                record["reason"] = "isolated local Codex plugin setup or ON_USE policy failed"
+                records[surface] = record
+                continue
+            command = [executable, "-C", str(project), "debug", "prompt-input", "probe"]
+            result = runner(command, project, env)
+            probe = _command_record(command, project, result)
+            record["discovery_probe"] = probe
+            record["discovery_probes"] = [probe]
+            observed = _codex_prompt_names(
+                result.stdout.decode("utf-8", errors="replace")
+            )
+            if result.returncode == 0 and observed == set(invocation_names) and not structural_errors:
+                record["status"] = "verified"
+                record["reason"] = "Codex prompt-input listed the exact namespaced full-discovery skill set"
+            elif structural_errors:
+                record["status"] = "unsupported"
+                record["reason"] = "structural validation failed; runtime proof is inadmissible"
+            else:
+                record["status"] = "unsupported"
+                record["reason"] = "Codex prompt-input differed from the full-discovery skill set"
+            records[surface] = record
+            continue
+
         if surface not in {"augment", "gemini"}:
             record["status"] = "unsupported"
             record["reason"] = "no non-model isolated command proves project skill discovery"
@@ -611,10 +1022,6 @@ def collect_runtime_evidence(
             home.mkdir(parents=True, exist_ok=True)
             env["AUGMENT_DISABLE_AUTO_UPDATE"] = "1"
             command = [executable, "rules", "list"]
-            invocation_names = sorted(
-                [skill["name"] for skill in inventory["skills"]]
-                + list(_resolved_aliases(inventory))
-            )
             missing: list[str] = []
             for name in invocation_names:
                 fixture = runtime_home / "augment-fixtures" / name
@@ -632,16 +1039,20 @@ def collect_runtime_evidence(
                     target.write_bytes(content)
                 discovery_result = runner(command, fixture, env)
                 probe = _command_record(command, fixture, discovery_result)
+                probe["invocation"] = name
                 probe["fixture_sha256"] = _tree_hash(fixture_files)
                 record["discovery_probes"].append(probe)
                 output = discovery_result.stdout.decode("utf-8", errors="replace")
                 if discovery_result.returncode != 0 or name not in output:
                     missing.append(name)
-            if not missing:
+            if not missing and not structural_errors:
                 record["status"] = "verified"
                 record["reason"] = (
                     "runtime listed every invocation in isolated one-skill fixtures"
                 )
+            elif structural_errors:
+                record["status"] = "unsupported"
+                record["reason"] = "structural validation failed; runtime proof is inadmissible"
             else:
                 record["status"] = "unsupported"
                 record["reason"] = (
@@ -660,24 +1071,367 @@ def collect_runtime_evidence(
         record["discovery_probe"] = _command_record(command, root, discovery_result)
         record["discovery_probes"] = [record["discovery_probe"]]
         output = discovery_result.stdout.decode("utf-8", errors="replace")
-        expected_names = sorted(
-            [skill["name"] for skill in inventory["skills"]]
-            + list(_resolved_aliases(inventory))
-        )
         if surface == "gemini":
             missing = [
-                name for name in expected_names if f"\n{name} [Enabled]\n" not in f"\n{output}"
+                name for name in invocation_names if f"\n{name} [Enabled]\n" not in f"\n{output}"
             ]
-        if discovery_result.returncode == 0 and not missing:
+        if discovery_result.returncode == 0 and not missing and not structural_errors:
             record["status"] = "verified"
             record["reason"] = (
                 "runtime listed every canonical invocation from the isolated projection"
             )
+        elif structural_errors:
+            record["status"] = "unsupported"
+            record["reason"] = "structural validation failed; runtime proof is inadmissible"
         else:
             record["status"] = "unsupported"
             record["reason"] = f"runtime discovery did not list canonical invocations: {missing}"
         records[surface] = record
-    return {"schema_version": SCHEMA_VERSION, "records": records}
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "inventory_sha256": _document_hash(inventory),
+        "manifest_sha256": _document_hash(manifest),
+        "records": records,
+    }
+
+
+def _validate_command_record(
+    value: Any,
+    *,
+    label: str,
+    errors: list[str],
+    extra_fields: frozenset[str] = frozenset(),
+) -> None:
+    required = {"argv", "cwd", "exit_code", "stdout", "stderr", "output_sha256"}
+    if not isinstance(value, dict) or set(value) != required | set(extra_fields):
+        errors.append(f"{label} fields differ from the command evidence contract")
+        return
+    argv = value["argv"]
+    if not isinstance(argv, list) or not argv or any(not isinstance(arg, str) for arg in argv):
+        errors.append(f"{label}.argv must be a non-empty list of strings")
+    cwd = value["cwd"]
+    if not isinstance(cwd, str) or not Path(cwd).is_absolute():
+        errors.append(f"{label}.cwd must be an absolute path")
+    if not isinstance(value["exit_code"], int) or isinstance(value["exit_code"], bool):
+        errors.append(f"{label}.exit_code must be an integer")
+    stdout, stderr = value["stdout"], value["stderr"]
+    if not isinstance(stdout, str) or not isinstance(stderr, str):
+        errors.append(f"{label} stdout and stderr must be strings")
+    else:
+        expected = _sha256_bytes(stdout.encode() + stderr.encode())
+        if value["output_sha256"] != expected:
+            errors.append(f"{label} output hash differs from stdout/stderr")
+    if "fixture_sha256" in extra_fields and not (
+        isinstance(value.get("fixture_sha256"), str)
+        and HASH_RE.fullmatch(value["fixture_sha256"])
+    ):
+        errors.append(f"{label}.fixture_sha256 must be a SHA-256 digest")
+    if "invocation" in extra_fields and not (
+        isinstance(value.get("invocation"), str)
+        and NAME_RE.fullmatch(value["invocation"])
+    ):
+        errors.append(f"{label}.invocation must be a safe public invocation")
+
+
+def _expected_runtime_version(surface: str, registry: CapabilityRegistry) -> str | None:
+    minimum = str(registry.data["agent_surfaces"][surface]["minimum_surface_version"])
+    if minimum[0].isdigit():
+        return minimum
+    if surface == "augment":
+        return "0.32.0"
+    return None
+
+
+def _probe_observed_version(probe: Mapping[str, Any]) -> str:
+    return f"{probe.get('stdout', '')}{probe.get('stderr', '')}"
+
+
+def validate_runtime_evidence(
+    evidence: Mapping[str, Any],
+    inventory: Mapping[str, Any],
+    project_root: Path,
+    output_root: Path,
+    manifest: Mapping[str, Any],
+    *,
+    registry: CapabilityRegistry | None = None,
+) -> list[str]:
+    """Validate content-addressed runtime records without granting support claims."""
+    errors: list[str] = []
+    selected_registry = registry or load_registry()
+    root = project_root.resolve()
+    structural_errors = validate_projections(
+        inventory, root, output_root, manifest, registry=selected_registry
+    )
+    if structural_errors:
+        errors.extend(f"structural validation: {error}" for error in structural_errors)
+    expected_top = {"schema_version", "inventory_sha256", "manifest_sha256", "records"}
+    if set(evidence) != expected_top:
+        errors.append("runtime evidence fields differ from the evidence contract")
+    if evidence.get("schema_version") != SCHEMA_VERSION:
+        errors.append("runtime evidence schema version differs")
+    inventory_hash = _document_hash(inventory)
+    manifest_hash = _document_hash(manifest)
+    if evidence.get("inventory_sha256") != inventory_hash:
+        errors.append("runtime evidence is bound to a foreign inventory")
+    if evidence.get("manifest_sha256") != manifest_hash:
+        errors.append("runtime evidence is bound to a foreign manifest")
+    records = evidence.get("records")
+    expected_surfaces = set(selected_registry.identifiers("agent_surfaces"))
+    if not isinstance(records, dict) or set(records) != expected_surfaces:
+        errors.append("runtime evidence does not cover every supported surface")
+        return errors
+
+    source_files = {
+        f"{skill['source']}/{row['path']}": (root / skill["source"] / row["path"]).read_bytes()
+        for skill in inventory["skills"]
+        for row in skill["files"]
+    }
+    common_expected = {
+        "registry_version": selected_registry.schema_version,
+        "registry_contract_version": selected_registry.contract_version,
+        "registry_sha256": inventory["registry_sha256"],
+        "source_revision": _git_revision(root),
+        "source_tree": _git_tree(root),
+        "source_sha256": _tree_hash(source_files),
+        "bundle_sha256": inventory["bundle_sha256"],
+        "inventory_sha256": inventory_hash,
+        "manifest_sha256": manifest_hash,
+        "projection_sha256": manifest["projection_sha256"],
+        "projection_mode": manifest["projection_mode"],
+        "platform": _platform_record(),
+    }
+    record_fields = {
+        *common_expected,
+        "structural_validation", "surface", "surface_contract_version",
+        "discovery_contract", "fixture_sha256", "projection_path", "projection_mode",
+        "status", "reason", "version_probe", "setup_probes", "discovery_probe",
+        "discovery_probes",
+    }
+    expected_names = sorted(
+        [skill["name"] for skill in inventory["skills"]]
+        + list(_resolved_aliases(inventory))
+    )
+    for surface in sorted(expected_surfaces):
+        record = records[surface]
+        label = f"records.{surface}"
+        if not isinstance(record, dict) or set(record) != record_fields:
+            errors.append(f"{label} fields differ from the runtime record contract")
+            continue
+        for field, expected in common_expected.items():
+            if record.get(field) != expected:
+                errors.append(f"{label}.{field} differs from the current source/evidence binding")
+        contract = selected_registry.data["agent_surfaces"][surface]
+        if record.get("surface") != surface:
+            errors.append(f"{label}.surface differs")
+        if record.get("surface_contract_version") != str(contract["minimum_surface_version"]):
+            errors.append(f"{label}.surface_contract_version differs from the registry")
+        if record.get("discovery_contract") != contract["discovery"]:
+            errors.append(f"{label}.discovery_contract differs from the registry")
+        surface_root = output_root / surface
+        fixture_files = {
+            path.relative_to(surface_root).as_posix(): path.read_bytes()
+            for path in sorted(surface_root.rglob("*"))
+            if path.is_file()
+        }
+        if record.get("fixture_sha256") != _tree_hash(fixture_files):
+            errors.append(f"{label}.fixture_sha256 is foreign or stale")
+        if record.get("projection_path") != str(surface_root.resolve()):
+            errors.append(f"{label}.projection_path differs from the validated fixture")
+        structural = record.get("structural_validation")
+        expected_structural = {
+            "result": "pass" if not structural_errors else "fail",
+            "errors": structural_errors,
+            "satisfies_runtime_discovery": False,
+        }
+        if structural != expected_structural:
+            errors.append(f"{label}.structural_validation differs from direct validation")
+        status = record.get("status")
+        if status not in {"verified", "unsupported", "unavailable"}:
+            errors.append(f"{label}.status is invalid")
+        if status == "verified" and structural_errors:
+            errors.append(f"{label} claims verified runtime discovery after structural failure")
+
+        version_probe = record.get("version_probe")
+        if version_probe is not None:
+            _validate_command_record(version_probe, label=f"{label}.version_probe", errors=errors)
+            if version_probe.get("cwd") != str(surface_root.resolve()):
+                errors.append(f"{label}.version_probe.cwd differs from the surface fixture")
+            if version_probe.get("argv", [])[1:] != ["--version"]:
+                errors.append(f"{label}.version_probe did not execute --version")
+            expected_version = _expected_runtime_version(surface, selected_registry)
+            if expected_version and not re.search(
+                rf"(?<![0-9.]){re.escape(expected_version)}(?![0-9.])",
+                _probe_observed_version(version_probe),
+            ):
+                errors.append(f"{label}.version_probe does not prove exact {expected_version}")
+        elif status != "unavailable":
+            errors.append(f"{label} has no version probe for a present runtime")
+
+        setup_probes = record.get("setup_probes")
+        if not isinstance(setup_probes, list):
+            errors.append(f"{label}.setup_probes must be a list")
+            setup_probes = []
+        for index, probe in enumerate(setup_probes):
+            _validate_command_record(
+                probe, label=f"{label}.setup_probes[{index}]", errors=errors
+            )
+
+        discovery_probe = record.get("discovery_probe")
+        probes = record.get("discovery_probes")
+        if not isinstance(probes, list):
+            errors.append(f"{label}.discovery_probes must be a list")
+            continue
+        for index, probe in enumerate(probes):
+            extra = (
+                frozenset({"fixture_sha256", "invocation"})
+                if surface == "augment"
+                else frozenset()
+            )
+            _validate_command_record(
+                probe,
+                label=f"{label}.discovery_probes[{index}]",
+                errors=errors,
+                extra_fields=extra,
+            )
+        if discovery_probe is not None:
+            _validate_command_record(
+                discovery_probe, label=f"{label}.discovery_probe", errors=errors
+            )
+            if probes != [discovery_probe]:
+                errors.append(f"{label}.discovery_probe differs from discovery_probes")
+        elif surface != "augment" and probes:
+            errors.append(f"{label} has probe rows without a primary discovery_probe")
+
+        if status != "verified":
+            continue
+        if not probes:
+            errors.append(f"{label} claims verified discovery without a discovery command")
+            continue
+        if any(not isinstance(probe, dict) for probe in [*setup_probes, *probes]):
+            errors.append(f"{label} contains a non-mapping verified command record")
+            continue
+        if any(probe.get("exit_code") != 0 for probe in [*setup_probes, *probes]):
+            errors.append(f"{label} claims verified discovery with a failed command")
+        if surface == "claude-code":
+            if len(setup_probes) != 4:
+                errors.append(f"{label} requires validate, marketplace-add, install, and list probes")
+            else:
+                setup_cwd = setup_probes[0].get("cwd")
+                marketplace = (
+                    str(Path(setup_cwd) / "marketplace")
+                    if isinstance(setup_cwd, str)
+                    else ""
+                )
+                expected_setup = [
+                    ["plugin", "validate", marketplace],
+                    ["plugin", "marketplace", "add", marketplace],
+                    ["plugin", "install", "engineering-skills@engineering-skills-local"],
+                    ["plugin", "list", "--json"],
+                ]
+                if [probe.get("argv", [])[1:] for probe in setup_probes] != expected_setup:
+                    errors.append(f"{label} Claude setup commands differ from the isolated contract")
+                if any(probe.get("cwd") != setup_cwd for probe in setup_probes):
+                    errors.append(f"{label} Claude setup commands use different fixture roots")
+                projected_skills = {
+                    path.relative_to(surface_root / ".claude/skills").as_posix(): path.read_bytes()
+                    for path in sorted((surface_root / ".claude/skills").rglob("*"))
+                    if path.is_file()
+                }
+                packaged_root = Path(setup_cwd or ".") / "marketplace/plugins/engineering-skills/skills"
+                packaged_skills = {
+                    path.relative_to(packaged_root).as_posix(): path.read_bytes()
+                    for path in sorted(packaged_root.rglob("*"))
+                    if path.is_file()
+                }
+                if packaged_skills != projected_skills:
+                    errors.append(f"{label} Claude marketplace package differs from the projection")
+            argv = probes[0].get("argv", [])
+            if argv[1:] != [
+                "plugin", "details", "engineering-skills@engineering-skills-local"
+            ]:
+                errors.append(f"{label} did not use Claude plugin details discovery")
+            if setup_probes and probes[0].get("cwd") != setup_probes[0].get("cwd"):
+                errors.append(f"{label} Claude discovery cwd differs from setup cwd")
+            observed = _claude_detail_names(probes[0].get("stdout", ""))
+            if observed != set(expected_names):
+                errors.append(f"{label} Claude discovery names differ from the inventory")
+        elif surface == "codex":
+            if len(setup_probes) != 3:
+                errors.append(f"{label} requires marketplace-add, plugin-add, and list probes")
+            else:
+                setup_cwd = setup_probes[0].get("cwd")
+                workspace = Path(setup_cwd or ".").parent
+                marketplace = str(workspace / "marketplace")
+                expected_setup = [
+                    ["plugin", "marketplace", "add", marketplace, "--json"],
+                    ["plugin", "add", "engineering-skills@engineering-skills-local", "--json"],
+                    ["plugin", "list"],
+                ]
+                if [probe.get("argv", [])[1:] for probe in setup_probes] != expected_setup:
+                    errors.append(f"{label} Codex setup commands differ from the isolated contract")
+                if any(probe.get("cwd") != setup_cwd for probe in setup_probes):
+                    errors.append(f"{label} Codex setup commands use different fixture roots")
+                projected_files = {
+                    path.relative_to(surface_root).as_posix(): path.read_bytes()
+                    for path in sorted(surface_root.rglob("*"))
+                    if path.is_file()
+                }
+                packaged_root = workspace / "marketplace/plugins/engineering-skills"
+                packaged_files = {
+                    path.relative_to(packaged_root).as_posix(): path.read_bytes()
+                    for path in sorted(packaged_root.rglob("*"))
+                    if path.is_file()
+                }
+                if packaged_files != projected_files:
+                    errors.append(f"{label} Codex marketplace package differs from the projection")
+            setup_output = "".join(probe.get("stdout", "") for probe in setup_probes)
+            if '"authPolicy": "ON_USE"' not in setup_output:
+                errors.append(f"{label} does not bind the required ON_USE authentication policy")
+            argv = probes[0].get("argv", [])
+            if len(argv) < 6 or argv[-3:] != ["debug", "prompt-input", "probe"]:
+                errors.append(f"{label} did not use Codex prompt-input discovery")
+            elif argv[1:3] != ["-C", probes[0].get("cwd")]:
+                errors.append(f"{label} Codex -C root differs from the recorded cwd")
+            observed = _codex_prompt_names(probes[0].get("stdout", ""))
+            if observed != set(expected_names):
+                errors.append(f"{label} Codex discovery names differ from the inventory")
+        if surface == "gemini":
+            if probes[0].get("argv", [])[1:] != ["skills", "list"]:
+                errors.append(f"{label} did not use Gemini skills list discovery")
+            if probes[0].get("cwd") != str(surface_root.resolve()):
+                errors.append(f"{label} Gemini discovery cwd differs from the surface fixture")
+            observed = set(
+                re.findall(r"(?m)^([a-z0-9]+(?:-[a-z0-9]+)*) \[Enabled\]$", probes[0]["stdout"])
+            )
+            if observed != set(expected_names):
+                errors.append(f"{label} Gemini discovery names differ from the inventory")
+        elif surface == "augment":
+            invocations = [probe.get("invocation") for probe in probes]
+            if sorted(invocations) != expected_names or len(invocations) != len(set(invocations)):
+                errors.append(f"{label} Augment discovery probes differ from the invocation set")
+            skill_rows = {skill["name"]: skill for skill in inventory["skills"]}
+            resolved = {name: name for name in skill_rows} | _resolved_aliases(inventory)
+            for probe in probes:
+                if probe.get("argv", [])[1:] != ["rules", "list"]:
+                    errors.append(f"{label} did not use Augment rules list discovery")
+                invocation = probe.get("invocation")
+                if invocation not in resolved:
+                    continue
+                source = surface_root / ".augment/rules/imported" / invocation
+                expected_files = {
+                    f".augment/rules/imported/{invocation}/{path.relative_to(source).as_posix()}": path.read_bytes()
+                    for path in sorted(source.rglob("*"))
+                    if path.is_file()
+                }
+                if probe.get("fixture_sha256") != _tree_hash(expected_files):
+                    errors.append(f"{label} probe for {invocation!r} is bound to a foreign fixture")
+                if Path(probe.get("cwd") or "").name != invocation:
+                    errors.append(f"{label} probe cwd differs from invocation {invocation!r}")
+                if invocation not in probe.get("stdout", ""):
+                    errors.append(f"{label} probe output omits {invocation!r}")
+        elif surface not in {"claude-code", "codex"}:
+            errors.append(f"{label} uses an unvalidated verified discovery mechanism")
+    return errors
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -699,6 +1453,12 @@ def main(argv: list[str] | None = None) -> int:
     runtime.add_argument("output_root", type=Path)
     runtime.add_argument("runtime_home", type=Path)
     runtime.add_argument("evidence_output", type=Path)
+    verify = subparsers.add_parser(
+        "verify-matrix", help="validate structural projections and runtime evidence read-only"
+    )
+    verify.add_argument("project_root", nargs="?", type=Path, default=Path("."))
+    verify.add_argument("--fixtures", required=True, type=Path)
+    verify.add_argument("--evidence", required=True, type=Path)
     args = parser.parse_args(argv)
     try:
         root = args.project_root.resolve()
@@ -714,10 +1474,34 @@ def main(argv: list[str] | None = None) -> int:
                 args.inventory_output.write_bytes(_canonical_bytes(inventory))
             print(json.dumps(manifest, indent=2, sort_keys=True))
             return 0
+        if args.command == "verify-matrix":
+            fixtures = args.fixtures.resolve()
+            manifest = _load_json(fixtures / "projection-manifest.json")
+            evidence = _load_json(args.evidence.resolve())
+            errors = validate_runtime_evidence(
+                evidence, inventory, root, fixtures, manifest
+            )
+            if errors:
+                for error in errors:
+                    print(f"ERROR {error}")
+                return 1
+            statuses = {
+                surface: record["status"]
+                for surface, record in sorted(evidence["records"].items())
+            }
+            print(json.dumps({"result": "pass", "statuses": statuses}, sort_keys=True))
+            return 0
         manifest = _load_json(args.output_root / "projection-manifest.json")
         evidence = collect_runtime_evidence(
             inventory, root, args.output_root.resolve(), manifest, args.runtime_home.resolve()
         )
+        errors = validate_runtime_evidence(
+            evidence, inventory, root, args.output_root.resolve(), manifest
+        )
+        if errors:
+            for error in errors:
+                print(f"ERROR {error}", file=sys.stderr)
+            return 1
         args.evidence_output.write_bytes(_canonical_bytes(evidence))
         print(json.dumps(evidence, indent=2, sort_keys=True))
         return 0

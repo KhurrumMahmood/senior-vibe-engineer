@@ -3,7 +3,9 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -15,7 +17,9 @@ from distribution_probe import (
     collect_runtime_evidence,
     validate_bundle_inventory,
     validate_projections,
+    validate_runtime_evidence,
 )
+from _lib.capability_registry import load_registry
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,6 +52,7 @@ def test_ready_bundle_inventory_projects_complete_skill_trees_to_five_surfaces(
         "cursor",
         "gemini",
     }
+    assert manifest["projection_mode"] == "full-discovery"
     assert validate_projections(inventory, ROOT, output, manifest) == []
     canonical = (ROOT / ".claude/skills/extract-enum/SKILL.md").read_bytes()
     assert (output / "augment/.augment/rules/imported/extract-enum/SKILL.md").read_bytes() == canonical
@@ -55,6 +60,44 @@ def test_ready_bundle_inventory_projects_complete_skill_trees_to_five_surfaces(
     assert (output / "codex/skills/extract-enum/scripts/propose.py").is_file()
     assert (output / "cursor/.cursor/rules/extract-enum/SKILL.mdc").read_bytes() == canonical
     assert (output / "gemini/.gemini/skills/extract-enum/agents/enum-profiler.md").is_file()
+
+
+def test_bundle_binds_every_load_bearing_reference(inventory: dict[str, Any]) -> None:
+    expected = {
+        ".claude/docs/skill-catalog.md",
+        ".claude/skills/_common/capability-registry.yml",
+        ".claude/skills/_common/skill-catalog-inventory.yml",
+        ".claude/contracts/skills/_index.yaml",
+        *{
+            f".claude/contracts/skills/{skill['name']}.yaml"
+            for skill in inventory["skills"]
+        },
+    }
+
+    assert {row["path"] for row in inventory["reference_files"]} == expected
+    assert inventory["registry_contract_version"] == 1
+
+
+@pytest.mark.parametrize(
+    "relative",
+    [
+        ".claude/docs/skill-catalog.md",
+        ".claude/contracts/skills/plan-feature.yaml",
+        ".claude/contracts/skills/_index.yaml",
+    ],
+)
+def test_bundle_validation_rejects_tampered_reference_file(
+    tmp_path: Path, inventory: dict[str, Any], relative: str
+) -> None:
+    fixture = tmp_path / "project"
+    shutil.copytree(ROOT / ".claude", fixture / ".claude")
+    target = fixture / relative
+    target.write_text("broken: true\n", encoding="utf-8")
+    registry = load_registry(fixture / ".claude/skills/_common/capability-registry.yml")
+
+    errors = validate_bundle_inventory(inventory, fixture, registry=registry)
+
+    assert any("reference hash differs" in error for error in errors)
 
 
 def test_projection_validation_rejects_surface_divergence(
@@ -84,6 +127,38 @@ def test_projection_validation_rejects_undeclared_duplicate_path(
     assert any("augment: undeclared, duplicate" in error for error in errors)
 
 
+def test_projection_validation_rejects_duplicate_manifest_target(
+    tmp_path: Path, inventory: dict[str, Any]
+) -> None:
+    output = tmp_path / "matrix"
+    manifest = build_projections(inventory, ROOT, output)
+    manifest["surfaces"]["gemini"]["files"].append(
+        copy.deepcopy(manifest["surfaces"]["gemini"]["files"][0])
+    )
+    output.joinpath("projection-manifest.json").write_text(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+
+    errors = validate_projections(inventory, ROOT, output, manifest)
+
+    assert any("duplicate manifest target" in error for error in errors)
+
+
+def test_projection_validation_returns_errors_for_malformed_inventory(
+    tmp_path: Path, inventory: dict[str, Any]
+) -> None:
+    output = tmp_path / "matrix"
+    manifest = build_projections(inventory, ROOT, output)
+    attacked = copy.deepcopy(inventory)
+    del attacked["skills"][0]["files"][0]["path"]
+    _resign(attacked)
+
+    errors = validate_projections(attacked, ROOT, output, manifest)
+
+    assert any("invalid file record" in error for error in errors)
+
+
 def test_bundle_validation_rejects_path_traversal(inventory: dict[str, Any]) -> None:
     attacked = copy.deepcopy(inventory)
     attacked["skills"][0]["files"][0]["path"] = "../outside.md"
@@ -92,6 +167,22 @@ def test_bundle_validation_rejects_path_traversal(inventory: dict[str, Any]) -> 
     errors = validate_bundle_inventory(attacked, ROOT)
 
     assert any("path traversal" in error for error in errors)
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["../plan-feature-v1", "nested/plan-feature-v1", "Plan-Feature-v1", "plan_feature-v1"],
+)
+def test_bundle_validation_rejects_unsafe_alias_invocation(
+    inventory: dict[str, Any], name: str
+) -> None:
+    attacked = copy.deepcopy(inventory)
+    attacked["aliases"] = [{"name": name, "target": "plan-feature", "version": 1}]
+    _resign(attacked)
+
+    errors = validate_bundle_inventory(attacked, ROOT)
+
+    assert any("safe public invocation" in error for error in errors)
 
 
 def test_bundle_validation_rejects_incomplete_ready_catalog_set(
@@ -185,6 +276,12 @@ def test_runtime_evidence_is_separate_and_records_typed_unavailable(
         assert record["bundle_sha256"] == inventory["bundle_sha256"]
         assert record["projection_sha256"] == manifest["projection_sha256"]
         assert len(record["fixture_sha256"]) == 64
+        assert record["registry_contract_version"] == 1
+        assert record["source_tree"]
+        assert record["platform"]["system"]
+        assert record["inventory_sha256"] == evidence["inventory_sha256"]
+        assert record["manifest_sha256"] == evidence["manifest_sha256"]
+    assert validate_runtime_evidence(evidence, inventory, ROOT, output, manifest) == []
 
 
 def test_runtime_evidence_binds_exact_gemini_and_auggie_commands_and_outputs(
@@ -224,9 +321,9 @@ def test_runtime_evidence_binds_exact_gemini_and_auggie_commands_and_outputs(
     gemini = evidence["records"]["gemini"]
     augment = evidence["records"]["augment"]
     assert gemini["status"] == augment["status"] == "verified"
-    assert gemini["discovery_probe"]["command"] == ["/runtime/gemini", "skills", "list"]
+    assert gemini["discovery_probe"]["argv"] == ["/runtime/gemini", "skills", "list"]
     assert len(augment["discovery_probes"]) == len(names)
-    assert augment["discovery_probes"][0]["command"] == [
+    assert augment["discovery_probes"][0]["argv"] == [
         "/runtime/auggie",
         "rules",
         "list",
@@ -234,3 +331,250 @@ def test_runtime_evidence_binds_exact_gemini_and_auggie_commands_and_outputs(
     assert len(gemini["discovery_probe"]["output_sha256"]) == 64
     assert len(augment["discovery_probes"][0]["output_sha256"]) == 64
     assert augment["discovery_probes"][0]["stderr"] == "MCP warning\n"
+
+
+def test_runtime_evidence_uses_native_non_model_claude_and_codex_discovery(
+    tmp_path: Path, inventory: dict[str, Any]
+) -> None:
+    output = tmp_path / "matrix"
+    manifest = build_projections(inventory, ROOT, output)
+    names = [skill["name"] for skill in inventory["skills"]]
+
+    def lookup(name: str) -> str | None:
+        return {"claude": "/runtime/claude", "codex": "/runtime/codex"}.get(name)
+
+    def runner(
+        command: list[str], _cwd: Path, _env: dict[str, str] | None
+    ) -> subprocess.CompletedProcess[bytes]:
+        if command[-1] == "--version":
+            version = b"2.1.211 (Claude Code)\n" if command[0].endswith("claude") else b"codex-cli 0.144.1\n"
+            return subprocess.CompletedProcess(command, 0, version, b"")
+        if command[0].endswith("claude") and command[1:3] == ["plugin", "details"]:
+            stdout = f"Component inventory\n  Skills ({len(names)})  {', '.join(names)}\n"
+            return subprocess.CompletedProcess(command, 0, stdout.encode(), b"")
+        if command[0].endswith("codex") and "debug" in command:
+            skill_text = "<skills_instructions>\n" + "".join(
+                f"- engineering-skills:{name}: test\n" for name in names
+            )
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                json.dumps([{"text": skill_text}]).encode(),
+                b"",
+            )
+        if command[0].endswith("codex") and command[1:3] == ["plugin", "add"]:
+            return subprocess.CompletedProcess(command, 0, b'{"authPolicy": "ON_USE"}\n', b"")
+        return subprocess.CompletedProcess(command, 0, b"ok\n", b"")
+
+    evidence = collect_runtime_evidence(
+        inventory,
+        ROOT,
+        output,
+        manifest,
+        tmp_path / "home",
+        executable_lookup=lookup,
+        runner=runner,
+    )
+
+    assert evidence["records"]["claude-code"]["status"] == "verified"
+    assert evidence["records"]["codex"]["status"] == "verified"
+    assert validate_runtime_evidence(evidence, inventory, ROOT, output, manifest) == []
+
+    attacked = copy.deepcopy(evidence)
+    attacked["records"]["codex"]["discovery_probe"]["argv"][-1] = "foreign"
+    attacked["records"]["codex"]["discovery_probes"][0]["argv"][-1] = "foreign"
+    errors = validate_runtime_evidence(attacked, inventory, ROOT, output, manifest)
+    assert any("prompt-input discovery" in error for error in errors)
+
+    claude_cwd = Path(evidence["records"]["claude-code"]["setup_probes"][0]["cwd"])
+    claude_cwd.joinpath(
+        "marketplace/plugins/engineering-skills/skills/plan-feature/SKILL.md"
+    ).write_text("foreign package\n", encoding="utf-8")
+    errors = validate_runtime_evidence(evidence, inventory, ROOT, output, manifest)
+    assert any("marketplace package differs" in error for error in errors)
+
+
+def test_router_only_discovery_cannot_satisfy_full_discovery_projection(
+    tmp_path: Path, inventory: dict[str, Any]
+) -> None:
+    output = tmp_path / "matrix"
+    manifest = build_projections(inventory, ROOT, output)
+
+    def runner(
+        command: list[str], _cwd: Path, _env: dict[str, str] | None
+    ) -> subprocess.CompletedProcess[bytes]:
+        if command[-1] == "--version":
+            return subprocess.CompletedProcess(command, 0, b"2.1.211 (Claude Code)\n", b"")
+        if command[1:3] == ["plugin", "details"]:
+            return subprocess.CompletedProcess(
+                command, 0, b"Component inventory\n  Skills (2)  which-shape, which-skill\n", b""
+            )
+        return subprocess.CompletedProcess(command, 0, b"ok\n", b"")
+
+    evidence = collect_runtime_evidence(
+        inventory,
+        ROOT,
+        output,
+        manifest,
+        tmp_path / "home",
+        executable_lookup=lambda name: "/runtime/claude" if name == "claude" else None,
+        runner=runner,
+    )
+
+    assert evidence["records"]["claude-code"]["status"] == "unsupported"
+    assert evidence["records"]["claude-code"]["projection_mode"] == "full-discovery"
+
+
+def test_runtime_evidence_validation_rejects_foreign_or_tampered_bindings(
+    tmp_path: Path, inventory: dict[str, Any]
+) -> None:
+    output = tmp_path / "matrix"
+    manifest = build_projections(inventory, ROOT, output)
+    evidence = collect_runtime_evidence(
+        inventory,
+        ROOT,
+        output,
+        manifest,
+        tmp_path / "home",
+        executable_lookup=lambda _name: None,
+    )
+
+    attacks = {
+        "source_revision": lambda value: value["records"]["gemini"].__setitem__(
+            "source_revision", "0" * 40
+        ),
+        "source_tree": lambda value: value["records"]["gemini"].__setitem__(
+            "source_tree", "0" * 40
+        ),
+        "registry_contract_version": lambda value: value["records"]["gemini"].__setitem__(
+            "registry_contract_version", 999
+        ),
+        "fixture_sha256": lambda value: value["records"]["gemini"].__setitem__(
+            "fixture_sha256", "0" * 64
+        ),
+        "projection_sha256": lambda value: value["records"]["gemini"].__setitem__(
+            "projection_sha256", "0" * 64
+        ),
+        "inventory_sha256": lambda value: value["records"]["gemini"].__setitem__(
+            "inventory_sha256", "0" * 64
+        ),
+        "manifest_sha256": lambda value: value["records"]["gemini"].__setitem__(
+            "manifest_sha256", "0" * 64
+        ),
+    }
+    for label, attack in attacks.items():
+        attacked = copy.deepcopy(evidence)
+        attack(attacked)
+        errors = validate_runtime_evidence(attacked, inventory, ROOT, output, manifest)
+        assert errors, label
+
+
+def test_runtime_evidence_validation_rejects_tampered_command_output(
+    tmp_path: Path, inventory: dict[str, Any]
+) -> None:
+    output = tmp_path / "matrix"
+    manifest = build_projections(inventory, ROOT, output)
+    names = [skill["name"] for skill in inventory["skills"]]
+
+    def runner(
+        command: list[str], _cwd: Path, _env: dict[str, str] | None
+    ) -> subprocess.CompletedProcess[bytes]:
+        if command[-1] == "--version":
+            return subprocess.CompletedProcess(command, 0, b"0.45.0\n", b"")
+        stdout = "Discovered Agent Skills:\n\n" + "".join(
+            f"{name} [Enabled]\n  Description: test\n" for name in names
+        )
+        return subprocess.CompletedProcess(command, 0, stdout.encode(), b"")
+
+    evidence = collect_runtime_evidence(
+        inventory,
+        ROOT,
+        output,
+        manifest,
+        tmp_path / "home",
+        executable_lookup=lambda name: "/runtime/gemini" if name == "gemini" else None,
+        runner=runner,
+    )
+    evidence["records"]["gemini"]["discovery_probe"]["stdout"] += "tampered\n"
+
+    errors = validate_runtime_evidence(evidence, inventory, ROOT, output, manifest)
+
+    assert any("output hash" in error for error in errors)
+
+
+def test_runtime_collection_never_verifies_a_structurally_invalid_projection(
+    tmp_path: Path, inventory: dict[str, Any]
+) -> None:
+    output = tmp_path / "matrix"
+    manifest = build_projections(inventory, ROOT, output)
+    output.joinpath("gemini/.gemini/skills/plan-feature/SKILL.md").write_text(
+        "tampered\n", encoding="utf-8"
+    )
+    names = [skill["name"] for skill in inventory["skills"]]
+
+    def runner(
+        command: list[str], _cwd: Path, _env: dict[str, str] | None
+    ) -> subprocess.CompletedProcess[bytes]:
+        if command[-1] == "--version":
+            return subprocess.CompletedProcess(command, 0, b"0.45.0\n", b"")
+        stdout = "Discovered Agent Skills:\n\n" + "".join(
+            f"{name} [Enabled]\n  Description: test\n" for name in names
+        )
+        return subprocess.CompletedProcess(command, 0, stdout.encode(), b"")
+
+    evidence = collect_runtime_evidence(
+        inventory,
+        ROOT,
+        output,
+        manifest,
+        tmp_path / "home",
+        executable_lookup=lambda name: "/runtime/gemini" if name == "gemini" else None,
+        runner=runner,
+    )
+
+    assert evidence["records"]["gemini"]["status"] != "verified"
+    errors = validate_runtime_evidence(evidence, inventory, ROOT, output, manifest)
+    assert any("structural" in error for error in errors)
+
+
+def test_verify_matrix_cli_is_read_only_and_rejects_tampered_evidence(
+    tmp_path: Path, inventory: dict[str, Any]
+) -> None:
+    output = tmp_path / "matrix"
+    manifest = build_projections(inventory, ROOT, output)
+    evidence = collect_runtime_evidence(
+        inventory,
+        ROOT,
+        output,
+        manifest,
+        tmp_path / "home",
+        executable_lookup=lambda _name: None,
+    )
+    evidence_path = tmp_path / "evidence.json"
+    evidence_path.write_text(
+        json.dumps(evidence, sort_keys=True, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+    command = [
+        sys.executable,
+        str(ROOT / "scripts/distribution_probe.py"),
+        "verify-matrix",
+        str(ROOT),
+        "--fixtures",
+        str(output),
+        "--evidence",
+        str(evidence_path),
+    ]
+
+    clean = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=False)
+    evidence["records"]["cursor"]["fixture_sha256"] = "0" * 64
+    evidence_path.write_text(
+        json.dumps(evidence, sort_keys=True, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+    attacked = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=False)
+
+    assert clean.returncode == 0
+    assert '"result": "pass"' in clean.stdout
+    assert attacked.returncode == 1
+    assert "foreign or stale" in attacked.stdout
