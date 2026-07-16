@@ -25,8 +25,14 @@ from sweep.ecosystem import (
     run_omnibus_provider,
 )
 from sweep.manifest import build_manifest
-from sweep.process import capture_process
-from sweep.schemas import SchemaValidationError, validate_manifest, validate_provider_observation
+from sweep.process import CapturedProcess, capture_process
+from sweep.schemas import (
+    SchemaValidationError,
+    trusted_parser_run_context,
+    validate_manifest,
+    validate_provider_observation,
+)
+from sweep.serialization import canonical_json_bytes
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -47,7 +53,11 @@ def _load_omnibus_detector():
     return module
 
 
-def _manifest(*runs, paths: list[str] | None = None):
+def _manifest(
+    *runs,
+    paths: list[str] | None = None,
+    repo_root: Path = REPO_ROOT,
+):
     return build_manifest(
         capability_registry_version=1,
         paths=paths or ["tests/fixtures/sweep/ecosystem"],
@@ -57,7 +67,7 @@ def _manifest(*runs, paths: list[str] | None = None):
         source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
         providers=[run.observation for run in runs],
         findings=[finding for run in runs for finding in run.findings],
-        repo_root=REPO_ROOT,
+        repo_root=repo_root,
     )
 
 
@@ -97,7 +107,11 @@ def test_complexity_characterization_is_preserved_through_observation_contract()
     bad = run_complexity_provider(REPO_ROOT, [COMPLEXITY_BAD], observation_index=0)
     good = run_complexity_provider(REPO_ROOT, [COMPLEXITY_GOOD], observation_index=0)
 
-    assert validate_provider_observation(bad.observation) == bad.observation
+    context = trusted_parser_run_context(REPO_ROOT)
+    assert (
+        validate_provider_observation(bad.observation, parser_run_context=context)
+        == bad.observation
+    )
     assert bad.observation["status"] == "completed"
     assert bad.observation["exit"]["classification"] == "diagnostics"
     assert {finding.native_rule_id for finding in bad.findings} == {
@@ -126,7 +140,10 @@ def test_complexity_characterization_is_preserved_through_observation_contract()
         "finding_count": 6,
     }
 
-    assert validate_provider_observation(good.observation) == good.observation
+    assert (
+        validate_provider_observation(good.observation, parser_run_context=context)
+        == good.observation
+    )
     assert good.observation["status"] == "completed"
     assert good.observation["exit"]["classification"] == "clean"
     assert good.findings == ()
@@ -149,7 +166,10 @@ def test_single_language_manifests_include_parser_backed_observations(
         language=language,
         observation_index=0,
     )
-    manifest = validate_manifest(_manifest(run, paths=[fixture.relative_to(REPO_ROOT).as_posix()]))
+    manifest = validate_manifest(
+        _manifest(run, paths=[fixture.relative_to(REPO_ROOT).as_posix()]),
+        parser_run_context=trusted_parser_run_context(REPO_ROOT),
+    )
 
     assert manifest["providers"][0]["provider"] == "omnibus"
     assert manifest["providers"][0]["language"] == language
@@ -234,13 +254,19 @@ def test_parser_failure_returns_failed_observation_and_cannot_publish_clean_zero
     )
 
     for run in (complexity, omnibus):
-        assert validate_provider_observation(run.observation) == run.observation
+        assert (
+            validate_provider_observation(
+                run.observation,
+                parser_run_context=trusted_parser_run_context(tmp_path),
+            )
+            == run.observation
+        )
         assert run.observation["status"] == "failed"
         assert run.observation["exit"]["classification"] == "tool_failure"
         assert run.observation["failure"]["kind"] == "parse_failure"
         assert run.findings == ()
         with pytest.raises(SchemaValidationError, match="publishable manifest requires"):
-            _manifest(run)
+            _manifest(run, paths=["src"], repo_root=tmp_path)
 
 
 def test_recorded_command_replays_exact_completed_artifacts(tmp_path: Path) -> None:
@@ -298,7 +324,10 @@ def test_provider_timeout_and_overflow_retain_actual_artifact_provenance(monkeyp
     false_clean.update(status="completed", failure=None)
     false_clean["exit"] = {"code": 0, "classification": "diagnostics"}
     with pytest.raises(SchemaValidationError, match="artifact exceeds"):
-        validate_provider_observation(false_clean)
+        validate_provider_observation(
+            false_clean,
+            parser_run_context=trusted_parser_run_context(REPO_ROOT),
+        )
 
 
 def test_missing_complexity_scope_is_failed_and_never_publishable() -> None:
@@ -579,20 +608,26 @@ def test_bounded_capture_retains_only_limit_plus_one_and_deadline_wins(monkeypat
     ],
 )
 def test_provider_requires_one_final_matching_completion_sentinel(
-    tmp_path: Path,
     monkeypatch,
     lines: list[dict[str, object]],
     description: str,
 ) -> None:
-    script = tmp_path / f"{description}.py"
-    script.write_text(
-        "import json\n"
-        f"rows = {lines!r}\n"
-        "for row in rows:\n"
-        "    print(json.dumps(row, sort_keys=True, separators=(',', ':')))\n",
-        encoding="utf-8",
+    stdout = b"".join(canonical_json_bytes(row) for row in lines)
+    stderr = b""
+    captured = CapturedProcess(
+        0,
+        False,
+        False,
+        {
+            "stdout_sha256": hashlib.sha256(stdout).hexdigest(),
+            "stderr_sha256": hashlib.sha256(stderr).hexdigest(),
+            "stdout_bytes": len(stdout),
+            "stderr_bytes": len(stderr),
+        },
+        stdout,
+        stderr,
     )
-    monkeypatch.setattr(ecosystem_module, "_PROVIDER_PROCESS", script)
+    monkeypatch.setattr(ecosystem_module, "capture_process", lambda *_args, **_kwargs: captured)
 
     run = run_omnibus_provider(
         REPO_ROOT,
@@ -744,7 +779,7 @@ def test_capture_kills_descendant_group_after_leader_exits(tmp_path: Path, fault
     pid_path = tmp_path / f"{fault}.pid"
     if fault == "timeout":
         child = "import time; time.sleep(60)"
-        timeout_seconds = 0.05
+        timeout_seconds = 0.5
         output_byte_limit = 1_048_576
     else:
         child = (

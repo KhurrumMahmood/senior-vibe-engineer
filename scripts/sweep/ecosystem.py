@@ -24,8 +24,10 @@ from .manifest import FindingInput
 from .process import CapturedProcess, capture_process
 from .schemas import (
     FAILURE_KINDS,
+    ParserRunContext,
     SCHEMA_VERSION,
     parser_command_binding,
+    trusted_parser_run_context,
     validate_provider_observation,
 )
 from .serialization import canonical_json_bytes
@@ -35,7 +37,6 @@ PARSER_ECOSYSTEM_LANGUAGES = frozenset({"python", "typescript"})
 _OUTPUT_BYTE_LIMIT = 4 * 1024 * 1024
 _TIMEOUT_SECONDS = 300
 _TOOLKIT_ROOT = Path(__file__).resolve().parents[2]
-_PROVIDER_PROCESS = Path(__file__).resolve().with_name("provider_process.py")
 _ANALYSIS_FAILURE_KINDS = {
     "parse_error": "parse_failure",
     "missing_tool": "missing_executable",
@@ -362,18 +363,18 @@ def _command(
     *,
     provider: str,
     language: str,
-    project_root: Path,
     scope: Mapping[str, Any],
+    run_context: ParserRunContext,
 ) -> dict[str, Any]:
     argv = [
-        sys.executable,
-        _PROVIDER_PROCESS.as_posix(),
+        run_context.executable,
+        run_context.provider_process_path,
         "--provider",
         provider,
         "--language",
         language,
         "--project-root",
-        project_root.resolve().as_posix(),
+        run_context.workspace_root,
     ]
     for path in scope["paths"]:
         argv.extend(("--path", path))
@@ -383,7 +384,7 @@ def _command(
         argv.extend(("--exclude", exclusion))
     argv.extend(("--case-sensitive", "true" if scope["case_sensitive"] else "false"))
     return {
-        "executable": sys.executable,
+        "executable": run_context.executable,
         "argv": argv,
         "timeout_seconds": _TIMEOUT_SECONDS,
         "output_format": "canonical-jsonl",
@@ -448,6 +449,7 @@ def _completed_observation(
     command: Mapping[str, Any],
     captured: CapturedProcess,
     completion: Mapping[str, Any],
+    run_context: ParserRunContext,
 ) -> dict[str, Any]:
     finding_count = int(completion["finding_count"])
     observation = {
@@ -471,15 +473,23 @@ def _completed_observation(
             "stdout_bytes": captured.raw["stdout_bytes"],
             "stderr_sha256": captured.raw["stderr_sha256"],
             "stderr_bytes": captured.raw["stderr_bytes"],
+            "provider_process_sha256": run_context.provider_process_sha256,
+            "run_context_sha256": run_context.identity_sha256,
             "command_scope_sha256": parser_command_binding(
                 command,
                 provider=provider,
                 language=language,
                 scope=scope,
+                run_context=run_context,
             ),
         },
     }
-    return dict(validate_provider_observation(observation))
+    return dict(
+        validate_provider_observation(
+            observation,
+            parser_run_context=run_context,
+        )
+    )
 
 
 def _failed_observation(
@@ -493,6 +503,7 @@ def _failed_observation(
     failure_kind: str,
     message: str,
     details: Mapping[str, Any],
+    run_context: ParserRunContext,
 ) -> dict[str, Any]:
     observation = {
         "schema_version": SCHEMA_VERSION,
@@ -514,7 +525,12 @@ def _failed_observation(
             "details": dict(details),
         },
     }
-    return dict(validate_provider_observation(observation))
+    return dict(
+        validate_provider_observation(
+            observation,
+            parser_run_context=run_context,
+        )
+    )
 
 
 def _failure_from_stderr(stderr: bytes | None) -> tuple[str, str, Mapping[str, Any]]:
@@ -578,6 +594,7 @@ def _run_provider(
     exclusions: Sequence[str | Path],
     case_sensitive: bool,
 ) -> EcosystemProviderRun:
+    run_context = trusted_parser_run_context(project_root)
     scope = _scope_provenance(
         project_root,
         scopes,
@@ -588,13 +605,13 @@ def _run_provider(
     command = _command(
         provider=provider,
         language=language,
-        project_root=project_root,
         scope=scope,
+        run_context=run_context,
     )
     try:
         captured = capture_process(
             command["argv"],
-            cwd=project_root,
+            cwd=Path(run_context.workspace_root),
             env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
             timeout_seconds=float(command["timeout_seconds"]),
             output_byte_limit=int(command["output_byte_limit"]),
@@ -612,6 +629,7 @@ def _run_provider(
             failure_kind="missing_executable",
             message=f"{type(exc).__name__}: {exc}",
             details={"exception": type(exc).__name__},
+            run_context=run_context,
         )
         return EcosystemProviderRun(observation, ())
 
@@ -630,6 +648,7 @@ def _run_provider(
                 "stdout_sha256": captured.raw["stdout_sha256"],
                 "stderr_sha256": captured.raw["stderr_sha256"],
             },
+            run_context=run_context,
         )
         return EcosystemProviderRun(observation, ())
 
@@ -648,6 +667,7 @@ def _run_provider(
             failure_kind="output_overflow",
             message=f"provider artifact exceeds {byte_limit} bytes",
             details=dict(captured.raw),
+            run_context=run_context,
         )
         return EcosystemProviderRun(observation, ())
 
@@ -663,6 +683,7 @@ def _run_provider(
             failure_kind=kind,
             message=message,
             details=details,
+            run_context=run_context,
         )
         return EcosystemProviderRun(observation, ())
 
@@ -685,6 +706,7 @@ def _run_provider(
             failure_kind="missing_completion",
             message=str(exc),
             details={"stdout_sha256": captured.raw["stdout_sha256"]},
+            run_context=run_context,
         )
         return EcosystemProviderRun(observation, ())
     except Exception as exc:  # noqa: BLE001 - provider output boundary
@@ -698,6 +720,7 @@ def _run_provider(
             failure_kind="output_corruption",
             message=f"{type(exc).__name__}: {exc}",
             details={"exception": type(exc).__name__},
+            run_context=run_context,
         )
         return EcosystemProviderRun(observation, ())
 
@@ -709,6 +732,7 @@ def _run_provider(
         command=command,
         captured=captured,
         completion=completion,
+        run_context=run_context,
     )
     return EcosystemProviderRun(observation, findings)
 

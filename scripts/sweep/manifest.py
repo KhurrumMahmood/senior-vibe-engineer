@@ -14,8 +14,10 @@ from typing import Any
 from _lib.finding_identity import FindingIdentity, normalize_repo_path
 
 from .schemas import (
+    ParserRunContext,
     SCHEMA_VERSION,
     SchemaValidationError,
+    trusted_parser_run_context,
     validate_diff,
     validate_manifest,
     validate_provider_observation,
@@ -257,8 +259,12 @@ def _manifest_hashes(document: Mapping[str, Any]) -> dict[str, str]:
     }
 
 
-def _validated_manifest(document: Mapping[str, Any]) -> Mapping[str, Any]:
-    validated = validate_manifest(document)
+def _validated_manifest(
+    document: Mapping[str, Any],
+    *,
+    parser_run_context: ParserRunContext | None = None,
+) -> Mapping[str, Any]:
+    validated = validate_manifest(document, parser_run_context=parser_run_context)
     if dict(validated["hashes"]) != _manifest_hashes(validated):
         raise SchemaValidationError(
             "manifest.hashes",
@@ -279,11 +285,41 @@ def build_manifest(
     providers: Sequence[Mapping[str, Any]],
     findings: Sequence[FindingInput],
     repo_root: Path | str | None = None,
+    parser_run_context: ParserRunContext | None = None,
 ) -> dict[str, Any]:
     """Build the only writable sweep-manifest schema from normalized inputs."""
     if not isinstance(case_sensitive, bool):
         raise TypeError("case_sensitive must be an explicit boolean")
-    validated_providers = [copy.deepcopy(dict(validate_provider_observation(row))) for row in providers]
+    has_parser_provider = any(
+        row.get("provider_kind") == "parser-backed-ecosystem"
+        for row in providers
+        if isinstance(row, Mapping)
+    )
+    if has_parser_provider:
+        if repo_root is None:
+            raise SchemaValidationError(
+                "manifest.providers",
+                "parser providers require an external repository root",
+            )
+        expected_context = trusted_parser_run_context(repo_root)
+        if parser_run_context is None:
+            parser_run_context = expected_context
+        elif parser_run_context != expected_context:
+            raise SchemaValidationError(
+                "manifest.providers",
+                "parser run context must match the external repository root and runtime",
+            )
+    validated_providers = [
+        copy.deepcopy(
+            dict(
+                validate_provider_observation(
+                    row,
+                    parser_run_context=parser_run_context,
+                )
+            )
+        )
+        for row in providers
+    ]
     validated_providers.sort(key=lambda row: (row["provider"], row["language"]))
     rows = _finding_rows(
         findings,
@@ -321,15 +357,22 @@ def build_manifest(
         "hashes": {},
     }
     document["hashes"] = _manifest_hashes(document)
-    validate_manifest(document)
+    validate_manifest(document, parser_run_context=parser_run_context)
     return document
 
 
-def write_manifest(destination: Path | str, document: Mapping[str, Any]) -> dict[str, Any]:
+def write_manifest(
+    destination: Path | str,
+    document: Mapping[str, Any],
+    *,
+    parser_run_context: ParserRunContext | None = None,
+) -> dict[str, Any]:
     """Atomically write a validated current-schema manifest as canonical JSON."""
-    validated = copy.deepcopy(dict(validate_manifest(document)))
+    validated = copy.deepcopy(
+        dict(validate_manifest(document, parser_run_context=parser_run_context))
+    )
     validated["hashes"] = _manifest_hashes(validated)
-    validate_manifest(validated)
+    validate_manifest(validated, parser_run_context=parser_run_context)
     destination = Path(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(
@@ -446,6 +489,7 @@ def read_manifest(
     source: Path | str,
     *,
     prototype_migration: PrototypeMigration | None = None,
+    parser_run_context: ParserRunContext | None = None,
 ) -> dict[str, Any]:
     """Read schema 1, or explicitly migrate the sole unversioned legacy shape."""
     try:
@@ -459,7 +503,9 @@ def read_manifest(
                 "missing; prototype manifests require explicit migration mode",
             )
         return migrate_prototype_manifest(document, prototype_migration)
-    return copy.deepcopy(dict(_validated_manifest(document)))
+    return copy.deepcopy(
+        dict(_validated_manifest(document, parser_run_context=parser_run_context))
+    )
 
 
 def _continuity_payload(row: Mapping[str, Any]) -> tuple[Any, ...]:

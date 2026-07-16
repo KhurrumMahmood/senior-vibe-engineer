@@ -6,10 +6,14 @@ legacy migration, and writing while later slices own command behavior.
 """
 from __future__ import annotations
 
+import hashlib
 import math
 import re
+import sys
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
+from pathlib import Path
 from pathlib import PurePosixPath
 from typing import Any
 
@@ -57,6 +61,55 @@ class SchemaValidationError(ValueError):
         self.path = path
         self.message = message
         super().__init__(f"{path}: {message}")
+
+
+@dataclass(frozen=True)
+class ParserRunContext:
+    """Externally trusted identity for one parser-backed provider run."""
+
+    workspace_root: str
+    executable: str
+    provider_process_path: str
+    provider_process_sha256: str
+
+    @property
+    def identity_sha256(self) -> str:
+        return canonical_sha256(
+            {
+                "workspace_root": self.workspace_root,
+                "executable": self.executable,
+                "provider_process_path": self.provider_process_path,
+                "provider_process_sha256": self.provider_process_sha256,
+            }
+        )
+
+
+def trusted_parser_run_context(workspace_root: Path | str) -> ParserRunContext:
+    """Resolve trusted runtime identity without consulting observation data."""
+    try:
+        root = Path(workspace_root).resolve(strict=True)
+        provider_process = (
+            Path(__file__).resolve().with_name("provider_process.py").resolve(strict=True)
+        )
+        provider_process_bytes = provider_process.read_bytes()
+    except OSError as exc:
+        raise SchemaValidationError(
+            "parser_run_context",
+            f"trusted runtime path is missing or unreadable: {exc}",
+        ) from exc
+    if not root.is_dir():
+        raise SchemaValidationError("parser_run_context.workspace_root", "must be a directory")
+    if not provider_process.is_file():
+        raise SchemaValidationError(
+            "parser_run_context.provider_process_path",
+            "canonical provider process must be a file",
+        )
+    return ParserRunContext(
+        workspace_root=root.as_posix(),
+        executable=sys.executable,
+        provider_process_path=provider_process.as_posix(),
+        provider_process_sha256=hashlib.sha256(provider_process_bytes).hexdigest(),
+    )
 
 
 def _fail(path: str, message: str) -> None:
@@ -208,9 +261,15 @@ def parser_command_binding(
     provider: str,
     language: str,
     scope: Mapping[str, Any],
+    run_context: ParserRunContext | None,
     path: str = "provider_observation.command",
 ) -> str:
     """Parse one exact parser-process argv and bind it to normalized provenance."""
+    if run_context is None:
+        _fail(path, "parser provider validation requires an external trusted run context")
+    canonical_context = trusted_parser_run_context(run_context.workspace_root)
+    if run_context != canonical_context:
+        _fail(path, "parser run context must match the loaded canonical runtime identity")
     command = _mapping(command_document, path)
     argv = _sequence(command.get("argv"), f"{path}.argv")
     if len(argv) < 10 or not all(isinstance(argument, str) for argument in argv):
@@ -218,7 +277,10 @@ def parser_command_binding(
     executable = _text(command.get("executable"), f"{path}.executable")
     if argv[0] != executable:
         _fail(f"{path}.argv[0]", "must exactly match command.executable")
-    _text(argv[1], f"{path}.argv[1]")
+    if executable != run_context.executable:
+        _fail(f"{path}.executable", "must match the trusted parser executable")
+    if argv[1] != run_context.provider_process_path:
+        _fail(f"{path}.argv[1]", "must be the trusted canonical provider process path")
 
     cursor = 2
 
@@ -256,6 +318,8 @@ def parser_command_binding(
         or ".." in canonical_project_root.parts
     ):
         _fail(f"{path}.argv", "project root must be an absolute normalized path")
+    if project_root != run_context.workspace_root:
+        _fail(f"{path}.argv", "project root must match the trusted run workspace")
 
     values: dict[str, list[str]] = {"--path": [], "--root": [], "--exclude": []}
     order = {"--path": 0, "--root": 1, "--exclude": 2}
@@ -306,11 +370,16 @@ def parser_command_binding(
             "project_root": project_root,
             "scope": parsed_scope,
             "command": dict(command),
+            "run_context_sha256": run_context.identity_sha256,
         }
     )
 
 
-def validate_provider_observation(document: Any) -> Mapping[str, Any]:
+def validate_provider_observation(
+    document: Any,
+    *,
+    parser_run_context: ParserRunContext | None = None,
+) -> Mapping[str, Any]:
     observation = _mapping(document, "provider_observation")
     _version(observation, "provider_observation")
     provider_kind = _text(
@@ -419,6 +488,7 @@ def validate_provider_observation(document: Any) -> Mapping[str, Any]:
             provider=provider,
             language=language,
             scope=scope,
+            run_context=parser_run_context,
         )
         completion = observation["completion"]
         if status == "failed":
@@ -442,6 +512,8 @@ def validate_provider_observation(document: Any) -> Mapping[str, Any]:
                 "stdout_bytes",
                 "stderr_sha256",
                 "stderr_bytes",
+                "provider_process_sha256",
+                "run_context_sha256",
                 "command_scope_sha256",
             ),
             "provider_observation.completion",
@@ -464,6 +536,16 @@ def validate_provider_observation(document: Any) -> Mapping[str, Any]:
             _fail("provider_observation.completion.stderr_sha256", "must match captured stderr")
         if completed["stderr_bytes"] != raw["stderr_bytes"]:
             _fail("provider_observation.completion.stderr_bytes", "must match captured stderr")
+        if completed["provider_process_sha256"] != parser_run_context.provider_process_sha256:
+            _fail(
+                "provider_observation.completion.provider_process_sha256",
+                "must match the trusted canonical provider process content",
+            )
+        if completed["run_context_sha256"] != parser_run_context.identity_sha256:
+            _fail(
+                "provider_observation.completion.run_context_sha256",
+                "must match the external trusted run context",
+            )
         if raw["stdout_bytes"] == 0:
             _fail("provider_observation.raw.stdout_bytes", "completed parser stdout must not be empty")
         if raw["stderr_bytes"] != 0 or raw["stderr_sha256"] != _EMPTY_SHA256:
@@ -582,7 +664,12 @@ def _validate_prototype_manifest(document: Mapping[str, Any]) -> Mapping[str, An
     return document
 
 
-def validate_manifest(document: Any, *, allow_prototype: bool = False) -> Mapping[str, Any]:
+def validate_manifest(
+    document: Any,
+    *,
+    allow_prototype: bool = False,
+    parser_run_context: ParserRunContext | None = None,
+) -> Mapping[str, Any]:
     manifest = _mapping(document, "manifest")
     if "schema_version" not in manifest:
         if allow_prototype:
@@ -623,7 +710,10 @@ def validate_manifest(document: Any, *, allow_prototype: bool = False) -> Mappin
     providers = _sequence(manifest["providers"], "manifest.providers")
     if not providers:
         _fail("manifest.providers", "publishable manifest must declare completed providers")
-    validated_providers = [validate_provider_observation(row) for row in providers]
+    validated_providers = [
+        validate_provider_observation(row, parser_run_context=parser_run_context)
+        for row in providers
+    ]
     if any(row["status"] != "completed" for row in validated_providers):
         _fail("manifest.providers", "publishable manifest requires every provider to complete")
     provider_order = [(row["provider"], row["language"]) for row in validated_providers]
