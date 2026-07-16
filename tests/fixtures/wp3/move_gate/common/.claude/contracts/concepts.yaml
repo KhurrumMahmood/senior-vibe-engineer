@@ -1,0 +1,10 @@
+concepts:
+  - name: old-worker
+    aliases: []
+    superseded_by: new-worker
+  - name: new-worker
+    aliases: []
+    superseded_by: null
+    avoid:
+      - "legacy worker (retired name; use new worker)"
+flagged_ambiguities: []
