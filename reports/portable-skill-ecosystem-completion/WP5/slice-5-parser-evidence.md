@@ -2,17 +2,22 @@
 
 Evidence capture date: 2026-07-16
 
-Implementation base: `c7c2fb858329668b583162509f433ec3d5e1263c`.
+Main-line initial parser-member commit:
+`814561803873959cc304137d3286e144881eba14`.
 
-Initial parser-member commit: `3525075a9026caa20fdec6310ed08354cdc8d1c2`.
-The current content includes all four subsequent fresh-context adversarial repairs.
+Exact reviewed main-line revision:
+`0e45d54b76f5107e0de338f0e6a2a43564852275`, tree
+`fc8763d1af852b1a00c49d712d04dbb22ac864f7`. This evidence describes that
+reviewed functional tree, including all five fresh-context repairs and the
+registry/profile integration through that revision.
 
 Verified WP4 substrate: `d1a6316f0c57abc5e2162c477d6d56f51165cf14`,
 tree `0ab795ec7b6b19dfa987393530404f7e17e98bb6`.
 
-This record covers only IM-13 and IM-14. It does not implement or claim the
-native-provider runner, sweep CLI, judgment, status/dashboard, packet, harness,
-final CI boundary, ADR embodiment, or any complete WP5 acceptance criterion.
+This record covers only parser-owned IM-13 and IM-14. Other main-line slices
+implement native-provider, CLI, judgment, status/dashboard, packet, and harness
+surfaces, but this record neither verifies nor claims them, the final CI
+boundary, ADR embodiment, or any complete WP5 acceptance criterion.
 
 ## Entry gate
 
@@ -60,6 +65,8 @@ recorded rather than presented as passing evidence.
   stdout/stderr metadata, and an exact command/scope digest. Failed parser
   observations must carry no completion attestation, so editing only status,
   failure, and exit cannot publish a failed captured artifact as clean zero.
+  The attestation also records the canonical provider-process content hash and
+  an immutable run-context identity derived outside the observation.
 - Complexity retains the characterized six-pattern bad fixture and clean good
   fixture. Its typed compatibility-tree wrapper parses each file once and
   reuses that tree; malformed or corrupt output becomes a typed failure, not a
@@ -102,7 +109,13 @@ recorded rather than presented as passing evidence.
   root, every repeated path/root/exclusion, case policy, provider, and language;
   missing, duplicate, misordered, unknown, or relabelled arguments fail before
   publication. Manifest validation reconciles each parser completion count with
-  findings whose provenance names that exact observation.
+  findings whose provenance names that exact observation. Trust does not come
+  from the caller-editable command digest: observation and manifest validation
+  consume an external frozen run context whose workspace root is supplied by
+  the run/build boundary while executable, canonical
+  `scripts/sweep/provider_process.py` path, and provider-process SHA-256 are
+  derived from the loaded runtime. This preserves relocated checkouts and
+  temporary fixture roots while rejecting alternate scripts or repositories.
 
 No `scripts/sweep/__init__.py` or `scripts/sweep_shims.py` edit was required,
 minimizing overlap with native-provider work.
@@ -124,6 +137,8 @@ minimizing overlap with native-provider work.
 | absent/duplicate/misplaced/mismatched completion | typed `missing_completion` provider failure | 0, unpublishable |
 | mismatched/excluded executed scope | typed provider failure or manifest rejection | 0, unpublishable |
 | argv/scope/identity relabel and completion/raw/count forgery attacks | schema or manifest rejection | unpublishable |
+| `/tmp/not-the-provider-process.py` + `/tmp/other-repository` with recomputed legacy digest | external run-context rejection | unpublishable |
+| same-content alternate script / existing alternate workspace / executable relabel | external run-context rejection | unpublishable |
 | forced timeout / 32-byte overflow | typed `timeout` / `output_overflow` with bounded-prefix hashes | 0, unpublishable |
 | timeout/overflow after leader exit | descendant process group killed | no survivor |
 
@@ -145,16 +160,16 @@ OK - 6 bad fixture findings, good fixture clean
   tests/test_sweep_slice0_characterization.py \
   tests/test_sweep_ecosystem_members.py tests/test_sweep_parser_trust.py \
   tests/test_wp5_wp4_entry_gate.py
-155 passed in 5.63s
+162 passed in 7.75s
 
 PYTHONDONTWRITEBYTECODE=1 \
 <shared-venv-python> -m pytest \
   --override-ini addopts= -q -p no:cacheprovider
-654 passed in 38.97s
+751 passed, 4 skipped in 64.06s
 
 <shared-venv-python> scripts/check_wp5_wp4_entry_gate.py
 entry_allowed=true
-65 passed in 2.51s
+65 passed in 1.55s
 live Darwin-arm64 benchmark passed
 source_tree_sha256=92aca126917a35a078f4b3d40f72de46c2e707a4580def146094425cd4cc70f0
 stable_result_sha256=a8c3596589629e79af1a601ae14c620ddb0d0127887225245c30d543311e7674
@@ -183,8 +198,10 @@ forces deterministic deadline-race and byte-ceiling failures, kills inherited
 descendants after their leader exits, faults every completion-sentinel shape,
 attacks exact argv/scope/identity binding, completion/raw evidence, and
 provenance-index/count binding, proves all 501 complexity findings cross the
-manifest boundary, and counts exactly one Python parse per file. The
-network-denial test
+manifest boundary, and counts exactly one Python parse per file. It also
+reproduces the release-check script/workspace relabel with a recomputed
+caller-controlled digest and proves the external canonical runtime context is
+load-bearing. The network-denial test
 replaces socket creation, DNS lookup, and
 `urllib.request.urlopen` with raising functions while complexity plus Python
 and TypeScript omnibus members complete deterministically. A bounded static
@@ -217,11 +234,11 @@ claimed.
 |---|---|
 | `.claude/skills/find-complexity-hotspots/scripts/detect.py` | `3f066946bf931111f9c6139257e0410d0eaaab0eaba21612579c867cb9e0267e` |
 | `.claude/skills/find-omnibus/scripts/detect.py` | `53631a1efdbe81b04206618d7459b09299c6d09ef3866c508de8dec66b8d3747` |
-| `scripts/sweep/ecosystem.py` | `2c1294d0c4c0eacaa554d0ecd5813c12a4b3392106926ba8e1c310c08806d145` |
+| `scripts/sweep/ecosystem.py` | `538a8888171e1cb2f3d7c5d1cd539fe79edd80d7288de6f2bc6468375f0f600e` |
 | `scripts/sweep/process.py` | `53887726b7fd3aa1ce93a324fc6c2129a38760c93cd990bb75632ff9feb14e3f` |
 | `scripts/sweep/provider_process.py` | `14627da476bf0e07e42ce751d56fcd72fa577d94acaea147e0a145283c614a05` |
-| `scripts/sweep/manifest.py` | `f7edf474d515e976ccba70b0aaf9182fece2eb6d9e7a111ab745acac8151345a` |
-| `scripts/sweep/schemas.py` | `6e491f79b48f22c3d36a33c076714ea396f08f5f1fa00e3b0d32ba9467a705e8` |
+| `scripts/sweep/manifest.py` | `a9c57c94a362485736d1409a5d2f5e51f636f93d172aab1c245b68565a0653bf` |
+| `scripts/sweep/schemas.py` | `0d9b0538e442d61a5c988a6dd492b9f1abba78f36f902123071d11a383966cc7` |
 | `tests/fixtures/sweep/prototype-oracle/schema-cases.json` | `66b56b41ed6da2f17cf2aaeb8812bfc932fde9d68e5031f116611ece7e9d8355` |
 | `tests/fixtures/sweep/ecosystem/python/complexity.py` | `1ff81dc5c445dcc81069fbfd4ea434d4022a93bed2a276a00b9fb2293c1179ca` |
 | `tests/fixtures/sweep/ecosystem/python/omnibus.py` | `7f3de5d357c01c55f550b3bfbf120f6447f12a71a3a1bb19c97540a361f2bb7b` |
@@ -229,8 +246,8 @@ claimed.
 | `tests/fixtures/sweep/ecosystem/rust/main.rs` | `16b6d261b88c5e3c4934f941ff87a9cd8ec03d690724e5c0d42c7c283a267461` |
 | `tests/fixtures/sweep/ecosystem/go/main.go` | `98f8c8362a4725755100e40ff437f9c2c37aeabae8c58b3ae1d53ca502bf517b` |
 | `tests/test_sweep_slice0_characterization.py` | `18c8c225d166131974f651cf5bc33307e21f2647e08b64a469c955e2b18bb572` |
-| `tests/test_sweep_ecosystem_members.py` | `4a261f732a031550b986671e657a663010feedc6a11a70e2a915250ef235357f` |
-| `tests/test_sweep_parser_trust.py` | `bc11a7763946e02bbd8fd9c156595341fd68ccc6dceb934fea77b5e6241ecc60` |
+| `tests/test_sweep_ecosystem_members.py` | `d3a051496ddb2d40cd9bfe7787d42719b58aec83500dc17543faccfef10cf06b` |
+| `tests/test_sweep_parser_trust.py` | `075439166ddd3a7327b90f0782d8e5e63f500e1c6fa8335ce4c7d06721a26853` |
 | `tests/test_sweep_manifest.py` | `c409ccf90a79bcc47125e72b432160a1dd6d29a6d0b1e96f03aa7b889472aa74` |
 
 Current action: this parser trust-boundary repair is locally verified and ready
