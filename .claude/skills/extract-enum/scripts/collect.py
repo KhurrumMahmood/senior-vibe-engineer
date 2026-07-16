@@ -200,6 +200,13 @@ def _build_local_model_map(
         if not isinstance(func_node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         locals_of_target: set[str] = set()
+        for argument in (
+            *func_node.args.posonlyargs,
+            *func_node.args.args,
+            *func_node.args.kwonlyargs,
+        ):
+            if _annotation_name(argument.annotation) == target_model:
+                locals_of_target.add(argument.arg)
         for stmt in ast.walk(func_node):
             if isinstance(stmt, ast.AnnAssign):
                 ann = _annotation_name(stmt.annotation)
@@ -334,6 +341,36 @@ def _extract_field_kwargs(call: ast.Call) -> dict[str, Any]:
             elif isinstance(value, ast.Attribute):
                 out["choices_ref"] = ast.unparse(value)
     return out
+
+
+def _resolve_declared_choices(file_path: Path, choices_ref: object) -> list[dict[str, str]]:
+    """Resolve a module-level two-column choice constant without importing it."""
+    if not isinstance(choices_ref, str) or not choices_ref.isidentifier():
+        return []
+    try:
+        tree = ast.parse(file_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, SyntaxError):
+        return []
+    for node in tree.body:
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        if not any(isinstance(target, ast.Name) and target.id == choices_ref for target in targets):
+            continue
+        value = node.value
+        if not isinstance(value, (ast.List, ast.Tuple)):
+            return []
+        choices: list[dict[str, str]] = []
+        for item in value.elts:
+            if not isinstance(item, (ast.List, ast.Tuple)) or len(item.elts) != 2:
+                return []
+            wire_value = _string_literal_value(item.elts[0])
+            label = _string_literal_value(item.elts[1])
+            if wire_value is None or label is None:
+                return []
+            choices.append({"wire_value": wire_value, "label": label})
+        return choices
+    return []
 
 
 def _find_field_declaration(
@@ -899,6 +936,10 @@ def main(argv: list[str] | None = None) -> int:
         "field_file": decl["field_file"],
         "field_symbol": decl["field_symbol"],
         "current_kwargs": decl["current_kwargs"],
+        "declared_choices": _resolve_declared_choices(
+            field_path,
+            decl["current_kwargs"].get("choices_ref"),
+        ),
         "literals": literals,
         "comparison_sites": comparisons,
         "assignment_sites": assignments,

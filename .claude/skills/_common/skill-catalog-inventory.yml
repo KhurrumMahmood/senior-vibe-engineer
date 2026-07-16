@@ -189,8 +189,8 @@ skills:
   - name: extract-enum
     path: .claude/skills/extract-enum/SKILL.md
     current:
-      language: python
-      framework: django
+      language: any
+      framework: any
     layer: core
     binding: core
     bindings: [core, python, django]

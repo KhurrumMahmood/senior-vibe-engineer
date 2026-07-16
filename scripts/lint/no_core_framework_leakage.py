@@ -52,6 +52,7 @@ SAFE_FRONTMATTER_FIELDS = frozenset(
 SKILL_PATH_RE = re.compile(
     r"^\.claude/skills/(?P<name>[^/]+)/(?P<tail>SKILL\.md|bindings/.+)$"
 )
+MIGRATED_CORE_READINESS = frozenset({"foundation-ready", "exemplar-ready"})
 
 
 class AllowlistError(ValueError):
@@ -284,7 +285,11 @@ def lint_documents(
             continue
         name, tail = match.group("name"), match.group("tail")
         row = inventory.get(name)
-        if not row or row.get("layer") != "core" or row.get("readiness") != "foundation-ready":
+        if (
+            not row
+            or row.get("layer") != "core"
+            or row.get("readiness") not in MIGRATED_CORE_READINESS
+        ):
             continue
         try:
             parsed = parse(document.text, path=document.path)
@@ -550,7 +555,7 @@ def _add_allowlist_targets(
         if (
             row is None
             or row.get("layer") != "core"
-            or row.get("readiness") != "foundation-ready"
+            or row.get("readiness") not in MIGRATED_CORE_READINESS
             or row.get("path") != entry.path
         ):
             raise AllowlistError(
@@ -618,7 +623,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {violation.render()}")
         return 1
     migrated = sum(
-        row.get("layer") == "core" and row.get("readiness") == "foundation-ready"
+        row.get("layer") == "core" and row.get("readiness") in MIGRATED_CORE_READINESS
         for row in inventory.values()
     )
     print(

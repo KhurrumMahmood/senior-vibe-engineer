@@ -1,0 +1,45 @@
+{
+  "assignment_sites": [
+    {"file": "app/services.py", "literal": "running", "symbol": "start"}
+  ],
+  "bridge_sites": [
+    {"file": "app/services.py", "literal": "vendor_pending", "symbol": "vendor_bridge"}
+  ],
+  "confirmed_sites": [
+    {"file": "app/services.py", "literal": "done", "symbol": "is_done"},
+    {"file": "app/services.py", "literal": "pending", "symbol": "is_pending"}
+  ],
+  "current_kwargs": {"choices_ref": "STATUS_CHOICES", "default": "pending", "max_length": 16},
+  "dynamic_sites": [],
+  "legacy_case_sites": [
+    {"file": "app/services.py", "literal": "Pending", "symbol": "has_case_variant"}
+  ],
+  "literals": [
+    {"case_variant_of": "pending", "count": 1, "value": "Pending"},
+    {"case_variant_of": null, "count": 1, "value": "done"},
+    {"case_variant_of": null, "count": 1, "value": "pending"},
+    {"case_variant_of": null, "count": 1, "value": "running"},
+    {"case_variant_of": null, "count": 1, "value": "vendor_pending"}
+  ],
+  "members": [
+    {"name": "PENDING", "wire_value": "pending"},
+    {"name": "RUNNING", "wire_value": "running"},
+    {"name": "DONE", "wire_value": "done"}
+  ],
+  "risks": [
+    {"action": "normalize_or_audit_persisted_value", "kind": "case_variant", "literal": "Pending"},
+    {"action": "keep_or_map_at_bridge", "kind": "third_party_bridge", "literal": "vendor_pending"},
+    {"action": "reconcile_declared_choices_against_collected_literals", "kind": "declared_choices_drift"}
+  ],
+  "stop": {
+    "execute": false,
+    "required": [
+      "all_sites_migrated",
+      "production_values_subset_of_member_wire_values",
+      "characterization_tests_green",
+      "stringly_status_lint_clean"
+    ]
+  },
+  "summary": {"assignments": 1, "caller_files": 1, "case_variants": 1, "comparisons": 4, "literals": 5},
+  "target": {"field_file": "app/models.py", "field_symbol": "Job.status", "model_class": "Job", "target": "app/models.py::status::Job"}
+}

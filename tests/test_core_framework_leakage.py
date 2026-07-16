@@ -301,7 +301,7 @@ def test_repository_foundation_set_is_clean_and_routing_surfaces_stay_excluded()
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "15 migrated core skill" in result.stdout
+    assert "16 migrated core skill" in result.stdout
 
 
 def test_source_aware_guard_is_wired_to_precommit_ci_and_doctrine():

@@ -1,0 +1,1 @@
+{"findings":[{"candidate_id":"implicit-state-0001","fields_touched":["status"],"file":"app/models.py","recommendation_hint":"introduce_fk_candidate","recommendation_hint_symbol":"Job"}]}
