@@ -598,7 +598,7 @@ skills:
     path: .claude/skills/fix-workflow/SKILL.md
     current:
       language: python
-      framework: django
+      framework: any
     layer: core
     binding: core
     bindings: [core, python, django]
@@ -826,7 +826,7 @@ skills:
     path: .claude/skills/refactor-subsystem/SKILL.md
     current:
       language: python
-      framework: django
+      framework: any
     layer: core
     binding: core
     bindings: [core, python, django]

@@ -142,9 +142,9 @@ you didn't pick it.
 **Bad axes** (defeat the purpose):
 - "good design" / "great design" / "excellent design" — no divergence.
 - Three variations of the same axis — no divergence.
-- Axes the codebase already constrains (e.g. "use Django ORM" vs "use
-  raw SQL" when the codebase has already standardized on Django) —
-  not actually a fork.
+- Axes the codebase already constrains (e.g. "use the standard repository
+  abstraction" vs "issue raw queries" after the project has standardized
+  on the repository) — not actually a fork.
 
 ### Stage 2 — Fan out 3 designers
 

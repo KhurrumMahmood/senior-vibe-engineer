@@ -87,6 +87,9 @@ jobs:
         if: steps.changed.outputs.files != ''
         run: python3 scripts/lint/run.py --changed-from "${{ steps.changed.outputs.base }}" --rule all
 
+      - name: Core framework leakage (source-aware skill diff)
+        run: python3 scripts/lint/no_core_framework_leakage.py --changed-from "${{ steps.changed.outputs.base }}"
+
       - name: Verify lint fixtures still parse
         if: steps.changed.outputs.files != ''
         run: |

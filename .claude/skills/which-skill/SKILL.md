@@ -134,8 +134,8 @@ The matcher returns JSON with:
   SKILL.md.
 - `excluded_inactive[]` — every otherwise-material candidate rejected by the
   canonical activation decision, including all exclusion reasons. This is
-  where a Django-bound high scorer appears on a TypeScript host; it is never
-  silently omitted.
+  where a framework-bound high scorer appears on an incompatible host; it is
+  never silently omitted. The selected binding carries concrete stack examples.
 
 The `task_packet` is the contract that lets a calling agent route work
 without re-reading the SKILL.md — it answers "use this skill, on these

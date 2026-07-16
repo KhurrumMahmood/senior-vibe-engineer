@@ -294,7 +294,7 @@ positives). If either is wrong, iterate on the rule or fixtures.
 ### Phase 3b — Test-only guard
 
 Use this instead of Phases 2–3 when the invariant is best expressed as
-a Django/unit test rather than a lint. Examples:
+a framework or unit test rather than a lint. Examples:
 
 - old module path and parent-package import shims stay importable,
 - retired flat implementation file does not return after a package split,

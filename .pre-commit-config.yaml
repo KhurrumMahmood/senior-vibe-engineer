@@ -132,3 +132,14 @@ repos:
         files: (^|/)SKILL\.md$
         exclude: /fixtures/
         pass_filenames: true
+
+      # Source-aware skill boundary guard. It enumerates the staged skill diff
+      # itself so renamed/copied files are checked at both their before and
+      # after paths; generic pass_filenames hooks cannot preserve that context.
+      - id: core-framework-leakage
+        name: "core-framework-leakage (migrated core skills stay framework-neutral)"
+        entry: python scripts/lint/no_core_framework_leakage.py --staged
+        language: python
+        additional_dependencies: ["PyYAML>=6.0"]
+        files: ^\.claude/skills/
+        pass_filenames: false

@@ -144,18 +144,22 @@ frameworks:
     languages: [any]
     package_tokens: []
     file_markers: []
+    core_leakage_terms: []
   none:
     languages: [any]
     package_tokens: []
     file_markers: []
+    core_leakage_terms: []
   django:
     languages: [python]
     package_tokens: [django]
     file_markers: [manage.py]
+    core_leakage_terms: [django, celery]
   react:
     languages: [javascript, typescript]
     package_tokens: [react, "@types/react", react-router]
     file_markers: []
+    core_leakage_terms: [react]
 
 tools:
   pip:

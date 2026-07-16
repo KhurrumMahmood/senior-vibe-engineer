@@ -18,7 +18,7 @@ not_for: |
   there's no prior plan (start with /scope-feature → /impact-feature
   → /architecture-fit → /plan-spec to produce one).
 language: python
-framework: django
+framework: any
 ---
 
 # /refactor-subsystem
@@ -120,9 +120,10 @@ cleanliness guard. Summary:
 
 - **Worktree:** run wherever invoked. Confirm with `git rev-parse
   --show-toplevel` before Phase 1.
-- **Python:** `.venv/bin/python` for Django; plain `python3` for
-  `scripts/specs.py`, `scripts/ledger.py`, `scripts/chunk_file.py` (all
-  stdlib-only).
+- **Python:** use the host's project interpreter for framework commands;
+  plain `python3` is sufficient for `scripts/specs.py`, `scripts/ledger.py`,
+  and `scripts/chunk_file.py` (all stdlib-only). The selected binding names
+  any framework-specific runner.
 - **Cleanliness guard:** `code_roots` must be clean (no unrelated
   uncommitted edits) before Phase 1 AND before every Phase 5 batch.
   Commands in `knowledge/operations.md`.
@@ -283,8 +284,8 @@ entries for files in `code_roots`. (`ledger.py list` exits 1 with "no
 entries match" when nothing matches — a normal empty result, not a
 failure.)
 
-Verify the venv before Django commands (fall back to `$PYTHON_VENV_PATH`
-if the worktree lacks its own `.venv`):
+Verify the venv before framework commands (fall back to
+`$PYTHON_VENV_PATH` if the worktree lacks its own `.venv`):
 
 ```bash
 if [ -z "${PYTHON_VENV_PATH:-}" ] && [ ! -x .venv/bin/python ]; then
@@ -293,9 +294,9 @@ if [ -z "${PYTHON_VENV_PATH:-}" ] && [ ! -x .venv/bin/python ]; then
 fi
 ```
 
-The guard applies only when the current phase will issue
-Django/`manage.py` commands; phases that issue none (e.g. Phase 0–1
-inventory work) note the missing venv and proceed.
+The guard applies only when the current phase will issue host-framework
+commands; phases that issue none (e.g. Phase 0–1 inventory work) note the
+missing venv and proceed. Use the selected binding for the concrete command.
 
 If `coverage` reports drift (checkmark lag or orphan refs), **fix the
 drift first** — either as a sub-task or abort and report. A spec that
@@ -660,15 +661,15 @@ Per public function / class entry point:
 **Decomposition-mode characterization pins *structure*, not *behavior*
 (L-44).** The right test shape is a `TaskImportabilityTest` (every public
 symbol importable from the original path), `TaskSignatureTest` (function
-signatures unchanged), and `TaskRegistrationTest` (Celery tasks still
-registered with their original names + options). Behavior tests are the
-domain test suites' job. Structure pinning is sufficient ONLY with the
-per-batch coverage-path proof (plan item 7, R36): never trust green
-from a suite with no path into the moved code.
+signatures unchanged), and `TaskRegistrationTest` (background tasks still
+registered with their original names + options). Behavior tests are the domain
+test suites' job. Structure pinning is sufficient ONLY with the per-batch
+coverage-path proof (plan item 7, R36): never trust green from a suite with no
+path into the moved code.
 
-**Shim compatibility is mandatory for Django module splits.** When an
-old view/task/service module becomes a package or re-export shim, add
-characterization tests that pin:
+**Shim compatibility is mandatory for framework module splits.** When an old
+view/task/service module becomes a package or re-export shim, add
+characterization tests that pin the selected binding's public surfaces:
 
 - imports from the old module path (`core.views.site_config`,
   `core.views.brand_downloads`, etc.),
@@ -752,7 +753,7 @@ overlap when one chunk cross-references call sites in another. Build a
 **Reported by:** chunk T-6 (tasks.py range), chunk D-1 (task_dispatch.py range)
 **Observation:** `training_task.delay(site_id)` — bypasses safe_dispatch
 **Convention violated:** AR-2 (TaskDispatchService.safe_dispatch)
-**Why it matters:** No Celery retry; silent failure under broker outage
+**Why it matters:** No task retry; silent failure under broker outage
 **Recommended disposition:** fix
 ```
 
@@ -815,7 +816,7 @@ python3 scripts/specs.py coverage <spec-id>
    in scope classified by route name/path, auth level
    (anonymous/user/staff), method, CSRF expectation, side effects,
    response shape, and external boundary (network, credentials,
-   command execution, filesystem, Celery).
+   command execution, filesystem, background-task runtime).
 5. **Parallel renderer matrix** — every renderer/presenter of the same
    concept. Examples: dashboard rows, polling JSON, sidebar statuses,
    prototype rows, settings page forms, and admin diagnostic panes. The
@@ -862,9 +863,9 @@ IM item → service.
 
 **Directory packages over flat naming (R29).** Prefer
 `<basename>/<domain>.py` over `<basename>_<domain>.py`. The
-`__init__.py` is the natural re-export shim; it matches Django
-conventions. Match existing flat naming for consistency if the codebase
-already uses it.
+`__init__.py` is the natural re-export shim for Python packages. Match
+existing flat naming for consistency if the codebase already uses it, and use
+the selected binding for stronger framework conventions.
 
 **CRITICAL: File→directory migration is atomic.** Python cannot have
 both `tasks.py` and `tasks/` simultaneously (`import core.tasks` becomes
@@ -916,7 +917,7 @@ before entering the plan:
 3. **Template/JS references** in `templates/` and `static/`.
 4. **Admin/management registration.**
 5. **Dispatch/registry membership** — dispatch dicts, signal handlers,
-   Celery registrations.
+   and background-task registrations.
 
 Only candidates passing ALL 5 checks proceed to the plan. Failures get
 reclassified as `keep as-is` with the failing check noted.

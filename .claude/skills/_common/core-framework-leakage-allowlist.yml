@@ -1,0 +1,4 @@
+# Temporary exceptions only. Entries cannot apply to verified capability
+# claims and must expire within 90 days of every lint run.
+schema_version: 1
+allowlist: []

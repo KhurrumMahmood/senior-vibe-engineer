@@ -57,7 +57,7 @@ Write toward these gates from Stage 0.
 0. **Framework norms are a floor; intuitiveness is the goal above it.**
    Read `_common/structural-design-principles.md` before sizing a
    proposal. Every proposal evaluates the cluster against both layers:
-   what framework norms constrain (Django app boundary, Python package
+   what framework norms constrain (application boundary, language package
    semantics, test-runner discovery — the floor), and what
    intuitiveness gain motivates the reorganization (skim test, find
    test, cluster test — above the floor). Frame the proposal's
@@ -98,7 +98,7 @@ Write toward these gates from Stage 0.
 - **Python:** `.venv/bin/python` for the helper script (it routes
   Python parsing through the shared per-language adapter registry
   (ADR 0032; Python-only here) and walks the project to build the
-  import graph; stdlib-only — no Django imports needed).
+  import graph; stdlib-only — no host framework imports needed).
 - **Output:** `reports/propose-folder-reorganization/<target-slug>/`.
   Never touches any other file.
 - **Read-only.** No file moves, no edits, no Edit tool. The
@@ -320,11 +320,11 @@ orchestrator translates them to `recommendation: defer_<reason>`:
   or files known to be one-off jobs. Proposal recommends
   `defer_scratch_code`.
 - `framework_convention` — the parent is `core/management/commands/`
-  and Django's runner discovers commands by file name. Re-grouping
-  into subfolders is possible but breaks the
-  `manage.py <command_name>` convention. Proposal recommends
-  `defer_framework_convention` and points at ADR 0006's open
-  question on this.
+  and the selected framework runner discovers commands by file name.
+  Re-grouping into subfolders may break its public command convention.
+  Proposal recommends `defer_framework_convention` and points at ADR
+  0006's open question on this; the selected binding names the exact
+  runner contract.
 
 ## Calibration
 

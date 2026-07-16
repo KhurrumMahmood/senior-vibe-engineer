@@ -76,3 +76,9 @@ the skill remains the fuller advisory report for JSDoc/docstring
 cleanup. When a lint and its skill share doctrine, update both surfaces
 together; the lint should import the skill's detector so the two
 surfaces share the same heuristics.
+
+The `core-framework-leakage` rule is the deliberate source-aware exception to
+the generic runner path. Its pre-commit and CI entries invoke the rule directly
+with `--staged` or `--changed-from`, because a filename-only runner loses the
+before path/blob of a rename. `--all` remains the registry-wide acceptance
+mode.

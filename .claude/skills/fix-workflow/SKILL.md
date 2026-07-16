@@ -18,7 +18,7 @@ not_for: |
   Multi-file subsystem refactors with multiple commits (use
   /refactor-subsystem). Authoring decisions (use /decide).
 language: python
-framework: django
+framework: any
 ---
 
 # /fix-workflow
@@ -209,9 +209,9 @@ authority rather than local code clones:
   include.
 - Add or update a diff-scoped guard when the migrated pattern can
   recur, e.g. JS endpoint-sprawl lint with good/bad fixtures.
-- Verification must include the host's site-workflow tests (birth
-  host: the site workflow Django tests and, when a dev server is
-  running, `testing/test_site_pages.py`).
+- Verification must include the host's site-workflow tests and, when a
+  development server is running, its page-level workflow suite. Use the
+  selected framework binding for the concrete runner.
 - Do not touch the host's AI-sidecar surface (birth host:
   `core/services/ai_sidecar/`) or unified AI workflow behavior
   unless the user explicitly scopes that work in.

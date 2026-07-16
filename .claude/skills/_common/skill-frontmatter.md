@@ -230,6 +230,15 @@ Keep the core `SKILL.md` concise. Put language/framework-specific idioms and
 commands in one-level `bindings/<binding-id>.md` overlays so only the selected
 variant is loaded. Do not copy the core procedure into a binding.
 
+For inventory rows marked `foundation-ready`, core framework vocabulary is
+registry-owned and mechanically blocked from every active prose/code field in
+`SKILL.md`, including description fields, links, and code fences. Structural
+selection fields such as `framework`, `binding`, and evidence envelopes are
+validated as metadata rather than prose. A temporary exception must use the
+strict external `_common/core-framework-leakage-allowlist.yml` contract; inline
+compatibility notes are never waivers, and verified claims cannot be
+allowlisted.
+
 ### `scout_model`
 
 Optional. Hint to the orchestrator about the model class for parallel
