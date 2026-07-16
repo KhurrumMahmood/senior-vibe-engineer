@@ -1,0 +1,286 @@
+{
+  "candidates": {
+    "ast-grep": {
+      "cold_runtime_seconds": 0.115009,
+      "deterministic_setup": "npm install --prefix <temp>/node @ast-grep/cli@0.44.1",
+      "executed_platform": "darwin-arm64",
+      "facts": {
+        "calls": [
+          "normalize",
+          "transition"
+        ],
+        "definitions": [
+          "Item",
+          "Status",
+          "dispatch",
+          "initial",
+          "normalize",
+          "normalized",
+          "transition"
+        ],
+        "imports": [
+          "./state",
+          "./util"
+        ],
+        "writes": [
+          "item.status"
+        ]
+      },
+      "install_size_bytes": 154339105,
+      "license": "MIT",
+      "maintenance_owner": "refactor-query maintainer",
+      "metrics": {
+        "calls": {
+          "false_negative": [],
+          "false_positive": [],
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "definitions": {
+          "false_negative": [],
+          "false_positive": [],
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "imports": {
+          "false_negative": [],
+          "false_positive": [],
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "writes": {
+          "false_negative": [],
+          "false_positive": [],
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "status": "executed",
+      "supported_platforms": [
+        "npm optional native binaries; macos-arm64 executed",
+        "other package targets require CI verification"
+      ],
+      "unsupported_capabilities": [
+        "references"
+      ],
+      "version": "0.44.1",
+      "warm_runtime_seconds": 0.067535
+    },
+    "lsp": {
+      "license": "candidate-specific; not evaluated",
+      "maintenance_owner": "unassigned until an interactive semantic consumer is accepted",
+      "reason": "No pinned TypeScript LSP is installed; lifecycle/state synchronization adds a service boundary without a WP4 consumer.",
+      "status": "unsupported",
+      "supported_platforms": []
+    },
+    "scip-index": {
+      "license": "candidate-specific; not evaluated",
+      "maintenance_owner": "unassigned until a semantic-index consumer is accepted",
+      "reason": "No pinned SCIP indexer is installed; adding an index protocol and indexer fleet is disproportionate before a cross-file consumer exists.",
+      "status": "unsupported",
+      "supported_platforms": []
+    },
+    "tree-sitter-language-pack": {
+      "cold_runtime_seconds": 0.056645,
+      "deterministic_setup": ".venv/bin/python -m pip install --target <temp>/python tree-sitter==0.26.0 tree-sitter-language-pack==1.12.5",
+      "executed_platform": "darwin-arm64",
+      "facts": {
+        "calls": [
+          "normalize",
+          "transition"
+        ],
+        "definitions": [
+          "Item",
+          "Status",
+          "dispatch",
+          "initial",
+          "normalize",
+          "normalized",
+          "transition"
+        ],
+        "imports": [
+          "./state",
+          "./util"
+        ],
+        "writes": [
+          "item.status"
+        ]
+      },
+      "install_size_bytes": 5089280,
+      "license": "MIT",
+      "maintenance_owner": "analysis-substrate maintainer",
+      "metrics": {
+        "calls": {
+          "false_negative": [],
+          "false_positive": [],
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "definitions": {
+          "false_negative": [],
+          "false_positive": [],
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "imports": {
+          "false_negative": [],
+          "false_positive": [],
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "writes": {
+          "false_negative": [],
+          "false_positive": [],
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "status": "executed",
+      "supported_platforms": [
+        "macos-arm64 wheel executed",
+        "other published wheels require CI verification"
+      ],
+      "unsupported_capabilities": [
+        "references"
+      ],
+      "version": "tree-sitter 0.26.0; language-pack 1.12.5",
+      "warm_runtime_seconds": 0.041139
+    },
+    "typescript-7-native-compiler-api": {
+      "license": "Apache-2.0",
+      "maintenance_owner": "typescript binding maintainer",
+      "reason": "The current package exports the native compiler and unstable APIs, not the stable 5.x Compiler API used by the semantic probe; tsc remains viable as a native guard shim.",
+      "status": "unsupported",
+      "supported_platforms": [
+        "native packages declared for major desktop/server OS and CPU combinations; macos-arm64 tsc executed"
+      ],
+      "version": "7.0.2"
+    },
+    "typescript-compiler-api": {
+      "cold_runtime_seconds": 0.774711,
+      "deterministic_setup": "npm install --prefix <temp>/node typescript-api@npm:typescript@5.9.3",
+      "executed_platform": "darwin-arm64",
+      "facts": {
+        "calls": [
+          "normalize",
+          "transition"
+        ],
+        "definitions": [
+          "Item",
+          "Status",
+          "dispatch",
+          "initial",
+          "normalize",
+          "normalized",
+          "transition"
+        ],
+        "imports": [
+          "./state",
+          "./util"
+        ],
+        "references": [
+          "Draft",
+          "Item",
+          "Published",
+          "Status",
+          "count",
+          "item",
+          "next",
+          "normalize",
+          "normalized",
+          "status",
+          "transition",
+          "value"
+        ],
+        "writes": [
+          "item.status"
+        ]
+      },
+      "install_size_bytes": 23625066,
+      "license": "Apache-2.0",
+      "maintenance_owner": "typescript binding maintainer",
+      "metrics": {
+        "calls": {
+          "false_negative": [],
+          "false_positive": [],
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "definitions": {
+          "false_negative": [],
+          "false_positive": [],
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "imports": {
+          "false_negative": [],
+          "false_positive": [],
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "references": {
+          "false_negative": [],
+          "false_positive": [],
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "writes": {
+          "false_negative": [],
+          "false_positive": [],
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "status": "executed",
+      "supported_platforms": [
+        "Node.js >=14.17; macos-arm64 executed",
+        "platform-neutral JavaScript package"
+      ],
+      "unsupported_capabilities": [],
+      "version": "5.9.3",
+      "warm_runtime_seconds": 0.620167
+    }
+  },
+  "corpus": "tests/fixtures/analysis_portfolio_spike",
+  "corpus_sha256": "da03a77d5818deb2c2acd531e3875ad4053ff278d8cc11f17784d57f38d2cf4f",
+  "oracle_schema_version": 1,
+  "platform": {
+    "machine": "arm64",
+    "node": "v22.21.1",
+    "python": "3.11.10",
+    "release": "25.5.0",
+    "system": "Darwin"
+  },
+  "schema_version": 1,
+  "selected_portfolio": {
+    "deferred": [
+      "SCIP",
+      "LSP service lifecycle"
+    ],
+    "native_guards": "project-native compiler/linter/test commands",
+    "query_and_rewrite": "ast-grep as an optional on-demand tool, not a mandatory runtime dependency",
+    "semantic": "project-pinned native compiler API when a named consumer requires it",
+    "syntax": "tree-sitter-language-pack"
+  },
+  "time_box": "one implementation slice; no persistent dependency added",
+  "wp4_acceptance_budgets": {
+    "ast-grep-optional": {
+      "maximum_install_bytes": 200000000,
+      "maximum_warm_seconds": 6.0,
+      "minimum_precision": 1.0,
+      "minimum_recall": 1.0
+    },
+    "tree-sitter-language-pack": {
+      "maximum_install_bytes": 25000000,
+      "maximum_warm_seconds": 1.0,
+      "minimum_precision": 1.0,
+      "minimum_recall": 1.0
+    },
+    "typescript-compiler-api": {
+      "maximum_install_bytes": 30000000,
+      "maximum_warm_seconds": 1.0,
+      "minimum_precision": 1.0,
+      "minimum_recall": 1.0
+    }
+  }
+}
