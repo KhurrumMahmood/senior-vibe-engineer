@@ -261,16 +261,16 @@ evidence contract in the same logical change.
 
 ### Slice 4 — Binding selection and exemplar
 
-- [ ] IM-7: **Per-root binding loader.** Implement explicit precedence,
+- [x] IM-7: **Per-root binding loader.** Implement explicit precedence,
   ambiguity/incompatibility rejection, root isolation, registry validation,
   rendered-content deduplication, and deterministic execution evidence.
   <!-- spec:portable-skill-layer-distribution::IM-7 -->
-- [ ] IM-8: **`extract-enum` split.** Keep the canonical invocation/root stable;
+- [x] IM-8: **`extract-enum` split.** Keep the canonical invocation/root stable;
   extract the closed-vocabulary and wire-identity invariant into core and put
   Python mechanics and Django `TextChoices`/migration behavior in declared
   bindings. The core body may not name Django or Celery.
   <!-- spec:portable-skill-layer-distribution::IM-8 -->
-- [ ] IM-9: **Final-boundary equivalence.** Run the Django fixture through the
+- [x] IM-9: **Final-boundary equivalence.** Run the Django fixture through the
   final proposal/output boundary and compare it semantically to AR-7 using only
   AR-8 normalizations. Existing extraction/routing tests remain green.
   <!-- spec:portable-skill-layer-distribution::IM-9 -->
