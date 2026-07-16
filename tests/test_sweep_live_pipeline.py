@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import shlex
 import shutil
@@ -11,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from sweep.commands import apply_ratchet, scan_profile
+from sweep.git_source import capture_git_source
 from sweep.native import (
     ProviderExecutionError,
     discover_executable,
@@ -233,29 +235,18 @@ def test_im_15_live_host_runs_scan_judgment_packet_harness_diff_and_ratchet(
         root=work,
         parser_run_context=parser_context,
     )
-    scanner = tmp_path / "sweep_cli.py"
-    scanner.write_text(
-        "import sys\n"
-        f"sys.path.insert(0, {str(ROOT / 'scripts')!r})\n"
-        "from sweep.__main__ import main\n"
-        "raise SystemExit(main(sys.argv[1:]))\n",
-        encoding="utf-8",
-    )
+    after_manifest_path = tmp_path / f"{host}-after-manifest.json"
     scan_argv = [
         sys.executable,
-        str(scanner),
+        "-m",
+        "scripts.sweep",
         "scan",
         "--root",
         str(work),
         "--profile",
         str(PROFILES / profile_name),
         "--out",
-        str(tmp_path / f"{host}-after-manifest.json"),
-        "--revision",
-        revision,
-        "--dirty",
-        "--dirty-state-hash",
-        hashlib.sha256(diff_bytes).hexdigest(),
+        str(after_manifest_path),
     ]
     for provider, executable in sorted(tools.items()):
         scan_argv.extend(("--tool", f"{provider}={executable}"))
@@ -265,9 +256,12 @@ def test_im_15_live_host_runs_scan_judgment_packet_harness_diff_and_ratchet(
         before,
         judgment,
         root=work,
-        scanner=lambda: run_scan_command(scan_command, work),
+        scanner=lambda: run_scan_command(scan_command, work, command_cwd=ROOT),
     )
     assert evidence["verdict"] == "verified"
+    assert evidence["scan"]["argv"][1:3] == ["-m", "scripts.sweep"]
+    written_after = json.loads(after_manifest_path.read_text(encoding="utf-8"))
+    assert written_after["source"] == capture_git_source(work)
     assert evidence["diff"]["fixed"] == oracle["fixed"]
     assert evidence["diff"]["new"] == oracle["new"]
     assert evidence["diff"]["persisting"] == oracle["persisting"]

@@ -537,13 +537,18 @@ def _parse_verification(command: str) -> tuple[str, ...]:
     return argv
 
 
-def run_scan_command(command: str, root: Path) -> HarnessScan:
+def run_scan_command(
+    command: str,
+    root: Path,
+    *,
+    command_cwd: Path | None = None,
+) -> HarnessScan:
     """Run a harness-selected scanner command and require one canonical manifest."""
     argv = _parse_verification(command)
     try:
         capture = _capture(
             argv,
-            cwd=root,
+            cwd=command_cwd or root,
             timeout_seconds=VERIFICATION_TIMEOUT_SECONDS,
             output_byte_limit=SCAN_BYTE_LIMIT,
             env=None,
