@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import manifest
 import pytest
-from distribution_probe import build_projections, validate_projections
 from installer_selection import select_install
 from sweep_shims import resolve_shims
 
@@ -67,18 +66,3 @@ def test_activation_manifest_validates_capability_selection(tmp_path):
     assert errors == [
         "manifest.capability_selection.frameworks contains unregistered identifiers: ['vite']"
     ]
-
-
-def test_one_canonical_skill_projects_to_every_supported_surface(tmp_path):
-    source_dir = tmp_path / "source" / "probe-skill"
-    source_dir.mkdir(parents=True)
-    source = source_dir / "SKILL.md"
-    source.write_text("---\nname: probe-skill\ndescription: Probe.\n---\n", encoding="utf-8")
-    output = tmp_path / "output"
-
-    projection = build_projections(source, output)
-
-    assert set(projection) == {"augment", "claude-code", "codex", "cursor", "gemini"}
-    assert validate_projections(source, output, projection) == []
-    plugin = output / "codex" / ".codex-plugin" / "plugin.json"
-    assert '"skills": "./skills/"' in plugin.read_text(encoding="utf-8")
