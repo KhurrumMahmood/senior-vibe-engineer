@@ -321,15 +321,15 @@ WP5 verification must assert ADR 0003 still points to AC-8.9.
 
 ### Slice 4 — judgment, consumers, packets, and harness (WP1/WP2 ready)
 
-- [ ] IM-9: Implement bounded judgment input/import and gate every ordinary
+- [x] IM-9: Implement bounded judgment input/import and gate every ordinary
   digest, rank, dashboard projection, packet, and execution path on fresh
   recorded outcomes. Instrument detection to fail tests on any network/model
   call. <!-- spec:portable-batch-sweep::IM-9 -->
-- [ ] IM-10: Migrate `status.py`, `queue_status.py`, and the queue contract:
+- [x] IM-10: Migrate `status.py`, `queue_status.py`, and the queue contract:
   status reads only judged digest fields; new sweep packets contain all AC-5.7
   fields and pass deterministic bounds; legacy queue listing remains readable.
   <!-- spec:portable-batch-sweep::IM-10 -->
-- [ ] IM-11: Implement harness-owned packet verification: validate packet and
+- [x] IM-11: Implement harness-owned packet verification: validate packet and
   scope, run the verification command, rescan independently, diff against the
   bound manifest, enforce expected delta/no-new/out-of-scope rules, and reject
   executor self-attestation or stale evidence. <!-- spec:portable-batch-sweep::IM-11 -->
