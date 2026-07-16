@@ -6,6 +6,7 @@ import copy
 import importlib.util
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import urllib.request
@@ -15,12 +16,14 @@ from pathlib import Path
 import pytest
 
 from sweep import ecosystem as ecosystem_module
+from sweep import process as process_module
 from sweep.ecosystem import (
     PARSER_ECOSYSTEM_LANGUAGES,
     run_complexity_provider,
     run_omnibus_provider,
 )
 from sweep.manifest import build_manifest
+from sweep.process import capture_process
 from sweep.schemas import SchemaValidationError, validate_manifest, validate_provider_observation
 
 
@@ -56,12 +59,18 @@ def _manifest(*runs, paths: list[str] | None = None):
     )
 
 
-def _native_observation(provider: str, language: str) -> dict[str, object]:
+def _native_observation(provider: str, language: str, path: str) -> dict[str, object]:
     return {
         "schema_version": 1,
         "provider": provider,
         "language": language,
         "provider_kind": "native-shim",
+        "scope": {
+            "paths": [path],
+            "case_sensitive": True,
+            "roots": ["."],
+            "exclusions": [],
+        },
         "command": {
             "executable": provider,
             "argv": [provider, "check"],
@@ -142,18 +151,18 @@ def test_mixed_manifest_composes_parser_members_without_replacing_native_rust_go
     complexity = run_complexity_provider(REPO_ROOT, [FIXTURES], observation_index=1)
     omnibus_python = run_omnibus_provider(
         REPO_ROOT,
-        [FIXTURES / "python"],
+        [FIXTURES],
         language="python",
         observation_index=3,
     )
     omnibus_typescript = run_omnibus_provider(
         REPO_ROOT,
-        [FIXTURES / "typescript"],
+        [FIXTURES],
         language="typescript",
         observation_index=4,
     )
-    rust = _native_observation("clippy", "rust")
-    go = _native_observation("go-vet", "go")
+    rust = _native_observation("clippy", "rust", "tests/fixtures/sweep/ecosystem")
+    go = _native_observation("go-vet", "go", "tests/fixtures/sweep/ecosystem")
     manifest = build_manifest(
         capability_registry_version=1,
         paths=["tests/fixtures/sweep/ecosystem"],
@@ -301,6 +310,26 @@ def test_missing_complexity_scope_is_failed_and_never_publishable() -> None:
     assert wrong_language.findings == ()
 
 
+def test_complexity_scope_excluded_by_exact_detector_selection_fails_loudly(
+    tmp_path: Path,
+) -> None:
+    direct = tmp_path / "test_only.py"
+    direct.write_text("def harmless():\n    return 1\n", encoding="utf-8")
+    directory = tmp_path / "only-tests"
+    directory.mkdir()
+    (directory / "tests_helpers.py").write_text(
+        "def harmless():\n    return 1\n",
+        encoding="utf-8",
+    )
+
+    for scopes in ([direct], [directory]):
+        run = run_complexity_provider(tmp_path, scopes, observation_index=0)
+
+        assert run.observation["status"] == "failed"
+        assert run.observation["failure"]["kind"] == "schema_mismatch"
+        assert run.findings == ()
+
+
 def test_manifest_rejects_out_of_scope_findings_and_unbound_observation_indexes() -> None:
     omnibus = run_omnibus_provider(
         REPO_ROOT,
@@ -357,6 +386,110 @@ def test_manifest_rejects_out_of_scope_findings_and_unbound_observation_indexes(
             findings=[wrong_provider],
             repo_root=REPO_ROOT,
         )
+
+
+def test_observation_scope_is_canonical_and_cannot_under_cover_manifest() -> None:
+    narrow = run_omnibus_provider(
+        REPO_ROOT,
+        [FIXTURES / "python"],
+        language="python",
+        observation_index=0,
+    )
+
+    assert narrow.observation["scope"] == {
+        "paths": ["tests/fixtures/sweep/ecosystem/python"],
+        "case_sensitive": True,
+        "roots": ["."],
+        "exclusions": [],
+    }
+    with pytest.raises(SchemaValidationError, match="does not cover manifest scope"):
+        build_manifest(
+            capability_registry_version=1,
+            paths=["tests/fixtures/sweep/ecosystem"],
+            case_sensitive=True,
+            roots=["."],
+            exclusions=[],
+            source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
+            providers=[narrow.observation],
+            findings=[],
+            repo_root=REPO_ROOT,
+        )
+
+    outside = replace(
+        narrow.findings[0],
+        path="tests/fixtures/sweep/ecosystem/typescript/omnibus.ts",
+    )
+    typescript_native = _native_observation(
+        "tsc",
+        "typescript",
+        "tests/fixtures/sweep/ecosystem/typescript",
+    )
+    with pytest.raises(SchemaValidationError, match="observation scope"):
+        build_manifest(
+            capability_registry_version=1,
+            paths=[
+                "tests/fixtures/sweep/ecosystem/python",
+                "tests/fixtures/sweep/ecosystem/typescript",
+            ],
+            case_sensitive=True,
+            roots=["."],
+            exclusions=[],
+            source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
+            providers=[narrow.observation, typescript_native],
+            findings=[outside],
+            repo_root=REPO_ROOT,
+        )
+
+
+def test_bounded_capture_retains_only_limit_plus_one_and_deadline_wins(monkeypatch) -> None:
+    overflow = capture_process(
+        [sys.executable, "-c", "import os; os.write(1, b'x' * 1048576)"],
+        cwd=REPO_ROOT,
+        env=None,
+        timeout_seconds=30,
+        output_byte_limit=31,
+    )
+
+    assert overflow.output_overflow is True
+    assert overflow.raw["stdout_bytes"] == 32
+    assert overflow.stdout == b"x" * 32
+    assert overflow.fault == "output_overflow"
+
+    class CompletedProcess:
+        def __init__(self) -> None:
+            stdout_read, stdout_write = os.pipe()
+            stderr_read, stderr_write = os.pipe()
+            os.close(stdout_write)
+            os.close(stderr_write)
+            self.stdout = os.fdopen(stdout_read, "rb", buffering=0)
+            self.stderr = os.fdopen(stderr_read, "rb", buffering=0)
+            self.pid = 1
+            self.returncode = 0
+
+        def poll(self) -> int:
+            return self.returncode
+
+        def wait(self) -> int:
+            return self.returncode
+
+        def kill(self) -> None:
+            raise AssertionError("a completed process must not be killed")
+
+    completed = CompletedProcess()
+    monkeypatch.setattr(process_module.subprocess, "Popen", lambda *_args, **_kwargs: completed)
+    ticks = iter((0.0, 2.0))
+    expired = capture_process(
+        ["already-completed"],
+        cwd=REPO_ROOT,
+        env=None,
+        timeout_seconds=1,
+        output_byte_limit=31,
+        monotonic=lambda: next(ticks),
+    )
+
+    assert expired.timed_out is True
+    assert expired.returncode == 0
+    assert expired.fault == "timeout"
 
 
 def test_complexity_uses_one_typed_parse_and_reuses_the_tree(monkeypatch) -> None:

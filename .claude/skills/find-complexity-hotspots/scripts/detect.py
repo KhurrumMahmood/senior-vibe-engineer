@@ -382,7 +382,12 @@ def _branch_score(node: ast.AST) -> int:
     return score
 
 
-def _iter_python_files(project_root: Path, paths: Iterable[str], include_tests: bool) -> list[Path]:
+def select_python_files(
+    project_root: Path,
+    paths: Iterable[str],
+    include_tests: bool = False,
+) -> list[Path]:
+    """Return the exact files eligible under the detector's selection contract."""
     found: list[Path] = []
     for raw in paths:
         raw_path = Path(raw)
@@ -483,7 +488,7 @@ def detect(
 ) -> list[dict[str, Any]]:
     project_root = project_root.resolve()
     records: list[dict[str, Any]] = []
-    for path in _iter_python_files(project_root, paths, include_tests):
+    for path in select_python_files(project_root, paths, include_tests):
         # The nested-control-flow visitor requires Python's compatibility tree.
         # Parse exactly once and reuse that tree; the typed wrapper converts the
         # compatibility seam's optional/exceptional outcomes into loud failures.

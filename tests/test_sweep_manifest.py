@@ -25,12 +25,25 @@ REVISION = "29352227a54428c3c574be9514ccbcc9ade67895"
 PROTOTYPE_ORACLE = Path(__file__).parent / "fixtures" / "sweep" / "prototype-oracle"
 
 
-def _provider(*, tool_version: str = "1.0", provider: str = "ruff", language: str = "python"):
+def _provider(
+    *,
+    tool_version: str = "1.0",
+    provider: str = "ruff",
+    language: str = "python",
+    path: str = "src",
+    case_sensitive: bool = True,
+):
     return {
         "schema_version": 1,
         "provider": provider,
         "language": language,
         "provider_kind": "native",
+        "scope": {
+            "paths": [path],
+            "case_sensitive": case_sensitive,
+            "roots": [path],
+            "exclusions": [],
+        },
         "command": {
             "executable": provider,
             "argv": [provider, "check", "src"],
@@ -88,7 +101,7 @@ def _manifest(
         roots=["src"],
         exclusions=[],
         source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
-        providers=[_provider(tool_version=tool_version)],
+        providers=[_provider(tool_version=tool_version, case_sensitive=case_sensitive)],
         findings=findings,
         repo_root=repo_root,
     )
@@ -326,7 +339,13 @@ def test_im_4_prototype_read_migrates_to_v2_and_all_writes_are_new_schema(tmp_pa
         roots=("src",),
         exclusions=(),
         source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
-        providers=(_provider(provider="cx", language="python"),),
+        providers=(
+            _provider(
+                provider="cx",
+                language="python",
+                path=prototype["scope"][0],
+            ),
+        ),
         language_by_provider={"cx": "python"},
         semantic_rule_versions={"cx:nested-loop": 1},
     )
@@ -354,7 +373,13 @@ def test_im_4_copied_prototype_oracle_migrates_every_finding_with_its_v1_alias()
         roots=tuple(prototype["scope"]),
         exclusions=(),
         source={"revision": REVISION, "dirty": False, "dirty_state_hash": EMPTY_SHA256},
-        providers=(_provider(provider="cx", language="python"),),
+        providers=(
+            _provider(
+                provider="cx",
+                language="python",
+                path=prototype["scope"][0],
+            ),
+        ),
         language_by_provider={"cx": "python"},
         semantic_rule_versions=versions,
     )

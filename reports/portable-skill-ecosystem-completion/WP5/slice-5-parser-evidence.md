@@ -5,7 +5,7 @@ Evidence capture date: 2026-07-16
 Implementation base: `c7c2fb858329668b583162509f433ec3d5e1263c`.
 
 Initial parser-member commit: `3525075a9026caa20fdec6310ed08354cdc8d1c2`.
-The current content includes the subsequent fresh-context adversarial repair.
+The current content includes both subsequent fresh-context adversarial repairs.
 
 Verified WP4 substrate: `d1a6316f0c57abc5e2162c477d6d56f51165cf14`,
 tree `0ab795ec7b6b19dfa987393530404f7e17e98bb6`.
@@ -43,9 +43,11 @@ recorded rather than presented as passing evidence.
 - `scripts/sweep/ecosystem.py` executes the exact recorded argv through the
   standalone `scripts/sweep/provider_process.py` child boundary, never through
   the historical prototype. The parent enforces the declared deadline and
-  output ceiling, captures stdout/stderr to files, hashes the actual bytes, and
-  emits schema-1 `provider_observation` records plus normalized `FindingInput`
-  rows for the single manifest writer.
+  combined output ceiling through the shared bounded nonblocking capture in
+  `scripts/sweep/process.py`. It retains and hashes no more than the ceiling
+  plus one byte, kills overflow promptly, and checks the deadline before
+  accepting an observed completion. It emits schema-1 `provider_observation`
+  records plus normalized `FindingInput` rows for the single manifest writer.
 - Complexity retains the characterized six-pattern bad fixture and clean good
   fixture. Its typed compatibility-tree wrapper parses each file once and
   reuses that tree; malformed or corrupt output becomes a typed failure, not a
@@ -66,13 +68,18 @@ recorded rather than presented as passing evidence.
   prove both parser members return `status=failed`, `tool_failure`, and
   `parse_failure` rather than completed clean zero.
 - Missing, escaping, wrong-kind, empty-language, and otherwise ineligible
-  scopes fail before detector execution. Timeout and an in-flight overflow kill
-  the process group; overflow retains the actual oversized byte counts and
-  hashes instead of discarding the artifact provenance.
+  scopes fail before detector execution. Complexity eligibility uses the
+  detector's exact shared file-selection helper, so direct test files and
+  directories containing only detector-excluded files fail loudly. Timeout and
+  an in-flight overflow kill the process group; overflow retains and hashes the
+  bounded prefix rather than allocating or writing unbounded output.
 - The manifest writer now rejects findings outside both declared paths and
   roots, findings under exclusions, out-of-range observation indexes, and
   indexes that do not identify the finding's provider/language in the sorted
-  canonical provider array.
+  canonical provider array. Every provider observation records canonical
+  executed paths, roots, exclusions, and case policy. Publication rejects
+  any observation that under-covers declared scope, case-policy
+  disagreement, and findings outside their own bound observation scope.
 
 No `scripts/sweep/__init__.py` or `scripts/sweep_shims.py` edit was required,
 minimizing overlap with native-provider work.
@@ -88,7 +95,8 @@ minimizing overlap with native-provider work.
 | mixed Python/TypeScript/Rust/Go source root | `cx/python`, `omnibus/python`, `omnibus/typescript`; native `clippy/rust`, `go-vet/go` retained | 8 parser findings |
 | malformed Python | failed `cx/python` and failed `omnibus/python` | 0, unpublishable |
 | missing/ineligible scope | typed `schema_mismatch` provider failure | 0, unpublishable |
-| forced timeout / 32-byte overflow | typed `timeout` / `output_overflow` with captured hashes | 0, unpublishable |
+| direct test-only / directory-only-excluded complexity scope | typed `schema_mismatch` provider failure | 0, unpublishable |
+| forced timeout / 32-byte overflow | typed `timeout` / `output_overflow` with bounded-prefix hashes | 0, unpublishable |
 
 The TypeScript fixture uses ordinary exported ESM functions and typed const
 arrows. Both single-language fixtures produce four genuine responsibility
@@ -107,21 +115,24 @@ OK - 6 bad fixture findings, good fixture clean
   tests/test_omnibus_language_adapters.py tests/test_sweep_manifest.py \
   tests/test_sweep_slice0_characterization.py \
   tests/test_sweep_ecosystem_members.py tests/test_wp5_wp4_entry_gate.py
-114 passed in 4.64s
+117 passed in 2.92s
 
 PYTHONDONTWRITEBYTECODE=1 \
 <shared-venv-python> -m pytest \
   --override-ini addopts= -q -p no:cacheprovider
-613 passed in 38.10s
+616 passed in 31.98s
 
 <shared-venv-ruff> check \
   scripts/sweep/ecosystem.py \
+  scripts/sweep/process.py \
   scripts/sweep/provider_process.py \
+  scripts/sweep/manifest.py \
   scripts/sweep/schemas.py \
   .claude/skills/find-complexity-hotspots/scripts/detect.py \
   .claude/skills/find-omnibus/scripts/detect.py \
   tests/test_sweep_slice0_characterization.py \
-  tests/test_sweep_ecosystem_members.py
+  tests/test_sweep_ecosystem_members.py \
+  tests/test_sweep_manifest.py
 All checks passed!
 
 git diff --check
@@ -130,8 +141,9 @@ exit 0
 
 The focused fault suite replays the recorded command and binds its exit code,
 stdout/stderr bytes, lengths, and SHA-256 values to the observation. It also
-forces deadline and byte-ceiling failures, attacks scope and provenance-index
-binding, and counts exactly one Python parse per file. The network-denial test
+forces deterministic deadline-race and byte-ceiling failures, attacks declared
+and observation-level scope plus provenance-index binding, and counts exactly
+one Python parse per file. The network-denial test
 replaces socket creation, DNS lookup, and
 `urllib.request.urlopen` with raising functions while complexity plus Python
 and TypeScript omnibus members complete deterministically. A bounded static
@@ -141,6 +153,11 @@ only match is a literal omnibus risk-term list used to inspect source text.
 `scripts/specs.py coverage portable-batch-sweep` reports IM-13 and IM-14 as
 the expected two implementation-ahead items because this lane was explicitly
 forbidden from editing the specification. Strict inventory remains `CLEAN`.
+Capability-consumer, skill, decision, plan, and decision-link guards passed.
+The repository-wide spec audit retained its pre-existing unrelated
+`status-projection-and-presentation` orphan drift and exited 1; the WP5 spec's
+own coverage and strict inventory checks passed, with only the expected
+IM-13/IM-14 implementation-ahead entries.
 
 ## Environment and content hashes
 
@@ -157,18 +174,22 @@ claimed.
 
 | Owned path | SHA-256 |
 |---|---|
-| `.claude/skills/find-complexity-hotspots/scripts/detect.py` | `994da1fbeeae9ae4acbdbff38d9eed38944baeda22aa09f45a2702682a1f99e5` |
+| `.claude/skills/find-complexity-hotspots/scripts/detect.py` | `a5193840b32bf1f9b1f3783fc2f756bc4a7fac63d1e894831d1cbaf6902d8702` |
 | `.claude/skills/find-omnibus/scripts/detect.py` | `9b958bd4be514b69b19fbd53c7a37f7b1d85abde2639d9c8b3be0e96da6d457e` |
-| `scripts/sweep/ecosystem.py` | `a2941acdd1305cb55afb4126c4a000b99f7e34f7461a5c3bac1f399b98f4332c` |
+| `scripts/sweep/ecosystem.py` | `953bab13f69c934530ba57f5f15ca5ef08e8a1547a8228fd117ab6068176bab9` |
+| `scripts/sweep/process.py` | `0a11f5074ab0410b1510d738b252cddb00c56e51c7a405ed55472c321433288a` |
 | `scripts/sweep/provider_process.py` | `14627da476bf0e07e42ce751d56fcd72fa577d94acaea147e0a145283c614a05` |
-| `scripts/sweep/schemas.py` | `128c16cc2d846938c43a249fca33cf529338d0bbe4bde595ec5f302ae8a60e31` |
+| `scripts/sweep/manifest.py` | `f7edf474d515e976ccba70b0aaf9182fece2eb6d9e7a111ab745acac8151345a` |
+| `scripts/sweep/schemas.py` | `e695fb679d42e8ccbf8793b462a0b1126349982a0ad591625fc12ca9a41169ab` |
+| `tests/fixtures/sweep/prototype-oracle/schema-cases.json` | `66b56b41ed6da2f17cf2aaeb8812bfc932fde9d68e5031f116611ece7e9d8355` |
 | `tests/fixtures/sweep/ecosystem/python/complexity.py` | `1ff81dc5c445dcc81069fbfd4ea434d4022a93bed2a276a00b9fb2293c1179ca` |
 | `tests/fixtures/sweep/ecosystem/python/omnibus.py` | `7f3de5d357c01c55f550b3bfbf120f6447f12a71a3a1bb19c97540a361f2bb7b` |
 | `tests/fixtures/sweep/ecosystem/typescript/omnibus.ts` | `a7553cf5473d399c8b4b1083f4d8025b5dc2ee9c9a9f3eb2e3ac3a43eb7df76a` |
 | `tests/fixtures/sweep/ecosystem/rust/main.rs` | `16b6d261b88c5e3c4934f941ff87a9cd8ec03d690724e5c0d42c7c283a267461` |
 | `tests/fixtures/sweep/ecosystem/go/main.go` | `98f8c8362a4725755100e40ff437f9c2c37aeabae8c58b3ae1d53ca502bf517b` |
 | `tests/test_sweep_slice0_characterization.py` | `18c8c225d166131974f651cf5bc33307e21f2647e08b64a469c955e2b18bb572` |
-| `tests/test_sweep_ecosystem_members.py` | `bce494379cf0e8be18834b6ab989644bb125b3403a145838b2a9d9def83ffef0` |
+| `tests/test_sweep_ecosystem_members.py` | `d6d714d2d7940f32584c41d1ef7c4f3aa78ebdb25d0703e7e1b40af17d89e93d` |
+| `tests/test_sweep_manifest.py` | `c409ccf90a79bcc47125e72b432160a1dd6d29a6d0b1e96f03aa7b889472aa74` |
 
 Current action: IM-13 and IM-14 are implementation-complete and ready for
 coordinator integration. Last fully completed WP5 acceptance criterion: none.

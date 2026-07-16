@@ -242,6 +242,7 @@ def _manifest_hashes(document: Mapping[str, Any]) -> dict[str, str]:
             "provider": row["provider"],
             "language": row["language"],
             "provider_kind": row["provider_kind"],
+            "scope": copy.deepcopy(row["scope"]),
             "status": row["status"],
         }
         for row in document["providers"]

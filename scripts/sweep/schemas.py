@@ -167,6 +167,36 @@ def validate_failure(document: Any) -> Mapping[str, Any]:
     return failure
 
 
+def _validate_scope(
+    document: Any,
+    path: str,
+    *,
+    paths_nonempty: bool,
+) -> Mapping[str, Any]:
+    scope = _mapping(document, path)
+    _required(scope, ("paths", "case_sensitive", "roots", "exclusions"), path)
+    _sorted_unique_strings(
+        scope["paths"],
+        f"{path}.paths",
+        lambda value, item_path: _repo_path(value, item_path),
+        nonempty=paths_nonempty,
+    )
+    if not isinstance(scope["case_sensitive"], bool):
+        _fail(f"{path}.case_sensitive", "must be a boolean")
+    _sorted_unique_strings(
+        scope["roots"],
+        f"{path}.roots",
+        lambda value, item_path: _repo_path(value, item_path),
+        nonempty=True,
+    )
+    _sorted_unique_strings(
+        scope["exclusions"],
+        f"{path}.exclusions",
+        lambda value, item_path: _repo_path(value, item_path),
+    )
+    return scope
+
+
 def validate_provider_observation(document: Any) -> Mapping[str, Any]:
     observation = _mapping(document, "provider_observation")
     _version(observation, "provider_observation")
@@ -176,6 +206,7 @@ def validate_provider_observation(document: Any) -> Mapping[str, Any]:
             "provider",
             "language",
             "provider_kind",
+            "scope",
             "command",
             "tool_version",
             "exit",
@@ -222,6 +253,11 @@ def validate_provider_observation(document: Any) -> Mapping[str, Any]:
     if status not in PROVIDER_STATUSES:
         _fail("provider_observation.status", f"must be one of {sorted(PROVIDER_STATUSES)}")
     failure = observation["failure"]
+    _validate_scope(
+        observation["scope"],
+        "provider_observation.scope",
+        paths_nonempty=status == "completed",
+    )
 
     raw = _mapping(observation["raw"], "provider_observation.raw")
     _required(
@@ -238,7 +274,7 @@ def validate_provider_observation(document: Any) -> Mapping[str, Any]:
         and isinstance(failure, Mapping)
         and failure.get("kind") == "output_overflow"
     )
-    if (stdout_bytes > byte_limit or stderr_bytes > byte_limit) and not overflow_failure:
+    if stdout_bytes + stderr_bytes > byte_limit and not overflow_failure:
         _fail("provider_observation.raw", "artifact exceeds command output_byte_limit")
 
     if status == "completed":
@@ -380,19 +416,7 @@ def validate_manifest(document: Any, *, allow_prototype: bool = False) -> Mappin
         _fail("manifest.finding_id_schema", f"must be {FINDING_ID_SCHEMA_VERSION}")
     _integer(manifest["capability_registry_version"], "manifest.capability_registry_version", minimum=1)
 
-    scope = _mapping(manifest["scope"], "manifest.scope")
-    _required(scope, ("paths", "case_sensitive", "roots", "exclusions"), "manifest.scope")
-    _sorted_unique_strings(
-        scope["paths"], "manifest.scope.paths", lambda value, path: _repo_path(value, path), nonempty=True
-    )
-    if not isinstance(scope["case_sensitive"], bool):
-        _fail("manifest.scope.case_sensitive", "must be a boolean")
-    _sorted_unique_strings(
-        scope["roots"], "manifest.scope.roots", lambda value, path: _repo_path(value, path), nonempty=True
-    )
-    _sorted_unique_strings(
-        scope["exclusions"], "manifest.scope.exclusions", lambda value, path: _repo_path(value, path)
-    )
+    scope = _validate_scope(manifest["scope"], "manifest.scope", paths_nonempty=True)
 
     source = _mapping(manifest["source"], "manifest.source")
     _required(source, ("revision", "dirty", "dirty_state_hash"), "manifest.source")
@@ -413,6 +437,26 @@ def validate_manifest(document: Any, *, allow_prototype: bool = False) -> Mappin
     if provider_order != sorted(set(provider_order)):
         _fail("manifest.providers", "must be sorted by provider/language with no duplicates")
 
+    def within(path: str, boundary: str, *, case_sensitive: bool) -> bool:
+        if not case_sensitive:
+            path = path.casefold()
+            boundary = boundary.casefold()
+        return boundary == "." or path == boundary or path.startswith(f"{boundary}/")
+
+    def intersects(first: str, second: str, *, case_sensitive: bool) -> bool:
+        return within(first, second, case_sensitive=case_sensitive) or within(
+            second,
+            first,
+            case_sensitive=case_sensitive,
+        )
+
+    for index, observation in enumerate(validated_providers):
+        observed_scope = observation["scope"]
+        if observed_scope["case_sensitive"] != scope["case_sensitive"]:
+            _fail(
+                f"manifest.providers[{index}].scope.case_sensitive",
+                "must match manifest scope case policy",
+            )
     rows = _sequence(manifest["findings"], "manifest.findings")
     findings = [
         _validate_finding(row, f"manifest.findings[{index}]", case_sensitive=scope["case_sensitive"])
@@ -422,19 +466,23 @@ def validate_manifest(document: Any, *, allow_prototype: bool = False) -> Mappin
     roots = scope["roots"]
     exclusions = scope["exclusions"]
 
-    def within(path: str, boundary: str) -> bool:
-        return boundary == "." or path == boundary or path.startswith(f"{boundary}/")
-
     for index, row in enumerate(findings):
         path = row["identity"]["path"]
-        if not any(within(path, boundary) for boundary in scope_paths) or not any(
-            within(path, boundary) for boundary in roots
+        if not any(
+            within(path, boundary, case_sensitive=scope["case_sensitive"])
+            for boundary in scope_paths
+        ) or not any(
+            within(path, boundary, case_sensitive=scope["case_sensitive"])
+            for boundary in roots
         ):
             _fail(
                 f"manifest.findings[{index}].identity.path",
                 "must remain inside the declared scope paths and roots",
             )
-        if any(within(path, boundary) for boundary in exclusions):
+        if any(
+            within(path, boundary, case_sensitive=scope["case_sensitive"])
+            for boundary in exclusions
+        ):
             _fail(
                 f"manifest.findings[{index}].identity.path",
                 "must not fall under a declared exclusion",
@@ -452,6 +500,53 @@ def validate_manifest(document: Any, *, allow_prototype: bool = False) -> Mappin
             _fail(
                 f"manifest.findings[{index}].provenance.observation_index",
                 f"references provider/language {actual!r}, expected {expected!r}",
+            )
+        observed_scope = observation["scope"]
+        if not any(
+            within(path, boundary, case_sensitive=scope["case_sensitive"])
+            for boundary in observed_scope["paths"]
+        ) or not any(
+            within(path, boundary, case_sensitive=scope["case_sensitive"])
+            for boundary in observed_scope["roots"]
+        ) or any(
+            within(path, boundary, case_sensitive=scope["case_sensitive"])
+            for boundary in observed_scope["exclusions"]
+        ):
+            _fail(
+                f"manifest.findings[{index}].provenance.observation_index",
+                "finding must remain inside its actual observation scope",
+            )
+    for index, observation in enumerate(validated_providers):
+        observed_scope = observation["scope"]
+        paths_covered = all(
+            any(
+                within(path, boundary, case_sensitive=scope["case_sensitive"])
+                for boundary in observed_scope["paths"]
+            )
+            for path in scope["paths"]
+        )
+        roots_covered = all(
+            any(
+                within(root, boundary, case_sensitive=scope["case_sensitive"])
+                for boundary in observed_scope["roots"]
+            )
+            for root in scope["roots"]
+        )
+        exclusions_covered = all(
+            not any(
+                intersects(exclusion, path, case_sensitive=scope["case_sensitive"])
+                for path in scope["paths"]
+            )
+            or any(
+                within(exclusion, declared, case_sensitive=scope["case_sensitive"])
+                for declared in scope["exclusions"]
+            )
+            for exclusion in observed_scope["exclusions"]
+        )
+        if not (paths_covered and roots_covered and exclusions_covered):
+            _fail(
+                f"manifest.providers[{index}].scope",
+                "does not cover manifest scope",
             )
     identifiers = [row["id"] for row in findings]
     if len(identifiers) != len(set(identifiers)):

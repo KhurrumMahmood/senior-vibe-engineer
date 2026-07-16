@@ -18,6 +18,12 @@
         "provider": "ruff",
         "language": "python",
         "provider_kind": "native",
+        "scope": {
+          "paths": ["src"],
+          "case_sensitive": true,
+          "roots": ["src"],
+          "exclusions": ["src/generated"]
+        },
         "command": {
           "executable": ".venv/bin/ruff",
           "argv": ["check"],
@@ -106,6 +112,12 @@
       "provider": "ruff",
       "language": "python",
       "provider_kind": "native",
+      "scope": {
+        "paths": ["src"],
+        "case_sensitive": true,
+        "roots": ["src"],
+        "exclusions": ["src/generated"]
+      },
       "command": {
         "executable": ".venv/bin/ruff",
         "argv": ["check", "--output-format", "json", "src"],
@@ -129,6 +141,12 @@
       "provider": "ruff",
       "language": "python",
       "provider_kind": "native",
+      "scope": {
+        "paths": ["src"],
+        "case_sensitive": true,
+        "roots": ["src"],
+        "exclusions": ["src/generated"]
+      },
       "command": {
         "executable": ".venv/bin/ruff",
         "argv": ["check", "--output-format", "json", "src"],
@@ -175,6 +193,12 @@
           "provider": "ruff",
           "language": "python",
           "provider_kind": "native",
+          "scope": {
+            "paths": ["src"],
+            "case_sensitive": true,
+            "roots": ["src"],
+            "exclusions": ["src/generated"]
+          },
           "command": {
             "executable": ".venv/bin/ruff",
             "argv": ["check", "--output-format", "json", "src"],

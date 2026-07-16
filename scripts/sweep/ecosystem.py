@@ -12,11 +12,7 @@ import hashlib
 import importlib.util
 import json
 import os
-import signal
-import subprocess
 import sys
-import tempfile
-import time
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
@@ -25,6 +21,7 @@ from typing import Any, Mapping, Sequence
 from _lib.lang_adapter import ANALYSIS_INTERFACE_VERSION, AnalysisFailure, iter_adapters
 
 from .manifest import FindingInput
+from .process import CapturedProcess, capture_process
 from .schemas import FAILURE_KINDS, SCHEMA_VERSION, validate_provider_observation
 from .serialization import canonical_json_bytes
 
@@ -51,16 +48,6 @@ class EcosystemProviderRun:
 
     observation: Mapping[str, Any]
     findings: tuple[FindingInput, ...]
-
-
-@dataclass(frozen=True)
-class _CapturedProcess:
-    returncode: int
-    timed_out: bool
-    output_overflow: bool
-    raw: Mapping[str, Any]
-    stdout: bytes | None
-    stderr: bytes | None
 
 
 class _ScopeFailure(ValueError):
@@ -124,20 +111,6 @@ def _raw_record(stdout: bytes, stderr: bytes) -> dict[str, Any]:
         "stderr_sha256": hashlib.sha256(stderr).hexdigest(),
         "stdout_bytes": len(stdout),
         "stderr_bytes": len(stderr),
-    }
-
-
-def _file_sha256(path: Path) -> str:
-    with path.open("rb") as source:
-        return hashlib.file_digest(source, "sha256").hexdigest()
-
-
-def _raw_file_record(stdout: Path, stderr: Path) -> dict[str, Any]:
-    return {
-        "stdout_sha256": _file_sha256(stdout),
-        "stderr_sha256": _file_sha256(stderr),
-        "stdout_bytes": stdout.stat().st_size,
-        "stderr_bytes": stderr.stat().st_size,
     }
 
 
@@ -229,9 +202,19 @@ def _detect_complexity_records(
 ) -> list[dict[str, Any]]:
     validated = _validate_scopes(project_root, scopes, provider="cx")
     module = _load_detector(_detector_path("find-complexity-hotspots"), "_sweep_cx_process")
-    return module.detect(
+    selected = module.select_python_files(
         project_root.resolve(),
         [path.as_posix() for path in validated],
+        include_tests=False,
+    )
+    if not selected:
+        raise _ScopeFailure(
+            "complexity scope contains no files eligible under the detector selection contract",
+            scopes=[path.as_posix() for path in validated],
+        )
+    return module.detect(
+        project_root.resolve(),
+        [path.as_posix() for path in selected],
         include_tests=False,
         max_findings=500,
     )
@@ -342,54 +325,29 @@ def _command(
     }
 
 
-def _capture_command(command: Mapping[str, Any], *, cwd: Path) -> _CapturedProcess:
-    timeout = float(command["timeout_seconds"])
-    byte_limit = int(command["output_byte_limit"])
-    with tempfile.TemporaryDirectory(prefix="sweep-ecosystem-provider-") as directory:
-        stdout_path = Path(directory) / "stdout"
-        stderr_path = Path(directory) / "stderr"
-        with stdout_path.open("wb") as stdout_file, stderr_path.open("wb") as stderr_file:
-            process = subprocess.Popen(
-                list(command["argv"]),
-                cwd=cwd,
-                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
-                stdout=stdout_file,
-                stderr=stderr_file,
-                start_new_session=True,
-            )
-            timed_out = False
-            output_overflow = False
-            deadline = time.monotonic() + timeout
-            while True:
-                stdout_size = stdout_path.stat().st_size
-                stderr_size = stderr_path.stat().st_size
-                if stdout_size > byte_limit or stderr_size > byte_limit:
-                    output_overflow = True
-                    break
-                if process.poll() is not None:
-                    break
-                if time.monotonic() >= deadline:
-                    timed_out = True
-                    break
-                time.sleep(0.005)
-            if timed_out or output_overflow:
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except (AttributeError, ProcessLookupError, PermissionError):
-                    if process.poll() is None:
-                        process.kill()
-                process.wait()
-        raw = _raw_file_record(stdout_path, stderr_path)
-        stdout = stdout_path.read_bytes() if raw["stdout_bytes"] <= byte_limit else None
-        stderr = stderr_path.read_bytes() if raw["stderr_bytes"] <= byte_limit else None
-        return _CapturedProcess(
-            process.returncode,
-            timed_out,
-            output_overflow,
-            raw,
-            stdout,
-            stderr,
-        )
+def _scope_provenance(
+    project_root: Path,
+    scopes: Sequence[str | Path],
+    *,
+    case_sensitive: bool,
+) -> dict[str, Any]:
+    root = project_root.resolve()
+    paths: set[str] = set()
+    for raw in scopes:
+        requested = Path(raw)
+        candidate = requested if requested.is_absolute() else root / requested
+        try:
+            relative = candidate.resolve().relative_to(root).as_posix()
+        except ValueError:
+            continue
+        normalized = relative or "."
+        paths.add(normalized if case_sensitive else normalized.casefold())
+    return {
+        "paths": sorted(paths),
+        "case_sensitive": case_sensitive,
+        "roots": ["."],
+        "exclusions": [],
+    }
 
 
 def _completed_observation(
@@ -397,14 +355,16 @@ def _completed_observation(
     provider: str,
     language: str,
     detector_path: Path,
+    scope: Mapping[str, Any],
     command: Mapping[str, Any],
-    captured: _CapturedProcess,
+    captured: CapturedProcess,
 ) -> dict[str, Any]:
     observation = {
         "schema_version": SCHEMA_VERSION,
         "provider": provider,
         "language": language,
         "provider_kind": "parser-backed-ecosystem",
+        "scope": dict(scope),
         "command": dict(command),
         "tool_version": _tool_version(detector_path, language),
         "exit": {
@@ -423,8 +383,9 @@ def _failed_observation(
     provider: str,
     language: str,
     detector_path: Path,
+    scope: Mapping[str, Any],
     command: Mapping[str, Any],
-    captured: _CapturedProcess,
+    captured: CapturedProcess,
     failure_kind: str,
     message: str,
     details: Mapping[str, Any],
@@ -434,6 +395,7 @@ def _failed_observation(
         "provider": provider,
         "language": language,
         "provider_kind": "parser-backed-ecosystem",
+        "scope": dict(scope),
         "command": dict(command),
         "tool_version": _tool_version(detector_path, language),
         "exit": {"code": captured.returncode, "classification": "tool_failure"},
@@ -493,6 +455,7 @@ def _run_provider(
     project_root: Path,
     scopes: Sequence[str | Path],
     observation_index: int,
+    case_sensitive: bool,
 ) -> EcosystemProviderRun:
     command = _command(
         provider=provider,
@@ -500,15 +463,27 @@ def _run_provider(
         project_root=project_root,
         scopes=scopes,
     )
+    scope = _scope_provenance(
+        project_root,
+        scopes,
+        case_sensitive=case_sensitive,
+    )
     try:
-        captured = _capture_command(command, cwd=project_root)
+        captured = capture_process(
+            command["argv"],
+            cwd=project_root,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+            timeout_seconds=float(command["timeout_seconds"]),
+            output_byte_limit=int(command["output_byte_limit"]),
+        )
     except OSError as exc:
         empty = b""
-        captured = _CapturedProcess(127, False, False, _raw_record(empty, empty), empty, empty)
+        captured = CapturedProcess(127, False, False, _raw_record(empty, empty), empty, empty)
         observation = _failed_observation(
             provider=provider,
             language=language,
             detector_path=detector_path,
+            scope=scope,
             command=command,
             captured=captured,
             failure_kind="missing_executable",
@@ -522,6 +497,7 @@ def _run_provider(
             provider=provider,
             language=language,
             detector_path=detector_path,
+            scope=scope,
             command=command,
             captured=captured,
             failure_kind="timeout",
@@ -543,6 +519,7 @@ def _run_provider(
             provider=provider,
             language=language,
             detector_path=detector_path,
+            scope=scope,
             command=command,
             captured=captured,
             failure_kind="output_overflow",
@@ -557,6 +534,7 @@ def _run_provider(
             provider=provider,
             language=language,
             detector_path=detector_path,
+            scope=scope,
             command=command,
             captured=captured,
             failure_kind=kind,
@@ -574,6 +552,7 @@ def _run_provider(
             provider=provider,
             language=language,
             detector_path=detector_path,
+            scope=scope,
             command=command,
             captured=captured,
             failure_kind="output_corruption",
@@ -586,6 +565,7 @@ def _run_provider(
         provider=provider,
         language=language,
         detector_path=detector_path,
+        scope=scope,
         command=command,
         captured=captured,
     )
@@ -682,6 +662,7 @@ def run_complexity_provider(
     scopes: Sequence[str | Path],
     *,
     observation_index: int,
+    case_sensitive: bool = True,
 ) -> EcosystemProviderRun:
     """Execute the characterized Python complexity provider in isolation."""
     repo_root = repo_root.resolve()
@@ -692,6 +673,7 @@ def run_complexity_provider(
         project_root=repo_root,
         scopes=scopes,
         observation_index=observation_index,
+        case_sensitive=case_sensitive,
     )
 
 
@@ -702,6 +684,7 @@ def run_omnibus_provider(
     *,
     language: str,
     observation_index: int,
+    case_sensitive: bool = True,
 ) -> EcosystemProviderRun:
     """Execute one eligible parser-backed omnibus language observation."""
     if language not in PARSER_ECOSYSTEM_LANGUAGES:
@@ -714,4 +697,5 @@ def run_omnibus_provider(
         project_root=repo_root,
         scopes=scopes,
         observation_index=observation_index,
+        case_sensitive=case_sensitive,
     )
