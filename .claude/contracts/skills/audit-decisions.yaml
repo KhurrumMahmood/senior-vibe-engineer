@@ -1,13 +1,14 @@
+# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 
 skill: audit-decisions
 job: guard
 problem_class: "decision-registry hygiene audit (GUARD)"
 intent: >
-  Audit the decision registry for hygiene drift: proposed-status ADRs that
-  outlived their decision window, broken supersedes chains, and applies_to
-  paths that no longer exist. Read-only — surfaces the drifted entries and the
-  recommended status transition; the human runs /decide to resolve.
+  Audit the decision registry for hygiene drift by wrapping decisions.py audit
+  and link-check, then checking code decision references, implementation
+  coverage, precedent consistency, and proposed-entry revisit signals. Read-only
+  — surfaces drifted entries and leaves resolution to /decide.
 solves: >
   Decisions rot silently — a proposed ADR that nobody accepted/deprecated, a
   superseded-by pointer to a missing entry, an applies_to glob whose target was

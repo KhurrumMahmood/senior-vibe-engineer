@@ -1,9 +1,10 @@
+# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 
 skill: which-skill
 job: meta
 problem_class: "skill routing / anti-misapplication (META)"
-intent: "Recommend a skill (or \"no planning skill applies — proceed directly\") for a free-text task description. Reads every SKILL.md frontmatter — tier, job, best_for, not_for, language, framework — and ranks candidates by token overlap. Two purposes: recommend the right skill, and surface metadata mismatches when the recommender consistently picks wrong."
+intent: "Recommend a profile-compatible skill (or \"no planning skill applies — proceed directly\") for a free-text task description. Rank SKILL.md frontmatter by relevance, then filter through the canonical host profile, selected layers and bindings, required capabilities, and activation overrides so task-fit cannot override stack compatibility."
 solves: "The most common agent failure mode is invoking heavy planning machinery for a one-line fix (or the inverse). which-skill defends against tool misapplication cheaply, and doubles as a lint on skill metadata — a skill that never routes to its own invocation prompts has a frontmatter bug."
 born:
   commit: "90f8567"

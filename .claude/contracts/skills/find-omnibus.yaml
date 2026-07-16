@@ -1,4 +1,5 @@
 # Skill intent + provenance contract — schema v2 (engineering-skills-2).
+# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 skill: find-omnibus
 job: suspect

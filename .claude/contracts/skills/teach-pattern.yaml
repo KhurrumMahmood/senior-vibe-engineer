@@ -1,15 +1,14 @@
+# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 
 skill: teach-pattern
 job: teach
 problem_class: "pattern instruction (TEACH) — explain an established convention in context"
 intent: >
-  Explain an established codebase pattern, convention, or canonical helper to the engineer
-  in the context of what they are about to do — what the pattern is, why it exists, where
-  the canonical implementation lives, and how to apply it correctly — so new work conforms
-  instead of reinventing. TEACH skill: prose instruction, no code edits and no new authority.
-  Distinct from searching the pattern library: it conveys understanding of a known pattern
-  rather than retrieving or ranking candidates.
+  Convert a smell, decision, subsystem, canonical-pattern anchor, or free-form rule into a
+  layered briefing under reports/teach-pattern. Explain the rule, rationale, canonical
+  implementation, examples, and application checklist without editing production code or
+  creating new authority.
 solves: >
   Engineers (human or AI) re-deriving or violating an established convention because the
   pattern's rationale and canonical location aren't surfaced at the moment of use.

@@ -1,18 +1,15 @@
 # Skill intent + provenance contract — schema v2 (engineering-skills-2).
+# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 skill: find-perimeter-gaps
 job: suspect
 problem_class: detector-fleet coverage audit (SUSPECT-of-SUSPECTs)
 intent: >-
-  Audit the quality perimeter itself — enumerate every (code root × language)
-  cell with significant LOC, map which SUSPECT detectors cover each cell via
-  their "scans:" / "language:" frontmatter declarations, and flag cells no
-  detector covers. Coverage claims are honest by rule — "language: any" means
-  portable implementation, not universal scanning, and confers no coverage
-  (ADR 0032). Blind spots may be accepted via explicit --accept root:language,
-  never invisible. Detection-only; classification of each gap (data-not-code /
-  stale "scans:" declaration / missing language adapter) is the orchestrator's
-  synthesis.
+  Audit every canonical host-profile root × language cell and count coverage
+  only from installed, registry-compatible detectors whose hashed scan
+  implementation and support fixture execute successfully. Coverage claims are
+  evidence-backed; ignored, stale, fabricated, or incompatible declarations do
+  not close a perimeter gap. Detection-only, with explicit accepted gaps.
 solves: The fleet-blind-spot failure mode — a detector ecosystem whose individual
   skills each scan what they scan, with nobody auditing the inverse, so an entire
   language layer can grow unbounded while every detector reports clean. Born from

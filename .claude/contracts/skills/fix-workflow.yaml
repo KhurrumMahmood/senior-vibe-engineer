@@ -1,14 +1,14 @@
+# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 
 skill: fix-workflow
 job: refactor
 problem_class: "scoped refactor execution for a single finding (REFACTOR)"
 intent: >
-  Execute a scoped fix for one confirmed maintenance-loop finding (a layer
-  violation, a duplication cluster, a query-mutation pair, a dormant-delete
-  target) under behavior-preserving discipline: pin current behavior, make the
-  smallest responsible change, prove the failure is gone. The targeted-execution
-  counterpart to /refactor-subsystem's larger decompositions.
+  Execute a cleanup surfaced by duplication, dormant-code, or semantic-duplication
+  detection. Accept a cluster ID, path, or natural-language target; pin behavior
+  with a regression test, refactor in a behavior-preserving commit, separate any
+  latent bug fix, verify the matrix, and capture cluster learnings.
 solves: >
   SUSPECT skills produce findings but do not fix them, and /refactor-subsystem is
   sized for whole-subsystem decompositions; there was no disciplined executor for

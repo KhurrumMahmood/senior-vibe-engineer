@@ -1,12 +1,13 @@
 # Skill intent + provenance contract — schema v2.
 # ES2-only skill; authored fresh from SKILL.md + es2_skill_facts.yaml.
 
+# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 
 skill: adapt-project
 job: meta
 problem_class: "host-project discovery / adapter scaffolding (META)"
-intent: "Discover objective host-project facts and scaffold a project adapter for engineering-skills — stack markers, commands, tests, CI, docs, source roots, domain terms, sensitive surfaces, existing guardrails, and candidate skill overlays. Writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default; host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it."
+intent: "Build a deterministic canonical host profile and project adapter from objective repository facts, then require an evidence-backed quality-perimeter audit before reporting adoption readiness. Supports Python/Django, TypeScript/Node/React, Rust, Go, and mixed repositories; durable host writes require --apply and --no-host-write keeps dogfood artifacts outside the host."
 solves: "Localizing the portable engineering-skills ecosystem to a new repo needs the operational facts (stack/commands/tests/CI/source roots) gathered objectively. There was no read-only discovery pass that produces a machine-readable adapter while explicitly refusing to confuse observed frequency with health — a messy repo's repeated patterns are flagged 'do not standardize yet', not canonized."
 born:
   commit: "a582cbf"

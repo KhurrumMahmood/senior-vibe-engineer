@@ -1,13 +1,13 @@
+# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 
 skill: find-workflow-duplication
 job: suspect
 problem_class: "product-topology drift detection (SUSPECT) — duplicated step authority"
 intent: >
-  Detect duplicated product-step authority — step labels, tab IDs, route literals,
-  endpoint suffixes, sidebar/dashboard step definitions, boot payload keys, and status
-  text — repeated across backend, templates, JS, and docs for one product workflow
-  (default: sites) instead of owned by a single registry. A stdlib detector with
+  Detect duplicated product-step authority for the host-declared workflow labels,
+  tab IDs, and route literals listed in the canonical product-workflows descriptor,
+  rather than assuming one built-in workflow. A stdlib detector with
   --min-active-owners 2 emits per-owner findings, each surface-classified
   (active_executable / legacy_unloaded / route_definition / docs / tests) so lexical
   repeats are treated as evidence, not findings.
