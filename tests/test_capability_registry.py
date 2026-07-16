@@ -702,6 +702,25 @@ def test_registry_owns_native_and_parser_backed_sweep_portfolio():
         "output_byte_limit": 1_048_576,
         "semantic_rule_version": 1,
     }
+    assert [
+        provider
+        for provider, _entry in registry.sweep_providers_for(
+            "python", provider_kind="native"
+        )
+    ] == ["ruff"]
+    assert [
+        provider
+        for provider, _entry in registry.sweep_providers_for(
+            "python", provider_kind="parser-backed-ecosystem"
+        )
+    ] == ["complexity-hotspots", "omnibus"]
+
+
+def test_registry_rejects_unknown_sweep_provider_selector():
+    registry = load_registry()
+
+    with pytest.raises(RegistryError, match="unregistered sweep provider kind"):
+        registry.sweep_providers_for("python", provider_kind="agent")
 
 
 def test_registry_rejects_malformed_parser_backed_provider(tmp_path):

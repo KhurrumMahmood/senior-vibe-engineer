@@ -73,15 +73,11 @@ def provider_contracts_from_registry(
 ) -> tuple[ProviderContract, ...]:
     """Resolve all native providers for one language without local identifiers."""
     registry = registry or load_registry()
-    if language not in registry.identifiers("languages"):
-        raise ValueError(f"unregistered language: {language}")
-    providers = registry.data["sweep_targets"].get(language, [])
     root = _toolkit_root(registry)
     contracts: list[ProviderContract] = []
-    for provider in providers:
-        entry = registry.data["sweep_providers"][provider]
-        if entry["provider_kind"] != "native":
-            continue
+    for provider, entry in registry.sweep_providers_for(
+        language, provider_kind="native"
+    ):
         contracts.append(
             ProviderContract(
                 provider=provider,

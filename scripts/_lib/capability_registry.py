@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import re
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 import yaml
 
@@ -60,6 +60,30 @@ class CapabilityRegistry:
         for family, values in self.data["capabilities"].items():
             names.update(f"{family}.{value}" for value in values)
         return frozenset(names)
+
+    def sweep_providers_for(
+        self,
+        language: str,
+        *,
+        provider_kind: str | None = None,
+    ) -> tuple[tuple[str, Mapping[str, Any]], ...]:
+        """Return the registry-ordered sweep battery for one language."""
+        if language not in self.identifiers("languages"):
+            raise RegistryError(f"unregistered language: {language}")
+        providers = self.data["sweep_targets"].get(language, [])
+        rows = tuple(
+            (provider, self.data["sweep_providers"][provider])
+            for provider in providers
+            if provider_kind is None
+            or self.data["sweep_providers"][provider]["provider_kind"]
+            == provider_kind
+        )
+        if provider_kind is not None and provider_kind not in {
+            "native",
+            "parser-backed-ecosystem",
+        }:
+            raise RegistryError(f"unregistered sweep provider kind: {provider_kind}")
+        return rows
 
     def validate_stack(self, stack: dict[str, Any], *, prefix: str = "stack") -> list[str]:
         errors: list[str] = []
