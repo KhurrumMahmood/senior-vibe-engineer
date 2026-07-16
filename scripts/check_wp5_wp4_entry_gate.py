@@ -218,7 +218,9 @@ def _require_venv_interpreter() -> str:
     prefix = Path(sys.prefix).resolve()
     if sys.prefix == sys.base_prefix or not prefix.joinpath("pyvenv.cfg").is_file():
         raise GateFailure("entry gate must run with an explicit virtualenv interpreter")
-    return str(Path(sys.executable).resolve())
+    # Do not resolve the venv's Python symlink: executing the resolved base
+    # interpreter bypasses the venv site-packages in child commands.
+    return str(Path(sys.executable).absolute())
 
 
 def rerun_contracts(
