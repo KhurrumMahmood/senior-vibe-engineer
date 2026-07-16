@@ -438,6 +438,7 @@ def _benchmark(paths: list[Path]) -> dict[str, Any]:
     digests: list[str] = []
     cold = _cold_probe(paths)
     tracemalloc.start()
+    _, warmup_digest = _analyze(paths)
     for _ in range(RUNS - 1):
         started = time.perf_counter()
         _, digest = _analyze(paths)
@@ -455,7 +456,7 @@ def _benchmark(paths: list[Path]) -> dict[str, Any]:
         "warm_cv": round(warm_stdev / warm_mean if warm_mean else 0.0, 6),
         "peak_python_bytes": peak_python,
         "peak_rss_bytes": max(_rss_bytes(), int(cold["peak_rss_bytes"])),
-        "deterministic": len({cold["digest"], *digests}) == 1,
+        "deterministic": len({cold["digest"], warmup_digest, *digests}) == 1,
         "facts_sha256": cold["digest"],
         "input_sha256": _hash_paths(paths),
         "input_bytes": sum(path.stat().st_size for path in paths),
@@ -716,7 +717,7 @@ def build_report(*, source_revision: str | None = None) -> dict[str, Any]:
             "small": "18-line TSX component with imports, exports, class/method, nested scope, JSX, call, reference, and write facts",
             "external_large": external["selection_rationale"],
         },
-        "variance_method": "fresh subprocess cold (startup and provider load included); six same-process warm runs; population CV",
+        "variance_method": "fresh subprocess cold (startup and provider load included); one untimed same-process provider warm-up; six measured same-process warm runs; population CV",
         "violations": violations,
         "passed": not violations,
     }

@@ -320,7 +320,10 @@ def test_productized_provider_reports_pinned_d3_and_budget_outcomes(product_benc
         score["precision"] == score["recall"] == 1.0
         for score in report["metrics"].values()
     )
-    assert report["variance_method"].startswith("fresh subprocess cold")
+    assert report["variance_method"] == (
+        "fresh subprocess cold (startup and provider load included); one untimed "
+        "same-process provider warm-up; six measured same-process warm runs; population CV"
+    )
 
 
 def test_minimal_cold_probe_matches_in_process_fact_digest():
