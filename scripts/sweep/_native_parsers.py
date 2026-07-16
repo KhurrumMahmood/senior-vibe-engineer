@@ -320,6 +320,15 @@ _GO_POSITION = re.compile(r"^(?P<path>.+):(?P<line>[1-9][0-9]*):(?P<column>[1-9]
 def _parse_go_vet(
     contract: NativeContract, text: str, root: Path, observation_index: int
 ) -> tuple[FindingInput, ...]:
+    json_start = text.find("{")
+    if json_start > 0:
+        preamble = text[:json_start]
+        if any(
+            line and not line.startswith("# ")
+            for line in preamble.splitlines()
+        ):
+            raise _schema("Go vet output has an unknown driver preamble")
+        text = text[json_start:]
     packages = _mapping(_parse_json(text), "Go vet output")
     findings: list[FindingInput] = []
     for package, raw_analyzers in sorted(packages.items()):

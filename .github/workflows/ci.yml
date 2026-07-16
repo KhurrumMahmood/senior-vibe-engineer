@@ -217,6 +217,8 @@ jobs:
           go tool vet -V=full
 
       - name: Run live native and integrated sweep boundaries
+        env:
+          SWEEP_LIVE_REQUIRED: '1'
         run: |
           python3 -m pytest -q -m sweep_live \
             tests/test_sweep_native_shims.py \

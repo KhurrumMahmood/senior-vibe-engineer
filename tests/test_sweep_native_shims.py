@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -147,6 +148,32 @@ def test_im_6_saved_native_outputs_retain_ids_locations_versions_and_raw_provena
     assert finding.column is not None
     assert finding.native_severity
     assert finding.rule_semantic_key.endswith(":v1")
+
+
+def test_im_6_go_vet_accepts_only_the_live_go_driver_preamble() -> None:
+    payload = _bytes("go-vet/valid.json")
+    result = normalize_provider_output(
+        _contract("go", "go-vet"),
+        root=HOSTS / "go" / "before",
+        stdout=b"",
+        stderr=b"# example.com/sweepfixture\n# [example.com/sweepfixture]\n" + payload,
+        exit_code=1,
+        tool_version="vet version go1.24.6",
+        executable="/saved/go-vet",
+    )
+    assert len(result.findings) == 1
+
+    with pytest.raises(ProviderExecutionError) as failure:
+        normalize_provider_output(
+            _contract("go", "go-vet"),
+            root=HOSTS / "go" / "before",
+            stdout=b"",
+            stderr=b"untrusted preamble\n" + payload,
+            exit_code=1,
+            tool_version="vet version go1.24.6",
+            executable="/saved/go-vet",
+        )
+    assert failure.value.failure["kind"] == "schema_mismatch"
 
 
 def test_im_6_all_saved_native_results_compose_at_the_shared_manifest_boundary():
@@ -397,6 +424,8 @@ def test_im_6_live_minimal_project_reaches_native_output_boundary(
 ):
     contract = _contract(language, provider)
     if discover_executable(contract, root=HOSTS / language / "before") is None:
+        if os.environ.get("SWEEP_LIVE_REQUIRED") == "1":
+            pytest.fail(f"required live provider is unavailable: {provider}")
         pytest.skip(f"{provider} executable is not installed")
 
     before = execute_provider(

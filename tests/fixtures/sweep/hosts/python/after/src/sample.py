@@ -1,1 +1,2 @@
-VALUE = 1
+import json
+import os
