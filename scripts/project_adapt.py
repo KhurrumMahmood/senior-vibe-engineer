@@ -16,6 +16,7 @@ import argparse
 import datetime as _dt
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -31,9 +32,10 @@ REPO_ROOT = SCRIPT_PATH.parent.parent
 sys.path.insert(0, str(REPO_ROOT / ".claude" / "skills" / "_common"))
 import engineering_home as _eh  # noqa: E402
 from _lib.capability_registry import load_registry  # noqa: E402
+from _lib.host_profile import profile_host, validate_host_profile  # noqa: E402
 
 CAPABILITY_REGISTRY = load_registry()
-ADAPTER_SCHEMA_VERSION = 2
+ADAPTER_SCHEMA_VERSION = 3
 PROFILE_SCHEMA_VERSION = 2
 TIMESTAMP_RE = re.compile(r"^scan-\d{8}-\d{6}$")
 
@@ -267,6 +269,41 @@ def detect_commands(root: Path, stack: dict[str, Any]) -> dict[str, Any]:
     return {k: sorted(set(v)) for k, v in commands.items()}
 
 
+def _adapter_stack(profile: dict[str, Any]) -> dict[str, Any]:
+    stack = {key: list(value) for key, value in profile["stack"].items()}
+    stack["package_managers"] = sorted(
+        tool
+        for tool in stack["tools"]
+        if "package-manager" in CAPABILITY_REGISTRY.data["tools"][tool].get("roles", [])
+    )
+    stack["markers"] = sorted(
+        {
+            Path(item["path"]).name
+            for root in profile["roots"]
+            for item in root["evidence"]
+            if item["kind"] in {"marker", "fallback-marker"}
+        }
+    )
+    stack["package_json_paths"] = sorted(
+        {
+            item["path"]
+            for root in profile["roots"]
+            for item in root["evidence"]
+            if Path(item["path"]).name == "package.json"
+        }
+    )
+    return stack
+
+
+def _adapter_commands(profile: dict[str, Any]) -> dict[str, list[str]]:
+    commands: dict[str, list[str]] = {}
+    for root in profile["roots"]:
+        prefix = "" if root["path"] == "." else f"cd {root['path']} && "
+        for kind, values in root["commands"].items():
+            commands.setdefault(kind, []).extend(f"{prefix}{value}" for value in values)
+    return {kind: sorted(set(values)) for kind, values in sorted(commands.items())}
+
+
 def detect_docs(root: Path) -> dict[str, Any]:
     root_docs = [name for name in DOC_NAMES if (root / name).is_file()]
     claude_docs = sorted(_rel(p, root) for p in (root / ".claude" / "docs").rglob("*.md"))
@@ -378,17 +415,25 @@ def build_standardization_cautions(adapter: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def discover_project(project_root: Path) -> dict[str, Any]:
+# spec:portable-host-profile-routing::IM-3
+def discover_project(
+    project_root: Path,
+    host_profile: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     root = project_root.resolve()
-    stack = detect_stack(root)
+    selected_profile = host_profile or profile_host(root)
+    profile_errors = validate_host_profile(selected_profile)
+    if profile_errors:
+        raise ValueError(f"invalid host profile: {'; '.join(profile_errors)}")
+    stack = _adapter_stack(selected_profile)
     adapter: dict[str, Any] = {
         "schema_version": ADAPTER_SCHEMA_VERSION,
         "capability_registry_version": CAPABILITY_REGISTRY.schema_version,
         "capability_contract_version": CAPABILITY_REGISTRY.contract_version,
-        "generated_at": utc_now(),
-        "project": {"name": root.name, "root": str(root)},
+        "project": {"name": root.name},
+        "host_profile": selected_profile,
         "stack": stack,
-        "commands": detect_commands(root, stack),
+        "commands": _adapter_commands(selected_profile),
         "source_roots": detect_source_roots(root),
         "ci": detect_ci(root),
         "docs": detect_docs(root),
@@ -548,6 +593,49 @@ def _update_latest(scan_dir: Path) -> None:
         pass
 
 
+# spec:portable-host-profile-routing::IM-4
+def run_perimeter_audit(
+    project_root: Path,
+    host_profile_path: Path,
+    scan_dir: Path,
+) -> dict[str, Any]:
+    """Run the mandatory profile-derived perimeter audit and return its payload."""
+    perimeter_json = scan_dir / "perimeter.json"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(REPO_ROOT / ".claude" / "skills" / "find-perimeter-gaps" / "scripts" / "scan.py"),
+            "--project-root",
+            str(project_root),
+            "--skills-root",
+            str(REPO_ROOT / ".claude" / "skills"),
+            "--host-profile",
+            str(host_profile_path),
+            "--output",
+            str(perimeter_json),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    (scan_dir / "perimeter.md").write_text(completed.stdout, encoding="utf-8")
+    if completed.returncode != 0:
+        raise RuntimeError(
+            "mandatory perimeter audit failed: "
+            f"exit={completed.returncode} stderr={completed.stderr.strip()}"
+        )
+    if not perimeter_json.is_file() or not (scan_dir / "perimeter.md").is_file():
+        raise RuntimeError("mandatory perimeter audit did not produce required artifacts")
+    try:
+        payload = json.loads(perimeter_json.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"mandatory perimeter audit produced invalid JSON: {exc}") from exc
+    if not isinstance(payload, dict) or not isinstance(payload.get("gaps"), list):
+        raise RuntimeError("mandatory perimeter audit produced an invalid result shape")
+    return payload
+
+
 def write_discovery(
     project_root: Path,
     artifact_root: Path,
@@ -558,9 +646,25 @@ def write_discovery(
 ) -> Path:
     _validate_write_mode(project_root, artifact_root, apply=apply, no_host_write=no_host_write)
     sid = scan_id(timestamp)
-    adapter = discover_project(project_root)
+    host_profile = profile_host(project_root)
+    profile_errors = validate_host_profile(host_profile)
+    if profile_errors:
+        raise ValueError(f"invalid host profile: {'; '.join(profile_errors)}")
+    adapter = discover_project(project_root, host_profile)
     scan_dir = _scan_dir(artifact_root, "adapt-project", sid)
     scan_dir.mkdir(parents=True, exist_ok=True)
+    _safe_yaml_dump(scan_dir / "host-profile.yml", host_profile)
+    _write_json(scan_dir / "host-profile.json", host_profile)
+    perimeter = run_perimeter_audit(project_root, scan_dir / "host-profile.json", scan_dir)
+    if not isinstance(perimeter, dict):
+        raise RuntimeError("mandatory perimeter audit was bypassed")
+    gaps = perimeter["gaps"]
+    adapter["adoption"] = {
+        "status": "ready" if not gaps else "incomplete_coverage",
+        "perimeter_gaps": len(gaps),
+        "accepted_exclusions": perimeter.get("accepted_exclusions", []),
+        "profile_sha256": host_profile["profile_sha256"],
+    }
     _safe_yaml_dump(scan_dir / "adapter.yml", adapter)
     _write_json(scan_dir / "adapter.json", adapter)
     (scan_dir / "report.md").write_text(adapter_markdown(adapter), encoding="utf-8")
@@ -570,8 +674,18 @@ def write_discovery(
                 "skill": "adapt-project",
                 "scan_id": sid,
                 "produced_at": utc_now(),
-                "evidence": {"adapter": "adapter.yml", "report": "report.md"},
-                "notes": "no host writes" if no_host_write else "",
+                "evidence": {
+                    "adapter": "adapter.yml",
+                    "report": "report.md",
+                    "host_profile": "host-profile.json",
+                    "perimeter": "perimeter.json",
+                    "perimeter_report": "perimeter.md",
+                },
+                "notes": (
+                    "incomplete coverage; adoption success withheld"
+                    if gaps
+                    else ("no host writes" if no_host_write else "")
+                ),
             },
             indent=2,
             sort_keys=True,
@@ -581,8 +695,15 @@ def write_discovery(
     )
     _update_latest(scan_dir)
     if apply:
-        dest = _eh.project_dir(project_root) / "adapter.yml"
-        _safe_yaml_dump(dest, adapter)
+        dest_dir = _eh.project_dir(project_root)
+        dest = dest_dir / "adapter.yml"
+        try:
+            existing = _load_yaml(dest) if dest.is_file() else {}
+        except ValueError:
+            existing = {}
+        merged = {**existing, **adapter}
+        _safe_yaml_dump(dest, merged)
+        _write_json(dest_dir / "host-profile.json", host_profile)
     return scan_dir
 
 
@@ -629,9 +750,15 @@ def write_profile_draft(
     _update_latest(scan_dir)
     if apply:
         dest_dir = _eh.project_dir(project_root)
-        _safe_yaml_dump(dest_dir / "profile.yml", profile)
-        (dest_dir / "profile.md").write_text(profile_markdown(profile), encoding="utf-8")
-        (dest_dir / "open-questions.md").write_text(open_questions_markdown(profile), encoding="utf-8")
+        durable_files = {
+            dest_dir / "profile.yml": yaml.safe_dump(profile, sort_keys=False, default_flow_style=False),
+            dest_dir / "profile.md": profile_markdown(profile),
+            dest_dir / "open-questions.md": open_questions_markdown(profile),
+        }
+        for path, text in durable_files.items():
+            if not path.exists():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(text, encoding="utf-8")
     return scan_dir
 
 
@@ -665,6 +792,11 @@ def validate_adapter_payload(payload: dict[str, Any]) -> list[str]:
         errors.append("adapter capability_registry_version does not match registry")
     if payload.get("capability_contract_version") != CAPABILITY_REGISTRY.contract_version:
         errors.append("adapter capability_contract_version does not match registry")
+    host_profile = payload.get("host_profile")
+    if isinstance(host_profile, dict):
+        errors.extend(validate_host_profile(host_profile))
+    else:
+        errors.append("adapter.host_profile must be a mapping")
     return errors
 
 
@@ -752,10 +884,17 @@ def cmd_discover(args: argparse.Namespace) -> int:
             apply=args.apply,
             no_host_write=args.no_host_write,
         )
-    except ValueError as exc:
+    except (RuntimeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     _print_scan(path)
+    adapter = _load_yaml(path / "adapter.yml")
+    if adapter.get("adoption", {}).get("status") != "ready":
+        print(
+            "adaptation incomplete: perimeter gaps remain; see perimeter.md",
+            file=sys.stderr,
+        )
+        return 1
     return 0
 
 

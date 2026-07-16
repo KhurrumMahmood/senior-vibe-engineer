@@ -17,9 +17,16 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import platform
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+import yaml
+
+from _lib.host_profile import profile_host
+from _lib.support_evidence import canonical_evidence_hash, sha256_bytes, sha256_file
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 _SCAN = REPO_ROOT / ".claude/skills/find-perimeter-gaps/scripts/scan.py"
@@ -36,6 +43,70 @@ def _write_skill(skills_root: Path, name: str, frontmatter: str) -> None:
     skill_dir = skills_root / name
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(f"---\n{frontmatter}\n---\n\n# /{name}\n")
+
+
+def _write_evidenced_typescript_skill(skills_root: Path, name: str = "find-typescript-shape") -> Path:
+    skill_dir = skills_root / name
+    scripts = skill_dir / "scripts"
+    scripts.mkdir(parents=True)
+    scanner = scripts / "scan.py"
+    claim = {"kind": "skill", "id": name}
+    observation = {"claim": claim, "result": "pass", "subject": "typescript"}
+    scanner.write_text(
+        "import json\n"
+        f"observation = {observation!r}\n"
+        "print(json.dumps(observation, sort_keys=True, separators=(',', ':')))\n",
+        encoding="utf-8",
+    )
+    digest = sha256_file(scanner)
+    test_attestation = {"kind": "test", "path": "scripts/scan.py", "sha256": digest}
+    script_attestation = {"kind": "script", "path": "scripts/scan.py", "sha256": digest}
+    expected = json.dumps(observation, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    evidence = {
+        "claim": claim,
+        "fixtures": [
+            {
+                "subject": "typescript",
+                "command": [sys.executable, "scripts/scan.py"],
+                "cwd": ".",
+                "expected_observation": observation,
+                "expected_stdout_sha256": sha256_bytes(expected),
+                "timeout_seconds": 10,
+            }
+        ],
+        "artifacts": [test_attestation, script_attestation],
+        "tools": [{"name": "python-runtime", "command": [sys.executable, "--version"]}],
+        "platforms": [{"system": platform.system(), "machine": platform.machine()}],
+    }
+    evidence["evidence_hash"] = canonical_evidence_hash(evidence)
+    metadata = {
+        "name": name,
+        "description": "Fixture detector",
+        "job": "suspect",
+        "language": "typescript",
+        "framework": "react",
+        "scans": ["typescript"],
+        "capability_contract": 1,
+        "layer": "framework",
+        "binding": "react",
+        "bindings": [],
+        "support": "experimental",
+        "capabilities": ["analysis.symbols"],
+        "capability_evidence": {"typescript": [test_attestation]},
+        "support_evidence": evidence,
+        "scan_implementations": {
+            "typescript": {
+                "mechanism": "typescript-syntax",
+                "path": "scripts/scan.py",
+                "sha256": digest,
+            }
+        },
+    }
+    (skill_dir / "SKILL.md").write_text(
+        f"---\n{yaml.safe_dump(metadata, sort_keys=False)}---\n\n# /{name}\n",
+        encoding="utf-8",
+    )
+    return skill_dir
 
 
 class PerimeterGapsTests(unittest.TestCase):
@@ -115,7 +186,7 @@ class PerimeterGapsTests(unittest.TestCase):
             rc = scan.main([
                 "--project-root", str(root),
                 "--min-loc", "1000",
-                "--accept", "frontend:css",
+                "--accept", "frontend:css=generated stylesheet snapshot",
                 "--fail-on-gap",
             ])
             self.assertEqual(rc, 0)
@@ -140,6 +211,89 @@ class PerimeterGapsTests(unittest.TestCase):
             keys = {(c["root"], c["language"]) for c in payload["cells"]}
             self.assertNotIn(("app", "templates"), keys)
             self.assertNotIn(("fixtures", "templates"), keys)
+
+    def test_profile_mode_requires_current_executable_scan_evidence(self) -> None:
+        scan = _load_scan()
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "host"
+            root.mkdir()
+            (root / "package.json").write_text('{"devDependencies":{"typescript":"5.9.3"}}')
+            (root / "tsconfig.json").write_text("{}\n")
+            (root / "src").mkdir()
+            (root / "src" / "large.ts").write_text("export const value = 1;\n" * 1200)
+            profile = profile_host(root)
+            profile_path = Path(d) / "host-profile.json"
+            profile_path.write_text(json.dumps(profile), encoding="utf-8")
+            skills = Path(d) / "skills"
+            evidenced = _write_evidenced_typescript_skill(skills)
+            output = Path(d) / "perimeter.json"
+
+            rc = scan.main(
+                [
+                    "--project-root", str(root),
+                    "--skills-root", str(skills),
+                    "--host-profile", str(profile_path),
+                    "--min-loc", "1000",
+                    "--output", str(output),
+                    "--fail-on-gap",
+                ]
+            )
+            self.assertEqual(rc, 0)
+            payload = json.loads(output.read_text())
+            self.assertEqual(payload["coverage_mode"], "executable-evidence")
+            self.assertEqual(payload["gaps"], [])
+            cell = next(item for item in payload["cells"] if item["language"] == "typescript")
+            self.assertEqual(cell["covered_by"], ["find-typescript-shape"])
+
+            # A post-attestation edit makes the installed implementation stale;
+            # the same declaration can no longer count as coverage.
+            (evidenced / "scripts" / "scan.py").write_text("print('stale')\n")
+            rc = scan.main(
+                [
+                    "--project-root", str(root),
+                    "--skills-root", str(skills),
+                    "--host-profile", str(profile_path),
+                    "--min-loc", "1000",
+                    "--output", str(output),
+                    "--fail-on-gap",
+                ]
+            )
+            self.assertEqual(rc, 1)
+            payload = json.loads(output.read_text())
+            cell = next(item for item in payload["cells"] if item["language"] == "typescript")
+            self.assertEqual(cell["covered_by"], [])
+            self.assertTrue(cell["rejected_coverage_candidates"])
+            self.assertTrue(
+                any("sha256 mismatch" in reason for reason in cell["rejected_coverage_candidates"][0]["reasons"])
+            )
+
+            rc = scan.main(
+                [
+                    "--project-root", str(root),
+                    "--skills-root", str(skills),
+                    "--host-profile", str(profile_path),
+                    "--min-loc", "1000",
+                    "--accept", ".:typescript=temporary migration gap",
+                    "--output", str(output),
+                    "--fail-on-gap",
+                ]
+            )
+            self.assertEqual(rc, 0)
+            payload = json.loads(output.read_text())
+            self.assertEqual(
+                payload["accepted_exclusions"],
+                [{"root": ".", "language": "typescript", "reason": "temporary migration gap"}],
+            )
+
+    def test_accepted_exclusion_without_reason_is_rejected(self) -> None:
+        scan = _load_scan()
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._build_host(root)
+            self.assertEqual(
+                scan.main(["--project-root", str(root), "--accept", "frontend:css"]),
+                2,
+            )
 
 
 if __name__ == "__main__":

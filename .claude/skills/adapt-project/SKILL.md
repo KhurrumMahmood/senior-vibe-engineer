@@ -1,6 +1,6 @@
 ---
 name: adapt-project
-description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads stack markers, commands, tests, CI, docs, source roots, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
+description: Build a deterministic canonical host profile and project adapter, then run the mandatory evidence-backed quality-perimeter audit before reporting adoption readiness. Use when onboarding or re-profiling Python/Django, TypeScript/Node/React, Rust, Go, or mixed repositories. Writes scan artifacts by default; durable host-profile/adapter writes require --apply, and --no-host-write keeps dogfood artifacts outside the host.
 argument-hint: "[--project-root <path>] [--artifact-root <path>] [--apply|--no-host-write]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -27,8 +27,8 @@ framework: any
 lanes: [project-adaptation]
 stage: discover
 entrypoint: true
-produces: [adapter, adaptation_report, standardization_cautions]
-evidence_required: [adapter, report]
+produces: [host_profile, adapter, perimeter, adaptation_report, standardization_cautions]
+evidence_required: [adapter, report, host_profile, perimeter, perimeter_report]
 risk_triggers: [legacy, high-churn, missing-tests, sensitive-surface]
 max_overhead: "Stop after discovery and write unresolved questions; do not infer project philosophy."
 ---
@@ -49,9 +49,10 @@ and human review decide what deserves to become doctrine.
 ## How success is judged
 
 - `scripts/project_adapt.py discover` writes a scan directory containing
-  `adapter.yml`, `adapter.json`, `report.md`, and `evidence.json`.
-- The scan's `evidence.json` maps the required evidence tokens
-  `adapter` and `report` to `adapter.yml` and `report.md`, satisfying
+  `host-profile.json`, `adapter.yml`, `perimeter.json`, both human reports,
+  and `evidence.json`.
+- The scan's `evidence.json` maps the required evidence tokens plus the host
+  profile and perimeter artifacts, satisfying
   this skill's `evidence_required: [adapter, report]` declaration.
 - `scripts/evidence_gate.py check --skill adapt-project --scan-dir <scan>`
   exits 0 before the run is called done.
@@ -61,6 +62,9 @@ and human review decide what deserves to become doctrine.
 - The summary surfaces high-confidence facts, standardization cautions,
   sensitive surfaces, and open questions without inferring project
   philosophy.
+- Exit 0 means the mandatory profile-derived perimeter has no uncovered
+  significant cells. Exit 1 means artifacts were produced but adoption stays
+  incomplete; exit 2 means profiling or audit execution itself failed.
 
 ## Forms
 
@@ -93,11 +97,12 @@ used, `--artifact-root` must be outside the host project.
    Add `--no-host-write` for dogfood runs, or `--apply` only after the
    user explicitly wants durable project state written.
 
-3. Read the generated `adapter.yml` and `report.md`.
+3. Read `host-profile.json`, `adapter.yml`, `perimeter.md`, and `report.md`.
 4. Surface:
    - high-confidence facts;
    - standardization cautions;
    - sensitive surfaces;
+   - uncovered root/language cells and reason-bearing accepted exclusions;
    - open questions that require `/project-interview`.
 5. Before claiming done, run the evidence gate on the scan directory:
 
@@ -115,12 +120,20 @@ Each scan directory contains:
 
 - `adapter.yml` — machine-readable adapter facts.
 - `adapter.json` — same payload for tools that prefer JSON.
+- `host-profile.json` / `.yml` — deterministic per-root stack, command,
+  exclusion, and assertion evidence.
+- `perimeter.json` / `.md` — executable-evidence coverage matrix and gaps.
 - `report.md` — human-readable summary.
 - `evidence.json` — evidence manifest for `evidence_gate.py`.
 
 Durable project state, when `--apply` is used:
 
 - `.engineering/project/adapter.yml`
+- `.engineering/project/host-profile.json`
+
+Reruns merge generated adapter keys while preserving host-owned extension keys.
+They never replace host instruction/identity files or an approved interview
+profile.
 
 ## Dogfood
 

@@ -93,10 +93,10 @@ evidence is a coverage gap, never a clean scan.
   TypeScript/Node/React, Rust, Go, and mixed-monorepo fixtures with good/bad
   profile oracles for roots, exclusions, commands, and evidence.
   <!-- spec:portable-host-profile-routing::IM-2 -->
-- [ ] IM-3: **Profile-driven adaptation.** Make `project_adapt.py` consume the
+- [x] IM-3: **Profile-driven adaptation.** Make `project_adapt.py` consume the
   profile, reject non-registry IDs, preserve host-owned files, and prove
   idempotent reruns. <!-- spec:portable-host-profile-routing::IM-3 -->
-- [ ] IM-4: **Mandatory perimeter integration.** Put the perimeter audit on
+- [x] IM-4: **Mandatory perimeter integration.** Put the perimeter audit on
   the adaptation success path and add a bypass fixture that must fail.
   <!-- spec:portable-host-profile-routing::IM-4 -->
 - [ ] IM-5: **Shared activation.** Implement one profile-derived activation

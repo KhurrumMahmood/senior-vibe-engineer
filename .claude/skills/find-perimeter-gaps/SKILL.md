@@ -1,7 +1,7 @@
 ---
 name: find-perimeter-gaps
-description: Audit the quality perimeter — report every (code root × language) cell with significant LOC and the SUSPECT detectors covering it; flag cells no detector covers. The detector fleet scans what it scans; this skill reports the inverse, so blind spots are a visible decision instead of an accident. Detection-only; never edits code. Born from a real incident — 34.6K lines of JavaScript invisible to an ecosystem whose omnibus detector was Python-only (ADR 0032).
-argument-hint: "[--project-root <path>] [--min-loc 3000] [--accept root:language]"
+description: Audit every canonical host-profile root × language cell and count coverage only from installed, registry-compatible detectors whose hashed scan implementation and support fixture execute successfully. Use during host adaptation, whole-codebase audits, or detector changes; stale or missing evidence becomes a visible gap, and accepted exclusions require reasons. Detection-only; never edits code.
+argument-hint: "[--project-root <path>] [--host-profile <json>] [--min-loc 3000] [--accept root:language=reason]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -33,13 +33,13 @@ detector cover?
 
 1. **A blind spot may be accepted, never invisible.** Vendored code,
    crawled data, generated output — fine to skip, but the skip must be
-   a recorded decision (`--accept root:language`), not an emergent
+   a recorded decision (`--accept root:language=reason`), not an emergent
    property of detector globs.
-2. **Coverage claims must be honest.** A detector covers a language only
-   if its frontmatter `scans:` list says so (or its `language:` field
-   names that exact language). `language: any` means "portable
-   implementation", not "scans everything" — it covers nothing here.
-   See ADR 0032.
+2. **Coverage claims must be executable.** In host-profile mode a declaration
+   counts only when the installed skill's capability contract, registry
+   version, file hashes, tool versions, platform, fixture command, and exact
+   scan implementation all validate and execute. `language: any` never means
+   "scans everything." See ADRs 0032 and 0038.
 3. **LOC is the trigger, judgment is the verdict.** The script flags
    cells above `--min-loc`; whether a gap warrants a new adapter, an
    accepted-blind-spot entry, or a host-side lint is your synthesis,
@@ -59,6 +59,8 @@ detector cover?
   row appears in `gaps`.
 - A zero-gap run is successful only when artifacts exist and `report.md`
   says `No perimeter gaps above threshold`.
+- Machine output retains rejected coverage candidates and their evidence
+  reasons, profile exclusions, and reason-bearing accepted exclusions.
 
 ## Pipeline
 
@@ -73,11 +75,12 @@ EXTRA_ARGS=()
 # Optional overrides:
 # EXTRA_ARGS+=(--skills-root "$PROJECT_ROOT/.claude/skills")
 # EXTRA_ARGS+=(--min-loc 3000)
-# EXTRA_ARGS+=(--accept sites:templates)
+# EXTRA_ARGS+=(--accept 'generated:templates=generated build output')
 # EXTRA_ARGS+=(--skip-root data)
 mkdir -p "$REPORT_DIR"
 .venv/bin/python .claude/skills/find-perimeter-gaps/scripts/scan.py \
   --project-root "$PROJECT_ROOT" \
+  --host-profile .engineering/project/host-profile.json \
   "${EXTRA_ARGS[@]}" \
   --output "$REPORT_DIR/perimeter.json" \
   > "$REPORT_DIR/report.md"
@@ -91,8 +94,8 @@ skipped automatically.
 
 For every PERIMETER GAPS row, classify:
 
-- **data, not code** → re-run with `--skip-root` or `--accept`, and
-  record why in the report you hand back.
+- **data, not code** → re-run with `--skip-root` or a reason-bearing
+  `--accept root:language=reason`; retain that decision in both outputs.
 - **code, detector exists for the language elsewhere** → the detector's
   `scans:` declaration is stale or its walker globs are too narrow; fix
   the declaration or file the scope bug.
@@ -110,12 +113,11 @@ an ADR, not a refactor.
 
 ## Replay case
 
-When `scripts/scan.py` changes, replay a disposable host with a
-`language: any` suspect skill, an explicit `scans: [javascript]`
-detector, and a CSS root above `--min-loc`. Expected result: CSS appears
-under PERIMETER GAPS, the `language: any` detector does not cover it,
-`--accept root:language` removes it, and `--fail-on-gap` exits 1 before
-acceptance and 0 after acceptance.
+When `scripts/scan.py` changes, replay a disposable host with one
+executable-evidence TypeScript detector and a significant TypeScript root.
+Expected result: the valid detector covers the cell; changing its attested
+script makes the same cell a gap; a reason-bearing acceptance removes it from
+`gaps` while remaining visible in JSON.
 
 ## When things go sideways
 
