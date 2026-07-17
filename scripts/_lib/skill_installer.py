@@ -1,15 +1,15 @@
-"""Transactional host lifecycle for caller-verified skill install images.
+"""Transactional host lifecycle rooted in an out-of-band release digest.
 
-Trust verification and image materialization belong to :mod:`skill_bundle`.
-This module accepts that verified data, owns host mutation, and fails closed at
-every ownership, filesystem, recovery, and native-discovery boundary.
+This module re-verifies and materializes bundle data inside each production
+install/update call, owns host mutation, and fails closed at every ownership,
+filesystem, recovery, and native-discovery boundary.
 """
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from copy import deepcopy
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass
 import fcntl
 import hashlib
 import json
@@ -30,6 +30,12 @@ from .distribution_contracts import (
     load_canonical_json,
     validate_distribution_contract,
 )
+from .skill_bundle import (
+    VerifiedBundle,
+    materialize_install_image,
+    verify_install_image,
+    verify_release_bundle,
+)
 
 
 MANIFEST_PATH = ".engineering/installed-manifest-v1.json"
@@ -49,6 +55,10 @@ _STATE_KEYS = {
     "portfolio",
     "aliases",
     "previous",
+    "trust",
+    "rollback_applied_from",
+    "owned_directories",
+    "legacy_layouts",
 }
 _JOURNAL_KEYS = {
     "schema_version",
@@ -56,69 +66,45 @@ _JOURNAL_KEYS = {
     "operation",
     "transaction_id",
     "prior_manifest_sha256",
+    "desired_manifest_sha256",
     "transaction_path",
     "changes",
 }
 _CHANGE_KEYS = {"path", "existed", "kind", "size", "sha256", "link_target"}
+_TRUST_KEYS = {
+    "release_root_sha256",
+    "bundle_index_sha256",
+    "catalog_inventory_sha256",
+    "capability_registry_sha256",
+    "required_profile_sha256",
+    "legacy_table_sha256",
+    "alias_table_sha256",
+    "selection_sha256",
+}
 
 
 class LifecycleError(RuntimeError):
     """A lifecycle command cannot preserve the transactional contract."""
 
 
-class NativeDiscoveryAdapter(Protocol):
-    """Offline, non-model proof of the toolkit-owned native discovery set."""
+@dataclass(frozen=True)
+class BundleInstallRequest:
+    """Only external trust anchor accepted by production install/update APIs."""
 
-    offline_non_model: bool
+    bundle_root: Path
+    release_root_sha256: str
+    recipe_ids: tuple[str, ...]
 
-    def discover(self, project_root: Path, surface_id: str) -> set[str]: ...
-
-    def proves_generated_links(self, surface_id: str) -> bool: ...
+    def __post_init__(self) -> None:
+        if _HASH.fullmatch(self.release_root_sha256) is None:
+            raise LifecycleError("release-root SHA-256 must be lowercase hexadecimal")
+        if not self.recipe_ids or len(self.recipe_ids) != len(set(self.recipe_ids)):
+            raise LifecycleError("recipe_ids must be a nonempty unique ordered set")
 
 
 @dataclass(frozen=True)
-class ValidatedMigrationPlan:
-    """A trust-layer validated exact-byte legacy migration plan."""
-
-    entries: tuple[dict[str, Any], ...] = ()
-    plan_sha256: str = ""
-    _verified: bool = field(default=False, repr=False)
-
-    @classmethod
-    def from_verified(
-        cls, entries: Sequence[Mapping[str, Any]], *, plan_sha256: str
-    ) -> "ValidatedMigrationPlan":
-        if _HASH.fullmatch(plan_sha256) is None:
-            raise LifecycleError("validated migration plan digest is invalid")
-        normalized: list[dict[str, Any]] = []
-        paths: set[str] = set()
-        for index, candidate in enumerate(entries):
-            if set(candidate) != {"action", "path", "size", "sha256"}:
-                raise LifecycleError(f"migration entry {index} is not schema-closed")
-            path = _relative(candidate["path"], location=f"migration[{index}].path")
-            if path in paths:
-                raise LifecycleError(f"duplicate migration target: {path}")
-            paths.add(path)
-            action = candidate["action"]
-            if action not in {"adopt", "retire"}:
-                raise LifecycleError(f"unsupported migration action: {action!r}")
-            size, digest = candidate["size"], candidate["sha256"]
-            if type(size) is not int or size < 0 or not isinstance(digest, str) or _HASH.fullmatch(digest) is None:
-                raise LifecycleError(f"migration entry {index} has invalid byte identity")
-            normalized.append(
-                {"action": action, "path": path, "size": size, "sha256": digest}
-            )
-        return cls(tuple(normalized), plan_sha256, True)
-
-    @classmethod
-    def unverified_for_test(cls) -> "ValidatedMigrationPlan":
-        """Construct an explicitly untrusted value for a fail-closed test."""
-        return cls()
-
-
-@dataclass(frozen=True)
-class LifecycleInput:
-    """Caller-verified immutable image plus lifecycle projection metadata."""
+class _LifecycleData:
+    """Internal data derived only by re-verifying an externally rooted bundle."""
 
     root: Path
     manifest: dict[str, Any]
@@ -126,54 +112,32 @@ class LifecycleInput:
     canonical_sources: dict[str, str]
     portfolio: tuple[str, ...]
     aliases: dict[str, str]
-    _verified: bool = field(default=False, repr=False)
+    trust: dict[str, Any]
+    legacy_layouts: tuple[Mapping[str, Any], ...]
 
-    @classmethod
-    def from_verified(
-        cls,
-        *,
-        root: Path,
-        manifest: Mapping[str, Any],
-        surface_contract: Mapping[str, Any],
-        canonical_sources: Mapping[str, str],
-        portfolio: Sequence[str],
-        aliases: Mapping[str, str],
-    ) -> "LifecycleInput":
-        return cls(
-            Path(root),
-            deepcopy(dict(manifest)),
-            deepcopy(dict(surface_contract)),
-            {str(name): str(path) for name, path in canonical_sources.items()},
-            tuple(str(name) for name in portfolio),
-            {str(name): str(target) for name, target in aliases.items()},
-            True,
-        )
 
-    def with_generated_link(self, path: str, target: str) -> "LifecycleInput":
-        """Return verified test/input data with one declared contained link."""
-        safe_path = _relative(path, location="generated link path")
-        safe_target = _relative(target, location="generated link target")
-        target_path = _safe_path(self.root, safe_target, must_exist=True)
-        content = target_path.read_bytes()
-        link = self.root / safe_path
-        link.parent.mkdir(parents=True, exist_ok=True)
-        relative_target = os.path.relpath(target_path, link.parent)
-        link.symlink_to(relative_target)
-        manifest = deepcopy(self.manifest)
-        manifest["owned_paths"]["generated_links"].append(
-            {
-                "path": safe_path,
-                "link_sha256": _sha(relative_target.encode()),
-                "target": safe_target,
-                "target_sha256": _sha(content),
-            }
-        )
-        _rehash_manifest(manifest)
-        return replace(self, manifest=manifest)
+@dataclass(frozen=True)
+class _DiscoverySnapshot:
+    toolkit_owned: frozenset[str]
+    host_owned: frozenset[str]
+
+
+class _NativeDiscoveryAdapter(Protocol):
+    def discover(self, project_root: Path, surface_id: str) -> _DiscoverySnapshot: ...
+
+    def proves_generated_links(self, surface_id: str) -> bool: ...
 
 
 def _sha(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
+
+
+def _plain(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {str(key): _plain(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_plain(item) for item in value]
+    return value
 
 
 def _root_path(value: Path | str, *, label: str, may_create: bool) -> Path:
@@ -189,6 +153,191 @@ def _root_path(value: Path | str, *, label: str, may_create: bool) -> Path:
         if not stat.S_ISDIR(metadata.st_mode):
             raise LifecycleError(f"{label} must be a directory: {path}")
     return path.resolve()
+
+
+def _native_adapter(
+    contract: Mapping[str, Any], surface_set: Sequence[str]
+) -> _NativeDiscoveryAdapter:
+    """Return one shipped, runtime-matched adapter for the whole surface set.
+
+    The v1 contract currently contains abstract discovery fixtures, not commands
+    and parsers proven against pinned host runtimes.  Treat every surface as
+    unsupported until such an adapter ships; callers cannot inject executable
+    factories across this trust boundary.
+    """
+    known = _surface_records(contract)
+    surfaces = list(surface_set)
+    if not surfaces or len(surfaces) != len(set(surfaces)) or not set(surfaces).issubset(known):
+        raise LifecycleError("requested native discovery surface set is invalid")
+    raise LifecycleError(
+        "native discovery unsupported for requested surface set: "
+        + ", ".join(surfaces)
+    )
+
+def _bundle_tables(bundle: VerifiedBundle) -> tuple[Mapping[str, Any], Mapping[str, str]]:
+    tables = getattr(bundle, "tables_by_id", None)
+    digests = getattr(bundle, "table_sha256s", None)
+    if not isinstance(tables, Mapping) or not isinstance(digests, Mapping):
+        raise LifecycleError("verified bundle does not expose provenance-bound distribution tables")
+    return tables, digests
+
+
+def _derive_lifecycle_data(
+    bundle: VerifiedBundle,
+    image: Path,
+    manifest: Mapping[str, Any],
+) -> _LifecycleData:
+    tables, table_digests = _bundle_tables(bundle)
+    alias_table = tables.get("aliases-v1")
+    legacy_table = tables.get("legacy-layouts-v1")
+    if not isinstance(alias_table, Mapping) or not isinstance(legacy_table, Mapping):
+        raise LifecycleError("verified bundle omits alias or legacy authority")
+    portfolio_rows = [
+        row
+        for row in bundle.bundle_index["blobs"]
+        if row["kind"] in {"procedure", "router"}
+    ]
+    prefix = f".engineering/catalog/{bundle.bundle_index_sha256}/"
+    canonical_sources = {row["id"]: f"{prefix}{row['path']}" for row in portfolio_rows}
+    selection_rows = [
+        {key: row[key] for key in ("id", "kind", "size", "sha256")}
+        for row in bundle.bundle_index["blobs"]
+        if row["kind"] in {"binding", "procedure", "router"}
+    ]
+    trust = {
+        "release_root_sha256": bundle.release_root_sha256,
+        "bundle_index_sha256": bundle.bundle_index_sha256,
+        "catalog_inventory_sha256": bundle.bundle_index["catalog_inventory_sha256"],
+        "capability_registry_sha256": bundle.bundle_index["capability_registry_sha256"],
+        "required_profile_sha256": bundle.bundle_index["required_profile_sha256"],
+        "legacy_table_sha256": table_digests["legacy-layouts-v1"],
+        "alias_table_sha256": table_digests["aliases-v1"],
+        "selection_sha256": canonical_sha256(selection_rows),
+    }
+    return _LifecycleData(
+        root=image,
+        manifest=deepcopy(dict(manifest)),
+        surface_contract=deepcopy(bundle.surface_contract),
+        canonical_sources=canonical_sources,
+        portfolio=tuple(row["id"] for row in portfolio_rows),
+        aliases={row["public_name"]: row["canonical_target"] for row in alias_table["aliases"]},
+        trust=trust,
+        legacy_layouts=tuple(_plain(row) for row in legacy_table["layouts"]),
+    )
+
+
+@contextmanager
+def _verified_bundle_data(request: BundleInstallRequest):
+    """Re-root trust and materialize a fresh image inside the production call."""
+    bundle = verify_release_bundle(request.bundle_root, request.release_root_sha256)
+    image = Path(tempfile.mkdtemp(prefix="engineering-skills-verified-image-"))
+    try:
+        manifest = materialize_install_image(
+            bundle,
+            image,
+            recipe_ids=request.recipe_ids,
+        )
+        verified_manifest = verify_install_image(
+            bundle,
+            image,
+            recipe_ids=request.recipe_ids,
+        )
+        if manifest != verified_manifest:
+            raise LifecycleError("materialized and verified install manifests differ")
+        yield bundle, _derive_lifecycle_data(bundle, image, manifest)
+    finally:
+        shutil.rmtree(image, ignore_errors=True)
+
+
+def _migration_preview(project: Path, data: _LifecycleData) -> dict[str, Any]:
+    """Classify only exact, provenance-bound legacy rows; never infer layouts."""
+    matches: list[Mapping[str, Any]] = []
+    for layout in data.legacy_layouts:
+        markers = [row for row in layout["files"] if row["role"] == "ownership-marker"]
+        marker_present = False
+        marker_exact = True
+        for row in markers:
+            target = _safe_path(project, row["path"], must_exist=False)
+            if target.exists() or target.is_symlink():
+                marker_present = True
+                try:
+                    kind, size, digest, _ = _object_identity(target)
+                except LifecycleError:
+                    marker_exact = False
+                    continue
+                marker_exact &= kind == "file" and (size, digest) == (
+                    row["size"],
+                    row["sha256"],
+                )
+        if marker_present and not marker_exact:
+            raise LifecycleError(
+                f"known legacy ownership marker is modified: {layout['layout_id']}"
+            )
+        if not marker_present:
+            continue
+        for row in layout["files"]:
+            target = _safe_path(project, row["path"], must_exist=False)
+            if not (target.exists() or target.is_symlink()):
+                raise LifecycleError(
+                    f"known legacy layout is incomplete: {layout['layout_id']}:{row['path']}"
+                )
+            kind, size, digest, _ = _object_identity(target)
+            if kind != "file" or (size, digest) != (row["size"], row["sha256"]):
+                raise LifecycleError(
+                    f"known legacy content is modified: {layout['layout_id']}:{row['path']}"
+                )
+        matches.append(layout)
+    if len(matches) > 1:
+        raise LifecycleError("multiple known legacy layouts match exactly")
+    if not matches:
+        return {
+            "schema_version": 1,
+            "available": False,
+            "reason": "no_known_layout",
+            "legacy_table_sha256": data.trust["legacy_table_sha256"],
+            "layout_id": None,
+            "manifest_id": None,
+            "version_range": None,
+            "legacy_release_root_sha256": None,
+            "legacy_tree_sha256": None,
+            "entries": [],
+        }
+    layout = matches[0]
+    desired_rows = _manifest_rows(data.manifest)
+    entries: list[dict[str, Any]] = []
+    for row in layout["files"]:
+        desired = desired_rows.get(row["path"])
+        if layout["action"] == "adopt":
+            if desired is None or "link_sha256" in desired or (
+                desired["size"], desired["sha256"]
+            ) != (row["size"], row["sha256"]):
+                raise LifecycleError(
+                    f"known legacy adoption does not equal desired bytes: {row['path']}"
+                )
+        elif desired is not None:
+            raise LifecycleError(
+                f"known legacy retirement remains desired: {row['path']}"
+            )
+        entries.append(
+            {
+                "path": row["path"],
+                "size": row["size"],
+                "sha256": row["sha256"],
+                "action": layout["action"],
+            }
+        )
+    return {
+        "schema_version": 1,
+        "available": True,
+        "reason": None,
+        "legacy_table_sha256": data.trust["legacy_table_sha256"],
+        "layout_id": layout["layout_id"],
+        "manifest_id": layout["manifest_id"],
+        "version_range": deepcopy(layout["version_range"]),
+        "legacy_release_root_sha256": layout["release_root_sha256"],
+        "legacy_tree_sha256": layout["tree_sha256"],
+        "entries": entries,
+    }
 
 
 def _row(path: str, content: bytes) -> dict[str, Any]:
@@ -312,14 +461,10 @@ def _verify_link(root: Path, row: Mapping[str, Any], *, label: str) -> None:
         raise LifecycleError(f"generated link target hash differs: {row['path']}")
 
 
-def _validate_input(data: LifecycleInput, adapter: NativeDiscoveryAdapter) -> None:
-    if not data._verified:
-        raise LifecycleError("lifecycle requires caller-verified input data")
+def _validate_input(data: _LifecycleData, adapter: _NativeDiscoveryAdapter) -> None:
     image_root = _root_path(data.root, label="verified image root", may_create=False)
     if image_root != data.root.resolve():
         raise LifecycleError("verified image root identity changed")
-    if not getattr(adapter, "offline_non_model", False):
-        raise LifecycleError("native discovery adapter must be an offline non-model check")
     if not callable(getattr(adapter, "discover", None)) or not callable(
         getattr(adapter, "proves_generated_links", None)
     ):
@@ -389,13 +534,18 @@ def _clean_journal() -> dict[str, Any]:
         "operation": None,
         "transaction_id": None,
         "prior_manifest_sha256": None,
+        "desired_manifest_sha256": None,
         "transaction_path": None,
         "changes": [],
     }
 
 
 def _state_payload(
-    data: LifecycleInput, *, previous: dict[str, Any] | None
+    data: _LifecycleData,
+    *,
+    previous: dict[str, Any] | None,
+    rollback_applied_from: str | None,
+    owned_directories: Sequence[str],
 ) -> dict[str, Any]:
     rows = _manifest_rows(data.manifest)
     sources = {
@@ -412,10 +562,14 @@ def _state_payload(
             for name, target in sorted(data.aliases.items())
         ],
         "previous": previous,
+        "trust": data.trust,
+        "rollback_applied_from": rollback_applied_from,
+        "owned_directories": list(owned_directories),
+        "legacy_layouts": list(data.legacy_layouts),
     }
 
 
-def _load_state(root: Path, manifest: Mapping[str, Any]) -> tuple[dict[str, Any], LifecycleInput]:
+def _load_state(root: Path, manifest: Mapping[str, Any]) -> tuple[dict[str, Any], _LifecycleData]:
     state_rows = manifest["owned_paths"]["activation_state"]
     if len(state_rows) != 1 or state_rows[0]["path"] != STATE_PATH:
         raise LifecycleError("installed lifecycle state is absent or ambiguous")
@@ -426,16 +580,45 @@ def _load_state(root: Path, manifest: Mapping[str, Any]) -> tuple[dict[str, Any]
         raise LifecycleError("lifecycle state is corrupt") from exc
     if set(state) != _STATE_KEYS or state["schema_version"] != 1:
         raise LifecycleError("lifecycle state is not schema-closed v1")
+    trust = state["trust"]
+    if not isinstance(trust, dict) or set(trust) != _TRUST_KEYS:
+        raise LifecycleError("lifecycle trust provenance is not schema-closed")
+    if any(not isinstance(value, str) or _HASH.fullmatch(value) is None for value in trust.values()):
+        raise LifecycleError("lifecycle trust provenance contains an invalid digest")
+    if (
+        trust["release_root_sha256"] != manifest["release_root_sha256"]
+        or trust["bundle_index_sha256"] != manifest["bundle_index_sha256"]
+        or trust["catalog_inventory_sha256"] != manifest["catalog_hash"]
+    ):
+        raise LifecycleError("lifecycle trust provenance differs from installed manifest")
+    rollback_from = state["rollback_applied_from"]
+    if rollback_from is not None and (
+        not isinstance(rollback_from, str) or _HASH.fullmatch(rollback_from) is None
+    ):
+        raise LifecycleError("rollback idempotence anchor is invalid")
+    directories = state["owned_directories"]
+    if not isinstance(directories, list) or directories != sorted(set(directories)):
+        raise LifecycleError("owned directory state is not a sorted unique list")
+    for directory in directories:
+        _relative(directory, location="owned directory")
+    legacy_layouts = state["legacy_layouts"]
+    if not isinstance(legacy_layouts, list):
+        raise LifecycleError("installed legacy authority is invalid")
+    legacy_table = {"schema_version": 1, "layouts": legacy_layouts}
+    if canonical_sha256(legacy_table) != trust["legacy_table_sha256"]:
+        raise LifecycleError("installed legacy authority differs from verified table digest")
     sources = state["canonical_sources"]
     if not isinstance(sources, dict):
         raise LifecycleError("lifecycle canonical_sources is invalid")
-    data = LifecycleInput.from_verified(
+    data = _LifecycleData(
         root=root,
-        manifest=manifest,
-        surface_contract=state["surface_contract"],
+        manifest=deepcopy(dict(manifest)),
+        surface_contract=deepcopy(state["surface_contract"]),
         canonical_sources={name: row["path"] for name, row in sources.items()},
-        portfolio=state["portfolio"],
+        portfolio=tuple(state["portfolio"]),
         aliases={row["public_name"]: row["canonical_target"] for row in state["aliases"]},
+        trust=deepcopy(state["trust"]),
+        legacy_layouts=tuple(deepcopy(state["legacy_layouts"])),
     )
     return state, data
 
@@ -453,7 +636,7 @@ def _copy_object(source_root: Path, target_root: Path, relative: str) -> None:
         raise LifecycleError(f"owned object is not a regular file or link: {relative}")
 
 
-def _copy_base(data: LifecycleInput, stage: Path) -> dict[str, Any]:
+def _copy_base(data: _LifecycleData, stage: Path) -> dict[str, Any]:
     manifest = deepcopy(data.manifest)
     keep_classes = {"catalog_store", "bootstrap_projections", "generated_links"}
     for class_name, rows in list(manifest["owned_paths"].items()):
@@ -483,7 +666,7 @@ def _projection_path(contract: Mapping[str, Any], surface: str, public_name: str
 def _render_projections(
     stage: Path,
     manifest: dict[str, Any],
-    data: LifecycleInput,
+    data: _LifecycleData,
     records: list[dict[str, str]],
     mode: str,
 ) -> None:
@@ -573,16 +756,38 @@ def _add_snapshot_rows(stage: Path, manifest: dict[str, Any], previous: dict[str
         manifest["owned_paths"]["catalog_store"].append(_row(path, content))
 
 
+def _compute_owned_directories(
+    project_root: Path,
+    paths: Sequence[str] | set[str],
+    prior_owned: Sequence[str],
+) -> list[str]:
+    candidates: set[str] = set()
+    for relative in paths:
+        parts = PurePosixPath(relative).parts[:-1]
+        for index in range(1, len(parts) + 1):
+            candidates.add(PurePosixPath(*parts[:index]).as_posix())
+    prior = set(prior_owned)
+    owned = {
+        relative
+        for relative in candidates
+        if relative in prior or not (project_root / relative).exists()
+    }
+    return sorted(owned)
+
+
 def _finalize_stage(
     stage: Path,
     manifest: dict[str, Any],
-    data: LifecycleInput,
+    data: _LifecycleData,
     *,
     generation: int,
     previous_digest: str | None,
     previous: dict[str, Any] | None,
     mode: str,
     activation_records: list[dict[str, str]],
+    project_root: Path,
+    rollback_applied_from: str | None = None,
+    prior_owned_directories: Sequence[str] = (),
 ) -> dict[str, Any]:
     if mode not in {"router-only", "full-discovery"}:
         raise LifecycleError("mode must be router-only or full-discovery")
@@ -598,7 +803,20 @@ def _finalize_stage(
     if previous is not None:
         _add_snapshot_rows(stage, manifest, previous)
 
-    state_bytes = canonical_json_bytes(_state_payload(data, previous=previous))
+    _render_projections(stage, manifest, data, activation_records, mode)
+    desired_paths = set(_manifest_rows(manifest)) | {MANIFEST_PATH, STATE_PATH, JOURNAL_PATH}
+    owned_directories = _compute_owned_directories(
+        project_root, desired_paths, prior_owned_directories
+    )
+
+    state_bytes = canonical_json_bytes(
+        _state_payload(
+            data,
+            previous=previous,
+            rollback_applied_from=rollback_applied_from,
+            owned_directories=owned_directories,
+        )
+    )
     _atomic_write(stage / STATE_PATH, state_bytes)
     manifest["owned_paths"]["activation_state"] = [_row(STATE_PATH, state_bytes)]
     journal_bytes = canonical_json_bytes(_clean_journal())
@@ -610,7 +828,6 @@ def _finalize_stage(
         "journal_sha256": _sha(journal_bytes),
         "temporary_records": [],
     }
-    _render_projections(stage, manifest, data, activation_records, mode)
     _rehash_manifest(manifest)
     try:
         validate_distribution_contract("installed-manifest-v1", manifest)
@@ -668,37 +885,49 @@ def _prove_discovery(
     root: Path,
     manifest: Mapping[str, Any] | None,
     contract: Mapping[str, Any] | None,
-    adapter: NativeDiscoveryAdapter,
-) -> None:
-    if not getattr(adapter, "offline_non_model", False):
-        raise LifecycleError("native discovery adapter must be an offline non-model check")
-    if not callable(getattr(adapter, "discover", None)):
-        raise LifecycleError("native discovery adapter is incomplete")
+    adapter: _NativeDiscoveryAdapter,
+    *,
+    prior_host: Mapping[str, frozenset[str]] | None = None,
+) -> dict[str, frozenset[str]]:
+    host_sets: dict[str, frozenset[str]] = {}
     surfaces = list(manifest["surface_set"]) if manifest is not None else []
     for surface in surfaces:
         expected = _expected_discovery(manifest, contract or {}, surface)
-        actual = set(adapter.discover(root, surface))
-        if actual != expected:
+        actual = adapter.discover(root, surface)
+        if set(actual.toolkit_owned) != expected:
             raise LifecycleError(
-                f"native discovery mismatch for {surface}: expected={sorted(expected)}, actual={sorted(actual)}"
+                f"native discovery mismatch for {surface}: expected={sorted(expected)}, "
+                f"actual={sorted(actual.toolkit_owned)}"
             )
+        if prior_host is not None and actual.host_owned != prior_host.get(surface, frozenset()):
+            raise LifecycleError(f"native discovery changed host-owned names for {surface}")
+        host_sets[surface] = actual.host_owned
+    return host_sets
 
 
 def _prove_uninstalled_discovery(
     root: Path,
     prior_manifest: Mapping[str, Any],
-    adapter: NativeDiscoveryAdapter,
+    adapter: _NativeDiscoveryAdapter,
+    prior_host: Mapping[str, frozenset[str]],
 ) -> None:
-    if not getattr(adapter, "offline_non_model", False) or not callable(
-        getattr(adapter, "discover", None)
-    ):
-        raise LifecycleError("native discovery adapter must be an offline non-model check")
     for surface in prior_manifest["surface_set"]:
-        actual = set(adapter.discover(root, surface))
-        if actual:
+        snapshot = adapter.discover(root, surface)
+        if snapshot.toolkit_owned:
             raise LifecycleError(
-                f"native discovery still exposes toolkit names for {surface}: {sorted(actual)}"
+                f"native discovery still exposes toolkit names for {surface}: "
+                f"{sorted(snapshot.toolkit_owned)}"
             )
+        if snapshot.host_owned != prior_host.get(surface, frozenset()):
+            raise LifecycleError(f"uninstall changed host-owned discovery for {surface}")
+
+
+def _capture_host_discovery(
+    root: Path,
+    surfaces: Sequence[str],
+    adapter: _NativeDiscoveryAdapter,
+) -> dict[str, frozenset[str]]:
+    return {surface: adapter.discover(root, surface).host_owned for surface in surfaces}
 
 
 @contextmanager
@@ -761,6 +990,11 @@ def _journal_record(path: Path) -> dict[str, Any] | None:
     prior = value["prior_manifest_sha256"]
     if prior is not None and (not isinstance(prior, str) or _HASH.fullmatch(prior) is None):
         raise LifecycleError("recovery journal prior manifest digest is invalid")
+    desired = value["desired_manifest_sha256"]
+    if desired is not None and (
+        not isinstance(desired, str) or _HASH.fullmatch(desired) is None
+    ):
+        raise LifecycleError("recovery journal desired manifest digest is invalid")
     paths: set[str] = set()
     for change in value["changes"]:
         if set(change) != _CHANGE_KEYS:
@@ -795,17 +1029,154 @@ def _journal_record(path: Path) -> dict[str, Any] | None:
     return value
 
 
-def _remove_empty_parents(path: Path, stop: Path) -> None:
-    parent = path.parent
-    while parent != stop and parent.is_dir():
+def _prune_owned_directories(project: Path, directories: Sequence[str]) -> None:
+    """Remove only empty directories whose creation was recorded as toolkit-owned."""
+    for relative in sorted(set(directories), key=lambda value: (value.count("/"), value), reverse=True):
+        target = _safe_path(project, relative, must_exist=False)
+        if not target.exists() or not target.is_dir() or target.is_symlink():
+            continue
         try:
-            parent.rmdir()
+            target.rmdir()
         except OSError:
-            break
-        parent = parent.parent
+            pass
+
+
+def _load_bound_manifest(path: Path, expected_digest: str) -> dict[str, Any]:
+    try:
+        value = load_canonical_json(path)
+        validate_distribution_contract("installed-manifest-v1", value)
+    except (OSError, DistributionContractError) as exc:
+        raise LifecycleError("recovery manifest proof is missing or corrupt") from exc
+    if value["manifest_sha256"] != expected_digest:
+        raise LifecycleError("recovery manifest proof has the wrong digest")
+    return value
+
+
+def _authority_from_state(
+    state_path: Path,
+    manifest: Mapping[str, Any],
+) -> tuple[dict[str, tuple[int, str]], set[str]]:
+    state_rows = manifest["owned_paths"]["activation_state"]
+    if len(state_rows) != 1:
+        raise LifecycleError("recovery manifest has ambiguous lifecycle state")
+    content = state_path.read_bytes()
+    row = state_rows[0]
+    if len(content) != row["size"] or _sha(content) != row["sha256"]:
+        raise LifecycleError("recovery lifecycle state proof differs from its manifest")
+    try:
+        state = json.loads(content)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise LifecycleError("recovery lifecycle state proof is corrupt") from exc
+    if not isinstance(state, dict) or set(state) != _STATE_KEYS:
+        raise LifecycleError("recovery lifecycle state proof is not closed")
+    trust = state.get("trust")
+    legacy_layouts = state.get("legacy_layouts")
+    if not isinstance(trust, dict) or set(trust) != _TRUST_KEYS:
+        raise LifecycleError("recovery trust proof is not closed")
+    if not isinstance(legacy_layouts, list):
+        raise LifecycleError("recovery legacy authority is invalid")
+    table = {"schema_version": 1, "layouts": legacy_layouts}
+    if canonical_sha256(table) != trust["legacy_table_sha256"]:
+        raise LifecycleError("recovery legacy authority digest differs")
+    legacy_rows: dict[str, tuple[int, str]] = {}
+    for layout in legacy_layouts:
+        if not isinstance(layout, dict) or not isinstance(layout.get("files"), list):
+            raise LifecycleError("recovery legacy layout proof is invalid")
+        for file_row in layout["files"]:
+            if not isinstance(file_row, dict):
+                raise LifecycleError("recovery legacy file proof is invalid")
+            relative = _relative(file_row.get("path"), location="legacy recovery path")
+            size, digest = file_row.get("size"), file_row.get("sha256")
+            if (
+                relative in legacy_rows
+                or type(size) is not int
+                or size < 0
+                or not isinstance(digest, str)
+                or _HASH.fullmatch(digest) is None
+            ):
+                raise LifecycleError("recovery legacy byte proof is invalid")
+            legacy_rows[relative] = (size, digest)
+    directories = state.get("owned_directories")
+    if not isinstance(directories, list) or directories != sorted(set(directories)):
+        raise LifecycleError("recovery owned directory proof is invalid")
+    return legacy_rows, {
+        _relative(relative, location="recovery owned directory") for relative in directories
+    }
+
+
+def _authenticate_journal(
+    project: Path, journal: Mapping[str, Any]
+) -> tuple[set[str], set[str]]:
+    """Bind every recoverable path to prior/desired manifests or legacy authority."""
+    transaction = project / journal["transaction_path"]
+    marker = transaction / "owner-v1"
+    if not marker.is_file() or marker.read_bytes() != b"engineering-skills\n":
+        raise LifecycleError("recovery transaction ownership marker is invalid")
+    allowed: set[str] = {MANIFEST_PATH, JOURNAL_PATH}
+    prior_identities: dict[str, tuple[str, int | None, str]] = {}
+    prior_directories: set[str] = set()
+    desired_directories: set[str] = set()
+    prior_digest = journal["prior_manifest_sha256"]
+    if prior_digest is not None:
+        prior = _load_bound_manifest(transaction / "backup" / MANIFEST_PATH, prior_digest)
+        for relative, row in _manifest_rows(prior).items():
+            if "link_sha256" in row:
+                prior_identities[relative] = ("link", None, row["link_sha256"])
+            else:
+                prior_identities[relative] = ("file", row["size"], row["sha256"])
+        prior_manifest_bytes = (transaction / "backup" / MANIFEST_PATH).read_bytes()
+        prior_identities[MANIFEST_PATH] = (
+            "file",
+            len(prior_manifest_bytes),
+            _sha(prior_manifest_bytes),
+        )
+        allowed.update(prior_identities)
+        legacy_rows, prior_directories = _authority_from_state(
+            transaction / "backup" / STATE_PATH, prior
+        )
+        for relative, (size, digest) in legacy_rows.items():
+            prior_identities.setdefault(relative, ("file", size, digest))
+        allowed.update(legacy_rows)
+    desired_digest = journal["desired_manifest_sha256"]
+    if desired_digest is not None:
+        desired = _load_bound_manifest(
+            transaction / "desired-manifest-v1.json", desired_digest
+        )
+        allowed.update(_manifest_rows(desired))
+        legacy_rows, desired_directories = _authority_from_state(
+            transaction / "desired-state-v1.json", desired
+        )
+        for relative, (size, digest) in legacy_rows.items():
+            prior_identities.setdefault(relative, ("file", size, digest))
+        allowed.update(legacy_rows)
+    live = _read_manifest(project)
+    live_digest = live["manifest_sha256"] if live is not None else None
+    if live_digest not in {prior_digest, desired_digest}:
+        raise LifecycleError("recovery journal is not bound to the live manifest")
+    changed = {row["path"] for row in journal["changes"]}
+    if not changed.issubset(allowed):
+        raise LifecycleError(
+            f"recovery journal contains unauthenticated paths: {sorted(changed - allowed)}"
+        )
+    for change in journal["changes"]:
+        expected = prior_identities.get(change["path"])
+        if expected is None:
+            if change["existed"]:
+                raise LifecycleError("recovery journal invents prior host ownership")
+            continue
+        kind, size, digest = expected
+        if (
+            not change["existed"]
+            or change["kind"] != kind
+            or (size is not None and change["size"] != size)
+            or change["sha256"] != digest
+        ):
+            raise LifecycleError("recovery journal prior-byte identity differs")
+    return prior_directories, desired_directories
 
 
 def _restore_from_journal(project: Path, journal: Mapping[str, Any]) -> None:
+    prior_directories, desired_directories = _authenticate_journal(project, journal)
     transaction = project / journal["transaction_path"]
     for change in reversed(journal["changes"]):
         target = project / change["path"]
@@ -821,9 +1192,8 @@ def _restore_from_journal(project: Path, journal: Mapping[str, Any]) -> None:
                 if len(content) != change["size"] or _sha(content) != change["sha256"]:
                     raise LifecycleError("recovery backup bytes are missing or corrupt")
                 _atomic_write(target, content)
-        _remove_empty_parents(target, project)
     shutil.rmtree(transaction, ignore_errors=False)
-    _remove_empty_parents(transaction, project)
+    _prune_owned_directories(project, desired_directories - prior_directories)
 
 
 def _recover(project: Path) -> None:
@@ -846,21 +1216,13 @@ def _recover(project: Path) -> None:
         raise LifecycleError(f"startup recovery failed closed: {exc}") from exc
 
 
-def _current(project: Path) -> tuple[dict[str, Any] | None, LifecycleInput | None]:
+def _current(project: Path) -> tuple[dict[str, Any] | None, _LifecycleData | None]:
     manifest = _read_manifest(project)
     if manifest is None:
         return None, None
     _verify_owned(project, manifest)
     _, data = _load_state(project, manifest)
     return manifest, data
-
-
-def _migration_entries(plan: ValidatedMigrationPlan | None) -> tuple[dict[str, Any], ...]:
-    if plan is None:
-        return ()
-    if not plan._verified:
-        raise LifecycleError("lifecycle requires an injected validated migration plan")
-    return plan.entries
 
 
 def _object_identity(path: Path) -> tuple[str, int, str, str | None]:
@@ -881,16 +1243,24 @@ def _commit(
     current: Mapping[str, Any] | None,
     *,
     operation: str,
-    adapter: NativeDiscoveryAdapter,
+    adapter: _NativeDiscoveryAdapter,
     contract: Mapping[str, Any] | None,
-    migration_plan: ValidatedMigrationPlan | None,
+    migration_entries: Sequence[Mapping[str, Any]],
 ) -> None:
     current_rows = _manifest_rows(current) if current else {}
     desired_rows = _manifest_rows(desired) if desired else {}
     current_paths = set(current_rows) | ({MANIFEST_PATH} if current else set())
     desired_paths = set(desired_rows) | ({MANIFEST_PATH} if desired else set())
-    migrations = _migration_entries(migration_plan)
+    migrations = tuple(dict(row) for row in migration_entries)
     migrate_by_path = {row["path"]: row for row in migrations}
+    current_directories: set[str] = set()
+    desired_directories: set[str] = set()
+    if current is not None:
+        current_state, _ = _load_state(project, current)
+        current_directories = set(current_state["owned_directories"])
+    if desired is not None and stage is not None:
+        desired_state, _ = _load_state(stage, desired)
+        desired_directories = set(desired_state["owned_directories"])
 
     for migration in migrations:
         path = migration["path"]
@@ -928,12 +1298,29 @@ def _commit(
         if kind != "file" or (size, digest) != (migration["size"], migration["sha256"]):
             raise LifecycleError(f"migration known bytes differ: {migration['path']}")
 
+    transaction_surfaces = sorted(
+        set(current["surface_set"] if current else ())
+        | set(desired["surface_set"] if desired else ())
+    )
+    prior_host = _capture_host_discovery(project, transaction_surfaces, adapter)
+
     changed_paths = sorted(current_paths | desired_paths | {row["path"] for row in migrations})
     transaction_id = str(uuid.uuid4())
     transaction_relative = f"{TRANSACTION_PREFIX}{transaction_id}"
     transaction = project / transaction_relative
     transaction.mkdir(parents=True, mode=0o700)
     _atomic_write(transaction / "owner-v1", b"engineering-skills\n")
+    desired_digest: str | None = None
+    if desired is not None and stage is not None:
+        desired_digest = desired["manifest_sha256"]
+        _atomic_write(
+            transaction / "desired-manifest-v1.json",
+            (stage / MANIFEST_PATH).read_bytes(),
+        )
+        _atomic_write(
+            transaction / "desired-state-v1.json",
+            (stage / STATE_PATH).read_bytes(),
+        )
     changes: list[dict[str, Any]] = []
     try:
         for relative in changed_paths:
@@ -967,6 +1354,7 @@ def _commit(
             "operation": operation,
             "transaction_id": transaction_id,
             "prior_manifest_sha256": current["manifest_sha256"] if current else None,
+            "desired_manifest_sha256": desired_digest,
             "transaction_path": transaction_relative,
             "changes": changes,
         }
@@ -981,7 +1369,6 @@ def _commit(
             target = project / relative
             if target.is_symlink() or target.is_file():
                 target.unlink()
-                _remove_empty_parents(target, project)
         if desired is not None and stage is not None:
             for relative in sorted(desired_paths - {MANIFEST_PATH, JOURNAL_PATH}):
                 source = stage / relative
@@ -994,14 +1381,15 @@ def _commit(
                 else:
                     _atomic_write(target, source.read_bytes())
             _atomic_write(project / MANIFEST_PATH, (stage / MANIFEST_PATH).read_bytes())
-            _prove_discovery(project, desired, contract, adapter)
+            _prove_discovery(project, desired, contract, adapter, prior_host=prior_host)
             _atomic_write(project / JOURNAL_PATH, canonical_json_bytes(_clean_journal()))
         else:
             if current is None:
                 raise LifecycleError("uninstall transaction has no prior manifest")
-            _prove_uninstalled_discovery(project, current, adapter)
+            _prove_uninstalled_discovery(project, current, adapter, prior_host)
             (project / JOURNAL_PATH).unlink(missing_ok=True)
         shutil.rmtree(transaction)
+        _prune_owned_directories(project, current_directories - desired_directories)
     except BaseException as exc:
         try:
             active = _journal_record(project / JOURNAL_PATH)
@@ -1015,13 +1403,16 @@ def _commit(
 
 
 def _prepare(
-    data: LifecycleInput,
+    data: _LifecycleData,
     *,
+    project_root: Path,
     current_root: Path | None,
     current: Mapping[str, Any] | None,
     generation: int,
     mode: str,
     records: list[dict[str, str]],
+    rollback_applied_from: str | None = None,
+    prior_owned_directories: Sequence[str] = (),
 ) -> tuple[Path, dict[str, Any]]:
     temporary = Path(tempfile.mkdtemp(prefix="engineering-skills-lifecycle-"))
     try:
@@ -1036,6 +1427,9 @@ def _prepare(
             previous=previous,
             mode=mode,
             activation_records=records,
+            project_root=project_root,
+            rollback_applied_from=rollback_applied_from,
+            prior_owned_directories=prior_owned_directories,
         )
         return temporary, finalized
     except BaseException:
@@ -1047,9 +1441,9 @@ def _execute(
     project_root: Path | str,
     operation: str,
     *,
-    adapter: NativeDiscoveryAdapter,
+    adapter: _NativeDiscoveryAdapter,
     builder: Any,
-    migration_plan: ValidatedMigrationPlan | None = None,
+    migration_entries: Sequence[Mapping[str, Any]] = (),
 ) -> dict[str, Any] | None:
     project = _root_path(project_root, label="project root", may_create=True)
     with _project_lock(project):
@@ -1070,7 +1464,7 @@ def _execute(
                 operation=operation,
                 adapter=adapter,
                 contract=contract,
-                migration_plan=migration_plan,
+                migration_entries=migration_entries,
             )
             return desired
         finally:
@@ -1078,17 +1472,17 @@ def _execute(
                 shutil.rmtree(stage, ignore_errors=True)
 
 
-def install(
+def _install_verified(
     project_root: Path | str,
-    data: LifecycleInput,
+    data: _LifecycleData,
     *,
-    adapter: NativeDiscoveryAdapter,
-    migration_plan: ValidatedMigrationPlan | None = None,
+    adapter: _NativeDiscoveryAdapter,
+    migration_entries: Sequence[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     """Install a verified router-only generation or prove it is idempotent."""
     _validate_input(data, adapter)
 
-    def build(project: Path, current: dict[str, Any] | None, current_data: LifecycleInput | None):
+    def build(project: Path, current: dict[str, Any] | None, current_data: _LifecycleData | None):
         del current_data
         if current is not None:
             if (
@@ -1100,6 +1494,7 @@ def install(
             raise LifecycleError("a different toolkit generation is already installed; use update")
         stage, desired = _prepare(
             data,
+            project_root=project,
             current_root=None,
             current=None,
             generation=1,
@@ -1113,14 +1508,16 @@ def install(
         "install",
         adapter=adapter,
         builder=build,
-        migration_plan=migration_plan,
+        migration_entries=migration_entries,
     )
     if result is None:
         raise LifecycleError("install did not produce an installed generation")
     return result
 
 
-def verify(project_root: Path | str, *, adapter: NativeDiscoveryAdapter) -> dict[str, Any]:
+def _verify_with_adapter(
+    project_root: Path | str, *, adapter: _NativeDiscoveryAdapter
+) -> dict[str, Any]:
     """Verify every owned byte, link, manifest relation, and discovery set."""
     project = _root_path(project_root, label="project root", may_create=True)
     with _project_lock(project):
@@ -1137,18 +1534,18 @@ def _version_key(value: str) -> tuple[tuple[int, int | str], ...]:
     return tuple((0, int(part)) if part.isdigit() else (1, part) for part in re.split(r"[._-]", value))
 
 
-def update(
+def _update_verified(
     project_root: Path | str,
-    data: LifecycleInput,
+    data: _LifecycleData,
     *,
-    adapter: NativeDiscoveryAdapter,
+    adapter: _NativeDiscoveryAdapter,
     allow_downgrade: bool = False,
-    migration_plan: ValidatedMigrationPlan | None = None,
+    migration_entries: Sequence[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     """Transactionally update or explicitly downgrade a local verified bundle."""
     _validate_input(data, adapter)
 
-    def build(project: Path, current: dict[str, Any] | None, current_data: LifecycleInput | None):
+    def build(project: Path, current: dict[str, Any] | None, current_data: _LifecycleData | None):
         if current is None or current_data is None:
             raise LifecycleError("toolkit is not installed")
         same_input = (
@@ -1158,6 +1555,8 @@ def update(
             and current_data.canonical_sources == data.canonical_sources
             and current_data.portfolio == data.portfolio
             and current_data.aliases == data.aliases
+            and current_data.trust == data.trust
+            and current_data.legacy_layouts == data.legacy_layouts
         )
         if same_input:
             return None, current, current_data.surface_contract
@@ -1170,11 +1569,13 @@ def update(
             raise LifecycleError(f"update invalidates activation records: {invalid}")
         stage, desired = _prepare(
             data,
+            project_root=project,
             current_root=project,
             current=current,
             generation=current["manifest_generation"] + 1,
             mode=current["mode"],
             records=records,
+            prior_owned_directories=_load_state(project, current)[0]["owned_directories"],
         )
         return stage, desired, data.surface_contract
 
@@ -1183,7 +1584,7 @@ def update(
         "update",
         adapter=adapter,
         builder=build,
-        migration_plan=migration_plan,
+        migration_entries=migration_entries,
     )
     if result is None:
         raise LifecycleError("update did not produce an installed generation")
@@ -1194,10 +1595,10 @@ def _transition(
     project_root: Path | str,
     operation: str,
     *,
-    adapter: NativeDiscoveryAdapter,
+    adapter: _NativeDiscoveryAdapter,
     transform: Any,
 ) -> dict[str, Any]:
-    def build(project: Path, current: dict[str, Any] | None, data: LifecycleInput | None):
+    def build(project: Path, current: dict[str, Any] | None, data: _LifecycleData | None):
         if current is None or data is None:
             raise LifecycleError("toolkit is not installed")
         mode, records = transform(current, data)
@@ -1206,11 +1607,13 @@ def _transition(
             return None, current, data.surface_contract
         stage, desired = _prepare(
             data,
+            project_root=project,
             current_root=project,
             current=current,
             generation=current["manifest_generation"] + 1,
             mode=mode,
             records=records,
+            prior_owned_directories=_load_state(project, current)[0]["owned_directories"],
         )
         return stage, desired, data.surface_contract
 
@@ -1220,11 +1623,11 @@ def _transition(
     return result
 
 
-def activate(
+def _activate_with_adapter(
     project_root: Path | str,
     public_name: str,
     *,
-    adapter: NativeDiscoveryAdapter,
+    adapter: _NativeDiscoveryAdapter,
     invocation_id: str | None = None,
 ) -> dict[str, Any]:
     """Persistently activate one canonical name or declared alias."""
@@ -1233,7 +1636,7 @@ def activate(
     if invocation_id is not None and _UUID4.fullmatch(invocation_id) is None:
         raise LifecycleError("temporary invocation id must be lowercase UUIDv4")
 
-    def transform(current: Mapping[str, Any], data: LifecycleInput):
+    def transform(current: Mapping[str, Any], data: _LifecycleData):
         if invocation_id is not None:
             surfaces = _surface_records(data.surface_contract).values()
             if any(row["activation"]["temporary_activation"] != "verified" for row in surfaces):
@@ -1257,17 +1660,17 @@ def activate(
     return _transition(project_root, "activate", adapter=adapter, transform=transform)
 
 
-def deactivate(
+def _deactivate_with_adapter(
     project_root: Path | str,
     public_name: str,
     *,
-    adapter: NativeDiscoveryAdapter,
+    adapter: _NativeDiscoveryAdapter,
 ) -> dict[str, Any]:
     """Remove exactly one persistent activation record, idempotently."""
     if _PUBLIC_NAME.fullmatch(public_name) is None:
         raise LifecycleError("deactivation public name is invalid")
 
-    def transform(current: Mapping[str, Any], data: LifecycleInput):
+    def transform(current: Mapping[str, Any], data: _LifecycleData):
         del data
         records = [
             deepcopy(row) for row in current["activation_records"] if row["public_name"] != public_name
@@ -1277,29 +1680,34 @@ def deactivate(
     return _transition(project_root, "deactivate", adapter=adapter, transform=transform)
 
 
-def set_mode(
+def _set_mode_with_adapter(
     project_root: Path | str,
     mode: str,
     *,
-    adapter: NativeDiscoveryAdapter,
+    adapter: _NativeDiscoveryAdapter,
 ) -> dict[str, Any]:
     """Switch the exact activation mode without changing activation records."""
     if mode not in {"router-only", "full-discovery"}:
         raise LifecycleError("mode must be router-only or full-discovery")
 
-    def transform(current: Mapping[str, Any], data: LifecycleInput):
+    def transform(current: Mapping[str, Any], data: _LifecycleData):
         del data
         return mode, deepcopy(current["activation_records"])
 
     return _transition(project_root, "set-mode", adapter=adapter, transform=transform)
 
 
-def rollback(project_root: Path | str, *, adapter: NativeDiscoveryAdapter) -> dict[str, Any]:
+def _rollback_with_adapter(
+    project_root: Path | str, *, adapter: _NativeDiscoveryAdapter
+) -> dict[str, Any]:
     """Restore the immediately previous validated generation transactionally."""
-    def build(project: Path, current: dict[str, Any] | None, data: LifecycleInput | None):
+    def build(project: Path, current: dict[str, Any] | None, data: _LifecycleData | None):
         if current is None or data is None:
             raise LifecycleError("toolkit is not installed")
         state, _ = _load_state(project, current)
+        if state["rollback_applied_from"] is not None:
+            _prove_discovery(project, current, data.surface_contract, adapter)
+            return None, current, data.surface_contract
         previous = state["previous"]
         if previous is None or previous["manifest_sha256"] != current["previous_manifest_sha256"]:
             raise LifecycleError("no immediately previous validated generation is retained")
@@ -1331,11 +1739,14 @@ def rollback(project_root: Path | str, *, adapter: NativeDiscoveryAdapter) -> di
             _, restored_data = _load_state(restored_root, restored_manifest)
             stage, desired = _prepare(
                 restored_data,
+                project_root=project,
                 current_root=project,
                 current=current,
                 generation=current["manifest_generation"] + 1,
                 mode=restored_manifest["mode"],
                 records=deepcopy(restored_manifest["activation_records"]),
+                rollback_applied_from=current["manifest_sha256"],
+                prior_owned_directories=state["owned_directories"],
             )
             return stage, desired, restored_data.surface_contract
         finally:
@@ -1347,7 +1758,9 @@ def rollback(project_root: Path | str, *, adapter: NativeDiscoveryAdapter) -> di
     return result
 
 
-def uninstall(project_root: Path | str, *, adapter: NativeDiscoveryAdapter) -> None:
+def _uninstall_with_adapter(
+    project_root: Path | str, *, adapter: _NativeDiscoveryAdapter
+) -> None:
     """Remove only byte-identical manifest-owned objects; preserve host data."""
     project = _root_path(project_root, label="project root", may_create=True)
     with _project_lock(project):
@@ -1361,7 +1774,7 @@ def uninstall(project_root: Path | str, *, adapter: NativeDiscoveryAdapter) -> N
 
 
 def _execute_unlocked_uninstall(
-    project: Path, current: Mapping[str, Any], adapter: NativeDiscoveryAdapter
+    project: Path, current: Mapping[str, Any], adapter: _NativeDiscoveryAdapter
 ) -> None:
     _commit(
         project,
@@ -1371,11 +1784,119 @@ def _execute_unlocked_uninstall(
         operation="uninstall",
         adapter=adapter,
         contract=None,
-        migration_plan=None,
+        migration_entries=(),
     )
-    for path in sorted(project.rglob("*"), reverse=True):
-        if path.is_dir():
-            try:
-                path.rmdir()
-            except OSError:
-                pass
+
+
+def _installed_adapter(project_root: Path | str) -> _NativeDiscoveryAdapter:
+    project = _root_path(project_root, label="project root", may_create=True)
+    with _project_lock(project):
+        _recover(project)
+        manifest, data = _current(project)
+        if manifest is None or data is None:
+            raise LifecycleError("toolkit is not installed")
+        return _native_adapter(data.surface_contract, manifest["surface_set"])
+
+
+def preview_migration(
+    project_root: Path | str, request: BundleInstallRequest
+) -> dict[str, Any]:
+    """Preview the exact known legacy row selected by verified bundle authority."""
+    project = _root_path(project_root, label="project root", may_create=False)
+    with _verified_bundle_data(request) as (_bundle, data):
+        with _project_lock(project):
+            _recover(project)
+            return _migration_preview(project, data)
+
+
+def install(
+    project_root: Path | str,
+    request: BundleInstallRequest,
+    *,
+    apply_migration: bool = False,
+) -> dict[str, Any]:
+    """Re-verify an externally rooted bundle and install it transactionally."""
+    project = _root_path(project_root, label="project root", may_create=True)
+    with _verified_bundle_data(request) as (_bundle, data):
+        adapter = _native_adapter(data.surface_contract, data.manifest["surface_set"])
+        preview = _migration_preview(project, data)
+        if preview["available"] and not apply_migration:
+            raise LifecycleError("known legacy layout requires explicit apply_migration")
+        if apply_migration and not preview["available"]:
+            raise LifecycleError("no exact known legacy layout is available to migrate")
+        return _install_verified(
+            project,
+            data,
+            adapter=adapter,
+            migration_entries=preview["entries"] if apply_migration else (),
+        )
+
+
+def verify(project_root: Path | str) -> dict[str, Any]:
+    return _verify_with_adapter(project_root, adapter=_installed_adapter(project_root))
+
+
+def update(
+    project_root: Path | str,
+    request: BundleInstallRequest,
+    *,
+    allow_downgrade: bool = False,
+    apply_migration: bool = False,
+) -> dict[str, Any]:
+    """Re-verify target applicability and binding hashes before replacement."""
+    project = _root_path(project_root, label="project root", may_create=True)
+    with _verified_bundle_data(request) as (_bundle, data):
+        adapter = _native_adapter(data.surface_contract, data.manifest["surface_set"])
+        preview = _migration_preview(project, data)
+        if preview["available"] and not apply_migration:
+            raise LifecycleError("known legacy layout requires explicit apply_migration")
+        if apply_migration and not preview["available"]:
+            raise LifecycleError("no exact known legacy layout is available to migrate")
+        return _update_verified(
+            project,
+            data,
+            adapter=adapter,
+            allow_downgrade=allow_downgrade,
+            migration_entries=preview["entries"] if apply_migration else (),
+        )
+
+
+def activate(
+    project_root: Path | str,
+    public_name: str,
+    *,
+    invocation_id: str | None = None,
+) -> dict[str, Any]:
+    return _activate_with_adapter(
+        project_root,
+        public_name,
+        adapter=_installed_adapter(project_root),
+        invocation_id=invocation_id,
+    )
+
+
+def deactivate(project_root: Path | str, public_name: str) -> dict[str, Any]:
+    return _deactivate_with_adapter(
+        project_root, public_name, adapter=_installed_adapter(project_root)
+    )
+
+
+def set_mode(project_root: Path | str, mode: str) -> dict[str, Any]:
+    return _set_mode_with_adapter(
+        project_root, mode, adapter=_installed_adapter(project_root)
+    )
+
+
+def rollback(project_root: Path | str) -> dict[str, Any]:
+    return _rollback_with_adapter(project_root, adapter=_installed_adapter(project_root))
+
+
+def uninstall(project_root: Path | str) -> None:
+    project = _root_path(project_root, label="project root", may_create=True)
+    with _project_lock(project):
+        _recover(project)
+        current, data = _current(project)
+        if current is None or data is None:
+            return
+        adapter = _native_adapter(data.surface_contract, current["surface_set"])
+        _execute_unlocked_uninstall(project, current, adapter)
