@@ -14,11 +14,17 @@ code_roots:
   - scripts/lint/no_core_framework_leakage.py
   - scripts/skill_meta.py
   - scripts/_lib/skill_activation.py
+  - scripts/_lib/distribution_contracts.py
+  - scripts/_lib/portfolio_snapshots.py
   - scripts/manifest.py
+  - .claude/skills/_common/distribution
   - tests/test_skill_catalog_layers.py
   - tests/test_binding_loader.py
   - tests/test_extract_enum_binding.py
   - tests/test_distribution_surfaces.py
+  - tests/test_distribution_contract_schemas.py
+  - tests/test_distribution_reference_tables.py
+  - tests/test_portfolio_snapshots.py
   - tests/test_wp3_move_gate.py
   - tests/test_core_framework_leakage.py
 ---
@@ -840,3 +846,28 @@ Runtime collection and validation are `_run`, `_command_record`,
 `collect_runtime_evidence`, `_validate_command_record`,
 `_expected_runtime_version`, `_probe_observed_version`, and
 `validate_runtime_evidence`. CLI entry points are `_load_json` and `main`.
+
+The phase-1 contract-schema test module also exceeds that threshold. Its
+validator/exemplar helpers are `_unique_object`, `_resolve_ref`, `_is_type`,
+`_validation_errors`, `_assert_valid`, `_file_row`, `_release_root`,
+`_bundle_index`, `_surface_contract`, `_installed_manifest`, `_shape_result`,
+`_skill_result`, `_dispatch_pack`, `_dispatch_result`, and `_walk_schemas`.
+Its structural/table cases are
+`test_im_14_phase_1_checks_in_exact_closed_contract_set`,
+`test_im_14_schemas_are_draft_2020_12_recursively_closed`,
+`test_im_14_schema_accepts_its_closed_v1_exemplar`,
+`test_im_14_schema_rejects_unknown_and_missing_top_level_fields`,
+`test_im_14_deep_negative_contract_attacks_fail_closed`,
+`test_surface_contract_accepts_fully_evidenced_verified_capabilities`,
+`test_surface_contract_rejects_inexact_identity_for_every_surface`,
+`test_verified_temporary_activation_rejects_null_proof_fields`,
+`test_verified_fresh_worker_rejects_null_proof_or_enforcement_fields`,
+`test_im_14_strict_loader_rejects_duplicate_json_keys`,
+`test_im_14_alias_and_legacy_tables_are_explicitly_empty_and_closed`, and
+`test_im_14_compatibility_table_pins_every_closed_bound`. Its semantic helper
+and cases are `_assert_semantically_invalid`,
+`test_im_14_router_semantics_enforce_confidence_thresholds_and_ordering`,
+`test_im_14_dispatch_pack_semantics_enforce_selection_and_digest_domains`,
+`test_im_14_dispatch_result_semantics_bind_pack_tuple_attempt_and_prior_result`,
+`test_im_14_semantic_validator_enforces_non_schema_byte_and_artifact_limits`,
+and `test_im_14_installed_manifest_semantics_enforce_surface_and_path_coherence`.
