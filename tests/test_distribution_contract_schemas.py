@@ -269,6 +269,68 @@ def _surface_contract() -> dict[str, Any]:
         "cursor": "project-rules-v1",
         "gemini": "0.45.0",
     }
+    identities = {
+        "claude-code": {
+            "public_identity": {
+                "which_shape": "/which-shape",
+                "which_skill": "/which-skill",
+                "alias_template": "/{public-name}",
+            },
+            "generated_identity": {
+                "which_shape": ".claude/skills/which-shape/SKILL.md",
+                "which_skill": ".claude/skills/which-skill/SKILL.md",
+                "alias_template": ".claude/skills/{public-name}/SKILL.md",
+            },
+        },
+        "codex": {
+            "public_identity": {
+                "which_shape": "$engineering-skills:which-shape",
+                "which_skill": "$engineering-skills:which-skill",
+                "alias_template": "$engineering-skills:{public-name}",
+            },
+            "generated_identity": {
+                "which_shape": "skills/which-shape/SKILL.md",
+                "which_skill": "skills/which-skill/SKILL.md",
+                "alias_template": "skills/{public-name}/SKILL.md",
+            },
+        },
+        "augment": {
+            "public_identity": {
+                "which_shape": "use skill which-shape",
+                "which_skill": "use skill which-skill",
+                "alias_template": "use skill {public-name}",
+            },
+            "generated_identity": {
+                "which_shape": ".augment/rules/imported/which-shape/SKILL.md",
+                "which_skill": ".augment/rules/imported/which-skill/SKILL.md",
+                "alias_template": ".augment/rules/imported/{public-name}/SKILL.md",
+            },
+        },
+        "cursor": {
+            "public_identity": {
+                "which_shape": "use skill which-shape",
+                "which_skill": "use skill which-skill",
+                "alias_template": "use skill {public-name}",
+            },
+            "generated_identity": {
+                "which_shape": ".cursor/rules/which-shape/SKILL.mdc",
+                "which_skill": ".cursor/rules/which-skill/SKILL.mdc",
+                "alias_template": ".cursor/rules/{public-name}/SKILL.mdc",
+            },
+        },
+        "gemini": {
+            "public_identity": {
+                "which_shape": "use skill which-shape",
+                "which_skill": "use skill which-skill",
+                "alias_template": "use skill {public-name}",
+            },
+            "generated_identity": {
+                "which_shape": ".gemini/skills/which-shape/SKILL.md",
+                "which_skill": ".gemini/skills/which-skill/SKILL.md",
+                "alias_template": ".gemini/skills/{public-name}/SKILL.md",
+            },
+        },
+    }
     return {
         "schema_version": 1,
         "contract_version": 1,
@@ -277,16 +339,7 @@ def _surface_contract() -> dict[str, Any]:
                 "surface_id": surface,
                 "runtime_version": {"lower": version, "upper": version},
                 "projection_format": f"{surface}-projection-v1",
-                "public_identity": {
-                    "which_shape": "which-shape",
-                    "which_skill": "which-skill",
-                    "alias_template": "{public-name}",
-                },
-                "generated_identity": {
-                    "which_shape": "skills/which-shape/SKILL.md",
-                    "which_skill": "skills/which-skill/SKILL.md",
-                    "alias_template": "skills/{public-name}/SKILL.md",
-                },
+                **identities[surface],
                 "discovery": {
                     "command": [surface, "list"],
                     "parser_id": f"{surface}-list-v1",
@@ -604,6 +657,116 @@ def test_im_14_deep_negative_contract_attacks_fail_closed() -> None:
         assert _validation_errors(attacked, schema, schema), name
 
 
+def test_surface_contract_accepts_fully_evidenced_verified_capabilities() -> None:
+    contract = _surface_contract()
+    surface = contract["surfaces"][0]
+    surface["activation"] = {
+        "operation": "claude-code-activation-v1",
+        "temporary_activation": "verified",
+        "terminal_wrapper": "claude-code-terminal-wrapper-v1",
+        "startup_cleanup": "claude-code-startup-cleanup-v1",
+    }
+    surface["worker"] = {
+        "fresh_worker": "verified",
+        "launcher": "claude-code-worker-v1",
+        "version_range": {"lower": "2.1.211", "upper": "2.1.211"},
+        "selected_procedure_injection": "selected-procedure-pack-v1",
+        "cancellation": "claude-code-cancellation-v1",
+        "result": "dispatch-result-v1",
+        "zero_conversation_turns_proof": "fresh-worker-probe-v1",
+        "budget_enforcement": "dispatch-budget-wrapper-v1",
+    }
+    schema = _load_json(
+        CONTRACT_ROOT / "surface-activation-contract-v1.schema.json"
+    )
+
+    _assert_valid(contract, schema)
+
+
+@pytest.mark.parametrize(("identity", "field"), (
+    ("public_identity", "which_shape"),
+    ("public_identity", "which_skill"),
+    ("public_identity", "alias_template"),
+    ("generated_identity", "which_shape"),
+    ("generated_identity", "which_skill"),
+    ("generated_identity", "alias_template"),
+))
+def test_surface_contract_rejects_inexact_identity_for_every_surface(
+    identity: str, field: str
+) -> None:
+    schema = _load_json(
+        CONTRACT_ROOT / "surface-activation-contract-v1.schema.json"
+    )
+
+    for surface_index in range(5):
+        contract = _surface_contract()
+        contract["surfaces"][surface_index][identity][field] = "plausible-but-wrong"
+
+        assert _validation_errors(contract, schema, schema), (
+            contract["surfaces"][surface_index]["surface_id"],
+            identity,
+            field,
+        )
+
+
+@pytest.mark.parametrize("missing_proof", ("terminal_wrapper", "startup_cleanup"))
+def test_verified_temporary_activation_rejects_null_proof_fields(
+    missing_proof: str,
+) -> None:
+    contract = _surface_contract()
+    activation = contract["surfaces"][0]["activation"]
+    activation.update(
+        {
+            "temporary_activation": "verified",
+            "terminal_wrapper": "terminal-wrapper-v1",
+            "startup_cleanup": "startup-cleanup-v1",
+        }
+    )
+    activation[missing_proof] = None
+    schema = _load_json(
+        CONTRACT_ROOT / "surface-activation-contract-v1.schema.json"
+    )
+
+    assert _validation_errors(contract, schema, schema)
+
+
+@pytest.mark.parametrize(
+    "missing_proof",
+    (
+        "launcher",
+        "version_range",
+        "selected_procedure_injection",
+        "cancellation",
+        "result",
+        "zero_conversation_turns_proof",
+        "budget_enforcement",
+    ),
+)
+def test_verified_fresh_worker_rejects_null_proof_or_enforcement_fields(
+    missing_proof: str,
+) -> None:
+    contract = _surface_contract()
+    worker = contract["surfaces"][0]["worker"]
+    worker.update(
+        {
+            "fresh_worker": "verified",
+            "launcher": "worker-launcher-v1",
+            "version_range": {"lower": "2.1.211", "upper": "2.1.211"},
+            "selected_procedure_injection": "selected-procedure-pack-v1",
+            "cancellation": "worker-cancellation-v1",
+            "result": "dispatch-result-v1",
+            "zero_conversation_turns_proof": "fresh-worker-probe-v1",
+            "budget_enforcement": "dispatch-budget-wrapper-v1",
+        }
+    )
+    worker[missing_proof] = None
+    schema = _load_json(
+        CONTRACT_ROOT / "surface-activation-contract-v1.schema.json"
+    )
+
+    assert _validation_errors(contract, schema, schema)
+
+
 def test_im_14_strict_loader_rejects_duplicate_json_keys() -> None:
     with pytest.raises(StrictJsonError, match="duplicate key"):
         json.loads('{"schema_version":1,"schema_version":1}', object_pairs_hook=_unique_object)
@@ -631,7 +794,7 @@ def test_im_14_compatibility_table_pins_every_closed_bound() -> None:
         "catalog_inventory_schema": 1,
         "capability_registry_schema": 1,
         "capability_registry_contract": 1,
-        "host_profile_schema": 2,
+        "host_profile_schema": 1,
     }
     surface_bounds = {
         "claude-code": "2.1.211",

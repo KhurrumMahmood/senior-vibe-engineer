@@ -73,7 +73,24 @@
         "temporary_activation": {"enum": ["verified", "unsupported"]},
         "terminal_wrapper": {"$ref": "#/$defs/nullable_short_string"},
         "startup_cleanup": {"$ref": "#/$defs/nullable_short_string"}
-      }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"temporary_activation": {"const": "verified"}}, "required": ["temporary_activation"]},
+          "then": {
+            "properties": {
+              "terminal_wrapper": {"$ref": "#/$defs/short_string"},
+              "startup_cleanup": {"$ref": "#/$defs/short_string"}
+            }
+          },
+          "else": {
+            "properties": {
+              "terminal_wrapper": {"type": "null"},
+              "startup_cleanup": {"type": "null"}
+            }
+          }
+        }
+      ]
     },
     "worker": {
       "type": "object",
@@ -102,7 +119,34 @@
         "result": {"$ref": "#/$defs/nullable_short_string"},
         "zero_conversation_turns_proof": {"$ref": "#/$defs/nullable_short_string"},
         "budget_enforcement": {"$ref": "#/$defs/nullable_short_string"}
-      }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"fresh_worker": {"const": "verified"}}, "required": ["fresh_worker"]},
+          "then": {
+            "properties": {
+              "launcher": {"$ref": "#/$defs/short_string"},
+              "version_range": {"$ref": "#/$defs/version_bound"},
+              "selected_procedure_injection": {"$ref": "#/$defs/short_string"},
+              "cancellation": {"$ref": "#/$defs/short_string"},
+              "result": {"$ref": "#/$defs/short_string"},
+              "zero_conversation_turns_proof": {"$ref": "#/$defs/short_string"},
+              "budget_enforcement": {"$ref": "#/$defs/short_string"}
+            }
+          },
+          "else": {
+            "properties": {
+              "launcher": {"type": "null"},
+              "version_range": {"type": "null"},
+              "selected_procedure_injection": {"type": "null"},
+              "cancellation": {"type": "null"},
+              "result": {"type": "null"},
+              "zero_conversation_turns_proof": {"type": "null"},
+              "budget_enforcement": {"type": "null"}
+            }
+          }
+        }
+      ]
     },
     "surface": {
       "type": "object",
@@ -126,7 +170,54 @@
         "discovery": {"$ref": "#/$defs/discovery"},
         "activation": {"$ref": "#/$defs/activation"},
         "worker": {"$ref": "#/$defs/worker"}
-      }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"surface_id": {"const": "claude-code"}}, "required": ["surface_id"]},
+          "then": {
+            "properties": {
+              "public_identity": {"const": {"which_shape": "/which-shape", "which_skill": "/which-skill", "alias_template": "/{public-name}"}},
+              "generated_identity": {"const": {"which_shape": ".claude/skills/which-shape/SKILL.md", "which_skill": ".claude/skills/which-skill/SKILL.md", "alias_template": ".claude/skills/{public-name}/SKILL.md"}}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"surface_id": {"const": "codex"}}, "required": ["surface_id"]},
+          "then": {
+            "properties": {
+              "public_identity": {"const": {"which_shape": "$engineering-skills:which-shape", "which_skill": "$engineering-skills:which-skill", "alias_template": "$engineering-skills:{public-name}"}},
+              "generated_identity": {"const": {"which_shape": "skills/which-shape/SKILL.md", "which_skill": "skills/which-skill/SKILL.md", "alias_template": "skills/{public-name}/SKILL.md"}}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"surface_id": {"const": "augment"}}, "required": ["surface_id"]},
+          "then": {
+            "properties": {
+              "public_identity": {"const": {"which_shape": "use skill which-shape", "which_skill": "use skill which-skill", "alias_template": "use skill {public-name}"}},
+              "generated_identity": {"const": {"which_shape": ".augment/rules/imported/which-shape/SKILL.md", "which_skill": ".augment/rules/imported/which-skill/SKILL.md", "alias_template": ".augment/rules/imported/{public-name}/SKILL.md"}}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"surface_id": {"const": "cursor"}}, "required": ["surface_id"]},
+          "then": {
+            "properties": {
+              "public_identity": {"const": {"which_shape": "use skill which-shape", "which_skill": "use skill which-skill", "alias_template": "use skill {public-name}"}},
+              "generated_identity": {"const": {"which_shape": ".cursor/rules/which-shape/SKILL.mdc", "which_skill": ".cursor/rules/which-skill/SKILL.mdc", "alias_template": ".cursor/rules/{public-name}/SKILL.mdc"}}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"surface_id": {"const": "gemini"}}, "required": ["surface_id"]},
+          "then": {
+            "properties": {
+              "public_identity": {"const": {"which_shape": "use skill which-shape", "which_skill": "use skill which-skill", "alias_template": "use skill {public-name}"}},
+              "generated_identity": {"const": {"which_shape": ".gemini/skills/which-shape/SKILL.md", "which_skill": ".gemini/skills/which-skill/SKILL.md", "alias_template": ".gemini/skills/{public-name}/SKILL.md"}}
+            }
+          }
+        }
+      ]
     }
   }
 }
