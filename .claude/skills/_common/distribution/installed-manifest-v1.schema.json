@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:engineering-skills:schema:installed-manifest:v1",
+  "title": "InstalledManifestV1",
+  "description": "Self-hashed mutable installation state. manifest_sha256 is computed over RFC 8785 bytes with only manifest_sha256 omitted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_sha256",
+    "manifest_generation",
+    "previous_manifest_sha256",
+    "bundle_version",
+    "release_root_sha256",
+    "bundle_index_sha256",
+    "surface_activation_contract_sha256",
+    "catalog_hash",
+    "mode",
+    "activation_records",
+    "surface_set",
+    "owned_paths",
+    "generated_files",
+    "bootstrap_trees",
+    "recovery",
+    "cleanup",
+    "delegation_policy"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "manifest_generation": {"type": "integer", "minimum": 1},
+    "previous_manifest_sha256": {"$ref": "#/$defs/nullable_sha256"},
+    "bundle_version": {"$ref": "#/$defs/version"},
+    "release_root_sha256": {"$ref": "#/$defs/sha256"},
+    "bundle_index_sha256": {"$ref": "#/$defs/sha256"},
+    "surface_activation_contract_sha256": {"$ref": "#/$defs/sha256"},
+    "catalog_hash": {"$ref": "#/$defs/sha256"},
+    "mode": {"enum": ["router-only", "full-discovery"]},
+    "activation_records": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {"$ref": "#/$defs/activation_record"}
+    },
+    "surface_set": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/surface_id"}
+    },
+    "owned_paths": {"$ref": "#/$defs/owned_paths"},
+    "generated_files": {
+      "type": "array",
+      "maxItems": 65536,
+      "items": {"$ref": "#/$defs/generated_file"}
+    },
+    "bootstrap_trees": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": {"$ref": "#/$defs/bootstrap_tree"}
+    },
+    "recovery": {"$ref": "#/$defs/recovery"},
+    "cleanup": {"$ref": "#/$defs/cleanup"},
+    "delegation_policy": {"$ref": "#/$defs/delegation_policy"}
+  },
+  "$defs": {
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[0-9A-Za-z][0-9A-Za-z._-]{0,63}$"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+      "x-maxUtf8Bytes": 64
+    },
+    "surface_id": {"enum": ["claude-code", "codex", "augment", "cursor", "gemini"]},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nullable_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*\\\\)[^\\u0000]+$",
+      "x-maxUtf8Bytes": 1024,
+      "x-requireNfc": true
+    },
+    "activation_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["public_name", "canonical_target"],
+      "properties": {
+        "public_name": {"$ref": "#/$defs/id"},
+        "canonical_target": {"$ref": "#/$defs/id"}
+      }
+    },
+    "owned_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size", "sha256"],
+      "properties": {
+        "path": {"$ref": "#/$defs/relative_path"},
+        "size": {"type": "integer", "minimum": 0},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "owned_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "link_sha256", "target", "target_sha256"],
+      "properties": {
+        "path": {"$ref": "#/$defs/relative_path"},
+        "link_sha256": {"$ref": "#/$defs/sha256"},
+        "target": {"$ref": "#/$defs/relative_path"},
+        "target_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "file_list": {
+      "type": "array",
+      "maxItems": 65536,
+      "items": {"$ref": "#/$defs/owned_file"}
+    },
+    "owned_paths": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "catalog_store",
+        "bootstrap_projections",
+        "activation_projections",
+        "full_discovery_projections",
+        "activation_state",
+        "recovery_journal",
+        "generated_links"
+      ],
+      "properties": {
+        "catalog_store": {"$ref": "#/$defs/file_list"},
+        "bootstrap_projections": {"$ref": "#/$defs/file_list"},
+        "activation_projections": {"$ref": "#/$defs/file_list"},
+        "full_discovery_projections": {"$ref": "#/$defs/file_list"},
+        "activation_state": {"$ref": "#/$defs/file_list"},
+        "recovery_journal": {"$ref": "#/$defs/file_list"},
+        "generated_links": {
+          "type": "array",
+          "maxItems": 65536,
+          "items": {"$ref": "#/$defs/owned_link"}
+        }
+      }
+    },
+    "generated_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ownership_class", "surface_id", "path", "size", "sha256"],
+      "properties": {
+        "ownership_class": {"enum": ["bootstrap", "activation", "full-discovery"]},
+        "surface_id": {"$ref": "#/$defs/surface_id"},
+        "path": {"$ref": "#/$defs/relative_path"},
+        "size": {"type": "integer", "minimum": 0},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "bootstrap_tree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surface_id", "file_count", "tree_sha256"],
+      "properties": {
+        "surface_id": {"$ref": "#/$defs/surface_id"},
+        "file_count": {"type": "integer", "minimum": 1},
+        "tree_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "journal_path", "journal_sha256", "temporary_records"],
+      "properties": {
+        "state": {"enum": ["clean", "staged", "committing", "restoring", "blocked"]},
+        "journal_path": {"$ref": "#/$defs/relative_path"},
+        "journal_sha256": {"$ref": "#/$defs/sha256"},
+        "temporary_records": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {"$ref": "#/$defs/temporary_record"}
+        }
+      }
+    },
+    "temporary_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["invocation_id", "surface_id", "public_name", "canonical_target", "state", "cleanup_status"],
+      "properties": {
+        "invocation_id": {"$ref": "#/$defs/uuid_v4"},
+        "surface_id": {"$ref": "#/$defs/surface_id"},
+        "public_name": {"$ref": "#/$defs/id"},
+        "canonical_target": {"$ref": "#/$defs/id"},
+        "state": {"enum": ["created", "exposed", "running", "terminal", "cleaned"]},
+        "cleanup_status": {"enum": ["pending", "succeeded", "failed", "crash-cleaned"]}
+      }
+    },
+    "cleanup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "last_cleaned_generation", "failure_code"],
+      "properties": {
+        "state": {"enum": ["clean", "pending", "failed"]},
+        "last_cleaned_generation": {"type": "integer", "minimum": 0},
+        "failure_code": {"type": ["string", "null"], "minLength": 1, "maxLength": 128, "pattern": "^[a-z0-9][a-z0-9_-]{0,127}$", "x-maxUtf8Bytes": 128}
+      }
+    },
+    "delegation_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dispatcher_policy_version",
+        "project_lane_limit",
+        "delegation_depth",
+        "max_workflow_packs",
+        "max_dispatches_per_pack",
+        "deadline_seconds",
+        "total_token_budget",
+        "output_token_budget",
+        "fallback_reasons"
+      ],
+      "properties": {
+        "dispatcher_policy_version": {"const": 1},
+        "project_lane_limit": {"const": 1},
+        "delegation_depth": {"const": 1},
+        "max_workflow_packs": {"const": 16},
+        "max_dispatches_per_pack": {"const": 2},
+        "deadline_seconds": {"const": 1200},
+        "total_token_budget": {"const": 32768},
+        "output_token_budget": {"const": 8192},
+        "fallback_reasons": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "conversation_state_required",
+              "user_interaction_required",
+              "nondelegable_authority_required",
+              "surface_worker_unsupported",
+              "user_confirmed_after_worker_failure"
+            ]
+          }
+        }
+      }
+    },
+    "uuid_v4": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    }
+  }
+}

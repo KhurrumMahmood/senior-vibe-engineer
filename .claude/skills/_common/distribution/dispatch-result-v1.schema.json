@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:engineering-skills:schema:dispatch-result:v1",
+  "title": "DispatchResultV1",
+  "description": "Bounded selected-only dispatch result. The canonical RFC 8785 encoding is limited to 65536 bytes.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-maxCanonicalBytes": 65536,
+  "required": [
+    "schema_version",
+    "workflow_id",
+    "dispatch_id",
+    "prior_dispatch_id",
+    "workflow_pack_ordinal",
+    "attempt_ordinal",
+    "execution_lane",
+    "continuation_reason",
+    "fallback_reason",
+    "status",
+    "summary",
+    "error_code",
+    "error_message",
+    "failure_kind",
+    "side_effect_disposition",
+    "side_effect_ledger_sha256",
+    "elapsed_milliseconds",
+    "input_tokens",
+    "output_tokens",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "workflow_id": {"$ref": "#/$defs/uuid_v4"},
+    "dispatch_id": {"$ref": "#/$defs/uuid_v4"},
+    "prior_dispatch_id": {"$ref": "#/$defs/nullable_uuid_v4"},
+    "workflow_pack_ordinal": {"type": "integer", "minimum": 1, "maximum": 16},
+    "attempt_ordinal": {"enum": [1, 2]},
+    "execution_lane": {"enum": ["fresh-worker", "selected-only-parent"]},
+    "continuation_reason": {
+      "enum": [
+        "initial_selection",
+        "confirmed_sequence_step",
+        "user_confirmed_worker_retry",
+        "user_confirmed_parent_continuation"
+      ]
+    },
+    "fallback_reason": {
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "conversation_state_required",
+        "user_interaction_required",
+        "nondelegable_authority_required",
+        "surface_worker_unsupported",
+        "user_confirmed_after_worker_failure"
+      ]
+    },
+    "status": {"enum": ["success", "needs_input", "needs_authority", "failed", "cancelled"]},
+    "summary": {"type": "string", "maxLength": 8192, "x-maxUtf8Bytes": 8192},
+    "error_code": {"type": ["string", "null"], "minLength": 1, "maxLength": 128, "pattern": "^[a-z0-9][a-z0-9_-]{0,127}$", "x-maxUtf8Bytes": 128},
+    "error_message": {"type": ["string", "null"], "minLength": 1, "maxLength": 2048, "x-maxUtf8Bytes": 2048},
+    "failure_kind": {
+      "type": ["string", "null"],
+      "enum": [null, "spawn_failed", "capacity_exhausted", "timeout", "budget_exhausted", "worker_failed", "cancelled"]
+    },
+    "side_effect_disposition": {"enum": ["none", "rolled_back", "committed_known", "unknown"]},
+    "side_effect_ledger_sha256": {"$ref": "#/$defs/nullable_sha256"},
+    "elapsed_milliseconds": {"type": "integer", "minimum": 0, "maximum": 1200000},
+    "input_tokens": {"type": "integer", "minimum": 0, "maximum": 32768},
+    "output_tokens": {"type": "integer", "minimum": 0, "maximum": 8192},
+    "artifacts": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {"$ref": "#/$defs/artifact"},
+      "x-maxAggregateArtifactBytes": 67108864
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "failed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "failure_kind": {"enum": ["spawn_failed", "capacity_exhausted", "timeout", "budget_exhausted", "worker_failed"]},
+          "error_code": {"type": "string"},
+          "error_message": {"type": "string"}
+        },
+        "required": ["failure_kind", "error_code", "error_message"]
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "cancelled"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "failure_kind": {"const": "cancelled"},
+          "error_code": {"type": "string"},
+          "error_message": {"type": "string"}
+        },
+        "required": ["failure_kind", "error_code", "error_message"]
+      }
+    },
+    {
+      "if": {"properties": {"status": {"enum": ["success", "needs_input", "needs_authority"]}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "failure_kind": {"type": "null"},
+          "error_code": {"type": "null"},
+          "error_message": {"type": "null"}
+        },
+        "required": ["failure_kind", "error_code", "error_message"]
+      }
+    },
+    {
+      "if": {"properties": {"side_effect_disposition": {"const": "committed_known"}}, "required": ["side_effect_disposition"]},
+      "then": {"properties": {"side_effect_ledger_sha256": {"type": "string"}}, "required": ["side_effect_ledger_sha256"]},
+      "else": {"properties": {"side_effect_ledger_sha256": {"type": "null"}}, "required": ["side_effect_ledger_sha256"]}
+    }
+  ],
+  "$defs": {
+    "uuid_v4": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "nullable_uuid_v4": {"type": ["string", "null"], "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nullable_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "safe_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^(?!\\.{1,2}$)[^/\\\\\\u0000]+$",
+      "x-maxUtf8Bytes": 255,
+      "x-requireNfc": true
+    },
+    "media_type": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$",
+      "x-maxUtf8Bytes": 128
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uri", "name", "media_type", "size", "sha256"],
+      "properties": {
+        "uri": {"type": "string", "pattern": "^artifact://sha256/[0-9a-f]{64}$"},
+        "name": {"$ref": "#/$defs/safe_name"},
+        "media_type": {"$ref": "#/$defs/media_type"},
+        "size": {"type": "integer", "minimum": 0, "maximum": 16777216},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

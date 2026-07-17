@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:engineering-skills:schema:dispatch-pack:v1",
+  "title": "DispatchPackV1",
+  "description": "Selected-only dispatch input. The canonical RFC 8785 encoding is limited to 131072 bytes.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-maxCanonicalBytes": 131072,
+  "required": [
+    "schema_version",
+    "workflow_id",
+    "dispatch_id",
+    "prior_dispatch_id",
+    "invocation_id",
+    "clarification_id",
+    "workflow_pack_ordinal",
+    "attempt_ordinal",
+    "execution_lane",
+    "continuation_reason",
+    "fallback_reason",
+    "selection",
+    "roots",
+    "task",
+    "procedure",
+    "dependencies",
+    "prior_result_sha256",
+    "continuation_plan_sha256",
+    "side_effect_ledger_sha256",
+    "budget"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "workflow_id": {"$ref": "#/$defs/uuid_v4"},
+    "dispatch_id": {"$ref": "#/$defs/uuid_v4"},
+    "prior_dispatch_id": {"$ref": "#/$defs/nullable_uuid_v4"},
+    "invocation_id": {"$ref": "#/$defs/nullable_uuid_v4"},
+    "clarification_id": {"$ref": "#/$defs/nullable_uuid_v4"},
+    "workflow_pack_ordinal": {"type": "integer", "minimum": 1, "maximum": 16},
+    "attempt_ordinal": {"enum": [1, 2]},
+    "execution_lane": {"enum": ["fresh-worker", "selected-only-parent"]},
+    "continuation_reason": {
+      "enum": [
+        "initial_selection",
+        "confirmed_sequence_step",
+        "user_confirmed_worker_retry",
+        "user_confirmed_parent_continuation"
+      ]
+    },
+    "fallback_reason": {
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "conversation_state_required",
+        "user_interaction_required",
+        "nondelegable_authority_required",
+        "surface_worker_unsupported",
+        "user_confirmed_after_worker_failure"
+      ]
+    },
+    "selection": {"$ref": "#/$defs/selection"},
+    "roots": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {"$ref": "#/$defs/root"}
+    },
+    "task": {"$ref": "#/$defs/task"},
+    "procedure": {"$ref": "#/$defs/procedure"},
+    "dependencies": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {"$ref": "#/$defs/dependency"}
+    },
+    "prior_result_sha256": {"$ref": "#/$defs/nullable_sha256"},
+    "continuation_plan_sha256": {"$ref": "#/$defs/nullable_sha256"},
+    "side_effect_ledger_sha256": {"$ref": "#/$defs/nullable_sha256"},
+    "budget": {"$ref": "#/$defs/budget"}
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "attempt_ordinal": {"const": 1},
+        "continuation_reason": {"enum": ["initial_selection", "confirmed_sequence_step"]},
+        "prior_dispatch_id": {"type": "null"},
+        "prior_result_sha256": {"type": "null"},
+        "continuation_plan_sha256": {"type": "null"},
+        "side_effect_ledger_sha256": {"type": "null"}
+      },
+      "required": ["attempt_ordinal", "continuation_reason", "prior_dispatch_id", "prior_result_sha256", "continuation_plan_sha256", "side_effect_ledger_sha256"]
+    },
+    {
+      "properties": {
+        "attempt_ordinal": {"const": 2},
+        "execution_lane": {"const": "fresh-worker"},
+        "continuation_reason": {"const": "user_confirmed_worker_retry"},
+        "fallback_reason": {"type": "null"},
+        "prior_dispatch_id": {"type": "string"},
+        "prior_result_sha256": {"type": "string"},
+        "continuation_plan_sha256": {"type": "string"},
+        "side_effect_ledger_sha256": {"type": "null"}
+      },
+      "required": ["attempt_ordinal", "execution_lane", "continuation_reason", "fallback_reason", "prior_dispatch_id", "prior_result_sha256", "continuation_plan_sha256", "side_effect_ledger_sha256"]
+    },
+    {
+      "properties": {
+        "attempt_ordinal": {"const": 2},
+        "execution_lane": {"const": "selected-only-parent"},
+        "continuation_reason": {"const": "user_confirmed_parent_continuation"},
+        "fallback_reason": {"const": "user_confirmed_after_worker_failure"},
+        "prior_dispatch_id": {"type": "string"},
+        "prior_result_sha256": {"type": "string"},
+        "continuation_plan_sha256": {"type": "string"}
+      },
+      "required": ["attempt_ordinal", "execution_lane", "continuation_reason", "fallback_reason", "prior_dispatch_id", "prior_result_sha256", "continuation_plan_sha256"]
+    }
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {"attempt_ordinal": {"const": 1}, "execution_lane": {"const": "fresh-worker"}},
+        "required": ["attempt_ordinal", "execution_lane"]
+      },
+      "then": {"properties": {"fallback_reason": {"type": "null"}}, "required": ["fallback_reason"]}
+    },
+    {
+      "if": {
+        "properties": {"attempt_ordinal": {"const": 1}, "execution_lane": {"const": "selected-only-parent"}},
+        "required": ["attempt_ordinal", "execution_lane"]
+      },
+      "then": {
+        "properties": {
+          "fallback_reason": {
+            "enum": [
+              "conversation_state_required",
+              "user_interaction_required",
+              "nondelegable_authority_required",
+              "surface_worker_unsupported"
+            ]
+          }
+        },
+        "required": ["fallback_reason"]
+      }
+    }
+  ],
+  "$defs": {
+    "uuid_v4": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "nullable_uuid_v4": {"type": ["string", "null"], "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+      "x-maxUtf8Bytes": 64
+    },
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nullable_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "absolute_path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^/(?!.*(?:/\\.{1,2})(?:/|$))(?!.*\\\\)[^\\u0000]+$",
+      "x-maxUtf8Bytes": 4096,
+      "x-requireNfc": true
+    },
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*\\\\)[^\\u0000]+$",
+      "x-maxUtf8Bytes": 1024,
+      "x-requireNfc": true
+    },
+    "media_type": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$",
+      "x-maxUtf8Bytes": 128
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonical_name", "public_name", "selection_basis", "source_sha256", "rendered_sha256"],
+      "properties": {
+        "canonical_name": {"$ref": "#/$defs/id"},
+        "public_name": {"$ref": "#/$defs/id"},
+        "selection_basis": {"enum": ["user_confirmed", "user_explicit", "unique_winner"]},
+        "source_sha256": {"$ref": "#/$defs/sha256"},
+        "rendered_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["binding_id", "body", "raw_sha256", "rendered_sha256"],
+      "properties": {
+        "binding_id": {"$ref": "#/$defs/id"},
+        "body": {"type": "string", "maxLength": 32768, "x-maxUtf8Bytes": 32768},
+        "raw_sha256": {"$ref": "#/$defs/sha256"},
+        "rendered_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "root": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["project_root", "profile_sha256", "bindings"],
+      "properties": {
+        "project_root": {"$ref": "#/$defs/absolute_path"},
+        "profile_sha256": {"$ref": "#/$defs/sha256"},
+        "bindings": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {"$ref": "#/$defs/binding"}
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["arguments", "sha256"],
+      "properties": {
+        "arguments": {"type": "string", "maxLength": 65536, "x-maxUtf8Bytes": 65536},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "procedure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["body", "raw_sha256", "rendered_sha256"],
+      "properties": {
+        "body": {"type": "string", "minLength": 1, "maxLength": 65536, "x-maxUtf8Bytes": 65536},
+        "raw_sha256": {"$ref": "#/$defs/sha256"},
+        "rendered_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size", "sha256", "media_type"],
+      "properties": {
+        "path": {"$ref": "#/$defs/relative_path"},
+        "size": {"type": "integer", "minimum": 0},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "media_type": {"$ref": "#/$defs/media_type"}
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deadline_started_monotonic_ns", "remaining_milliseconds", "remaining_total_tokens", "remaining_output_tokens"],
+      "properties": {
+        "deadline_started_monotonic_ns": {"type": "integer", "minimum": 0},
+        "remaining_milliseconds": {"type": "integer", "minimum": 0, "maximum": 1200000},
+        "remaining_total_tokens": {"type": "integer", "minimum": 0, "maximum": 32768},
+        "remaining_output_tokens": {"type": "integer", "minimum": 0, "maximum": 8192}
+      }
+    }
+  }
+}
