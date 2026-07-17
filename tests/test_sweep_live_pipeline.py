@@ -32,6 +32,7 @@ from sweep.schemas import packet_budget_ceiling, trusted_parser_run_context
 ROOT = Path(__file__).resolve().parents[1]
 HOSTS = ROOT / "tests/fixtures/sweep/hosts"
 PROFILES = ROOT / "tests/fixtures/sweep/profiles"
+MIXED_OUTCOMES = ROOT / "tests/fixtures/sweep/judgments/mixed-before-outcomes.json"
 EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 LIVE_ORACLES = {
     "python": {
@@ -122,6 +123,29 @@ def _overlay_tree(source: Path, destination: Path) -> None:
         os.utime(target, ns=(stamp + index + 1, stamp + index + 1))
 
 
+def _public_scan_argv(
+    root: Path,
+    profile: Path,
+    output: Path,
+    tools: dict[str, Path],
+) -> list[str]:
+    argv = [
+        sys.executable,
+        "-m",
+        "scripts.sweep",
+        "scan",
+        "--root",
+        str(root),
+        "--profile",
+        str(profile),
+        "--out",
+        str(output),
+    ]
+    for provider, executable in sorted(tools.items()):
+        argv.extend(("--tool", f"{provider}={executable}"))
+    return argv
+
+
 @pytest.mark.sweep_live
 @pytest.mark.parametrize(
     ("host", "profile_name"),
@@ -162,14 +186,23 @@ def test_im_15_live_host_runs_scan_judgment_packet_harness_diff_and_ratchet(
     tools = _tools(profile_name, work)
     parser_context = trusted_parser_run_context(work)
 
-    before = scan_profile(
-        root=work,
-        profile=profile,
-        source=_source(revision),
-        executables=tools,
+    before_manifest_path = tmp_path / f"{host}-before-manifest.json"
+    before_scan = run_scan_command(
+        shlex.join(
+            _public_scan_argv(
+                work,
+                PROFILES / profile_name,
+                before_manifest_path,
+                tools,
+            )
+        ),
+        work,
+        command_cwd=ROOT,
     )
+    before = before_scan.manifest
     assert before["status"] == "complete"
     assert sorted(row["id"] for row in before["findings"]) == oracle["before"]
+    assert json.loads(before_manifest_path.read_text(encoding="utf-8")) == before
 
     outcomes = [
         {
@@ -237,20 +270,12 @@ def test_im_15_live_host_runs_scan_judgment_packet_harness_diff_and_ratchet(
         parser_run_context=parser_context,
     )
     after_manifest_path = tmp_path / f"{host}-after-manifest.json"
-    scan_argv = [
-        sys.executable,
-        "-m",
-        "scripts.sweep",
-        "scan",
-        "--root",
-        str(work),
-        "--profile",
-        str(PROFILES / profile_name),
-        "--out",
-        str(after_manifest_path),
-    ]
-    for provider, executable in sorted(tools.items()):
-        scan_argv.extend(("--tool", f"{provider}={executable}"))
+    scan_argv = _public_scan_argv(
+        work,
+        PROFILES / profile_name,
+        after_manifest_path,
+        tools,
+    )
     scan_command = shlex.join(scan_argv)
     evidence = verify_packet(
         packet,
@@ -266,6 +291,82 @@ def test_im_15_live_host_runs_scan_judgment_packet_harness_diff_and_ratchet(
     assert evidence["diff"]["fixed"] == oracle["fixed"]
     assert evidence["diff"]["new"] == oracle["new"]
     assert evidence["diff"]["persisting"] == oracle["persisting"]
+
+    public_diff_path = tmp_path / f"{host}-public-diff.json"
+    public_diff = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "scripts.sweep",
+            "diff",
+            str(before_manifest_path),
+            str(after_manifest_path),
+            "--root",
+            str(work),
+            "--out",
+            str(public_diff_path),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+    )
+    assert public_diff.returncode == (1 if oracle["new"] else 0), public_diff.stderr
+    assert json.loads(public_diff_path.read_text(encoding="utf-8")) == evidence["diff"]
+
+    if host == "mixed":
+        public_judgment_path = tmp_path / "mixed-public-judgment.json"
+        public_judgment = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "scripts.sweep",
+                "judgment-import",
+                "--manifest",
+                str(before_manifest_path),
+                "--root",
+                str(work),
+                "--outcomes",
+                str(MIXED_OUTCOMES),
+                "--judge-identity",
+                "checked-fixture",
+                "--judge-version",
+                "1",
+                "--out",
+                str(public_judgment_path),
+            ],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+        )
+        assert public_judgment.returncode == 0, public_judgment.stderr
+        public_digest_path = tmp_path / "mixed-public-digest.json"
+        public_digest = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "scripts.sweep",
+                "digest",
+                "--manifest",
+                str(before_manifest_path),
+                "--root",
+                str(work),
+                "--judgments",
+                str(public_judgment_path),
+                "--purpose",
+                "dashboard",
+                "--top",
+                "50",
+                "--out",
+                str(public_digest_path),
+            ],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+        )
+        assert public_digest.returncode == 0, public_digest.stderr
+        assert json.loads(public_digest_path.read_text(encoding="utf-8"))[
+            "total_actionable"
+        ] == len(oracle["before"])
 
     accepts = [
         {

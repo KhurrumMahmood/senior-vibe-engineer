@@ -257,35 +257,35 @@ WP5 verification must assert ADR 0003 still points to AC-8.9.
 
 ## Characterization oracles
 
-- [ ] AR-1: Capture one deterministic prototype fixture before replacement:
+- [x] AR-1: Capture one deterministic prototype fixture before replacement:
   candidate families, bounded top-N digest, fixed/new/persisting set arithmetic,
   ratchet growth/fix behavior, improvement tightening, and explicit accept.
-- [ ] AR-2: Mark prototype SHA1 identity, hard-coded ecosystem paths, silent
+- [x] AR-2: Mark prototype SHA1 identity, hard-coded ecosystem paths, silent
   detector/JSON failures, raw-count consumption, and executor-adjacent
   verification as defects to reverse, not compatibility behavior.
-- [ ] AR-3: Preserve ADR 0040 line/tool-version stability, anonymous
+- [x] AR-3: Preserve ADR 0040 line/tool-version stability, anonymous
   multiplicity, provider/language namespace, explicit case, path escape,
   rename/legacy-alias, and collision-rejection oracles.
-- [ ] AR-4: Preserve registry-driven resolution in `sweep_shims.py` and prove
+- [x] AR-4: Preserve registry-driven resolution in `sweep_shims.py` and prove
   no local stack/tool/support enum or activation-manifest coupling appears.
-- [ ] AR-5: Preserve the Python complexity and omnibus good/bad/cohesive/skip
+- [x] AR-5: Preserve the Python complexity and omnibus good/bad/cohesive/skip
   behavior through adapter wiring; parser failures become loud instead of
   `None`, skipped rows, or successful zero.
-- [ ] AR-6: Preserve status projection read-only behavior and queue
+- [x] AR-6: Preserve status projection read-only behavior and queue
   hook/list compatibility while proving structural-health/dashboard data and
   new sweep packets are judgment-gated.
-- [ ] AR-7: Pin the activation manifest and sweep manifest as separate schemas,
+- [x] AR-7: Pin the activation manifest and sweep manifest as separate schemas,
   writers, paths, and commands; one cannot validate or overwrite the other.
-- [ ] AR-8: Pin a clean-zero oracle for every host fixture and a failed-scan
+- [x] AR-8: Pin a clean-zero oracle for every host fixture and a failed-scan
   oracle with identical empty findings; only the completed scan is clean.
-- [ ] AR-9: Pin exact native provider outputs, version probes, rule/location/
+- [x] AR-9: Pin exact native provider outputs, version probes, rule/location/
   severity preservation, path normalization, and raw stdout/stderr hashes.
-- [ ] AR-10: Pin agent-free detection by denying socket/DNS/HTTP and model
+- [x] AR-10: Pin agent-free detection by denying socket/DNS/HTTP and model
   facade calls while all native and ecosystem detection fixtures still pass.
-- [ ] AR-11: Pin harness ownership: an executor success claim without a new
+- [x] AR-11: Pin harness ownership: an executor success claim without a new
   harness-produced manifest/diff is rejected even when its verification text
   says PASS.
-- [ ] AR-12: Pin predecessor order: ADR 0036/0040 embodiment may change in WP5;
+- [x] AR-12: Pin predecessor order: ADR 0036/0040 embodiment may change in WP5;
   ADR 0003 status/embodiment and AC-8.9 ownership may not.
 
 ## Dependency-ordered implementation
@@ -430,21 +430,69 @@ Run from the repository root with the checked-in environment/tool versions:
   tests/test_queue_status.py
 
 .venv/bin/python -m scripts.sweep --help
+
+WP5_RUN="$(mktemp -d /tmp/wp5-mixed-replay.XXXXXX)"
+WP5_HOST="$WP5_RUN/host"
+cp -R tests/fixtures/sweep/hosts/mixed/before "$WP5_HOST"
+printf '.ruff_cache/\n__pycache__/\nnode_modules/\ntarget/\n' \
+  > "$WP5_HOST/.gitignore"
+git -C "$WP5_HOST" init -q
+git -C "$WP5_HOST" config user.email fixture@example.test
+git -C "$WP5_HOST" config user.name Fixture
+git -C "$WP5_HOST" add .
+git -C "$WP5_HOST" commit -qm before
+
+SWEEP_RUFF="$(pwd)/.venv/bin/ruff"
+SWEEP_ESLINT="$(command -v eslint)"
+SWEEP_TSC="$(command -v tsc)"
+SWEEP_CARGO="$(command -v cargo)"
+SWEEP_GO="$(command -v go)"
+test -x "$SWEEP_RUFF"
+test -x "$SWEEP_ESLINT"
+test -x "$SWEEP_TSC"
+test -x "$SWEEP_CARGO"
+test -x "$SWEEP_GO"
+
 .venv/bin/python -m scripts.sweep scan \
-  --root tests/fixtures/sweep/hosts/mixed/before \
+  --root "$WP5_HOST" \
   --profile tests/fixtures/sweep/profiles/mixed-case-sensitive.json \
-  --out /tmp/wp5-mixed-before.json
+  --tool "ruff=$SWEEP_RUFF" \
+  --tool "eslint=$SWEEP_ESLINT" \
+  --tool "typescript-compiler=$SWEEP_TSC" \
+  --tool "clippy=$SWEEP_CARGO" \
+  --tool "go-vet=$SWEEP_GO" \
+  --out "$WP5_RUN/before.json"
+
+cp -R tests/fixtures/sweep/hosts/mixed/after/. "$WP5_HOST/"
 .venv/bin/python -m scripts.sweep scan \
-  --root tests/fixtures/sweep/hosts/mixed/after \
+  --root "$WP5_HOST" \
   --profile tests/fixtures/sweep/profiles/mixed-case-sensitive.json \
-  --out /tmp/wp5-mixed-after.json
+  --tool "ruff=$SWEEP_RUFF" \
+  --tool "eslint=$SWEEP_ESLINT" \
+  --tool "typescript-compiler=$SWEEP_TSC" \
+  --tool "clippy=$SWEEP_CARGO" \
+  --tool "go-vet=$SWEEP_GO" \
+  --out "$WP5_RUN/after.json"
 .venv/bin/python -m scripts.sweep diff \
-  /tmp/wp5-mixed-before.json /tmp/wp5-mixed-after.json \
-  --out /tmp/wp5-mixed-diff.json
+  "$WP5_RUN/before.json" "$WP5_RUN/after.json" \
+  --root "$WP5_HOST" \
+  --out "$WP5_RUN/diff.json"
+.venv/bin/python -m scripts.sweep judgment-import \
+  --manifest "$WP5_RUN/before.json" \
+  --root "$WP5_HOST" \
+  --outcomes tests/fixtures/sweep/judgments/mixed-before-outcomes.json \
+  --judge-identity checked-fixture --judge-version 1 \
+  --out "$WP5_RUN/judgments.json"
 .venv/bin/python -m scripts.sweep digest \
-  --manifest /tmp/wp5-mixed-after.json \
-  --judgments tests/fixtures/sweep/judgments/mixed-after.json \
-  --purpose dashboard --top 50 --out /tmp/wp5-mixed-digest.json
+  --manifest "$WP5_RUN/before.json" \
+  --root "$WP5_HOST" \
+  --judgments "$WP5_RUN/judgments.json" \
+  --purpose dashboard --top 50 --out "$WP5_RUN/digest.json"
+.venv/bin/python -m scripts.sweep ratchet \
+  --baseline "$WP5_RUN/before.json" \
+  --current "$WP5_RUN/after.json" \
+  --root "$WP5_HOST" \
+  --out "$WP5_RUN/ratchet.json" --no-update
 
 .venv/bin/python -m pytest -q \
   tests/test_analysis_facts.py \
