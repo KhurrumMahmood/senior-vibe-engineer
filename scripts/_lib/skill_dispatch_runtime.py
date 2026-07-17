@@ -57,6 +57,7 @@ class VerifiedExecutorCapability:
     surface_id: str
     lane: str
     registry_sha256: str
+    worker_declaration_sha256: str
     declaration_sha256: str
     inherited_conversation_turns: int
     selected_only: bool
@@ -69,36 +70,64 @@ class VerifiedExecutorCapability:
     permits_detached_work: bool
 
     @classmethod
-    def from_verified_registry_declaration(
+    def from_trusted_surface_contract(
         cls,
         *,
+        surface_contract: Mapping[str, Any],
+        expected_contract_sha256: str,
         surface_id: str,
         lane: str,
-        registry_sha256: str,
         inherited_conversation_turns: int,
-        selected_only: bool,
-        budget_accounting_enforced: bool,
-        cancellation_enforced: bool,
-        result_handoff_enforced: bool,
-        permits_child_spawn: bool,
-        permits_redispatch: bool,
-        permits_activation: bool,
-        permits_detached_work: bool,
     ) -> "VerifiedExecutorCapability":
-        """Bind a declaration already selected through the trusted registry."""
+        """Derive enforcement facts from one externally rooted surface contract."""
+        try:
+            validate_distribution_contract(
+                "surface-activation-contract-v1", dict(surface_contract)
+            )
+        except DistributionContractError as exc:
+            raise DispatchRuntimeError("surface capability contract is invalid") from exc
+        actual_sha256 = canonical_sha256(surface_contract)
+        if (
+            _SHA256_RE.fullmatch(expected_contract_sha256) is None
+            or actual_sha256 != expected_contract_sha256
+        ):
+            raise DispatchRuntimeError("surface capability contract digest differs")
+        rows = [
+            row
+            for row in surface_contract["surfaces"]
+            if row["surface_id"] == surface_id
+        ]
+        if len(rows) != 1:
+            raise DispatchRuntimeError("surface capability declaration is absent or ambiguous")
+        worker = rows[0]["worker"]
+        if lane == "fresh-worker":
+            if worker["fresh_worker"] != "verified":
+                raise DispatchRuntimeError("surface has no verified fresh-worker capability")
+            selected_only = bool(worker["selected_procedure_injection"])
+            budget_enforced = bool(worker["budget_enforcement"])
+            cancellation_enforced = bool(worker["cancellation"])
+            result_enforced = bool(worker["result"])
+        elif lane == "selected-only-parent":
+            selected_only = True
+            budget_enforced = True
+            cancellation_enforced = True
+            result_enforced = True
+        else:
+            raise DispatchRuntimeError("executor lane is unsupported")
         payload = {
             "surface_id": surface_id,
             "lane": lane,
-            "registry_sha256": registry_sha256,
+            "registry_sha256": actual_sha256,
+            "worker_declaration_sha256": canonical_sha256(worker),
             "inherited_conversation_turns": inherited_conversation_turns,
             "selected_only": selected_only,
-            "budget_accounting_enforced": budget_accounting_enforced,
+            "budget_accounting_enforced": budget_enforced,
             "cancellation_enforced": cancellation_enforced,
-            "result_handoff_enforced": result_handoff_enforced,
-            "permits_child_spawn": permits_child_spawn,
-            "permits_redispatch": permits_redispatch,
-            "permits_activation": permits_activation,
-            "permits_detached_work": permits_detached_work,
+            "result_handoff_enforced": result_enforced,
+            "permits_child_spawn": False,
+            "permits_redispatch": False,
+            "permits_activation": False,
+            "permits_detached_work": False,
         }
         return cls(
             **payload,
@@ -110,6 +139,7 @@ class VerifiedExecutorCapability:
             "surface_id": self.surface_id,
             "lane": self.lane,
             "registry_sha256": self.registry_sha256,
+            "worker_declaration_sha256": self.worker_declaration_sha256,
             "inherited_conversation_turns": self.inherited_conversation_turns,
             "selected_only": self.selected_only,
             "budget_accounting_enforced": self.budget_accounting_enforced,
@@ -176,15 +206,29 @@ class DispatchRuntime:
     def __init__(
         self,
         project_root: Path,
-        state_root: Path,
         *,
+        surface_id: str,
+        surface_contract: Mapping[str, Any],
+        expected_surface_contract_sha256: str,
         clock_ns: Callable[[], int] = time.monotonic_ns,
     ) -> None:
+        self.surface_contract = copy.deepcopy(dict(surface_contract))
+        self.surface_id = surface_id
+        self.expected_surface_contract_sha256 = expected_surface_contract_sha256
+        VerifiedExecutorCapability.from_trusted_surface_contract(
+            surface_contract=self.surface_contract,
+            expected_contract_sha256=expected_surface_contract_sha256,
+            surface_id=surface_id,
+            lane="selected-only-parent",
+            inherited_conversation_turns=0,
+        )
         self.project_root = _real_directory(
             project_root, create=False, required_mode=None
         )
         self.state_root = _real_directory(
-            state_root, create=True, required_mode=0o700
+            self.project_root / ".engineering/local/dispatch-runtime-v1",
+            create=True,
+            required_mode=0o700,
         )
         self.raw_root = _real_directory(
             self.state_root / "raw", create=True, required_mode=0o700
@@ -198,17 +242,21 @@ class DispatchRuntime:
             self._startup_cleanup()
 
     def _ensure_lock_file(self) -> None:
-        if self.lock_path.is_symlink():
+        self._ensure_lock_path(self.lock_path)
+
+    @staticmethod
+    def _ensure_lock_path(lock_path: Path) -> None:
+        if lock_path.is_symlink():
             raise DispatchRuntimeError("dispatch lock must not be a symlink")
         flags = os.O_RDWR | os.O_CREAT
         if hasattr(os, "O_NOFOLLOW"):
             flags |= os.O_NOFOLLOW
-        descriptor = os.open(self.lock_path, flags, 0o600)
+        descriptor = os.open(lock_path, flags, 0o600)
         metadata = os.fstat(descriptor)
         os.close(descriptor)
         if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
             raise DispatchRuntimeError("dispatch lock must be one regular file")
-        os.chmod(self.lock_path, 0o600)
+        os.chmod(lock_path, 0o600)
 
     def _load_or_initialize_journal(self) -> dict[str, Any]:
         if not self.journal_path.exists():
@@ -269,6 +317,9 @@ class DispatchRuntime:
             "input_tokens",
             "output_tokens",
             "elapsed_milliseconds",
+            "failure_kind",
+            "side_effect_disposition",
+            "side_effect_ledger_sha256",
             "cleanup_state",
         }
         failure_fields = {
@@ -294,8 +345,49 @@ class DispatchRuntime:
                 or _SHA256_RE.fullmatch(value["result_sha256"]) is None
                 or value["cleanup_state"]
                 not in {"pending", "clean", "startup-cleaned", "failed"}
+                or value["failure_kind"]
+                not in {
+                    None,
+                    "spawn_failed",
+                    "capacity_exhausted",
+                    "timeout",
+                    "budget_exhausted",
+                    "worker_failed",
+                    "cancelled",
+                }
+                or value["side_effect_disposition"]
+                not in {"none", "rolled_back", "committed_known", "unknown"}
+                or (
+                    value["side_effect_ledger_sha256"] is not None
+                    and (
+                        not isinstance(value["side_effect_ledger_sha256"], str)
+                        or _SHA256_RE.fullmatch(value["side_effect_ledger_sha256"])
+                        is None
+                    )
+                )
             ):
                 raise DispatchRuntimeError("last dispatch result digest is invalid")
+            status = value["status"]
+            failure_kind = value["failure_kind"]
+            disposition = value["side_effect_disposition"]
+            ledger = value["side_effect_ledger_sha256"]
+            if (
+                (status in {"success", "needs_input", "needs_authority"} and failure_kind is not None)
+                or (
+                    status == "failed"
+                    and failure_kind
+                    not in {
+                        "spawn_failed",
+                        "capacity_exhausted",
+                        "timeout",
+                        "budget_exhausted",
+                        "worker_failed",
+                    }
+                )
+                or (status == "cancelled" and failure_kind != "cancelled")
+                or (disposition == "committed_known") != (ledger is not None)
+            ):
+                raise DispatchRuntimeError("last dispatch status metadata is inconsistent")
             if any(
                 type(value[field]) is not int or value[field] < 0
                 for field in (
@@ -406,18 +498,52 @@ class DispatchRuntime:
 
     @contextmanager
     def _project_lock(self) -> Iterator[None]:
-        with self.lock_path.open("a+b") as handle:
-            try:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError as exc:
-                raise DispatchRuntimeError("another active execution lane holds the project lock") from exc
-            try:
-                yield
-            finally:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        with self._lock_paths((self.lock_path,)):
+            yield
+
+    @contextmanager
+    def _lock_paths(self, paths: tuple[Path, ...]) -> Iterator[None]:
+        handles = []
+        try:
+            for path in sorted(set(paths), key=lambda item: item.as_posix()):
+                handle = path.open("a+b")
+                handles.append(handle)
+                try:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError as exc:
+                    raise DispatchRuntimeError(
+                        "another active execution lane holds a project lock"
+                    ) from exc
+            yield
+        finally:
+            for handle in reversed(handles):
+                try:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                finally:
+                    handle.close()
+
+    @contextmanager
+    def _execution_locks(self, pack: Mapping[str, Any]) -> Iterator[None]:
+        lock_paths: list[Path] = []
+        for row in pack["roots"]:
+            root = _real_directory(
+                Path(row["project_root"]), create=False, required_mode=None
+            )
+            state = _real_directory(
+                root / ".engineering/local/dispatch-runtime-v1",
+                create=True,
+                required_mode=0o700,
+            )
+            lock_path = state / "dispatch.lock"
+            self._ensure_lock_path(lock_path)
+            lock_paths.append(lock_path)
+        with self._lock_paths(tuple(lock_paths)):
+            yield
 
     def start_workflow(self, workflow_id: str) -> dict[str, int]:
         """Start the monotonic deadline before routing and return its exact budget."""
+        if not isinstance(workflow_id, str) or _UUID4_RE.fullmatch(workflow_id) is None:
+            raise DispatchRuntimeError("workflow id must be a lowercase UUIDv4")
         with self._project_lock():
             self._refresh_journal()
             self._require_unblocked()
@@ -435,6 +561,7 @@ class DispatchRuntime:
                 "dispatch_ids": [],
                 "attempts": {},
             }
+            self._journal["last_dispatch"] = None
             self._journal["cleanup_state"] = "clean"
             self._persist_journal()
             return self._remaining_budget()
@@ -498,6 +625,17 @@ class DispatchRuntime:
             != capability.declaration_sha256
         ):
             raise DispatchRuntimeError("executor capability declaration digest differs")
+        expected = VerifiedExecutorCapability.from_trusted_surface_contract(
+            surface_contract=self.surface_contract,
+            expected_contract_sha256=self.expected_surface_contract_sha256,
+            surface_id=self.surface_id,
+            lane=pack["execution_lane"],
+            inherited_conversation_turns=capability.inherited_conversation_turns,
+        )
+        if capability != expected:
+            raise DispatchRuntimeError(
+                "executor capability differs from the trusted surface declaration"
+            )
         if capability.lane != pack["execution_lane"]:
             raise DispatchRuntimeError("executor lane differs from dispatch pack")
         if not (
@@ -529,9 +667,10 @@ class DispatchRuntime:
         active = self._active()
         if pack["workflow_id"] != active["workflow_id"]:
             raise DispatchRuntimeError("pack workflow differs from active workflow")
-        selected_roots = {row["project_root"] for row in pack["roots"]}
-        if self.project_root.as_posix() not in selected_roots:
-            raise DispatchRuntimeError("pack roots do not include the locked project root")
+        if pack["roots"][0]["project_root"] != self.project_root.as_posix():
+            raise DispatchRuntimeError(
+                "the runtime project must be the pack's canonical first root"
+            )
         if pack["dispatch_id"] in active["dispatch_ids"]:
             raise DispatchRuntimeError("dispatch id was already consumed")
         if pack["budget"] != self._remaining_budget():
@@ -541,12 +680,33 @@ class DispatchRuntime:
         attempts = active["attempts"]
         existing = attempts.get(str(ordinal), [])
         used_ordinals = sorted(int(value) for value in attempts)
+        last = self._journal["last_dispatch"]
+        if (
+            last is not None
+            and last["status"] in {"failed", "cancelled"}
+            and last["dispatch_id"] == active["dispatch_ids"][-1]
+            and attempt != 2
+        ):
+            raise DispatchRuntimeError(
+                "a terminal worker failure requires an exact confirmed attempt-two continuation"
+            )
         if attempt == 1:
             expected = 1 if not used_ordinals else used_ordinals[-1] + 1
             if ordinal != expected or existing:
                 raise DispatchRuntimeError("workflow pack ordinal is not the next serial pack")
         elif len(existing) != 1 or prior_result is None:
             raise DispatchRuntimeError("attempt two requires exactly one prior dispatch for its pack")
+        elif (
+            last is None
+            or last["workflow_id"] != pack["workflow_id"]
+            or last["dispatch_id"] != existing[0]
+            or last["result_sha256"] != canonical_sha256(prior_result)
+            or last["status"] not in {"failed", "cancelled"}
+            or last["side_effect_disposition"] == "unknown"
+        ):
+            raise DispatchRuntimeError(
+                "attempt-two prior result is not the exact retryable recorded terminal result"
+            )
         if len(existing) >= 2:
             raise DispatchRuntimeError("workflow pack already consumed its two-dispatch limit")
 
@@ -560,16 +720,20 @@ class DispatchRuntime:
         artifact_handoff: Callable[[dict[str, Any], bytes], None] | None = None,
     ) -> dict[str, Any]:
         """Execute one exact pack under the shared lock and delete all raw state."""
-        with self._project_lock():
+        try:
+            validate_distribution_contract(
+                "dispatch-pack-v1", pack, prior_result=prior_result
+            )
+        except DistributionContractError as exc:
+            raise DispatchRuntimeError(f"dispatch pack is invalid: {exc}") from exc
+        if pack["roots"][0]["project_root"] != self.project_root.as_posix():
+            raise DispatchRuntimeError(
+                "dispatch pack canonical root differs from the locked project root"
+            )
+        with self._execution_locks(pack):
             self._refresh_journal()
             self._require_unblocked()
             self._validate_capability(pack, capability)
-            try:
-                validate_distribution_contract(
-                    "dispatch-pack-v1", pack, prior_result=prior_result
-                )
-            except DistributionContractError as exc:
-                raise DispatchRuntimeError(f"dispatch pack is invalid: {exc}") from exc
             self._validate_state_transition(pack, prior_result)
             invocation = self.raw_root / f"invocation-{pack['dispatch_id']}"
             if invocation.exists() or invocation.is_symlink():
@@ -597,6 +761,10 @@ class DispatchRuntime:
                     )
                 except DistributionContractError as exc:
                     raise DispatchRuntimeError(f"dispatch result is invalid: {exc}") from exc
+                if result["input_tokens"] + result["output_tokens"] == 0:
+                    raise DispatchRuntimeError(
+                        "dispatch result lacks trusted nonzero usage accounting"
+                    )
                 _write_protected(
                     invocation / "dispatch-result-v1.json",
                     canonical_json_bytes(result),
@@ -621,10 +789,15 @@ class DispatchRuntime:
                     raise DispatchRuntimeError("raw invocation cleanup failed; runtime is blocked") from exc
             if execution_error is not None:
                 if executor_started and not result_recorded:
-                    self._block_unknown_dispatch(pack, execution_error)
+                    result = self._minimal_failed_result(pack)
+                    self._record_result(pack, result)
+                    self._journal["blocked"] = True
+                    self._mark_cleanup_complete()
+                    self._persist_journal()
+                    return result
                 if isinstance(execution_error, DispatchRuntimeError):
                     raise execution_error
-                raise DispatchRuntimeError("executor failed; no fallback or retry was inferred") from execution_error
+                raise DispatchRuntimeError("executor failed before launch") from execution_error
             assert result is not None
             return result
 
@@ -668,10 +841,52 @@ class DispatchRuntime:
             "input_tokens": result["input_tokens"],
             "output_tokens": result["output_tokens"],
             "elapsed_milliseconds": result["elapsed_milliseconds"],
+            "failure_kind": result["failure_kind"],
+            "side_effect_disposition": result["side_effect_disposition"],
+            "side_effect_ledger_sha256": result["side_effect_ledger_sha256"],
             "cleanup_state": "pending",
         }
+        if (
+            result["status"] in {"failed", "cancelled"}
+            and result["side_effect_disposition"] == "unknown"
+        ):
+            self._journal["blocked"] = True
         self._journal["cleanup_state"] = "pending"
         self._persist_journal()
+
+    def _minimal_failed_result(self, pack: Mapping[str, Any]) -> dict[str, Any]:
+        """Return a closed conservative result without trusting worker output."""
+        budget = pack["budget"]
+        output_tokens = min(
+            budget["remaining_output_tokens"], budget["remaining_total_tokens"]
+        )
+        return {
+            "schema_version": 1,
+            **{
+                field: pack[field]
+                for field in (
+                    "workflow_id",
+                    "dispatch_id",
+                    "prior_dispatch_id",
+                    "workflow_pack_ordinal",
+                    "attempt_ordinal",
+                    "execution_lane",
+                    "continuation_reason",
+                    "fallback_reason",
+                )
+            },
+            "status": "failed",
+            "summary": "Worker output was invalid or unavailable.",
+            "error_code": "invalid_worker_result",
+            "error_message": "The selected executor did not return a trusted result.",
+            "failure_kind": "worker_failed",
+            "side_effect_disposition": "unknown",
+            "side_effect_ledger_sha256": None,
+            "elapsed_milliseconds": budget["remaining_milliseconds"],
+            "input_tokens": budget["remaining_total_tokens"] - output_tokens,
+            "output_tokens": output_tokens,
+            "artifacts": [],
+        }
 
     def _set_last_cleanup_state(self, state: str) -> None:
         last = self._journal.get("last_dispatch")
