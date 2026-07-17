@@ -452,8 +452,10 @@ table is explicit and no alias may be inferred from directories or prose. The
 closed alias row is exactly `{public_name, canonical_target, surface_spellings,
 introduced_release, retirement_release}`. `public_name`, `canonical_target`,
 and each surface spelling use the lowercase hyphenated public-name grammar;
-`surface_spellings` has exactly the five supported surface keys;
-`introduced_release` is a positive integer; and `retirement_release` is null
+`surface_spellings` has exactly `claude-code`, `codex`, `augment`, `cursor`,
+and `gemini`, and every value must equal `public_name`; no row can create
+surface-specific alias divergence. `introduced_release` is a positive integer;
+and `retirement_release` is null
 or an integer greater than or equal to it. Surface adapters add their declared
 namespace or literal-instruction syntax around that spelling.
 
