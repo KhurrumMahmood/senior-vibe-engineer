@@ -371,7 +371,7 @@ WP5 verification must assert ADR 0003 still points to AC-8.9.
   through live tools, manifest writing, judged digest/packet gates, harness
   rescan, diff, and ratchet in CI; assert exact fixed/new/persisting IDs and
   clean-zero/failure distinction. <!-- spec:portable-batch-sweep::IM-15 -->
-- [ ] IM-16: Update ADR 0036 and ADR 0040 `applies_to`/`embodied_by` to only
+- [x] IM-16: Update ADR 0036 and ADR 0040 `applies_to`/`embodied_by` to only
   accurate productized script/contract paths, remove productization-pending
   references, and assert ADR 0003 remains proposed with AC-8.9 ownership.
   <!-- spec:portable-batch-sweep::IM-16 -->
