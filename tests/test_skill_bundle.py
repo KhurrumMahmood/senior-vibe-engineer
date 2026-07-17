@@ -442,7 +442,18 @@ def test_bundle_and_installed_verifiers_reject_symlinks(tmp_path: Path) -> None:
         verify_release_bundle(root_link, digest)
 
 
-@pytest.mark.parametrize("path", ("a//b", "a/", "/a", "a/../b", "cafe\u0301"))
+@pytest.mark.parametrize(
+    "path",
+    (
+        "a//b",
+        "a/",
+        "/a",
+        "a/../b",
+        "a/./b",
+        ".engineering/bootstrap/claude-code/./runtime.py",
+        "cafe\u0301",
+    ),
+)
 def test_relative_path_rejects_normalizing_or_escaping_forms(path: str) -> None:
     with pytest.raises(BundleTrustError):
         validate_relative_path(path)
@@ -502,6 +513,29 @@ def test_projection_runtime_cannot_add_a_third_ambient_header(tmp_path: Path) ->
     (source / "recipe.json").write_bytes(canonical_json_bytes(recipe))
 
     with pytest.raises(BundleTrustError, match="ambient skill header"):
+        build_release_bundle(
+            source,
+            tmp_path / "bundle",
+            bundle_version="1.0.0",
+            blobs=blobs,
+            installer="installer.py",
+            surface_activation_contract="surface-contract.json",
+        )
+
+
+def test_release_build_rejects_explicit_dot_segment_in_projection_path(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    blobs = _prepare_source(source)
+    recipe = json.loads((source / "recipe.json").read_bytes())
+    recipe["runtime_files"][0]["path"] = (
+        ".engineering/bootstrap/claude-code/./runtime.py"
+    )
+    (source / "recipe.json").write_bytes(canonical_json_bytes(recipe))
+
+    with pytest.raises(BundleTrustError, match="dot segment"):
         build_release_bundle(
             source,
             tmp_path / "bundle",

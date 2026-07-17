@@ -99,10 +99,12 @@ def validate_relative_path(value: object, *, location: str = "path") -> str:
         raise BundleTrustError(f"{location} must be NFC")
     if "\\" in value or "\x00" in value or value.startswith("/"):
         raise BundleTrustError(f"{location} must be a relative POSIX path")
-    if any(not segment for segment in value.split("/")):
+    segments = value.split("/")
+    if any(not segment for segment in segments):
         raise BundleTrustError(f"{location} contains an empty slash-separated segment")
-    parts = PurePosixPath(value).parts
-    if not parts or any(part in {"", ".", ".."} for part in parts):
+    # Inspect the raw slash-separated representation before constructing a
+    # PurePosixPath: pathlib normalizes explicit ``.`` segments away.
+    if any(segment in {".", ".."} for segment in segments):
         raise BundleTrustError(f"{location} contains an empty or dot segment")
     if len(value.encode("utf-8")) > 1024:
         raise BundleTrustError(f"{location} exceeds 1024 UTF-8 bytes")
