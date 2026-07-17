@@ -710,6 +710,9 @@ PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q \
   tests/test_skill_catalog_layers.py \
   tests/test_binding_loader.py \
   tests/test_extract_enum_binding.py \
+  tests/test_distribution_contract_schemas.py \
+  tests/test_distribution_reference_tables.py \
+  tests/test_portfolio_snapshots.py \
   tests/test_distribution_surfaces.py \
   tests/test_wp3_move_gate.py \
   tests/test_capability_consumers.py \
