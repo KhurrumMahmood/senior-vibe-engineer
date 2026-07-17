@@ -16,9 +16,12 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import signal
 import shutil
 import stat
+import subprocess
 import tempfile
+import time
 from typing import Any, Protocol
 import unicodedata
 import uuid
@@ -29,6 +32,11 @@ from .distribution_contracts import (
     canonical_sha256,
     load_canonical_json,
     validate_distribution_contract,
+)
+from .native_discovery import (
+    NativeDiscoveryParseError,
+    parse_gemini_skills_list,
+    validate_gemini_skills_list_stderr,
 )
 from .skill_bundle import (
     VerifiedBundle,
@@ -81,6 +89,11 @@ _TRUST_KEYS = {
     "alias_table_sha256",
     "selection_sha256",
 }
+_GEMINI_VERSION = "0.45.0"
+_GEMINI_DISCOVERY_COMMAND = ("gemini", "skills", "list")
+_GEMINI_DISCOVERY_PARSER = "gemini-skills-list-v1"
+_NATIVE_COMMAND_TIMEOUT_SECONDS = 10.0
+_NATIVE_OUTPUT_LIMIT_BYTES = 256 * 1024
 
 
 class LifecycleError(RuntimeError):
@@ -128,6 +141,191 @@ class _NativeDiscoveryAdapter(Protocol):
     def proves_generated_links(self, surface_id: str) -> bool: ...
 
 
+@dataclass(frozen=True)
+class _NativeCommandResult:
+    returncode: int
+    stdout: bytes
+    stderr: bytes
+
+
+def _terminate_native_process(process: subprocess.Popen[bytes]) -> None:
+    if process.poll() is not None:
+        return
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except (OSError, ProcessLookupError):
+        process.kill()
+    process.wait()
+
+
+def _run_native_command(
+    command: Sequence[str],
+    cwd: Path,
+    env: Mapping[str, str],
+    *,
+    timeout_seconds: float = _NATIVE_COMMAND_TIMEOUT_SECONDS,
+    output_limit_bytes: int = _NATIVE_OUTPUT_LIMIT_BYTES,
+) -> _NativeCommandResult:
+    """Run one allow-listed native probe with bounded time and captured bytes."""
+    with tempfile.TemporaryFile(dir=env["TMPDIR"]) as stdout_file, tempfile.TemporaryFile(
+        dir=env["TMPDIR"]
+    ) as stderr_file:
+        try:
+            process = subprocess.Popen(
+                list(command),
+                cwd=cwd,
+                env=dict(env),
+                stdin=subprocess.DEVNULL,
+                stdout=stdout_file,
+                stderr=stderr_file,
+                start_new_session=True,
+            )
+        except OSError as exc:
+            raise LifecycleError("native discovery command could not start") from exc
+        deadline = time.monotonic() + timeout_seconds
+        while process.poll() is None:
+            if time.monotonic() >= deadline:
+                _terminate_native_process(process)
+                raise LifecycleError("native discovery command exceeded its timeout")
+            output_size = (
+                os.fstat(stdout_file.fileno()).st_size
+                + os.fstat(stderr_file.fileno()).st_size
+            )
+            if output_size > output_limit_bytes:
+                _terminate_native_process(process)
+                raise LifecycleError("native discovery command exceeded its output limit")
+            time.sleep(0.01)
+        output_size = (
+            os.fstat(stdout_file.fileno()).st_size
+            + os.fstat(stderr_file.fileno()).st_size
+        )
+        if output_size > output_limit_bytes:
+            raise LifecycleError("native discovery command exceeded its output limit")
+        stdout_file.seek(0)
+        stderr_file.seek(0)
+        return _NativeCommandResult(
+            returncode=process.returncode,
+            stdout=stdout_file.read(),
+            stderr=stderr_file.read(),
+        )
+
+
+@contextmanager
+def _isolated_gemini_environment():
+    with tempfile.TemporaryDirectory(prefix="engineering-skills-gemini-native-") as raw:
+        root = Path(raw)
+        home = root / "home"
+        tmp = root / "tmp"
+        xdg_config = root / "xdg-config"
+        xdg_cache = root / "xdg-cache"
+        xdg_data = root / "xdg-data"
+        xdg_state = root / "xdg-state"
+        for path in (home, tmp, xdg_config, xdg_cache, xdg_data, xdg_state):
+            path.mkdir(mode=0o700)
+        settings = home / ".gemini/settings.json"
+        settings.parent.mkdir(mode=0o700)
+        settings.write_bytes(
+            b'{"privacy":{"usageStatisticsEnabled":false},'
+            b'"security":{"folderTrust":{"enabled":false}},'
+            b'"telemetry":{"enabled":false}}\n'
+        )
+        settings.chmod(0o600)
+        env = {
+            "HOME": str(home),
+            "LANG": "C.UTF-8",
+            "LC_ALL": "C.UTF-8",
+            "NO_COLOR": "1",
+            "PATH": os.environ.get("PATH", os.defpath),
+            "TMPDIR": str(tmp),
+            "XDG_CACHE_HOME": str(xdg_cache),
+            "XDG_CONFIG_HOME": str(xdg_config),
+            "XDG_DATA_HOME": str(xdg_data),
+            "XDG_STATE_HOME": str(xdg_state),
+        }
+        yield root, env
+
+
+def _run_isolated_gemini(
+    executable: str, arguments: Sequence[str], *, cwd: Path | None = None
+) -> _NativeCommandResult:
+    with _isolated_gemini_environment() as (isolation, env):
+        command_cwd = cwd or (isolation / "project")
+        command_cwd.mkdir(parents=True, exist_ok=True)
+        return _run_native_command([executable, *arguments], command_cwd, env)
+
+
+class _GeminiNativeDiscoveryAdapter:
+    def __init__(self, executable: str, contract: Mapping[str, Any]) -> None:
+        self._executable = executable
+        self._contract = deepcopy(dict(contract))
+        version = _run_isolated_gemini(executable, ("--version",))
+        try:
+            observed = version.stdout.decode("utf-8", errors="strict").strip()
+        except UnicodeDecodeError as exc:
+            raise LifecycleError("Gemini version output is not strict UTF-8") from exc
+        if version.returncode != 0 or version.stderr or observed != _GEMINI_VERSION:
+            raise LifecycleError(
+                f"Gemini native discovery requires exact version {_GEMINI_VERSION}"
+            )
+
+    def _toolkit_headers(self, project: Path) -> set[tuple[str, Path]]:
+        manifest_path = project / MANIFEST_PATH
+        if not manifest_path.is_file():
+            return set()
+        try:
+            manifest = load_canonical_json(manifest_path)
+            validate_distribution_contract("installed-manifest-v1", manifest)
+        except (OSError, DistributionContractError) as exc:
+            raise LifecycleError("installed manifest cannot classify native discovery") from exc
+        identity = self._contract["generated_identity"]
+        prefix, suffix = identity["alias_template"].split("{public-name}")
+        headers: set[tuple[str, Path]] = set()
+        for row in manifest["generated_files"]:
+            if row["surface_id"] != "gemini":
+                continue
+            path = row["path"]
+            if path == identity["which_shape"]:
+                name = "which-shape"
+            elif path == identity["which_skill"]:
+                name = "which-skill"
+            elif path.startswith(prefix) and path.endswith(suffix):
+                name = path[len(prefix) : len(path) - len(suffix) if suffix else None]
+                if _PUBLIC_NAME.fullmatch(name) is None:
+                    raise LifecycleError(f"generated Gemini header has invalid name: {path}")
+            elif row["ownership_class"] == "bootstrap":
+                continue
+            else:
+                raise LifecycleError(f"generated Gemini path differs from contract: {path}")
+            headers.add((name, (project / path).resolve()))
+        return headers
+
+    def discover(self, project_root: Path, surface_id: str) -> _DiscoverySnapshot:
+        if surface_id != "gemini":
+            raise LifecycleError(f"Gemini adapter cannot discover surface: {surface_id}")
+        project = project_root.resolve()
+        result = _run_isolated_gemini(
+            self._executable, _GEMINI_DISCOVERY_COMMAND[1:], cwd=project
+        )
+        if result.returncode != 0:
+            raise LifecycleError("Gemini native discovery command failed")
+        try:
+            validate_gemini_skills_list_stderr(result.stderr)
+            rows = parse_gemini_skills_list(result.stdout, project_root=project)
+        except NativeDiscoveryParseError as exc:
+            raise LifecycleError(f"Gemini native discovery output is invalid: {exc}") from exc
+        toolkit_headers = self._toolkit_headers(project)
+        toolkit = frozenset(
+            row.name for row in rows if (row.name, row.location) in toolkit_headers
+        )
+        host = frozenset(row.name for row in rows if row.name not in toolkit)
+        return _DiscoverySnapshot(toolkit_owned=toolkit, host_owned=host)
+
+    def proves_generated_links(self, surface_id: str) -> bool:
+        if surface_id != "gemini":
+            raise LifecycleError(f"Gemini adapter cannot classify surface: {surface_id}")
+        return False
+
+
 def _sha(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
@@ -160,19 +358,33 @@ def _native_adapter(
 ) -> _NativeDiscoveryAdapter:
     """Return one shipped, runtime-matched adapter for the whole surface set.
 
-    The v1 contract currently contains abstract discovery fixtures, not commands
-    and parsers proven against pinned host runtimes.  Treat every surface as
-    unsupported until such an adapter ships; callers cannot inject executable
-    factories across this trust boundary.
+    Gemini 0.45.0 is the only production native-discovery slice currently
+    shipped. Other or mixed surface sets remain unsupported at this boundary.
     """
     known = _surface_records(contract)
     surfaces = list(surface_set)
     if not surfaces or len(surfaces) != len(set(surfaces)) or not set(surfaces).issubset(known):
         raise LifecycleError("requested native discovery surface set is invalid")
+    if surfaces == ["gemini"]:
+        gemini = known["gemini"]
+        if gemini["runtime_version"] != {
+            "lower": _GEMINI_VERSION,
+            "upper": _GEMINI_VERSION,
+        } or gemini["discovery"] != {
+            "command": list(_GEMINI_DISCOVERY_COMMAND),
+            "parser_id": _GEMINI_DISCOVERY_PARSER,
+            "offline_non_model": True,
+        }:
+            raise LifecycleError("Gemini native discovery contract is not exact v1")
+        executable = shutil.which("gemini")
+        if executable is None:
+            raise LifecycleError("Gemini native discovery executable is unavailable")
+        return _GeminiNativeDiscoveryAdapter(executable, gemini)
     raise LifecycleError(
         "native discovery unsupported for requested surface set: "
         + ", ".join(surfaces)
     )
+
 
 def _bundle_tables(bundle: VerifiedBundle) -> tuple[Mapping[str, Any], Mapping[str, str]]:
     tables = getattr(bundle, "tables_by_id", None)

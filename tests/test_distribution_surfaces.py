@@ -445,7 +445,9 @@ def test_runtime_evidence_binds_exact_gemini_and_auggie_commands_and_outputs(
             return subprocess.CompletedProcess(command, 0, version, b"")
         if command[1:] == ["skills", "list"]:
             stdout = "Discovered Agent Skills:\n\n" + "".join(
-                f"{name} [Enabled]\n  Description: test\n" for name in names
+                f"{name} [Enabled]\n  Description: test\n"
+                f"  Location:    {(_cwd / '.gemini/skills' / name / 'SKILL.md').resolve()}\n\n"
+                for name in names
             )
             return subprocess.CompletedProcess(command, 0, stdout.encode(), b"")
         stdout = f".augment/rules/imported/{_cwd.name}/SKILL.md"
@@ -481,6 +483,17 @@ def test_runtime_evidence_binds_exact_gemini_and_auggie_commands_and_outputs(
         attacked, inventory, ROOT, output, manifest, tmp_path / "home"
     )
     assert any("version probe failed" in error for error in errors)
+
+    attacked = copy.deepcopy(evidence)
+    attacked_probe = attacked["records"]["gemini"]["version_probe"]
+    attacked_probe["stdout"] = "gemini-cli 0.45.0\n"
+    attacked_probe["output_sha256"] = hashlib.sha256(
+        (attacked_probe["stdout"] + attacked_probe["stderr"]).encode()
+    ).hexdigest()
+    errors = validate_runtime_evidence(
+        attacked, inventory, ROOT, output, manifest, tmp_path / "home"
+    )
+    assert any("does not prove exact 0.45.0" in error for error in errors)
 
     attacked = copy.deepcopy(evidence)
     attacked["records"]["augment"]["reason"] = "moved fixture accepted"
@@ -660,7 +673,9 @@ def test_runtime_evidence_validation_rejects_tampered_command_output(
         if command[-1] == "--version":
             return subprocess.CompletedProcess(command, 0, b"0.45.0\n", b"")
         stdout = "Discovered Agent Skills:\n\n" + "".join(
-            f"{name} [Enabled]\n  Description: test\n" for name in names
+            f"{name} [Enabled]\n  Description: test\n"
+            f"  Location:    {(_cwd / '.gemini/skills' / name / 'SKILL.md').resolve()}\n\n"
+            for name in names
         )
         return subprocess.CompletedProcess(command, 0, stdout.encode(), b"")
 
@@ -698,7 +713,9 @@ def test_runtime_collection_never_verifies_a_structurally_invalid_projection(
         if command[-1] == "--version":
             return subprocess.CompletedProcess(command, 0, b"0.45.0\n", b"")
         stdout = "Discovered Agent Skills:\n\n" + "".join(
-            f"{name} [Enabled]\n  Description: test\n" for name in names
+            f"{name} [Enabled]\n  Description: test\n"
+            f"  Location:    {(_cwd / '.gemini/skills' / name / 'SKILL.md').resolve()}\n\n"
+            for name in names
         )
         return subprocess.CompletedProcess(command, 0, stdout.encode(), b"")
 

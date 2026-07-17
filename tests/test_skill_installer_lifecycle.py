@@ -7,6 +7,7 @@ from pathlib import Path
 import runpy
 import shutil
 import socket
+import subprocess
 import sys
 from typing import Any
 import uuid
@@ -30,9 +31,11 @@ from _lib.skill_installer import (
     BundleInstallRequest,
     LifecycleError,
     activate,
+    deactivate,
     install,
     preview_migration,
     rollback,
+    set_mode,
     uninstall,
     update,
     verify,
@@ -89,6 +92,71 @@ class FilesystemDiscovery:
         return False
 
 
+class FakeGeminiProcess:
+    """Native-process stand-in that observes the real staged Gemini tree."""
+
+    def __init__(self) -> None:
+        self.version = "0.45.0"
+        self.omit: set[str] = set()
+        self.commands: list[tuple[str, ...]] = []
+        self.isolation_roots: list[Path] = []
+
+    def run(
+        self,
+        command: list[str],
+        cwd: Path,
+        env: dict[str, str],
+        **bounds: object,
+    ) -> lifecycle._NativeCommandResult:
+        assert bounds == {
+            "timeout_seconds": lifecycle._NATIVE_COMMAND_TIMEOUT_SECONDS,
+            "output_limit_bytes": lifecycle._NATIVE_OUTPUT_LIMIT_BYTES,
+        } or bounds == {}
+        arguments = tuple(command[1:])
+        assert arguments in {("--version",), ("skills", "list")}
+        assert not {"install", "model", "npm", "npx", "package"}.intersection(command)
+        assert set(env) == {
+            "HOME",
+            "LANG",
+            "LC_ALL",
+            "NO_COLOR",
+            "PATH",
+            "TMPDIR",
+            "XDG_CACHE_HOME",
+            "XDG_CONFIG_HOME",
+            "XDG_DATA_HOME",
+            "XDG_STATE_HOME",
+        }
+        isolation = Path(env["HOME"]).parent
+        assert Path(env["TMPDIR"]).parent == isolation
+        assert Path(env["XDG_CONFIG_HOME"]).parent == isolation
+        assert (Path(env["HOME"]) / ".gemini/settings.json").read_bytes() == (
+            b'{"privacy":{"usageStatisticsEnabled":false},'
+            b'"security":{"folderTrust":{"enabled":false}},'
+            b'"telemetry":{"enabled":false}}\n'
+        )
+        self.commands.append(tuple(command))
+        self.isolation_roots.append(isolation)
+        if arguments == ("--version",):
+            return lifecycle._NativeCommandResult(0, f"{self.version}\n".encode(), b"")
+        rows = []
+        for path in sorted(cwd.glob(".gemini/skills/*/SKILL.md")):
+            name = path.parent.name
+            if name in self.omit:
+                continue
+            rows.append(
+                f"{name} [Enabled]\n"
+                "  Description: deterministic fake process\n"
+                f"  Location:    {path.resolve()}\n\n"
+            )
+        stdout = (
+            "Discovered Agent Skills:\n\n" + "".join(rows)
+            if rows
+            else "No skills discovered.\n"
+        )
+        return lifecycle._NativeCommandResult(0, stdout.encode(), b"")
+
+
 @pytest.fixture
 def discovery(monkeypatch: pytest.MonkeyPatch) -> FilesystemDiscovery:
     adapter = FilesystemDiscovery()
@@ -96,6 +164,14 @@ def discovery(monkeypatch: pytest.MonkeyPatch) -> FilesystemDiscovery:
         lifecycle, "_native_adapter", lambda contract, surface_set: adapter
     )
     return adapter
+
+
+@pytest.fixture
+def native_gemini(monkeypatch: pytest.MonkeyPatch) -> FakeGeminiProcess:
+    process = FakeGeminiProcess()
+    monkeypatch.setattr(lifecycle.shutil, "which", lambda name: "/runtime/gemini")
+    monkeypatch.setattr(lifecycle, "_run_native_command", process.run)
+    return process
 
 
 def _sha(content: bytes) -> str:
@@ -108,8 +184,9 @@ def _bundle(
     *,
     version: str = "1.0.0",
     include_plan: bool = True,
-    plan_content: bytes = b"---\nname: plan-feature\n---\nPlan v1.\n",
+    plan_content: bytes = b"---\nname: plan-feature\ndescription: Plan a feature.\n---\nPlan v1.\n",
     legacy_files: dict[str, tuple[bytes, str]] | None = None,
+    gemini_only: bool = False,
 ) -> BundleInstallRequest:
     helpers = runpy.run_path(str(ROOT / "tests/test_skill_bundle.py"))
     source = tmp_path / f"{name}-source"
@@ -118,6 +195,42 @@ def _bundle(
     if include_plan:
         (source / "plan-feature.md").write_bytes(plan_content)
         blobs.append(BlobSource("procedure", "plan-feature", "plan-feature.md", "text/markdown"))
+    recipe_ids = ("claude-bootstrap", "codex-bootstrap")
+    if gemini_only:
+        gemini_recipe = {
+            "schema_version": 1,
+            "surface_id": "gemini",
+            "manifest_locator": MANIFEST_PATH,
+            "bootstrap_metadata_path": ".engineering/bootstrap/gemini/bootstrap-v1.json",
+            "routers": [
+                {
+                    "canonical_name": "which-shape",
+                    "blob_id": "which-shape",
+                    "path": ".gemini/skills/which-shape/SKILL.md",
+                },
+                {
+                    "canonical_name": "which-skill",
+                    "blob_id": "which-skill",
+                    "path": ".gemini/skills/which-skill/SKILL.md",
+                },
+            ],
+            "runtime_files": [
+                {
+                    "blob_id": "router-runtime",
+                    "path": ".engineering/bootstrap/gemini/runtime.py",
+                }
+            ],
+        }
+        (source / "gemini-recipe.json").write_bytes(canonical_json_bytes(gemini_recipe))
+        blobs.append(
+            BlobSource(
+                "projection-recipe",
+                "gemini-bootstrap",
+                "gemini-recipe.json",
+                "application/json",
+            )
+        )
+        recipe_ids = ("gemini-bootstrap",)
     contract_root = CONTRACT_ROOT
     if legacy_files is not None:
         contract_root = tmp_path / f"{name}-contracts"
@@ -150,7 +263,7 @@ def _bundle(
         surface_activation_contract="surface-contract.json",
         contract_root=contract_root,
     )
-    return BundleInstallRequest(output, digest, ("claude-bootstrap", "codex-bootstrap"))
+    return BundleInstallRequest(output, digest, recipe_ids)
 
 
 def _files(root: Path) -> dict[str, bytes]:
@@ -177,6 +290,162 @@ def test_production_rejects_abstract_discovery_without_mutation(tmp_path: Path) 
         install(project, request)
 
     assert "augment" not in str(exc_info.value)
+    assert not (project / MANIFEST_PATH).exists()
+
+
+@pytest.mark.parametrize(
+    "surface_set",
+    [
+        ["claude-code"],
+        ["codex"],
+        ["augment"],
+        ["cursor"],
+        ["gemini", "claude-code"],
+    ],
+)
+def test_non_gemini_or_mixed_native_surface_sets_remain_unsupported(
+    surface_set: list[str],
+) -> None:
+    contract = runpy.run_path(str(ROOT / "tests/test_skill_bundle.py"))[
+        "_surface_contract"
+    ]()
+
+    with pytest.raises(LifecycleError, match="unsupported for requested surface set"):
+        lifecycle._native_adapter(contract, surface_set)
+
+
+def test_gemini_native_lifecycle_preserves_host_set_and_is_idempotent(
+    tmp_path: Path, native_gemini: FakeGeminiProcess
+) -> None:
+    request = _bundle(tmp_path, "gemini-native", gemini_only=True)
+    project = tmp_path / "project"
+    host = project / ".gemini/skills/host-skill/SKILL.md"
+    host.parent.mkdir(parents=True)
+    host.write_text(
+        "---\nname: host-skill\ndescription: Host-owned skill.\n---\nHost.\n"
+    )
+
+    installed = install(project, request)
+    repeated_install = install(project, request)
+    assert repeated_install["manifest_sha256"] == installed["manifest_sha256"]
+    assert installed["surface_set"] == ["gemini"]
+    assert verify(project)["mode"] == "router-only"
+    assert lifecycle._installed_adapter(project).proves_generated_links("gemini") is False
+
+    activated = activate(project, "plan-feature")
+    repeated_activation = activate(project, "plan-feature")
+    assert repeated_activation["manifest_sha256"] == activated["manifest_sha256"]
+    assert activated["activation_records"] == [
+        {"public_name": "plan-feature", "canonical_target": "plan-feature"}
+    ]
+
+    full = set_mode(project, "full-discovery")
+    assert set_mode(project, "full-discovery")["manifest_sha256"] == full["manifest_sha256"]
+    assert full["mode"] == "full-discovery"
+    router = set_mode(project, "router-only")
+    assert router["mode"] == "router-only"
+    deactivated = deactivate(project, "plan-feature")
+    assert deactivate(project, "plan-feature")["manifest_sha256"] == deactivated[
+        "manifest_sha256"
+    ]
+    assert deactivated["activation_records"] == []
+
+    uninstall(project)
+    uninstall(project)
+    assert host.is_file()
+    assert host.read_text().endswith("Host.\n")
+    assert not (project / MANIFEST_PATH).exists()
+    assert {tuple(command[1:]) for command in native_gemini.commands} == {
+        ("--version",),
+        ("skills", "list"),
+    }
+    assert all(not root.exists() for root in native_gemini.isolation_roots)
+
+
+def test_gemini_native_discovery_mismatch_rolls_back_exact_activation(
+    tmp_path: Path, native_gemini: FakeGeminiProcess
+) -> None:
+    request = _bundle(tmp_path, "gemini-mismatch", gemini_only=True)
+    project = tmp_path / "project"
+    install(project, request)
+    before = _files(project)
+    native_gemini.omit.add("plan-feature")
+
+    with pytest.raises(LifecycleError, match="native discovery mismatch"):
+        activate(project, "plan-feature")
+
+    native_gemini.omit.clear()
+    assert _files(project) == before
+    assert verify(project)["activation_records"] == []
+
+
+def test_gemini_native_adapter_rejects_missing_version_and_contract_before_mutation(
+    tmp_path: Path,
+    native_gemini: FakeGeminiProcess,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = _bundle(tmp_path, "gemini-preflight", gemini_only=True)
+
+    monkeypatch.setattr(lifecycle.shutil, "which", lambda name: None)
+    missing_project = tmp_path / "missing-project"
+    with pytest.raises(LifecycleError, match="executable is unavailable"):
+        install(missing_project, request)
+    assert not missing_project.exists()
+
+    monkeypatch.setattr(lifecycle.shutil, "which", lambda name: "/runtime/gemini")
+    native_gemini.version = "0.45.1"
+    wrong_project = tmp_path / "wrong-project"
+    with pytest.raises(LifecycleError, match="exact version 0.45.0"):
+        install(wrong_project, request)
+    assert not wrong_project.exists()
+
+    contract = runpy.run_path(str(ROOT / "tests/test_skill_bundle.py"))[
+        "_surface_contract"
+    ]()
+    gemini = next(row for row in contract["surfaces"] if row["surface_id"] == "gemini")
+    gemini["discovery"]["parser_id"] = "permissive-parser"
+    before_commands = list(native_gemini.commands)
+    with pytest.raises(LifecycleError, match="contract is not exact v1"):
+        lifecycle._native_adapter(contract, ["gemini"])
+    assert native_gemini.commands == before_commands
+
+
+def _exact_local_gemini() -> str:
+    executable = shutil.which("gemini")
+    if executable is None:
+        pytest.skip("exact pinned Gemini binary is not installed")
+    result = subprocess.run(
+        [executable, "--version"],
+        capture_output=True,
+        check=False,
+        timeout=10,
+    )
+    if result.returncode != 0 or result.stderr or result.stdout.strip() != b"0.45.0":
+        pytest.skip("local Gemini binary is not exact pinned 0.45.0")
+    return executable
+
+
+def test_exact_pinned_gemini_runs_real_native_lifecycle(tmp_path: Path) -> None:
+    _exact_local_gemini()
+    request = _bundle(tmp_path, "gemini-live", gemini_only=True)
+    project = tmp_path / "project"
+    host = project / ".gemini/skills/host-skill/SKILL.md"
+    host.parent.mkdir(parents=True)
+    host.write_text(
+        "---\nname: host-skill\ndescription: Host-owned native skill.\n---\nHost.\n"
+    )
+
+    assert install(project, request)["mode"] == "router-only"
+    assert verify(project)["surface_set"] == ["gemini"]
+    assert activate(project, "plan-feature")["activation_records"] == [
+        {"public_name": "plan-feature", "canonical_target": "plan-feature"}
+    ]
+    assert set_mode(project, "full-discovery")["mode"] == "full-discovery"
+    assert set_mode(project, "router-only")["mode"] == "router-only"
+    assert deactivate(project, "plan-feature")["activation_records"] == []
+    uninstall(project)
+
+    assert host.is_file()
     assert not (project / MANIFEST_PATH).exists()
 
 
@@ -221,7 +490,7 @@ def test_update_revalidates_applicability_and_binding_hashes(
         tmp_path,
         "changed",
         version="2.0.0",
-        plan_content=b"---\nname: plan-feature\n---\nPlan v2.\n",
+        plan_content=b"---\nname: plan-feature\ndescription: Plan a feature.\n---\nPlan v2.\n",
     )
     missing = _bundle(tmp_path, "missing", version="3.0.0", include_plan=False)
     project = tmp_path / "project"

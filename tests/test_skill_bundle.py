@@ -107,8 +107,16 @@ def _surface_contract() -> dict[str, Any]:
                     "alias_template": generated_alias,
                 },
                 "discovery": {
-                    "command": [surface_id, "list"],
-                    "parser_id": f"{surface_id}-list-v1",
+                    "command": (
+                        ["gemini", "skills", "list"]
+                        if surface_id == "gemini"
+                        else [surface_id, "list"]
+                    ),
+                    "parser_id": (
+                        "gemini-skills-list-v1"
+                        if surface_id == "gemini"
+                        else f"{surface_id}-list-v1"
+                    ),
                     "offline_non_model": True,
                 },
                 "activation": {
@@ -137,8 +145,8 @@ def _prepare_source(root: Path) -> list[BlobSource]:
         "catalog.json": b'{"schema_version":1,"skills":[]}',
         "registry.json": b'{"contract_version":1,"schema_version":1}',
         "profile.json": b'{"schema_version":1}',
-        "which-shape.md": b"---\nname: which-shape\n---\nComplete shape router.\n",
-        "which-skill.md": b"---\nname: which-skill\n---\nComplete skill router.\n",
+        "which-shape.md": b"---\nname: which-shape\ndescription: Choose the request shape.\n---\nComplete shape router.\n",
+        "which-skill.md": b"---\nname: which-skill\ndescription: Choose one engineering procedure.\n---\nComplete skill router.\n",
         "runtime.py": b"def verify_locator():\n    return True\n",
         "installer.py": b"raise SystemExit('fixture installer')\n",
     }

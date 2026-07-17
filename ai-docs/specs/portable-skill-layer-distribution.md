@@ -16,6 +16,7 @@ code_roots:
   - scripts/_lib/skill_activation.py
   - scripts/_lib/distribution_contracts.py
   - scripts/_lib/distribution_legacy.py
+  - scripts/_lib/native_discovery.py
   - scripts/_lib/skill_bundle.py
   - scripts/skill_bundle.py
   - scripts/_lib/skill_dispatch.py
@@ -35,6 +36,7 @@ code_roots:
   - tests/test_skill_dispatch.py
   - tests/test_skill_dispatch_runtime.py
   - tests/test_skill_installer_lifecycle.py
+  - tests/test_native_discovery.py
   - tests/test_portfolio_snapshots.py
   - tests/test_wp3_move_gate.py
   - tests/test_core_framework_leakage.py
@@ -669,7 +671,9 @@ evidence contract in the same logical change.
 | `scripts/_lib/skill_catalog.py` | inventory discovery and placement validation |
 | `scripts/_lib/binding_loader.py` | per-profile-root selection and execution evidence |
 | `scripts/_lib/skill_installer.py`, `scripts/skill_installer.py` | offline bundle and transactional lifecycle |
+| `scripts/_lib/native_discovery.py` | strict pinned native-discovery output parsing shared by lifecycle and evidence validation |
 | `tests/test_skill_installer_lifecycle.py` | lifecycle trust, migration, ownership, rollback, recovery, and denied-network regressions |
+| `tests/test_native_discovery.py` | malformed/duplicate/disabled/outside-root parser rejection and native command resource bounds |
 | `scripts/_lib/skill_dispatch.py` | trusted catalog locator, exact-one dispatcher, pack/result schemas, worker/fallback policy |
 | `scripts/_lib/skill_dispatch_runtime.py` | shared lock, cumulative budgets, protected staging/journal, verified result/artifact handoff, and cleanup lockout |
 | `scripts/_lib/distribution_legacy.py` | closed exact-known legacy layout and ownership-marker semantics |
@@ -715,9 +719,10 @@ evidence missing any field leaves IM-11 and AC-3.2 open.
 
 ## Deterministic interfaces and acceptance commands
 
-The current Slice 5 implementation provides a read-only matrix verifier.
+The current implementation provides the read-only matrix verifier, offline
+bundle/lifecycle surfaces, and the bounded Gemini-only native adapter.
 Acceptance commands below name only implemented commands and existing tests;
-later installer slices must extend this block when their interfaces land.
+later surface adapters must extend this block when their interfaces land.
 Checks must fail on stale artifacts rather than silently rewriting them.
 
 ```bash
@@ -727,6 +732,9 @@ PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q \
   tests/test_extract_enum_binding.py \
   tests/test_distribution_contract_schemas.py \
   tests/test_distribution_reference_tables.py \
+  tests/test_skill_bundle.py \
+  tests/test_native_discovery.py \
+  tests/test_skill_installer_lifecycle.py \
   tests/test_portfolio_snapshots.py \
   tests/test_distribution_surfaces.py \
   tests/test_wp3_move_gate.py \
@@ -865,6 +873,12 @@ Runtime collection and validation are `_run`, `_command_record`,
 `_expected_runtime_version`, `_probe_observed_version`, and
 `validate_runtime_evidence`. CLI entry points are `_load_json` and `main`.
 
+The shared native-discovery parser module contains
+`validate_gemini_skills_list_stderr`, `_strict_utf8`, and
+`parse_gemini_skills_list`. Its closed row type is `NativeSkillRow`; malformed,
+duplicate, disabled, missing-location, and outside-project Gemini rows fail
+closed.
+
 The offline trust-bundle module's byte/path helpers are `_freeze_json`, `raw_sha256`,
 `validate_relative_path`, `_root_path`, `_safe_path`, `_read_file`,
 `_write_file`, `_row`, `tree_rows`, `tree_sha256`, `_verify_row`,
@@ -914,8 +928,10 @@ The protected dispatch-runtime module's top-level filesystem helpers are
 `test_restart_preserves_cumulative_budget_and_rejects_monotonic_clock_reset`, and
 `test_invalid_workflow_id_fails_before_journal_mutation`.
 
-The transactional lifecycle module's exact 70 top-level functions are `_sha`,
-`_plain`, `_root_path`, `_native_adapter`, `_bundle_tables`,
+The transactional lifecycle module's exact 74 top-level functions are
+`_terminate_native_process`, `_run_native_command`,
+`_isolated_gemini_environment`, `_run_isolated_gemini`, `_sha`, `_plain`,
+`_root_path`, `_native_adapter`, `_bundle_tables`,
 `_derive_lifecycle_data`, `_verified_bundle_data`, `_migration_preview`, `_row`,
 `_relative`, `_safe_path`, `_atomic_write`, `_secure_parents`,
 `_rehash_manifest`, `_manifest_rows`, `_verify_regular`, `_verify_link`,

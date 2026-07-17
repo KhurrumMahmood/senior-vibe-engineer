@@ -348,8 +348,16 @@ def _surface_contract() -> dict[str, Any]:
                 "projection_format": f"{surface}-projection-v1",
                 **identities[surface],
                 "discovery": {
-                    "command": [surface, "list"],
-                    "parser_id": f"{surface}-list-v1",
+                    "command": (
+                        ["gemini", "skills", "list"]
+                        if surface == "gemini"
+                        else [surface, "list"]
+                    ),
+                    "parser_id": (
+                        "gemini-skills-list-v1"
+                        if surface == "gemini"
+                        else f"{surface}-list-v1"
+                    ),
                     "offline_non_model": True,
                 },
                 "activation": {

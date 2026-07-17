@@ -26,6 +26,11 @@ from typing import Any
 import yaml
 
 from _lib.capability_registry import CapabilityRegistry, load_registry
+from _lib.native_discovery import (
+    NativeDiscoveryParseError,
+    parse_gemini_skills_list,
+    validate_gemini_skills_list_stderr,
+)
 from _lib.skill_catalog import DEFAULT_INVENTORY_PATH, SkillCatalog, load_catalog
 
 
@@ -1121,14 +1126,17 @@ def collect_runtime_evidence(
         observed_version = (version_result.stdout + version_result.stderr).decode(
             "utf-8", errors="replace"
         )
-        exact_version = (
-            re.search(
-                rf"(?<![0-9.]){re.escape(expected_version)}(?![0-9.])",
-                observed_version,
+        exact_version = True
+        if expected_version:
+            exact_version = (
+                observed_version.strip() == expected_version
+                if surface == "gemini"
+                else re.search(
+                    rf"(?<![0-9.]){re.escape(expected_version)}(?![0-9.])",
+                    observed_version,
+                )
+                is not None
             )
-            if expected_version
-            else True
-        )
         if version_result.returncode != 0 or not exact_version:
             record["status"] = "unsupported"
             record["reason"] = f"runtime version does not match pinned {expected_version}"
@@ -1308,12 +1316,23 @@ def collect_runtime_evidence(
             command, root, discovery_result, bind_cwd=True
         )
         record["discovery_probes"] = [record["discovery_probe"]]
-        output = discovery_result.stdout.decode("utf-8", errors="replace")
         if surface == "gemini":
-            missing = [
-                name for name in invocation_names if f"\n{name} [Enabled]\n" not in f"\n{output}"
-            ]
-        if discovery_result.returncode == 0 and not missing and not structural_errors:
+            try:
+                validate_gemini_skills_list_stderr(discovery_result.stderr)
+                observed = {
+                    row.name
+                    for row in parse_gemini_skills_list(
+                        discovery_result.stdout, project_root=root
+                    )
+                }
+            except NativeDiscoveryParseError:
+                observed = set()
+            missing = sorted(set(invocation_names) - observed)
+        if (
+            discovery_result.returncode == 0
+            and observed == set(invocation_names)
+            and not structural_errors
+        ):
             record["status"] = "verified"
             record["reason"] = (
                 "runtime listed every canonical invocation from the isolated projection"
@@ -1525,11 +1544,21 @@ def validate_runtime_evidence(
             if version_probe.get("argv", [])[1:] != ["--version"]:
                 errors.append(f"{label}.version_probe did not execute --version")
             expected_version = _expected_runtime_version(surface, selected_registry)
-            if expected_version and not re.search(
-                rf"(?<![0-9.]){re.escape(expected_version)}(?![0-9.])",
-                _probe_observed_version(version_probe),
-            ):
-                errors.append(f"{label}.version_probe does not prove exact {expected_version}")
+            if expected_version:
+                observed_version = _probe_observed_version(version_probe)
+                exact_version = (
+                    observed_version.strip() == expected_version
+                    if surface == "gemini"
+                    else re.search(
+                        rf"(?<![0-9.]){re.escape(expected_version)}(?![0-9.])",
+                        observed_version,
+                    )
+                    is not None
+                )
+                if not exact_version:
+                    errors.append(
+                        f"{label}.version_probe does not prove exact {expected_version}"
+                    )
         elif status != "unavailable":
             errors.append(f"{label} has no version probe for a present runtime")
 
@@ -1689,9 +1718,17 @@ def validate_runtime_evidence(
                 errors.append(f"{label} did not use Gemini skills list discovery")
             if probes[0].get("cwd") != str(surface_root.resolve()):
                 errors.append(f"{label} Gemini discovery cwd differs from the surface fixture")
-            observed = set(
-                re.findall(r"(?m)^([a-z0-9]+(?:-[a-z0-9]+)*) \[Enabled\]$", probes[0]["stdout"])
-            )
+            try:
+                validate_gemini_skills_list_stderr(probes[0]["stderr"])
+                observed = {
+                    row.name
+                    for row in parse_gemini_skills_list(
+                        probes[0]["stdout"], project_root=surface_root
+                    )
+                }
+            except NativeDiscoveryParseError as exc:
+                errors.append(f"{label} Gemini discovery output is invalid: {exc}")
+                observed = set()
             if observed != set(expected_names):
                 errors.append(f"{label} Gemini discovery names differ from the inventory")
         elif surface == "augment":
