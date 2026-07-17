@@ -474,7 +474,7 @@ evidence contract in the same logical change.
 
 ### Slice 6 — Portfolios and transactional installer
 
-- [ ] IM-13: **Three portfolio snapshots.** Assert name, source hash, rendered
+- [x] IM-13: **Three portfolio snapshots.** Assert name, source hash, rendered
   hash, layer, selected binding, and alias sets for core-only,
   TypeScript/React, and Django. Core-only has zero framework-native content;
   TypeScript proves projection/selection without WP6 behavior; Django
