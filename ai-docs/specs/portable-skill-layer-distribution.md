@@ -19,6 +19,7 @@ code_roots:
   - scripts/_lib/skill_bundle.py
   - scripts/skill_bundle.py
   - scripts/_lib/skill_dispatch.py
+  - scripts/_lib/skill_dispatch_runtime.py
   - scripts/_lib/portfolio_snapshots.py
   - scripts/manifest.py
   - .claude/skills/_common/distribution
@@ -30,6 +31,7 @@ code_roots:
   - tests/test_distribution_reference_tables.py
   - tests/test_skill_bundle.py
   - tests/test_skill_dispatch.py
+  - tests/test_skill_dispatch_runtime.py
   - tests/test_portfolio_snapshots.py
   - tests/test_wp3_move_gate.py
   - tests/test_core_framework_leakage.py
@@ -877,6 +879,36 @@ The deterministic dispatcher module's input and scoring helpers are `_utf8`,
 `_boost_rules`, `_literal_boost_cues`, `route_shape`, `_infer_signal`,
 `_score_skill`, and `route_skill`. Its decision boundary is `_decision`,
 `_validate_router_result`, `_load_selected`, and `dispatch_selection`.
+
+The protected dispatch-runtime module's top-level filesystem helpers are
+`_real_directory` and `_write_protected`. Its regression module's helpers are
+`_closed_fixture_launcher_registry`, `_verified_bundle`, `_runtime`,
+`_launcher`, `_capability`, `_execute`, `_runtime_arguments`, `_pack`, and
+`_result`. Its executable cases are
+`test_runtime_enforces_protected_journal_selected_capability_and_raw_cleanup`,
+`test_unverified_or_mismatched_launcher_fails_before_raw_execution`,
+`test_arbitrary_lambda_with_fake_nonzero_accounting_is_never_executed`,
+`test_registered_wrapper_owns_accounting_and_replaces_worker_claims`,
+`test_verified_fixture_declaration_without_registered_adapter_is_unsupported`,
+`test_surface_declared_unsupported_fails_closed_before_launcher`,
+`test_wrong_project_root_fails_before_trusted_launcher`,
+`test_forged_contract_and_recomputed_digest_cannot_mint_runtime_trust`,
+`test_project_lock_and_duplicate_dispatch_fail_closed`,
+`test_separate_runtime_instances_reload_journal_under_shared_lock`,
+`test_state_root_is_canonical_and_cannot_be_selected_by_the_caller`,
+`test_multi_root_pack_locks_every_root_and_has_one_canonical_owner`,
+`test_cumulative_budget_deadline_serial_order_and_confirmed_retry`,
+`test_retry_binds_exact_recorded_terminal_result_and_unknown_stops`,
+`test_invalid_or_over_budget_result_becomes_minimal_failed_result_and_cleans`,
+`test_zero_usage_self_attestation_becomes_untrusted_failed_result`,
+`test_executor_exception_or_actual_deadline_overrun_blocks_implicit_retry`,
+`test_artifact_handoff_verifies_regular_contained_single_link_bytes`,
+`test_artifact_hard_link_and_journal_hard_link_fail_closed`,
+`test_startup_recovery_removes_stale_raw_dirs_and_cleanup_failure_blocks`,
+`test_startup_recovery_cleans_every_raw_entry_and_pending_journal`,
+`test_parent_lane_uses_same_accounting_but_allows_inherited_context`,
+`test_restart_preserves_cumulative_budget_and_rejects_monotonic_clock_reset`, and
+`test_invalid_workflow_id_fails_before_journal_mutation`.
 
 The phase-1 contract-schema test module also exceeds that threshold. Its
 validator/exemplar helpers are `_unique_object`, `_resolve_ref`, `_is_type`,
