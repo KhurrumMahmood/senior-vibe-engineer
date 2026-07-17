@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import re
 import unicodedata
@@ -401,11 +402,15 @@ def _installed_manifest() -> dict[str, Any]:
             {
                 "ownership_class": "bootstrap",
                 "surface_id": "claude-code",
-                **_file_row(".claude/skills/which-shape/SKILL.md"),
+                **_file_row(path),
             }
+            for path in (
+                ".claude/skills/which-shape/SKILL.md",
+                ".claude/skills/which-skill/SKILL.md",
+            )
         ],
         "bootstrap_trees": [
-            {"surface_id": "claude-code", "file_count": 1, "tree_sha256": HASH}
+            {"surface_id": "claude-code", "file_count": 2, "tree_sha256": HASH}
         ],
         "recovery": {
             "state": "clean",
@@ -469,6 +474,9 @@ def _skill_result() -> dict[str, Any]:
 
 
 def _dispatch_pack() -> dict[str, Any]:
+    body = "Do the selected work."
+    body_sha256 = hashlib.sha256(body.encode()).hexdigest()
+    arguments = "plan the feature"
     return {
         "schema_version": 1,
         "workflow_id": UUID,
@@ -485,14 +493,21 @@ def _dispatch_pack() -> dict[str, Any]:
             "canonical_name": "plan-feature",
             "public_name": "plan-feature",
             "selection_basis": "unique_winner",
-            "source_sha256": HASH,
-            "rendered_sha256": HASH,
+            "source_sha256": body_sha256,
+            "rendered_sha256": body_sha256,
         },
         "roots": [
             {"project_root": "/workspace", "profile_sha256": HASH, "bindings": []}
         ],
-        "task": {"arguments": "plan the feature", "sha256": HASH},
-        "procedure": {"body": "Do the selected work.", "raw_sha256": HASH, "rendered_sha256": HASH},
+        "task": {
+            "arguments": arguments,
+            "sha256": hashlib.sha256(canonical_json_bytes(arguments)).hexdigest(),
+        },
+        "procedure": {
+            "body": body,
+            "raw_sha256": body_sha256,
+            "rendered_sha256": body_sha256,
+        },
         "dependencies": [],
         "prior_result_sha256": None,
         "continuation_plan_sha256": None,
@@ -796,6 +811,125 @@ def test_im_14_strict_loader_rejects_duplicate_json_keys() -> None:
         json.loads('{"schema_version":1,"schema_version":1}', object_pairs_hook=_unique_object)
 
 
+@pytest.mark.parametrize(
+    ("name", "document"),
+    (
+        ("dispatch-pack-v1", _dispatch_pack()),
+        ("surface-activation-contract-v1", _surface_contract()),
+    ),
+)
+def test_production_validator_runs_structural_unknown_field_gate(
+    name: str, document: dict[str, Any]
+) -> None:
+    wrong_version_type = copy.deepcopy(document)
+    wrong_version_type["schema_version"] = True
+    _assert_semantically_invalid(
+        name, wrong_version_type, "schema_version: const differs"
+    )
+
+    document["private_trust_override"] = HASH
+
+    _assert_semantically_invalid(name, document, "unknown.*private_trust_override")
+
+
+def test_attempt_two_requires_a_new_dispatch_id() -> None:
+    prior = _dispatch_result()
+    prior.update(
+        {
+            "status": "failed",
+            "error_code": "worker_failed",
+            "error_message": "failed",
+            "failure_kind": "worker_failed",
+            "side_effect_disposition": "rolled_back",
+        }
+    )
+    retry = _dispatch_pack()
+    retry.update(
+        {
+            "prior_dispatch_id": prior["dispatch_id"],
+            "attempt_ordinal": 2,
+            "continuation_reason": "user_confirmed_worker_retry",
+            "prior_result_sha256": hashlib.sha256(
+                canonical_json_bytes(prior)
+            ).hexdigest(),
+            "continuation_plan_sha256": "b" * 64,
+            "budget": {
+                **retry["budget"],
+                "remaining_milliseconds": 1199999,
+                "remaining_total_tokens": 32753,
+                "remaining_output_tokens": 8187,
+            },
+        }
+    )
+
+    _assert_semantically_invalid(
+        "dispatch-pack-v1",
+        retry,
+        "dispatch_id must differ",
+        prior_result=prior,
+    )
+
+
+@pytest.mark.parametrize("attack", ("procedure", "binding", "task"))
+def test_dispatch_pack_hashes_actual_inline_content(attack: str) -> None:
+    pack = _dispatch_pack()
+    binding_body = "Apply the selected binding."
+    binding_digest = hashlib.sha256(binding_body.encode()).hexdigest()
+    pack["roots"][0]["bindings"] = [
+        {
+            "binding_id": "python",
+            "body": binding_body,
+            "raw_sha256": binding_digest,
+            "rendered_sha256": binding_digest,
+        }
+    ]
+    if attack == "procedure":
+        pack["procedure"]["body"] += " tampered"
+        match = "procedure.raw_sha256 must hash"
+    elif attack == "binding":
+        pack["roots"][0]["bindings"][0]["body"] += " tampered"
+        match = r"bindings\[0\].raw_sha256 must hash"
+    else:
+        pack["task"]["arguments"] += " tampered"
+        match = "task.sha256 must hash"
+
+    _assert_semantically_invalid("dispatch-pack-v1", pack, match)
+
+
+def test_manifest_rejects_cross_surface_router_paths_after_coherent_rehash() -> None:
+    manifest = _installed_manifest()
+    for row, path in zip(
+        manifest["generated_files"],
+        ("skills/which-shape/SKILL.md", "skills/which-skill/SKILL.md"),
+        strict=True,
+    ):
+        row["path"] = path
+    manifest["owned_paths"]["bootstrap_projections"] = [
+        {key: row[key] for key in ("path", "size", "sha256")}
+        for row in manifest["generated_files"]
+    ]
+    tree_rows = [
+        {key: row[key] for key in ("path", "size", "sha256")}
+        for row in manifest["generated_files"]
+    ]
+    manifest["bootstrap_trees"][0]["tree_sha256"] = hashlib.sha256(
+        canonical_json_bytes(tree_rows)
+    ).hexdigest()
+    manifest["manifest_sha256"] = hashlib.sha256(
+        canonical_json_bytes(
+            {
+                key: value
+                for key, value in manifest.items()
+                if key != "manifest_sha256"
+            }
+        )
+    ).hexdigest()
+
+    _assert_semantically_invalid(
+        "installed-manifest-v1", manifest, "exact surface router paths"
+    )
+
+
 def test_im_14_alias_and_legacy_tables_are_explicitly_empty_and_closed() -> None:
     aliases = _load_json(CONTRACT_ROOT / "aliases-v1.json")
     legacy = _load_json(CONTRACT_ROOT / "legacy-layouts-v1.json")
@@ -879,7 +1013,7 @@ def test_im_14_router_semantics_enforce_confidence_thresholds_and_ordering() -> 
     wrong_confidence = copy.deepcopy(shape)
     wrong_confidence["candidates"][0]["confidence"] = "medium"
     _assert_semantically_invalid(
-        "which-shape-result-v1", wrong_confidence, "confidence must be high"
+        "which-shape-result-v1", wrong_confidence, "confidence: const differs"
     )
 
     wrong_order = copy.deepcopy(shape)
@@ -936,6 +1070,32 @@ def test_im_14_router_semantics_enforce_confidence_thresholds_and_ordering() -> 
         "which-skill-result-v1", no_candidate, "requires quick=true or compatible candidates"
     )
 
+    zero_compatible_quick = _skill_result()
+    zero_compatible_quick.update(
+        {
+            "quick": True,
+            "status": "error",
+            "error": "no_compatible_candidate",
+            "excluded": [
+                {
+                    "canonical_name": "plan-feature",
+                    "public_name": "plan-feature",
+                    "score": 5,
+                    "exclusions": ["binding_incompatible"],
+                }
+            ],
+        }
+    )
+    validate_distribution_contract("which-skill-result-v1", zero_compatible_quick)
+
+    forged_zero_compatible = copy.deepcopy(zero_compatible_quick)
+    forged_zero_compatible["excluded"] = []
+    _assert_semantically_invalid(
+        "which-skill-result-v1",
+        forged_zero_compatible,
+        "requires zero candidates and at least one excluded row",
+    )
+
 
 def test_im_14_dispatch_pack_semantics_enforce_selection_and_digest_domains() -> None:
     pack = _dispatch_pack()
@@ -944,19 +1104,19 @@ def test_im_14_dispatch_pack_semantics_enforce_selection_and_digest_domains() ->
     user_confirmed = copy.deepcopy(pack)
     user_confirmed["selection"]["selection_basis"] = "user_confirmed"
     _assert_semantically_invalid(
-        "dispatch-pack-v1", user_confirmed, "user_confirmed requires clarification_id"
+        "dispatch-pack-v1", user_confirmed, "clarification_id: type differs"
     )
 
     wrong_initial_ordinal = copy.deepcopy(pack)
     wrong_initial_ordinal["workflow_pack_ordinal"] = 2
     _assert_semantically_invalid(
-        "dispatch-pack-v1", wrong_initial_ordinal, "initial_selection requires.*ordinal 1"
+        "dispatch-pack-v1", wrong_initial_ordinal, "workflow_pack_ordinal: const differs"
     )
 
     wrong_sequence_ordinal = copy.deepcopy(pack)
     wrong_sequence_ordinal["continuation_reason"] = "confirmed_sequence_step"
     _assert_semantically_invalid(
-        "dispatch-pack-v1", wrong_sequence_ordinal, "confirmed_sequence_step requires.*ordinal 2"
+        "dispatch-pack-v1", wrong_sequence_ordinal, "workflow_pack_ordinal: number is below minimum"
     )
 
     wrong_digest_domain = copy.deepcopy(pack)
@@ -978,7 +1138,7 @@ def test_im_14_dispatch_result_semantics_bind_pack_tuple_attempt_and_prior_resul
     tuple_attack = copy.deepcopy(result)
     tuple_attack["workflow_pack_ordinal"] = 2
     _assert_semantically_invalid(
-        "dispatch-result-v1", tuple_attack, "must repeat pack workflow_pack_ordinal", pack=pack
+        "dispatch-result-v1", tuple_attack, "workflow_pack_ordinal: const differs", pack=pack
     )
 
     prior = copy.deepcopy(result)
@@ -1083,12 +1243,13 @@ def test_im_14_semantic_validator_enforces_non_schema_byte_and_artifact_limits()
 
 def test_im_14_installed_manifest_semantics_enforce_surface_and_path_coherence() -> None:
     manifest = _installed_manifest()
-    bootstrap_file = manifest["generated_files"][0]
     manifest["owned_paths"]["bootstrap_projections"] = [
         {key: bootstrap_file[key] for key in ("path", "size", "sha256")}
+        for bootstrap_file in manifest["generated_files"]
     ]
     tree_rows = [
         {key: bootstrap_file[key] for key in ("path", "size", "sha256")}
+        for bootstrap_file in manifest["generated_files"]
     ]
     manifest["bootstrap_trees"][0]["tree_sha256"] = __import__("hashlib").sha256(
         canonical_json_bytes(tree_rows)

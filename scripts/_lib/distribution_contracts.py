@@ -30,6 +30,16 @@ ALIAS_ROW_FIELDS = frozenset(
     }
 )
 TABLE_NAMES = ("aliases-v1", "compatibility-v1", "legacy-layouts-v1")
+SCHEMA_NAMES = (
+    "release-root-v1",
+    "bundle-index-v1",
+    "installed-manifest-v1",
+    "surface-activation-contract-v1",
+    "which-shape-result-v1",
+    "which-skill-result-v1",
+    "dispatch-pack-v1",
+    "dispatch-result-v1",
+)
 SHAPE_ROUTER_ID = "which-shape-lexical-v1"
 SKILL_ROUTER_ID = "which-skill-overlap-v1"
 SKILL_THRESHOLD = 5
@@ -72,6 +82,25 @@ _SURFACE_COMPATIBILITY = {
     "codex": "0.144.1",
     "cursor": "project-rules-v1",
     "gemini": "0.45.0",
+}
+_SURFACE_ROUTER_PATHS = {
+    "augment": {
+        ".augment/rules/imported/which-shape/SKILL.md",
+        ".augment/rules/imported/which-skill/SKILL.md",
+    },
+    "claude-code": {
+        ".claude/skills/which-shape/SKILL.md",
+        ".claude/skills/which-skill/SKILL.md",
+    },
+    "codex": {"skills/which-shape/SKILL.md", "skills/which-skill/SKILL.md"},
+    "cursor": {
+        ".cursor/rules/which-shape/SKILL.mdc",
+        ".cursor/rules/which-skill/SKILL.mdc",
+    },
+    "gemini": {
+        ".gemini/skills/which-shape/SKILL.md",
+        ".gemini/skills/which-skill/SKILL.md",
+    },
 }
 
 
@@ -331,6 +360,133 @@ def _resolve_ref(root: dict[str, Any], ref: str) -> dict[str, Any]:
     return value
 
 
+def _is_schema_type(value: Any, expected: str) -> bool:
+    return {
+        "array": isinstance(value, list),
+        "boolean": type(value) is bool,
+        "integer": type(value) is int,
+        "null": value is None,
+        "number": type(value) in {int, float},
+        "object": isinstance(value, dict),
+        "string": isinstance(value, str),
+    }[expected]
+
+
+def _structural_errors(
+    value: Any,
+    schema: dict[str, Any],
+    root: dict[str, Any],
+    location: str = "$",
+) -> list[str]:
+    """Validate the dependency-free Draft 2020-12 subset used by all contracts."""
+    if "$ref" in schema:
+        referenced = _resolve_ref(root, schema["$ref"])
+        merged = dict(referenced)
+        merged.update({key: item for key, item in schema.items() if key != "$ref"})
+        return _structural_errors(value, merged, root, location)
+
+    errors: list[str] = []
+    expected_types = schema.get("type")
+    if expected_types is not None:
+        choices = [expected_types] if isinstance(expected_types, str) else expected_types
+        if not any(_is_schema_type(value, expected) for expected in choices):
+            return [f"{location}: type differs from {choices}"]
+    if "const" in schema and canonical_json_bytes(value) != canonical_json_bytes(
+        schema["const"]
+    ):
+        errors.append(f"{location}: const differs")
+    if "enum" in schema and not any(
+        canonical_json_bytes(value) == canonical_json_bytes(candidate)
+        for candidate in schema["enum"]
+    ):
+        errors.append(f"{location}: value is outside enum")
+
+    if isinstance(value, dict):
+        required = set(schema.get("required", ()))
+        missing = required - set(value)
+        if missing:
+            errors.append(f"{location}: missing {sorted(missing)}")
+        properties = schema.get("properties", {})
+        if schema.get("additionalProperties") is False:
+            unknown = set(value) - set(properties)
+            if unknown:
+                errors.append(f"{location}: unknown {sorted(unknown)}")
+        for key, item in value.items():
+            if key in properties:
+                errors.extend(
+                    _structural_errors(item, properties[key], root, f"{location}.{key}")
+                )
+    elif isinstance(value, list):
+        if len(value) < schema.get("minItems", 0):
+            errors.append(f"{location}: too few items")
+        if len(value) > schema.get("maxItems", len(value)):
+            errors.append(f"{location}: too many items")
+        if schema.get("uniqueItems"):
+            encoded = [canonical_json_bytes(item) for item in value]
+            if len(encoded) != len(set(encoded)):
+                errors.append(f"{location}: duplicate items")
+        item_schema = schema.get("items")
+        if isinstance(item_schema, dict):
+            for index, item in enumerate(value):
+                errors.extend(
+                    _structural_errors(item, item_schema, root, f"{location}[{index}]")
+                )
+        if "contains" in schema:
+            matches = sum(
+                not _structural_errors(item, schema["contains"], root, location)
+                for item in value
+            )
+            if matches < schema.get("minContains", 1):
+                errors.append(f"{location}: contains has too few matches")
+            if matches > schema.get("maxContains", matches):
+                errors.append(f"{location}: contains has too many matches")
+
+    if isinstance(value, str):
+        if len(value) < schema.get("minLength", 0):
+            errors.append(f"{location}: string is too short")
+        if len(value) > schema.get("maxLength", len(value)):
+            errors.append(f"{location}: string is too long")
+        if "pattern" in schema and re.search(schema["pattern"], value) is None:
+            errors.append(f"{location}: string does not match pattern")
+    if type(value) in {int, float}:
+        if value < schema.get("minimum", value):
+            errors.append(f"{location}: number is below minimum")
+        if value > schema.get("maximum", value):
+            errors.append(f"{location}: number is above maximum")
+
+    for subschema in schema.get("allOf", ()):
+        errors.extend(_structural_errors(value, subschema, root, location))
+    if "anyOf" in schema and not any(
+        not _structural_errors(value, item, root, location)
+        for item in schema["anyOf"]
+    ):
+        errors.append(f"{location}: no anyOf branch matched")
+    if "oneOf" in schema:
+        matches = sum(
+            not _structural_errors(value, item, root, location)
+            for item in schema["oneOf"]
+        )
+        if matches != 1:
+            errors.append(f"{location}: expected one oneOf match, got {matches}")
+    if "if" in schema:
+        branch = (
+            "then"
+            if not _structural_errors(value, schema["if"], root, location)
+            else "else"
+        )
+        if branch in schema:
+            errors.extend(_structural_errors(value, schema[branch], root, location))
+    return errors
+
+
+def structural_validation_errors(name: str, document: Any) -> list[str]:
+    """Return structural violations for one of the exact eight v1 contracts."""
+    if name not in SCHEMA_NAMES:
+        return [f"unknown distribution contract schema: {name}"]
+    schema = _schema(name)
+    return _structural_errors(document, schema, schema)
+
+
 def _annotation_errors(
     value: Any,
     schema: dict[str, Any],
@@ -438,6 +594,12 @@ def _skill_errors(document: dict[str, Any]) -> list[str]:
                 f"{field} must be sorted by descending score then UTF-8 canonical_name/public_name"
             )
     scores = [candidate["score"] for candidate in document["candidates"]]
+    zero_compatible_error = (
+        document["status"] == "error"
+        and document["error"] == "no_compatible_candidate"
+        and not document["candidates"]
+        and bool(document["excluded"])
+    )
     if document["status"] == "ok" and (not scores or max(scores) < SKILL_THRESHOLD):
         errors.append(f"status ok is invalid when every candidate is below threshold {SKILL_THRESHOLD}")
     if document["status"] == "proceed_directly" and not document["quick"] and any(
@@ -446,8 +608,16 @@ def _skill_errors(document: dict[str, Any]) -> list[str]:
         errors.append(
             f"status proceed_directly is invalid with a candidate at threshold {SKILL_THRESHOLD}"
         )
-    if document["quick"] and document["status"] != "proceed_directly":
+    if (
+        document["quick"]
+        and document["status"] != "proceed_directly"
+        and not zero_compatible_error
+    ):
         errors.append("quick=true requires status proceed_directly")
+    if document["error"] == "no_compatible_candidate" and not zero_compatible_error:
+        errors.append(
+            "no_compatible_candidate requires zero candidates and at least one excluded row"
+        )
     if (
         document["status"] == "proceed_directly"
         and not document["quick"]
@@ -513,6 +683,23 @@ def _pack_errors(
     if selection["rendered_sha256"] != procedure["rendered_sha256"]:
         errors.append("selection.rendered_sha256 must equal procedure.rendered_sha256")
 
+    procedure_digest = hashlib.sha256(procedure["body"].encode("utf-8")).hexdigest()
+    for field in ("raw_sha256", "rendered_sha256"):
+        if procedure[field] != procedure_digest:
+            errors.append(f"procedure.{field} must hash the exact procedure.body bytes")
+    expected_task_digest = canonical_sha256(document["task"]["arguments"])
+    if document["task"]["sha256"] != expected_task_digest:
+        errors.append("task.sha256 must hash canonical task.arguments")
+    for root_index, root in enumerate(document["roots"]):
+        for binding_index, binding in enumerate(root["bindings"]):
+            binding_digest = hashlib.sha256(binding["body"].encode("utf-8")).hexdigest()
+            for field in ("raw_sha256", "rendered_sha256"):
+                if binding[field] != binding_digest:
+                    errors.append(
+                        f"roots[{root_index}].bindings[{binding_index}].{field} "
+                        "must hash the exact binding.body bytes"
+                    )
+
     attempt = document["attempt_ordinal"]
     if attempt == 1:
         for field in (
@@ -533,6 +720,8 @@ def _pack_errors(
 
     if document["prior_dispatch_id"] != prior_result["dispatch_id"]:
         errors.append("prior_dispatch_id must equal prior_result.dispatch_id")
+    if document["dispatch_id"] == prior_result["dispatch_id"]:
+        errors.append("attempt 2 dispatch_id must differ from prior_result.dispatch_id")
     if document["prior_result_sha256"] != canonical_sha256(prior_result):
         errors.append("prior_result_sha256 must hash the exact canonical prior result")
     for field in ("workflow_id", "workflow_pack_ordinal"):
@@ -643,17 +832,38 @@ def _manifest_errors(document: dict[str, Any]) -> list[str]:
         errors.append("owned path values must be globally unique")
 
     for tree in document["bootstrap_trees"]:
+        surface_id = tree["surface_id"]
         rows = [
             {key: row[key] for key in ("path", "size", "sha256")}
             for row in generated
             if row["ownership_class"] == "bootstrap"
-            and row["surface_id"] == tree["surface_id"]
+            and row["surface_id"] == surface_id
         ]
         rows.sort(key=lambda row: _utf8(unicodedata.normalize("NFC", row["path"])))
         if tree["file_count"] != len(rows):
             errors.append(f"bootstrap tree {tree['surface_id']} file_count is inconsistent")
         if tree["tree_sha256"] != canonical_sha256(rows):
             errors.append(f"bootstrap tree {tree['surface_id']} digest is inconsistent")
+        paths = {row["path"] for row in rows}
+        required_router_paths = _SURFACE_ROUTER_PATHS[surface_id]
+        if not required_router_paths.issubset(paths):
+            errors.append(
+                f"bootstrap tree {surface_id} must contain exact surface router paths "
+                f"{sorted(required_router_paths)}"
+            )
+        foreign_router_paths = set().union(
+            *(
+                known_paths
+                for known_surface, known_paths in _SURFACE_ROUTER_PATHS.items()
+                if known_surface != surface_id
+            )
+        )
+        unexpected = sorted(paths & foreign_router_paths)
+        if unexpected:
+            errors.append(
+                f"bootstrap tree {surface_id} contains another surface's router path: "
+                f"{unexpected}"
+            )
 
     temporary_keys: list[tuple[str, str]] = []
     invocation_ids: list[str] = []
@@ -711,7 +921,10 @@ def validate_distribution_contract(
     pack: dict[str, Any] | None = None,
     prior_result: dict[str, Any] | None = None,
 ) -> None:
-    """Raise when a structurally valid contract violates ADR 0042 semantics."""
+    """Run the production structural and semantic gates for one exact contract."""
+    structural_errors = structural_validation_errors(name, document)
+    if structural_errors:
+        raise DistributionContractError("; ".join(structural_errors))
     errors = semantic_validation_errors(
         name,
         document,

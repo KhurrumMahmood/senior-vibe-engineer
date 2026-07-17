@@ -15,6 +15,8 @@ code_roots:
   - scripts/skill_meta.py
   - scripts/_lib/skill_activation.py
   - scripts/_lib/distribution_contracts.py
+  - scripts/_lib/skill_bundle.py
+  - scripts/skill_bundle.py
   - scripts/_lib/portfolio_snapshots.py
   - scripts/manifest.py
   - .claude/skills/_common/distribution
@@ -24,6 +26,7 @@ code_roots:
   - tests/test_distribution_surfaces.py
   - tests/test_distribution_contract_schemas.py
   - tests/test_distribution_reference_tables.py
+  - tests/test_skill_bundle.py
   - tests/test_portfolio_snapshots.py
   - tests/test_wp3_move_gate.py
   - tests/test_core_framework_leakage.py
@@ -850,6 +853,17 @@ Runtime collection and validation are `_run`, `_command_record`,
 `_expected_runtime_version`, `_probe_observed_version`, and
 `validate_runtime_evidence`. CLI entry points are `_load_json` and `main`.
 
+The offline trust-bundle module's byte/path helpers are `raw_sha256`,
+`validate_relative_path`, `_root_path`, `_safe_path`, `_read_file`,
+`_write_file`, `_row`, `tree_rows`, `tree_sha256`, `_verify_row`,
+`_strict_json_bytes`, `_unique_pairs`, `_reject_number`, and `_surface_map`.
+Its recipe/release graph is `_validate_recipe`, `_build_release_bundle`,
+`build_release_bundle`, `_verify_release_bundle`, `verify_release_bundle`,
+`_load_recipe`, and `_load_recipe_set`. New-image production and verification
+are `_materialize_install_image`, `materialize_install_image`,
+`_verify_surface_bootstrap`, `_verify_install_image`, `verify_install_image`,
+and `recipe_from_json`.
+
 The phase-1 contract-schema test module also exceeds that threshold. Its
 validator/exemplar helpers are `_unique_object`, `_resolve_ref`, `_is_type`,
 `_validation_errors`, `_assert_valid`, `_file_row`, `_release_root`,
@@ -874,3 +888,8 @@ and cases are `_assert_semantically_invalid`,
 `test_im_14_dispatch_result_semantics_bind_pack_tuple_attempt_and_prior_result`,
 `test_im_14_semantic_validator_enforces_non_schema_byte_and_artifact_limits`,
 and `test_im_14_installed_manifest_semantics_enforce_surface_and_path_coherence`.
+Its production-gate repair cases are
+`test_production_validator_runs_structural_unknown_field_gate`,
+`test_attempt_two_requires_a_new_dispatch_id`,
+`test_dispatch_pack_hashes_actual_inline_content`, and
+`test_manifest_rejects_cross_surface_router_paths_after_coherent_rehash`.
