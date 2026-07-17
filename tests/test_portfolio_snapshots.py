@@ -3,9 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from distribution_probe import build_bundle_inventory
 from _lib.portfolio_snapshots import (
     ACTIVATION_MODES,
+    PortfolioSnapshotError,
     SURFACE_CONTRACTS,
     build_portfolio_snapshots,
 )
@@ -14,6 +17,15 @@ from _lib.portfolio_snapshots import (
 ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT = ROOT / "tests/fixtures/wp3/portfolio-snapshots-v1.json"
 ROUTERS = ["which-shape", "which-skill"]
+FIXTURE_ALIAS = {
+    "public_name": "plan-feature-v1",
+    "canonical_target": "plan-feature",
+    "surface_spellings": {
+        surface: "plan-feature-v1" for surface in sorted(SURFACE_CONTRACTS)
+    },
+    "introduced_release": 1,
+    "retirement_release": None,
+}
 
 
 def _expected() -> dict:
@@ -131,10 +143,92 @@ def test_empty_versioned_alias_authority_exposes_the_im14_dependency_exactly() -
         for surface in portfolio["surfaces"].values():
             states = surface["states"]
             assert states["named-alias"] == {
+                "activation_records": [],
                 "available": False,
-                "dependency": "aliases-v1 has no public alias rows",
+                "reason": "no_alias_declared",
             }
             assert states["cumulative-canonical-alias"] == {
+                "activation_records": [],
                 "available": False,
-                "dependency": "aliases-v1 has no public alias rows",
+                "reason": "no_alias_declared",
             }
+
+
+def test_fixture_only_alias_exercises_available_states_without_release_leakage() -> None:
+    expected = _expected()
+    assert FIXTURE_ALIAS not in expected["alias_authority"]
+    actual = build_portfolio_snapshots(
+        ROOT,
+        aliases=[FIXTURE_ALIAS],
+        host_owned_by_surface=expected["host_owned_by_surface"],
+    )
+
+    for portfolio in actual["portfolios"].values():
+        assert portfolio["aliases"] == [FIXTURE_ALIAS]
+        for surface in portfolio["surfaces"].values():
+            named = surface["states"]["named-alias"]
+            cumulative = surface["states"]["cumulative-canonical-alias"]
+            assert named["canonical_procedures"] == [
+                "plan-feature",
+                "which-shape",
+                "which-skill",
+            ]
+            assert named["public_names"] == [
+                "plan-feature-v1",
+                "which-shape",
+                "which-skill",
+            ]
+            assert named["activation_records"] == [
+                {
+                    "public_name": "plan-feature-v1",
+                    "canonical_target": "plan-feature",
+                }
+            ]
+            assert cumulative["public_names"] == [
+                "plan-feature",
+                "plan-feature-v1",
+                "which-shape",
+                "which-skill",
+            ]
+            assert len(cumulative["activation_records"]) == 2
+
+
+@pytest.mark.parametrize(
+    ("alias", "message"),
+    [
+        (
+            {
+                key: value
+                for key, value in FIXTURE_ALIAS.items()
+                if key != "retirement_release"
+            },
+            "must contain exactly",
+        ),
+        (
+            {
+                **FIXTURE_ALIAS,
+                "surface_spellings": {
+                    key: value
+                    for key, value in FIXTURE_ALIAS["surface_spellings"].items()
+                    if key != "gemini"
+                },
+            },
+            "must name exactly all five surfaces",
+        ),
+        (
+            {
+                **FIXTURE_ALIAS,
+                "surface_spellings": {
+                    **FIXTURE_ALIAS["surface_spellings"],
+                    "codex": "engineering-skills:plan-feature-v1",
+                },
+            },
+            "must all equal public_name",
+        ),
+        ({**FIXTURE_ALIAS, "introduced_release": True}, "positive integer"),
+        ({**FIXTURE_ALIAS, "retirement_release": 0}, "at least introduced_release"),
+    ],
+)
+def test_alias_contract_rejects_nonconforming_rows(alias: dict, message: str) -> None:
+    with pytest.raises(PortfolioSnapshotError, match=message):
+        build_portfolio_snapshots(ROOT, aliases=[alias])

@@ -41,7 +41,6 @@ SURFACE_CONTRACTS: dict[str, dict[str, str]] = {
     },
 }
 _PUBLIC_NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-_VERSIONED_ALIAS = re.compile(r"^(.+)-v([1-9][0-9]*)$")
 
 
 class PortfolioSnapshotError(ValueError):
@@ -79,30 +78,54 @@ def _resolve_aliases(
     rows: list[dict[str, Any]] = []
     direct: dict[str, str] = {}
     for index, raw in enumerate(aliases):
-        if not isinstance(raw, Mapping) or set(raw) != {"name", "target", "version"}:
+        required = {
+            "public_name",
+            "canonical_target",
+            "surface_spellings",
+            "introduced_release",
+            "retirement_release",
+        }
+        if not isinstance(raw, Mapping) or set(raw) != required:
             raise PortfolioSnapshotError(
-                f"aliases[{index}] must contain exactly name, target, and version"
+                f"aliases[{index}] must contain exactly {sorted(required)}"
             )
-        name = raw["name"]
-        target = raw["target"]
-        version = raw["version"]
-        match = _VERSIONED_ALIAS.fullmatch(name) if isinstance(name, str) else None
-        if (
-            match is None
-            or not _PUBLIC_NAME.fullmatch(name)
-            or not isinstance(version, int)
-            or isinstance(version, bool)
-            or int(match.group(2)) != version
-        ):
-            raise PortfolioSnapshotError(
-                f"alias {name!r} must be a safe public name ending in its -v<version>"
-            )
+        name = raw["public_name"]
+        target = raw["canonical_target"]
+        spellings = raw["surface_spellings"]
+        introduced = raw["introduced_release"]
+        retirement = raw["retirement_release"]
+        if not isinstance(name, str) or _PUBLIC_NAME.fullmatch(name) is None:
+            raise PortfolioSnapshotError(f"alias {name!r} is not a safe public name")
         if not isinstance(target, str):
             raise PortfolioSnapshotError(f"alias {name!r} target must be a string")
+        if not isinstance(spellings, Mapping) or set(spellings) != set(SURFACE_CONTRACTS):
+            raise PortfolioSnapshotError(
+                f"alias {name!r} surface spellings must name exactly all five surfaces"
+            )
+        if any(value != name for value in spellings.values()):
+            raise PortfolioSnapshotError(
+                f"alias {name!r} surface spellings must all equal public_name"
+            )
+        if (
+            not isinstance(introduced, int)
+            or isinstance(introduced, bool)
+            or introduced < 1
+        ):
+            raise PortfolioSnapshotError(
+                f"alias {name!r} introduced_release must be a positive integer"
+            )
+        if retirement is not None and (
+            not isinstance(retirement, int)
+            or isinstance(retirement, bool)
+            or retirement < introduced
+        ):
+            raise PortfolioSnapshotError(
+                f"alias {name!r} retirement_release must be null or at least introduced_release"
+            )
         if name in canonical_names or name in direct:
             raise PortfolioSnapshotError(f"alias collision: {name!r}")
         direct[name] = target
-        rows.append({"name": name, "target": target, "version": version})
+        rows.append(dict(raw))
 
     known = canonical_names | set(direct)
     resolved: dict[str, str] = {}
@@ -116,7 +139,7 @@ def _resolve_aliases(
             visited.add(target)
             target = direct[target]
         resolved[name] = target
-    return sorted(rows, key=lambda row: row["name"]), resolved
+    return sorted(rows, key=lambda row: row["public_name"]), resolved
 
 
 def _binding_source(skill_root: Path, entry: SkillCatalogEntry, binding: str) -> Path:
@@ -241,8 +264,9 @@ def _surface_states(
     )
     if not aliases:
         alias_state: dict[str, Any] = {
+            "activation_records": [],
             "available": False,
-            "dependency": "aliases-v1 has no public alias rows",
+            "reason": "no_alias_declared",
         }
         cumulative_state = dict(alias_state)
     elif not usable_aliases:
@@ -348,13 +372,9 @@ def build_portfolio_snapshots(
         rows = [row for row, _content in rows_and_content]
         names = [row["name"] for row in rows]
         portfolio_alias_rows = [
-            {
-                "canonical_target": target,
-                "public_name": name,
-                "version": next(row["version"] for row in alias_rows if row["name"] == name),
-            }
-            for name, target in sorted(resolved_aliases.items())
-            if target in names
+            dict(row)
+            for row in alias_rows
+            if resolved_aliases[row["public_name"]] in names
         ]
         surface_snapshots = {
             surface: _surface_states(
