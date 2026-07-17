@@ -1199,14 +1199,23 @@ def _restore_from_journal(project: Path, journal: Mapping[str, Any]) -> None:
 def _recover(project: Path) -> None:
     journal_path = project / JOURNAL_PATH
     journal = _journal_record(journal_path)
+    transaction_paths = sorted(project.glob(f"{TRANSACTION_PREFIX}*"))
     if journal is None or journal["state"] == "clean":
-        for orphan in project.glob(f"{TRANSACTION_PREFIX}*"):
-            marker = orphan / "owner-v1"
-            if marker.is_file() and marker.read_text(encoding="ascii") == "engineering-skills\n":
-                shutil.rmtree(orphan)
+        if transaction_paths:
+            raise LifecycleError(
+                "unbound transaction artifacts require manual quarantine: "
+                + ", ".join(path.name for path in transaction_paths)
+            )
         return
     if journal["state"] == "blocked":
         raise LifecycleError("recovery journal is blocked and requires manual restoration")
+    bound_transaction = project / journal["transaction_path"]
+    unbound = [path for path in transaction_paths if path != bound_transaction]
+    if unbound:
+        raise LifecycleError(
+            "unbound transaction artifacts block journal recovery: "
+            + ", ".join(path.name for path in unbound)
+        )
     try:
         _restore_from_journal(project, journal)
     except (OSError, LifecycleError) as exc:

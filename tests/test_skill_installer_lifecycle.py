@@ -258,6 +258,81 @@ def test_failed_native_proof_restores_exact_prior_tree(
     assert verify(project)["bundle_version"] == "1.0.0"
 
 
+def test_marker_only_orphan_never_authorizes_recursive_deletion(
+    tmp_path: Path, discovery: FilesystemDiscovery
+) -> None:
+    request = _bundle(tmp_path, "orphan-attack")
+    project = tmp_path / "project"
+    orphan = project / f"{TRANSACTION_PREFIX}{uuid.uuid4()}"
+    orphan.mkdir(parents=True)
+    (orphan / "owner-v1").write_bytes(b"engineering-skills\n")
+    host = orphan / "HOST.txt"
+    host.write_bytes(b"host-owned\n")
+
+    with pytest.raises(LifecycleError, match="manual quarantine"):
+        install(project, request)
+
+    assert host.read_bytes() == b"host-owned\n"
+    assert orphan.is_dir()
+    assert not (project / MANIFEST_PATH).exists()
+
+
+def test_bound_startup_journal_restores_legitimate_interrupted_transaction(
+    tmp_path: Path, discovery: FilesystemDiscovery
+) -> None:
+    request = _bundle(tmp_path, "legitimate-recovery")
+    project = tmp_path / "project"
+    manifest = install(project, request)
+    target_relative = ".claude/skills/which-shape/SKILL.md"
+    target = project / target_relative
+    target_bytes = target.read_bytes()
+    clean_journal = (project / JOURNAL_PATH).read_bytes()
+    transaction_id = str(uuid.uuid4())
+    transaction_relative = f"{TRANSACTION_PREFIX}{transaction_id}"
+    transaction = project / transaction_relative
+    (transaction / "backup" / Path(MANIFEST_PATH).parent).mkdir(parents=True)
+    (transaction / "owner-v1").write_bytes(b"engineering-skills\n")
+    shutil.copy2(project / MANIFEST_PATH, transaction / "backup" / MANIFEST_PATH)
+    shutil.copy2(project / STATE_PATH, transaction / "backup" / STATE_PATH)
+    for relative, content in (
+        (target_relative, target_bytes),
+        (JOURNAL_PATH, clean_journal),
+    ):
+        backup = transaction / "backup" / relative
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        backup.write_bytes(content)
+    changes = [
+        {
+            "path": relative,
+            "existed": True,
+            "kind": "file",
+            "size": len(content),
+            "sha256": _sha(content),
+            "link_target": None,
+        }
+        for relative, content in sorted(
+            ((target_relative, target_bytes), (JOURNAL_PATH, clean_journal))
+        )
+    ]
+    journal = {
+        "schema_version": 1,
+        "state": "committing",
+        "operation": "update",
+        "transaction_id": transaction_id,
+        "prior_manifest_sha256": manifest["manifest_sha256"],
+        "desired_manifest_sha256": None,
+        "transaction_path": transaction_relative,
+        "changes": changes,
+    }
+    target.unlink()
+    (project / JOURNAL_PATH).write_bytes(canonical_json_bytes(journal))
+
+    assert verify(project)["manifest_sha256"] == manifest["manifest_sha256"]
+    assert target.read_bytes() == target_bytes
+    assert (project / JOURNAL_PATH).read_bytes() == clean_journal
+    assert not transaction.exists()
+
+
 def test_forged_canonical_journal_cannot_delete_host_file(
     tmp_path: Path, discovery: FilesystemDiscovery
 ) -> None:

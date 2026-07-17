@@ -20,6 +20,8 @@ code_roots:
   - scripts/skill_bundle.py
   - scripts/_lib/skill_dispatch.py
   - scripts/_lib/skill_dispatch_runtime.py
+  - scripts/_lib/skill_installer.py
+  - scripts/skill_installer.py
   - scripts/_lib/portfolio_snapshots.py
   - scripts/manifest.py
   - .claude/skills/_common/distribution
@@ -32,6 +34,7 @@ code_roots:
   - tests/test_skill_bundle.py
   - tests/test_skill_dispatch.py
   - tests/test_skill_dispatch_runtime.py
+  - tests/test_skill_installer_lifecycle.py
   - tests/test_portfolio_snapshots.py
   - tests/test_wp3_move_gate.py
   - tests/test_core_framework_leakage.py
@@ -666,6 +669,7 @@ evidence contract in the same logical change.
 | `scripts/_lib/skill_catalog.py` | inventory discovery and placement validation |
 | `scripts/_lib/binding_loader.py` | per-profile-root selection and execution evidence |
 | `scripts/_lib/skill_installer.py`, `scripts/skill_installer.py` | offline bundle and transactional lifecycle |
+| `tests/test_skill_installer_lifecycle.py` | lifecycle trust, migration, ownership, rollback, recovery, and denied-network regressions |
 | `scripts/_lib/skill_dispatch.py` | trusted catalog locator, exact-one dispatcher, pack/result schemas, worker/fallback policy |
 | `scripts/_lib/skill_dispatch_runtime.py` | shared lock, cumulative budgets, protected staging/journal, verified result/artifact handoff, and cleanup lockout |
 | `scripts/_lib/distribution_legacy.py` | closed exact-known legacy layout and ownership-marker semantics |
@@ -909,6 +913,27 @@ The protected dispatch-runtime module's top-level filesystem helpers are
 `test_parent_lane_uses_same_accounting_but_allows_inherited_context`,
 `test_restart_preserves_cumulative_budget_and_rejects_monotonic_clock_reset`, and
 `test_invalid_workflow_id_fails_before_journal_mutation`.
+
+The transactional lifecycle module's exact 70 top-level functions are `_sha`,
+`_plain`, `_root_path`, `_native_adapter`, `_bundle_tables`,
+`_derive_lifecycle_data`, `_verified_bundle_data`, `_migration_preview`, `_row`,
+`_relative`, `_safe_path`, `_atomic_write`, `_secure_parents`,
+`_rehash_manifest`, `_manifest_rows`, `_verify_regular`, `_verify_link`,
+`_validate_input`, `_surface_records`, `_clean_journal`, `_state_payload`,
+`_load_state`, `_copy_object`, `_copy_base`, `_projection_path`,
+`_render_projections`, `_snapshot_current`, `_add_snapshot_rows`,
+`_compute_owned_directories`, `_finalize_stage`, `_verify_owned`,
+`_expected_discovery`, `_prove_discovery`, `_prove_uninstalled_discovery`,
+`_capture_host_discovery`, `_project_lock`, `_read_manifest`, `_journal_record`,
+`_prune_owned_directories`, `_load_bound_manifest`, `_authority_from_state`,
+`_authenticate_journal`, `_restore_from_journal`, `_recover`, `_current`,
+`_object_identity`, `_commit`, `_prepare`, `_execute`, `_install_verified`,
+`_verify_with_adapter`, `_version_key`, `_update_verified`, `_transition`,
+`_activate_with_adapter`, `_deactivate_with_adapter`, `_set_mode_with_adapter`,
+`_rollback_with_adapter`, `_uninstall_with_adapter`,
+`_execute_unlocked_uninstall`, `_installed_adapter`, `preview_migration`,
+`install`, `verify`, `update`, `activate`, `deactivate`, `set_mode`, `rollback`,
+and `uninstall`.
 
 The phase-1 contract-schema test module also exceeds that threshold. Its
 validator/exemplar helpers are `_unique_object`, `_resolve_ref`, `_is_type`,
