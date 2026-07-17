@@ -277,14 +277,7 @@ def test_quick_classification_cannot_hide_zero_compatible_candidates() -> None:
         )
     )
 
-    # Integration dependency: the trust lane is repairing the production
-    # validator so the higher-precedence no-compatible error can coexist with
-    # exact quick=true classification.  Keep this scorer/outcome test isolated
-    # from that owned repair through the explicit validator seam.
-    def trust_lane_pending(_name: str, _document: dict[str, object]) -> None:
-        return None
-
-    result = route_skill("quick typo", catalog, validate_contract=trust_lane_pending)
+    result = route_skill("quick typo", catalog)
 
     assert result["quick"] is True
     assert result["status"] == "error"
