@@ -9,8 +9,14 @@ assumes: ["manifest diffs need identity stable across line movement and producer
 revisit_when: ["a collision is observed or the manifest scale makes a 96-bit truncated digest inadequate", "semantic anchors cannot remain stable for a supported detector family", "cross-repository finding continuity becomes a product requirement"]
 supersedes: []
 superseded_by: null
-applies_to: [.claude/tasks/sweep-prototype/, scripts/_lib/finding_identity.py]
-embodied_by: ["script:scripts/_lib/finding_identity.py", "contract:tests/test_finding_identity.py", "pending:WP5 migrates the ADR 0036 prototype manifest and emits v1 legacy aliases"]
+applies_to:
+  - scripts/_lib/finding_identity.py
+  - scripts/sweep/manifest.py
+embodied_by:
+  - "script:scripts/_lib/finding_identity.py"
+  - "script:scripts/sweep/manifest.py"
+  - "contract:tests/test_finding_identity.py"
+  - "contract:tests/test_sweep_manifest.py"
 tags: [sweep, finding-id, schema, manifests, mixed-language]
 related_smell: format-equivalence-gap
 related_pattern: null
@@ -79,14 +85,17 @@ and mixed-language manifests do not collide accidentally. Identity migrations
 are visible and auditable.
 
 Every detector must produce a stable semantic anchor and deterministic
-occurrence. WP5 must migrate prototype baselines rather than pretending v1 and
-v2 ids are equal. Silent duplicate-id deduplication and filesystem-dependent
-case guessing are disallowed.
+occurrence. The productized manifest reader migrates prototype identities by
+retaining their v1 values as explicit `legacy_ids`; it does not pretend v1 and
+v2 identities are equal. Silent duplicate-id deduplication and
+filesystem-dependent case guessing are disallowed.
 
 ## Verification
 
 `tests/test_finding_identity.py` adversarially covers line/tool changes,
 missing-symbol multiplicity, provider/language namespaces, case policy,
-rename/move aliases, path escape, and absolute-path normalization. WP5 adds a
-manifest-level collision test and a v1-to-v2 migration fixture before it
-retires the prototype identity function.
+rename/move aliases, path escape, and absolute-path normalization.
+`tests/test_sweep_manifest.py` covers deterministic occurrence assignment,
+unequal-payload collision rejection, semantic-rule revisions, alias
+ambiguity/cycles, manifest version gates, and prototype-v1 to identity-v2
+migration with explicit legacy aliases.

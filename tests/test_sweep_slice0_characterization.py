@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
+import yaml
 
 from _lib.finding_identity import FindingIdentity, finding_record
 from sweep import schemas
@@ -226,6 +227,56 @@ def test_ar_12_wp5_does_not_take_adr_0003_or_ac_8_9_ownership():
     assert "status: proposed" in adr
     assert "pending:portable-skill-ecosystem-completion AC-8.9 formal disposition" in adr
     assert "0026 → 0027 → 0028 → 0029/0030 → 0003" in " ".join(plan.split())
+
+
+# spec:portable-batch-sweep::IM-16
+def test_im_16_decision_embodiment_names_only_productized_paths() -> None:
+    def frontmatter(decision: str) -> dict[str, object]:
+        source = ROOT.joinpath("ai-docs/decisions", decision).read_text(encoding="utf-8")
+        return yaml.safe_load(source.split("---", 2)[1])
+
+    sweep = frontmatter("0036-batch-sweep-harness.md")
+    identity = frontmatter("0040-stable-finding-identity-v2.md")
+    ledger = frontmatter("0003-canonical-findings-ledger.md")
+
+    assert sweep["applies_to"] == [
+        "scripts/sweep/",
+        "scripts/sweep_shims.py",
+        "scripts/status.py",
+        "scripts/queue_status.py",
+    ]
+    assert sweep["embodied_by"] == [
+        "script:scripts/sweep/__main__.py",
+        "script:scripts/sweep/commands.py",
+        "script:scripts/sweep/manifest.py",
+        "script:scripts/sweep/pipeline.py",
+        "script:scripts/sweep_shims.py",
+        "script:scripts/status.py",
+        "script:scripts/queue_status.py",
+        "contract:tests/test_sweep_cli.py",
+        "contract:tests/test_sweep_manifest.py",
+        "contract:tests/test_sweep_pipeline.py",
+        "contract:tests/test_sweep_live_pipeline.py",
+    ]
+    assert identity["applies_to"] == [
+        "scripts/_lib/finding_identity.py",
+        "scripts/sweep/manifest.py",
+    ]
+    assert identity["embodied_by"] == [
+        "script:scripts/_lib/finding_identity.py",
+        "script:scripts/sweep/manifest.py",
+        "contract:tests/test_finding_identity.py",
+        "contract:tests/test_sweep_manifest.py",
+    ]
+    assert not any(
+        str(value).startswith("pending:")
+        for decision in (sweep, identity)
+        for value in decision["embodied_by"]
+    )
+    assert ledger["status"] == "proposed"
+    assert ledger["embodied_by"] == [
+        "pending:portable-skill-ecosystem-completion AC-8.9 formal disposition"
+    ]
 
 
 def test_im_2_adversarial_bad_schemas_are_rejected_before_good_schemas():
