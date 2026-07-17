@@ -7,13 +7,25 @@ import os
 import stat
 from dataclasses import replace
 from pathlib import Path
+from typing import Any, Callable
 
 import pytest
 
-from _lib.distribution_contracts import canonical_sha256
+import _lib.skill_dispatch_runtime as runtime_module
+from _lib.distribution_contracts import canonical_json_bytes, canonical_sha256
+from _lib.skill_bundle import (
+    INSTALLED_MANIFEST_PATH,
+    BlobSource,
+    VerifiedBundle,
+    build_release_bundle,
+    verify_release_bundle,
+)
 from _lib.skill_dispatch_runtime import (
+    DispatchExecutionEvidence,
+    DispatchLauncherIdentity,
     DispatchRuntime,
     DispatchRuntimeError,
+    RepositoryDispatchLauncher,
     VerifiedExecutorCapability,
 )
 
@@ -54,8 +66,9 @@ SURFACE_CONTRACT = {
                 "startup_cleanup": None,
             },
             "worker": {
+                # Fixture-only adapter contract; this is not native Codex evidence.
                 "fresh_worker": "verified",
-                "launcher": "codex-fresh-worker-v1",
+                "launcher": "repository-fixture-wrapper-v1",
                 "version_range": {"lower": "0.144.1", "upper": "0.144.1"},
                 "selected_procedure_injection": "dispatch-pack-stdin-v1",
                 "cancellation": "process-group-cancel-v1",
@@ -133,6 +146,13 @@ for _surface_id, _version in (
 SURFACE_CONTRACT_SHA256 = canonical_sha256(SURFACE_CONTRACT)
 
 
+@pytest.fixture(autouse=True)
+def _closed_fixture_launcher_registry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(runtime_module, "_REPOSITORY_LAUNCHER_TYPES", {})
+
+
 class Clock:
     def __init__(self, value: int = 10_000_000_000) -> None:
         self.value = value
@@ -144,33 +164,214 @@ class Clock:
         self.value += milliseconds * 1_000_000
 
 
+def _verified_bundle(
+    root: Path,
+    *,
+    surface_contract: dict[str, Any] = SURFACE_CONTRACT,
+    name: str = "bundle",
+) -> VerifiedBundle:
+    source = root / f"{name}-source"
+    bundle = root / name
+    if not bundle.exists():
+        source.mkdir(parents=True)
+        files = {
+            "catalog.json": b'{"schema_version":1,"skills":[]}',
+            "registry.json": b'{"contract_version":1,"schema_version":1}',
+            "profile.json": b'{"schema_version":1}',
+            "which-shape.md": b"---\nname: which-shape\n---\nShape router.\n",
+            "which-skill.md": b"---\nname: which-skill\n---\nSkill router.\n",
+            "runtime.py": b"def verify_locator():\n    return True\n",
+            "installer.py": b"raise SystemExit('fixture installer')\n",
+        }
+        for path, content in files.items():
+            source.joinpath(path).write_bytes(content)
+        source.joinpath("surface-contract.json").write_bytes(canonical_json_bytes(surface_contract))
+        recipe = {
+            "schema_version": 1,
+            "surface_id": "codex",
+            "manifest_locator": INSTALLED_MANIFEST_PATH,
+            "bootstrap_metadata_path": ".engineering/bootstrap/codex/bootstrap-v1.json",
+            "routers": [
+                {
+                    "canonical_name": "which-shape",
+                    "blob_id": "which-shape",
+                    "path": "skills/which-shape/SKILL.md",
+                },
+                {
+                    "canonical_name": "which-skill",
+                    "blob_id": "which-skill",
+                    "path": "skills/which-skill/SKILL.md",
+                },
+            ],
+            "runtime_files": [
+                {
+                    "blob_id": "router-runtime",
+                    "path": ".engineering/bootstrap/codex/runtime.py",
+                }
+            ],
+        }
+        source.joinpath("recipe.json").write_bytes(canonical_json_bytes(recipe))
+        blobs = [
+            BlobSource("catalog", "catalog", "catalog.json", "application/json"),
+            BlobSource("registry", "registry", "registry.json", "application/json"),
+            BlobSource("profile", "required-profile", "profile.json", "application/json"),
+            BlobSource("router", "which-shape", "which-shape.md", "text/markdown"),
+            BlobSource("router", "which-skill", "which-skill.md", "text/markdown"),
+            BlobSource("asset", "router-runtime", "runtime.py", "text/x-python"),
+            BlobSource("projection-recipe", "codex-bootstrap", "recipe.json", "application/json"),
+        ]
+        digest = build_release_bundle(
+            source,
+            bundle,
+            bundle_version="fixture-1",
+            blobs=blobs,
+            installer="installer.py",
+            surface_activation_contract="surface-contract.json",
+        )
+    else:
+        digest = hashlib.sha256(bundle.joinpath("release-root-v1.json").read_bytes()).hexdigest()
+    return verify_release_bundle(bundle, digest)
+
+
 def _runtime(tmp_path: Path, clock: Clock | None = None) -> DispatchRuntime:
     project = tmp_path / "project"
     project.mkdir(parents=True)
     return DispatchRuntime(
         project,
         surface_id="codex",
-        surface_contract=SURFACE_CONTRACT,
-        expected_surface_contract_sha256=SURFACE_CONTRACT_SHA256,
+        verified_bundle=_verified_bundle(tmp_path),
         clock_ns=clock or Clock(),
     )
 
 
+class FixtureDispatchLauncher(RepositoryDispatchLauncher):
+    def __init__(
+        self,
+        identity: DispatchLauncherIdentity,
+        execute: Callable[[dict[str, object], Path], dict[str, object]],
+        accounting: tuple[int, int, int] | None = None,
+    ) -> None:
+        self._identity = identity
+        self._execute = execute
+        self._accounting = accounting
+
+    @property
+    def identity(self) -> DispatchLauncherIdentity:
+        return self._identity
+
+    def launch(self, pack: dict[str, object], invocation_root: Path) -> DispatchExecutionEvidence:
+        result = self._execute(pack, invocation_root)
+        input_tokens, output_tokens, elapsed_milliseconds = self._accounting or (
+            result["input_tokens"],
+            result["output_tokens"],
+            result["elapsed_milliseconds"],
+        )
+        return DispatchExecutionEvidence(
+            result=result,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            elapsed_milliseconds=elapsed_milliseconds,
+            capability_declaration_sha256=self.identity.capability_declaration_sha256,
+            launcher_configuration_sha256=self.identity.configuration_sha256,
+            deadline_enforced=True,
+            cancellation_enforced=True,
+            result_handoff_enforced=True,
+        )
+
+
+def _launcher(
+    runtime: DispatchRuntime,
+    execute: Callable[[dict[str, object], Path], dict[str, object]],
+    *,
+    lane: str = "fresh-worker",
+    inherited_conversation_turns: int | None = None,
+    accounting: tuple[int, int, int] | None = None,
+) -> FixtureDispatchLauncher:
+    inherited = (
+        inherited_conversation_turns
+        if inherited_conversation_turns is not None
+        else (0 if lane == "fresh-worker" else 7)
+    )
+    capability = VerifiedExecutorCapability._from_verified_surface_contract(
+        surface_contract=runtime.surface_contract,
+        surface_contract_sha256=runtime.surface_contract_sha256,
+        surface_id=runtime.surface_id,
+        lane=lane,
+        inherited_conversation_turns=inherited,
+    )
+    surface = next(
+        row
+        for row in runtime.surface_contract["surfaces"]
+        if row["surface_id"] == runtime.surface_id
+    )
+    launcher_id = (
+        surface["worker"]["launcher"]
+        if lane == "fresh-worker"
+        else runtime_module._PARENT_LAUNCHER_ID
+    )
+    configuration_sha256 = canonical_sha256(
+        {
+            "schema_version": 1,
+            "release_root_sha256": runtime.release_root_sha256,
+            "bundle_index_sha256": runtime.bundle_index_sha256,
+            "surface_contract_sha256": runtime.surface_contract_sha256,
+            "surface_id": runtime.surface_id,
+            "lane": lane,
+            "launcher_id": launcher_id,
+            "worker_declaration_sha256": capability.worker_declaration_sha256,
+        }
+    )
+    identity = DispatchLauncherIdentity(
+        surface_id=runtime.surface_id,
+        lane=lane,
+        launcher_id=launcher_id,
+        configuration_sha256=configuration_sha256,
+        capability_declaration_sha256=capability.declaration_sha256,
+        inherited_conversation_turns=inherited,
+    )
+    runtime_module._REPOSITORY_LAUNCHER_TYPES[
+        (runtime.surface_id, lane, launcher_id, configuration_sha256)
+    ] = FixtureDispatchLauncher
+    return FixtureDispatchLauncher(identity, execute, accounting)
+
+
 def _capability(lane: str = "fresh-worker") -> VerifiedExecutorCapability:
-    return VerifiedExecutorCapability.from_trusted_surface_contract(
+    return VerifiedExecutorCapability._from_verified_surface_contract(
         surface_contract=SURFACE_CONTRACT,
-        expected_contract_sha256=SURFACE_CONTRACT_SHA256,
+        surface_contract_sha256=SURFACE_CONTRACT_SHA256,
         surface_id="codex",
         lane=lane,
         inherited_conversation_turns=0 if lane == "fresh-worker" else 7,
     )
 
 
-def _runtime_arguments() -> dict[str, object]:
+def _execute(
+    runtime: DispatchRuntime,
+    pack: dict[str, Any],
+    *,
+    capability: VerifiedExecutorCapability,
+    executor: Callable[[dict[str, object], Path], dict[str, object]],
+    prior_result: dict[str, Any] | None = None,
+    artifact_handoff: Callable[[dict[str, Any], bytes], None] | None = None,
+) -> dict[str, Any]:
+    launcher = _launcher(
+        runtime,
+        executor,
+        lane=pack["execution_lane"],
+        inherited_conversation_turns=capability.inherited_conversation_turns,
+    )
+    return runtime.execute(
+        pack,
+        launcher=launcher,
+        prior_result=prior_result,
+        artifact_handoff=artifact_handoff,
+    )
+
+
+def _runtime_arguments(runtime: DispatchRuntime) -> dict[str, object]:
     return {
         "surface_id": "codex",
-        "surface_contract": SURFACE_CONTRACT,
-        "expected_surface_contract_sha256": SURFACE_CONTRACT_SHA256,
+        "verified_bundle": runtime.verified_bundle,
     }
 
 
@@ -287,7 +488,12 @@ def test_runtime_enforces_protected_journal_selected_capability_and_raw_cleanup(
     project = tmp_path / "project"
     project.mkdir(mode=0o755)
     before_mode = stat.S_IMODE(project.stat().st_mode)
-    runtime = DispatchRuntime(project, **_runtime_arguments(), clock_ns=clock)
+    runtime = DispatchRuntime(
+        project,
+        surface_id="codex",
+        verified_bundle=_verified_bundle(tmp_path),
+        clock_ns=clock,
+    )
     runtime.start_workflow(WORKFLOW_ID)
     pack = _pack(runtime)
 
@@ -298,7 +504,7 @@ def test_runtime_enforces_protected_journal_selected_capability_and_raw_cleanup(
         clock.advance_ms(10)
         return _result(pack)
 
-    result = runtime.execute(pack, capability=_capability(), executor=execute)
+    result = _execute(runtime, pack, capability=_capability(), executor=execute)
 
     assert result["status"] == "success"
     assert runtime.remaining_budget()["remaining_total_tokens"] == 32753
@@ -318,23 +524,20 @@ def test_runtime_enforces_protected_journal_selected_capability_and_raw_cleanup(
 @pytest.mark.parametrize(
     "change",
     (
-        {"selected_only": False},
-        {"budget_accounting_enforced": False},
-        {"permits_child_spawn": True},
-        {"permits_redispatch": True},
-        {"permits_activation": True},
-        {"permits_detached_work": True},
+        {"surface_id": "cursor"},
+        {"lane": "selected-only-parent"},
+        {"launcher_id": "invented-launcher-v1"},
+        {"configuration_sha256": "0" * 64},
+        {"capability_declaration_sha256": "0" * 64},
         {"inherited_conversation_turns": 1},
     ),
 )
-def test_unverified_or_broad_worker_capability_fails_before_raw_execution(
+def test_unverified_or_mismatched_launcher_fails_before_raw_execution(
     tmp_path: Path, change: dict[str, object]
 ) -> None:
     runtime = _runtime(tmp_path)
     runtime.start_workflow(WORKFLOW_ID)
     pack = _pack(runtime)
-    capability = _capability()
-    capability = replace(capability, **change)
     called = False
 
     def execute(_pack: dict[str, object], _root: Path) -> dict[str, object]:
@@ -342,13 +545,15 @@ def test_unverified_or_broad_worker_capability_fails_before_raw_execution(
         called = True
         return _result(pack)
 
+    launcher = _launcher(runtime, execute)
+    launcher._identity = replace(launcher.identity, **change)
     with pytest.raises(DispatchRuntimeError):
-        runtime.execute(pack, capability=capability, executor=execute)
+        runtime.execute(pack, launcher=launcher)
     assert called is False
     assert not list(runtime.raw_root.glob("invocation-*"))
 
 
-def test_forged_capability_digest_and_wrong_project_root_fail_before_execution(
+def test_arbitrary_lambda_with_fake_nonzero_accounting_is_never_executed(
     tmp_path: Path,
 ) -> None:
     runtime = _runtime(tmp_path)
@@ -361,69 +566,170 @@ def test_forged_capability_digest_and_wrong_project_root_fail_before_execution(
         called = True
         return _result(p)
 
-    forged = replace(_capability(), declaration_sha256="0" * 64)
-    with pytest.raises(DispatchRuntimeError, match="declaration digest"):
-        runtime.execute(pack, capability=forged, executor=execute)
-    hostile_root = {
-        **pack,
-        "roots": [{**pack["roots"][0], "project_root": "/other"}],
-    }
-    with pytest.raises(DispatchRuntimeError, match="locked project root"):
-        runtime.execute(hostile_root, capability=_capability(), executor=execute)
+    with pytest.raises(DispatchRuntimeError, match="repository-owned launcher"):
+        runtime.execute(pack, launcher=execute)  # type: ignore[arg-type]
     assert called is False
 
 
-def test_capability_must_resolve_from_runtime_trusted_surface_contract(
+def test_registered_wrapper_owns_accounting_and_replaces_worker_claims(
     tmp_path: Path,
 ) -> None:
     runtime = _runtime(tmp_path)
     runtime.start_workflow(WORKFLOW_ID)
     pack = _pack(runtime)
-    alternate = copy.deepcopy(SURFACE_CONTRACT)
-    codex = next(
-        row for row in alternate["surfaces"] if row["surface_id"] == "codex"
+    launcher = _launcher(
+        runtime,
+        lambda p, _root: _result(
+            p,
+            input_tokens=1_000,
+            output_tokens=500,
+            elapsed_milliseconds=900,
+        ),
+        accounting=(3, 2, 7),
     )
-    codex["worker"]["launcher"] = "invented-launcher-v1"
-    alternate_digest = canonical_sha256(alternate)
-    invented = VerifiedExecutorCapability.from_trusted_surface_contract(
-        surface_contract=alternate,
-        expected_contract_sha256=alternate_digest,
+
+    result = runtime.execute(pack, launcher=launcher)
+
+    assert result["input_tokens"] == 3
+    assert result["output_tokens"] == 2
+    assert result["elapsed_milliseconds"] == 7
+    assert runtime.remaining_budget()["remaining_total_tokens"] == 32_763
+
+
+def test_verified_fixture_declaration_without_registered_adapter_is_unsupported(
+    tmp_path: Path,
+) -> None:
+    runtime = _runtime(tmp_path)
+    runtime.start_workflow(WORKFLOW_ID)
+    pack = _pack(runtime)
+    called = False
+
+    def execute(p: dict[str, object], _root: Path) -> dict[str, object]:
+        nonlocal called
+        called = True
+        return _result(p)
+
+    launcher = _launcher(runtime, execute)
+    runtime_module._REPOSITORY_LAUNCHER_TYPES.clear()
+    with pytest.raises(DispatchRuntimeError, match="absent from.*registry"):
+        runtime.execute(pack, launcher=launcher)
+    assert called is False
+
+
+def test_surface_declared_unsupported_fails_closed_before_launcher(
+    tmp_path: Path,
+) -> None:
+    unsupported = copy.deepcopy(SURFACE_CONTRACT)
+    codex = next(row for row in unsupported["surfaces"] if row["surface_id"] == "codex")
+    codex["worker"] = {
+        "fresh_worker": "unsupported",
+        "launcher": None,
+        "version_range": None,
+        "selected_procedure_injection": None,
+        "cancellation": None,
+        "result": None,
+        "zero_conversation_turns_proof": None,
+        "budget_enforcement": None,
+    }
+    project = tmp_path / "unsupported-project"
+    project.mkdir()
+    runtime = DispatchRuntime(
+        project,
+        surface_id="codex",
+        verified_bundle=_verified_bundle(
+            tmp_path,
+            surface_contract=unsupported,
+            name="unsupported-bundle",
+        ),
+    )
+    runtime.start_workflow(WORKFLOW_ID)
+    pack = _pack(runtime)
+    called = False
+
+    def execute(p: dict[str, object], _root: Path) -> dict[str, object]:
+        nonlocal called
+        called = True
+        return _result(p)
+
+    identity = DispatchLauncherIdentity(
         surface_id="codex",
         lane="fresh-worker",
+        launcher_id="invented-launcher-v1",
+        configuration_sha256="0" * 64,
+        capability_declaration_sha256="0" * 64,
         inherited_conversation_turns=0,
     )
-    with pytest.raises(DispatchRuntimeError, match="trusted surface declaration"):
-        runtime.execute(
-            pack,
-            capability=invented,
-            executor=lambda p, _r: _result(p),
+    runtime_module._REPOSITORY_LAUNCHER_TYPES[("fixture", "fixture", "fixture", "0" * 64)] = (
+        FixtureDispatchLauncher
+    )
+    with pytest.raises(DispatchRuntimeError, match="no verified fresh-worker"):
+        runtime.execute(pack, launcher=FixtureDispatchLauncher(identity, execute))
+    assert called is False
+
+
+def test_wrong_project_root_fails_before_trusted_launcher(tmp_path: Path) -> None:
+    runtime = _runtime(tmp_path)
+    runtime.start_workflow(WORKFLOW_ID)
+    pack = _pack(runtime)
+    called = False
+
+    def execute(p: dict[str, object], _root: Path) -> dict[str, object]:
+        nonlocal called
+        called = True
+        return _result(p)
+
+    hostile_root = {
+        **pack,
+        "roots": [{**pack["roots"][0], "project_root": "/other"}],
+    }
+    with pytest.raises(DispatchRuntimeError, match="locked project root"):
+        runtime.execute(hostile_root, launcher=_launcher(runtime, execute))
+    assert called is False
+
+
+def test_forged_contract_and_recomputed_digest_cannot_mint_runtime_trust(
+    tmp_path: Path,
+) -> None:
+    bundle = _verified_bundle(tmp_path)
+    alternate = copy.deepcopy(SURFACE_CONTRACT)
+    codex = next(row for row in alternate["surfaces"] if row["surface_id"] == "codex")
+    codex["worker"]["launcher"] = "invented-launcher-v1"
+    alternate_digest = canonical_sha256(alternate)
+    project = tmp_path / "other-project"
+    project.mkdir()
+    with pytest.raises(TypeError):
+        DispatchRuntime(  # type: ignore[call-arg]
+            project,
+            surface_id="codex",
+            surface_contract=alternate,
+            expected_surface_contract_sha256=alternate_digest,
         )
 
-    tampered = copy.deepcopy(SURFACE_CONTRACT)
-    tampered["surfaces"][0]["projection_format"] = "tampered-v1"
-    with pytest.raises(DispatchRuntimeError, match="digest differs"):
-        DispatchRuntime(
-            tmp_path / "other-project",
-            surface_id="codex",
-            surface_contract=tampered,
-            expected_surface_contract_sha256=SURFACE_CONTRACT_SHA256,
-        )
+    bundle.surface_contract.clear()
+    bundle.surface_contract.update(alternate)
+    runtime = DispatchRuntime(
+        project,
+        surface_id="codex",
+        verified_bundle=bundle,
+    )
+    assert canonical_sha256(runtime.surface_contract) == SURFACE_CONTRACT_SHA256
 
 
 def test_project_lock_and_duplicate_dispatch_fail_closed(tmp_path: Path) -> None:
     runtime = _runtime(tmp_path)
     runtime.start_workflow(WORKFLOW_ID)
     pack = _pack(runtime)
-    runtime.execute(pack, capability=_capability(), executor=lambda p, _r: _result(p))
+    _execute(runtime, pack, capability=_capability(), executor=lambda p, _r: _result(p))
 
     with pytest.raises(DispatchRuntimeError, match="dispatch id"):
-        runtime.execute(pack, capability=_capability(), executor=lambda p, _r: _result(p))
+        _execute(runtime, pack, capability=_capability(), executor=lambda p, _r: _result(p))
 
     next_pack = _pack(runtime, dispatch_id=SECOND_DISPATCH_ID, ordinal=2)
     with runtime.lock_path.open("a+b") as lock:
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         with pytest.raises(DispatchRuntimeError, match="active execution lane"):
-            runtime.execute(
+            _execute(
+                runtime,
                 next_pack,
                 capability=_capability(),
                 executor=lambda p, _r: _result(p),
@@ -434,31 +740,27 @@ def test_separate_runtime_instances_reload_journal_under_shared_lock(
     tmp_path: Path,
 ) -> None:
     first = _runtime(tmp_path)
-    second = DispatchRuntime(
-        first.project_root, **_runtime_arguments(), clock_ns=Clock()
-    )
+    second = DispatchRuntime(first.project_root, **_runtime_arguments(first), clock_ns=Clock())
     first.start_workflow(WORKFLOW_ID)
     pack = _pack(first)
 
-    second.execute(pack, capability=_capability(), executor=lambda p, _r: _result(p))
+    _execute(second, pack, capability=_capability(), executor=lambda p, _r: _result(p))
 
     assert first.remaining_budget()["remaining_total_tokens"] == 32753
     with pytest.raises(DispatchRuntimeError, match="dispatch id"):
-        first.execute(pack, capability=_capability(), executor=lambda p, _r: _result(p))
+        _execute(first, pack, capability=_capability(), executor=lambda p, _r: _result(p))
 
 
 def test_state_root_is_canonical_and_cannot_be_selected_by_the_caller(
     tmp_path: Path,
 ) -> None:
     runtime = _runtime(tmp_path)
-    assert runtime.state_root == (
-        runtime.project_root / ".engineering/local/dispatch-runtime-v1"
-    )
+    assert runtime.state_root == (runtime.project_root / ".engineering/local/dispatch-runtime-v1")
     with pytest.raises(TypeError):
         DispatchRuntime(  # type: ignore[misc]
             runtime.project_root,
             tmp_path / "alternate-state",
-            **_runtime_arguments(),
+            **_runtime_arguments(runtime),
         )
 
 
@@ -484,18 +786,18 @@ def test_multi_root_pack_locks_every_root_and_has_one_canonical_owner(
     with lock_path.open("a+b") as lock:
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         with pytest.raises(DispatchRuntimeError, match="project lock"):
-            runtime.execute(
+            _execute(
+                runtime,
                 pack,
                 capability=_capability(),
                 executor=lambda p, _r: _result(p),
             )
 
-    secondary_runtime = DispatchRuntime(
-        secondary, **_runtime_arguments(), clock_ns=Clock()
-    )
+    secondary_runtime = DispatchRuntime(secondary, **_runtime_arguments(runtime), clock_ns=Clock())
     secondary_runtime.start_workflow(WORKFLOW_ID)
     with pytest.raises(DispatchRuntimeError, match="canonical root"):
-        secondary_runtime.execute(
+        _execute(
+            secondary_runtime,
             pack,
             capability=_capability(),
             executor=lambda p, _r: _result(p),
@@ -507,7 +809,8 @@ def test_cumulative_budget_deadline_serial_order_and_confirmed_retry(tmp_path: P
     runtime = _runtime(tmp_path, clock)
     runtime.start_workflow(WORKFLOW_ID)
     first = _pack(runtime)
-    failed = runtime.execute(
+    failed = _execute(
+        runtime,
         first,
         capability=_capability(),
         executor=lambda p, _r: _result(
@@ -521,7 +824,8 @@ def test_cumulative_budget_deadline_serial_order_and_confirmed_retry(tmp_path: P
         ordinal=2,
     )
     with pytest.raises(DispatchRuntimeError, match="attempt-two continuation"):
-        runtime.execute(
+        _execute(
+            runtime,
             skipped_continuation,
             capability=_capability(),
             executor=lambda p, _r: _result(p),
@@ -533,7 +837,8 @@ def test_cumulative_budget_deadline_serial_order_and_confirmed_retry(tmp_path: P
         attempt=2,
         prior_result=failed,
     )
-    runtime.execute(
+    _execute(
+        runtime,
         retry,
         capability=_capability(),
         executor=lambda p, _r: _result(p, input_tokens=50, output_tokens=10),
@@ -543,14 +848,15 @@ def test_cumulative_budget_deadline_serial_order_and_confirmed_retry(tmp_path: P
     assert runtime.remaining_budget()["remaining_output_tokens"] == 8162
 
     third = _pack(runtime, dispatch_id="123e4567-e89b-42d3-a456-426614174003", ordinal=2)
-    runtime.execute(third, capability=_capability(), executor=lambda p, _r: _result(p))
+    _execute(runtime, third, capability=_capability(), executor=lambda p, _r: _result(p))
     out_of_order = _pack(
         runtime,
         dispatch_id="123e4567-e89b-42d3-a456-426614174004",
         ordinal=4,
     )
     with pytest.raises(DispatchRuntimeError, match="pack ordinal"):
-        runtime.execute(
+        _execute(
+            runtime,
             out_of_order,
             capability=_capability(),
             executor=lambda p, _r: _result(p),
@@ -567,10 +873,16 @@ def test_retry_binds_exact_recorded_terminal_result_and_unknown_stops(
     runtime = _runtime(tmp_path / "forged")
     runtime.start_workflow(WORKFLOW_ID)
     first = _pack(runtime)
-    success = runtime.execute(
-        first, capability=_capability(), executor=lambda p, _r: _result(p)
-    )
-    forged = {**success, "status": "failed", "summary": "forged", "error_code": "worker_failed", "error_message": "forged", "failure_kind": "worker_failed", "side_effect_disposition": "rolled_back"}
+    success = _execute(runtime, first, capability=_capability(), executor=lambda p, _r: _result(p))
+    forged = {
+        **success,
+        "status": "failed",
+        "summary": "forged",
+        "error_code": "worker_failed",
+        "error_message": "forged",
+        "failure_kind": "worker_failed",
+        "side_effect_disposition": "rolled_back",
+    }
     retry = _pack(
         runtime,
         dispatch_id=SECOND_DISPATCH_ID,
@@ -578,7 +890,8 @@ def test_retry_binds_exact_recorded_terminal_result_and_unknown_stops(
         prior_result=forged,
     )
     with pytest.raises(DispatchRuntimeError, match="exact retryable recorded"):
-        runtime.execute(
+        _execute(
+            runtime,
             retry,
             capability=_capability(),
             executor=lambda p, _r: _result(p),
@@ -590,7 +903,8 @@ def test_retry_binds_exact_recorded_terminal_result_and_unknown_stops(
     unknown_pack = _pack(unknown)
     terminal = _result(unknown_pack, status="failed")
     terminal["side_effect_disposition"] = "unknown"
-    result = unknown.execute(
+    result = _execute(
+        unknown,
         unknown_pack,
         capability=_capability(),
         executor=lambda _p, _r: terminal,
@@ -612,7 +926,7 @@ def test_invalid_or_over_budget_result_becomes_minimal_failed_result_and_cleans(
         result["output_tokens"] = 9000
         return result
 
-    result = runtime.execute(pack, capability=_capability(), executor=execute)
+    result = _execute(runtime, pack, capability=_capability(), executor=execute)
     assert result["status"] == "failed"
     assert result["failure_kind"] == "worker_failed"
     assert result["side_effect_disposition"] == "unknown"
@@ -628,7 +942,8 @@ def test_zero_usage_self_attestation_becomes_untrusted_failed_result(
     runtime = _runtime(tmp_path)
     runtime.start_workflow(WORKFLOW_ID)
     pack = _pack(runtime)
-    result = runtime.execute(
+    result = _execute(
+        runtime,
         pack,
         capability=_capability(),
         executor=lambda p, _r: _result(p, input_tokens=0, output_tokens=0),
@@ -648,7 +963,7 @@ def test_executor_exception_or_actual_deadline_overrun_blocks_implicit_retry(
     def explode(_pack: dict[str, object], _root: Path) -> dict[str, object]:
         raise RuntimeError("secret executor details")
 
-    result = runtime.execute(pack, capability=_capability(), executor=explode)
+    result = _execute(runtime, pack, capability=_capability(), executor=explode)
     assert result["status"] == "failed"
     assert result["side_effect_disposition"] == "unknown"
     assert runtime.journal_snapshot()["blocked"] is True
@@ -663,9 +978,7 @@ def test_executor_exception_or_actual_deadline_overrun_blocks_implicit_retry(
         clock.advance_ms(1_200_001)
         return _result(p)
 
-    result = overrun.execute(
-        deadline_pack, capability=_capability(), executor=exceed_deadline
-    )
+    result = _execute(overrun, deadline_pack, capability=_capability(), executor=exceed_deadline)
     assert result["status"] == "failed"
     assert overrun.journal_snapshot()["blocked"] is True
 
@@ -694,7 +1007,8 @@ def test_artifact_handoff_verifies_regular_contained_single_link_bytes(tmp_path:
         ]
         return result
 
-    runtime.execute(
+    _execute(
+        runtime,
         pack,
         capability=_capability(),
         executor=execute,
@@ -726,7 +1040,8 @@ def test_artifact_handoff_verifies_regular_contained_single_link_bytes(tmp_path:
         ]
         return result
 
-    failed = runtime.execute(
+    failed = _execute(
+        runtime,
         hostile_pack,
         capability=_capability(),
         executor=hostile,
@@ -761,7 +1076,8 @@ def test_artifact_hard_link_and_journal_hard_link_fail_closed(tmp_path: Path) ->
         ]
         return result
 
-    failed = runtime.execute(
+    failed = _execute(
+        runtime,
         pack,
         capability=_capability(),
         executor=hard_linked,
@@ -775,7 +1091,9 @@ def test_artifact_hard_link_and_journal_hard_link_fail_closed(tmp_path: Path) ->
     os.link(journal_runtime.journal_path, journal_alias)
     with pytest.raises(DispatchRuntimeError, match="mode-0600 regular file"):
         DispatchRuntime(
-            journal_runtime.project_root, **_runtime_arguments(), clock_ns=Clock()
+            journal_runtime.project_root,
+            **_runtime_arguments(journal_runtime),
+            clock_ns=Clock(),
         )
 
 
@@ -790,7 +1108,12 @@ def test_startup_recovery_removes_stale_raw_dirs_and_cleanup_failure_blocks(
     stale.mkdir(parents=True)
     (stale / "secret").write_text("do not retain", encoding="utf-8")
 
-    runtime = DispatchRuntime(project, **_runtime_arguments(), clock_ns=Clock())
+    runtime = DispatchRuntime(
+        project,
+        surface_id="codex",
+        verified_bundle=_verified_bundle(tmp_path),
+        clock_ns=Clock(),
+    )
     assert not stale.exists()
 
     runtime.start_workflow(WORKFLOW_ID)
@@ -802,7 +1125,7 @@ def test_startup_recovery_removes_stale_raw_dirs_and_cleanup_failure_blocks(
 
     monkeypatch.setattr(runtime, "_remove_invocation", fail_cleanup)
     with pytest.raises(DispatchRuntimeError, match="cleanup"):
-        runtime.execute(pack, capability=_capability(), executor=lambda p, _r: _result(p))
+        _execute(runtime, pack, capability=_capability(), executor=lambda p, _r: _result(p))
     monkeypatch.setattr(runtime, "_remove_invocation", original)
     with pytest.raises(DispatchRuntimeError, match="blocked"):
         runtime.remaining_budget()
@@ -822,7 +1145,7 @@ def test_startup_recovery_cleans_every_raw_entry_and_pending_journal(
     (runtime.raw_root / "hostile-link").symlink_to(outside)
 
     restarted = DispatchRuntime(
-        runtime.project_root, **_runtime_arguments(), clock_ns=Clock()
+        runtime.project_root, **_runtime_arguments(runtime), clock_ns=Clock()
     )
 
     assert not list(restarted.raw_root.iterdir())
@@ -838,7 +1161,8 @@ def test_parent_lane_uses_same_accounting_but_allows_inherited_context(tmp_path:
     pack = _pack(runtime, lane="selected-only-parent")
     pack["fallback_reason"] = "conversation_state_required"
 
-    result = runtime.execute(
+    result = _execute(
+        runtime,
         pack,
         capability=_capability("selected-only-parent"),
         executor=lambda p, _r: _result(p),
@@ -855,16 +1179,14 @@ def test_restart_preserves_cumulative_budget_and_rejects_monotonic_clock_reset(
     runtime = _runtime(tmp_path, clock)
     runtime.start_workflow(WORKFLOW_ID)
     pack = _pack(runtime)
-    runtime.execute(pack, capability=_capability(), executor=lambda p, _r: _result(p))
+    _execute(runtime, pack, capability=_capability(), executor=lambda p, _r: _result(p))
 
-    restarted = DispatchRuntime(
-        runtime.project_root, **_runtime_arguments(), clock_ns=clock
-    )
+    restarted = DispatchRuntime(runtime.project_root, **_runtime_arguments(runtime), clock_ns=clock)
     assert restarted.start_workflow(WORKFLOW_ID)["remaining_total_tokens"] == 32753
 
     reset_clock = Clock(1)
     reset = DispatchRuntime(
-        runtime.project_root, **_runtime_arguments(), clock_ns=reset_clock
+        runtime.project_root, **_runtime_arguments(runtime), clock_ns=reset_clock
     )
     with pytest.raises(DispatchRuntimeError, match="blocked"):
         reset.remaining_budget()
@@ -877,6 +1199,6 @@ def test_invalid_workflow_id_fails_before_journal_mutation(tmp_path: Path) -> No
         runtime.start_workflow("not-a-uuid")
     assert runtime.journal_snapshot() == before
     restarted = DispatchRuntime(
-        runtime.project_root, **_runtime_arguments(), clock_ns=Clock()
+        runtime.project_root, **_runtime_arguments(runtime), clock_ns=Clock()
     )
     assert restarted.journal_snapshot() == before

@@ -5,6 +5,7 @@ module owns the stateful policy that must be shared by worker and parent lanes:
 one project lock, one monotonic workflow budget, protected raw staging, exact
 result/artifact verification, metadata-only journaling, and terminal cleanup.
 """
+
 from __future__ import annotations
 
 import copy
@@ -19,6 +20,7 @@ from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Iterator
 
 from .distribution_contracts import (
@@ -28,6 +30,7 @@ from .distribution_contracts import (
     load_canonical_json,
     validate_distribution_contract,
 )
+from .skill_bundle import BundleTrustError, VerifiedBundle, verify_release_bundle
 
 
 MAX_WORKFLOW_MILLISECONDS = 1_200_000
@@ -40,9 +43,7 @@ _JOURNAL_KEYS = {
     "active_workflow",
     "last_dispatch",
 }
-_UUID4_RE = re.compile(
-    r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
-)
+_UUID4_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -70,33 +71,24 @@ class VerifiedExecutorCapability:
     permits_detached_work: bool
 
     @classmethod
-    def from_trusted_surface_contract(
+    def _from_verified_surface_contract(
         cls,
         *,
         surface_contract: Mapping[str, Any],
-        expected_contract_sha256: str,
+        surface_contract_sha256: str,
         surface_id: str,
         lane: str,
         inherited_conversation_turns: int,
     ) -> "VerifiedExecutorCapability":
         """Derive enforcement facts from one externally rooted surface contract."""
         try:
-            validate_distribution_contract(
-                "surface-activation-contract-v1", dict(surface_contract)
-            )
+            validate_distribution_contract("surface-activation-contract-v1", dict(surface_contract))
         except DistributionContractError as exc:
             raise DispatchRuntimeError("surface capability contract is invalid") from exc
         actual_sha256 = canonical_sha256(surface_contract)
-        if (
-            _SHA256_RE.fullmatch(expected_contract_sha256) is None
-            or actual_sha256 != expected_contract_sha256
-        ):
-            raise DispatchRuntimeError("surface capability contract digest differs")
-        rows = [
-            row
-            for row in surface_contract["surfaces"]
-            if row["surface_id"] == surface_id
-        ]
+        if actual_sha256 != surface_contract_sha256:
+            raise DispatchRuntimeError("verified surface capability contract changed")
+        rows = [row for row in surface_contract["surfaces"] if row["surface_id"] == surface_id]
         if len(rows) != 1:
             raise DispatchRuntimeError("surface capability declaration is absent or ambiguous")
         worker = rows[0]["worker"]
@@ -152,9 +144,54 @@ class VerifiedExecutorCapability:
         }
 
 
-def _real_directory(
-    path: Path, *, create: bool, required_mode: int | None
-) -> Path:
+@dataclass(frozen=True)
+class DispatchLauncherIdentity:
+    """Exact repository adapter identity bound to one verified declaration."""
+
+    surface_id: str
+    lane: str
+    launcher_id: str
+    configuration_sha256: str
+    capability_declaration_sha256: str
+    inherited_conversation_turns: int
+
+
+@dataclass(frozen=True)
+class DispatchExecutionEvidence:
+    """Accounting and result evidence emitted by a trusted wrapper."""
+
+    result: Mapping[str, Any]
+    input_tokens: int
+    output_tokens: int
+    elapsed_milliseconds: int
+    capability_declaration_sha256: str
+    launcher_configuration_sha256: str
+    deadline_enforced: bool
+    cancellation_enforced: bool
+    result_handoff_enforced: bool
+
+
+class RepositoryDispatchLauncher:
+    """Base class for exact launcher adapters owned by this repository."""
+
+    @property
+    def identity(self) -> DispatchLauncherIdentity:
+        raise NotImplementedError
+
+    def launch(self, pack: Mapping[str, Any], invocation_root: Path) -> DispatchExecutionEvidence:
+        raise NotImplementedError
+
+
+# This registry is intentionally empty until a native wrapper has been implemented
+# and independently verified. Tests replace the whole immutable mapping with a
+# closed fixture adapter; the runtime exposes no adapter-registration API.
+_REPOSITORY_LAUNCHER_TYPES: Mapping[tuple[str, str, str, str], type[RepositoryDispatchLauncher]] = (
+    MappingProxyType({})
+)
+_PARENT_LAUNCHER_ID = "selected-only-parent-wrapper-v1"
+
+
+def _real_directory(path: Path, *, create: bool, required_mode: int | None) -> Path:
     original = path.expanduser()
     if original.is_symlink():
         raise DispatchRuntimeError(f"protected root must not be a symlink: {original}")
@@ -208,31 +245,39 @@ class DispatchRuntime:
         project_root: Path,
         *,
         surface_id: str,
-        surface_contract: Mapping[str, Any],
-        expected_surface_contract_sha256: str,
+        verified_bundle: VerifiedBundle,
         clock_ns: Callable[[], int] = time.monotonic_ns,
     ) -> None:
-        self.surface_contract = copy.deepcopy(dict(surface_contract))
+        if not isinstance(verified_bundle, VerifiedBundle) or not verified_bundle.is_verified():
+            raise DispatchRuntimeError("dispatch runtime requires an externally verified bundle")
+        try:
+            rooted_bundle = verify_release_bundle(
+                verified_bundle.root, verified_bundle.release_root_sha256
+            )
+        except BundleTrustError as exc:
+            raise DispatchRuntimeError(
+                "dispatch bundle no longer matches its external root"
+            ) from exc
+        self.surface_contract = copy.deepcopy(rooted_bundle.surface_contract)
+        self.verified_bundle = rooted_bundle
         self.surface_id = surface_id
-        self.expected_surface_contract_sha256 = expected_surface_contract_sha256
-        VerifiedExecutorCapability.from_trusted_surface_contract(
+        self.release_root_sha256 = rooted_bundle.release_root_sha256
+        self.bundle_index_sha256 = rooted_bundle.bundle_index_sha256
+        self.surface_contract_sha256 = canonical_sha256(self.surface_contract)
+        VerifiedExecutorCapability._from_verified_surface_contract(
             surface_contract=self.surface_contract,
-            expected_contract_sha256=expected_surface_contract_sha256,
+            surface_contract_sha256=self.surface_contract_sha256,
             surface_id=surface_id,
             lane="selected-only-parent",
             inherited_conversation_turns=0,
         )
-        self.project_root = _real_directory(
-            project_root, create=False, required_mode=None
-        )
+        self.project_root = _real_directory(project_root, create=False, required_mode=None)
         self.state_root = _real_directory(
             self.project_root / ".engineering/local/dispatch-runtime-v1",
             create=True,
             required_mode=0o700,
         )
-        self.raw_root = _real_directory(
-            self.state_root / "raw", create=True, required_mode=0o700
-        )
+        self.raw_root = _real_directory(self.state_root / "raw", create=True, required_mode=0o700)
         self.lock_path = self.state_root / "dispatch.lock"
         self.journal_path = self.state_root / "dispatch-journal-v1.json"
         self._clock_ns = clock_ns
@@ -278,9 +323,7 @@ class DispatchRuntime:
             or metadata.st_nlink != 1
             or stat.S_IMODE(metadata.st_mode) != 0o600
         ):
-            raise DispatchRuntimeError(
-                "dispatch journal must be one mode-0600 regular file"
-            )
+            raise DispatchRuntimeError("dispatch journal must be one mode-0600 regular file")
         try:
             journal = load_canonical_json(self.journal_path)
         except (DistributionContractError, OSError, UnicodeError) as exc:
@@ -343,8 +386,7 @@ class DispatchRuntime:
                 value["status"]
                 not in {"success", "needs_input", "needs_authority", "failed", "cancelled"}
                 or _SHA256_RE.fullmatch(value["result_sha256"]) is None
-                or value["cleanup_state"]
-                not in {"pending", "clean", "startup-cleaned", "failed"}
+                or value["cleanup_state"] not in {"pending", "clean", "startup-cleaned", "failed"}
                 or value["failure_kind"]
                 not in {
                     None,
@@ -361,8 +403,7 @@ class DispatchRuntime:
                     value["side_effect_ledger_sha256"] is not None
                     and (
                         not isinstance(value["side_effect_ledger_sha256"], str)
-                        or _SHA256_RE.fullmatch(value["side_effect_ledger_sha256"])
-                        is None
+                        or _SHA256_RE.fullmatch(value["side_effect_ledger_sha256"]) is None
                     )
                 )
             ):
@@ -372,7 +413,10 @@ class DispatchRuntime:
             disposition = value["side_effect_disposition"]
             ledger = value["side_effect_ledger_sha256"]
             if (
-                (status in {"success", "needs_input", "needs_authority"} and failure_kind is not None)
+                (
+                    status in {"success", "needs_input", "needs_authority"}
+                    and failure_kind is not None
+                )
                 or (
                     status == "failed"
                     and failure_kind
@@ -419,9 +463,10 @@ class DispatchRuntime:
         }
         if not isinstance(active, dict) or set(active) != fields:
             raise DispatchRuntimeError("active workflow journal state is invalid")
-        if not isinstance(active["workflow_id"], str) or _UUID4_RE.fullmatch(
-            active["workflow_id"]
-        ) is None:
+        if (
+            not isinstance(active["workflow_id"], str)
+            or _UUID4_RE.fullmatch(active["workflow_id"]) is None
+        ):
             raise DispatchRuntimeError("active workflow id is invalid")
         integers = (
             "deadline_started_monotonic_ns",
@@ -437,24 +482,22 @@ class DispatchRuntime:
         if (
             len(dispatch_ids) > 32
             or len(dispatch_ids) != len(set(dispatch_ids))
-            or any(not isinstance(value, str) or _UUID4_RE.fullmatch(value) is None for value in dispatch_ids)
+            or any(
+                not isinstance(value, str) or _UUID4_RE.fullmatch(value) is None
+                for value in dispatch_ids
+            )
         ):
             raise DispatchRuntimeError("active workflow dispatch ids are invalid")
         flattened: list[str] = []
         attempt_keys = list(active["attempts"])
         if any(
-            not isinstance(key, str)
-            or not key.isdigit()
-            or not 1 <= int(key) <= 16
+            not isinstance(key, str) or not key.isdigit() or not 1 <= int(key) <= 16
             for key in attempt_keys
         ):
             raise DispatchRuntimeError("active workflow attempt keys are invalid")
         for key in sorted(attempt_keys, key=lambda value: int(value)):
             values = active["attempts"][key]
-            if (
-                not isinstance(values, list)
-                or not 1 <= len(values) <= 2
-            ):
+            if not isinstance(values, list) or not 1 <= len(values) <= 2:
                 raise DispatchRuntimeError("active workflow attempts are invalid")
             flattened.extend(values)
         if flattened != dispatch_ids:
@@ -526,9 +569,7 @@ class DispatchRuntime:
     def _execution_locks(self, pack: Mapping[str, Any]) -> Iterator[None]:
         lock_paths: list[Path] = []
         for row in pack["roots"]:
-            root = _real_directory(
-                Path(row["project_root"]), create=False, required_mode=None
-            )
+            root = _real_directory(Path(row["project_root"]), create=False, required_mode=None)
             state = _real_directory(
                 root / ".engineering/local/dispatch-runtime-v1",
                 create=True,
@@ -588,7 +629,9 @@ class DispatchRuntime:
 
     def _remaining_budget(self) -> dict[str, int]:
         active = self._active()
-        monotonic_elapsed = (self._clock_ns() - active["deadline_started_monotonic_ns"]) // 1_000_000
+        monotonic_elapsed = (
+            self._clock_ns() - active["deadline_started_monotonic_ns"]
+        ) // 1_000_000
         elapsed = max(monotonic_elapsed, active["reported_elapsed_milliseconds"])
         remaining_ms = MAX_WORKFLOW_MILLISECONDS - elapsed
         if remaining_ms < 0:
@@ -614,50 +657,90 @@ class DispatchRuntime:
             self._refresh_journal()
             return copy.deepcopy(self._journal)
 
-    def _validate_capability(
-        self, pack: Mapping[str, Any], capability: VerifiedExecutorCapability
-    ) -> None:
-        if not isinstance(capability, VerifiedExecutorCapability):
-            raise DispatchRuntimeError("executor capability is not registry-bound")
-        if (
-            _SHA256_RE.fullmatch(capability.registry_sha256) is None
-            or canonical_sha256(capability.digest_payload())
-            != capability.declaration_sha256
-        ):
-            raise DispatchRuntimeError("executor capability declaration digest differs")
-        expected = VerifiedExecutorCapability.from_trusted_surface_contract(
+    def _validate_launcher(
+        self,
+        pack: Mapping[str, Any],
+        launcher: RepositoryDispatchLauncher,
+    ) -> tuple[VerifiedExecutorCapability, DispatchLauncherIdentity]:
+        if not isinstance(launcher, RepositoryDispatchLauncher):
+            raise DispatchRuntimeError("executor is not a repository-owned launcher")
+        if type(launcher) not in frozenset(_REPOSITORY_LAUNCHER_TYPES.values()):
+            raise DispatchRuntimeError(
+                "executor type is absent from the repository launcher registry"
+            )
+        identity = launcher.identity
+        if not isinstance(identity, DispatchLauncherIdentity):
+            raise DispatchRuntimeError("launcher identity is invalid")
+        expected = VerifiedExecutorCapability._from_verified_surface_contract(
             surface_contract=self.surface_contract,
-            expected_contract_sha256=self.expected_surface_contract_sha256,
+            surface_contract_sha256=self.surface_contract_sha256,
             surface_id=self.surface_id,
             lane=pack["execution_lane"],
-            inherited_conversation_turns=capability.inherited_conversation_turns,
+            inherited_conversation_turns=identity.inherited_conversation_turns,
         )
-        if capability != expected:
-            raise DispatchRuntimeError(
-                "executor capability differs from the trusted surface declaration"
+        surface = next(
+            row for row in self.surface_contract["surfaces"] if row["surface_id"] == self.surface_id
+        )
+        launcher_id = (
+            surface["worker"]["launcher"]
+            if expected.lane == "fresh-worker"
+            else _PARENT_LAUNCHER_ID
+        )
+        if not isinstance(launcher_id, str):
+            raise DispatchRuntimeError("verified surface has no launcher identity")
+        configuration_sha256 = canonical_sha256(
+            {
+                "schema_version": 1,
+                "release_root_sha256": self.release_root_sha256,
+                "bundle_index_sha256": self.bundle_index_sha256,
+                "surface_contract_sha256": self.surface_contract_sha256,
+                "surface_id": self.surface_id,
+                "lane": expected.lane,
+                "launcher_id": launcher_id,
+                "worker_declaration_sha256": expected.worker_declaration_sha256,
+            }
+        )
+        expected_identity = DispatchLauncherIdentity(
+            surface_id=self.surface_id,
+            lane=expected.lane,
+            launcher_id=launcher_id,
+            configuration_sha256=configuration_sha256,
+            capability_declaration_sha256=expected.declaration_sha256,
+            inherited_conversation_turns=identity.inherited_conversation_turns,
+        )
+        if identity != expected_identity:
+            raise DispatchRuntimeError("launcher identity differs from verified declaration")
+        trusted_type = _REPOSITORY_LAUNCHER_TYPES.get(
+            (
+                self.surface_id,
+                expected.lane,
+                launcher_id,
+                configuration_sha256,
             )
-        if capability.lane != pack["execution_lane"]:
-            raise DispatchRuntimeError("executor lane differs from dispatch pack")
+        )
+        if trusted_type is None or type(launcher) is not trusted_type:
+            raise DispatchRuntimeError("verified declaration has no repository-owned launcher")
         if not (
-            capability.selected_only
-            and capability.budget_accounting_enforced
-            and capability.cancellation_enforced
-            and capability.result_handoff_enforced
+            expected.selected_only
+            and expected.budget_accounting_enforced
+            and expected.cancellation_enforced
+            and expected.result_handoff_enforced
         ):
             raise DispatchRuntimeError("executor cannot enforce the selected-only bounded contract")
         if any(
             (
-                capability.permits_child_spawn,
-                capability.permits_redispatch,
-                capability.permits_activation,
-                capability.permits_detached_work,
+                expected.permits_child_spawn,
+                expected.permits_redispatch,
+                expected.permits_activation,
+                expected.permits_detached_work,
             )
         ):
             raise DispatchRuntimeError("executor permits forbidden nested or detached behavior")
-        if capability.lane == "fresh-worker" and capability.inherited_conversation_turns != 0:
+        if expected.lane == "fresh-worker" and expected.inherited_conversation_turns != 0:
             raise DispatchRuntimeError("fresh worker must inherit zero conversation turns")
-        if capability.inherited_conversation_turns < 0:
+        if expected.inherited_conversation_turns < 0:
             raise DispatchRuntimeError("inherited conversation count is invalid")
+        return expected, expected_identity
 
     def _validate_state_transition(
         self,
@@ -695,7 +778,9 @@ class DispatchRuntime:
             if ordinal != expected or existing:
                 raise DispatchRuntimeError("workflow pack ordinal is not the next serial pack")
         elif len(existing) != 1 or prior_result is None:
-            raise DispatchRuntimeError("attempt two requires exactly one prior dispatch for its pack")
+            raise DispatchRuntimeError(
+                "attempt two requires exactly one prior dispatch for its pack"
+            )
         elif (
             last is None
             or last["workflow_id"] != pack["workflow_id"]
@@ -714,16 +799,13 @@ class DispatchRuntime:
         self,
         pack: dict[str, Any],
         *,
-        capability: VerifiedExecutorCapability,
-        executor: Callable[[dict[str, Any], Path], dict[str, Any]],
+        launcher: RepositoryDispatchLauncher,
         prior_result: dict[str, Any] | None = None,
         artifact_handoff: Callable[[dict[str, Any], bytes], None] | None = None,
     ) -> dict[str, Any]:
         """Execute one exact pack under the shared lock and delete all raw state."""
         try:
-            validate_distribution_contract(
-                "dispatch-pack-v1", pack, prior_result=prior_result
-            )
+            validate_distribution_contract("dispatch-pack-v1", pack, prior_result=prior_result)
         except DistributionContractError as exc:
             raise DispatchRuntimeError(f"dispatch pack is invalid: {exc}") from exc
         if pack["roots"][0]["project_root"] != self.project_root.as_posix():
@@ -733,7 +815,7 @@ class DispatchRuntime:
         with self._execution_locks(pack):
             self._refresh_journal()
             self._require_unblocked()
-            self._validate_capability(pack, capability)
+            capability, launcher_identity = self._validate_launcher(pack, launcher)
             self._validate_state_transition(pack, prior_result)
             invocation = self.raw_root / f"invocation-{pack['dispatch_id']}"
             if invocation.exists() or invocation.is_symlink():
@@ -741,29 +823,50 @@ class DispatchRuntime:
             old_umask = os.umask(0o077)
             execution_error: Exception | None = None
             result: dict[str, Any] | None = None
-            executor_started = False
+            launcher_started = False
             result_recorded = False
             try:
                 invocation.mkdir(mode=0o700)
-                _write_protected(
-                    invocation / "dispatch-pack-v1.json", canonical_json_bytes(pack)
-                )
+                _write_protected(invocation / "dispatch-pack-v1.json", canonical_json_bytes(pack))
                 received = copy.deepcopy(pack)
-                executor_started = True
-                produced = executor(received, invocation)
-                if not isinstance(produced, dict):
-                    raise DispatchRuntimeError("executor result is not an object")
-                result = produced
+                launcher_started = True
+                evidence = launcher.launch(received, invocation)
+                if not isinstance(evidence, DispatchExecutionEvidence):
+                    raise DispatchRuntimeError("launcher did not return execution evidence")
+                if (
+                    evidence.capability_declaration_sha256 != capability.declaration_sha256
+                    or evidence.launcher_configuration_sha256
+                    != launcher_identity.configuration_sha256
+                    or not evidence.deadline_enforced
+                    or not evidence.cancellation_enforced
+                    or not evidence.result_handoff_enforced
+                ):
+                    raise DispatchRuntimeError(
+                        "launcher evidence differs from the verified declaration"
+                    )
+                if any(
+                    type(value) is not int or value < 0
+                    for value in (
+                        evidence.input_tokens,
+                        evidence.output_tokens,
+                        evidence.elapsed_milliseconds,
+                    )
+                ):
+                    raise DispatchRuntimeError("launcher accounting evidence is invalid")
+                if not isinstance(evidence.result, Mapping):
+                    raise DispatchRuntimeError("launcher result is not an object")
+                result = copy.deepcopy(dict(evidence.result))
+                result["input_tokens"] = evidence.input_tokens
+                result["output_tokens"] = evidence.output_tokens
+                result["elapsed_milliseconds"] = evidence.elapsed_milliseconds
                 self._remaining_budget()
                 try:
-                    validate_distribution_contract(
-                        "dispatch-result-v1", result, pack=pack
-                    )
+                    validate_distribution_contract("dispatch-result-v1", result, pack=pack)
                 except DistributionContractError as exc:
                     raise DispatchRuntimeError(f"dispatch result is invalid: {exc}") from exc
-                if result["input_tokens"] + result["output_tokens"] == 0:
+                if evidence.input_tokens + evidence.output_tokens == 0:
                     raise DispatchRuntimeError(
-                        "dispatch result lacks trusted nonzero usage accounting"
+                        "launcher evidence lacks trusted nonzero usage accounting"
                     )
                 _write_protected(
                     invocation / "dispatch-result-v1.json",
@@ -786,9 +889,11 @@ class DispatchRuntime:
                     self._journal["cleanup_state"] = "failed"
                     self._set_last_cleanup_state("failed")
                     self._persist_journal()
-                    raise DispatchRuntimeError("raw invocation cleanup failed; runtime is blocked") from exc
+                    raise DispatchRuntimeError(
+                        "raw invocation cleanup failed; runtime is blocked"
+                    ) from exc
             if execution_error is not None:
-                if executor_started and not result_recorded:
+                if launcher_started and not result_recorded:
                     result = self._minimal_failed_result(pack)
                     self._record_result(pack, result)
                     self._journal["blocked"] = True
@@ -797,20 +902,18 @@ class DispatchRuntime:
                     return result
                 if isinstance(execution_error, DispatchRuntimeError):
                     raise execution_error
-                raise DispatchRuntimeError("executor failed before launch") from execution_error
+                raise DispatchRuntimeError("launcher failed before launch") from execution_error
             assert result is not None
             return result
 
-    def _block_unknown_dispatch(
-        self, pack: Mapping[str, Any], failure: Exception
-    ) -> None:
+    def _block_unknown_dispatch(self, pack: Mapping[str, Any], failure: Exception) -> None:
         """Prevent implicit retry when execution ended without a trusted result."""
         active = self._active()
         if pack["dispatch_id"] not in active["dispatch_ids"]:
             active["dispatch_ids"].append(pack["dispatch_id"])
-            active["attempts"].setdefault(
-                str(pack["workflow_pack_ordinal"]), []
-            ).append(pack["dispatch_id"])
+            active["attempts"].setdefault(str(pack["workflow_pack_ordinal"]), []).append(
+                pack["dispatch_id"]
+            )
         self._journal["blocked"] = True
         self._journal["last_dispatch"] = {
             "workflow_id": pack["workflow_id"],
@@ -857,9 +960,7 @@ class DispatchRuntime:
     def _minimal_failed_result(self, pack: Mapping[str, Any]) -> dict[str, Any]:
         """Return a closed conservative result without trusting worker output."""
         budget = pack["budget"]
-        output_tokens = min(
-            budget["remaining_output_tokens"], budget["remaining_total_tokens"]
-        )
+        output_tokens = min(budget["remaining_output_tokens"], budget["remaining_total_tokens"])
         return {
             "schema_version": 1,
             **{
@@ -917,9 +1018,7 @@ class DispatchRuntime:
             assert handoff is not None
             handoff(dict(row), content)
 
-    def _verified_artifact(
-        self, invocation: Path, path: Path, row: Mapping[str, Any]
-    ) -> bytes:
+    def _verified_artifact(self, invocation: Path, path: Path, row: Mapping[str, Any]) -> bytes:
         try:
             metadata = path.lstat()
         except FileNotFoundError as exc:
@@ -936,9 +1035,7 @@ class DispatchRuntime:
                 or not stat.S_ISDIR(ancestor.st_mode)
                 or stat.S_IMODE(ancestor.st_mode) != 0o700
             ):
-                raise DispatchRuntimeError(
-                    "artifact ancestor must be a real mode-0700 directory"
-                )
+                raise DispatchRuntimeError("artifact ancestor must be a real mode-0700 directory")
             cursor = cursor.parent
         resolved = path.resolve(strict=True)
         try:

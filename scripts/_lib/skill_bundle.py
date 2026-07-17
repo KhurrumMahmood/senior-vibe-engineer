@@ -12,7 +12,7 @@ import re
 import stat
 import unicodedata
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field as dataclass_field
 from pathlib import Path, PurePosixPath
 from types import MappingProxyType
 from typing import Any
@@ -59,6 +59,7 @@ _DISCOVERY_PREFIXES = (
     ".gemini/skills/",
     "skills/",
 )
+_VERIFIED_BUNDLE_SEAL = object()
 
 
 class BundleTrustError(DistributionContractError):
@@ -88,6 +89,11 @@ class VerifiedBundle:
     surface_contract: dict[str, Any]
     tables_by_id: Mapping[str, Mapping[str, Any]]
     table_sha256s: Mapping[str, str]
+    _verification_seal: object = dataclass_field(repr=False, compare=False)
+
+    def is_verified(self) -> bool:
+        """Return whether this instance was minted by the release verifier."""
+        return self._verification_seal is _VERIFIED_BUNDLE_SEAL
 
 
 def _freeze_json(value: Any) -> Any:
@@ -575,6 +581,7 @@ def _verify_release_bundle(bundle_root: Path, expected_release_root_sha256: str)
         table_sha256s=MappingProxyType(
             {row["table_id"]: row["sha256"] for row in release["tables"]}
         ),
+        _verification_seal=_VERIFIED_BUNDLE_SEAL,
     )
 
 
