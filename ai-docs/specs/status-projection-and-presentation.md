@@ -144,49 +144,49 @@ Ordered test-first: each IM lands its test(s) in the same change.
 
 ### Implementation targets (IM)
 
-- **IM-1 Schema constants + validator.** Section vocabulary,
+- [x] IM-1: **Schema constants + validator.** Section vocabulary,
   `schema_version = 1`, absent-marker shape, closed status
   vocabularies, as a small module `status.py` and tests share.
   Tests: schema-validity fixtures in `tests/test_status.py`.
-- **IM-2 `scripts/status.py` core sections.** `lifecycle` (ADR 0020
+- [x] IM-2: **`scripts/status.py` core sections.** `lifecycle` (ADR 0020
   state via existing loader), `in_flight` (plans/specs frontmatter +
   `ideas_lib.project_all`), `structural_health` (manifest digest via
   one path-resolver indirection), `queue` (pending count). Tests:
   per-section presence + AR-2 degradation matrix (each source
   removed → absent, exit 0).
-- **IM-3 Pending-approvals detector.** Skill→report-dir map over the
+- [x] IM-3: **Pending-approvals detector.** Skill→report-dir map over the
   9 proposal chains, mtime-based age, AR-11 honesty statuses. Tests:
   seeded proposal dir appears; closure artifact clears the 2
   closure-detectable chains; others stay "pending until dismissed".
-- **IM-4 `scripts/_lib/artifact_scope.py`.** Sidecar `scope.json`
+- [x] IM-4: **`scripts/_lib/artifact_scope.py`.** Sidecar `scope.json`
   read/write helper (named to avoid the `_common/scope.py`
   collision). Tests: new module (NOT `tests/test_scope.py` — name
   taken).
-- **IM-5 Exemplar `scope.json` adoption.** `extract-enum/scripts/
+- [x] IM-5: **Exemplar `scope.json` adoption.** `extract-enum/scripts/
   collect.py` and `unify-shadows/scripts/collect_shadows.py` emit
   sidecars via IM-4. Tests: sidecar emitted alongside the report.
-- **IM-6 Input-drift staleness.** `status.py` flags artifacts whose
+- [x] IM-6: **Input-drift staleness.** `status.py` flags artifacts whose
   scoped paths were touched by commits after artifact write — the
   suite's first `tmp_path` `git init` fixture. Tests: success
   criterion 3 both directions.
-- **IM-7 Lens renderer v0.** Deterministic script: `status.json` →
+- [x] IM-7: **Lens renderer v0.** Deterministic script: `status.json` →
   self-contained HTML (data inlined, design-token CSS inlined,
   vanilla web components, copy-paste command actions; zero
   network/agents). Tests: Playwright headless-Chromium smoke —
   `file://`, zero console errors, zero network requests, every
   present section rendered.
-- **IM-8 Queue contract + session-start hook.** Packet-compatible
+- [x] IM-8: **Queue contract + session-start hook.** Packet-compatible
   item format (ADR 0036 fields + `staged_at`/`status`/origin ref) in
   `.engineering/local/queue/`; hook per the house pattern
   (`scripts/agent_policy/hook.py`) reporting pending count; document
   the manual-pickup floor for non-Claude agents. Tests: success
   criterion 6 round-trip.
-- **IM-9 `route.py` grounding read.** `--status` path override;
+- [x] IM-9: **`route.py` grounding read.** `--status` path override;
   signals cited in rationale as additive extras; stale projection
   (`generated_at` older than sources) dropped silently. Tests: extend
   `tests/test_which_shape.py` with the AR-5 byte-identity regression
   + grounded-rationale fixture.
-- **IM-10 CI wiring.** Playwright+chromium step in
+- [x] IM-10: **CI wiring.** Playwright+chromium step in
   `.github/workflows/ci.yml` (the repo's first browser harness);
   pytest modules join via existing `testpaths` (zero CI edits for
   them).
