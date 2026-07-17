@@ -665,6 +665,7 @@ evidence contract in the same logical change.
 | `scripts/_lib/binding_loader.py` | per-profile-root selection and execution evidence |
 | `scripts/_lib/skill_installer.py`, `scripts/skill_installer.py` | offline bundle and transactional lifecycle |
 | `scripts/_lib/skill_dispatch.py` | trusted catalog locator, exact-one dispatcher, pack/result schemas, worker/fallback policy |
+| `scripts/_lib/skill_dispatch_runtime.py` | shared lock, cumulative budgets, protected staging/journal, verified result/artifact handoff, and cleanup lockout |
 | `scripts/_lib/distribution_legacy.py` | closed exact-known legacy layout and ownership-marker semantics |
 | `scripts/distribution_probe.py` | projection plus separate runtime-evidence verification |
 | `scripts/wp3_move_gate.py` | ADR 0024/0028 safety-only pre-move gate |
@@ -674,6 +675,7 @@ evidence contract in the same logical change.
 | `tests/fixtures/wp3/surfaces/{claude-code,codex,augment,cursor,gemini}` | exact-version projection and runtime evidence fixtures |
 | `tests/fixtures/wp3/activation/{legacy-ambient,prior-manifest,collisions,symlinks,interrupted,temporary-callback}` | migration, ownership, recovery, temporary cleanup, and version-transition fixtures |
 | `tests/fixtures/wp3/dispatch/{unique,tie,no-match,error,malformed,explicit,mixed-root,worker-failure,privacy}` | total dispatcher outcomes, per-root packs, fallback/side-effects, bounds, and canary fixtures |
+| `tests/test_skill_dispatch_runtime.py` | executable dispatch policy, concurrency, budget, staging, artifact, recovery, and privacy regressions |
 | `tests/fixtures/wp3/extract-enum` | pinned input, raw output, semantic oracle, invalid form |
 | `tests/fixtures/wp3/move-gate` | retired prose and broken self-anchor negative fixture |
 | `tests/fixtures/wp3/bundles/{v1,v2,corrupt}` | update, rollback, corruption, and idempotence cases |
