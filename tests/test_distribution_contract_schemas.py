@@ -9,6 +9,12 @@ from typing import Any
 
 import pytest
 
+from _lib.distribution_contracts import (
+    DistributionContractError,
+    canonical_json_bytes,
+    validate_distribution_contract,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_ROOT = ROOT / ".claude/skills/_common/distribution"
@@ -448,7 +454,7 @@ def _shape_result() -> dict[str, Any]:
 def _skill_result() -> dict[str, Any]:
     return {
         "schema_version": 1,
-        "router_id": "which-skill-v1",
+        "router_id": "which-skill-overlap-v1",
         "normalizer_id": "ascii-wordset-v1",
         "scorer_id": "which-skill-overlap-v1",
         "threshold": 5,
@@ -652,6 +658,24 @@ def test_im_14_deep_negative_contract_attacks_fail_closed() -> None:
     ]
     attacks.append(("which-shape-result-v1", shape))
 
+    shape = _shape_result()
+    shape["candidates"] = [
+        {"shape_id": "system", "score": 40, "confidence": "medium", "rationales": []}
+    ]
+    attacks.append(("which-shape-result-v1", shape))
+
+    pack = _dispatch_pack()
+    pack["selection"]["selection_basis"] = "user_confirmed"
+    attacks.append(("dispatch-pack-v1", pack))
+
+    pack = _dispatch_pack()
+    pack["workflow_pack_ordinal"] = 2
+    attacks.append(("dispatch-pack-v1", pack))
+
+    result = _dispatch_result()
+    result["workflow_pack_ordinal"] = 2
+    attacks.append(("dispatch-result-v1", result))
+
     for name, attacked in attacks:
         schema = _load_json(CONTRACT_ROOT / f"{name}.schema.json")
         assert _validation_errors(attacked, schema, schema), name
@@ -819,3 +843,284 @@ def test_im_14_compatibility_table_pins_every_closed_bound() -> None:
     assert compatibility["surfaces"] == {
         key: {"lower": value, "upper": value} for key, value in surface_bounds.items()
     }
+
+    shape_schema = _load_json(CONTRACT_ROOT / "which-shape-result-v1.schema.json")
+    skill_schema = _load_json(CONTRACT_ROOT / "which-skill-result-v1.schema.json")
+    assert shape_schema["properties"]["router_id"]["const"] == compatibility["router_ids"][
+        "which_shape"
+    ]
+    assert skill_schema["properties"]["router_id"]["const"] == compatibility["router_ids"][
+        "which_skill"
+    ]
+    assert skill_schema["properties"]["scorer_id"]["const"] == compatibility["router_ids"][
+        "which_skill"
+    ]
+
+
+def _assert_semantically_invalid(
+    name: str,
+    document: dict[str, Any],
+    match: str,
+    **context: Any,
+) -> None:
+    with pytest.raises(DistributionContractError, match=match):
+        validate_distribution_contract(name, document, **context)
+
+
+def test_im_14_router_semantics_enforce_confidence_thresholds_and_ordering() -> None:
+    shape = _shape_result()
+    shape["candidates"] = [
+        {"shape_id": "system", "score": 40, "confidence": "high", "rationales": []},
+        {"shape_id": "feature", "score": 24, "confidence": "medium", "rationales": []},
+        {"shape_id": "quick", "score": 23, "confidence": "low", "rationales": []},
+    ]
+    validate_distribution_contract("which-shape-result-v1", shape)
+
+    wrong_confidence = copy.deepcopy(shape)
+    wrong_confidence["candidates"][0]["confidence"] = "medium"
+    _assert_semantically_invalid(
+        "which-shape-result-v1", wrong_confidence, "confidence must be high"
+    )
+
+    wrong_order = copy.deepcopy(shape)
+    wrong_order["candidates"].reverse()
+    _assert_semantically_invalid(
+        "which-shape-result-v1", wrong_order, "candidates must be sorted"
+    )
+
+    low_ok = copy.deepcopy(shape)
+    low_ok["candidates"] = [low_ok["candidates"][-1]]
+    low_ok["status"] = "ok"
+    _assert_semantically_invalid(
+        "which-shape-result-v1", low_ok, "status ok requires a unique top score at least 24"
+    )
+
+    skill = _skill_result()
+    skill["candidates"] = [
+        {
+            "canonical_name": "zeta",
+            "public_name": "zeta",
+            "score": 6,
+            "applicability": "compatible",
+            "roots": [{"project_root_sha256": HASH, "bindings": []}],
+            "rationales": [],
+        },
+        {
+            "canonical_name": "alpha",
+            "public_name": "alpha",
+            "score": 5,
+            "applicability": "compatible",
+            "roots": [{"project_root_sha256": HASH, "bindings": []}],
+            "rationales": [],
+        },
+    ]
+    validate_distribution_contract("which-skill-result-v1", skill)
+
+    below_threshold = copy.deepcopy(skill)
+    below_threshold["candidates"][0]["score"] = 4
+    below_threshold["candidates"][1]["score"] = 3
+    below_threshold["status"] = "ok"
+    _assert_semantically_invalid(
+        "which-skill-result-v1", below_threshold, "below threshold 5"
+    )
+
+    wrong_order = copy.deepcopy(skill)
+    wrong_order["candidates"].reverse()
+    _assert_semantically_invalid(
+        "which-skill-result-v1", wrong_order, "candidates must be sorted"
+    )
+
+    no_candidate = _skill_result()
+    no_candidate["status"] = "proceed_directly"
+    _assert_semantically_invalid(
+        "which-skill-result-v1", no_candidate, "requires quick=true or compatible candidates"
+    )
+
+
+def test_im_14_dispatch_pack_semantics_enforce_selection_and_digest_domains() -> None:
+    pack = _dispatch_pack()
+    validate_distribution_contract("dispatch-pack-v1", pack)
+
+    user_confirmed = copy.deepcopy(pack)
+    user_confirmed["selection"]["selection_basis"] = "user_confirmed"
+    _assert_semantically_invalid(
+        "dispatch-pack-v1", user_confirmed, "user_confirmed requires clarification_id"
+    )
+
+    wrong_initial_ordinal = copy.deepcopy(pack)
+    wrong_initial_ordinal["workflow_pack_ordinal"] = 2
+    _assert_semantically_invalid(
+        "dispatch-pack-v1", wrong_initial_ordinal, "initial_selection requires.*ordinal 1"
+    )
+
+    wrong_sequence_ordinal = copy.deepcopy(pack)
+    wrong_sequence_ordinal["continuation_reason"] = "confirmed_sequence_step"
+    _assert_semantically_invalid(
+        "dispatch-pack-v1", wrong_sequence_ordinal, "confirmed_sequence_step requires.*ordinal 2"
+    )
+
+    wrong_digest_domain = copy.deepcopy(pack)
+    wrong_digest_domain["procedure"]["raw_sha256"] = "b" * 64
+    _assert_semantically_invalid(
+        "dispatch-pack-v1", wrong_digest_domain, "selection.source_sha256 must equal"
+    )
+
+
+def test_im_14_dispatch_result_semantics_bind_pack_tuple_attempt_and_prior_result() -> None:
+    pack = _dispatch_pack()
+    result = _dispatch_result()
+    validate_distribution_contract("dispatch-result-v1", result, pack=pack)
+
+    _assert_semantically_invalid(
+        "dispatch-result-v1", result, "semantic validation requires its dispatch pack"
+    )
+
+    tuple_attack = copy.deepcopy(result)
+    tuple_attack["workflow_pack_ordinal"] = 2
+    _assert_semantically_invalid(
+        "dispatch-result-v1", tuple_attack, "must repeat pack workflow_pack_ordinal", pack=pack
+    )
+
+    prior = copy.deepcopy(result)
+    prior.update(
+        {
+            "status": "failed",
+            "error_code": "worker_failed",
+            "error_message": "failed",
+            "failure_kind": "worker_failed",
+            "side_effect_disposition": "rolled_back",
+        }
+    )
+    retry = copy.deepcopy(pack)
+    retry.update(
+        {
+            "dispatch_id": "123e4567-e89b-42d3-a456-426614174001",
+            "prior_dispatch_id": prior["dispatch_id"],
+            "attempt_ordinal": 2,
+            "continuation_reason": "user_confirmed_worker_retry",
+            "prior_result_sha256": __import__("hashlib").sha256(
+                canonical_json_bytes(prior)
+            ).hexdigest(),
+            "continuation_plan_sha256": "b" * 64,
+            "budget": {
+                **pack["budget"],
+                "remaining_milliseconds": 1199999,
+                "remaining_total_tokens": 32753,
+                "remaining_output_tokens": 8187,
+            },
+        }
+    )
+    validate_distribution_contract("dispatch-pack-v1", retry, prior_result=prior)
+
+    retry["prior_dispatch_id"] = "123e4567-e89b-42d3-a456-426614174099"
+    _assert_semantically_invalid(
+        "dispatch-pack-v1", retry, "prior_dispatch_id must equal", prior_result=prior
+    )
+
+
+def test_im_14_semantic_validator_enforces_non_schema_byte_and_artifact_limits() -> None:
+    non_nfc = _dispatch_pack()
+    non_nfc["roots"][0]["project_root"] = "/workspace/cafe\u0301"
+    _assert_semantically_invalid("dispatch-pack-v1", non_nfc, "must be NFC")
+
+    oversized = _dispatch_pack()
+    oversized["roots"] = [
+        {
+            "project_root": f"/workspace/{index}",
+            "profile_sha256": HASH,
+            "bindings": [
+                {
+                    "binding_id": f"binding-{binding}",
+                    "body": "x" * 32768,
+                    "raw_sha256": HASH,
+                    "rendered_sha256": HASH,
+                }
+                for binding in range(16)
+            ],
+        }
+        for index in range(2)
+    ]
+    _assert_semantically_invalid(
+        "dispatch-pack-v1", oversized, "canonical UTF-8 bytes exceed 131072"
+    )
+
+    result = _dispatch_result()
+    result["artifacts"] = [
+        {
+            "uri": f"artifact://sha256/{HASH}",
+            "name": f"artifact-{index}.bin",
+            "media_type": "application/octet-stream",
+            "size": 16777216,
+            "sha256": HASH,
+        }
+        for index in range(5)
+    ]
+    _assert_semantically_invalid(
+        "dispatch-result-v1", result, "aggregate artifact bytes exceed 67108864"
+    )
+
+    uri_mismatch = _dispatch_result()
+    uri_mismatch["artifacts"] = [
+        {
+            "uri": f"artifact://sha256/{'b' * 64}",
+            "name": "artifact.bin",
+            "media_type": "application/octet-stream",
+            "size": 1,
+            "sha256": HASH,
+        }
+    ]
+    _assert_semantically_invalid(
+        "dispatch-result-v1", uri_mismatch, "artifact URI digest must equal sha256"
+    )
+
+    token_overflow = _dispatch_result()
+    token_overflow["input_tokens"] = 30000
+    token_overflow["output_tokens"] = 5000
+    _assert_semantically_invalid(
+        "dispatch-result-v1", token_overflow, r"input_tokens \+ output_tokens exceed 32768"
+    )
+
+
+def test_im_14_installed_manifest_semantics_enforce_surface_and_path_coherence() -> None:
+    manifest = _installed_manifest()
+    bootstrap_file = manifest["generated_files"][0]
+    manifest["owned_paths"]["bootstrap_projections"] = [
+        {key: bootstrap_file[key] for key in ("path", "size", "sha256")}
+    ]
+    tree_rows = [
+        {key: bootstrap_file[key] for key in ("path", "size", "sha256")}
+    ]
+    manifest["bootstrap_trees"][0]["tree_sha256"] = __import__("hashlib").sha256(
+        canonical_json_bytes(tree_rows)
+    ).hexdigest()
+    manifest["manifest_sha256"] = __import__("hashlib").sha256(
+        canonical_json_bytes({key: value for key, value in manifest.items() if key != "manifest_sha256"})
+    ).hexdigest()
+    validate_distribution_contract("installed-manifest-v1", manifest)
+
+    duplicate_public = copy.deepcopy(manifest)
+    duplicate_public["activation_records"] = [
+        {"public_name": "plan-feature", "canonical_target": "plan-feature"},
+        {"public_name": "plan-feature", "canonical_target": "scope-feature"},
+    ]
+    _assert_semantically_invalid(
+        "installed-manifest-v1", duplicate_public, "activation public_name values must be unique"
+    )
+
+    missing_surface_tree = copy.deepcopy(manifest)
+    missing_surface_tree["surface_set"].append("codex")
+    _assert_semantically_invalid(
+        "installed-manifest-v1", missing_surface_tree, "bootstrap tree surfaces must exactly equal"
+    )
+
+    unselected_surface = copy.deepcopy(manifest)
+    unselected_surface["generated_files"][0]["surface_id"] = "codex"
+    _assert_semantically_invalid(
+        "installed-manifest-v1", unselected_surface, "generated file surface.*not selected"
+    )
+
+    duplicate_path = copy.deepcopy(manifest)
+    duplicate_path["generated_files"].append(copy.deepcopy(duplicate_path["generated_files"][0]))
+    _assert_semantically_invalid(
+        "installed-manifest-v1", duplicate_path, "generated file paths must be unique"
+    )

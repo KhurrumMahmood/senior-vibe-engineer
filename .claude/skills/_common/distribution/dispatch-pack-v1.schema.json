@@ -140,6 +140,45 @@
         },
         "required": ["fallback_reason"]
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "selection": {
+            "properties": {"selection_basis": {"const": "user_confirmed"}},
+            "required": ["selection_basis"]
+          }
+        },
+        "required": ["selection"]
+      },
+      "then": {
+        "properties": {"clarification_id": {"type": "string"}},
+        "required": ["clarification_id"]
+      },
+      "else": {
+        "properties": {"clarification_id": {"type": "null"}},
+        "required": ["clarification_id"]
+      }
+    },
+    {
+      "if": {
+        "properties": {"continuation_reason": {"const": "initial_selection"}},
+        "required": ["continuation_reason"]
+      },
+      "then": {
+        "properties": {"workflow_pack_ordinal": {"const": 1}},
+        "required": ["workflow_pack_ordinal"]
+      }
+    },
+    {
+      "if": {
+        "properties": {"continuation_reason": {"const": "confirmed_sequence_step"}},
+        "required": ["continuation_reason"]
+      },
+      "then": {
+        "properties": {"workflow_pack_ordinal": {"minimum": 2}},
+        "required": ["workflow_pack_ordinal"]
+      }
     }
   ],
   "$defs": {

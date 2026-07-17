@@ -20,7 +20,7 @@
   ],
   "properties": {
     "schema_version": {"const": 1},
-    "router_id": {"const": "which-skill-v1"},
+    "router_id": {"const": "which-skill-overlap-v1"},
     "normalizer_id": {"const": "ascii-wordset-v1"},
     "scorer_id": {"const": "which-skill-overlap-v1"},
     "threshold": {"const": 5},

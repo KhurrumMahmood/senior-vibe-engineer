@@ -27,7 +27,9 @@ repos:
         # mangled by whitespace trimming — exclude .html by default.
         exclude: '\.html$'
       - id: end-of-file-fixer
-        exclude: '\.html$'
+        # These release-root tables are RFC 8785 byte inputs; a final newline
+        # changes their digest and is rejected by the distribution validator.
+        exclude: '(\.html$|^\.claude/skills/_common/distribution/(aliases-v1|compatibility-v1|legacy-layouts-v1)\.json$)'
       - id: check-yaml
       - id: check-added-large-files
         args: ['--maxkb=1024']

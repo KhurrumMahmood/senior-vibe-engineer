@@ -79,7 +79,24 @@
           "maxItems": 16,
           "items": {"$ref": "#/$defs/rationale"}
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"score": {"minimum": 40}}, "required": ["score"]},
+          "then": {"properties": {"confidence": {"const": "high"}}, "required": ["confidence"]}
+        },
+        {
+          "if": {
+            "properties": {"score": {"minimum": 24, "maximum": 39}},
+            "required": ["score"]
+          },
+          "then": {"properties": {"confidence": {"const": "medium"}}, "required": ["confidence"]}
+        },
+        {
+          "if": {"properties": {"score": {"maximum": 23}}, "required": ["score"]},
+          "then": {"properties": {"confidence": {"const": "low"}}, "required": ["confidence"]}
+        }
+      ]
     }
   }
 }

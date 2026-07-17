@@ -75,6 +75,36 @@
       "x-maxAggregateArtifactBytes": 67108864
     }
   },
+  "oneOf": [
+    {
+      "properties": {
+        "attempt_ordinal": {"const": 1},
+        "continuation_reason": {"enum": ["initial_selection", "confirmed_sequence_step"]},
+        "prior_dispatch_id": {"type": "null"}
+      },
+      "required": ["attempt_ordinal", "continuation_reason", "prior_dispatch_id"]
+    },
+    {
+      "properties": {
+        "attempt_ordinal": {"const": 2},
+        "execution_lane": {"const": "fresh-worker"},
+        "continuation_reason": {"const": "user_confirmed_worker_retry"},
+        "fallback_reason": {"type": "null"},
+        "prior_dispatch_id": {"type": "string"}
+      },
+      "required": ["attempt_ordinal", "execution_lane", "continuation_reason", "fallback_reason", "prior_dispatch_id"]
+    },
+    {
+      "properties": {
+        "attempt_ordinal": {"const": 2},
+        "execution_lane": {"const": "selected-only-parent"},
+        "continuation_reason": {"const": "user_confirmed_parent_continuation"},
+        "fallback_reason": {"const": "user_confirmed_after_worker_failure"},
+        "prior_dispatch_id": {"type": "string"}
+      },
+      "required": ["attempt_ordinal", "execution_lane", "continuation_reason", "fallback_reason", "prior_dispatch_id"]
+    }
+  ],
   "allOf": [
     {
       "if": {"properties": {"status": {"const": "failed"}}, "required": ["status"]},
@@ -113,6 +143,52 @@
       "if": {"properties": {"side_effect_disposition": {"const": "committed_known"}}, "required": ["side_effect_disposition"]},
       "then": {"properties": {"side_effect_ledger_sha256": {"type": "string"}}, "required": ["side_effect_ledger_sha256"]},
       "else": {"properties": {"side_effect_ledger_sha256": {"type": "null"}}, "required": ["side_effect_ledger_sha256"]}
+    },
+    {
+      "if": {
+        "properties": {"attempt_ordinal": {"const": 1}, "execution_lane": {"const": "fresh-worker"}},
+        "required": ["attempt_ordinal", "execution_lane"]
+      },
+      "then": {"properties": {"fallback_reason": {"type": "null"}}, "required": ["fallback_reason"]}
+    },
+    {
+      "if": {
+        "properties": {"attempt_ordinal": {"const": 1}, "execution_lane": {"const": "selected-only-parent"}},
+        "required": ["attempt_ordinal", "execution_lane"]
+      },
+      "then": {
+        "properties": {
+          "fallback_reason": {
+            "enum": [
+              "conversation_state_required",
+              "user_interaction_required",
+              "nondelegable_authority_required",
+              "surface_worker_unsupported"
+            ]
+          }
+        },
+        "required": ["fallback_reason"]
+      }
+    },
+    {
+      "if": {
+        "properties": {"continuation_reason": {"const": "initial_selection"}},
+        "required": ["continuation_reason"]
+      },
+      "then": {
+        "properties": {"workflow_pack_ordinal": {"const": 1}},
+        "required": ["workflow_pack_ordinal"]
+      }
+    },
+    {
+      "if": {
+        "properties": {"continuation_reason": {"const": "confirmed_sequence_step"}},
+        "required": ["continuation_reason"]
+      },
+      "then": {
+        "properties": {"workflow_pack_ordinal": {"minimum": 2}},
+        "required": ["workflow_pack_ordinal"]
+      }
     }
   ],
   "$defs": {
