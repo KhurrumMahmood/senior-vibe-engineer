@@ -358,52 +358,52 @@ and post-terminal staging.
 
 ## Characterization requirements
 
-- [ ] AR-1: **Complete pre-change catalog oracle.** Record the exact 76-skill
+- [x] AR-1: **Complete pre-change catalog oracle.** Record the exact 76-skill
   name/path/metadata set, every current path reference, and the exact
   Django-applicable name set before body, metadata, catalog, or routing edits.
-- [ ] AR-2: **Placement inventory.** Give every discovered skill exactly one
+- [x] AR-2: **Placement inventory.** Give every discovered skill exactly one
   proposed layer, declared binding IDs, placement rationale, and one of
   `inventory-only`, `foundation-ready`, `exemplar-ready`, or
   `deferred-to-wp8`. Reject missing, duplicate, unknown, or multiply layered
   rows.
-- [ ] AR-3: **Foundation-set oracle.** Freeze the exact plan-* members and every
+- [x] AR-3: **Foundation-set oracle.** Freeze the exact plan-* members and every
   “inventory sibling with the same shape” covered by AC-3.1 before any
   de-flavoring. No implementation-time wildcard interpretation is allowed.
-- [ ] AR-4: **Placement-rule oracle.** Pin N=1 shipping-contract acceptance,
+- [x] AR-4: **Placement-rule oracle.** Pin N=1 shipping-contract acceptance,
   ≥3 domain cohesion, concept+binding default, invalid N=2 domain grouping,
   and the `/plan-skill` placement question. If a domain layer is selected,
   register and test its IDs and loader semantics; otherwise record that none
   qualified.
-- [ ] AR-5: **Core-boundary oracle.** Characterize framework names in proposed
+- [x] AR-5: **Core-boundary oracle.** Characterize framework names in proposed
   foundation bodies and pin good/bad frontmatter/content fixtures, including
   prose, links, code fences, case variants, inline compatibility prose, and
   allowed declared binding files.
-- [ ] AR-6: **Binding-selection oracle.** Pin per-root profile selections and
+- [x] AR-6: **Binding-selection oracle.** Pin per-root profile selections and
   failures for zero match, same-precedence ambiguity, incompatible override,
   root leakage, tool-as-framework inference, and directory-order dependence.
-- [ ] AR-7: **`extract-enum` semantic oracle.** Before splitting, pin a Django
+- [x] AR-7: **`extract-enum` semantic oracle.** Before splitting, pin a Django
   input and final output covering target symbol/path, literals and counts,
   case variants, current keyword arguments, caller classifications/sites,
   member/wire values, migration risks, and stop decision, plus existing invalid
   routing behavior.
-- [ ] AR-8: **Allowed normalization oracle.** Permit only temporary absolute
+- [x] AR-8: **Allowed normalization oracle.** Permit only temporary absolute
   roots, timestamps/scan IDs, Markdown whitespace, and semantically irrelevant
   deterministic table ordering. Missing or changed identifiers, literals,
   counts, sites, classifications, wire values, risks, or stop decisions remain
   semantic failures.
-- [ ] AR-9: **Surface oracle.** Record the AC-1.6 surface/version matrix,
+- [x] AR-9: **Surface oracle.** Record the AC-1.6 surface/version matrix,
   projection path and format, actual available discovery command, source hash,
   and current invocation result. Explicitly record unavailable Cursor/Augment
   proof rather than treating it as clean.
-- [ ] AR-10: **Cold-host ownership oracle.** Pin complete tree hashes for clean
+- [x] AR-10: **Cold-host ownership oracle.** Pin complete tree hashes for clean
   core-only, TypeScript/React, Django, and mixed fixtures, including sentinel
   host instructions, settings, hooks, ignore files, collisions, and existing
   toolkit-owned files.
-- [ ] AR-11: **Move-safety oracle.** Inventory every foundation/exemplar path
+- [x] AR-11: **Move-safety oracle.** Inventory every foundation/exemplar path
   proposal and self-anchored expression. Pin old and proposed targets, read the
   current move tool non-rewrite list, and characterize its inability to repair
   a `Path(__file__)…parents[N] / asset` anchor automatically.
-- [ ] AR-12: **First-value oracle.** Freeze one useful, read-only,
+- [x] AR-12: **First-value oracle.** Freeze one useful, read-only,
   foundation-ready invocation, its deterministic output oracle, documented
   command sequence, timing boundary including installation, and a deny-read
   assertion for `.claude/docs/quality-coordination-kernel.md`.
