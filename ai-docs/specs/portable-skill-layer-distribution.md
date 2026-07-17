@@ -17,6 +17,7 @@ code_roots:
   - scripts/_lib/distribution_contracts.py
   - scripts/_lib/skill_bundle.py
   - scripts/skill_bundle.py
+  - scripts/_lib/skill_dispatch.py
   - scripts/_lib/portfolio_snapshots.py
   - scripts/manifest.py
   - .claude/skills/_common/distribution
@@ -27,6 +28,7 @@ code_roots:
   - tests/test_distribution_contract_schemas.py
   - tests/test_distribution_reference_tables.py
   - tests/test_skill_bundle.py
+  - tests/test_skill_dispatch.py
   - tests/test_portfolio_snapshots.py
   - tests/test_wp3_move_gate.py
   - tests/test_core_framework_leakage.py
@@ -863,6 +865,14 @@ Its recipe/release graph is `_validate_recipe`, `_build_release_bundle`,
 are `_materialize_install_image`, `materialize_install_image`,
 `_verify_surface_bootstrap`, `_verify_install_image`, `verify_install_image`,
 and `recipe_from_json`.
+
+The deterministic dispatcher module's input and scoring helpers are `_utf8`,
+`_require_id`, `_require_digest`, `_token_array`, `_parse_shape`,
+`_validate_shape_boosts`, `_parse_skill`, `_parse_roots`, `_task_bytes`,
+`normalize_task`, `_normalize_text`, `_task_sha256`, `_boost_condition`,
+`_boost_rules`, `_literal_boost_cues`, `route_shape`, `_infer_signal`,
+`_score_skill`, and `route_skill`. Its decision boundary is `_decision`,
+`_validate_router_result`, `_load_selected`, and `dispatch_selection`.
 
 The phase-1 contract-schema test module also exceeds that threshold. Its
 validator/exemplar helpers are `_unique_object`, `_resolve_ref`, `_is_type`,
