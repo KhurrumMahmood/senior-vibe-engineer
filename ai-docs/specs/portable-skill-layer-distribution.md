@@ -479,7 +479,14 @@ evidence contract in the same logical change.
   sorted canonical-procedure set, exact sorted public-name set including
   aliases, and preserved host-owned discovery set in router-only, initial named
   activation of a non-router, named alias activation, cumulative canonical+
-  alias activation, and full-discovery states. The mode field remains exactly
+  alias activation, and full-discovery states. If the checked-in production
+  alias table is empty, the two alias states are instead the exact typed
+  unavailable record `{available: false, reason: no_alias_declared,
+  activation_records: []}` on every surface/portfolio; no release alias is
+  invented. A separate fixture-only `plan-feature-v1` → `plan-feature` row
+  with identical five-surface spellings, introduced release 1, and null
+  retirement must exercise the available named-alias and cumulative states
+  without entering any release/bundle/catalog/projection/runtime set. The mode field remains exactly
   `router-only|full-discovery`; activation records are orthogonal. Canonical router-only count is
   two; initial non-router named activation count is three; all other counts are
   derived from and must equal the checked-in exact sets rather than a loose

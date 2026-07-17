@@ -449,6 +449,27 @@ repository checks in exact, schema-closed `aliases-v1.json`,
 `compatibility-v1.json`. The alias table lists every public alias, canonical
 target, surface spelling, introduced version, and retirement version; an empty
 table is explicit and no alias may be inferred from directories or prose. The
+closed alias row is exactly `{public_name, canonical_target, surface_spellings,
+introduced_release, retirement_release}`. `public_name`, `canonical_target`,
+and each surface spelling use the lowercase hyphenated public-name grammar;
+`surface_spellings` has exactly the five supported surface keys;
+`introduced_release` is a positive integer; and `retirement_release` is null
+or an integer greater than or equal to it. Surface adapters add their declared
+namespace or literal-instruction syntax around that spelling.
+
+When the production alias table is empty, alias activation is not fabricated:
+each portfolio/surface snapshot records exactly
+`{available: false, reason: no_alias_declared, activation_records: []}` for
+both named-alias and cumulative canonical-plus-alias states. This is an honest
+absence, not support evidence. Alias-mechanism conformance is still mandatory
+and uses one fixture-only row—`plan-feature-v1` targeting `plan-feature`, all
+five spellings `plan-feature-v1`, introduced release 1, retirement null. That
+row is injected only into the contract test, is never written to
+`aliases-v1.json`, and cannot enter a release, bundle, catalog, projection, or
+runtime discovery set. A production alias guarantee begins only after an
+explicit accepted table row exists.
+
+The
 legacy inventory lists every supported layout/manifest id, exact version or
 closed version range, path set, known release-root/tree hashes, ownership
 markers, and migration action. An unlisted layout/version/hash is unknown, not
