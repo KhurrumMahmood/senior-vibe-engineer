@@ -15,6 +15,7 @@ code_roots:
   - scripts/skill_meta.py
   - scripts/_lib/skill_activation.py
   - scripts/_lib/distribution_contracts.py
+  - scripts/_lib/distribution_legacy.py
   - scripts/_lib/skill_bundle.py
   - scripts/skill_bundle.py
   - scripts/_lib/skill_dispatch.py
@@ -664,6 +665,7 @@ evidence contract in the same logical change.
 | `scripts/_lib/binding_loader.py` | per-profile-root selection and execution evidence |
 | `scripts/_lib/skill_installer.py`, `scripts/skill_installer.py` | offline bundle and transactional lifecycle |
 | `scripts/_lib/skill_dispatch.py` | trusted catalog locator, exact-one dispatcher, pack/result schemas, worker/fallback policy |
+| `scripts/_lib/distribution_legacy.py` | closed exact-known legacy layout and ownership-marker semantics |
 | `scripts/distribution_probe.py` | projection plus separate runtime-evidence verification |
 | `scripts/wp3_move_gate.py` | ADR 0024/0028 safety-only pre-move gate |
 | `scripts/lint/no_core_framework_leakage.py` | diff/all-mode content and frontmatter guard |
@@ -855,7 +857,7 @@ Runtime collection and validation are `_run`, `_command_record`,
 `_expected_runtime_version`, `_probe_observed_version`, and
 `validate_runtime_evidence`. CLI entry points are `_load_json` and `main`.
 
-The offline trust-bundle module's byte/path helpers are `raw_sha256`,
+The offline trust-bundle module's byte/path helpers are `_freeze_json`, `raw_sha256`,
 `validate_relative_path`, `_root_path`, `_safe_path`, `_read_file`,
 `_write_file`, `_row`, `tree_rows`, `tree_sha256`, `_verify_row`,
 `_strict_json_bytes`, `_unique_pairs`, `_reject_number`, and `_surface_map`.

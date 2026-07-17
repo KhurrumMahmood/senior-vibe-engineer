@@ -14,6 +14,7 @@ import unicodedata
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
+from types import MappingProxyType
 from typing import Any
 
 from .distribution_contracts import (
@@ -85,6 +86,17 @@ class VerifiedBundle:
     bundle_index_sha256: str
     blobs_by_id: Mapping[str, dict[str, Any]]
     surface_contract: dict[str, Any]
+    tables_by_id: Mapping[str, Mapping[str, Any]]
+    table_sha256s: Mapping[str, str]
+
+
+def _freeze_json(value: Any) -> Any:
+    """Return an immutable recursive view of already validated JSON data."""
+    if isinstance(value, dict):
+        return MappingProxyType({key: _freeze_json(item) for key, item in value.items()})
+    if isinstance(value, list):
+        return tuple(_freeze_json(item) for item in value)
+    return value
 
 
 def raw_sha256(content: bytes) -> str:
@@ -557,6 +569,12 @@ def _verify_release_bundle(bundle_root: Path, expected_release_root_sha256: str)
         bundle_index_sha256=raw_sha256(bundle_bytes),
         blobs_by_id=blobs_by_id,
         surface_contract=contract,
+        tables_by_id=MappingProxyType(
+            {name: _freeze_json(tables[name]) for name in TABLE_NAMES}
+        ),
+        table_sha256s=MappingProxyType(
+            {row["table_id"]: row["sha256"] for row in release["tables"]}
+        ),
     )
 
 

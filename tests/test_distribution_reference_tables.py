@@ -12,9 +12,11 @@ from _lib.distribution_contracts import (
     SURFACE_IDS,
     TABLE_NAMES,
     canonical_json_bytes,
+    canonical_sha256,
     load_canonical_json,
     load_distribution_tables,
     validate_alias_table,
+    validate_legacy_layouts_table,
 )
 from _lib.host_profile import HOST_PROFILE_SCHEMA_VERSION
 
@@ -39,6 +41,34 @@ def _alias(public_name: str, target: str = "plan-feature") -> dict[str, object]:
 FIXTURE_ALIAS = _alias("plan-feature-v1")
 
 
+def _legacy_layout(layout_id: str, action: str) -> dict[str, object]:
+    files = [
+        {
+            "path": ".legacy/content",
+            "size": 7,
+            "sha256": "a" * 64,
+            "role": "content",
+        },
+        {
+            "path": ".legacy/owner-v1",
+            "size": 19,
+            "sha256": "b" * 64,
+            "role": "ownership-marker",
+        },
+    ]
+    return {
+        "layout_id": layout_id,
+        "manifest_id": f"{layout_id}-manifest",
+        "version_range": {"lower": "1.0.0", "upper": "1.0.0"},
+        "release_root_sha256": "c" * 64,
+        "tree_sha256": canonical_sha256(
+            [{key: row[key] for key in ("path", "size", "sha256")} for row in files]
+        ),
+        "files": files,
+        "action": action,
+    }
+
+
 def _table(*rows: dict[str, object]) -> dict[str, object]:
     return {"aliases": list(rows), "schema_version": 1}
 
@@ -56,6 +86,44 @@ def test_production_reference_tables_are_canonical_and_semantically_valid() -> N
         "upper": HOST_PROFILE_SCHEMA_VERSION,
     }
     assert HOST_PROFILE_SCHEMA_VERSION == 1
+
+
+def test_fixture_legacy_adopt_and_retire_rows_have_a_closed_contract() -> None:
+    validate_legacy_layouts_table(
+        {
+            "layouts": [
+                _legacy_layout("legacy-adopt", "adopt"),
+                _legacy_layout("legacy-retire", "retire"),
+            ],
+            "schema_version": 1,
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "attack",
+    ("version", "release-hash", "path", "marker", "tree-hash"),
+)
+def test_legacy_layout_rejects_unknown_or_modified_identity(attack: str) -> None:
+    row = _legacy_layout("legacy-retire", "retire")
+    if attack == "version":
+        row["version_range"]["lower"] = ""  # type: ignore[index]
+        match = "closed bounds"
+    elif attack == "release-hash":
+        row["release_root_sha256"] = "not-a-hash"
+        match = "SHA-256"
+    elif attack == "path":
+        row["files"][0]["path"] = "../escape"  # type: ignore[index]
+        match = "safe NFC"
+    elif attack == "marker":
+        for item in row["files"]:  # type: ignore[union-attr]
+            item["role"] = "content"
+        match = "ownership-marker"
+    else:
+        row["tree_sha256"] = "d" * 64
+        match = "tree_sha256 differs"
+    with pytest.raises(DistributionContractError, match=match):
+        validate_legacy_layouts_table({"layouts": [row], "schema_version": 1})
 
 
 @pytest.mark.parametrize("table_name", TABLE_NAMES)

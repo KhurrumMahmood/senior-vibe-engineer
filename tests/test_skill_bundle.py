@@ -258,6 +258,19 @@ def test_release_to_installed_image_is_acyclic_complete_and_deterministic(
     assert digest_a == digest_b
     assert _tree_bytes(bundle_a) == _tree_bytes(bundle_b)
     verified = verify_release_bundle(bundle_a, digest_a)
+    assert set(verified.tables_by_id) == {
+        "aliases-v1",
+        "compatibility-v1",
+        "legacy-layouts-v1",
+    }
+    assert verified.table_sha256s == {
+        row["table_id"]: row["sha256"] for row in verified.release_root["tables"]
+    }
+    assert verified.tables_by_id["legacy-layouts-v1"]["layouts"] == ()
+    with pytest.raises(TypeError):
+        verified.table_sha256s["legacy-layouts-v1"] = "0" * 64  # type: ignore[index]
+    with pytest.raises(TypeError):
+        verified.tables_by_id["aliases-v1"]["schema_version"] = 2  # type: ignore[index]
     image_a = tmp_path / "image-a"
     image_b = tmp_path / "image-b"
     manifest_a = materialize_install_image(

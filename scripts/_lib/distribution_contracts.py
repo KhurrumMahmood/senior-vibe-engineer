@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from .host_profile import HOST_PROFILE_SCHEMA_VERSION
+from .distribution_legacy import validate_legacy_layouts_table as _validate_legacy_layouts_table
 
 
 CONTRACT_ROOT = Path(__file__).resolve().parents[2] / ".claude/skills/_common/distribution"
@@ -231,13 +232,12 @@ def validate_alias_table(
 
 
 def validate_legacy_layouts_table(value: object) -> None:
-    """Validate the explicit initial empty legacy-layout authority."""
-    table = _require_exact_keys(value, {"layouts", "schema_version"}, "legacy-layouts-v1")
-    _require_schema_one(table["schema_version"], "legacy-layouts-v1")
-    if table["layouts"] != []:
-        raise DistributionContractError(
-            "legacy-layouts-v1.layouts must remain empty until a closed row contract exists"
-        )
+    """Validate exact known legacy layouts without version/hash inference."""
+    _validate_legacy_layouts_table(
+        value,
+        error_type=DistributionContractError,
+        canonical_sha256=canonical_sha256,
+    )
 
 
 def validate_compatibility_table(value: object) -> None:
