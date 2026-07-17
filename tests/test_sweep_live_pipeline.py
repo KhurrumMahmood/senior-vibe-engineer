@@ -133,6 +133,7 @@ def _overlay_tree(source: Path, destination: Path) -> None:
         ("mixed", "mixed-case-sensitive.json"),
     ],
 )
+# spec:portable-batch-sweep::IM-15
 def test_im_15_live_host_runs_scan_judgment_packet_harness_diff_and_ratchet(
     host: str,
     profile_name: str,

@@ -23,6 +23,7 @@ code_roots:
   - tests/test_sweep_slice0_characterization.py
   - tests/test_sweep_manifest.py
   - tests/test_sweep_native_shims.py
+  - tests/test_sweep_live_pipeline.py
   - tests/test_wp5_wp4_entry_gate.py
   - tests/test_sweep_pipeline.py
   - tests/test_sweep_ecosystem_members.py
@@ -366,7 +367,7 @@ WP5 verification must assert ADR 0003 still points to AC-8.9.
 
 ### Slice 6 — final CI boundary and decision embodiment
 
-- [ ] IM-15: Run Python, TypeScript, Rust, Go, and mixed before/after fixtures
+- [x] IM-15: Run Python, TypeScript, Rust, Go, and mixed before/after fixtures
   through live tools, manifest writing, judged digest/packet gates, harness
   rescan, diff, and ratchet in CI; assert exact fixed/new/persisting IDs and
   clean-zero/failure distinction. <!-- spec:portable-batch-sweep::IM-15 -->
