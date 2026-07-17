@@ -317,7 +317,7 @@ In IM-14 phase 1, before lifecycle code consumes them, exact schema-closed `alia
 declare every surface spelling and lifetime even when the table is empty;
 legacy rows declare exact layouts, versions/ranges, paths, known release/tree
 hashes, ownership markers, and action. Compatibility uses ADR 0042's exact v1/
-registry-1/profile-2/router-ID and five exact surface-version bounds. No value
+registry-1/profile-1/router-ID and five exact surface-version bounds. No value
 is inferred. Migration adopts/removes only a listed byte-identical entry;
 modified known or host/unknown content stops with a diff, router-only cannot
 pass while a legacy toolkit header remains ambient, and unsupported/side-by-
@@ -562,7 +562,7 @@ evidence contract in the same logical change.
   same-namespace side-by-side rejection, and the manifest-contained generated-
   link policy. As IM-14 phase 1, before lifecycle consumer code, check in exact closed
   `aliases-v1.json`, `legacy-layouts-v1.json`, and `compatibility-v1.json` with
-  ADR 0042's concrete v1/registry-1/profile-2/router and exact five-surface
+  ADR 0042's concrete v1/registry-1/profile-1/router and exact five-surface
   bounds. Characterize and migrate every supported pre-amendment ambient
   layout and prior manifest from that inventory: adopt/retire only known byte-identical toolkit
   content; modified known or host/unknown content stops with a diff; no

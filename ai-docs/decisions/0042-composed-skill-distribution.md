@@ -480,13 +480,15 @@ the nearest known version.
 The initial compatibility table has closed values: release-root, bundle-index,
 installed-manifest, alias, legacy-layout, dispatcher-policy,
 `DispatchPackV1`, and `DispatchResultV1` schemas are exactly version 1;
-catalog inventory and capability registry schema/contract are exactly 1; host
-profile schema is exactly 2; router IDs are exactly
+catalog inventory, capability registry schema/contract, and the accepted WP2
+host-profile schema are exactly 1; router IDs are exactly
 `which-shape-lexical-v1` and `which-skill-overlap-v1`; Claude Code is exactly
 `2.1.211`, Codex exactly `0.144.1`, Augment exactly `imported-rules-v1`, Cursor
 exactly `project-rules-v1`, and Gemini exactly `0.45.0`. Every range has both
 lower and upper bounds even when equal. Widening any bound or changing an ID is
 a versioned compatibility-table change with fixtures, never runtime inference.
+The table cannot predeclare a future host-profile schema that the accepted WP2
+reader neither emits nor accepts.
 
 Migration recognizes only entries in that legacy inventory. Preview classifies
 every path as known byte-identical toolkit content, modified known content, or
