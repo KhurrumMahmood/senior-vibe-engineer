@@ -804,9 +804,9 @@ Active candidate promotion:
 `introduce-fk`, `map-product-workflow`, and `refactor-subsystem`.
 
 Choose and freeze a concrete router/server/UI/ORM/migration stack before moving
-one of these. find-workflow-state-gaps currently says `framework:any`, but
-its default path imports a Django-shaped workflow scanner; that claim must be
-corrected rather than treated as working framework neutrality.
+one of these. `find-workflow-state-gaps`, `impact-feature`, and `plan-feature`
+now declare their actual Django/Python boundary instead of advertising false
+framework-neutral TypeScript eligibility.
 
 ## Parallel worktree schedule
 

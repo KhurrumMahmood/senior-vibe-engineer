@@ -239,6 +239,42 @@ def test_default_router_set_is_exactly_three():
     assert DEFAULT_ROUTERS == ("which-shape", "which-skill", "which-cleanup")
 
 
+@pytest.mark.parametrize(
+    ("task", "excluded_skill"),
+    [
+        ("plan a TypeScript feature across one workflow", "plan-feature"),
+        (
+            "use impact-feature to map TypeScript touched subsystem blast radius",
+            "impact-feature",
+        ),
+    ],
+)
+def test_installed_which_skill_excludes_stack_bound_planning_claims(
+    tmp_path, task, excluded_skill
+):
+    host = tmp_path / "host"
+    router = _install_router(host, "which-skill")
+
+    result = _run_isolated(
+        router / "scripts" / "match.py",
+        task,
+        "--project-root",
+        str(host),
+        "--top",
+        "20",
+        "--json",
+        cwd=host,
+    )
+
+    assert result.returncode == 1, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["routing_context"]["language"] == "typescript"
+    assert payload["recommendation"] == "unsupported"
+    assert payload["unsupported"]["name"] == excluded_skill
+    excluded = {item["name"] for item in payload["excluded_unsupported"]}
+    assert excluded_skill in excluded
+
+
 def test_installed_which_cleanup_routes_without_repository_runtime(tmp_path):
     host = tmp_path / "host"
     router = _install_router(host, "which-cleanup")

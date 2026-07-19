@@ -774,8 +774,8 @@
       "job": "plan",
       "best_for": "Second stage of System-tier planning — a `scoped`-status plan that\nneeds full reachability + blast radius mapped before architecture-\nfit analysis can run. Fans out scouts per subsystem because the\nimpact map is the most parallelizable part of the chain.\n",
       "not_for": "Plan with status != scoped (use the matching next-stage skill).\nFeature-tier impact mapping — /plan-feature already bundles its own\nscout fan-out (use it instead). Authoring decisions (use /decide).\n",
-      "language": "any",
-      "framework": "any",
+      "language": "python",
+      "framework": "django",
       "_path": "skills/impact-feature"
     },
     {
@@ -874,8 +874,8 @@
       "job": "plan",
       "best_for": "Cross-cutting feature, 1-3 day scope, touches one workflow, needs\nimpact assessment but not a new subsystem. Examples: \"expose a new\nfield on the export\", \"add a per-site override for the X behavior\",\n\"wire up the Y pipeline to the existing Z trigger\".\n",
       "not_for": "Bug fixes (use /fix-workflow). New subsystems or 2+ workflows (use\nthe System-tier chain when it ships: /scope-feature → /impact-feature\n→ /architecture-fit → /plan-spec). Trivial changes — one-line fixes,\nfield renames, expose-existing-data — proceed directly and use\n/decide if a real choice is being made. If you're not sure of scope,\nask /which-skill first.\n",
-      "language": "any",
-      "framework": "any",
+      "language": "python",
+      "framework": "django",
       "_path": "skills/plan-feature"
     },
     {
