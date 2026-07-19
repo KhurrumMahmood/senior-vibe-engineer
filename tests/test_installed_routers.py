@@ -182,6 +182,10 @@ def test_installed_which_skill_routes_typescript_explanation(tmp_path):
             "map a TypeScript subsystem exported surface and resolved imports",
             "map-subsystem",
         ),
+        (
+            "assess a TypeScript glossary concept rename lifecycle and completeness gate",
+            "rename-concept",
+        ),
     ],
 )
 def test_installed_which_skill_routes_typescript_analysis_skills(

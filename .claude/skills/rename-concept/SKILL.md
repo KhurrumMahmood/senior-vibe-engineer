@@ -31,7 +31,9 @@ user-invocable: true
 tier: maintenance
 job: refactor
 best_for: |
-  Assessing whether a glossary-worthy, wide-blast concept rename is COMPLETE —
+  A TypeScript, JavaScript, or Python glossary concept rename lifecycle
+  assessment with a persistent completeness gate. Assessing whether a
+  glossary-worthy, wide-blast change is COMPLETE —
   the long tail (string-literal references, the guard lint, the cross-tool
   agent mirrors, the docs) is exactly what a rushed pass forgets, and the
   two-band gate is what catches a rename that is identifier-clean but still
@@ -40,13 +42,13 @@ best_for: |
   DETECTS the drift): this skill consumes that detector and frames it as a
   per-rename definition of done.
 not_for: |
-  A trivial local-symbol change outside the glossary with a narrow blast
+  A trivial local-symbol change outside canonical terminology with a narrow blast
   radius (use an IDE or a scoped find-and-replace) — the scope-gate bails
   these. Bulk drift detection across ALL concepts at once (use
-  /find-concept-divergence directly — this skill filters it to ONE rename).
+  /find-concept-divergence directly — this skill filters it to ONE requested term).
   General module decomposition or service extraction (use /refactor-subsystem).
   Authoring the DECISION itself — the ADR content is human judgment; this skill
-  reports lifecycle status, it does not decide. Executing the codemod — there
+  reports status, it does not decide. Executing the codemod — there
   is no codemod harness in this ecosystem yet, so the write half is deferred
   (see below).
 escalate_to: |

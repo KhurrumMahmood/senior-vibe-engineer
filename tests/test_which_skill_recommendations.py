@@ -84,6 +84,19 @@ def test_one_line_debug_prompt_does_not_trigger_diagnose():
     assert payload["inferred_tier"] == "quick"
 
 
+def test_glossary_backed_typescript_rename_is_not_short_circuited_as_quick():
+    returncode, payload = _run_match(
+        "assess a TypeScript glossary concept rename lifecycle and completeness gate",
+        "--top",
+        "10",
+    )
+
+    assert returncode == 0
+    assert payload["routing_context"]["language"] == "typescript"
+    assert payload["recommendation"] == "rename-concept"
+    assert payload["install"]["skill"] == "rename-concept"
+
+
 def test_exact_typescript_marker_routes_to_earned_state_skill():
     returncode, payload = _run_match(
         "find repeated bare status literals in a TypeScript source file",

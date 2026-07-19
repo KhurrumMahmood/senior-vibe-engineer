@@ -68,7 +68,7 @@ JOB_HINTS: dict[str, set[str]] = {
 
 # Words that strongly imply Quick tier (no planning skill applies).
 QUICK_HINTS = frozenset({
-    "typo", "rename", "one-line", "oneline", "small", "trivial", "simple",
+    "typo", "one-line", "oneline", "small", "trivial", "simple",
     "quick", "tiny", "minor", "single",
 })
 
