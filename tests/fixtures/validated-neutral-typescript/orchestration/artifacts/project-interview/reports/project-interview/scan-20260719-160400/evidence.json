@@ -1,0 +1,10 @@
+{
+  "evidence": {
+    "open_questions": "open-questions.md",
+    "profile": "profile.yml",
+    "profile_summary": "profile.md"
+  },
+  "notes": "Human answers were supplied in the natural task; unresolved details remain open.",
+  "scan_id": "scan-20260719-160400",
+  "skill": "project-interview"
+}

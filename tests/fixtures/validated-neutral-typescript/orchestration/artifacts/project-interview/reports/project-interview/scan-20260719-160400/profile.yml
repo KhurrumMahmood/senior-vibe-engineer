@@ -1,0 +1,33 @@
+schema_version: 1
+user_approved: true
+project:
+  name: delivery-operations-host
+  purpose: Accept signed pilot webhooks and make delivery retries observable.
+  users:
+    - platform team
+    - three pilot customers
+  maturity: transitioning from feature work toward a durable service
+  desired_direction: Stabilize retry behavior before adding operator UI.
+critical_workflows:
+  - signature acceptance at the webhook boundary
+  - stable delivery identity across retries
+risk_posture:
+  slow_down_around:
+    - authentication
+    - duplicate delivery
+    - retry ownership
+intentional_tradeoffs:
+  - Inline retry calculation is accepted temporarily while operational ownership is stabilized.
+known_bad_patterns:
+  - inline metric strings
+  - unbounded retry attempts
+do_not_break:
+  - valid signed webhook acceptance
+  - stable delivery identifiers
+standardization_policy:
+  do_not_canonize_by_frequency: true
+  requires_human_approval_for_canonical_patterns: true
+  notes:
+    - Inline retry calculation is an explicit temporary exception, not a reusable standard.
+open_questions:
+  - What retention period should apply to delivery identifiers and support contact email?

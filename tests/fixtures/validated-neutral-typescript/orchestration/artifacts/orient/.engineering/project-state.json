@@ -1,0 +1,7 @@
+{
+  "maturity": "first-users",
+  "stakes": "external",
+  "declared_by": "orient",
+  "declared_at": "2026-07-19T16:03:00Z",
+  "notes": "Three external pilot customers use a persistent environment; contact email is retained, but reliance is still light and no public adversarial surface or hard SLA exists."
+}
