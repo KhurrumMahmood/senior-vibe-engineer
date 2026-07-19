@@ -293,7 +293,13 @@ class TypeScriptCommentScanner:
         word_end = previous + 1
         while previous >= 0 and (self.text[previous].isalnum() or self.text[previous] in "_$"):
             previous -= 1
-        return self.text[previous + 1:word_end] in {"return", "throw", "case", "yield", "await"}
+        word = self.text[previous + 1:word_end]
+        if previous >= 0 and self.text[previous] == ".":
+            return False
+        return word in {
+            "await", "case", "delete", "do", "else", "in", "instanceof",
+            "new", "return", "throw", "typeof", "void", "yield",
+        }
 
     def _skip_regex(self, index: int) -> int:
         index += 1
@@ -320,7 +326,10 @@ class TypeScriptCommentScanner:
         return index
 
     def _jsx_can_start(self, index: int) -> bool:
-        if not self.tsx or index + 1 >= len(self.text) or not self.text[index + 1].isalpha():
+        if not self.tsx or index + 1 >= len(self.text):
+            return False
+        is_fragment = self.text[index + 1] == ">"
+        if not is_fragment and not self.text[index + 1].isalpha():
             return False
         previous = index - 1
         while previous >= 0 and self.text[previous].isspace():
@@ -331,11 +340,64 @@ class TypeScriptCommentScanner:
                 previous -= 1
             if self.text[previous + 1:word_end] != "return":
                 return False
+        if is_fragment:
+            return True
+
         name_end = index + 1
         while name_end < len(self.text) and (self.text[name_end].isalnum() or self.text[name_end] in "_$-."):
             name_end += 1
-        probe = self.text[name_end:self.text.find(">", name_end) if self.text.find(">", name_end) >= 0 else len(self.text)]
-        return "," not in probe and "extends" not in probe
+        cursor = name_end
+        tag_tokens: list[str] = []
+        while cursor < len(self.text):
+            char = self.text[cursor]
+            if char in {"'", '"'}:
+                cursor = self._skip_quoted(cursor, char)
+            elif char == "{":
+                cursor = self._skip_balanced_braces(cursor + 1)
+            elif char == ">":
+                break
+            else:
+                tag_tokens.append(char)
+                cursor += 1
+        if cursor >= len(self.text):
+            return False
+
+        probe = "".join(tag_tokens)
+        if "," in probe or re.search(r"\bextends\b", probe):
+            return False
+        after = cursor + 1
+        while after < len(self.text) and self.text[after].isspace():
+            after += 1
+        return not (not probe.strip() and after < len(self.text) and self.text[after] == "(")
+
+    def _skip_balanced_braces(self, index: int) -> int:
+        depth = 1
+        while index < len(self.text) and depth:
+            char = self.text[index]
+            if char in {"'", '"'}:
+                index = self._skip_quoted(index, char)
+            elif char == "`":
+                index = self._skip_template_literal(index)
+            elif char == "{":
+                depth += 1
+                index += 1
+            elif char == "}":
+                depth -= 1
+                index += 1
+            else:
+                index += 1
+        return index
+
+    def _skip_template_literal(self, index: int) -> int:
+        index += 1
+        while index < len(self.text):
+            if self.text[index] == "\\":
+                index += 2
+            elif self.text[index] == "`":
+                return index + 1
+            else:
+                index += 1
+        return index
 
     def _skip_jsx_tag(self, index: int) -> tuple[int, bool, bool]:
         """Return (after tag, is_closing, is_self_closing)."""
@@ -366,7 +428,7 @@ class TypeScriptCommentScanner:
             elif self.text[index] == "<" and index + 1 < len(self.text):
                 if self.text.startswith("</", index):
                     return self._skip_jsx_tag(index)[0]
-                if self.text[index + 1].isalpha():
+                if self.text[index + 1].isalpha() or self.text[index + 1] == ">":
                     index = self._scan_jsx_element(index)
                 else:
                     index += 1

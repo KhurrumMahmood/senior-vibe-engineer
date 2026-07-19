@@ -54,13 +54,17 @@ digits. It is recognized only in these real comment forms:
 - `/* decision:0001 */` block comments;
 - `/** decision:0001 */` JSDoc comments, including multi-line JSDoc;
 - comments inside a template interpolation (`${/* decision:0001 */ ...}`) and
-  TSX expression (`{/* decision:0001 */}`).
+  TSX expression (`{/* decision:0001 */}`), including expressions inside JSX
+  fragments.
 
 The lexical scanner ignores string literals, template text, regex literals,
-and TSX text nodes. It does not parse identifiers, resolve imports, interpret
-types, or infer React/Node/other framework behavior. A TypeScript Compiler API,
-package manager, network access, shared parser, and host `tsconfig` are not
-required for this comment-only invariant.
+and TSX text nodes, including comment-shaped text in elements or fragments.
+Quoted JSX attribute contents do not affect tag recognition. TypeScript generic
+angle syntax is not treated as a JSX element. The scanner does not parse
+identifiers, resolve imports, interpret types, or infer React/Node/other
+framework behavior. A TypeScript Compiler API, package manager, network access,
+shared parser, and host `tsconfig` are not required for this comment-only
+invariant.
 
 ### Existing reference forms
 

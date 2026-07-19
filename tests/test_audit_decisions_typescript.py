@@ -67,7 +67,7 @@ def test_typescript_and_existing_reference_forms_reach_final_drift_artifacts(tmp
     assert [(row["evidence"]["path"], row["adr_id"]) for row in orphan_rows] == [
         ("src/decision_refs.ts", "9999"),
     ]
-    assert "TS/TSX comment references: 7 total" in (output / "drift.md").read_text(encoding="utf-8")
+    assert "TS/TSX comment references: 10 total" in (output / "drift.md").read_text(encoding="utf-8")
 
 
 def test_typescript_literals_jsx_text_and_regexes_never_create_references(tmp_path: Path) -> None:
@@ -78,7 +78,37 @@ def test_typescript_literals_jsx_text_and_regexes_never_create_references(tmp_pa
 
     assert result.returncode == 1, result.stdout + result.stderr
     ids = {ref["id"] for ref in _raw(output)["references"]}
-    assert not ids & {"9001", "9002", "9003", "9004", "9005", "9006", "9007"}
+    assert not ids & {
+        "9001", "9002", "9003", "9004", "9005", "9006", "9007",
+        "9441", "9442", "9443", "9444", "9445", "9446",
+    }
+
+
+def test_tsx_fragment_expression_comment_remains_a_real_reference(tmp_path: Path) -> None:
+    host = _copy_host(tmp_path)
+    output = host / "reports" / "audit-decisions" / "tsx-fragment-expression"
+
+    result = _audit(SKILL, host, output)
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    fragment_refs = [
+        ref
+        for ref in _raw(output)["references"]
+        if ref["path"] == "src/decision_refs.tsx" and ref["id"] == "0001"
+    ]
+    assert len(fragment_refs) == 2
+    assert {ref["comment_form"] for ref in fragment_refs} == {"block"}
+
+    tsx_refs = [
+        ref
+        for ref in _raw(output)["references"]
+        if ref["path"] == "src/decision_refs.tsx"
+    ]
+    assert {(ref["id"], ref["comment_form"]) for ref in tsx_refs} == {
+        ("0001", "block"),
+        ("0002", "block"),
+        ("0003", "line"),
+    }
 
 
 @pytest.mark.parametrize(
