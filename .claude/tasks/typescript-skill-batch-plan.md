@@ -603,7 +603,7 @@ These operate on the toolkit's own ledgers, catalogs, routers, rules, or
 bootstrap runtime. A TypeScript host does not require a language variant, but
 the final matrix still records a runtime review revision.
 
-### TypeScript-supported batches (12 unique skills)
+### TypeScript-supported batches (15 unique skills)
 
 - B1: `find-concept-divergence`, `find-rule-surface-drift`,
   `find-skill-artifact-drift`, `find-skill-intent-drift`,
@@ -613,12 +613,13 @@ the final matrix still records a runtime review revision.
 - B4: `find-omnibus`.
 - Independent syntax/layout pilots: `find-complexity-hotspots`,
   `find-folder-topology-drift`.
+- Independent outcome pilots: `move-path`, `explain-code`,
+  `find-duplication`.
 
-### Candidate language-level families and repairs (14)
+### Candidate language-level families and repairs (11)
 
-`adapt-project`, `audit-decisions`, `explain-code`,
-`find-dormant`, `find-duplication`, `find-incomplete-sweep`,
-`find-semantic-duplication`, `find-standard-gaps`, `map-subsystem`, `move-path`,
+`adapt-project`, `audit-decisions`, `find-dormant`, `find-incomplete-sweep`,
+`find-semantic-duplication`, `find-standard-gaps`, `map-subsystem`,
 `propose-boundary`, `propose-folder-reorganization`, `rename-concept`, and
 `unify-shadows`.
 
