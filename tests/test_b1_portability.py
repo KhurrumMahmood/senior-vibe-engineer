@@ -151,7 +151,20 @@ def test_copied_b1_skills_run_with_isolated_host_tools(tmp_path: Path) -> None:
     artifact_skills.mkdir(parents=True)
     (artifact_skills / "clean-skill").mkdir()
     (artifact_skills / "clean-skill" / "SKILL.md").write_text(
-        "---\nname: clean-skill\nallowed-tools: Bash, Read\n---\n\n# Clean skill\n",
+        """\
+---
+name: clean-skill
+allowed-tools: # copied-host tool grant
+  - Bash
+  - Read
+---
+
+# Clean skill
+
+```bash
+echo clean
+```
+""",
         encoding="utf-8",
     )
     artifact_out = host / "reports" / "find-skill-artifact-drift" / "scan-b1"
@@ -176,43 +189,45 @@ def test_copied_b1_skills_run_with_isolated_host_tools(tmp_path: Path) -> None:
 
     intent_contracts = host / ".claude" / "contracts" / "skills"
     intent_contracts.mkdir(parents=True)
-    intent_skills = host / "intent-skills" / "clean-skill"
-    intent_skills.mkdir(parents=True)
-    (intent_skills / "SKILL.md").write_text(
-        "---\nname: clean-skill\ndescription: Inspect a contract.\n---\n",
-        encoding="utf-8",
-    )
-    (intent_contracts / "clean-skill.yaml").write_text(
-        json.dumps(
-            {
-                "skill": "clean-skill",
-                "job": "suspect",
-                "problem_class": "contract-audit",
-                "intent": "Inspect a contract.",
-                "solves": "Missing contract evidence.",
-                "born": {"commit": "fixture", "date": "2026-07-18"},
-                "dogfood_kind": "fixture-pair",
-                "provenance_confidence": {
-                    "textual": "high",
-                    "structural": "high",
-                    "temporal": "high",
-                    "dogfood": "high",
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
+    for name in SKILL_NAMES:
+        (intent_contracts / f"{name}.yaml").write_text(
+            json.dumps(
+                {
+                    "skill": name,
+                    "job": "suspect",
+                    "problem_class": "B1 copied portability contract",
+                    "intent": f"Exercise the copied {name} skill.",
+                    "solves": "Missing copied-install evidence.",
+                    "born": {"commit": "fixture", "date": "2026-07-19"},
+                    "dogfood_kind": "fixture-pair",
+                    "provenance_confidence": {
+                        "textual": "high",
+                        "structural": "high",
+                        "temporal": "high",
+                        "dogfood": "high",
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
     intent = _isolated(
         installed_root / "find-skill-intent-drift" / "scripts" / "scan.py",
         "--skills-root",
-        str(intent_skills.parent),
+        str(installed_root),
         "--contracts-dir",
         str(intent_contracts),
-        "--no-index",
+        "--strict",
         cwd=host,
     )
     assert intent.returncode == 0, intent.stdout + intent.stderr
+    assert "skills=5 contracts=5" in intent.stdout
     assert "TOTAL findings: 0" in intent.stdout
+    intent_index = json.loads((intent_contracts / "_index.yaml").read_text())
+    assert intent_index["skill_count"] == 5
+    assert [row["skill"] for row in intent_index["skills"]] == sorted(SKILL_NAMES)
+    assert {row["stale"] for row in intent_index["skills"]} == {
+        "baseline (contract uncommitted)"
+    }
 
     stale_out = host / "reports" / "find-stale-artifacts" / "scan-b1"
     stale_detect = _isolated(
@@ -295,3 +310,41 @@ flagged_ambiguities: []
     report_text = report.read_text(encoding="utf-8")
     assert "superseded_co_occurrence (1)" in report_text
     assert "`legacy, status`" in report_text
+
+
+def test_copied_concept_skill_rejects_empty_or_nested_glossary(tmp_path: Path) -> None:
+    installed_skill = tmp_path / "installed" / "find-concept-divergence"
+    shutil.copytree(SKILLS_ROOT / "find-concept-divergence", installed_skill)
+    host = tmp_path / "host"
+    shutil.copytree(FIXTURE_HOST, host)
+    glossary = host / ".claude" / "contracts" / "concepts.yaml"
+    invalid_cases = {
+        "empty": ("concepts: []\n", "must contain at least one concept"),
+        "nested": (
+            """\
+concepts:
+  - name: legacy-status
+    aliases: [["legacy, status"]]
+""",
+            "nested YAML flow collections are unsupported",
+        ),
+    }
+
+    for case, (glossary_text, expected_error) in invalid_cases.items():
+        glossary.write_text(glossary_text, encoding="utf-8")
+        out = host / "reports" / "find-concept-divergence" / case
+        result = _isolated(
+            installed_skill / "scripts" / "scan.py",
+            "--project-root",
+            str(host),
+            "--output",
+            str(out / "findings.jsonl"),
+            "--report",
+            str(out / "report.md"),
+            ".",
+            cwd=host,
+        )
+
+        assert result.returncode != 0
+        assert expected_error in result.stderr
+        assert not (out / "report.md").exists()

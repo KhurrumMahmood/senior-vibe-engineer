@@ -1,8 +1,10 @@
 # B1 portability learning report
 
-Revision: `28671a38afb476d970c6242e0782f7d07cbb8de8` baseline +
-`<B1 YAML fallback repair commit>` on `codex/ts-b1-portability`, 2026-07-19
-UTC
+Accepted parent: `28671a38afb476d970c6242e0782f7d07cbb8de8`. First-review repair:
+`d456e7e049cddc6ce3f2c7434eb049ae87b427ec`. This report also records the
+verified second-review repair on `codex/ts-b1-portability`; its commit is
+reported at handoff rather than self-referenced here. Evidence date:
+2026-07-19 UTC.
 
 ## Outcome
 
@@ -36,13 +38,18 @@ detector reads; no cosmetic TypeScript scan was added.
   resolver and a schema-specific, stdlib glossary reader. Its scalar flow-list
   reader preserves quoted comma-containing values (including aliases) rather
   than splitting them into false terms; nested flow collections remain outside
-  the declared glossary profile and fail clearly.
+  the declared glossary profile and fail clearly. Commented collection keys
+  such as `concepts: # note` retain their block-list meaning, and an empty or
+  silently unparsed `concepts` collection blocks the scan instead of producing
+  a clean report.
 - The rule-surface, artifact, and stale-artifact reporters imported repository
   `_common/product_topology.py`. Their small JSONL/report closure now lives in
   each selected reporter, rather than in a new shared platform.
 - `find-skill-artifact-drift` also used the repository YAML-frontmatter module
   and source-root constants. It now reads only the evidence fields it owns and
-  resolves host paths from `--project-root` / cwd.
+  resolves host paths from `--project-root` / cwd. Its copied stdlib reader
+  preserves block lists introduced by an inline-commented key such as
+  `allowed-tools: # note`, avoiding a false `bash_tool_undeclared` finding.
 - `find-skill-intent-drift` keeps PyYAML behavior for rich YAML, but a copied
   isolated install can read JSON-form YAML and emit JSON-form `_index.yaml`
   with stdlib only. A rich, non-JSON YAML contract without host PyYAML is a
@@ -63,7 +70,7 @@ detector reads; no cosmetic TypeScript scan was added.
   ```bash
   .venv/bin/python \
     -m pytest -q tests/test_b1_portability.py
-  # 4 passed
+  # 5 passed
   ```
 
   The copied-skill test uses `python -I -S` from an external host directory
@@ -78,7 +85,15 @@ detector reads; no cosmetic TypeScript scan was added.
   `dist/`, and vendored `node_modules/` paths clean. The quoted-comma alias
   regression also reaches the final copied report: a backtick TypeScript
   transition using `legacy, status` and `canonical, status` renders the one
-  expected `superseded_co_occurrence` finding rather than a false clean.
+  expected `superseded_co_occurrence` finding rather than a false clean. Empty
+  concept collections and nested flow collections now fail before either final
+  artifact is written.
+- The copied intent scan exercises the five installed B1 skills against five
+  matching host JSON-as-YAML contracts under `--strict` (without
+  `--no-index`). It reports zero findings and its actual generated
+  `_index.yaml` contains all five skills with baseline/uncommitted fixture
+  provenance. Repository-wide intent contracts and their global index remain
+  serial-integrator-owned.
 - Existing oracles remain green:
 
   ```bash
@@ -97,7 +112,7 @@ detector reads; no cosmetic TypeScript scan was added.
   finding final report. The concept scanner also read the repository's
   ordinary YAML glossary under `python -I -S` and emitted its final artifacts.
 - Project checks passed: `scripts/skill_meta.py lint` (76 skills), targeted
-  pytest (15 passed), `scripts/skill_comply/validate.py` (PASS), targeted
+  pytest (16 passed), `scripts/skill_comply/validate.py` (PASS), targeted
   Ruff (all checks passed), and the B1 artifact-drift gate (clean).
 - The generic skill-creator `quick_validate.py` rejected valid extended
   frontmatter fields (`argument-hint`, `best_for`, `framework`, `job`,
@@ -151,9 +166,9 @@ the same contract.
    these frontmatter changes; B1 did not own contract files.
 
 Residual risks: rich YAML intent contracts require host PyYAML outside the
-JSON-as-YAML stdlib path; the broader router work is intentionally untested
-here; and D6 fresh forward testing plus D8 independent review are pending
-because the parent task explicitly prohibited spawning agents while all
-concurrency slots are occupied. The recommended next decision is to accept
-this evidence packet, perform the serial router / contract work, and then run
-a fresh installed-skill forward test before advancing another language batch.
+JSON-as-YAML stdlib path, and the broader router work is intentionally
+untested here. Fresh copied final-artifact and strict indexed-intent evidence
+is complete; the second adversarial review findings were converted into the
+regressions above. The recommended next decision is to accept this evidence
+packet and perform the serial router / repository-contract work before
+advancing another language batch.

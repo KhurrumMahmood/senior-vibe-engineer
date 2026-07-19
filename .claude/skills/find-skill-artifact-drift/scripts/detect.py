@@ -82,6 +82,33 @@ def write_jsonl(records, path: Path) -> None:
             handle.write(json.dumps(record, sort_keys=True) + "\n")
 
 
+def _strip_yaml_comment(value: str) -> str:
+    """Drop a YAML comment marker that occurs outside a quoted scalar."""
+    quote: str | None = None
+    escaped = False
+    cursor = 0
+    while cursor < len(value):
+        char = value[cursor]
+        if quote == '"':
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                quote = None
+        elif quote == "'":
+            if char == "'" and cursor + 1 < len(value) and value[cursor + 1] == "'":
+                cursor += 1
+            elif char == "'":
+                quote = None
+        elif char in {'"', "'"}:
+            quote = char
+        elif char == "#" and (cursor == 0 or value[cursor - 1].isspace()):
+            return value[:cursor].rstrip()
+        cursor += 1
+    return value.rstrip()
+
+
 def _frontmatter_and_body(text: str) -> tuple[dict[str, object] | None, str]:
     """Read only the frontmatter fields this detector owns.
 
@@ -113,7 +140,8 @@ def _frontmatter_and_body(text: str) -> tuple[dict[str, object] | None, str]:
             if active_key and stripped.startswith("- "):
                 current = metadata.setdefault(active_key, [])
                 if isinstance(current, list):
-                    current.append(stripped[2:].strip().strip('"\''))
+                    item = _strip_yaml_comment(stripped[2:].strip()).strip('"\'')
+                    current.append(item)
             elif active_key and active_block:
                 current = str(metadata.get(active_key, ""))
                 metadata[active_key] = (current + " " + stripped).strip()
@@ -124,7 +152,7 @@ def _frontmatter_and_body(text: str) -> tuple[dict[str, object] | None, str]:
             continue
         key, value = raw.split(":", 1)
         key = key.strip()
-        value = value.strip()
+        value = _strip_yaml_comment(value.strip())
         active_key = key
         active_block = value in {"|", ">", "|-", ">-"}
         if active_block:

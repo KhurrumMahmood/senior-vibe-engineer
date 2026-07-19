@@ -171,6 +171,33 @@ def _parse_plain_scalar(value: str) -> Any:
     return value
 
 
+def _strip_yaml_comment(value: str) -> str:
+    """Drop a YAML comment marker that occurs outside a quoted scalar."""
+    quote: str | None = None
+    escaped = False
+    cursor = 0
+    while cursor < len(value):
+        char = value[cursor]
+        if quote == '"':
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                quote = None
+        elif quote == "'":
+            if char == "'" and cursor + 1 < len(value) and value[cursor + 1] == "'":
+                cursor += 1
+            elif char == "'":
+                quote = None
+        elif char in {'"', "'"}:
+            quote = char
+        elif char == "#" and (cursor == 0 or value[cursor - 1].isspace()):
+            return value[:cursor].rstrip()
+        cursor += 1
+    return value.rstrip()
+
+
 def _parse_flow_sequence(value: str) -> list[Any]:
     """Parse a scalar-only YAML flow sequence without losing quoted commas.
 
@@ -263,7 +290,9 @@ def _load_glossary_yaml(text: str) -> dict[str, Any]:
         if not raw.strip() or raw.lstrip().startswith("#"):
             continue
         indent = len(raw) - len(raw.lstrip(" "))
-        line = raw.strip()
+        line = _strip_yaml_comment(raw.strip())
+        if not line:
+            continue
         if indent == 0 and line in {"concepts:", "flagged_ambiguities:"}:
             finish_current()
             collection = line[:-1]
@@ -316,6 +345,9 @@ def load_glossary(path: Path) -> dict[str, Any]:
             sys.exit(f"glossary read/parse error: {exc}")
     if not isinstance(data, dict) or "concepts" not in data:
         sys.exit("glossary missing top-level `concepts:` block")
+    concepts = data["concepts"]
+    if not isinstance(concepts, list) or not concepts:
+        sys.exit("glossary `concepts:` block must contain at least one concept")
     return data
 
 

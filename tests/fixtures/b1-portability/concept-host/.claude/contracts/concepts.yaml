@@ -1,4 +1,4 @@
-concepts:
+concepts: # copied-host canonical glossary
   - name: canonical-status
     aliases:
       - legacy status adapter

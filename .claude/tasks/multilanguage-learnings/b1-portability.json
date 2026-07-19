@@ -1,6 +1,10 @@
 {
   "batch": "B1",
-  "revision": "28671a38afb476d970c6242e0782f7d07cbb8de8 + <B1 YAML fallback repair commit>",
+  "revision": {
+    "accepted_parent": "28671a38afb476d970c6242e0782f7d07cbb8de8",
+    "first_review_repair": "d456e7e049cddc6ce3f2c7434eb049ae87b427ec",
+    "second_review_evidence": "verified on codex/ts-b1-portability before commit; final commit reported at handoff"
+  },
   "family": [
     "find-concept-divergence",
     "find-rule-surface-drift",
@@ -23,8 +27,10 @@
     "Added .tsx to find-concept-divergence source suffixes.",
     "Moved copied-skill target resolution and glossary-profile parsing into find-concept-divergence.",
     "Made the glossary flow-list profile preserve quoted comma-containing scalar values; nested flow collections fail clearly instead of being mis-split.",
+    "Made commented concept collection keys parse as block collections and made empty or silently unparsed concepts fail before report generation.",
     "Removed repository _common report dependencies from the rule-surface, skill-artifact, and stale-artifact reporters.",
     "Removed repository frontmatter/root dependencies from find-skill-artifact-drift's owned evidence path.",
+    "Made find-skill-artifact-drift's stdlib frontmatter reader preserve block lists after inline-commented keys such as allowed-tools.",
     "Added JSON-as-YAML fallback for isolated find-skill-intent-drift contract paths while retaining PyYAML rich-YAML behavior."
   ],
   "language_model": {
@@ -74,11 +80,14 @@
       "tests/fixtures/b1-portability/concept-host/src/compatibility-alias.ts"
     ],
     "commands_and_artifact_paths": [
-      "tests/test_b1_portability.py: 4 passed, including copied skills under python -I -S outside the checkout. The copied concept scan found exactly two actionable avoid_term_hit records in deprecated.ts and deprecated.tsx and no records for the compatibility alias, identifier homonym, generated dist path, or vendored node_modules path.",
+      "tests/test_b1_portability.py: 5 passed, including copied skills under python -I -S outside the checkout. The copied concept scan found exactly two actionable avoid_term_hit records in deprecated.ts and deprecated.tsx and no records for the compatibility alias, identifier homonym, generated dist path, or vendored node_modules path.",
       "The copied quoted-comma alias regression drives a backtick TypeScript transition through findings.jsonl and report.md, producing one superseded_co_occurrence record for legacy, status instead of a false clean.",
+      "The copied commented concepts key preserves its block list; empty concepts and nested YAML flow collections fail before final artifacts are written.",
+      "The copied artifact scan accepts allowed-tools followed by an inline comment and a Bash/Read block list, keeping the final report clean.",
+      "The copied strict intent scan covers five installed B1 skills and five matching JSON-as-YAML host contracts, reports zero findings, and verifies the generated five-row _index.yaml without --no-index.",
       "python -I -S .claude/skills/find-concept-divergence/scripts/scan.py --project-root tests/fixtures/b1-portability/concept-host ...: two findings and final report from ordinary YAML.",
       "scripts/skill_meta.py lint: OK — 76 skills, 76 declaring new contract.",
-      "targeted pytest: 15 passed; scripts/skill_comply/validate.py: OVERALL PASS; targeted Ruff: all checks passed."
+      "targeted pytest: 16 passed; scripts/skill_comply/validate.py: OVERALL PASS; targeted Ruff: all checks passed."
     ]
   },
   "false_positive_boundary": {
@@ -112,11 +121,11 @@
   "residual_risks": [
     "Rich non-JSON YAML intent contracts require PyYAML in the host environment; the stdlib copied path supports JSON-form YAML.",
     "Router catalog/matcher integration is serial-integrator-owned and untested in B1.",
-    "Fresh forward testing and independent review are pending because the parent task prohibited spawning while concurrency was full."
+    "The second adversarial review findings are repaired; repository-wide contract/index and router integration remain serial-integrator-owned."
   ],
   "next_decision": {
-    "recommendation": "Accept B1 evidence, perform router/catalog and intent-contract serial integration, then run a fresh installed-skill forward test before another language batch.",
+    "recommendation": "Accept the completed B1 copied evidence, then perform router/catalog and repository intent-contract integration before another language batch.",
     "rationale": "The batch delivers genuine TS/TSX glossary coverage and truthful host-neutral claims without speculative shared infrastructure.",
-    "blockers": ["serial router changes", "contract refresh review", "fresh forward test"]
+    "blockers": ["serial router changes", "repository contract refresh review"]
   }
 }
