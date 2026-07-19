@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_revision": "caa19cf",
+  "reviewed_revision": "c611723",
   "stock_install_command_template": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${{ENGINEERING_SKILLS_SOURCE}}\" --skill {skill} --agent codex --copy -y",
   "clean_host_journeys": [
     {
@@ -30,7 +30,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_adapt_project_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill adapt-project --agent codex --copy -y"
     },
     {
@@ -38,7 +38,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_planning.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill architecture-fit --agent codex --copy -y"
     },
     {
@@ -46,7 +46,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_audit_decisions_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill audit-decisions --agent codex --copy -y"
     },
     {
@@ -54,7 +54,7 @@
       "disposition": "ecosystem-runtime",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "not-host-language-variant",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill brainstorm-ideas --agent codex --copy -y"
     },
     {
@@ -62,7 +62,7 @@
       "disposition": "ecosystem-runtime",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "not-host-language-variant",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill check-ecosystem-consistency --agent codex --copy -y"
     },
     {
@@ -70,7 +70,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_orchestration.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill converge --agent codex --copy -y"
     },
     {
@@ -78,7 +78,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_planning.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill decide --agent codex --copy -y"
     },
     {
@@ -86,7 +86,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_planning.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill design-it-twice --agent codex --copy -y"
     },
     {
@@ -94,7 +94,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_quality.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill diagnose --agent codex --copy -y"
     },
     {
@@ -102,7 +102,7 @@
       "disposition": "ecosystem-runtime",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "not-host-language-variant",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill engineer-init --agent codex --copy -y"
     },
     {
@@ -110,7 +110,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_explain_code_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill explain-code --agent codex --copy -y"
     },
     {
@@ -118,7 +118,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill extract-cotton-primitive --agent codex --copy -y"
     },
     {
@@ -126,7 +126,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_b2t_typescript_closed_state.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill extract-enum --agent codex --copy -y"
     },
     {
@@ -134,7 +134,7 @@
       "disposition": "ecosystem-runtime",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "not-host-language-variant",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill extract-existing-ideas --agent codex --copy -y"
     },
     {
@@ -142,7 +142,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill extract-state-type --agent codex --copy -y"
     },
     {
@@ -150,7 +150,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill extract-workflow-registry --agent codex --copy -y"
     },
     {
@@ -158,7 +158,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-async-lifecycle-drift --agent codex --copy -y"
     },
     {
@@ -166,7 +166,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_comment_drift_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-comment-drift --agent codex --copy -y"
     },
     {
@@ -174,7 +174,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_find_complexity_hotspots_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-complexity-hotspots --agent codex --copy -y"
     },
     {
@@ -182,7 +182,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_b1_portability.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-concept-divergence --agent codex --copy -y"
     },
     {
@@ -190,7 +190,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-contract-drift --agent codex --copy -y"
     },
     {
@@ -198,7 +198,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-dead-route-surface --agent codex --copy -y"
     },
     {
@@ -206,7 +206,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-doc-route-drift --agent codex --copy -y"
     },
     {
@@ -214,7 +214,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_find_dormant_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-dormant --agent codex --copy -y"
     },
     {
@@ -222,7 +222,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_find_duplication_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-duplication --agent codex --copy -y"
     },
     {
@@ -230,7 +230,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_find_folder_topology_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-folder-topology-drift --agent codex --copy -y"
     },
     {
@@ -238,7 +238,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-frontend-contract-drift --agent codex --copy -y"
     },
     {
@@ -246,7 +246,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-frontend-duplication --agent codex --copy -y"
     },
     {
@@ -254,7 +254,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_b2t_typescript_closed_state.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-implicit-state --agent codex --copy -y"
     },
     {
@@ -262,7 +262,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_find_incomplete_sweep_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-incomplete-sweep --agent codex --copy -y"
     },
     {
@@ -270,7 +270,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-layer-violation --agent codex --copy -y"
     },
     {
@@ -278,7 +278,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_omnibus_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-omnibus --agent codex --copy -y"
     },
     {
@@ -286,7 +286,7 @@
       "disposition": "ecosystem-runtime",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "not-host-language-variant",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-orphaned-ideas --agent codex --copy -y"
     },
     {
@@ -294,7 +294,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_quality.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-perimeter-gaps --agent codex --copy -y"
     },
     {
@@ -302,7 +302,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-query-mutation --agent codex --copy -y"
     },
     {
@@ -310,7 +310,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-route-sprawl --agent codex --copy -y"
     },
     {
@@ -318,7 +318,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_b1_portability.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-rule-surface-drift --agent codex --copy -y"
     },
     {
@@ -326,7 +326,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_find_semantic_duplication_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-semantic-duplication --agent codex --copy -y"
     },
     {
@@ -334,7 +334,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_b1_portability.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-skill-artifact-drift --agent codex --copy -y"
     },
     {
@@ -342,7 +342,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_b1_portability.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-skill-intent-drift --agent codex --copy -y"
     },
     {
@@ -350,7 +350,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_b1_portability.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-stale-artifacts --agent codex --copy -y"
     },
     {
@@ -358,7 +358,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_find_standard_gaps_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-standard-gaps --agent codex --copy -y"
     },
     {
@@ -366,7 +366,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-test-obligation-drift --agent codex --copy -y"
     },
     {
@@ -374,7 +374,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-transaction-overreach --agent codex --copy -y"
     },
     {
@@ -382,7 +382,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-workflow-duplication --agent codex --copy -y"
     },
     {
@@ -390,7 +390,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-workflow-state-gaps --agent codex --copy -y"
     },
     {
@@ -398,7 +398,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill fix-workflow --agent codex --copy -y"
     },
     {
@@ -406,7 +406,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_quality.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill gut-check --agent codex --copy -y"
     },
     {
@@ -414,7 +414,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_orchestration.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill harvest-learnings --agent codex --copy -y"
     },
     {
@@ -422,7 +422,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill impact-feature --agent codex --copy -y"
     },
     {
@@ -430,7 +430,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill introduce-fk --agent codex --copy -y"
     },
     {
@@ -438,7 +438,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill map-product-workflow --agent codex --copy -y"
     },
     {
@@ -446,7 +446,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_map_subsystem_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill map-subsystem --agent codex --copy -y"
     },
     {
@@ -454,7 +454,7 @@
       "disposition": "ecosystem-runtime",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "not-host-language-variant",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill mature-existing-ideas --agent codex --copy -y"
     },
     {
@@ -462,7 +462,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_move_path.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill move-path --agent codex --copy -y"
     },
     {
@@ -470,7 +470,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_orchestration.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill organize-project-structure --agent codex --copy -y"
     },
     {
@@ -478,7 +478,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_orchestration.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill orient --agent codex --copy -y"
     },
     {
@@ -486,7 +486,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill plan-feature --agent codex --copy -y"
     },
     {
@@ -494,7 +494,7 @@
       "disposition": "ecosystem-runtime",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "not-host-language-variant",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill plan-skill --agent codex --copy -y"
     },
     {
@@ -502,7 +502,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_planning.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill plan-spec --agent codex --copy -y"
     },
     {
@@ -510,7 +510,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_b2t_typescript_closed_state.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill prevent-regression --agent codex --copy -y"
     },
     {
@@ -518,7 +518,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_orchestration.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill project-interview --agent codex --copy -y"
     },
     {
@@ -526,7 +526,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_propose_boundary_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill propose-boundary --agent codex --copy -y"
     },
     {
@@ -534,7 +534,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_propose_folder_reorganization_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill propose-folder-reorganization --agent codex --copy -y"
     },
     {
@@ -542,7 +542,7 @@
       "disposition": "ecosystem-runtime",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "not-host-language-variant",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill query-patterns --agent codex --copy -y"
     },
     {
@@ -550,7 +550,7 @@
       "disposition": "stack-bound",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "deferred-named-stack",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill refactor-subsystem --agent codex --copy -y"
     },
     {
@@ -558,7 +558,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_rename_concept_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill rename-concept --skill find-concept-divergence --agent codex --copy -y",
       "install_with": [
         "find-concept-divergence"
@@ -569,7 +569,7 @@
       "disposition": "ecosystem-runtime",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "not-host-language-variant",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill repair-skill --agent codex --copy -y"
     },
     {
@@ -577,7 +577,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_planning.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill scope-feature --agent codex --copy -y"
     },
     {
@@ -585,7 +585,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_quality.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill teach-pattern --agent codex --copy -y"
     },
     {
@@ -593,7 +593,7 @@
       "disposition": "ecosystem-runtime",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "not-host-language-variant",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill track-idea --agent codex --copy -y"
     },
     {
@@ -601,7 +601,7 @@
       "disposition": "validated-neutral",
       "evidence_path": "tests/test_validated_neutral_typescript_quality.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill triage-debt --agent codex --copy -y"
     },
     {
@@ -609,7 +609,7 @@
       "disposition": "typescript-supported",
       "evidence_path": "tests/test_unify_shadows_typescript.py",
       "install_status": "passed",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill unify-shadows --agent codex --copy -y"
     },
     {
@@ -617,7 +617,7 @@
       "disposition": "ecosystem-runtime",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "not-host-language-variant",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill which-cleanup --agent codex --copy -y"
     },
     {
@@ -625,7 +625,7 @@
       "disposition": "ecosystem-runtime",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "not-host-language-variant",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill which-shape --agent codex --copy -y"
     },
     {
@@ -633,7 +633,7 @@
       "disposition": "ecosystem-runtime",
       "evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
       "install_status": "not-host-language-variant",
-      "reviewed_revision": "caa19cf",
+      "reviewed_revision": "c611723",
       "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill which-skill --agent codex --copy -y"
     }
   ]
