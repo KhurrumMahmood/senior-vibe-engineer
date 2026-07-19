@@ -1,6 +1,6 @@
 ---
 name: propose-boundary
-description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Consumes a target (file path, directory, or skill directory) and emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, proposed public API, backward-compat shim shape, caller-impact summary, and characterization-test matrix. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
+description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX v1 uses a host-resolved symbol/import/call graph and emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility/barrel plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
 argument-hint: "<target-path-or-name> [--candidates N]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -26,8 +26,9 @@ not_for: |
   proposals — v1 is intra-subsystem only; cross-subsystem stays in the
   System-tier chain (/scope-feature → /impact-feature → /architecture-
   fit → /plan-spec).
-language: python
+language: any
 framework: any
+scans: [python, typescript]
 ---
 
 # /propose-boundary
@@ -83,7 +84,90 @@ supporting `inspection.json`.
    the proposal includes an "Orchestration shim shape" section
    sketching how the original skill name keeps working after split.
 
-## Scope
+## TypeScript / TSX v1
+
+Use this branch only when the target host supplies one named, project-local `tsconfig.json`
+and its own installed `typescript` package. The bundled runner
+uses that host's Compiler API to resolve eligible static module specifiers,
+top-level target symbols, and target-local call targets. The final artifact is
+an `inspection.json` plus `proposal.md`, not a lexical suggestion: it cites
+the resolved direct, alias, and barrel import evidence it used.
+
+This is the minimum framework-neutral TypeScript contract:
+
+- Propose a boundary only when two or more coherent top-level symbol domains
+  form a partition within the target. Public API candidates are exported,
+  non-underscore symbols; underscore-prefixed reaches are explicit Phase 1
+  blockers rather than compatibility coverage.
+- Record resolved inbound and outbound static imports, target-local resolved
+  calls, direct/alias/barrel caller impact, and a compatibility plan that keeps
+  the existing `index.ts`/`index.tsx` barrel as a temporary re-export surface.
+- Give a characterization matrix and cite the host's native typecheck/test
+  commands for the human-approved move. The proposal never edits source or
+  runs a codemod.
+- Defer explicitly when the target has unresolved or ambiguous module/symbol
+  facts. A cohesive one-domain target also defers rather than inventing a
+  split. Excluded generated/vendor/test/declaration/minified/build trees stay
+  excluded even when named directly.
+
+TypeScript v1 does not infer framework semantics: React, Node, ORM, route,
+dependency-injection, runtime loading, dynamic import, reflection, decorator,
+or other framework behavior. It does not follow directory symlinks and rejects a direct symlink
+target. A missing or invalid `tsconfig`, missing project-local TypeScript, or
+syntax error stops clearly with exit code 2. Type errors outside the selected
+proposal graph are not converted into framework facts.
+
+The resolver lives in this skill because its output contract is specific to
+boundary proposals. Do not extract it into a shared TypeScript platform until
+another accepted consumer proves the same resolution and deferral contract.
+
+### Installed TypeScript proposal command
+
+Run this from the target host root after installing only this selected skill.
+It writes only under `reports/propose-boundary/` and has no repository-level
+Python, `_common`, or sibling-skill import.
+
+To make the stock Codex location from a released source, set
+`PROPOSE_BOUNDARY_SOURCE` to that pinned source/ref and run:
+
+<!-- installed-command:stock-install:start -->
+```bash
+: "${PROPOSE_BOUNDARY_SOURCE:?Set this to the pinned skill source/ref}"
+npx --yes skills@1.5.19 add "${PROPOSE_BOUNDARY_SOURCE}" \
+  --skill propose-boundary --agent codex --copy -y
+```
+<!-- installed-command:stock-install:end -->
+
+<!-- installed-command:typescript-proposal:start -->
+```bash
+PROPOSE_TARGET="${PROPOSE_TARGET:-src/legacy}"
+PROPOSE_TSCONFIG="${PROPOSE_TSCONFIG:-tsconfig.json}"
+PROPOSE_NAME="${PROPOSE_NAME:-typescript-legacy}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/propose-boundary" \
+  ".claude/skills/propose-boundary"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "propose-boundary is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+node "${SKILL_ROOT}/scripts/propose_typescript.mjs" \
+  --target "${PROPOSE_TARGET}" \
+  --project-root "$(pwd)" \
+  --tsconfig "${PROPOSE_TSCONFIG}" \
+  --candidates 2 \
+  --inspection "reports/propose-boundary/${PROPOSE_NAME}/inspection.json" \
+  --proposal "reports/propose-boundary/${PROPOSE_NAME}/proposal.md"
+```
+<!-- installed-command:typescript-proposal:end -->
+
+## Python scope
 
 - **Project root:** the working directory.
 - **Python:** the host project's venv python (`.venv/bin/python` or
