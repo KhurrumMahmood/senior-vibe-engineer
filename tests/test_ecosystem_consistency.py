@@ -47,22 +47,20 @@ framework: any
 def _write_shapes(root: Path, first_next: str = "/adapt-project") -> None:
     shape_dir = root / ".claude" / "skills" / "which-shape"
     shape_dir.mkdir(parents=True, exist_ok=True)
-    (shape_dir / "shapes.yml").write_text(
-        f"""schema_version: 1
-shapes:
-  - id: project-intake
-    title: Project Intake
-    summary: Discover context.
-    first_next: "{first_next}"
-    sequence:
-      - "{first_next}"
-    stop: "Stop after context exists."
-    cues:
-      strong: [unknown]
-      normal: [project]
-      negative: [typo]
-    alternatives: []
-""",
+    (shape_dir / "shapes.json").write_text(
+        json.dumps({
+            "schema_version": 1,
+            "shapes": [{
+                "id": "project-intake",
+                "title": "Project Intake",
+                "summary": "Discover context.",
+                "first_next": first_next,
+                "sequence": [first_next],
+                "stop": "Stop after context exists.",
+                "cues": {"strong": ["unknown"], "normal": ["project"], "negative": ["typo"]},
+                "alternatives": [],
+            }],
+        }),
         encoding="utf-8",
     )
 

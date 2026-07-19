@@ -7,6 +7,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MATCHER = REPO_ROOT / ".claude" / "skills" / "which-skill" / "scripts" / "match.py"
+CATALOG_BUILDER = REPO_ROOT / "scripts" / "build_router_catalog.py"
 
 
 def _run_match(prompt: str) -> tuple[int, dict]:
@@ -33,6 +34,19 @@ def test_diagnose_prompt_routes_to_diagnose():
     assert payload["inferred_tier"] == "maintenance"
     assert payload["inferred_job"] == "diagnose"
     assert "reproduction_loop" in payload["task_packet"]["produces"]
+
+
+def test_bundled_catalog_matches_source_frontmatter():
+    result = subprocess.run(
+        [sys.executable, str(CATALOG_BUILDER), "--check"],
+        cwd=REPO_ROOT,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "76 skills" in result.stdout
 
 
 def test_new_skill_prompt_routes_to_plan_skill():
@@ -62,22 +76,36 @@ def test_one_line_debug_prompt_does_not_trigger_diagnose():
 
 # --- activation enforcement -------------------------------------------------
 
-SKILLS_DIR = REPO_ROOT / ".claude" / "skills"
 FRONTEND_DUP_PROMPT = (
     "find duplicated frontend cotton components and tailwind class chains across templates"
 )
 
 
 def _run_match_against(prompt: str, project_root: Path) -> tuple[int, dict]:
-    """Run the matcher against the real skills dir but a chosen activation root."""
+    """Run the bundled catalog against a chosen activation root."""
     result = subprocess.run(
         [sys.executable, str(MATCHER), prompt, "--json",
-         "--skills-dir", str(SKILLS_DIR),
          "--project-root", str(project_root),
          "--top", "10"],
         cwd=REPO_ROOT, check=False, text=True, capture_output=True,
     )
     return result.returncode, json.loads(result.stdout)
+
+
+def test_recommendation_includes_pinned_selected_skill_install():
+    payload = _match("diagnose failing export job regression with no reproduction yet")
+
+    assert payload["install"] == {
+        "skill": "diagnose",
+        "source": "https://github.com/KhurrumMahmood/senior-vibe-engineer",  # host-ref-allow: public distribution repository
+        "skills_cli_version": "1.5.19",
+        "agent": "codex",
+        "command": (
+            "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add "
+            "https://github.com/KhurrumMahmood/senior-vibe-engineer "  # host-ref-allow: public distribution repository
+            "--skill diagnose --agent codex --copy -y"
+        ),
+    }
 
 
 def _seed_manifest(root: Path, payload: dict) -> None:

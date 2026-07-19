@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Skill matcher — primitive recommender for /which-skill.
 
-Reads every SKILL.md frontmatter via the shared scripts/_lib/yaml_frontmatter
-parser and ranks skills against a free-text task description. Emits a top-N
-JSON or markdown report; in JSON mode the winning candidate also carries a
+Reads the bundled metadata-only skill catalog and ranks skills against a
+free-text task description. Emits a top-N JSON or markdown report; in JSON
+mode the winning candidate also carries a
 `task_packet` block (PR B-lite's optional fields: lanes, stage, entrypoint,
 consumes, produces, evidence_required, risk_triggers, max_overhead) so an
 orchestrator can know not just which skill to invoke but how.
@@ -23,22 +23,15 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shlex
 import sys
 from pathlib import Path
 
 SCRIPT_PATH = Path(__file__).resolve()
-REPO_ROOT = SCRIPT_PATH.parent.parent.parent.parent.parent
-DEFAULT_SKILLS_DIR = REPO_ROOT / ".claude" / "skills"
-
-_lib_parent = str(REPO_ROOT / "scripts")
-if _lib_parent not in sys.path:
-    sys.path.insert(0, _lib_parent)
-from _lib.yaml_frontmatter import FrontmatterError, parse  # noqa: E402
-
-_common_dir = str(REPO_ROOT / ".claude" / "skills" / "_common")
-if _common_dir not in sys.path:
-    sys.path.insert(0, _common_dir)
-import engineering_home as eh  # noqa: E402
+SKILL_DIR = SCRIPT_PATH.parents[1]
+DEFAULT_CATALOG = SKILL_DIR / "catalog.json"
+DEFAULT_SOURCE = "https://github.com/KhurrumMahmood/senior-vibe-engineer"  # host-ref-allow: public distribution repository
+DEFAULT_CLI_VERSION = "1.5.19"
 
 # Optional task-packet fields surfaced on the winning candidate (PR B-lite).
 TASK_PACKET_FIELDS = (
@@ -103,6 +96,50 @@ SKILL_DEVELOPMENT_ACTIONS = frozenset({
 })
 
 WORD_RE = re.compile(r"[a-z][a-z0-9_-]+")
+
+
+def _read_manifest(root: Path) -> dict:
+    path = root / ".engineering" / "manifest.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _skill_activation(root: Path) -> dict:
+    block = _read_manifest(root).get("skills")
+    if not isinstance(block, dict):
+        block = {}
+    default = block.get("default")
+    if default not in {"active", "inactive"}:
+        default = "active"
+
+    def reasons(value: object) -> dict[str, str]:
+        if isinstance(value, dict):
+            return {str(key): str(reason) for key, reason in value.items()}
+        if isinstance(value, list):
+            return {str(item): "" for item in value}
+        return {}
+
+    return {
+        "default": default,
+        "active": reasons(block.get("active")),
+        "inactive": reasons(block.get("inactive")),
+    }
+
+
+def _is_skill_active(root: Path, name: str) -> bool:
+    activation = _skill_activation(root)
+    if activation["default"] == "inactive":
+        return name in activation["active"]
+    return name not in activation["inactive"]
+
+
+def _inactive_reason(root: Path, name: str) -> str | None:
+    if _is_skill_active(root, name):
+        return None
+    return _skill_activation(root)["inactive"].get(name) or None
 
 
 def tokenize(text: str) -> set[str]:
@@ -212,22 +249,36 @@ def score_skill(
     return score, rationale
 
 
-def load_skills(skills_dir: Path) -> list[dict]:
-    out = []
-    for sm in sorted(skills_dir.glob("*/SKILL.md")):
-        try:
-            fm = parse(sm.read_text(encoding="utf-8"), path=sm).metadata
-        except (OSError, UnicodeDecodeError, FrontmatterError) as exc:
-            print(f"warning: skipping {sm.name}: {exc}", file=sys.stderr)
-            continue
-        if not fm:
-            continue
-        try:
-            fm["_path"] = str(sm.relative_to(REPO_ROOT))
-        except ValueError:
-            fm["_path"] = str(sm)
-        out.append(fm)
-    return out
+def load_skills(catalog_path: Path) -> list[dict]:
+    try:
+        payload = json.loads(catalog_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"cannot read skill catalog {catalog_path}: {exc}") from exc
+    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+        raise ValueError(f"unsupported skill catalog: {catalog_path}")
+    skills = payload.get("skills")
+    if not isinstance(skills, list) or not skills:
+        raise ValueError(f"skill catalog has no skills: {catalog_path}")
+    if any(not isinstance(skill, dict) or not skill.get("name") for skill in skills):
+        raise ValueError(f"skill catalog contains an invalid entry: {catalog_path}")
+    return list(skills)
+
+
+def install_command(*, source: str, version: str, skill: str, agent: str) -> str:
+    command = [
+        "npx",
+        "--yes",
+        f"skills@{version}",
+        "add",
+        source,
+        "--skill",
+        skill,
+        "--agent",
+        agent,
+        "--copy",
+        "-y",
+    ]
+    return "DO_NOT_TRACK=1 " + shlex.join(command)
 
 
 def _build_task_packet(skill: dict) -> dict:
@@ -236,7 +287,7 @@ def _build_task_packet(skill: dict) -> dict:
     return {f: skill[f] for f in TASK_PACKET_FIELDS if f in skill}
 
 
-def cmd_match(args, skills_dir: Path) -> int:
+def cmd_match(args, catalog_path: Path) -> int:
     task = args.task.strip()
     if not task:
         print("error: empty task description", file=sys.stderr)
@@ -254,9 +305,13 @@ def cmd_match(args, skills_dir: Path) -> int:
         tier_hits = sorted(set(tier_hits) | {"skill-development"})
         job_hits = sorted(set(job_hits) | {"skill-development"})
 
-    skills = load_skills(skills_dir)
+    try:
+        skills = load_skills(catalog_path)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     if not skills:
-        print(f"error: no skills found under {skills_dir}", file=sys.stderr)
+        print(f"error: no skills found in {catalog_path}", file=sys.stderr)
         return 2
 
     # Quick tier short-circuit — recommend no planning skill.
@@ -303,12 +358,12 @@ def cmd_match(args, skills_dir: Path) -> int:
     excluded_inactive = []
     for score, sk, rationale in ranked:
         name = sk.get("name", "")
-        if name and not eh.is_skill_active(project_root, name):
+        if name and not _is_skill_active(project_root, name):
             if score >= threshold:
                 excluded_inactive.append({
                     "name": name,
                     "score": score,
-                    "reason": eh.inactive_reason(project_root, name) or "",
+                    "reason": _inactive_reason(project_root, name) or "",
                 })
             continue
         active_ranked.append((score, sk, rationale))
@@ -368,6 +423,18 @@ def cmd_match(args, skills_dir: Path) -> int:
     winner = above[0][1]
     out["recommendation"] = winner.get("name", "")
     out["task_packet"] = _build_task_packet(winner)
+    out["install"] = {
+        "skill": out["recommendation"],
+        "source": args.source,
+        "skills_cli_version": args.skills_cli_version,
+        "agent": args.agent,
+        "command": install_command(
+            source=args.source,
+            version=args.skills_cli_version,
+            skill=out["recommendation"],
+            agent=args.agent,
+        ),
+    }
     if args.json:
         print(json.dumps(out, indent=2))
     else:
@@ -390,6 +457,9 @@ def cmd_match(args, skills_dir: Path) -> int:
             print(f"Task packet for /{out['recommendation']}:")
             for field, value in out["task_packet"].items():
                 print(f"    {field}: {value}")
+        print()
+        print(f"Install /{out['recommendation']}:")
+        print(f"  {out['install']['command']}")
         if len(above) < len(top):
             print()
             print("Below threshold (shown for context):")
@@ -413,15 +483,27 @@ def main(argv: list[str] | None = None) -> int:
         help="Free-text description of the task ('add per-site export TTL override').",
     )
     p.add_argument(
-        "--skills-dir", type=Path, default=DEFAULT_SKILLS_DIR,
-        help="Override the skills directory (default: .claude/skills/)",
+        "--catalog", type=Path, default=DEFAULT_CATALOG,
+        help="Override the bundled metadata catalog",
     )
     p.add_argument(
-        "--project-root", type=Path, default=REPO_ROOT,
+        "--project-root", type=Path, default=Path.cwd(),
         help=(
             "Repo whose .engineering/manifest.json declares skill activation; "
-            "inactive skills are excluded from recommendations (default: this repo)."
+            "inactive skills are excluded from recommendations (default: cwd)."
         ),
+    )
+    p.add_argument(
+        "--source", default=DEFAULT_SOURCE,
+        help="Skill source used in the selected-skill install handoff",
+    )
+    p.add_argument(
+        "--skills-cli-version", default=DEFAULT_CLI_VERSION,
+        help="Pinned skills CLI version used in the install handoff",
+    )
+    p.add_argument(
+        "--agent", default="codex",
+        help="Agent target used in the install handoff (default: codex)",
     )
     p.add_argument("--top", type=int, default=3, help="How many candidates to show")
     p.add_argument(
@@ -430,7 +512,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument("--json", action="store_true", help="Emit JSON instead of text")
     args = p.parse_args(argv)
-    return cmd_match(args, args.skills_dir)
+    return cmd_match(args, args.catalog)
 
 
 if __name__ == "__main__":

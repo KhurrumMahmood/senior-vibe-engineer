@@ -7,6 +7,7 @@ invokes the skills in that loop.
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import re
 import sys
@@ -14,23 +15,13 @@ import time
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 SCRIPT_PATH = Path(__file__).resolve()
 SKILL_DIR = SCRIPT_PATH.parents[1]
-REPO_ROOT = SCRIPT_PATH.parents[4]
-SKILLS_DIR = SCRIPT_PATH.parents[2]  # .claude/skills — to resolve /skill steps
-DEFAULT_SHAPES = SKILL_DIR / "shapes.yml"
+SKILLS_DIR = SKILL_DIR.parent
+DEFAULT_SHAPES = SKILL_DIR / "shapes.json"
 
 # A `/skill-name` reference inside a shape's first_next / sequence text.
 SKILL_TOKEN_RE = re.compile(r"/([a-z][a-z0-9]+(?:-[a-z0-9]+)*)")
-
-COMMON_DIR = REPO_ROOT / ".claude" / "skills" / "_common"
-if str(COMMON_DIR) not in sys.path:
-    sys.path.insert(0, str(COMMON_DIR))
-
-import engineering_home as _eh  # noqa: E402
-from skill_use import log_event  # noqa: E402
 
 SCHEMA_VERSION = 1
 WORD_RE = re.compile(r"[a-z][a-z0-9_-]+")
@@ -42,7 +33,7 @@ STOPWORDS = {
     "could", "would", "may", "might", "just", "really", "right", "what",
 }
 
-# Boost weights live in shapes.yml as data (frame review F4b / Path A);
+# Boost weights live in shapes.json as data (frame review F4b / Path A);
 # there is no in-code per-shape table left. A shape's `boost:` block is
 # either the simple form {cues, weight, rationale} or the rules form
 # {mode, rules}, where each rule = {conditions, weight, rationale} and
@@ -59,14 +50,67 @@ def tokenize(text: str) -> set[str]:
     return {word for word in WORD_RE.findall(text.lower()) if word not in STOPWORDS and len(word) > 1}
 
 
-def _load_yaml(path: Path) -> dict[str, Any]:
+def _load_registry(path: Path) -> dict[str, Any]:
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError) as exc:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"cannot read {path}: {exc}") from exc
     if not isinstance(data, dict):
-        raise ValueError(f"{path} must contain a YAML mapping")
+        raise ValueError(f"{path} must contain a JSON object")
     return data
+
+
+def _read_manifest(root: Path) -> dict[str, Any]:
+    path = root / ".engineering" / "manifest.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _skill_activation(root: Path) -> dict[str, Any]:
+    block = _read_manifest(root).get("skills")
+    if not isinstance(block, dict):
+        block = {}
+    default = block.get("default")
+    if default not in {"active", "inactive"}:
+        default = "active"
+
+    def reasons(value: Any) -> dict[str, str]:
+        if isinstance(value, dict):
+            return {str(key): str(reason) for key, reason in value.items()}
+        if isinstance(value, list):
+            return {str(item): "" for item in value}
+        return {}
+
+    return {
+        "default": default,
+        "active": reasons(block.get("active")),
+        "inactive": reasons(block.get("inactive")),
+    }
+
+
+def _is_skill_active(root: Path, name: str) -> bool:
+    activation = _skill_activation(root)
+    if activation["default"] == "inactive":
+        return name in activation["active"]
+    return name not in activation["inactive"]
+
+
+def _inactive_reason(root: Path, name: str) -> str | None:
+    if _is_skill_active(root, name):
+        return None
+    return _skill_activation(root)["inactive"].get(name) or None
+
+
+def _append_event(path: Path, event: dict[str, Any]) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(event, sort_keys=True) + "\n")
+    except (OSError, TypeError, ValueError):
+        return
 
 
 def _is_cue_list(value: Any) -> bool:
@@ -204,7 +248,7 @@ def validate_shapes_payload(payload: dict[str, Any]) -> list[str]:
 
 
 def load_shapes(path: Path = DEFAULT_SHAPES) -> list[dict[str, Any]]:
-    payload = _load_yaml(path)
+    payload = _load_registry(path)
     errors = validate_shapes_payload(payload)
     if errors:
         raise ValueError("; ".join(errors))
@@ -212,20 +256,22 @@ def load_shapes(path: Path = DEFAULT_SHAPES) -> list[dict[str, Any]]:
 
 
 def project_context_state(project_root: Path) -> dict[str, Any]:
-    project_dir = _eh.project_dir(project_root)
+    project_dir = project_root / ".engineering" / "project"
     adapter = project_dir / "adapter.yml"
     profile = project_dir / "profile.yml"
     open_questions = project_dir / "open-questions.md"
-    profile_payload: dict[str, Any] = {}
+    user_approved = False
     if profile.is_file():
         try:
-            data = yaml.safe_load(profile.read_text(encoding="utf-8"))
-            if isinstance(data, dict):
-                profile_payload = data
-        except (OSError, UnicodeDecodeError, yaml.YAMLError):
-            profile_payload = {}
-
-    user_approved = bool(profile_payload.get("user_approved"))
+            profile_text = profile.read_text(encoding="utf-8")
+            user_approved = bool(
+                re.search(
+                    r"(?im)^\s*user_approved\s*:\s*(true|yes|on)\s*(?:#.*)?$",
+                    profile_text,
+                )
+            )
+        except (OSError, UnicodeDecodeError):
+            user_approved = False
     if adapter.is_file() and profile.is_file() and user_approved:
         state = "complete"
     elif adapter.is_file() or profile.is_file() or open_questions.is_file():
@@ -364,8 +410,8 @@ def _inactive_steps(
                 continue
             if not (skills_dir / name / "SKILL.md").is_file():
                 continue
-            if not _eh.is_skill_active(project_root, name):
-                out[name] = _eh.inactive_reason(project_root, name) or ""
+            if not _is_skill_active(project_root, name):
+                out[name] = _inactive_reason(project_root, name) or ""
     return [{"skill": name, "reason": reason} for name, reason in out.items()]
 
 
@@ -388,10 +434,11 @@ def load_status_signals(project_root: Path, status_path: Path | None = None) -> 
         generated_at = datetime.fromisoformat(doc["generated_at"])
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
         return []  # noqa: silent-catch: malformed projection = no grounding, never an error (degrade-silently contract)
+    project_dir = project_root / ".engineering" / "project"
     live_sources = [
-        _eh.project_dir(project_root) / "adapter.yml",
-        _eh.project_dir(project_root) / "profile.yml",
-        _eh.project_dir(project_root) / "open-questions.md",
+        project_dir / "adapter.yml",
+        project_dir / "profile.yml",
+        project_dir / "open-questions.md",
         project_root / ".engineering" / "project-state.json",
     ]
     for source in live_sources:
@@ -517,20 +564,23 @@ def log_recommendation(
     human_override: str | None,
 ) -> None:
     rec = result["recommendation"]
-    log_event(
-        skill="which-shape",
-        target=result["task"],
-        artifact=None,
-        elapsed_s=elapsed_s,
-        outcome=outcome,
-        human_override=human_override,
-        event_kind="recommendation",
-        log_path=log_path,
-        shape=rec["shape"],
-        confidence=rec["confidence"],
-        project_context_state=result["project_context"]["state"],
-        recommended_first_skill=rec["first_next"],
-    )
+    if log_path is None:
+        return
+    _append_event(log_path, {
+        "ts": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "skill": "which-shape",
+        "event_kind": "recommendation",
+        "target": result["task"],
+        "artifact": None,
+        "outcome": outcome,
+        "human_override": human_override,
+        "duration_s": round(elapsed_s, 3),
+        "follow_up_skill": None,
+        "shape": rec["shape"],
+        "confidence": rec["confidence"],
+        "project_context_state": result["project_context"]["state"],
+        "recommended_first_skill": rec["first_next"],
+    })
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -545,7 +595,7 @@ def main(argv: list[str] | None = None) -> int:
         help="status.json override (default: <project-root>/.engineering/local/status.json; "
              "absent file = ungrounded run, byte-identical output).",
     )
-    parser.add_argument("--validate", action="store_true", help="Validate shapes.yml and exit.")
+    parser.add_argument("--validate", action="store_true", help="Validate shapes.json and exit.")
     parser.add_argument("--skip-log", action="store_true")
     parser.add_argument("--log", type=Path, default=None, help="Override skill-use log path.")
     parser.add_argument(
@@ -572,7 +622,7 @@ def main(argv: list[str] | None = None) -> int:
         log_recommendation(
             result,
             elapsed_s=time.monotonic() - start,
-            log_path=args.log,
+            log_path=args.log or args.project_root / ".claude" / "skill-use" / "log.jsonl",
             outcome=args.outcome,
             human_override=args.human_override,
         )

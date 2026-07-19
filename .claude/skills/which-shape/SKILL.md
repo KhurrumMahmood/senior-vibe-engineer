@@ -1,6 +1,6 @@
 ---
 name: which-shape
-description: Recommend the right problem-solving loop before choosing individual skills. Reads the explicit shape registry plus project adapter/profile state, then returns an advisory route such as project-intake, bug-fix, concept-rename, or task-closeout (illustrative — shapes.yml is the sole shape inventory). Use when the user describes a messy situation and should not need to understand the skill catalog.
+description: Recommend the right problem-solving loop before choosing individual skills. Reads the explicit shape registry plus project adapter/profile state, then returns an advisory route such as project-intake, bug-fix, concept-rename, or task-closeout (illustrative — shapes.json is the sole shape inventory). Use when the user describes a messy situation and should not need to understand the skill catalog.
 argument-hint: "<situation or task description>"
 allowed-tools: Bash, Read
 user-invocable: true
@@ -56,7 +56,8 @@ real run, never composed from this file. Paste the script's
 your reply.
 
 ```bash
-.venv/bin/python .claude/skills/which-shape/scripts/route.py \
+cd .agents/skills/which-shape
+python3 scripts/route.py \
   "this inherited repo feels slow and chaotic"
 ```
 
@@ -94,22 +95,22 @@ top 2-3 alternatives by score and ask one discriminating question
 
 ## Registry
 
-The explicit shape registry lives in `shapes.yml` — the sole shape
+The explicit shape registry lives in `shapes.json` — the sole shape
 inventory; this file deliberately does not mirror the list. Keep it
 small and loop-level. Do not mirror the whole skill catalog.
 
 When adding or materially repurposing skills, run
-`/check-ecosystem-consistency` and review whether `shapes.yml` needs an
+`/check-ecosystem-consistency` and review whether `shapes.json` needs an
 update. Add a skill to a shape only when it changes the operating loop;
 purely tactical skills can stay out after that review is captured in the
 ecosystem state.
 
 Boost weights are registry data too: every shape declares a `boost:`
-block in `shapes.yml` (simple `cues`/`weight`/`rationale`, or a small
+block in `shapes.json` (simple `cues`/`weight`/`rationale`, or a small
 schema-validated rules form for conditional boosts; `boost: {}` is an
 explicit opt-out), plus the `narrow_signal` and `context_exempt` flags.
 The scorer holds no per-shape table — adding a shape never requires
-editing `scripts/route.py`. After editing `shapes.yml`, run
+editing `scripts/route.py`. After editing `shapes.json`, run
 `route.py --validate` — it checks the schema, including every boost
 block.
 
@@ -137,7 +138,8 @@ same route with an explicit outcome (the rerun appends a second
 recommendation event; it does not amend the first):
 
 ```bash
-.venv/bin/python .claude/skills/which-shape/scripts/route.py \
+cd .agents/skills/which-shape
+python3 scripts/route.py \
   "this inherited repo feels slow and chaotic" \
   --outcome overridden \
   --human-override "wrong-shape: should have started with project-intake"

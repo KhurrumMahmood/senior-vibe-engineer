@@ -1,0 +1,90 @@
+from __future__ import annotations
+
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SKILLS_ROOT = REPO_ROOT / ".claude" / "skills"
+
+
+def _install_router(host: Path, name: str) -> Path:
+    destination = host / ".agents" / "skills" / name
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(SKILLS_ROOT / name, destination)
+    return destination
+
+
+def _run_isolated(script: Path, *args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, "-I", "-S", str(script), *args],
+        cwd=cwd,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+
+def _json_output(result: subprocess.CompletedProcess[str]) -> dict:
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout)
+
+
+@pytest.mark.parametrize(
+    ("task", "expected_shape"),
+    [
+        ("fix one-line typo in the status label", "direct-change"),
+        ("this inherited repo feels slow and chaotic", "project-intake"),
+    ],
+)
+def test_installed_which_shape_runs_without_repository_runtime(
+    tmp_path, task, expected_shape
+):
+    host = tmp_path / "host"
+    router = _install_router(host, "which-shape")
+
+    result = _run_isolated(
+        router / "scripts" / "route.py",
+        task,
+        "--project-root",
+        str(host),
+        "--json",
+        "--skip-log",
+        cwd=host,
+    )
+
+    payload = _json_output(result)
+    assert payload["recommendation"]["shape"] == expected_shape
+
+
+@pytest.mark.parametrize(
+    ("task", "expected_skill"),
+    [
+        ("diagnose failing export job regression with no reproduction yet", "diagnose"),
+        ("create a new skill for constructive UI forms", "plan-skill"),
+    ],
+)
+def test_installed_which_skill_runs_with_bundled_catalog(
+    tmp_path, task, expected_skill
+):
+    host = tmp_path / "host"
+    router = _install_router(host, "which-skill")
+
+    result = _run_isolated(
+        router / "scripts" / "match.py",
+        task,
+        "--project-root",
+        str(host),
+        "--json",
+        cwd=host,
+    )
+
+    payload = _json_output(result)
+    assert payload["recommendation"] == expected_skill
+    assert payload["task_packet"]["produces"]
+    assert f"--skill {expected_skill}" in payload["install"]["command"]

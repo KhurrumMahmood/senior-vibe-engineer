@@ -4,8 +4,6 @@ import importlib.util
 import json
 from pathlib import Path
 
-import yaml
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ROUTE_PATH = REPO_ROOT / ".claude" / "skills" / "which-shape" / "scripts" / "route.py"
 PROJECT_PATH = REPO_ROOT / ".claude" / "skill-use" / "project.py"
@@ -75,13 +73,13 @@ def test_which_skill_failure_examples_route_to_shapes(tmp_path):
 
 
 def test_shapes_registry_schema_is_valid():
-    payload = yaml.safe_load((ROUTE_PATH.parents[1] / "shapes.yml").read_text(encoding="utf-8"))
+    payload = json.loads((ROUTE_PATH.parents[1] / "shapes.json").read_text(encoding="utf-8"))
     assert route.validate_shapes_payload(payload) == []
     assert len({shape["id"] for shape in payload["shapes"]}) == len(payload["shapes"])
 
 
 def _registry_payload() -> dict:
-    return yaml.safe_load((ROUTE_PATH.parents[1] / "shapes.yml").read_text(encoding="utf-8"))
+    return json.loads((ROUTE_PATH.parents[1] / "shapes.json").read_text(encoding="utf-8"))
 
 
 def test_validate_passes_on_real_registry(capsys):
@@ -107,8 +105,8 @@ def _mystery_shape(**overrides) -> dict:
 def _validate_registry_with(tmp_path, shape: dict) -> tuple[int, str]:
     payload = _registry_payload()
     payload["shapes"].append(shape)
-    shapes_path = tmp_path / "shapes.yml"
-    shapes_path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+    shapes_path = tmp_path / "shapes.json"
+    shapes_path.write_text(json.dumps(payload), encoding="utf-8")
     return route.main(["--validate", "--shapes", str(shapes_path)]), str(shapes_path)
 
 
@@ -196,7 +194,7 @@ def test_parity_battery_against_recorded_scores(tmp_path):
 
 def test_restored_boost_tokens_come_from_data(tmp_path):
     # The curated re-added tokens must trigger their shapes' boosts via
-    # shapes.yml, at boosted (>= medium) confidence — the routing-quality
+    # shapes.json, at boosted (>= medium) confidence — the routing-quality
     # regression the constant-sync narrowing introduced.
     rec = route.route("the app shows a crash on startup", tmp_path)["recommendation"]
     assert rec["shape"] == "bug-fix"

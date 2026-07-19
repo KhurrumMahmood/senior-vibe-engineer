@@ -25,7 +25,7 @@ DEFAULT_STATE_PATH = REPO_ROOT / ".claude" / "ecosystem" / "last-state.json"
 DEFAULT_OUTPUT_ROOT = REPO_ROOT / "reports" / SKILL_NAME
 DOC_COUNT_FILES = ("README.md", "ONBOARDING.md")
 CATALOG_PATH = ".claude/docs/skill-catalog.md"
-SHAPES_PATH = ".claude/skills/which-shape/shapes.yml"
+SHAPES_PATH = ".claude/skills/which-shape/shapes.json"
 SKILL_REF_RE = re.compile(r"(?<![A-Za-z0-9_-])/([a-z][a-z0-9]*(?:-[a-z0-9]+)*)")
 SKILL_COUNT_RE = re.compile(r"\b(\d+)\s+skills\b", re.IGNORECASE)
 FRONTMATTER_RE = re.compile(r"\A---\n(?P<body>.*?)\n---\n", re.DOTALL)
@@ -329,7 +329,7 @@ def compare_states(previous: dict[str, Any] | None, current: dict[str, Any]) -> 
             finding(
                 "shape_registry_schema_error",
                 str(error),
-                "Fix .claude/skills/which-shape/shapes.yml before trusting shape recommendations.",
+                "Fix .claude/skills/which-shape/shapes.json before trusting shape recommendations.",
                 file=SHAPES_PATH,
                 severity="error",
                 confidence="high",
@@ -341,7 +341,7 @@ def compare_states(previous: dict[str, Any] | None, current: dict[str, Any]) -> 
             finding(
                 "missing_shape_skill_reference",
                 f"/which-shape references /{slug}, but no matching skill exists.",
-                "Either add the missing skill or revise shapes.yml to point at an existing skill/ordinary action.",
+                "Either add the missing skill or revise shapes.json to point at an existing skill/ordinary action.",
                 file=SHAPES_PATH,
                 severity="error",
                 confidence="high",
@@ -354,8 +354,8 @@ def compare_states(previous: dict[str, Any] | None, current: dict[str, Any]) -> 
             finding(
                 "new_skill_not_reviewed_for_shape_registry",
                 f"New skill /{slug} is not referenced by /which-shape.",
-                "Decide whether this changes a durable problem-solving loop. If yes, update shapes.yml; if no, accept the omission and update the ecosystem state.",
-                file=".claude/skills/which-shape/shapes.yml",
+                "Decide whether this changes a durable problem-solving loop. If yes, update shapes.json; if no, accept the omission and update the ecosystem state.",
+                file=".claude/skills/which-shape/shapes.json",
                 severity="info",
                 confidence="medium",
                 skill=slug,

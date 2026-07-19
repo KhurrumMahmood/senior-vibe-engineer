@@ -106,3 +106,16 @@ to apply it. Do not use this file as a progress tracker or backlog.
   fixed multi-skill workflow may share one synthesis owner and final outcome
   check. Introduce supply-chain or execution attestations only for a customer
   and journey that require them.
+
+## 2026-07-18 — Adversarial review is anchored to current product goals
+
+- **Rule:** Every adversarial review prompt and verdict names the current
+  ordered product goals and judges findings by their likely effect on those
+  outcomes.
+- **Why:** A locally valid concern can expand into expensive plan work even
+  when it does not materially improve installation, multi-language support, or
+  the user journey. That produces rigorous but misaligned execution.
+- **Apply:** Classify each proposed blocker as goal-critical, concrete
+  user-harm prevention, or non-gating. Add work to the active plan only for the
+  first two classes. Archive other findings as optional ideas; do not repair
+  them on the product critical path.
