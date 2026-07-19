@@ -1,168 +1,163 @@
 ---
 name: find-complexity-hotspots
-description: Detect likely algorithmic, Django ORM, and structural complexity hotspots in Python code without changing production files. Runs a stdlib AST scan for nested loops, membership scans, sorting inside loops, QuerySet/manager calls inside loops, and high-branch functions; writes a timestamped report with ranked advisory findings. Use when a subsystem feels slow, export/discovery/extraction paths are growing expensive, or a refactor inventory needs a first-pass performance/complexity lead list.
-argument-hint: "<paths>"
+description: Detect advisory Python and TypeScript function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan for nested loops, membership scans, sort/repeated scans, Django query calls in loops, and high-branch functions; adds syntax-only TypeScript/TSX high-branch findings for function declarations, methods, and block-bodied arrows. Use when a subsystem feels expensive or difficult to follow and a read-only, evidence-backed lead list is needed before measurement or refactoring.
+argument-hint: "<paths> [--language python|typescript]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
 job: suspect
 best_for: |
-  Read-only scans for performance and complexity leads: nested loops,
-  repeated membership scans, sort-in-loop patterns, Django QuerySet calls
-  inside loops, and unusually branchy functions. Useful before
-  `/refactor-subsystem`, after export/discovery/extraction changes, or
-  when a reviewer says "this path feels expensive."
+  Read-only complexity leads. Python retains nested-loop, membership-scan,
+  sort/repeated-scan, Django-query, and high-branch bands. TypeScript/TSX
+  reports only per-function syntactic branch complexity with exact source spans
+  and analyzer provenance.
 not_for: |
-  Implementing optimizations (use `/fix-workflow cluster:<symbol>` or
-  direct edits after a human picks a finding). SQL query-plan tuning,
-  database indexing decisions, benchmark harness design, or memory
-  profiling. Broad architecture smells like omnibus modules (use
-  `/find-omnibus`) or view/service layer leaks (use `/find-layer-violation`).
-language: python
-framework: django
+  Implementing optimizations, SQL query-plan/index decisions, profiling, or
+  benchmark design. TypeScript React/Node/ORM semantics, receiver or
+  type claims, import resolution, and expression-bodied arrows are out of
+  scope. Broad module-level responsibility sprawl belongs to /find-omnibus.
+language: any
+framework: any
+scans: [python, typescript]
 ---
 
 # /find-complexity-hotspots
 
-You are running a **read-only SUSPECT audit**. The scanner produces
-leads, not verdicts. Treat every finding as "worth reading" until
-surrounding code, input sizes, and tests prove it actionable.
+Run a read-only SUSPECT audit. A finding is a lead worth reading, never a
+proof that an optimization is safe or valuable.
 
 ## How success is judged
 
-- The run is graded only by artifacts: pasted command output plus the
-  generated `detections.jsonl`, `report.md`, `findings.json`, and
-  `latest` symlink under `reports/find-complexity-hotspots/`. Do not
-  claim a path was scanned without those artifacts.
-- The scan verdict is one of `no-hotspots`, `measure-first`,
-  `actionable-hotspot`, or `scan-blocked`. Use `measure-first` when a
-  heuristic finding may matter but needs input-size or benchmark
-  evidence before a fix is recommended.
-- The summary names the target path, total findings, bucket counts, and
-  top candidates from `report.md` or `findings.json`; never grade by
-  memory or by a raw model impression of the code.
-- The skill remains read-only. It can route to `/fix-workflow`,
-  `/refactor-subsystem`, or benchmarking work, but it never optimizes
-  code in this run.
+- The final report directory contains `detections.jsonl`, `report.md`, and
+  `findings.json`, with `latest` pointing to that run. Do not claim a scan ran
+  without these artifacts.
+- Python findings preserve the six established bands. TypeScript findings carry
+  `language: "typescript"`, `analyzer: "typescript-compiler-api"`, function
+  start/end lines, LOC, and branch score in both JSON artifacts; `report.md`
+  prints the analyzer provenance.
+- Use one verdict: `no-hotspots`, `measure-first`, `actionable-hotspot`, or
+  `scan-blocked`. TypeScript findings are normally `measure-first` until native
+  tests and realistic input sizes justify a change.
+- This skill never edits source files or claims a TypeScript receiver type,
+  framework identity, API ownership, or runtime cost.
 
 ## Scope
 
-- **Target path:** required positional argument(s). Accepts files,
-  directories, and glob patterns. Point it at the subsystem to scan —
-  there is no whole-repo default.
-- **Project root:** this worktree's root.
-- **Python:** `.venv/bin/python`; all skill scripts are stdlib-only but
-  use the project venv for consistency with the host project's agent rules.
-- **Output:** `reports/find-complexity-hotspots/scan-<TS>/` with
-  `detections.jsonl`, `report.md`, `findings.json`, and a `latest`
-  symlink.
-- **No production edits.** This skill never changes app code.
+- **Target:** one or more explicit files, directories, or globs. There is no
+  whole-repository default.
+- **Python branch:** the existing stdlib AST detector remains intact: nested
+  loops, membership scans, sort/repeated scans, Django QuerySet-like calls in
+  loops, and high-branch functions. `--include-tests` affects this branch only.
+- **TypeScript v1:** `.ts` and `.tsx` function declarations, methods, and
+  block-bodied arrows. It counts only syntactically established counterparts of
+  the existing branch invariant: conditionals, loop forms, try/catch, `with`,
+  switch, `&&`/`||`, and ternaries. It does not infer data cost from these
+  syntax facts.
+- **TypeScript exclusions:** React/Node/ORM semantics, receiver or
+  type claims, function expressions, expression-bodied arrows, declarations and
+  overload signatures without a body, declarations (`.d.ts`), and generated,
+  vendor, minified, bundle, test, spec, and fixture paths. These exclusions are
+  deliberate even when `--include-tests` is present.
+- **TypeScript prerequisite:** Node plus a `typescript` package resolvable from
+  the target host's `package.json`. The bundled family-local Compiler API parser
+  uses `createSourceFile`, not a tsconfig, Program, TypeChecker, shared parser,
+  or fact platform. Missing Node/package, malformed parser output, or TypeScript
+  syntax errors stop the run with exit code 2 instead of silently under-detecting.
 
-Read `references/reading-notes.md` only when judging whether a finding
-is interesting enough to recommend follow-up.
+## Installed command
 
-## Pipeline
+Set `TARGET` to the requested source directory. Run this resolver verbatim from
+the host root; it supports both a stock install and this source checkout.
 
-Run the single orchestrator unless you need to debug an intermediate:
-
+<!-- installed-command:resolve:start -->
 ```bash
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py \
-  .claude/skills/find-complexity-hotspots
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/find-complexity-hotspots" \
+  ".claude/skills/find-complexity-hotspots"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-complexity-hotspots is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+if [ -x ".venv/bin/python" ]; then
+  HOST_PYTHON="$(pwd)/.venv/bin/python"
+else
+  HOST_PYTHON="python3"
+fi
 ```
+<!-- installed-command:resolve:end -->
 
-Useful options:
-
+<!-- installed-command:run:start -->
 ```bash
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py .claude/skills/find-complexity-hotspots --max-findings 40
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py .claude/skills/find-complexity-hotspots --include-tests
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py .claude/skills/find-complexity-hotspots --skip-effectiveness-log
+: "${TARGET:?Set TARGET to a file, directory, or glob to audit}"
+"${HOST_PYTHON}" "${SKILL_ROOT}/scripts/run.py" \
+  --project-root "$(pwd)" \
+  --skip-effectiveness-log \
+  "${TARGET}"
 ```
+<!-- installed-command:run:end -->
 
-The detector can also be run directly:
+Use `--language typescript` to make the narrow TypeScript v1 contract
+explicit, or `--language python` to retain the Python-only scan. The default is
+additive: it scans supported Python and TypeScript files found under `TARGET`.
+`--skip-effectiveness-log` is retained for command compatibility; selected-skill
+execution has no toolkit telemetry dependency.
+
+For direct detector debugging, write only JSONL:
 
 ```bash
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/detect.py \
+"${HOST_PYTHON}" "${SKILL_ROOT}/scripts/detect.py" \
   --project-root "$(pwd)" \
   --output /tmp/complexity-hotspots.jsonl \
-  .claude/skills/find-complexity-hotspots
+  --language typescript \
+  "${TARGET}"
 ```
 
-## Finding Buckets
+## Finding buckets
 
-- `django-query-in-loop` — likely N+1 ORM/API shape. Check whether a
-  bulk query, join, `select_related`, `prefetch_related`, grouped
-  lookup, or service-level precomputation preserves filters and
-  authorization.
-- `nested-loop` — pairwise or repeated scan shape. Check duplicate-key,
-  ordering, and "first vs all matches" semantics before replacing with
-  a map/set/grouping.
-- `membership-scan-in-loop` — `x in list` / `not in list` style checks
-  under iteration. Convert to `set` or `dict` only when equality,
-  normalization, hashability, and ordering behavior are safe.
-- `sort-in-loop` — repeated ordering work. If the same input is reused,
-  sort once; if only top-k is needed, consider heap/select logic; if
-  each loop item has its own candidate set, measure before changing.
-- `repeated-scan-in-loop` — `filter()` / `map()` / `sum()` / `any()` /
-  `all()` over another collection inside a loop. Consider indexing or
-  combining passes if the collections can be large.
-- `high-branch-function` — high approximate branch count and LOC. This
-  is usually a readability/refactor lead, not necessarily a runtime
-  bottleneck.
+- `django-query-in-loop`, `nested-loop`, `membership-scan-in-loop`,
+  `sort-in-loop`, and `repeated-scan-in-loop` are Python-only heuristic leads.
+  Preserve filters, authorization, ordering, duplicates, and data-size behavior
+  before replacing a loop with a query, map, set, grouping, or batch.
+- `high-branch-function` is structural. Python preserves its historical AST
+  score. TypeScript reports the same threshold only from the narrow syntax list
+  above, never from calls, receivers, types, or framework conventions.
 
-## How To Summarize
+## Summarize and act
 
-Report in 10 lines or fewer:
-
-- total findings and bucket counts,
-- the top 3 interesting candidates with path + symbol,
-- whether anything looks actionable now or just "measure first",
-- path to `reports/find-complexity-hotspots/latest/report.md`,
-- suggested next step (`/fix-workflow cluster:<symbol>`,
-  `/refactor-subsystem <spec>`, or no action).
-
-Do not enumerate every finding in chat. The report is the source of
-truth.
-
-If you dispatch an Agent to read the report, tell it this exact verdict
-contract: it must return one of `no-hotspots`, `measure-first`,
-`actionable-hotspot`, or `scan-blocked`, and every candidate must cite
-the report row or command output that supports it. Agent output without
-artifact citations is not evidence.
-
-## Safety Notes
-
-- Scanner output is intentionally conservative and heuristic. A false
-  positive is cheaper than missing an expensive export/discovery path.
-- Do not optimize cold code or tiny collections. Name the expected data
-  size before recommending a change.
-- Preserve output order, duplicate handling, missing-record behavior,
-  permissions, tenant/site filters, pagination, soft-delete filters,
-  and cache invalidation.
-- Add a benchmark or representative final-output check when the
-  improvement is non-obvious.
+Report in 10 lines or fewer: total findings and bucket counts; up to three
+locations/symbols; the verdict; the `reports/find-complexity-hotspots/latest/`
+report path; and one evidence-based next step. Do not optimize cold code or
+small collections. For TypeScript, state the score is syntactic and name any
+unknown input size.
 
 ## Replay check
 
-After editing this skill or its detector contract, run:
+After changing this skill, run the Python oracle and TypeScript outcome suite:
 
 ```bash
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/run.py --help
-.venv/bin/python .claude/skills/find-complexity-hotspots/scripts/smoke.py
+python3 "${SKILL_ROOT}/scripts/smoke.py"
+python3 -m pytest -q tests/test_find_complexity_hotspots_typescript.py
+node --check "${SKILL_ROOT}/scripts/detect_typescript_complexity.mjs"
 ```
 
-The smoke script is the replay case: it scans the good/bad fixture pair
-and asserts that representative hotspot bands are emitted while the clean
-fixture stays clean. Paste the command output when using it as repair
-evidence.
+The locked TypeScript fixture runs `npm ci --offline --ignore-scripts`,
+`npm run typecheck` (`tsc --noEmit`), and `npm test`. It proves positive,
+clean, generated/vendor/minified/test/spec/declaration exclusions, syntax and
+prerequisite failures, copied closure, and stock installation commands.
 
 ## When things go sideways
 
 | Symptom | Action |
 |---|---|
-| No target path was supplied | The argparse failure is the correct outcome; re-run with one or more explicit files, directories, or globs. |
-| The report shows a likely hotspot on tiny or cold data | Use verdict `measure-first`, name the unknown input size, and do not recommend an optimization yet. |
-| Detector succeeds but effectiveness logging fails | Keep the report artifacts, state the logging failure, and do not rerun the detector solely to log. |
-| A direct detector run writes JSONL but no markdown report | State that only the debug artifact exists; run `scripts/run.py` for the standard report before presenting a scan verdict. |
-| Agent triage omits report citations | Reject that dispatch output and read the report directly; do not use uncited Agent claims as findings. |
-
-Inspired by https://github.com/Kappaemme-git/codex-complexity-optimizer
+| No target path was supplied | Let argparse fail, then rerun with explicit paths. |
+| TypeScript parser exits 2 | Stop. Install the host's pinned `typescript`, restore Node, or repair the syntax; do not present an incomplete TypeScript scan as clean. |
+| A high score is on cold/tiny data | Use `measure-first`; no optimization follows from syntax alone. |
+| A likely ORM/React/Node issue is absent | This is expected: TypeScript v1 intentionally has no framework semantics. Inspect it manually or use a future framework-specific workflow. |
+| A direct detector run has JSONL but no report | Run `scripts/run.py` before presenting a verdict. |

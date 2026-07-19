@@ -11,32 +11,13 @@ import argparse
 import ast
 import fnmatch
 import json
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
 sys.dont_write_bytecode = True
-
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
-COMMON_DIR = PROJECT_ROOT / ".claude" / "skills" / "_common"
-if str(COMMON_DIR) not in sys.path:
-    sys.path.insert(0, str(COMMON_DIR))
-
-# Route Python parsing through the shared per-language adapter registry
-# (ADR 0032). The complexity analysis is Python/Django-specific (nested
-# loops, ORM-in-loop, branch scoring), so this stays a Python-only
-# consumer: ask the registry for the file's adapter and only proceed when
-# it exposes the raw `ast.Module` (CAP_PYTHON_AST), keeping the existing
-# visitor. Wire the repo `scripts/` dir onto sys.path so the package
-# imports when this skill script runs standalone.
-_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
-if _SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPTS_DIR)
-
-from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
-from product_health import finding, normalize_record  # noqa: E402
-
 
 SKIP_DIRS = {
     ".git",
@@ -48,6 +29,14 @@ SKIP_DIRS = {
     "reports",
 }
 TEST_GLOBS = ("test_*.py", "tests_*.py", "tests.py", "conftest.py")
+TYPESCRIPT_SKIP_DIRS = {"__tests__", "fixtures", "generated", "test", "tests", "vendor"}
+TYPESCRIPT_SKIP_GLOBS = (
+    "*.d.ts", "*.d.tsx", "*.generated.ts", "*.generated.tsx",
+    "*.min.ts", "*.min.tsx", "*-min.ts", "*-min.tsx",
+    "*.bundle.ts", "*.bundle.tsx", "*.spec.ts", "*.spec.tsx",
+    "*.test.ts", "*.test.tsx", "test_*.ts", "test_*.tsx",
+    "tests_*.ts", "tests_*.tsx", "*_test.ts", "*_test.tsx",
+)
 
 QUERYSET_METHODS = {
     "aggregate",
@@ -113,6 +102,90 @@ BRANCH_NODES = (
     ast.AsyncWith,
     ast.Match,
 )
+
+
+class TypeScriptExtractionError(RuntimeError):
+    """Raised when syntax-only TypeScript facts cannot be established."""
+
+
+def _relpath(path: Path | str, project_root: Path) -> str:
+    if not isinstance(path, Path):
+        return path
+    try:
+        return str(path.relative_to(project_root))
+    except ValueError:
+        return str(path)
+
+
+def _infer_surface(file: str) -> str:
+    if file.startswith("app/pages/sites") or file.startswith("templates/core/site_config"):
+        return "sites_template_or_view"
+    if file.startswith("app/site_management") or file.startswith("app/api/"):
+        return "sites_backend"
+    if file.startswith("app/services/sites"):
+        return "sites_service"
+    if file.startswith("static/js/"):
+        return "sites_frontend"
+    if file.startswith(".claude/skills"):
+        return "skill"
+    if file.startswith(".claude/docs") or file.startswith("docs/"):
+        return "docs"
+    if file.startswith("tests/") or file.startswith("testing/"):
+        return "tests"
+    return "sites_surface"
+
+
+def finding(
+    pattern: str,
+    path: Path | str,
+    lineno: int,
+    summary: str,
+    recommendation: str,
+    project_root: Path,
+    *,
+    confidence: str = "medium",
+    surface: str | None = None,
+    next_skill: str = "triage-debt",
+    guard_candidate: bool = False,
+    **extra: Any,
+) -> dict[str, Any]:
+    """Build the historical advisory finding shape without a shared runtime."""
+    file = _relpath(path, project_root)
+    record: dict[str, Any] = {
+        "pattern": pattern,
+        "file": file,
+        "lineno": lineno,
+        "summary": summary.strip(),
+        "recommendation": recommendation.strip(),
+        "confidence": confidence,
+        "surface": surface or _infer_surface(file),
+        "next_skill": next_skill,
+        "guard_candidate": guard_candidate,
+    }
+    record.update(extra)
+    return record
+
+
+def normalize_record(
+    record: dict[str, Any],
+    project_root: Path,
+    *,
+    default_confidence: str = "medium",
+    next_skill: str = "triage-debt",
+    guard_candidate: bool = False,
+) -> dict[str, Any]:
+    """Preserve the selected skill's established JSONL compatibility fields."""
+    file = str(record.get("file", ""))
+    return {
+        **record,
+        "lineno": int(record.get("lineno") or 1),
+        "summary": str(record.get("summary") or record.get("evidence") or "").strip(),
+        "recommendation": str(record.get("recommendation") or "Review this advisory finding.").strip(),
+        "confidence": str(record.get("confidence") or default_confidence),
+        "surface": str(record.get("surface") or _infer_surface(file)),
+        "next_skill": str(record.get("next_skill") or next_skill),
+        "guard_candidate": bool(record.get("guard_candidate", guard_candidate)),
+    }
 
 
 @dataclass(frozen=True)
@@ -378,6 +451,78 @@ def _branch_score(node: ast.AST) -> int:
     return score
 
 
+def _typescript_complexity(path: Path, project_root: Path) -> list[dict[str, Any]]:
+    """Return Compiler API syntax facts for supported TypeScript functions."""
+    launcher = Path(__file__).resolve().with_name("detect_typescript_complexity.mjs")
+    try:
+        result = subprocess.run(
+            ["node", str(launcher), "--file", str(path), "--project-root", str(project_root)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise TypeScriptExtractionError(f"cannot run bundled TypeScript parser: {exc}") from exc
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or "unknown parser failure"
+        raise TypeScriptExtractionError(detail)
+    try:
+        records = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise TypeScriptExtractionError("bundled TypeScript parser emitted invalid JSON") from exc
+    if not isinstance(records, list):
+        raise TypeScriptExtractionError("bundled TypeScript parser emitted a non-list result")
+    validated: list[dict[str, Any]] = []
+    for record in records:
+        try:
+            validated.append({
+                "name": str(record["name"]),
+                "symbol": str(record["symbol"]),
+                "kind": str(record["kind"]),
+                "branch_score": int(record["branch_score"]),
+                "lineno": int(record["lineno"]),
+                "end_lineno": int(record["end_lineno"]),
+                "loc": int(record["loc"]),
+            })
+        except (KeyError, TypeError, ValueError) as exc:
+            raise TypeScriptExtractionError("bundled TypeScript parser emitted an invalid function") from exc
+    return validated
+
+
+def _typescript_high_branch_records(path: Path, project_root: Path) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for fact in _typescript_complexity(path, project_root):
+        branch_score = int(fact["branch_score"])
+        loc = int(fact["loc"])
+        if branch_score < 18 and not (branch_score >= 12 and loc >= 120):
+            continue
+        symbol = str(fact["symbol"])
+        records.append(
+            finding(
+                "high-branch-function",
+                path,
+                int(fact["lineno"]),
+                f"`{symbol}` has approximate syntactic branch score {branch_score} over {loc} LOC.",
+                "Read the block and its input sizes before changing it; preserve observable "
+                "behavior with native TypeScript tests if a behavior-backed boundary emerges.",
+                project_root,
+                confidence="medium" if branch_score >= 18 else "low",
+                next_skill="manual-review",
+                guard_candidate=False,
+                symbol=symbol,
+                impact=min(90, branch_score * 3 + loc // 20),
+                category="structural",
+                branch_score=branch_score,
+                loc=loc,
+                end_lineno=int(fact["end_lineno"]),
+                kind=str(fact["kind"]),
+                language="typescript",
+                analyzer="typescript-compiler-api",
+            )
+        )
+    return records
+
+
 def _iter_python_files(project_root: Path, paths: Iterable[str], include_tests: bool) -> list[Path]:
     found: list[Path] = []
     for raw in paths:
@@ -399,6 +544,45 @@ def _iter_python_files(project_root: Path, paths: Iterable[str], include_tests: 
         if parts & SKIP_DIRS:
             continue
         if not include_tests and any(fnmatch.fnmatchcase(path.name, glob) for glob in TEST_GLOBS):
+            continue
+        clean.append(path.resolve())
+    return sorted(dict.fromkeys(clean))
+
+
+def _typescript_path_is_excluded(path: Path, target: Path) -> bool:
+    try:
+        parts = path.relative_to(target).parts
+    except ValueError:
+        parts = path.parts
+    if any(part.lower() in TYPESCRIPT_SKIP_DIRS for part in parts[:-1]):
+        return True
+    return any(fnmatch.fnmatchcase(path.name, glob) for glob in TYPESCRIPT_SKIP_GLOBS)
+
+
+def _iter_typescript_files(project_root: Path, paths: Iterable[str]) -> list[Path]:
+    found: list[tuple[Path, Path]] = []
+    for raw in paths:
+        raw_path = Path(raw)
+        candidates: Iterable[Path]
+        if any(ch in raw for ch in "*?[]"):
+            candidates = project_root.glob(raw)
+        else:
+            candidate = raw_path if raw_path.is_absolute() else project_root / raw_path
+            candidates = [candidate]
+        for candidate in candidates:
+            if candidate.is_file() and candidate.suffix.lower() in {".ts", ".tsx"}:
+                found.append((candidate, candidate.parent))
+            elif candidate.is_dir():
+                found.extend(
+                    (path, candidate)
+                    for path in candidate.rglob("*")
+                    if path.is_file() and path.suffix.lower() in {".ts", ".tsx"}
+                )
+    clean: list[Path] = []
+    for path, target in found:
+        if set(path.parts) & SKIP_DIRS:
+            continue
+        if _typescript_path_is_excluded(path, target):
             continue
         clean.append(path.resolve())
     return sorted(dict.fromkeys(clean))
@@ -434,26 +618,27 @@ def detect(
     *,
     include_tests: bool = False,
     max_findings: int = 80,
+    languages: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     project_root = project_root.resolve()
     records: list[dict[str, Any]] = []
-    for path in _iter_python_files(project_root, paths, include_tests):
-        # Route through the shared adapter registry; this analysis needs
-        # the raw Python AST, so skip any file whose adapter can't supply
-        # it (non-Python suffix, or no adapter) rather than crash.
-        adapter = get_adapter(path)
-        if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
-            continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            continue
-        tree = adapter.parse(text)
-        if tree is None:
-            continue
-        visitor = ComplexityVisitor(path, project_root)
-        visitor.visit(tree)
-        records.extend(visitor.records)
+    wanted = languages or {"python", "typescript"}
+    if "python" in wanted:
+        for path in _iter_python_files(project_root, paths, include_tests):
+            try:
+                text = path.read_text(encoding="utf-8")
+                tree = ast.parse(text)
+            except (OSError, UnicodeDecodeError, SyntaxError):
+                continue
+            visitor = ComplexityVisitor(path, project_root)
+            visitor.visit(tree)
+            records.extend(visitor.records)
+    if "typescript" in wanted:
+        for path in _iter_typescript_files(project_root, paths):
+            try:
+                records.extend(_typescript_high_branch_records(path, project_root))
+            except TypeScriptExtractionError as exc:
+                raise TypeScriptExtractionError(f"{path}: {exc}") from exc
 
     records = [normalize_record(record, project_root) for record in _dedupe(records)]
     confidence_rank = {"high": 0, "medium": 1, "low": 2}
@@ -475,14 +660,26 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--include-tests", action="store_true")
     parser.add_argument("--max-findings", type=_positive_int, default=80)
+    parser.add_argument(
+        "--language",
+        action="append",
+        choices=("python", "typescript"),
+        default=[],
+        help="Restrict scanning to one or more supported languages.",
+    )
     args = parser.parse_args(argv)
 
-    records = detect(
-        args.project_root,
-        args.paths,
-        include_tests=args.include_tests,
-        max_findings=args.max_findings,
-    )
+    try:
+        records = detect(
+            args.project_root,
+            args.paths,
+            include_tests=args.include_tests,
+            max_findings=args.max_findings,
+            languages=set(args.language) or None,
+        )
+    except TypeScriptExtractionError as exc:
+        print(f"[find-complexity-hotspots] ERROR: {exc}", file=sys.stderr)
+        return 2
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8") as fh:
         for record in records:
