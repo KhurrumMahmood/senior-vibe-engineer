@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a subsystem at .claude/docs/subsystems/<name>.md. Covers file list, public surface, responsibility table, dependency graph, convention-compliance score. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python or TypeScript/TSX subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; TypeScript/TSX v1 uses the host-pinned Compiler API plus one named tsconfig resolver for exported surface and resolved imports. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -15,8 +15,9 @@ not_for: |
   Cross-subsystem product workflows (use /map-product-workflow).
   Per-symbol behavior annotation (use /explain-code). Refactor
   execution (use /refactor-subsystem with a spec).
-language: python
+language: any
 framework: any
+scans: [python, typescript]
 ---
 
 # /map-subsystem
@@ -36,13 +37,92 @@ Procedural detail lives in one knowledge file:
 
 - `knowledge/output-format.md` — the exact shape of
   `.claude/docs/subsystems/<name>.md` + worked example.
+- `knowledge/typescript-v1.md` — the narrow Compiler API model, resolver,
+  exclusions, completeness states, and unavailable TypeScript fields.
+
+## TypeScript / TSX v1
+
+Use this branch only for a TypeScript/TSX subsystem when the host supplies a
+named, project-local `tsconfig.json` and a `typescript` package installed under
+that host. It produces a complete module-fact map: eligible source inventory,
+exported surface, resolved inbound/outbound static imports (direct relative and
+`paths` alias), barrel re-export boundaries, workflow-map participation, and
+TypeScript diagnostic counts. It does not infer responsibility clusters or
+write judgment-oriented open questions; those fields are explicit
+`unavailable`, never silently omitted.
+
+Do not use a lexical import inventory as a substitute. An unresolved specifier
+is rendered in the final Markdown and JSON evidence as `partial`; malformed
+TypeScript, missing `tsconfig`, missing Node, or missing project-local
+TypeScript stops with exit code 2. The mapper accepts a file or directory
+target, applies exclusions project-root-relatively even for a direct excluded
+target, and never follows an external or internal directory symlink.
+
+The TypeScript command is self-contained in this selected skill. It does not
+call the repository renderer, sibling skills, shared adapters, repository
+scripts, or a toolkit Python environment. Keep the current Python stages below
+unchanged; this is a parallel v1 output contract, not a replacement Python
+parser.
+
+### Installed TypeScript map command
+
+Run this verbatim from the target host root after the selected skill is present
+at `.agents/skills/map-subsystem` (or from this source checkout at
+`.claude/skills/map-subsystem`). It writes only the durable map, its JSON
+evidence, and the optional effectiveness row; it never mutates host source.
+
+To make the stock Codex location from a released source, set
+`MAP_SUBSYSTEM_SOURCE` to that pinned source/ref and run:
+
+<!-- installed-command:stock-install:start -->
+```bash
+: "${MAP_SUBSYSTEM_SOURCE:?Set this to the pinned skill source/ref}"
+npx --yes skills@1.5.19 add "${MAP_SUBSYSTEM_SOURCE}" \
+  --skill map-subsystem --agent codex --copy -y
+```
+<!-- installed-command:stock-install:end -->
+
+<!-- installed-command:typescript-map:start -->
+```bash
+MAP_NAME="${MAP_NAME:-typescript-features}"
+MAP_TARGET="${MAP_TARGET:-src/features}"
+MAP_TSCONFIG="${MAP_TSCONFIG:-tsconfig.json}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/map-subsystem" \
+  ".claude/skills/map-subsystem"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "map-subsystem is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+node "${SKILL_ROOT}/scripts/map_typescript.mjs" \
+  --target "${MAP_TARGET}" \
+  --project-root "$(pwd)" \
+  --tsconfig "${MAP_TSCONFIG}" \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/typescript-map.json" \
+  --effectiveness-log "reports/_meta/effectiveness.jsonl"
+```
+<!-- installed-command:typescript-map:end -->
+
+The host's normal native check remains separate evidence. For example, run
+`npm run typecheck` (or that host's documented `tsc --noEmit` command) before
+and after mapping; the mapper records diagnostics but does not repair them.
 
 ## How success is judged
 
-- `.claude/docs/subsystems/<name>.md` is complete per
-  `knowledge/output-format.md`: file inventory, public-vs-private
-  surface, responsibility clusters, dependency graph, and the
-  convention-compliance score.
+- Python maps are complete per `knowledge/output-format.md`: file inventory,
+  public-vs-private surface, responsibility clusters, dependency graph, and
+  convention-compliance score. TypeScript/TSX v1 maps are complete per
+  `knowledge/typescript-v1.md`: eligible inventory, exported surface, resolved
+  module edges, workflow participation, and applicable compliance; intentionally
+  unavailable fields must remain explicit.
 - On `--refresh`, the doc opens with a diff section against the prior
   version — what changed, not just what is.
 - The run cites artifact truth: pasted `render_doc.py` `wrote ...`
@@ -76,9 +156,11 @@ Write toward these gates from Stage 0.
 4. **No judgment calls in the map.** The doc reports: X is 2,400 LOC,
    imports from 14 modules, has 3 responsibility clusters. It does
    NOT say "should be split" — that's a SUSPECT skill's job.
-5. **Reusable infra only.** Reuse `scripts/chunk_file.py`, existing
-   lint scripts, and existing ruff config. Do not introduce new
-   scanners here — the MAP job is aggregation, not detection.
+5. **Reusable infra only.** Python reuses `scripts/chunk_file.py`, existing
+   lint scripts, and existing ruff config. TypeScript/TSX v1 keeps its one
+   tsconfig-aware Compiler API resolver inside this selected skill; do not
+   generalize it into a shared parser platform before a second accepted
+   consumer demonstrates the same resolution contract.
 
 ## Argument parsing
 
@@ -107,7 +189,7 @@ The skill MUST produce a diff section at the top of the new doc
 summarizing what changed since the previous version's "Regenerated"
 timestamp.
 
-## Scope
+## Python scope
 
 - **Target:** a single subsystem (one file or one directory package).
 - **Worktree:** current working directory.
@@ -116,7 +198,7 @@ timestamp.
   under `reports/map/<name>/`, and one effectiveness row under
   `reports/_meta/`. Never touches production code.
 
-## Pipeline stages
+## Python pipeline stages
 
 Each stage has a contract — what it reads, what it writes. Scripts run
 with `.venv/bin/python` and capture stderr.

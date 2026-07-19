@@ -5,6 +5,11 @@ reader can scan it without the skill loaded. `scripts/render_doc.py`
 produces this layout from the Stage 1–5 scratch files; this doc is the
 canonical reference for what it emits.
 
+This is the Python renderer contract. TypeScript/TSX v1 uses the separate,
+Compiler API-backed contract in `typescript-v1.md`: it reports exported
+surface and resolved import edges rather than pretending a lexical inventory
+can fill Python-only responsibility clusters or open questions.
+
 ## Front matter
 
 A short YAML block + one-paragraph header. Do NOT include the skill
