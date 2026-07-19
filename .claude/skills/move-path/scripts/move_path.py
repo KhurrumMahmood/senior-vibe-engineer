@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Deterministic batched path mover with reference rewriting.
 
-V0 focuses on filesystem identity and text references that can be resolved
-safely: Markdown links/images, HTML href/src attributes, backtick path tokens,
-and exact path residues. Language imports are intentionally adapter-deferred.
+V1 supports standalone TypeScript/TSX path moves plus filesystem identity and
+text references that can be resolved safely: Markdown links/images, HTML
+href/src attributes, backtick path tokens, and exact path residues. TypeScript
+source imports are intentionally not rewritten; affected local imports are
+reported as an explicit risk for a resolver-aware follow-up.
 """
 from __future__ import annotations
 
@@ -40,6 +42,18 @@ LOCAL_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 MD_LINK_RE = re.compile(r"(!?)\[([^\]]*)\]\(([^)\n]+)\)")
 HTML_REF_RE = re.compile(r"(?P<attr>\b(?:href|src)=)(?P<quote>['\"])(?P<target>[^'\"]+)(?P=quote)")
 BACKTICK_RE = re.compile(r"`([^`\n]+)`")
+TS_IMPORT_RE = re.compile(
+    r"""(?mx)
+    ^[ \t]*
+    (?:
+        import[ \t]+(?:type[ \t]+)?(?:(?!\n).*?[ \t]+from[ \t]+)?
+      | export[ \t]+(?:type[ \t]+)?(?:(?!\n).*?[ \t]+from[ \t]+)
+    )
+    (?P<quote>[\"'])(?P<specifier>[^\"'\\\n]+)(?P=quote)
+    """
+)
+TYPESCRIPT_SUFFIXES = (".ts", ".tsx")
+TYPESCRIPT_MODULE_SUFFIXES = (".ts", ".tsx", ".d.ts")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -142,14 +156,25 @@ def after_path_for(path: str, moves: list[MoveSpec]) -> str:
 
 
 def load_plan(plan_path: Path, root: Path) -> dict:
-    if yaml is None:
-        raise SystemExit("PyYAML is required to read move-path plans")
+    suffix = plan_path.suffix.lower()
     try:
-        data = yaml.safe_load(_read_text(plan_path))
-    except (OSError, UnicodeDecodeError, ValueError, yaml.YAMLError) as exc:
+        text = _read_text(plan_path)
+        if suffix == ".json":
+            data = json.loads(text)
+        elif suffix in {".yml", ".yaml"}:
+            if yaml is None:
+                raise SystemExit("YAML plans require optional PyYAML; use a .json plan for the stdlib-only path")
+            data = yaml.safe_load(text)
+        else:
+            raise SystemExit("move-path plans must use .json, .yml, or .yaml")
+    except SystemExit:
+        raise
+    except (OSError, UnicodeDecodeError, ValueError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"cannot read plan {plan_path}: {exc}") from exc
+    except yaml.YAMLError as exc:
         raise SystemExit(f"cannot read plan {plan_path}: {exc}") from exc
     if not isinstance(data, dict):
-        raise SystemExit("move-path plan must be a YAML mapping")
+        raise SystemExit("move-path plan must be a mapping")
     raw_moves = data.get("moves")
     if not isinstance(raw_moves, list) or not raw_moves:
         raise SystemExit("move-path plan must declare at least one move")
@@ -249,6 +274,18 @@ def iter_scope_files(root: Path, includes: list[str], excludes: list[str]) -> li
         if matches_any(rel, excludes):
             continue
         if matches_any(rel, includes):
+            out.append(rel)
+    return out
+
+
+def iter_typescript_source_files(root: Path, excludes: list[str]) -> list[str]:
+    """Collect TS/TSX import-risk sources even when text rewriting excludes them."""
+    out: list[str] = []
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() or path.suffix not in TYPESCRIPT_SUFFIXES:
+            continue
+        rel = repo_rel(path, root)
+        if not matches_any(rel, excludes):
             out.append(rel)
     return out
 
@@ -397,6 +434,78 @@ def mode_for(plan: dict, key: str, default: str = "ignore") -> str:
     return value
 
 
+def code_import_mode(plan: dict) -> str:
+    """Return the only supported source-import policy without implying safety."""
+    value = mode_for(plan, "code_imports", "ignore")
+    if value != "ignore":
+        raise SystemExit("rewrite.code_imports only supports ignore; TypeScript imports require a resolver-aware move")
+    return value
+
+
+def resolve_typescript_import(
+    specifier: str,
+    referrer_before: str,
+    root: Path,
+    moves: list[MoveSpec],
+) -> str | None:
+    """Resolve only local TS/TSX spellings enough to report ignored move risk.
+
+    This is deliberately not a TypeScript module resolver: aliases, package
+    exports, project references, and compiler options remain unsupported. The
+    filesystem check is enough to identify a relative module whose file is in
+    the move map, while leaving import rewriting entirely disabled.
+    """
+    body, _query, _fragment = split_target(specifier)
+    if not body.startswith(("./", "../", "/")):
+        return None
+    resolved = resolve_reference(specifier, referrer_before, root)
+    if resolved is None:
+        return None
+    candidates = [resolved]
+    if not resolved.endswith(TYPESCRIPT_MODULE_SUFFIXES):
+        candidates.extend(resolved + suffix for suffix in TYPESCRIPT_MODULE_SUFFIXES)
+        candidates.extend(resolved + "/index" + suffix for suffix in TYPESCRIPT_MODULE_SUFFIXES)
+    for candidate in candidates:
+        if (root / candidate).is_file() or (root / after_path_for(candidate, moves)).is_file():
+            return candidate
+    return None
+
+
+def ignored_typescript_imports(root: Path, files: list[str], moves: list[MoveSpec]) -> list[dict]:
+    """Report local TS/TSX imports invalidated by moving their target or referrer."""
+    ignored: list[dict] = []
+    for rel in files:
+        if Path(rel).suffix not in TYPESCRIPT_SUFFIXES:
+            continue
+        try:
+            text = _read_text(root / rel)
+        except OSError:
+            continue
+        for match in TS_IMPORT_RE.finditer(text):
+            specifier = match.group("specifier")
+            before = resolve_typescript_import(specifier, rel, root, moves)
+            if before is None:
+                continue
+            after = after_path_for(before, moves)
+            referrer_after = after_path_for(rel, moves)
+            expected_specifier = format_reference(before, after, referrer_after, specifier)
+            if expected_specifier == specifier:
+                continue
+            ignored.append(
+                {
+                    "file": rel,
+                    "file_after": referrer_after,
+                    "lineno": line_for_offset(text, match.start("specifier")),
+                    "specifier": specifier,
+                    "expected_specifier": expected_specifier,
+                    "target_before": before,
+                    "target_after": after,
+                    "reason": "rewrite.code_imports is ignore; TypeScript source imports are not rewritten",
+                }
+            )
+    return ignored
+
+
 TEXT_PATH_SUFFIX_RE = r"(?:/[A-Za-z0-9._~@%+=:@#-]+)*(?:#[A-Za-z0-9._~@%+=:@#/-]+)?"
 
 
@@ -484,6 +593,10 @@ def detect_references(
 
     for rel in files:
         path = root / rel
+        # Never mutate TypeScript source. The separate risk scan records only
+        # local static imports that resolve to a moved identity.
+        if path.suffix in TYPESCRIPT_SUFFIXES:
+            continue
         try:
             text = _read_text(path)
         except OSError as exc:
@@ -894,6 +1007,7 @@ def report_payload(
     blocked: list[dict],
     post_broken_links: list[dict],
     dirty: list[str],
+    ignored_code_imports: list[dict],
 ) -> dict:
     return {
         "project_root": root.as_posix(),
@@ -907,6 +1021,7 @@ def report_payload(
             "blocked": len(blocked),
             "post_broken_links": len(post_broken_links),
             "dirty_touched": len(dirty),
+            "ignored_code_import_risks": len(ignored_code_imports),
         },
         "moves": [dataclasses.asdict(m) for m in moves],
         "auto_rewrites": [dataclasses.asdict(r) for r in replacements],
@@ -914,6 +1029,14 @@ def report_payload(
         "blocked": blocked,
         "post_broken_links": post_broken_links,
         "dirty_touched": dirty,
+        "code_imports": {
+            "mode": "ignore",
+            "risk": (
+                "TypeScript and TSX source import specifiers are not rewritten. "
+                "Review every affected import before applying a move; import-safe moves require a named resolver."
+            ),
+            "ignored": ignored_code_imports,
+        },
     }
 
 
@@ -956,6 +1079,20 @@ def render_markdown(payload: dict) -> str:
             out.append(f"- `{item.get('kind')}`: `{item}`")
     else:
         out.append("- None")
+    out.extend(["", "## Ignored TypeScript Imports", ""])
+    out.append(
+        "- `rewrite.code_imports: ignore`: TypeScript and TSX source imports are not rewritten; "
+        "review affected imports before applying this move."
+    )
+    if payload["code_imports"]["ignored"]:
+        for item in payload["code_imports"]["ignored"][:200]:
+            out.append(
+                f"- `{item['file']}`:{item['lineno']} `{item['specifier']}`: "
+                f"expected `{item['expected_specifier']}` for `{item['target_before']}` -> "
+                f"`{item['target_after']}` ({item['reason']})"
+            )
+    else:
+        out.append("- No local TypeScript/TSX import is invalidated by a moved target or referrer.")
     out.extend(["", "## Post-Apply Broken Links", ""])
     if payload["post_broken_links"]:
         for item in payload["post_broken_links"]:
@@ -972,6 +1109,25 @@ def write_report(report_dir: Path, payload: dict) -> None:
     _write_text(report_dir / "report.md", render_markdown(payload))
 
 
+def merge_ignored_code_imports(pre_apply: list[dict], post_apply: list[dict]) -> list[dict]:
+    """Retain pre-move TS import risks when the final check has moved the referrer."""
+    merged: list[dict] = []
+    seen: set[tuple[str, int, str, str, str, str]] = set()
+    for item in [*pre_apply, *post_apply]:
+        key = (
+            item["file"],
+            item["lineno"],
+            item["specifier"],
+            item["expected_specifier"],
+            item["target_before"],
+            item["target_after"],
+        )
+        if key not in seen:
+            seen.add(key)
+            merged.append(item)
+    return merged
+
+
 def run_plan(
     *,
     plan_path: Path,
@@ -984,9 +1140,11 @@ def run_plan(
     root = project_root or git_root(Path.cwd()) or Path.cwd()
     root = root.resolve()
     plan = load_plan(plan_path, root)
+    code_import_mode(plan)
     moves: list[MoveSpec] = plan["_moves"]
     includes, excludes = plan_patterns(plan)
     files = iter_scope_files(root, includes, excludes)
+    ignored_code_imports = ignored_typescript_imports(root, iter_typescript_source_files(root, excludes), moves)
     if mode == "check":
         blocked = validate_applied_moves(root, moves)
         texts = current_texts(root, files)
@@ -1003,6 +1161,7 @@ def run_plan(
             blocked=blocked,
             post_broken_links=post_broken,
             dirty=[],
+            ignored_code_imports=ignored_code_imports,
         )
         write_report(report_dir, payload)
         return payload
@@ -1031,6 +1190,7 @@ def run_plan(
         blocked=blocked,
         post_broken_links=post_broken,
         dirty=dirty,
+        ignored_code_imports=ignored_code_imports,
     )
     write_report(report_dir, payload)
 
@@ -1045,7 +1205,7 @@ def run_plan(
         raise SystemExit(f"post-apply broken links prevent apply; see {report_dir / 'report.md'}")
     apply_moves_and_rewrites(root, moves, after_texts, touched_before, stage=stage)
     # Re-run check after mutation so report reflects final state.
-    return run_plan(
+    post_apply = run_plan(
         plan_path=plan_path,
         project_root=root,
         mode="check",
@@ -1053,6 +1213,12 @@ def run_plan(
         allow_dirty_touched=True,
         stage=False,
     )
+    merged_imports = merge_ignored_code_imports(ignored_code_imports, post_apply["code_imports"]["ignored"])
+    if merged_imports != post_apply["code_imports"]["ignored"]:
+        post_apply["code_imports"]["ignored"] = merged_imports
+        post_apply["summary"]["ignored_code_import_risks"] = len(merged_imports)
+        write_report(report_dir, post_apply)
+    return post_apply
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -1,7 +1,7 @@
 ---
 name: move-path
-description: Deterministically plan, dry-run, apply, and verify batched file or directory moves while updating identity-resolved references such as Markdown links and exact path tokens. Use when paths need to be renamed or moved safely across a repo with relative links, root-relative links, Windows-style path spellings, case-only renames, Git-tracked files, dry-run review, and ambiguous-reference reporting. Keeps the core deterministic; AI review is for judging the move map and uncertain residues, not performing rewrites.
-argument-hint: "--plan moves.yml --dry-run|--apply|--check"
+description: Deterministically plan, dry-run, apply, and verify standalone TypeScript/TSX file or directory moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Use for a reviewed move map with JSON plans, dry-run reporting, Git-aware moves, and explicit ignored-import risk. TypeScript/TSX source imports are never rewritten in v1; import-safe module moves need a resolver-aware follow-up.
+argument-hint: "--plan moves.json --dry-run|--apply|--check"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 user-invocable: true
 tier: maintenance
@@ -18,17 +18,18 @@ not_for: |
   explicitly added and enabled. Large behavior-changing subsystem splits
   that need characterization tests and human Phase 4 sign-off (use
   /refactor-subsystem). Blind global find-and-replace.
-language: python
+language: typescript
 framework: any
 ---
 
 # /move-path
 
-You are the orchestrator for safe batched path moves. The deterministic
-script owns filesystem moves, path normalization, reference resolution,
-patch generation, and verification. Your job is to prepare or inspect the
-plan, run dry-run first, review uncertainty buckets, then apply only when
-the report is clean enough for the intended change.
+You are the orchestrator for safe batched standalone TypeScript/TSX path
+moves. The deterministic script owns filesystem moves, path normalization,
+reference resolution, patch generation, and verification. Your job is to
+prepare or inspect the plan, run dry-run first, review uncertainty buckets and
+ignored-import risk, then apply only when the report is clean enough for the
+intended change.
 
 ## Core Contract
 
@@ -38,19 +39,32 @@ The script computes a **virtual after-tree** before touching disk:
 plan -> virtual after-tree -> rewrite refs against after-tree -> apply moves + patches -> verify
 ```
 
-It updates references by resolved identity, not by hopeful text
-replacement. A Markdown link is auto-updated only when its target resolves
-to a file or directory being moved. Ambiguous prose and unsupported import
-forms are reported, not rewritten.
+It updates references by resolved identity, not by hopeful text replacement.
+A Markdown link is auto-updated only when its target resolves to a file or
+directory being moved. Ambiguous prose is reported, not rewritten.
+
+## TypeScript v1 Boundary
+
+Support standalone `.ts` and `.tsx` file or directory moves and rewrite
+identity-resolved Markdown/HTML/config/backtick/exact text references. Use a
+stdlib JSON plan as the guaranteed installed format. The script never rewrites
+TypeScript or TSX source imports, including relative imports whose target or
+referrer is moved; it emits those as `code_imports.ignored` risk records in
+the JSON report and under **Ignored TypeScript Imports** in the Markdown report.
+
+Do not claim an import-safe module move. Python import rewrites, TypeScript
+path aliases, package exports, project references, barrel compatibility,
+dynamic imports, and framework-specific routing are out of scope. They need a
+named `tsconfig`-aware resolver and separate acceptance evidence.
 
 ## Commands
 
 ```bash
-python3 .claude/skills/move-path/scripts/move_path.py --plan moves.yml --dry-run
-python3 .claude/skills/move-path/scripts/move_path.py --plan moves.yml --apply
-python3 .claude/skills/move-path/scripts/move_path.py --plan moves.yml --check
-python3 .claude/skills/move-path/scripts/audit_path_residue.py --plan moves.yml
-python3 .claude/skills/move-path/scripts/audit_path_residue.py --plan moves.yml --exclude 'source-materials/input-bundles/**'
+python3 .claude/skills/move-path/scripts/move_path.py --plan moves.json --dry-run
+python3 .claude/skills/move-path/scripts/move_path.py --plan moves.json --apply
+python3 .claude/skills/move-path/scripts/move_path.py --plan moves.json --check
+python3 .claude/skills/move-path/scripts/audit_path_residue.py --plan moves.json
+python3 .claude/skills/move-path/scripts/audit_path_residue.py --plan moves.json --exclude 'source-materials/input-bundles/**'
 ```
 
 Useful options:
@@ -63,45 +77,39 @@ Useful options:
 
 ## Plan Shape
 
-```yaml
-version: 1
-
-moves:
-  - id: eval-contracts
-    from: kb/evals/eval-contracts.md
-    to: specs/contracts/reliability/eval-contracts.md
-
-  - id: schemas-dir
-    from: kb/schemas/
-    to: specs/contracts/schemas/
-    mode: directory
-
-reference_scope:
-  include:
-    - "**/*.md"
-    - "**/*.yml"
-    - "**/*.yaml"
-    - "**/*.json"
-  exclude:
-    - ".git/**"
-    - ".engineering/local/**"
-    - "datasets/**"
-    - "inputs-*/**"
-    - "claude-logs/**"
-
-rewrite:
-  markdown_links: update
-  markdown_images: update
-  html_href_src: update
-  backtick_paths: update
-  exact_text_paths: suggest
-  code_imports: ignore
-
-safety:
-  require_clean_touched_files: true
-  fail_on_broken_links: true
-  fail_on_blocked: true
+```json
+{
+  "version": 1,
+  "moves": [
+    {
+      "id": "rename-source",
+      "from": "src/legacy/report.ts",
+      "to": "src/reports/current.ts"
+    }
+  ],
+  "reference_scope": {
+    "include": ["**/*.md", "**/*.html", "**/*.json", "**/*.yml", "**/*.yaml"],
+    "exclude": [".git/**", ".engineering/local/**", "node_modules/**"]
+  },
+  "rewrite": {
+    "markdown_links": "update",
+    "markdown_images": "update",
+    "html_href_src": "update",
+    "backtick_paths": "update",
+    "exact_text_paths": "suggest",
+    "code_imports": "ignore"
+  },
+  "safety": {
+    "require_clean_touched_files": true,
+    "fail_on_broken_links": true,
+    "fail_on_blocked": true
+  }
+}
 ```
+
+`.yml` and `.yaml` plans remain compatible only when PyYAML is installed.
+They are not part of the guaranteed copied-skill path; choose `.json` for a
+stdlib-only installation.
 
 ## Confidence Buckets
 
@@ -123,7 +131,8 @@ describing the old layout rather than linking to the current identity.
 2. Run `--dry-run`.
 3. Read `.engineering/local/move-path/report.md` and
    `.engineering/local/move-path/report.json`.
-4. Resolve `blocked` findings. Review `suggest` findings.
+4. Resolve `blocked` findings. Review `suggest` findings and every ignored
+   TypeScript import that resolves to a move target.
 5. Run `--apply` only after the dry-run report matches the intended
    transform.
 6. Run `--check` after manual follow-up edits or before commit.
@@ -179,6 +188,8 @@ Keep the core deterministic. Use AI review only around the report:
 
 - Are any moves conceptually wrong?
 - Are skipped or suggested references likely real breakages?
+- Does an ignored TypeScript import require a resolver-aware refactor rather
+  than this standalone path/text move?
 - Is the scope too broad for one commit?
 - Are source snapshots or historical records intentionally excluded?
 
