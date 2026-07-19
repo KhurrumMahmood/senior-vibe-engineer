@@ -1,6 +1,6 @@
 # rename-concept TypeScript compiler-assessment learning handoff
 
-Revision: implementation repair `5c96af6`; this learning record is committed separately.
+Revision: implementation repairs `5c96af6` and `139c369`; this learning record is committed separately.
 Evidence date: 2026-07-19.
 
 ## Invariant
@@ -68,14 +68,14 @@ or fork either detector band.
 
 The walker evaluates exclusions on root-relative logical labels even for direct
 targets, rejects files/symlinks that resolve outside the host, and never
-traverses directory symlinks — including a directory symlink named directly as
-the target. Retaining the logical label before resolving the target means an
-alias placed under `reports/` or another excluded directory cannot bypass that
-exclusion. This allows a real host below an ancestor named `node_modules` while
-excluding its own `node_modules/`, `dist/`, migration, and report trees. This
-safety behavior belongs in the coupled scanner so both skills share it.
-Glossary `source:` documents remain exempt from their own historical phrase
-examples.
+traverses directory symlinks — including a directory symlink or a descendant
+path beneath one named directly as the target. Retaining the logical label
+before resolving the target means an alias placed under `reports/` or another
+excluded directory cannot bypass that exclusion. This allows a real host below
+an ancestor named `node_modules` while excluding its own `node_modules/`,
+`dist/`, migration, and report trees. This safety behavior belongs in the
+coupled scanner so both skills share it. Glossary `source:` documents remain
+exempt from their own historical phrase examples.
 
 ## Locked evidence
 
@@ -91,10 +91,10 @@ shadowed local, import alias, property key, string, and comment.
 2. Assessment output accepts a contained report and rejects a source-overwrite,
    external path, and output-ancestor symlink escape without writing outside the
    report subtree.
-3. Direct ignored directory/file targets, a direct internal directory symlink,
-   an excluded logical symlink alias, and an external symlink are excluded,
-   while a direct ordinary contained directory still scans, even when the host
-   has an ancestor named `node_modules`.
+3. Direct ignored directory/file targets, a direct internal directory symlink
+   or descendant beneath it, an excluded logical symlink alias, and an external
+   symlink are excluded, while a direct ordinary contained directory still
+   scans, even when the host has an ancestor named `node_modules`.
 4. The exact documented stock `skills@1.5.19` one-command two-skill
    install/preflight/assessment journey produces exactly the two copied
    `.agents` skills, `COMPLETE` for a clean pinned TS host, and
