@@ -100,15 +100,19 @@ used, `--artifact-root` must be outside the host project.
 2. Run discovery:
 
    ```bash
+   PROJECT_ROOT="${PROJECT_ROOT:-$(pwd)}"
+   ARTIFACT_ROOT="${ARTIFACT_ROOT:-$PROJECT_ROOT}"
    ADAPT_PROJECT_SKILL="${ADAPT_PROJECT_SKILL:-.agents/skills/adapt-project}"
    cd "$ADAPT_PROJECT_SKILL"
-   python3 -I -S scripts/discover.py \
+   SCAN_DIR="$(python3 -I -S scripts/discover.py \
      --project-root "${PROJECT_ROOT}" \
-     --artifact-root "${ARTIFACT_ROOT}"
+     --artifact-root "${ARTIFACT_ROOT}")"
+   printf '%s\n' "$SCAN_DIR"
    ```
 
-   Add `--no-host-write` for dogfood runs, or `--apply` only after the
-   user explicitly wants durable project state written.
+   Add `--no-host-write` only with an artifact root outside the project for a
+   dogfood run, or add `--apply` only after the user explicitly wants durable
+   project state written.
 
 3. Read the generated `adapter.yml` and `report.md`.
 4. Surface:
@@ -120,10 +124,11 @@ used, `--artifact-root` must be outside the host project.
 
    ```bash
    python3 -I -S scripts/check_evidence.py \
-     --scan-dir reports/adapt-project/latest
+     --scan-dir "$SCAN_DIR"
    ```
 
-   If using an external artifact root, pass that scan path explicitly.
+   If discovery ran in a previous shell, pass its timestamped scan path
+   explicitly instead of relying on `latest`.
 
 ## Output
 
