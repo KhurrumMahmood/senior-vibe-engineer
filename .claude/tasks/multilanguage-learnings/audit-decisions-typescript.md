@@ -1,9 +1,10 @@
 # TypeScript `audit-decisions` learning handoff
 
-Implementation revision: `30f780a` (`Contain audit decision report outputs`),
-following the Compiler API migration `aab14c8`, generic-JSX repair `259de78`,
-the original additive implementation `a30ea88`, first adversarial repair
-`fbeca4e`, and base `8fa69f3`, 2026-07-19 UTC.
+Implementation revision: `852e315` (`Restrict audit report output paths`),
+following the earlier project-containment repair `30f780a`, Compiler API
+migration `aab14c8`, generic-JSX repair `259de78`, the original additive
+implementation `a30ea88`, first adversarial repair `fbeca4e`, and base
+`8fa69f3`, 2026-07-19 UTC.
 
 ## Invariant and scope
 
@@ -152,19 +153,20 @@ a property of the host path, not of invocation convenience.
 ## Report-output containment repair
 
 The report directory is a separate trust boundary from source-target selection.
-Resolve both `--project-root` and `--output-dir`, then require the resolved
-output path to be relative to the resolved project root before calling `mkdir`
-or writing an artifact. That rejects an absolute external path, `..` escape,
-an existing output-directory symlink, and a symlinked ancestor that points
-outside; it still permits ordinary root-relative and absolute-contained report
-paths.
+Resolve `--project-root`, require its literal `reports/audit-decisions` root to
+be real rather than symlinked, then require `--output-dir` to resolve to a
+strict descendant (a run directory) before calling `mkdir` or writing an
+artifact. Project containment alone is unsafe: `<host>/src` and other
+in-project paths can clobber source, and the report root can clobber shared
+latest/state artifacts.
 
-The regression checks exit `2` and assert that the external directory remains
-empty for every rejected path form. Positive relative and absolute-contained
-paths must produce exactly `drift.md`, `raw-drift.json`,
-`registry-audit.json`, and `link-check.txt`. The resulting invariant is
-reports-only: the audit never turns an output-path spelling into a write beyond
-the host project.
+The regression checks exit `2` before writes for source and arbitrary
+in-project paths, the report root, absolute external and `..` paths, an
+output-directory symlink escape, and report-root symlinks to both external and
+source locations. A seeded source `drift.md` retains its exact SHA-256 after
+rejection. Only relative or absolute run directories beneath
+`<project_root>/reports/audit-decisions/` may produce exactly `drift.md`,
+`raw-drift.json`, `registry-audit.json`, and `link-check.txt`.
 
 ## D1–D8 status
 
@@ -176,7 +178,7 @@ the host project.
 | D4 change/guard | Not applicable: advisory/read-only audit, no code change or blocking guard. | n/a |
 | D5 installed closure | Copied and real stock `skills@1.5.19` selected-skill tests run `python3 -I -S` outside checkout. | pass |
 | D6 fresh forward | A fresh non-context lane used only the stock-installed skill and raw host, produced all four final artifacts, identified the single real orphan, and preserved source bytes. | pass |
-| D7 regression/conformance | 26 focused audit tests, 38 decisions/frontmatter tests, Ruff, Node syntax, pycompile, metadata, and commit hooks passed. | pass |
+| D7 regression/conformance | 26 audit tests (including 6 output-boundary cases), 38 decisions/frontmatter tests, Ruff, Node syntax, pycompile, metadata, and commit hooks passed. | pass |
 | D8 learning handoff | This MD/JSON pair records parser ownership and the output-containment repair. | pass |
 
 ## D6 installed forward journey
@@ -243,7 +245,7 @@ interpolation or TSX expression does count.
 Python tokenization, the TypeScript Compiler API helper, and the registry
 frontmatter subset are intentionally not a shared parser abstraction. The only
 reusable knowledge is the final-artifact fixture pattern, project-root-relative
-exclusion regression, and resolved report-output containment check. A future
+exclusion regression, and canonical nested report-root validation. A future
 shared component needs a third accepted consumer with the exact comment
 attribution, exclusion, failure, output-boundary, and selected-closure
 contract.

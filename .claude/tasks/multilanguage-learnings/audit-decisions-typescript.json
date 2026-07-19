@@ -1,9 +1,9 @@
 {
   "batch": "audit-decisions-typescript",
-  "revision": "30f780a",
+  "revision": "852e315",
   "family": ["audit-decisions", "decision-comment reference audit"],
   "invariant": {
-    "portable_principle": "A valid decision:NNNN comment reference remains visible in final audit evidence and an orphan is reported only when its ADR id does not resolve; report artifacts are written only to an output directory resolved inside the project root.",
+    "portable_principle": "A valid decision:NNNN comment reference remains visible in final audit evidence and an orphan is reported only when its ADR id does not resolve; report artifacts are written only below the host's real reports/audit-decisions run-directory root.",
     "python_or_framework_mechanism": "Python uses tokenize comments; Markdown and HTML retain the established # decision:NNNN form; registry/link outputs preserve the existing audit behavior.",
     "typescript_mechanism": "A bundled Node helper resolves the host's project-local TypeScript Compiler API, rejects parse errors, excludes compiler-recognized literal and JSX text ranges, and attributes line, block, and JSDoc decision comments from remaining code trivia.",
     "explicit_non_goals": ["identifier/type/import resolution", "runtime or framework inference", "package installation or network access", "source edits", "shared parser platform"]
@@ -18,7 +18,7 @@
     "Added expression-prefix regex contexts including typeof, void, and instanceof, with a member-access guard.",
     "Tracked nested type-argument angle depth through generic JSX opening tags so an inner generic close cannot consume following code as JSX text.",
     "Replaced the lexical TypeScript/TSX scanner with a host-local Compiler API helper so the language parser owns JSX, regex, string, template, and generic syntax boundaries.",
-    "Resolved --output-dir against the resolved project root and rejected absolute, parent-traversal, final-symlink, and ancestor-symlink escapes before mkdir or artifact writes."
+    "Resolved --output-dir against a non-symlinked project reports/audit-decisions root, required a nested run directory, and rejected source, arbitrary in-project, root, external, traversal, and symlink paths before mkdir or artifact writes."
   ],
   "language_model": {
     "syntax": [".ts/.tsx line, block, and JSDoc comments", "Compiler API literal, template, regex, and JSX-text ranges", "Compiler API syntax-error rejection", "fixture coverage for generic JSX/type arguments and expression comments"],
@@ -36,13 +36,13 @@
     },
     "version_and_resolution": "Node.js plus the project's locked typescript package are required only when a TS/TSX file is in scope; stock installer is pinned to skills@1.5.19 for evidence.",
     "closure_mode": "SKILL.md plus scripts/audit.py and scripts/detect_typescript_comments.mjs only; no repository scripts, _common, toolkit venv, network, or sibling skill.",
-    "preflight_and_failure_codes": ["0 clean", "1 drift rows", "2 invalid target, output path outside the project root, unsupported/malformed frontmatter, unavailable TypeScript dependency, or syntax error"]
+    "preflight_and_failure_codes": ["0 clean", "1 drift rows", "2 invalid target, output path outside the required audit-report run subtree, unsupported/malformed frontmatter, unavailable TypeScript dependency, or syntax error"]
   },
   "outcome_contract": {
-    "inputs": ["locked fixture registry", "Python/Markdown/HTML refs", "TS/TSX comment positives", "Compiler API parser/error boundaries", "literal/regex/JSX-text and excluded path boundaries", "contained and escaping output-directory paths"],
+    "inputs": ["locked fixture registry", "Python/Markdown/HTML refs", "TS/TSX comment positives", "Compiler API parser/error boundaries", "literal/regex/JSX-text and excluded path boundaries", "canonical audit-report run-directory and escaping output paths"],
     "structured_outputs": ["drift.md", "raw-drift.json", "registry-audit.json", "link-check.txt"],
-    "must_fire": ["resolved TS/TSX line/block/JSDoc refs appear in final artifacts", "nonexistent TS comment id creates code-ref-orphan", "contained relative and absolute output paths create all four artifacts"],
-    "must_not_fire": ["strings", "template text", "regex literals", "JSX fragment and element text", "generated/vendor/dependency/build/test direct targets", "absolute external output paths", "parent-traversal output escapes", "output-directory or ancestor symlinks that resolve outside the project root"],
+    "must_fire": ["resolved TS/TSX line/block/JSDoc refs appear in final artifacts", "nonexistent TS comment id creates code-ref-orphan", "relative and absolute run paths below reports/audit-decisions create all four artifacts"],
+    "must_not_fire": ["strings", "template text", "regex literals", "JSX fragment and element text", "generated/vendor/dependency/build/test direct targets", "source or arbitrary in-project output paths", "audit-report root output path", "absolute external output paths", "parent-traversal output escapes", "output-directory symlink escapes", "report-root symlinks"],
     "native_test_command": null,
     "native_guard_command": null
   },
@@ -103,10 +103,10 @@
     },
     "output_containment_repair": {
       "status": "pass",
-      "implementation_revision": "30f780a",
-      "rule": "Resolve --output-dir against resolved --project-root and require containment before mkdir or any of the four artifact writes.",
-      "locked_outcome": "Absolute external, parent-traversal, final-symlink, and ancestor-symlink paths exit 2 with no external artifacts; contained relative and absolute paths produce exactly four report artifacts.",
-      "verification": ["6 output-boundary regressions passed", "26 focused audit tests passed", "38 decisions/frontmatter tests passed", "Ruff passed", "Node syntax check passed", "py_compile passed", "skill metadata 76/76 passed"],
+      "implementation_revision": "852e315",
+      "rule": "Resolve --output-dir against a real project-root/reports/audit-decisions directory, require a nested run directory, and validate that boundary before mkdir or any of the four artifact writes.",
+      "locked_outcome": "Source and arbitrary in-project paths, the report root itself, absolute external and parent-traversal paths, final-output symlink escapes, and report-root symlinks exit 2 without changing seeded artifacts; relative and absolute run directories produce exactly four report artifacts.",
+      "verification": ["6 output-boundary regressions passed", "26 audit tests collected", "38 decisions/frontmatter tests passed", "Ruff passed", "Node syntax check passed", "py_compile passed", "skill metadata 76/76 passed", "commit hooks passed"],
       "known_baseline_limitation": "The 83bd5f3 branch's generated which-skill catalog already predates this skill's frontmatter, so the combined audit/router run has 53 passing tests and one pre-existing stale-catalog failure; catalog updates are intentionally deferred to serial integration."
     }
   },
@@ -115,7 +115,7 @@
     "known_false_negatives": ["unsupported TypeScript syntax is reported as a parser failure rather than yielding a partial inventory"],
     "legitimate_similar_shapes": ["string/template/regex content", "JSX element or fragment text", "quoted JSX attribute contents", "TypeScript generic arrow angle syntax", "generic JSX tag arguments", "unrelated digits", "generated/vendor/dependency/build/test source"]
   },
-  "generalized": ["final artifact reference inventory", "positive/negative/must-not-fire fixture shape", "copied selected-skill replay", "project-root-relative direct-target exclusion regression", "resolved output containment before writes"],
+  "generalized": ["final artifact reference inventory", "positive/negative/must-not-fire fixture shape", "copied selected-skill replay", "project-root-relative direct-target exclusion regression", "canonical nested output-root validation before writes"],
   "did_not_generalize": ["Python tokenization", "TypeScript Compiler API helper", "YAML compatibility parsing", "framework and semantic facts"],
   "reuse_decision": {
     "shared_candidate": "Outcome fixture and project-root-relative exclusion test pattern",
@@ -133,10 +133,10 @@
   "user_experience": {
     "install_steps": ["npx skills@1.5.19 copies only audit-decisions", "run installed scripts/audit.py with host python3 -I -S", "read drift.md and raw-drift.json"],
     "wall_time_seconds": null,
-    "agent_confusions": ["An instruction-only source checkout appeared to work while the selected install lacked the registry script.", "Direct-target exclusions must be rooted at the project, not target.", "A hand lexer cannot reliably own TypeScript/TSX comment boundaries; use the host's Compiler API.", "The final report's TS/TSX count is a correct language subtotal, but the adjacent cross-language inventory makes an explicit subtotal label clearer.", "A read-only audit still needs a write boundary: output-dir containment must be checked after resolving symlinks and before mkdir."],
+    "agent_confusions": ["An instruction-only source checkout appeared to work while the selected install lacked the registry script.", "Direct-target exclusions must be rooted at the project, not target.", "A hand lexer cannot reliably own TypeScript/TSX comment boundaries; use the host's Compiler API.", "The final report's TS/TSX count is a correct language subtotal, but the adjacent cross-language inventory makes an explicit subtotal label clearer.", "A read-only audit still needs a write boundary: project containment is insufficient because a source directory, report root, or in-project symlink can still be clobbered."],
     "repeated_work": ["A temporary installer run in the source worktree created untracked output and was removed; all final evidence uses the external host."],
     "smallest_later_improvement": "Label the TS/TSX reference count explicitly as a TypeScript subtotal; add broader scan-scope counts only if a measured large-host usability need appears."
   },
   "residual_risks": ["an unavailable or parse-failing Compiler API aborts the TypeScript scan rather than producing a partial inventory", "frontmatter parser fails unsupported shapes rather than importing PyYAML", "the final Markdown's TypeScript subtotal label can be clearer in a later UX pass"],
-  "next_decision": {"recommendation": "Accept the parser-backed, report-contained TypeScript audit path and keep it family-local.", "rationale": "The Compiler API owns TypeScript boundaries and the resolved output check prevents all tested external writes while stock selected-install closure remains covered.", "blockers": []}
+  "next_decision": {"recommendation": "Accept the parser-backed, canonical-report-root TypeScript audit path and keep it family-local.", "rationale": "The Compiler API owns TypeScript boundaries and the nested output-root check prevents all tested source, shared-report, arbitrary-path, and external writes while stock selected-install closure remains covered.", "blockers": []}
 }
