@@ -411,6 +411,28 @@ def test_typescript_exclusions_and_external_symlink_escapes_are_project_relative
     assert _result(output)["status"] == "no_files_matched"
 
 
+def test_typescript_test_file_exclusions_are_case_insensitive(tmp_path: Path) -> None:
+    host = _copy_host(tmp_path)
+    excluded = host / "src" / "CAPS.TEST.TS"
+    excluded.write_text("export const ignored = JSON.parse('ignored');\n", encoding="utf-8")
+    ideas = _write_ideas(
+        host,
+        {
+            "kind": "ast",
+            "call_matches": r"^JSON\.parse$",
+            "enclosed_by": "try",
+            "paths": ["src/CAPS.TEST.TS"],
+        },
+        "uppercase-test-file.json",
+    )
+    output = host / "reports" / "uppercase-test-file"
+
+    result = _scan(SKILL, host, ideas, output)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert _result(output)["status"] == "no_files_matched"
+
+
 def test_copied_skill_runs_isolated_without_toolkit_or_sibling_runtime(tmp_path: Path) -> None:
     host = _copy_host(tmp_path)
     installed = tmp_path / "installed" / "find-standard-gaps"

@@ -169,7 +169,10 @@ def _typescript_path_is_excluded(path: Path, root: Path) -> bool:
     return (
         any(part.lower() in skipped for part in logical_rel.parts[:-1])
         or any(part.lower() in skipped for part in physical_rel.parts[:-1])
-        or any(fnmatch.fnmatchcase(path.name, glob) for glob in TYPESCRIPT_SKIP_FILE_GLOBS)
+        or any(
+            fnmatch.fnmatchcase(path.name.lower(), glob.lower())
+            for glob in TYPESCRIPT_SKIP_FILE_GLOBS
+        )
     )
 
 

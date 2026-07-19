@@ -6,7 +6,7 @@ schema_version: 2
 skill: find-standard-gaps
 job: suspect
 problem_class: "declared-standard coverage-gap detection (SUSPECT)"
-intent: "Detect places a declared baseline standard should apply but doesn't. A standard (a security check, resilience rule, input-validation or observability requirement) is declared once as an entry with an executable `ast` detector; scan_coverage.py then scans the tree and reports every site whose triggering situation holds but the standard is absent. Generalizes hand-written AST lints — declare a standard instead of authoring a bespoke one-off lint. Deterministic (no scout fan-out); detection-only, never edits code."
+intent: "Detect places a declared baseline standard should apply but doesn't. Python keeps its AST detector, while TypeScript/TSX v1 uses the host-pinned Compiler API for one narrow syntax contract: direct JSON.parse calls must be lexically enclosed by try. Unsupported languages, conditions, parse failures, and mixed unsupported files are non-clean outcomes, never silent zero-gap compliance. Deterministic (no scout fan-out); detection-only, never edits code."
 solves: "A good standard is worth nothing at the sites that don't use it, and authoring one bespoke AST lint per rule does not scale. There was no declarative 'absence is the finding' pass that coverage-checks a baseline standard across the tree — and the genuinely dangerous failure mode (a silent '0 gaps' on an unanalyzable language) had no guard until language_unsupported was made a first-class, non-compliant result."
 born:
   commit: "35e618c"
@@ -15,6 +15,7 @@ born:
 dogfood_kind: none-found
 dogfooded_on:
   - "none-found (no timestamped self-run on the ES2 tree; reports_dir is null). It ships a standards.example.json template the user copies + adapts, but the facts show no scan-<TS> run artifact, so there is no observed ES2 dogfood."
+  - "Committed Python/TypeScript/TSX fixtures and a stock-installed external-host replay prove final coverage.md/coverage.json artifacts for the JSON.parse-in-try standard."
 reports_dir: null
 run_evidence:
   count: 0
@@ -48,6 +49,8 @@ evidence:
   - "35e618c — born 2026-05-17 in a dedicated commit, sibling_births_count 0 (facts)"
   - "has_scripts=true / has_fixtures=false (facts) — scan_coverage.py present, standards.example.json template, no oracle pair"
   - "reports_dir null, run count 0 (facts) — no ES2 timestamped run on disk"
+  - "TypeScript final-artifact, partial/unsupported mixed-language, direct-exclusion, copied-install, stock-install, and native fixture evidence is indexed by .claude/tasks/multilanguage-learnings/find-standard-gaps-typescript.{md,json}."
 gaps:
   - "No precedents.yml entry names find-standard-gaps; embodies_decisions.adr is [\"0018\", \"0019\", \"0020\", \"0021\", \"0022\"] — it is the declared-standards / coverage-ratchet surface (0018 dimensions, 0019 trust-boundary standard, 0020 lifecycle×stakes activation) realized by scan_coverage.py, which 0021 (state home) and 0022 (detector lifecycle) build directly on (both name its scripts in applies_to)."
   - "No ES2 dogfood run, and no fixtures pair — so dogfood is honestly low; the standards.example.json template is the only shipped exemplar and is not a regression oracle."
+  - "TypeScript support is intentionally syntax-only: it does not resolve aliases, types, receivers, global JSON identity, callbacks, frameworks, requires_kwarg, or Python-style with conditions."
