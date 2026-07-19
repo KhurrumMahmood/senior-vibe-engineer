@@ -584,13 +584,17 @@
     },
     {
       "name": "find-semantic-duplication",
-      "description": "Detect semantic duplication — independently-written, both-live workflows or functions that solve the same problem with different code. Builds an inventory + call graph via semantic_inventory.py, fans out summarizing/comparing/confirming scouts, collapses multi-way clusters, and produces a ranked triage report with capability matrices. Hands off to `/fix-workflow` for execution.",
+      "description": "Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX function-level typed leads using a host-local Compiler API Program/TypeChecker. TypeScript reports confirmed, uncertain, and rejected candidates with capability matrices; it does not infer workflows, structural duplication, or safe refactors.",
       "tier": "maintenance",
       "job": "suspect",
-      "best_for": "Two independently-written functions or workflows that solve the same\nproblem with different code shape — both live, both maintained.\nBuilds a call graph + fan-out scout comparators; ranks clusters with\ncapability matrices.\n",
-      "not_for": "Lexical near-clones (use /find-duplication). Dead code (use\n/find-dormant). Refactor execution (use /unify-shadows for the\nproposal then /fix-workflow semantic:<id>).\n",
-      "language": "python",
-      "framework": "django",
+      "best_for": "Two independently-written, live functions that plausibly solve the same\nproblem with different code shape. Python uses scout confirmation; TypeScript\nv1 uses typed return-shape and direct-call evidence before human review.\n",
+      "not_for": "Lexical near-clones (use /find-duplication). Unreferenced implementations\n(use /find-dormant). Consolidation execution follows /unify-shadows proposal\napproval. Unsupported v1 modes are\nworkflows, structural/module analysis, protocol/class-method semantics,\ndynamic dispatch, framework behavior, and automatic consolidation.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "typescript"
+      ],
       "_path": "skills/find-semantic-duplication"
     },
     {

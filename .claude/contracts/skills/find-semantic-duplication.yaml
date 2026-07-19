@@ -9,6 +9,11 @@ intent: >
   token-diff clone detector misses — ranked as advisory leads, with a deliberate
   keep-separate verdict for legitimately-parallel code, without touching
   production files.
+  Python retains the staged scout pipeline. TypeScript/TSX v1 narrows the
+  claim to typed top-level functions with compatible resolved return shape,
+  distinct token shape, no direct caller relationship, and compatible policy;
+  final output preserves confirmed, uncertain, and rejected candidates plus a
+  capability matrix rather than claiming safe consolidation.
 solves: >
   Token-level clone detection (find-duplication) misses re-implementations that
   do the same thing with different syntax; there was no lead list of where the
@@ -22,11 +27,12 @@ dogfood_kind: host-attested
 dogfooded_on:
   - "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 2 effectiveness records, 0 scan dirs, learnings_file=true, 2026-05-02..2026-05-03."
   - "none-found (extracted in the 90f8567 big-bang; no on-disk reports run and no fixtures pair in this ES2 tree)"
+  - "2026-07-19 fresh installed TypeScript forward audit: one confirmed same-outcome/different-code pair, one dynamic/unresolved uncertainty, three explicit rejections, native typecheck green, and source hashes unchanged."
 reports_dir: none
 run_evidence:
-  count: 0
-  first: null
-  latest: null
+  count: 1
+  first: "2026-07-19-typescript-forward"
+  latest: "2026-07-19-typescript-forward"
 embodies_decisions:
   adr: ["0004"]
   precedent: []
@@ -52,5 +58,7 @@ evidence:
   - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
   - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scanner present, no oracle pair (structural med)"
   - "reports_dir null, run count 0 — no on-disk semantic-duplication scan run in this ES2 tree"
+  - "tests/test_find_semantic_duplication_python.py and tests/test_find_semantic_duplication_typescript.py prove Python inventory/triage repairs and the TypeScript confirmed/uncertain/rejected final outcome, capability matrix, direct-call and lexical/policy exclusions, stock install, native verification, containment, and source immutability."
 gaps:
   - "Semantic equivalence is a judgment call the script can only triage; the keep_separate verdict needs human review, and ES2 has no run on disk, so dogfood_kind is none-found (already the honest answer in the host-a base too)."
+  - "TypeScript v1 deliberately excludes expression-bodied arrows, nested functions, class/protocol methods, dynamic dispatch, workflows, framework/runtime behavior, and any claim that a confirmed lead is safe to merge."

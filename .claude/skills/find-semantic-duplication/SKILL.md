@@ -11,10 +11,10 @@ best_for: |
   problem with different code shape. Python uses scout confirmation; TypeScript
   v1 uses typed return-shape and direct-call evidence before human review.
 not_for: |
-  Lexical near-clones (use /find-duplication). Dead code (use
-  /find-dormant). Refactor execution (use /unify-shadows for the
-  proposal then /fix-workflow semantic:<id>). TypeScript v1 excludes
-  workflows, structural/module duplication, protocol/class-method semantics,
+  Lexical near-clones (use /find-duplication). Unreferenced implementations
+  (use /find-dormant). Consolidation execution follows /unify-shadows proposal
+  approval. Unsupported v1 modes are
+  workflows, structural/module analysis, protocol/class-method semantics,
   dynamic dispatch, framework behavior, and automatic consolidation.
 language: any
 framework: any

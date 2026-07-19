@@ -5,7 +5,7 @@ complexity, folder-topology, and adapt-project complete; audit-decisions is in
 complete; find-standard-gaps and map-subsystem are complete; rename-concept is
 complete; propose-boundary and propose-folder-reorganization are complete;
 find-dormant and find-incomplete-sweep are complete;
-find-semantic-duplication is in progress; the five-skill neutral planning
+find-semantic-duplication is complete and unify-shadows is in progress; the five-skill neutral planning
 batch is complete
 
 This tracker turns the second product goal—genuine multi-language support,
@@ -619,7 +619,7 @@ These operate on the toolkit's own ledgers, catalogs, routers, rules, or
 bootstrap runtime. A TypeScript host does not require a language variant, but
 the final matrix still records a runtime review revision.
 
-### TypeScript-supported batches (24 unique skills)
+### TypeScript-supported batches (25 unique skills)
 
 - B1: `find-concept-divergence`, `find-rule-surface-drift`,
   `find-skill-artifact-drift`, `find-skill-intent-drift`,
@@ -640,10 +640,11 @@ the final matrix still records a runtime review revision.
 - Resolved folder proposal: `propose-folder-reorganization`.
 - Conservative dormant review: `find-dormant`.
 - Resolved incomplete-sweep review: `find-incomplete-sweep`.
+- Typed semantic-duplication triage: `find-semantic-duplication`.
 
-### Candidate language-level families and repairs (2)
+### Candidate language-level families and repairs (1)
 
-`find-semantic-duplication` and `unify-shadows`.
+`unify-shadows`.
 
 These require a crisp action/output handoff, fixture policy, or a proven parser
 consumer before batching. Apparent chains such as omnibus→refactor,
@@ -750,6 +751,13 @@ Active candidate promotion:
   divergences but correctly emitted zero scout packets without Git trajectory
   evidence; native checks passed and source hashes were unchanged.
 
+- `find-semantic-duplication` is `complete` at `a9a68eb` plus serial
+  router/catalog closeout. Its family-local Program/TypeChecker path produces
+  typed function-level confirmed, uncertain, and rejected triage plus a
+  capability matrix without implying safe consolidation. Fresh installed use
+  found one confirmation, one dynamic/unresolved uncertainty, and three
+  explicit rejections; native checks and source immutability passed.
+
 - `move-path` is `complete` on `codex/productization-restart` at `6e65140` plus
   its generated-index/catalog closeout. Its v1 contract guarantees a
   self-contained JSON plan path, keeps YAML optional when PyYAML is available,
@@ -843,4 +851,5 @@ corrected rather than treated as working framework neutrality.
 | 2026-07-19 UTC | `5a0fec2` + serial closeout | TypeScript folder proposal complete | Host-resolved direct-relative and paths-alias impact produces a complete move/import/barrel/test plan while threshold, scratch, excluded, unresolved, and unsafe targets defer or reject. Focused suite and stock selected install passed. Fresh installed forward use proposed 3 moves and 7 resolved rewrites, passed typecheck, and preserved every source hash; D6 PASS. |
 | 2026-07-19 UTC | `3c4e556..2453674` + serial closeout | TypeScript dormant review complete | Project-local Program/TypeChecker reports statically unreferenced non-exported top-level implementations for human review only; dynamic string reachability remains uncertain and `certain_delete` is always zero. Exact stock selected install, focused/native suite, partial/error states, path containment, and source immutability passed. Fresh installed forward use reported 1 review-required/1 uncertain/0 certain-delete with native checks green; D6 PASS. |
 | 2026-07-19 UTC | `67c13af..7e3ea4f` + serial closeout | TypeScript incomplete-sweep review complete | Host-pinned Compiler API facts group resolved direct/alias calls by object-option property presence and preserve overload/default/spread/framework boundaries. Fresh installed use found two raw divergences and correctly promoted none without Git blame trajectory; packet/verdict/triage artifacts, native checks, stock closure, and source immutability passed; D6 PASS. |
+| 2026-07-19 UTC | `a9a68eb` + serial closeout | TypeScript semantic-duplication triage complete | Family-local Program/TypeChecker facts produced one typed same-outcome/different-code confirmation, one dynamic/unresolved uncertainty, and three caller/lexical/policy rejections with a capability matrix. Exact stock install, Python reference repairs, native checks, source immutability, and fresh forward use passed; D6 PASS. |
 | 2026-07-19 UTC | `9f4fbdc..e800856` + fresh forward use | Five planning skills validated neutral | One locked TypeScript 5.9.3 host and exact combined stock copy install proved final artifacts for scope-feature, architecture-fit, decide, design-it-twice, and plan-spec with source fingerprints unchanged. A fresh agent independently produced all five without reference artifacts or language-specific implementation. Missing optional repo helpers/doctrine were disclosed; the core installed artifact contracts remained usable. Focused automated evidence: 4 tests / 75 parametrized checks; D6 PASS with residual UX cleanup recorded. |
