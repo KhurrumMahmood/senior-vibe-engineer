@@ -1,6 +1,6 @@
 # TypeScript-first skill batch plan
 
-Status: B0 and B3 complete; B1 and B2P ready for isolated worktrees
+Status: B0 and B3 complete; B1, B2P, and the move-path pilot in progress
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -242,7 +242,9 @@ Acceptance:
 
 ### B1 — Portability truth and TypeScript routing metadata
 
-State: `ready` — small, independent batch
+State: `in_progress` — `codex/ts-b1-portability` at
+`/private/tmp/engineering-skills-ts-b1`; skill-local portion only, with router
+integration reserved for the serial integrator
 
 Skills: `find-concept-divergence`, `find-rule-surface-drift`,
 `find-skill-artifact-drift`, `find-skill-intent-drift`, and
@@ -308,7 +310,9 @@ Acceptance:
 
 ### B2P — Python closed-state reference proof
 
-State: `ready` — run before B2T; one isolated worktree
+State: `in_progress` — `codex/ts-state-reference` at
+`/private/tmp/engineering-skills-ts-state-reference`; B2T remains blocked until
+independent acceptance of this reference proof
 
 Skills: `find-implicit-state` (string-state branch), `extract-enum`, a reviewed
 representative fixture mutation, and the state-specific path of
@@ -560,6 +564,17 @@ Cross-cutting decisions from this clarification:
 - All 14 currently fail the selected-skill installed-closure criterion. None
   may claim TypeScript readiness merely because the source checkout can reach
   repository helpers.
+
+Active candidate promotion:
+
+- `move-path` is `in_progress` on `codex/ts-move-path` at
+  `/private/tmp/engineering-skills-ts-move-path`. Its v1 contract guarantees a
+  self-contained JSON plan path, keeps YAML optional when PyYAML is available,
+  rewrites only identity-resolved text/path references, explicitly ignores
+  TypeScript source imports, and must expose that residual risk in the final
+  report. It may move to `ready/complete` only after its locked TS fixture,
+  native typecheck, copied-install replay, learning packet, and fresh review
+  pass.
 
 ### Framework-specific; do not dispatch without a named stack (20)
 
