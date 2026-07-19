@@ -41,7 +41,7 @@ The committed fixture root is
   fixture keeps a two-file cluster, test tree, and migrations package clean.
 - The TypeScript fixture produces exactly one result for
   `billing_parser.ts`, `billing-validator.ts`, and `billing-types.ts`.
-- Two siblings, mixed prefixes, `tests/`, `__tests__/`, `index.ts[x]`,
+- Two siblings, mixed prefixes, `tests/`, `test/`, `__tests__/`, `specs/`, `index.ts[x]`,
   declarations, `*.spec.ts[x]`, `*.test.ts[x]`, generated, vendor,
   node_modules, dist, build, coverage, reports, and a declared custom exclude
   stay clean.
@@ -65,7 +65,7 @@ Commands run on this revision:
 .venv/bin/python -m pytest tests/test_find_folder_topology_typescript.py tests/test_yaml_frontmatter.py tests/test_skill_meta_jobs.py tests/test_skill_taxonomy.py tests/test_scope.py tests/test_run_skill_smokes.py -q
 ```
 
-Results after the forward repair: 8 passed for the dedicated suite; Ruff clean;
+Results after the forward and adversarial repairs: 20 passed for the dedicated suite; Ruff clean;
 frontmatter lint found
 76/76 skills declaring the new contract; the smoke gate passed (11 explicit
 smokes, 42 import-floor scripts); the focused metadata/scope/smoke matrix
@@ -93,6 +93,15 @@ The forward friction caused two repairs in `75002248977c2631c2458ac064bc4f659ece
 
 Dedicated regressions reproduce both defects without the manual exclude.
 
+The first adversarial review then found a transferable exclusion bug: built-in
+skip directories were applied only while descending from a normal source root,
+so explicitly naming `tests/`, `generated/`, or another skipped tree as the
+source root bypassed the boundary; singular `test/` and `specs/` were also
+missing. Revision `0df40a5` makes exclusions project-root-relative, including
+every ancestor of the declared root, and parameterizes all eleven excluded
+tree categories. This is a general adapter lesson: exclusions must be anchored
+to the host project, never made relative to the caller's narrowed target.
+
 ## D1–D8 status
 
 | Gate | Status | Evidence |
@@ -103,8 +112,8 @@ Dedicated regressions reproduce both defects without the manual exclude.
 | D4 change or guard | not applicable | This is a read-only detector; no mutation or blocking guard is claimed. |
 | D5 installed closure | pass | Copied skill runs detector and reporter under `python -I -S` outside checkout with no `_common` import. |
 | D6 fresh forward task | pass with repaired friction | Stock `skills@1.5.19` install produced the useful final artifact and exposed two UX defects; exact evidence and commit are recorded above. |
-| D7 regression and conformance | pass | Dedicated, metadata/scope/smoke, Ruff, frontmatter, and Python replay evidence above. |
-| D8 learning handoff | ready for review | Canonical MD/JSON now link the forward transcript, invalid and final artifacts, fixes, regressions, and remaining review boundary. |
+| D7 regression and conformance | pass | 20 dedicated tests plus metadata/scope/smoke, Ruff, frontmatter, and Python replay evidence above. |
+| D8 learning handoff | ready for re-review | Canonical MD/JSON link the forward transcript, invalid/final artifacts, both repair rounds, regressions, and remaining review boundary. |
 
 ## What generalized and what did not
 

@@ -1,6 +1,6 @@
 {
   "batch": "find-folder-topology-drift-typescript",
-  "revision": "75002248977c2631c2458ac064bc4f659ecedb3e",
+  "revision": "0df40a5",
   "family": [
     "find-folder-topology-drift",
     "typescript lexical folder topology"
@@ -27,6 +27,10 @@
     {
       "issue": "An out-of-project --root silently widened to a whole-project scan despite the documented invalid-target behavior.",
       "repair": "Both root forms now fail clearly with exit 2 when invalid or outside --project-root."
+    },
+    {
+      "issue": "Built-in TypeScript skip trees were target-relative, so explicitly naming an excluded tree as --typescript-root bypassed the exclusion; test and specs were also absent.",
+      "repair": "Revision 0df40a5 anchors built-in exclusions to every project-relative root ancestor, adds test/specs, and parameterizes all eleven excluded categories as explicit roots."
     }
   ],
   "language_model": {
@@ -73,7 +77,7 @@
     ],
     "must_not_fire": [
       "two siblings and mixed prefixes",
-      "tests/__tests__, index, declarations, spec/test files",
+      "tests/test/__tests__/specs trees, index, declarations, spec/test files",
       "generated/vendor/node_modules/dist/build/coverage/reports",
       "declared additive excluded path",
       "Python files elsewhere in a host when only --typescript-root is supplied"
@@ -89,13 +93,13 @@
     ],
     "typescript": [
       "tests/fixtures/find-folder-topology-typescript/typescript-host",
-      "8 passed in tests/test_find_folder_topology_typescript.py",
+      "20 passed in tests/test_find_folder_topology_typescript.py after the adversarial exclusion repair",
       "Copied selected-skill detector and reporter passed under python -I -S from an unrelated cwd.",
       "/private/tmp/folder-topology-forward-20260719-023928/evidence/final-artifacts/detections.jsonl contains exactly one TypeScript flat_prefix_cluster.",
       "/private/tmp/folder-topology-forward-20260719-023928/evidence/final-artifact-validation.txt records PASS and source-integrity-final.txt records unchanged source bytes."
     ],
     "commands_and_artifact_paths": [
-      ".venv/bin/python -m pytest tests/test_find_folder_topology_typescript.py -q (8 passed)",
+      ".venv/bin/python -m pytest tests/test_find_folder_topology_typescript.py -q (20 passed)",
       ".venv/bin/python -m ruff check .claude/skills/find-folder-topology-drift/scripts tests/test_find_folder_topology_typescript.py (clean)",
       ".venv/bin/python scripts/skill_meta.py lint (76/76 OK)",
       ".venv/bin/python .claude/skills/_common/scripts/run_skill_smokes.py --skills-dir .claude/skills --timeout 10 (passed)",
@@ -187,7 +191,8 @@
       "The former shared-helper import was invisible in a source checkout but failed in a stock copied install.",
       "The TypeScript source root must be explicit so a repository-wide scan cannot silently imply support.",
       "The original installed example hard-coded .claude/skills even though stock Codex installed under .agents/skills.",
-      "The original --typescript-root-only command also emitted four Python reference findings and required a manual exclude before its reporter label was honest."
+      "The original --typescript-root-only command also emitted four Python reference findings and required a manual exclude before its reporter label was honest.",
+      "The first adversarial review showed that target-relative exclusions could be bypassed by naming an excluded tree itself as --typescript-root."
     ],
     "repeated_work": [
       "The fresh agent had to reject the initial five-record artifact, add an exclusion for the Python reference tree, and rerun detector and reporter."
@@ -195,13 +200,13 @@
     "smallest_later_improvement": "Completed in revision 75002248977c2631c2458ac064bc4f659ecedb3e: document .agents/skills and make --typescript-root-only scans intrinsically TypeScript-only."
   },
   "residual_risks": [
-    "The fresh installed evidence predates the repair commit; committed regressions replay both discovered defects, while independent review of the follow-up remains pending.",
+    "The fresh installed evidence predates both repair rounds; committed regressions replay the discovered defects, while independent re-review of revision 0df40a5 remains pending.",
     "Filename clustering can over-report a legitimate framework convention, so all findings remain advisory.",
     "The detector intentionally misses mixed-token domain clusters and does not resolve TypeScript imports."
   ],
   "next_decision": {
     "recommendation": "Keep the TypeScript detector lexical and advisory; do not expand it until a separate TypeScript proposal family proves import impact.",
     "rationale": "The accepted fixture only demonstrates a direct filename cluster. Package moves, barrels, test placement, and module resolution require stronger evidence and distinct contracts.",
-    "blockers": ["Independent review of the forward-evidence repair"]
+    "blockers": ["Independent re-review of the adversarial exclusion repair"]
   }
 }
