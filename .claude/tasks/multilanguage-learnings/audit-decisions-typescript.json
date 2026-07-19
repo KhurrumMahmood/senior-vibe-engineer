@@ -1,21 +1,24 @@
 {
   "batch": "audit-decisions-typescript",
-  "revision": "a30ea88",
+  "revision": "fbeca4e",
   "family": ["audit-decisions", "decision-comment reference audit"],
   "invariant": {
     "portable_principle": "A valid decision:NNNN comment reference remains visible in final audit evidence and an orphan is reported only when its ADR id does not resolve.",
     "python_or_framework_mechanism": "Python uses tokenize comments; Markdown and HTML retain the established # decision:NNNN form; registry/link outputs preserve the existing audit behavior.",
-    "typescript_mechanism": "A family-local lexical scanner recognizes TS/TSX line, block, and JSDoc comments while skipping strings, template text, regex literals, and JSX text.",
+    "typescript_mechanism": "A family-local lexical scanner recognizes TS/TSX line, block, and JSDoc comments while skipping strings, template text, regex literals, and JSX text; JSX fragments, quoted attributes, generic angle syntax, and regex-prefix keywords have locked boundaries.",
     "explicit_non_goals": ["identifier/type/import resolution", "runtime or framework inference", "TypeScript compiler integration", "source edits", "shared parser platform"]
   },
   "reference_repairs": [
     "Replaced instruction-only grep and uninstalled repository-script dependence with a selected-skill stdlib audit runner.",
     "Added final artifact evidence for resolved references rather than keeping only orphan rows.",
     "Anchored all exclusions to project-root-relative paths so direct excluded targets cannot bypass them.",
-    "Matched current repository registry-audit diagnostics and link-check text in a direct compatibility replay."
+    "Matched current repository registry-audit diagnostics and link-check text in a direct compatibility replay.",
+    "Recognized JSX fragments and ignored comment-shaped fragment/element text while retaining real JSX-expression comments.",
+    "Made JSX tag probing quote/expression aware so commas inside quoted attributes do not masquerade as TypeScript generic delimiters.",
+    "Added expression-prefix regex contexts including typeof, void, and instanceof, with a member-access guard."
   ],
   "language_model": {
-    "syntax": [".ts/.tsx line, block, JSDoc, template-interpolation, and JSX-expression comments"],
+    "syntax": [".ts/.tsx line, block, JSDoc, template-interpolation, and JSX-expression comments", "JSX fragments and quoted attributes", "TSX generic arrow disambiguation", "regex literals after expression-prefix keywords"],
     "type_system": [],
     "module_resolution": [],
     "runtime": ["host Python 3.11+ standard library", "python3 -I -S selected-skill execution"],
@@ -33,27 +36,42 @@
     "preflight_and_failure_codes": ["0 clean", "1 drift rows", "2 invalid target or unsupported/malformed frontmatter"]
   },
   "outcome_contract": {
-    "inputs": ["locked fixture registry", "Python/Markdown/HTML refs", "TS/TSX comment positives", "literal/regex/JSX-text and excluded path boundaries"],
+    "inputs": ["locked fixture registry", "Python/Markdown/HTML refs", "TS/TSX comment positives", "JSX fragment and quoted-attribute boundaries", "TSX generic angle forms", "regex-keyword contexts", "literal/regex/JSX-text and excluded path boundaries"],
     "structured_outputs": ["drift.md", "raw-drift.json", "registry-audit.json", "link-check.txt"],
     "must_fire": ["resolved TS/TSX line/block/JSDoc refs appear in final artifacts", "nonexistent TS comment id creates code-ref-orphan"],
-    "must_not_fire": ["strings", "template text", "regex literals", "JSX text", "generated/vendor/dependency/build/test direct targets"],
+    "must_not_fire": ["strings", "template text", "regex literals including after typeof/void/instanceof", "JSX fragment and element text", "quoted JSX attribute contents", "generated/vendor/dependency/build/test direct targets"],
     "native_test_command": null,
     "native_guard_command": null
   },
   "evidence": {
     "d1_to_d8": {"D1": "pass", "D2": "pass", "D3": "pass", "D4": "not applicable", "D5": "pass", "D6": "pass", "D7": "pass", "D8": "pass"},
     "commands_and_results": [
-      ".venv/bin/python -m pytest -q tests/test_audit_decisions_typescript.py: 15 passed",
-      ".venv/bin/python -m pytest -q tests/test_audit_decisions_typescript.py tests/test_decisions.py tests/test_yaml_frontmatter.py: 53 passed",
+      "absolute repo .venv/bin/python -m pytest -q tests/test_audit_decisions_typescript.py: 16 passed after adversarial repair",
+      "absolute repo .venv/bin/python -m pytest -q tests/test_audit_decisions_typescript.py tests/test_decisions.py tests/test_yaml_frontmatter.py: 54 passed after adversarial repair",
       ".venv/bin/ruff check .claude/skills/audit-decisions/scripts/audit.py tests/test_audit_decisions_typescript.py: passed",
+      ".venv/bin/python -m py_compile .claude/skills/audit-decisions/scripts/audit.py tests/test_audit_decisions_typescript.py: passed",
       ".venv/bin/python scripts/skill_meta.py lint: 76/76 OK",
+      ".venv/bin/python .claude/skills/find-skill-artifact-drift/scripts/detect.py --gate audit-decisions: passed",
       ".venv/bin/python .claude/skills/_common/scripts/run_skill_smokes.py --skills-dir .claude/skills --timeout 20 --quiet: passed",
       ".venv/bin/python scripts/skill_comply/validate.py: OVERALL PASS",
       "stock skills@1.5.19 selected install plus python3 -I -S: passed in dedicated test",
       "fresh installed command exited 1 as documented drift and produced all four final artifacts; exactly one P0 orphan, healthy registry/links, unchanged source"
     ],
+    "adversarial_repair": {
+      "status": "pass",
+      "failed_revision": "fdad6b6",
+      "implementation_revision": "fbeca4e",
+      "blockers": [
+        "JSX fragments were not recognized, exposing comment-shaped nested JSX text.",
+        "A comma inside a quoted JSX attribute incorrectly defeated JSX recognition.",
+        "A regex literal after typeof was not recognized and exposed comment-shaped character-class content."
+      ],
+      "locked_outcome": "Only the real decision:0001 JSX-expression comment survives the exact fragment replay; ids 9441-9446 never appear, and real comments inside valid comma/extends TSX generic arrows remain visible.",
+      "verification": ["16 dedicated tests passed", "54 combined narrow tests passed", "Ruff passed", "py_compile passed", "metadata 76/76 passed", "artifact-drift gate passed", "skill-comply OVERALL PASS", "commit hooks passed"]
+    },
     "fresh_forward": {
       "status": "pass",
+      "implementation_revision": "a30ea88",
       "task": "Audit this project’s decision registry and inline decision references. Produce the skill’s final report artifacts and summarize which drift needs engineering attention. Do not edit source files.",
       "installed_host": "/private/tmp/audit-decisions-forward.LOk2mx/host",
       "evidence_dir": "/private/tmp/audit-decisions-forward.LOk2mx/forward-evidence",
@@ -69,13 +87,14 @@
         "link-check.txt": "e684789cbf0e14973ecd88b9bc961543fd1b060445544fabc0ce4394655e281f"
       },
       "source_manifest_before_after": "c06a54d9b4edec541f49238ff5ec54494a2220364bb940cb055c20f2b00332f0",
-      "installed_skill_unchanged": true
+      "installed_skill_unchanged": true,
+      "scope_note": "This fresh host predates the adversarial fixtures; it remains valid portability/integrity evidence, while current selected-install closure is covered by the post-repair dedicated suite."
     }
   },
   "false_positive_boundary": {
     "known_false_positives": [],
-    "known_false_negatives": ["uncommon malformed TypeScript/TSX grammar may under-report comments"],
-    "legitimate_similar_shapes": ["string/template/regex content", "JSX text", "unrelated digits", "generated/vendor/dependency/build/test source"]
+    "known_false_negatives": ["malformed or uncommon valid TypeScript/TSX grammar outside the locked fragment/attribute/generic forms may under-report comments"],
+    "legitimate_similar_shapes": ["string/template/regex content", "JSX element or fragment text", "quoted JSX attribute contents", "TypeScript generic angle syntax", "unrelated digits", "generated/vendor/dependency/build/test source"]
   },
   "generalized": ["final artifact reference inventory", "positive/negative/must-not-fire fixture shape", "copied selected-skill replay", "project-root-relative direct-target exclusion regression"],
   "did_not_generalize": ["Python tokenization", "TypeScript lexical state machine", "YAML compatibility parsing", "framework and semantic facts"],
@@ -95,10 +114,10 @@
   "user_experience": {
     "install_steps": ["npx skills@1.5.19 copies only audit-decisions", "run installed scripts/audit.py with host python3 -I -S", "read drift.md and raw-drift.json"],
     "wall_time_seconds": null,
-    "agent_confusions": ["An instruction-only source checkout appeared to work while the selected install lacked the registry script.", "Direct-target exclusions must be rooted at the project, not target.", "The final report's TS/TSX count is a correct language subtotal, but the adjacent cross-language inventory makes an explicit subtotal label clearer."],
+    "agent_confusions": ["An instruction-only source checkout appeared to work while the selected install lacked the registry script.", "Direct-target exclusions must be rooted at the project, not target.", "Naive JSX recognition must account for fragments and quoted attribute punctuation without reclassifying generic angle syntax.", "Regex-start context must include expression-prefix keywords such as typeof or comment-shaped regex content can leak into evidence.", "The final report's TS/TSX count is a correct language subtotal, but the adjacent cross-language inventory makes an explicit subtotal label clearer."],
     "repeated_work": ["A temporary installer run in the source worktree created untracked output and was removed; all final evidence uses the external host."],
     "smallest_later_improvement": "Label the TS/TSX reference count explicitly as a TypeScript subtotal; add broader scan-scope counts only if a measured large-host usability need appears."
   },
-  "residual_risks": ["lexical TSX handling intentionally does not claim arbitrary grammar completeness", "frontmatter parser fails unsupported shapes rather than importing PyYAML", "the final Markdown's TypeScript subtotal label can be clearer in a later UX pass"],
-  "next_decision": {"recommendation": "Accept the additive TypeScript audit path and keep comment attribution lexical and family-local.", "rationale": "The locked final-artifact suite, stock installed closure, and fresh non-context outcome prove that the accepted contract needs comment boundaries rather than semantic TypeScript facts.", "blockers": []}
+  "residual_risks": ["lexical TSX handling intentionally does not claim arbitrary grammar completeness beyond locked fragment, quoted-attribute, and generic-angle cases", "frontmatter parser fails unsupported shapes rather than importing PyYAML", "the final Markdown's TypeScript subtotal label can be clearer in a later UX pass"],
+  "next_decision": {"recommendation": "Accept the repaired additive TypeScript audit path and keep comment attribution lexical and family-local.", "rationale": "The adversarial fragment, quoted-attribute, generic-angle, and regex-keyword regressions now pass in final artifacts, alongside stock installed closure and fresh non-context portability evidence.", "blockers": []}
 }

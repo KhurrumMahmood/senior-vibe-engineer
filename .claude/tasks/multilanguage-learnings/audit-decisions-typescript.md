@@ -1,7 +1,8 @@
 # TypeScript `audit-decisions` learning handoff
 
-Implementation revision: `a30ea88` (`Add portable TypeScript decision audit
-support`), based on `8fa69f3`, 2026-07-19 UTC.
+Implementation revision: `fbeca4e` (`Repair TypeScript JSX and regex
+boundaries`), following the original additive implementation `a30ea88` and
+based on `8fa69f3`, 2026-07-19 UTC.
 
 ## Invariant and scope
 
@@ -36,6 +37,31 @@ helper, or sibling skill is necessary for comment attribution.
 The scanner and every exclusion are deliberately family-local. A compiler API
 would add host prerequisites without improving this lexical invariant.
 
+## Adversarial lexer repair
+
+Independent review at `fdad6b6` found three P1 attribution failures. JSX
+fragments (`<>...</>`) were not recognized, so comment-shaped JSX text in
+nested elements was scanned as code. The JSX/generic disambiguation rejected
+an otherwise valid tag when a quoted attribute contained a comma. Finally,
+`typeof` was absent from the expression-prefix contexts that permit a regex
+literal, so `/* ... */` inside a regex character class was mistaken for a real
+block comment.
+
+The repaired scanner recognizes JSX fragment delimiters, inspects commas and
+`extends` only outside quoted attributes and JSX attribute expressions, and
+keeps valid TSX generic arrows (`<T,>` and `<T extends ...>`) out of the JSX
+path. It also recognizes JavaScript/TypeScript expression-prefix keywords such
+as `typeof`, `void`, and `instanceof` when deciding whether `/` starts a regex;
+member access such as `.typeof` is not treated as a keyword context.
+
+The locked one-line fragment replay retains the real
+`{/* decision:0001 */}` expression comment while suppressing JSX-text ids
+`9441` and `9442`. A quoted-comma attribute suppresses JSX-text id `9443`, and
+regex literals after `typeof`, `void`, and `instanceof` suppress ids
+`9444`–`9446`. Real comments inside both supported TSX generic-arrow shapes
+remain visible. This closes the adversarial blockers without a compiler,
+shared parser, or broader source support.
+
 ## Fixture and installed evidence
 
 `tests/fixtures/audit-decisions-typescript/host` locks an accepted registry,
@@ -55,12 +81,12 @@ After implementation:
 
 ```text
 .venv/bin/python -m pytest -q tests/test_audit_decisions_typescript.py
-# 15 passed
+# 16 passed
 
 .venv/bin/python -m pytest -q \
   tests/test_audit_decisions_typescript.py tests/test_decisions.py \
   tests/test_yaml_frontmatter.py
-# 53 passed
+# 54 passed
 
 .venv/bin/ruff check .claude/skills/audit-decisions/scripts/audit.py \
   tests/test_audit_decisions_typescript.py
@@ -76,6 +102,11 @@ After implementation:
 .venv/bin/python scripts/skill_comply/validate.py
 # OVERALL: PASS
 ```
+
+The absolute repository venv interpreter was used from the isolated worktree
+because that worktree intentionally had no `.venv`. Post-repair `py_compile`,
+the `find-skill-artifact-drift --gate audit-decisions` check, and commit hooks
+also passed.
 
 The actual current-repository replay also proved portable registry parity:
 `registry-audit.json` has the same eight diagnostics as the existing registry
@@ -106,12 +137,12 @@ a property of the host path, not of invocation convenience.
 |---|---|---|
 | D1 scope honesty | Installed skill freezes comment forms and literal/semantic non-goals. | pass |
 | D2 Python oracle | Locked Python/Markdown/HTML positive and literal-clean cases reach final artifacts; source registry compatibility replay passes. | pass |
-| D3 TypeScript outcome | Locked TS/TSX positive, negative, must-not-fire fixture reaches `drift.md` and `raw-drift.json`. | pass |
+| D3 TypeScript outcome | Locked TS/TSX positives plus fragment, quoted-attribute, generic-angle, regex-keyword, and must-not-fire fixtures reach `drift.md` and `raw-drift.json`. | pass |
 | D4 change/guard | Not applicable: advisory/read-only audit, no code change or blocking guard. | n/a |
 | D5 installed closure | Copied and real stock `skills@1.5.19` selected-skill tests run `python3 -I -S` outside checkout. | pass |
 | D6 fresh forward | A fresh non-context lane used only the stock-installed skill and raw host, produced all four final artifacts, identified the single real orphan, and preserved source bytes. | pass |
-| D7 regression/conformance | Focused regressions, Ruff, py_compile, metadata, smoke, artifact drift, and conformance passed. | pass |
-| D8 learning handoff | This MD/JSON pair contains evidence, exclusions, and translation prerequisites. | ready for review |
+| D7 regression/conformance | Post-adversarial focused regressions (16/54), Ruff, py_compile, metadata, artifact drift, commit hooks, and conformance passed. | pass |
+| D8 learning handoff | This MD/JSON pair records both the initial installed proof and the later adversarial repair. | ready for re-review |
 
 ## D6 installed forward journey
 
@@ -160,6 +191,9 @@ predictably together. The only minor clarity friction was the phrase
 “TS/TSX comment references: 7 total” above an inventory containing ten total
 cross-language references; it is a correct TypeScript subtotal, but explicitly
 labeling it “TypeScript subtotal” would reduce ambiguity in a later UX pass.
+This D6 host exercised `a30ea88` before the adversarial fixtures were added;
+its portability and source-integrity evidence remains valid, while current
+selected-install closure is covered by the post-repair 16-test suite.
 
 ## False-positive boundary, reuse, and next languages
 
@@ -188,7 +222,8 @@ closure contract.
   and a lexical or native parser decision before supporting heredoc edges.
 
 Residual risks are deliberate: malformed TypeScript can defeat lexical
-attribution, uncommon JSX/type grammar may under-report a real comment, and
+attribution, uncommon valid JSX/type grammar not represented by the locked
+fragment/attribute/generic cases may under-report a real comment, and
 the stdlib frontmatter compatibility parser supports the registry's scalar and
 list fields rather than arbitrary YAML. It fails visibly rather than silently
 inventing an audit result. D6 confirms that this family should remain lexical,
