@@ -169,6 +169,10 @@ Every batch prompt must be self-contained and include:
 - instructions to use the worktree's `.venv/bin/python` explicitly, preserve
   unrelated changes, and avoid shared/global files reserved for the
   integrator;
+- a project-root-relative path-policy requirement: every built-in and declared
+  exclusion must still apply when an excluded directory, its descendant, or a
+  contained file is passed as the invocation target; broad-root-only tests do
+  not prove this boundary;
 - the exact native TypeScript fixture setup and test command once the batch is
   frozen;
 - a requirement to produce both learning files before asking for review;
@@ -219,7 +223,8 @@ only after the batch definition of done passes.
 - [ ] **D7 — Regression and conformance.** Targeted native tests, skill
   metadata/conformance checks, and the Python regression path pass at one
   revision. Unsupported combinations fail clearly instead of silently
-  under-detecting.
+  under-detecting. Any scanner with exclusions tests both normal broad-root
+  traversal and direct excluded-directory/file targets project-root-relative.
 - [ ] **D8 — Learning handoff.** The batch learning report is complete,
   evidence-linked, and reviewed before another language or dependent batch is
   planned.
