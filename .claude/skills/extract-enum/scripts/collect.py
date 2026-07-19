@@ -105,14 +105,54 @@ _DEFAULT_SKIP_FILE_GLOBS: tuple[str, ...] = (
 
 
 def _walk_python_files(root: Path) -> list[Path]:
+    repo_ignores = _load_repo_ignores(root)
     out: list[Path] = []
     for path in root.rglob("*.py"):
-        if any(part in _DEFAULT_SKIP_DIRS for part in path.parts):
+        rel = path.relative_to(root).as_posix()
+        if any(part in _DEFAULT_SKIP_DIRS for part in path.relative_to(root).parts):
             continue
         if any(fnmatch.fnmatchcase(path.name, g) for g in _DEFAULT_SKIP_FILE_GLOBS):
             continue
+        if any(_matches_ignore(rel, pattern) for pattern in repo_ignores):
+            continue
         out.append(path)
     return sorted(out)
+
+
+def _load_repo_ignores(root: Path) -> list[str]:
+    """Read the host-wide ignore list without toolkit `_common` imports."""
+    path = root / ".engineering" / "docs" / "ignore.md"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
+    ignores: list[str] = []
+    in_ignore = False
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("## "):
+            in_ignore = line[3:].strip().lower() in {
+                "ignore", "ignores", "skip", "path skip", "paths to skip",
+            }
+            continue
+        if not in_ignore or not line.startswith(("-", "*", "+")):
+            continue
+        token = line[1:].strip().split(" — ", 1)[0].strip().strip("`")
+        if token:
+            ignores.append(token)
+    return ignores
+
+
+def _matches_ignore(rel: str, pattern: str) -> bool:
+    normalized = pattern.strip().lstrip("./")
+    if not normalized:
+        return False
+    if normalized.endswith("/"):
+        prefix = normalized.rstrip("/")
+        return rel == prefix or rel.startswith(prefix + "/")
+    return fnmatch.fnmatchcase(rel, normalized) or fnmatch.fnmatchcase(
+        rel, normalized.rstrip("/") + "/**"
+    )
 
 
 def _enclosing_symbol(path: list[ast.AST]) -> str:
@@ -497,32 +537,31 @@ def _scan_comparisons_and_assignments(
         # detected separately. The declaration happens inside a Model
         # ClassDef via a Name target, not an Attribute target.
         if isinstance(node, ast.AnnAssign):
-            target = node.target
+            targets = [node.target]
             value = node.value
         else:
-            if len(node.targets) != 1:
-                return
-            target = node.targets[0]
+            targets = node.targets
             value = node.value
         if value is None:
-            return
-        if not isinstance(target, ast.Attribute) or target.attr != field_name:
             return
         lit = _string_literal_value(value)
         if lit is None:
             return
-        if model_class and not _attributed_to_model(
-            target, path, model_class, local_map, rel, decl_file,
-        ):
-            dropped += 1
-            return
-        assignments.append({
-            "file": rel,
-            "symbol": _enclosing_symbol(path),
-            "literal": lit,
-            "lineno": node.lineno,
-            "evidence": _segment_source(src_lines, node),
-        })
+        for target in targets:
+            if not isinstance(target, ast.Attribute) or target.attr != field_name:
+                continue
+            if model_class and not _attributed_to_model(
+                target, path, model_class, local_map, rel, decl_file,
+            ):
+                dropped += 1
+                continue
+            assignments.append({
+                "file": rel,
+                "symbol": _enclosing_symbol(path),
+                "literal": lit,
+                "lineno": node.lineno,
+                "evidence": _segment_source(src_lines, node),
+            })
 
     for file_path in files:
         try:

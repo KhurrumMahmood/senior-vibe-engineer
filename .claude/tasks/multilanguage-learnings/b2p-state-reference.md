@@ -35,6 +35,11 @@ remain explicitly out of scope.
   missed `job.status = "queued"`. Its implementation now lives in the
   installed `prevent-regression` state guard and catches field declarations,
   comparisons, and assignments; the root lint is a thin wrapper.
+- Adversarial review found three bypasses before acceptance: syntax errors
+  exited clean, chained assignments were ignored, and fallback declaration
+  lookup could select a model below the host's repo-wide ignore. Parse failures
+  now exit 2, every state target in a chained assignment is checked, and the
+  selected-skill collector applies a family-local ignore-first walk.
 
 ## Fixture and test evidence
 
@@ -73,6 +78,19 @@ The checked-in B2P test runs the repaired chain and asserts:
 - installed closure: only copied `find-implicit-state`, `extract-enum`, and
   `prevent-regression` directories execute under `python3 -I -S` outside the
   toolkit checkout and without its venv or repository helper directories.
+- the complete input `app/` tree is byte-identical after the read-only
+  detector/report/proposal pipeline;
+- malformed Python exits 2 in file and stdin guard modes, chained assignments
+  produce two assignment records/hits, and an ignored vendor model cannot
+  become the first-party carrier.
+
+A fresh non-context agent then received only the three copied installed skills
+and the raw `before/` host at `/tmp/es-forward-state.xDtbxT`. It independently
+produced reviewed detector artifacts, a `JobStatus` proposal, and guard
+evidence with five first-party hits. It kept the vendor `noqa` and open-ended
+status parameter clean, made no source mutation, used system Python, and
+reported the missing optional effectiveness logger instead of fabricating
+telemetry.
 
 Commands run at one revision:
 
@@ -80,7 +98,7 @@ Commands run at one revision:
 .venv/bin/python \
   -m pytest -q tests/test_b2p_state_reference.py \
   tests/test_artifact_scope_adoption.py tests/test_skill_detector_reads.py
-# 5 passed
+# 8 passed
 
 .venv/bin/ruff check \
   .claude/skills/find-implicit-state/scripts/detect.py \
@@ -149,8 +167,8 @@ single consumer.
 - The Python guard is lexical for `.status` receivers. Its acceptance boundary
   is the reviewed Django-shaped carrier plus a reasoned vendor exception; it
   is not proof of arbitrary cross-module receiver identity.
-- D1, D2, D5, D7, and D8 are evidenced here. D3/D4 are specifically deferred
-  to B2T. D6 (fresh non-context installed-skill forward test) is not claimed:
-  the parent task forbids spawning that lane while capacity is full and requires
-  independent reference acceptance before B2T. Run it after acceptance with
-  only the copied skills and raw fixture, not this report or expected result.
+- D1, D2, and D5–D8 are evidenced here. D3/D4 are specifically deferred to
+  B2T. The first adversarial review rejected the reference on parse-error,
+  chained-assignment, ignore-boundary, and read-only-evidence gaps; those now
+  have checked-in regressions and require one final acceptance replay before
+  B2T begins.

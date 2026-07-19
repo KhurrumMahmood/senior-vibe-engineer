@@ -7,6 +7,7 @@ the before/after enum mutation, and the blocking stringly-status guard.
 from __future__ import annotations
 
 import json
+import hashlib
 import shutil
 import subprocess
 import sys
@@ -43,6 +44,14 @@ def _copy_host(tmp_path: Path, state: str) -> Path:
 
 def _read_jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+
+
+def _source_hashes(host: Path) -> dict[str, str]:
+    return {
+        path.relative_to(host).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in sorted((host / "app").rglob("*"))
+        if path.is_file()
+    }
 
 
 def _run_reference_pipeline(host: Path) -> tuple[Path, Path, dict]:
@@ -95,7 +104,9 @@ def _run_reference_pipeline(host: Path) -> tuple[Path, Path, dict]:
 
 def test_b2p_python_reference_pipeline_and_guard(tmp_path: Path) -> None:
     host = _copy_host(tmp_path, "before")
+    before_sources = _source_hashes(host)
     hits_path, candidates_path, targets = _run_reference_pipeline(host)
+    assert _source_hashes(host) == before_sources
 
     hits = _read_jsonl(hits_path)
     assert len(hits) == 5
@@ -162,6 +173,133 @@ def test_b2p_python_reference_pipeline_and_guard(tmp_path: Path) -> None:
         str(after_host / "app" / "integrations" / "vendor.py"), cwd=after_host,
     )
     assert open_ended.returncode == vendor.returncode == 0
+
+
+def test_guard_errors_on_invalid_python_and_detects_chained_assignments(
+    tmp_path: Path,
+) -> None:
+    invalid = tmp_path / "invalid.py"
+    invalid.write_text("def broken(:\n", encoding="utf-8")
+    path_result = _run(str(VENV_PYTHON), str(BUNDLED_GUARD), str(invalid), cwd=tmp_path)
+    stdin_result = subprocess.run(
+        [
+            str(VENV_PYTHON),
+            str(BUNDLED_GUARD),
+            "--stdin",
+            "--filename",
+            "invalid.py",
+        ],
+        input="def broken(:\n",
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert path_result.returncode == stdin_result.returncode == 2
+    assert "syntax error" in path_result.stderr
+    assert "syntax error" in stdin_result.stderr
+
+    chained = tmp_path / "chained.py"
+    chained.write_text(
+        "def queue(job, backup):\n"
+        '    job.status = backup.status = "queued"\n',
+        encoding="utf-8",
+    )
+    chained_result = _run(
+        str(VENV_PYTHON), str(BUNDLED_GUARD), str(chained), cwd=tmp_path
+    )
+    assert chained_result.returncode == 1
+    assert len(chained_result.stdout.splitlines()) == 2
+
+
+def test_collector_detects_chained_assignments(tmp_path: Path) -> None:
+    host = tmp_path / "host-chained"
+    models = host / "app" / "models.py"
+    service = host / "app" / "service.py"
+    models.parent.mkdir(parents=True)
+    models.write_text(
+        "from django.db import models\n\n"
+        "class Job(models.Model):\n"
+        '    status = models.CharField(default="queued", max_length=20)\n',
+        encoding="utf-8",
+    )
+    service.write_text(
+        "from app.models import Job\n\n"
+        "def queue(job: Job, backup: Job):\n"
+        '    job.status = backup.status = "queued"\n',
+        encoding="utf-8",
+    )
+    output = host / "reports" / "targets.json"
+    result = _run(
+        str(VENV_PYTHON),
+        str(COLLECT),
+        "--target",
+        "app/models.py::status::Job",
+        "--project-root",
+        str(host),
+        "--output",
+        str(output),
+        cwd=host,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    targets = json.loads(output.read_text(encoding="utf-8"))
+    assert len(targets["assignment_sites"]) == 2
+    assert targets["callers_by_file"] == {"app/service.py": 2}
+
+
+def test_fallback_model_lookup_honors_repository_ignore(tmp_path: Path) -> None:
+    host = tmp_path / "host-ignore"
+    caller = host / "app" / "service.py"
+    vendor_model = host / "vendor" / "models.py"
+    ignore = host / ".engineering" / "docs" / "ignore.md"
+    caller.parent.mkdir(parents=True)
+    vendor_model.parent.mkdir(parents=True)
+    ignore.parent.mkdir(parents=True)
+    caller.write_text(
+        "def queue(job: Job):\n"
+        '    return job.status == "queued"\n',
+        encoding="utf-8",
+    )
+    vendor_model.write_text(
+        "from django.db import models\n\n"
+        "class Job(models.Model):\n"
+        '    status = models.CharField(default="queued", max_length=20)\n',
+        encoding="utf-8",
+    )
+    ignore.write_text("## Ignore\n\n- `vendor/`\n", encoding="utf-8")
+    findings = host / "findings.json"
+    findings.write_text(
+        json.dumps(
+            {
+                "findings": [
+                    {
+                        "candidate_id": "implicit-state-0001",
+                        "recommendation_hint": "extract_enum_candidate",
+                        "recommendation_hint_symbol": "Job",
+                        "file": "app/service.py",
+                        "fields_touched": ["status"],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = _run(
+        str(VENV_PYTHON),
+        str(COLLECT),
+        "--from-finding",
+        "implicit-state-0001",
+        "--findings",
+        str(findings),
+        "--project-root",
+        str(host),
+        "--output",
+        str(host / "reports" / "targets.json"),
+        cwd=host,
+    )
+    assert result.returncode == 2
+    assert "no Model subclass in app/service.py" in result.stderr
+    assert "vendor/models.py" not in result.stderr
 
 
 def test_b2p_selected_skills_run_from_an_isolated_install(tmp_path: Path) -> None:

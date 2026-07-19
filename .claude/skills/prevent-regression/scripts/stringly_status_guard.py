@@ -152,27 +152,26 @@ def _check_assignment(
     node: ast.Assign | ast.AnnAssign, lines: list[str], hits: list[tuple[int, int, str]]
 ) -> None:
     if isinstance(node, ast.AnnAssign):
-        target, value = node.target, node.value
-    elif len(node.targets) == 1:
-        target, value = node.targets[0], node.value
+        targets = [node.target]
+        value = node.value
     else:
+        targets = node.targets
+        value = node.value
+    if _literal(value) is None:
         return
-    if isinstance(target, ast.Attribute) and target.attr in STATE_FIELDS and _literal(value) is not None:
-        _emit(
-            node,
-            lines,
-            f"assignment to `.{target.attr}` uses a string literal — reference the `TextChoices` enum member or mark with `# noqa: {RULE}: <reason>`",
-            hits,
-        )
+    for target in targets:
+        if isinstance(target, ast.Attribute) and target.attr in STATE_FIELDS:
+            _emit(
+                target,
+                lines,
+                f"assignment to `.{target.attr}` uses a string literal — reference the `TextChoices` enum member or mark with `# noqa: {RULE}: <reason>`",
+                hits,
+            )
 
 
 def check_source(source: str, filename: str) -> list[tuple[int, int, str]]:
     """Return all closed-state violations in one Python source string."""
-    try:
-        tree = ast.parse(source, filename=filename)
-    except SyntaxError as exc:
-        print(f"{filename}:{exc.lineno or 0}: {RULE}: syntax error — {exc.msg}", file=sys.stderr)
-        return []
+    tree = ast.parse(source, filename=filename)
     lines = source.splitlines()
     hits: list[tuple[int, int, str]] = []
 
@@ -198,7 +197,14 @@ def _check_path(path: str) -> tuple[int, bool]:
     except (OSError, UnicodeDecodeError) as exc:
         print(f"{path}: {RULE}: cannot read — {exc}", file=sys.stderr)
         return 0, True
-    hits = check_source(source, path)
+    try:
+        hits = check_source(source, path)
+    except SyntaxError as exc:
+        print(
+            f"{path}:{exc.lineno or 0}: {RULE}: syntax error — {exc.msg}",
+            file=sys.stderr,
+        )
+        return 0, True
     for line, column, message in hits:
         print(f"{path}:{line}:{column + 1}: {RULE}: {message}")
     return len(hits), False
@@ -211,7 +217,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--filename", default="<stdin>")
     args = parser.parse_args(argv)
     if args.stdin:
-        hits = check_source(sys.stdin.read(), args.filename)
+        try:
+            hits = check_source(sys.stdin.read(), args.filename)
+        except SyntaxError as exc:
+            print(
+                f"{args.filename}:{exc.lineno or 0}: {RULE}: syntax error — {exc.msg}",
+                file=sys.stderr,
+            )
+            return 2
         for line, column, message in hits:
             print(f"{args.filename}:{line}:{column + 1}: {RULE}: {message}")
         return 1 if hits else 0

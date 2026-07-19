@@ -1,6 +1,6 @@
 {
   "batch": "B2P",
-  "revision": "codex/ts-state-reference working-tree-2026-07-18",
+  "revision": "codex/ts-state-reference post-review-working-tree-2026-07-19T06Z",
   "family": ["find-implicit-state", "extract-enum", "prevent-regression", "stringly-status"],
   "invariant": {
     "portable_principle": "A first-party state carrier has one named symbolic-value authority; callers do not compare or assign bare state strings, while a reasoned vendor wire boundary remains explicit.",
@@ -12,7 +12,8 @@
     "Removed detector repository language-adapter import so copied detection is stdlib-only.",
     "Removed collector _common and scripts/_lib runtime dependencies; bundled its sidecar writer.",
     "Added function parameter, vararg, and kwarg annotations to the collector's conservative model-attribution map.",
-    "Moved stringly-status implementation into a family-local installed guard and added bare state assignment detection."
+    "Moved stringly-status implementation into a family-local installed guard and added bare state assignment detection.",
+    "Made guard parse failures exit 2, covered every target in chained assignments, restored family-local repo-ignore handling, and locked whole-source-tree read-only behavior."
   ],
   "language_model": {
     "syntax": ["Python AST", "Django CharField/TextField", "models.TextChoices", "function parameter annotations", "reasoned # noqa boundary"],
@@ -41,9 +42,9 @@
     "native_guard_command": "python3 -I -S /installed/prevent-regression/scripts/stringly_status_guard.py HOST/app"
   },
   "evidence": {
-    "python_reference": ["Red capture: copied detector failed on _lib; copied collector failed on scope; collector had zero parameter-annotated callers; old guard missed assignment.", "Repaired B2P tests: 5 passed; before guard has 5 lines and after guard is clean."],
+    "python_reference": ["Red capture: copied detector failed on _lib; copied collector failed on scope; collector had zero parameter-annotated callers; old guard missed assignment.", "Adversarial red capture: syntax errors exited clean, chained assignments were missed, ignored vendor declaration was selected, and full-tree read-only behavior was not asserted.", "Repaired B2P tests: 8 passed; before guard has 5 lines and after guard is clean."],
     "typescript": [],
-    "commands_and_artifact_paths": ["tests/fixtures/b2p_state_reference/before", "tests/fixtures/b2p_state_reference/after", "tests/fixtures/b2p_state_reference/reviewed-scout", "tests/test_b2p_state_reference.py", "scripts/skill_meta.py lint --quiet: 76 skills clean", "scripts/skill_comply/validate.py: OVERALL PASS"]
+    "commands_and_artifact_paths": ["tests/fixtures/b2p_state_reference/before", "tests/fixtures/b2p_state_reference/after", "tests/fixtures/b2p_state_reference/reviewed-scout", "tests/test_b2p_state_reference.py", "/tmp/es-forward-state.xDtbxT/host/reports: fresh installed non-context detector/review/proposal/guard artifacts", "scripts/skill_meta.py lint --quiet: 76 skills clean", "scripts/skill_comply/validate.py: OVERALL PASS"]
   },
   "false_positive_boundary": {
     "known_false_positives": ["The Python guard is lexical for any .status/.phase/.state receiver unless it is explicitly waived."],
@@ -73,10 +74,10 @@
     "repeated_work": ["Detector and collector each reached into repository helpers before B2P."],
     "smallest_later_improvement": "Have selected-skill installation expose the exact detector, collector, and state-guard commands."
   },
-  "residual_risks": ["Fresh non-context installed-skill forward test is intentionally pending parent acceptance/capacity.", "Python guard receiver identity is lexical outside the reviewed Django-shaped carrier.", "B2T needs compiler facts rather than a lexical imitation."],
+  "residual_risks": ["Python guard receiver identity is lexical outside the reviewed Django-shaped carrier.", "The family-local ignore parser intentionally supports the repo's documented Markdown bullet format, not arbitrary Markdown.", "B2T needs compiler facts rather than a lexical imitation."],
   "next_decision": {
     "recommendation": "Root independently accepts B2P evidence, then author the B2T outcome test red before adding TypeScript infrastructure.",
     "rationale": "The reference now has a closed Python output path and exposes the exact receiver-attribution and assignment semantics TypeScript must preserve.",
-    "blockers": ["Do not dispatch B2T before root review.", "Fresh forward test cannot be spawned while all agent slots are occupied."]
+    "blockers": ["Run one final acceptance replay of the post-review repairs before B2T."]
   }
 }
