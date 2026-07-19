@@ -1,6 +1,6 @@
 ---
 name: which-skill
-description: Recommend a skill (or "no planning skill applies — proceed directly") for a free-text task description. Reads a bundled metadata-only catalog and ranks candidates by token overlap without loading skill bodies. Emits a pinned stock install command for the winner.
+description: Recommend a skill (or "no planning skill applies — proceed directly") for a free-text task description. Reads a bundled metadata-only catalog without loading skill bodies, then emits on-demand guide/tool paths and a bounded fresh-sub-agent handoff. Ambient installation is explicit and optional.
 argument-hint: "<task description>"
 allowed-tools: Bash, Read
 user-invocable: true
@@ -32,9 +32,10 @@ free-text task description. Your output is one of three shapes:
 3. "No planning skill applies — proceed directly" when the task is
    Quick-tier or no skill scores above the relevance threshold.
 
-You do NOT invoke the recommended skill yourself. Return its pinned install
-command so the user or calling agent can install only that skill and any
-explicitly declared runtime companions.
+You do NOT invoke the recommended skill yourself. Return its on-demand library
+paths so the calling agent can read only the selected closure, preferably in a
+fresh non-context sub-agent for non-trivial work. Ambient installation is an
+explicit user choice, not the default handoff.
 
 ## How success is judged
 
@@ -43,8 +44,9 @@ explicitly declared runtime companions.
   `proceed_directly` or `unsupported`, and exit 2 is surfaced as an error.
 - The run reads the bundled metadata catalog only; it does not expand skill
   bodies or execute the recommended skill.
-- A successful recommendation includes a pinned `skills` CLI command that
-  installs the selected skill's exact declared closure.
+- A successful recommendation includes local guide and tool paths for the
+  selected skill's exact declared closure, plus an optional pinned `skills`
+  CLI command only for users who request ambient installation.
 Write toward these gates from Stage 0.
 
 ## Core beliefs
@@ -100,13 +102,36 @@ nothing to disk.
 This skill produces no artifact or persistent trace. The output is
 conversational.
 
+The default router installation also bundles `scripts/bootstrap_library.py`.
+Run it once from the host project to materialize the full repository outside
+agent discovery:
+
+```bash
+PROJECT_ROOT="$PWD"
+(
+  cd "$PROJECT_ROOT/.agents/skills/which-skill"
+  python3 scripts/bootstrap_library.py \
+    --project-root "$PROJECT_ROOT" \
+    --source "${ENGINEERING_SKILLS_SOURCE:?Set the engineering-skills source}"
+)
+```
+
+The default root is the project-scoped sibling cache
+`<project-parent>/.engineering-skills/<project-name>`, outside both the target
+repository and agent discovery. Existing valid libraries are reused; an
+existing incomplete destination is never overwritten.
+
 ### Stage 1 — Run the matcher
 
 **Pre:** task description received. **Post:** `match.py` output captured.
 
 ```bash
-cd .agents/skills/which-skill
-python3 scripts/match.py "${TASK}" --json
+PROJECT_ROOT="$PWD"
+(
+  cd "$PROJECT_ROOT/.agents/skills/which-skill"
+  python3 scripts/match.py \
+    "${TASK}" --project-root "$PROJECT_ROOT" --json
+)
 ```
 
 The matcher returns JSON with:
@@ -120,10 +145,11 @@ The matcher returns JSON with:
   language, framework, or scanner coverage does not support the resolved host
 - `recommendation: unsupported` — returned instead of silently substituting a
   weaker skill when the strongest semantic match is ineligible for the host
-- `install.skills` — the winner followed by any declared runtime companions
-- `install.command` — pinned stock command for installing that exact closure
-- `install.locations` — canonical pointers to the selected skill definition,
-  its bundled scripts, and shared source tooling
+- `handoff` — the winner plus declared companions, exact local guide and
+  bundled/shared tooling paths, availability, and the default fresh
+  non-context-sub-agent execution mode
+- `optional_install` — pinned stock command for ambient installation of the
+  exact closure, used only when the user explicitly requests it
 - `task_packet` — the optional task-packet fields (`lanes`, `stage`,
   `entrypoint`, `consumes`, `produces`, `evidence_required`,
   `risk_triggers`, `max_overhead`) declared by the winning skill, or
@@ -164,7 +190,9 @@ Other candidates (also scored above threshold):
   /<other-1>  (score=N, <one-line why>)
   /<other-2>  (score=N, <one-line why>)
 
-Next: invoke /<skill-name> with <argument-hint format from frontmatter>.
+Next: load the on-demand guide directly for small work, or pass only the task,
+project root, task packet, and returned guide/tool paths to a fresh non-context
+sub-agent for non-trivial work.
 ```
 
 **Shape B — Proceed directly (matcher exit 1):**
@@ -192,7 +220,8 @@ move.
 
 ## Non-goals
 
-- Invoking the recommended skill (that's the user's call).
+- Invoking the recommended skill (that's the user's or calling agent's call).
+- Installing the recommended skill unless the user explicitly requests it.
 - Reading SKILL.md bodies (the matcher reads frontmatter only — that's
   the design).
 - Recommending external tools or non-skill commands (this skill knows

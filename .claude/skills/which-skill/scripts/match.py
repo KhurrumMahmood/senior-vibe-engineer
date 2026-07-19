@@ -297,15 +297,20 @@ def score_skill(
     best_for_tokens = tokenize(skill.get("best_for", ""))
     not_for_tokens = tokenize(skill.get("not_for", ""))
     desc_tokens = tokenize(skill.get("description", ""))
-    name_tokens = tokenize(skill.get("name", ""))
+    skill_name = str(skill.get("name", ""))
+    name_tokens = tokenize(skill_name)
+    natural_name_tokens = tokenize(skill_name.replace("-", " "))
 
     # An explicitly named skill is an authoritative routing request. Give it
     # enough weight that portability filtering returns `unsupported` instead
     # of silently substituting a vaguely related eligible skill.
-    exact_name = str(skill.get("name", "")).strip().lower()
+    exact_name = skill_name.strip().lower()
     if exact_name and exact_name in task_tokens:
         score += 100
         rationale.append(f"explicit skill name: {exact_name}")
+    elif len(natural_name_tokens) > 1 and natural_name_tokens <= task_tokens:
+        score += 40
+        rationale.append(f"natural skill name: {' '.join(sorted(natural_name_tokens))}")
 
     # 1. best_for overlap is the strongest positive signal.
     bf_hits = task_tokens & best_for_tokens
@@ -385,11 +390,45 @@ def install_command(*, source: str, version: str, skills: list[str], agent: str)
     return "DO_NOT_TRACK=1 " + shlex.join(command)
 
 
-def skill_locations(source: str, skill: str) -> dict[str, str]:
+def resolve_library_root(project_root: Path, library_root: Path | None) -> Path:
+    root = library_root or project_root.parent / ".engineering-skills" / project_root.name
+    if not root.is_absolute():
+        root = project_root / root
+    return root.resolve()
+
+
+def library_handoff(library_root: Path, skills: list[str]) -> dict:
+    guides = []
+    for skill in skills:
+        guide = library_root / ".claude" / "skills" / skill / "SKILL.md"
+        bundled_tooling = guide.parent / "scripts"
+        guides.append(
+            {
+                "skill": skill,
+                "skill_root": str(guide.parent),
+                "guide": str(guide),
+                "bundled_tooling": str(bundled_tooling) if bundled_tooling.is_dir() else None,
+            }
+        )
+    shared_tooling = library_root / "scripts"
+    common_guidance = library_root / ".claude" / "skills" / "_common"
+    shared_guidance = library_root / ".claude" / "docs"
     return {
-        "definition": f"{source}::.claude/skills/{skill}/SKILL.md",
-        "bundled_tooling": f"{source}::.claude/skills/{skill}/scripts/",
-        "shared_tooling": f"{source}::scripts/",
+        "mode": "on_demand_library",
+        "available": all(Path(item["guide"]).is_file() for item in guides),
+        "default_execution": "fresh_non_context_subagent",
+        "library_root": str(library_root),
+        "skills": skills,
+        "guides": guides,
+        "shared_tooling": str(shared_tooling) if shared_tooling.is_dir() else None,
+        "common_guidance": str(common_guidance) if common_guidance.is_dir() else None,
+        "shared_guidance": str(shared_guidance) if shared_guidance.is_dir() else None,
+        "instruction": (
+            "For non-trivial work, give a fresh non-context sub-agent the task, project root, "
+            "task packet, selected skill roots, and shared guidance/tool paths. For small work, "
+            "read from the same bounded roots directly. Do not install the skills unless the "
+            "user explicitly asks."
+        ),
     }
 
 
@@ -585,7 +624,9 @@ def cmd_match(args, catalog_path: Path) -> int:
     out["recommendation"] = winner.get("name", "")
     out["task_packet"] = _build_task_packet(winner)
     install_skills = [out["recommendation"], *winner.get("install_with", [])]
-    out["install"] = {
+    library_root = resolve_library_root(args.project_root.resolve(), args.library_root)
+    out["handoff"] = library_handoff(library_root, install_skills)
+    out["optional_install"] = {
         "skill": out["recommendation"],
         "skills": install_skills,
         "source": args.source,
@@ -597,7 +638,6 @@ def cmd_match(args, catalog_path: Path) -> int:
             skills=install_skills,
             agent=args.agent,
         ),
-        "locations": skill_locations(args.source, out["recommendation"]),
     }
     if args.json:
         print(json.dumps(out, indent=2))
@@ -622,8 +662,13 @@ def cmd_match(args, catalog_path: Path) -> int:
             for field, value in out["task_packet"].items():
                 print(f"    {field}: {value}")
         print()
-        print(f"Install /{out['recommendation']}:")
-        print(f"  {out['install']['command']}")
+        print(f"Use /{out['recommendation']} on demand:")
+        print(f"  Guide: {out['handoff']['guides'][0]['guide']}")
+        print(f"  Default: {out['handoff']['default_execution']}")
+        if not out["handoff"]["available"]:
+            print("  Library unavailable: run the which-skill library bootstrap first.")
+        print("  Optional ambient install (only when explicitly requested):")
+        print(f"    {out['optional_install']['command']}")
         if len(above) < len(top):
             print()
             print("Below threshold (shown for context):")
@@ -664,7 +709,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument(
         "--source", default=DEFAULT_SOURCE,
-        help="Skill source used in the selected-skill install handoff",
+        help="Skill source used only for the optional ambient-install handoff",
+    )
+    p.add_argument(
+        "--library-root", type=Path,
+        help="On-demand library root (default: <project-parent>/.engineering-skills/<project-name>)",
     )
     p.add_argument(
         "--skills-cli-version", default=DEFAULT_CLI_VERSION,

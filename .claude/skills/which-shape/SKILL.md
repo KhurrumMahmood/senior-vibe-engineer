@@ -56,9 +56,13 @@ real run, never composed from this file. Paste the script's
 your reply.
 
 ```bash
-cd .agents/skills/which-shape
-python3 scripts/route.py \
-  "this inherited repo feels slow and chaotic"
+PROJECT_ROOT="$PWD"
+(
+  cd "$PROJECT_ROOT/.agents/skills/which-shape"
+  python3 scripts/route.py \
+    "this inherited repo feels slow and chaotic" \
+    --project-root "$PROJECT_ROOT"
+)
 ```
 
 Use `--json` for machine-readable output and `--skip-log` for tests.
@@ -87,9 +91,10 @@ The recommendation includes:
 - short loop sequence;
 - stop/reassess condition;
 - alternatives.
-- a pinned stock install command for the first skill plus any companions
-  declared by the shape, with canonical definition/tooling locations, when
-  the first next step names a skill that is not one of the routers.
+- an on-demand handoff for the first skill plus any companions declared by the
+  shape, with exact local guide/tool paths and a fresh non-context-sub-agent
+  default;
+- a pinned ambient-install command only as an explicit optional alternative.
 
 If the script reports `confidence: low` — or any rationale line reads
 "fallback shape candidate" — do not present a single shape. Present the

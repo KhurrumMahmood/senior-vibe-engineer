@@ -155,8 +155,9 @@ auditable when completeness matters.
 - Smallest experiment: one committed corpus containing clear, ambiguous,
   negated, mixed-language, stack-bound, and direct/no-skill tasks.
 - Acceptance: clear cases match; ambiguous cases name a discriminating
-  question or allowed set; selected skills include their exact install closure;
-  every repaired misroute becomes a regression.
+  question or allowed set; selected skills include their exact on-demand
+  guide/tool closure and explicitly secondary install option; every repaired
+  misroute becomes a regression.
 - Non-goals: a general evaluator or learned router.
 
 ### ML-008 — Cross-language batching and performance measurement
@@ -193,7 +194,9 @@ auditable when completeness matters.
 
 The reviewed branch is still not the public source named by the README. Before
 making public installation or TypeScript-support claims, publish the intended
-revision and replay the documented public-source install journey. This needs
+revision and replay the documented public-source journey: install exactly the
+three routers, bootstrap the non-discovered library, route to one closure, and
+reach its final outcome without installing a task skill. This needs
 repository-owner release authorization; it does not justify more installer
 infrastructure and should not be implemented as part of an unrelated language
 item above.

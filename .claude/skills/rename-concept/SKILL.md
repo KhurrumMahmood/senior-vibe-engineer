@@ -97,11 +97,23 @@ both lexical bands; `rename-concept` does not copy or fork its matching logic.
 Repository development may use the source-tree sibling. A
 copied `rename-concept` without that installed companion is inconclusive.
 
-## Installed with the stock CLI
+## On-demand library (default)
+
+When a router supplies this guide from the non-discovered library, use the
+router's exact `guide`, `bundled_tooling`, and companion paths. Run
+`scripts/assess.py` from this guide's directory and locate
+`find-concept-divergence` beside it in the library. Do not substitute the
+`.agents/skills/` path shown in the optional installed example below.
+
+For non-trivial work, the router should give this guide, both skill-local tool
+paths, the project root, and the task to a fresh non-context sub-agent. The
+primary agent need not load either skill body.
+
+## Optional ambient install
 
 Set `ENGINEERING_SKILLS_SOURCE` to the published source URI or a local checkout
-when testing a revision. The one installation command below projects the two
-required skills; assessment remains read-only.
+when the user explicitly requests installation. The command below projects the
+two required skills; assessment remains read-only.
 
 <!-- installed-command:install:start -->
 ```bash

@@ -1,6 +1,6 @@
 # Engineering-skills productization restart
 
-Status: local installation and TypeScript milestones passed — public publication pending
+Status: router-only on-demand local candidate and TypeScript milestone passed — public publication pending
 
 This is the small progress tracker for the restart. Update checkboxes only
 after the named command or journey passes at a committed revision. Tests,
@@ -34,9 +34,10 @@ create implementation work.
 
 ## Milestone 1 — Simple installation
 
-Outcome: use the stock Agent Skills installer. Do not build a custom package
-manager, trust ceremony, transactional lifecycle, five-surface projection, or
-generic executor.
+Outcome: use the stock Agent Skills installer for exactly three ambient routers
+and a thin source bootstrap for the non-discovered guide/tool library. Do not
+build a custom package manager, trust ceremony, transactional lifecycle,
+five-surface projection, or generic executor.
 
 - [x] **I1 — Stock discovery.** From a clean checkout, the pinned command
   `npx --yes skills@1.5.19 add <source> --list` exits zero and lists exactly
@@ -52,14 +53,17 @@ generic executor.
   None imports a
   repository-level module, requires a toolkit venv, third-party Python
   package, or network access.
-- [x] **I4 — Selected-skill handoff.** Both task and shape routing emit a pinned
-  stock installation command for the winner's exact declared closure. Running
-  the command installs only that selected skill and any required companions in
-  addition to the routers.
+- [x] **I4 — On-demand library handoff.** The documented bootstrap materializes
+  the full source in a project-scoped sibling cache outside both the target
+  repository and agent discovery. Task, shape, and cleanup routing return exact local guide/tool
+  closures and default non-trivial work to a fresh non-context sub-agent.
+  Ambient selected-skill installation is labeled optional and requires an
+  explicit user choice.
 - [x] **I5 — First useful result.** A fresh-context agent, given only the
-  installed routers, selected installed skill, fixture project, and user task,
-  produces the fixture's expected useful artifact. The initial selected skill
-  is prompt-only or self-contained.
+  installed routers, selected on-demand guide/tool closure, fixture project,
+  and user task, produces the expected useful artifact without installing a
+  task skill. One TypeScript journey must reach its final native outcome from
+  the external library through both task and shape routing.
 - [x] **I6 — Standard removal boundary.** The documented stock removal path
   removes the installed skill directories and leaves a sentinel outside the
   standard skill paths byte-identical. No promise is made about preserving
@@ -113,13 +117,14 @@ not a general evaluator platform:
    and `which-cleanup`.
 2. Give each case an expected route or allowed set; ambiguous cases may instead
    require a named discriminating question.
-3. Require every selected non-router skill to include its install command and
-   definition/bundled-tooling/shared-tooling locations.
+3. Require every selected non-router skill to include its exact on-demand
+   guide/bundled-tooling/shared-tooling closure and an explicitly secondary
+   optional install command.
 4. Require all clear cases to match, zero known heavy-router false positives on
    direct tasks, and zero missing handoffs. Every discovered misroute becomes a
    regression case before changing heuristics.
-5. Forward-test one representative installed journey per router with fresh
-   context and judge the final task outcome, not merely the router JSON.
+5. Forward-test one representative on-demand-library journey per router with
+   fresh context and judge the final task outcome, not merely the router JSON.
 
 Freeze representative installed workflows and their outcome checks. Measure
 completion, correctness, wall time, tokens, repeated context, and human
@@ -142,12 +147,15 @@ it is necessary.
 | 2026-07-18 | this planning commit | Milestone 2 batch freeze | `.claude/tasks/typescript-skill-batch-plan.md` assigns all 76 skills exactly once, freezes B1/B2P as the first disjoint worktrees, makes B2T serial after the Python proof, requires paired learning artifacts, and defers unproven/framework-bound families. Three fresh non-context inventory lanes informed it; 38 targeted baseline tests passed; a fresh goal-anchored adversarial review returned PASS after router-honesty corrections. |
 | 2026-07-19 | `f626f72` | Milestone 2 local completion | The 76-row matrix closed at 22 TypeScript-supported, 19 validated-neutral, 22 stack-bound, and 13 ecosystem-runtime skills. Canonical suite: 660 passed, 2 named environment skips; focused closure set: 77 passed. See `.claude/tasks/typescript-skill-batch-plan.md` for per-family evidence. |
 | 2026-07-19 | `dceef96` | Shape-router companion closure | A real clean-host regression now runs both `which-skill` and `which-shape`, installs exactly `rename-concept` plus required `find-concept-divergence`, and reaches the final TypeScript `COMPLETE` outcome. Focused router/outcome suite: 80 passed; canonical suite: 661 passed, 2 documented environment skips; Ruff and registry validation passed. |
+| 2026-07-19 | this revision | Router-only on-demand library | Stock `skills@1.5.19` installs exactly the three routers; the bundled stdlib bootstrap materializes a project-scoped sibling library outside the host and discovery roots. Task, shape, and cleanup routers return selected skill roots, guides, optional bundled tools, shared guidance/tool roots, and explicitly secondary ambient-install commands. Both task and shape routing execute the `rename-concept` companion closure from the library and reach TypeScript `COMPLETE` without installing a task skill. A fresh non-context README replay selected `gut-check` and produced four cited strong-smell findings with no user-facing blocker. Focused final suite: 102 passed; canonical suite before the final closure-render additions: 664 passed, 2 documented environment skips; final two-finding re-review: PASS. ADR 0038 records the decision. |
 
 ## Current slice
 
 1. Publish the reviewed candidate to the intended public distribution ref and
-   replay the README's stock three-router install before making public support
-   claims. This is a release action, not new installer development.
+   replay the README's stock three-router install, sibling-library bootstrap,
+   on-demand route, useful result, and router-only discovery assertion before
+   making public support claims. This is a release action, not new installer
+   development.
 2. Review the TypeScript learning packets and the scoped multi-language backlog
    when selecting one next-language pilot. Start with a small representative
    family, not simultaneous blanket conversion.

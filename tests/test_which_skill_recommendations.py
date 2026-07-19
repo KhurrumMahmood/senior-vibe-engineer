@@ -36,6 +36,16 @@ def test_diagnose_prompt_routes_to_diagnose():
     assert "reproduction_loop" in payload["task_packet"]["produces"]
 
 
+def test_natural_spaced_skill_name_routes_to_gut_check():
+    payload = _match(
+        "review the supplied architecture plan for strong engineering smells "
+        "and give a bounded gut check"
+    )
+
+    assert payload["recommendation"] == "gut-check"
+    assert payload["candidates"][0]["rationale"][0] == "natural skill name: check gut"
+
+
 def test_bundled_catalog_matches_source_frontmatter():
     result = subprocess.run(
         [sys.executable, str(CATALOG_BUILDER), "--check"],
@@ -94,7 +104,7 @@ def test_glossary_backed_typescript_rename_is_not_short_circuited_as_quick():
     assert returncode == 0
     assert payload["routing_context"]["language"] == "typescript"
     assert payload["recommendation"] == "rename-concept"
-    assert payload["install"]["skill"] == "rename-concept"
+    assert payload["handoff"]["skills"][0] == "rename-concept"
 
 
 def test_exact_typescript_marker_routes_to_earned_state_skill():
@@ -116,7 +126,7 @@ def test_exact_typescript_marker_routes_to_earned_state_skill():
         "filtering_applied": True,
     }
     assert payload["recommendation"] == "find-implicit-state"
-    assert payload["install"]["skill"] == "find-implicit-state"
+    assert payload["handoff"]["skills"][0] == "find-implicit-state"
 
 
 def test_typescript_direct_export_explanation_routes_to_explain_code():
@@ -130,7 +140,7 @@ def test_typescript_direct_export_explanation_routes_to_explain_code():
     assert returncode == 0
     assert payload["routing_context"]["language"] == "typescript"
     assert payload["recommendation"] == "explain-code"
-    assert payload["install"]["skill"] == "explain-code"
+    assert payload["handoff"]["skills"][0] == "explain-code"
 
 
 def test_typescript_omnibus_routes_to_earned_skill():
@@ -143,7 +153,7 @@ def test_typescript_omnibus_routes_to_earned_skill():
     assert returncode == 0
     assert payload["routing_context"]["language"] == "typescript"
     assert payload["recommendation"] == "find-omnibus"
-    assert payload["install"]["skill"] == "find-omnibus"
+    assert payload["handoff"]["skills"][0] == "find-omnibus"
 
 
 def test_typescript_lexical_clones_route_to_duplication():
@@ -157,7 +167,7 @@ def test_typescript_lexical_clones_route_to_duplication():
     assert returncode == 0
     assert payload["routing_context"]["language"] == "typescript"
     assert payload["recommendation"] == "find-duplication"
-    assert payload["install"]["skill"] == "find-duplication"
+    assert payload["handoff"]["skills"][0] == "find-duplication"
 
 
 def test_typescript_function_complexity_routes_to_complexity_hotspots():
@@ -170,7 +180,7 @@ def test_typescript_function_complexity_routes_to_complexity_hotspots():
     assert returncode == 0
     assert payload["routing_context"]["language"] == "typescript"
     assert payload["recommendation"] == "find-complexity-hotspots"
-    assert payload["install"]["skill"] == "find-complexity-hotspots"
+    assert payload["handoff"]["skills"][0] == "find-complexity-hotspots"
 
 
 def test_typescript_flat_prefix_routes_to_folder_topology():
@@ -184,7 +194,7 @@ def test_typescript_flat_prefix_routes_to_folder_topology():
     assert returncode == 0
     assert payload["routing_context"]["language"] == "typescript"
     assert payload["recommendation"] == "find-folder-topology-drift"
-    assert payload["install"]["skill"] == "find-folder-topology-drift"
+    assert payload["handoff"]["skills"][0] == "find-folder-topology-drift"
 
 
 def test_typescript_host_onboarding_routes_to_adapt_project():
@@ -198,7 +208,7 @@ def test_typescript_host_onboarding_routes_to_adapt_project():
     assert returncode == 0
     assert payload["routing_context"]["language"] == "typescript"
     assert payload["recommendation"] == "adapt-project"
-    assert payload["install"]["skill"] == "adapt-project"
+    assert payload["handoff"]["skills"][0] == "adapt-project"
 
 
 def test_explicit_language_is_authoritative_and_repeatable(tmp_path):
@@ -283,10 +293,41 @@ def _run_match_against(prompt: str, project_root: Path) -> tuple[int, dict]:
     return result.returncode, json.loads(result.stdout)
 
 
-def test_recommendation_includes_pinned_selected_skill_install():
-    payload = _match("diagnose failing export job regression with no reproduction yet")
+def test_recommendation_prefers_on_demand_handoff_and_keeps_install_optional(tmp_path):
+    returncode, payload = _run_match(
+        "diagnose failing export job regression with no reproduction yet",
+        "--project-root",
+        str(tmp_path),
+    )
+    assert returncode == 0, payload
+    library_root = tmp_path.parent / ".engineering-skills" / tmp_path.name
 
-    assert payload["install"] == {
+    assert "install" not in payload
+    assert payload["handoff"] == {
+        "mode": "on_demand_library",
+        "available": False,
+        "default_execution": "fresh_non_context_subagent",
+        "library_root": str(library_root),
+        "skills": ["diagnose"],
+        "guides": [
+            {
+                "skill": "diagnose",
+                "skill_root": str(library_root / ".claude" / "skills" / "diagnose"),
+                "guide": str(library_root / ".claude" / "skills" / "diagnose" / "SKILL.md"),
+                "bundled_tooling": None,
+            }
+        ],
+        "shared_tooling": None,
+        "common_guidance": None,
+        "shared_guidance": None,
+        "instruction": (
+            "For non-trivial work, give a fresh non-context sub-agent the task, project root, "
+            "task packet, selected skill roots, and shared guidance/tool paths. For small work, "
+            "read from the same bounded roots directly. Do not install the skills unless the "
+            "user explicitly asks."
+        ),
+    }
+    assert payload["optional_install"] == {
         "skill": "diagnose",
         "skills": ["diagnose"],
         "source": "https://github.com/KhurrumMahmood/senior-vibe-engineer",  # host-ref-allow: public distribution repository
@@ -297,17 +338,6 @@ def test_recommendation_includes_pinned_selected_skill_install():
             "https://github.com/KhurrumMahmood/senior-vibe-engineer "  # host-ref-allow: public distribution repository
             "--skill diagnose --agent codex --copy -y"
         ),
-        "locations": {
-            "definition": (
-                "https://github.com/KhurrumMahmood/senior-vibe-engineer::.claude/skills/diagnose/SKILL.md"  # host-ref-allow: public distribution repository
-            ),
-            "bundled_tooling": (
-                "https://github.com/KhurrumMahmood/senior-vibe-engineer::.claude/skills/diagnose/scripts/"  # host-ref-allow: public distribution repository
-            ),
-            "shared_tooling": (
-                "https://github.com/KhurrumMahmood/senior-vibe-engineer::scripts/"  # host-ref-allow: public distribution repository
-            ),
-        },
     }
 
 

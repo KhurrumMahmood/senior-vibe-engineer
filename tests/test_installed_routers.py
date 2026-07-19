@@ -60,6 +60,115 @@ def _json_output(result: subprocess.CompletedProcess[str]) -> dict:
     return json.loads(result.stdout)
 
 
+def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_path):
+    host = tmp_path / "host"
+    installed = {
+        name: _install_router(host, name)
+        for name in DEFAULT_ROUTERS
+    }
+
+    bootstrap = _run_isolated(
+        installed["which-skill"] / "scripts" / "bootstrap_library.py",
+        "--project-root",
+        str(host),
+        "--source",
+        str(REPO_ROOT),
+        cwd=host,
+    )
+
+    assert bootstrap.returncode == 0, bootstrap.stdout + bootstrap.stderr
+    library_root = host.parent / ".engineering-skills" / host.name
+    assert (library_root / ".claude" / "skills" / "diagnose" / "SKILL.md").is_file()
+    assert (library_root / "scripts").is_dir()
+    assert {
+        path.name
+        for path in (host / ".agents" / "skills").iterdir()
+        if path.is_dir()
+    } == set(DEFAULT_ROUTERS)
+
+    repeated = _run_isolated(
+        installed["which-skill"] / "scripts" / "bootstrap_library.py",
+        "--project-root",
+        str(host),
+        "--source",
+        str(REPO_ROOT),
+        cwd=host,
+    )
+    assert repeated.returncode == 0, repeated.stdout + repeated.stderr
+    assert "already available" in repeated.stdout
+
+    routed = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "diagnose failing export job regression with no reproduction yet",
+        "--project-root",
+        str(host),
+        "--json",
+        cwd=host,
+    )
+
+    payload = _json_output(routed)
+    assert "install" not in payload
+    assert payload["handoff"]["mode"] == "on_demand_library"
+    assert payload["handoff"]["available"] is True
+    assert payload["handoff"]["default_execution"] == "fresh_non_context_subagent"
+    assert payload["handoff"]["guides"] == [
+        {
+            "skill": "diagnose",
+            "skill_root": str(library_root / ".claude" / "skills" / "diagnose"),
+            "guide": str(library_root / ".claude" / "skills" / "diagnose" / "SKILL.md"),
+            "bundled_tooling": str(
+                library_root / ".claude" / "skills" / "diagnose" / "scripts"
+            ),
+        }
+    ]
+    assert payload["handoff"]["shared_tooling"] == str(library_root / "scripts")
+    assert payload["handoff"]["common_guidance"] == str(
+        library_root / ".claude" / "skills" / "_common"
+    )
+    assert payload["handoff"]["shared_guidance"] == str(library_root / ".claude" / "docs")
+    assert "--skill diagnose" in payload["optional_install"]["command"]
+
+    resource_routed = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use plan-feature to plan this Django workflow",
+        "--project-root",
+        str(host),
+        "--language",
+        "python",
+        "--framework",
+        "django",
+        "--json",
+        cwd=host,
+    )
+    resource_payload = _json_output(resource_routed)
+    assert resource_payload["recommendation"] == "plan-feature"
+    selected_root = Path(resource_payload["handoff"]["guides"][0]["skill_root"])
+    assert (selected_root / "agents" / "impact-scout.md").is_file()
+    assert (selected_root / "knowledge").is_dir()
+
+
+def test_library_bootstrap_refuses_to_overwrite_an_existing_incomplete_destination(tmp_path):
+    host = tmp_path / "host"
+    router = _install_router(host, "which-skill")
+    library_root = host.parent / ".engineering-skills" / host.name
+    library_root.mkdir(parents=True)
+    sentinel = library_root / "KEEP.txt"
+    sentinel.write_text("owned by host\n", encoding="utf-8")
+
+    result = _run_isolated(
+        router / "scripts" / "bootstrap_library.py",
+        "--project-root",
+        str(host),
+        "--source",
+        str(REPO_ROOT),
+        cwd=host,
+    )
+
+    assert result.returncode == 2
+    assert "existing library is incomplete" in result.stderr
+    assert sentinel.read_text(encoding="utf-8") == "owned by host\n"
+
+
 @pytest.mark.parametrize(
     ("task", "expected_shape"),
     [
@@ -86,10 +195,12 @@ def test_installed_which_shape_runs_without_repository_runtime(
     payload = _json_output(result)
     assert payload["recommendation"]["shape"] == expected_shape
     if expected_shape == "project-intake":
-        assert payload["install"]["skill"] == "adapt-project"
-        assert "--skill adapt-project" in payload["install"]["command"]
+        assert payload["handoff"]["skills"] == ["adapt-project"]
+        assert payload["optional_install"]["skill"] == "adapt-project"
+        assert "--skill adapt-project" in payload["optional_install"]["command"]
     else:
-        assert "install" not in payload
+        assert "handoff" not in payload
+        assert "optional_install" not in payload
 
 
 @pytest.mark.parametrize(
@@ -117,7 +228,8 @@ def test_installed_which_skill_runs_with_bundled_catalog(
     payload = _json_output(result)
     assert payload["recommendation"] == expected_skill
     assert payload["task_packet"]["produces"]
-    assert f"--skill {expected_skill}" in payload["install"]["command"]
+    assert payload["handoff"]["skills"] == [expected_skill]
+    assert f"--skill {expected_skill}" in payload["optional_install"]["command"]
 
 
 def test_installed_which_skill_routes_earned_typescript_state_skill(tmp_path):
@@ -140,7 +252,7 @@ def test_installed_which_skill_routes_earned_typescript_state_skill(tmp_path):
     assert payload["routing_context"]["language"] == "typescript"
     assert payload["routing_context"]["language_source"] == "task_marker"
     assert payload["recommendation"] == "find-implicit-state"
-    assert payload["install"]["skill"] == "find-implicit-state"
+    assert payload["handoff"]["skills"] == ["find-implicit-state"]
 
 
 def test_installed_which_skill_routes_typescript_explanation(tmp_path):
@@ -163,7 +275,7 @@ def test_installed_which_skill_routes_typescript_explanation(tmp_path):
     payload = json.loads(result.stdout)
     assert payload["routing_context"]["language"] == "typescript"
     assert payload["recommendation"] == "explain-code"
-    assert payload["install"]["skill"] == "explain-code"
+    assert payload["handoff"]["skills"] == ["explain-code"]
 
 
 @pytest.mark.parametrize(
@@ -261,7 +373,7 @@ def test_installed_which_skill_routes_typescript_analysis_skills(
     payload = json.loads(result.stdout)
     assert payload["routing_context"]["language"] == "typescript"
     assert payload["recommendation"] == expected_skill
-    assert payload["install"]["skill"] == expected_skill
+    assert payload["handoff"]["skills"][0] == expected_skill
 
 
 def test_default_router_set_is_exactly_three():
@@ -348,6 +460,8 @@ def test_installed_which_cleanup_routes_without_repository_runtime(tmp_path):
     assert payload["scope_band"] == "small"
     recommendations = {item["skill"]: item for item in payload["recommendations"]}
     assert "find-test-obligation-drift" in recommendations
-    handoff = recommendations["find-test-obligation-drift"]["install"]
-    assert handoff["source"] == "/tmp/engineering-skills-source"
-    assert "--skill find-test-obligation-drift" in handoff["command"]
+    handoff = recommendations["find-test-obligation-drift"]["handoff"]
+    assert handoff["skills"] == ["find-test-obligation-drift"]
+    optional_install = recommendations["find-test-obligation-drift"]["optional_install"]
+    assert optional_install["source"] == "/tmp/engineering-skills-source"
+    assert "--skill find-test-obligation-drift" in optional_install["command"]

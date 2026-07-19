@@ -344,7 +344,7 @@ def test_coupled_scanner_uses_project_relative_exclusions_and_never_follows_esca
 
 
 @pytest.mark.parametrize("router_name", ["which-skill", "which-shape"])
-def test_fresh_stock_agents_install_runs_only_documented_commands_on_clean_ts_host(
+def test_fresh_router_library_handoff_reaches_clean_ts_outcome_without_skill_install(
     tmp_path: Path, router_name: str
 ) -> None:
     host = _make_host(tmp_path)
@@ -363,8 +363,23 @@ def test_fresh_stock_agents_install_runs_only_documented_commands_on_clean_ts_ho
         for path in (host / "src").glob("*")
     }
 
-    router = tmp_path / router_name
-    shutil.copytree(REPO_ROOT / ".claude" / "skills" / router_name, router)
+    installed_routers = host / ".agents" / "skills"
+    for default_router in ("which-shape", "which-skill", "which-cleanup"):
+        shutil.copytree(
+            REPO_ROOT / ".claude" / "skills" / default_router,
+            installed_routers / default_router,
+        )
+    bootstrap = _run(
+        installed_routers / "which-skill" / "scripts" / "bootstrap_library.py",
+        "--project-root",
+        str(host),
+        "--source",
+        str(REPO_ROOT),
+        cwd=host,
+    )
+    assert bootstrap.returncode == 0, bootstrap.stdout + bootstrap.stderr
+    library_root = host.parent / ".engineering-skills" / host.name
+    router = installed_routers / router_name
     task = (
         "use rename-concept to assess this TypeScript rename"
         if router_name == "which-skill"
@@ -391,32 +406,22 @@ def test_fresh_stock_agents_install_runs_only_documented_commands_on_clean_ts_ho
         assert routing["recommendation"] == "rename-concept"
     else:
         assert routing["recommendation"]["shape"] == "concept-rename"
-    assert routing["install"]["skills"] == [
+    assert "install" not in routing
+    assert routing["handoff"]["available"] is True
+    assert routing["handoff"]["skills"] == [
         "rename-concept",
         "find-concept-divergence",
     ]
-    routed_install_command = routing["install"]["command"]
-    assert "--skill rename-concept" in routed_install_command
-    assert "--skill find-concept-divergence" in routed_install_command
-
-    install = subprocess.run(
-        ["/bin/sh", "-c", routed_install_command],
-        cwd=host,
-        env={**os.environ, "DO_NOT_TRACK": "1", "ENGINEERING_SKILLS_SOURCE": str(REPO_ROOT)},
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert install.returncode == 0, install.stdout + install.stderr
-    installed = host / ".agents" / "skills" / "rename-concept"
+    assert routing["handoff"]["default_execution"] == "fresh_non_context_subagent"
+    assert "--skill rename-concept" in routing["optional_install"]["command"]
+    assert "--skill find-concept-divergence" in routing["optional_install"]["command"]
+    installed = library_root / ".claude" / "skills" / "rename-concept"
+    companion = library_root / ".claude" / "skills" / "find-concept-divergence"
     assert installed.is_dir()
-    assert not installed.resolve().is_relative_to(REPO_ROOT.resolve())
-    companion = host / ".agents" / "skills" / "find-concept-divergence"
     assert companion.is_dir()
-    assert not companion.resolve().is_relative_to(REPO_ROOT.resolve())
     assert {
         path.name for path in (host / ".agents" / "skills").iterdir() if path.is_dir()
-    } == {"rename-concept", "find-concept-divergence"}
+    } == {"which-shape", "which-skill", "which-cleanup"}
 
     preflight = subprocess.run(
         ["/bin/sh", "-c", _documented_command(installed, "typescript-preflight")],
@@ -427,13 +432,15 @@ def test_fresh_stock_agents_install_runs_only_documented_commands_on_clean_ts_ho
     )
     assert preflight.returncode == 0, preflight.stdout + preflight.stderr
 
-    assess = subprocess.run(
-        ["/bin/sh", "-c", _documented_command(installed, "assess")],
+    assess = _run(
+        installed / "scripts" / "assess.py",
+        "legacy-status",
+        "canonical-status",
+        "--project-root",
+        str(host),
+        "--output",
+        str(host / "reports" / "rename-concept" / "assessment.json"),
         cwd=host,
-        env={**os.environ, "OLD_CONCEPT": "legacy-status", "NEW_CONCEPT": "canonical-status"},
-        capture_output=True,
-        text=True,
-        check=False,
     )
     assert assess.returncode == 0, assess.stdout + assess.stderr
     assert "TypeScript/TSX: RESOLVED — compiler API 5.9.3" in assess.stdout

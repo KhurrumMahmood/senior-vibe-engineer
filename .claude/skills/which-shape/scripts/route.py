@@ -559,11 +559,41 @@ def _skill_handoff(result: dict[str, Any], *, source: str, version: str, agent: 
         "skills_cli_version": version,
         "agent": agent,
         "command": "DO_NOT_TRACK=1 " + shlex.join(command),
-        "locations": {
-            "definition": f"{source}::.claude/skills/{skill}/SKILL.md",
-            "bundled_tooling": f"{source}::.claude/skills/{skill}/scripts/",
-            "shared_tooling": f"{source}::scripts/",
-        },
+    }
+
+
+def _library_handoff(library_root: Path, skills: list[str]) -> dict[str, Any]:
+    guides = []
+    for skill in skills:
+        guide = library_root / ".claude" / "skills" / skill / "SKILL.md"
+        bundled_tooling = guide.parent / "scripts"
+        guides.append(
+            {
+                "skill": skill,
+                "skill_root": str(guide.parent),
+                "guide": str(guide),
+                "bundled_tooling": str(bundled_tooling) if bundled_tooling.is_dir() else None,
+            }
+        )
+    shared_tooling = library_root / "scripts"
+    common_guidance = library_root / ".claude" / "skills" / "_common"
+    shared_guidance = library_root / ".claude" / "docs"
+    return {
+        "mode": "on_demand_library",
+        "available": all(Path(item["guide"]).is_file() for item in guides),
+        "default_execution": "fresh_non_context_subagent",
+        "library_root": str(library_root),
+        "skills": skills,
+        "guides": guides,
+        "shared_tooling": str(shared_tooling) if shared_tooling.is_dir() else None,
+        "common_guidance": str(common_guidance) if common_guidance.is_dir() else None,
+        "shared_guidance": str(shared_guidance) if shared_guidance.is_dir() else None,
+        "instruction": (
+            "For non-trivial work, give a fresh non-context sub-agent the task, project root, "
+            "selected skill roots, and shared guidance/tool paths. For small work, read from "
+            "the same bounded roots directly. Do not install the skills unless the user "
+            "explicitly asks."
+        ),
     }
 
 
@@ -585,13 +615,24 @@ def render_markdown(result: dict[str, Any]) -> str:
     lines.extend(["", f"First next: {rec['first_next']}", "", "Loop:"])
     lines.extend(f"- {step}" for step in rec["sequence"])
     lines.extend(["", f"Stop/reassess: {rec['stop']}"])
-    if result.get("install"):
+    if result.get("handoff"):
+        lines.extend(["", "Use this closure on demand:"])
+        for item in result["handoff"]["guides"]:
+            lines.append(f"  Guide /{item['skill']}: {item['guide']}")
+            lines.append(f"  Skill root /{item['skill']}: {item['skill_root']}")
+            if item["bundled_tooling"]:
+                lines.append(f"  Bundled tooling /{item['skill']}: {item['bundled_tooling']}")
+        lines.append(f"  Default: {result['handoff']['default_execution']}")
+        if result["handoff"]["common_guidance"]:
+            lines.append(f"  Shared skill guidance: {result['handoff']['common_guidance']}")
+        if result["handoff"]["shared_tooling"]:
+            lines.append(f"  Shared tooling: {result['handoff']['shared_tooling']}")
+        if not result["handoff"]["available"]:
+            lines.append("  Library unavailable: run the which-skill library bootstrap first.")
         lines.extend(
             [
-                "",
-                f"Install /{result['install']['skill']}:",
-                f"  {result['install']['command']}",
-                f"Definition/tooling: {result['install']['locations']['definition']}",
+                "  Optional ambient install (only when explicitly requested):",
+                f"    {result['optional_install']['command']}",
             ]
         )
     if rec.get("inactive_steps"):
@@ -642,6 +683,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--shapes", type=Path, default=DEFAULT_SHAPES)
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--source", default=DEFAULT_SOURCE)
+    parser.add_argument(
+        "--library-root", type=Path,
+        help="On-demand library root (default: <project-parent>/.engineering-skills/<project-name>)",
+    )
     parser.add_argument("--skills-cli-version", default=DEFAULT_CLI_VERSION)
     parser.add_argument("--agent", default="codex")
     parser.add_argument(
@@ -675,7 +720,15 @@ def main(argv: list[str] | None = None) -> int:
             agent=args.agent,
         )
         if handoff is not None:
-            result["install"] = handoff
+            project_root = args.project_root.resolve()
+            library_root = (
+                args.library_root
+                or project_root.parent / ".engineering-skills" / project_root.name
+            )
+            if not library_root.is_absolute():
+                library_root = project_root / library_root
+            result["handoff"] = _library_handoff(library_root.resolve(), handoff["skills"])
+            result["optional_install"] = handoff
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

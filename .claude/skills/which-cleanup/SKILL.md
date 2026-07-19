@@ -1,6 +1,6 @@
 ---
 name: which-cleanup
-description: Route a completed change to proportionate cleanup and guard skills. Use after editing or committing code when the agent should inspect only the changed scope, decide how much closeout is warranted, and locate/install the specific follow-up skills and their bundled tooling. The portable default is advisory, stdlib-only, and does not load or run the recommended skill bodies.
+description: Route a completed change to proportionate cleanup and guard skills. Use after editing or committing code to inspect only the changed scope, choose warranted closeout guides, and return on-demand guide/tool paths for direct or fresh-sub-agent execution. Ambient installation is explicit and optional.
 argument-hint: "[paths… | --staged | --changed-from REF | --commit SHA | --range A..B]"
 allowed-tools: Bash, Read
 user-invocable: true
@@ -34,8 +34,10 @@ third default router alongside `/which-shape` and `/which-skill`:
 - `/which-skill` chooses a task skill;
 - `/which-cleanup` chooses post-change checks and guards.
 
-Do not execute the recommended skills. Return their exact stock install
-commands and source locations so the calling agent can load only what it needs.
+Do not execute the recommended skills. Return exact on-demand guide and tool
+paths so the calling agent can load only what it needs. For non-trivial
+closeout, prefer a fresh non-context sub-agent per independent read-only lens;
+keep mutations serial.
 
 ## Run
 
@@ -67,9 +69,9 @@ Honor these fields:
 - `scope_band`: `trivial`, `small`, `medium`, or `large`, based on changed-file
   count. It controls roster width, not correctness or risk by itself.
 - `resolved_paths`: the exact bounded paths considered.
-- `recommendations[]`: skill, reason, pinned stock `install.command`, and
-  `locations` for its definition, skill-local scripts, and shared source
-  tooling.
+- `recommendations[]`: skill, reason, primary on-demand `handoff`, and an
+  `optional_install` command used only when the user requests ambient
+  installation.
 - `source`: the canonical repository and conventional skill/tool roots.
 - `limitations`: what portable mode deliberately does not infer.
 
@@ -82,12 +84,15 @@ not proof that every recommendation applies.
 
 For each relevant recommendation:
 
-1. Run only its `install.command`.
-2. Load the installed skill’s `SKILL.md`.
-3. Use its `locations.bundled_tooling` and `locations.shared_tooling` pointers
-   to find the related deterministic tooling at the canonical source.
+1. Skip it explicitly if it is irrelevant to the actual change.
+2. For a tiny check, read only its `handoff.guides` paths directly.
+3. For a non-trivial independent check, create a fresh non-context sub-agent
+   with the bounded changed paths, reason, and returned guide/tool paths.
 4. Follow that skill’s own support and runtime claims; a location is not a
    claim that the tooling is language-neutral or independently installable.
+
+Use `optional_install` only when the user explicitly chooses ambient
+installation.
 
 Skip irrelevant recommendations explicitly. Keep mutations serial even when
 multiple read-only checks can run independently.
@@ -100,8 +105,9 @@ multiple read-only checks can run independently.
   project profile or task skill.
 - The source checkout retains richer historical closeout scripts for its own
   development, but they are not part of this portable default path.
-- No custom installer, dispatcher, workflow coordinator, or trust layer is
-  required.
+- The thin library bootstrap only materializes the source outside discovery;
+  it is not a dispatcher, workflow coordinator, package manager, or trust
+  layer.
 
 ## Failure handling
 

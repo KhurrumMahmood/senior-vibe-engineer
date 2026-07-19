@@ -17,10 +17,11 @@ This README is the **human entrypoint**. AI agents (Claude Code, Codex,
 Augment, Cursor, Gemini) should start at
 [`AGENTS.md`](./AGENTS.md) → [`.claude/CLAUDE.md`](./.claude/CLAUDE.md).
 
-**Where to start:** install the three lightweight routers, then let
-`which-skill` install only the skill selected for the task and any declared
-runtime companions. Repository
-contributors use `/engineer-init` for the development venv and hooks.
+**Where to start:** install the three lightweight routers, materialize the full
+guide/tool library outside agent discovery, then let the routers expose only
+the selected closure on demand. For non-trivial work, pass that bounded closure
+to a fresh non-context sub-agent. Repository contributors use `/engineer-init`
+for the development venv and hooks.
 
 ## What's in the box
 
@@ -111,14 +112,23 @@ DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \
   "$ENGINEERING_SKILLS_SOURCE" \
   --skill which-shape --skill which-skill --skill which-cleanup \
   --agent codex --copy -y
+
+# Materialize all non-router guides and tooling outside agent discovery.
+python3 .agents/skills/which-skill/scripts/bootstrap_library.py \
+  --project-root "$PWD" --source "$ENGINEERING_SKILLS_SOURCE"
 ```
 
 Ask the agent to use `which-shape` when the operating mode is unclear,
 `which-skill` for the tactical choice, and `which-cleanup` after changes are
 made. The three routers run with system Python and do not load the other 73
-skill bodies. Their results point to the relevant skill definition and tooling
-at the canonical source and include pinned `skills@1.5.19` commands for
-installing only each selected follow-up skill's declared closure.
+skill bodies or metadata into ambient context. The library lives in the
+project-scoped sibling cache
+`<project-parent>/.engineering-skills/<project-name>` by default, outside both
+the target repository and standard skill-discovery roots. Router results point
+to only the selected guide/tool closure and
+recommend a fresh non-context sub-agent for non-trivial work. A pinned
+`skills@1.5.19` selected-skill command remains available only when the user
+explicitly chooses ambient installation.
 
 To remove all skills installed for the project:
 
@@ -129,6 +139,8 @@ DO_NOT_TRACK=1 npx --yes skills@1.5.19 remove --all
 The stock CLI owns the installed skill directories and `skills-lock.json`.
 Move local edits out of an installed skill directory before replacing or
 removing it. Files elsewhere in the host project are outside that boundary.
+The on-demand library is separate from that boundary and may be retained as a
+shared project resource or removed independently.
 
 For repository development, clone this repo and run `/engineer-init`, or:
 
@@ -138,9 +150,9 @@ python3 -m venv .venv
 .venv/bin/pre-commit install
 ```
 
-## Runtime-backed skills
+## Runtime-backed guides
 
-The routers and prompt-only skills are self-contained. Many older
+The routers and prompt-only guides are self-contained. Many older
 script-backed skills still depend on repository-level helpers and PyYAML; they
 are not yet claimed as independently installable. TypeScript support is tracked
 per skill, and further cross-language work proceeds one cohesive family at a
@@ -151,16 +163,18 @@ time.
    runner, …) that need `PyYAML` from `requirements.txt`. Until the venv
    exists the slash command is listed but errors on its first script
    call. Run the repository-development block above — or `/engineer-init` —
-   when developing the full checkout. Prompt-only skills and the three routers
+   when developing the full checkout. Prompt-only guides and the three routers
    do not require it.
 
-2. **Older script-backed skills must run from a full checkout.** Their scripts use
+2. **Older script-backed guides may still require runtime generalization.** Their scripts use
    paths relative to the repo root — `scripts/decisions.py`,
    `ai-docs/decisions/`, `reports/`. Run from a parent or staging
    directory, those paths don't resolve and there is no codebase to act
-   on. Set the working directory to a project root that has `.claude/`,
-   `scripts/`, and `ai-docs/` — either this repo itself, or a host
-   project those folders were copied or symlinked into.
+   on. Use the router's exact guide/tool paths under
+   the router-reported sibling cache, but treat those paths as location rather
+   than proof that the guide can already operate on an external host. Do not
+   copy the guide into an ambient skill directory merely to mask an undeclared
+   runtime dependency.
 
 ## Layout
 

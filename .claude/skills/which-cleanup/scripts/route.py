@@ -78,11 +78,35 @@ def install_command(*, source: str, version: str, skill: str, agent: str) -> str
     )
 
 
-def locations(source: str, skill: str) -> dict[str, str]:
+def library_handoff(library_root: Path, skill: str) -> dict:
+    guide = library_root / ".claude" / "skills" / skill / "SKILL.md"
+    bundled_tooling = guide.parent / "scripts"
+    shared_tooling = library_root / "scripts"
+    common_guidance = library_root / ".claude" / "skills" / "_common"
+    shared_guidance = library_root / ".claude" / "docs"
     return {
-        "definition": f"{source}::.claude/skills/{skill}/SKILL.md",
-        "bundled_tooling": f"{source}::.claude/skills/{skill}/scripts/",
-        "shared_tooling": f"{source}::scripts/",
+        "mode": "on_demand_library",
+        "available": guide.is_file(),
+        "default_execution": "fresh_non_context_subagent",
+        "library_root": str(library_root),
+        "skills": [skill],
+        "guides": [
+            {
+                "skill": skill,
+                "skill_root": str(guide.parent),
+                "guide": str(guide),
+                "bundled_tooling": str(bundled_tooling) if bundled_tooling.is_dir() else None,
+            }
+        ],
+        "shared_tooling": str(shared_tooling) if shared_tooling.is_dir() else None,
+        "common_guidance": str(common_guidance) if common_guidance.is_dir() else None,
+        "shared_guidance": str(shared_guidance) if shared_guidance.is_dir() else None,
+        "instruction": (
+            "For a non-trivial closeout, give a fresh non-context sub-agent the bounded paths, "
+            "reason, selected skill root, and shared guidance/tool paths. For a tiny check, read "
+            "from the same bounded roots directly. Do not install the skill unless the user "
+            "explicitly asks."
+        ),
     }
 
 
@@ -110,6 +134,13 @@ def recommendations(paths: list[str], band: str) -> list[tuple[str, str]]:
 
 def build_result(args: argparse.Namespace) -> dict:
     root = args.project_root.resolve()
+    library_root = (
+        args.library_root
+        or root.parent / ".engineering-skills" / root.name
+    )
+    if not library_root.is_absolute():
+        library_root = root / library_root
+    library_root = library_root.resolve()
     target, paths = resolve_paths(args, root)
     band = scope_band(len(paths))
     recs = []
@@ -118,7 +149,8 @@ def build_result(args: argparse.Namespace) -> dict:
             {
                 "skill": skill,
                 "reason": reason,
-                "install": {
+                "handoff": library_handoff(library_root, skill),
+                "optional_install": {
                     "source": args.source,
                     "skills_cli_version": args.skills_cli_version,
                     "agent": args.agent,
@@ -129,7 +161,6 @@ def build_result(args: argparse.Namespace) -> dict:
                         agent=args.agent,
                     ),
                 },
-                "locations": locations(args.source, skill),
             }
         )
     return {
@@ -144,7 +175,7 @@ def build_result(args: argparse.Namespace) -> dict:
         },
         "limitations": (
             "Portable mode uses the universal closeout floor and file-count sizing. "
-            "Install a recommended skill to load its task-specific instructions and tooling."
+            "Load a recommendation from the on-demand library; ambient installation is optional."
         ),
     }
 
@@ -163,8 +194,10 @@ def render(result: dict) -> str:
         lines.extend(
             [
                 f"- /{item['skill']}: {item['reason']}",
-                f"  Install: {item['install']['command']}",
-                f"  Definition/tooling: {item['locations']['definition']}",
+                f"  Guide: {item['handoff']['guides'][0]['guide']}",
+                f"  Default: {item['handoff']['default_execution']}",
+                "  Optional ambient install (only when explicitly requested):",
+                f"    {item['optional_install']['command']}",
             ]
         )
     return "\n".join(lines) + "\n"
@@ -179,6 +212,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--range")
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
     parser.add_argument("--source", default=DEFAULT_SOURCE)
+    parser.add_argument(
+        "--library-root", type=Path,
+        help="On-demand library root (default: <project-parent>/.engineering-skills/<project-name>)",
+    )
     parser.add_argument("--skills-cli-version", default=DEFAULT_CLI_VERSION)
     parser.add_argument("--agent", default="codex")
     parser.add_argument("--json", action="store_true")

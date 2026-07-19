@@ -328,6 +328,22 @@ def test_render_markdown_surfaces_inactive_steps(tmp_path):
     assert "no interview step here" in md
 
 
+def test_default_text_handoff_lists_every_concept_rename_guide(tmp_path, capsys):
+    assert route.main([
+        "rename the domain concept across the glossary and all surfaces",
+        "--project-root", str(tmp_path),
+        "--library-root", str(REPO_ROOT),
+        "--skip-log",
+    ]) == 0
+
+    output = capsys.readouterr().out
+    assert f"Guide /rename-concept: {REPO_ROOT}/.claude/skills/rename-concept/SKILL.md" in output
+    assert (
+        f"Guide /find-concept-divergence: "
+        f"{REPO_ROOT}/.claude/skills/find-concept-divergence/SKILL.md"
+    ) in output
+
+
 # --- status.json grounding (spec IM-9, AR-5) ---------------------------------
 
 

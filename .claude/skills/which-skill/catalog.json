@@ -1149,7 +1149,7 @@
     },
     {
       "name": "which-cleanup",
-      "description": "Route a completed change to proportionate cleanup and guard skills. Use after editing or committing code when the agent should inspect only the changed scope, decide how much closeout is warranted, and locate/install the specific follow-up skills and their bundled tooling. The portable default is advisory, stdlib-only, and does not load or run the recommended skill bodies.",
+      "description": "Route a completed change to proportionate cleanup and guard skills. Use after editing or committing code to inspect only the changed scope, choose warranted closeout guides, and return on-demand guide/tool paths for direct or fresh-sub-agent execution. Ambient installation is explicit and optional.",
       "tier": "cross-cutting",
       "job": "meta",
       "best_for": "End-of-task closeout: identify cleanup and GUARD work warranted by changed\nfiles or a bounded Git diff. Use when the question is “I changed this; what\nengineering checks should happen before I call it done?”\n",
@@ -1210,7 +1210,7 @@
     },
     {
       "name": "which-skill",
-      "description": "Recommend a skill (or \"no planning skill applies — proceed directly\") for a free-text task description. Reads a bundled metadata-only catalog and ranks candidates by token overlap without loading skill bodies. Emits a pinned stock install command for the winner.",
+      "description": "Recommend a skill (or \"no planning skill applies — proceed directly\") for a free-text task description. Reads a bundled metadata-only catalog without loading skill bodies, then emits on-demand guide/tool paths and a bounded fresh-sub-agent handoff. Ambient installation is explicit and optional.",
       "tier": "cross-cutting",
       "job": "meta",
       "best_for": "An agent (or human) is unsure which skill to invoke for a task.\nEspecially valuable at the start of a non-trivial task — the cost of\nwrong tool selection (Quick task funneled into a System-tier\nplanning chain) is much higher than the 5 seconds of running\n/which-skill.\n",
