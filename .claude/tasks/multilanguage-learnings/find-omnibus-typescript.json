@@ -1,6 +1,6 @@
 {
   "batch": "B4",
-  "revision": "c0349abb1595375c2890b3c50b4b699234e9d2ca",
+  "revision": "e7da0b117ade8c58da73a86936d90f718669ae0f",
   "family": [
     "find-omnibus"
   ],
@@ -21,7 +21,10 @@
     "Removed the detector's repository scripts/_lib runtime dependency by restoring Python and legacy JavaScript extraction inside the selected skill.",
     "Stopped routing .ts and .tsx through the JavaScript column-zero heuristic, which missed ESM exports and labeled TypeScript as JavaScript.",
     "Removed report.py's sibling _common telemetry import so the complete report pipeline runs from a copied selected skill.",
-    "Added explicit TypeScript generated, vendor, minified, declaration, spec, test, and fixture exclusions plus clear parser-prerequisite failures."
+    "Added explicit TypeScript generated, vendor, minified, declaration, spec, test, and fixture exclusions plus clear parser-prerequisite failures.",
+    "Corrected the false first-closeout claim that script-level self-containment also closed the installed workflow: D5 found hard-coded .claude commands plus Stage 3 dependencies on an uninstalled _common dispatcher, tools/code_agent, host adapter, another skill, and toolkit venv.",
+    "Repair e7da0b117ade8c58da73a86936d90f718669ae0f adds an installation-root resolver for stock .agents and source-tree .claude, bundles the full scout/deletion-test context, uses the host standard sub-agent capability directly, and documents serial capacity fallback.",
+    "Restored truthful cross-language metadata: language any and scans python, javascript, and typescript preserve the legacy JavaScript contract alongside Python and TypeScript."
   ],
   "language_model": {
     "syntax": [
@@ -56,7 +59,7 @@
       "shared_fact_platform": "No accepted second consumer demonstrates this exact contract."
     },
     "version_and_resolution": "Fixture package-lock pins TypeScript 5.9.3; installed execution resolves typescript from the host package.json. Fresh D6 used Node v26.3.1, npm/npx 11.16.0, and Python 3.13.2 for the host journey.",
-    "closure_mode": "Pinned stock CLI installs only find-omnibus; installed files contain SKILL.md, verification prompt/knowledge, detect/collapse/report Python scripts, and the bundled TypeScript launcher. No toolkit scripts/_lib, sibling _common, toolkit venv, or other skill is required.",
+    "closure_mode": "Pinned stock CLI installs only find-omnibus. Installed files contain installation-relative commands, the complete verification prompt/rules/deletion test, detect/collapse/report Python scripts, and the bundled TypeScript launcher. Runtime uses the host Python and standard sub-agent capability directly; no toolkit scripts/_lib, sibling _common, external dispatcher, tools/code_agent, host adapter, toolkit venv, or other skill is required.",
     "preflight_and_failure_codes": [
       "detect: 0 successful JSONL output",
       "detect: 2 invalid target, missing Node, missing host package/typescript, invalid parser JSON, or TypeScript syntax error",
@@ -97,16 +100,19 @@
   "evidence": {
     "python_reference": [
       "tests/test_omnibus_language_adapters.py preserves Python positive/cohesive behavior and legacy JavaScript positive/cohesive/minified/spec behavior.",
-      "Combined targeted suite at c0349ab: 11 passed across omnibus language adapters, TypeScript outcome, and skill taxonomy."
+      "Combined targeted suite at repair e7da0b1: 14 passed across omnibus language adapters, TypeScript outcome, installed-command closure, and skill taxonomy.",
+      "Frontmatter regression asserts language any and scans python, javascript, and typescript so the legacy JavaScript truth is not erased by TypeScript support."
     ],
     "typescript": [
       "tests/fixtures/b4_typescript_omnibus locks positive .ts/.tsx, cohesive TSX, generated/vendor/minified/spec/test exclusions, TypeScript 5.9.3, and native test behavior.",
       "tests/test_omnibus_typescript.py proves final report semantics, copied python -I -S execution, syntax-error rc 2, and pinned stock selected-skill installation.",
+      "The pinned stock-install regression extracts the documented resolver/setup/detect/collapse/report blocks verbatim from .agents/skills/find-omnibus and runs them through report.md and findings.json with scout artifacts.",
+      "The selected scout prompt/knowledge regression rejects _common, dispatch_scout_cheap, tools/code_agent, hard-coded source script paths, and subagent_type host-adapter syntax.",
       "Fresh D6 report contains 2 confirmed_omnibus, 0 unverified, language=typescript, analyzer=typescript-compiler-api, and four domains per candidate.",
       "Fresh D6 before and after source manifests are byte-identical."
     ],
     "commands_and_artifact_paths": [
-      ".venv/bin/python -m pytest -q tests/test_omnibus_language_adapters.py tests/test_omnibus_typescript.py tests/test_skill_taxonomy.py: 11 passed",
+      ".venv/bin/python -m pytest -q tests/test_omnibus_language_adapters.py tests/test_omnibus_typescript.py tests/test_skill_taxonomy.py: 14 passed",
       ".venv/bin/ruff check .claude/skills/find-omnibus/scripts/detect.py .claude/skills/find-omnibus/scripts/report.py tests/test_omnibus_typescript.py: All checks passed",
       "node --check .claude/skills/find-omnibus/scripts/detect_typescript_symbols.mjs: passed",
       "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add <checkout> --skill find-omnibus --agent codex --copy -y",
@@ -151,7 +157,7 @@
     "evidence": [
       "Only find-omnibus consumes this exact createSourceFile top-level span schema.",
       "B2T uses Compiler API semantic state facts, not this syntax-only contract.",
-      "The fresh installed journey passed without shared adapter infrastructure."
+      "The fresh journey produced the expected artifact but exposed installed-path and dispatcher closure defects; repair e7da0b1 fixes them without shared adapter infrastructure and adds a literal stock-command replay."
     ],
     "owner": "B4 find-omnibus"
   },
@@ -236,29 +242,28 @@
     "install_steps": [
       "Create a clean disposable host and copy only raw fixture source/package files.",
       "Run pinned stock skills@1.5.19 add with only --skill find-omnibus and --copy.",
-      "Install the host's TypeScript dependency and create its Python venv.",
-      "Run detect, collapse, two scouts, and report from the installed selected skill."
+      "Install the host's locked TypeScript dependency; use its Python venv when present or host python3.",
+      "Run the documented resolver and stage commands verbatim, dispatch standard scouts, and produce the final report from the installed selected skill."
     ],
     "wall_time_seconds": null,
     "agent_confusions": [
-      "The installer placed the skill under .agents/skills, while SKILL.md examples hard-code .claude/skills; the fresh agent had to translate the path.",
+      "D6 revealed that the installer placed the skill under .agents/skills while the first SKILL.md examples hard-coded .claude/skills; repair e7da0b1 replaced that assumption with a tested resolver.",
       "The original handoff described the raw fixture with a wrong path/name; the fresh agent found the committed B4 fixture by filename without reading expected-output artifacts."
     ],
     "repeated_work": [
-      "Shared agent-thread capacity blocked parallel Stage 3 dispatch; the fresh agent waited and completed the two scouts serially.",
-      "The skill examples repeat an installation-root assumption at each stage."
+      "Shared agent-thread capacity blocked parallel Stage 3 dispatch during D6; repair e7da0b1 now documents serial standard-sub-agent dispatch as the capacity fallback.",
+      "The first closeout repeated an installation-root assumption at each stage; the repair centralizes resolution and its installed-copy test executes each documented block."
     ],
-    "smallest_later_improvement": "Resolve the actual installed skill root in command examples and document a serial low-capacity scout fallback."
+    "smallest_later_improvement": "No remaining closure repair is identified; retain the stock-installed verbatim-command replay as the regression guard."
   },
   "residual_risks": [
     "Anonymous/default/re-export surfaces and nested declarations remain out of scope.",
     "The detector uses symbol names rather than semantic domain identity, so scout verification remains required.",
-    "The installed instructions assume .claude/skills even when the standard installer uses .agents/skills.",
-    "Parallel scout completion depends on shared agent capacity; serial fallback increases latency."
+    "Shared agent capacity can increase latency because the documented serial fallback may replace concurrent scout dispatch."
   ],
   "next_decision": {
-    "recommendation": "Accept B4 as complete through D1-D8, keep the parser family-local, and let the serial integrator update shared routing/catalog claims.",
-    "rationale": "The committed implementation, native fixtures, copied/stock install tests, and fresh non-context final report prove useful TypeScript omnibus detection without a shared parser platform.",
+    "recommendation": "Accept B4 as complete through D1-D8 at implementation c0349ab and closure repair e7da0b1, keep the parser family-local, and let the serial integrator update shared routing/catalog claims.",
+    "rationale": "The committed implementation, native fixtures, copied/stock install tests, fresh non-context final report, and stock-installed verbatim-command replay prove useful TypeScript omnibus detection without a shared parser platform or hidden runtime dependency.",
     "blockers": []
   }
 }

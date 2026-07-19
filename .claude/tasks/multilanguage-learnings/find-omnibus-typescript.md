@@ -1,7 +1,9 @@
 # B4 TypeScript `find-omnibus` learning packet
 
 Implementation revision: `c0349abb1595375c2890b3c50b4b699234e9d2ca`
-(`c0349ab`, `Add first-class TypeScript omnibus detection`).
+(`c0349ab`, `Add first-class TypeScript omnibus detection`). Closure repair:
+`e7da0b117ade8c58da73a86936d90f718669ae0f` (`e7da0b1`, `Make omnibus
+installed closure self-contained`).
 
 ## Invariant and scope
 
@@ -24,9 +26,22 @@ legacy JavaScript heuristic behavior remain separate and preserved.
 The reference detector had two portability defects: it imported repository
 `scripts/_lib`, and it routed `.ts`/`.tsx` through a column-zero JavaScript
 heuristic that missed normal ESM exports and labeled TypeScript as JavaScript.
-The reporter also imported sibling `_common` telemetry. The selected skill now
-owns all repository runtime code needed for Python, legacy JavaScript,
-TypeScript, collapse, and reporting.
+The reporter also imported sibling `_common` telemetry. The first closeout
+incorrectly claimed complete installed closure after those script imports were
+removed: the selected `SKILL.md` still hard-coded the source-tree `.claude`
+path and Stage 3 referenced an uninstalled `_common` dispatcher,
+`tools/code_agent`, a host adapter, another skill's interface guidance, and a
+toolkit venv. The D5 adversarial review rejected that claim.
+
+Repair `e7da0b1` makes the whole selected workflow installation-relative. The
+documented resolver supports both stock `.agents/skills/find-omnibus` and the
+source-tree `.claude/skills/find-omnibus`, all Python commands use the host
+venv when present and otherwise `python3`, and Stage 3 uses the host's standard
+sub-agent capability directly. Its complete prompt, facet/domain rule,
+false-positive list, deletion test, and locality guidance are bundled in the
+selected skill. Python, the legacy JavaScript heuristic, TypeScript, collapse,
+and reporting remain independent runtime paths, and frontmatter truthfully
+declares `language: any` plus all three scanners.
 
 `detect_typescript_symbols.mjs` is a family-local Compiler API launcher. It
 resolves `typescript` from the host project's `package.json` and calls
@@ -55,13 +70,16 @@ errors stop Stage 1 with exit code 2 instead of silently under-detecting.
 `tests/test_omnibus_typescript.py` proves detect → collapse → scout-backed
 report semantics, structured TypeScript provenance, clear syntax-error
 failure, copied-directory execution under `python -I -S`, and the pinned stock
-selected-skill installation.
+selected-skill installation. The stock-install test extracts the resolver and
+stage commands verbatim from the installed `SKILL.md`, runs them through the
+final report boundary, and asserts the resulting detections, scouts, report,
+and findings.
 
 ```text
 .venv/bin/python -m pytest -q \
   tests/test_omnibus_language_adapters.py tests/test_omnibus_typescript.py \
   tests/test_skill_taxonomy.py
-# 11 passed
+# 14 passed
 
 .venv/bin/ruff check .claude/skills/find-omnibus/scripts/detect.py \
   .claude/skills/find-omnibus/scripts/report.py tests/test_omnibus_typescript.py
@@ -113,8 +131,12 @@ Evidence root:
 - Installed-file inventory SHA-256:
   `d437d555158c66a66ad8156fbdf2540fe5ee91e1d30baae5af583aa562568f1d`.
 
-D6 passes: the final artifact is useful, the agent was not given the expected
-diagnosis, and the source manifest remained unchanged.
+D6 established that the final artifact and verdict were useful and that the
+source manifest remained unchanged. It also exposed two closure defects: path
+translation from documented `.claude` commands to the stock `.agents` install,
+and an unavailable documented dispatcher path. Those defects made the first
+closure claim false even though the agent worked around them. Repair
+`e7da0b1` converts both observations into installed-copy regression coverage.
 
 ## False-positive boundary and portability
 
@@ -140,25 +162,18 @@ metaprogramming remain language-specific gaps.
 
 The selected installation is one skill plus Node and the host's locked
 TypeScript. It has no toolkit venv, repository `scripts/_lib`, sibling
-`_common`, undeclared network dependency, or uninstalled skill dependency.
+`_common`, host adapter, external dispatcher, undeclared network dependency,
+or uninstalled skill dependency. Its commands resolve either supported install
+root verbatim. Stage 3 asks for concurrent standard sub-agents when capacity
+allows and explicitly permits serial dispatch when it does not; capacity now
+affects latency, not the required mechanism or verdict source.
 
-The fresh journey exposed two UX frictions:
+Residual detector risks remain explicit: anonymous/default/re-export
+surfaces, nested declarations, and semantic module resolution are out of
+scope.
 
-1. The stock installer placed the selected skill under
-   `.agents/skills/find-omnibus`, while `SKILL.md` command examples use
-   `.claude/skills/find-omnibus`; the agent had to translate the documented
-   path.
-2. Shared scout capacity blocked the documented parallel fan-out. The agent
-   waited and completed the two verdicts serially without fabricating or
-   manually substituting a scout result.
-
-The smallest later improvement is to make examples resolve the actual
-installed skill root instead of hard-coding `.claude/skills`, and to state a
-serial low-capacity fallback for Stage 3. Residual detector risks remain
-explicit: anonymous/default/re-export surfaces, nested declarations, and
-semantic module resolution are out of scope.
-
-B4 is complete through D1-D8 at implementation revision `c0349ab` plus this
-canonical learning closeout. Keep the TypeScript parser family-local. Extract
-a shared syntax contract only after a second accepted consumer demonstrates
-the same top-level span and host-resolution needs.
+B4 is complete through D1-D8 at implementation revision `c0349ab` and closure
+repair `e7da0b1`, plus this canonical learning closeout. Keep the TypeScript
+parser family-local. Extract a shared syntax contract only after a second
+accepted consumer demonstrates the same top-level span and host-resolution
+needs.
