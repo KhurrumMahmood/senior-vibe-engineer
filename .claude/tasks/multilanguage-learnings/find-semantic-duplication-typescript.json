@@ -1,0 +1,219 @@
+{
+  "batch": "TypeScript find-semantic-duplication candidate",
+  "revision": "pending lane commit; final hash is reported in the lane handoff",
+  "family": ["find-semantic-duplication"],
+  "invariant": {
+    "portable_principle": "A semantic-duplication detector may surface a typed function-level lead only when its static evidence and uncertainty boundary are explicit; it must not call a lexical clone, caller/callee wrapper, dynamic behavior, or divergent policy a safe refactor.",
+    "python_or_framework_mechanism": "Python keeps a scout-confirmed function triage pipeline. Its copied reference now requires end_line through all comparison artifacts, retires unused workflow/artifact inventory output, and renders uncertainty separately from rejection.",
+    "typescript_mechanism": "One family-local Node command resolves a host-local TypeScript Compiler API from package.json, parses a named tsconfig, creates a Program/TypeChecker, resolves direct identifier calls, compares typed return/output shape, and writes final triage plus matrices.",
+    "explicit_non_goals": [
+      "Workflow or structural duplication analysis",
+      "Protocol, class-method, framework, React, Node, ORM, or runtime semantics",
+      "Dynamic dispatch resolution or external consumer proof",
+      "Automatic consolidation, codemods, source mutation, or a guard",
+      "A shared Compiler API resolver platform",
+      "Later UX or performance optimization"
+    ]
+  },
+  "reference_repairs": [
+    "Bundled a selected-skill stdlib Python inventory and made end_line required in definition/summary/prompt/candidate flow.",
+    "Retired workflow and artifact inventories from the runnable Python function path because no confirmation, rank, or report stage consumed them.",
+    "Changed Python rank/report output so uncertain scout verdicts remain a separate final triage category instead of being filtered into rejected.",
+    "Made the Python candidate collapse function-only to match the repaired reference contract."
+  ],
+  "language_model": {
+    "syntax": [
+      "Eligible .ts/.tsx typed top-level function declarations and identifier-named block-bodied arrows",
+      "Explicit parameter and return annotations plus object-literal return fields",
+      "Compiler syntax diagnostics"
+    ],
+    "type_system": [
+      "Program/TypeChecker return type identity",
+      "Direct identifier-call symbol resolution and alias resolution",
+      "Declaration-only direct call detection as explicit uncertainty"
+    ],
+    "module_resolution": [
+      "Named project-local tsconfig supplies Program options and project references.",
+      "This v1 does not claim a complete import graph or cross-project analysis."
+    ],
+    "runtime": [
+      "Host Node and a project-local TypeScript package loaded from the audited host package.json.",
+      "Locked fixture package-lock pins TypeScript 5.9.3."
+    ],
+    "framework": [
+      "No framework semantics are inferred; class/protocol methods and runtime dispatch are unavailable."
+    ]
+  },
+  "tooling": {
+    "selected": "Family-local detect_typescript.mjs using a host-pinned TypeScript Compiler API Program/TypeChecker and named tsconfig.",
+    "rejected_alternatives": {
+      "lexical_clone_detector": "Cannot prove typed return-shape facts or direct-call symbol identity and belongs to find-duplication.",
+      "ts_morph_or_tree_sitter": "Adds a dependency without improving the required compiler facts.",
+      "shared_map_subsystem_resolver": "map-subsystem has different graph/output/closure requirements; accepted operational patterns do not yet prove a reusable API.",
+      "llm_only_candidate_detection": "Would not establish deterministic compiler-based caller/callee or uncertainty boundaries for an installed scan."
+    },
+    "version_and_resolution": "The locked host package-lock pins TypeScript 5.9.3. The installed command resolves typescript from the audited host package.json and rejects a compiler outside project root.",
+    "closure_mode": "The selected find-semantic-duplication directory bundles Python inventory/rank/report/collapse and the Node detector. The exact stock install copies only this skill; installed execution has no repository scripts, toolkit venv, sibling skill, or network runtime dependency.",
+    "preflight_and_failure_codes": [
+      "Exit 2 for missing target, direct/internal/external symlink target, missing/invalid/symlinked tsconfig, missing project TypeScript, syntax error, or unsafe report directory.",
+      "Direct excluded directories/files produce an empty final report with target.exclusion=excluded.",
+      "Dynamic or declaration-only direct calls produce explicit uncertain triage rather than a clean result."
+    ]
+  },
+  "outcome_contract": {
+    "inputs": [
+      "Locked TypeScript 5.9.3 host fixture and named tsconfig",
+      "Same-outcome/different-code typed positive",
+      "Caller/callee and lexical clone negatives",
+      "Protocol, test-double, generated, and divergent-policy must-not-fire shapes",
+      "Unresolved declaration and dynamic-call uncertainty shapes"
+    ],
+    "structured_outputs": [
+      "reports/semantic-duplication/<scan>/analysis.json",
+      "reports/semantic-duplication/<scan>/findings.json",
+      "reports/semantic-duplication/<scan>/triage.md",
+      "reports/semantic-duplication/<scan>/capability_matrices/TS-SD-0001.md"
+    ],
+    "must_fire": [
+      "summarizeByReduction/summarizeByLoop is exactly confirmed as TS-SD-0001",
+      "The final capability matrix cites both function spans and typed output shape",
+      "Unresolved/dynamic pair is explicit uncertainty"
+    ],
+    "must_not_fire": [
+      "Caller/callee pair, lexical clone, and divergent policy are rejected rather than confirmed",
+      "Class protocol methods, test doubles, and generated sources never become confirmed leads",
+      "Generated/vendor/test/declaration paths including direct excluded targets",
+      "Internal/external symlink traversal or report paths outside reports/semantic-duplication",
+      "Missing compiler/tsconfig and syntax errors represented as a clean scan"
+    ],
+    "native_test_command": "npm ci --offline --ignore-scripts && npm run typecheck",
+    "native_guard_command": null
+  },
+  "evidence": {
+    "python_reference": [
+      "tests/test_find_semantic_duplication_python.py copies only the selected skill and runs the Python inventory/collapse/rank/report scripts under python -I -S.",
+      "It proves end_line reaches the comparison prompt and collapsed members, while confirmed, uncertain, and rejected status reach distinct final triage sections."
+    ],
+    "typescript": [
+      "tests/test_find_semantic_duplication_typescript.py reaches final findings.json/triage.md/matrix and asserts the exact confirmed pair, uncertainty, rejection reasons, direct/broad exclusions, symlink and report containment, prerequisite errors, source hash preservation, and exact stock installation.",
+      "The direct native replay at /private/tmp/semantic-duplication-native.dIRql7 ran offline install and typecheck before/after a final Node scan, producing confirmed=1 uncertain=1 rejected=3."
+    ],
+    "commands_and_artifact_paths": [
+      ".venv/bin/python -m pytest tests/test_find_semantic_duplication_python.py tests/test_find_semantic_duplication_typescript.py -q: 5 passed",
+      ".venv/bin/ruff check .claude/skills/find-semantic-duplication tests/test_find_semantic_duplication_python.py tests/test_find_semantic_duplication_typescript.py: All checks passed",
+      "node --check .claude/skills/find-semantic-duplication/scripts/detect_typescript.mjs: passed",
+      ".venv/bin/python scripts/skill_meta.py lint: OK — 76 skills, 76 declaring new contract",
+      "git diff --check: clean"
+    ],
+    "fresh_forward": {
+      "status": "pending_independent_non_context_replay",
+      "task": "Install only find-semantic-duplication into the raw locked TypeScript host, audit src with the installed documented command, produce final triage/matrix artifacts, and state what needs human review without changing source.",
+      "required_proof": [
+        "Use a clean host and exact selected-skill installation.",
+        "Do not disclose the expected candidate, diagnosis, or output categories to the agent.",
+        "Verify final artifacts, host typecheck before/after, and unchanged source hashes."
+      ],
+      "automated_harness": "The focused stock-install test exercises the same documented installed final-artifact journey but is not presented as independent judgment."
+    }
+  },
+  "false_positive_boundary": {
+    "known_false_positives": [
+      "Matching return type and object fields can represent divergent behavior, so throw/try/await policy mismatch is rejected and runtime behavior remains human review.",
+      "Dynamic and declaration-only direct calls cannot establish behavior and are explicit uncertainty."
+    ],
+    "known_false_negatives": [
+      "Expression-bodied arrows, nested functions, class methods, protocols, different output shapes, and semantic equivalence without the static output signature are deliberately omitted.",
+      "Excluded/test/generated/vendor/symlink paths are intentionally absent."
+    ],
+    "legitimate_similar_shapes": [
+      "Caller/callee wrappers are rejected through resolved direct-call evidence.",
+      "Near-identical token pairs are rejected for find-duplication.",
+      "Protocol implementations and test doubles remain outside top-level function candidates."
+    ]
+  },
+  "generalized": [
+    "Host-pinned TypeScript resolution from package.json",
+    "Named-tsconfig Program/TypeChecker setup",
+    "Final artifact rather than helper-only assertions",
+    "Project-root-relative direct-target exclusions and symlink-safe report containment",
+    "Copied and exact stock selected-skill closure replay",
+    "Read-only source immutability snapshots"
+  ],
+  "did_not_generalize": [
+    "Python scout judgment and original workflow/structural aspiration",
+    "map-subsystem import/export graph schema",
+    "Runtime/framework/protocol semantics",
+    "A global Compiler API service or parser platform"
+  ],
+  "reuse_decision": {
+    "shared_candidate": "The host-local Compiler API and containment operational pattern, not the semantic detector implementation.",
+    "actual_second_consumer": "map-subsystem demonstrates a related but not interface-compatible resolver outcome.",
+    "decision": "keep-family-local",
+    "evidence": [
+      "map-subsystem maps imports/exports/barrels while this skill compares function output signatures and direct-call relationships.",
+      "The installed closures and final artifacts differ, so a shared interface would be speculative."
+    ],
+    "owner": "find-semantic-duplication TypeScript v1"
+  },
+  "translation_prerequisites": {
+    "rust": {
+      "native_tool": "rust-analyzer or compiler-backed HIR/type facts",
+      "idiomatic_representation": "typed free functions, impl methods, trait methods, and direct call resolution",
+      "required_fixtures": ["same-output different code", "caller/callee", "macro/dynamic uncertainty", "trait/protocol exclusion", "cargo check/test and copied install"],
+      "semantic_gaps": ["macros", "trait dispatch", "conditional compilation"]
+    },
+    "go": {
+      "native_tool": "go/types and go/packages",
+      "idiomatic_representation": "typed package functions, methods, interfaces, and resolved calls",
+      "required_fixtures": ["same-output pair", "wrapper/lexical/policy rejects", "interface/test/generated exclusions", "go test and copied install"],
+      "semantic_gaps": ["interfaces", "reflection", "build tags"]
+    },
+    "java_or_kotlin": {
+      "native_tool": "compiler model or language server",
+      "idiomatic_representation": "typed methods, overloads, interfaces, and resolved calls",
+      "required_fixtures": ["same-output pair", "overload/protocol boundary", "dynamic/reflection uncertainty", "native build/test and copied install"],
+      "semantic_gaps": ["overloads", "reflection", "annotation processing"]
+    },
+    "csharp": {
+      "native_tool": "Roslyn workspace",
+      "idiomatic_representation": "typed methods, interfaces, partial types, and resolved calls",
+      "required_fixtures": ["same-output pair", "interface/policy rejection", "dynamic/source-generator uncertainty", "dotnet build/test and copied install"],
+      "semantic_gaps": ["dynamic", "partial/source-generated types", "reflection"]
+    },
+    "ruby": {
+      "native_tool": "Prism/Ripper plus explicit static type or call-resolution convention",
+      "idiomatic_representation": "module methods, dynamic dispatch, and conservative typed/static subsets",
+      "required_fixtures": ["static same-output pair", "caller/callee", "send/metaprogramming uncertainty", "spec/generated exclusions", "native test and copied install"],
+      "semantic_gaps": ["send", "monkey patching", "open classes"]
+    }
+  },
+  "user_experience": {
+    "install_steps": [
+      "Set SEMANTIC_DUPLICATION_SOURCE and run the documented exact stock selected-skill install.",
+      "From the TypeScript host root set TARGET, optionally TSCONFIG and REPORT_NAME, then run the documented installed command.",
+      "Read triage.md, findings.json, and capability matrices as human-review leads; do not refactor automatically.",
+      "Run the host native typecheck before and after the audit."
+    ],
+    "wall_time_seconds": null,
+    "agent_confusions": [
+      "Same return shape is evidence for a lead, not a semantic equivalence proof.",
+      "Dynamic/declaration-only direct calls are intentionally uncertainty rather than clean output.",
+      "The TypeScript report is separate from the Python scout path and does not claim workflows or structural duplication."
+    ],
+    "repeated_work": [
+      "map-subsystem supplied the accepted host-compiler, named-tsconfig, exclusion, symlink, and stock-closure patterns; they were copied locally without a shared runtime."
+    ],
+    "smallest_later_improvement": "Perform D6 independent installed-host replay before considering any broader TypeScript candidate shape."
+  },
+  "residual_risks": [
+    "Static output-shape equality can over- or under-approximate behavior, so confirmed leads require human source/caller/runtime review.",
+    "Dynamic dispatch, external callers, methods, framework behavior, and different output shapes are deliberately unavailable.",
+    "The host must supply Node, a valid project-local tsconfig, and a package-local TypeScript compiler.",
+    "D6 independent non-context replay remains pending serial integration."
+  ],
+  "next_decision": {
+    "recommendation": "Accept this bounded TypeScript v1 after D6 replay and schema review; keep it family-local and start unify-shadows only after that handoff is accepted.",
+    "rationale": "The repaired Python oracle, Compiler API final artifacts, locked positive/negative/must-not-fire corpus, selected-skill closure, native proof, containment, source immutability, and explicit limitations establish the minimum honest useful outcome.",
+    "blockers": ["Independent non-context installed-skill D6 replay", "Serial integration of shared router/catalog/contract/tracker surfaces outside this lane"]
+  }
+}

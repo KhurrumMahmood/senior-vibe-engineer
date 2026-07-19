@@ -16,8 +16,8 @@ ROI formula:
 Where:
     maintenance_risk    from domain tier (HIGH=3.0, MEDIUM=2.0, LOW=1.0);
                         unknown domains default to MEDIUM.
-    level_multiplier    workflow=1.5, structural=1.3, function=1.0.
-                        Workflow findings are higher-value (Rule R1).
+    level_multiplier    function=1.0. This reference path intentionally does
+                        not rank workflow or structural claims.
     shared_lines        sum of member sizes; proxy for "how much code can
                         consolidate." Clamped to [10, 500] so single-line
                         helpers don't vanish and 1000-line monsters don't
@@ -60,7 +60,7 @@ MAINTENANCE_RISK = {
 DEFAULT_RISK = 2.0  # medium
 
 
-LEVEL_MULT = {"workflow": 1.5, "structural": 1.3, "function": 1.0}
+LEVEL_MULT = {"function": 1.0}
 
 
 def _clamp(x: float, lo: float, hi: float) -> float:
@@ -178,7 +178,11 @@ def rank(
         f for f in findings
         if f.get("investigation_status") in {"confirmed", "migration_in_progress"}
     ]
-    rejected = [f for f in findings if f not in kept]
+    uncertain = [f for f in findings if f.get("investigation_status") == "uncertain"]
+    rejected = [
+        f for f in findings
+        if f not in kept and f.get("investigation_status") != "uncertain"
+    ]
     _merge_caller_counts(kept, callers_path)
     for f in kept:
         f["rank_meta"] = _priority(f)
@@ -188,11 +192,21 @@ def rank(
         by_tier[f["rank_meta"]["tier"]] += 1
     output.write_text(
         json.dumps(
-            {"findings": kept, "rejected": rejected, "tier_counts": by_tier},
+            {
+                "findings": kept,
+                "uncertain": uncertain,
+                "rejected": rejected,
+                "tier_counts": by_tier,
+            },
             indent=2,
         )
     )
-    return {"confirmed": len(kept), "rejected": len(rejected), **by_tier}
+    return {
+        "confirmed": len(kept),
+        "uncertain": len(uncertain),
+        "rejected": len(rejected),
+        **by_tier,
+    }
 
 
 def main() -> int:
@@ -206,7 +220,8 @@ def main() -> int:
         return 2
     counts = rank(args.confirmed, args.callers, args.output)
     print(
-        f"[rank] confirmed={counts['confirmed']} rejected={counts['rejected']} "
+        f"[rank] confirmed={counts['confirmed']} uncertain={counts['uncertain']} "
+        f"rejected={counts['rejected']} "
         f"P0={counts['P0']} P1={counts['P1']} P2={counts['P2']}"
     )
     print(f"[rank] wrote {args.output}")

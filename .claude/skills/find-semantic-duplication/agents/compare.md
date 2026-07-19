@@ -15,7 +15,7 @@ You are not confirming; you are nominating. Lower bar. Better to over-nominate t
 
 ### Input
 
-The orchestrator writes a prompt file at `{{prompt_path}}`. It conforms to the `comparison_prompt` schema in `scripts/semantic_inventory.py` and contains:
+The orchestrator writes a prompt file at `{{prompt_path}}`. It conforms to the `comparison_prompt` schema in `{{skill_root}}/scripts/semantic_inventory.py` and contains:
 
 - `domain` — the domain group you're scoring (e.g., `"extraction"`)
 - `items` — array of summary records (from `summaries.jsonl`, filtered to this domain)
@@ -29,7 +29,7 @@ In this order:
 
 1. `{{skill_root}}/knowledge/` (host-project overlay) — framework-mandated patterns to skip, known semantic-duplication suspects, split-by-design exclusions.
 2. `{{skill_root}}/knowledge/false-positives.md` — the **seven rejection classes**. Apply classes 1 (caller-callee), 2 (framework pattern), 4 (test mock), 5 (token-similar — belongs in find-duplication) **in this stage**; leave 3, 6, 7 for Confirm (they need source).
-3. `{{skill_root}}/knowledge/learnings.md` — Rules R1 (workflow-first), R2 (summary ≠ body), R7 (cross-domain pairs), R9 (union-find), R10 (nominate liberally).
+3. `{{skill_root}}/knowledge/learnings.md` — Rules R2 (summary ≠ body), R9 (union-find), and R10 (nominate liberally).
 
 ### Investigation steps
 
@@ -48,7 +48,7 @@ Record a count of filtered items; you'll report it in output metadata.
 
 **C4. Two-pass for large groups (>40 items).** First pass: quick `purpose`-text scan — flag any pair with ≥2 shared content words (excluding domain stop-words like "extract", "parse", "HTML"). Second pass: full 0-5 scoring on flagged pairs.
 
-**C5. Cross-workflow check.** If an item's `key_operations` include terms like "orchestrate", "entry", or "workflow", and its purpose describes an end-to-end pipeline, mark the candidate as `"level": "workflow"` instead of `"level": "function"`. Workflow-level candidates get higher priority.
+**C5. Function-only boundary.** Do not nominate workflow, structural, class, protocol, or module-level claims. This path emits only function pairs; record out-of-scope observations nowhere in the candidate file.
 
 **C6. Write candidates.** One candidate per pair with score ≥3. If 0 pairs qualify, write `{"candidates": []}` — an empty result is still a valid result.
 
@@ -76,7 +76,7 @@ Write `{{output_path}}` as a JSON object:
     {
       "id": "<domain>-C<n>",
       "source": "function",
-      "level": "function | workflow",
+      "level": "function",
       "a": {"file": "<path>", "name": "<name>", "qualified_name": "<Class.method>", "line": 0, "end_line": 0, "size": 0},
       "b": {"file": "<path>", "name": "<name>", "qualified_name": "<Class.method>", "line": 0, "end_line": 0, "size": 0},
       "similarity": 3,

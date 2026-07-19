@@ -37,6 +37,13 @@ def _load_domain_files(prompts_dir: Path) -> list[dict[str, Any]]:
             continue
         if isinstance(data, dict) and "candidates" in data:
             for c in data.get("candidates") or []:
+                if c.get("level", "function") != "function":
+                    print(
+                        "[collapse_candidates] WARN skipping non-function candidate "
+                        f"{c.get('id', '?')}",
+                        file=sys.stderr,
+                    )
+                    continue
                 c.setdefault("domain", data.get("domain"))
                 found.append(c)
     return found
@@ -102,7 +109,6 @@ def _merge_group(
     """Merge candidates at `indices` into a single cluster finding."""
     seen: dict[tuple[str, str], dict[str, Any]] = {}
     domains: set[str] = set()
-    levels: set[str] = set()
     similarities: list[int] = []
     rationales: list[str] = []
     source_ids: list[str] = []
@@ -112,8 +118,6 @@ def _merge_group(
             seen.setdefault(_site_key(m), m)
         if c.get("domain"):
             domains.add(c["domain"])
-        if c.get("level"):
-            levels.add(c["level"])
         if isinstance(c.get("similarity"), (int, float)):
             similarities.append(int(c["similarity"]))
         if c.get("rationale"):
@@ -124,9 +128,7 @@ def _merge_group(
     return {
         "id": new_id,
         "multiplicity": len(members),
-        "level": "workflow" if "workflow" in levels else (
-            "structural" if "structural" in levels else "function"
-        ),
+        "level": "function",
         "domains": sorted(domains),
         "members": members,
         "similarity_max": max(similarities) if similarities else 0,

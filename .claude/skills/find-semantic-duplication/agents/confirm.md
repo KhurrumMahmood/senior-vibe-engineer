@@ -30,12 +30,13 @@ Write the capability matrix here: `{{output_matrix_path}}`
 
 **Mandatory, in this order:**
 
-1. `{{skill_root}}/knowledge/false-positives.md` — the **ten rejection classes**. Classes 1–7 are pair-level and apply to every candidate at this stage (Compare only ran the cheap subset). Classes 8–10 are structural-only — apply them only when the candidate's `level == "structural"` (see step F7).
+1. `{{skill_root}}/knowledge/false-positives.md` — the function-level rejection classes. Classes 1–7 apply to every candidate at this stage (Compare only ran the cheap subset). Workflow and structural classes are unavailable in this function-only reference path.
 2. `{{skill_root}}/knowledge/` (host-project overlay) — domain taxonomy, known suspects (cross-reference with the candidate), split-by-design exclusions, test-suite map for populating `tests_that_guard_this_area`.
 3. `{{skill_root}}/knowledge/learnings.md` — read on ambiguity. R2, R3, R4, R5 are the most-cited.
-4. `{{skill_root}}/../_common/interface-depth.md` — use the deletion
-   test and adapter reality test when choosing between `share_utilities`,
-   `merge_at_*`, and `keep_separate_document_why`.
+4. Apply the deletion test and adapter reality test when choosing between
+   `share_utilities`, `merge_at_function`, and `keep_separate_document_why`:
+   a proposed shared interface must remove real duplicated behavior without
+   forcing callers through an artificial adapter.
 
 If `reports/duplication/latest/triage.md` exists, check it for overlap with
 the candidate members. If the file is absent, note
@@ -56,16 +57,12 @@ here (rejection class 5).
 
 **F5. Check rejection class 5 (token overlap).** If the bodies share more than ~70% of their identifier tokens (variable names, function calls), this belongs in `/find-duplication`. Reject with `reason_code: "token_similar_belongs_in_find_duplication"` and cite the sibling scan if it's already there.
 
-**F6. Check rejection classes 6-7 (converging workflows / load-bearing divergence).** These are deeper judgments:
+**F6. Check rejection classes 6-7 (converging helpers / load-bearing divergence).** These are deeper judgments:
 
-- Class 6: do the workflows converge on a shared helper but produce different outputs? If yes, reject.
+- Class 6: do the functions converge on a shared helper but produce different outputs? If yes, reject.
 - Class 7: is the divergence load-bearing (different retry policy, different exception contract, different caller requirements)? If merging would force a compromise, classify as `consolidation_shape: "keep_separate_document_why"` and **still** emit a confirmed finding — but with a recommendation against merging.
 
-**F7. Structural findings (fragmented concerns).** If the candidate is `level: "structural"` (a concern with multiple homes), apply classes 8-10 instead:
-
-- 8: unit-vs-integration split (reject)
-- 9: sync-vs-async variants (reject)
-- 10: migration-in-progress (confirm with `consolidation_shape: "complete_migration"`)
+**F7. Function-only boundary.** Reject a candidate that turns out to be a workflow, structural, protocol, or class-method claim rather than forcing it through this function contract.
 
 **F8. If confirmed, build the capability matrix.** Write `{{output_matrix_path}}` using the template below. Fill in every row of the comparison table. Be concrete — cite specific lines, not general prose.
 
@@ -81,7 +78,7 @@ Write `{{output_json_path}}`:
 {
   "finding_id": "{{finding_id}}",
   "investigation_status": "confirmed | false_positive | uncertain | migration_in_progress",
-  "level": "function | workflow | structural",
+  "level": "function",
   "reason_code": "<one of: caller_callee | framework_pattern | different_abstraction | test_mock | token_similar_belongs_in_find_duplication | converging_different_products | load_bearing_divergence | unit_vs_integration_split | sync_vs_async_variant | migration_in_progress | null>",
   "members": [
     {
@@ -98,7 +95,7 @@ Write `{{output_json_path}}`:
     "accidental": ["<naming>", "<default value>", ...],
     "load_bearing": ["<retry policy>", "<return shape>", ...]
   },
-  "consolidation_shape": "merge_at_workflow | merge_at_function | share_utilities | keep_separate_document_why | complete_migration | null",
+  "consolidation_shape": "merge_at_function | share_utilities | keep_separate_document_why | null",
   "maintenance_risk_domain": "<domain from `knowledge/` taxonomy>",
   "notes": "<2-5 sentences: what you read, what you concluded, anything /fix-workflow needs to know>",
   "tests_that_guard_this_area": ["tests.test_X", ...],
@@ -147,59 +144,6 @@ Write `{{output_matrix_path}}` using the appropriate template.
 <one of: merge_at_function | share_utilities | keep_separate_document_why — with 1-2 sentences rationale that mentions whether the shared interface would be deep enough>
 ```
 
-**For workflow-level findings:**
-
-```markdown
-## {{finding_id}}: <descriptive name>
-
-### Workflows
-- **A:** `<entry_point>` — "<purpose>" (<N> steps, <N> functions)
-- **B:** `<entry_point>` — "<purpose>" (<N> steps, <N> functions)
-
-### Step-by-step comparison
-
-| Step | Workflow A | Workflow B | Same purpose? | Notes |
-|------|-----------|-----------|---------------|-------|
-| 1. Entry | ... | ... | Yes | ... |
-| 2. ... | | | | |
-
-### Functions unique to A
-- ...
-
-### Functions unique to B
-- ...
-
-### Shared sub-workflows
-<where the two workflows converge on the same downstream functions>
-
-### Divergence assessment
-- **Accidental:** ...
-- **Load-bearing:** ...
-
-### Recommendation
-<one of: merge_at_workflow | merge_at_function | share_utilities | keep_separate_document_why>
-```
-
-**For structural findings:**
-
-```markdown
-## {{finding_id}}: <concern name>
-
-### Homes
-- `<path_a>` — <what it contains>
-- `<path_b>` — <what it contains>
-
-### Overlap
-<what concern is duplicated across homes>
-
-### Divergence
-- **Accidental:** ...
-- **Load-bearing:** ...
-
-### Recommendation
-<complete_migration | designate_canonical | keep_both_document_why — with rationale>
-```
-
 ### Rules for your output
 
 1. **Read both bodies before classifying.** Skipping this produces the Cluster-2 failure mode (name collision mistaken for semantic equivalence). See `learnings.md` R2.
@@ -210,4 +154,4 @@ Write `{{output_matrix_path}}` using the appropriate template.
 
 ### Rules for your reply
 
-Do not print the JSON or the matrix in your reply. Write them to the paths given. Reply with at most two sentences: the verdict (confirmed / false positive / uncertain / migration_in_progress) and one-sentence rationale.
+Do not print the JSON or the matrix in your reply. Write them to the paths given. Reply with at most two sentences: the verdict (confirmed / false positive / uncertain) and one-sentence rationale.
