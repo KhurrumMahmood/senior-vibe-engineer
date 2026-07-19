@@ -10,9 +10,9 @@ MATCHER = REPO_ROOT / ".claude" / "skills" / "which-skill" / "scripts" / "match.
 CATALOG_BUILDER = REPO_ROOT / "scripts" / "build_router_catalog.py"
 
 
-def _run_match(prompt: str) -> tuple[int, dict]:
+def _run_match(prompt: str, *extra: str) -> tuple[int, dict]:
     result = subprocess.run(
-        [sys.executable, str(MATCHER), prompt, "--json"],
+        [sys.executable, str(MATCHER), prompt, "--json", *extra],
         cwd=REPO_ROOT,
         check=False,
         text=True,
@@ -48,6 +48,16 @@ def test_bundled_catalog_matches_source_frontmatter():
     assert result.returncode == 0, result.stderr
     assert "76 skills" in result.stdout
 
+    catalog = json.loads(
+        (REPO_ROOT / ".claude" / "skills" / "which-skill" / "catalog.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    omnibus = next(skill for skill in catalog["skills"] if skill["name"] == "find-omnibus")
+    assert omnibus["language"] == "python"
+    assert omnibus["framework"] == "any"
+    assert omnibus["scans"] == ["python"]
+
 
 def test_new_skill_prompt_routes_to_plan_skill():
     payload = _match("create a new skill for constructive UI forms")
@@ -72,6 +82,106 @@ def test_one_line_debug_prompt_does_not_trigger_diagnose():
     assert returncode == 1
     assert payload["recommendation"] == "proceed_directly"
     assert payload["inferred_tier"] == "quick"
+
+
+def test_exact_typescript_marker_excludes_unearned_state_skill():
+    returncode, payload = _run_match(
+        "find repeated bare status literals in a TypeScript source file",
+        "--top",
+        "10",
+    )
+
+    assert returncode == 1
+    assert payload["routing_context"] == {
+        "language": "typescript",
+        "languages": ["typescript"],
+        "language_source": "task_marker",
+        "task_language_markers": ["typescript"],
+        "framework": None,
+        "frameworks": [],
+        "framework_source": None,
+        "filtering_applied": True,
+    }
+    assert payload["recommendation"] == "unsupported"
+    excluded = {item["name"]: item["reason"] for item in payload["excluded_unsupported"]}
+    assert excluded["find-implicit-state"] == "declares language=python"
+
+
+def test_unearned_omnibus_typescript_claim_returns_unsupported():
+    returncode, payload = _run_match(
+        "find an omnibus TypeScript module with too many unrelated responsibilities",
+        "--top",
+        "10",
+    )
+
+    assert returncode == 1
+    assert payload["recommendation"] == "unsupported"
+    excluded = {item["name"]: item["reason"] for item in payload["excluded_unsupported"]}
+    assert excluded["find-omnibus"] == "declares language=python"
+
+
+def test_explicit_language_is_authoritative_and_repeatable(tmp_path):
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "skills": [
+                    {
+                        "name": "ts-audit",
+                        "description": "audit modules",
+                        "best_for": "audit modules",
+                        "not_for": "none",
+                        "tier": "maintenance",
+                        "job": "suspect",
+                        "language": "any",
+                        "framework": "any",
+                        "scans": ["typescript", "javascript"],
+                    },
+                    {
+                        "name": "django-audit",
+                        "description": "audit modules",
+                        "best_for": "audit modules",
+                        "not_for": "none",
+                        "tier": "maintenance",
+                        "job": "suspect",
+                        "language": "any",
+                        "framework": "django",
+                        "scans": ["typescript", "javascript"],
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    returncode, payload = _run_match(
+        "audit Python modules",
+        "--catalog",
+        str(catalog),
+        "--language",
+        "ts",
+        "--language",
+        "javascript",
+    )
+
+    assert returncode == 0
+    assert payload["recommendation"] == "ts-audit"
+    assert payload["routing_context"]["languages"] == ["typescript", "javascript"]
+    assert payload["routing_context"]["language_source"] == "explicit"
+    assert {item["name"] for item in payload["excluded_unsupported"]} == {"django-audit"}
+
+
+def test_mixed_exact_markers_do_not_guess_a_language():
+    returncode, payload = _run_match(
+        "compare Python app.py behavior with TypeScript app.ts behavior"
+    )
+
+    assert returncode in {0, 1}
+    assert payload["routing_context"]["languages"] == []
+    assert payload["routing_context"]["language_source"] is None
+    assert payload["routing_context"]["task_language_markers"] == ["typescript", "python"]
+    assert payload["routing_context"]["filtering_applied"] is False
 
 
 # --- activation enforcement -------------------------------------------------

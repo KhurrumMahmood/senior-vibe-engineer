@@ -39,7 +39,7 @@ command so the user or calling agent can install only that skill.
 
 - The recommendation is rendered from the actual matcher output and
   exit code: exit 0 means a skill recommendation, exit 1 means
-  `proceed_directly`, and exit 2 is surfaced as an error.
+  `proceed_directly` or `unsupported`, and exit 2 is surfaced as an error.
 - The run reads the bundled metadata catalog only; it does not expand skill
   bodies or execute the recommended skill.
 - A successful recommendation includes a pinned `skills` CLI command that
@@ -70,8 +70,12 @@ Write toward these gates from Stage 0.
 
 ## Argument parsing
 
-Single argument: a free-text task description. No flags, no structured
-input.
+The required argument is a free-text task description. Optional repeatable
+`--language` and `--framework` flags establish the host context explicitly.
+Without `--language`, only an exact language name or source suffix in the task
+(`TypeScript`, `.ts`, `.tsx`, `JavaScript`, `.js`, `.jsx`, `Python`, `.py`)
+may establish one language. Mixed exact markers disable language filtering;
+the matcher never guesses from broad terms such as “frontend.”
 
 Examples:
 
@@ -80,6 +84,7 @@ Examples:
 /which-skill find dead code in core/services
 /which-skill fix typo in_porgress to in_progress in CrawlJob status
 /which-skill record decision to use TextChoices for new model
+/which-skill audit repeated status literals --language typescript
 ```
 
 If the argument is empty, abort with usage guidance.
@@ -108,6 +113,12 @@ The matcher returns JSON with:
 - `inferred_job` (plan | map | suspect | explain | refactor | guard | decide | triage | teach | construct | diagnose | meta | null)
 - `tier_hints` and `job_hints` — the matched signal words
 - `recommendation` — the top-scoring skill name OR `proceed_directly`
+- `routing_context` — resolved language/framework values, their explicit or
+  exact-marker source, and whether portability filtering was applied
+- `excluded_unsupported[]` — otherwise-relevant skills whose declared
+  language, framework, or scanner coverage does not support the resolved host
+- `recommendation: unsupported` — returned instead of silently substituting a
+  weaker skill when the strongest semantic match is ineligible for the host
 - `install.command` — pinned stock command for installing only the winner
 - `install.locations` — canonical pointers to the selected skill definition,
   its bundled scripts, and shared source tooling
@@ -197,6 +208,7 @@ move.
 | Empty task description | Abort with usage example |
 | `match.py` exits 2 (usage error) | Surface the diagnostic; check `catalog.json` is installed beside the script |
 | All skills score 0 | The catalog has no relevant match; proceed directly and surface the top candidates only on request |
+| Strongest match is excluded for language/framework | Return `unsupported` with the exact declaration mismatch; do not substitute a weaker skill |
 | Recommended skill is one the user just *finished* invoking | Flag it explicitly: "the matcher recommends /<skill>, but you just ran it 5 minutes ago — re-confirm before re-invoking" |
 | User pushes back ("/which-skill said /X but /X is wrong here") | Surface it as a metadata mismatch; do NOT silently re-recommend a different skill |
 | Recommended skill has `tier: cross-cutting` and the user expected a planning skill | This is normal — `/decide` and `/which-skill` are cross-cutting. Confirm in summary that `/decide` is a *complement* to planning, not a replacement |

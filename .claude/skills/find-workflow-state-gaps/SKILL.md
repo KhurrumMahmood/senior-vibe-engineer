@@ -20,7 +20,7 @@ not_for: |
   text-surface advisory scanner whose findings need judgment before
   becoming guardrails.
 language: any
-framework: any
+framework: django
 scans: [javascript, templates]
 ---
 

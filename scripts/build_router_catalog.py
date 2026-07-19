@@ -29,6 +29,9 @@ FIELDS = (
     "evidence_required",
     "risk_triggers",
     "max_overhead",
+    "language",
+    "framework",
+    "scans",
 )
 
 

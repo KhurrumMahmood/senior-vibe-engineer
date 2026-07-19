@@ -97,6 +97,20 @@ SKILL_DEVELOPMENT_ACTIONS = frozenset({
 
 WORD_RE = re.compile(r"[a-z][a-z0-9_-]+")
 
+LANGUAGE_ALIASES = {
+    "js": "javascript",
+    "javascript": "javascript",
+    "py": "python",
+    "python": "python",
+    "ts": "typescript",
+    "typescript": "typescript",
+}
+LANGUAGE_MARKERS = {
+    "typescript": re.compile(r"(?i)(?:\btypescript\b|\.tsx?\b)"),
+    "javascript": re.compile(r"(?i)(?:\bjavascript\b|\.jsx?\b)"),
+    "python": re.compile(r"(?i)(?:\bpython\b|\.py\b)"),
+}
+
 
 def _read_manifest(root: Path) -> dict:
     path = root / ".engineering" / "manifest.json"
@@ -195,6 +209,79 @@ def is_skill_development_signal(task_tokens: set[str]) -> bool:
     "create a new skill" prompts to product-feature or obligation scans.
     """
     return bool(task_tokens & SKILL_DEVELOPMENT_HINTS) and bool(task_tokens & SKILL_DEVELOPMENT_ACTIONS)
+
+
+def _normalize_values(values: list[str] | None, aliases: dict[str, str] | None = None) -> list[str]:
+    normalized: list[str] = []
+    for value in values or []:
+        item = value.strip().lower()
+        if not item:
+            continue
+        item = (aliases or {}).get(item, item)
+        if item not in normalized:
+            normalized.append(item)
+    return normalized
+
+
+def resolve_routing_context(
+    task: str,
+    explicit_languages: list[str] | None,
+    explicit_frameworks: list[str] | None,
+) -> dict:
+    languages = _normalize_values(explicit_languages, LANGUAGE_ALIASES)
+    language_source: str | None = "explicit" if languages else None
+    if not languages:
+        marker_hits = [
+            language
+            for language, pattern in LANGUAGE_MARKERS.items()
+            if pattern.search(task)
+        ]
+        if len(marker_hits) == 1:
+            languages = marker_hits
+            language_source = "task_marker"
+    else:
+        marker_hits = []
+
+    frameworks = _normalize_values(explicit_frameworks)
+    framework_source: str | None = "explicit" if frameworks else None
+    return {
+        "language": languages[0] if len(languages) == 1 else None,
+        "languages": languages,
+        "language_source": language_source,
+        "task_language_markers": marker_hits,
+        "framework": frameworks[0] if len(frameworks) == 1 else None,
+        "frameworks": frameworks,
+        "framework_source": framework_source,
+        "filtering_applied": bool(languages or frameworks),
+    }
+
+
+def portability_exclusion(skill: dict, routing_context: dict) -> str | None:
+    """Return why a skill cannot serve the resolved host language/stack."""
+    languages = set(routing_context["languages"])
+    frameworks = set(routing_context["frameworks"])
+    declared_language = str(skill.get("language", "any")).strip().lower()
+    declared_framework = str(skill.get("framework", "any")).strip().lower()
+
+    if languages and declared_language != "any" and declared_language not in languages:
+        return f"declares language={declared_language}"
+    if (
+        (languages or frameworks)
+        and declared_framework != "any"
+        and declared_framework not in frameworks
+    ):
+        return f"requires framework={declared_framework}"
+
+    scans = skill.get("scans")
+    if languages and skill.get("job") == "suspect" and isinstance(scans, list):
+        declared_scans = {
+            LANGUAGE_ALIASES.get(str(item).strip().lower(), str(item).strip().lower())
+            for item in scans
+        }
+        missing = sorted(languages - declared_scans)
+        if missing:
+            return f"scanner does not declare scans={','.join(missing)}"
+    return None
 
 
 def score_skill(
@@ -302,6 +389,11 @@ def cmd_match(args, catalog_path: Path) -> int:
         return 2
 
     task_tokens = tokenize(task)
+    routing_context = resolve_routing_context(
+        task,
+        args.language,
+        args.framework,
+    )
     inferred_tier, tier_hits = infer_tier_signal(task_tokens)
     inferred_job, job_hits = infer_job_signal(task_tokens)
     if is_test_obligation_signal(task_tokens):
@@ -329,6 +421,7 @@ def cmd_match(args, catalog_path: Path) -> int:
             "inferred_tier": "quick",
             "tier_hints": tier_hits,
             "recommendation": "proceed_directly",
+            "routing_context": routing_context,
             "rationale": (
                 "Task description matches Quick-tier signals "
                 f"({', '.join(tier_hits)}). No planning skill applies. "
@@ -364,6 +457,7 @@ def cmd_match(args, catalog_path: Path) -> int:
     # high-scorer is explained rather than silently missing.
     active_ranked = []
     excluded_inactive = []
+    excluded_unsupported = []
     for score, sk, rationale in ranked:
         name = sk.get("name", "")
         if name and not _is_skill_active(project_root, name):
@@ -372,6 +466,15 @@ def cmd_match(args, catalog_path: Path) -> int:
                     "name": name,
                     "score": score,
                     "reason": _inactive_reason(project_root, name) or "",
+                })
+            continue
+        portability_reason = portability_exclusion(sk, routing_context)
+        if portability_reason is not None:
+            if score >= threshold:
+                excluded_unsupported.append({
+                    "name": name,
+                    "score": score,
+                    "reason": portability_reason,
                 })
             continue
         active_ranked.append((score, sk, rationale))
@@ -385,13 +488,18 @@ def cmd_match(args, catalog_path: Path) -> int:
         "inferred_job": inferred_job,
         "tier_hints": tier_hits,
         "job_hints": job_hits,
+        "routing_context": routing_context,
         "excluded_inactive": excluded_inactive,
+        "excluded_unsupported": excluded_unsupported,
         "candidates": [
             {
                 "name": sk.get("name", "?"),
                 "score": score,
                 "tier": sk.get("tier", ""),
                 "job": sk.get("job", ""),
+                "language": sk.get("language", "any"),
+                "framework": sk.get("framework", "any"),
+                "scans": sk.get("scans", []),
                 "rationale": rationale,
                 "path": sk.get("_path", ""),
                 "task_packet": _build_task_packet(sk),
@@ -399,6 +507,29 @@ def cmd_match(args, catalog_path: Path) -> int:
             for score, sk, rationale in top
         ],
     }
+    blocked_best = max(
+        excluded_unsupported,
+        key=lambda item: (item["score"], item["name"]),
+        default=None,
+    )
+    if (
+        blocked_best is not None
+        and routing_context["filtering_applied"]
+        and (not above or blocked_best["score"] > above[0][0])
+    ):
+        out["recommendation"] = "unsupported"
+        out["unsupported"] = blocked_best
+        out["rationale"] = (
+            f"The strongest matching skill, /{blocked_best['name']}, is not "
+            "eligible for the resolved language/framework: "
+            f"{blocked_best['reason']}. No weaker skill was substituted."
+        )
+        if args.json:
+            print(json.dumps(out, indent=2))
+        else:
+            print(f"Task: {task}")
+            print(out["rationale"])
+        return 1
     if not above:
         out["recommendation"] = "proceed_directly"
         out["rationale"] = (
@@ -426,6 +557,11 @@ def cmd_match(args, catalog_path: Path) -> int:
                 for item in excluded_inactive:
                     reason = f" — {item['reason']}" if item["reason"] else ""
                     print(f"  /{item['name']:<25} score={item['score']}{reason}")
+            if excluded_unsupported:
+                print()
+                print("Excluded (unsupported for resolved language/framework):")
+                for item in excluded_unsupported:
+                    print(f"  /{item['name']:<25} score={item['score']} — {item['reason']}")
         return 1
 
     winner = above[0][1]
@@ -480,6 +616,11 @@ def cmd_match(args, catalog_path: Path) -> int:
             for item in excluded_inactive:
                 reason = f" — {item['reason']}" if item["reason"] else ""
                 print(f"  /{item['name']:<25} score={item['score']}{reason}")
+        if excluded_unsupported:
+            print()
+            print("Excluded (unsupported for resolved language/framework):")
+            for item in excluded_unsupported:
+                print(f"  /{item['name']:<25} score={item['score']} — {item['reason']}")
     return 0
 
 
@@ -513,6 +654,19 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--agent", default="codex",
         help="Agent target used in the install handoff (default: codex)",
+    )
+    p.add_argument(
+        "--language",
+        action="append",
+        help=(
+            "Explicit host language (repeatable). Without this flag, only exact "
+            "language names or file suffixes in the task establish a language."
+        ),
+    )
+    p.add_argument(
+        "--framework",
+        action="append",
+        help="Explicit host framework (repeatable); framework-specific skills require it.",
     )
     p.add_argument("--top", type=int, default=3, help="How many candidates to show")
     p.add_argument(

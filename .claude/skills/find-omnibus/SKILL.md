@@ -21,9 +21,9 @@ not_for: |
   execution (use /refactor-subsystem in decomposition mode).
   Languages without an extraction adapter yet — check
   /find-perimeter-gaps for what is and isn't covered.
-language: any
+language: python
 framework: any
-scans: [python, javascript, typescript]
+scans: [python]
 scout_model: cheap
 ---
 

@@ -96,6 +96,31 @@ def test_installed_which_skill_runs_with_bundled_catalog(
     assert f"--skill {expected_skill}" in payload["install"]["command"]
 
 
+def test_installed_which_skill_filters_typescript_without_repository_runtime(tmp_path):
+    host = tmp_path / "host"
+    router = _install_router(host, "which-skill")
+
+    result = _run_isolated(
+        router / "scripts" / "match.py",
+        "find repeated bare status literals in src/job.ts",
+        "--project-root",
+        str(host),
+        "--top",
+        "10",
+        "--json",
+        cwd=host,
+    )
+
+    assert result.returncode == 1, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["routing_context"]["language"] == "typescript"
+    assert payload["routing_context"]["language_source"] == "task_marker"
+    assert payload["recommendation"] == "unsupported"
+    assert "find-implicit-state" in {
+        item["name"] for item in payload["excluded_unsupported"]
+    }
+
+
 def test_default_router_set_is_exactly_three():
     assert DEFAULT_ROUTERS == ("which-shape", "which-skill", "which-cleanup")
 
