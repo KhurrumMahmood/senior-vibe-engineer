@@ -1,290 +1,154 @@
 ---
 name: audit-decisions
-description: "Cross-cutting drift scanner for the decision registry. Wraps `scripts/decisions.py audit --json` + `link-check`, then layers four checks the script doesn't run on its own — `# decision:NNNN` code references vs registry, broken supersedes chains, `proposed`-status decisions older than 30 days, `applies_to:` paths that no longer exist on disk. Output: `reports/audit-decisions/scan-<TS>/drift.md` with one row per drift symptom and a recommended next command for each. Read-only — never edits ADRs or production code."
-argument-hint: "  (no args; runs across all decisions in ai-docs/decisions/)"
+description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python comments, Markdown/HTML references, and TypeScript/TSX comments."
+argument-hint: "[--target PATH]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: cross-cutting
 job: guard
 best_for: |
-  Periodic (monthly / pre-release) hygiene of the decision registry.
-  Catches three classes of rot the registry-as-substrate can develop:
-  (a) code references to ADRs that have been deleted/renumbered,
-  (b) supersession chains that break (A superseded by B; B doesn't
-  exist or doesn't claim to supersede A), (c) decisions that stalled in
-  `proposed` and were never accepted-or-deprecated. Use after a batch
-  of refactors that shuffled `applies_to:` paths.
+  Periodic (monthly / pre-release) decision-registry hygiene and a precise
+  check that inline decision references still point at real ADRs.
 not_for: |
-  Authoring new ADRs (use /decide). Detecting code-level smells (use a
-  find-* SUSPECT skill). Resolving the drift this skill surfaces — the
-  user invokes the recommended next command per row (/decide
-  --supersede, /decide --amend, etc.).
+  Authoring or amending ADRs, resolving a drift row, parsing TypeScript
+  identifiers, or inferring runtime/framework semantics.
 escalate_to: |
-  None — this is a read-only scanner. Each drift row names the
-  resolution command; the user picks one and proceeds.
+  None. This skill is read-only; each finding names the human's next command.
 delegate_from: |
-  /which-skill recommends /audit-decisions for prompts like "is the
-  decision registry healthy", "are any ADRs stale", "did we orphan any
-  # decision: refs". /triage-debt's decision-drift signal also points
-  here for full context.
+  /which-skill may recommend /audit-decisions for decision-registry hygiene
+  and orphaned inline decision references.
 language: any
 framework: any
+scans: [python, markdown, html, typescript]
 ---
 
 # /audit-decisions
 
-You are the **orchestrator** for the cross-cutting decision-registry
-guard skill. The deliverable is `reports/audit-decisions/scan-<TS>/drift.md`
-listing every drift symptom with one resolution command per row. You do
-NOT author ADRs, do NOT edit production code, do NOT mutate the
-registry — you SURFACE drift, the user FIXES it.
-
-The skill is the standing complement to `/decide`: `/decide` keeps the
-registry growing in a sound shape, `/audit-decisions` keeps it from
-rotting after the fact.
+Run a read-only drift scan over `ai-docs/decisions/` and the host's authored
+reference files. The final artifact is `drift.md`; `raw-drift.json` preserves
+both drift evidence and every resolved reference, so a healthy TypeScript/TSX
+reference is visible rather than silently disappearing.
 
 ## How success is judged
 
-- `drift.md` carries one row per drift symptom, each with a severity
-  and a concrete resolution command the user can run next.
-- The summary table accounts for every symptom class
-  (broken-supersession, code-ref-orphan, applies-to-missing,
-  proposed-too-long, unreferenced-decision) — none silently dropped.
-- The registry, ADRs, and production code are untouched — the run
-  writes only under `reports/audit-decisions/scan-<TS>/`.
+- Write `drift.md`, `raw-drift.json`, `registry-audit.json`, and
+  `link-check.txt` under one requested report directory. Do not claim a scan
+  ran without all four artifacts.
+- Include valid `decision:NNNN` references from TypeScript and TSX comments in
+  both final artifacts. A valid reference prevents an old accepted ADR from
+  being reported as unreferenced.
+- Preserve Python comment, Markdown, and HTML reference handling additively.
+  Registry status/link checks remain visible in their compatibility artifacts.
+- Keep the registry and source files read-only. Exit `0` for clean, `1` when
+  drift rows are present, and `2` for invalid paths or unsupported/malformed
+  decision frontmatter.
 
-## Core beliefs
+## Supported reference contract
 
-1. **The substrate has its own gravity.** Every `# decision:NNNN`
-   inline reference is a load-bearing claim that the ADR exists, says
-   what the ref author thought it said, and still applies. Drift in any
-   of those three is real debt.
-2. **Stalled `proposed` is the most common rot.** Teams write a
-   `proposed` ADR during a debate, the debate ends, no one updates the
-   status. After 30 days the registry can't tell "still being decided"
-   from "we forgot".
-3. **Broken supersession is the most dangerous rot.** An ADR that
-   claims `superseded_by: 0042` when 0042 doesn't exist (or doesn't
-   claim to supersede it back) leaves callers reading the old decision
-   and acting on dead guidance.
-4. **`applies_to` paths rot quietly.** A refactor renames
-   `core/services/foo.py` → `core/services/bar/foo.py` and the ADR's
-   `applies_to: [core/services/foo.py]` is now wrong. Code refs lie
-   silently until someone re-greps.
+### TypeScript and TSX v1
 
-## Scope (this skill itself)
+The supported token is lowercase `decision:NNNN`, where `NNNN` is exactly four
+digits. It is recognized only in these real comment forms:
 
-- **Project root:** this worktree's root.
-- **Python:** `python3` (stdlib-only).
-- **Read:** `ai-docs/decisions/` (full),
-  `python3 scripts/decisions.py audit --json`,
-  `python3 scripts/decisions.py link-check`,
-  every code file under the project root (for `# decision:NNNN`
-  reference grep).
-- **Write:** `reports/audit-decisions/scan-<TS>/drift.md`,
-  `reports/audit-decisions/scan-<TS>/raw-drift.json` (per-row evidence;
-  debug artifact, no downstream consumer yet).
+- `// decision:0001` line comments;
+- `/* decision:0001 */` block comments;
+- `/** decision:0001 */` JSDoc comments, including multi-line JSDoc;
+- comments inside a template interpolation (`${/* decision:0001 */ ...}`) and
+  TSX expression (`{/* decision:0001 */}`).
 
-## Pipeline
+The lexical scanner ignores string literals, template text, regex literals,
+and TSX text nodes. It does not parse identifiers, resolve imports, interpret
+types, or infer React/Node/other framework behavior. A TypeScript Compiler API,
+package manager, network access, shared parser, and host `tsconfig` are not
+required for this comment-only invariant.
 
-### Stage 0 — Setup
+### Existing reference forms
 
-```bash
-TS=$(date +%Y%m%d-%H%M%S)
-REPORT_DIR="reports/audit-decisions/scan-${TS}"
-mkdir -p "${REPORT_DIR}"
-ln -sfn "scan-${TS}" reports/audit-decisions/latest
-```
+- Python: `decision:NNNN` inside a real `#` comment (Python's tokenizer
+  distinguishes it from strings).
+- Markdown: the established `# decision:NNNN` form.
+- HTML: the established `# decision:NNNN` form, normally inside `<!-- -->`.
 
-### Stage 1 — Run the registry's own audit
+The selected runner accepts ordinary scalar frontmatter plus inline or block
+lists for the registry fields it checks (`supersedes`, `superseded_by`,
+`applies_to`, `embodied_by`, `tags`). It fails clearly instead of silently
+misreading unsupported frontmatter syntax.
 
-```bash
-python3 scripts/decisions.py audit --json > "${REPORT_DIR}/registry-audit.json"
-python3 scripts/decisions.py link-check >  "${REPORT_DIR}/link-check.txt" 2>&1 || true
-```
+## Source policy
 
-Read `registry-audit.json`. Capture every entry from `drift[]`. These
-are the drift symptoms the registry script catches on its own
-(typically: missing supersedes target, missing superseded_by target,
-duplicate ids).
+Exclusions are always evaluated relative to `--project-root`, even when a
+caller directly targets an excluded directory or file. Generated, vendor,
+dependency, build, report, coverage, fixture, and test/spec paths never create
+references. The same policy excludes common VCS/venv/cache trees and TypeScript
+declarations, `.test`, `.spec`, and minified files.
 
-### Stage 2 — Layer the four extra checks
+`--target` narrows the reference scan only. It still validates the registry and
+links, but intentionally omits the whole-project `unreferenced-decision`
+inverse check because a partial target cannot establish that conclusion.
 
-#### 2a. `# decision:NNNN` code references vs registry
+## Installed workflow
 
-Grep the project for inline references:
+Stock Codex copies this selected skill to `.agents/skills/audit-decisions`.
+From the host project root, with Python 3.11+:
 
 ```bash
-grep -rn "# decision:" --include='*.py' --include='*.md' --include='*.html' \
-    --exclude-dir=.venv --exclude-dir=node_modules \
-    --exclude-dir=.git --exclude-dir=reports . \
-  > "${REPORT_DIR}/code-refs.txt"
+AUDIT_PROJECT_ROOT="$PWD"
+AUDIT_SKILL_DIR="$AUDIT_PROJECT_ROOT/.agents/skills/audit-decisions"
+AUDIT_SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
+AUDIT_REPORT_DIR="$AUDIT_PROJECT_ROOT/reports/audit-decisions/$AUDIT_SCAN_ID"
+
+python3 -I -S "${AUDIT_SKILL_DIR}"/scripts/audit.py \
+  --project-root "$AUDIT_PROJECT_ROOT" \
+  --output-dir "$AUDIT_REPORT_DIR"
 ```
 
-For each referenced id, check it exists in the registry. If not, that's
-a drift row:
+For a bounded code-reference check, add a project-relative target:
 
-- Symptom: `code-ref-orphan` — code at `<file>:<line>` references
-  `decision:NNNN` but no such ADR exists.
-- Resolution: `/decide <slug>` to author the missing ADR, OR remove the
-  ref if the rule has been retired.
+```bash
+python3 -I -S "${AUDIT_SKILL_DIR}"/scripts/audit.py \
+  --project-root "$AUDIT_PROJECT_ROOT" \
+  --output-dir "$AUDIT_REPORT_DIR" \
+  --target src
+```
 
-Also check the converse: every accepted ADR ought to have at least one
-inline reference somewhere (code, doc, or skill). An ADR with zero
-references after 60 days is suspect.
+The installed executable imports only Python standard-library modules from this
+selected directory. It does not need a toolkit virtualenv, repository helper,
+sibling skill, host package manager, or network connection.
 
-- Symptom: `unreferenced-decision` — ADR `NNNN` (`<title>`) is
-  `accepted`, > 60 days old, and has no inline references.
-- Resolution: low priority — note for review; consider deprecating if
-  the rule is no longer load-bearing.
+## Read the final artifact before acting
 
-#### 2b. Broken supersession chains
+`drift.md` lists summary counts, resolved-reference inventory, and every drift
+row with a resolution command. `raw-drift.json` is the structured evidence:
+`references[]` always includes path, line, language, comment form, ADR id, and
+whether the id resolves. `registry-audit.json` and `link-check.txt` retain the
+registry status/link diagnostics for direct troubleshooting.
 
-For each ADR with `supersedes: [...]` or `superseded_by: ...`:
+The report can surface these drift classes:
 
-- If `superseded_by: 0042`, confirm 0042 exists AND its `supersedes:`
-  list contains this ADR's id. If not, drift row:
-  - Symptom: `broken-supersession` — `NNNN` claims to be superseded by
-    `0042` but `0042` doesn't claim to supersede it back.
-  - Resolution: `/decide --amend 0042` to fix the back-reference.
-
-- If `supersedes: [0010]`, confirm 0010's `superseded_by:` matches.
-  Same shape if not.
-
-#### 2c. Stalled `proposed` decisions
-
-For each ADR with `status: proposed`:
-
-- If `date:` is older than 30 days, drift row:
-  - Symptom: `proposed-too-long` — `NNNN` (`<title>`) has been
-    `proposed` for `<N>` days.
-  - Resolution: `/decide --amend NNNN` to edit the `status` field to
-    `accepted` if the team decided yes, or `deprecated` if no. If the
-    ADR is still actively debated, review it manually and leave
-    `status: proposed`.
-
-#### 2d. `applies_to:` paths missing
-
-For each ADR with `applies_to: [path1, path2, ...]`:
-
-- For each path, check `os.path.exists(path)`. If missing, drift row:
-  - Symptom: `applies-to-missing` — `NNNN` says `applies_to:
-    <path>` but the path no longer exists.
-  - Resolution: `/decide --amend NNNN` to update the path (likely a
-    refactor moved the target).
-
-Allow a glob pattern in `applies_to:` (e.g., `core/services/*.py`); for
-those, check that at least one match exists.
-
-An `applies_to:` entry prefixed `host:` names a path in the importing
-host project, not this repo (see `ai-docs/decisions/README.md`). Strip
-the `host:` prefix before the existence check; if the path is then
-missing, treat it as **advisory** — note it under the scan summary, not
-as an `applies-to-missing` drift row.
-
-### Stage 3 — Aggregate into `drift.md`
-
-```markdown
-# Decision-registry drift — scan-<TS>
-
-_<N> ADRs scanned. <M> drift rows surfaced._
-
-## Summary
-| Symptom | Count | Severity |
+| Symptom | Default severity | Resolution |
 |---|---|---|
-| broken-supersession | 0 | P0 |
-| code-ref-orphan | 0 | P0 |
-| applies-to-missing | 0 | P1 |
-| proposed-too-long | 0 | P1 |
-| unreferenced-decision | 0 | P2 |
-
-## Drift rows
-
-### P0 — fix before next release
-
-(empty if none)
-
-### P1 — fix this sprint
-
-- `proposed-too-long` — ADR `0007` (`use-cerebras-for-bulk-llm`),
-  proposed 2026-03-01, `<N>` days stale.
-  - Resolution: `/decide --amend 0007` and set `status: accepted` or
-    `status: deprecated`.
-
-### P2 — review when convenient
-
-- `unreferenced-decision` — ADR `0002` (`spec-first-refactor`),
-  accepted 2026-04-30, no inline `# decision:0002` references found.
-  - Resolution: review whether the rule is still load-bearing; if so,
-    add `# decision:0002` to the affected files.
-
-## Notes for the user
-
-- Re-run after applying resolutions to confirm clean.
-- `/triage-debt` will pick up unresolved P0/P1 in its decision-drift
-  signal until fixed.
-```
-
-### Stage 4 — Severity rules
-
-| Symptom | Default severity | Override |
-|---|---|---|
-| broken-supersession | P0 | none — always P0 |
-| code-ref-orphan | P0 | downgrade to P1 only if the orphan is in a doc, not code |
-| applies-to-missing | P1 | upgrade to P0 if all paths are missing (the ADR is dangling) |
-| proposed-too-long | P1 | upgrade to P0 if > 90 days |
-| unreferenced-decision | P2 | upgrade to P1 if the ADR has `tags: [lint, enforced]` (an enforced rule with no refs is suspicious) |
-
-Severity is advisory — the user re-prioritizes based on context.
-
-### Stage 5 — Write `raw-drift.json`
-
-For every drift row, capture the full evidence in a JSON sibling file
-so the heuristic is debuggable. This is a debug artifact with no
-downstream consumer yet — `/triage-debt` reads `decisions-audit.json`
-from `scripts/decisions.py audit --json` directly, not this file:
-
-```json
-{
-  "scan_id": "scan-<TS>",
-  "drift": [
-    {
-      "symptom": "proposed-too-long",
-      "severity": "P1",
-      "adr_id": "0007",
-      "adr_slug": "use-cerebras-for-bulk-llm",
-      "evidence": {"date": "2026-03-01", "days_old": 61},
-      "resolution_command": "/decide --amend 0007"
-    }
-  ]
-}
-```
-
-### Stage 6 — Summarize
-
-Report to the user in ≤6 lines:
-
-- Path to `drift.md`.
-- Drift rows by severity (`P0: N, P1: M, P2: K`).
-- 1-line for the top P0 (or "no P0 drift" if clean).
-- Recommended next command:
-  - If clean: "registry healthy — no action".
-  - Else: "address P0 first via the resolutions in drift.md".
-
-## Non-goals
-
-- Authoring or amending ADRs (that's `/decide`).
-- Detecting code-level smells (that's `/find-*`).
-- Editing production code or the registry.
-- Mutating decision status (the user decides; this skill surfaces).
+| `code-ref-orphan` | P0 for code, P1 for docs | `/decide <id>` or remove the stale reference |
+| `broken-supersession` | P0 | `/decide --amend <id>` |
+| `applies-to-missing` | P1 (P0 when every non-host path is absent) | `/decide --amend <id>` |
+| `proposed-too-long` | P1 (P0 after 90 days) | `/decide --amend <id>` |
+| `unreferenced-decision` | P2 (P1 for lint/enforced tags) | review whether the ADR remains load-bearing |
+| `registry-audit` | P0 | amend the named malformed registry field |
 
 ## When things go sideways
 
 | Symptom | Action |
 |---|---|
-| `decisions.py audit --json` fails | Capture stderr to `${REPORT_DIR}/registry-audit.err`, surface as a P0 drift row "registry-script-broken" — the audit can't trust itself if the substrate script is broken |
-| Code-ref grep returns thousands of hits | Likely a false-positive pattern (e.g., `# decision:` in third-party code); narrow the grep with `--include` paths in `core/`, `.claude/`, `ai-docs/` |
-| `applies_to:` is missing entirely on an ADR | Drift row: `applies-to-missing` with severity P1; recommend `/decide --amend NNNN` to add the field |
-| Every accepted ADR is unreferenced | The team isn't using inline refs yet; downgrade all `unreferenced-decision` to P3-info and note "consider adopting `# decision:NNNN` convention" |
-| Two ADRs have the same id | Drift row: `duplicate-id` (P0); there is no `/decide` renumber command. Manually edit the duplicate ADR's filename and `id` frontmatter to an unused id, then run `.venv/bin/python scripts/decisions.py rebuild` and `.venv/bin/python scripts/decisions.py audit` |
-| ADR's `superseded_by` points to itself | Drift row: `circular-supersession` (P0); recommend `/decide --amend` to break the cycle |
+| Exit 2 | Correct the project/target path or frontmatter. Do not treat a failed parse as a clean audit. |
+| No TypeScript tooling installed | Continue: this lexical comment scan requires only host Python. |
+| A desired reference is in an identifier, string, regex, or JSX text | Do not count it. Add a supported comment at the authoritative location. |
+| An excluded tree is supplied directly with `--target` | The scan is clean for references by design; exclusions cannot be bypassed by narrowing the target. |
+| A relationship/link diagnostic is present | Read `link-check.txt`, repair the ADR deliberately, then re-run. |
+
+## Installed layout
+
+```
+audit-decisions/
+├── SKILL.md
+└── scripts/
+    └── audit.py
+```
