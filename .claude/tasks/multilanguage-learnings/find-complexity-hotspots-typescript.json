@@ -1,6 +1,6 @@
 {
   "batch": "post-B4 TypeScript complexity candidate",
-  "revision": "63a3ac0f869b08b70278605047e8b1bfaadd6768",
+  "revision": "886ded0",
   "family": [
     "find-complexity-hotspots"
   ],
@@ -22,7 +22,8 @@
     "Removed this selected skill's dependency on repository scripts/_lib, sibling _common, and the shared language-adapter registry by bundling only the exact historical finding/report compatibility helpers it needs.",
     "Preserved the Python detector's six bands and final report shape while making the selected runtime self-contained.",
     "Added language/analyzer provenance to TypeScript records and their final Markdown evidence without changing Python records.",
-    "Added explicit TypeScript preflight failures for missing Node/package, parser output errors, and source syntax errors."
+    "Added explicit TypeScript preflight failures for missing Node/package, parser output errors, and source syntax errors.",
+    "Repaired target-relative exclusion handling so direct directory or file targets remain governed by project-relative dependency/build/generated/fixture/spec/test/vendor/report exclusions."
   ],
   "language_model": {
     "syntax": [
@@ -114,10 +115,10 @@
       "D5_installed_closure": "Focused test copies the selected directory under python -I -S and runs a stock skills@1.5.19 installed command replay using host python3.",
       "D6_fresh_forward": "Fresh non-context installed-skill journey wrote the final report and independently chose measure-first with no source edit.",
       "D7_regression_and_conformance": "Focused pytest, Ruff, Python smoke, node --check, py_compile, skill metadata lint, native fixture checks, and git diff --check pass.",
-      "D8_learning_handoff": "This complete MD/JSON pair records the decision and prerequisites."
+      "D8_learning_handoff": "This MD/JSON pair records the decision, adversarial exclusion repair, and prerequisites; independent re-review is pending."
     },
     "commands_and_results": [
-      ".venv/bin/python -m pytest -q tests/test_find_complexity_hotspots_typescript.py: 6 passed",
+      ".venv/bin/python -m pytest -q tests/test_find_complexity_hotspots_typescript.py: 7 passed after project-relative exclusion repair",
       ".venv/bin/ruff check .claude/skills/find-complexity-hotspots/scripts/detect.py .claude/skills/find-complexity-hotspots/scripts/run.py tests/test_find_complexity_hotspots_typescript.py: All checks passed",
       ".venv/bin/python .claude/skills/find-complexity-hotspots/scripts/smoke.py: OK - 6 bad fixture findings, good fixture clean",
       "node --check .claude/skills/find-complexity-hotspots/scripts/detect_typescript_complexity.mjs: passed",
@@ -157,7 +158,8 @@
     "Explicit language/analyzer provenance",
     "Outcome-first positive/clean/must-not-fire fixture design",
     "Native typecheck/test plus copied and stock installed replay",
-    "Syntax failure/preflight rc2 contract"
+    "Syntax failure/preflight rc2 contract",
+    "Project-root-relative exclusion policy that cannot be bypassed by narrowing the invocation target"
   ],
   "did_not_generalize": [
     "Python Django/ORM scan bands",
@@ -248,11 +250,12 @@
   "residual_risks": [
     "Syntactic branch score can over-report dense but correct validation/policy code and under-report call-hidden runtime cost.",
     "Expression arrows, function expressions, dynamic code, decorators, imports, calls, receivers, and types stay intentionally unmodeled.",
-    "A host TypeScript package is required whenever eligible TypeScript files are scanned."
+    "A host TypeScript package is required whenever eligible TypeScript files are scanned.",
+    "Fresh installed D6 evidence predates the exclusion repair; the direct-target regression is committed, while independent re-review remains pending."
   ],
   "next_decision": {
-    "recommendation": "Accept find-complexity-hotspots as additive Python plus narrow TypeScript support through D1-D8, retain the parser family-local, and leave router/catalog/contract updates to the serial integrator.",
+    "recommendation": "Accept find-complexity-hotspots as additive Python plus narrow TypeScript support after independent re-review of the exclusion repair; retain the parser family-local and leave router/catalog/contract updates to the serial integrator.",
     "rationale": "The Python six-band oracle, locked TypeScript final outcome, explicit failures, native checks, copied/stock installed closure, and fresh installed journey prove useful advisory output without a platform or semantic overclaim.",
-    "blockers": []
+    "blockers": ["Independent re-review of revision 886ded0"]
   }
 }

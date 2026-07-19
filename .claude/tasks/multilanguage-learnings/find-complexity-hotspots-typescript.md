@@ -1,8 +1,9 @@
 # TypeScript `find-complexity-hotspots` learning packet
 
-Implementation revision: `63a3ac0f869b08b70278605047e8b1bfaadd6768`
-(`Add TypeScript complexity hotspot detection`) on `codex/ts-complexity`, based
-on `05711c4`. This is a post-B4, family-local TypeScript body-analysis packet.
+Implementation revisions: `63a3ac0f869b08b70278605047e8b1bfaadd6768`
+(`Add TypeScript complexity hotspot detection`) and `886ded0` (project-relative
+exclusion repair) on `codex/ts-complexity`, based on `05711c4`. This is a
+post-B4, family-local TypeScript body-analysis packet.
 
 ## Accepted invariant and scope
 
@@ -74,11 +75,11 @@ and analyzer provenance, and start/end source spans. It also proves:
   resolver/run commands execute verbatim using host `python3` rather than a
   toolkit venv.
 
-Executed verification at `63a3ac0`:
+Executed verification after `886ded0`:
 
 ```text
 .venv/bin/python -m pytest -q tests/test_find_complexity_hotspots_typescript.py
-# 6 passed
+# 7 passed
 
 .venv/bin/ruff check .claude/skills/find-complexity-hotspots/scripts/detect.py \
   .claude/skills/find-complexity-hotspots/scripts/run.py \
@@ -120,6 +121,18 @@ The same host subsequently passed `npm run typecheck` and `npm test`. The
 agent's useful final artifact, no-source-edit observation, and independent
 `measure-first` reasoning close D6 without leaked expected output.
 
+## Adversarial exclusion repair
+
+The first independent review found that excluded-source policy was evaluated
+relative to the caller's narrowed target. Directly targeting `vendor/`,
+`generated/`, `tests/`, or a file beneath them therefore removed the path token
+that was supposed to exclude it. Revision `886ded0` anchors the policy to
+`--project-root`, covers direct directory and file targets across dependency,
+build, generated, fixture, spec, test, vendor, coverage, and report trees, and
+adds a regression that exercises every category. This is transferable to all
+language adapters: ignore policy is a property of the host project, not of the
+invocation target.
+
 ## D1–D8 closeout
 
 | Gate | Evidence | Status |
@@ -130,8 +143,8 @@ agent's useful final artifact, no-source-edit observation, and independent
 | D4 change/guard | Not applicable: this advisory detector proposes neither a source change nor guard. | n/a |
 | D5 installed closure | Copied `-I -S` and stock installed-command tests pass with host Python/Node only. | pass |
 | D6 fresh forward task | Fresh installed journey above produces final artifacts and useful conclusion. | pass |
-| D7 regression/conformance | Focused tests, Ruff, native checks, metadata lint, compile/syntax, and diff check pass. | pass |
-| D8 learning handoff | This MD/JSON pair records decisions, evidence, and prerequisites. | pass |
+| D7 regression/conformance | Seven focused tests, Ruff, native checks, metadata lint, compile/syntax, and diff check pass. | pass |
+| D8 learning handoff | This MD/JSON pair records decisions, evidence, adversarial repair, and prerequisites. | ready for re-review |
 
 ## What generalized, what did not
 
