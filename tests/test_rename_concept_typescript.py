@@ -63,6 +63,10 @@ def _install_host_typescript(host: Path) -> None:
     assert install.returncode == 0, install.stdout + install.stderr
 
 
+def _assessment_path(host: Path, name: str) -> Path:
+    return host / "reports" / "rename-concept" / name
+
+
 def _documented_command(skill: Path, name: str) -> str:
     text = (skill / "SKILL.md").read_text(encoding="utf-8")
     match = re.search(
@@ -89,7 +93,7 @@ def test_installed_assessment_finds_ts_and_tsx_drift_without_mutating_source(tmp
         for path in (host / "src").glob("*")
         if path.name != "external.ts"
     }
-    assessment = host / "reports" / "dirty-assessment.json"
+    assessment = _assessment_path(host, "dirty-assessment.json")
 
     result = _run(
         installed / "scripts" / "assess.py",
@@ -124,6 +128,35 @@ def test_installed_assessment_finds_ts_and_tsx_drift_without_mutating_source(tmp
     assert {
         candidate["classification"] for candidate in payload["lexical_gate"]["candidate_classifications"]
     } >= {"shadowed_local", "import_alias", "property_key", "string_literal", "comment_text"}
+    assert source_before == {
+        path.relative_to(host).as_posix(): path.read_bytes()
+        for path in (host / "src").glob("*")
+        if path.name != "external.ts"
+    }
+
+    escaped_output = tmp_path / "escaped-assessment.json"
+    escape_dir = host / "reports" / "rename-concept" / "escape"
+    escape_dir.parent.mkdir(parents=True, exist_ok=True)
+    os.symlink(tmp_path, escape_dir)
+    for rejected_output in (
+        host / "src" / "transition.ts",
+        escaped_output,
+        escape_dir / "assessment.json",
+    ):
+        rejected = _run(
+            installed / "scripts" / "assess.py",
+            "legacy-status",
+            "canonical-status",
+            "--project-root",
+            str(host),
+            "--output",
+            str(rejected_output),
+            cwd=tmp_path,
+        )
+        assert rejected.returncode == 2
+        assert "reports/rename-concept" in rejected.stderr
+    assert not escaped_output.exists()
+    assert not (tmp_path / "assessment.json").exists()
     assert source_before == {
         path.relative_to(host).as_posix(): path.read_bytes()
         for path in (host / "src").glob("*")
@@ -184,6 +217,56 @@ def test_coupled_scanner_uses_project_relative_exclusions_and_never_follows_esca
         )
         assert result.returncode == 0, result.stdout + result.stderr
         assert _records(output) == []
+
+    contained = host / "contained-tree"
+    contained.mkdir()
+    (contained / "legacy.ts").write_text(
+        "export const legacyStatus = canonicalStatus;\n", encoding="utf-8"
+    )
+    os.symlink(contained, host / "internal-directory-alias")
+    (host / "reports").mkdir(exist_ok=True)
+    os.symlink(contained, host / "reports" / "logical-alias")
+    external_directory = tmp_path / "external-directory"
+    external_directory.mkdir()
+    (external_directory / "legacy.ts").write_text(
+        "export const legacyStatus = canonicalStatus;\n", encoding="utf-8"
+    )
+    os.symlink(external_directory, host / "external-directory-alias")
+
+    for target in (
+        "internal-directory-alias",
+        "reports/logical-alias",
+        "external-directory-alias",
+    ):
+        output = host / "reports" / f"{target.replace('/', '_')}.jsonl"
+        result = _run(
+            scanner,
+            "--project-root",
+            str(host),
+            "--output",
+            str(output),
+            "--report",
+            str(output.with_suffix(".md")),
+            target,
+            cwd=tmp_path,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert _records(output) == []
+
+    contained_output = host / "reports" / "contained-tree.jsonl"
+    contained_result = _run(
+        scanner,
+        "--project-root",
+        str(host),
+        "--output",
+        str(contained_output),
+        "--report",
+        str(contained_output.with_suffix(".md")),
+        "contained-tree",
+        cwd=tmp_path,
+    )
+    assert contained_result.returncode == 0, contained_result.stdout + contained_result.stderr
+    assert {record["file"] for record in _records(contained_output)} == {"contained-tree/legacy.ts"}
 
 
 def test_fresh_stock_agents_install_runs_only_documented_commands_on_clean_ts_host(tmp_path: Path) -> None:
@@ -254,7 +337,7 @@ def test_missing_host_typescript_blocks_assessment_without_writing_source(tmp_pa
     host = _make_host(tmp_path)
     installed = _copy_installed_skills(tmp_path)
     source_before = (host / "src" / "transition.ts").read_bytes()
-    assessment = host / "reports" / "missing-typescript.json"
+    assessment = _assessment_path(host, "missing-typescript.json")
 
     result = _run(
         installed / "scripts" / "assess.py",
@@ -280,7 +363,7 @@ def test_typescript_resolved_from_an_ancestor_is_not_host_compiler_evidence(tmp_
     _install_host_typescript(host)
     shutil.move(str(host / "node_modules"), tmp_path / "node_modules")
     source_before = (host / "src" / "transition.ts").read_bytes()
-    assessment = host / "reports" / "ancestor-typescript.json"
+    assessment = _assessment_path(host, "ancestor-typescript.json")
 
     result = _run(
         installed / "scripts" / "assess.py",
@@ -305,7 +388,7 @@ def test_copied_assessment_never_falls_back_to_source_tree_without_companion(tmp
     host = _make_host(tmp_path)
     installed = _copy_installed_skills(tmp_path, include_detector=False)
     source_before = (host / "src" / "transition.ts").read_bytes()
-    assessment = host / "reports" / "missing-companion.json"
+    assessment = _assessment_path(host, "missing-companion.json")
 
     result = _run(
         installed / "scripts" / "assess.py",
@@ -334,7 +417,7 @@ def test_parse_diagnostic_blocks_typescript_identifier_certification(tmp_path: P
         "export const legacyStatus = ;\nexport const canonicalStatus = 'canonical';\n",
         encoding="utf-8",
     )
-    assessment = host / "reports" / "parse-error.json"
+    assessment = _assessment_path(host, "parse-error.json")
 
     result = _run(
         installed / "scripts" / "assess.py",
@@ -370,7 +453,7 @@ def test_internal_only_concept_identifiers_cannot_supply_v1_authority(tmp_path: 
         path.relative_to(host).as_posix(): path.read_bytes()
         for path in (host / "src").glob("*")
     }
-    assessment = host / "reports" / "internal-only.json"
+    assessment = _assessment_path(host, "internal-only.json")
 
     result = _run(
         installed / "scripts" / "assess.py",

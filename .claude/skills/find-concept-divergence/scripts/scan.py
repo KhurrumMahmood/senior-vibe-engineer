@@ -379,16 +379,19 @@ def _rel(path: Path, root: Path) -> str:
 
 
 def _candidate(raw: str, root: Path) -> Path | None:
-    """Resolve one target/file without accepting a path outside ``root``."""
+    """Validate one target/file without losing its root-relative label."""
     path = Path(raw)
     candidate = path if path.is_absolute() else root / path
+    # Normalize ``.``/``..`` without dereferencing symlinks: exclusions apply
+    # to the caller's logical project-relative path, not an alias target.
+    candidate = Path(os.path.abspath(candidate))
     try:
         resolved = candidate.resolve()
-    except OSError:
+    except (OSError, RuntimeError):
         return None
     if not candidate.exists() or not _within(resolved, root):
         return None
-    return resolved
+    return candidate
 
 
 def iter_files(targets: Iterable[str], root: Path) -> Iterable[Path]:
@@ -396,7 +399,8 @@ def iter_files(targets: Iterable[str], root: Path) -> Iterable[Path]:
 
     Exclusions use project-relative labels so a valid project whose ancestor is
     named ``node_modules`` still scans normally. Direct target files and
-    directories get the same exclusion check as recursive children, and a
+    directories get the same exclusion check as recursive children. Directory
+    symlinks are never traversed, including when named directly, and a
     symlink resolving outside the project is never read.
     """
     root = root.resolve()
@@ -411,6 +415,8 @@ def iter_files(targets: Iterable[str], root: Path) -> Iterable[Path]:
             if p.suffix in INCLUDE_SUFFIXES and p not in seen:
                 seen.add(p)
                 yield p
+            continue
+        if p.is_symlink():
             continue
         for directory, directories, filenames in os.walk(p, followlinks=False):
             current = Path(directory)

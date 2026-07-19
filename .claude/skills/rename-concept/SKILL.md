@@ -84,7 +84,8 @@ skill drives is `/find-concept-divergence`.
 
 ```bash
 .venv/bin/python .claude/skills/rename-concept/scripts/assess.py <old> <new> \
-  [--min-blast N] [--project-root DIR] [--output assessment.json]
+  [--min-blast N] [--project-root DIR] \
+  [--output reports/rename-concept/<assessment>.json]
 ```
 
 Install this skill together with its detector companion,
@@ -147,7 +148,10 @@ old/new candidate. If the host compiler is unavailable, an old-concept symbol
 remains, a candidate cannot be resolved, or no new-concept declaration exists,
 or parsing/relevant resolution diagnostics are present, the verdict stays
 incomplete. `--output` persists this exact read-only evidence as JSON; it
-creates only the report path, never alters a host source file.
+accepts only paths that resolve inside
+`<project-root>/reports/rename-concept/`. Source paths, paths outside that
+subtree, and an existing output/ancestor symlink that escapes it are rejected
+before parent directories are created; it never alters a host source file.
 
 Reports, read-only:
 

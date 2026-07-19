@@ -80,6 +80,37 @@ def resolve_project_root(explicit: pathlib.Path | None = None) -> pathlib.Path:
     return pathlib.Path.cwd().resolve()
 
 
+def assessment_output_path(output: pathlib.Path, project_root: pathlib.Path) -> pathlib.Path:
+    """Accept only a contained assessment report, resolving existing symlinks.
+
+    The assessment is read-only with respect to the host source tree.  Its
+    optional persistence surface is deliberately narrower: a report beneath
+    ``reports/rename-concept/`` in the selected project.  Resolve both the
+    report root and candidate before creating parents so an existing symlink
+    cannot redirect the write outside that subtree.
+    """
+    project_root = project_root.resolve()
+    report_root = project_root / "reports" / "rename-concept"
+    candidate = output if output.is_absolute() else project_root / output
+    try:
+        resolved_report_root = report_root.resolve(strict=False)
+        resolved_output = candidate.resolve(strict=False)
+    except (OSError, RuntimeError) as exc:
+        raise ValueError(f"assessment output could not be resolved: {exc}") from exc
+
+    try:
+        resolved_report_root.relative_to(project_root)
+        resolved_output.relative_to(resolved_report_root)
+    except ValueError as exc:
+        raise ValueError(
+            "assessment --output must resolve inside "
+            "<project-root>/reports/rename-concept/"
+        ) from exc
+    if resolved_output.exists() and resolved_output.is_dir():
+        raise ValueError("assessment --output must name a file inside reports/rename-concept/")
+    return resolved_output
+
+
 def load_glossary(path: pathlib.Path) -> dict:
     detector = detector_module()
     if detector is None:
@@ -397,10 +428,16 @@ def main():
                     help="Target project root (git grep, glossary, guard lint, "
                     "divergence scan; default: git toplevel of cwd, else cwd)")
     ap.add_argument("--output", type=pathlib.Path, default=None,
-                    help="Optional persistent JSON assessment path (source files remain read-only)")
+                    help="Optional JSON under reports/rename-concept/ (source files remain read-only)")
     args = ap.parse_args()
     old, new = args.old, args.new
     project_root = resolve_project_root(args.project_root)
+    output = None
+    if args.output is not None:
+        try:
+            output = assessment_output_path(args.output, project_root)
+        except ValueError as exc:
+            ap.error(str(exc))
 
     old_files_all = git_grep_files(old, project_root)
     old_files_live = [f for f in old_files_all if not allowed(f)]
@@ -607,7 +644,7 @@ def main():
         verdict = "HALF-APPLIED / INCOMPLETE"
         open_items = missing
         print("  HALF-APPLIED / INCOMPLETE — open: " + "; ".join(missing))
-    if args.output:
+    if output:
         payload = {
             "skill": "rename-concept",
             "project_root": str(project_root),
@@ -629,9 +666,9 @@ def main():
             "verdict": verdict,
             "open_items": open_items,
         }
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        print(f"\nassessment JSON → {args.output}")
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(f"\nassessment JSON → {output}")
     return 0
 
 

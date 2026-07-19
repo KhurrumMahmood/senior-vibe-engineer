@@ -140,11 +140,13 @@ Out-of-scope paths (always excluded): `.venv/`, `node_modules/`,
 `.claude/skills/find-concept-divergence/host_excludes.txt` (one
 path-prefix per line; comments via `#`).
 
-Exclusions are evaluated relative to `--project-root`, including a directly
-named file or directory. The walk does not follow directory symlinks and
-rejects any file/symlink resolving outside that project root. Therefore a host
-may itself live below an ancestor named `node_modules`, while its own dependency
-tree and escaped symlink targets remain out of scope.
+Exclusions are evaluated against the logical path relative to `--project-root`,
+including a directly named file or directory. The walk never traverses a
+directory symlink, even when that symlink is the direct target; an alias below
+an excluded logical directory cannot bypass that exclusion. Files/symlinks
+resolving outside the project root are rejected. Therefore a host may itself
+live below an ancestor named `node_modules`, while its own dependency tree and
+escaped symlink targets remain out of scope.
 
 ## Pipeline
 
