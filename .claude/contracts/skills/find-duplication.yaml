@@ -3,10 +3,9 @@ schema_version: 2
 skill: find-duplication
 job: suspect
 problem_class: structural/lexical duplication detection (SUSPECT)
-intent: Detect structural and lexical code duplication by running jscpd and an AST visitor in parallel,
-  collapsing overlapping clone pairs into method-identity findings, fanning out sub-agent investigators,
-  and producing a P0/P1/P2 triage report with a dormant-code side-channel. Hands off to /fix-workflow
-  cluster:<id>.
+intent: Detect Python and TypeScript lexical or structural clone candidates with language-specific,
+  self-contained detectors; collapse only reliable source spans into conservative symbol findings;
+  fan out scout judgment; and produce a P0/P1/P2 triage report without claiming consolidation is safe.
 solves: Copy-paste rot — two methods with identical/near-identical bodies — that accumulates in an AI-grown
   codebase, with the noise of raw jscpd/AST output collapsed into actionable method-identity clusters.
 born:
@@ -118,6 +117,8 @@ evidence:
 - has scripts/ (jscpd + AST scanner) but no fixtures/ pair (structural med)
 - no reports/duplication dir on disk in ES2 (run_evidence 0) — the skill has not been dogfooded in this
   repo since extraction
+- Additive Python and TypeScript fixtures, copied-install closure tests, rerun isolation regressions,
+  and fresh forward evidence are indexed by .claude/tasks/multilanguage-learnings/find-duplication-typescript.{md,json}.
 gaps:
 - The host-a contract recorded dogfood_kind subsystem-refactor (a core/ jscpd/ast sweep with matching cluster
   IDs); that is host-a's history. ES2 was extracted big-bang with no host subsystem and no run artifacts,
@@ -125,3 +126,5 @@ gaps:
 - 'embodies_decisions.adr is []: ADR 0003 (findings-ledger) lists find-duplication only as a PRODUCER of
   findings (one of ~12), not as the ledger''s enforcement/consumer, so it is not attributed; no precedent
   or lesson references this skill either.'
+- Clone evidence remains lexical/structural and requires human judgment; neither language branch establishes
+  semantic equivalence or safe consolidation.
