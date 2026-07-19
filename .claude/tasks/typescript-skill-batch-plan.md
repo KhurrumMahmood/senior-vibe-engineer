@@ -1,6 +1,6 @@
 # TypeScript-first skill batch plan
 
-Status: B0, B1, B2P, and B3 complete; B2T, move-path, and explain-code in progress
+Status: B0, B1, B2P, B3, and move-path complete; B2T and explain-code in progress
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -659,14 +659,13 @@ Cross-cutting decisions from this clarification:
 
 Active candidate promotion:
 
-- `move-path` is `in_progress` on `codex/ts-move-path` at
-  `/private/tmp/engineering-skills-ts-move-path`. Its v1 contract guarantees a
+- `move-path` is `complete` on `codex/productization-restart` at `6e65140` plus
+  its generated-index/catalog closeout. Its v1 contract guarantees a
   self-contained JSON plan path, keeps YAML optional when PyYAML is available,
   rewrites only identity-resolved text/path references, explicitly ignores
-  TypeScript source imports, and must expose that residual risk in the final
-  report. It may move to `ready/complete` only after its locked TS fixture,
-  native typecheck, copied-install replay, learning packet, and fresh review
-  pass.
+  TypeScript source imports, and exposes that residual risk in the final
+  report. Its locked TS fixture, TypeScript 5.9.3 typecheck, copied-install
+  replay, learning packet, and independent adversarial review pass.
 
 ### Framework-specific; do not dispatch without a named stack (20)
 
@@ -711,3 +710,4 @@ corrected rather than treated as working framework neutrality.
 | 2026-07-19 UTC | `33e96a6` | B2P Python closed-state reference | Detector→review→enum proposal→guard reference accepted after adversarial repairs for parse-error rc 2, chained assignments, repo-ignore fallback, and whole-tree immutability. Targeted suite: 8 passed; copied `python3 -I -S` forward artifacts at `/tmp/es-forward-state.xDtbxT` preserved vendor/open-ended boundaries; independent re-review returned PASS. |
 | 2026-07-19 UTC | `eb4d498` | B1 router-language integration foundation | Bundled catalog now retains `language`, `framework`, and `scans`; copied matcher resolves explicit/exact language context, excludes unsupported language/framework/scanner claims, and returns `unsupported` instead of substituting a weaker skill. Unearned `find-omnibus` TypeScript and Django-bound workflow-state claims are withheld. Router suite: 19 passed; metadata/conformance/Ruff clean. B1 skill-local acceptance remains pending. |
 | 2026-07-19 UTC | `e6f6a5d` | B1 complete | TS/TSX concept findings plus four host-neutral artifact/rules skills pass copied `python -I -S` final-outcome tests. Two adversarial rounds found and repaired quoted/commented YAML false-clean/false-positive paths. The five real contracts are acknowledged and index `stale: ok`; catalog/routing integrated. Final integrated suite: 35 passed; independent re-review PASS. |
+| 2026-07-19 UTC | `6e65140` + generated closeout | TypeScript move-path complete | Standalone TS/TSX path/text moves use self-contained JSON plans, preserve plan authority bytes, rewrite identity-resolved docs/config, and report rather than rewrite source imports. Adversarial repairs covered invalid invented specifiers, multiline imports, NodeNext emitted-file substitutions, declaration variants, and residue self-reporting. TypeScript 5.9.3 native suite plus routers/shape: 70 passed; copied closure and independent final review PASS. |
