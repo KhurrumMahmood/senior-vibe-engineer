@@ -404,9 +404,12 @@ def test_exit_0_all_accounted(tmp_path):
 
 
 def test_exit_0_all_within_grace(tmp_path):
+    recent = (datetime.now(timezone.utc) - timedelta(days=2)).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
     eff = _eff(tmp_path, [
         {"skill": "find-dead-route-surface", "scan_id": "s-new",
-         "target": "/sites", "findings_total": 2, "ts": _ts(2)},
+         "target": "/sites", "findings_total": 2, "ts": recent},
     ])
     fin = _find(tmp_path, [])
     dis = _dism(tmp_path, [])
