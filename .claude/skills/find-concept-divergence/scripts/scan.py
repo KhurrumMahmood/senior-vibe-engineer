@@ -394,6 +394,25 @@ def _candidate(raw: str, root: Path) -> Path | None:
     return candidate
 
 
+def _has_directory_symlink_ancestor(path: Path, root: Path) -> bool:
+    """Return whether ``path`` is reached through a directory symlink."""
+    try:
+        parts = path.relative_to(root).parts
+    except ValueError:
+        return True
+    current = root
+    for part in parts:
+        current /= part
+        if not current.is_symlink():
+            continue
+        try:
+            if current.resolve().is_dir():
+                return True
+        except (OSError, RuntimeError):
+            return True
+    return False
+
+
 def iter_files(targets: Iterable[str], root: Path) -> Iterable[Path]:
     """Yield root-contained, non-excluded files without following escapes.
 
@@ -410,6 +429,8 @@ def iter_files(targets: Iterable[str], root: Path) -> Iterable[Path]:
         if p is None:
             continue
         if is_excluded(_rel(p, root)):
+            continue
+        if _has_directory_symlink_ancestor(p, root):
             continue
         if p.is_file():
             if p.suffix in INCLUDE_SUFFIXES and p not in seen:

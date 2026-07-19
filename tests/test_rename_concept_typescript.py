@@ -235,6 +235,7 @@ def test_coupled_scanner_uses_project_relative_exclusions_and_never_follows_esca
 
     for target in (
         "internal-directory-alias",
+        "internal-directory-alias/legacy.ts",
         "reports/logical-alias",
         "external-directory-alias",
     ):

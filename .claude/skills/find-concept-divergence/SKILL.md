@@ -142,11 +142,11 @@ path-prefix per line; comments via `#`).
 
 Exclusions are evaluated against the logical path relative to `--project-root`,
 including a directly named file or directory. The walk never traverses a
-directory symlink, even when that symlink is the direct target; an alias below
-an excluded logical directory cannot bypass that exclusion. Files/symlinks
-resolving outside the project root are rejected. Therefore a host may itself
-live below an ancestor named `node_modules`, while its own dependency tree and
-escaped symlink targets remain out of scope.
+directory symlink, even when that symlink or one of its descendants is the
+direct target; an alias below an excluded logical directory cannot bypass that
+exclusion. Files/symlinks resolving outside the project root are rejected.
+Therefore a host may itself live below an ancestor named `node_modules`, while
+its own dependency tree and escaped symlink targets remain out of scope.
 
 ## Pipeline
 
