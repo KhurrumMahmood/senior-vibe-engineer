@@ -1,6 +1,6 @@
 {
   "batch": "find-folder-topology-drift-typescript",
-  "revision": null,
+  "revision": "75002248977c2631c2458ac064bc4f659ecedb3e",
   "family": [
     "find-folder-topology-drift",
     "typescript lexical folder topology"
@@ -8,7 +8,7 @@
   "invariant": {
     "portable_principle": "Three or more direct source siblings sharing a declared first domain token are a navigational cluster worth human triage.",
     "python_or_framework_mechanism": "Preserve the Python ADR 0006 promotion, test-prefix, sparse-package, and pages-route-mirror bands.",
-    "typescript_mechanism": "Only declared --typescript-root directories are walked; direct .ts/.tsx siblings group on their first _ or - token.",
+    "typescript_mechanism": "A --typescript-root-only invocation walks only declared TypeScript directories; direct .ts/.tsx siblings group on their first _ or - token. Supplying --root as well explicitly enables the additive Python scan.",
     "explicit_non_goals": [
       "TypeScript sparse-package demotion",
       "TypeScript test-folder reorganization",
@@ -60,7 +60,7 @@
     "inputs": [
       "--project-root PATH",
       "repeatable --typescript-root PATH",
-      "optional --root PATH for the preserved Python path",
+      "optional --root PATH for Python-only or explicit combined mode",
       "repeatable additive --exclude PATTERN"
     ],
     "structured_outputs": [
@@ -75,7 +75,8 @@
       "two siblings and mixed prefixes",
       "tests/__tests__, index, declarations, spec/test files",
       "generated/vendor/node_modules/dist/build/coverage/reports",
-      "declared additive excluded path"
+      "declared additive excluded path",
+      "Python files elsewhere in a host when only --typescript-root is supplied"
     ],
     "native_test_command": ".venv/bin/python -m pytest tests/test_find_folder_topology_typescript.py -q",
     "native_guard_command": null
@@ -88,16 +89,22 @@
     ],
     "typescript": [
       "tests/fixtures/find-folder-topology-typescript/typescript-host",
-      "5 passed in tests/test_find_folder_topology_typescript.py",
-      "Copied selected-skill detector and reporter passed under python -I -S from an unrelated cwd."
+      "8 passed in tests/test_find_folder_topology_typescript.py",
+      "Copied selected-skill detector and reporter passed under python -I -S from an unrelated cwd.",
+      "/private/tmp/folder-topology-forward-20260719-023928/evidence/final-artifacts/detections.jsonl contains exactly one TypeScript flat_prefix_cluster.",
+      "/private/tmp/folder-topology-forward-20260719-023928/evidence/final-artifact-validation.txt records PASS and source-integrity-final.txt records unchanged source bytes."
     ],
     "commands_and_artifact_paths": [
-      ".venv/bin/python -m pytest tests/test_find_folder_topology_typescript.py -q (5 passed)",
+      ".venv/bin/python -m pytest tests/test_find_folder_topology_typescript.py -q (8 passed)",
       ".venv/bin/python -m ruff check .claude/skills/find-folder-topology-drift/scripts tests/test_find_folder_topology_typescript.py (clean)",
       ".venv/bin/python scripts/skill_meta.py lint (76/76 OK)",
       ".venv/bin/python .claude/skills/_common/scripts/run_skill_smokes.py --skills-dir .claude/skills --timeout 10 (passed)",
-      ".venv/bin/python -m pytest tests/test_find_folder_topology_typescript.py tests/test_yaml_frontmatter.py tests/test_skill_meta_jobs.py tests/test_skill_taxonomy.py tests/test_scope.py tests/test_run_skill_smokes.py -q (63 passed)",
-      "/tmp/folder-topology-python-regression.jsonl, /tmp/folder-topology-python-regression.md, /tmp/folder-topology-python-regression.json"
+      ".venv/bin/python -m pytest tests/test_find_folder_topology_typescript.py tests/test_yaml_frontmatter.py tests/test_skill_meta_jobs.py tests/test_skill_taxonomy.py tests/test_scope.py tests/test_run_skill_smokes.py -q (66 passed)",
+      "/tmp/folder-topology-python-regression.jsonl, /tmp/folder-topology-python-regression.md, /tmp/folder-topology-python-regression.json",
+      "/private/tmp/folder-topology-forward-20260719-023928/evidence/task.md and journey.md",
+      "/private/tmp/folder-topology-forward-20260719-023928/evidence/initial-unfiltered-artifacts/detections.jsonl (rejected five-record run)",
+      "/private/tmp/folder-topology-forward-20260719-023928/evidence/final-artifacts/{detections.jsonl,report.md,findings.json} (accepted one-record run)",
+      "/private/tmp/folder-topology-forward-20260719-023928/evidence/transcripts/03-stock-install.typescript (skills@1.5.19 stock Codex install)"
     ]
   },
   "false_positive_boundary": {
@@ -171,26 +178,30 @@
   },
   "user_experience": {
     "install_steps": [
-      "Copy the selected skill directory.",
+      "Run skills@1.5.19 to copy the selected skill into the stock Codex .agents/skills location.",
       "Run detector with the host Python and an explicit --typescript-root.",
       "Run reporter over detections.jsonl."
     ],
     "wall_time_seconds": null,
     "agent_confusions": [
       "The former shared-helper import was invisible in a source checkout but failed in a stock copied install.",
-      "The TypeScript source root must be explicit so a repository-wide scan cannot silently imply support."
+      "The TypeScript source root must be explicit so a repository-wide scan cannot silently imply support.",
+      "The original installed example hard-coded .claude/skills even though stock Codex installed under .agents/skills.",
+      "The original --typescript-root-only command also emitted four Python reference findings and required a manual exclude before its reporter label was honest."
     ],
-    "repeated_work": [],
-    "smallest_later_improvement": "If a second detector needs the same self-contained scope/report contract, compare the two accepted interfaces before extracting a shared helper."
+    "repeated_work": [
+      "The fresh agent had to reject the initial five-record artifact, add an exclusion for the Python reference tree, and rerun detector and reporter."
+    ],
+    "smallest_later_improvement": "Completed in revision 75002248977c2631c2458ac064bc4f659ecedb3e: document .agents/skills and make --typescript-root-only scans intrinsically TypeScript-only."
   },
   "residual_risks": [
-    "No fresh installed forward-task transcript yet; D6 remains pending.",
+    "The fresh installed evidence predates the repair commit; committed regressions replay both discovered defects, while independent review of the follow-up remains pending.",
     "Filename clustering can over-report a legitimate framework convention, so all findings remain advisory.",
     "The detector intentionally misses mixed-token domain clusters and does not resolve TypeScript imports."
   ],
   "next_decision": {
     "recommendation": "Keep the TypeScript detector lexical and advisory; do not expand it until a separate TypeScript proposal family proves import impact.",
     "rationale": "The accepted fixture only demonstrates a direct filename cluster. Package moves, barrels, test placement, and module resolution require stronger evidence and distinct contracts.",
-    "blockers": ["D6 fresh installed forward-task evidence and review"]
+    "blockers": ["Independent review of the forward-evidence repair"]
   }
 }

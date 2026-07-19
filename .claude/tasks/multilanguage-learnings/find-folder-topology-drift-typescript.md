@@ -8,8 +8,9 @@ before `_` or `-`. The result is lexical evidence, not an import-safe move or
 package recommendation.
 
 Python remains additive: its four existing bands (`flat_prefix_cluster`,
-`tests_by_prefix`, `sparse_folder_package`, and `pages_route_mirror`) run as
-before. The TypeScript path neither replaces nor broadens them.
+`tests_by_prefix`, `sparse_folder_package`, and `pages_route_mirror`) still run
+in Python-only mode or when `--root` explicitly requests a combined scan. A
+`--typescript-root`-only invocation is intentionally TypeScript-only.
 
 ## Implementation and boundary
 
@@ -20,6 +21,11 @@ scan. TypeScript v1 excludes `index.ts[x]`, declarations, spec/test files,
 test trees, generated/vendor/dependency/build/report trees, and additive
 `--exclude` matches. It does not make package-density, test-placement,
 Next/pages, barrel, module-resolution, import-safety, or framework claims.
+
+The installed examples use the stock Codex project location
+`.agents/skills/find-folder-topology-drift`. The TypeScript-only command does
+not scan Python elsewhere in the host; passing both root forms is the explicit
+combined-mode opt-in.
 
 The old repository `_common` imports prevented a copied selected skill from
 running with `python -I -S`. `scripts/support.py` now bundles only this
@@ -43,6 +49,11 @@ The committed fixture root is
   `pattern: flat_prefix_cluster`; source hashes stay unchanged.
 - A copy containing only the selected skill runs detector and reporter from an
   unrelated cwd with `python -I -S`.
+- The fresh stock-install run is preserved at
+  `/private/tmp/folder-topology-forward-20260719-023928/evidence/`. It installed
+  exactly this skill with `skills@1.5.19` under `.agents/skills/`, produced the
+  expected one-finding read-only TypeScript artifact, and preserved every
+  source hash.
 
 Commands run on this revision:
 
@@ -54,11 +65,33 @@ Commands run on this revision:
 .venv/bin/python -m pytest tests/test_find_folder_topology_typescript.py tests/test_yaml_frontmatter.py tests/test_skill_meta_jobs.py tests/test_skill_taxonomy.py tests/test_scope.py tests/test_run_skill_smokes.py -q
 ```
 
-Results: 5 passed for the dedicated suite; Ruff clean; frontmatter lint found
+Results after the forward repair: 8 passed for the dedicated suite; Ruff clean;
+frontmatter lint found
 76/76 skills declaring the new contract; the smoke gate passed (11 explicit
 smokes, 42 import-floor scripts); the focused metadata/scope/smoke matrix
-passed 63 tests. A direct Python replay of the selected skill against its own
+passed 66 tests. A direct Python replay of the selected skill against its own
 source directory wrote zero findings and both final artifacts.
+
+### D6 forward evidence and repair
+
+The fresh agent received only the installed skill, copied raw fixture, and the
+natural task recorded in `evidence/task.md`. The stock installer transcript
+(`evidence/transcripts/03-stock-install.typescript`) confirms the installed
+path was `.agents/skills/find-folder-topology-drift`. The first documented
+TypeScript-shaped invocation wrote five records because it also scanned the
+copied Python reference tree; those rejected artifacts are preserved under
+`evidence/initial-unfiltered-artifacts/`. The agent manually added an exclude,
+then produced `evidence/final-artifacts/`: exactly one TypeScript
+`flat_prefix_cluster`. `evidence/final-artifact-validation.txt` records PASS,
+and `evidence/source-integrity-final.txt` confirms source bytes were unchanged.
+
+The forward friction caused two repairs in `75002248977c2631c2458ac064bc4f659ecedb3e`:
+
+1. Installed examples now use Codex's stock `.agents/skills/` location.
+2. `--typescript-root` without `--root` now runs TypeScript only. Passing both
+   root forms explicitly preserves the additive Python+TypeScript journey.
+
+Dedicated regressions reproduce both defects without the manual exclude.
 
 ## D1–D8 status
 
@@ -69,9 +102,9 @@ source directory wrote zero findings and both final artifacts.
 | D3 TypeScript outcome | pass | Final `detections.jsonl` → `report.md` / `findings.json` test asserts the single labeled finding. |
 | D4 change or guard | not applicable | This is a read-only detector; no mutation or blocking guard is claimed. |
 | D5 installed closure | pass | Copied skill runs detector and reporter under `python -I -S` outside checkout with no `_common` import. |
-| D6 fresh forward task | pending | All four agent slots were occupied at commit time; parent will dispatch the installed natural task after a slot opens. |
+| D6 fresh forward task | pass with repaired friction | Stock `skills@1.5.19` install produced the useful final artifact and exposed two UX defects; exact evidence and commit are recorded above. |
 | D7 regression and conformance | pass | Dedicated, metadata/scope/smoke, Ruff, frontmatter, and Python replay evidence above. |
-| D8 learning handoff | pending D6 | This packet is complete except for the forward-task transcript and reviewer result. |
+| D8 learning handoff | ready for review | Canonical MD/JSON now link the forward transcript, invalid and final artifacts, fixes, regressions, and remaining review boundary. |
 
 ## What generalized and what did not
 
