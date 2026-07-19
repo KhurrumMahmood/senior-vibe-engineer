@@ -1,11 +1,11 @@
 {
   "batch": "TypeScript find-standard-gaps candidate",
-  "revision": "df60ffbc2677f3d056032c34388858a811ce1886",
+  "revision": "4955b8164897fdf1cc49c36af1af7c7181b1087a",
   "family": [
     "find-standard-gaps"
   ],
   "invariant": {
-    "portable_principle": "Report a declared coverage gap only when a parser establishes the direct syntactic situation and its explicitly supported satisfaction condition; unsupported language, condition, or partial scan is never clean.",
+    "portable_principle": "Report a declared coverage gap only when a parser establishes the direct syntactic situation and its explicitly supported satisfaction condition; unsupported language, condition, matched extension, or partial scan is never clean.",
     "python_or_framework_mechanism": "Preserve the CPython AST detector for enclosed_by try/with and requires_kwarg, activation gating, grep/manual behavior, and coverage artifacts.",
     "typescript_mechanism": "A family-local Node launcher resolves host-local TypeScript, uses createSourceFile for .ts/.tsx, and reports direct call spelling, source line, and lexical try enclosure.",
     "explicit_non_goals": [
@@ -21,7 +21,8 @@
     "Bundled the narrow state-home resolver required by project_state.py so a copied skill no longer imports sibling _common runtime.",
     "Anchored file selection and exclusion policy to project root, including direct directory/file targets and external symlink escapes.",
     "Made unsupported TypeScript conditions and missing host TypeScript visible as language_unsupported rather than zero gaps.",
-    "Promoted TypeScript syntax/read failures to status partial with skipped_files, so zero gaps cannot be called clean."
+    "Promoted TypeScript syntax/read failures to status partial with skipped_files, so zero gaps cannot be called clean.",
+    "Promoted unsupported extensions matched alongside supported Python/TS/TSX source to partial with unsupported_files and unsupported_extensions, while an unsupported-only surface remains language_unsupported."
   ],
   "language_model": {
     "syntax": [
@@ -56,14 +57,15 @@
     "closure_mode": "The selected skill bundles scan_coverage.py, project_state.py, engineering_home.py, and detect_typescript_calls.mjs. The documented resolver works from .agents or .claude and uses host Python.",
     "preflight_and_failure_codes": [
       "scan_coverage.py exits 0 with explicit language_unsupported artifacts for missing Node/TypeScript or an unsupported TS condition.",
-      "A malformed TS source returns status partial with skipped_files; it cannot be reported clean."
+      "A malformed TS source returns status partial with skipped_files; it cannot be reported clean.",
+      "A matched unsupported extension returns partial with explicit count/extensions when supported files were scanned, and language_unsupported when none were supported."
     ]
   },
   "outcome_contract": {
     "inputs": [
       "Locked TypeScript 5.9.3 host fixture",
       "Host-owned standards.json defining direct JSON.parse enclosed_by try",
-      "TS, TSX, protected, nested-callback, ignored-source, Python-mixed, and failure-boundary corpus"
+      "TS, TSX, protected, nested-callback, ignored-source, Python+TS+JS, protected-Python-plus-JS zero-gap, direct-directory, and failure-boundary corpus"
     ],
     "structured_outputs": [
       "reports/standard-gaps/scan-<timestamp>/coverage.md",
@@ -79,7 +81,7 @@
       "Protected JSON.parse call",
       "Declaration, generated, vendor, and test source",
       "Direct excluded directory/file target and external symlink escape",
-      "Unsupported TypeScript condition or missing host TypeScript presented as clean"
+      "Unsupported TypeScript condition, missing host TypeScript, or a matched unsupported extension presented as clean"
     ],
     "native_test_command": "npm ci --offline --ignore-scripts && npm run typecheck && npm test",
     "native_guard_command": null
@@ -90,15 +92,16 @@
       "Focused Python requires_kwarg behavior remains green without Node."
     ],
     "typescript": [
-      "tests/test_find_standard_gaps_typescript.py reaches final coverage.md/coverage.json and asserts exact positive, negative, mixed, unsupported, partial, exclusion, closure, and stock-install outcomes.",
+      "tests/test_find_standard_gaps_typescript.py reaches final coverage.md/coverage.json and asserts exact positive, negative, Python+TS+JS, protected-Python-plus-JS zero-gap, direct-directory, unsupported-only, partial, exclusion, closure, and stock-install outcomes.",
       "Fresh installed host wrote 4 sites, 3 gaps, and 2 analyzed files through only documented resolver/run commands."
     ],
     "commands_and_artifact_paths": [
-      ".venv/bin/python -m pytest -q tests/test_find_standard_gaps_typescript.py tests/test_standard_gaps_census.py: 27 passed",
+      ".venv/bin/python -m pytest -q tests/test_find_standard_gaps_typescript.py tests/test_standard_gaps_census.py: 29 passed",
       ".venv/bin/ruff check selected scripts and test: All checks passed",
       "node --check detect_typescript_calls.mjs: passed",
       ".venv/bin/python -m py_compile selected Python scripts: passed",
       ".venv/bin/python scripts/skill_meta.py lint: OK — 76 skills, 76 declaring new contract",
+      "git diff --check: clean",
       "Fresh installed artifact: /private/tmp/find-standard-gaps-forward-partial.gDKW8r/host/reports/standard-gaps/scan-20260719-042018"
     ],
     "fresh_forward": {
@@ -119,7 +122,8 @@
     ],
     "known_false_negatives": [
       "Aliases, computed property calls, optional semantic call paths, and runtime/global identity are unmodeled.",
-      "Supported calls in malformed TS files are skipped until syntax is repaired."
+      "Supported calls in malformed TS files are skipped until syntax is repaired.",
+      "Unsupported extensions are intentionally not parsed; narrow paths or add a language-specific detector before treating that surface as covered."
     ],
     "legitimate_similar_shapes": [
       "A direct JSON.parse in a lexical try is clean.",
@@ -131,7 +135,7 @@
     "Host-local pinned Compiler API resolution",
     "Final-artifact rather than parser-only oracle",
     "Project-root-relative direct-target exclusion policy",
-    "Explicit unsupported and partial-scan states",
+    "Explicit unsupported and partial-scan states, including mixed-extension accounting",
     "Copied and stock-installed selected-skill replay"
   ],
   "did_not_generalize": [
@@ -194,7 +198,8 @@
     "agent_confusions": [
       "A TSX parser does not imply React framework semantics.",
       "A direct JSON.parse spelling does not prove global API identity.",
-      "status partial with skipped_files is not clean."
+      "status partial with skipped_files is not clean.",
+      "A supported zero-gap subset is not compliant when the same target matched unsupported extensions."
     ],
     "repeated_work": [
       "Existing TypeScript pilots supplied the host-local Compiler API and stock-install validation pattern, not a shared runtime."
@@ -205,11 +210,12 @@
     "Direct syntax matching can over-report shadowed/local names and under-report aliases/computed calls.",
     "Nested callback reset is conservative and can flag callbacks that synchronously execute inside try.",
     "Host Node and project-local TypeScript remain prerequisites for eligible TS/TSX files.",
-    "A syntax error leaves a partial surface; users must inspect skipped_files."
+    "A syntax error leaves a partial surface; users must inspect skipped_files.",
+    "A broad source path can include an unsupported extension; users must inspect unsupported_files/extensions and narrow the path or add a detector before claiming coverage."
   ],
   "next_decision": {
-    "recommendation": "Accept the additive Python plus narrow TypeScript/TSX try-enclosure contract and keep it family-local.",
-    "rationale": "The concrete standard, final artifacts, exact exclusions, explicit unsupported/partial behavior, installed closure, and fresh stock install prove useful coverage without a semantic or framework overclaim.",
+    "recommendation": "Accept the additive Python plus narrow TypeScript/TSX try-enclosure contract and keep it family-local with explicit mixed-extension partial coverage.",
+    "rationale": "The concrete standard, final artifacts, exact exclusions, explicit unsupported/partial behavior including matched-extension accounting, installed closure, and fresh stock install prove useful coverage without a semantic or framework overclaim.",
     "blockers": []
   }
 }

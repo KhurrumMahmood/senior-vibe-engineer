@@ -1,7 +1,8 @@
 # TypeScript `find-standard-gaps` learning packet
 
 Feature revision: `77e99d65499dea75dd5a57ecf88faf11942d682b`; completeness
-repair: `df60ffbc2677f3d056032c34388858a811ce1886`, both on
+repair: `df60ffbc2677f3d056032c34388858a811ce1886`; mixed-extension repair:
+`4955b8164897fdf1cc49c36af1af7c7181b1087a`, all on
 `codex/ts-find-standard-gaps`, based on
 `dac52aa29fb1c795809490209d1d2db378b34e57`.
 
@@ -26,6 +27,13 @@ clean zero-gap scan. Missing Node or host-local `typescript` also reports that
 status. A TS parse/read failure returns `status: partial` and records
 `skipped_files`, so a zero-gap result with skips is never clean.
 
+An `ast` target that matches an unsupported extension alongside supported
+Python/TS/TSX source returns `status: partial`, retaining the supported
+findings while recording `unsupported_files` and `unsupported_extensions`.
+For example, a protected Python `json.loads` call plus an unsafe `.js`
+`JSON.parse` call is a zero-gap but non-clean partial result. If no supported
+files remain, the result is `language_unsupported` instead.
+
 ## Selection and installation boundary
 
 The fixture's durable user artifact is `standards.json`, not generated parser
@@ -48,11 +56,19 @@ trees even when selected directly. A symlink that resolves outside the project
 root is excluded. This prevents a caller from bypassing source policy by
 narrowing the target to `vendor/` or an external linked file.
 
+The generic `ast` surface is Python plus narrow TypeScript/TSX only. A broad
+or direct-directory path that also selects `.js` (or another unsupported
+extension) cannot silently claim that the supported subset is compliant: it is
+partial and names both the unsupported-file count and extension set.
+
 `tests/test_find_standard_gaps_typescript.py` proves final `coverage.md` and
 `coverage.json`, not only launcher facts. Its boundary corpus covers:
 
 - exact `.ts` + `.tsx` sites/gaps and string/comment non-matches;
-- Python + TS/TSX mixed scanning and legacy Python `requires_kwarg` behavior;
+- Python + TS/TSX mixed scanning, Python+TS+JS mixed findings, and legacy
+  Python `requires_kwarg` behavior;
+- a protected Python plus unsafe-JS zero-gap repro, a direct mixed-directory
+  target, and the JavaScript-only `language_unsupported` fallback;
 - unsupported TS condition, missing host TypeScript, and malformed TS partial
   scan behavior;
 - generated/vendor/test/declaration exclusions, direct excluded file/directory
@@ -92,7 +108,7 @@ evidence for a reusable cross-skill runtime.
 
 ```text
 .venv/bin/python -m pytest -q tests/test_find_standard_gaps_typescript.py tests/test_standard_gaps_census.py
-# 27 passed
+# 29 passed
 
 .venv/bin/ruff check scan_coverage.py project_state.py engineering_home.py tests/test_find_standard_gaps_typescript.py
 # All checks passed
@@ -101,6 +117,9 @@ node --check detect_typescript_calls.mjs
 .venv/bin/python -m py_compile scan_coverage.py project_state.py engineering_home.py
 .venv/bin/python scripts/skill_meta.py lint
 # OK — 76 skills, 76 declaring new contract
+
+git diff --check
+# clean
 ```
 
 ## Next decision
