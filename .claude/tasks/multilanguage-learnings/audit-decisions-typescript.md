@@ -1,8 +1,9 @@
 # TypeScript `audit-decisions` learning handoff
 
-Implementation revision: `259de78` (`Bound generic JSX tag scanning`),
-following the original additive implementation `a30ea88`, first adversarial
-repair `fbeca4e`, and base `8fa69f3`, 2026-07-19 UTC.
+Implementation revision: `30f780a` (`Contain audit decision report outputs`),
+following the Compiler API migration `aab14c8`, generic-JSX repair `259de78`,
+the original additive implementation `a30ea88`, first adversarial repair
+`fbeca4e`, and base `8fa69f3`, 2026-07-19 UTC.
 
 ## Invariant and scope
 
@@ -27,17 +28,21 @@ contain. Neither outcome was an installed audit.
 
 `scripts/audit.py` is a family-local, Python-stdlib runner. It preserves the
 registry audit/link-check compatibility artifacts, scans Python comments with
-`tokenize`, retains Markdown/HTML's existing `# decision:NNNN` form, and uses a
-small TypeScript/TSX lexical comment scanner. The scanner skips quoted strings,
-template text, regex literals, and TSX text; it recursively scans actual
-template/JSX expression code. No TypeScript compiler, package manager,
-network access, `tsconfig`, shared parser, shared fact platform, repository
-helper, or sibling skill is necessary for comment attribution.
+`tokenize`, retains Markdown/HTML's existing `# decision:NNNN` form, and invokes
+the bundled Node helper for TS/TSX. That helper resolves the host's pinned
+`typescript` package from `--project-root/package.json`, rejects parse errors,
+and uses Compiler API literal/JSX ranges so its small comment pass only sees
+real code trivia. Node.js and the project-local dependency are therefore
+explicit prerequisites; the audit still does no package installation, network
+access, `tsconfig` loading, semantic resolution, repository-helper import, or
+sibling-skill import.
 
-The scanner and every exclusion are deliberately family-local. A compiler API
-would add host prerequisites without improving this lexical invariant.
+The runner, parser launcher, exclusion policy, and report-output boundary stay
+family-local. The Compiler API owns TypeScript/TSX syntax boundaries; there is
+no shared parser or fact platform because no second consumer has this exact
+final-artifact and selected-install contract.
 
-## Adversarial lexer repair
+## Adversarial lexer repair (historical)
 
 Independent review at `fdad6b6` found three P1 attribution failures. JSX
 fragments (`<>...</>`) were not recognized, so comment-shaped JSX text in
@@ -47,8 +52,8 @@ an otherwise valid tag when a quoted attribute contained a comma. Finally,
 literal, so `/* ... */` inside a regex character class was mistaken for a real
 block comment.
 
-The repaired scanner recognizes JSX fragment delimiters, inspects commas and
-`extends` only outside quoted attributes and JSX attribute expressions, and
+The former repaired scanner recognized JSX fragment delimiters, inspected
+commas and `extends` only outside quoted attributes and JSX attribute expressions, and
 keeps valid TSX generic arrows (`<T,>` and `<T extends ...>`) out of the JSX
 path. It also recognizes JavaScript/TypeScript expression-prefix keywords such
 as `typeof`, `void`, and `instanceof` when deciding whether `/` starts a regex;
@@ -59,21 +64,21 @@ The locked one-line fragment replay retains the real
 `9441` and `9442`. A quoted-comma attribute suppresses JSX-text id `9443`, and
 regex literals after `typeof`, `void`, and `instanceof` suppress ids
 `9444`–`9446`. Real comments inside both supported TSX generic-arrow shapes
-remain visible. This closes the adversarial blockers without a compiler,
-shared parser, or broader source support.
+remain visible. These adversarial cases remain fixture evidence, but `aab14c8`
+replaced the lexer with the Compiler API helper rather than extending lexical
+states further.
 
 A second adversarial review then found that generic JSX type arguments were
 recognized as JSX but the tag scanner stopped at the generic argument's `>`.
 For `<Select<number> />; /* decision:0002 */`, that left the outer `/>`
 unconsumed and caused the scanner to treat all following code as JSX text.
-The repair tracks nested angle depth in both JSX recognition and actual tag
-scanning, while treating `=>` inside a function type as an arrow rather than a
-generic close. The exact self-closing replay now retains its following block
-comment. Nearby locked probes cover nested and multiple generic arguments,
-member component names, a function-type argument, quoted `>`/comma attributes,
-and a non-self-closing generic element whose comment-shaped child text remains
-ignored while its following real line comment is retained. All earlier
-fragment, quoted-comma, generic-arrow, and regex-keyword fixtures remain green.
+The former repair tracked nested angle depth in both JSX recognition and actual
+tag scanning, while treating `=>` inside a function type as an arrow rather
+than a generic close. The exact self-closing replay and its nearby probes now
+guard the Compiler API-backed outcome: nested/multiple/function type arguments,
+member component names, quoted `>`/comma attributes, and non-self-closing
+generic elements must retain following real comments while child text remains
+ignored.
 
 ## Fixture and installed evidence
 
@@ -144,18 +149,35 @@ target and deciding eligibility relative to that target would let a direct
 This is transferable to every language adapter: source ownership/exclusion is
 a property of the host path, not of invocation convenience.
 
+## Report-output containment repair
+
+The report directory is a separate trust boundary from source-target selection.
+Resolve both `--project-root` and `--output-dir`, then require the resolved
+output path to be relative to the resolved project root before calling `mkdir`
+or writing an artifact. That rejects an absolute external path, `..` escape,
+an existing output-directory symlink, and a symlinked ancestor that points
+outside; it still permits ordinary root-relative and absolute-contained report
+paths.
+
+The regression checks exit `2` and assert that the external directory remains
+empty for every rejected path form. Positive relative and absolute-contained
+paths must produce exactly `drift.md`, `raw-drift.json`,
+`registry-audit.json`, and `link-check.txt`. The resulting invariant is
+reports-only: the audit never turns an output-path spelling into a write beyond
+the host project.
+
 ## D1–D8 status
 
 | Gate | Evidence | Status |
 |---|---|---|
-| D1 scope honesty | Installed skill freezes comment forms and literal/semantic non-goals. | pass |
+| D1 scope honesty | Installed skill freezes comment forms, report-output containment, and literal/semantic non-goals. | pass |
 | D2 Python oracle | Locked Python/Markdown/HTML positive and literal-clean cases reach final artifacts; source registry compatibility replay passes. | pass |
-| D3 TypeScript outcome | Locked TS/TSX positives plus fragment, quoted-attribute, generic-arrow/tag-angle, regex-keyword, and must-not-fire fixtures reach `drift.md` and `raw-drift.json`. | pass |
+| D3 TypeScript outcome | Compiler API-backed TS/TSX positives plus literal/JSX and parser-error boundaries reach `drift.md` and `raw-drift.json`. | pass |
 | D4 change/guard | Not applicable: advisory/read-only audit, no code change or blocking guard. | n/a |
 | D5 installed closure | Copied and real stock `skills@1.5.19` selected-skill tests run `python3 -I -S` outside checkout. | pass |
 | D6 fresh forward | A fresh non-context lane used only the stock-installed skill and raw host, produced all four final artifacts, identified the single real orphan, and preserved source bytes. | pass |
-| D7 regression/conformance | Post-adversarial focused regressions (17/55), Ruff, py_compile, metadata, artifact drift, commit hooks, and conformance passed. | pass |
-| D8 learning handoff | This MD/JSON pair records both the initial installed proof and the later adversarial repair. | ready for re-review |
+| D7 regression/conformance | 26 focused audit tests, 38 decisions/frontmatter tests, Ruff, Node syntax, pycompile, metadata, and commit hooks passed. | pass |
+| D8 learning handoff | This MD/JSON pair records parser ownership and the output-containment repair. | pass |
 
 ## D6 installed forward journey
 
@@ -197,10 +219,13 @@ the installed skill was also unchanged. Complete transcripts, independent
 interpretation, hashes, and friction notes are preserved under
 `/private/tmp/audit-decisions-forward.LOk2mx/forward-evidence/`.
 
-The installed instructions were sufficient with no TypeScript toolchain,
-package install, virtual environment, network, or `tsconfig`. The runner
-printed the primary artifact path despite exit `1`, and all four outputs landed
-predictably together. The only minor clarity friction was the phrase
+The installed instructions for that historical host were sufficient with no
+TypeScript toolchain, package install, virtual environment, network, or
+`tsconfig`. The current Compiler API path instead requires the host's locked
+`typescript` package and Node.js, while retaining the no-install/no-network
+contract. The runner printed the primary artifact path despite exit `1`, and
+all four outputs landed predictably together. The only minor clarity friction
+was the phrase
 “TS/TSX comment references: 7 total” above an inventory containing ten total
 cross-language references; it is a correct TypeScript subtotal, but explicitly
 labeling it “TypeScript subtotal” would reduce ambiguity in a later UX pass.
@@ -215,12 +240,13 @@ generated/vendor/dependency/build/test paths, `.d.ts`, `.test`, `.spec`, and
 minified source do not create references. A comment inside an actual template
 interpolation or TSX expression does count.
 
-Python tokenization, TypeScript lexical states, and the registry frontmatter
-subset are intentionally not a shared parser abstraction. The only reusable
-knowledge is the final-artifact fixture pattern and project-root-relative
-exclusion regression. A future shared component needs a third accepted
-consumer with the exact comment-attribution, exclusion, failure, and selected
-closure contract.
+Python tokenization, the TypeScript Compiler API helper, and the registry
+frontmatter subset are intentionally not a shared parser abstraction. The only
+reusable knowledge is the final-artifact fixture pattern, project-root-relative
+exclusion regression, and resolved report-output containment check. A future
+shared component needs a third accepted consumer with the exact comment
+attribution, exclusion, failure, output-boundary, and selected-closure
+contract.
 
 - Rust needs a comment tokenizer aware of raw strings and macro bodies, plus
   line/block/doc-comment, raw-string/regex-like, generated/test fixture cases.
@@ -234,12 +260,9 @@ closure contract.
 - Ruby needs comment and heredoc handling, generated/vendor/spec boundaries,
   and a lexical or native parser decision before supporting heredoc edges.
 
-Residual risks are deliberate: malformed TypeScript can defeat lexical
-attribution, uncommon valid JSX/type grammar not represented by the locked
-fragment/attribute/generic-arrow/generic-tag cases may under-report a real
-comment, and
+Residual risks are deliberate: an unavailable or parse-failing TypeScript
+Compiler API aborts the audit rather than inventing a partial inventory, and
 the stdlib frontmatter compatibility parser supports the registry's scalar and
 list fields rather than arbitrary YAML. It fails visibly rather than silently
-inventing an audit result. D6 confirms that this family should remain lexical,
-read-only, and family-local until a concrete future language requires a
-different parser.
+inventing an audit result. The family should remain parser-backed, read-only,
+and local until a concrete future language requires a different native parser.
