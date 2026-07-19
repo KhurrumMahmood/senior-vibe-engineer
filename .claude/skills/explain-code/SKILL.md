@@ -16,7 +16,7 @@ not_for: |
   Pure inventory without behavioral annotation (use /map-subsystem).
   Cross-workflow product topology (use /map-product-workflow).
   Refactor execution (use /fix-workflow or /refactor-subsystem).
-language: typescript
+language: any
 framework: any
 scans: [python, typescript]
 ---
