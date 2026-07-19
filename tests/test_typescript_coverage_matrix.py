@@ -48,6 +48,11 @@ def test_typescript_coverage_matrix_is_complete_and_honest() -> None:
     for row in rows:
         assert (REPO_ROOT / row["evidence_path"]).is_file(), row
         expected_command = template.format(skill=row["skill"])
+        companions = row.get("install_with", [])
+        if companions:
+            primary = f"--skill {row['skill']}"
+            closure = " ".join([primary, *(f"--skill {name}" for name in companions)])
+            expected_command = expected_command.replace(primary, closure)
         assert row["install_command"] == expected_command, row
         assert f"--skill {row['skill']}" in row["install_command"]
         assert row["reviewed_revision"], row
@@ -75,6 +80,7 @@ def test_typescript_coverage_matrix_is_complete_and_honest() -> None:
     }
     for row in rows:
         metadata = catalog[row["skill"]]
+        assert row.get("install_with", []) == metadata.get("install_with", []), row
         disposition = row["disposition"]
         language = metadata.get("language", "any")
         framework = metadata.get("framework", "any")

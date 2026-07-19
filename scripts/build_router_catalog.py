@@ -32,6 +32,7 @@ FIELDS = (
     "language",
     "framework",
     "scans",
+    "install_with",
 )
 
 

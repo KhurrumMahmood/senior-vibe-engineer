@@ -356,23 +356,32 @@ def load_skills(catalog_path: Path) -> list[dict]:
         raise ValueError(f"skill catalog has no skills: {catalog_path}")
     if any(not isinstance(skill, dict) or not skill.get("name") for skill in skills):
         raise ValueError(f"skill catalog contains an invalid entry: {catalog_path}")
+    names = {str(skill["name"]) for skill in skills}
+    for skill in skills:
+        companions = skill.get("install_with", [])
+        if (
+            not isinstance(companions, list)
+            or any(not isinstance(name, str) or name not in names for name in companions)
+            or len(companions) != len(set(companions))
+            or skill["name"] in companions
+        ):
+            raise ValueError(
+                f"skill catalog contains invalid install_with metadata: {skill['name']}"
+            )
     return list(skills)
 
 
-def install_command(*, source: str, version: str, skill: str, agent: str) -> str:
+def install_command(*, source: str, version: str, skills: list[str], agent: str) -> str:
     command = [
         "npx",
         "--yes",
         f"skills@{version}",
         "add",
         source,
-        "--skill",
-        skill,
-        "--agent",
-        agent,
-        "--copy",
-        "-y",
     ]
+    for skill in skills:
+        command.extend(["--skill", skill])
+    command.extend(["--agent", agent, "--copy", "-y"])
     return "DO_NOT_TRACK=1 " + shlex.join(command)
 
 
@@ -575,15 +584,17 @@ def cmd_match(args, catalog_path: Path) -> int:
     winner = above[0][1]
     out["recommendation"] = winner.get("name", "")
     out["task_packet"] = _build_task_packet(winner)
+    install_skills = [out["recommendation"], *winner.get("install_with", [])]
     out["install"] = {
         "skill": out["recommendation"],
+        "skills": install_skills,
         "source": args.source,
         "skills_cli_version": args.skills_cli_version,
         "agent": args.agent,
         "command": install_command(
             source=args.source,
             version=args.skills_cli_version,
-            skill=out["recommendation"],
+            skills=install_skills,
             agent=args.agent,
         ),
         "locations": skill_locations(args.source, out["recommendation"]),

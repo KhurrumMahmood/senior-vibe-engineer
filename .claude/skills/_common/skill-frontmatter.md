@@ -167,6 +167,20 @@ Skills that don't fan out to scouts should omit this field. Skills that
 do fan out and stay on `careful` semantically declare "default
 routing" — explicit is better than implicit.
 
+### `install_with`
+
+Optional list of companion skills required for the selected skill's proven
+installed outcome. Omit it unless a copied skill deliberately reuses another
+skill's runtime authority rather than bundling or duplicating it.
+
+```yaml
+install_with: [find-concept-divergence]
+```
+
+`/which-skill` installs the selected skill first, then these named companions
+in one pinned stock-CLI command. This is installation closure metadata, not a
+workflow or execution-order DAG.
+
 ## Optional task-packet fields (PR B-lite)
 
 These eight fields are **optional** today. They give a skill enough

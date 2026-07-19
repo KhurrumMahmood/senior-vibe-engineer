@@ -358,8 +358,31 @@ def test_fresh_stock_agents_install_runs_only_documented_commands_on_clean_ts_ho
         for path in (host / "src").glob("*")
     }
 
+    router = tmp_path / "which-skill"
+    shutil.copytree(REPO_ROOT / ".claude" / "skills" / "which-skill", router)
+    routed = _run(
+        router / "scripts" / "match.py",
+        "use rename-concept to assess this TypeScript rename",
+        "--project-root",
+        str(host),
+        "--source",
+        str(REPO_ROOT),
+        "--json",
+        cwd=host,
+    )
+    assert routed.returncode == 0, routed.stdout + routed.stderr
+    routing = json.loads(routed.stdout)
+    assert routing["recommendation"] == "rename-concept"
+    assert routing["install"]["skills"] == [
+        "rename-concept",
+        "find-concept-divergence",
+    ]
+    routed_install_command = routing["install"]["command"]
+    assert "--skill rename-concept" in routed_install_command
+    assert "--skill find-concept-divergence" in routed_install_command
+
     install = subprocess.run(
-        ["/bin/sh", "-c", _documented_command(SKILL_ROOT, "install")],
+        ["/bin/sh", "-c", routed_install_command],
         cwd=host,
         env={**os.environ, "DO_NOT_TRACK": "1", "ENGINEERING_SKILLS_SOURCE": str(REPO_ROOT)},
         capture_output=True,

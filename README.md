@@ -18,7 +18,8 @@ Augment, Cursor, Gemini) should start at
 [`AGENTS.md`](./AGENTS.md) → [`.claude/CLAUDE.md`](./.claude/CLAUDE.md).
 
 **Where to start:** install the three lightweight routers, then let
-`which-skill` install only the skill selected for the task. Repository
+`which-skill` install only the skill selected for the task and any declared
+runtime companions. Repository
 contributors use `/engineer-init` for the development venv and hooks.
 
 ## What's in the box
@@ -117,7 +118,7 @@ Ask the agent to use `which-shape` when the operating mode is unclear,
 made. The three routers run with system Python and do not load the other 73
 skill bodies. Their results point to the relevant skill definition and tooling
 at the canonical source and include pinned `skills@1.5.19` commands for
-installing only the selected follow-up skills.
+installing only each selected follow-up skill's declared closure.
 
 To remove all skills installed for the project:
 

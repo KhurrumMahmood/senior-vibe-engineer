@@ -1044,6 +1044,9 @@
         "markdown",
         "templates"
       ],
+      "install_with": [
+        "find-concept-divergence"
+      ],
       "_path": "skills/rename-concept"
     },
     {

@@ -288,6 +288,7 @@ def test_recommendation_includes_pinned_selected_skill_install():
 
     assert payload["install"] == {
         "skill": "diagnose",
+        "skills": ["diagnose"],
         "source": "https://github.com/KhurrumMahmood/senior-vibe-engineer",  # host-ref-allow: public distribution repository
         "skills_cli_version": "1.5.19",
         "agent": "codex",

@@ -33,7 +33,8 @@ free-text task description. Your output is one of three shapes:
    Quick-tier or no skill scores above the relevance threshold.
 
 You do NOT invoke the recommended skill yourself. Return its pinned install
-command so the user or calling agent can install only that skill.
+command so the user or calling agent can install only that skill and any
+explicitly declared runtime companions.
 
 ## How success is judged
 
@@ -43,7 +44,7 @@ command so the user or calling agent can install only that skill.
 - The run reads the bundled metadata catalog only; it does not expand skill
   bodies or execute the recommended skill.
 - A successful recommendation includes a pinned `skills` CLI command that
-  installs only the selected skill.
+  installs the selected skill's exact declared closure.
 Write toward these gates from Stage 0.
 
 ## Core beliefs
@@ -119,7 +120,8 @@ The matcher returns JSON with:
   language, framework, or scanner coverage does not support the resolved host
 - `recommendation: unsupported` — returned instead of silently substituting a
   weaker skill when the strongest semantic match is ineligible for the host
-- `install.command` — pinned stock command for installing only the winner
+- `install.skills` — the winner followed by any declared runtime companions
+- `install.command` — pinned stock command for installing that exact closure
 - `install.locations` — canonical pointers to the selected skill definition,
   its bundled scripts, and shared source tooling
 - `task_packet` — the optional task-packet fields (`lanes`, `stage`,

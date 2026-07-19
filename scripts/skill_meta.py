@@ -73,6 +73,7 @@ TASK_PACKET_OPTIONAL: dict[str, type] = {
     "risk_triggers": list,
     "max_overhead": str,
 }
+INSTALL_OPTIONAL: dict[str, type] = {"install_with": list}
 
 
 def lint_skill(skill_md: Path, strict: bool) -> tuple[list[str], list[str], bool]:
@@ -169,6 +170,24 @@ def lint_skill(skill_md: Path, strict: bool) -> tuple[list[str], list[str], bool
                 errors.append(f"{rel}: {field} entries must be strings, got {non_strings!r}")
         elif expected_type is str and not value.strip():
             errors.append(f"{rel}: {field} is empty")
+
+    for field, expected_type in INSTALL_OPTIONAL.items():
+        if field not in fm:
+            continue
+        value = fm[field]
+        if not isinstance(value, expected_type):
+            errors.append(f"{rel}: {field} must be a list, got {type(value).__name__}")
+            continue
+        if not value:
+            errors.append(f"{rel}: {field} must name at least one companion skill")
+            continue
+        invalid = [item for item in value if not isinstance(item, str) or not item.strip()]
+        if invalid:
+            errors.append(f"{rel}: {field} entries must be non-empty strings, got {invalid!r}")
+        if len(value) != len(set(value)):
+            errors.append(f"{rel}: {field} contains duplicate companion skills")
+        if fm.get("name") in value:
+            errors.append(f"{rel}: {field} must not contain the skill itself")
 
     # Cross-check: name field must equal directory name.
     expected = skill_md.parent.name

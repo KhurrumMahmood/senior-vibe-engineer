@@ -6,7 +6,7 @@ from pathlib import Path
 import skill_meta
 
 
-def _write_skill(skills_dir: Path, name: str, *, job: str) -> None:
+def _write_skill(skills_dir: Path, name: str, *, job: str, extra: str = "") -> None:
     skill_dir = skills_dir / name
     skill_dir.mkdir(parents=True)
     skill_dir.joinpath("SKILL.md").write_text(
@@ -24,7 +24,7 @@ not_for: |
   Production use; this fixture only validates frontmatter.
 language: any
 framework: any
----
+{extra}---
 
 # /{name}
 
@@ -48,3 +48,26 @@ def test_construct_and_diagnose_are_valid_skill_jobs(tmp_path, capsys):
         "construct-fixture",
         "diagnose-fixture",
     ]
+
+
+def test_install_with_requires_distinct_nonempty_companion_names(tmp_path, capsys):
+    skills_dir = tmp_path / "skills"
+    _write_skill(
+        skills_dir,
+        "valid-fixture",
+        job="diagnose",
+        extra="install_with: [companion-fixture]\n",
+    )
+    _write_skill(
+        skills_dir,
+        "invalid-fixture",
+        job="diagnose",
+        extra="install_with: [invalid-fixture, invalid-fixture]\n",
+    )
+
+    rc = skill_meta.main(["--skills-dir", str(skills_dir), "lint", "--json"])
+
+    assert rc == 1
+    errors = json.loads(capsys.readouterr().out)["errors"]
+    assert any("contains duplicate companion skills" in error for error in errors)
+    assert any("must not contain the skill itself" in error for error in errors)

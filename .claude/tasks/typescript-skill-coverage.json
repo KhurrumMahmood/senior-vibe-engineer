@@ -559,7 +559,10 @@
       "evidence_path": "tests/test_rename_concept_typescript.py",
       "install_status": "passed",
       "reviewed_revision": "caa19cf",
-      "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill rename-concept --agent codex --copy -y"
+      "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill rename-concept --skill find-concept-divergence --agent codex --copy -y",
+      "install_with": [
+        "find-concept-divergence"
+      ]
     },
     {
       "skill": "repair-skill",
