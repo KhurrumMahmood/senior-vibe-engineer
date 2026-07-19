@@ -56,6 +56,15 @@ A gap = a matched call that fails the condition. `ast` is **preferred**
 for every standard about code structure: it is syntactically precise —
 it never matches inside a comment or a string literal.
 
+For TypeScript/TSX, v1 supports only `enclosed_by: "try"`. It parses direct
+identifier/property-access calls through the host's local TypeScript Compiler
+API, so a direct `JSON.parse(value)` can be checked without treating comments
+or strings as calls. `requires_kwarg` and `enclosed_by: "with"` are
+Python-only and report `language_unsupported` for TS/TSX rather than a false
+clean result. The TS scanner does not resolve aliases, types, receivers, or
+framework APIs; call-name matching is syntactic. A nested function/callback
+resets `try` enclosure because its invocation timing is not established.
+
 ## The `grep` detector — fallback only
 
 ```json
@@ -115,17 +124,20 @@ not pass, and its gap count must not be read as zero.
 
 ## Language support
 
-- The **`ast` detector is Python-only** — it is CPython's standard-
-  library `ast` module. It parses `.py` files; it cannot analyze
-  JavaScript, Go, Java, etc.
+- The **`ast` detector supports Python plus narrow TypeScript/TSX syntax**.
+  Python retains both `enclosed_by` forms and `requires_kwarg` through
+  CPython's standard-library `ast`. TS/TSX supports only `enclosed_by: try`
+  through the bundled Compiler API launcher, which requires Node and a
+  `typescript` package resolvable from the host `package.json`.
 - The **`grep` detector is cross-language** (it operates on text) — but
   comment/string-blind, so trust it for *enumerating* situations, not
   for deciding satisfaction.
-- When an `ast` standard's `paths` match files but none are `.py`,
-  `scan_coverage.py` reports it `language_unsupported` — never a false
-  "0 gaps". The orchestrator then applies the **"When the target
-  language isn't supported"** rule in `SKILL.md`: small surface → read
-  it directly; large surface → build the detector tooling first.
+- When an `ast` standard's paths are another language, use a TS-unsupported
+  condition, or cannot satisfy the TS preflight, `scan_coverage.py` reports
+  `language_unsupported` — never a false "0 gaps". The orchestrator then
+  applies the **"When the target language or condition isn't supported"**
+  rule in `SKILL.md`: small surface → read it directly; large surface → build
+  the detector tooling first.
 - The cross-language path is **tree-sitter** — one parsing library with
   grammars for most languages and a uniform query API. It is a genuine
   rebuild, not a free generalization: it adds a third-party dependency
@@ -150,6 +162,14 @@ a real host project (2026-05-21):
   the repo root, so a source-rooted glob like `app/**/*.py` never matches
   `<anything>/app/...` copies. **Narrow `paths` per project**; the shipped
   example is a starting point, not a finished config.
+- **Paths are project-root-relative and exclusions cannot be bypassed by a
+  direct target.** The scanner excludes generic test/dependency/worktree trees
+  for every language. Its TS/TSX branch additionally excludes declaration,
+  generated, minified/bundle, test/spec, fixture, build, report, and vendor
+  source. A `paths` entry can be a root-relative file, directory, or glob; an
+  external symlink is never first-party source. If a standard names only
+  excluded paths, it returns `no_files_matched` rather than scanning an
+  out-of-policy copy.
 - **A pure-prohibition count is presence, not severity.** The floor
   reported 21 `eval`/`exec` sites; a hand audit of the same project found
   **8** that were the actual remote-code-execution risk (LLM-generated code
@@ -188,8 +208,12 @@ a real host project (2026-05-21):
   lives in a skipped directory — e.g. "tests that open a DB connection
   guard it" — cannot be checked by this skill today; that needs a
   configurable include-list.
+- TypeScript v1 does not resolve imports, aliases, overloads, type identity,
+  receiver identity, runtime globals, or framework conventions. It is a direct
+  syntax detector, not a TypeScript linter or semantic API audit.
 - `scan_coverage.py` reports a per-standard status. **Only `scanned` is
   a real coverage result.** `gated_out` (activation thresholds not met),
   `no_files_matched` (a misconfigured glob), `language_unsupported`, and
   a `scanned` result with `skipped_files > 0` all mean part or all of the
-  surface went unexamined — never read them as "0 gaps = compliant".
+  surface went unexamined — never read them as "0 gaps = compliant". A clean
+  result needs `status: scanned`, 0 gaps, and `skipped_files: 0`.

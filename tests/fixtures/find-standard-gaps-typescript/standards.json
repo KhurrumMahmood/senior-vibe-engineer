@@ -1,0 +1,17 @@
+{
+  "ideas": [
+    {
+      "id": "idea-json-parse-try",
+      "label": "Direct JSON.parse calls must be protected by try/catch",
+      "activation": {"baseline": true},
+      "contract": {
+        "detector": {
+          "kind": "ast",
+          "call_matches": "^JSON\\.parse$",
+          "enclosed_by": "try",
+          "paths": ["src/**/*.ts", "src/**/*.tsx"]
+        }
+      }
+    }
+  ]
+}

@@ -15,8 +15,9 @@ Detector kinds:
     match is a gap (a pure-prohibition standard).
   - `ast`  — `call_matches` regex on a call's dotted name, plus one
     satisfaction condition: `enclosed_by` (`try`|`with`) or
-    `requires_kwarg`. Real Python syntax — no comment/string false
-    positives. **Python-only** (it is CPython's `ast` module).
+    `requires_kwarg`. Python uses CPython's AST; TypeScript/TSX supports
+    the direct-syntax `enclosed_by: try` form through the host-local
+    TypeScript Compiler API. Neither branch matches comments/strings.
   - `skill` — recognised, not implemented in v1.
   - `manual` — skipped; checked by hand.
 
@@ -31,8 +32,9 @@ Per-standard status in the output:
   - `no_files_matched`    — the detector's `paths` matched nothing. A
                             misconfigured glob / project-root — NOT a
                             pass.
-  - `language_unsupported`— an `ast` standard whose `paths` matched
-                            files but none are `.py`.
+  - `language_unsupported`— an `ast` standard whose source language or
+                            condition is unsupported, or whose TypeScript
+                            prerequisite cannot be established.
   - `skipped` / `error`   — manual/skill detector, or a malformed one.
 A "0 gaps" result is only trustworthy under `status: scanned`.
 
@@ -46,7 +48,8 @@ found, MAX (production / public-adversarial) is assumed so nothing is
 silently skipped, with a prominent warning to run `/orient`. See
 knowledge/detector-model.md and project_state.py.
 
-Stdlib-only. Read-only against the codebase.
+The Python runner is stdlib-only. TS/TSX scans additionally require Node and
+the host's project-local `typescript` package. Read-only against the codebase.
 
 Usage:
     python3 scan_coverage.py --ideas path/to/standards.json \\
@@ -57,8 +60,10 @@ from __future__ import annotations
 
 import argparse
 import ast
+import fnmatch
 import json
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -88,29 +93,81 @@ SKIP_DIRS = {".venv", "__pycache__", "migrations", ".git", "node_modules",
 # Python 3.11+ `try/except*` is a distinct node; treat it like `try`.
 _TRY_TYPES = (ast.Try,) + ((ast.TryStar,) if hasattr(ast, "TryStar") else ())
 
+TYPESCRIPT_SUFFIXES = {".ts", ".tsx"}
+TYPESCRIPT_SKIP_DIRS = {
+    "__tests__", "build", "coverage", "dist", "fixture", "fixtures",
+    "generated", "reports", "spec", "specs", "test", "tests", "vendor",
+}
+TYPESCRIPT_SKIP_FILE_GLOBS = (
+    "*.d.ts", "*.d.tsx", "*.generated.ts", "*.generated.tsx",
+    "*.min.ts", "*.min.tsx", "*-min.ts", "*-min.tsx",
+    "*.bundle.ts", "*.bundle.tsx", "*.spec.ts", "*.spec.tsx",
+    "*.test.ts", "*.test.tsx", "test_*.ts", "test_*.tsx",
+    "tests_*.ts", "tests_*.tsx", "*_test.ts", "*_test.tsx",
+)
+
 
 def iter_files(root: Path, globs: list[str]) -> list[Path]:
-    """All files matching the globs (any extension), minus SKIP_DIRS.
+    """All project-root-relative glob matches, minus generic excluded trees.
 
     The globs are the file selector — `app/**/*.py` already restricts to
     Python; this function does not second-guess the extension. Note
     SKIP_DIRS is fixed (tests / experiments / vendored dirs are never
     scanned) — a standard cannot currently opt back in.
     """
+    root = root.resolve()
     seen: set[Path] = set()
     out: list[Path] = []
     for glob in globs:
+        if Path(glob).is_absolute():
+            raise ValueError("detector paths must be project-root-relative")
         for path in sorted(root.glob(glob)):
-            if not path.is_file():
+            try:
+                path.resolve().relative_to(root)
+            except ValueError:
+                # A direct symlinked directory/file that escapes the project
+                # is never a valid source root or source file.
                 continue
-            rel = path.relative_to(root)
-            if any(part in SKIP_DIRS for part in rel.parts):
-                continue
-            if path in seen:
-                continue
-            seen.add(path)
-            out.append(path)
+            candidates = [path] if path.is_file() else sorted(path.rglob("*")) if path.is_dir() else []
+            for candidate in candidates:
+                if not candidate.is_file():
+                    continue
+                try:
+                    resolved = candidate.resolve()
+                    physical_rel = resolved.relative_to(root)
+                except ValueError:
+                    # A symlink beneath the project root that escapes it is
+                    # not first-party source, even when a direct path selected it.
+                    continue
+                logical_rel = candidate.relative_to(root)
+                if (any(part in SKIP_DIRS for part in logical_rel.parts[:-1])
+                        or any(part in SKIP_DIRS for part in physical_rel.parts[:-1])):
+                    continue
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
+                out.append(candidate)
     return out
+
+
+def _typescript_path_is_excluded(path: Path, root: Path) -> bool:
+    """Whether a TS/TSX candidate is outside this skill's source policy.
+
+    Evaluate against the project root, not a narrowed detector glob, so a
+    direct target under `vendor/` or `tests/` cannot bypass the exclusion.
+    """
+    root = root.resolve()
+    try:
+        logical_rel = path.relative_to(root)
+        physical_rel = path.resolve().relative_to(root)
+    except ValueError:
+        return True
+    skipped = SKIP_DIRS | TYPESCRIPT_SKIP_DIRS
+    return (
+        any(part.lower() in skipped for part in logical_rel.parts[:-1])
+        or any(part.lower() in skipped for part in physical_rel.parts[:-1])
+        or any(fnmatch.fnmatchcase(path.name, glob) for glob in TYPESCRIPT_SKIP_FILE_GLOBS)
+    )
 
 
 def _dotted(node: ast.AST) -> str:
@@ -154,7 +211,10 @@ def run_grep_detector(root: Path, detector: dict):
     if window < 0:
         return None, "grep detector window must be >= 0"
 
-    files = iter_files(root, paths)
+    try:
+        files = iter_files(root, paths)
+    except ValueError as exc:
+        return None, str(exc)
     if not files:
         return {"no_files": True}, None
 
@@ -189,8 +249,68 @@ def run_grep_detector(root: Path, detector: dict):
             "scanned_files": analyzed, "skipped_files": skipped}, None
 
 
+def _typescript_preflight(root: Path) -> str | None:
+    """Return an unavailable-reason unless host Node + TypeScript are usable."""
+    launcher = Path(__file__).resolve().with_name("detect_typescript_calls.mjs")
+    try:
+        result = subprocess.run(
+            ["node", str(launcher), "--check", "--project-root", str(root)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        return f"cannot run the bundled TypeScript parser: {exc}"
+    if result.returncode != 0:
+        return result.stderr.strip() or result.stdout.strip() or "TypeScript parser preflight failed"
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return "bundled TypeScript parser preflight emitted invalid JSON"
+    if payload != {"ok": True}:
+        return "bundled TypeScript parser preflight emitted an invalid response"
+    return None
+
+
+def _typescript_calls(path: Path, root: Path) -> tuple[list[dict] | None, str | None]:
+    """Return direct syntax call facts, or the file-local parse failure."""
+    launcher = Path(__file__).resolve().with_name("detect_typescript_calls.mjs")
+    try:
+        result = subprocess.run(
+            ["node", str(launcher), "--file", str(path), "--project-root", str(root)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        return None, f"cannot run the bundled TypeScript parser: {exc}"
+    if result.returncode != 0:
+        return None, result.stderr.strip() or result.stdout.strip() or "TypeScript parser failed"
+    try:
+        records = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None, "bundled TypeScript parser emitted invalid JSON"
+    if not isinstance(records, list):
+        return None, "bundled TypeScript parser emitted a non-list result"
+    validated: list[dict] = []
+    for record in records:
+        try:
+            name = record["name"]
+            line = record["line"]
+            text = record["text"]
+            in_try = record["in_try"]
+        except (KeyError, TypeError):
+            return None, "bundled TypeScript parser emitted an invalid call record"
+        if not isinstance(name, str) or not isinstance(line, int):
+            return None, "bundled TypeScript parser emitted an invalid call record"
+        if not isinstance(text, str) or not isinstance(in_try, bool):
+            return None, "bundled TypeScript parser emitted an invalid call record"
+        validated.append(record)
+    return validated, None
+
+
 def run_ast_detector(root: Path, detector: dict):
-    """Return ({...}, error_or_None). Python-only — uses CPython's `ast`.
+    """Return ({...}, error_or_None) for Python plus narrow TS/TSX syntax.
 
     Possible result shapes: `{no_files}`, `{unsupported}`, or
     `{sites, gaps, scanned_files, skipped_files}`. A file that fails to
@@ -202,7 +322,9 @@ def run_ast_detector(root: Path, detector: dict):
     `with`, lexical block scope) or `requires_kwarg` (a `**kwargs` spread
     counts as satisfied). A gap = a matched call that fails the condition.
     Enclosure resets at a nested-function *body*; decorators and default
-    arguments inherit the enclosing scope.
+    arguments inherit the enclosing scope. TypeScript/TSX supports the direct
+    syntactic `enclosed_by: try` form only, using the host's local TypeScript
+    Compiler API. It does not resolve aliases, types, receivers, or frameworks.
     """
     try:
         call_re = re.compile(detector["call_matches"])
@@ -218,14 +340,39 @@ def run_ast_detector(root: Path, detector: dict):
         return None, f"ast detector enclosed_by must be try|with, got {enclosed_by!r}"
 
     paths = detector.get("paths") or ["app/**/*.py"]
-    matched = iter_files(root, paths)
+    try:
+        matched = iter_files(root, paths)
+    except ValueError as exc:
+        return None, str(exc)
     if not matched:
         return {"no_files": True}, None
     py_files = [f for f in matched if f.suffix == ".py"]
-    if not py_files:
+    ts_candidates = [f for f in matched if f.suffix.lower() in TYPESCRIPT_SUFFIXES]
+    ts_files = [f for f in ts_candidates if not _typescript_path_is_excluded(f, root)]
+    if not py_files and not ts_files:
+        if ts_candidates:
+            return {"no_files": True, "excluded": True}, None
         exts = sorted({f.suffix or "<none>" for f in matched})
         return {"unsupported": True, "matched": len(matched),
                 "extensions": exts[:8]}, None
+    if ts_files and requires_kwarg:
+        return {"unsupported": True, "matched": len(ts_files),
+                "extensions": sorted({f.suffix.lower() for f in ts_files}),
+                "reason": "the TypeScript `ast` branch supports only "
+                          "`enclosed_by: try`; `requires_kwarg` names Python "
+                          "call syntax and has no equivalent detector contract yet"}, None
+    if ts_files and enclosed_by == "with":
+        return {"unsupported": True, "matched": len(ts_files),
+                "extensions": sorted({f.suffix.lower() for f in ts_files}),
+                "reason": "the TypeScript `ast` branch supports only "
+                          "`enclosed_by: try`; JavaScript/TypeScript has no "
+                          "Python-style `with` block"}, None
+    if ts_files:
+        unavailable = _typescript_preflight(root)
+        if unavailable:
+            return {"unsupported": True, "matched": len(ts_files),
+                    "extensions": sorted({f.suffix.lower() for f in ts_files}),
+                    "reason": unavailable}, None
 
     sites: list[dict] = []
     gaps: list[dict] = []
@@ -302,6 +449,23 @@ def run_ast_detector(root: Path, detector: dict):
         analyzed += 1
         sites.extend(file_sites)
         gaps.extend(file_gaps)
+    for path in ts_files:
+        rel = str(path.relative_to(root))
+        records, parse_error = _typescript_calls(path, root)
+        if parse_error or records is None:
+            skipped += 1
+            continue
+        analyzed += 1
+        for record in records:
+            name = record["name"]
+            if not name or not call_re.search(name):
+                continue
+            site = {"file": rel, "line": record["line"], "text": record["text"][:120]}
+            sites.append(site)
+            if not record["in_try"]:
+                gaps.append(site)
+    sites.sort(key=lambda site: (site["file"], site["line"], site["text"]))
+    gaps.sort(key=lambda site: (site["file"], site["line"], site["text"]))
     return {"sites": sites, "gaps": gaps,
             "scanned_files": analyzed, "skipped_files": skipped}, None
 
@@ -327,18 +491,24 @@ def analyze_idea(root: Path, idea: dict, state: dict) -> dict:
             return {**base, "status": "error", "error": err}
         if result.get("no_files"):
             globs = detector.get("paths") or ["app/**/*.py"]
+            excluded = (
+                " All matched TypeScript/TSX files were excluded by the fixed "
+                "source policy."
+                if result.get("excluded") else ""
+            )
             return {**base, "status": "no_files_matched",
                     "error": f"the detector's `paths` ({', '.join(globs)}) "
                              f"matched no files — check the globs and "
-                             f"--project-root. This is NOT a passing result."}
+                             f"--project-root.{excluded} This is NOT a passing result."}
         if result.get("unsupported"):
+            reason = result.get("reason") or (
+                "the `ast` detector supports Python and TypeScript/TSX only; "
+                f"{result['matched']} file(s) matched `paths` but none are supported "
+                f"source files (found: {', '.join(result['extensions'])})."
+            )
             return {**base, "status": "language_unsupported",
                     "matched": result["matched"], "extensions": result["extensions"],
-                    "error": f"the `ast` detector is Python-only; "
-                             f"{result['matched']} file(s) matched `paths` but none "
-                             f"are .py (found: {', '.join(result['extensions'])}). "
-                             f"Apply the rule in SKILL.md — When the target "
-                             f"language isn't supported."}
+                    "error": reason}
         sites, gaps = result["sites"], result["gaps"]
         return {**base, "status": "scanned",
                 "scanned_files": result["scanned_files"],
@@ -383,8 +553,9 @@ def render_report(source: str, results: list[dict], state: dict) -> str:
                  f"NOT scanned and NOT a \"0 gaps\" pass")
     if unsupported:
         L.append(f"- ⚠ {len(unsupported)} standard(s) **language-unsupported** — "
-                 f"the `ast` detector is Python-only; see SKILL.md "
-                 f"\"When the target language isn't supported\"")
+                 "the requested language, detector condition, or TypeScript "
+                 "prerequisite could not be analyzed; see SKILL.md "
+                 "\"TypeScript/TSX support and limits\"")
     if no_files:
         L.append(f"- ⚠ {len(no_files)} standard(s) matched **no files** — a "
                  f"misconfigured glob; NOT a passing result")
@@ -504,8 +675,7 @@ def main() -> int:
     for r in gated:
         print(f"  {r['id']}: GATED OUT — {r['reason']}")
     for r in unsupported:
-        print(f"  {r['id']}: LANGUAGE-UNSUPPORTED — {r['matched']} non-Python "
-              f"file(s) matched ({', '.join(r['extensions'])})")
+        print(f"  {r['id']}: LANGUAGE-UNSUPPORTED — {r['error']}")
     for r in no_files:
         print(f"  {r['id']}: NO FILES MATCHED — check the detector's `paths`")
     print(f"  -> {args.output_dir / 'coverage.md'}")
