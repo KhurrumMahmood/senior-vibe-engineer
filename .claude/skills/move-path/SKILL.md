@@ -53,9 +53,11 @@ referrer is moved; it emits those as `code_imports.ignored` risk records in
 the JSON report and under **Ignored TypeScript Imports** in the Markdown report.
 Treat remediation as unknown until a TypeScript module resolver proves the
 correct spelling. The advisory scanner covers common single-line and multiline
-static `import`/`export ... from` forms. It recognizes conservative NodeNext
-source identity pairs (`.js` -> `.ts`/`.tsx`, `.mjs` -> `.mts`, `.cjs` ->
-`.cts`) only for risk reporting; it is not an exhaustive import inventory.
+static `import`/`export ... from` forms. For risk identity only, it follows
+TypeScript's emitted-file substitution precedence: `.js` probes `.ts`, `.tsx`,
+then `.d.ts`; `.mjs` probes `.mts`, then `.d.mts`; `.cjs` probes `.cts`, then
+`.d.cts`; the emitted runtime file follows those substitutions. It is not an
+exhaustive import inventory.
 
 Do not claim an import-safe module move. Python import rewrites, TypeScript
 path aliases, package exports, project references, barrel compatibility,

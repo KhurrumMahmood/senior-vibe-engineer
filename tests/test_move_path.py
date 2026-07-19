@@ -635,6 +635,12 @@ def test_nodenext_emitted_specifiers_resolve_to_moved_typescript_sources_conserv
     _write(tmp_path / "src" / "wrong.cts", "export const wrongValue = 4;\n")
     _write(tmp_path / "src" / "shadow.js", "export const runtimeValue = 5;\n")
     _write(tmp_path / "src" / "shadow.ts", "export const sourceValue = 6;\n")
+    _write(tmp_path / "src" / "decl.js", "export const runtimeDeclValue = 7;\n")
+    _write(tmp_path / "src" / "decl.d.ts", "export declare const declaredValue: number;\n")
+    _write(tmp_path / "src" / "module-decl.mjs", "export const runtimeModuleDeclValue = 8;\n")
+    _write(tmp_path / "src" / "module-decl.d.mts", "export declare const moduleDeclaredValue: number;\n")
+    _write(tmp_path / "src" / "common-decl.cjs", "exports.runtimeCommonDeclValue = 9;\n")
+    _write(tmp_path / "src" / "common-decl.d.cts", "export declare const commonDeclaredValue: number;\n")
     _write(
         tmp_path / "src" / "consumer.ts",
         'import { legacy } from "./legacy.js";\n'
@@ -642,7 +648,10 @@ def test_nodenext_emitted_specifiers_resolve_to_moved_typescript_sources_conserv
         'import { moduleValue } from "./module.mjs";\n'
         'import { commonValue } from "./common.cjs";\n'
         'import { wrongValue } from "./wrong.mjs";\n'
-        'import { runtimeValue } from "./shadow.js";\n',
+        'import { sourceValue } from "./shadow.js";\n'
+        'import { declaredValue } from "./decl.js";\n'
+        'import { moduleDeclaredValue } from "./module-decl.mjs";\n'
+        'import { commonDeclaredValue } from "./common-decl.cjs";\n',
     )
     plan = tmp_path / "moves.json"
     _write_json(
@@ -655,6 +664,9 @@ def test_nodenext_emitted_specifiers_resolve_to_moved_typescript_sources_conserv
                 {"from": "src/common.cts", "to": "lib/common.cts"},
                 {"from": "src/wrong.cts", "to": "lib/wrong.cts"},
                 {"from": "src/shadow.ts", "to": "lib/shadow.ts"},
+                {"from": "src/decl.d.ts", "to": "lib/decl.d.ts"},
+                {"from": "src/module-decl.d.mts", "to": "lib/module-decl.d.mts"},
+                {"from": "src/common-decl.d.cts", "to": "lib/common-decl.d.cts"},
             ],
             "rewrite": {"code_imports": "ignore"},
         },
@@ -676,9 +688,16 @@ def test_nodenext_emitted_specifiers_resolve_to_moved_typescript_sources_conserv
     assert risks["./module.mjs"]["target_after"] == "lib/module.mts"
     assert risks["./common.cjs"]["target_before"] == "src/common.cts"
     assert risks["./common.cjs"]["target_after"] == "lib/common.cts"
+    assert risks["./shadow.js"]["target_before"] == "src/shadow.ts"
+    assert risks["./shadow.js"]["target_after"] == "lib/shadow.ts"
+    assert risks["./decl.js"]["target_before"] == "src/decl.d.ts"
+    assert risks["./decl.js"]["target_after"] == "lib/decl.d.ts"
+    assert risks["./module-decl.mjs"]["target_before"] == "src/module-decl.d.mts"
+    assert risks["./module-decl.mjs"]["target_after"] == "lib/module-decl.d.mts"
+    assert risks["./common-decl.cjs"]["target_before"] == "src/common-decl.d.cts"
+    assert risks["./common-decl.cjs"]["target_after"] == "lib/common-decl.d.cts"
     assert all(item["expected_specifier"] is None for item in risks.values())
     assert "./wrong.mjs" not in risks
-    assert "./shadow.js" not in risks
 
 
 def test_residue_audit_excludes_the_plan_authority_file(tmp_path):

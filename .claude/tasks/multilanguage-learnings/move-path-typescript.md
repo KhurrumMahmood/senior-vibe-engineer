@@ -5,8 +5,8 @@ repair base: `e8e0488`. The final repair revision is reported at handoff.
 
 ## Outcome and invariant
 
-The accepted v1 invariant is a deterministic move of standalone `.ts` or
-`.tsx` paths while rewriting only identity-resolved Markdown, HTML, config,
+The accepted v1 invariant is a deterministic move of standalone `.ts`, `.tsx`,
+`.mts`, or `.cts` paths while rewriting only identity-resolved Markdown, HTML, config,
 backtick, and exact-text references. JSON plans are the stdlib-only installed
 format. `.yml`/`.yaml` plans remain an optional PyYAML compatibility mode.
 
@@ -39,10 +39,11 @@ specifier: extension, leading `./`, package spelling, and compiler-mode choices
 remain unknown without TypeScript module resolution.
 
 NodeNext-style emitted specifiers need a small identity bridge even though
-imports stay untouched. When no real emitted file exists, `.js` may identify
-`.ts`/`.tsx`, `.mjs` may identify only `.mts`, and `.cjs` may identify only
-`.cts`. Exact runtime files win, cross-module-kind guesses stay unreported,
-and the report still proposes no replacement spelling.
+imports stay untouched. TypeScript 5.9.3 native resolution established the
+substitution order: `.js` probes `.ts`, `.tsx`, `.d.ts`, then `.js`; `.mjs`
+probes `.mts`, `.d.mts`, then `.mjs`; `.cjs` probes `.cts`, `.d.cts`, then
+`.cjs`. Cross-module-kind guesses stay unreported, and the advisory report
+still proposes no replacement spelling.
 
 ## Fixture and execution evidence
 
@@ -68,8 +69,9 @@ and the report still proposes no replacement spelling.
   identity but keep `expected_specifier: null` with remediation unknown; a
   standard multiline `import { ... } from "./old"` is reported.
 - NodeNext boundary: emitted `.js`, `.mjs`, and `.cjs` relative specifiers
-  identify moved `.ts`/`.tsx`, `.mts`, and `.cts` sources respectively for
-  advisory risk. A real `.js` file and an `.mjs` -> `.cts` mismatch stay clean.
+  identify moved `.ts`/`.tsx`/`.d.ts`, `.mts`/`.d.mts`, and `.cts`/`.d.cts`
+  sources respectively for advisory risk. A coexisting `.ts` takes precedence
+  over `.js`; an `.mjs` -> `.cts` mismatch stays clean.
 - Residue authority guard: `audit_path_residue.py` excludes the exact in-root
   plan, so its required `from` value is not misreported as stale operational
   residue.
@@ -82,9 +84,9 @@ and the report still proposes no replacement spelling.
 Commands observed:
 
 ```text
-.venv/bin/python \
-  -m pytest tests/test_move_path.py -q -k 'not standalone_typescript_fixture_typechecks_after_an_import_safe_move'
-# 19 passed, 1 deselected
+PATH=<pinned-tsc-bin>:$PATH \
+  .venv/bin/python -m pytest tests/test_move_path.py -q
+# 20 passed
 
 .venv/bin/ruff check \
   .claude/skills/move-path/scripts/move_path.py \
@@ -101,21 +103,18 @@ Commands observed:
 # ok
 ```
 
-## Native typecheck blocker
+## Native TypeScript evidence
 
 The import-safe standalone fixture applies a move from `src/old.ts` to
 `lib/new.ts`, retains an unrelated local type-only import, and then invokes
-`tsc --noEmit --project tsconfig.json`. This host has no `tsc` on `PATH`.
-The test therefore fails explicitly instead of installing TypeScript or
-claiming native typecheck evidence:
+`tsc --noEmit --project tsconfig.json`. The pinned preinstalled compiler at
+the pinned preinstalled compiler cache reports TypeScript 5.9.3. With its bin
+directory prepended to `PATH`, the full targeted suite passes:
 
 ```text
-Failed: tsc --noEmit is required for the TypeScript native-typecheck acceptance evidence
+Version 5.9.3
+20 passed
 ```
-
-As a result, the full targeted test command is honestly incomplete here:
-`19 passed, 1 failed`. Re-run it in a host with an already-installed TypeScript
-compiler before accepting D4/D7.
 
 ## Fresh installed forward evidence
 
@@ -170,18 +169,17 @@ report before users apply a move.
 
 Residual risk: static import records intentionally under-detect unusual import
 syntax, aliases, package imports, dynamic imports, and TypeScript
-configuration. The NodeNext bridge covers only conventional emitted/source
-suffix pairs and cannot prove package or compiler configuration. Findings are
-warnings, not a safe move authorization. Fresh
-installed forward evidence now exists; native typecheck remains pending until
-an environment provides `tsc`.
+configuration. The NodeNext bridge covers only the native substitution suffix
+order above and cannot prove package or compiler configuration. Findings are
+warnings, not a safe move authorization. Fresh installed forward evidence and
+pinned TypeScript 5.9.3 typecheck evidence now exist.
 
 Serial integrator proposals, intentionally not implemented in this isolated
 lane:
 
 1. Reconcile the router/catalog language claim with `move-path` frontmatter
    only after reviewing this learning packet and the other batch evidence.
-2. Add an environment with preinstalled `tsc` to run the committed native
+2. Preserve a preinstalled pinned `tsc` lane for the committed native
    typecheck acceptance test; do not add a network install step.
 3. Decide whether a future `tsconfig`-aware resolver is justified before any
    import-rewrite mode is exposed.

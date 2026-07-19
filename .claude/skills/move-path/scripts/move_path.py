@@ -55,9 +55,9 @@ TS_IMPORT_RE = re.compile(
 TYPESCRIPT_SUFFIXES = (".ts", ".tsx", ".mts", ".cts")
 TYPESCRIPT_MODULE_SUFFIXES = (".ts", ".tsx", ".d.ts")
 EMITTED_SPECIFIER_SOURCE_SUFFIXES = {
-    ".js": (".ts", ".tsx"),
-    ".mjs": (".mts",),
-    ".cjs": (".cts",),
+    ".js": (".ts", ".tsx", ".d.ts"),
+    ".mjs": (".mts", ".d.mts"),
+    ".cjs": (".cts", ".d.cts"),
 }
 
 
@@ -475,15 +475,18 @@ def resolve_typescript_import(
     resolved = resolve_reference(specifier, referrer_before, root)
     if resolved is None:
         return None
-    candidates = [resolved]
     emitted_suffix = Path(resolved).suffix.lower()
     source_suffixes = EMITTED_SPECIFIER_SOURCE_SUFFIXES.get(emitted_suffix)
     if source_suffixes is not None:
         stem = resolved.removesuffix(emitted_suffix)
-        candidates.extend(stem + suffix for suffix in source_suffixes)
+        candidates = [stem + suffix for suffix in source_suffixes]
+        candidates.append(resolved)
     elif not resolved.endswith(TYPESCRIPT_MODULE_SUFFIXES):
+        candidates = [resolved]
         candidates.extend(resolved + suffix for suffix in TYPESCRIPT_MODULE_SUFFIXES)
         candidates.extend(resolved + "/index" + suffix for suffix in TYPESCRIPT_MODULE_SUFFIXES)
+    else:
+        candidates = [resolved]
     for candidate in candidates:
         if (root / candidate).is_file() or (root / after_path_for(candidate, moves)).is_file():
             return candidate
