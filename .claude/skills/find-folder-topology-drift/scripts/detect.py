@@ -28,20 +28,24 @@ Stage 2 bands (deferred — see SKILL.md):
   - route_folder_misalignment
   - same_domain_helper_sprawl
 
-Output: JSONL with one finding per line. Each record has the keys
-`pattern`, `file`, `lineno`, `summary`, `recommendation` so the shared
-render_simple_report helper can render it.
+Output: JSONL with one finding per line. Python records preserve their
+existing Stage 1 bands. TypeScript records add ``language: typescript`` and
+are only the narrow ``flat_prefix_cluster`` invariant.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from collections import defaultdict
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
-import scope as _scope  # noqa: E402
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from support import BUILTIN_SKIP_DIRS, Scope, iter_paths, load_scope, matches_any  # noqa: E402
 
 SKILL_NAME = "find-folder-topology-drift"
 
@@ -309,7 +313,7 @@ def _scan_pages_route_mirror(
     for parent in sorted(pages_root.iterdir()):
         if not parent.is_dir():
             continue
-        if parent.name in _scope.BUILTIN_SKIP_DIRS:
+        if parent.name in BUILTIN_SKIP_DIRS:
             continue
         token = _PAGES_PARENT_TO_TOKEN.get(parent.name)
         if token is None:
@@ -352,7 +356,7 @@ def _scan_pages_route_mirror(
 def detect(
     *,
     project_root: Path,
-    scope: _scope.Scope,
+    scope: Scope,
     min_cluster_size: int,
 ) -> list[dict]:
     findings: list[dict] = []
@@ -369,7 +373,7 @@ def detect(
     # exclude list — narrowing is entirely host-authored (ADR 0021). The
     # bands below re-read each directory from disk, so the scan only needs
     # to supply the directory list.
-    files = _scope.iter_paths(project_root, scope)
+    files = iter_paths(project_root, scope)
     directories = sorted({f.parent for f in files} | {project_root})
 
     seen_dirs: set[Path] = set()
@@ -507,6 +511,146 @@ def detect(
     return findings
 
 
+TYPESCRIPT_SUFFIXES = {".ts", ".tsx"}
+TYPESCRIPT_SKIP_DIRS = {
+    "tests",
+    "__tests__",
+    "generated",
+    "vendor",
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "reports",
+}
+
+
+def _typescript_source_files_in(directory: Path) -> list[Path]:
+    """Return direct TypeScript siblings eligible for the v1 lexical band."""
+    if not directory.is_dir():
+        return []
+    files: list[Path] = []
+    for path in sorted(directory.iterdir()):
+        if not (path.is_file() and path.suffix.lower() in TYPESCRIPT_SUFFIXES):
+            continue
+        name = path.name.lower()
+        stem = path.stem
+        if name in {"index.ts", "index.tsx"} or name.endswith(".d.ts"):
+            continue
+        if stem.endswith(".spec") or stem.endswith(".test"):
+            continue
+        files.append(path)
+    return files
+
+
+def _typescript_prefix_clusters(
+    modules: list[Path], min_cluster_size: int
+) -> dict[str, list[Path]]:
+    """Group direct `.ts`/`.tsx` siblings by their first `_` or `-` token."""
+    by_prefix: dict[str, list[Path]] = defaultdict(list)
+    for module in modules:
+        stem = module.stem
+        positions = [position for position in (stem.find("_"), stem.find("-")) if position > 0]
+        if not positions:
+            continue
+        prefix = stem[: min(positions)]
+        if len(prefix) < 2:
+            continue
+        by_prefix[prefix].append(module)
+    return {
+        prefix: paths
+        for prefix, paths in by_prefix.items()
+        if len(paths) >= min_cluster_size
+    }
+
+
+def _typescript_directories(
+    source_root: Path,
+    project_root: Path,
+    excludes: list[str],
+) -> list[Path]:
+    """Walk one declared TypeScript source root without crossing v1 boundaries."""
+    directories: list[Path] = []
+    for directory, child_dirs, _files in os.walk(source_root):
+        current = Path(directory)
+        relative = current.relative_to(project_root).as_posix()
+        if matches_any(relative, excludes):
+            child_dirs[:] = []
+            continue
+        directories.append(current)
+        kept: list[str] = []
+        for child in child_dirs:
+            candidate = current / child
+            child_relative = candidate.relative_to(project_root).as_posix()
+            if child in TYPESCRIPT_SKIP_DIRS or matches_any(child_relative, excludes):
+                continue
+            kept.append(child)
+        child_dirs[:] = kept
+    return sorted(directories)
+
+
+def detect_typescript(
+    *,
+    project_root: Path,
+    source_roots: list[Path],
+    excludes: list[str],
+    min_cluster_size: int,
+) -> list[dict]:
+    """Detect only explicit-root TypeScript flat-prefix clusters.
+
+    This is deliberately additive to the Python bands above.  It does not
+    inspect package density, test-folder placement, Next/pages topology,
+    barrels, module resolution, or imports.
+    """
+    findings: list[dict] = []
+    seen: set[Path] = set()
+    for source_root in source_roots:
+        for directory in _typescript_directories(source_root, project_root, excludes):
+            resolved = directory.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            for prefix, paths in sorted(
+                _typescript_prefix_clusters(
+                    _typescript_source_files_in(directory), min_cluster_size
+                ).items()
+            ):
+                files = [path.relative_to(project_root).as_posix() for path in paths]
+                location = directory.relative_to(project_root).as_posix()
+                findings.append({
+                    "language": "typescript",
+                    "pattern": "flat_prefix_cluster",
+                    "file": location,
+                    "lineno": 1,
+                    "prefix": prefix,
+                    "files": files,
+                    "summary": (
+                        f"TypeScript directory `{location}` has {len(files)} direct "
+                        f"siblings sharing the first domain token `{prefix}`: "
+                        f"{', '.join(path.name for path in paths)}."
+                    ),
+                    "recommendation": (
+                        f"Review the `{prefix}` files as a possible folder boundary. "
+                        "This TypeScript v1 finding is lexical only: it does not prove "
+                        "a move, import safety, or a framework-specific package layout."
+                    ),
+                })
+    return findings
+
+
+def _resolve_within_project(
+    value: Path, project_root: Path, flag: str
+) -> Path | None:
+    path = value if value.is_absolute() else project_root / value
+    try:
+        resolved = path.resolve(strict=True)
+        resolved.relative_to(project_root)
+    except (OSError, ValueError):
+        print(f"detect: {flag} must name an existing path within --project-root: {value}", file=sys.stderr)
+        return None
+    return resolved
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -517,6 +661,16 @@ def main() -> int:
             "Optional subtree to narrow the scan to (per-invocation override). "
             "Default: the whole repo, narrowed only by the host's scope/ignore "
             "descriptors (.engineering/docs/<skill>-scope.md and ignore.md)."
+        ),
+    )
+    parser.add_argument(
+        "--typescript-root",
+        action="append",
+        type=Path,
+        default=[],
+        help=(
+            "Declared TypeScript/TSX source root. Repeat for separate roots. "
+            "Without this flag, TypeScript is not scanned."
         ),
     )
     # spec:project-structure-redesign-phase-2::IM-26
@@ -542,21 +696,44 @@ def main() -> int:
     args = parser.parse_args()
 
     project_root = args.project_root.resolve()
-    scope = _scope.load_scope(project_root, SKILL_NAME)
+    scope = load_scope(project_root, SKILL_NAME)
     if args.root is not None:
-        root = args.root if args.root.is_absolute() else (project_root / args.root)
-        try:
-            scope.roots = [root.resolve().relative_to(project_root).as_posix()]
-        except ValueError:
-            pass  # --root outside project_root: ignore, scan whole repo
+        root = _resolve_within_project(args.root, project_root, "--root")
+        if root is None:
+            return 2
+        scope.roots = [root.relative_to(project_root).as_posix()]
     if args.exclude:
         scope.ignore = list(scope.ignore) + list(args.exclude)
+
+    typescript_roots: list[Path] = []
+    for raw_root in args.typescript_root:
+        root = _resolve_within_project(raw_root, project_root, "--typescript-root")
+        if root is None or not root.is_dir():
+            if root is not None:
+                print(f"detect: --typescript-root must name a directory: {raw_root}", file=sys.stderr)
+            return 2
+        typescript_roots.append(root)
 
     findings = detect(
         project_root=project_root,
         scope=scope,
         min_cluster_size=args.min_cluster_size,
     )
+    if typescript_roots:
+        findings.extend(
+            detect_typescript(
+                project_root=project_root,
+                source_roots=typescript_roots,
+                excludes=list(args.exclude),
+                min_cluster_size=args.min_cluster_size,
+            )
+        )
+    findings.sort(key=lambda finding: (
+        str(finding.get("language", "python")),
+        str(finding.get("pattern", "")),
+        str(finding.get("file", "")),
+        str(finding.get("prefix", "")),
+    ))
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8") as f:
