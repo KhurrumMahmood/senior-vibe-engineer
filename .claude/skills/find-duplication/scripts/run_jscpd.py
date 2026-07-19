@@ -115,6 +115,39 @@ def _normalise_report_paths(payload: dict[str, Any], staging: Path, source_root:
         }
 
 
+def _report_schema_error(payload: object) -> str | None:
+    """Return why a zero-exit jscpd output is not a usable report."""
+    if not isinstance(payload, dict):
+        return "report root must be an object"
+    duplicates = payload.get("duplicates")
+    if not isinstance(duplicates, list):
+        return "`duplicates` must be a list"
+    statistics = payload.get("statistics")
+    if not isinstance(statistics, dict):
+        return "`statistics` must be an object"
+    if not isinstance(statistics.get("formats"), dict):
+        return "`statistics.formats` must be an object"
+    if not isinstance(statistics.get("total"), dict):
+        return "`statistics.total` must be an object"
+    for index, duplicate in enumerate(duplicates):
+        if not isinstance(duplicate, dict):
+            return f"`duplicates[{index}]` must be an object"
+        if not isinstance(duplicate.get("format"), str):
+            return f"`duplicates[{index}].format` must be a string"
+        if type(duplicate.get("lines")) is not int:
+            return f"`duplicates[{index}].lines` must be an integer"
+        for file_key in ("firstFile", "secondFile"):
+            file_data = duplicate.get(file_key)
+            if not isinstance(file_data, dict):
+                return f"`duplicates[{index}].{file_key}` must be an object"
+            if not isinstance(file_data.get("name"), str) or not file_data["name"]:
+                return f"`duplicates[{index}].{file_key}.name` must be a nonempty string"
+            start, end = file_data.get("start"), file_data.get("end")
+            if type(start) is not int or type(end) is not int or start < 1 or end < start:
+                return f"`duplicates[{index}].{file_key}` must have a valid line range"
+    return None
+
+
 def build_command(*, npx_bin: str, output: Path, staging: Path) -> list[str]:
     return [
         npx_bin,
@@ -146,6 +179,11 @@ def run(
         print("error: --target must be a TypeScript source directory", file=sys.stderr)
         return 2
     output.mkdir(parents=True, exist_ok=True)
+    report_path = output / "jscpd-report.json"
+    run_path = output / "run.json"
+    for artifact in (report_path, run_path):
+        if artifact.exists():
+            artifact.unlink()
     staging, sources = stage_sources(target.resolve(), output.resolve())
     if not sources:
         print("error: no eligible .ts or .tsx source files under --target", file=sys.stderr)
@@ -184,11 +222,15 @@ def run(
             print(detail[-2000:], file=sys.stderr)
         return 3
 
-    report_path = output / "jscpd-report.json"
     try:
         payload = json.loads(report_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         print(f"error: jscpd did not write a valid JSON report: {exc}", file=sys.stderr)
+        return 3
+    schema_error = _report_schema_error(payload)
+    if schema_error:
+        report_path.unlink(missing_ok=True)
+        print(f"error: unexpected jscpd report schema: {schema_error}", file=sys.stderr)
         return 3
     _normalise_report_paths(payload, staging, target.resolve())
     payload["run"] = {
@@ -200,7 +242,7 @@ def run(
         "excluded_source_policy": "generated,test,declaration,vendor",
     }
     report_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    (output / "run.json").write_text(
+    run_path.write_text(
         json.dumps(
             {
                 "command": command,

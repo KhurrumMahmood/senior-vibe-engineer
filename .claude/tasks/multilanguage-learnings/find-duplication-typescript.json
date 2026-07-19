@@ -1,11 +1,11 @@
 {
   "batch": "find-duplication-typescript-v1",
-  "revision": "working-tree-2026-07-19T08:05Z",
+  "revision": "adversarial-repair-2026-07-19",
   "family": ["find-duplication"],
   "invariant": {
     "portable_principle": "Surface substantial lexical or near-lexical clone evidence with reliable source ranges and enclosing symbols, without converting lexical similarity into a refactoring-safety claim.",
     "python_or_framework_mechanism": "The pre-existing Python jscpd-collapse reference path now uses the standard-library AST directly to resolve enclosing Python symbols and no longer imports the repository adapter registry.",
-    "typescript_mechanism": "Pinned jscpd finds lexical clones in a staged eligible .ts/.tsx input; a family-local lexical span mapper retains only pairs whose ranges lie within a proven function declaration or block-bodied arrow symbol.",
+    "typescript_mechanism": "Pinned jscpd finds lexical clones in a staged eligible .ts/.tsx input; a family-local lexical span mapper retains only pairs whose complete ranges lie within one proven function declaration or block-bodied arrow symbol, preserving distinct occurrences and joining only overlapping occurrences.",
     "explicit_non_goals": [
       "Semantic equivalence or safe consolidation",
       "Type checking, TypeScript Compiler API facts, import resolution, or call graphs",
@@ -18,7 +18,9 @@
     "Removed the Python collapse script's repository-level scripts/_lib language-adapter import and froze the reference oracle with a positive pair, a behaviorally different clean file, stable JSON, and a no-AST-findings input.",
     "Changed TypeScript triage rendering so a lexical finding explicitly says that semantic equivalence and refactor safety are unknown and does not route directly to an execution command.",
     "Added output-local jscpd staging so generated/test/declaration/vendor files are excluded before the external detector sees them, then rechecked the same boundary while collapsing raw reports.",
-    "Dropped overload-signature pairs and any pair without a reliable enclosing symbol instead of inventing a module-level name."
+    "Dropped overload-signature pairs and any pair without a reliable enclosing symbol instead of inventing a module-level name.",
+    "Validated jscpd's statistics, duplicates list, and duplicate file/range records before marking the wrapper output completed; malformed zero-exit output is now a status-3 failure with no usable report.",
+    "Required each clone range endpoint to fit one symbol and retained occurrence ranges when clustering, preventing a cross-symbol span or independent repeated blocks in one symbol from being merged into a misleading finding."
   ],
   "language_model": {
     "syntax": [
@@ -80,7 +82,8 @@
       "Test source",
       "Declaration files",
       "Function overload signatures",
-      "A clone range without a reliable enclosing symbol"
+      "A clone range without a reliable enclosing symbol",
+      "A clone range that crosses a symbol boundary"
     ],
     "native_test_command": ".venv/bin/python -m pytest tests/test_find_duplication_typescript.py -q; NPM_CONFIG_CACHE=/tmp/find-duplication-npm-cache npx --offline --yes -p typescript@5.9.3 tsc --noEmit -p tests/fixtures/find-duplication-typescript/typescript-host/tsconfig.json",
     "native_guard_command": null
@@ -102,6 +105,18 @@
       "Copied replay: /tmp/find-duplication-final-install.mEW5CW and /tmp/find-duplication-final-host.JRyLma/reports/{jscpd,collapsed.json,ranked.json,triage.md,findings.json}; all installed python3 -I -S stages returned 0, assertions found only ts-jscpd-0001 with the expected two symbols, and source hashes were byte-identical before/after.",
       "Fresh forward replay: /tmp/find-duplication-forward.VwLoi4/host/reports/duplication/scan-20260719-080641; installed python3 -I -S wrapper/collapse/rank/report all returned 0, produced ts-jscpd-0001 with the two expected symbols, omitted one unmapped raw pair, reported no excluded boundary path, and preserved source fingerprint f506d3fe7ab415e6aced3cd93237e3c18bcc654881e737fec87e96927e3b81f6."
     ]
+  },
+  "d6_final_replay": {
+    "status": "pending",
+    "scope": "A genuinely fresh no-context agent must run the copied installed skill from this repair commit against a fresh host copy.",
+    "required_handoff": [
+      "installed skill path and source commit",
+      "raw host path and report output path",
+      "four python -I -S command results",
+      "detector/report artifact hashes",
+      "before/after source-tree hashes proving no source change"
+    ],
+    "note": "Earlier forward evidence predates the adversarial repair and is retained only as historical context."
   },
   "false_positive_boundary": {
     "known_false_positives": [

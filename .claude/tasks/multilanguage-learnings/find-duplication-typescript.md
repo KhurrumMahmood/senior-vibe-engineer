@@ -1,6 +1,6 @@
 # find-duplication TypeScript v1 learning report
 
-Revision: working tree on `codex/ts-duplication`, 2026-07-19 UTC
+Revision: adversarial repair in progress on `codex/ts-duplication`, 2026-07-19 UTC
 
 ## Outcome and scope
 
@@ -41,10 +41,18 @@ It never makes a network attempt. Cache/tool absence is an explicit status-3
 preflight failure, not an empty clean result.
 
 The mapper masks strings and comments, identifies ordinary function declarations
-and block-bodied arrows, and discards a raw clone pair unless both spans fit a
-real enclosing symbol. It also drops generated/test/declaration/vendor paths
-and overload signatures. This strictness is intentional: a false negative is
-better than an invented source owner. It is not a TypeScript parser platform.
+and block-bodied arrows, and discards a raw clone pair unless the complete
+start-to-end range at each site fits one real enclosing symbol. It also drops
+generated/test/declaration/vendor paths and overload signatures. This strictness
+is intentional: a false negative is better than an invented source owner. It is
+not a TypeScript parser platform.
+
+The collapse stage retains exact clone occurrences (`file`, `symbol`, start,
+end), rather than collapsing all pairs that merely name the same symbol. Raw
+pairs form one cluster only when those occurrences overlap, so separate repeated
+blocks in one long function remain separate leads. The offline wrapper validates
+the pinned jscpd report shape before adding its completed metadata; malformed
+zero-exit JSON is a status-3 failure and the unusable report is removed.
 
 Rejected alternatives were the TypeScript Compiler API, tree-sitter/ts-morph,
 a handwritten token-clone detector, runtime network fallback, and a shared
@@ -110,6 +118,12 @@ One raw detector pair was deliberately omitted as `unmapped_symbol`; the source
 fingerprint before/after was exactly
 `f506d3fe7ab415e6aced3cd93237e3c18bcc654881e737fec87e96927e3b81f6`.
 
+The preceding forward replay predates the adversarial repair and does not count
+as D6 evidence. A new no-context installed forward replay from the repair
+commit is pending with the parent task; its handoff must preserve the installed
+skill path, raw host/output paths, command transcript, report/source hashes,
+and byte-identical source-tree proof.
+
 ## False-positive boundary
 
 Generated, tests, declarations, vendor/dependency/build trees, and overload
@@ -120,6 +134,10 @@ and any semantically duplicated but lexically different implementation remains
 out of scope. The mapper also deliberately omits class methods, decorators,
 namespaces, expression-bodied arrows, and unfamiliar constructs when it cannot
 prove a source span/symbol relationship.
+
+It also omits a pair whose reported start/end range crosses a symbol boundary;
+same-symbol pair records remain distinct unless their actual clone occurrences
+overlap.
 
 ## What generalized—and what did not
 

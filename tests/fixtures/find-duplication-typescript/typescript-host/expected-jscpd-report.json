@@ -1,4 +1,8 @@
 {
+  "statistics": {
+    "formats": {},
+    "total": {}
+  },
   "duplicates": [
     {
       "format": "typescript",

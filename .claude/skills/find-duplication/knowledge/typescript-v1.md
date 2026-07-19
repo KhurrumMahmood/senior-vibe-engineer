@@ -19,9 +19,16 @@ audit.
 
 The accompanying Python span mapper is deliberately narrow. It masks comments
 and strings, identifies function declarations and block-bodied arrow functions,
-and discards a clone pair if it cannot map both sites to real source symbols.
-It is a family-local formatter/validator for jscpd ranges, not a reusable
-TypeScript parser.
+and discards a clone pair unless each complete range fits one real source
+symbol. It retains exact occurrence ranges and joins raw pairs only when their
+occurrences overlap, rather than joining every pair that happens to name the
+same file and symbol. It is a family-local formatter/validator for jscpd
+ranges, not a reusable TypeScript parser.
+
+The wrapper validates the emitted jscpd 4.0.5 JSON schema before path
+normalization or completion metadata: an object with statistics, a duplicate
+list, and valid duplicate file/range records. A zero exit plus malformed JSON
+is a detector failure, not a clean scan.
 
 ## Rejected alternatives
 

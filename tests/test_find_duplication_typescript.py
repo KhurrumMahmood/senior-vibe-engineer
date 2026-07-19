@@ -60,6 +60,19 @@ def _write_fake_npx(path: Path, report: Path) -> None:
     path.chmod(0o755)
 
 
+def _write_fake_npx_payload(path: Path, payload: object) -> None:
+    path.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json, pathlib, sys\n"
+        "args = sys.argv[1:]\n"
+        "output = pathlib.Path(args[args.index('--output') + 1])\n"
+        "output.mkdir(parents=True, exist_ok=True)\n"
+        f"(output / 'jscpd-report.json').write_text(json.dumps({payload!r}))\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+
+
 def test_python_reference_oracle_is_stable_and_keeps_different_code_clean(tmp_path: Path) -> None:
     installed = tmp_path / "installed" / "find-duplication"
     shutil.copytree(SKILL, installed)
@@ -112,6 +125,107 @@ export function toKey(value: string | number): string {
         ("toKey", 6, 6, True),
         ("toKey", 7, 9, False),
     ]
+
+
+def test_span_mapper_rejects_clone_ranges_that_cross_symbol_boundaries(tmp_path: Path) -> None:
+    collapse = _load_typescript_collapse()
+    target = tmp_path / "src"
+    target.mkdir()
+    (target / "first.ts").write_text(
+        """\
+export function first() {
+    return 1;
+}
+
+export function second() {
+    return 2;
+}
+""",
+        encoding="utf-8",
+    )
+    (target / "peer.ts").write_text(
+        """\
+export function peer() {
+    return 1;
+}
+""",
+        encoding="utf-8",
+    )
+
+    findings, stats = collapse.collapse(
+        jscpd={
+            "duplicates": [
+                {
+                    "lines": 4,
+                    "firstFile": {"name": "src/first.ts", "start": 2, "end": 5},
+                    "secondFile": {"name": "src/peer.ts", "start": 1, "end": 3},
+                }
+            ]
+        },
+        project_root=tmp_path,
+        target=target,
+    )
+
+    assert findings == []
+    assert stats["filter_reasons"] == {"span_crosses_symbol_boundary": 1}
+
+
+def test_collapse_keeps_independent_ranges_in_one_symbol_as_separate_clusters(
+    tmp_path: Path,
+) -> None:
+    collapse = _load_typescript_collapse()
+    target = tmp_path / "src"
+    target.mkdir()
+    (target / "shared.ts").write_text(
+        """\
+export function shared() {
+    const first = 1;
+    console.log(first);
+    const second = 2;
+    console.log(second);
+}
+""",
+        encoding="utf-8",
+    )
+    for name in ("left", "right"):
+        (target / f"{name}.ts").write_text(
+            f"""\
+export function {name}() {{
+    const value = 1;
+    console.log(value);
+}}
+""",
+            encoding="utf-8",
+        )
+
+    findings, stats = collapse.collapse(
+        jscpd={
+            "duplicates": [
+                {
+                    "lines": 2,
+                    "firstFile": {"name": "src/shared.ts", "start": 2, "end": 3},
+                    "secondFile": {"name": "src/left.ts", "start": 2, "end": 3},
+                },
+                {
+                    "lines": 2,
+                    "firstFile": {"name": "src/shared.ts", "start": 4, "end": 5},
+                    "secondFile": {"name": "src/right.ts", "start": 2, "end": 3},
+                },
+            ]
+        },
+        project_root=tmp_path,
+        target=target,
+    )
+
+    assert stats["filter_reasons"] == {}
+    assert len(findings) == 2
+    assert all(finding["multiplicity"] == 2 for finding in findings)
+    assert {
+        (site["start_line"], site["end_line"])
+        for finding in findings
+        for site in finding["sites"]
+        if site["file"] == "src/shared.ts"
+    } == {(2, 3), (4, 5)}
 
 
 def test_typescript_final_triage_is_read_only_and_filters_known_boundaries(tmp_path: Path) -> None:
@@ -272,3 +386,31 @@ def test_offline_runner_fails_clearly_without_the_pinned_cache(tmp_path: Path) -
     )
     assert result.returncode == 3
     assert "pinned jscpd@4.0.5 is unavailable offline" in result.stderr
+
+
+def test_offline_runner_rejects_malformed_zero_exit_jscpd_report(tmp_path: Path) -> None:
+    installed = tmp_path / "installed" / "find-duplication"
+    shutil.copytree(SKILL, installed)
+    host = _copy_host(tmp_path)
+    fake_npx = tmp_path / "fake-npx"
+    _write_fake_npx_payload(fake_npx, {"duplicates": []})
+    output = tmp_path / "report" / "jscpd"
+
+    result = _run(
+        sys.executable,
+        "-I",
+        "-S",
+        str(installed / "scripts" / "run_jscpd.py"),
+        "--target",
+        str(host / "src"),
+        "--output",
+        str(output),
+        "--npx-bin",
+        str(fake_npx),
+        cwd=host,
+    )
+
+    assert result.returncode == 3
+    assert "unexpected jscpd report schema" in result.stderr
+    assert not (output / "jscpd-report.json").exists()
+    assert not (output / "run.json").exists()

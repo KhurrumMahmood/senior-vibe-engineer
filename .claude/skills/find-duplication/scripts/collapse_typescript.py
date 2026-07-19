@@ -262,8 +262,18 @@ def _site_for(
     if start < 1 or end < start or end > len(source.splitlines()):
         return None, "invalid_span"
     spans = symbol_cache.setdefault(path.resolve(), symbols_in_source(source))
-    candidates = [span for span in spans if span.start_line <= start <= span.end_line]
+    candidates = [
+        span
+        for span in spans
+        if span.start_line <= start <= end <= span.end_line
+    ]
     if not candidates:
+        if any(
+            span.start_line <= line <= span.end_line
+            for line in (start, end)
+            for span in spans
+        ):
+            return None, "span_crosses_symbol_boundary"
         return None, "unmapped_symbol"
     symbol = min(candidates, key=lambda span: span.end_line - span.start_line)
     if symbol.overload_signature:
@@ -283,6 +293,26 @@ def _site_for(
     }, "accepted"
 
 
+def _site_key(site: dict[str, Any]) -> tuple[str, str, int, int]:
+    """Return the exact source occurrence identity for a clone site."""
+    return (
+        site["file"],
+        site["symbol"],
+        site["start_line"],
+        site["end_line"],
+    )
+
+
+def _sites_overlap(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    """Return whether two occurrences represent one overlapping clone site."""
+    return (
+        left["file"] == right["file"]
+        and left["symbol"] == right["symbol"]
+        and left["start_line"] <= right["end_line"]
+        and right["start_line"] <= left["end_line"]
+    )
+
+
 def _union_groups(groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
     parents = list(range(len(groups)))
 
@@ -297,20 +327,22 @@ def _union_groups(groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if left_root != right_root:
             parents[right_root] = left_root
 
-    by_site: dict[tuple[str, str], list[int]] = {}
+    by_symbol: dict[tuple[str, str], list[tuple[int, dict[str, Any]]]] = {}
     for index, group in enumerate(groups):
-        for site in group["sites"].values():
-            by_site.setdefault((site["file"], site["symbol"]), []).append(index)
-    for indices in by_site.values():
-        for index in indices[1:]:
-            union(indices[0], index)
+        for site in group["sites"]:
+            key = (site["file"], site["symbol"])
+            for other_index, other_site in by_symbol.setdefault(key, []):
+                if _sites_overlap(site, other_site):
+                    union(index, other_index)
+            by_symbol[key].append((index, site))
 
     merged: dict[int, dict[str, Any]] = {}
     for index, group in enumerate(groups):
         bucket = merged.setdefault(
             find(index), {"sites": {}, "shared_lines_max": 0, "raw_pairs_collapsed": 0}
         )
-        bucket["sites"].update(group["sites"])
+        for site in group["sites"]:
+            bucket["sites"].setdefault(_site_key(site), site)
         bucket["shared_lines_max"] = max(bucket["shared_lines_max"], group["shared_lines_max"])
         bucket["raw_pairs_collapsed"] += group["raw_pairs_collapsed"]
     return list(merged.values())
@@ -339,16 +371,13 @@ def collapse(
             reason = first_reason if first is None else second_reason
             reasons[reason] = reasons.get(reason, 0) + 1
             continue
-        if first["file"] == second["file"] and first["symbol"] == second["symbol"]:
-            reasons["same_symbol"] = reasons.get("same_symbol", 0) + 1
+        if _site_key(first) == _site_key(second):
+            reasons["same_occurrence"] = reasons.get("same_occurrence", 0) + 1
             continue
         shared_lines = int(duplicate.get("lines") or 0)
         groups.append(
             {
-                "sites": {
-                    (first["file"], first["symbol"]): first,
-                    (second["file"], second["symbol"]): second,
-                },
+                "sites": [first, second],
                 "shared_lines_max": shared_lines,
                 "raw_pairs_collapsed": 1,
             }
@@ -356,10 +385,21 @@ def collapse(
 
     findings: list[dict[str, Any]] = []
     for index, group in enumerate(
-        sorted(_union_groups(groups), key=lambda item: (-item["shared_lines_max"], sorted(item["sites"]))),
+        sorted(
+            _union_groups(groups),
+            key=lambda item: (-item["shared_lines_max"], sorted(item["sites"])),
+        ),
         start=1,
     ):
-        sites = sorted(group["sites"].values(), key=lambda site: (site["file"], site["symbol"]))
+        sites = sorted(
+            group["sites"].values(),
+            key=lambda site: (
+                site["file"],
+                site["symbol"],
+                site["start_line"],
+                site["end_line"],
+            ),
+        )
         findings.append(
             {
                 "finding_id": f"ts-jscpd-{index:04d}",

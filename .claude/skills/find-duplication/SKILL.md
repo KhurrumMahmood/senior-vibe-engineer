@@ -30,9 +30,9 @@ same behavior or can safely be merged.
 ## TypeScript v1 contract
 
 This revision reports only TypeScript/TSX lexical or near-lexical clone clusters
-where both clone sites have a reliable source range and an enclosing function or
-block-bodied arrow symbol. It deliberately drops a jscpd pair when either site
-cannot be mapped confidently. It also excludes generated, test, declaration,
+where both clone-site endpoints fit the same reliable source range and an
+enclosing function or block-bodied arrow symbol. It deliberately drops a jscpd
+pair when either site cannot be mapped confidently. It also excludes generated, test, declaration,
 vendor, build, and `node_modules` paths before jscpd runs, then applies the same
 boundary defensively while collapsing a report. Overload signatures are never
 triage findings.
@@ -54,7 +54,8 @@ report directory:
 - `jscpd/jscpd-report.json` — the pinned tool output after paths are restored
   from the disposable staging tree to the host source tree.
 - `collapsed.json` and `ranked.json` — deterministic lexical clusters with
-  filtering/accounting metadata.
+  filtering/accounting metadata. Distinct source occurrences remain distinct;
+  pairs join a cluster only through overlapping occurrences.
 - `triage.md` and `findings.json` — the final user-facing and structured
   artifacts. The Markdown repeats the no-automatic-consolidation boundary.
 
@@ -130,6 +131,8 @@ after a failed offline detector preflight.
   threshold. It does not prove the code is free of semantic duplication.
 - A pair omitted as `unmapped_symbol` is intentionally not promoted to a
   cluster; TypeScript v1 prefers a false negative to a fabricated symbol name.
+- A pair omitted as `span_crosses_symbol_boundary` crossed or escaped its
+  start symbol, so its range cannot support a reliable owner claim.
 - Generated/test/declaration/overload exclusions are false-positive boundaries,
   not evidence that such code is never duplicated.
 
@@ -139,6 +142,7 @@ after a failed offline detector preflight.
 |---|---|
 | Wrapper exits 3 | Populate the exact `jscpd@4.0.5` npm cache explicitly, then retry. Do not turn on a silent network fallback. |
 | Wrapper exits 2 | Correct the target: it must be a directory with eligible `.ts` or `.tsx` files. |
+| Wrapper reports an unexpected jscpd schema | Treat the detector run as failed. The wrapper removes the unusable report and never marks it complete or clean. |
 | Collapse reports mapped finding count 0 | Read `filter_reasons` in `collapsed.json`; do not substitute module-level or guessed symbols. |
 | A report names a generated/test/declaration path | Stop and treat it as a detector-boundary defect; do not triage it. |
 | A cluster looks safe at a glance | Treat that as an investigation lead only. TypeScript v1 has made no semantic or refactor-safety determination. |
