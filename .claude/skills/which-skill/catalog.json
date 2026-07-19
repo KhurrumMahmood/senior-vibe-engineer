@@ -395,13 +395,17 @@
     },
     {
       "name": "find-duplication",
-      "description": "Detect structural and lexical code duplication. Runs jscpd and the AST visitor in parallel, collapses overlapping clone pairs into method-identity findings, fans out sub-agent investigators, and produces a triage report with a dormant-code side-channel. Hands off to `/fix-workflow` for execution.",
+      "description": "Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative TypeScript/TSX lexical clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.",
       "tier": "maintenance",
       "job": "suspect",
-      "best_for": "Lexical / structural copy-paste — two methods with identical or\nnear-identical bodies. Runs jscpd + AST visitor in parallel,\ncollapses overlapping clone pairs into method-identity findings,\nproduces a P0/P1/P2 triage report.\n",
-      "not_for": "Semantic duplication where the code differs but the workflow\noverlaps (use /find-semantic-duplication). Refactor execution (use\n/fix-workflow cluster:<id>). Cross-layer drift (template/JS/Python\nfor one workflow — use /find-workflow-duplication).\n",
-      "language": "python",
-      "framework": "django",
+      "best_for": "Python/Django copy-paste and canonical-pattern candidates that need the\nestablished P0/P1/P2 scout triage, or TypeScript/TSX lexical clone\ncandidates that need reliable source spans without a consolidation claim.\n",
+      "not_for": "Semantic duplication where code differs substantially (use\n/find-semantic-duplication), cross-layer workflow drift, or executing a\nrefactor. TypeScript v1 does not prove semantic equivalence or safe reuse.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "typescript"
+      ],
       "_path": "skills/find-duplication"
     },
     {
@@ -484,15 +488,17 @@
     },
     {
       "name": "find-omnibus",
-      "description": "Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Walks the target with per-language symbol-extraction adapters (exact AST for Python; column-0 declaration heuristic for JavaScript/TypeScript — ADR 0032), groups top-level symbols by head-noun cluster, counts SRP \"and\"s, ranks by responsibility count plus security/side-effect sensitivity and LOC, fans out scout sub-agents that apply the refactor-subsystem §1.2.5 facet-vs-domain rule, and produces a decomposition-candidates report. Never edits code — hands off to `/refactor-subsystem <spec-id>` in decomposition mode, or escalates to a substrate ADR when the target layer cannot absorb a decomposition (ADR 0032 rule 3).",
+      "description": "Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans, a legacy JavaScript heuristic, and a bundled TypeScript Compiler API parser for ESM `.ts`/`.tsx` top-level functions, typed arrows, and classes; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.",
       "tier": "maintenance",
       "job": "suspect",
-      "best_for": "Files answering questions from 3+ unrelated domains — the SRP \"and\"\ntest counts 3+ \"and\"s. Ranks by responsibility count, then boosts\nfiles that mix credentials, admin APIs, CSRF/auth, command/network\ndiagnostics, persistence, raw SQL, import/export, task dispatch, or\nfilesystem writes; produces decomposition candidates that hand off\nto /refactor-subsystem. Covers Python (exact) and JavaScript/\nTypeScript (heuristic; findings carry analyzer provenance).\n",
+      "best_for": "Files answering questions from 3+ unrelated domains — the SRP \"and\"\ntest counts 3+ \"and\"s. Ranks by responsibility count, then boosts\nfiles that mix credentials, admin APIs, CSRF/auth, command/network\ndiagnostics, persistence, raw SQL, import/export, task dispatch, or\nfilesystem writes; produces decomposition candidates that hand off\nto /refactor-subsystem. Covers Python (exact AST), JavaScript (legacy\ndeclaration heuristic), and TypeScript (Compiler API syntax spans for ESM\ntop-level functions, typed arrows, and classes). Findings carry analyzer\nprovenance. TypeScript needs Node and the host's project-local `typescript`\npackage, but no tsconfig or framework.\n",
       "not_for": "Single-responsibility files that are merely large (cohesive >500 LOC\nis fine — avoid splitting for size alone). Layer violations\nspecifically in views (use /find-layer-violation). Refactor\nexecution (use /refactor-subsystem in decomposition mode).\nLanguages without an extraction adapter yet — check\n/find-perimeter-gaps for what is and isn't covered.\n",
-      "language": "python",
+      "language": "any",
       "framework": "any",
       "scans": [
-        "python"
+        "python",
+        "javascript",
+        "typescript"
       ],
       "_path": "skills/find-omnibus"
     },

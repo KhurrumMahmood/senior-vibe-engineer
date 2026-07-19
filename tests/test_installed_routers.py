@@ -142,6 +142,45 @@ def test_installed_which_skill_routes_typescript_explanation(tmp_path):
     assert payload["install"]["skill"] == "explain-code"
 
 
+@pytest.mark.parametrize(
+    ("task", "expected_skill"),
+    [
+        (
+            "find an omnibus TypeScript module with too many unrelated "
+            "responsibilities",
+            "find-omnibus",
+        ),
+        (
+            "audit TypeScript lexical clone clusters with reliable source "
+            "spans and enclosing symbols",
+            "find-duplication",
+        ),
+    ],
+)
+def test_installed_which_skill_routes_typescript_analysis_skills(
+    tmp_path, task, expected_skill
+):
+    host = tmp_path / "host"
+    router = _install_router(host, "which-skill")
+
+    result = _run_isolated(
+        router / "scripts" / "match.py",
+        task,
+        "--project-root",
+        str(host),
+        "--top",
+        "10",
+        "--json",
+        cwd=host,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["routing_context"]["language"] == "typescript"
+    assert payload["recommendation"] == expected_skill
+    assert payload["install"]["skill"] == expected_skill
+
+
 def test_default_router_set_is_exactly_three():
     assert DEFAULT_ROUTERS == ("which-shape", "which-skill", "which-cleanup")
 

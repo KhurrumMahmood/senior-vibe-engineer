@@ -54,9 +54,9 @@ def test_bundled_catalog_matches_source_frontmatter():
         )
     )
     omnibus = next(skill for skill in catalog["skills"] if skill["name"] == "find-omnibus")
-    assert omnibus["language"] == "python"
+    assert omnibus["language"] == "any"
     assert omnibus["framework"] == "any"
-    assert omnibus["scans"] == ["python"]
+    assert omnibus["scans"] == ["python", "javascript", "typescript"]
 
 
 def test_new_skill_prompt_routes_to_plan_skill():
@@ -120,17 +120,31 @@ def test_typescript_direct_export_explanation_routes_to_explain_code():
     assert payload["install"]["skill"] == "explain-code"
 
 
-def test_unearned_omnibus_typescript_claim_returns_unsupported():
+def test_typescript_omnibus_routes_to_earned_skill():
     returncode, payload = _run_match(
         "find an omnibus TypeScript module with too many unrelated responsibilities",
         "--top",
         "10",
     )
 
-    assert returncode == 1
-    assert payload["recommendation"] == "unsupported"
-    excluded = {item["name"]: item["reason"] for item in payload["excluded_unsupported"]}
-    assert excluded["find-omnibus"] == "declares language=python"
+    assert returncode == 0
+    assert payload["routing_context"]["language"] == "typescript"
+    assert payload["recommendation"] == "find-omnibus"
+    assert payload["install"]["skill"] == "find-omnibus"
+
+
+def test_typescript_lexical_clones_route_to_duplication():
+    returncode, payload = _run_match(
+        "audit TypeScript lexical clone clusters with reliable source spans "
+        "and enclosing symbols",
+        "--top",
+        "10",
+    )
+
+    assert returncode == 0
+    assert payload["routing_context"]["language"] == "typescript"
+    assert payload["recommendation"] == "find-duplication"
+    assert payload["install"]["skill"] == "find-duplication"
 
 
 def test_explicit_language_is_authoritative_and_repeatable(tmp_path):

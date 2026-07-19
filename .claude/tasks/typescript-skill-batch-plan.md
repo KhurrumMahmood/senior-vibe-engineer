@@ -1,7 +1,7 @@
 # TypeScript-first skill batch plan
 
-Status: B0, B1, B2P, B2T, B3, and move-path complete; explain-code and
-duplication pilots in adversarial repair
+Status: B0, B1, B2P, B2T, B3, B4, move-path, explain-code, and duplication
+complete; folder-topology is the next independent pilot
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -528,9 +528,8 @@ Acceptance:
 
 ### B4 — First-class TypeScript omnibus detection
 
-State: `in_progress` — `codex/ts-omnibus` at
-`/private/tmp/engineering-skills-ts-omnibus`; started from the accepted B2T
-baseline after reviewing its family-local Compiler API boundary
+State: `complete` — accepted at `df716f12` after an independent stock-install
+closure re-review
 
 Skill: `find-omnibus`.
 
@@ -544,13 +543,13 @@ ownership of the shared adapter while active.
 
 Acceptance:
 
-- [ ] An ESM `.ts` module with exported functions/typed arrows/classes across
+- [x] An ESM `.ts` module with exported functions/typed arrows/classes across
   four domains fires; a cohesive ESM module stays clean.
-- [ ] Legacy `.js`, Python, minified, generated, and `*.spec.ts` behavior stays
+- [x] Legacy `.js`, Python, minified, generated, and `*.spec.ts` behavior stays
   correct; output identifies TypeScript as `typescript`.
-- [ ] The installed skill contains or declares its complete runtime closure
+- [x] The installed skill contains or declares its complete runtime closure
   and does not reach into repository-level `scripts/_lib`.
-- [ ] D1–D8 pass; D4 is satisfied by detection/report semantics.
+- [x] D1–D8 pass; D4 is satisfied by detection/report semantics.
 
 ### B5 — Deep control-flow candidates
 
@@ -669,6 +668,14 @@ Active candidate promotion:
   TypeScript source imports, and exposes that residual risk in the final
   report. Its locked TS fixture, TypeScript 5.9.3 typecheck, copied-install
   replay, learning packet, and independent adversarial review pass.
+- `explain-code` is `complete` at `5d225b2` plus serial contract/router
+  integration. Its installed lexical TypeScript branch renders direct exports,
+  keeps re-exports visibly unexplained, rejects invalid syntax, preserves the
+  Python path, and passed independent final re-review.
+- `find-duplication` is `complete` at `ff79274` plus serial contract/router
+  integration. The accepted additive port preserves the self-contained Python
+  scout/triage journey and adds conservative TypeScript clone evidence; rerun
+  contamination and language-substitution regressions are pinned by tests.
 
 ### Framework-specific; do not dispatch without a named stack (20)
 
@@ -715,3 +722,6 @@ corrected rather than treated as working framework neutrality.
 | 2026-07-19 UTC | `e6f6a5d` | B1 complete | TS/TSX concept findings plus four host-neutral artifact/rules skills pass copied `python -I -S` final-outcome tests. Two adversarial rounds found and repaired quoted/commented YAML false-clean/false-positive paths. The five real contracts are acknowledged and index `stale: ok`; catalog/routing integrated. Final integrated suite: 35 passed; independent re-review PASS. |
 | 2026-07-19 UTC | `6e65140` + generated closeout | TypeScript move-path complete | Standalone TS/TSX path/text moves use self-contained JSON plans, preserve plan authority bytes, rewrite identity-resolved docs/config, and report rather than rewrite source imports. Adversarial repairs covered invalid invented specifiers, multiline imports, NodeNext emitted-file substitutions, declaration variants, and residue self-reporting. TypeScript 5.9.3 native suite plus routers/shape: 70 passed; copied closure and independent final review PASS. |
 | 2026-07-19 UTC | `54a9db3` + integrated contracts | B2T TypeScript closed-state outcome | The self-contained TypeScript Compiler API family now detects first-party closed state, proposes the `as const` authority and caller migration, stages and verifies a 0/1/2 guard, and preserves typed/open-ended/vendor/test boundaries. Adversarial repairs covered semantic receiver attribution, forged suppressions, direct and parenthesized aliases, `??=`, chained assignments, and syntax failures. A stock exact-three-skill `skills@1.5.19` install and fresh forward proposal at `/private/tmp/b2t-forward.lb5LzK` passed; final focused integration suite: 29 passed; independent re-review PASS. |
+| 2026-07-19 UTC | `5d225b2` + integrated contract/router | TypeScript explain-code complete | Stock-installed direct-export inventory and final rendering preserve Python behavior, disclose re-exports, reject invalid syntax, and avoid annotation collisions. Focused suite: 26 passed; copied isolated replay and independent re-review PASS. |
+| 2026-07-19 UTC | `ff79274` + integrated contract/router | Additive TypeScript duplication complete | TypeScript lexical clone triage keeps reliable spans and conservative judgment; Python detection/scout/triage remains a first-class self-contained path. Repairs covered cross-symbol spans, false transitive clustering, malformed jscpd output, rerun report ingestion, and an initially destructive TypeScript-only substitution. Combined suite: 12 passed; fresh installed journeys for both languages and independent re-review PASS. |
+| 2026-07-19 UTC | `df716f12` + integrated contract/router | B4 TypeScript omnibus complete | Compiler API symbol spans find ESM typed functions/arrows/classes across four domains while cohesive/generated/vendor/minified/spec paths stay clean and legacy Python/JS remain green. The stock `.agents` install now follows documented commands verbatim with bundled scout knowledge and no sibling tooling. Focused suite: 14 passed; fresh forward report found two confirmed candidates with unchanged source; independent closure re-review PASS. |
