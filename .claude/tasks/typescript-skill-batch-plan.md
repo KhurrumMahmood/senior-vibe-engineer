@@ -1,7 +1,7 @@
 # TypeScript-first skill batch plan
 
 Status: B0, B1, B2P, B2T, B3, B4, move-path, explain-code, duplication,
-complexity, and folder-topology complete; adapt-project is in progress
+complexity, folder-topology, and adapt-project complete; audit-decisions is in review
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -608,7 +608,7 @@ These operate on the toolkit's own ledgers, catalogs, routers, rules, or
 bootstrap runtime. A TypeScript host does not require a language variant, but
 the final matrix still records a runtime review revision.
 
-### TypeScript-supported batches (15 unique skills)
+### TypeScript-supported batches (16 unique skills)
 
 - B1: `find-concept-divergence`, `find-rule-surface-drift`,
   `find-skill-artifact-drift`, `find-skill-intent-drift`,
@@ -620,10 +620,11 @@ the final matrix still records a runtime review revision.
   `find-folder-topology-drift`.
 - Independent outcome pilots: `move-path`, `explain-code`,
   `find-duplication`.
+- Host adaptation: `adapt-project`.
 
-### Candidate language-level families and repairs (11)
+### Candidate language-level families and repairs (10)
 
-`adapt-project`, `audit-decisions`, `find-dormant`, `find-incomplete-sweep`,
+`audit-decisions`, `find-dormant`, `find-incomplete-sweep`,
 `find-semantic-duplication`, `find-standard-gaps`, `map-subsystem`,
 `propose-boundary`, `propose-folder-reorganization`, `rename-concept`, and
 `unify-shadows`.
@@ -704,6 +705,13 @@ Active candidate promotion:
   direct flat-prefix clusters, preserves explicit combined Python+TS mode, and
   passed installed forward evidence. Two adversarial rounds repaired TS-only
   leakage, install-path docs, and explicit excluded-root bypasses before PASS.
+- `adapt-project` is `complete` at `3651ccf..2d34690` plus serial
+  contract/router integration. TypeScript/TSX source counts now drive the same
+  large-root caution as Python without inferring Node frameworks. The stock
+  installed journey produced a useful adapter; adversarial review then found
+  and closed timestamp traversal, Django regression, relative-command CWD,
+  external-symlink counting, and foreign-evidence certification defects before
+  final PASS.
 
 ### Framework-specific; do not dispatch without a named stack (22)
 
@@ -756,3 +764,4 @@ corrected rather than treated as working framework neutrality.
 | 2026-07-19 UTC | `df716f12` + integrated contract/router | B4 TypeScript omnibus complete | Compiler API symbol spans find ESM typed functions/arrows/classes across four domains while cohesive/generated/vendor/minified/spec paths stay clean and legacy Python/JS remain green. The stock `.agents` install now follows documented commands verbatim with bundled scout knowledge and no sibling tooling. Focused suite: 14 passed; fresh forward report found two confirmed candidates with unchanged source; independent closure re-review PASS. |
 | 2026-07-19 UTC | `9b309f4..a6aaf5c` + integrated contract/router | TypeScript complexity complete | Family-local Compiler API syntax scoring reports exactly three branch-heavy declarations/methods/block arrows and preserves the Python six-band oracle. Stock installed forward task produced final artifacts with a measure-first verdict. Direct directory/file exclusion bypasses found adversarially were repaired project-root-relative; focused suite: 7 passed; final re-review PASS. |
 | 2026-07-19 UTC | `82859c7..d1f1e39` + integrated contract/router | TypeScript folder topology complete | Explicit-root lexical flat-prefix detection reports one three-sibling billing cluster, preserves Python-only and explicit combined mode, copied closure, and final report labels. Forward and adversarial defects in `.agents` docs, TS-only isolation, and explicit excluded roots were repaired; focused suite: 20 passed; final re-review PASS. |
+| 2026-07-19 UTC | `3651ccf..2d34690` + integrated contract/router | TypeScript project adaptation complete | TypeScript/TSX source-root counts trigger the same >200 caution as Python, keep excluded trees out, preserve Django detection, and never infer a Node framework from package.json. Fresh stock-installed D6 produced final adapter/report/evidence with unchanged source. Five adversarial path/compatibility/evidence defects were reproduced and repaired; focused re-review: 37 passed; final PASS. |

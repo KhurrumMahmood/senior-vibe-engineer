@@ -174,6 +174,20 @@ def test_typescript_flat_prefix_routes_to_folder_topology():
     assert payload["install"]["skill"] == "find-folder-topology-drift"
 
 
+def test_typescript_host_onboarding_routes_to_adapt_project():
+    returncode, payload = _run_match(
+        "onboard a TypeScript repository by discovering objective stack CI "
+        "test and source-root facts",
+        "--top",
+        "10",
+    )
+
+    assert returncode == 0
+    assert payload["routing_context"]["language"] == "typescript"
+    assert payload["recommendation"] == "adapt-project"
+    assert payload["install"]["skill"] == "adapt-project"
+
+
 def test_explicit_language_is_authoritative_and_repeatable(tmp_path):
     catalog = tmp_path / "catalog.json"
     catalog.write_text(

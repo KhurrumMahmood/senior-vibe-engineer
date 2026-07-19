@@ -164,6 +164,11 @@ def test_installed_which_skill_routes_typescript_explanation(tmp_path):
             "among direct siblings",
             "find-folder-topology-drift",
         ),
+        (
+            "onboard a TypeScript repository by discovering objective stack CI "
+            "test and source-root facts",
+            "adapt-project",
+        ),
     ],
 )
 def test_installed_which_skill_routes_typescript_analysis_skills(
