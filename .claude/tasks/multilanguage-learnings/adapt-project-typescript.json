@@ -1,6 +1,6 @@
 {
   "batch": "adapt-project-typescript",
-  "revision": "e63a032 implementation plus 023010c default-artifact, 5f7dd5a Python-stack, 7337b1a stock-installer, and 085b2b9 documented-command repairs",
+  "revision": "e63a032 implementation plus 023010c default-artifact, 5f7dd5a Python-stack, 7337b1a stock-installer, 085b2b9 documented-command, and faf8d3b containment repairs",
   "family": ["adapt-project"],
   "invariant": {
     "portable_principle": "Objective source-root facts drive the same large-root caution for Python and TypeScript without turning observed frequency into doctrine.",
@@ -18,14 +18,19 @@
       "issue": "The shared reference script's large-root caution examined only python_files, while its documented command and evidence gate were unavailable from a copied selected skill.",
       "repair": "Kept the shared surface untouched and added a family-local stdlib-only discover/check-evidence closure with frozen Python positive, negative, common-skip must-not-fire, and stack-marker oracles.",
       "evidence": "tests/test_adapt_project_typescript.py asserts final adapter/report artifacts for 201, 200, and node_modules-only Python roots under python -I -S."
+    },
+    {
+      "issue": "Adversarial review found that path-bearing scan IDs, report-root links, relative installed-command overrides, source symlinks, and evidence declarations could escape their intended roots.",
+      "repair": "faf8d3b limits scan IDs to one <=64-character safe component, contains reports/latest and resolved source paths, canonicalizes host/artifact roots before cd, and strictly contains evidence.json, adapter.json, adapter.yml, and report.md.",
+      "evidence": "Dedicated regressions reject traversal, absolute, overlong, and symlink-escape cases while preserving the copied installed command and final evidence gate."
     }
   ],
   "language_model": {
-    "syntax": [".ts and .tsx suffixes", "target-relative source/test/build/vendor path classification"],
+    "syntax": [".ts and .tsx suffixes", "target-relative source/test/build/vendor path classification", "resolved candidate-root and counted-file containment beneath the host root"],
     "type_system": ["No type facts are used or claimed."],
     "module_resolution": ["None."],
     "runtime": ["Python 3 stdlib only; copied skill commands run under python3 -I -S."],
-    "framework": ["None; package.json supplies package-manager and command facts only, never a Node framework fact."]
+    "framework": ["None for Node; package.json supplies package-manager and command facts only, never a Node framework fact.", "The frozen Python Django fact remains true for manage.py or Django in requirements/pyproject."]
   },
   "tooling": {
     "selected": "Family-local stdlib scripts/discover.py and scripts/check_evidence.py, with JSON-compatible YAML output.",
@@ -37,24 +42,24 @@
     },
     "version_and_resolution": "Locked fixture package-lock pins TypeScript 5.9.3 for native fixture verification; installed discovery itself has no Node or package dependency.",
     "closure_mode": "Pinned stock Codex installer npx --yes skills@1.5.19 add <checkout> --skill adapt-project --agent codex --copy -y installs only adapt-project to .agents/skills/adapt-project; invoke its two scripts with python3 -I -S outside the checkout.",
-    "preflight_and_failure_codes": ["discover: 0 for a written scan, 2 for invalid mutually exclusive or no-host-write paths", "check_evidence: 0 for adapter/report closure, 1 for missing/invalid declared evidence, 2 for unreadable evidence JSON"]
+    "preflight_and_failure_codes": ["discover: 0 for a written contained scan, 2 for invalid mutually exclusive, no-host-write, scan-ID, report-root, or latest-link paths", "check_evidence: 0 for a four-artifact contained closure, 1 for missing/escaped declared evidence or final artifacts, 2 for unreadable evidence JSON"]
   },
   "outcome_contract": {
     "inputs": ["A host root with candidate source directories", "Optional package.json, lockfile, tsconfig, commands, docs, CI, and guard markers", "An artifact root outside the host for --no-host-write"],
     "structured_outputs": ["adapter.yml", "adapter.json", "report.md", "evidence.json"],
     "must_fire": ["201 first-party Python files produce the reference caution", "201 first-party alternating TypeScript/TSX files classify src as TypeScript and produce the same caution", "Final report prints the TypeScript count and extension split", "React/Vite package keywords leave frameworks empty", "Pinned stock Codex installation contains only adapt-project before its final artifact run"],
-    "must_not_fire": ["200 Python files", "200 TypeScript files", "Python files only beneath src/node_modules", "TypeScript files only beneath node_modules/dist/build/generated/vendor/test/__tests__", "TypeScript declaration/spec/test files", "A --no-host-write run writing .engineering/project/adapter.yml"],
+    "must_not_fire": ["200 Python files", "200 TypeScript files", "Python files only beneath src/node_modules", "TypeScript files only beneath node_modules/dist/build/generated/vendor/test/__tests__", "TypeScript declaration/spec/test files", "A --no-host-write run writing .engineering/project/adapter.yml", "Path-bearing or overlong scan IDs creating an escaped scan directory", "External candidate/file symlinks inflating host source counts", "Traversal, absolute, or symlink-escaped evidence artifacts passing the evidence gate"],
     "native_test_command": "npm ci --offline --ignore-scripts && npm run typecheck && npm test",
     "native_guard_command": null
   },
   "evidence": {
     "python_reference": ["tests/test_adapt_project_typescript.py freezes the 201 positive, 200 negative, and node_modules-only must-not-fire Python count/caution outcomes.", "tests/test_project_adapt.py remains green: 15 targeted Python/adapt tests passed."],
     "typescript": ["The locked fixture materializes 201 alternating .ts/.tsx sources plus seven excluded trees and runs offline npm ci, typecheck, and native test before final discovery.", "Pinned stock Codex installation runs npx --yes skills@1.5.19 add <checkout> --skill adapt-project --agent codex --copy -y, asserts .agents/skills contains only adapt-project, and invokes its commands with python -I -S from outside the checkout.", "A copied-install regression proves that omitting --artifact-root writes reports to the requested host rather than the installed skill directory.", "Fresh D6 at /private/tmp/adapt-project-typescript-forward.qABrrP/forward-evidence/journey-evidence.md produced final artifacts under forward-evidence/skill-artifacts/reports/adapt-project/scan-20260719-101037: discovery and evidence exit 0, 201 eligible TypeScript files, frameworks=[], useful large-root/no-guardrail cautions, no durable host write, and unchanged source fingerprint.", "D6 found an honest one-line temporary-environment shell expansion failure (exit 2); 085b2b9 documents the required preceding assignment and a regression extracts/runs the installed discovery/evidence blocks verbatim with /bin/sh."],
-    "commands_and_artifact_paths": ["$REPO_ROOT/.venv/bin/python -m pytest -q tests/test_adapt_project_typescript.py tests/test_project_adapt.py tests/test_skill_taxonomy.py tests/test_run_skill_smokes.py (30 passed)", "$REPO_ROOT/.venv/bin/python scripts/skill_meta.py lint --quiet", "$REPO_ROOT/.venv/bin/python .claude/skills/_common/scripts/run_skill_smokes.py --quiet", "$REPO_ROOT/.venv/bin/ruff check .claude/skills/adapt-project/scripts tests/test_adapt_project_typescript.py tests/fixtures/adapt-project-typescript/seed_host.py", "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add <checkout> --skill adapt-project --agent codex --copy -y", "Fresh D6 evidence: /private/tmp/adapt-project-typescript-forward.qABrrP/forward-evidence/journey-evidence.md", "Fresh D6 artifacts: /private/tmp/adapt-project-typescript-forward.qABrrP/forward-evidence/skill-artifacts/reports/adapt-project/scan-20260719-101037"]
+    "commands_and_artifact_paths": ["$REPO_ROOT/.venv/bin/python -m pytest -q tests/test_adapt_project_typescript.py tests/test_project_adapt.py tests/test_skill_taxonomy.py tests/test_run_skill_smokes.py (37 passed at faf8d3b)", "$REPO_ROOT/.venv/bin/python scripts/skill_meta.py lint --quiet", "$REPO_ROOT/.venv/bin/python .claude/skills/_common/scripts/run_skill_smokes.py --quiet", "$REPO_ROOT/.venv/bin/ruff check .claude/skills/adapt-project/scripts tests/test_adapt_project_typescript.py tests/fixtures/adapt-project-typescript/seed_host.py", "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add <checkout> --skill adapt-project --agent codex --copy -y", "faf8d3b regressions: malformed <=/>64 scan IDs, report/latest containment, relative installed overrides, external source symlinks, and all four final evidence artifacts", "Fresh D6 evidence: /private/tmp/adapt-project-typescript-forward.qABrrP/forward-evidence/journey-evidence.md", "Fresh D6 artifacts: /private/tmp/adapt-project-typescript-forward.qABrrP/forward-evidence/skill-artifacts/reports/adapt-project/scan-20260719-101037"]
   },
   "false_positive_boundary": {
     "known_false_positives": ["None in the locked fixture: React/Vite package metadata is not classified as a framework."],
-    "known_false_negatives": ["Source code outside the established candidate root names is not invented as a source root.", "TypeScript source intentionally excluded by test/generated/vendor/build/declaration rules is not counted."],
+    "known_false_negatives": ["Source code outside the established candidate root names is not invented as a source root.", "TypeScript source intentionally excluded by test/generated/vendor/build/declaration rules is not counted.", "Candidate roots and files whose resolved path is outside the host root are not counted."],
     "legitimate_similar_shapes": ["Test, declaration, dependency, generated, vendor, distribution, and build TypeScript trees stay clean.", "Python vendor semantics stay unchanged rather than being retroactively made to match the TypeScript policy."]
   },
   "generalized": ["Final adapter/report/evidence artifact shape", "read-only dogfood mode", "greater-than-200 large-root caution", "positive/negative/must-not-fire final-artifact testing pattern"],
@@ -76,14 +81,14 @@
   "user_experience": {
     "install_steps": ["Copy only adapt-project into the standard .agents/skills/adapt-project directory", "Run its documented Python stdlib discovery and evidence commands."],
     "wall_time_seconds": null,
-    "agent_confusions": ["The historical SKILL.md documented repository-global scripts, which would fail after a stock single-skill installation; the installed command is now explicit.", "Fresh D6 found that a command-local ADAPT_PROJECT_SKILL assignment does not affect same-line shell expansion; the assignment must precede the command."],
+    "agent_confusions": ["The historical SKILL.md documented repository-global scripts, which would fail after a stock single-skill installation; the installed command is now explicit.", "Fresh D6 found that a command-local ADAPT_PROJECT_SKILL assignment does not affect same-line shell expansion; the assignment must precede the command.", "Relative PROJECT_ROOT and ARTIFACT_ROOT overrides must be canonicalized before cd; the documented block now does this and creates a missing artifact directory safely."],
     "repeated_work": ["The checked-in fixture materializer recreates the 201-file raw host for tests and a deferred fresh-forward replay."],
     "smallest_later_improvement": "Measure whether a second accepted adapter-family skill needs the exact same copied closure before extracting anything shared."
   },
   "residual_risks": ["The shared source-tree scripts/project_adapt.py remains intentionally untouched and still has its historical Python-only caution.", "Unconventional source-root names are not inferred.", "adapter.yml is JSON-compatible YAML rather than human-styled YAML.", "D8 reviewer acceptance remains pending serial-integrator review.", "The global decode-safety conformance test remains red on three pre-existing find-duplication reads, not adapt-project."],
   "next_decision": {
     "recommendation": "Have the serial integrator review the completed D6 evidence and learning packet before considering any shared migration.",
-    "rationale": "D1-D7 are proven through final artifacts, stock copied closure, and the successful fresh D6 outcome; the detected shell UX defect is repaired and replayed verbatim.",
+    "rationale": "D1-D7 are proven through final artifacts, stock copied closure, and the successful fresh D6 outcome; shell UX and adversarial containment defects are repaired and replayed in focused regressions.",
     "blockers": ["serial-integrator review", "shared source-tree migration decision is out of this lane"]
   }
 }

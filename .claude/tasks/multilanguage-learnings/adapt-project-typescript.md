@@ -7,7 +7,8 @@ self-contained TypeScript discovery`) and `023010c`
 is intentionally separate from implementation. `7337b1a` strengthens the
 closure regression to use the pinned stock Codex installer. `085b2b9` repairs
 the fresh D6 shell-expansion defect and executes the installed documented
-commands verbatim in regression coverage.
+commands verbatim in regression coverage. `faf8d3b` adds adversarially tested
+artifact, evidence, and symlink-containment repairs.
 
 ## 1. Invariant
 
@@ -17,6 +18,11 @@ reference `>200` large-root caution. TypeScript v1 adds the identical outcome
 for first-party `.ts` and `.tsx` source roots: the final adapter classifies the
 root as TypeScript, records the total and extension breakdown, and the final
 report carries the same large-root caution.
+
+Every scan ID is one bounded safe path component, and every final evidence
+artifact resolves within its scan directory. Discovery never follows a source
+candidate or counted source file outside the requested host, and reports plus
+the `latest` link remain under the requested artifact root.
 
 Excluded: Node/React/Vite/Next/Express framework inference from
 `package.json`; TypeScript module resolution; type-checking as part of
@@ -37,6 +43,17 @@ Python negative: 200 does not fire. Python must-not-fire: 250 `.py` files
 under `src/node_modules/` count as zero, preserving the reference common-skip
 behavior. Python files alone still do not establish the stack language without
 the reference's `manage.py`/`pyproject.toml`/`requirements*.txt` marker.
+The frozen Django framework fact is also retained: `manage.py`, or a Django
+reference in requirements or `pyproject.toml`, reports `django`; Node package
+metadata still reports no framework fact.
+
+The adversarial review found five boundary failures in the first family-local
+closure: path-bearing or oversized `--timestamp` values, report-root escapes,
+relative installed-command overrides after `cd`, source-root symlink escapes,
+and declared evidence paths that resolved outside the scan. `faf8d3b` repairs
+them without expanding the shared surface. The evidence gate now checks the
+manifest and `adapter.json` themselves as well as declared `adapter.yml` and
+`report.md` files.
 
 ## 3. TypeScript model
 
@@ -49,10 +66,14 @@ the reference's `manage.py`/`pyproject.toml`/`requirements*.txt` marker.
   skill is required by the installed discovery path.
 - Framework: none. `package.json` contributes only package-manager markers
   and declared commands; its React/Vite keywords deliberately leave
-  `frameworks: []`.
+  `frameworks: []`. The pre-existing Python Django marker remains a separate
+  framework fact.
 - TypeScript exclusions: `node_modules`, `dist`, `build`, `generated`,
   `vendor`, `test`, `tests`, and `__tests__` descendants; `*.d.ts`,
   `*.test.*`, and `*.spec.*` files.
+- Containment: candidate roots and counted Python, TypeScript, and Markdown
+  files are resolved before counting; anything outside the resolved host root
+  is excluded.
 
 ## 4. Tool decision
 
@@ -85,7 +106,7 @@ codex --copy -y` to install only the selected skill to
 outside the checkout, and proves that no host adapter write occurs under
 `--no-host-write`.
 
-Green commands at `e63a032`:
+Green commands at `faf8d3b`:
 
 ```bash
 "$REPO_ROOT/.venv/bin/python" -m pytest -q \
@@ -109,8 +130,13 @@ Green commands at `e63a032`:
 git diff --check
 ```
 
-Those checks produced 30 passed, metadata `OK — 76 skills, 76 declaring new
+Those checks produced 37 passed, metadata `OK — 76 skills, 76 declaring new
 contract`, a green import-floor/smoke gate, and green lint/pre-commit/diff.
+New focused regressions prove that path-bearing and overlong timestamps exit
+2 before writing, report and `latest` paths cannot escape the artifact root,
+relative host/artifact overrides are canonicalized before the installed command
+changes directory, external source symlinks contribute no counts, and all four
+final evidence artifacts reject traversal, absolute paths, or symlink escapes.
 The full decode-safety conformance test was also run; it still fails on three
 pre-existing `find-duplication` reads, but no longer lists either
 `adapt-project` script.
@@ -148,7 +174,9 @@ The only intentional false negative is source outside the established root
 candidate set; discovery must not invent a source root from arbitrary
 directories. A Python `vendor/` tree is intentionally not newly excluded: the
 reference Python counter did not exclude it, and TypeScript support must be
-additive rather than silently changing Python facts.
+additive rather than silently changing Python facts. Candidate-root and file
+symlinks resolving outside the host are also intentionally excluded: an
+external tree is not host source merely because a candidate path points to it.
 
 ## 7. What generalized
 
@@ -229,6 +257,10 @@ serial, evidence-backed decision about whether other adapter-family skills
 need the same self-contained closure; do not extract a shared runtime before
 there is a second accepted consumer.
 
+The installed command also resolves `PROJECT_ROOT` and creates/resolves a
+missing `ARTIFACT_ROOT` before it changes into the installed skill directory.
+This makes relative overrides target the caller's host, not the copied skill.
+
 ## 12. Residual risks and next decision
 
 The shared source-tree `scripts/project_adapt.py` still has its historical
@@ -238,7 +270,9 @@ family-local closure without changing the frozen ownership boundary. Source
 root candidates are intentionally limited and can miss unconventional
 monorepo layouts. `adapter.yml` is JSON-compatible YAML rather than
 human-styled YAML. The review portion of D8 remains pending serial-integrator
-acceptance.
+acceptance. The family-local path boundaries are now covered for timestamps,
+artifact paths, the `latest` link, all four evidence artifacts, and external
+source symlinks.
 
 Recommendation: accept D1–D7 evidence, review this packet for D8, then keep
 TypeScript discovery family-local unless a concrete second selected skill
