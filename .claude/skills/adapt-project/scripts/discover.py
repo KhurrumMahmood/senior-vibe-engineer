@@ -145,9 +145,12 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
 
 def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
     package_paths = [path for path in sorted(root.glob("**/package.json")) if not is_common_ignored(path)]
-    has_python_marker = any((root / name).exists() for name in ("manage.py", "pyproject.toml", "requirements.txt"))
+    requirements = [path for path in sorted(root.glob("**/requirements*.txt")) if not is_common_ignored(path)]
+    has_python_marker = (root / "manage.py").exists() or (root / "pyproject.toml").exists() or bool(requirements)
     languages: list[str] = []
-    if has_python_marker or any(row["python_files"] for row in roots):
+    # Keep the reference Python language heuristic: source-file counts feed
+    # source-root facts and cautions, not a new stack-language inference.
+    if has_python_marker:
         languages.append("python")
     if any(row["typescript_files"] for row in roots):
         languages.append("typescript")

@@ -102,6 +102,7 @@ def test_python_reference_size_caution_is_preserved_in_final_adapter_and_report(
     assert source_root["python_files"] == 201
     assert source_root["typescript_files"] == 0
     assert source_root["source_languages"] == ["python"]
+    assert adapter["stack"]["languages"] == []
     assert "Large source roots may contain mixed-quality legacy code; extract exemplars selectively." in (
         adapter["standardization"]["cautions"]
     )
