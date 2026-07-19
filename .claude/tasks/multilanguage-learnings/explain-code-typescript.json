@@ -1,6 +1,6 @@
 {
   "batch": "explain-code-typescript",
-  "revision": "0103a9e",
+  "revision": "0103a9e implementation plus containing D6 closeout commit",
   "family": ["explain-code"],
   "invariant": {
     "portable_principle": "A durable explanation document must cover every selected direct public symbol and visibly preserve behavior that cannot honestly be explained.",
@@ -47,13 +47,16 @@
   },
   "evidence": {
     "python_reference": ["Red before repair: copied skill failed with ModuleNotFoundError: _lib.", "Green oracle: tests/test_explain_code_typescript.py::test_python_targets_reference_oracle_is_stable_and_copyable."],
-    "typescript": ["tests/test_explain_code_typescript.py copies only the skill, runs inventory and renderer with python -I -S from an isolated host, and asserts the final doc, sidecars, stable JSON, exclusions, and source immutability.", "Ruff plus 18 targeted metadata/read-safety tests passed at 0103a9e."],
+    "typescript": ["tests/test_explain_code_typescript.py copies only the skill, runs inventory and renderer with python -I -S from an isolated host, and asserts the final doc, sidecars, stable JSON, exclusions, and source immutability.", "Ruff plus 18 targeted metadata/read-safety tests passed at 0103a9e.", "Fresh non-context D6 at /private/tmp/explain-code-forward.kvpvVc explained decide/renderLabel/Badge, preserved three unresolved export forms plus one missing fallback region, excluded private/test/generated/vendor shapes, and left source hashes unchanged."],
     "commands_and_artifact_paths": [
       ".venv/bin/ruff check .claude/skills/explain-code/scripts tests/test_explain_code_typescript.py",
       ".venv/bin/python -m pytest -q tests/test_explain_code_typescript.py tests/test_skill_detector_reads.py tests/test_skill_taxonomy.py tests/test_yaml_frontmatter.py",
       ".venv/bin/python scripts/skill_meta.py lint --quiet",
       "git diff --check",
-      "tests/fixtures/explain-code-typescript/typescript-host"
+      "tests/fixtures/explain-code-typescript/typescript-host",
+      "/private/tmp/explain-code-forward.kvpvVc/host/typescript-host/reports/explanations/src.md",
+      "python3 -I -S <installed>/scripts/inventory_symbols.py --target src --output <artifacts>/targets.json --max 15 (rc 0; 3 annotated / 3 public / 8 total / 3 unresolved exports)",
+      "python3 -I -S <installed>/scripts/render_explanation.py --targets <artifacts>/targets.json --annotations-dir <artifacts>/annotations --output reports/explanations/src.md (rc 0; 4 unexplained / 2 surprises)"
     ]
   },
   "false_positive_boundary": {
@@ -84,10 +87,10 @@
     "repeated_work": ["The renderer turns required final-doc/sidecar assembly into a repeatable command rather than a manual synthesis checklist."],
     "smallest_later_improvement": "Measure a catalog representation for a skill with a Python reference implementation and a narrowly earned TypeScript variant."
   },
-  "residual_risks": ["Lexical spans can be incomplete for unusual multiline/type-heavy exports.", "No TypeScript module resolver exists by design.", "D6 fresh forward test is pending parent scheduling.", "The generated router catalog is stale until the serial integrator regenerates it; this lane is not authorized to edit it."],
+  "residual_risks": ["Lexical spans can be incomplete for unusual multiline/type-heavy exports.", "No TypeScript module resolver exists by design.", "The generated router catalog is stale until the serial integrator regenerates it; this lane is not authorized to edit it."],
   "next_decision": {
-    "recommendation": "Wait for the D6 fresh installed-skill outcome, then integrate the catalog/frontmatter change serially and review the TypeScript-only eligibility.",
+    "recommendation": "Integrate the catalog/frontmatter change serially and review the TypeScript-only eligibility; D6 is complete.",
     "rationale": "The accepted direct-export outcome has no need for a compiler API; a resolver should only be considered after a named tsconfig-backed consumer requires it.",
-    "blockers": ["Fresh D6 result", "serial-integrator router catalog regeneration"]
+    "blockers": ["serial-integrator router catalog regeneration"]
   }
 }

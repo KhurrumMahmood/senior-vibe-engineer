@@ -1,6 +1,6 @@
 # explain-code TypeScript v1 learning handoff
 
-Revision: `0103a9e` (`feat: add TypeScript explain-code pilot`)
+Implementation revision: `0103a9e` (`feat: add TypeScript explain-code pilot`)
 
 ## 1. Invariant
 
@@ -85,6 +85,19 @@ D4 is not applicable: this is a read-only report skill with no proposed change
 or guard. The report semantics are instead asserted at the final artifact
 boundary.
 
+Fresh D6 forward evidence ran from only the copied installed skill and raw
+fixture at `/private/tmp/explain-code-forward.kvpvVc`. Both installed commands
+exited 0 under `python3 -I -S`: inventory selected three direct exports from
+eight total symbols and retained three unresolved export forms; rendering
+wrote `reports/explanations/src.md`, three symbol annotations,
+`src/unexplained.txt` (four entries), and `src/surprises.txt` (two entries).
+The result explained `decide`, `renderLabel`, and `Badge`; kept alias, remote,
+and star re-exports visibly unexplained; and recorded the missing `fallback`
+source as a fourth unexplained region. Private/test/generated/vendor shapes
+stayed excluded, direct-source hashes were unchanged, and only the reports
+tree was created. The absent optional effectiveness logger was skipped rather
+than fabricated.
+
 ## 6. False-positive boundary
 
 Legitimate private helpers and public symbols in test/generated/vendor trees do
@@ -138,10 +151,7 @@ earned TypeScript route and the serial integrator must regenerate the catalog.
 The collector is lexical, so unusual multiline/type-heavy declaration spans and
 anonymous defaults are intentionally incomplete. TypeScript v1 cannot resolve
 an alias to determine whether it names a local symbol or a barrel dependency.
-The fresh non-context D6 forward run is pending parent scheduling; do not mark
-the batch accepted until that agent creates and interprets the installed final
-artifact from the raw fixture.
-
-Recommendation: wait for D6, then have the serial integrator regenerate the
-router catalog and review the resulting TypeScript-only eligibility. Expand to
+The fresh non-context D6 forward run passed. The serial integrator still needs
+to regenerate the router catalog and review the resulting TypeScript-only
+eligibility. Expand to
 module resolution only when a named `tsconfig`-backed consumer needs it.
