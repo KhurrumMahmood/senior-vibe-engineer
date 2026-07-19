@@ -576,24 +576,27 @@ Promotion gate:
 This map assigns every skill to one present disposition. A later accepted
 learning report may move a skill, but no agent should infer an unlisted port.
 
-### Shared, no host-language port required (31)
+### Shared, target validated-neutral (15)
 
-`adapt-project`, `architecture-fit`, `audit-decisions`, `brainstorm-ideas`,
-`check-ecosystem-consistency`, `converge`, `decide`, `design-it-twice`,
-`diagnose`, `extract-existing-ideas`, `find-orphaned-ideas`,
-`find-perimeter-gaps`, `gut-check`, `harvest-learnings`, `impact-feature`,
-`mature-existing-ideas`, `organize-project-structure`, `orient`,
-`plan-feature`, `plan-skill`, `plan-spec`, `project-interview`,
-`query-patterns`, `repair-skill`, `scope-feature`, `teach-pattern`,
-`track-idea`, `triage-debt`, `which-cleanup`, `which-shape`, and `which-skill`.
+`architecture-fit`, `converge`, `decide`, `design-it-twice`, `diagnose`,
+`find-perimeter-gaps`, `gut-check`, `harvest-learnings`,
+`organize-project-structure`, `orient`, `plan-spec`, `project-interview`,
+`scope-feature`, `teach-pattern`, and `triage-debt`.
 
-Representative installed forward tests must still validate their neutrality;
-do not create TypeScript copies.
+These remain `validation_state: blocked-closure` until the representative
+installed TypeScript-host batches prove their final outcomes. Neutrality is a
+target disposition, not permission to ignore source-tree-only dependencies.
 
-### Ecosystem/runtime implementation, not a host-language variant (1)
+### Ecosystem/runtime implementation, not a host-language variant (13)
 
-`engineer-init`. TypeScript skills may declare a Node/TypeScript preflight, but
-that does not turn the toolkit's Python bootstrap into a TypeScript skill.
+`brainstorm-ideas`, `check-ecosystem-consistency`, `engineer-init`,
+`extract-existing-ideas`, `find-orphaned-ideas`, `mature-existing-ideas`,
+`plan-skill`, `query-patterns`, `repair-skill`, `track-idea`, `which-cleanup`,
+`which-shape`, and `which-skill`.
+
+These operate on the toolkit's own ledgers, catalogs, routers, rules, or
+bootstrap runtime. A TypeScript host does not require a language variant, but
+the final matrix still records a runtime review revision.
 
 ### Ready or ordered batches (10 unique skills)
 
@@ -604,9 +607,10 @@ that does not turn the toolkit's Python bootstrap into a TypeScript skill.
 - B3: `find-comment-drift`.
 - B4: `find-omnibus`.
 
-### Candidate language-level families, not ready to dispatch (14)
+### Candidate language-level families and repairs (16)
 
-`explain-code`, `find-complexity-hotspots`, `find-dormant`,
+`adapt-project`, `audit-decisions`, `explain-code`,
+`find-complexity-hotspots`, `find-dormant`,
 `find-duplication`, `find-folder-topology-drift`, `find-incomplete-sweep`,
 `find-semantic-duplication`, `find-standard-gaps`, `map-subsystem`, `move-path`,
 `propose-boundary`, `propose-folder-reorganization`, `rename-concept`, and
@@ -627,6 +631,8 @@ move from `candidate` to `ready`.
 
 | Candidate | Minimum honest TypeScript v1 | Tooling / prerequisite gate | Promotion oracle and definition of done |
 |---|---|---|---|
+| `adapt-project` | Count and classify TypeScript/TSX source roots in every caution and adapter outcome that currently uses Python file counts. | Preserve objective host-fact discovery; do not infer a Node framework from `package.json`. | A large TypeScript-only root triggers the same size/caution outcome as the Python reference, while generated/vendor trees stay excluded; final adapter/report and copied closure pass. |
+| `audit-decisions` | Include valid `decision:NNNN` references from TypeScript/TSX comments in the final drift artifact. | Freeze supported comment forms and keep strings/generated/vendor/test false positives clean. | TS line/block comment references resolve; string literals and unrelated numbers do not; existing Python/Markdown/HTML paths and installed final audit remain green. |
 | `explain-code` | Produce the complete explanation document and sidecars for direct explicit top-level exports; unresolved aliases/re-exports remain visibly unexplained. | Freeze a Python `targets.json` reference oracle. A lexical export collector is allowed; no resolver claim. | Positive exported branchy symbols, private/test must-not-fire cases, final explanation with honest unexplained region, copied-install run, and fresh-agent outcome. |
 | `find-complexity-hotspots` | Advisory syntactic TS function-body complexity only: nesting and branch score. Exclude ORM, React/Node, and receiver-type claims. | A proven family-local TypeScript body AST; type checker only if a later contract claims container/API identity. | Existing six-band Python oracle stays green; locked TS positive/clean/must-not-fire fixture produces the final report; copied closure and forward test pass. Keep separate from incomplete-sweep. |
 | `find-dormant` | Report statically unreferenced, non-exported TS implementation candidates for human review; never infer safe deletion. Exclude routes/endpoints/error swallowing. | Project-local Compiler API `Program`/`TypeChecker` and resolvable `tsconfig`; dynamic/external reachability stays a judgment boundary. | Unreferenced private must fire; direct references and exported APIs stay clean; registry/event/framework shapes are must-not-fire; no result is `certain_delete` from static evidence alone. |
@@ -677,7 +683,7 @@ Active candidate promotion:
   scout/triage journey and adds conservative TypeScript clone evidence; rerun
   contamination and language-substitution regressions are pinned by tests.
 
-### Framework-specific; do not dispatch without a named stack (20)
+### Framework-specific; do not dispatch without a named stack (22)
 
 `extract-cotton-primitive`, `extract-state-type`,
 `extract-workflow-registry`, `find-async-lifecycle-drift`,
@@ -686,6 +692,7 @@ Active candidate promotion:
 `find-layer-violation`, `find-query-mutation`, `find-route-sprawl`,
 `find-test-obligation-drift`, `find-transaction-overreach`,
 `find-workflow-duplication`, `find-workflow-state-gaps`, `fix-workflow`,
+`impact-feature`, `plan-feature`,
 `introduce-fk`, `map-product-workflow`, and `refactor-subsystem`.
 
 Choose and freeze a concrete router/server/UI/ORM/migration stack before moving
