@@ -40,8 +40,11 @@ Output schema:
       ]
     }
 
+`caller_count` is nullable when legacy triage renders `? callers`.
 Stdlib-only; the skill invokes it with `.venv/bin/python` so the command
-shape is consistent across agents.
+shape is consistent across agents. A copied selected skill writes the same
+`scope.json` schema with its bundled stdlib fallback when the repository
+`scripts/_lib/artifact_scope.py` helper is unavailable.
 """
 
 from __future__ import annotations
@@ -50,6 +53,7 @@ import argparse
 import json
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -57,22 +61,37 @@ from pathlib import Path
 def _write_scope_sidecar(artifact_dir: Path, paths: list[str]) -> None:
     """scope.json sidecar (ADR 0037) — declares which repo paths this
     artifact's conclusions depend on, so the status projection can flag
-    input drift. Strictly additive; silently skipped when the toolkit
-    helper is absent (skill vendored without scripts/_lib)."""
+    input drift. Strictly additive; uses a bundled stdlib fallback when the
+    toolkit helper is absent from a selected-skill copy."""
     helper = Path(__file__).resolve().parents[4] / "scripts" / "_lib" / "artifact_scope.py"
-    if not helper.is_file():
-        return
-    import importlib.util
+    if helper.is_file():
+        import importlib.util
 
-    spec = importlib.util.spec_from_file_location("artifact_scope", helper)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    mod.write_scope(artifact_dir, paths)
+        spec = importlib.util.spec_from_file_location("artifact_scope", helper)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"cannot load artifact scope helper: {helper}")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        mod.write_scope(artifact_dir, paths)
+        return
+
+    # A selected-skill copy intentionally has no repository scripts/_lib.
+    # Preserve the sidecar contract with a tiny stdlib fallback rather than
+    # silently dropping scope evidence at the exact install boundary.
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "version": 1,
+        "paths": sorted({str(path) for path in paths}),
+        "written_at": datetime.now(timezone.utc).isoformat(),
+    }
+    (artifact_dir / "scope.json").write_text(
+        json.dumps(payload, indent=1) + "\n", encoding="utf-8"
+    )
 
 
 HEADING_RE = re.compile(r"^### (SC-\d+): (.+?)\s*\[[A-Z]+\]\s*$")
 MEMBER_RE = re.compile(
-    r"^- `([^`]+):(\d+)` — `([^`]+)`\s*\((\d+) lines?,\s*(\d+) callers?\)"
+    r"^- `([^`]+):(\d+)` — `([^`]+)`\s*\((\d+) lines?,\s*(\d+|\?) callers?\)"
 )
 SHAPE_RE = re.compile(r"^\*\*Consolidation shape:\*\*\s*`([a-z_]+)`")
 MATRIX_RE = re.compile(r"^\*\*Capability matrix:\*\*\s*`([^`]+)`")
@@ -128,7 +147,7 @@ def _parse_finding(lines: list[str], start_idx: int) -> tuple[dict, int]:
                     "file": file_path,
                     "lineno": int(lineno),
                     "symbol": symbol,
-                    "caller_count": int(callers),
+                    "caller_count": None if callers == "?" else int(callers),
                 }
             )
             i += 1

@@ -1,0 +1,12 @@
+{
+  "name": "unify-shadows-typescript-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/semantic.test.ts"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}
