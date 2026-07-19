@@ -1,0 +1,38 @@
+{
+  "package_json": {
+    "name": "adapt-project-typescript-fixture",
+    "private": true,
+    "type": "module",
+    "scripts": {
+      "typecheck": "tsc --noEmit",
+      "test": "node --test tests/*.test.mjs"
+    },
+    "keywords": ["react", "vite"],
+    "devDependencies": {
+      "typescript": "5.9.3"
+    }
+  },
+  "tsconfig": {
+    "compilerOptions": {
+      "target": "ES2022",
+      "module": "NodeNext",
+      "moduleResolution": "NodeNext",
+      "strict": true,
+      "noEmit": true
+    },
+    "include": ["src/**/*.ts", "src/**/*.tsx"]
+  },
+  "source_seed": {
+    "ts": "export const sourceFile = 'typescript';\n",
+    "tsx": "export function SourcePanel(): null { return null; }\n"
+  },
+  "excluded_trees": [
+    "src/node_modules/dependency",
+    "src/dist",
+    "src/build",
+    "src/generated",
+    "src/vendor",
+    "src/test",
+    "src/__tests__"
+  ]
+}

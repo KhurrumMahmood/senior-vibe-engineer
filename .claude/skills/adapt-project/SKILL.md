@@ -48,19 +48,34 @@ and human review decide what deserves to become doctrine.
 
 ## How success is judged
 
-- `scripts/project_adapt.py discover` writes a scan directory containing
+- The installed skill's `scripts/discover.py` writes a scan directory containing
   `adapter.yml`, `adapter.json`, `report.md`, and `evidence.json`.
 - The scan's `evidence.json` maps the required evidence tokens
   `adapter` and `report` to `adapter.yml` and `report.md`, satisfying
   this skill's `evidence_required: [adapter, report]` declaration.
-- `scripts/evidence_gate.py check --skill adapt-project --scan-dir <scan>`
-  exits 0 before the run is called done.
+- The installed skill's `scripts/check_evidence.py --scan-dir <scan>` exits 0
+  before the run is called done.
 - Host writes are absent unless `--apply` was explicitly requested; a
   dogfood run with `--no-host-write` uses an `--artifact-root` outside
   the host project.
 - The summary surfaces high-confidence facts, standardization cautions,
   sensitive surfaces, and open questions without inferring project
   philosophy.
+
+## TypeScript v1 contract
+
+Source-root facts retain the reference Python count and add
+`typescript_files`, a `.ts`/`.tsx` breakdown, and `source_languages`. The
+large-root standardization caution fires when either the Python count or the
+TypeScript count for a source root exceeds 200. TypeScript counts exclude
+`node_modules`, `dist`, `build`, `generated`, `vendor`, and test descendants,
+as well as declaration and `*.test`/`*.spec` files.
+
+This is objective source-root discovery, not a Node-stack adapter. A
+`package.json` may contribute package-manager markers and declared commands,
+but it does not establish React, Vite, Next, Express, or any other framework.
+TypeScript v1 does not infer framework behavior, resolve modules, type-check
+the host, or decide that observed code is a healthy standard.
 
 ## Forms
 
@@ -85,7 +100,9 @@ used, `--artifact-root` must be outside the host project.
 2. Run discovery:
 
    ```bash
-   .venv/bin/python scripts/project_adapt.py discover \
+   ADAPT_PROJECT_SKILL="${ADAPT_PROJECT_SKILL:-.agents/skills/adapt-project}"
+   cd "$ADAPT_PROJECT_SKILL"
+   python3 -I -S scripts/discover.py \
      --project-root "${PROJECT_ROOT}" \
      --artifact-root "${ARTIFACT_ROOT}"
    ```
@@ -102,8 +119,7 @@ used, `--artifact-root` must be outside the host project.
 5. Before claiming done, run the evidence gate on the scan directory:
 
    ```bash
-   .venv/bin/python scripts/evidence_gate.py check \
-     --skill adapt-project \
+   python3 -I -S scripts/check_evidence.py \
      --scan-dir reports/adapt-project/latest
    ```
 
@@ -113,10 +129,12 @@ used, `--artifact-root` must be outside the host project.
 
 Each scan directory contains:
 
-- `adapter.yml` — machine-readable adapter facts.
+- `adapter.yml` — machine-readable adapter facts (JSON-compatible YAML so
+  the copied skill has no PyYAML dependency).
 - `adapter.json` — same payload for tools that prefer JSON.
 - `report.md` — human-readable summary.
-- `evidence.json` — evidence manifest for `evidence_gate.py`.
+- `evidence.json` — evidence manifest for the installed
+  `scripts/check_evidence.py` command.
 
 Durable project state, when `--apply` is used:
 
@@ -127,23 +145,18 @@ Durable project state, when `--apply` is used:
 For host-a-style dogfood without touching the host project:
 
 ```bash
-.venv/bin/python scripts/project_adapt.py discover \
+ADAPT_PROJECT_SKILL="${ADAPT_PROJECT_SKILL:-.agents/skills/adapt-project}"
+cd "$ADAPT_PROJECT_SKILL"
+python3 -I -S scripts/discover.py \
   --project-root /path/to/host-a \
   --artifact-root /private/tmp/engineering-skills-dogfood/host-a \
   --no-host-write
 ```
 
-Then pair it with `/project-interview` and write an evaluation:
-
-```bash
-.venv/bin/python scripts/project_adapt.py evaluate \
-  --project-root /path/to/host-a \
-  --artifact-root /private/tmp/engineering-skills-dogfood/host-a \
-  --reference host-a
-```
-
-Dogfood evaluation is host-read-only: the artifact root must stay
-outside the project being evaluated.
+Read the resulting adapter and use `/project-interview` only for the human
+questions that discovery explicitly leaves open. Dogfood discovery is
+host-read-only: the artifact root must stay outside the project being
+evaluated.
 
 ## Standardization Guard
 
@@ -153,63 +166,16 @@ patterns as `do not standardize yet`, route them to `/triage-debt`, and
 only promote patterns with human approval plus tests, lints, or clear
 examples of healthy use.
 
-## Skill activation
-
-Adaptation also records **which skills apply to this project**. Not every
-skill fits every repo — a stdlib CLI toolkit has no routes, a backend-only
-service has no frontend. Activation is the applicability switch: it is
-separate from per-run scope (`<skill>-scope.md`, which narrows paths inside
-an active skill) and from ADR 0020 maturity×stakes rung-gating (which
-*standards* fire inside a skill).
-
-State lives in the committed manifest at `.engineering/manifest.json` under
-a `skills` block. The model is **default-on with an opt-out list** — most
-skills apply, so you name only the exceptions and why:
-
-```json
-{
-  "version": 1,
-  "skills": {
-    "default": "active",
-    "inactive": {
-      "find-route-sprawl": "No HTTP route surface (stdlib CLI toolkit).",
-      "find-frontend-duplication": "No application frontend (only test fixtures)."
-    }
-  }
-}
-```
-
-Record exceptions during adaptation with the manifest CLI (stdlib, no venv
-needed — it must run on a fresh host before any venv exists):
-
-```bash
-python3 scripts/manifest.py --project-root <repo> deactivate find-route-sprawl "No HTTP route surface."
-python3 scripts/manifest.py --project-root <repo> activate find-route-sprawl   # re-enable
-python3 scripts/manifest.py --project-root <repo> show                         # list state
-```
-
-Consumers gate on it before doing work:
-
-- in Python: `engineering_home.is_skill_active(root, name)` /
-  `engineering_home.inactive_reason(root, name)`;
-- in shell: `python3 scripts/manifest.py --project-root <repo> is-active <skill>`
-  (exit `0` active, `1` inactive).
-
-A flipped allowlist (`"default": "inactive"` plus an `active` list) is
-supported for locked-down repos, but default-on is the norm. Today the
-operator records the opt-out list by hand from adaptation findings;
-auto-proposing it from discovery is a follow-on.
-
 ## When things go sideways
 
 | Symptom | Action |
 |---|---|
-| `scripts/project_adapt.py discover` exits nonzero | Surface the exact stderr and stop; do not claim `adapter.yml`, `adapter.json`, `report.md`, or `evidence.json` landed |
-| `project_adapt.py` reports `--apply and --no-host-write are mutually exclusive` | Pick one mode: `--apply` for durable host state, or `--no-host-write` for dogfood/read-only evaluation |
-| `project_adapt.py` reports `--no-host-write requires --artifact-root outside --project-root` | Move `--artifact-root` outside the host project and rerun; do not write dogfood artifacts inside the repo being evaluated |
-| `scripts/evidence_gate.py check` reports no `evidence.json` manifest | Treat the adaptation as incomplete; rerun discovery or inspect the scan directory before claiming done |
-| `evidence_gate.py check` reports missing `adapter` or `report` evidence | Fix the scan so `evidence.json` points to existing `adapter.yml` and `report.md`, then rerun the gate |
-| `evidence_gate.py check` reports malformed JSON or missing scan dir | Surface the usage/data error and stop; do not fabricate a passing evidence transcript |
+| `scripts/discover.py` exits nonzero | Surface the exact stderr and stop; do not claim `adapter.yml`, `adapter.json`, `report.md`, or `evidence.json` landed |
+| `discover.py` reports `--apply and --no-host-write are mutually exclusive` | Pick one mode: `--apply` for durable host state, or `--no-host-write` for dogfood/read-only evaluation |
+| `discover.py` reports `--no-host-write requires --artifact-root outside --project-root` | Move `--artifact-root` outside the host project and rerun; do not write dogfood artifacts inside the repo being evaluated |
+| `scripts/check_evidence.py` reports no `evidence.json` manifest | Treat the adaptation as incomplete; rerun discovery or inspect the scan directory before claiming done |
+| `check_evidence.py` reports missing `adapter` or `report` evidence | Fix the scan so `evidence.json` points to existing `adapter.yml` and `report.md`, then rerun the gate |
+| `check_evidence.py` reports malformed JSON or missing scan dir | Surface the usage/data error and stop; do not fabricate a passing evidence transcript |
 
 ## Inspiration
 
