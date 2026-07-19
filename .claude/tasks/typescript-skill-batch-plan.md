@@ -5,8 +5,8 @@ complexity, folder-topology, and adapt-project complete; audit-decisions is in
 complete; find-standard-gaps and map-subsystem are complete; rename-concept is
 complete; propose-boundary and propose-folder-reorganization are complete;
 find-dormant and find-incomplete-sweep are complete;
-find-semantic-duplication and unify-shadows are complete; 18 neutral skills
-are accepted and project-interview is in closure repair
+find-semantic-duplication and unify-shadows are complete; all 19 neutral skills
+are accepted; final matrix and integrated completion review are in progress
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -83,21 +83,21 @@ validated before any of the 20 framework-specific skills changes disposition.
 
 The milestone is complete only when:
 
-- [ ] A committed 76-row coverage matrix contains one unique disposition,
+- [x] A committed 76-row coverage matrix contains one unique disposition,
   evidence path, installed command, and latest reviewed revision per skill.
-- [ ] Every generally applicable language-level skill is either
+- [x] Every generally applicable language-level skill is either
   `typescript-supported` or has evidence that it is genuinely
   `validated-neutral`; metadata-only relabeling does not count.
-- [ ] Every `typescript-supported` skill passes its final report/proposal or
+- [x] Every `typescript-supported` skill passes its final report/proposal or
   mutation/guard outcome, copied-install closure, native TypeScript
   verification where applicable, fresh forward task, and adversarial review.
-- [ ] Copied stock routers carry `language`, `framework`, and `scans`, select
+- [x] Copied stock routers carry `language`, `framework`, and `scans`, select
   only eligible skills for exact TypeScript tasks, and return explicit
   unsupported/no-match for stack-bound or not-yet-earned claims.
-- [ ] No installed selected skill imports repository-level `scripts/`, sibling
+- [x] No installed selected skill imports repository-level `scripts/`, sibling
   `_common`, another uninstalled skill, a toolkit venv, or an undeclared
   network dependency.
-- [ ] One clean-host matrix replays a read-only detector, proposal-only skill,
+- [x] One clean-host matrix replays a read-only detector, proposal-only skill,
   safe path mutation, state mutation/guard, and semantic-analysis skill using
   TypeScript fixtures; all native tests and the Python regression paths pass.
 - [ ] The completion review finds no remaining ambiguous language claim and no
@@ -590,7 +590,7 @@ Promotion gate:
 This map assigns every skill to one present disposition. A later accepted
 learning report may move a skill, but no agent should infer an unlisted port.
 
-### Shared, validated-neutral (18 accepted; 1 pending)
+### Shared, validated-neutral (19 accepted; 0 pending)
 
 Accepted in the TypeScript planning-host batch: `architecture-fit`, `decide`,
 `design-it-twice`, `plan-spec`, and `scope-feature`.
@@ -605,9 +605,10 @@ Accepted in the quality and orchestration batches: `converge`, `diagnose`,
 `find-perimeter-gaps`, `gut-check`, `harvest-learnings`,
 `organize-project-structure`, `orient`, `teach-pattern`, and `triage-debt`.
 
-Pending: `project-interview`, whose fresh installed replay produced useful
-evidence-cited drafts but failed its required gate because two named helpers
-were absent. A narrow selected-skill closure repair is active.
+`project-interview` is accepted after its first fresh replay exposed two
+missing required helpers. The repaired selected skill now bundles a stdlib
+draft/discovery helper and evidence gate, refuses premature apply, preserves
+unanswered facts as open questions, and passes `OK: 3/3` from a fresh install.
 
 The accepted planning skills produced their final scoped/architected/decision/
 comparative-design/spec artifacts from an installed TypeScript host without a
@@ -615,8 +616,7 @@ language-specific implementation or source mutation. Fresh forward use also
 completed all five artifacts. Missing optional repository helpers and doctrine
 docs were disclosed and bypassed by following the installed artifact contracts
 directly; they remain TypeScript-cleanup/user-experience work, not evidence of a
-language variant. `project-interview` remains
-`validation_state: blocked-closure` until its installed gate passes.
+language variant. No neutral skill remains blocked on TypeScript closure.
 
 ### Ecosystem/runtime implementation, not a host-language variant (13)
 
@@ -872,3 +872,5 @@ framework-neutral TypeScript eligibility.
 | 2026-07-19 UTC | `9f4fbdc..e800856` + fresh forward use | Five planning skills validated neutral | One locked TypeScript 5.9.3 host and exact combined stock copy install proved final artifacts for scope-feature, architecture-fit, decide, design-it-twice, and plan-spec with source fingerprints unchanged. A fresh agent independently produced all five without reference artifacts or language-specific implementation. Missing optional repo helpers/doctrine were disclosed; the core installed artifact contracts remained usable. Focused automated evidence: 4 tests / 75 parametrized checks; D6 PASS with residual UX cleanup recorded. |
 | 2026-07-19 UTC | `e7b413b..5143bf6` + fresh forward use | Five quality skills validated neutral | Diagnose, perimeter gaps, gut-check, teach-pattern, and triage-debt produced useful installed TypeScript-host evidence without language variants. The fresh replay passed all five, including the local diagnosis evidence gate and cached-input debt contract; native checks and source hashes were unchanged. |
 | 2026-07-19 UTC | `eec276d..3352392` + fresh forward use | Orchestration neutrality review | Converge, harvest-learnings, organize-project-structure, and orient produced useful installed outcomes with native checks and unchanged source. Project-interview remained pending because its required installed evidence helpers were absent; the failure was retained as a closure repair rather than accepted. |
+| 2026-07-19 UTC | `6058f45..3494290` + repaired fresh forward use | Project-interview neutral closure complete | Skill-local stdlib draft/discovery and evidence-gate helpers close the exact selected-install failure. A fresh TypeScript host recorded only supplied declarations and objective facts, retained unresolved questions, kept `user_approved:false`, passed `OK: 3/3`, passed native checks/tests, and preserved source hashes. |
+| 2026-07-19 UTC | final matrix closeout | Five clean-host TypeScript journeys | Read-only incomplete-sweep detection, boundary proposal, safe path mutation, state mutation/guard, and semantic analysis replayed from their locked installed fixtures: 39 passed, 1 intentional environment skip. The 76-row matrix test also passed with exact counts 22 supported + 19 neutral + 22 stack-bound + 13 runtime. |
