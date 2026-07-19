@@ -1,6 +1,6 @@
 {
   "batch": "adapt-project-typescript",
-  "revision": "e63a032 implementation plus 023010c default-artifact repair",
+  "revision": "e63a032 implementation plus 023010c default-artifact and 5f7dd5a Python-stack repairs",
   "family": ["adapt-project"],
   "invariant": {
     "portable_principle": "Objective source-root facts drive the same large-root caution for Python and TypeScript without turning observed frequency into doctrine.",
@@ -16,7 +16,7 @@
   "reference_repairs": [
     {
       "issue": "The shared reference script's large-root caution examined only python_files, while its documented command and evidence gate were unavailable from a copied selected skill.",
-      "repair": "Kept the shared surface untouched and added a family-local stdlib-only discover/check-evidence closure with frozen Python positive, negative, and common-skip must-not-fire oracles.",
+      "repair": "Kept the shared surface untouched and added a family-local stdlib-only discover/check-evidence closure with frozen Python positive, negative, common-skip must-not-fire, and stack-marker oracles.",
       "evidence": "tests/test_adapt_project_typescript.py asserts final adapter/report artifacts for 201, 200, and node_modules-only Python roots under python -I -S."
     }
   ],

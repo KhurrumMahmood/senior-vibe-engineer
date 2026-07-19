@@ -2,8 +2,9 @@
 
 Implementation revisions: `e63a032` (`feat(adapt-project): add
 self-contained TypeScript discovery`) and `023010c`
-(`fix(adapt-project): default artifacts to host root`). The learning packet is
-intentionally separate from implementation.
+(`fix(adapt-project): default artifacts to host root`), plus `5f7dd5a`
+(`fix(adapt-project): preserve Python stack heuristic`). The learning packet
+is intentionally separate from implementation.
 
 ## 1. Invariant
 
@@ -31,7 +32,8 @@ final-artifact test and added a stdlib-only, family-local installed command.
 Python positive: 201 first-party `.py` files fires the existing caution.
 Python negative: 200 does not fire. Python must-not-fire: 250 `.py` files
 under `src/node_modules/` count as zero, preserving the reference common-skip
-behavior.
+behavior. Python files alone still do not establish the stack language without
+the reference's `manage.py`/`pyproject.toml`/`requirements*.txt` marker.
 
 ## 3. TypeScript model
 
