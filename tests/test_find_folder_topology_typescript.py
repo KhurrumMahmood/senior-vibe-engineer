@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILL = REPO_ROOT / ".claude" / "skills" / "find-folder-topology-drift"
@@ -219,6 +221,60 @@ def test_typescript_excludes_and_declared_additive_excludes_stay_clean(tmp_path:
     assert len(records) == 1
     assert records[0]["file"] == "src/billing"
     assert all("ignored" not in file for file in records[0]["files"])
+
+
+@pytest.mark.parametrize(
+    "excluded_dir",
+    [
+        "tests",
+        "test",
+        "__tests__",
+        "specs",
+        "generated",
+        "vendor",
+        "node_modules",
+        "dist",
+        "build",
+        "coverage",
+        "reports",
+    ],
+)
+def test_typescript_excluded_trees_stay_clean_when_named_as_the_explicit_root(
+    tmp_path: Path,
+    excluded_dir: str,
+) -> None:
+    host = tmp_path / "excluded-root-host"
+    root = host / "src" / excluded_dir / "nested"
+    root.mkdir(parents=True)
+    for name in ("billing-types.ts", "billing-validator.ts", "billing_parser.ts"):
+        (root / name).write_text("export {};\n", encoding="utf-8")
+    detections = host / "detections.jsonl"
+
+    result = _detect(
+        SKILL,
+        host,
+        detections,
+        "--typescript-root",
+        f"src/{excluded_dir}/nested",
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert _read_jsonl(detections) == []
+
+
+def test_typescript_nested_test_and_specs_directories_stay_clean(tmp_path: Path) -> None:
+    host = tmp_path / "nested-exclusion-host"
+    for directory in ("test", "specs"):
+        root = host / "src" / directory
+        root.mkdir(parents=True)
+        for name in ("billing-types.ts", "billing-validator.ts", "billing_parser.ts"):
+            (root / name).write_text("export {};\n", encoding="utf-8")
+    detections = host / "detections.jsonl"
+
+    result = _detect(SKILL, host, detections, "--typescript-root", "src")
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert _read_jsonl(detections) == []
 
 
 def test_copied_stock_skill_runs_from_an_unrelated_cwd_without_common_helpers(

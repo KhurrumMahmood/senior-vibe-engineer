@@ -514,7 +514,9 @@ def detect(
 TYPESCRIPT_SUFFIXES = {".ts", ".tsx"}
 TYPESCRIPT_SKIP_DIRS = {
     "tests",
+    "test",
     "__tests__",
+    "specs",
     "generated",
     "vendor",
     "node_modules",
@@ -570,6 +572,12 @@ def _typescript_directories(
     excludes: list[str],
 ) -> list[Path]:
     """Walk one declared TypeScript source root without crossing v1 boundaries."""
+    root_parts = {
+        part.lower()
+        for part in source_root.relative_to(project_root).parts
+    }
+    if root_parts & TYPESCRIPT_SKIP_DIRS:
+        return []
     directories: list[Path] = []
     for directory, child_dirs, _files in os.walk(source_root):
         current = Path(directory)
