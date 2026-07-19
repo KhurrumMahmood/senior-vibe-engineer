@@ -4,7 +4,8 @@ Implementation revisions: `e63a032` (`feat(adapt-project): add
 self-contained TypeScript discovery`) and `023010c`
 (`fix(adapt-project): default artifacts to host root`), plus `5f7dd5a`
 (`fix(adapt-project): preserve Python stack heuristic`). The learning packet
-is intentionally separate from implementation.
+is intentionally separate from implementation. `7337b1a` strengthens the
+closure regression to use the pinned stock Codex installer.
 
 ## 1. Invariant
 
@@ -76,9 +77,11 @@ prove that package metadata does not make a framework fact.
 `adapter.yml`, `report.md`, and `evidence.json`, not a helper-only count. Its
 positive TypeScript result is exactly 201 files (101 `.ts`, 100 `.tsx`) and
 the large-root caution; 200 and exclusion-only roots remain clean. The test
-copies only the selected skill to `.agents/skills/adapt-project`, runs both
-commands through `python -I -S` from outside the checkout, and proves that no
-host adapter write occurs under `--no-host-write`.
+uses `npx --yes skills@1.5.19 add <checkout> --skill adapt-project --agent
+codex --copy -y` to install only the selected skill to
+`.agents/skills/adapt-project`, runs both commands through `python -I -S` from
+outside the checkout, and proves that no host adapter write occurs under
+`--no-host-write`.
 
 Green commands at `e63a032`:
 
