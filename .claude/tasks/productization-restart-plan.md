@@ -73,21 +73,23 @@ commands recorded below.
 
 Do not start implementation until milestone 1 closes.
 
-1. Inventory all 76 skills as language-neutral, language-sensitive analysis,
-   mutation, guard generation, or framework-specific.
-2. Select one cohesive family; the leading candidate is
-   `find-implicit-state → extract-enum → prevent-regression`.
-3. Make that family's Python path reference-grade with positive, negative,
-   must-not-fire, structured-output, change/guard, native-test, and installed
-   self-containment evidence.
-4. Implement and install the TypeScript path against the same invariant-level
-   outcome contract.
-5. Extract only abstractions demonstrated by both implementations and record
-   what did not generalize before choosing the next family or language.
+The executable inventory, ordered batches, worktree ownership, acceptance
+criteria, and learning handoff are tracked in
+`.claude/tasks/typescript-skill-batch-plan.md`.
 
-Milestone 2 acceptance criteria will be frozen after the inventory and first
-family selection. “All languages” and artificial variants of language-neutral
-skills are not acceptance criteria.
+The first outcome family is split serially rather than assigned as one large
+port:
+
+1. `B2P` proves the Python string-state chain is reference-grade and
+   self-contained when stock-installed.
+2. `B2T` proves the same closed-state invariant in a locked TypeScript fixture,
+   including proposal, native type/test result, staged guard, installed replay,
+   and fresh-context outcome.
+
+Small text/metadata-truth and comment-hygiene batches may run alongside the
+Python proof when their worktrees are disjoint. Framework-specific skills stay
+deferred until a concrete TypeScript stack is selected. No shared TypeScript
+analysis platform may be extracted before an accepted second consumer exists.
 
 ## Milestone 3 — User journey and efficiency
 
@@ -128,10 +130,13 @@ it is necessary.
 | 2026-07-18 | `c404944` | Release prerequisite | The local candidate is complete, but the README's public source still resolves to `ce257f57…`, not `c404944`. Publish the candidate to that distribution ref, then replay the public URL before calling installation publicly complete. |
 | 2026-07-18 | `f26d9ea` | Revised I2–I6 | Stock `skills@1.5.19` installed exactly the three default routers. All ran from installed directories under `python3 -I -S`; shape, task, and cleanup results included selected-skill install commands plus definition, bundled-tooling, and shared-tooling locations. Only selected `gut-check` was then added; a fresh GPT-5.6 Terra xhigh agent produced five cited strong-smell findings. `remove --all` removed all four directories and preserved the sentinel SHA-256 `1954cbe1b926f93e3cd432127f483e7db98ab6bfa7453060205ef90b60225fb3`. Targeted suite: 73 passed, 1 intentional skip. |
 | 2026-07-18 | `f26d9ea` | Revised I7 | A fresh goal-anchored reviewer returned PASS with no goal-critical or concrete-user-harm blocker. It confirmed exact-three default installation, selected-only follow-up installation, isolated execution, useful output, and sentinel-preserving removal; it explicitly rejected custom trust/installer, multi-surface, coordinator, benchmark, and premature TypeScript expansion. |
+| 2026-07-18 | this planning commit | Milestone 2 batch freeze | `.claude/tasks/typescript-skill-batch-plan.md` assigns all 76 skills exactly once, freezes B1/B2P as the first disjoint worktrees, makes B2T serial after the Python proof, requires paired learning artifacts, and defers unproven/framework-bound families. Three fresh non-context inventory lanes informed it; 38 targeted baseline tests passed; a fresh goal-anchored adversarial review returned PASS after router-honesty corrections. |
 
 ## Current slice
 
-Publish the reviewed three-router candidate to the public distribution ref and
-replay the README using the public URL. This is a release step, not new
-installer development. TypeScript-family implementation and optional
-high-assurance work remain inactive until the public replay passes.
+Freeze the TypeScript batch plan and learning contract, then prepare the two
+disjoint first worktrees (`B1` portability truth and `B2P` Python state proof).
+Publishing the reviewed three-router candidate to the public distribution ref
+and replaying the README remain pending release steps; they do not justify new
+installer development or block local fixture work, but public support claims
+still wait for that replay.

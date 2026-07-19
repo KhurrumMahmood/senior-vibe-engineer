@@ -1,0 +1,98 @@
+{
+  "batch": null,
+  "revision": null,
+  "family": [],
+  "invariant": {
+    "portable_principle": null,
+    "python_or_framework_mechanism": null,
+    "typescript_mechanism": null,
+    "explicit_non_goals": []
+  },
+  "reference_repairs": [],
+  "language_model": {
+    "syntax": [],
+    "type_system": [],
+    "module_resolution": [],
+    "runtime": [],
+    "framework": []
+  },
+  "tooling": {
+    "selected": null,
+    "rejected_alternatives": {},
+    "version_and_resolution": null,
+    "closure_mode": null,
+    "preflight_and_failure_codes": []
+  },
+  "outcome_contract": {
+    "inputs": [],
+    "structured_outputs": [],
+    "must_fire": [],
+    "must_not_fire": [],
+    "native_test_command": null,
+    "native_guard_command": null
+  },
+  "evidence": {
+    "python_reference": [],
+    "typescript": [],
+    "commands_and_artifact_paths": []
+  },
+  "false_positive_boundary": {
+    "known_false_positives": [],
+    "known_false_negatives": [],
+    "legitimate_similar_shapes": []
+  },
+  "generalized": [],
+  "did_not_generalize": [],
+  "reuse_decision": {
+    "shared_candidate": null,
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": [],
+    "owner": null
+  },
+  "translation_prerequisites": {
+    "rust": {
+      "native_tool": null,
+      "idiomatic_representation": null,
+      "required_fixtures": [],
+      "semantic_gaps": []
+    },
+    "go": {
+      "native_tool": null,
+      "idiomatic_representation": null,
+      "required_fixtures": [],
+      "semantic_gaps": []
+    },
+    "java_or_kotlin": {
+      "native_tool": null,
+      "idiomatic_representation": null,
+      "required_fixtures": [],
+      "semantic_gaps": []
+    },
+    "csharp": {
+      "native_tool": null,
+      "idiomatic_representation": null,
+      "required_fixtures": [],
+      "semantic_gaps": []
+    },
+    "ruby": {
+      "native_tool": null,
+      "idiomatic_representation": null,
+      "required_fixtures": [],
+      "semantic_gaps": []
+    }
+  },
+  "user_experience": {
+    "install_steps": [],
+    "wall_time_seconds": null,
+    "agent_confusions": [],
+    "repeated_work": [],
+    "smallest_later_improvement": null
+  },
+  "residual_risks": [],
+  "next_decision": {
+    "recommendation": null,
+    "rationale": null,
+    "blockers": []
+  }
+}
