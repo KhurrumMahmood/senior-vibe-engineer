@@ -89,7 +89,7 @@ def _load_package_json(root: Path) -> dict[str, Any]:
         return {}
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return {}
     return payload if isinstance(payload, dict) else {}
 
@@ -366,7 +366,7 @@ def create_draft(
 def _profile_is_approved(path: Path) -> bool:
     try:
         text = path.read_text(encoding="utf-8")
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return False
     values = re.findall(r"^user_approved:\s*(true|false)\s*$", text, flags=re.MULTILINE)
     return values == ["true"]

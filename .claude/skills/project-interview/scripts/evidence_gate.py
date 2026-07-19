@@ -66,7 +66,7 @@ def check(scan_dir: Path) -> int:
         return 1
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         print(f"error: malformed manifest at {manifest_path}: {exc}", file=sys.stderr)
         return 2
     if not isinstance(manifest, dict):
