@@ -31,12 +31,46 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import re
 import subprocess
 import sys
 from pathlib import Path
 
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:
+    yaml = None
+
+
+class YamlLoadError(ValueError):
+    """Raised when an installed host needs full YAML without PyYAML."""
+
+
+def load_yaml(text: str) -> object:
+    """Use PyYAML when available; retain JSON-as-YAML for isolated installs.
+
+    JSON is a YAML subset, so a copied skill can run its structured contract
+    path with only the host Python standard library.  Rich YAML keeps the
+    existing PyYAML behavior when that host dependency is installed.
+    """
+    if yaml is not None:
+        try:
+            return yaml.safe_load(text)
+        except yaml.YAMLError as exc:
+            raise YamlLoadError(str(exc)) from exc
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise YamlLoadError(
+            "PyYAML is required for non-JSON YAML contract files; install it in the host environment"
+        ) from exc
+
+
+def dump_yaml(data: object) -> str:
+    if yaml is not None:
+        return yaml.safe_dump(data, sort_keys=False, default_flow_style=False, allow_unicode=True)
+    return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
 
 REQUIRED = ["skill", "job", "problem_class", "intent", "solves", "born",
             "dogfood_kind", "provenance_confidence"]
@@ -145,9 +179,10 @@ def _normalize(value):
 def intent_fingerprint(fm_text: str) -> dict:
     """Normalized map of the intent-bearing frontmatter keys.
 
-    Raises yaml.YAMLError on malformed YAML so the caller can fall back conservatively.
+    Raises YamlLoadError on malformed/unsupported YAML so the caller can fall
+    back conservatively.
     """
-    data = yaml.safe_load(fm_text)
+    data = load_yaml(fm_text)
     if not isinstance(data, dict):
         return {}
     return {k: _normalize(v) for k, v in data.items() if k not in OPERATIONAL_KEYS}
@@ -192,7 +227,7 @@ def classify_stale(contract_path: Path, skillmd_path: Path) -> tuple[bool, str]:
     try:
         old_fp = intent_fingerprint(old_fm)
         cur_fp = intent_fingerprint(cur_fm)
-    except yaml.YAMLError:
+    except YamlLoadError:
         return _timestamp_fallback(contract_path, skillmd_path)
 
     if old_fp != cur_fp:
@@ -213,8 +248,8 @@ def _timestamp_fallback(contract_path: Path, skillmd_path: Path) -> tuple[bool, 
 
 def load_contract(p: Path):
     try:
-        return yaml.safe_load(p.read_text(encoding="utf-8")) or {}, None
-    except (yaml.YAMLError, OSError, UnicodeDecodeError) as e:
+        return load_yaml(p.read_text(encoding="utf-8")) or {}, None
+    except (YamlLoadError, OSError, UnicodeDecodeError) as e:
         return None, f"load error: {e}"
 
 
@@ -314,7 +349,7 @@ def main() -> None:
         }
         out = contracts_dir / "_index.yaml"
         out.write_text(
-            yaml.safe_dump(idx, sort_keys=False, default_flow_style=False, allow_unicode=True),
+            dump_yaml(idx),
             encoding="utf-8",
         )
         print(f"\nwrote {out} ({len(index_rows)} skills)")

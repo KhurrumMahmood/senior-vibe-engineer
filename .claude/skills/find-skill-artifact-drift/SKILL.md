@@ -25,7 +25,7 @@ not_for: |
   on Band-B heuristics, or re-checking the frontmatter contract
   (required fields, enum values, name==dir) that scripts/skill_meta.py
   lint already owns. Band C semantic judgment belongs to /plan-skill.
-language: python
+language: any
 framework: any
 scans: [python, markdown]
 produces: [detections, report, findings]
@@ -34,6 +34,11 @@ max_overhead: "Run one detect+report pass; treat Band B as a review queue, never
 ---
 
 # /find-skill-artifact-drift
+
+This skill is host-language-neutral: it checks instruction-to-artifact
+coherence in the installed skill collection. Its Python AST inspection covers
+the skill scripts it documents; it does not claim to analyze a host
+application's Python source or add a TypeScript-specific variant.
 
 You are running an instruction-artifact-coherence (IAC) audit on the
 skills themselves. A skill's SKILL.md is a procedure an agent will

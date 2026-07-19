@@ -28,22 +28,17 @@ from __future__ import annotations
 
 import argparse
 import ast
+import json
 import re
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
-COMMON_DIR = PROJECT_ROOT / ".claude" / "skills" / "_common"
-SCRIPTS_DIR = PROJECT_ROOT / "scripts"
-for _p in (str(COMMON_DIR), str(SCRIPTS_DIR)):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
+try:
+    import yaml
+except ModuleNotFoundError:
+    yaml = None
 
-from _lib.yaml_frontmatter import FrontmatterError, parse  # noqa: E402
-from product_topology import relpath, write_jsonl  # noqa: E402
-
-DEFAULT_SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 BAND_A = {"missing_script_ref", "missing_documented_flag", "bash_tool_undeclared"}
 
 # A token only counts as a concrete script reference if it carries a .py
@@ -73,11 +68,88 @@ class Finding:
     recommendation: str
 
 
-def emit(pattern: str, skill_md: Path, lineno: int, summary: str, recommendation: str) -> Finding:
+def relpath(path: Path, project_root: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(project_root.resolve()))
+    except ValueError:
+        return str(path)
+
+
+def write_jsonl(records, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        for record in records:
+            handle.write(json.dumps(record, sort_keys=True) + "\n")
+
+
+def _frontmatter_and_body(text: str) -> tuple[dict[str, object] | None, str]:
+    """Read only the frontmatter fields this detector owns.
+
+    Full schema validation belongs to ``skill_meta.py``.  This lightweight
+    reader is deliberately limited to the detector's evidence fields, which
+    keeps a copied skill independent from the repository's YAML runtime while
+    accepting the scalar, list, and block forms used by installed skills.
+    """
+    lines = text.replace("\r\n", "\n").splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}, text
+    try:
+        end = next(index for index, line in enumerate(lines[1:], 1) if line.strip() == "---")
+    except StopIteration:
+        return {}, text
+    body = "\n".join(lines[end + 1:])
+    if yaml is not None:
+        try:
+            metadata = yaml.safe_load("\n".join(lines[1:end])) or {}
+        except yaml.YAMLError:
+            return None, body  # skill_meta.py owns malformed-frontmatter reporting
+        return (metadata if isinstance(metadata, dict) else None), body
+    metadata: dict[str, object] = {}
+    active_key: str | None = None
+    active_block = False
+    for raw in lines[1:end]:
+        if raw.startswith((" ", "\t")):
+            stripped = raw.strip()
+            if active_key and stripped.startswith("- "):
+                current = metadata.setdefault(active_key, [])
+                if isinstance(current, list):
+                    current.append(stripped[2:].strip().strip('"\''))
+            elif active_key and active_block:
+                current = str(metadata.get(active_key, ""))
+                metadata[active_key] = (current + " " + stripped).strip()
+            continue
+        if ":" not in raw:
+            active_key = None
+            active_block = False
+            continue
+        key, value = raw.split(":", 1)
+        key = key.strip()
+        value = value.strip()
+        active_key = key
+        active_block = value in {"|", ">", "|-", ">-"}
+        if active_block:
+            metadata[key] = ""
+        elif value == "":
+            metadata[key] = []
+        elif value.startswith("[") and value.endswith("]"):
+            metadata[key] = [item.strip().strip('"\'') for item in value[1:-1].split(",") if item.strip()]
+        else:
+            metadata[key] = value.strip('"\'')
+    return metadata, body
+
+
+def emit(
+    pattern: str,
+    skill_md: Path,
+    lineno: int,
+    summary: str,
+    recommendation: str,
+    project_root: Path,
+) -> Finding:
     return Finding(
         pattern=pattern,
         band="A" if pattern in BAND_A else "B",
-        file=relpath(skill_md, PROJECT_ROOT),
+        file=relpath(skill_md, project_root),
         lineno=lineno,
         summary=summary.strip(),
         recommendation=recommendation.strip(),
@@ -132,7 +204,7 @@ def script_option_strings(path: Path) -> set[str] | None:
     return opts
 
 
-def resolve_script(token: str, skill_dir: Path) -> Path | None:
+def resolve_script(token: str, skill_dir: Path, project_root: Path) -> Path | None:
     """A documented script ref is satisfied if it resolves skill-local
     (``<skill>/scripts/x.py``), repo-level (``<repo>/scripts/x.py``), or as a
     relative cross-skill ref (``<other-skill>/scripts/x.py`` →
@@ -143,10 +215,10 @@ def resolve_script(token: str, skill_dir: Path) -> Path | None:
         return None
     candidates: list[Path] = []
     if token.startswith(".claude/") or token.startswith("/"):
-        candidates.append(PROJECT_ROOT / token.lstrip("/"))
+        candidates.append(project_root / token.lstrip("/"))
     else:
         candidates.append(skill_dir / token)
-        candidates.append(PROJECT_ROOT / token)
+        candidates.append(project_root / token)
         candidates.append(skill_dir.parent / token)  # sibling skill in the same tree
     for cand in candidates:
         if cand.is_file():
@@ -154,18 +226,15 @@ def resolve_script(token: str, skill_dir: Path) -> Path | None:
     return None
 
 
-def scan_skill(skill_dir: Path) -> list[Finding]:
+def scan_skill(skill_dir: Path, project_root: Path) -> list[Finding]:
     skill_md = skill_dir / "SKILL.md"
     try:
         full_text = skill_md.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return []
-    try:
-        doc = parse(full_text, path=skill_md)
-    except FrontmatterError:
-        return []  # frontmatter validity is skill_meta.py lint's job, not ours
-    fm = doc.metadata
-    body = doc.body
+    fm, body = _frontmatter_and_body(full_text)
+    if fm is None:
+        return []  # skill_meta.py lint owns malformed-frontmatter reporting
     lines = body.splitlines()
     # Findings report file-relative line numbers, but we scan only the body
     # (frontmatter is contract, not procedure). Offset body lines past the
@@ -181,12 +250,12 @@ def scan_skill(skill_dir: Path) -> list[Finding]:
         if token in seen_refs or any(c in token for c in TEMPLATE_CHARS):
             continue
         seen_refs.add(token)
-        if resolve_script(token, skill_dir) is None:
+        if resolve_script(token, skill_dir, project_root) is None:
             findings.append(emit(
                 "missing_script_ref", skill_md, line_of(lines, token) + line_offset,
                 f"Body references `{token}`, which exists in neither the skill's "
                 f"scripts/ nor the repo scripts/.",
-                "Fix the path, restore the script, or remove the stale reference.",
+                "Fix the path, restore the script, or remove the stale reference.", project_root,
             ))
 
     # --- Band A: documented flags exist in the script's argparse ----------
@@ -206,10 +275,10 @@ def scan_skill(skill_dir: Path) -> list[Finding]:
         flags = LONG_FLAG_RE.findall(line)
         if not flags:
             continue
-        scripts = [t for t in SCRIPT_REF_RE.findall(line) if resolve_script(t, skill_dir)]
+        scripts = [t for t in SCRIPT_REF_RE.findall(line) if resolve_script(t, skill_dir, project_root)]
         if len(scripts) != 1:
             continue
-        resolved = resolve_script(scripts[0], skill_dir)
+        resolved = resolve_script(scripts[0], skill_dir, project_root)
         opts = script_option_strings(resolved) if resolved else None
         if opts is None:
             continue
@@ -219,7 +288,7 @@ def scan_skill(skill_dir: Path) -> list[Finding]:
                     "missing_documented_flag", skill_md, idx + line_offset,
                     f"Body documents `{scripts[0]} {flag}`, but that script's "
                     f"argparse never defines `{flag}`.",
-                    "Add the flag to the script, or correct the documented command.",
+                    "Add the flag to the script, or correct the documented command.", project_root,
                 ))
 
     # --- Band A: a bash code block implies Bash must be allowed -----------
@@ -228,7 +297,7 @@ def scan_skill(skill_dir: Path) -> list[Finding]:
         findings.append(emit(
             "bash_tool_undeclared", skill_md, 1,
             "Body has a bash/sh code block but `allowed-tools` does not include `Bash`.",
-            "Add `Bash` to allowed-tools, or drop the shell block if the skill does not run commands.",
+            "Add `Bash` to allowed-tools, or drop the shell block if the skill does not run commands.", project_root,
         ))
 
     # --- Band B: orphan scripts the body never mentions -------------------
@@ -241,7 +310,7 @@ def scan_skill(skill_dir: Path) -> list[Finding]:
                 findings.append(emit(
                     "orphan_script", skill_md, 1,
                     f"`scripts/{script.name}` exists but the SKILL.md never mentions it.",
-                    "Document the script in the pipeline, fold it into a referenced script, or delete it.",
+                    "Document the script in the pipeline, fold it into a referenced script, or delete it.", project_root,
                 ))
 
     # --- Band B: declared evidence artifacts are wired into the body ------
@@ -261,7 +330,7 @@ def scan_skill(skill_dir: Path) -> list[Finding]:
                     "evidence_contract_unbacked", skill_md, 1,
                     f"Frontmatter `{field}` declares `{name}`, but the body never "
                     f"names it as an output the procedure produces.",
-                    "Wire the declared artifact into the pipeline, or drop it from the contract.",
+                    "Wire the declared artifact into the pipeline, or drop it from the contract.", project_root,
                 ))
 
     # --- Band B: read-only not_for claim vs editing tools -----------------
@@ -273,16 +342,16 @@ def scan_skill(skill_dir: Path) -> list[Finding]:
                 "not_for_tooltell_conflict", skill_md, 1,
                 f"`not_for` claims the skill does not edit, but allowed-tools grants "
                 f"{', '.join(editing)}.",
-                "Reconcile the claim with the tool grant: tighten not_for or drop the editing tool.",
+                "Reconcile the claim with the tool grant: tighten not_for or drop the editing tool.", project_root,
             ))
 
     return findings
 
 
-def scan_skills(skill_dirs: list[Path]) -> list[Finding]:
+def scan_skills(skill_dirs: list[Path], project_root: Path) -> list[Finding]:
     findings: list[Finding] = []
     for skill_dir in skill_dirs:
-        findings.extend(scan_skill(skill_dir))
+        findings.extend(scan_skill(skill_dir, project_root))
     return sorted(findings, key=lambda f: (f.file, f.band, f.pattern, f.lineno, f.summary))
 
 
@@ -308,7 +377,8 @@ def collect_skill_dirs(names: list[str], skills_dir: Path) -> list[Path]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Detect SKILL.md ↔ artifact drift.")
     parser.add_argument("skills", nargs="*", help="Skill names/dirs to scan (default: all).")
-    parser.add_argument("--skills-dir", type=Path, default=DEFAULT_SKILLS_DIR)
+    parser.add_argument("--skills-dir", type=Path)
+    parser.add_argument("--project-root", type=Path, default=Path.cwd())
     parser.add_argument("--output", type=Path, help="JSONL output path (advisory mode).")
     parser.add_argument(
         "--gate",
@@ -317,9 +387,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    skills_dir = args.skills_dir.resolve()
+    project_root = args.project_root.resolve()
+    skills_dir = (args.skills_dir or project_root / ".claude" / "skills").resolve()
     skill_dirs = collect_skill_dirs(args.skills, skills_dir)
-    findings = scan_skills(skill_dirs)
+    findings = scan_skills(skill_dirs, project_root)
 
     if args.gate:
         band_a = [f for f in findings if f.band == "A"]
@@ -340,7 +411,7 @@ def main(argv: list[str] | None = None) -> int:
     band_a = sum(1 for f in findings if f.band == "A")
     print(
         f"scanned {len(skill_dirs)} skills; wrote {len(findings)} findings "
-        f"({band_a} Band A, {len(findings) - band_a} Band B) to {relpath(args.output, PROJECT_ROOT)}"
+        f"({band_a} Band A, {len(findings) - band_a} Band B) to {relpath(args.output, project_root)}"
     )
     return 0
 

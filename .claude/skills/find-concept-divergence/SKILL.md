@@ -29,8 +29,9 @@ not_for: |
   superseded concept and the scanner will skip co-occurrence noise so
   the lint owns the rename; fuzzy/similarity-based identifier matching
   (deferred — strict canonical-name + avoid-term grep only in v1).
-language: python
+language: any
 framework: any
+scans: [python, javascript, typescript, markdown, templates]
 ---
 
 # /find-concept-divergence
@@ -53,6 +54,15 @@ This skill is detection-only. It never edits code, docs, or the
 glossary; it writes a report under
 `reports/find-concept-divergence/scan-<UTC>/` so a follow-up audit can
 act on the findings.
+
+## Host-language boundary
+
+The host code language is not a routing constraint: this is a strict textual
+glossary scan. It reads `.py`, `.js`, `.ts`, `.tsx`, template/HTML, and prose
+files; `.tsx` is included as TypeScript source, not as a separate framework
+mode. It does not parse TypeScript, resolve imports, infer types, or judge JSX
+runtime behavior. Generated and vendor trees remain excluded by the same
+path-level rules as other source languages.
 
 ## How success is judged
 

@@ -25,23 +25,11 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable
-
-import yaml
-
-# KIT_ROOT anchors kit-relative imports ONLY (_common). Scan targets, the
-# glossary default, and finding labels are target-project surfaces and anchor
-# on --project-root instead — the kit may live in a different repo than the
-# target project (de-baking convention, ADR 0024).
-KIT_ROOT = Path(__file__).resolve().parents[4]
-_COMMON = str(KIT_ROOT / ".claude" / "skills" / "_common")
-if _COMMON not in sys.path:
-    sys.path.insert(0, _COMMON)
-
-from diff_resolution import resolve_project_root  # noqa: E402
 
 # Common project roots. iter_files auto-skips paths that don't exist,
 # so listing all of them is safe across language/framework shapes. Host
@@ -114,7 +102,7 @@ EXCLUDE_PREFIXES = EXCLUDE_PREFIXES_DEFAULT + load_host_excludes()
 
 # Files we scan: source + prose. Binary / build artifacts are skipped.
 INCLUDE_SUFFIXES = frozenset({
-    ".py", ".pyi", ".md", ".html", ".js", ".ts", ".yaml", ".yml",
+    ".py", ".pyi", ".md", ".html", ".js", ".ts", ".tsx", ".yaml", ".yml",
     ".txt", ".rst",
 })
 
@@ -125,13 +113,127 @@ SELF_EXCLUDE = (
 )
 
 
+def resolve_project_root(explicit: Path | None = None) -> Path:
+    """Use the explicit target root, the cwd's git root, or the cwd itself.
+
+    Keep this small resolver inside the installed skill.  The target project,
+    not this skill's source checkout, owns scan labels and the glossary path.
+    """
+    if explicit is not None:
+        return explicit.resolve()
+    cwd = Path.cwd()
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(cwd), "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            check=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return cwd.resolve()
+    root = result.stdout.strip()
+    return Path(root).resolve() if root else cwd.resolve()
+
+
+def _yaml_scalar(raw: str) -> Any:
+    """Parse the small scalar/list profile used by the glossary schema.
+
+    The scanner needs only the schema fields it consumes.  Keeping this
+    profile local lets a copied skill read normal glossary YAML without a
+    toolkit venv or a repository-level YAML helper; it is intentionally not a
+    general YAML implementation.
+    """
+    value = raw.strip()
+    if not value:
+        return ""
+    if value.startswith("[") and value.endswith("]"):
+        inner = value[1:-1].strip()
+        return [] if not inner else [_yaml_scalar(item) for item in inner.split(",")]
+    if (value.startswith('"') and value.endswith('"')) or (
+        value.startswith("'") and value.endswith("'")
+    ):
+        return value[1:-1]
+    if value in {"true", "True"}:
+        return True
+    if value in {"false", "False"}:
+        return False
+    return value
+
+
+def _load_glossary_yaml(text: str) -> dict[str, Any]:
+    """Read the documented concepts/ambiguities YAML profile without PyYAML.
+
+    Definitions and resolution prose are deliberately skipped: the strict
+    scanner consumes only names, aliases, avoid terms, source paths, and
+    coverage ownership.  Unsupported shapes leave the relevant list empty so
+    ``load_glossary`` can fail clearly instead of guessing.
+    """
+    data: dict[str, list[dict[str, Any]]] = {
+        "concepts": [],
+        "flagged_ambiguities": [],
+    }
+    collection: str | None = None
+    current: dict[str, Any] | None = None
+    list_key: str | None = None
+
+    def finish_current() -> None:
+        nonlocal current
+        if current is not None and collection is not None:
+            data[collection].append(current)
+        current = None
+
+    for raw in text.splitlines():
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        indent = len(raw) - len(raw.lstrip(" "))
+        line = raw.strip()
+        if indent == 0 and line in {"concepts:", "flagged_ambiguities:"}:
+            finish_current()
+            collection = line[:-1]
+            list_key = None
+            continue
+        if collection is None:
+            continue
+        if indent == 2 and line.startswith("- "):
+            finish_current()
+            current = {}
+            list_key = None
+            line = line[2:].strip()
+            if ":" in line:
+                key, value = line.split(":", 1)
+                current[key.strip()] = _yaml_scalar(value)
+            continue
+        if current is None:
+            continue
+        if indent == 4 and ":" in line:
+            key, value = line.split(":", 1)
+            key = key.strip()
+            value = value.strip()
+            if value in {"", "|", ">", "|-", ">-"}:
+                current[key] = [] if value == "" else ""
+                list_key = key if value == "" else None
+            else:
+                current[key] = _yaml_scalar(value)
+                list_key = None
+            continue
+        if indent >= 6 and list_key is not None and line.startswith("- "):
+            current[list_key].append(_yaml_scalar(line[2:]))
+
+    finish_current()
+    return data
+
+
 def load_glossary(path: Path) -> dict[str, Any]:
     if not path.exists():
         sys.exit(f"glossary not found: {path}")
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
         sys.exit(f"glossary read/parse error: {exc}")
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        data = _load_glossary_yaml(text)
     if not isinstance(data, dict) or "concepts" not in data:
         sys.exit("glossary missing top-level `concepts:` block")
     return data

@@ -1,0 +1,8 @@
+concepts:
+  - name: canonical-status
+    aliases:
+      - legacy status adapter
+    avoid:
+      - deprecated status
+
+flagged_ambiguities:
