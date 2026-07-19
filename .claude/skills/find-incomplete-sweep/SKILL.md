@@ -3,22 +3,23 @@ name: find-incomplete-sweep
 description: |
   Advisory SUSPECT scan for incomplete sweeps — multi-site changes that were
   started but never finished, leaving a forgotten sibling call site at the old
-  shape ("updated N-1 of N"). v0 implements one band: keyword-argument
-  omission — among the call sites of one callee, a keyword the strong majority
-  of siblings pass but one straggler does not. Gated on a git-trajectory
+  shape ("updated N-1 of N"). Python retains the keyword-argument omission
+  band; TypeScript/TSX v1 uses the host-pinned TypeScript Compiler API to group
+  resolved project function calls by object-option property presence. Gated on a git-trajectory
   signal: a divergence counts as a forgotten sweep only when the
   kwarg-present sites were touched more recently than the straggler (the sweep
   landed after the straggler was last edited). A straggler edited just as
   recently is reported separately as likely-deliberate. Distinguishes
   abandoned partial work from legitimate post-completion cleanup via residue
   direction. Detection-only — never edits code; hands off to /fix-workflow.
-argument-hint: "[--band kwarg|placeholder|all] --paths scripts ... [--min-callsites 4] [--majority-frac 0.75] [--min-present 3] [--max-age-days 120] [--out DIR] [--no-gate]"
+argument-hint: "Python: [--band kwarg|placeholder|all] --paths scripts ...; TypeScript: --target src --tsconfig tsconfig.json --report-dir reports/find-incomplete-sweep/<name>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
-language: python
+language: any
 framework: any
+scans: [python, typescript]
 best_for: |
   Reviewing a human- or AI-authored multi-file change where a sweep across
   sibling call sites may have stopped short: a new keyword argument threaded
@@ -94,6 +95,84 @@ Two detector bands, selected with `--band` (default `kwarg`):
   asymmetry. Output: `placeholder_findings.md` + `placeholder_manifest.json`
   (separate files, so the kwarg band's scout input is never disturbed).
 - **`all`** — run both.
+
+## TypeScript / TSX v1
+
+Use this separate branch only with a named project-local `tsconfig` and a
+`typescript` package installed under the target host. The family-local **TypeScript Compiler API** resolves aliases, resolved object-literal spreads, overloads, and defaults to the precision required for one narrow invariant:
+among calls that resolve to the same project function declaration, an object
+option/property passed by a strong majority but omitted by a straggler.
+
+The detector follows import aliases and a local constant object literal used in
+`...spread`; it keeps overload signatures distinct, and only promotes an
+omitted destructured option with a default when all present sites pass the
+same comparable non-default value. Its final output is still the existing
+candidate → scout packet → explicit human verdict → `triaged.md` journey.
+
+Method/framework APIs, external declarations, runtime dispatch, dynamic
+receivers, unresolved object spreads, JSX/React conventions, and route/ORM
+semantics are explicitly deferred. They never become lexical candidates or
+automatic fixes. Missing/invalid `tsconfig`, an unavailable project-local
+compiler, or TypeScript syntax errors exit 2. An unresolved static module, a
+dynamic callee, or an unresolved spread writes a visibly `partial` manifest;
+it is never represented as a clean scan.
+
+The TypeScript detector accepts a `.ts`/`.tsx` file or directory target. Its
+project-root-relative exclusions apply both to a broad source traversal and a
+direct excluded directory/file. It never follows internal or external symbolic
+links, and it writes only beneath `reports/find-incomplete-sweep/<scan>/`;
+source paths and report paths through a symlink are rejected before any write.
+It does not modify source.
+
+### Installed TypeScript command
+
+Set `FIND_INCOMPLETE_SWEEP_SOURCE` to the pinned source/ref, then install this
+selected skill. The installed command needs only Node, the host-local compiler,
+and the included scout/triage scripts—no toolkit venv, repository helper,
+sibling skill, or network access after installation.
+
+<!-- installed-command:stock-install:start -->
+```bash
+: "${FIND_INCOMPLETE_SWEEP_SOURCE:?Set this to the pinned skill source/ref}"
+npx --yes skills@1.5.19 add "${FIND_INCOMPLETE_SWEEP_SOURCE}" \
+  --skill find-incomplete-sweep --agent codex --copy -y
+```
+<!-- installed-command:stock-install:end -->
+
+<!-- installed-command:typescript-scan:start -->
+```bash
+: "${TARGET:?Set TARGET to the TypeScript/TSX file or directory to inspect}"
+TSCONFIG="${TSCONFIG:-tsconfig.json}"
+REPORT_NAME="${REPORT_NAME:-typescript-scan}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/find-incomplete-sweep" \
+  ".claude/skills/find-incomplete-sweep"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-incomplete-sweep is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+node "${SKILL_ROOT}/scripts/detect_typescript_sweep.mjs" \
+  --target "${TARGET}" \
+  --project-root "$(pwd)" \
+  --tsconfig "${TSCONFIG}" \
+  --report-dir "reports/find-incomplete-sweep/${REPORT_NAME}"
+python3 "${SKILL_ROOT}/scripts/scout.py" \
+  --scan-dir "reports/find-incomplete-sweep/${REPORT_NAME}" \
+  --project-root "$(pwd)"
+```
+<!-- installed-command:typescript-scan:end -->
+
+The command stops at packets because only a human/scout can supply the required
+verdict records. Write one fixed-vocabulary verdict per packet to
+`scout_verdicts.json`, then run `triage.py` as Step C below. Run the host's
+native typecheck and tests before and after this read-only scan.
 
 ## Invocation
 
@@ -185,8 +264,10 @@ call line ± 8 lines), 1–2 present-site windows (siblings that DO pass the
 kwarg, so shapes are comparable), and the divergence metadata (callee, kwarg,
 `majority_frac`, `group_size`, trajectory note). It re-derives present-site
 locations by importing `scan.py`'s collector — detection logic is never
-duplicated. The judge reads packets; it does **not** re-derive evidence.
-(`--paths` must match the original scan so the present-site index is identical.)
+duplicated. The TypeScript manifest instead carries the compiler-resolved
+present-site locations, so its scout invocation omits `--paths`. The judge
+reads packets; it does **not** re-derive evidence. (`--paths` must match the
+original Python scan so the present-site index is identical.)
 
 ### Step B — fan out one judgment per packet
 
@@ -233,7 +314,14 @@ the judge's brief.
 
 ### Step C — rank and hand off
 
-Read `<scan-dir>/scout_verdicts.json` and write `<scan-dir>/triaged.md`,
+Run the fixed writer after collecting `<scan-dir>/scout_verdicts.json`:
+
+```bash
+python3 <skill-root>/scripts/triage.py --scan-dir reports/find-incomplete-sweep/scan-<TS>
+```
+
+It rejects duplicate, missing, unknown, invalid-vocabulary, or rationale-free
+verdicts. The resulting `<scan-dir>/triaged.md` is
 **forgotten-first** (then `deliberate` / `optional` / `not-applicable`, each
 with rationale). Forgotten findings hand off to `/fix-workflow
 cluster:<finding>`; a recurring forgotten *type* graduates to
