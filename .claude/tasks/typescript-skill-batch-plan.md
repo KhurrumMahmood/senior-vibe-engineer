@@ -528,7 +528,9 @@ Acceptance:
 
 ### B4 — First-class TypeScript omnibus detection
 
-State: `proposed` — start only after B2T tooling lessons are reviewed
+State: `in_progress` — `codex/ts-omnibus` at
+`/private/tmp/engineering-skills-ts-omnibus`; started from the accepted B2T
+baseline after reviewing its family-local Compiler API boundary
 
 Skill: `find-omnibus`.
 
