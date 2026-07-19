@@ -1,12 +1,12 @@
 # TypeScript-first skill batch plan
 
 Status: B0, B1, B2P, B2T, B3, B4, move-path, explain-code, duplication,
-complexity, folder-topology, and adapt-project complete; audit-decisions is in
+complexity, folder-topology, and adapt-project complete; audit-decisions is
 complete; find-standard-gaps and map-subsystem are complete; rename-concept is
 complete; propose-boundary and propose-folder-reorganization are complete;
 find-dormant and find-incomplete-sweep are complete;
 find-semantic-duplication and unify-shadows are complete; all 19 neutral skills
-are accepted; final matrix and integrated completion review are in progress
+are accepted; final matrix and integrated completion review passed
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -100,7 +100,7 @@ The milestone is complete only when:
 - [x] One clean-host matrix replays a read-only detector, proposal-only skill,
   safe path mutation, state mutation/guard, and semantic-analysis skill using
   TypeScript fixtures; all native tests and the Python regression paths pass.
-- [ ] The completion review finds no remaining ambiguous language claim and no
+- [x] The completion review finds no remaining ambiguous language claim and no
   shared TypeScript infrastructure without at least two accepted consumers.
 
 ### Full-coverage execution sequence
@@ -874,3 +874,5 @@ framework-neutral TypeScript eligibility.
 | 2026-07-19 UTC | `eec276d..3352392` + fresh forward use | Orchestration neutrality review | Converge, harvest-learnings, organize-project-structure, and orient produced useful installed outcomes with native checks and unchanged source. Project-interview remained pending because its required installed evidence helpers were absent; the failure was retained as a closure repair rather than accepted. |
 | 2026-07-19 UTC | `6058f45..3494290` + repaired fresh forward use | Project-interview neutral closure complete | Skill-local stdlib draft/discovery and evidence-gate helpers close the exact selected-install failure. A fresh TypeScript host recorded only supplied declarations and objective facts, retained unresolved questions, kept `user_approved:false`, passed `OK: 3/3`, passed native checks/tests, and preserved source hashes. |
 | 2026-07-19 UTC | final matrix closeout | Five clean-host TypeScript journeys | Read-only incomplete-sweep detection, boundary proposal, safe path mutation, state mutation/guard, and semantic analysis replayed from their locked installed fixtures: 39 passed, 1 named environment skip (`tests/test_move_path.py:855`, because standalone/global `tsc` was absent from `PATH`; the pinned installed/native TypeScript checks passed). The 76-row matrix test also passed with exact counts 22 supported + 19 neutral + 22 stack-bound + 13 runtime. |
+| 2026-07-19 UTC | `caa19cf..ae4080e` | Final adversarial closure | The first fresh completion review found one real install-closure defect: `rename-concept` required but did not route its `find-concept-divergence` companion. The accepted repair added one narrow validated `install_with` field, regenerated the catalog, made router/matrix commands agree, and proved the router-emitted stock command installs exactly both skills and reaches `COMPLETE`. The second fresh non-context review returned PASS with no P0/P1/P2 findings; its targeted catalog/install/outcome set passed 22 tests. |
+| 2026-07-19 UTC | `ae4080e` | Final integrated verification | Canonical suite: 660 passed, 2 named environment skips in 251.14s. Skips: `tests/test_move_path.py:855` because standalone/global `tsc` was absent from `PATH`, and `tests/scripts/test_which_cleanup.py:169` because `HEAD~1` was not large enough for that checkout-shape branch. Focused companion/router/catalog/matrix/metadata set: 77 passed; metadata, catalog-current, Ruff, JSON, and diff checks passed. |
