@@ -190,3 +190,25 @@ def test_copied_agents_install_is_isolated_and_writes_adapter_report_and_evidenc
     assert (scan_dir / "evidence.json").is_file()
     assert adapter["stack"]["frameworks"] == []
     assert not (host / ".engineering" / "project" / "adapter.yml").exists()
+
+
+def test_default_artifact_root_is_the_requested_host_not_the_installed_skill_directory(tmp_path: Path) -> None:
+    host = tmp_path / "typescript-host"
+    _seed_typescript_host(host, source_files=1)
+    installed = host / ".agents" / "skills" / "adapt-project"
+    shutil.copytree(SKILL_ROOT, installed)
+
+    result = _run(
+        installed / "scripts" / "discover.py",
+        "--project-root",
+        str(host),
+        "--timestamp",
+        "20260719-121501",
+        cwd=installed,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    scan_dir = Path(result.stdout.strip())
+    assert scan_dir == host / "reports" / "adapt-project" / "scan-20260719-121501"
+    assert (scan_dir / "report.md").is_file()
+    assert not (installed / "reports").exists()

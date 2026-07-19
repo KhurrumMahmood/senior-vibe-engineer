@@ -391,7 +391,7 @@ def write_discovery(project_root: Path, artifact_root: Path, *, timestamp: str |
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Discover objective host-project facts for adapt-project")
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
-    parser.add_argument("--artifact-root", type=Path, default=Path.cwd())
+    parser.add_argument("--artifact-root", type=Path, help="Defaults to project-root")
     parser.add_argument("--timestamp", help="Stable scan timestamp, e.g. 20260719-120000")
     parser.add_argument("--apply", action="store_true", help="Write .engineering/project/adapter.yml")
     parser.add_argument("--no-host-write", action="store_true", help="Require artifact-root outside project-root")
@@ -400,10 +400,12 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    project_root = args.project_root.resolve()
+    artifact_root = args.artifact_root.resolve() if args.artifact_root else project_root
     try:
         print(write_discovery(
-            args.project_root.resolve(),
-            args.artifact_root.resolve(),
+            project_root,
+            artifact_root,
             timestamp=args.timestamp,
             apply=args.apply,
             no_host_write=args.no_host_write,
