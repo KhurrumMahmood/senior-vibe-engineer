@@ -1,10 +1,19 @@
 # Installed closure
 
-The exact selected-skill copy does not include repository helpers
-`scripts/project_adapt.py` or `scripts/evidence_gate.py`. Repository facts were
-read directly for this captured prompt-led draft, and the focused artifact
-oracle verifies that all three evidence paths exist. The prescribed
-`evidence_gate.py check` command was not run from the installed host, so no
-exact helper output is claimed. Stock use retains a discovery/evidence-gate UX
-and closeout gap until those optional project facilities exist in the host or
-the skill bundles an honest local equivalent.
+The exact selected-skill copy includes skill-local stdlib helpers
+`scripts/project_interview.py` and `scripts/evidence_gate.py`; neither imports
+repository `scripts/`, sibling skills, a toolkit venv, or third-party Python
+packages. The installed draft helper preserves `user_approved: false` until
+visible human answers are captured and refuses premature durable apply.
+
+The installed evidence gate ran against this scan's fixed manifest and final
+artifacts:
+
+```text
+Evidence gate for /project-interview on reports/project-interview/scan-20260719-160400:
+  [ok] profile -> profile.yml
+  [ok] profile_summary -> profile.md
+  [ok] open_questions -> open-questions.md
+
+OK: 3/3 required evidence shapes present.
+```

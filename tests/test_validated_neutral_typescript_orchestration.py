@@ -11,10 +11,12 @@ import hashlib
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+VENV_PYTHON = Path(sys.executable)
 FIXTURE_ROOT = (
     REPO_ROOT / "tests" / "fixtures" / "validated-neutral-typescript" / "orchestration"
 )
@@ -161,9 +163,9 @@ def _assert_project_interview(host: Path) -> None:
     for relative in manifest["evidence"].values():
         assert (scan / relative).is_file()
     closure = (scan / "installed-closure.md").read_text(encoding="utf-8")
-    assert "scripts/project_adapt.py" in closure
+    assert "scripts/project_interview.py" in closure
     assert "scripts/evidence_gate.py" in closure
-    assert "was not run" in closure
+    assert "OK: 3/3 required evidence shapes present." in closure
 
 
 ARTIFACT_ORACLES = {
@@ -218,9 +220,92 @@ def test_stock_installed_neutral_orchestration_reaches_final_typescript_outputs(
     assert (installed_root / "harvest-learnings" / "knowledge" / "output-schema.md").is_file()
     assert (installed_root / "orient" / "scripts" / "infer_state_signals.py").is_file()
     assert (installed_root / "orient" / "knowledge" / "inference-heuristics.md").is_file()
+    interview_skill = installed_root / "project-interview"
+    interview_helper = interview_skill / "scripts" / "project_interview.py"
+    evidence_helper = interview_skill / "scripts" / "evidence_gate.py"
+    assert interview_helper.is_file()
+    assert evidence_helper.is_file()
 
-    # These are repository-level dependencies, not part of the exact selected
-    # install.  The captured outcomes disclose the resulting closure gap.
+    installed_artifacts = tmp_path / "installed-project-interview-artifacts"
+    draft = _run(
+        str(VENV_PYTHON),
+        "-I",
+        "-S",
+        str(interview_helper),
+        "draft",
+        "--project-root",
+        str(host),
+        "--artifact-root",
+        str(installed_artifacts),
+        "--timestamp",
+        "installed-project-interview",
+        "--no-host-write",
+        cwd=host,
+    )
+    assert draft.returncode == 0, draft.stdout + draft.stderr
+    installed_scan = (
+        installed_artifacts
+        / "reports"
+        / "project-interview"
+        / "scan-installed-project-interview"
+    )
+    assert draft.stdout.strip() == str(installed_scan)
+    draft_profile = (installed_scan / "profile.yml").read_text(encoding="utf-8")
+    assert "user_approved: false" in draft_profile
+    assert "languages: [typescript]" in draft_profile
+    assert "pilot customers" not in draft_profile
+    assert "unbounded retry attempts" not in draft_profile
+    assert not (host / ".engineering" / "project").exists()
+
+    refused_apply = _run(
+        str(VENV_PYTHON),
+        "-I",
+        "-S",
+        str(interview_helper),
+        "apply",
+        "--project-root",
+        str(host),
+        "--scan-dir",
+        str(installed_scan),
+        cwd=host,
+    )
+    assert refused_apply.returncode == 1
+    assert "user_approved is not true" in refused_apply.stderr
+    assert not (host / ".engineering" / "project").exists()
+
+    profile_summary = installed_scan / "profile.md"
+    hidden_summary = installed_scan / "profile.md.missing"
+    profile_summary.rename(hidden_summary)
+    failed_gate = _run(
+        str(VENV_PYTHON),
+        "-I",
+        "-S",
+        str(evidence_helper),
+        "check",
+        "--scan-dir",
+        str(installed_scan),
+        cwd=host,
+    )
+    assert failed_gate.returncode == 1
+    assert "FAIL: 2/3 required evidence shapes present." in failed_gate.stdout
+    hidden_summary.rename(profile_summary)
+
+    passed_gate = _run(
+        str(VENV_PYTHON),
+        "-I",
+        "-S",
+        str(evidence_helper),
+        "check",
+        "--scan-dir",
+        str(installed_scan),
+        cwd=host,
+    )
+    assert passed_gate.returncode == 0, passed_gate.stdout + passed_gate.stderr
+    assert passed_gate.stdout.rstrip().endswith("OK: 3/3 required evidence shapes present.")
+    assert _tree_fingerprint(host / "src") == source_before
+
+    # These repository-level paths remain absent: project-interview now uses
+    # only its installed skill-local helpers.
     assert not (installed_root / "_common" / "structural-design-principles.md").exists()
     assert not (host / "scripts" / "log_effectiveness.py").exists()
     assert not (host / "scripts" / "project_adapt.py").exists()
@@ -240,6 +325,24 @@ def test_stock_installed_neutral_orchestration_reaches_final_typescript_outputs(
             assert marker not in task
         _materialize_result(host, name)
         oracle(host)
+        if name == "project-interview":
+            captured_scan = host / "reports" / "project-interview" / "scan-20260719-160400"
+            captured_gate = _run(
+                str(VENV_PYTHON),
+                "-I",
+                "-S",
+                str(evidence_helper),
+                "check",
+                "--skill",
+                "project-interview",
+                "--scan-dir",
+                str(captured_scan),
+                cwd=host,
+            )
+            assert captured_gate.returncode == 0, captured_gate.stdout + captured_gate.stderr
+            assert captured_gate.stdout.rstrip().endswith(
+                "OK: 3/3 required evidence shapes present."
+            )
         assert _tree_fingerprint(host / "src") == source_before
 
     final_typecheck = _run("npm", "run", "typecheck", cwd=host)
