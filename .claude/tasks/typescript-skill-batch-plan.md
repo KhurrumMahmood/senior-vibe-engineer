@@ -5,7 +5,8 @@ complexity, folder-topology, and adapt-project complete; audit-decisions is in
 complete; find-standard-gaps and map-subsystem are complete; rename-concept is
 complete; propose-boundary and propose-folder-reorganization are complete;
 find-dormant is complete; find-incomplete-sweep and
-find-semantic-duplication are in progress
+find-semantic-duplication are in progress; the five-skill neutral planning
+batch is complete
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -590,16 +591,22 @@ Promotion gate:
 This map assigns every skill to one present disposition. A later accepted
 learning report may move a skill, but no agent should infer an unlisted port.
 
-### Shared, target validated-neutral (15)
+### Shared, validated-neutral (5 accepted; 10 pending)
 
-`architecture-fit`, `converge`, `decide`, `design-it-twice`, `diagnose`,
-`find-perimeter-gaps`, `gut-check`, `harvest-learnings`,
-`organize-project-structure`, `orient`, `plan-spec`, `project-interview`,
-`scope-feature`, `teach-pattern`, and `triage-debt`.
+Accepted in the TypeScript planning-host batch: `architecture-fit`, `decide`,
+`design-it-twice`, `plan-spec`, and `scope-feature`.
 
-These remain `validation_state: blocked-closure` until the representative
-installed TypeScript-host batches prove their final outcomes. Neutrality is a
-target disposition, not permission to ignore source-tree-only dependencies.
+Pending: `converge`, `diagnose`, `find-perimeter-gaps`, `gut-check`,
+`harvest-learnings`, `organize-project-structure`, `orient`,
+`project-interview`, `teach-pattern`, and `triage-debt`.
+
+The accepted planning skills produced their final scoped/architected/decision/
+comparative-design/spec artifacts from an installed TypeScript host without a
+language-specific implementation or source mutation. Fresh forward use also
+completed all five artifacts. Missing optional repository helpers and doctrine
+docs were disclosed and bypassed by following the installed artifact contracts
+directly; they remain TypeScript-cleanup/user-experience work, not evidence of a
+language variant. Pending skills remain `validation_state: blocked-closure`.
 
 ### Ecosystem/runtime implementation, not a host-language variant (13)
 
@@ -827,3 +834,4 @@ corrected rather than treated as working framework neutrality.
 | 2026-07-19 UTC | `f7e7f01..3ba2f2d` + serial closeout | TypeScript boundary proposal complete | Host-resolved static import/symbol/call evidence supports direct, alias, and barrel caller impact while cohesive, unresolved, and ambiguous graphs defer. Stock selected-skill install and focused suite passed. Fresh installed forward use produced two scored seams, a private-import blocker, public API and barrel compatibility plan, native verification commands, and byte-identical source; D6 PASS. |
 | 2026-07-19 UTC | `5a0fec2` + serial closeout | TypeScript folder proposal complete | Host-resolved direct-relative and paths-alias impact produces a complete move/import/barrel/test plan while threshold, scratch, excluded, unresolved, and unsafe targets defer or reject. Focused suite and stock selected install passed. Fresh installed forward use proposed 3 moves and 7 resolved rewrites, passed typecheck, and preserved every source hash; D6 PASS. |
 | 2026-07-19 UTC | `3c4e556..2453674` + serial closeout | TypeScript dormant review complete | Project-local Program/TypeChecker reports statically unreferenced non-exported top-level implementations for human review only; dynamic string reachability remains uncertain and `certain_delete` is always zero. Exact stock selected install, focused/native suite, partial/error states, path containment, and source immutability passed. Fresh installed forward use reported 1 review-required/1 uncertain/0 certain-delete with native checks green; D6 PASS. |
+| 2026-07-19 UTC | `9f4fbdc..e800856` + fresh forward use | Five planning skills validated neutral | One locked TypeScript 5.9.3 host and exact combined stock copy install proved final artifacts for scope-feature, architecture-fit, decide, design-it-twice, and plan-spec with source fingerprints unchanged. A fresh agent independently produced all five without reference artifacts or language-specific implementation. Missing optional repo helpers/doctrine were disclosed; the core installed artifact contracts remained usable. Focused automated evidence: 4 tests / 75 parametrized checks; D6 PASS with residual UX cleanup recorded. |
