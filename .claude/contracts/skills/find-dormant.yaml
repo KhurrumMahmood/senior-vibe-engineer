@@ -4,9 +4,11 @@ skill: find-dormant
 job: suspect
 problem_class: "dead / dormant code detection (SUSPECT)"
 intent: >
-  Read-only scan that surfaces likely-dead code — symbols, functions, modules,
-  and routes with no live references — ranked from certain-delete down to
-  needs-review, as advisory leads without touching production files.
+  Read-only scan that surfaces likely-dead code without touching source.
+  Python preserves its staged scout verdicts; TypeScript/TSX v1 uses a
+  project-local Compiler API to report non-exported top-level implementations
+  with zero resolved static references as human-review or uncertain candidates,
+  never as certainly safe to delete.
 solves: >
   Dead code accumulates and obscures the live system; there was no first-pass,
   repo-wide lead list of what is unreferenced, so reviewers feared deleting code
@@ -19,11 +21,12 @@ dogfood_kind: host-attested
 dogfooded_on:
   - "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 2 effectiveness records, 0 scan dirs, learnings_file=true, 2026-05-02..2026-05-03."
   - "none-found (extracted in the 90f8567 big-bang; no on-disk reports run and no fixtures pair in this ES2 tree)"
-reports_dir: none
+  - "2026-07-19 fresh installed TypeScript forward audit: one review-required private function, one dynamic-name uncertainty, zero certain-delete claims, native checks green, and source hashes unchanged."
+reports_dir: reports/find-dormant
 run_evidence:
-  count: 0
-  first: null
-  latest: null
+  count: 1
+  first: "2026-07-19"
+  latest: "2026-07-19"
 embodies_decisions:
   adr: []
   precedent: []
@@ -46,5 +49,6 @@ evidence:
   - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
   - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scanner present, no oracle pair (structural med)"
   - "reports_dir null, run count 0 — no on-disk dormant-scan run in this ES2 tree"
+  - "tests/test_find_dormant_typescript.py plus fresh installed forward use prove review-required/uncertain boundaries, certain_delete=0, registry/event/framework must-not-fire shapes, partial/error states, exclusions, path containment, copied closure, native verification, and source immutability."
 gaps:
-  - "host-a dogfooded this on real delete-commit history (subsystem-refactor); ES2 has no such host history and no run on disk, so dogfood_kind is honestly none-found here."
+  - "TypeScript v1 cannot prove runtime, framework, dynamic, external, or cross-project reachability and intentionally excludes methods/nested functions from its top-level candidate contract."

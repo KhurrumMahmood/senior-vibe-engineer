@@ -195,6 +195,11 @@ def test_installed_which_skill_routes_typescript_explanation(tmp_path):
             "import impact",
             "propose-folder-reorganization",
         ),
+        (
+            "audit TypeScript private implementations for statically unreferenced "
+            "dormant code",
+            "find-dormant",
+        ),
     ],
 )
 def test_installed_which_skill_routes_typescript_analysis_skills(

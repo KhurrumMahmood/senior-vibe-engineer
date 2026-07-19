@@ -394,13 +394,17 @@
     },
     {
       "name": "find-dormant",
-      "description": "Detect dead and quasi-dead code. Runs vulture + AST \"defined but never referenced\" checks, validates every candidate against real call sites, cross-references URL patterns with template URL-name usage, runs a git-log recency check, and produces a deletion-candidates report with evidence. Never deletes unilaterally — surfaces findings for user authorization, then hands off to `/fix-workflow`.",
+      "description": "Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX v1 uses a host-pinned Compiler API Program/TypeChecker to report non-exported, statically unreferenced top-level implementation candidates for human review. Never infers safe deletion from TypeScript static evidence.",
       "tier": "maintenance",
       "job": "suspect",
-      "best_for": "Detecting dead and quasi-dead Python code, unused URL patterns,\ndefined-but-unreferenced symbols. Validates against real call sites\nand template URL-name usage; cross-checks git-log recency. Never\ndeletes — surfaces evidence for /fix-workflow delete:<id>.\n",
-      "not_for": "Removing flagged code (use /fix-workflow delete:<id>). Architectural\nsmells like omnibus or layer violation (use those /find-* skills).\nSemantic duplication where two implementations coexist (use\n/find-semantic-duplication).\n",
-      "language": "python",
-      "framework": "django",
+      "best_for": "TypeScript private implementations that appear statically unreferenced and\nneed a conservative dormant-code review with no safe-deletion claim.\nDetecting dead and quasi-dead Python code, unused URL patterns,\ndefined-but-unreferenced symbols. Validates against real call sites\nand template URL-name usage; cross-checks git-log recency. Never\ndeletes — surfaces evidence for /fix-workflow delete:<id>. TypeScript/TSX\nv1 reports only non-exported top-level implementations with zero resolved\nstatic symbol references, and always requires human runtime review.\n",
+      "not_for": "Removing findings (use /fix-workflow delete:<id>). Architectural\nsmells like omnibus or layer violation (use those /find-* skills).\nSemantic duplication where two live behaviors coexist (use\n/find-semantic-duplication). Routes/endpoints, error swallowing,\ndynamic imports, external consumers, registry/event/framework reachability,\nor safe-deletion decisions are outside the static v1 contract.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "typescript"
+      ],
       "_path": "skills/find-dormant"
     },
     {

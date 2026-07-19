@@ -7,6 +7,8 @@ user-invocable: true
 tier: maintenance
 job: suspect
 best_for: |
+  TypeScript private implementations that appear statically unreferenced and
+  need a conservative dormant-code review with no safe-deletion claim.
   Detecting dead and quasi-dead Python code, unused URL patterns,
   defined-but-unreferenced symbols. Validates against real call sites
   and template URL-name usage; cross-checks git-log recency. Never
@@ -14,12 +16,12 @@ best_for: |
   v1 reports only non-exported top-level implementations with zero resolved
   static symbol references, and always requires human runtime review.
 not_for: |
-  Removing flagged code (use /fix-workflow delete:<id>). Architectural
+  Removing findings (use /fix-workflow delete:<id>). Architectural
   smells like omnibus or layer violation (use those /find-* skills).
-  Semantic duplication where two implementations coexist (use
-  /find-semantic-duplication). TypeScript routes/endpoints, error swallowing,
+  Semantic duplication where two live behaviors coexist (use
+  /find-semantic-duplication). Routes/endpoints, error swallowing,
   dynamic imports, external consumers, registry/event/framework reachability,
-  or safe-deletion decisions are outside the TypeScript v1 contract.
+  or safe-deletion decisions are outside the static v1 contract.
 language: any
 framework: any
 scans: [python, typescript]

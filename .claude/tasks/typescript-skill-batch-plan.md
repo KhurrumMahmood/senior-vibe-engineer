@@ -4,7 +4,8 @@ Status: B0, B1, B2P, B2T, B3, B4, move-path, explain-code, duplication,
 complexity, folder-topology, and adapt-project complete; audit-decisions is in
 complete; find-standard-gaps and map-subsystem are complete; rename-concept is
 complete; propose-boundary and propose-folder-reorganization are complete;
-find-dormant is in progress
+find-dormant is complete; find-incomplete-sweep and
+find-semantic-duplication are in progress
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -611,7 +612,7 @@ These operate on the toolkit's own ledgers, catalogs, routers, rules, or
 bootstrap runtime. A TypeScript host does not require a language variant, but
 the final matrix still records a runtime review revision.
 
-### TypeScript-supported batches (22 unique skills)
+### TypeScript-supported batches (23 unique skills)
 
 - B1: `find-concept-divergence`, `find-rule-surface-drift`,
   `find-skill-artifact-drift`, `find-skill-intent-drift`,
@@ -630,11 +631,11 @@ the final matrix still records a runtime review revision.
 - Coupled rename assessment: `rename-concept`.
 - Resolved boundary proposal: `propose-boundary`.
 - Resolved folder proposal: `propose-folder-reorganization`.
+- Conservative dormant review: `find-dormant`.
 
-### Candidate language-level families and repairs (4)
+### Candidate language-level families and repairs (3)
 
-`find-dormant`, `find-incomplete-sweep`, `find-semantic-duplication`, and
-`unify-shadows`.
+`find-incomplete-sweep`, `find-semantic-duplication`, and `unify-shadows`.
 
 These require a crisp action/output handoff, fixture policy, or a proven parser
 consumer before batching. Apparent chains such as omnibus→refactor,
@@ -727,6 +728,13 @@ Active candidate promotion:
   compatibility decision, and native verification plan. A fresh installed task
   passed typecheck and preserved every source hash.
 
+- `find-dormant` is `complete` at `3c4e556..2453674` plus serial
+  router/catalog closeout. Its family-local Program/TypeChecker reports only
+  non-exported top-level implementations with zero resolved static references,
+  keeps dynamic string reachability uncertain, and fixes `certain_delete` at
+  zero. Fresh installed use found one review-required and one uncertain case,
+  passed native checks, and preserved every source hash.
+
 - `move-path` is `complete` on `codex/productization-restart` at `6e65140` plus
   its generated-index/catalog closeout. Its v1 contract guarantees a
   self-contained JSON plan path, keeps YAML optional when PyYAML is available,
@@ -818,3 +826,4 @@ corrected rather than treated as working framework neutrality.
 | 2026-07-19 UTC | `d802fb1..10ccc22` + serial closeout | TypeScript rename assessment complete | Exact-two coupled stock install preserves lexical detector authority while project-local Compiler API evidence resolves glossary identifier declarations/references. Persistent lifecycle artifacts, positive/clean/prose/identifier boundaries, native verification, Python smoke, and path exclusions passed. Adversarial review reproduced an internal report-symlink source overwrite; the accepted repair rejects every final/ancestor symlink component and preserves source hashes. Focused/regression suite: 37 passed; final containment re-review PASS. |
 | 2026-07-19 UTC | `f7e7f01..3ba2f2d` + serial closeout | TypeScript boundary proposal complete | Host-resolved static import/symbol/call evidence supports direct, alias, and barrel caller impact while cohesive, unresolved, and ambiguous graphs defer. Stock selected-skill install and focused suite passed. Fresh installed forward use produced two scored seams, a private-import blocker, public API and barrel compatibility plan, native verification commands, and byte-identical source; D6 PASS. |
 | 2026-07-19 UTC | `5a0fec2` + serial closeout | TypeScript folder proposal complete | Host-resolved direct-relative and paths-alias impact produces a complete move/import/barrel/test plan while threshold, scratch, excluded, unresolved, and unsafe targets defer or reject. Focused suite and stock selected install passed. Fresh installed forward use proposed 3 moves and 7 resolved rewrites, passed typecheck, and preserved every source hash; D6 PASS. |
+| 2026-07-19 UTC | `3c4e556..2453674` + serial closeout | TypeScript dormant review complete | Project-local Program/TypeChecker reports statically unreferenced non-exported top-level implementations for human review only; dynamic string reachability remains uncertain and `certain_delete` is always zero. Exact stock selected install, focused/native suite, partial/error states, path containment, and source immutability passed. Fresh installed forward use reported 1 review-required/1 uncertain/0 certain-delete with native checks green; D6 PASS. |
