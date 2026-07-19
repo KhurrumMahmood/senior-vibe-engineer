@@ -101,8 +101,10 @@ used, `--artifact-root` must be outside the host project.
 
    <!-- installed-command:discover:start -->
    ```bash
-   PROJECT_ROOT="${PROJECT_ROOT:-$(pwd)}"
+   PROJECT_ROOT="$(cd "${PROJECT_ROOT:-.}" && pwd -P)" || exit $?
    ARTIFACT_ROOT="${ARTIFACT_ROOT:-$PROJECT_ROOT}"
+   mkdir -p "$ARTIFACT_ROOT" || exit $?
+   ARTIFACT_ROOT="$(cd "$ARTIFACT_ROOT" && pwd -P)" || exit $?
    ADAPT_PROJECT_SKILL="${ADAPT_PROJECT_SKILL:-.agents/skills/adapt-project}"
    cd "$ADAPT_PROJECT_SKILL"
    SCAN_DIR="$(python3 -I -S scripts/discover.py \

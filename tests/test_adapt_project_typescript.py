@@ -278,3 +278,203 @@ def test_default_artifact_root_is_the_requested_host_not_the_installed_skill_dir
     assert scan_dir == host / "reports" / "adapt-project" / "scan-20260719-121501"
     assert (scan_dir / "report.md").is_file()
     assert not (installed / "reports").exists()
+
+
+def test_timestamp_cannot_escape_the_artifact_scan_directory(tmp_path: Path) -> None:
+    host = tmp_path / "host"
+    artifacts = tmp_path / "artifacts"
+    _seed_typescript_host(host, source_files=1)
+
+    result = _run(
+        SKILL_ROOT / "scripts" / "discover.py",
+        "--project-root",
+        str(host),
+        "--artifact-root",
+        str(artifacts),
+        "--no-host-write",
+        "--timestamp",
+        "scan-/../../../../host/escaped-scan",
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 2
+    assert "timestamp" in result.stderr
+    assert not (host / "escaped-scan").exists()
+
+    overlong = _run(
+        SKILL_ROOT / "scripts" / "discover.py",
+        "--project-root",
+        str(host),
+        "--artifact-root",
+        str(artifacts),
+        "--no-host-write",
+        "--timestamp",
+        "x" * 65,
+        cwd=tmp_path,
+    )
+    assert overlong.returncode == 2
+    assert "timestamp" in overlong.stderr
+
+
+def test_python_django_markers_remain_framework_facts(tmp_path: Path) -> None:
+    host = tmp_path / "django-host"
+    _seed_python_host(host, source_files=1)
+    _write(host / "manage.py", "#!/usr/bin/env python3\n")
+
+    adapter, _ = _discover(SKILL_ROOT, host, tmp_path / "artifacts", cwd=tmp_path)
+
+    assert adapter["stack"]["frameworks"] == ["django"]
+
+    for marker_name, contents in (("requirements.txt", "Django>=5.0\n"), ("pyproject.toml", "[project]\nname = 'Django host'\n")):
+        marker_host = tmp_path / marker_name.replace(".", "-")
+        _seed_python_host(marker_host, source_files=1)
+        _write(marker_host / marker_name, contents)
+        marker_adapter, _ = _discover(
+            SKILL_ROOT, marker_host, tmp_path / f"{marker_name}-artifacts", cwd=tmp_path,
+        )
+        assert marker_adapter["stack"]["frameworks"] == ["django"]
+
+
+def test_installed_documented_pipeline_canonicalizes_relative_host_and_missing_artifact_root(tmp_path: Path) -> None:
+    host = tmp_path / "typescript-host"
+    _seed_typescript_host(host, source_files=1)
+    installed = _install_stock_codex_skill(host)
+    command = "\n".join((
+        _documented_command(installed, "discover"),
+        _documented_command(installed, "check-evidence"),
+    ))
+
+    result = subprocess.run(
+        ["/bin/sh", "-c", command],
+        cwd=host,
+        env={**os.environ, "PROJECT_ROOT": ".", "ARTIFACT_ROOT": "artifacts/missing"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    scan_dir = host / "artifacts" / "missing" / "reports" / "adapt-project" / "latest"
+    assert (scan_dir / "adapter.json").is_file()
+    assert not (installed / "reports").exists()
+
+
+def test_source_roots_exclude_symlinked_candidate_and_file_escapes(tmp_path: Path) -> None:
+    external = tmp_path / "external"
+    _seed_typescript_host(external, source_files=201)
+    symlinked_candidate_host = tmp_path / "symlinked-candidate-host"
+    symlinked_candidate_host.mkdir()
+    (symlinked_candidate_host / "src").symlink_to(external / "src", target_is_directory=True)
+
+    candidate_adapter, _ = _discover(
+        SKILL_ROOT, symlinked_candidate_host, tmp_path / "candidate-artifacts", cwd=tmp_path,
+    )
+    assert all(row["path"] != "src" for row in candidate_adapter["source_roots"])
+
+    file_escape_host = tmp_path / "file-escape-host"
+    (file_escape_host / "src").mkdir(parents=True)
+    _write(external / "escaped.py", "VALUE = 1\n")
+    _write(external / "escaped.ts", "export const value = 1;\n")
+    _write(external / "escaped.tsx", "export function Panel(): null { return null; }\n")
+    _write(external / "escaped.md", "# external\n")
+    for name in ("escaped.py", "escaped.ts", "escaped.tsx", "escaped.md"):
+        (file_escape_host / "src" / name).symlink_to(external / name)
+
+    file_adapter, _ = _discover(SKILL_ROOT, file_escape_host, tmp_path / "file-artifacts", cwd=tmp_path)
+    source_root = _source_root(file_adapter)
+    assert source_root["python_files"] == 0
+    assert source_root["typescript_files"] == 0
+    assert source_root["markdown_files"] == 0
+
+
+def test_artifact_report_and_latest_stay_within_artifact_root(tmp_path: Path) -> None:
+    host = tmp_path / "host"
+    artifact_root = tmp_path / "artifacts"
+    external = tmp_path / "external"
+    _seed_typescript_host(host, source_files=1)
+    artifact_root.mkdir()
+    external.mkdir()
+    (artifact_root / "reports").symlink_to(external, target_is_directory=True)
+
+    result = _run(
+        SKILL_ROOT / "scripts" / "discover.py",
+        "--project-root",
+        str(host),
+        "--artifact-root",
+        str(artifact_root),
+        "--no-host-write",
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 2
+    assert "artifact report directory" in result.stderr
+    assert not (external / "adapt-project").exists()
+
+    (artifact_root / "reports").unlink()
+    reports = artifact_root / "reports" / "adapt-project"
+    reports.mkdir(parents=True)
+    (reports / "latest").mkdir()
+    latest_result = _run(
+        SKILL_ROOT / "scripts" / "discover.py",
+        "--project-root",
+        str(host),
+        "--artifact-root",
+        str(artifact_root),
+        "--no-host-write",
+        cwd=tmp_path,
+    )
+    assert latest_result.returncode == 2
+    assert "latest scan link" in latest_result.stderr
+
+
+def test_evidence_paths_cannot_escape_the_scan_directory(tmp_path: Path) -> None:
+    host = tmp_path / "host"
+    _seed_typescript_host(host, source_files=1)
+    _, scan_dir = _discover(SKILL_ROOT, host, tmp_path / "artifacts", cwd=tmp_path)
+    foreign = tmp_path / "foreign"
+    _write(foreign / "adapter.yml", "foreign\n")
+    _write(foreign / "report.md", "foreign\n")
+    link = scan_dir / "linked-report.md"
+    link.symlink_to(foreign / "report.md")
+
+    cases = (
+        {"adapter": "../foreign/adapter.yml", "report": "../foreign/report.md"},
+        {"adapter": str(foreign / "adapter.yml"), "report": str(foreign / "report.md")},
+        {"adapter": "adapter.yml", "report": "linked-report.md"},
+    )
+    for evidence in cases:
+        (scan_dir / "evidence.json").write_text(
+            json.dumps({"skill": "adapt-project", "evidence": evidence}), encoding="utf-8",
+        )
+        result = _run(SKILL_ROOT / "scripts" / "check_evidence.py", "--scan-dir", str(scan_dir), cwd=tmp_path)
+        assert result.returncode == 1, result.stdout + result.stderr
+
+
+def test_evidence_manifest_and_adapter_cannot_be_symlink_escapes(tmp_path: Path) -> None:
+    host = tmp_path / "host"
+    _seed_typescript_host(host, source_files=1)
+    _, scan_dir = _discover(SKILL_ROOT, host, tmp_path / "artifacts", cwd=tmp_path)
+    foreign = tmp_path / "foreign"
+    manifest_path = scan_dir / "evidence.json"
+    manifest_contents = manifest_path.read_text(encoding="utf-8")
+    _write(foreign / "evidence.json", manifest_contents)
+    _write(foreign / "adapter.json", "{}\n")
+
+    manifest_path.unlink()
+    manifest_path.symlink_to(foreign / "evidence.json")
+    manifest_result = _run(
+        SKILL_ROOT / "scripts" / "check_evidence.py", "--scan-dir", str(scan_dir), cwd=tmp_path,
+    )
+    assert manifest_result.returncode == 1
+    assert "evidence.json" in manifest_result.stderr
+
+    manifest_path.unlink()
+    _write(manifest_path, manifest_contents)
+    adapter_path = scan_dir / "adapter.json"
+    adapter_path.unlink()
+    adapter_path.symlink_to(foreign / "adapter.json")
+    adapter_result = _run(
+        SKILL_ROOT / "scripts" / "check_evidence.py", "--scan-dir", str(scan_dir), cwd=tmp_path,
+    )
+    assert adapter_result.returncode == 1
+    assert "adapter.json" in adapter_result.stderr

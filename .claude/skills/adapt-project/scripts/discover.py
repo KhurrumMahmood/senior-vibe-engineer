@@ -60,6 +60,7 @@ SENSITIVE_NAME_RE = re.compile(
     re.IGNORECASE,
 )
 TERM_RE = re.compile(r"^\*\*([^*\n:]{2,80})\*\*:", re.MULTILINE)
+SCAN_ID_RE = re.compile(r"^scan-[A-Za-z0-9][A-Za-z0-9_.-]{0,58}$")
 
 
 def utc_now() -> str:
@@ -67,9 +68,15 @@ def utc_now() -> str:
 
 
 def scan_id(value: str | None) -> str:
-    if value:
-        return value if value.startswith("scan-") else f"scan-{value}"
-    return dt.datetime.now(dt.timezone.utc).strftime("scan-%Y%m%d-%H%M%S")
+    if value is None:
+        candidate = dt.datetime.now(dt.timezone.utc).strftime("scan-%Y%m%d-%H%M%S")
+    elif value.startswith("scan-"):
+        candidate = value
+    else:
+        candidate = f"scan-{value}"
+    if not SCAN_ID_RE.fullmatch(candidate):
+        raise ValueError("--timestamp must form one safe scan-<id> path component")
+    return candidate
 
 
 def relative(path: Path, root: Path) -> str:
@@ -120,18 +127,26 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for name in SOURCE_ROOT_CANDIDATES:
         path = root / name
-        if not path.is_dir():
+        if not path.is_dir() or not is_within(path, root):
             continue
-        python_files = sum(1 for item in path.rglob("*.py") if not is_common_ignored(item))
-        ts_paths = [item for item in path.rglob("*.ts") if is_typescript_source(item)]
-        tsx_paths = [item for item in path.rglob("*.tsx") if is_typescript_source(item)]
+        python_files = sum(
+            1 for item in path.rglob("*.py") if is_within(item, root) and not is_common_ignored(item)
+        )
+        ts_paths = [
+            item for item in path.rglob("*.ts") if is_within(item, root) and is_typescript_source(item)
+        ]
+        tsx_paths = [
+            item for item in path.rglob("*.tsx") if is_within(item, root) and is_typescript_source(item)
+        ]
         typescript_files = len(ts_paths) + len(tsx_paths)
         source_languages: list[str] = []
         if python_files:
             source_languages.append("python")
         if typescript_files:
             source_languages.append("typescript")
-        markdown_files = sum(1 for item in path.rglob("*.md") if not is_common_ignored(item))
+        markdown_files = sum(
+            1 for item in path.rglob("*.md") if is_within(item, root) and not is_common_ignored(item)
+        )
         rows.append({
             "path": name,
             "python_files": python_files,
@@ -166,14 +181,18 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
     if (root / "requirements.txt").is_file() or (root / "pyproject.toml").is_file():
         package_managers.append("pip")
 
+    requirements_text = "\n".join(read_text(path) for path in requirements)
+    python_config = requirements_text + "\n" + read_text(root / "pyproject.toml")
+    frameworks = ["django"] if (root / "manage.py").exists() or "django" in python_config.lower() else []
+
     markers = [name for name in (
         "manage.py", "pyproject.toml", "requirements.txt", "package.json", "pnpm-lock.yaml", "vite.config.ts", "tsconfig.json",
     ) if (root / name).exists()]
     return {
         "languages": languages,
-        # Dependency names are not framework facts.  They are intentionally
-        # omitted until a host supplies an explicit framework marker.
-        "frameworks": [],
+        # Preserve the reference Python Django marker while refusing to infer
+        # a Node framework from package dependency names.
+        "frameworks": frameworks,
         "package_managers": sorted(set(package_managers)),
         "markers": markers,
         "package_json_paths": [relative(path, root) for path in package_paths[:12]],
@@ -363,7 +382,20 @@ def write_discovery(project_root: Path, artifact_root: Path, *, timestamp: str |
     if no_host_write and is_within(artifact_root, project_root):
         raise ValueError("--no-host-write requires --artifact-root outside --project-root")
     sid = scan_id(timestamp)
-    scan_dir = artifact_root / "reports" / "adapt-project" / sid
+    artifact_root = artifact_root.resolve()
+    reports_parent = artifact_root / "reports"
+    reports_parent.mkdir(parents=True, exist_ok=True)
+    reports_parent = reports_parent.resolve()
+    if not is_within(reports_parent, artifact_root):
+        raise ValueError("artifact report directory must stay beneath --artifact-root")
+    reports_root = reports_parent / "adapt-project"
+    reports_root.mkdir(exist_ok=True)
+    reports_root = reports_root.resolve()
+    if not is_within(reports_root, artifact_root):
+        raise ValueError("artifact report directory must stay beneath --artifact-root")
+    scan_dir = (reports_root / sid).resolve()
+    if scan_dir.parent != reports_root or not is_within(scan_dir, reports_root):
+        raise ValueError("scan directory must stay beneath artifact reports")
     scan_dir.mkdir(parents=True, exist_ok=True)
     adapter = discover(project_root)
     serialized = json.dumps(adapter, indent=2, sort_keys=True) + "\n"
@@ -377,13 +409,20 @@ def write_discovery(project_root: Path, artifact_root: Path, *, timestamp: str |
         "evidence": {"adapter": "adapter.yml", "report": "report.md"},
         "notes": "no host writes" if no_host_write else "",
     }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    latest = scan_dir.parent / "latest"
-    try:
-        if latest.exists() or latest.is_symlink():
+    latest = reports_root / "latest"
+    if latest.exists() or latest.is_symlink():
+        if latest.is_dir() and not latest.is_symlink():
+            raise ValueError("latest scan link must be replaceable")
+        try:
             latest.unlink()
+        except OSError as exc:
+            raise ValueError("latest scan link must be replaceable") from exc
+    try:
         latest.symlink_to(scan_dir.name)
-    except OSError:
-        pass
+        if latest.resolve() != scan_dir or not is_within(latest.resolve(), reports_root):
+            raise ValueError("latest scan link must stay beneath artifact reports")
+    except OSError as exc:
+        raise ValueError("could not create contained latest scan link") from exc
     if apply:
         destination = project_root / ".engineering" / "project" / "adapter.yml"
         destination.parent.mkdir(parents=True, exist_ok=True)
