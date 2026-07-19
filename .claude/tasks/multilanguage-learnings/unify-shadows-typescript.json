@@ -1,0 +1,129 @@
+{
+  "batch": "TypeScript unify-shadows candidate",
+  "revision": "d2b33542f9f1afa695fa0385251e73ba8df91515",
+  "family": ["unify-shadows"],
+  "invariant": {
+    "portable_principle": "A semantic-duplication proposal may act on exactly one confirmed structured finding only after kind, status, source, matrix, caller limitations, tests, stop condition, and human approval are explicit; preserving separate implementations is a valid success.",
+    "python_or_framework_mechanism": "Retain the profile-scout and legacy triage path, while preserving unknown caller counts and writing scope metadata even from a selected-skill copy.",
+    "typescript_mechanism": "A family-local Node JSON/filesystem consumer validates the accepted confirmed function finding and renders proposal.md, evidence.json, and scope.json without re-running analysis or changing source.",
+    "explicit_non_goals": [
+      "Semantic-duplication detection or TypeScript compiler analysis",
+      "Runtime, framework, workflow, dynamic dispatch, or external consumer proof",
+      "Automatic consolidation, codemods, source mutation, or guard installation",
+      "Inventing full caller locations, canonical ownership, a deep helper seam, or workflow authority",
+      "Shared TypeScript infrastructure or later UX/performance work"
+    ]
+  },
+  "reference_repairs": [
+    "Legacy ? callers now parses as caller_count null rather than causing the member to disappear.",
+    "A copied selected skill writes version-1 scope.json with a bundled stdlib fallback when scripts/_lib/artifact_scope.py is unavailable.",
+    "TypeScript proposals label caller_count as eligible-candidate-graph evidence and require full project reference inventory for zero or unknown counts."
+  ],
+  "language_model": {
+    "syntax": ["Current project-relative .ts/.tsx source spans from the structured finding", "No new parser or AST claim"],
+    "type_system": ["Consumes upstream static return type, returned fields, direct-call, and exception/async matrix rows", "Does not independently verify type or runtime equivalence"],
+    "module_resolution": ["No module-resolution claim; full caller locations remain a downstream human inventory"],
+    "runtime": ["Host Node only; package.json supplies the native npm typecheck/test command names", "Fixture lock pins TypeScript 5.9.3 for native verification"],
+    "framework": ["No framework semantics are inferred"]
+  },
+  "tooling": {
+    "selected": "Family-local propose_typescript.mjs using Node filesystem and JSON APIs.",
+    "rejected_alternatives": {
+      "new_compiler_api_analysis": "Would duplicate the accepted upstream detector and blur the confirmed-finding handoff.",
+      "manual_markdown_parsing": "The accepted TypeScript contract is structured findings.json; Markdown loses kind/status/source guarantees and caused the legacy parser defects.",
+      "shared_typescript_platform": "This consumer needs no TypeScript resolver and has no second interface-compatible consumer."
+    },
+    "version_and_resolution": "The consumer uses host Node. Native fixture verification uses lockfile-pinned TypeScript 5.9.3.",
+    "closure_mode": "The exact stock installer copies only unify-shadows; the installed command invokes its bundled Node runner and has no repository scripts, venv, _common, sibling-skill, or network runtime dependency.",
+    "preflight_and_failure_codes": [
+      "Exit 2 before synthesis for missing/unreadable/invalid findings, wrong skill/language/level/status, unconfirmed ID, unsupported shape, stale source span, or missing matrix rows.",
+      "Exit 2 before writing for project-root escape, report-root escape, or symlink traversal.",
+      "Unknown caller count remains explicit and gates approval rather than failing or becoming zero."
+    ]
+  },
+  "outcome_contract": {
+    "inputs": [
+      "Locked accepted TS-SD-0001 findings.json and capability matrix",
+      "Current summarizeByReduction/summarizeByLoop TypeScript source spans",
+      "All four allowed consolidation shapes",
+      "Missing, uncertain, rejected, wrong-kind, wrong-language, wrong-level, stale, escape, and symlink cases"
+    ],
+    "structured_outputs": [
+      "reports/unify-shadows/<finding-id>/proposal.md",
+      "reports/unify-shadows/<finding-id>/evidence.json",
+      "reports/unify-shadows/<finding-id>/scope.json"
+    ],
+    "must_fire": [
+      "Exactly one confirmed function finding reaches an evidence-cited proposal",
+      "Each allowed shape renders its own source/caller/test/stop/approval outcome",
+      "Unknown and zero candidate-graph caller counts require full project reference inventory"
+    ],
+    "must_not_fire": [
+      "Missing, uncertain, rejected, wrong-skill, wrong-language, wrong-level, or not-confirmed records",
+      "A consolidation or caller-move plan for keep_separate_document_why",
+      "An invented workflow authority when upstream workflow analysis is unavailable",
+      "Output outside reports/unify-shadows or through a symlink",
+      "Any host source mutation or repository-runtime dependency from the copied skill"
+    ],
+    "native_test_command": "npm ci --offline --ignore-scripts && npm run typecheck && npm test",
+    "native_guard_command": null
+  },
+  "evidence": {
+    "python_reference": [
+      "The focused suite copies only unify-shadows, parses ? callers to null, and proves scope.json fallback without repository scripts/_lib.",
+      "tests/test_artifact_scope_adoption.py remains green for the repository helper path."
+    ],
+    "typescript": [
+      "tests/test_unify_shadows_typescript.py asserts final proposal/evidence/scope, all four templates, invalid-input abstentions, citations, caller limitations, native commands, containment, source hashes, and exact installed closure.",
+      "The locked native test proves both confirmed implementations retain the same observable result."
+    ],
+    "commands_and_artifact_paths": [
+      "Focused pytest: 15 passed",
+      "Fixture npm ci --offline --ignore-scripts, npm run typecheck, and npm test: passed",
+      "node --check propose_typescript.mjs: passed",
+      "Ruff: All checks passed",
+      "Metadata lint: OK — 76 skills, 76 declaring new contract",
+      "git diff --check: clean"
+    ],
+    "fresh_forward": {
+      "status": "pending_independent_non_context_replay",
+      "task": "Using only a clean locked TypeScript host and the installed selected skill, review confirmed semantic finding TS-SD-0001, produce the proposal, state source/caller work, native verification, stop condition, and human approval without changing source.",
+      "required_proof": ["Exact selected-skill install and documented command", "Final proposal/evidence/scope artifacts", "Native typecheck/test before and after", "Unchanged source hashes", "No disclosed expected shape/member names/assertions"],
+      "automated_harness": "Passed; it is not presented as independent D6 judgment."
+    }
+  },
+  "false_positive_boundary": {
+    "known_false_positives": ["Static return-shape equality can hide runtime, error-policy, resource, or caller divergence.", "A candidate-graph caller count is not complete project or external reachability."],
+    "known_false_negatives": ["The upstream detector omits methods, protocols, dynamic dispatch, framework behavior, different output shapes, and external consumers."],
+    "legitimate_similar_shapes": ["keep_separate_document_why documents deliberate separation.", "merge_at_workflow blocks until real workflow evidence exists.", "A shallow result constructor fails the share-utility deletion test and remains No tractable share."]
+  },
+  "generalized": ["Structured confirmed-input validation", "Artifact citations", "Pre-synthesis abstention", "Selected-skill stock closure", "Source immutability", "Symlink-safe report containment", "Native verification matrix"],
+  "did_not_generalize": ["Python scout profiling", "Compiler or module resolution", "Runtime/framework/workflow judgment", "Full caller inventory", "A shared platform"],
+  "reuse_decision": {
+    "shared_candidate": "No shared runtime; only the operational structured-handoff and containment pattern.",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": ["The consumer needs only accepted JSON and current files, not the upstream compiler implementation.", "No other proposal family consumes this exact semantic finding and four-shape contract."],
+    "owner": "unify-shadows TypeScript v1"
+  },
+  "translation_prerequisites": {
+    "rust": {"native_tool": "Structured upstream Rust semantic finding plus cargo test/check", "idiomatic_representation": "free functions or explicitly supported impl methods with source spans and caller evidence", "required_fixtures": ["confirmed pair", "keep-separate", "unconfirmed/wrong-kind", "cargo check/test and copied install"], "semantic_gaps": ["traits", "macros", "conditional compilation"]},
+    "go": {"native_tool": "Structured upstream go/types finding plus go test", "idiomatic_representation": "package functions and explicit interface/method boundary", "required_fixtures": ["confirmed pair", "unknown callers", "keep-separate", "go test and copied install"], "semantic_gaps": ["interfaces", "reflection", "build tags"]},
+    "java_or_kotlin": {"native_tool": "Structured compiler/language-server finding plus native build/test", "idiomatic_representation": "methods, overloads, interfaces, and caller inventory", "required_fixtures": ["confirmed pair", "workflow-unavailable shape", "wrong-kind", "native build/test and copied install"], "semantic_gaps": ["overloads", "reflection", "annotation processing"]},
+    "csharp": {"native_tool": "Structured Roslyn finding plus dotnet build/test", "idiomatic_representation": "methods, interfaces, partial types, and caller inventory", "required_fixtures": ["confirmed pair", "keep-separate", "wrong-kind", "dotnet build/test and copied install"], "semantic_gaps": ["dynamic", "partial/source-generated types", "reflection"]},
+    "ruby": {"native_tool": "Structured conservative upstream finding plus native specs", "idiomatic_representation": "module functions or explicitly static subsets", "required_fixtures": ["confirmed pair", "unknown callers", "keep-separate", "native specs and copied install"], "semantic_gaps": ["send", "monkey patching", "open classes"]}
+  },
+  "user_experience": {
+    "install_steps": ["Set UNIFY_SHADOWS_SOURCE and run the exact documented selected-skill install.", "Set UNIFY_FINDINGS and UNIFY_FINDING_ID from the accepted TypeScript semantic scan, then run the documented proposal command.", "Review proposal.md with evidence.json and scope.json; inventory full caller references before approval.", "Authorize /fix-workflow only after native tests and shape-specific stop conditions are accepted."],
+    "wall_time_seconds": null,
+    "agent_confusions": ["caller_count is candidate-graph evidence, not complete callers.", "A confirmed static lead is not runtime equivalence or refactor authority.", "keep-separate and blocked-pending-workflow-evidence are successful honest proposals."],
+    "repeated_work": ["No TypeScript resolver was repeated; the consumer trusts and validates the accepted upstream artifact."],
+    "smallest_later_improvement": "After D6, improve presentation only if real users struggle to supply the findings path or interpret caller limitations."
+  },
+  "residual_risks": ["Independent D6 replay remains pending serial integration.", "Static findings cannot prove runtime/framework/workflow facts or external callers.", "The proposed deep helper/survivor/workflow authority still requires human evidence.", "Host Node and a valid accepted upstream artifact are required."],
+  "next_decision": {
+    "recommendation": "Accept this bounded final language-level candidate after serial D6 replay; keep tooling local and defer UX work.",
+    "rationale": "Structured validation, four honest templates, final artifact evidence, native verification, selected-copy closure, source immutability, and explicit caller/runtime limits establish the minimum useful TypeScript proposal outcome.",
+    "blockers": ["Independent non-context D6 replay", "Serial integration of shared router/catalog/tracker surfaces outside this lane"]
+  }
+}
