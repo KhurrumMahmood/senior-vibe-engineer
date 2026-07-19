@@ -1,0 +1,90 @@
+{
+  "batch": "audit-decisions-typescript",
+  "revision": "a30ea88",
+  "family": ["audit-decisions", "decision-comment reference audit"],
+  "invariant": {
+    "portable_principle": "A valid decision:NNNN comment reference remains visible in final audit evidence and an orphan is reported only when its ADR id does not resolve.",
+    "python_or_framework_mechanism": "Python uses tokenize comments; Markdown and HTML retain the established # decision:NNNN form; registry/link outputs preserve the existing audit behavior.",
+    "typescript_mechanism": "A family-local lexical scanner recognizes TS/TSX line, block, and JSDoc comments while skipping strings, template text, regex literals, and JSX text.",
+    "explicit_non_goals": ["identifier/type/import resolution", "runtime or framework inference", "TypeScript compiler integration", "source edits", "shared parser platform"]
+  },
+  "reference_repairs": [
+    "Replaced instruction-only grep and uninstalled repository-script dependence with a selected-skill stdlib audit runner.",
+    "Added final artifact evidence for resolved references rather than keeping only orphan rows.",
+    "Anchored all exclusions to project-root-relative paths so direct excluded targets cannot bypass them.",
+    "Matched current repository registry-audit diagnostics and link-check text in a direct compatibility replay."
+  ],
+  "language_model": {
+    "syntax": [".ts/.tsx line, block, JSDoc, template-interpolation, and JSX-expression comments"],
+    "type_system": [],
+    "module_resolution": [],
+    "runtime": ["host Python 3.11+ standard library", "python3 -I -S selected-skill execution"],
+    "framework": []
+  },
+  "tooling": {
+    "selected": "Family-local Python standard-library lexical comment scanner and registry/frontmatter subset parser.",
+    "rejected_alternatives": {
+      "typescript_compiler_api": "Comment attribution does not need AST/type facts and should not require Node or tsconfig.",
+      "tree_sitter_or_ts_morph": "Adds runtime/dependency surface without improving the frozen comment-only outcome.",
+      "shared_parser_or_fact_platform": "No actual second consumer demonstrates this exact attribution/exclusion/closure contract."
+    },
+    "version_and_resolution": "No external runtime dependency; stock installer is pinned to skills@1.5.19 for evidence.",
+    "closure_mode": "SKILL.md plus scripts/audit.py only; no repository scripts, _common, toolkit venv, network, or sibling skill.",
+    "preflight_and_failure_codes": ["0 clean", "1 drift rows", "2 invalid target or unsupported/malformed frontmatter"]
+  },
+  "outcome_contract": {
+    "inputs": ["locked fixture registry", "Python/Markdown/HTML refs", "TS/TSX comment positives", "literal/regex/JSX-text and excluded path boundaries"],
+    "structured_outputs": ["drift.md", "raw-drift.json", "registry-audit.json", "link-check.txt"],
+    "must_fire": ["resolved TS/TSX line/block/JSDoc refs appear in final artifacts", "nonexistent TS comment id creates code-ref-orphan"],
+    "must_not_fire": ["strings", "template text", "regex literals", "JSX text", "generated/vendor/dependency/build/test direct targets"],
+    "native_test_command": null,
+    "native_guard_command": null
+  },
+  "evidence": {
+    "d1_to_d8": {"D1": "pass", "D2": "pass", "D3": "pass", "D4": "not applicable", "D5": "pass", "D6": "pending: agent thread limit", "D7": "pass", "D8": "ready for review"},
+    "commands_and_results": [
+      ".venv/bin/python -m pytest -q tests/test_audit_decisions_typescript.py: 15 passed",
+      ".venv/bin/python -m pytest -q tests/test_audit_decisions_typescript.py tests/test_decisions.py tests/test_yaml_frontmatter.py: 53 passed",
+      ".venv/bin/ruff check .claude/skills/audit-decisions/scripts/audit.py tests/test_audit_decisions_typescript.py: passed",
+      ".venv/bin/python scripts/skill_meta.py lint: 76/76 OK",
+      ".venv/bin/python .claude/skills/_common/scripts/run_skill_smokes.py --skills-dir .claude/skills --timeout 20 --quiet: passed",
+      ".venv/bin/python scripts/skill_comply/validate.py: OVERALL PASS",
+      "stock skills@1.5.19 selected install plus python3 -I -S: passed in dedicated test"
+    ],
+    "fresh_forward": {
+      "status": "pending",
+      "reason": "spawn_agent returned agent thread limit reached after implementation commit",
+      "packet": "/private/tmp/audit-decisions-forward.LOk2mx/host",
+      "task": "Audit this project’s decision registry and inline decision references. Produce the skill’s final report artifacts and summarize which drift needs engineering attention. Do not edit source files."
+    }
+  },
+  "false_positive_boundary": {
+    "known_false_positives": [],
+    "known_false_negatives": ["uncommon malformed TypeScript/TSX grammar may under-report comments"],
+    "legitimate_similar_shapes": ["string/template/regex content", "JSX text", "unrelated digits", "generated/vendor/dependency/build/test source"]
+  },
+  "generalized": ["final artifact reference inventory", "positive/negative/must-not-fire fixture shape", "copied selected-skill replay", "project-root-relative direct-target exclusion regression"],
+  "did_not_generalize": ["Python tokenization", "TypeScript lexical state machine", "YAML compatibility parsing", "framework and semantic facts"],
+  "reuse_decision": {
+    "shared_candidate": "Outcome fixture and project-root-relative exclusion test pattern",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": ["No second accepted consumer has the same comment attribution and final-drift contract."]
+  },
+  "translation_prerequisites": {
+    "rust": {"native_tool": "lexical scanner or Rust parser aware of raw strings", "idiomatic_representation": "line/block/doc comments", "required_fixtures": ["raw string", "doc comment", "macro-adjacent", "generated/test"], "semantic_gaps": ["macro expansion"]},
+    "go": {"native_tool": "lexical scanner or go/scanner", "idiomatic_representation": "line/block comments", "required_fixtures": ["raw/interpreted strings", "generated", "_test.go", "direct target"], "semantic_gaps": ["build tags"]},
+    "java_or_kotlin": {"native_tool": "lexical scanner or compiler parser", "idiomatic_representation": "line/block/Javadoc/KDoc comments", "required_fixtures": ["text blocks", "generated", "test"], "semantic_gaps": ["multiline literal grammar"]},
+    "csharp": {"native_tool": "lexical scanner or Roslyn", "idiomatic_representation": "line/block/XML-doc comments", "required_fixtures": ["verbatim/raw strings", "obj/bin", "test"], "semantic_gaps": ["interpolated raw strings"]},
+    "ruby": {"native_tool": "lexical scanner or Prism/Ripper", "idiomatic_representation": "line comments", "required_fixtures": ["heredocs", "vendor", "spec", "generated"], "semantic_gaps": ["heredoc delimiters"]}
+  },
+  "user_experience": {
+    "install_steps": ["npx skills@1.5.19 copies only audit-decisions", "run installed scripts/audit.py with host python3 -I -S", "read drift.md and raw-drift.json"],
+    "wall_time_seconds": null,
+    "agent_confusions": ["An instruction-only source checkout appeared to work while the selected install lacked the registry script.", "Direct-target exclusions must be rooted at the project, not target."],
+    "repeated_work": ["A temporary installer run in the source worktree created untracked output and was removed; all final evidence uses the external host."],
+    "smallest_later_improvement": "Add a brief scan-scope count only if a measured large-host usability need appears."
+  },
+  "residual_risks": ["D6 forward replay is pending", "lexical TSX handling intentionally does not claim arbitrary grammar completeness", "frontmatter parser fails unsupported shapes rather than importing PyYAML"],
+  "next_decision": {"recommendation": "Keep comment attribution lexical and family-local; complete D6 before claiming full batch completion.", "rationale": "The accepted outcome needs comment boundaries, not semantic TypeScript facts.", "blockers": ["fresh non-context forward replay"]}
+}
