@@ -54,8 +54,9 @@ Write toward these gates from Stage 0.
 - **Target path:** the required `--target` argument. Must be a
   directory.
 - **Project root:** this worktree's root.
-- **Python:** `.venv/bin/python` (the detectors are stdlib-only, but
-  this repo runs them through the venv for consistent tooling).
+- **Python:** `.venv/bin/python` in this repository; the bundled detector,
+  collapse, and reporter are stdlib-only and run with host `python3` after a
+  stock installation.
 - **Project-specific defaults** (known enums, tuple-identity hot
   spots, noqa conventions, detection gaps): in
   `knowledge/`.

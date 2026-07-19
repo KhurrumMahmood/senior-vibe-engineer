@@ -1,0 +1,82 @@
+{
+  "batch": "B2P",
+  "revision": "codex/ts-state-reference working-tree-2026-07-18",
+  "family": ["find-implicit-state", "extract-enum", "prevent-regression", "stringly-status"],
+  "invariant": {
+    "portable_principle": "A first-party state carrier has one named symbolic-value authority; callers do not compare or assign bare state strings, while a reasoned vendor wire boundary remains explicit.",
+    "python_or_framework_mechanism": "Django models.TextChoices, Python AST detector/collector, and a stdlib AST guard.",
+    "typescript_mechanism": "Deferred to B2T: exported runtime value object as const with derived union type, analyzed with Compiler API receiver facts.",
+    "explicit_non_goals": ["tuple identity", "introduce-fk", "Django migrations", "TypeScript ORM semantics", "general guard generation", "TypeScript implementation before B2P acceptance"]
+  },
+  "reference_repairs": [
+    "Removed detector repository language-adapter import so copied detection is stdlib-only.",
+    "Removed collector _common and scripts/_lib runtime dependencies; bundled its sidecar writer.",
+    "Added function parameter, vararg, and kwarg annotations to the collector's conservative model-attribution map.",
+    "Moved stringly-status implementation into a family-local installed guard and added bare state assignment detection."
+  ],
+  "language_model": {
+    "syntax": ["Python AST", "Django CharField/TextField", "models.TextChoices", "function parameter annotations", "reasoned # noqa boundary"],
+    "type_system": ["Collector attributes model callers only from direct model access, same-file declaration context, or conservative local annotations/bindings."],
+    "module_resolution": ["No Python import resolution; model declaration fallback scans portable Python files."],
+    "runtime": ["Python 3.11+ stdlib for installed scripts; source checks use the repository venv."],
+    "framework": ["Django-shaped model syntax only; Django itself is not imported or executed."]
+  },
+  "tooling": {
+    "selected": "Python stdlib ast with selected-skill local implementations",
+    "rejected_alternatives": {
+      "repository_language_adapter": "Made copied detector execution impossible and is unnecessary for an exact Python-only reference.",
+      "repository_common_scope": "Made copied collector execution impossible; no second consumer justifies an installed shared adapter.",
+      "generic_guard_generation": "B2P owns only the closed-state guard path."
+    },
+    "version_and_resolution": "Python 3.11+; copied closure is invoked with python3 -I -S and no network access.",
+    "closure_mode": "Selected find-implicit-state, extract-enum, and prevent-regression directories only.",
+    "preflight_and_failure_codes": ["detector: 0 successful output, 2 missing target", "collector: 0 targets written, 1 no attributed callers, 2 invalid target/finding", "guard: 0 clean, 1 violations, 2 invocation or read error"]
+  },
+  "outcome_contract": {
+    "inputs": ["Disposable Django-shaped before/after host fixture", "checked-in reviewed scout JSON", "one reviewed enum proposal"],
+    "structured_outputs": ["hits.jsonl", "candidates.jsonl", "findings.json", "report.md", "targets.json", "scope.json"],
+    "must_fire": ["unselected Django CharField state field", "bare first-party assignment", "bare equality", "bare reversed equality", "bare membership comparison"],
+    "must_not_fire": ["TextChoices after mutation", "open-ended status function argument", "test fixture skipped by detector", "reasoned vendor boundary"],
+    "native_test_command": ".venv/bin/python -m pytest -q tests/test_b2p_state_reference.py tests/test_artifact_scope_adoption.py tests/test_skill_detector_reads.py",
+    "native_guard_command": "python3 -I -S /installed/prevent-regression/scripts/stringly_status_guard.py HOST/app"
+  },
+  "evidence": {
+    "python_reference": ["Red capture: copied detector failed on _lib; copied collector failed on scope; collector had zero parameter-annotated callers; old guard missed assignment.", "Repaired B2P tests: 5 passed; before guard has 5 lines and after guard is clean."],
+    "typescript": [],
+    "commands_and_artifact_paths": ["tests/fixtures/b2p_state_reference/before", "tests/fixtures/b2p_state_reference/after", "tests/fixtures/b2p_state_reference/reviewed-scout", "tests/test_b2p_state_reference.py", "scripts/skill_meta.py lint --quiet: 76 skills clean", "scripts/skill_comply/validate.py: OVERALL PASS"]
+  },
+  "false_positive_boundary": {
+    "known_false_positives": ["The Python guard is lexical for any .status/.phase/.state receiver unless it is explicitly waived."],
+    "known_false_negatives": ["The detector does not report bare assignments; collector and guard cover them after the candidate is selected.", "Cross-module Python type attribution remains conservative."],
+    "legitimate_similar_shapes": ["Open-ended status function argument", "detector-excluded test file", "vendor wire literal with non-empty stringly-status noqa reason"]
+  },
+  "generalized": ["state-authority invariant", "structured detector-to-proposal evidence", "reviewed vendor boundary", "before/after guard contract", "copied-install validation shape"],
+  "did_not_generalize": ["models.TextChoices", "Python AST model attribution", "Python annotation syntax", "current Python root lint wrapper", "collector scope.json ownership"],
+  "reuse_decision": {
+    "shared_candidate": "Outcome-first fixture and copied-installed-closure test sequence",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": ["B2P needed no shared parser; only B2T may demonstrate a second consumer after independent acceptance."],
+    "owner": "B2P closed-state family"
+  },
+  "translation_prerequisites": {
+    "rust": {"native_tool": "rust-analyzer or rustc facts", "idiomatic_representation": "enum with typed state field", "required_fixtures": ["enum clean path", "bare string comparison/assignment", "external wire mapping"], "semantic_gaps": ["macro expansion", "serde wire boundary"]},
+    "go": {"native_tool": "go/packages or gopls", "idiomatic_representation": "named string type with constants", "required_fixtures": ["typed parameter receiver", "const clean path", "external payload boundary"], "semantic_gaps": ["interfaces", "JSON tags"]},
+    "java_or_kotlin": {"native_tool": "compiler or language server", "idiomatic_representation": "enum or sealed state representation", "required_fixtures": ["enum clean path", "string assignment/comparison", "DTO wire boundary"], "semantic_gaps": ["ORM converters", "overloads", "nullability"]},
+    "csharp": {"native_tool": "Roslyn", "idiomatic_representation": "enum or readonly value type", "required_fixtures": ["typed property receiver", "enum clean path", "JSON DTO boundary"], "semantic_gaps": ["partial types", "serializer converters"]},
+    "ruby": {"native_tool": "Ruby parser or language server", "idiomatic_representation": "symbol or value-object constant", "required_fixtures": ["model enum clean path", "literal assignment/comparison", "external API boundary"], "semantic_gaps": ["dynamic receivers", "ActiveRecord enum semantics"]}
+  },
+  "user_experience": {
+    "install_steps": ["Copy the three selected skill directories", "Run stdlib entry points with host python3"],
+    "wall_time_seconds": 4,
+    "agent_confusions": ["Source-tree imports made scripts look installed when they were not.", "The prior guard looked complete but omitted assignments."],
+    "repeated_work": ["Detector and collector each reached into repository helpers before B2P."],
+    "smallest_later_improvement": "Have selected-skill installation expose the exact detector, collector, and state-guard commands."
+  },
+  "residual_risks": ["Fresh non-context installed-skill forward test is intentionally pending parent acceptance/capacity.", "Python guard receiver identity is lexical outside the reviewed Django-shaped carrier.", "B2T needs compiler facts rather than a lexical imitation."],
+  "next_decision": {
+    "recommendation": "Root independently accepts B2P evidence, then author the B2T outcome test red before adding TypeScript infrastructure.",
+    "rationale": "The reference now has a closed Python output path and exposes the exact receiver-attribution and assignment semantics TypeScript must preserve.",
+    "blockers": ["Do not dispatch B2T before root review.", "Fresh forward test cannot be spawned while all agent slots are occupied."]
+  }
+}

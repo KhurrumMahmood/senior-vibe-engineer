@@ -93,8 +93,9 @@ Write toward these gates from Stage 0.
 ## Scope
 
 - **Project root:** this worktree's root.
-- **Python:** `.venv/bin/python` for `scripts/collect.py`. The skill
-  does not import Django or touch the DB.
+- **Python:** `.venv/bin/python` for source-tree use; `scripts/collect.py`
+  is stdlib-only and runs with host `python3` after a stock installation. The
+  skill does not import Django or touch the DB.
 - **Worktree guard:** read-only — no guard required here. The
   execution skill (`/fix-workflow`) does its own worktree check.
 - **Project-specific defaults** (known stringly-typed hotspots,

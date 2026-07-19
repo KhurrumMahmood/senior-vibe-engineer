@@ -81,6 +81,20 @@ Procedural detail lives beside this file:
 - `agents/rule-designer.md` — scout brief for pattern-shape analysis.
 - `scripts/generate_rule.py` / `scripts/verify_rule.py` — helpers.
 
+## Closed-state guard
+
+For the reviewed first-party `status` / `phase` / `state` path, use the
+bundled guard directly after installation:
+
+```bash
+python3 scripts/stringly_status_guard.py <file-or-directory>
+```
+
+It blocks a bare string Django field, comparison, or assignment and accepts
+only a reasoned `# noqa: stringly-status: <reason>` vendor boundary. This is a
+family-local reference guard; it does not generate or install unrelated
+general-purpose rules.
+
 ## Argument parsing
 
 Four forms. Detect and route:

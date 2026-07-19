@@ -84,23 +84,13 @@ from __future__ import annotations
 
 import argparse
 import ast
+from datetime import datetime, timezone
 import fnmatch
 import json
 import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
-import scope as _scope  # noqa: E402
-
-# Route Python parsing through the shared per-language adapter registry
-# (ADR 0032) so this collector capability-gates on Python and gracefully
-# skips non-Python / unparseable inputs instead of crashing.
-_SCRIPTS_DIR = str(Path(__file__).resolve().parents[4] / "scripts")
-if _SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPTS_DIR)
-from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
 
 STATE_FIELD_CALLS = frozenset({"CharField", "TextField"})
 
@@ -122,7 +112,7 @@ def _walk_python_files(root: Path) -> list[Path]:
         if any(fnmatch.fnmatchcase(path.name, g) for g in _DEFAULT_SKIP_FILE_GLOBS):
             continue
         out.append(path)
-    return out
+    return sorted(out)
 
 
 def _enclosing_symbol(path: list[ast.AST]) -> str:
@@ -200,6 +190,23 @@ def _build_local_model_map(
         if not isinstance(func_node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         locals_of_target: set[str] = set()
+        for arg in (
+            *func_node.args.posonlyargs,
+            *func_node.args.args,
+            *func_node.args.kwonlyargs,
+        ):
+            if _annotation_name(arg.annotation) == target_model:
+                locals_of_target.add(arg.arg)
+        if (
+            func_node.args.vararg is not None
+            and _annotation_name(func_node.args.vararg.annotation) == target_model
+        ):
+            locals_of_target.add(func_node.args.vararg.arg)
+        if (
+            func_node.args.kwarg is not None
+            and _annotation_name(func_node.args.kwarg.annotation) == target_model
+        ):
+            locals_of_target.add(func_node.args.kwarg.arg)
         for stmt in ast.walk(func_node):
             if isinstance(stmt, ast.AnnAssign):
                 ann = _annotation_name(stmt.annotation)
@@ -352,11 +359,9 @@ def _find_field_declaration(
         src = file_path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
-    adapter = get_adapter(file_path)
-    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
-        return None
-    tree = adapter.parse(src)
-    if tree is None:
+    try:
+        tree = ast.parse(src, filename=str(file_path))
+    except SyntaxError:
         return None
 
     found: dict[str, Any] | None = None
@@ -524,11 +529,9 @@ def _scan_comparisons_and_assignments(
             src = file_path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
-        adapter = get_adapter(file_path)
-        if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
-            continue
-        tree = adapter.parse(src)
-        if tree is None:
+        try:
+            tree = ast.parse(src, filename=str(file_path))
+        except SyntaxError:
             continue
         try:
             rel = str(file_path.relative_to(project_root))
@@ -743,16 +746,13 @@ def _find_model_declaration_file(
 ) -> Path | None:
     """Locate the file declaring ``class <model_class>(`` anywhere in scope.
 
-    Walks the host-authored ignore-first scope (whole repo minus the builtin
-    noise floor minus the host's `## Ignore`, or the optional `## Roots`
-    narrowing) rather than assuming any one app-root layout. Returns the first
-    file (the iterator is already sorted) whose text contains
+    Walks the collector's portable Python-file scope rather than assuming any
+    one app-root layout. Returns the first file (the iterator is sorted) whose
+    text contains
     ``class <model_class>(``, else ``None``.
     """
     needle = f"class {model_class}("
-    for path in _scope.iter_paths(
-        project_root, _scope.Scope(), extensions=frozenset({".py"})
-    ):
+    for path in _walk_python_files(project_root):
         try:
             src = path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
@@ -766,17 +766,17 @@ def _find_model_declaration_file(
 def _write_scope_sidecar(artifact_dir: Path, paths: list[str]) -> None:
     """scope.json sidecar (ADR 0037) — declares which repo paths this
     artifact's conclusions depend on, so the status projection can flag
-    input drift. Strictly additive; silently skipped when the toolkit
-    helper is absent (skill vendored without scripts/_lib)."""
-    helper = Path(__file__).resolve().parents[4] / "scripts" / "_lib" / "artifact_scope.py"
-    if not helper.is_file():
-        return
-    import importlib.util
-
-    spec = importlib.util.spec_from_file_location("artifact_scope", helper)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    mod.write_scope(artifact_dir, paths)
+    input drift. This small schema is bundled rather than imported from the
+    toolkit so a selected installed skill remains executable."""
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "version": 1,
+        "paths": sorted({str(path) for path in paths}),
+        "written_at": datetime.now(timezone.utc).isoformat(),
+    }
+    (artifact_dir / "scope.json").write_text(
+        json.dumps(payload, indent=1) + "\n", encoding="utf-8"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
