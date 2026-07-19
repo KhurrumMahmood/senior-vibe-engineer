@@ -28,28 +28,66 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
+from functools import lru_cache
 
-import yaml
+SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
 
-# KIT_ROOT anchors kit-shipped resources ONLY (the delegated
-# find-concept-divergence detector and the _common import below). Every
-# target-project surface (git grep, glossary, guard-lint check, divergence-scan
-# anchoring) anchors on --project-root instead — the kit may live in a
-# different repo than the target project (de-baking convention, ADR 0024).
-# Layout: .claude/skills/rename-concept/scripts/assess.py
-#   parents[0]=scripts [1]=rename-concept [2]=skills [3]=.claude [4]=kit root
-KIT_ROOT = pathlib.Path(__file__).resolve().parents[4]
-_COMMON = str(KIT_ROOT / ".claude" / "skills" / "_common")
-if _COMMON not in sys.path:
-    sys.path.insert(0, _COMMON)
 
-from diff_resolution import resolve_project_root  # noqa: E402
+def _detector_script() -> pathlib.Path | None:
+    """Find the coupled divergence scanner in an install or source checkout.
+
+    A stock copied install puts both skills beneath `.agents/skills/`; that
+    sibling is the runtime authority. The source-tree location exists solely
+    for repository development and never substitutes for a missing installed
+    companion in a copied host.
+    """
+    skills_root = SCRIPT_DIR.parents[1]
+    installed = skills_root / "find-concept-divergence" / "scripts" / "scan.py"
+    if SCRIPT_DIR.parents[2].name == ".agents":
+        return installed if installed.exists() else None
+    development = SCRIPT_DIR.parents[3] / ".claude" / "skills" / "find-concept-divergence" / "scripts" / "scan.py"
+    return development if development.exists() else None
+
+
+@lru_cache(maxsize=1)
+def detector_module():
+    """Load the coupled scanner as a module without a repository import path."""
+    script = _detector_script()
+    if script is None:
+        return None
+    spec = importlib.util.spec_from_file_location("rename_concept_divergence", script)
+    if spec is None or spec.loader is None:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def resolve_project_root(explicit: pathlib.Path | None = None) -> pathlib.Path:
+    detector = detector_module()
+    if detector is not None:
+        return detector.resolve_project_root(explicit)
+    if explicit is not None:
+        return explicit.resolve()
+    return pathlib.Path.cwd().resolve()
+
+
+def load_glossary(path: pathlib.Path) -> dict:
+    detector = detector_module()
+    if detector is None:
+        raise ValueError("coupled find-concept-divergence skill is unavailable")
+    try:
+        return detector.load_glossary(path)
+    except SystemExit as exc:
+        raise ValueError(str(exc)) from exc
 
 # Paths where the OLD name legitimately persists (not "incomplete rename").
 # ES2-native residue: the ADR tree (ai-docs/decisions/ — ADRs intentionally
@@ -103,17 +141,17 @@ def read_glossary_supersede(old: str, project_root: pathlib.Path) -> str | None:
       - <slug>               : found, superseded_by points at <slug>.
     """
     p = project_root / ".claude/contracts/concepts.yaml"
-    if not p.exists():
-        return "<no concepts.yaml>"
     try:
-        data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
-    except (OSError, UnicodeDecodeError, yaml.YAMLError):
+        data = load_glossary(p)
+    except ValueError:
         # Unreadable/unparseable glossary degrades to the same verdict as a
-        # missing one (read-decode-safety.v1: never let the decode error escape).
+        # missing one. The assessment remains an honest INCONCLUSIVE gate
+        # rather than leaking an environment-specific YAML exception.
         return "<no concepts.yaml>"
     target = _norm_concept(old)
     for c in data.get("concepts", []) or []:
-        names = [c.get("name", "")] + list(c.get("aliases", []) or [])
+        aliases = c.get("aliases", [])
+        names = [c.get("name", "")] + (aliases if isinstance(aliases, list) else [])
         if any(_norm_concept(str(nm)) == target for nm in names if nm):
             sup = c.get("superseded_by")
             if sup in (None, "null", "~", ""):
@@ -124,9 +162,144 @@ def read_glossary_supersede(old: str, project_root: pathlib.Path) -> str | None:
 
 def guard_lint_exists(old: str, project_root: pathlib.Path) -> str | None:
     lint_dir = project_root / "scripts" / "lint"
-    cands = list(lint_dir.glob(f"no_*{old.lower()}*references.py"))
-    cands += list(lint_dir.glob(f"no_{old.lower()}*.py"))
+    token = _norm_concept(old).replace("-", "_")
+    cands = list(lint_dir.glob(f"no_*{token}*references.py"))
+    cands += list(lint_dir.glob(f"no_{token}*.py"))
+    if token != old.lower():
+        cands += list(lint_dir.glob(f"no_*{old.lower()}*references.py"))
+        cands += list(lint_dir.glob(f"no_{old.lower()}*.py"))
     return str(cands[0].relative_to(project_root)) if cands else None
+
+
+def typescript_source_files(project_root: pathlib.Path) -> list[str]:
+    """Return root-relative TS/TSX files on the same safe scan surface.
+
+    The coupled scanner is deliberately lexical. Presence of a TypeScript
+    source surface therefore blocks a terminal identifier-completeness claim:
+    declarations, imports, aliases, property keys, strings, and comments need
+    a TypeScript-aware resolver to distinguish them.
+    """
+    detector = detector_module()
+    if detector is None:
+        return []
+    return sorted(
+        path.relative_to(project_root).as_posix()
+        for path in detector.iter_files(detector.DEFAULT_TARGETS, project_root)
+        if path.suffix in {".ts", ".tsx"}
+    )
+
+
+def concept_terms(concept: str, project_root: pathlib.Path) -> list[str]:
+    """Return the glossary name and aliases for one requested concept."""
+    try:
+        glossary = load_glossary(project_root / ".claude/contracts/concepts.yaml")
+    except ValueError:
+        return [concept]
+    target = _norm_concept(concept)
+    for entry in glossary.get("concepts", []):
+        if not isinstance(entry, dict):
+            continue
+        aliases = entry.get("aliases")
+        names = [entry.get("name")] + (aliases if isinstance(aliases, list) else [])
+        if any(_norm_concept(str(name)) == target for name in names if name):
+            return [str(name) for name in names if isinstance(name, str) and name]
+    return [concept]
+
+
+def run_typescript_identifier_evidence(
+    project_root: pathlib.Path,
+    old_terms: list[str],
+    new_terms: list[str],
+    sources: list[str],
+) -> dict:
+    """Invoke the host-pinned TypeScript Compiler API runner without mutation."""
+    node = shutil.which("node")
+    runner = pathlib.Path(__file__).resolve().with_name("typescript_identifier_evidence.mjs")
+    if not node:
+        return {"status": "unavailable", "reason": "node executable is unavailable"}
+    if not runner.exists():
+        return {"status": "unavailable", "reason": "bundled TypeScript evidence runner is missing"}
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = pathlib.Path(temp_dir) / "typescript-identifiers.json"
+            result = subprocess.run(
+                [
+                    node,
+                    str(runner),
+                    "--project-root", str(project_root),
+                    "--old-terms", json.dumps(old_terms),
+                    "--new-terms", json.dumps(new_terms),
+                    "--sources", json.dumps(sources),
+                    "--output", str(output),
+                ],
+                cwd=project_root,
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            if not output.exists():
+                return {
+                    "status": "unavailable",
+                    "reason": f"TypeScript evidence runner exited {result.returncode}",
+                }
+            evidence = json.loads(output.read_text(encoding="utf-8"))
+            if result.returncode != 0 and evidence.get("status") == "resolved":
+                return {"status": "unavailable", "reason": "TypeScript evidence runner failed"}
+            return evidence
+    except (subprocess.SubprocessError, OSError, json.JSONDecodeError, ValueError) as exc:
+        return {"status": "unavailable", "reason": str(exc)}
+
+
+def classify_lexical_candidates(findings: list[dict] | None, old: str, evidence: dict) -> list[dict]:
+    """Classify band-3 hits with compiler identity or text-only evidence."""
+    occurrences = evidence.get("occurrences") if isinstance(evidence, dict) else []
+    if not isinstance(occurrences, list):
+        occurrences = []
+    by_key = {
+        (item.get("file"), item.get("line"), _norm_concept(str(item.get("name") or ""))): item
+        for item in occurrences
+        if isinstance(item, dict)
+    }
+    candidates: list[dict] = []
+    for finding in findings or []:
+        if (
+            finding.get("band") != "superseded_co_occurrence"
+            or _norm_concept(str(finding.get("concept") or "")) != _norm_concept(old)
+        ):
+            continue
+        key = (
+            finding.get("file"),
+            finding.get("line"),
+            _norm_concept(str(finding.get("term") or "")),
+        )
+        occurrence = by_key.get(key)
+        if occurrence:
+            classification = occurrence.get("classification", "unresolved_identifier")
+        else:
+            classification = _text_only_candidate_kind(finding)
+        candidates.append({
+            "file": finding.get("file"),
+            "line": finding.get("line"),
+            "term": finding.get("term"),
+            "classification": classification,
+        })
+    return candidates
+
+
+def _text_only_candidate_kind(finding: dict) -> str:
+    """Separate obvious comment/string hits that have no AST identifier node."""
+    line = str(finding.get("match") or "")
+    term = str(finding.get("term") or "")
+    position = line.lower().find(term.lower())
+    if position < 0:
+        return "non_identifier_text"
+    comment = min((index for index in (line.find("//"), line.find("/*")) if index >= 0), default=-1)
+    if comment >= 0 and comment < position:
+        return "comment_text"
+    prefix = line[:position]
+    if any(prefix.count(quote) % 2 for quote in ('"', "'", "`")):
+        return "string_literal"
+    return "non_identifier_text"
 
 
 def _run_concept_divergence(project_root: pathlib.Path) -> list[dict] | None:
@@ -140,21 +313,23 @@ def _run_concept_divergence(project_root: pathlib.Path) -> list[dict] | None:
     identifiers), and band 1 needs the glossary's per-concept `avoid:`
     phrasing, which only find-concept-divergence knows.
 
-    Scan targets are DELEGATED to find-concept-divergence's own portable
-    DEFAULT_TARGETS (it auto-skips roots that don't exist in this repo), so
-    this skill stays framework-agnostic and never drifts from the detector's
-    notion of what to scan — pass no positional targets."""
-    script = KIT_ROOT / ".claude/skills/find-concept-divergence/scripts/scan.py"
-    if not script.exists():
+    Scan targets are delegated to the coupled, stdlib-only detector. Its
+    portable DEFAULT_TARGETS and project-root-relative exclusions are the
+    single lexical authority for this assessment. Pass no positional targets.
+    """
+    script = _detector_script()
+    if script is None:
         return None
     try:
         with tempfile.TemporaryDirectory() as td:
             out = str(pathlib.Path(td) / "findings.jsonl")
             rep = str(pathlib.Path(td) / "report.md")
-            subprocess.run([sys.executable, str(script),
-                            "--project-root", str(project_root),
-                            "--output", out, "--report", rep],
-                           cwd=project_root, capture_output=True, text=True, timeout=180)
+            result = subprocess.run([sys.executable, str(script),
+                                     "--project-root", str(project_root),
+                                     "--output", out, "--report", rep],
+                                    cwd=project_root, capture_output=True, text=True, timeout=180)
+            if result.returncode != 0:
+                return None
             findings = []
             for line in pathlib.Path(out).read_text().splitlines():
                 if not line.strip():
@@ -220,7 +395,9 @@ def main():
                     help="files below this = scope-gate bails to local rename")
     ap.add_argument("--project-root", type=pathlib.Path, default=None,
                     help="Target project root (git grep, glossary, guard lint, "
-                         "divergence scan; default: git toplevel of cwd, else cwd)")
+                    "divergence scan; default: git toplevel of cwd, else cwd)")
+    ap.add_argument("--output", type=pathlib.Path, default=None,
+                    help="Optional persistent JSON assessment path (source files remain read-only)")
     args = ap.parse_args()
     old, new = args.old, args.new
     project_root = resolve_project_root(args.project_root)
@@ -234,6 +411,18 @@ def main():
 
     supersede = read_glossary_supersede(old, project_root)
     lint = guard_lint_exists(old, project_root)
+    typescript_files = typescript_source_files(project_root)
+    typescript_evidence = (
+        run_typescript_identifier_evidence(
+            project_root,
+            concept_terms(old, project_root),
+            concept_terms(new, project_root),
+            typescript_files,
+        )
+        if typescript_files
+        else None
+    )
+    lexical_candidates = classify_lexical_candidates(divergence, old, typescript_evidence or {})
 
     is_concept = supersede not in ("<no entry>", "<no concepts.yaml>")
     supersede_set = supersede not in ("<not superseded>", "<no entry>", "<no concepts.yaml>")
@@ -264,14 +453,33 @@ def main():
           f"  {'OK' if lint else 'MISSING'}")
     print(f"  [blast]      live-code files mentioning '{old}': {len(old_files_live)}"
           f"  (allowlisted residue excluded: {len(old_files_all)-len(old_files_live)})")
+    if typescript_files:
+        if typescript_evidence and typescript_evidence.get("status") == "resolved":
+            declarations = typescript_evidence.get("declarations", {})
+            occurrences = typescript_evidence.get("occurrences", [])
+            old_declarations = len(declarations.get("old", [])) if isinstance(declarations, dict) else 0
+            new_declarations = len(declarations.get("new", [])) if isinstance(declarations, dict) else 0
+            resolution_diagnostics = len(typescript_evidence.get("resolution_diagnostics", []))
+            old_references = sum(
+                item.get("classification") == "old_concept_symbol"
+                for item in occurrences
+                if isinstance(item, dict)
+            )
+            print("  [identifiers] TypeScript/TSX: RESOLVED — compiler API "
+                  f"{typescript_evidence.get('typescript_version', '?')}; "
+                  f"old declarations={old_declarations}, old references={old_references}, "
+                  f"new declarations={new_declarations}, resolution diagnostics={resolution_diagnostics}.")
+        else:
+            reason = (typescript_evidence or {}).get("reason", "unknown resolver failure")
+            print("  [identifiers] TypeScript/TSX: UNAVAILABLE — " + str(reason))
 
     print("\n## completeness gate (find-concept-divergence)")
     print("  Two bands must BOTH be clean. Band 3 (superseded_co_occurrence) is")
-    print("  TERM-level identifier drift; for a coverage_lint-guarded rename the")
+    print("  lexical old/new candidate drift; for a coverage_lint-guarded rename the")
     print("  scanner skips it, so band 1 (avoid_term_hit) is what proves the")
     print("  retired prose — comments/docstrings/strings — was actually corrected.")
 
-    print("\n  ### band 3 — superseded_co_occurrence (old/new identifier co-occurrence)")
+    print("\n  ### band 3 — superseded_co_occurrence (old/new lexical co-occurrence candidates)")
     if co_occur is None:
         print("    UNAVAILABLE — could not run find-concept-divergence; band not evaluated.")
     elif not co_occur:
@@ -279,7 +487,7 @@ def main():
               f"(note: skipped entirely if '{old}' declares a coverage_lint).")
     else:
         print(f"    RED — {len(co_occur)} file(s) where '{old}' co-occurs with '{new}' "
-              f"(identifier transition incomplete):")
+              f"(see resolved identifier evidence below):")
         for f in co_occur[:20]:
             print(f"      - {f}")
         if len(co_occur) > 20:
@@ -299,6 +507,20 @@ def main():
         if len(avoid_hits) > 20:
             print(f"      … (+{len(avoid_hits)-20} more)")
 
+    if typescript_files:
+        print("\n  ### TypeScript identifier evidence (compiler API)")
+        if not typescript_evidence or typescript_evidence.get("status") != "resolved":
+            print("    UNAVAILABLE — cannot certify TypeScript identifier completeness.")
+        elif not lexical_candidates:
+            print("    RESOLVED — no old/new lexical co-occurrence candidates required classification.")
+        else:
+            print("    Candidate classifications:")
+            for candidate in lexical_candidates[:20]:
+                print("      - " + f"{candidate['file']}:{candidate['line']} "
+                      f"`{candidate['term']}` → {candidate['classification']}")
+            if len(lexical_candidates) > 20:
+                print(f"      … (+{len(lexical_candidates)-20} more)")
+
     if (co_occur is not None and not co_occur) and old_files_live:
         print(f"\n  NOTE: {len(old_files_live)} live file(s) still mention '{old}' "
               f"(rough grep — includes prose/comments/allowlisted residue); "
@@ -315,11 +537,61 @@ def main():
     band1_green = (avoid_hits is not None) and (len(avoid_hits) == 0)
     gate_green = band3_green and band1_green
     done = gate_green and (supersede_matches_new if is_concept else True) and bool(lint)
+    evidence_resolved = bool(typescript_evidence and typescript_evidence.get("status") == "resolved")
+    evidence_declarations = (typescript_evidence or {}).get("declarations", {})
+    evidence_occurrences = (typescript_evidence or {}).get("occurrences", [])
+    old_symbol_references = sum(
+        item.get("classification") == "old_concept_symbol"
+        for item in evidence_occurrences
+        if isinstance(item, dict)
+    )
+    unresolved_identifiers = sum(
+        item.get("classification") == "unresolved_identifier"
+        for item in evidence_occurrences
+        if isinstance(item, dict)
+    )
+    new_symbol_declarations = len(evidence_declarations.get("new", [])) if isinstance(evidence_declarations, dict) else 0
+    resolution_diagnostics = len((typescript_evidence or {}).get("resolution_diagnostics", []))
+    typescript_complete = (
+        not typescript_files
+        or (
+            evidence_resolved
+            and old_symbol_references == 0
+            and unresolved_identifiers == 0
+            and new_symbol_declarations > 0
+            and resolution_diagnostics == 0
+        )
+    )
+    open_items: list[str] = []
     if co_occur is None or avoid_hits is None:
+        verdict = "INCONCLUSIVE"
         print("  INCONCLUSIVE — completeness gate could not run (see above).")
+    elif not typescript_complete:
+        missing: list[str] = []
+        if not evidence_resolved:
+            missing.append("TypeScript compiler evidence unavailable")
+        if old_symbol_references:
+            missing.append(f"old concept symbol references ({old_symbol_references})")
+        if unresolved_identifiers:
+            missing.append(f"unresolved identifier candidates ({unresolved_identifiers})")
+        if resolution_diagnostics:
+            missing.append(f"compiler diagnostics affecting resolution ({resolution_diagnostics})")
+        if not new_symbol_declarations:
+            missing.append("no resolved new concept declaration")
+        if avoid_hits:
+            missing.append(f"band 1 retired prose ({len(avoid_hits)} file(s))")
+        if is_concept and not supersede_matches_new:
+            missing.append("glossary superseded_by not set to new")
+        if not lint:
+            missing.append("reintroduction guard lint absent")
+        verdict = "HALF-APPLIED / INCOMPLETE"
+        open_items = missing
+        print("  HALF-APPLIED / INCOMPLETE — open: " + "; ".join(missing))
     elif done and not old_files_live:
+        verdict = "COMPLETE"
         print("  COMPLETE — both gate bands green, glossary set, guard present, no live residue.")
     elif done:
+        verdict = "LIKELY COMPLETE"
         print("  LIKELY COMPLETE — both gate bands green + glossary + guard; residual "
               "old-name-only mentions to eyeball (above).")
     else:
@@ -332,7 +604,34 @@ def main():
             missing.append("glossary superseded_by not set to new")
         if not lint:
             missing.append("reintroduction guard lint absent")
+        verdict = "HALF-APPLIED / INCOMPLETE"
+        open_items = missing
         print("  HALF-APPLIED / INCOMPLETE — open: " + "; ".join(missing))
+    if args.output:
+        payload = {
+            "skill": "rename-concept",
+            "project_root": str(project_root),
+            "old": old,
+            "new": new,
+            "read_only": True,
+            "lifecycle": {
+                "glossary_superseded_by": supersede,
+                "supersede_matches_new": supersede_matches_new,
+                "guard_lint": lint,
+                "old_files_live": old_files_live,
+            },
+            "lexical_gate": {
+                "superseded_cooccurrence_files": co_occur,
+                "retired_prose_files": avoid_hits,
+                "candidate_classifications": lexical_candidates,
+            },
+            "typescript_identifier_evidence": typescript_evidence,
+            "verdict": verdict,
+            "open_items": open_items,
+        }
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(f"\nassessment JSON → {args.output}")
     return 0
 
 

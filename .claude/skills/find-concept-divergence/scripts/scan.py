@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -364,34 +365,70 @@ def is_excluded(rel: str) -> bool:
     return False
 
 
-def _rel(path: Path, root: Path) -> str:
-    """Root-relative label; absolute path for files outside the root (never raises)."""
+def _within(path: Path, root: Path) -> bool:
     try:
-        return str(path.relative_to(root))
+        path.relative_to(root)
     except ValueError:
-        return str(path)
+        return False
+    return True
+
+
+def _rel(path: Path, root: Path) -> str:
+    """Return the root-relative label for an accepted, contained path."""
+    return path.relative_to(root).as_posix()
+
+
+def _candidate(raw: str, root: Path) -> Path | None:
+    """Resolve one target/file without accepting a path outside ``root``."""
+    path = Path(raw)
+    candidate = path if path.is_absolute() else root / path
+    try:
+        resolved = candidate.resolve()
+    except OSError:
+        return None
+    if not candidate.exists() or not _within(resolved, root):
+        return None
+    return resolved
 
 
 def iter_files(targets: Iterable[str], root: Path) -> Iterable[Path]:
+    """Yield root-contained, non-excluded files without following escapes.
+
+    Exclusions use project-relative labels so a valid project whose ancestor is
+    named ``node_modules`` still scans normally. Direct target files and
+    directories get the same exclusion check as recursive children, and a
+    symlink resolving outside the project is never read.
+    """
+    root = root.resolve()
+    seen: set[Path] = set()
     for raw in targets:
-        p = Path(raw)
-        p = (p if p.is_absolute() else root / raw).resolve()
-        if not p.exists():
+        p = _candidate(str(raw), root)
+        if p is None:
+            continue
+        if is_excluded(_rel(p, root)):
             continue
         if p.is_file():
-            rel = _rel(p, root)
-            if not is_excluded(rel) and p.suffix in INCLUDE_SUFFIXES:
+            if p.suffix in INCLUDE_SUFFIXES and p not in seen:
+                seen.add(p)
                 yield p
             continue
-        for f in p.rglob("*"):
-            if not f.is_file():
-                continue
-            if f.suffix not in INCLUDE_SUFFIXES:
-                continue
-            rel = _rel(f, root)
-            if is_excluded(rel):
-                continue
-            yield f
+        for directory, directories, filenames in os.walk(p, followlinks=False):
+            current = Path(directory)
+            directories[:] = [
+                name
+                for name in directories
+                if not (current / name).is_symlink()
+                and (child := _candidate(str(current / name), root)) is not None
+                and not is_excluded(_rel(child, root))
+            ]
+            for name in filenames:
+                f = _candidate(str(current / name), root)
+                if f is None or f.suffix not in INCLUDE_SUFFIXES:
+                    continue
+                if is_excluded(_rel(f, root)) or f in seen:
+                    continue
+                seen.add(f)
+                yield f
 
 
 def compile_term(term: str) -> re.Pattern[str]:

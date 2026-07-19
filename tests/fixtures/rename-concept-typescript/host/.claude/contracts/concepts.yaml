@@ -1,0 +1,11 @@
+concepts:
+  - name: legacy-status
+    aliases: [legacyStatus]
+    superseded_by: canonical-status
+  - name: canonical-status
+    aliases: [canonicalStatus]
+    avoid:
+      - legacy status
+    source: docs/rename-glossary.md
+
+flagged_ambiguities: []

@@ -7,14 +7,24 @@ description: |
   mirrors — and is executed from tribal knowledge with no front door and no
   completeness gate, so renames land half-applied. This skill (v0, assess-only)
   reports the scope-gate verdict, blast radius, a per-step lifecycle status
-  table, and the completeness gate: the old and new names must not co-occur in
+  table, and the completeness gate. It performs strict lexical assessment of
+  Python, JavaScript, TypeScript, and TSX text. For `.ts` and `.tsx`, a
+  host-pinned TypeScript Compiler API resolves glossary identifier candidates,
+  declarations, and references; it does not claim whole-project type-checking,
+  JSX runtime behavior, or codemod safety.
+  The old and new names must not co-occur lexically in
   live code (/find-concept-divergence superseded_co_occurrence, band 3) AND no
   retired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)
-  — both must be CLEAN for the rename to count as done. Definition of done is
-  the two-band gate plus every lifecycle step resolved, NOT a codemod having
-  run. Drives /find-concept-divergence; does not reimplement it. The write half
-  (author + dry-run a codemod plan, scaffold a reintroduction lint, --apply) is
-  a v1 gap pending a codemod harness in this ecosystem (see Deferred, below).
+  — both must be CLEAN for a lexical candidate assessment to pass. A
+  TypeScript/TSX host additionally needs a successful Compiler API evidence
+  run that resolves old/new identifier candidates. Definition of done is the
+  two-band gate, every lifecycle step resolved, and that evidence where
+  TypeScript/TSX is in scope — NOT a codemod having run. Drives the two
+  rename-relevant /find-concept-divergence bands through a required coupled
+  installation; the assessment logic does not duplicate their matching rules.
+  The write half (author + dry-run a codemod plan, scaffold a reintroduction
+  lint, --apply) is a v1 gap pending a codemod harness in this
+  ecosystem (see Deferred, below).
 argument-hint: "<old-concept> <new-concept> [--min-blast N]"
 allowed-tools: Bash, Read, Grep, Glob
 user-invocable: true
@@ -53,8 +63,9 @@ delegate_from: |
   per-rename completeness check.
   /which-cleanup — a change that looks like a started concept rename routes
   here.
-language: python
+language: any
 framework: any
+scans: [python, javascript, typescript, markdown, templates]
 ---
 
 # /rename-concept
@@ -73,8 +84,70 @@ skill drives is `/find-concept-divergence`.
 
 ```bash
 .venv/bin/python .claude/skills/rename-concept/scripts/assess.py <old> <new> \
-  [--min-blast N] [--project-root DIR]
+  [--min-blast N] [--project-root DIR] [--output assessment.json]
 ```
+
+Install this skill together with its detector companion,
+`find-concept-divergence`. Its installed `scan.py` is the single authority for
+both lexical bands; `rename-concept` does not copy or fork its matching logic.
+Repository development may use the source-tree sibling. A
+copied `rename-concept` without that installed companion is inconclusive.
+
+## Installed with the stock CLI
+
+Set `ENGINEERING_SKILLS_SOURCE` to the published source URI or a local checkout
+when testing a revision. The one installation command below projects the two
+required skills; assessment remains read-only.
+
+<!-- installed-command:install:start -->
+```bash
+: "${ENGINEERING_SKILLS_SOURCE:?Set this to the engineering-skills source URI or local checkout}"
+DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \
+  "$ENGINEERING_SKILLS_SOURCE" \
+  --skill rename-concept find-concept-divergence --agent codex --copy -y
+```
+<!-- installed-command:install:end -->
+
+For a TypeScript/TSX host, the project must pin `typescript` in its own
+`package.json` and lockfile. Install that declared host dependency before
+assessment; it must resolve from inside the project root. The skill never
+downloads or substitutes an ancestor compiler.
+
+<!-- installed-command:typescript-preflight:start -->
+```bash
+npm ci --offline --ignore-scripts
+```
+<!-- installed-command:typescript-preflight:end -->
+
+<!-- installed-command:assess:start -->
+```bash
+PROJECT_ROOT="$PWD"
+RENAME_CONCEPT_SKILL="$PROJECT_ROOT/.agents/skills/rename-concept"
+(
+  cd "$RENAME_CONCEPT_SKILL"
+  python3 scripts/assess.py \
+  "${OLD_CONCEPT:?Set the deprecated glossary concept}" \
+  "${NEW_CONCEPT:?Set its canonical glossary concept}" \
+    --project-root "$PROJECT_ROOT" \
+    --output "$PROJECT_ROOT/reports/rename-concept/assessment.json"
+)
+```
+<!-- installed-command:assess:end -->
+
+The scanner interprets scan targets and exclusions relative to `--project-root`.
+It excludes an ignored directory or file even when passed directly, and never
+follows a symlink that resolves outside the target project. This protects a
+host nested under a path named `node_modules` while still excluding its own
+`node_modules/`, `dist/`, and migration trees.
+
+On a project containing `.ts` or `.tsx`, assessment runs the host-pinned
+Compiler API after the lexical scan. It reports the compiler version, resolved
+old/new declaration/reference counts, and a classification for every lexical
+old/new candidate. If the host compiler is unavailable, an old-concept symbol
+remains, a candidate cannot be resolved, or no new-concept declaration exists,
+or parsing/relevant resolution diagnostics are present, the verdict stays
+incomplete. `--output` persists this exact read-only evidence as JSON; it
+creates only the report path, never alters a host source file.
 
 Reports, read-only:
 
@@ -97,11 +170,18 @@ Reports, read-only:
 
 The visible part of a rename (the identifier sweep) is the part a rushed pass
 stops at. This skill refuses to call a rename complete while EITHER
-`/find-concept-divergence` band is dirty, or any lifecycle step is unresolved.
-`assess.py` runs the detector ONCE and filters its findings to this rename:
+`/find-concept-divergence` band is dirty, any lifecycle step is unresolved, or
+TypeScript/TSX identifier completeness is unproven. `assess.py` requires the
+host-pinned Compiler API result in addition to a green lexical scan.
+`assess.py` runs the coupled detector ONCE and consumes only its two
+rename-relevant bands for this rename:
 
-- **Band 3 — `superseded_co_occurrence`** (TERM-level identifiers): the old name
-  and the new name must not co-occur in live code. *Caveat:* when the old
+- **Band 3 — `superseded_co_occurrence`** (lexical old/new candidates): the old
+  name and the new name must not co-occur as glossary terms in a scanned file.
+  This is an actionable text candidate. The Compiler API evidence section maps
+  it to an old-concept symbol, a shadowed local, import alias, property key,
+  string, comment, or unresolved identifier before the verdict uses it.
+  *Caveat:* when the old
   concept declares a `coverage_lint:` in `concepts.yaml`,
   `/find-concept-divergence` **skips this band** (the lint owns identifier
   enforcement) — so for a lint-guarded rename band 3 is structurally empty and
@@ -114,10 +194,15 @@ stops at. This skill refuses to call a rename complete while EITHER
   lint and band 3 are both blind to. This is the prose-blindness fix: the gate
   verifies the retired *term* was corrected, not just the identifier.
 
-The verdict is GREEN only when **both** bands ran and are empty. A band-1 hint
-alone — with band 3 green — turns the verdict to HALF-APPLIED / INCOMPLETE.
-Both bands clean is what makes the skill verify *prevention* of the
-half-applied-rename failure rather than merely reproduce it.
+For a non-TypeScript project, the lexical gate is GREEN only when **both** bands
+ran and are empty. A band-1 hint alone — with band 3 green — turns the verdict
+to HALF-APPLIED / INCOMPLETE. For a TypeScript/TSX project, both bands must be
+green and the Compiler API must resolve the expected new declaration with zero
+old-concept references or unresolved identifier candidates, and no parsing or
+candidate-resolution diagnostics. The authority surface is intentionally
+limited: only matching **top-level exported** declarations can establish the
+old/new concept symbols. Same-named internal declarations never certify a
+rename.
 
 ### Two-tier model for stale prose
 
@@ -162,6 +247,25 @@ Even when the write half lands, applying a wide identifier sweep is
 **human-approval-gated by design**: a human reviews the authored plan, the
 dry-run diff, and the long-tail inventory, then applies and verifies. The skill
 authors and proposes; it does not decide and it does not apply.
+
+## TypeScript / TSX boundary
+
+Treat `.ts` and `.tsx` as a two-stage surface. The lexical bands find a
+glossary-listed old/new term pair or exact retired phrase, including JSX text
+and comments. The bundled runner then uses the host's pinned TypeScript Compiler
+API on root-contained TS/TSX files selected by the coupled scanner's default
+surface and classifies each lexical old-name candidate:
+`old_concept_symbol`, `shadowed_local`, `import_alias`, `property_key`,
+`string_literal`, `comment_text`, or `unresolved_identifier`.
+
+Only matching top-level exported declarations establish rename authority;
+internal/unexported declarations are reported but cannot establish completion.
+The runner reads the host `tsconfig.json` when available and blocks completion
+on invalid `tsconfig`/parser diagnostics or semantic diagnostics that affect
+candidate/module/name resolution. It never mutates source. It does not make a
+whole-project type-check pass a completion condition, rewrite identifiers/imports, resolve
+dynamic behavior, or prove an IDE codemod is safe. Keep code mutation outside
+this assess-only skill.
 
 Pairs with `/find-incomplete-sweep`: this **assesses** whether a rename is
 done; that **catches** a half-done sweep after the fact.
