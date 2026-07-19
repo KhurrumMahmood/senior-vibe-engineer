@@ -77,3 +77,32 @@ to apply it. Do not use this file as a progress tracker or backlog.
   time, tokens, repeated context, and interventions. Batch independent
   read-only lenses; serialize mutations. Add shared orchestration only when
   measured fixed workflows demonstrate the need.
+
+## 2026-07-18 — TypeScript is the first learning language
+
+- **Rule:** After installation closes, port one cohesive skill family from a
+  reference-grade Python implementation to TypeScript before expanding to
+  other languages or families.
+- **Why:** TypeScript covers a large share of modern web projects and is close
+  enough to the existing Python tooling to expose useful shared interfaces,
+  while still differing enough to reveal false Python abstractions.
+- **Apply:** Inventory the language-sensitive skills first. Immediately before
+  porting a family, require its Python path to pass positive, negative,
+  must-not-fire, structured-output, change/guard, native-test, and installed
+  self-containment checks. Do not block the first TypeScript result on making
+  every unrelated Python tool globally optimal.
+
+## 2026-07-18 — Outcome assurance and supply-chain assurance are different
+
+- **Rule:** The core product must show that each released skill family, or
+  fixed composition, delivers its declared result. Exact-byte provenance,
+  transactional receipts, controlled launchers, and cross-surface attestations
+  remain optional high-assurance capabilities.
+- **Why:** “Did the skill do the expected engineering work?” is central to
+  product quality. “Can we prove which exact bytes ran under a protected
+  launcher?” serves a narrower threat model and should not burden ordinary
+  installation.
+- **Apply:** Give each family small external outcome fixtures and checks. A
+  fixed multi-skill workflow may share one synthesis owner and final outcome
+  check. Introduce supply-chain or execution attestations only for a customer
+  and journey that require them.

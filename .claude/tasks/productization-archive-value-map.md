@@ -50,6 +50,14 @@ That is a coherent product for a narrower, higher-stakes audience. It is not a
 better default installer for a public Git repository. Its next step is customer
 and threat-model discovery, not more implementation.
 
+One boundary crosses back into the core product: **behavioral outcome
+assurance**. Engineering skills should demonstrate that they produce the
+declared analysis, change, guard, or advice on representative cases, and a
+fixed composition should demonstrate its combined result. The optional product
+starts at the stronger supply-chain and execution properties: exact-byte
+identity, transactional lifecycle, controlled launchers, cross-surface
+capability attestations, and auditable execution receipts.
+
 The matching ledger entry is
 `high-assurance-skill-distribution-runtime`, composed with
 `skill-runtime-adherence-harness`, `skill-execution-planner`, and
