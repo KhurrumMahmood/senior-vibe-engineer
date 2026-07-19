@@ -9,7 +9,8 @@ intent: >
   load-on-demand docs, missing-but-referenced docs, unreferenced docs, and
   broken links from the human onboarding entry point (/ONBOARDING.md). A
   detector emits bands; thresholds tunable via --max-root-chars /
-  --max-doc-chars.
+  --max-doc-chars. The audited artifact graph is host-language neutral; Python
+  is only the installed implementation.
 solves: >
   The agent-rules surface silently rotting — the always-on CLAUDE.md bloats,
   load-on-demand docs go stale or get referenced after deletion, and the
@@ -50,6 +51,7 @@ provenance_confidence:
   temporal: low
   dogfood: high
 evidence:
+  - "5400770 B1 portability proof — copied installed execution preserves the rules-surface outcome in a TypeScript host without host-language source assumptions."
   - 'scan-surface declared via scans: frontmatter [markdown] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
   - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
   - "has_fixtures + has_scripts both true — exercise fixture corpora are the structural oracle"

@@ -3,7 +3,7 @@ schema_version: 2
 skill: find-concept-divergence
 job: suspect
 problem_class: "concept-name drift detection (SUSPECT)"
-intent: "Surface concept-name drift between the canonical glossary at `.claude/contracts/concepts.yaml` and the codebase/docs via three strict bands — avoid_term_hit (code uses a phrasing the glossary's `avoid:` block bans), competing_term_coexistence (multiple `competing_terms` from a flagged_ambiguities entry in one file), and superseded_co_occurrence (a deprecated name and its `superseded_by:` replacement in one file). Detection only — never edits code or docs."
+intent: "Surface concept-name drift between the canonical glossary at `.claude/contracts/concepts.yaml` and the codebase/docs via three strict bands — avoid_term_hit (code uses a phrasing the glossary's `avoid:` block bans), competing_term_coexistence (multiple `competing_terms` from a flagged_ambiguities entry in one file), and superseded_co_occurrence (a deprecated name and its `superseded_by:` replacement in one file). The strict textual outcome is host-language neutral and includes TypeScript and TSX while preserving generated, vendor, compatibility-alias, and homonym boundaries. Detection only — never edits code or docs."
 solves: "Terminology drift the glossary author hasn't caught — banned phrasings, unresolved competing names co-occurring, and half-finished renames — which erodes the shared domain language faster than humans can police it by hand."
 born:
   commit: "cc5c4d6"
@@ -34,6 +34,7 @@ provenance_confidence:
   temporal: med     # solo birth in its own later commit (sibling_births: []) — birth is informative, unlike 90f8567
   dogfood: med      # two on-disk self-scan runs (≥2 raises dogfood), but no fixtures oracle
 evidence:
+  - "5400770 + B1 copied-install regressions — TS/TSX avoid-term findings and canonical/homonym/generated/vendor/compatibility negatives establish the host-language-neutral text-scan boundary."
   - "cc5c4d6 — born standalone on 2026-05-19, NOT in the big-bang 90f8567 cohort (sibling_births: []); sharpest birth signal in this set"
   - "reports/find-concept-divergence/scan-20260520-004804 + scan-20260520-004933 — two on-disk self-scan runs the day after birth (local, gitignored)"
   - "has_scripts: true, has_fixtures: false — strict canonical-name + avoid-term grep against the concepts.yaml glossary"

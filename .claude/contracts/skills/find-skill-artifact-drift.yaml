@@ -7,7 +7,7 @@ schema_version: 2
 skill: find-skill-artifact-drift
 job: suspect
 problem_class: "instruction-artifact coherence detection (SUSPECT)"
-intent: "SUSPECT scan for instruction-artifact coherence (IAC): a SKILL.md is a procedure an agent follows literally, so when its PROSE names scripts/<name>.py --<flag>, documents a tool, or declares produces/evidence_required, those must exist on disk or the agent's first step fails. Band A is deterministic reference integrity (missing_script_ref, missing_documented_flag, bash_tool_undeclared) and is gate-worthy; Band B is heuristic structural proxies (orphan_script, evidence_contract_unbacked, not_for_tooltell_conflict) and stays advisory."
+intent: "SUSPECT scan for instruction-artifact coherence (IAC): a SKILL.md is a procedure an agent follows literally, so when its PROSE names scripts/<name>.py --<flag>, documents a tool, or declares produces/evidence_required, those must exist on disk or the agent's first step fails. The inspected skill/artifact graph is host-language neutral; Python is only the installed implementation. Band A is deterministic reference integrity (missing_script_ref, missing_documented_flag, bash_tool_undeclared) and is gate-worthy; Band B is heuristic structural proxies (orphan_script, evidence_contract_unbacked, not_for_tooltell_conflict) and stays advisory."
 solves: "scripts/skill_meta.py lint validates the frontmatter CONTRACT (required fields, enum values, name==dir) but does NOT check the references between the SKILL.md body and the files on disk. Refactors rename or delete scripts the prose still names, drop documented flags, or add a shell block without the Bash grant — drift that passes the frontmatter lint yet breaks the skill at runtime."
 born:
   commit: "331f2d5"
@@ -41,6 +41,7 @@ provenance_confidence:
   temporal: med     # solo birth cohort — sharper than the 90f8567 set, but a single skill carries limited proximity signal
   dogfood: high     # the good/bad fixtures pair driven by smoke.py is a real, executable regression oracle
 evidence:
+  - "5400770 B1 portability proof plus 94fefbc fallback repair — copied execution preserves the artifact-graph outcome and accepts valid commented block-list frontmatter without PyYAML."
   - 'scan-surface declared via scans: frontmatter [python, markdown] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
   - "331f2d5 — born 2026-05-22 in a dedicated commit, sibling_births_count 0 (facts)"
   - "has_scripts=true / has_fixtures=true (facts) — detect.py + report.py + smoke.py and a good/bad fixture-skill pair"
