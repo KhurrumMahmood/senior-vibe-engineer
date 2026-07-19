@@ -1,10 +1,10 @@
 {
-  "batch": "find-duplication-typescript-v1",
-  "revision": "8e4a585e20bcf8a3ae47cdef51e413673b99eb2c",
+  "batch": "find-duplication-multilanguage",
+  "revision": "20e49143128cdff1fa47704854f81a5504579090",
   "family": ["find-duplication"],
   "invariant": {
     "portable_principle": "Surface substantial lexical or near-lexical clone evidence with reliable source ranges and enclosing symbols, without converting lexical similarity into a refactoring-safety claim.",
-    "python_or_framework_mechanism": "The pre-existing Python jscpd-collapse reference path now uses the standard-library AST directly to resolve enclosing Python symbols and no longer imports the repository adapter registry.",
+    "python_or_framework_mechanism": "The restored Python branch stages eligible production .py files for pinned offline jscpd, runs a bundled standard-library AST detector for the legacy duplicate categories, collapses and ranks the combined candidates, then preserves the original scout classification, dormant side channel, final triage, and /fix-workflow handoff without repository imports.",
     "typescript_mechanism": "Pinned jscpd finds lexical clones in a staged eligible .ts/.tsx input; a family-local lexical span mapper retains only pairs whose complete ranges lie within one proven function declaration or block-bodied arrow symbol, preserving distinct occurrences and joining only overlapping occurrences.",
     "explicit_non_goals": [
       "Semantic equivalence or safe consolidation",
@@ -13,6 +13,17 @@
       "React, Node, framework, overload-compatibility, or codemod claims",
       "Network access during an audit"
     ]
+  },
+  "substitution_regression": {
+    "caught": true,
+    "root_cause": "The TypeScript pilot replaced the Python-facing SKILL.md journey and deleted its investigation agent and knowledge instead of adding a language branch. A frozen collapse.py helper oracle was mistaken for preservation of the complete Python outcome.",
+    "repair": [
+      "Restore agents/investigate.md and both Python knowledge files byte-for-byte from the baseline.",
+      "Route .py and .ts/.tsx targets explicitly, run mixed targets separately, and advertise language:any, framework:any, scans:[python,typescript].",
+      "Bundle the Python detector and pinned offline runner so the selected skill is closed under python3 -I -S without repository scripts/_lib or a toolkit venv.",
+      "Lock the Python final triage/scout journey with positive, negative, must-not-fire, final-classification, degraded-mode, and source-immutability assertions."
+    ],
+    "guard": "Every additive language port must preserve a final-outcome test for each previously supported language; internal-helper compatibility alone does not prove an additive migration stayed additive."
   },
   "reference_repairs": [
     "Removed the Python collapse script's repository-level scripts/_lib language-adapter import and froze the reference oracle with a positive pair, a behaviorally different clean file, stable JSON, and a no-AST-findings input.",
@@ -42,7 +53,7 @@
     "framework": ["None"]
   },
   "tooling": {
-    "selected": "Family-local jscpd@4.0.5 invoked by stock npx --offline, followed by a family-local TypeScript lexical span-to-symbol mapper.",
+    "selected": "Two explicit family-local branches: Python uses pinned jscpd@4.0.5 plus a bundled stdlib AST detector and legacy scout classification; TypeScript uses pinned jscpd@4.0.5 plus a conservative lexical span-to-symbol mapper.",
     "rejected_alternatives": {
       "typescript_compiler_api": "The accepted result is lexical cloning, not type or resolved-symbol facts; adding a Program/TypeChecker would expand this one-skill dependency surface without improving the claimed outcome.",
       "tree_sitter_or_ts_morph": "Would add a parser/runtime dependency without replacing jscpd's lexical near-clone detector or earning a semantic claim.",
@@ -51,12 +62,36 @@
       "shared_typescript_parser_platform": "No second accepted consumer has demonstrated this exact lexical span-mapping contract."
     },
     "version_and_resolution": "jscpd is exactly 4.0.5; run_jscpd.py passes --offline and NPM_CONFIG_OFFLINE=true with a caller-selected NPM_CONFIG_CACHE. The pinned cache is deliberately provisioned with stock npm before a scan and never fetched during a scan.",
-    "closure_mode": "Copy only the find-duplication directory; invoke scripts with python3 -I -S outside the checkout. jscpd is an explicitly declared host tool/cache prerequisite, not a repository import or toolkit venv dependency.",
+    "closure_mode": "Copy only the find-duplication directory and invoke both language branches with python3 -I -S outside the checkout. jscpd is an explicitly declared host tool/cache prerequisite, while Python --offline-ok records an explicit AST-only degraded result; neither branch imports repository code or a toolkit venv.",
     "preflight_and_failure_codes": [
       "run_jscpd.py: 0 for a completed report",
       "run_jscpd.py: 2 for an invalid/non-directory target or no eligible source",
       "run_jscpd.py: 3 for a missing/failed pinned offline jscpd cache or invalid detector report",
       "collapse_typescript.py: 2 for invalid required paths or JSON"
+    ]
+  },
+  "python_outcome_contract": {
+    "inputs": [
+      "A Python source directory",
+      "A project root for stable reported paths",
+      "A populated jscpd@4.0.5 cache, unless explicit --offline-ok degraded AST-only operation is accepted"
+    ],
+    "structured_outputs": [
+      "jscpd/jscpd-report.json or explicit skipped-lexical.json",
+      "ast-findings.json",
+      "collapsed.json and ranked.json",
+      "classified scout results plus dormant candidates",
+      "triage.md and findings.json with /fix-workflow handoff for actionable clusters"
+    ],
+    "must_fire": [
+      "One substantial production clone between first.py and second.py",
+      "Final triage records the classified extract_helper candidate and /fix-workflow cluster:<id> handoff"
+    ],
+    "must_not_fire": [
+      "Behaviorally different production source",
+      "Test source",
+      "Migration source",
+      "Missing lexical tooling represented as a clean scan"
     ]
   },
   "outcome_contract": {
@@ -85,12 +120,14 @@
       "A clone range without a reliable enclosing symbol",
       "A clone range that crosses a symbol boundary"
     ],
-    "native_test_command": ".venv/bin/python -m pytest tests/test_find_duplication_typescript.py -q; NPM_CONFIG_CACHE=/tmp/find-duplication-npm-cache npx --offline --yes -p typescript@5.9.3 tsc --noEmit -p tests/fixtures/find-duplication-typescript/typescript-host/tsconfig.json",
+    "native_test_command": ".venv/bin/python -m pytest tests/test_find_duplication_python.py tests/test_find_duplication_typescript.py -q; NPM_CONFIG_CACHE=/tmp/find-duplication-npm-cache npx --offline --yes -p typescript@5.9.3 tsc --noEmit -p tests/fixtures/find-duplication-typescript/typescript-host/tsconfig.json",
     "native_guard_command": null
   },
   "evidence": {
-    "python_reference": [
-      "tests/test_find_duplication_typescript.py::test_python_reference_oracle_is_stable_and_keeps_different_code_clean executes the repaired stdlib collapse.py against locked first.py/second.py and keeps different.py out of its one finding."
+    "python": [
+      "tests/test_find_duplication_python.py copies only the selected skill and runs the Python lexical -> AST -> collapse -> rank -> classified scout -> final report path with python3 -I -S. It asserts exactly one production clone, excludes the behaviorally different/test/migration inputs, preserves the legacy extract_helper and /fix-workflow handoff, leaves dormant empty, and proves source immutability.",
+      "The copied --offline-ok test proves unavailable jscpd produces explicit skipped_lexical metadata instead of a false clean lexical result.",
+      "A real copied-skill replay at /private/tmp/find-duplication-python-dual.uLYwWf selected exactly app/different.py, app/first.py, and app/second.py; produced one classified jscpd-0001 finding; and preserved the source manifest hash d563b552b3300d899f0b224341a6a353c0478d9c6ea4b89564843e13ca657dbf."
     ],
     "typescript": [
       "The final-artifact test feeds a locked jscpd report containing the real typed clone and generated/test/declaration/overload boundary pairs through collapse_typescript.py -> rank.py -> report.py, asserts exactly one cluster, source spans/symbols, conservative triage wording, and byte-identical source hashes.",
@@ -98,6 +135,10 @@
       "A real offline jscpd@4.0.5 replay against the copied fixture wrote one ts-jscpd-0001 cluster for summarizeQueuedEntries/summarizePendingEntries; TypeScript 5.9.3 tsc --noEmit passed the .ts/.tsx fixture."
     ],
     "commands_and_artifact_paths": [
+      "Additive green suite: .venv/bin/python -m pytest tests/test_find_duplication_python.py tests/test_find_duplication_typescript.py -q -> 12 passed.",
+      "Additive lint: .venv/bin/ruff check .claude/skills/find-duplication tests/test_find_duplication_python.py tests/test_find_duplication_typescript.py -> All checks passed.",
+      "Skill drift gate: .venv/bin/python .claude/skills/find-skill-artifact-drift/scripts/detect.py --gate find-duplication -> 0.",
+      "Python copied replay: /private/tmp/find-duplication-python-dual.uLYwWf; all stages used python3 -I -S, findings.json SHA-256 ea0f6982f566d449fed165c073c696507a97aab55cf78176529b4c920f4ccbf5, and pre/post source manifests were identical.",
       "Red-first transcript: .venv/bin/python -m pytest tests/test_find_duplication_typescript.py -q -> 4 failed before production scripts/reports existed.",
       "Green after rerun hardening: .venv/bin/python -m pytest tests/test_find_duplication_typescript.py -q -> 10 passed.",
       "Lint: .venv/bin/ruff check .claude/skills/find-duplication tests/test_find_duplication_typescript.py -> All checks passed.",
@@ -267,19 +308,21 @@
   "user_experience": {
     "install_steps": [
       "Copy the selected find-duplication skill directory",
-      "Deliberately populate the caller-selected jscpd@4.0.5 npm cache once with stock npm",
-      "Run four host-Python commands to produce the final artifacts"
+      "Select the explicit Python or TypeScript branch from target suffixes; for mixed targets, keep the language report directories separate",
+      "Deliberately populate the caller-selected jscpd@4.0.5 npm cache once with stock npm, or accept explicit AST-only degraded Python operation",
+      "Run the language branch's installed python3 -I -S stages to produce final artifacts"
     ],
     "wall_time_seconds": 8.1,
     "agent_confusions": [
       "A source-checkout jscpd wrapper made the old Python skill look installed when it depended on repository scripts.",
+      "The first port preserved one Python helper oracle but removed the Python user's investigation and final-triage journey, demonstrating that helper closure is weaker than outcome preservation.",
       "npm's ordinary npx behavior fetches by default, so an explicit cache preflight is necessary to keep audit execution deterministic/offline.",
       "A raw jscpd pair can start above a function body, so reporting a guessed symbol would falsely imply precise ownership."
     ],
     "repeated_work": [
       "The raw tool output has to be staged/rebased and then collapsed into user-facing spans; this is intentional family-local evidence handling, not a reusable executor."
     ],
-    "smallest_later_improvement": "Have the serial router/catalog integration expose the exact offline cache preflight and four-command copied-skill invocation, then measure whether one wrapper command is worth adding."
+    "smallest_later_improvement": "Measure actual branch-selection and cache-preflight friction before adding any shared router, catalog, contract, tracker, or wrapper runtime."
   },
   "residual_risks": [
     "The host must deliberately provision a cache before the offline scan; this is an external Node/npm prerequisite.",
@@ -288,8 +331,8 @@
     "The fresh forward replay reused an agent that had unrelated explain-code task context because a new agent slot was unavailable; it received no find-duplication diagnosis or expected result."
   ],
   "next_decision": {
-    "recommendation": "Accept this as a TypeScript lexical-duplication pilot only after the independent adversarial review confirms the copied artifacts; do not extract shared TypeScript infrastructure yet.",
-    "rationale": "The user-visible final triage now proves the narrow outcome with an honest false-negative boundary and a selected-skill offline closure, while semantic analysis would be a separate capability.",
-    "blockers": ["Independent adversarial review", "Serial integrator routing/catalog decision"]
+    "recommendation": "Accept the additive dual-language family at revision 20e4914 and retain the two explicit family-local branches; do not extract shared infrastructure yet.",
+    "rationale": "Python now proves its restored final scout/triage outcome and TypeScript retains its conservative lexical evidence boundary, both from a copied selected skill with isolated execution.",
+    "blockers": []
   }
 }

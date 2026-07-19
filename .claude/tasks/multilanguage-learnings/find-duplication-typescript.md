@@ -1,23 +1,52 @@
-# find-duplication TypeScript v1 learning report
+# find-duplication multi-language repair report
 
-Current implementation revision: `8e4a585e20bcf8a3ae47cdef51e413673b99eb2c`
-on `codex/ts-duplication`; D6 clean-room replay and post-D6 rerun hardening
-completed 2026-07-19 UTC.
+Current implementation revision: `20e49143128cdff1fa47704854f81a5504579090`
+on `codex/ts-duplication`; additive Python restoration, TypeScript D6
+clean-room replay, and post-D6 rerun hardening completed 2026-07-19 UTC.
 
 ## Outcome and scope
 
-`find-duplication` now has a narrow TypeScript v1: it reports substantial
+`find-duplication` now preserves its original Python/Django workflow and adds a
+narrow TypeScript v1. The installed skill routes `.py` targets through the
+Python lexical-plus-AST investigation workflow and `.ts`/`.tsx` targets through
+the TypeScript lexical-evidence workflow. Mixed targets produce two separate
+language reports rather than merging unlike evidence. Its honest frontmatter is
+therefore `language: any`, `framework: any`, and `scans: [python, typescript]`.
+
+The TypeScript branch reports substantial
 lexical/near-lexical `.ts` and `.tsx` clone clusters with the jscpd line spans
 and enclosing function/arrow names that a conservative mapper can prove. The
 final `triage.md` and `findings.json` repeat the key boundary: this is evidence
 for a human to investigate, never proof of semantic equivalence or safe
 consolidation.
 
-The supported outcome excludes TypeScript type facts, module resolution, call
+The TypeScript outcome excludes type facts, module resolution, call
 graphs, frameworks, React/Node conventions, class-method mapping that the
 mapper cannot prove, and refactoring/codemod execution. The installed router
-must therefore advertise this revision as `typescript/any`; the retained Python
-replay is a frozen reference oracle, not a broader routing claim.
+must preserve the explicit language split; `any/any` describes selection, not a
+claim that either implementation is language-neutral.
+
+## Substitution regression caught
+
+The first TypeScript pilot replaced the Python user journey instead of extending
+it: it rewrote `SKILL.md` as TypeScript-only and deleted the Python investigation
+agent and knowledge files. The narrow TypeScript suite still passed because it
+kept only a frozen Python `collapse.py` oracle; that proved one internal helper,
+not the original end-user outcome. This was a goal-level regression even though
+the new TypeScript implementation was locally correct.
+
+The repair restores `agents/investigate.md`, `knowledge/false-positives.md`, and
+`knowledge/learnings.md` byte-for-byte from the baseline, bundles a stdlib-only
+Python AST detector and pinned offline Python jscpd runner, and restores the
+legacy scout fanout, classified merge, dormant side channel, and `/fix-workflow`
+handoff. `--offline-ok` remains an explicit degraded AST-only result; missing
+lexical evidence can never be reported as a clean scan. No installed Python
+stage imports repository `scripts/_lib`, a toolkit venv, or any file outside the
+selected skill directory.
+
+General rule: a language port must lock the previous language's complete
+user-visible journey before adding a new branch. A helper-level compatibility
+oracle is not sufficient evidence that an additive migration stayed additive.
 
 ## Reference repair
 
@@ -62,6 +91,47 @@ TypeScript parser/executor. None improves the narrow accepted outcome enough to
 justify a new runtime or abstraction; there is no second accepted consumer.
 
 ## Fixture and verification evidence
+
+The locked Python host includes one production lexical clone, a behaviorally
+different production file, and matching test/migration must-not-fire files. A
+copied-skill test invokes every Python stage with `python3 -I -S`, feeds the
+ranked candidate through a classified scout result, and asserts the final
+triage contains exactly the production cluster, the `extract_helper`
+classification, and `/fix-workflow cluster:<id>` handoff. It also proves the
+dormant side channel is empty, excluded files never reach the result, and source
+bytes do not change. A second copied-skill test proves missing offline jscpd
+under `--offline-ok` produces explicit `skipped_lexical` metadata.
+
+Combined additive verification after the repair:
+
+```bash
+.venv/bin/python -m pytest \
+  tests/test_find_duplication_python.py \
+  tests/test_find_duplication_typescript.py -q
+# 12 passed
+
+.venv/bin/ruff check \
+  .claude/skills/find-duplication \
+  tests/test_find_duplication_python.py \
+  tests/test_find_duplication_typescript.py
+# All checks passed
+
+.venv/bin/python \
+  .claude/skills/find-skill-artifact-drift/scripts/detect.py \
+  --gate find-duplication
+# 0
+```
+
+A real Python copied-skill replay at
+`/private/tmp/find-duplication-python-dual.uLYwWf` used stock cached
+`jscpd@4.0.5` and `python3 -I -S` for every installed stage. It selected only
+`app/different.py`, `app/first.py`, and `app/second.py`; produced one
+`jscpd-0001` finding for the first/second production files; classified it
+`extract_helper`; left dormant findings empty; and preserved the source
+manifest at
+`d563b552b3300d899f0b224341a6a353c0478d9c6ea4b89564843e13ca657dbf`.
+The final `findings.json` hash is
+`ea0f6982f566d449fed165c073c696507a97aab55cf78176529b4c920f4ccbf5`.
 
 The locked TypeScript host includes:
 
@@ -240,17 +310,18 @@ fixtures, and unresolved semantic gaps per language.
 
 ## User experience, residual risk, and next decision
 
-The installed path is one selected skill directory, a deliberately provisioned
-cache, and four host-Python commands. The main friction is explicit Node cache
-provisioning, but that is preferable to an undeclared network dependency. A
-small later UX improvement would be a router/catalog handoff that prints the
-exact cache preflight and four commands; do not add a wrapper runtime before
-measuring that friction.
+The installed path is one selected skill directory with an explicit branch by
+source suffix. TypeScript uses four host-Python commands after deliberate Node
+cache provisioning. Python adds AST detection and scout classification before
+the common ranking/report boundary and may deliberately continue in explicit
+AST-only degraded mode when the lexical tool is unavailable. Mixed projects run
+both branches into separate report directories. No shared router, catalog,
+contract, tracker, or parser runtime was added.
 
 Residual risks are intentional mapper false negatives, jscpd report-format
 drift on a future version bump, and the Node/npm cache prerequisite. The
-forward replay was fresh for this task but reused an agent with unrelated
+TypeScript forward replay was fresh for this task but reused an agent with unrelated
 explain-code context because no new agent slot was available; it received no
-find-duplication diagnosis or expected result. Accept or extend this family
-only after independent adversarial review; semantic duplication remains a
-separate Compiler API family, not an extension of this lexical v1.
+find-duplication diagnosis or expected result. The additive dual-language
+family is accepted at revision `20e4914`; semantic TypeScript duplication
+remains a separate Compiler API family, not an extension of lexical v1.
