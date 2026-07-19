@@ -119,3 +119,18 @@ to apply it. Do not use this file as a progress tracker or backlog.
   user-harm prevention, or non-gating. Add work to the active plan only for the
   first two classes. Archive other findings as optional ideas; do not repair
   them on the product critical path.
+
+## 2026-07-19 — Let the language parser own comment boundaries
+
+- **Rule:** When a skill must distinguish TypeScript/TSX comments from JSX
+  text, strings, templates, regex literals, and generic syntax, use the host's
+  pinned TypeScript Compiler API rather than extending a hand lexer.
+- **Why:** Valid source makes `/`, `<`, and comment-shaped text context
+  sensitive; locally correct lexical patches repeatedly omit real trivia or
+  invent false references. The parser can reject invalid source and identify
+  literal/JSX ranges before the small scanner considers comment delimiters.
+- **Apply:** Ship a skill-local Node helper, resolve `typescript` from the
+  project root, and make Node plus that host dependency an explicit failure
+  prerequisite. Pin a fixture lockfile and test parser-valid JSX type arguments,
+  regex-after-control-flow, parse failure, unavailable dependency, and copied
+  skill execution.
