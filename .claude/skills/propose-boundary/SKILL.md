@@ -7,6 +7,8 @@ user-invocable: true
 tier: maintenance
 job: explain
 best_for: |
+  A TypeScript target needing resolved symbol, import, and call-graph evidence
+  for a public API, barrel compatibility, and caller-impact proposal.
   A file or directory where distinct domain concerns live side-by-side
   with no defined public contract — sibling modules reach into each
   other's private helpers, change-amplification touches the same N
@@ -22,8 +24,8 @@ not_for: |
   three domains (use /find-omnibus then /refactor-subsystem). Folder-
   topology promotion / demotion (use /find-folder-topology-drift +
   /propose-folder-reorganization). Refactor execution (use
-  /refactor-subsystem in decomposition mode). Cross-subsystem boundary
-  proposals — v1 is intra-subsystem only; cross-subsystem stays in the
+  /refactor-subsystem in decomposition mode). Proposals spanning multiple
+  subsystems are outside v1 and stay in the
   System-tier chain (/scope-feature → /impact-feature → /architecture-
   fit → /plan-spec).
 language: any

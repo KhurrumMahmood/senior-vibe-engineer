@@ -3,7 +3,8 @@
 Status: B0, B1, B2P, B2T, B3, B4, move-path, explain-code, duplication,
 complexity, folder-topology, and adapt-project complete; audit-decisions is in
 complete; find-standard-gaps and map-subsystem are complete; rename-concept is
-complete; propose-boundary and propose-folder-reorganization are in progress
+complete; propose-boundary and propose-folder-reorganization are complete;
+find-dormant is in progress
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -610,7 +611,7 @@ These operate on the toolkit's own ledgers, catalogs, routers, rules, or
 bootstrap runtime. A TypeScript host does not require a language variant, but
 the final matrix still records a runtime review revision.
 
-### TypeScript-supported batches (20 unique skills)
+### TypeScript-supported batches (22 unique skills)
 
 - B1: `find-concept-divergence`, `find-rule-surface-drift`,
   `find-skill-artifact-drift`, `find-skill-intent-drift`,
@@ -627,11 +628,13 @@ the final matrix still records a runtime review revision.
 - Portable decision references: `audit-decisions`.
 - Resolved subsystem inventory: `map-subsystem`.
 - Coupled rename assessment: `rename-concept`.
+- Resolved boundary proposal: `propose-boundary`.
+- Resolved folder proposal: `propose-folder-reorganization`.
 
-### Candidate language-level families and repairs (6)
+### Candidate language-level families and repairs (4)
 
-`find-dormant`, `find-incomplete-sweep`, `find-semantic-duplication`,
-`propose-boundary`, `propose-folder-reorganization`, and `unify-shadows`.
+`find-dormant`, `find-incomplete-sweep`, `find-semantic-duplication`, and
+`unify-shadows`.
 
 These require a crisp action/output handoff, fixture policy, or a proven parser
 consumer before batching. Apparent chains such as omnibus→refactor,
@@ -711,6 +714,18 @@ Active candidate promotion:
   stock-installed, and fresh forward evidence. This accepted resolver contract
   now permits independent `propose-boundary` and
   `propose-folder-reorganization` implementation lanes.
+
+- `propose-boundary` is `complete` at `f7e7f01..3ba2f2d` plus serial
+  router/catalog closeout. Its family-local Compiler API graph resolves direct,
+  alias, barrel, and symbol-call evidence; cohesive, unresolved, and ambiguous
+  inputs defer. A fresh installed task produced a useful two-seam proposal,
+  native verification plan, caller blocker, and unchanged source hashes.
+
+- `propose-folder-reorganization` is `complete` at `5a0fec2` plus serial
+  router/catalog closeout. Its family-local Compiler API graph produced a
+  three-file move plan, seven resolved import/re-export rewrites, barrel
+  compatibility decision, and native verification plan. A fresh installed task
+  passed typecheck and preserved every source hash.
 
 - `move-path` is `complete` on `codex/productization-restart` at `6e65140` plus
   its generated-index/catalog closeout. Its v1 contract guarantees a
@@ -801,3 +816,5 @@ corrected rather than treated as working framework neutrality.
 | 2026-07-19 UTC | `4313c73..6dfd060` + serial closeout | TypeScript decision audit complete | Project-local Compiler API comment trivia recognizes valid TS/TSX decision references while strings, regex, template text, and JSX text stay clean. Final drift artifacts, Python/Markdown/HTML regressions, malformed/missing-tool failures, copied closure, exact stock install, and canonical report containment passed. Integrated focused suite with map and registry regressions: 74 passed; independent containment re-review PASS. |
 | 2026-07-19 UTC | `fc52e10..cd41674` + serial closeout | TypeScript subsystem map complete | Named tsconfig resolution produces exported surface, direct/alias inbound and outbound edges, barrel boundaries, workflow participation, diagnostics, and honest partial state. Unsafe targets and artifact paths reject; stock-installed fresh forward output mapped 3 files/5 exports/2 import edges with native typecheck green and source unchanged. Integrated focused suite with audit and taxonomy regressions: 74 passed; independent re-review PASS. |
 | 2026-07-19 UTC | `d802fb1..10ccc22` + serial closeout | TypeScript rename assessment complete | Exact-two coupled stock install preserves lexical detector authority while project-local Compiler API evidence resolves glossary identifier declarations/references. Persistent lifecycle artifacts, positive/clean/prose/identifier boundaries, native verification, Python smoke, and path exclusions passed. Adversarial review reproduced an internal report-symlink source overwrite; the accepted repair rejects every final/ancestor symlink component and preserves source hashes. Focused/regression suite: 37 passed; final containment re-review PASS. |
+| 2026-07-19 UTC | `f7e7f01..3ba2f2d` + serial closeout | TypeScript boundary proposal complete | Host-resolved static import/symbol/call evidence supports direct, alias, and barrel caller impact while cohesive, unresolved, and ambiguous graphs defer. Stock selected-skill install and focused suite passed. Fresh installed forward use produced two scored seams, a private-import blocker, public API and barrel compatibility plan, native verification commands, and byte-identical source; D6 PASS. |
+| 2026-07-19 UTC | `5a0fec2` + serial closeout | TypeScript folder proposal complete | Host-resolved direct-relative and paths-alias impact produces a complete move/import/barrel/test plan while threshold, scratch, excluded, unresolved, and unsafe targets defer or reject. Focused suite and stock selected install passed. Fresh installed forward use proposed 3 moves and 7 resolved rewrites, passed typecheck, and preserved every source hash; D6 PASS. |

@@ -7,6 +7,8 @@ user-invocable: true
 tier: maintenance
 job: explain
 best_for: |
+  A TypeScript flat-prefix folder cluster needing resolved import impact,
+  a target tree, barrel/subpath compatibility, and native verification plan.
   A confirmed folder-topology drift finding ready for a per-cluster
   reorganization proposal — produces the current → proposed tree,
   file-move table, import-impact summary, characterization-test
@@ -18,8 +20,7 @@ not_for: |
   decomposition where the smell is intra-file, not intra-folder
   (use /find-omnibus). Refactor execution (use /refactor-subsystem in
   decomposition mode). Authoring or amending the folder-organization
-  ADR itself (use /decide). Cluster collapse where the cluster is
-  scratch / custom-job code (project memory:
+  ADR itself (use /decide). Collapsing scratch / custom-job code (project memory:
   project_core_vs_scratch_code.md) — the proposal still runs but
   recommends `defer_scratch_code` instead of a refactor.
 language: any

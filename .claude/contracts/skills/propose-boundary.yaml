@@ -4,11 +4,11 @@ skill: propose-boundary
 job: explain
 problem_class: "missing-boundary resolution proposal (EXPLAIN/bridge)"
 intent: >
-  Turn a confirmed or suspected missing-boundary into a read-only
-  boundary-extraction proposal. Consumes a target (file, directory, or skill
-  directory) and emits a proposal with candidate seams, proposed public API,
-  backward-compat shim shape, caller-impact summary, and characterization-test
-  matrix. Read-only. Hands off to /refactor-subsystem (decomposition mode).
+  Turn a confirmed or suspected Python or TypeScript missing-boundary into a
+  read-only extraction proposal. TypeScript v1 resolves a project-local
+  symbol/import/call graph and emits candidate seams, public API,
+  compatibility/barrel plan, caller impact, and characterization/native
+  verification plan. Read-only; unresolved or ambiguous graphs defer.
 solves: >
   A file or directory where distinct domain concerns live side-by-side with no
   defined public contract — siblings reach into each other's private helpers,
@@ -22,11 +22,12 @@ dogfood_kind: host-attested
 dogfooded_on:
   - "host-attested (ADR 0035): attestations.yaml host-a row — 4 invocations, 0 effectiveness records, 0 scan dirs, learnings_file=false, 2026-05-14..2026-05-14."
   - "none-found — extracted big-bang into ES2 (90f8567), not dogfooded in this repo. Has a scripts/ helper but no fixtures/ oracle and no reports/propose-boundary dir on disk; no boundary proposal has been produced against the ES2 tree."
-reports_dir: none
+  - "2026-07-19 fresh installed TypeScript forward task: resolved direct, alias, and barrel caller impact; emitted two scored seams and a compatibility/native-verification plan; source hashes and native checks stayed green."
+reports_dir: reports/propose-boundary
 run_evidence:
-  count: 0
-  first: null
-  latest: null
+  count: 1
+  first: "2026-07-19"
+  latest: "2026-07-19"
 embodies_decisions:
   adr: ["0017"]
   precedent: ["explain-job-is-read-only-proposal.v1"]
@@ -52,6 +53,8 @@ evidence:
   - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
   - "has scripts/ helper; no fixtures/ oracle (has_fixtures false)"
   - "precedents.yml explain-job-is-read-only-proposal.v1 names propose-boundary explicitly as a transform-named skill that correctly carries job=explain (it PROPOSES, REFACTOR executes)"
+  - "tests/test_propose_boundary_typescript.py and the fresh installed forward replay prove resolved positive, cohesive/no-seam, unresolved/ambiguous defer, exclusions, copied closure, final artifacts, native checks, and source immutability."
 gaps:
   - "DIVERGENCE from the host-a intent base on DOGFOOD only: host-a dogfooded this on the refactor-subsystem-skill dir + tasks/_shared (2 proposals on disk); ES2 has no host subsystems and no on-disk proposals, so dogfood_kind is none-found. embodies_decisions.adr is [\"0017\"] (staged-boundary-rearchitecting) — ai-docs/decisions/0017 exists in ES2 and names propose-boundary in applies_to as the proposal step, matching the SKILL.md reference."
   - "Dropped the host-a related_skills entry propose-spine (host-a-only skill, absent from ES2)."
+  - "TypeScript v1 is framework-neutral and does not claim dynamic imports, runtime dependency injection, framework lifecycle semantics, or automatic refactor safety."

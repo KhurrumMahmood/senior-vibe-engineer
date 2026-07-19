@@ -4,12 +4,11 @@ skill: propose-folder-reorganization
 job: explain
 problem_class: "folder-topology drift resolution proposal (EXPLAIN/bridge)"
 intent: >
-  Turn a confirmed /find-folder-topology-drift finding into a per-cluster
-  reorganization proposal. Consumes a finding (or explicit target like
-  core/views::site_config) and emits a proposal with the current -> proposed
-  tree, file-move table, import-impact summary, characterization-test matrix,
-  and stop condition. Read-only — no file moves. Hands off to
-  /refactor-subsystem (decomposition mode).
+  Turn a confirmed Python or TypeScript folder-topology cluster into a
+  per-cluster reorganization proposal. TypeScript v1 resolves direct-relative
+  and tsconfig paths-alias import impact, records barrel/subpath compatibility,
+  and emits a current-to-proposed tree, move table, characterization matrix,
+  and native verification plan. Read-only; unresolved graphs defer.
 solves: >
   Folder-topology drift (flat folders with N+ same-prefix siblings that should be
   a package, tests-by-prefix that belong under a tests/ subfolder, packages
@@ -22,11 +21,12 @@ born:
 dogfood_kind: none-found
 dogfooded_on:
   - "none-found (extracted in the 90f8567 big-bang; no on-disk reports run and no fixtures pair in this ES2 tree)"
-reports_dir: none
+  - "2026-07-19 fresh installed TypeScript forward task: proposed the three-file billing cluster move with seven resolved import/re-export rewrites, barrel compatibility, native typecheck, and unchanged source hashes."
+reports_dir: reports/propose-folder-reorganization
 run_evidence:
-  count: 0
-  first: null
-  latest: null
+  count: 1
+  first: "2026-07-19"
+  latest: "2026-07-19"
 embodies_decisions:
   adr: ["0006"]
   precedent: ["explain-job-is-read-only-proposal.v1"]
@@ -49,5 +49,6 @@ evidence:
   - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
   - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — inspect.py present (gathers cluster + import-impact data), no oracle pair (structural med)"
   - "precedents.yml explain-job-is-read-only-proposal.v1 names .claude/skills/propose-folder-reorganization/SKILL.md in canonical_examples — confirms the read-only-proposal intent"
+  - "tests/test_propose_folder_reorganization_typescript.py plus the fresh installed forward replay prove resolved relative/alias/barrel impact, threshold/scratch/unresolved defers, exclusions, path containment, Python reference behavior, native typecheck, copied closure, final artifacts, and source immutability."
 gaps:
-  - "host-a dogfooded this on a real host cluster (core/views::site_config, subsystem-refactor); ES2 has no host folders and no run on disk, so dogfood_kind is honestly none-found here."
+  - "TypeScript v1 does not infer framework routing conventions, runtime loaders, package exports, or a safe automatic move; those remain review inputs."

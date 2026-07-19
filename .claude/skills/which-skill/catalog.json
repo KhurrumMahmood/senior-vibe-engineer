@@ -966,24 +966,32 @@
     },
     {
       "name": "propose-boundary",
-      "description": "Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Consumes a target (file path, directory, or skill directory) and emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, proposed public API, backward-compat shim shape, caller-impact summary, and characterization-test matrix. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).",
+      "description": "Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX v1 uses a host-resolved symbol/import/call graph and emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility/barrel plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).",
       "tier": "maintenance",
       "job": "explain",
-      "best_for": "A file or directory where distinct domain concerns live side-by-side\nwith no defined public contract — sibling modules reach into each\nother's private helpers, change-amplification touches the same N\nfiles for every feature, test setup explodes because exercising one\ncluster requires fixturing the others. Produces candidate seams +\nproposed public API + shim shape + characterization-test matrix.\nRead-only. Works on `.claude/skills/<name>/` directories too —\nsub-phases (parsed from SKILL.md `## Phase N` headings) are treated\nas symbols, naming-prefix alignment as the cluster signal.\n",
-      "not_for": "Detection of which subsystems exist (use /map-subsystem first).\nIntra-file responsibility split where the smell is one file with\nthree domains (use /find-omnibus then /refactor-subsystem). Folder-\ntopology promotion / demotion (use /find-folder-topology-drift +\n/propose-folder-reorganization). Refactor execution (use\n/refactor-subsystem in decomposition mode). Cross-subsystem boundary\nproposals — v1 is intra-subsystem only; cross-subsystem stays in the\nSystem-tier chain (/scope-feature → /impact-feature → /architecture-\nfit → /plan-spec).\n",
-      "language": "python",
+      "best_for": "A TypeScript target needing resolved symbol, import, and call-graph evidence\nfor a public API, barrel compatibility, and caller-impact proposal.\nA file or directory where distinct domain concerns live side-by-side\nwith no defined public contract — sibling modules reach into each\nother's private helpers, change-amplification touches the same N\nfiles for every feature, test setup explodes because exercising one\ncluster requires fixturing the others. Produces candidate seams +\nproposed public API + shim shape + characterization-test matrix.\nRead-only. Works on `.claude/skills/<name>/` directories too —\nsub-phases (parsed from SKILL.md `## Phase N` headings) are treated\nas symbols, naming-prefix alignment as the cluster signal.\n",
+      "not_for": "Detection of which subsystems exist (use /map-subsystem first).\nIntra-file responsibility split where the smell is one file with\nthree domains (use /find-omnibus then /refactor-subsystem). Folder-\ntopology promotion / demotion (use /find-folder-topology-drift +\n/propose-folder-reorganization). Refactor execution (use\n/refactor-subsystem in decomposition mode). Proposals spanning multiple\nsubsystems are outside v1 and stay in the\nSystem-tier chain (/scope-feature → /impact-feature → /architecture-\nfit → /plan-spec).\n",
+      "language": "any",
       "framework": "any",
+      "scans": [
+        "python",
+        "typescript"
+      ],
       "_path": "skills/propose-boundary"
     },
     {
       "name": "propose-folder-reorganization",
-      "description": "Turn a confirmed folder-topology drift finding into a per-cluster reorganization proposal. Consumes a finding from /find-folder-topology-drift (or an explicit target like `core/views::site_config`) and emits reports/propose-folder-reorganization/<target>/proposal.md with the current → proposed tree, file-move table, import-impact summary, characterization-test matrix, and stop condition. Read-only — no file moves, no edits. Hands off to /refactor-subsystem (decomposition mode).",
+      "description": "Turn a confirmed Python or TypeScript folder-topology cluster into a per-cluster reorganization proposal. TypeScript v1 resolves direct relative and tsconfig `paths` alias import impact, records barrel/subpath compatibility, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.",
       "tier": "maintenance",
       "job": "explain",
-      "best_for": "A confirmed folder-topology drift finding ready for a per-cluster\nreorganization proposal — produces the current → proposed tree,\nfile-move table, import-impact summary, characterization-test\nmatrix, and the rule-of-thumb call (`tests_by_prefix` opportunistic\nvs `flat_prefix_cluster` per-PR). Read-only. Decided in: ADR 0006\n(folder-organization).\n",
-      "not_for": "Detection (use /find-folder-topology-drift first). File-level\ndecomposition where the smell is intra-file, not intra-folder\n(use /find-omnibus). Refactor execution (use /refactor-subsystem in\ndecomposition mode). Authoring or amending the folder-organization\nADR itself (use /decide). Cluster collapse where the cluster is\nscratch / custom-job code (project memory:\nproject_core_vs_scratch_code.md) — the proposal still runs but\nrecommends `defer_scratch_code` instead of a refactor.\n",
-      "language": "python",
+      "best_for": "A TypeScript flat-prefix folder cluster needing resolved import impact,\na target tree, barrel/subpath compatibility, and native verification plan.\nA confirmed folder-topology drift finding ready for a per-cluster\nreorganization proposal — produces the current → proposed tree,\nfile-move table, import-impact summary, characterization-test\nmatrix, and the rule-of-thumb call (`tests_by_prefix` opportunistic\nvs `flat_prefix_cluster` per-PR). Read-only. Decided in: ADR 0006\n(folder-organization).\n",
+      "not_for": "Detection (use /find-folder-topology-drift first). File-level\ndecomposition where the smell is intra-file, not intra-folder\n(use /find-omnibus). Refactor execution (use /refactor-subsystem in\ndecomposition mode). Authoring or amending the folder-organization\nADR itself (use /decide). Collapsing scratch / custom-job code (project memory:\nproject_core_vs_scratch_code.md) — the proposal still runs but\nrecommends `defer_scratch_code` instead of a refactor.\n",
+      "language": "any",
       "framework": "any",
+      "scans": [
+        "python",
+        "typescript"
+      ],
       "_path": "skills/propose-folder-reorganization"
     },
     {

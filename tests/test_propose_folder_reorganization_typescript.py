@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -300,7 +301,7 @@ def test_python_reference_inspection_preserves_positive_and_below_threshold_orac
 
     positive = host / "reports" / "positive.json"
     result = _run(
-        str(REPO_ROOT / ".venv" / "bin" / "python"), str(PYTHON_INSPECT),
+        sys.executable, str(PYTHON_INSPECT),
         "--parent", "pkg", "--prefix", "billing", "--project-root", str(host), "--output", str(positive),
         cwd=host,
     )
@@ -319,7 +320,7 @@ def test_python_reference_inspection_preserves_positive_and_below_threshold_orac
 
     below = host / "reports" / "below.json"
     below_result = _run(
-        str(REPO_ROOT / ".venv" / "bin" / "python"), str(PYTHON_INSPECT),
+        sys.executable, str(PYTHON_INSPECT),
         "--parent", "pkg", "--prefix", "two", "--project-root", str(host), "--output", str(below),
         cwd=host,
     )

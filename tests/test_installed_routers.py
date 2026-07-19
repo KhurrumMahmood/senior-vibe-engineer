@@ -186,6 +186,15 @@ def test_installed_which_skill_routes_typescript_explanation(tmp_path):
             "assess a TypeScript glossary concept rename lifecycle and completeness gate",
             "rename-concept",
         ),
+        (
+            "propose a TypeScript boundary from resolved symbol import and call evidence",
+            "propose-boundary",
+        ),
+        (
+            "propose reorganizing a TypeScript flat prefix folder cluster with resolved "
+            "import impact",
+            "propose-folder-reorganization",
+        ),
     ],
 )
 def test_installed_which_skill_routes_typescript_analysis_skills(
