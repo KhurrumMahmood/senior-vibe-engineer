@@ -14,9 +14,9 @@ This README is the **human entrypoint**. AI agents (Claude Code, Codex,
 Augment, Cursor, Gemini) should start at
 [`AGENTS.md`](./AGENTS.md) → [`.claude/CLAUDE.md`](./.claude/CLAUDE.md).
 
-**Where to start:** `/engineer-init` for first-time setup (venv, deps,
-hooks); `/which-shape` for routing whenever you're unsure what kind of
-work to run.
+**Where to start:** install the two lightweight routers, then let
+`which-skill` install only the skill selected for the task. Repository
+contributors use `/engineer-init` for the development venv and hooks.
 
 ## What's in the box
 
@@ -101,38 +101,53 @@ work to run.
 ## Quick start
 
 ```bash
-# Install deps and pre-commit hooks — or run /engineer-init to do all this
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/pre-commit install   # requires a git repo; skip if unversioned
-
-# Try a skill (under Claude Code; Codex/Augment vary)
-/which-shape "this inherited project feels messy and slow"
-/which-skill "I need to clean up duplicated workflow modules"
-/find-duplication app/services
-/triage-debt
+# From the host project. The command installs only the two routers.
+ENGINEERING_SKILLS_SOURCE=https://github.com/KhurrumMahmood/senior-vibe-engineer # host-ref-allow: public distribution repository
+DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \
+  "$ENGINEERING_SKILLS_SOURCE" \
+  --skill which-shape --skill which-skill --agent codex --copy -y
 ```
 
-Skills are designed to be invoked by AI coding agents inside a host
-project's repo. The host project drops `.claude/`, `scripts/`, and
-`ai-docs/` into its root (or symlinks them) and the skills become
-available to the agent.
+Ask the agent to use `which-shape` when the operating mode is unclear, then
+use `which-skill` for the tactical choice. Both routers run with system
+Python and do not load the other 74 skill bodies. A successful `which-skill`
+result includes the pinned `skills@1.5.19` command for installing only its
+winner.
 
-## Before the skills work — two gotchas
+To remove all skills installed for the project:
 
-Claude Code auto-discovers `.claude/skills/` and lists every skill as a
-slash command, so the skills *look* ready before they actually are. Two
-things commonly block them:
+```bash
+DO_NOT_TRACK=1 npx --yes skills@1.5.19 remove --all
+```
 
-1. **The runtime isn't installed.** Most skills shell out to helper
+The stock CLI owns the installed skill directories and `skills-lock.json`.
+Move local edits out of an installed skill directory before replacing or
+removing it. Files elsewhere in the host project are outside that boundary.
+
+For repository development, clone this repo and run `/engineer-init`, or:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/pre-commit install
+```
+
+## Runtime-backed skills
+
+The routers and prompt-only skills are self-contained. Many older
+script-backed skills still depend on repository-level helpers and PyYAML; they
+are not yet claimed as independently installable. Cross-language family work
+will convert those skills one cohesive family at a time.
+
+1. **The development runtime isn't installed.** Most skills shell out to helper
    scripts under `scripts/` (`decisions.py`, `ledger.py`, the lint
    runner, …) that need `PyYAML` from `requirements.txt`. Until the venv
    exists the slash command is listed but errors on its first script
-   call. Run the Quick start install block — or `/engineer-init` —
-   first. Prompt-only skills (`/gut-check`, `/which-skill`) work without
-   it; the script-backed majority do not.
+   call. Run the repository-development block above — or `/engineer-init` —
+   when developing the full checkout. Prompt-only skills and the two routers
+   do not require it.
 
-2. **The skills must run from a host project root.** Skill scripts use
+2. **Older script-backed skills must run from a full checkout.** Their scripts use
    paths relative to the repo root — `scripts/decisions.py`,
    `ai-docs/decisions/`, `reports/`. Run from a parent or staging
    directory, those paths don't resolve and there is no codebase to act
@@ -146,7 +161,7 @@ things commonly block them:
 .claude/
   CLAUDE.md                 # lean root guide for all agents
   docs/                     # doctrine: canonical patterns, smells, catalogue
-  skills/                   # 75 skills, each a self-contained dir
+  skills/                   # 76 skills, each a self-contained dir
     _common/                # shared scout-dispatch, scripts, posture docs
     <skill-name>/SKILL.md   # the agent-facing skill definition
 ai-docs/

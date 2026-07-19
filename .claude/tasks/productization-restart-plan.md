@@ -36,26 +36,26 @@ Outcome: use the stock Agent Skills installer. Do not build a custom package
 manager, trust ceremony, transactional lifecycle, five-surface projection, or
 generic executor.
 
-- [ ] **I1 — Stock discovery.** From a clean checkout, the pinned command
+- [x] **I1 — Stock discovery.** From a clean checkout, the pinned command
   `npx --yes skills@1.5.19 add <source> --list` exits zero and lists exactly
   76 skills.
-- [ ] **I2 — Router-only install.** From an empty Git host, one documented
+- [x] **I2 — Router-only install.** From an empty Git host, one documented
   stock command installs exactly `which-shape` and `which-skill`; the source
   checkout remains clean.
-- [ ] **I3 — Self-contained routers.** Copies containing only each installed
+- [x] **I3 — Self-contained routers.** Copies containing only each installed
   router directory run under Python isolated/no-site mode outside the source
   checkout. `which-shape` returns the expected shape for two fixtures;
   `which-skill` returns the expected skill for two fixtures. Neither imports a
   repository-level module, requires a toolkit venv, third-party Python
   package, or network access.
-- [ ] **I4 — Selected-skill handoff.** `which-skill` emits a pinned stock
+- [x] **I4 — Selected-skill handoff.** `which-skill` emits a pinned stock
   installation command for its winner. Running the command installs only that
   selected skill in addition to the routers.
-- [ ] **I5 — First useful result.** A fresh-context agent, given only the
+- [x] **I5 — First useful result.** A fresh-context agent, given only the
   installed routers, selected installed skill, fixture project, and user task,
   produces the fixture's expected useful artifact. The initial selected skill
   is prompt-only or self-contained.
-- [ ] **I6 — Standard removal boundary.** The documented stock removal path
+- [x] **I6 — Standard removal boundary.** The documented stock removal path
   removes the installed skill directories and leaves a sentinel outside the
   standard skill paths byte-identical. No promise is made about preserving
   user edits inside installed skill directories.
@@ -102,9 +102,12 @@ it is necessary.
 | Date | Revision | Criterion | Evidence |
 |---|---|---|---|
 | 2026-07-18 | `ad685e3` | Baseline only | Stock `skills@1.5.19` discovered 76 and installed both routers; isolated execution failed on repository-level imports. This is RED evidence, not acceptance. |
+| 2026-07-18 | `7c14dd4` | I1–I4 | A clean temporary Git host used `skills@1.5.19`: discovery reported exactly 76; router install selected exactly two directories; four installed router fixtures passed under `python3 -I -S`; the router-selected local-source command installed only `gut-check`. Targeted suite: 47 passed. |
+| 2026-07-18 | `7c14dd4` | I5 | A GPT-5.6 Terra xhigh fresh-context agent received only the installed `gut-check`, host fixture, and user task. Against the committed fixture now at `tests/fixtures/standard-install/architecture-plan.md`, it produced five cited strong-smell findings. The first shorter fixture correctly exercised the skill's documented below-threshold path and was replaced rather than counted as success. |
+| 2026-07-18 | `7c14dd4` | I6 | `skills@1.5.19 remove --all` removed all three installed skill directories. `KEEP.txt` remained SHA-256 `1954cbe1b926f93e3cd432127f483e7db98ab6bfa7453060205ef90b60225fb3`; only empty standard directories and `skills-lock.json` remained. |
 
 ## Current slice
 
-Write a failing isolated-copy test for both routers, then make only the router
-packages self-contained. The next allowed slice is I4; no cross-language or
-optional high-assurance work is active.
+Commit the README journey and frozen first-use fixture, then replay I1–I6 from
+that one revision and run the goal-anchored fresh review for I7. No
+cross-language or optional high-assurance work is active before I7 closes.
