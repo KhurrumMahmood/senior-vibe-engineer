@@ -1,7 +1,8 @@
 # TypeScript-first skill batch plan
 
 Status: B0, B1, B2P, B2T, B3, B4, move-path, explain-code, duplication,
-complexity, folder-topology, and adapt-project complete; audit-decisions is in review
+complexity, folder-topology, and adapt-project complete; audit-decisions is in
+native-parser repair; find-standard-gaps and rename-concept are in progress
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -679,6 +680,23 @@ Cross-cutting decisions from this clarification:
   repository helpers.
 
 Active candidate promotion:
+
+- `audit-decisions` is `in_progress` in
+  `/private/tmp/engineering-skills-ts-audit-decisions`. Its first installed
+  stdlib scanner passed the ordinary fixture but adversarial review found
+  valid TSX generic-type comments and a control-flow regex boundary it could
+  not classify reliably. That implementation is being replaced with a
+  skill-local host-TypeScript Compiler API helper rather than extended into a
+  second hand-written TypeScript parser.
+- `find-standard-gaps` is `in_progress` in
+  `/private/tmp/engineering-skills-product-ts-gaps`. The frozen v1 standard is
+  direct `JSON.parse(...)` syntax enclosed by `try`, with unsupported
+  conditions reported honestly instead of counted as compliant.
+- `rename-concept` is `in_progress` in
+  `/private/tmp/engineering-skills-ts-rename-concept`. Its assessment remains
+  read-only; lexical evidence may not be promoted as resolved identifier
+  completeness, so the lane must add compiler-backed evidence or return an
+  explicit unresolved result for that gate.
 
 - `move-path` is `complete` on `codex/productization-restart` at `6e65140` plus
   its generated-index/catalog closeout. Its v1 contract guarantees a
