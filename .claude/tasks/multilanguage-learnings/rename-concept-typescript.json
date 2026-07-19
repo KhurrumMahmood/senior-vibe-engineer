@@ -1,6 +1,6 @@
 {
   "batch": "rename-concept-typescript-compiler-v1",
-  "revision": "implementation and learning commits reported at handoff",
+  "revision": "implementation repair 5c96af6; this learning record is committed separately",
   "family": ["rename-concept"],
   "invariant": {
     "portable_principle": "A lexical concept scan surfaces retired prose and identifier candidates; TypeScript completion additionally requires host-pinned Compiler API evidence with explicit symbol authority and blocking diagnostics.",
@@ -49,10 +49,10 @@
       "comment_text",
       "non_identifier_text"
     ],
-    "persistent_output": "--output reports/rename-concept/assessment.json contains lifecycle, lexical candidate, compiler, diagnostic, verdict, and open-item evidence."
+    "persistent_output": "--output reports/rename-concept/assessment.json contains lifecycle, lexical candidate, compiler, diagnostic, verdict, and open-item evidence; it must resolve inside that report subtree, so source/external paths and escaping output symlinks are rejected before mkdir/write."
   },
   "tree_safety": {
-    "principles": ["root-relative direct-target exclusions", "external-symlink containment", "no directory symlink traversal"],
+    "principles": ["contained assessment output writes", "root-relative logical direct-target exclusions", "external-symlink containment", "no directory symlink traversal, including direct targets"],
     "must_not_scan": ["host node_modules", "dist", "migrations", "reports", "external symlink targets"],
     "must_scan": ["a host nested under an ancestor named node_modules", "root-contained .ts and .tsx sources in the coupled scanner default surface"]
   },
@@ -60,7 +60,8 @@
     "fixture": "tests/fixtures/rename-concept-typescript/host/",
     "focused_cases": [
       "Copied python -I -S dirty TS/TSX assessment and source immutability",
-      "Direct ignored targets and escaped symlink exclusion",
+      "Contained assessment output plus source/external/escaping-symlink output rejection without writes",
+      "Direct ignored targets, direct internal directory symlink, excluded logical symlink alias, and escaped symlink exclusion; ordinary contained target still scans",
       "Stock documented one-command exact-two skill install/preflight/assess journey with COMPLETE clean host report",
       "Missing host TypeScript compiler blocks with structured evidence",
       "Ancestor-resolved TypeScript is rejected as non-host evidence",

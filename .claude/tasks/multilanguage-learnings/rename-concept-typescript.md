@@ -1,6 +1,6 @@
 # rename-concept TypeScript compiler-assessment learning handoff
 
-Revision: implementation commit and learning commit are reported at handoff.
+Revision: implementation repair `5c96af6`; this learning record is committed separately.
 Evidence date: 2026-07-19.
 
 ## Invariant
@@ -33,7 +33,10 @@ hit as an identifier reference.
   whole-project type check as the rename gate.
 - `--output reports/rename-concept/assessment.json` persists the lifecycle,
   lexical candidates, compiler evidence, diagnostics, verdict, and open items.
-  It creates only the report path; host source stays unchanged.
+  The path must resolve within `<project-root>/reports/rename-concept/`; source
+  paths, external paths, and an existing output or ancestor symlink that
+  escapes the report subtree fail before parent creation or writing. Host source
+  stays unchanged.
 
 ## Two-stage TypeScript model
 
@@ -63,13 +66,16 @@ command, and loads the installed sibling scanner as the lexical authority. In
 repository development it may load the source-tree sibling. It does not copy
 or fork either detector band.
 
-The walker evaluates exclusions on root-relative labels even for direct
-targets, rejects files/symlinks that resolve outside the host, and does not
-follow directory symlinks. That allows a real host below an ancestor named
-`node_modules` while excluding its own `node_modules/`, `dist/`, migration, and
-report trees. This safety behavior belongs in the coupled scanner so both
-skills share it. Glossary `source:` documents remain exempt from their own
-historical phrase examples.
+The walker evaluates exclusions on root-relative logical labels even for direct
+targets, rejects files/symlinks that resolve outside the host, and never
+traverses directory symlinks — including a directory symlink named directly as
+the target. Retaining the logical label before resolving the target means an
+alias placed under `reports/` or another excluded directory cannot bypass that
+exclusion. This allows a real host below an ancestor named `node_modules` while
+excluding its own `node_modules/`, `dist/`, migration, and report trees. This
+safety behavior belongs in the coupled scanner so both skills share it.
+Glossary `source:` documents remain exempt from their own historical phrase
+examples.
 
 ## Locked evidence
 
@@ -82,21 +88,26 @@ shadowed local, import alias, property key, string, and comment.
 
 1. A copied skill runs with `python -I -S`, reports dirty TS/TSX candidate
    classifications, persists JSON, and never mutates source.
-2. Direct ignored directory/file targets are excluded and an external symlink
-   is never followed, even when the host has an ancestor named `node_modules`.
-3. The exact documented stock `skills@1.5.19` one-command two-skill
+2. Assessment output accepts a contained report and rejects a source-overwrite,
+   external path, and output-ancestor symlink escape without writing outside the
+   report subtree.
+3. Direct ignored directory/file targets, a direct internal directory symlink,
+   an excluded logical symlink alias, and an external symlink are excluded,
+   while a direct ordinary contained directory still scans, even when the host
+   has an ancestor named `node_modules`.
+4. The exact documented stock `skills@1.5.19` one-command two-skill
    install/preflight/assessment journey produces exactly the two copied
    `.agents` skills, `COMPLETE` for a clean pinned TS host, and
    `reports/rename-concept/assessment.json`.
-4. A missing host TypeScript package leaves structured compiler evidence
+5. A missing host TypeScript package leaves structured compiler evidence
    `unavailable` and blocks completion without source writes.
-5. A TypeScript package found only in an ancestor is rejected as non-host
+6. A TypeScript package found only in an ancestor is rejected as non-host
    evidence.
-6. A copied `rename-concept` without the coupled detector is inconclusive and
+7. A copied `rename-concept` without the coupled detector is inconclusive and
    never falls back to the source checkout.
-7. Invalid TypeScript syntax emits persistent parse evidence and blocks
+8. Invalid TypeScript syntax emits persistent parse evidence and blocks
    certification.
-8. Internal-only old/new declarations cannot supply authority or a completed
+9. Internal-only old/new declarations cannot supply authority or a completed
    rename.
 
 Observed final verification:
@@ -126,8 +137,9 @@ git diff --check
 Keep the Compiler API runner family-local: no second accepted consumer has this
 exact glossary/lifecycle contract. Reuse the existing coupled divergence
 scanner rather than copying it. The reusable principles are explicit coupled
-dependency closure, root-relative exclusion, symlink containment, evidence
-labels, and a terminal diagnostic gate.
+dependency closure, contained report writes, root-relative logical exclusions,
+no directory-symlink traversal, symlink containment, evidence labels, and a
+terminal diagnostic gate.
 
 Future language support needs a host-pinned native resolver, a declared
 authority surface, persistent evidence, and the same missing-tool, invalid
