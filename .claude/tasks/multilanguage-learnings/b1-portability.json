@@ -116,16 +116,16 @@
     "wall_time_seconds": null,
     "agent_confusions": ["Repository helper imports made source-tree success appear installed.", "The generic quick validator rejects this repository's valid extended frontmatter."],
     "repeated_work": ["Three reporters independently needed small report closure, but no shared abstraction was justified."],
-    "smallest_later_improvement": "Have the serial router emit each selected skill's exact installed command and declared host prerequisites."
+    "smallest_later_improvement": "Completed by the later serial router/catalog integration; collect real-user friction before changing this family again."
   },
   "residual_risks": [
     "Rich non-JSON YAML intent contracts require PyYAML in the host environment; the stdlib copied path supports JSON-form YAML.",
-    "Router catalog/matcher integration is serial-integrator-owned and untested in B1.",
-    "The second adversarial review findings are repaired; repository-wide contract/index and router integration remain serial-integrator-owned."
+    "The original B1 lane did not test router integration; later serial integration and regression coverage closed that boundary.",
+    "The second adversarial review findings and repository-wide contract/index integration are repaired."
   ],
   "next_decision": {
-    "recommendation": "Accept the completed B1 copied evidence, then perform router/catalog and repository intent-contract integration before another language batch.",
+    "recommendation": "Keep the accepted B1 copied evidence and completed router/catalog integration; avoid broader shared infrastructure without another consumer.",
     "rationale": "The batch delivers genuine TS/TSX glossary coverage and truthful host-neutral claims without speculative shared infrastructure.",
-    "blockers": ["serial router changes", "repository contract refresh review"]
+    "blockers": []
   }
 }

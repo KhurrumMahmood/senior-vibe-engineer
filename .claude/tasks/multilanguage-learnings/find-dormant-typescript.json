@@ -106,14 +106,15 @@
       "Final artifacts under reports/find-dormant/<scan>/report.md and reports/find-dormant/<scan>/findings.json are asserted in the focused copied and stock-install tests"
     ],
     "fresh_forward": {
-      "status": "pending_independent_non_context_replay",
+      "status": "passed",
       "task": "Install only find-dormant into the raw locked TypeScript host, audit src with the installed documented command, produce the final report, and state what needs human review without changing source.",
       "required_proof": [
         "Use a clean host and a selected installed skill, not this checkout.",
         "Do not supply the expected candidate or diagnosis to the agent.",
         "Verify report.md/findings.json, native typecheck/tests before and after, and unchanged source hashes."
       ],
-      "automated_harness": "test_copied_typescript_skill_and_stock_install_have_no_checkout_runtime exercises the same stock selected-skill final artifact journey; it is not presented as independent agent judgment."
+      "automated_harness": "test_copied_typescript_skill_and_stock_install_have_no_checkout_runtime exercises the same stock selected-skill final artifact journey; the independent D6 is recorded separately.",
+      "result": "A fresh non-context installed replay reported one review-required candidate, one dynamic uncertainty, zero certain-delete claims, passed native checks, and preserved source hashes."
     }
   },
   "false_positive_boundary": {
@@ -203,17 +204,16 @@
     "repeated_work": [
       "map-subsystem supplied accepted host-compiler, named-tsconfig, exclusion, symlink, and stock-closure patterns, copied without a shared runtime."
     ],
-    "smallest_later_improvement": "Complete the independent D6 replay before considering a second direct-reference shape from a real host; do not broaden to methods or runtime/framework analysis without a new outcome contract."
+    "smallest_later_improvement": "Consider a second direct-reference shape only from a real host; do not broaden to methods or runtime/framework analysis without a new outcome contract."
   },
   "residual_risks": [
     "Static zero-reference candidates can be dynamically or externally live and therefore always need human review.",
     "Exact string-name uncertainty catches one common dynamic shape but cannot resolve arbitrary computed dispatch.",
-    "The host must supply Node, a valid project-local tsconfig, and a package-local TypeScript compiler.",
-    "D6 independent non-context replay is intentionally pending serial integration."
+    "The host must supply Node, a valid project-local tsconfig, and a package-local TypeScript compiler."
   ],
   "next_decision": {
-    "recommendation": "Accept the narrow TypeScript v1 after the serial integrator completes D6; keep it family-local and leave routers/catalog/contracts/tracker to the integrator.",
-    "rationale": "The preserved Python oracle, Compiler API final report, locked positive/negative/must-not-fire corpus, explicit partial/error states, selected-skill closure, native checks, source immutability, and no-deletion schema prove the smallest honest useful outcome.",
-    "blockers": ["Independent non-context installed-skill D6 replay", "Serial integration of shared router/catalog/contract/tracker surfaces outside this lane"]
+    "recommendation": "Retain the accepted narrow TypeScript v1 as a family-local human-review aid.",
+    "rationale": "The preserved Python oracle, Compiler API final report, locked positive/negative/must-not-fire corpus, explicit partial/error states, selected-skill closure, native checks, source immutability, no-deletion schema, and fresh non-context D6 prove the smallest honest useful outcome.",
+    "blockers": []
   }
 }

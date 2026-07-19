@@ -144,7 +144,7 @@ invocation target.
 | D5 installed closure | Copied `-I -S` and stock installed-command tests pass with host Python/Node only. | pass |
 | D6 fresh forward task | Fresh installed journey above produces final artifacts and useful conclusion. | pass |
 | D7 regression/conformance | Seven focused tests, Ruff, native checks, metadata lint, compile/syntax, and diff check pass. | pass |
-| D8 learning handoff | This MD/JSON pair records decisions, evidence, adversarial repair, and prerequisites. | ready for re-review |
+| D8 learning handoff | This MD/JSON pair records decisions, evidence, adversarial repair, prerequisites, and the accepted post-repair review. | pass |
 
 ## What generalized, what did not
 

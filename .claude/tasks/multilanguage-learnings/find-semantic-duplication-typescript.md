@@ -1,7 +1,7 @@
 # TypeScript `find-semantic-duplication` learning packet
 
-Implementation revision: pending lane commit on
-`codex/typescript-semantic-duplication`. This packet covers the bounded
+Implementation revision: `a9a68eb` (`Add TypeScript semantic duplication
+triage`) from the isolated `codex/typescript-semantic-duplication` lane. This packet covers the bounded
 function-level TypeScript v1 and the Python reference repairs that were needed
 before copying an outcome.
 
@@ -36,9 +36,9 @@ with rejections.
 | D3 — TypeScript final outcome | Locked fixture reaches final `findings.json`, `triage.md`, and matrix: one same-outcome/different-code confirmation, one unresolved/dynamic uncertainty, and caller/lexical/policy rejections. | pass |
 | D4 — change/guard | Not applicable: this is a read-only SUSPECT detector. | n/a |
 | D5 — installed closure | Test uses the exact stock `skills@1.5.19 add … --skill find-semantic-duplication --copy` command, runs the installed documented command, and resolves only host-local TypeScript. | pass |
-| D6 — fresh forward task | Automated selected-install final-artifact replay passes; independent non-context agent replay remains for the serial integrator. | pending integrator replay |
+| D6 — fresh forward task | A fresh no-context installed replay produced one confirmation, one uncertainty, and three explicit rejections with native checks and source immutability. | pass |
 | D7 — regression/conformance | Focused Python/TypeScript suite, Ruff, Node syntax check, metadata lint, native offline typecheck before/after scan, and diff check pass. Direct exclusions, symlinks, output containment, missing compiler/config, syntax error, and source immutability are covered. | pass |
-| D8 — learning handoff | This Markdown and JSON packet record the reference repair, family-local resolver decision, evidence, false-positive boundary, and deferred D6. | pass |
+| D8 — learning handoff | This Markdown and JSON packet record the reference repair, family-local resolver decision, evidence, false-positive boundary, and accepted D6. | pass |
 
 ## Verification
 
@@ -89,7 +89,7 @@ dispatch, runtime effects, and framework conventions. Matching static output
 shape remains an advisory lead rather than refactor authority. The host must
 provide Node, a project-local TypeScript package, and a valid named tsconfig.
 
-Next: the serial integrator can perform the D6 clean-host/no-context forward
-replay, then accept the report schema before beginning `unify-shadows`. Do not
+The clean-host/no-context D6 replay passed and the report schema was accepted
+before `unify-shadows` began. Do not
 expand to workflow/structural analysis, shared TypeScript infrastructure, or
 UX/performance work in this lane.

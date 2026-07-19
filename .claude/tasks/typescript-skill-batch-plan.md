@@ -79,7 +79,7 @@ No skill may remain `candidate`, claim TypeScript from suffix handling alone,
 or silently under-detect TypeScript at this milestone. `stack-bound` is a
 complete and honest language-coverage result, but it is not cross-framework
 support. A later Node/React/Express/ORM packet must be separately named and
-validated before any of the 20 framework-specific skills changes disposition.
+validated before any of the 22 framework-specific skills changes disposition.
 
 The milestone is complete only when:
 
@@ -873,4 +873,4 @@ framework-neutral TypeScript eligibility.
 | 2026-07-19 UTC | `e7b413b..5143bf6` + fresh forward use | Five quality skills validated neutral | Diagnose, perimeter gaps, gut-check, teach-pattern, and triage-debt produced useful installed TypeScript-host evidence without language variants. The fresh replay passed all five, including the local diagnosis evidence gate and cached-input debt contract; native checks and source hashes were unchanged. |
 | 2026-07-19 UTC | `eec276d..3352392` + fresh forward use | Orchestration neutrality review | Converge, harvest-learnings, organize-project-structure, and orient produced useful installed outcomes with native checks and unchanged source. Project-interview remained pending because its required installed evidence helpers were absent; the failure was retained as a closure repair rather than accepted. |
 | 2026-07-19 UTC | `6058f45..3494290` + repaired fresh forward use | Project-interview neutral closure complete | Skill-local stdlib draft/discovery and evidence-gate helpers close the exact selected-install failure. A fresh TypeScript host recorded only supplied declarations and objective facts, retained unresolved questions, kept `user_approved:false`, passed `OK: 3/3`, passed native checks/tests, and preserved source hashes. |
-| 2026-07-19 UTC | final matrix closeout | Five clean-host TypeScript journeys | Read-only incomplete-sweep detection, boundary proposal, safe path mutation, state mutation/guard, and semantic analysis replayed from their locked installed fixtures: 39 passed, 1 intentional environment skip. The 76-row matrix test also passed with exact counts 22 supported + 19 neutral + 22 stack-bound + 13 runtime. |
+| 2026-07-19 UTC | final matrix closeout | Five clean-host TypeScript journeys | Read-only incomplete-sweep detection, boundary proposal, safe path mutation, state mutation/guard, and semantic analysis replayed from their locked installed fixtures: 39 passed, 1 named environment skip (`tests/test_move_path.py:855`, because standalone/global `tsc` was absent from `PATH`; the pinned installed/native TypeScript checks passed). The 76-row matrix test also passed with exact counts 22 supported + 19 neutral + 22 stack-bound + 13 runtime. |

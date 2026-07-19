@@ -28,8 +28,8 @@ detector reads; no cosmetic TypeScript scan was added.
 - The four neutral skills do not acquire TypeScript-specific variants. Their
   Python executables remain an installation detail, while their host claims
   are language-neutral.
-- Router catalog generation and matching are deliberately not changed in B1.
-  The serial integrator owns that generated-data and matcher work.
+- Router catalog generation and matching were deliberately not changed in the
+  isolated B1 lane; later serial integration completed that work.
 
 ## Reference repairs and tool decision
 
@@ -165,10 +165,9 @@ the same contract.
 4. Review and refresh the five intent/provenance contracts after accepting
    these frontmatter changes; B1 did not own contract files.
 
-Residual risks: rich YAML intent contracts require host PyYAML outside the
-JSON-as-YAML stdlib path, and the broader router work is intentionally
-untested here. Fresh copied final-artifact and strict indexed-intent evidence
-is complete; the second adversarial review findings were converted into the
-regressions above. The recommended next decision is to accept this evidence
-packet and perform the serial router / repository-contract work before
-advancing another language batch.
+Residual risk: rich YAML intent contracts require host PyYAML outside the
+JSON-as-YAML stdlib path. Fresh copied final-artifact and strict indexed-intent
+evidence is complete; the second adversarial review findings became
+regressions, and later serial integration completed the router and repository
+contract work. Keep this bounded result and require another accepted consumer
+before adding shared infrastructure.

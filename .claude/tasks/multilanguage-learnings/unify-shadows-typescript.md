@@ -82,7 +82,7 @@ in the lockfile.
 | D3 — TypeScript final outcome | Locked confirmed finding reaches evidence-cited proposal/evidence/scope artifacts for all four shapes; invalid inputs fail before synthesis. | pass |
 | D4 — change/guard | Not applicable: this EXPLAIN skill is read-only. Proposal stop conditions require characterization plus native verification before downstream edits. | n/a |
 | D5 — installed closure | Exact stock selected-skill copy and exact installed proposal command pass without repository runtime dependencies; host source hashes remain unchanged. | pass |
-| D6 — fresh forward task | Automated installed-host replay passes. Independent non-context fresh replay remains assigned to the serial integrator. | pending integrator replay |
+| D6 — fresh forward task | A fresh no-context installed replay produced the `share_utilities` proposal with cited source/capability evidence, caller limits, native tests, stop condition, approval gate, invalid-input abstention, and unchanged source. | pass |
 | D7 — regression/conformance | Focused pytest, native TypeScript checks, Node syntax check, Ruff, metadata lint, and diff checks pass. | pass |
 | D8 — learning handoff | This Markdown and companion JSON preserve contract, evidence, reuse decision, risks, and the blind forward task. | pass |
 
@@ -120,11 +120,9 @@ installed `unify-shadows` skill, and this natural task:
 > work would be required, state the native verification and stop condition,
 > and do not edit application source.
 
-Do not disclose the expected shape, member names, proposal sections, or
-negative assertions. Grade only final artifacts, exact installed commands,
-native typecheck/test, source hashes, and whether the agent asks for human
-approval before the handoff. D6 remains open until the serial integrator runs
-that blind replay.
+The integrator ran this blind replay without disclosing expected shape, member
+names, or negative assertions; it passed the artifact, command, native-check,
+source-hash, and approval gates.
 
 Residual risks are deliberate: the static upstream finding cannot prove
 runtime equivalence, framework dispatch, external consumers, a canonical

@@ -3,9 +3,12 @@
 A **senior-engineer skill ecosystem** for AI coding agents: skills that find
 architectural debt, refactor systematically, author ADRs, and turn one-off
 discoveries into durable guardrails. Extracted from a real production codebase.
-**Today it is Python/Django-flavored** — the lint substrate and most worked
-examples are Django — with a *roadmap* toward language-neutral reuse, not yet a
-proven-portable core (see [Tech assumptions](#tech-assumptions)).
+**Its origin and shared runtime remain Python/Django-flavored** — the lint
+substrate and most worked examples are Django. TypeScript is the one validated
+non-Django host language today: the current coverage matrix records 22
+TypeScript-supported skills, 19 validated-neutral skills, 22 deliberately
+stack-bound skills, and 13 ecosystem-runtime skills. Other host languages,
+including Rust, are not yet proven (see [Tech assumptions](#tech-assumptions)).
 
 **Where it's headed:** [`VISION.md`](./VISION.md) states the end-state this
 ecosystem converges a project toward — the success criterion the skills serve.
@@ -138,8 +141,9 @@ python3 -m venv .venv
 
 The routers and prompt-only skills are self-contained. Many older
 script-backed skills still depend on repository-level helpers and PyYAML; they
-are not yet claimed as independently installable. Cross-language family work
-will convert those skills one cohesive family at a time.
+are not yet claimed as independently installable. TypeScript support is tracked
+per skill, and further cross-language work proceeds one cohesive family at a
+time.
 
 1. **The development runtime isn't installed.** Most skills shell out to helper
    scripts under `scripts/` (`decisions.py`, `ledger.py`, the lint
@@ -187,13 +191,13 @@ reports/
 - **stdlib-first** in `_common/` so skills can run before a project venv
   exists; PyYAML is the only required external dep (for shared
   frontmatter parsing, pinned in `requirements.txt`).
-- **The lint substrate and worked examples are Django/Python — not just
-  illustration.** The AST lint rules (`no_query_mutation`, `no_bare_delay`, …)
-  are Django/Celery detectors, and the patterns' only proven instances are
-  Django. `.claude/skills/_common/portability-roadmap.md` holds the cross-language
-  porting contract and the design anticipates TypeScript/Rust adapters — but
-  **no non-Django adapter exists yet**, so "portable" is a roadmap, not a
-  current property.
+- **The legacy lint substrate and most worked examples are Django/Python — not
+  just illustration.** Rules such as `no_query_mutation` and `no_bare_delay`
+  remain Django/Celery-specific. TypeScript coverage is separately proven and
+  tracked in `.claude/tasks/typescript-skill-coverage.json`: 22 skills are
+  TypeScript-supported, 19 are validated-neutral, 22 are deliberately
+  stack-bound, and 13 are ecosystem-runtime. That evidence does not establish
+  support for Rust or any other host language.
 
 ## Where to read next
 

@@ -151,13 +151,9 @@ because the prompt workflow stayed neutral.
 
 ## Residual risks and next decision
 
-D6 re-review remains pending: the first independent fresh-user agent produced
-the correct draft but failed honestly on missing helpers. The repaired exact
-stock replay now proves the previously blocked commands and prescribed gate;
-an independent rerun should confirm the agent journey without the captured
-answer.
-
-The integrator can mark the five core outcomes `validated-neutral` after that
-fresh rerun, retaining only the two unrelated closure disclosures. Only
-measured confusion in the rerun should trigger another focused repair. UX work
-remains later priority.
+D6 re-review passed: after the first independent fresh-user agent exposed the
+missing helpers, a second fresh agent used only the repaired installed skill,
+host evidence, and explicit user declarations. It produced draft artifacts,
+retained unresolved facts, kept `user_approved:false`, passed `OK: 3/3`, passed
+native checks, and preserved source hashes. All five core outcomes are now
+`validated-neutral`; optional telemetry/doctrine disclosures remain later UX.

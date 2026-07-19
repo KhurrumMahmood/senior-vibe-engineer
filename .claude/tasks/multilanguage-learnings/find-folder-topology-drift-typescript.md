@@ -113,7 +113,7 @@ to the host project, never made relative to the caller's narrowed target.
 | D5 installed closure | pass | Copied skill runs detector and reporter under `python -I -S` outside checkout with no `_common` import. |
 | D6 fresh forward task | pass with repaired friction | Stock `skills@1.5.19` install produced the useful final artifact and exposed two UX defects; exact evidence and commit are recorded above. |
 | D7 regression and conformance | pass | 20 dedicated tests plus metadata/scope/smoke, Ruff, frontmatter, and Python replay evidence above. |
-| D8 learning handoff | ready for re-review | Canonical MD/JSON link the forward transcript, invalid/final artifacts, both repair rounds, regressions, and remaining review boundary. |
+| D8 learning handoff | pass | Canonical MD/JSON link the forward transcript, invalid/final artifacts, both repair rounds, regressions, and accepted final re-review. |
 
 ## What generalized and what did not
 

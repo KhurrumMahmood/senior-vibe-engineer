@@ -114,12 +114,12 @@
       "npx --yes skills@1.5.19 add <checkout> --skill converge --skill harvest-learnings --skill organize-project-structure --skill orient --skill project-interview --agent codex --copy -y",
       "tests/fixtures/validated-neutral-typescript/orchestration/artifacts/**",
       "Commits d841441 and a92d996 explicit-file pre-commit hooks passed"
-    ]
+    ],
+    "d6": "Passed: after the first project-interview replay exposed missing installed helpers, a second fresh non-context agent used only the repaired selected installation and raw TypeScript host, retained unresolved facts and user_approved:false, passed OK: 3/3 and native checks, and preserved source hashes."
   },
   "false_positive_boundary": {
     "known_false_positives": [],
     "known_false_negatives": [
-      "The repaired helpers have not yet received an independent fresh-agent D6 rerun.",
       "Converge effectiveness logging and organize shared-doctrine/move execution remain unproved from selected install."
     ],
     "legitimate_similar_shapes": [
@@ -138,7 +138,6 @@
     "Native host commands and concrete framework/tool discovery constraints",
     "Repository-owned effectiveness logging, move-path, and sibling structure-doctrine availability",
     "Language-specific repo-discovery conventions beyond the focused objective facts emitted by project-interview",
-    "Fresh-agent interpretation of the natural prompt",
     "Any TypeScript parser, compiler-fact, Node framework, or runtime implementation claim"
   ],
   "reuse_decision": {
@@ -197,19 +196,16 @@
     "repeated_work": [
       "One host and one exact install are reused, while tasks and artifact contracts stay skill-specific."
     ],
-    "smallest_later_improvement": "Rerun the independent fresh-user project-interview task against a92d996 and require the pasted installed 3/3 gate output."
+    "smallest_later_improvement": "Improve optional converge telemetry or organize doctrine/move closure only if real installed users need those non-core facilities."
   },
   "residual_risks": [
-    "D6 independent fresh-user rerun is pending after the original replay exposed the now-repaired blocker.",
-    "Captured output oracles validate shape and host grounding but do not execute model judgment.",
+    "Automated captured-output oracles validate shape and host grounding but do not themselves execute model judgment.",
     "Converge effectiveness telemetry is unavailable from selected install.",
     "Organize-project-structure cannot load shared doctrine or execute move-path from selected install."
   ],
   "next_decision": {
-    "recommendation": "Rerun the independent project-interview D6 task against a92d996, then mark the five core outcomes validated-neutral while retaining only the converge and organize closure disclosures.",
-    "rationale": "Project-interview's previously blocked discovery and prescribed evidence gate now execute from exact stock-selected installation with human approval protected and source immutability proven.",
-    "blockers": [
-      "D6 fresh non-context rerun remains open for independent confirmation of the repaired installed journey."
-    ]
+    "recommendation": "Retain all five core outcomes as validated-neutral while preserving the optional converge and organize closure disclosures.",
+    "rationale": "After the first replay exposed missing helpers, a second fresh non-context agent used the repaired exact stock-selected installation, retained unresolved facts and user_approved:false, passed the installed 3/3 evidence gate and native checks, and preserved source hashes.",
+    "blockers": []
   }
 }

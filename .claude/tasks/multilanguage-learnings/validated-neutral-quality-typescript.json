@@ -1,6 +1,6 @@
 {
   "batch": "validated-neutral-quality-typescript",
-  "revision": "3aef3e1",
+  "revision": "3aef3e1 validation plus 5143bf6 fresh D6 closeout",
   "family": [
     "diagnose",
     "find-perimeter-gaps",
@@ -96,7 +96,8 @@
       "tests/fixtures/validated-neutral-typescript/quality/artifacts/**",
       "tests/test_validated_neutral_typescript_quality.py"
     ],
-    "d_status": {"D1": "pass", "D2": "not_applicable", "D3": "pass", "D4": "not_applicable", "D5": "pass", "D6": "integrator_deferred", "D7": "pass", "D8": "pass"}
+    "d_status": {"D1": "pass", "D2": "not_applicable", "D3": "pass", "D4": "not_applicable", "D5": "pass", "D6": "pass", "D7": "pass", "D8": "pass"},
+    "fresh_forward": "A fresh non-context agent used only the five copied skills, raw tasks, and locked TypeScript host; all five produced useful artifacts, installed gates and native checks passed, and source hashes were unchanged."
   },
   "false_positive_boundary": {
     "known_false_positives": [
@@ -105,7 +106,7 @@
       "a repeated six-finding band is one missing standard, not six isolated repair tickets"
     ],
     "known_false_negatives": [
-      "Prompt-led artifacts cannot prove a fresh agent's independent judgment; D6 remains open.",
+      "Prompt-led artifacts remain judgment-dependent even though the fresh D6 replay passed.",
       "Cached triage cannot determine whether a host's omitted audit input is clean."
     ]
   },
@@ -118,7 +119,7 @@
     "The root repository's generic evidence gate and its full init/show behavior",
     "Host registry generation, decision/spec auditing, and effectiveness logging",
     "Framework architecture and any TypeScript semantic-analysis claim",
-    "Fresh-agent D6 execution"
+    "Framework or semantic TypeScript support beyond the accepted artifact outcomes"
   ],
   "reuse_decision": {
     "shared_candidate": "A generic prompt-artifact launcher or copied host quality runtime.",
@@ -139,17 +140,17 @@
     "wall_time_seconds": 28.03,
     "agent_confusions": ["Source-tree-looking script paths are not a copied-install contract.", "A cached audit input must be declared unavailable when absent, never interpreted as zero debt."],
     "repeated_work": ["One locked host is reused, but tasks and installed skills remain isolated."],
-    "smallest_later_improvement": "Run the deferred D6 fresh-agent replay before updating the shared coverage disposition."
+    "smallest_later_improvement": "Improve individual prompts only if real users struggle with one of the accepted artifact outcomes."
   },
   "residual_risks": [
-    "D6 is not executed in this lane.",
+    "Fresh D6 validates usefulness on one locked TypeScript host, not every future host context.",
     "Diagnose proves a seam and intentionally does not authorize a source fix.",
     "Triage cache producer behavior remains a host responsibility.",
     "Gut-check and teach-pattern results depend on the supplied host documents being current."
   ],
   "next_decision": {
-    "recommendation": "After D6, promote exactly these five skills to validated-neutral for their tested artifact outcomes; do not add TypeScript variants or shared runtime.",
+    "recommendation": "Keep exactly these five skills validated-neutral for their tested artifact outcomes; do not add TypeScript variants or shared runtime.",
     "rationale": "Separate stock installs, source fingerprints, concrete final artifacts, and explicit closure repairs prove a useful language-independent core without metadata-only relabeling.",
-    "blockers": ["Fresh non-context installed-skill D6 replay", "Serial integration of router/catalog/tracker state outside this lane"]
+    "blockers": []
   }
 }

@@ -12,6 +12,30 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_ROOT = REPO_ROOT / ".claude" / "skills"
 DEFAULT_ROUTERS = ("which-shape", "which-skill", "which-cleanup")
+STACK_BOUND_SKILLS = (
+    "extract-cotton-primitive",
+    "extract-state-type",
+    "extract-workflow-registry",
+    "find-async-lifecycle-drift",
+    "find-contract-drift",
+    "find-dead-route-surface",
+    "find-doc-route-drift",
+    "find-frontend-contract-drift",
+    "find-frontend-duplication",
+    "find-layer-violation",
+    "find-query-mutation",
+    "find-route-sprawl",
+    "find-test-obligation-drift",
+    "find-transaction-overreach",
+    "find-workflow-duplication",
+    "find-workflow-state-gaps",
+    "fix-workflow",
+    "impact-feature",
+    "introduce-fk",
+    "map-product-workflow",
+    "plan-feature",
+    "refactor-subsystem",
+)
 
 
 def _install_router(host: Path, name: str) -> Path:
@@ -278,6 +302,30 @@ def test_installed_which_skill_excludes_stack_bound_planning_claims(
     assert payload["unsupported"]["name"] == excluded_skill
     excluded = {item["name"] for item in payload["excluded_unsupported"]}
     assert excluded_skill in excluded
+
+
+@pytest.mark.parametrize("skill", STACK_BOUND_SKILLS)
+def test_installed_which_skill_never_substitutes_for_named_stack_bound_skill(
+    tmp_path, skill
+):
+    host = tmp_path / "host"
+    router = _install_router(host, "which-skill")
+
+    result = _run_isolated(
+        router / "scripts" / "match.py",
+        f"use {skill} on this TypeScript project",
+        "--project-root",
+        str(host),
+        "--top",
+        "20",
+        "--json",
+        cwd=host,
+    )
+
+    assert result.returncode == 1, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["recommendation"] == "unsupported"
+    assert payload["unsupported"]["name"] == skill
 
 
 def test_installed_which_cleanup_routes_without_repository_runtime(tmp_path):

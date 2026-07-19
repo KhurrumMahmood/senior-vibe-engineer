@@ -1,6 +1,6 @@
 {
   "batch": "TypeScript propose-folder-reorganization candidate",
-  "revision": "pending single logical commit on codex/ts-propose-folder-reorganization (base 6dfd0604c399ebe9029ed793ef9496272214bcb9)",
+  "revision": "5a0fec2",
   "family": ["propose-folder-reorganization"],
   "invariant": {
     "portable_principle": "A folder-move proposal may claim complete impact only when it enumerates every supported resolved static importer, its post-move specifier, explicit compatibility decision, and native verification plan; structural naming alone never authorizes a move.",
@@ -53,9 +53,10 @@
       "task": "Install only propose-folder-reorganization into a clean TypeScript host and create a read-only billing cluster proposal from the documented command.",
       "installed_skill": "temporary outside-checkout host .agents/skills/propose-folder-reorganization",
       "report_dir": "temporary outside-checkout host reports/propose-folder-reorganization/installed-billing",
-      "result": "Not run by the independent agent: command.package_install blocked npm ci --offline --ignore-scripts and the subsequent stock npx install because no user-approved scoped grant was available. The dedicated automated stock-install test separately proves selected-skill closure.",
-      "independent_agent": false,
-      "replay_kind": "fresh-host natural-command replay asserted by the dedicated stock-install test"
+      "result": "The first independent attempt was blocked before npm ci and stock installation by command.package_install policy. That historical failure was superseded by a later fresh no-context installed replay, which proposed three moves and seven resolved rewrites, passed native typecheck, and preserved every source hash.",
+      "independent_agent": true,
+      "replay_kind": "fresh no-context installed-skill natural-task replay",
+      "status": "passed"
     }
   },
   "false_positive_boundary": {
@@ -86,10 +87,10 @@
     "repeated_work": ["The accepted map-subsystem resolver supplied proof requirements but no source code was imported, preserving selected-skill closure."],
     "smallest_later_improvement": "Accept a confirmed detector finding ID as input while retaining the explicit human cohesion judgment."
   },
-    "residual_risks": ["A host must provide Node, package.json, project-local TypeScript, and a valid named tsconfig.", "Dynamic/runtime and external package reachability remain unavailable.", "A fresh independent agent was dispatched but blocked before npm ci --offline --ignore-scripts and stock npx install by command.package_install policy; D6 needs an explicit user-approved scoped grant before serial integration.", "No shared resolver extraction is justified yet."],
+  "residual_risks": ["A host must provide Node, package.json, project-local TypeScript, and a valid named tsconfig.", "Dynamic/runtime and external package reachability remain unavailable.", "No shared resolver extraction is justified yet."],
   "next_decision": {
-    "recommendation": "Review and accept this narrow TypeScript proposal outcome; retain local resolver implementation.",
-    "rationale": "It proves a final read-only proposal, complete supported import impact, native feasibility, safe deferrals/blocks, and selected-skill stock closure without a platform or framework claim.",
-    "blockers": ["Serial integrator owns catalog/router/coverage-matrix/tracker changes outside this lane.", "An independent fresh-agent D6 review remains advisable before TypeScript-supported disposition is promoted."]
+    "recommendation": "Retain the accepted narrow TypeScript proposal outcome and its family-local resolver implementation.",
+    "rationale": "It proves a final read-only proposal, complete supported import impact, native feasibility, safe deferrals/blocks, selected-skill stock closure, and fresh non-context D6 without a platform or framework claim.",
+    "blockers": []
   }
 }

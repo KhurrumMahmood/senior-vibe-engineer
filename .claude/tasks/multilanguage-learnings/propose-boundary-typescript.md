@@ -75,13 +75,13 @@ cohesive, and excluded paths, proving its behavior remains unchanged.
   command into `.agents/skills/` outside the checkout, runs the verbatim
   installed proposal command, and asserts no checkout/repository import in the
   bundled TypeScript runner.
-- **D6:** **Pending independent replay.** The automated installed-host replay
-  is green, but a fresh non-context agent has not yet received only the raw
-  fixture and natural task. Serial integration owns that independent replay.
+- **D6:** **Pass.** A fresh non-context agent received only the installed skill,
+  raw host, and natural task. It produced two evidence-backed seams with
+  direct/alias/barrel caller impact, passed native checks, and preserved source.
 - **D7:** `7 passed` in the focused suite; fixture `npm ci --offline
   --ignore-scripts`, `npm run typecheck`, and `npm test` pass; `node --check`,
   Ruff, metadata lint, pre-commit, and `git diff --check` pass.
-- **D8:** This packet and companion JSON record the evidence and D6 limitation
+- **D8:** This packet and companion JSON record the evidence and accepted D6
   for integration review before any reuse decision.
 
 ## Exact verification
@@ -120,5 +120,5 @@ no React semantics are inferred.
 Keep this resolver family-local. A second accepted proposal consumer must
 prove the same project-local resolution, direct-target exclusion, deferral,
 artifact, and copied-install contract before any shared utility is considered.
-Do not claim TypeScript support is fully promoted until the pending independent
-D6 installed-host replay passes.
+The independent installed-host D6 replay passed; keep the accepted family-local
+boundary and defer broader runtime/framework claims.

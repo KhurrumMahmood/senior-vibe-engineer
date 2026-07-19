@@ -51,7 +51,7 @@
       "scripts/skill_meta.py lint: OK — 76 skills, 76 declaring new contract",
       "git diff --check: clean"
     ],
-    "d6": "Pending an integrator fresh no-context installed-skill replay; automated stock final-artifact proof is intentionally not represented as D6."
+    "d6": "Passed: a fresh no-context agent used only the installed skill and raw host, resolved two raw divergences, correctly promoted none without Git blame trajectory, wrote packet/verdict/triage artifacts, passed native checks, and preserved source hashes."
   },
   "false_positive_boundary": {
     "default_equal": "An omitted property with a destructured default remains down-ranked when sibling values equal that default.",
@@ -91,11 +91,10 @@
   "residual_risks": [
     "Nested/non-const/aliased spreads, constructors, methods, callbacks, and generic conditional APIs remain out of scope.",
     "Only one named tsconfig project-resolution boundary is claimed; cross-project/reference/package semantics remain deferred.",
-    "Git history without usable blame cannot establish trajectory and therefore does not gate in a finding.",
-    "D6 still requires a fresh independent installed replay."
+    "Git history without usable blame cannot establish trajectory and therefore does not gate in a finding."
   ],
   "next_decision": {
-    "recommendation": "Run D6 as an integrator-owned fresh installed-skill replay, then independently review this bounded outcome.",
+    "recommendation": "Retain the accepted bounded outcome and its blame-trajectory gate; do not broaden the semantic contract.",
     "stop_rule": "Do not add framework semantics or a shared TypeScript platform without a newly accepted explicit contract and fixture."
   }
 }

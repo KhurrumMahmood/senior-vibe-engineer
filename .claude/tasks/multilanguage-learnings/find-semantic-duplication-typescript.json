@@ -1,6 +1,6 @@
 {
   "batch": "TypeScript find-semantic-duplication candidate",
-  "revision": "pending lane commit; final hash is reported in the lane handoff",
+  "revision": "a9a68eb",
   "family": ["find-semantic-duplication"],
   "invariant": {
     "portable_principle": "A semantic-duplication detector may surface a typed function-level lead only when its static evidence and uncertainty boundary are explicit; it must not call a lexical clone, caller/callee wrapper, dynamic behavior, or divergent policy a safe refactor.",
@@ -106,14 +106,15 @@
       "git diff --check: clean"
     ],
     "fresh_forward": {
-      "status": "pending_independent_non_context_replay",
+      "status": "passed",
       "task": "Install only find-semantic-duplication into the raw locked TypeScript host, audit src with the installed documented command, produce final triage/matrix artifacts, and state what needs human review without changing source.",
       "required_proof": [
         "Use a clean host and exact selected-skill installation.",
         "Do not disclose the expected candidate, diagnosis, or output categories to the agent.",
         "Verify final artifacts, host typecheck before/after, and unchanged source hashes."
       ],
-      "automated_harness": "The focused stock-install test exercises the same documented installed final-artifact journey but is not presented as independent judgment."
+      "automated_harness": "The focused stock-install test exercises the same documented installed final-artifact journey; the independent D6 is recorded separately.",
+      "result": "A fresh no-context installed replay produced one confirmation, one dynamic/unresolved uncertainty, and three explicit rejections, passed native checks, and preserved source hashes."
     }
   },
   "false_positive_boundary": {
@@ -203,17 +204,16 @@
     "repeated_work": [
       "map-subsystem supplied the accepted host-compiler, named-tsconfig, exclusion, symlink, and stock-closure patterns; they were copied locally without a shared runtime."
     ],
-    "smallest_later_improvement": "Perform D6 independent installed-host replay before considering any broader TypeScript candidate shape."
+    "smallest_later_improvement": "Consider a broader TypeScript candidate shape only with a new locked outcome contract and real-host evidence."
   },
   "residual_risks": [
     "Static output-shape equality can over- or under-approximate behavior, so confirmed leads require human source/caller/runtime review.",
     "Dynamic dispatch, external callers, methods, framework behavior, and different output shapes are deliberately unavailable.",
-    "The host must supply Node, a valid project-local tsconfig, and a package-local TypeScript compiler.",
-    "D6 independent non-context replay remains pending serial integration."
+    "The host must supply Node, a valid project-local tsconfig, and a package-local TypeScript compiler."
   ],
   "next_decision": {
-    "recommendation": "Accept this bounded TypeScript v1 after D6 replay and schema review; keep it family-local and start unify-shadows only after that handoff is accepted.",
-    "rationale": "The repaired Python oracle, Compiler API final artifacts, locked positive/negative/must-not-fire corpus, selected-skill closure, native proof, containment, source immutability, and explicit limitations establish the minimum honest useful outcome.",
-    "blockers": ["Independent non-context installed-skill D6 replay", "Serial integration of shared router/catalog/contract/tracker surfaces outside this lane"]
+    "recommendation": "Retain the accepted bounded TypeScript v1 and its family-local structured handoff to unify-shadows.",
+    "rationale": "The repaired Python oracle, Compiler API final artifacts, locked positive/negative/must-not-fire corpus, selected-skill closure, native proof, containment, source immutability, fresh non-context D6, and explicit limitations establish the minimum honest useful outcome.",
+    "blockers": []
   }
 }

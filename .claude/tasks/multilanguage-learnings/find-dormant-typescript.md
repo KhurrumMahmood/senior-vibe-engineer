@@ -81,9 +81,9 @@ and `certain_delete: 0`. It also covers:
 | D3 TypeScript outcome | Locked host reaches final Markdown/JSON with one private positive; direct/exported/registry/event/framework shapes clean; string dynamic shape uncertain. | pass |
 | D4 change/guard semantics | Not applicable: this advisory v1 proposes no source change or guard. | n/a |
 | D5 installed closure | Copied selected-skill replay and exact stock selected-skill installation run only the installed Node command against a host-pinned compiler; no toolkit venv, repository script, or sibling skill runtime. | pass |
-| D6 fresh forward task | Independent non-context replay remains for the serial integrator. The committed stock-install final-artifact test is the automated forward-task harness, but it is not substituted for an independent agent judgment. | pending integration replay |
+| D6 fresh forward task | A fresh non-context installed replay reported one review-required candidate, one dynamic uncertainty, zero certain-delete claims, passed native checks, and preserved source hashes. | pass |
 | D7 regression/conformance | Focused suite, taxonomy, metadata lint, Node syntax check, Ruff, native host typecheck/tests, pre-commit, and diff check pass. Unsupported prerequisites fail explicitly; direct/broad exclusions and symlink/report containment are covered. | pass |
-| D8 learning handoff | This MD/JSON pair records scope, tooling, outcome, commands, closure, deferred D6, and translation requirements. | pass |
+| D8 learning handoff | This MD/JSON pair records scope, tooling, outcome, commands, closure, accepted D6, and translation requirements. | pass |
 
 ## Verification at `46a16c7`
 
@@ -120,9 +120,7 @@ dispatch beyond an exact string-name uncertainty, external callers, framework
 registrations, or cross-project references. It must stay a review aid and never
 a safe-deletion mechanism.
 
-The next integrator action is a fresh, non-context installed-skill D6 replay:
-give the raw locked host and only a natural language audit request, require the
-final report with unchanged sources, and confirm it reaches the same useful
-human-review conclusion without revealing the expected finding. Do not extend
+The fresh non-context installed-skill D6 replay passed with the expected
+conservative human-review conclusion and unchanged sources. Do not extend
 to UX/performance work, shared resolver infrastructure, or framework semantics
 until that replay is accepted.

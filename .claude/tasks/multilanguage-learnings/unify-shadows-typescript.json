@@ -86,10 +86,11 @@
       "git diff --check: clean"
     ],
     "fresh_forward": {
-      "status": "pending_independent_non_context_replay",
+      "status": "passed",
       "task": "Using only a clean locked TypeScript host and the installed selected skill, review confirmed semantic finding TS-SD-0001, produce the proposal, state source/caller work, native verification, stop condition, and human approval without changing source.",
       "required_proof": ["Exact selected-skill install and documented command", "Final proposal/evidence/scope artifacts", "Native typecheck/test before and after", "Unchanged source hashes", "No disclosed expected shape/member names/assertions"],
-      "automated_harness": "Passed; it is not presented as independent D6 judgment."
+      "automated_harness": "Passed; the independent D6 is recorded separately.",
+      "result": "A fresh no-context installed replay produced an honest share_utilities proposal with cited source and capability evidence, caller limits, native tests, stop conditions, human approval, invalid-input abstention, and unchanged source hashes."
     }
   },
   "false_positive_boundary": {
@@ -118,12 +119,12 @@
     "wall_time_seconds": null,
     "agent_confusions": ["caller_count is candidate-graph evidence, not complete callers.", "A confirmed static lead is not runtime equivalence or refactor authority.", "keep-separate and blocked-pending-workflow-evidence are successful honest proposals."],
     "repeated_work": ["No TypeScript resolver was repeated; the consumer trusts and validates the accepted upstream artifact."],
-    "smallest_later_improvement": "After D6, improve presentation only if real users struggle to supply the findings path or interpret caller limitations."
+    "smallest_later_improvement": "Improve presentation only if real users struggle to supply the findings path or interpret caller limitations."
   },
-  "residual_risks": ["Independent D6 replay remains pending serial integration.", "Static findings cannot prove runtime/framework/workflow facts or external callers.", "The proposed deep helper/survivor/workflow authority still requires human evidence.", "Host Node and a valid accepted upstream artifact are required."],
+  "residual_risks": ["Static findings cannot prove runtime/framework/workflow facts or external callers.", "The proposed deep helper/survivor/workflow authority still requires human evidence.", "Host Node and a valid accepted upstream artifact are required."],
   "next_decision": {
-    "recommendation": "Accept this bounded final language-level candidate after serial D6 replay; keep tooling local and defer UX work.",
-    "rationale": "Structured validation, four honest templates, final artifact evidence, native verification, selected-copy closure, source immutability, and explicit caller/runtime limits establish the minimum useful TypeScript proposal outcome.",
-    "blockers": ["Independent non-context D6 replay", "Serial integration of shared router/catalog/tracker surfaces outside this lane"]
+    "recommendation": "Retain this accepted bounded final language-level candidate; keep tooling local and defer UX work.",
+    "rationale": "Structured validation, four honest templates, final artifact evidence, native verification, selected-copy closure, source immutability, fresh non-context D6, and explicit caller/runtime limits establish the minimum useful TypeScript proposal outcome.",
+    "blockers": []
   }
 }

@@ -1,7 +1,8 @@
 # Validated-neutral planning skills — TypeScript host handoff
 
-Validation revision: `08953b9` (`test(validated-neutral): prove TypeScript
-planning artifacts`). Evidence date: 2026-07-19 UTC.
+Validation revisions: `08953b9` (`test(validated-neutral): prove TypeScript
+planning artifacts`) through `e800856` (fresh D6 closeout). Evidence date:
+2026-07-19 UTC.
 
 ## Outcome
 
@@ -112,14 +113,13 @@ their tested outcome is independent of the host application language, with no
 TypeScript scan claim or TypeScript implementation added.
 
 D1 scope honesty, D3 final TypeScript-host artifacts, D5 stock copied
-closure, D7 regression/conformance, and D8 learning handoff pass. D2 and D4
-are inapplicable: no Python detector/reference invariant or proposed source
-change/guard exists. D6 remains intentionally open for the serial integrator:
-a fresh non-context agent should receive one installed skill, the raw locked
-host, and one task file without a captured result, then independently produce
-and inspect the corresponding artifact.
+closure, D6 fresh forward use, D7 regression/conformance, and D8 learning
+handoff pass. D2 and D4 are inapplicable: no Python detector/reference
+invariant or proposed source change/guard exists. A fresh non-context agent
+used the installed skills with the raw locked host and task files, produced all
+five useful artifacts without reference outputs, and preserved source hashes.
 
 No skill repair, router/catalog/tracker change, or shared runtime was needed.
-The smallest later improvement is an integrator-owned D6 replay, followed only
-if needed by a focused review of the optional structural-redesign knowledge
-closure; do not broaden this neutral planning packet into framework support.
+The smallest later improvement, only if needed, is a focused review of the
+optional structural-redesign knowledge closure; do not broaden this neutral
+planning packet into framework support.

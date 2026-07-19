@@ -40,29 +40,34 @@ def test_typescript_coverage_matrix_is_complete_and_honest() -> None:
     assert Counter(row["disposition"] for row in rows) == EXPECTED_COUNTS
     assert {row["disposition"] for row in rows} == ALLOWED
 
-    revision = payload["reviewed_revision"]
-    revision_check = subprocess.run(
-        ["git", "cat-file", "-e", f"{revision}^{{commit}}"],
-        cwd=REPO_ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    assert revision_check.returncode == 0, revision_check.stderr
-
     template = payload["stock_install_command_template"]
     assert "skills@1.5.19" in template
     assert "{skill}" in template
     assert "--copy" in template
+    reviewed_revisions: set[str] = set()
     for row in rows:
         assert (REPO_ROOT / row["evidence_path"]).is_file(), row
-        command = template.format(skill=row["skill"])
-        assert f"--skill {row['skill']}" in command
+        expected_command = template.format(skill=row["skill"])
+        assert row["install_command"] == expected_command, row
+        assert f"--skill {row['skill']}" in row["install_command"]
+        assert row["reviewed_revision"], row
+        reviewed_revisions.add(row["reviewed_revision"])
         assert row["install_status"] in {
             "passed",
             "deferred-named-stack",
             "not-host-language-variant",
         }
+
+    assert payload["reviewed_revision"] in reviewed_revisions
+    for revision in reviewed_revisions:
+        revision_check = subprocess.run(
+            ["git", "cat-file", "-e", f"{revision}^{{commit}}"],
+            cwd=REPO_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert revision_check.returncode == 0, revision_check.stderr
 
     catalog = {
         item["name"]: item

@@ -1,8 +1,7 @@
 # TypeScript `propose-folder-reorganization` learning handoff
 
-Implementation revision: pending the single logical commit on
-`codex/ts-propose-folder-reorganization` (based on product revision
-`6dfd0604c399ebe9029ed793ef9496272214bcb9`).
+Implementation revision: `5a0fec2` (`Add TypeScript folder reorganization
+proposal`) from the isolated `codex/ts-propose-folder-reorganization` lane.
 
 ## Accepted TypeScript v1 contract
 
@@ -101,7 +100,7 @@ checkout runtime path in the installed TypeScript script.
 | D3 — TypeScript outcome | pass | Locked fixture reaches final `proposal.md` and `inspection.json`, asserting all three moves, seven resolved rows, and compatibility decision. |
 | D4 — change/guard semantics | not applicable to this read-only proposal | A disposable host applies the planned move/rewrite/barrel result and `npm run typecheck` passes, which is the required native feasibility proof. |
 | D5 — installed closure | pass | Exact selected-skill `skills@1.5.19` copy install runs the installed documented command outside the checkout; no repository runtime import occurs. |
-| D6 — fresh natural forward task | blocked for independent replay | The automated clean-host test exercises the documented natural command, but a fresh independent agent was stopped before `npm ci --offline --ignore-scripts` and `npx … skills add` by the repository `command.package_install` policy; no user-approved scoped grant was available. |
+| D6 — fresh natural forward task | pass | A later fresh no-context replay used the installed skill and raw host, proposed three moves and seven resolved rewrites, passed native typecheck, and preserved every source hash. |
 | D7 — regression and conformance | pass | Dedicated outcome suite, native TypeScript syntax check, Python reference replay, metadata/frontmatter tests, Ruff, metadata lint, and diff checks are recorded below. |
 | D8 — learning handoff | ready | This Markdown and matching JSON record tool, fixture, closure, false-positive, translation, UX, and residual-risk evidence. |
 
@@ -130,9 +129,8 @@ npm ci --offline --ignore-scripts && npm run typecheck
 # passed in the locked fixture before the proposal and after applying its move plan
 ```
 
-No unsupported full-suite claim is made here. The independent D6 replay remains
-blocked on an explicit package-install grant; automated D5 closure evidence is
-not relabeled as independent-agent D6 proof.
+No unsupported full-suite claim is made here. The original package-install
+block was superseded by the successful installed D6 replay recorded above.
 
 ## False-positive boundary
 

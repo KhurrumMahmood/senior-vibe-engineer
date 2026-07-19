@@ -113,9 +113,9 @@ selected-skill executions rerun those native checks after scanning.
 | D3 TypeScript outcome | pass | Locked TS 5.9.3 fixture reaches manifest → packet → verdict → `triaged.md`, with positive, complete, default, alias/spread, overload, framework, partial, and containment boundaries. |
 | D4 change/guard | n/a | This is a read-only advisory detector; it proposes no automatic source mutation or blocking guard. |
 | D5 installed closure | pass | Copied skill and exact stock selected-skill install run detector, Scout, and fixed writer outside the checkout; no repository `_common`, `scripts/_lib`, toolkit venv, sibling skill, or post-install network runtime. |
-| D6 fresh forward | pending integrator replay | Automated stock final-artifact journey passes, but it is not substituted for a new no-context human/agent task that receives only installed skill plus raw fixture. |
+| D6 fresh forward | pass | A fresh no-context agent used only the installed skill and raw host. It resolved two raw divergences, correctly promoted none without blame trajectory, wrote packet/verdict/triage artifacts, passed native checks, and preserved source hashes. |
 | D7 regression/conformance | pass | Focused 15-test set, Python 14-test oracle, metadata lint, Ruff, Node syntax, pycompile, fixture native checks, pre-commit, and diff check passed. |
-| D8 learning handoff | ready for review | This MD/JSON pair records tool choice, exact outcome, closure, boundaries, and the deferred D6 decision. |
+| D8 learning handoff | pass | This MD/JSON pair records tool choice, exact outcome, closure, boundaries, and accepted D6 evidence. |
 
 ## Generalization and non-generalization
 
@@ -161,6 +161,6 @@ without inventing the verdicts.
 Residual risks are deliberate: nested/non-const/aliased spreads, methods and
 constructors, callbacks, generic conditional APIs, multi-project/reference
 resolution, runtime framework semantics, and blame-unavailable histories do
-not become candidates. D6 needs an integrator-run fresh installed replay. The
-recommended next step is that replay and independent review; do not broaden to
+not become candidates. The fresh installed D6 replay passed. The recommended
+next step is to retain this boundary; do not broaden to
 a shared TypeScript semantic platform or framework contract.

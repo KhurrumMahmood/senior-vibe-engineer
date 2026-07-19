@@ -51,8 +51,9 @@
     "fresh_forward": {
       "task": "Install only propose-boundary into a clean TypeScript host, request a boundary proposal for src/legacy, and inspect the final artifact without editing source.",
       "automated_installed_replay": "Passed in the focused stock-install test using the exact documented command blocks and selected copied skill.",
-      "independent_agent": false,
-      "status": "pending independent D6 replay"
+      "independent_agent": true,
+      "status": "passed",
+      "result": "A fresh non-context agent produced two evidence-backed seams with direct, alias, and barrel caller impact, a public API and compatibility plan, native verification commands, a private-import blocker, and byte-identical source."
     }
   },
   "false_positive_boundary": {
@@ -81,12 +82,12 @@
     "wall_time_seconds": null,
     "agent_confusions": ["A resolved import graph is not a framework or runtime reachability graph.", "A barrel must be named in compatibility planning, not mistaken for an implementation module.", "An externally imported underscore helper is a migration blocker even if TypeScript permits the export."],
     "repeated_work": ["The accepted map-subsystem pattern informed host-local resolution and stock closure, but no code was imported or shared."],
-    "smallest_later_improvement": "After a D6 replay and an independently accepted second boundary-style consumer, measure whether a shared resolver contract would actually remove repeated code without weakening its output guarantees."
+    "smallest_later_improvement": "After an independently accepted second boundary-style consumer, measure whether a shared resolver contract would actually remove repeated code without weakening its output guarantees."
   },
-  "residual_risks": ["D6 independent fresh-agent replay remains pending serial integration.", "Dynamic/runtime/framework reachability and external consumers remain deliberately unavailable.", "Hosts must provide Node, package.json, a host-local TypeScript package, and valid tsconfig.", "Ambiguous export handling is intentionally narrow to selected diagnostic evidence."],
+  "residual_risks": ["Dynamic/runtime/framework reachability and external consumers remain deliberately unavailable.", "Hosts must provide Node, package.json, a host-local TypeScript package, and valid tsconfig.", "Ambiguous export handling is intentionally narrow to selected diagnostic evidence."],
   "next_decision": {
-    "recommendation": "Keep the resolver local and run the independent installed-host D6 replay before promotion.",
-    "rationale": "The positive final proposal, conservative defers, native fixture checks, and exact selected-skill stock replay prove a useful framework-neutral v1 without a platform expansion.",
-    "blockers": ["Fresh non-context agent D6 replay", "Serial integration of shared catalog/router/tracker claims outside this lane"]
+    "recommendation": "Retain the accepted framework-neutral v1 and keep the resolver family-local.",
+    "rationale": "The positive final proposal, conservative defers, native fixture checks, exact selected-skill stock replay, and fresh non-context D6 prove a useful framework-neutral v1 without a platform expansion.",
+    "blockers": []
   }
 }

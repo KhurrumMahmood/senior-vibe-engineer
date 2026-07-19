@@ -299,6 +299,14 @@ def score_skill(
     desc_tokens = tokenize(skill.get("description", ""))
     name_tokens = tokenize(skill.get("name", ""))
 
+    # An explicitly named skill is an authoritative routing request. Give it
+    # enough weight that portability filtering returns `unsupported` instead
+    # of silently substituting a vaguely related eligible skill.
+    exact_name = str(skill.get("name", "")).strip().lower()
+    if exact_name and exact_name in task_tokens:
+        score += 100
+        rationale.append(f"explicit skill name: {exact_name}")
+
     # 1. best_for overlap is the strongest positive signal.
     bf_hits = task_tokens & best_for_tokens
     if bf_hits:

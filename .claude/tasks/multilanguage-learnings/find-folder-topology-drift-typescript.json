@@ -200,13 +200,13 @@
     "smallest_later_improvement": "Completed in revision 75002248977c2631c2458ac064bc4f659ecedb3e: document .agents/skills and make --typescript-root-only scans intrinsically TypeScript-only."
   },
   "residual_risks": [
-    "The fresh installed evidence predates both repair rounds; committed regressions replay the discovered defects, while independent re-review of revision 0df40a5 remains pending.",
+    "The fresh installed evidence predates both repair rounds; committed regressions replay the discovered defects and independent re-review passed.",
     "Filename clustering can over-report a legitimate framework convention, so all findings remain advisory.",
     "The detector intentionally misses mixed-token domain clusters and does not resolve TypeScript imports."
   ],
   "next_decision": {
     "recommendation": "Keep the TypeScript detector lexical and advisory; do not expand it until a separate TypeScript proposal family proves import impact.",
     "rationale": "The accepted fixture only demonstrates a direct filename cluster. Package moves, barrels, test placement, and module resolution require stronger evidence and distinct contracts.",
-    "blockers": ["Independent re-review of the adversarial exclusion repair"]
+    "blockers": []
   }
 }

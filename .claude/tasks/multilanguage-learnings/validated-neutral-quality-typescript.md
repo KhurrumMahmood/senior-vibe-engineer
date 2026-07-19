@@ -1,7 +1,7 @@
 # Validated-neutral quality skills — TypeScript host handoff
 
-Validation revision: `3aef3e1` (`test: prove neutral TypeScript quality
-skills`). Evidence date: 2026-07-19 UTC.
+Validation revisions: `3aef3e1` (`test: prove neutral TypeScript quality
+skills`) plus `5143bf6` (fresh D6 closeout). Evidence date: 2026-07-19 UTC.
 
 ## Outcome
 
@@ -95,11 +95,12 @@ The staged primary commit also passed the complete pre-commit suite, including
 
 ## Scope, limits, and disposition
 
-D1, D3, D5, D7, and D8 are met for these exact outcomes. D2 and D4 do not
+D1, D3, D5, D6, D7, and D8 are met for these exact outcomes. D2 and D4 do not
 apply: no Python-language detector was ported and none of these flows proposes
-or applies a TypeScript source mutation/guard. D6 remains for the serial
-integrator as permitted: give a fresh non-context agent one copied skill, the
-raw host, and its raw task without the captured artifact.
+or applies a TypeScript source mutation/guard. A fresh non-context agent used
+the five copied skills with only the raw host and raw tasks, produced useful
+artifacts for all five, passed the installed executable gates and native
+checks, and preserved the source fingerprint.
 
 This validation does not claim TypeScript parsing, type-checker analysis,
 framework support, Node/React/Express/ORM behavior, remediation execution, or
@@ -110,6 +111,6 @@ not evidence that the installed skill can run a host's spec/decision registry.
 Those optional repository-helper modes remain outside this selected core
 artifact contract.
 
-Recommendation: after D6, mark the five named skills `validated-neutral` for
-their tested report/briefing/queue outcomes. Do not create TypeScript variants
-or a shared runtime on this evidence.
+Disposition: the five named skills are `validated-neutral` for their tested
+report/briefing/queue outcomes. Do not create TypeScript variants or a shared
+runtime on this evidence.

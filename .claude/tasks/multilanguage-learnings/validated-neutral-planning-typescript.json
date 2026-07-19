@@ -1,6 +1,6 @@
 {
   "batch": "validated-neutral-planning-typescript",
-  "revision": "08953b9",
+  "revision": "08953b9 validation through e800856 fresh D6 closeout",
   "family": [
     "architecture-fit",
     "decide",
@@ -123,7 +123,7 @@
     ],
     "known_false_negatives": [
       "The fixture intentionally does not validate the optional structure-redesign branch of scope-feature.",
-      "A prompt-led replay cannot prove a fresh agent's independent judgment; that remains D6."
+      "A prompt-led replay remains judgment-dependent even though the fresh D6 task passed."
     ],
     "legitimate_similar_shapes": [
       "P0 refusal is a correct plan-spec outcome, but this fixture uses a P0-clean plan to prove successful promotion.",
@@ -140,7 +140,7 @@
     "Host-owned planning-script availability as part of a bare selected-skill install",
     "The optional structural-redesign knowledge branch",
     "Framework architecture, queue selection, or compiler/type semantics",
-    "D6 fresh-agent behavior"
+    "Framework or compiler semantics beyond the accepted planning artifacts"
   ],
   "reuse_decision": {
     "shared_candidate": "Generic prompt-only planning launcher or copied planning-runtime closure.",
@@ -197,19 +197,18 @@
     "repeated_work": [
       "One locked host is reused while each natural task and final artifact remains distinct."
     ],
-    "smallest_later_improvement": "Run the deferred D6 fresh non-context replay from the stock-installed host before the integrator changes the coverage disposition."
+    "smallest_later_improvement": "Review the optional scope-feature structural-redesign closure only if a real task needs it."
   },
   "residual_risks": [
-    "D6 fresh-agent replay remains open by explicit integrator allowance.",
+    "Fresh D6 validates usefulness on one locked TypeScript host, not every future planning context.",
     "The captured final artifacts are an executable contract, not a substitute for an agent independently interpreting the natural task.",
     "scope-feature structural-redesign mode has not earned selected-skill copied-closure evidence.",
     "Host planning scripts remain a host-project prerequisite when a user runs these prompt workflows outside this artifact oracle."
   ],
   "next_decision": {
-    "recommendation": "Mark the five skills validated-neutral after the serial integrator performs the allowed fresh D6 replay; do not create TypeScript variants or shared runtime.",
+    "recommendation": "Keep the five skills validated-neutral for the tested planning artifacts; do not create TypeScript variants or shared runtime.",
     "rationale": "The tested invariants are durable planning artifacts, exact stock copied closure is proven, TypeScript source is untouched, and no language-specific mechanism was added or required.",
     "blockers": [
-      "D6 fresh non-context agent replay",
       "Any broader claim covering scope-feature structural-redesign mode would need its own closure decision"
     ]
   }
