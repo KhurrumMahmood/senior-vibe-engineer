@@ -67,6 +67,7 @@ detector cover?
 ```bash
 set -euo pipefail
 PROJECT_ROOT="${PROJECT_ROOT:-.}"
+SKILL_DIR="${SKILL_DIR:?set to the installed find-perimeter-gaps directory}"
 SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
 REPORT_DIR="reports/find-perimeter-gaps/$SCAN_ID"
 EXTRA_ARGS=()
@@ -76,7 +77,7 @@ EXTRA_ARGS=()
 # EXTRA_ARGS+=(--accept sites:templates)
 # EXTRA_ARGS+=(--skip-root data)
 mkdir -p "$REPORT_DIR"
-.venv/bin/python .claude/skills/find-perimeter-gaps/scripts/scan.py \
+python3 "$SKILL_DIR"/scripts/scan.py \
   --project-root "$PROJECT_ROOT" \
   "${EXTRA_ARGS[@]}" \
   --output "$REPORT_DIR/perimeter.json" \
@@ -86,6 +87,10 @@ mkdir -p "$REPORT_DIR"
 Deterministic, stdlib-only. Data-like files (> `--max-file-loc`, default
 10K lines) and artifact trees (media, fixtures, snapshots, crawled…) are
 skipped automatically.
+
+For a copied install, `scan.py` lives inside the selected installed skill. Set
+`SKILL_DIR` to that directory and invoke `"$SKILL_DIR"/scripts/scan.py`; do
+not reach back into a source checkout's `.claude/skills/` tree.
 
 ### Stage 2 — Classify each gap
 

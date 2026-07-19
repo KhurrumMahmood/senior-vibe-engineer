@@ -1,0 +1,3 @@
+- id: ingress-validated-command
+  applies_to: src/ingest/**
+  summary: Convert untrusted payloads into a verified command before worker dispatch.

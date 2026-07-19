@@ -1,0 +1,10 @@
+{
+  "skill": "diagnose",
+  "scan_id": "scan-20260719-150000",
+  "evidence": {
+    "reproduction_or_reason": "reproduction.md",
+    "root_cause": "root-cause.md",
+    "fix_verification": "verification.md",
+    "cleanup_check": "cleanup-check.md"
+  }
+}

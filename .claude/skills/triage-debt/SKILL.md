@@ -51,9 +51,9 @@ re-running every detector.
 - The inputs that fed the ranking are declared — which find-* `latest`
   reports, `specs-audit.json`, `decisions-audit.json`, and
   `effectiveness.jsonl` were read, and which were missing.
-- The final reply pastes the exact command output for the Stage 1
-  script runs and the Stage 5 effectiveness log append. Claims without
-  command output do not satisfy the gate.
+- The final reply names the cached input path, the copied input files, and any
+  unavailable axis from `inputs.md`. Claims without that provenance do not
+  satisfy the gate.
 - No new detection ran; no production code, spec, or decision status
   was touched — the run writes only under `reports/triage-debt/scan-<TS>/`.
 
@@ -83,21 +83,42 @@ re-running every detector.
 ## Scope (this skill itself)
 
 - **Project root:** this worktree's root.
-- **Python:** `.venv/bin/python` for repo scripts.
 - **Read:** `reports/_meta/effectiveness.jsonl`, `reports/<smell>/latest/*.md`
   (on-disk dirs use the smell name without the `find-` prefix —
   `reports/omnibus/`, not `reports/find-omnibus/`),
-  `.venv/bin/python scripts/specs.py audit --json`,
-  `.venv/bin/python scripts/specs.py size-check --json`,
-  `.venv/bin/python scripts/decisions.py audit --json`,
+  host-provided cached `specs-audit.json`, `specs-size.json`,
+  `decisions-audit.json`, and `effectiveness.jsonl`,
   `ai-docs/decisions/` (for `parked_until:` annotations).
-- **Write:** `reports/triage-debt/scan-<TS>/queue.md`.
+- **Write:** `reports/triage-debt/scan-<TS>/queue.md` and its input
+  provenance record.
 - **MAY write (debug only):**
   `reports/triage-debt/scan-<TS>/raw-scores.json` (the score breakdown
   per entry) — write only when debugging the scoring heuristic; no
   downstream stage or skill reads it.
-- **MAY append:** one line to `reports/_meta/effectiveness.jsonl` via
-  `scripts/log_effectiveness.py` recording the run.
+
+### Installed cache contract
+
+This selected skill is an aggregator, not a copy of a host's spec or decision
+registry. A copied install therefore consumes a host-owned cache directory
+instead of invoking a repository checkout's audit or log scripts. Set
+`TRIAGE_CACHE` to that directory; its default is
+`reports/triage-debt/cache/current`. The cache may have been produced by the
+host's own tools, but the installed skill does not require or import those
+tools.
+
+The exercised cache contains these plain-data files:
+
+```text
+effectiveness.jsonl   # skill, scan_id, target, findings_total, buckets, ts
+specs-audit.json      # spec path, last_modified, coverage summary
+specs-size.json       # hard-size overflow rows, or an empty list
+decisions-audit.json  # drift rows, or an empty list
+```
+
+Missing cache files are a declared unavailable input, not permission to infer
+that an axis is clean. Copy the files that exist into the scan directory and
+write `inputs.md` naming both present and missing inputs. Do not silently
+recreate a registry audit or effectiveness logger from a partial checkout.
 
 ## Pipeline
 
@@ -143,13 +164,25 @@ esac
 
 ### Stage 1 — Collect inputs
 
-In parallel (all read-only, no dependencies):
+Use the host's retained, read-only cache. This keeps the selected closure
+self-contained and lets a maintenance window triage retained evidence without
+re-running detectors:
 
 ```bash
-.venv/bin/python scripts/specs.py audit --json       > "${REPORT_DIR}/specs-audit.json"
-.venv/bin/python scripts/specs.py size-check --json  > "${REPORT_DIR}/specs-size.json" 2>&1 || true
-.venv/bin/python scripts/decisions.py audit --json   > "${REPORT_DIR}/decisions-audit.json"
-ls reports/_meta/effectiveness.jsonl       && cp reports/_meta/effectiveness.jsonl "${REPORT_DIR}/effectiveness.jsonl"
+TRIAGE_CACHE="${TRIAGE_CACHE:-reports/triage-debt/cache/current}"
+{
+    echo "# Triage input provenance"
+    echo
+    echo "Cache: ${TRIAGE_CACHE}"
+    for input in effectiveness.jsonl specs-audit.json specs-size.json decisions-audit.json; do
+        if [ -f "${TRIAGE_CACHE}/${input}" ]; then
+            cp "${TRIAGE_CACHE}/${input}" "${REPORT_DIR}/${input}"
+            echo "- present: ${TRIAGE_CACHE}/${input}"
+        else
+            echo "- missing: ${TRIAGE_CACHE}/${input}"
+        fi
+    done
+} > "${REPORT_DIR}/inputs.md"
 ```
 
 Then enumerate per-skill `latest` symlinks:
@@ -218,7 +251,7 @@ score = recurrence_count * 100
 - `decision_drift_days` — for each entry in `decisions-audit.json.drift`
   with kind `proposed_too_long`, the days past 30. For `broken_supersedes`
   / `applies_to_missing`, score a flat 30 days.
-- `hard_size_overflow` — 1 if `specs-size.json` lists this target as
+- `hard_size_overflow` — 1 if cached `specs-size.json` lists this target as
   `loc >= 1000`, else 0.
 - `age_weeks` — weeks since the most recent `effectiveness.jsonl` entry
   for this candidate. Pure tiebreak.
@@ -308,16 +341,13 @@ the signal._
 - `find-omnibus` last ran <date> on `<target>` — consider re-running.
 ```
 
-### Stage 5 — Log effectiveness
+### Stage 5 — Record provenance
 
-```bash
-.venv/bin/python scripts/log_effectiveness.py \
-  --skill triage-debt \
-  --scan-id "scan-${TS}" \
-  --target "all" \
-  --findings-total <total candidates> \
-  --buckets "{\"top_n\": ${TOP_N}, \"recurrent\": <N>, \"parked\": <N>, \"stale_reports\": <N>}"
-```
+The output's `inputs.md` is the run record for a copied install. Do not append
+to a host effectiveness log unless that host explicitly offers its own logging
+command and the user asked to use it. The queue must state the cache path and
+every unavailable axis, so an old or partial cache cannot look like a clean
+audit.
 
 ### Stage 6 — Summarize
 
@@ -327,9 +357,7 @@ Report to the user in ≤8 lines:
 - Total candidates / top-N called out.
 - 1-line for each top-3 with the recommended next command.
 - Stale-report count (re-run signals).
-- Paste the Stage 1 command outputs and the Stage 5 log append line. If
-  a command failed but the fallback policy allowed proceeding, include
-  the captured stderr path and exit code.
+- Name the Stage 1 cache path and any unavailable input axis from `inputs.md`.
 
 ## Non-goals
 
@@ -345,8 +373,8 @@ Report to the user in ≤8 lines:
 |---|---|
 | `effectiveness.jsonl` is empty | Note "no run history yet" in queue.md; rely on latest find-* reports only |
 | No find-* `latest` symlinks exist | Note "no recent detection runs"; recommend running the SUSPECT skills first |
-| `specs.py audit --json` errors | Capture stderr to `${REPORT_DIR}/specs-audit.err`, proceed with empty spec-drift contribution |
-| `decisions.py audit --json` errors | Same — capture and proceed with empty decision-drift contribution |
+| Cached `specs-audit.json` is absent | Record it in `inputs.md`; do not score spec drift or claim it is clean. |
+| Cached `decisions-audit.json` is absent | Record it in `inputs.md`; do not score decision drift or claim it is clean. |
 | Every top-5 entry is the same target | Real signal — that target is the worst debt; recommend `/refactor-subsystem` if it's a file, `/decide` if it's a missing decision |
 | Top score is < 50 | Note "no urgent debt — maintenance loop is healthy"; queue.md still useful as a snapshot |
 | Candidate has no recommended-next mapping | Default to `/which-skill <target>` so the user can hand-pick |
@@ -388,7 +416,7 @@ case "${TOP_N}" in
         exit 2
         ;;
 esac
-printf '{"top_n": %s}\n' "${TOP_N}" | .venv/bin/python -m json.tool
+printf '{"top_n": %s}\n' "${TOP_N}" | python3 -m json.tool
 ```
 
 The replay passes only when `TOP_N` is `10`, the JSON parses, and the
