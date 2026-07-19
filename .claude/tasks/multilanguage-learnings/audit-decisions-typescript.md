@@ -1,8 +1,8 @@
 # TypeScript `audit-decisions` learning handoff
 
-Implementation revision: `fbeca4e` (`Repair TypeScript JSX and regex
-boundaries`), following the original additive implementation `a30ea88` and
-based on `8fa69f3`, 2026-07-19 UTC.
+Implementation revision: `259de78` (`Bound generic JSX tag scanning`),
+following the original additive implementation `a30ea88`, first adversarial
+repair `fbeca4e`, and base `8fa69f3`, 2026-07-19 UTC.
 
 ## Invariant and scope
 
@@ -62,6 +62,19 @@ regex literals after `typeof`, `void`, and `instanceof` suppress ids
 remain visible. This closes the adversarial blockers without a compiler,
 shared parser, or broader source support.
 
+A second adversarial review then found that generic JSX type arguments were
+recognized as JSX but the tag scanner stopped at the generic argument's `>`.
+For `<Select<number> />; /* decision:0002 */`, that left the outer `/>`
+unconsumed and caused the scanner to treat all following code as JSX text.
+The repair tracks nested angle depth in both JSX recognition and actual tag
+scanning, while treating `=>` inside a function type as an arrow rather than a
+generic close. The exact self-closing replay now retains its following block
+comment. Nearby locked probes cover nested and multiple generic arguments,
+member component names, a function-type argument, quoted `>`/comma attributes,
+and a non-self-closing generic element whose comment-shaped child text remains
+ignored while its following real line comment is retained. All earlier
+fragment, quoted-comma, generic-arrow, and regex-keyword fixtures remain green.
+
 ## Fixture and installed evidence
 
 `tests/fixtures/audit-decisions-typescript/host` locks an accepted registry,
@@ -81,12 +94,12 @@ After implementation:
 
 ```text
 .venv/bin/python -m pytest -q tests/test_audit_decisions_typescript.py
-# 16 passed
+# 17 passed
 
 .venv/bin/python -m pytest -q \
   tests/test_audit_decisions_typescript.py tests/test_decisions.py \
   tests/test_yaml_frontmatter.py
-# 54 passed
+# 55 passed
 
 .venv/bin/ruff check .claude/skills/audit-decisions/scripts/audit.py \
   tests/test_audit_decisions_typescript.py
@@ -137,11 +150,11 @@ a property of the host path, not of invocation convenience.
 |---|---|---|
 | D1 scope honesty | Installed skill freezes comment forms and literal/semantic non-goals. | pass |
 | D2 Python oracle | Locked Python/Markdown/HTML positive and literal-clean cases reach final artifacts; source registry compatibility replay passes. | pass |
-| D3 TypeScript outcome | Locked TS/TSX positives plus fragment, quoted-attribute, generic-angle, regex-keyword, and must-not-fire fixtures reach `drift.md` and `raw-drift.json`. | pass |
+| D3 TypeScript outcome | Locked TS/TSX positives plus fragment, quoted-attribute, generic-arrow/tag-angle, regex-keyword, and must-not-fire fixtures reach `drift.md` and `raw-drift.json`. | pass |
 | D4 change/guard | Not applicable: advisory/read-only audit, no code change or blocking guard. | n/a |
 | D5 installed closure | Copied and real stock `skills@1.5.19` selected-skill tests run `python3 -I -S` outside checkout. | pass |
 | D6 fresh forward | A fresh non-context lane used only the stock-installed skill and raw host, produced all four final artifacts, identified the single real orphan, and preserved source bytes. | pass |
-| D7 regression/conformance | Post-adversarial focused regressions (16/54), Ruff, py_compile, metadata, artifact drift, commit hooks, and conformance passed. | pass |
+| D7 regression/conformance | Post-adversarial focused regressions (17/55), Ruff, py_compile, metadata, artifact drift, commit hooks, and conformance passed. | pass |
 | D8 learning handoff | This MD/JSON pair records both the initial installed proof and the later adversarial repair. | ready for re-review |
 
 ## D6 installed forward journey
@@ -193,7 +206,7 @@ cross-language references; it is a correct TypeScript subtotal, but explicitly
 labeling it “TypeScript subtotal” would reduce ambiguity in a later UX pass.
 This D6 host exercised `a30ea88` before the adversarial fixtures were added;
 its portability and source-integrity evidence remains valid, while current
-selected-install closure is covered by the post-repair 16-test suite.
+selected-install closure is covered by the post-repair 17-test suite.
 
 ## False-positive boundary, reuse, and next languages
 
@@ -223,7 +236,8 @@ closure contract.
 
 Residual risks are deliberate: malformed TypeScript can defeat lexical
 attribution, uncommon valid JSX/type grammar not represented by the locked
-fragment/attribute/generic cases may under-report a real comment, and
+fragment/attribute/generic-arrow/generic-tag cases may under-report a real
+comment, and
 the stdlib frontmatter compatibility parser supports the registry's scalar and
 list fields rather than arbitrary YAML. It fails visibly rather than silently
 inventing an audit result. D6 confirms that this family should remain lexical,
