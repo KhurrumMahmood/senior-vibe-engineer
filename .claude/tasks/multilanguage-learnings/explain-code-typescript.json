@@ -1,6 +1,6 @@
 {
   "batch": "explain-code-typescript",
-  "revision": "0103a9e implementation plus containing D6 closeout commit",
+  "revision": "0103a9e implementation plus 447c620 D6 closeout and post-review repair commit recorded in final handoff",
   "family": ["explain-code"],
   "invariant": {
     "portable_principle": "A durable explanation document must cover every selected direct public symbol and visibly preserve behavior that cannot honestly be explained.",
@@ -17,6 +17,11 @@
       "issue": "The copied Python inventory imported repository-level scripts/_lib/lang_adapter and failed under python -I -S.",
       "repair": "Restored a stdlib-only Python AST path and froze tests/fixtures/explain-code-typescript/python-oracle/expected-targets.json.",
       "evidence": "The copied Python oracle test now passes under isolated Python."
+    },
+    {
+      "issue": "The first pilot dropped the Python directory exclusions for migrations/ and tests_*.py.",
+      "repair": "Restored both target-relative exclusions and added expected-directory-targets.json.",
+      "evidence": "The copied Python directory oracle contains only src/sample.py."
     }
   ],
   "language_model": {
@@ -27,7 +32,7 @@
     "framework": ["None; test/generated/declaration/vendor/build/node_modules descendants are excluded relative to the target."]
   },
   "tooling": {
-    "selected": "Family-local masked lexical collector plus family-local annotation renderer.",
+    "selected": "Family-local collector that masks comments, strings, and expression-position regex literals, enumerates simple multi-binding exports, and feeds a family-local annotation renderer.",
     "rejected_alternatives": {
       "typescript_compiler_api": "Not needed for direct named exports and would add an undeclared install dependency plus an unearned resolver claim.",
       "bare_regular_expression": "Would misread comments/strings and has no honest unresolved-export path.",
@@ -40,34 +45,36 @@
   "outcome_contract": {
     "inputs": ["A .py, .ts, .tsx file or directory target", "Scout annotations for each selected target", "A truthful human-authored summary"],
     "structured_outputs": ["targets.json", "reports/explanations/<slug>.md", "annotations/<symbol>.md", "unexplained.txt", "surprises.txt"],
-    "must_fire": ["Direct exported branchy TypeScript function", "Direct exported typed arrow function", "Direct exported TSX function", "Alias/re-export entries as final-document unexplained regions"],
-    "must_not_fire": ["Private helper", "Test descendant", "Generated descendant", "Vendor descendant", "A requested target beneath a vendor-named ancestor"],
+    "must_fire": ["Direct exported branchy TypeScript function", "Every name in a simple direct multi-binding export", "A direct export following a brace-containing regex literal", "Direct exported typed arrow function", "Direct exported TSX function", "Alias/re-export entries as final-document unexplained regions"],
+    "must_not_fire": ["Private helper", "Python migrations descendant", "Python tests_*.py module", "TypeScript test descendant", "Generated descendant", "Vendor descendant", "A requested target beneath a vendor-named ancestor", "Annotation reuse for same-basename/same-symbol files"],
     "native_test_command": ".venv/bin/python -m pytest -q tests/test_explain_code_typescript.py",
     "native_guard_command": null
   },
   "evidence": {
-    "python_reference": ["Red before repair: copied skill failed with ModuleNotFoundError: _lib.", "Green oracle: tests/test_explain_code_typescript.py::test_python_targets_reference_oracle_is_stable_and_copyable."],
-    "typescript": ["tests/test_explain_code_typescript.py copies only the skill, runs inventory and renderer with python -I -S from an isolated host, and asserts the final doc, sidecars, stable JSON, exclusions, and source immutability.", "Ruff plus 18 targeted metadata/read-safety tests passed at 0103a9e.", "Fresh non-context D6 at /private/tmp/explain-code-forward.kvpvVc explained decide/renderLabel/Badge, preserved three unresolved export forms plus one missing fallback region, excluded private/test/generated/vendor shapes, and left source hashes unchanged."],
+    "python_reference": ["Red before initial repair: copied skill failed with ModuleNotFoundError: _lib.", "Post-review red: directory inventory re-included migrations/ and tests_reference.py.", "Green oracle: tests/test_explain_code_typescript.py::test_python_targets_reference_oracle_is_stable_and_copyable verifies file and directory payloads under copied python -I -S."],
+    "typescript": ["tests/test_explain_code_typescript.py copies only the skill, runs inventory and renderer with python -I -S from isolated hosts, and asserts the final doc, sidecars, stable JSON, exclusions, collision-free annotations, multi-binding exports, regex masking, and source immutability.", "Original Ruff plus 18 targeted metadata/read-safety tests passed at 0103a9e; post-review final commands/counts are listed with the final handoff.", "The exact D6 natural task was: Explain the direct public exports in src and produce the skill’s complete explanation artifact and sidecars. No expected diagnosis was supplied; the parent holds the prompt/tool record and no transcript file exists.", "Fresh non-context D6 at /private/tmp/explain-code-forward.kvpvVc explained decide/renderLabel/Badge, preserved three unresolved export forms plus one missing fallback region, excluded private/test/generated/vendor shapes, and left source hashes unchanged.", "Adversarial review found one unsupported sentence claiming typed-signature enforcement. The final artifact summary now accurately calls signatures source declarations and says no type-checking/enforcement occurred; the fresh annotations, sidecars, and inventory evidence are unchanged."],
     "commands_and_artifact_paths": [
       ".venv/bin/ruff check .claude/skills/explain-code/scripts tests/test_explain_code_typescript.py",
       ".venv/bin/python -m pytest -q tests/test_explain_code_typescript.py tests/test_skill_detector_reads.py tests/test_skill_taxonomy.py tests/test_yaml_frontmatter.py",
       ".venv/bin/python scripts/skill_meta.py lint --quiet",
       "git diff --check",
       "tests/fixtures/explain-code-typescript/typescript-host",
+      "tests/fixtures/explain-code-typescript/lexical-edge-host",
+      "tests/fixtures/explain-code-typescript/collision-host",
       "/private/tmp/explain-code-forward.kvpvVc/host/typescript-host/reports/explanations/src.md",
       "python3 -I -S <installed>/scripts/inventory_symbols.py --target src --output <artifacts>/targets.json --max 15 (rc 0; 3 annotated / 3 public / 8 total / 3 unresolved exports)",
       "python3 -I -S <installed>/scripts/render_explanation.py --targets <artifacts>/targets.json --annotations-dir <artifacts>/annotations --output reports/explanations/src.md (rc 0; 4 unexplained / 2 surprises)"
     ]
   },
   "false_positive_boundary": {
-    "known_false_positives": ["None in the locked fixture; comments/strings are masked before lexical matching."],
-    "known_false_negatives": ["Anonymous default exports", "multi-binding export declarations beyond the first binding", "resolved aliases/barrels and module-derived public surface"],
+    "known_false_positives": ["None in the locked fixtures; comments, strings, and expression-position regex literals are masked before export matching and brace-depth accounting."],
+    "known_false_negatives": ["Anonymous default exports", "resolved aliases/barrels and module-derived public surface", "complex generic comma shapes beyond the lexical binding splitter"],
     "legitimate_similar_shapes": ["Private helpers and public test/generated/vendor code stay out of targets; alias/re-export syntax remains unexplained instead of becoming a direct symbol."]
   },
   "generalized": ["The targets JSON schema, budget, scout artifact shape, renderer-owned sidecars, and source-immutability proof work for the Python reference and TypeScript v1."],
   "did_not_generalize": ["Python AST semantics (__all__, methods, docstrings, branch nodes) and TypeScript export/TSX semantics remain variant-specific.", "Module resolution and caller discovery are not generalized from a lexical pilot."],
   "reuse_decision": {
-    "shared_candidate": "Comment/string masking and annotation-to-sidecar rendering.",
+    "shared_candidate": "Comment/string/regex masking and annotation-to-sidecar rendering.",
     "actual_second_consumer": null,
     "decision": "keep-family-local",
     "evidence": ["The prior shared-adapter dependency failed copied installation; no second accepted consumer has demonstrated an identical contract."],

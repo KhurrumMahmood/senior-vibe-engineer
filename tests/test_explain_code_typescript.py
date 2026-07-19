@@ -33,7 +33,8 @@ def _snapshot_tree(root: Path) -> dict[str, str]:
     }
 
 
-def _write_annotation(path: Path, target: dict) -> None:
+def _write_annotation(path: Path, target: dict, *, intent: str | None = None) -> None:
+    intent_text = intent or f"`{target['symbol']}` exposes the fixture's direct public behavior."
     path.write_text(
         f"""# Annotation — {target['symbol_key']}
 
@@ -44,7 +45,7 @@ def _write_annotation(path: Path, target: dict) -> None:
 - Status: `found`
 
 ## Intent
-`{target['symbol']}` exposes the fixture's direct public behavior.
+{intent_text}
 
 ## Preconditions
 None beyond the signature types.
@@ -92,6 +93,24 @@ def test_python_targets_reference_oracle_is_stable_and_copyable(tmp_path: Path) 
     assert result.returncode == 0, result.stdout + result.stderr
     assert json.loads(output.read_text(encoding="utf-8")) == json.loads(
         (FIXTURES / "python-oracle" / "expected-targets.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    directory_output = host / "reports" / "python-directory-targets.json"
+    directory_result = _run_isolated(
+        installed / "scripts" / "inventory_symbols.py",
+        "--target",
+        "src",
+        "--repo-root",
+        str(host),
+        "--output",
+        str(directory_output),
+        cwd=host,
+    )
+    assert directory_result.returncode == 0, directory_result.stdout + directory_result.stderr
+    assert json.loads(directory_output.read_text(encoding="utf-8")) == json.loads(
+        (FIXTURES / "python-oracle" / "expected-directory-targets.json").read_text(
             encoding="utf-8"
         )
     )
@@ -220,3 +239,85 @@ def test_typescript_ignores_are_relative_to_requested_target(tmp_path: Path) -> 
         "renderLabel",
         "Badge",
     }
+
+
+def test_typescript_multibinding_and_regex_literal_keep_following_export(
+    tmp_path: Path,
+) -> None:
+    host = tmp_path / "host"
+    shutil.copytree(FIXTURES / "lexical-edge-host", host)
+    installed = tmp_path / "installed" / "explain-code"
+    shutil.copytree(SKILL, installed)
+    output = host / "reports" / "targets.json"
+
+    result = _run_isolated(
+        installed / "scripts" / "inventory_symbols.py",
+        "--target",
+        "src",
+        "--repo-root",
+        str(host),
+        "--output",
+        str(output),
+        cwd=host,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    targets = json.loads(output.read_text(encoding="utf-8"))
+    assert {item["symbol"] for item in targets["targets"]} == {
+        "first",
+        "second",
+        "afterRegex",
+    }
+    assert targets["unexplained"] == []
+
+
+def test_same_basename_symbols_have_distinct_annotations(tmp_path: Path) -> None:
+    host = tmp_path / "host"
+    shutil.copytree(FIXTURES / "collision-host", host)
+    installed = tmp_path / "installed" / "explain-code"
+    shutil.copytree(SKILL, installed)
+    report_dir = host / "reports" / "explanations" / "src"
+    targets_path = report_dir / "targets.json"
+
+    collect = _run_isolated(
+        installed / "scripts" / "inventory_symbols.py",
+        "--target",
+        "src",
+        "--repo-root",
+        str(host),
+        "--output",
+        str(targets_path),
+        cwd=host,
+    )
+    assert collect.returncode == 0, collect.stdout + collect.stderr
+    targets = json.loads(targets_path.read_text(encoding="utf-8"))
+    assert [item["symbol"] for item in targets["targets"]] == ["shared", "shared"]
+    assert len({item["symbol_key"] for item in targets["targets"]}) == 2
+
+    annotations = report_dir / "annotations"
+    annotations.mkdir(parents=True)
+    for target in targets["targets"]:
+        _write_annotation(
+            annotations / f"{target['symbol_key']}.md",
+            target,
+            intent=f"`{target['file']}` owns this distinct `shared` export.",
+        )
+    document = host / "reports" / "explanations" / "src.md"
+    render = _run_isolated(
+        installed / "scripts" / "render_explanation.py",
+        "--targets",
+        str(targets_path),
+        "--annotations-dir",
+        str(annotations),
+        "--output",
+        str(document),
+        "--summary",
+        "Two modules expose distinct direct exports with the same symbol name.",
+        "--regenerated",
+        "2026-07-19T00:00:00Z",
+        cwd=host,
+    )
+    assert render.returncode == 0, render.stdout + render.stderr
+    rendered = document.read_text(encoding="utf-8")
+    assert "`src/a/index.ts` owns this distinct `shared` export." in rendered
+    assert "`src/b/index.ts` owns this distinct `shared` export." in rendered

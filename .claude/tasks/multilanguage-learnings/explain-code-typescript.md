@@ -20,7 +20,9 @@ The existing Python `inventory_symbols.py` depended on repository-level
 `scripts/_lib/lang_adapter`. A copied installed skill therefore failed before
 writing `targets.json` (`ModuleNotFoundError: _lib`). The Python implementation
 is now stdlib-only again, and `python-oracle/expected-targets.json` freezes the
-pre-existing public-symbol/ranking semantics. No ranking defect was found.
+pre-existing public-symbol/ranking semantics. The first TypeScript pilot had
+also dropped the Python directory exclusions for `migrations/` and
+`tests_*.py`; the post-review directory oracle restored and locked both.
 
 ## 3. TypeScript model
 
@@ -38,9 +40,10 @@ pre-existing public-symbol/ranking semantics. No ranking defect was found.
 ## 4. Tool decision
 
 Selected: a family-local masked lexical collector plus a family-local renderer.
-Masking comments and strings prevents false `export` hits while retaining
-line/brace information for stable ranking. The renderer deliberately consumes
-scout annotations instead of synthesizing behavioral claims.
+Masking comments, strings, and expression-position regex literals prevents
+false `export` hits and brace-depth corruption while retaining line information
+for stable ranking. The renderer deliberately consumes scout annotations
+instead of synthesizing behavioral claims.
 
 Rejected:
 
@@ -60,6 +63,14 @@ Red transcript before production edits:
 2 failed — copied inventory raised ModuleNotFoundError: No module named '_lib'
 ```
 
+Post-review red transcript before the lexical repairs:
+
+```text
+3 failed — Python migrations/tests_ files re-entered the oracle; a regex
+literal hid the following export while a multi-binding export lost `second`;
+same-basename/same-symbol targets shared one symbol key and annotation path.
+```
+
 Green commands at `0103a9e`:
 
 ```bash
@@ -72,7 +83,9 @@ Green commands at `0103a9e`:
 git diff --check
 ```
 
-Result: Ruff clean; 18 tests passed; frontmatter lint clean; diff check clean.
+Result at the original revision: Ruff clean; 18 tests passed; frontmatter lint
+clean; diff check clean. The post-review rerun commands and final counts are
+recorded below in the machine-readable evidence.
 `tests/test_explain_code_typescript.py` performs both the copied
 `python -I -S` Python-oracle run and the copied `python -I -S` TypeScript
 collector → scout annotations → renderer path outside the checkout. It asserts
@@ -85,8 +98,12 @@ D4 is not applicable: this is a read-only report skill with no proposed change
 or guard. The report semantics are instead asserted at the final artifact
 boundary.
 
-Fresh D6 forward evidence ran from only the copied installed skill and raw
-fixture at `/private/tmp/explain-code-forward.kvpvVc`. Both installed commands
+The exact fresh D6 natural-task handoff was: “Explain the direct public exports
+in src and produce the skill’s complete explanation artifact and sidecars.” No
+expected diagnosis or answer was supplied. The parent holds the task prompt and
+tool record; there is no transcript file to cite. The forward lane ran from only
+the copied installed skill and raw fixture at
+`/private/tmp/explain-code-forward.kvpvVc`. Both installed commands
 exited 0 under `python3 -I -S`: inventory selected three direct exports from
 eight total symbols and retained three unresolved export forms; rendering
 wrote `reports/explanations/src.md`, three symbol annotations,
@@ -98,15 +115,23 @@ stayed excluded, direct-source hashes were unchanged, and only the reports
 tree was created. The absent optional effectiveness logger was skipped rather
 than fabricated.
 
+The fresh artifact's first summary incorrectly said the lexical run “enforces
+... typed TypeScript signatures.” No TypeScript compiler ran, so that was not
+supported evidence. Adversarial review caught the overclaim; the final artifact
+summary at the same evidence path now says signatures are source declarations
+and explicitly says the run neither type-checks nor enforces them. Annotations,
+sidecars, and the fresh lane's raw inventory evidence were not reinterpreted.
+
 ## 6. False-positive boundary
 
 Legitimate private helpers and public symbols in test/generated/vendor trees do
-not become annotation targets. Strings and comments containing `export` do not
-become targets. Alias/re-export syntax is not a false positive: it is retained
-as an explicit unresolved region. Known false negatives are anonymous default
-exports, multi-binding export declarations beyond the first name, and any
-module-resolved public surface; all remain outside v1 rather than silently
-under-detected.
+not become annotation targets. Strings, comments, and regex literals containing
+braces or `export` do not become targets or corrupt top-level depth. Simple
+multi-binding exports inventory every identifier. Alias/re-export syntax is not
+a false positive: it is retained as an explicit unresolved region. Known false
+negatives are anonymous default exports and any module-resolved public surface.
+Exported destructuring binding patterns remain explicitly unresolved instead
+of silently disappearing.
 
 ## 7. What generalized
 
@@ -132,7 +157,7 @@ uncertainty case, and a final rendered artifact before support can be claimed.
 
 ## 10. Reuse proposal
 
-No abstraction is extracted. `inventory_symbols.py`'s comment/string masking
+No abstraction is extracted. `inventory_symbols.py`'s comment/string/regex masking
 and `render_explanation.py`'s annotation-to-sidecar renderer are potential
 family-local references only. There is no actual second consumer, and no
 shared parser, executor, or evaluator should be created yet.
@@ -153,5 +178,5 @@ anonymous defaults are intentionally incomplete. TypeScript v1 cannot resolve
 an alias to determine whether it names a local symbol or a barrel dependency.
 The fresh non-context D6 forward run passed. The serial integrator still needs
 to regenerate the router catalog and review the resulting TypeScript-only
-eligibility. Expand to
-module resolution only when a named `tsconfig`-backed consumer needs it.
+eligibility. Expand to module resolution only when a named `tsconfig`-backed
+consumer needs it.

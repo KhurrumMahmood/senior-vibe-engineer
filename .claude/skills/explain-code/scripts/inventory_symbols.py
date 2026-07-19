@@ -36,13 +36,16 @@ IGNORED_DIRECTORY_NAMES = frozenset(
         "coverage",
         "dist",
         "generated",
+        "migrations",
         "node_modules",
         "test",
         "tests",
         "vendor",
     }
 )
-TEST_FILE_RE = re.compile(r"(?:^test_|^spec_|_test\.|\.test\.|\.spec\.)", re.IGNORECASE)
+TEST_FILE_RE = re.compile(
+    r"(?:^test_|^tests_|^spec_|_test\.|\.test\.|\.spec\.)", re.IGNORECASE
+)
 TS_IDENTIFIER = r"[$A-Za-z_][\w$]*"
 TS_DIRECT_EXPORTS: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
@@ -79,12 +82,10 @@ TS_DIRECT_EXPORTS: tuple[tuple[str, re.Pattern[str]], ...] = (
             rf"^\s*export\s+(?:declare\s+)?(?:namespace|module)\s+(?P<name>{TS_IDENTIFIER})\b"
         ),
     ),
-    (
-        "module-var",
-        re.compile(
-            rf"^\s*export\s+(?:declare\s+)?(?:const|let|var)\s+(?P<name>{TS_IDENTIFIER})\b"
-        ),
-    ),
+)
+TS_VARIABLE_EXPORT_RE = re.compile(
+    r"^\s*export\s+(?:declare\s+)?(?:const|let|var)\s+(?P<bindings>.*)",
+    re.DOTALL,
 )
 TS_UNRESOLVED_EXPORT_RE = re.compile(
     r"^\s*export\s+(?:(?:type\s+)?\{|\*|default\b|=\s*)"
@@ -257,12 +258,11 @@ def _inventory_python_file(path: Path, file_rel: Path) -> tuple[list[dict[str, A
 
 
 def _mask_typescript_noncode(source: str) -> str:
-    """Replace comments and strings with spaces while retaining line positions.
+    """Replace comments, strings, and regex literals while retaining lines.
 
     This is deliberately a collector, not a TypeScript parser. Masking is only
-    enough to prevent words such as ``export`` in comments or strings from
-    becoming public symbols, and to keep brace counting useful for top-level
-    declaration detection.
+    enough to prevent words such as ``export`` in non-code from becoming public
+    symbols, and to keep brace counting useful for top-level declarations.
     """
     out: list[str] = []
     index = 0
@@ -286,6 +286,11 @@ def _mask_typescript_noncode(source: str) -> str:
                 index += 1
                 state = {"'": "single", '"': "double", "`": "template"}[char]
                 continue
+            if char == "/" and _looks_like_regex_start(source, index):
+                out.append(" ")
+                index += 1
+                state = "regex"
+                continue
             out.append(char)
             index += 1
             continue
@@ -304,6 +309,29 @@ def _mask_typescript_noncode(source: str) -> str:
                 out.append("\n" if char == "\n" else " ")
                 index += 1
             continue
+        if state in {"regex", "regex-class"}:
+            if char == "\\":
+                out.append(" ")
+                index += 1
+                if index < len(source):
+                    escaped = source[index]
+                    out.append("\n" if escaped == "\n" else " ")
+                    index += 1
+                continue
+            if char == "\n":
+                out.append("\n")
+                index += 1
+                state = "code"
+                continue
+            out.append(" ")
+            index += 1
+            if state == "regex" and char == "[":
+                state = "regex-class"
+            elif state == "regex-class" and char == "]":
+                state = "regex"
+            elif state == "regex" and char == "/":
+                state = "code"
+            continue
         quote = {"single": "'", "double": '"', "template": "`"}[state]
         if char == "\\":
             out.append(" ")
@@ -318,6 +346,26 @@ def _mask_typescript_noncode(source: str) -> str:
         if char == quote:
             state = "code"
     return "".join(out)
+
+
+def _looks_like_regex_start(source: str, slash_index: int) -> bool:
+    """Recognize expression-position regex starts without parsing TypeScript.
+
+    The accepted v1 only needs enough lexical awareness to avoid counting
+    braces inside ordinary regex literals. Division remains code when the
+    preceding token can end an expression.
+    """
+    before = source[:slash_index].rstrip()
+    if not before:
+        return True
+    if before.endswith(("=", "(", "[", "{", ",", ":", ";", "!", "?", "=>", "&&", "||")):
+        return True
+    word_match = re.search(r"([A-Za-z_$][\w$]*)$", before)
+    return bool(
+        word_match
+        and word_match.group(1)
+        in {"case", "delete", "in", "instanceof", "new", "return", "throw", "typeof", "void", "yield"}
+    )
 
 
 def _top_level_line_indexes(masked_lines: list[str]) -> set[int]:
@@ -377,6 +425,72 @@ def _typescript_direct_export(line: str) -> tuple[str, str] | None:
     return None
 
 
+def _typescript_statement_end(masked_lines: list[str], start: int) -> int:
+    """Find the first top-level semicolon for one lexical declaration."""
+    round_depth = 0
+    square_depth = 0
+    brace_depth = 0
+    for index in range(start, len(masked_lines)):
+        for char in masked_lines[index]:
+            if char == "(":
+                round_depth += 1
+            elif char == ")":
+                round_depth = max(0, round_depth - 1)
+            elif char == "[":
+                square_depth += 1
+            elif char == "]":
+                square_depth = max(0, square_depth - 1)
+            elif char == "{":
+                brace_depth += 1
+            elif char == "}":
+                brace_depth = max(0, brace_depth - 1)
+            elif char == ";" and round_depth == square_depth == brace_depth == 0:
+                return index
+    return start
+
+
+def _split_top_level_commas(text: str) -> list[str]:
+    parts: list[str] = []
+    start = 0
+    round_depth = 0
+    square_depth = 0
+    brace_depth = 0
+    for index, char in enumerate(text):
+        if char == "(":
+            round_depth += 1
+        elif char == ")":
+            round_depth = max(0, round_depth - 1)
+        elif char == "[":
+            square_depth += 1
+        elif char == "]":
+            square_depth = max(0, square_depth - 1)
+        elif char == "{":
+            brace_depth += 1
+        elif char == "}":
+            brace_depth = max(0, brace_depth - 1)
+        elif char == "," and round_depth == square_depth == brace_depth == 0:
+            parts.append(text[start:index])
+            start = index + 1
+    parts.append(text[start:])
+    return parts
+
+
+def _typescript_variable_exports(statement: str) -> tuple[list[str], bool]:
+    """Return simple identifier bindings and whether any binding was unknown."""
+    match = TS_VARIABLE_EXPORT_RE.match(statement)
+    if not match:
+        return [], False
+    names: list[str] = []
+    unknown = False
+    for binding in _split_top_level_commas(match.group("bindings").rstrip(";")):
+        name_match = re.match(rf"\s*(?P<name>{TS_IDENTIFIER})\b", binding)
+        if name_match:
+            names.append(name_match.group("name"))
+        elif binding.strip():
+            unknown = True
+    return names, unknown
+
+
 def _typescript_export_statement(source_lines: list[str], start: int) -> str:
     pieces: list[str] = []
     for line in source_lines[start:]:
@@ -399,6 +513,35 @@ def _inventory_typescript_file(
     total = 0
     for index in sorted(_top_level_line_indexes(masked_lines)):
         masked_line = masked_lines[index]
+        if re.match(r"^\s*export\s+(?:declare\s+)?(?:const|let|var)\b", masked_line):
+            end = _typescript_statement_end(masked_lines, index)
+            statement = "\n".join(masked_lines[index : end + 1])
+            names, unknown_binding = _typescript_variable_exports(statement)
+            segment = statement
+            for name in names:
+                public.append(
+                    _build_entry(
+                        file_rel=file_rel,
+                        symbol=name,
+                        kind="module-var",
+                        lineno=index + 1,
+                        loc=max(1, end - index + 1),
+                        branch_count=len(TS_BRANCH_RE.findall(segment)),
+                        has_docstring=_typescript_has_docstring(source_lines, index),
+                    )
+                )
+            total += len(names) + (1 if unknown_binding else 0)
+            if unknown_binding:
+                unexplained.append(
+                    {
+                        "file": str(file_rel),
+                        "symbol": _typescript_export_statement(source_lines, index),
+                        "kind": "unresolved-export-binding",
+                        "lineno": index + 1,
+                        "reason": "TypeScript v1 cannot enumerate this exported binding pattern lexically.",
+                    }
+                )
+            continue
         direct = _typescript_direct_export(masked_line)
         if direct is not None:
             kind, name = direct
@@ -481,9 +624,19 @@ def _resolve_collisions(entries: list[dict[str, Any]]) -> None:
     for entry in entries:
         key = entry["symbol_key"]
         counts[key] = counts.get(key, 0) + 1
+    candidates: dict[str, int] = {}
     for entry in entries:
-        if counts[entry["symbol_key"]] > 1:
-            entry["symbol_key"] = f"{entry['symbol_key']}__{entry['symbol'].replace('.', '_')}"
+        if counts[entry["symbol_key"]] <= 1:
+            continue
+        file_stem = str(Path(entry["file"]).with_suffix(""))
+        safe_path = re.sub(r"[^A-Za-z0-9]+", "_", file_stem).strip("_")
+        safe_symbol = re.sub(r"[^A-Za-z0-9]+", "_", entry["symbol"]).strip("_")
+        candidate = f"{safe_path}__{safe_symbol}"
+        candidates[candidate] = candidates.get(candidate, 0) + 1
+        entry["symbol_key"] = candidate
+    for entry in entries:
+        if candidates.get(entry["symbol_key"], 0) > 1:
+            entry["symbol_key"] = f"{entry['symbol_key']}__line_{entry['lineno']}"
 
 
 def main(argv: list[str] | None = None) -> int:

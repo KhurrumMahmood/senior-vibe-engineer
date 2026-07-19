@@ -8,6 +8,8 @@ For TypeScript v1, this format is intentionally honest about lexical limits:
 the `Unexplained regions` section includes any `export { ... }`, `export *`,
 or unresolved default export reported by `targets.json`. These entries are not
 annotation failures; they are evidence that module resolution was not claimed.
+Likewise, a TypeScript signature is a declared source fact, not an enforced or
+type-checked contract unless a future accepted outcome actually runs a compiler.
 
 ## Structure
 

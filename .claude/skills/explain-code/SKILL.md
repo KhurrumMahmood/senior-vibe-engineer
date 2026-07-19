@@ -259,7 +259,10 @@ required sections and writes the mandatory sidecars:
 ```
 
 The renderer never invents behavioral claims. It aggregates each scout's
-annotation and the inventory's unresolved export records. Structure:
+annotation and the inventory's unresolved export records. For the lexical
+TypeScript path, describe type signatures as source declarations only: no
+compiler ran, so never say the skill enforces, validates, or type-checks them.
+Structure:
 
 1. Target metadata (path, LOC, public symbol count, regenerated
    timestamp).
