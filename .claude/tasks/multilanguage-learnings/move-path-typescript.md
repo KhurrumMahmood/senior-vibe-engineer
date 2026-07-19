@@ -1,6 +1,7 @@
 # move-path TypeScript v1 learning report
 
-Revision: working tree on `codex/ts-move-path`, 2026-07-18 UTC
+Installed forward-tested revision: `a4e73fe`, 2026-07-19 UTC. The repair
+revision that incorporates the resulting findings is reported at handoff.
 
 ## Outcome and invariant
 
@@ -20,17 +21,22 @@ imports, and framework routing remain deferred.
 
 The existing Python/reference oracle already covered virtual-after-tree
 Markdown rewriting, HTML, backticks, exact text, residue scans, apply/check,
-and YAML plans. No reference-path behavior needed repair. It did, however,
-require PyYAML even for JSON input, which broke the copied-skill closure. The
-family-local loader now selects stdlib `json` for `.json` and says clearly that
-YAML needs optional PyYAML.
+and YAML plans. Two reference-path defects required repair. First, the loader
+required PyYAML even for JSON input, which broke copied-skill closure. Second,
+an in-root JSON plan included by `**/*.json` could rewrite its own `from`
+field during apply, corrupting the operation's authority input and making the
+post-apply check meaningless. JSON is now stdlib-only, YAML is explicitly
+optional, and the exact resolved plan file is always excluded from reference
+rewrites.
 
 The chosen tool is the existing family-local Python filesystem/path resolver
 plus a narrow static-import risk scan. No TypeScript compiler, parser,
 ts-morph, tree-sitter, resolver platform, or network dependency was added:
-the accepted result never rewrites imports. The import scan only recognizes
-ordinary one-line static `import`/`export ... from` forms well enough to expose
-a move-target risk; it is not presented as TypeScript module resolution.
+the accepted result never rewrites imports. The non-exhaustive import scan
+recognizes common single-line and multiline static `import`/`export ... from`
+forms well enough to expose a move-target risk. It never proposes a replacement
+specifier: extension, leading `./`, package spelling, and compiler-mode choices
+remain unknown without TypeScript module resolution.
 
 ## Fixture and execution evidence
 
@@ -48,6 +54,13 @@ a move-target risk; it is not presented as TypeScript module resolution.
 - Negative: a `.yml` plan without PyYAML fails with an explicit optional-mode
   message; `rewrite.code_imports: update` fails rather than pretending import
   rewriting is available.
+- Authority-input guard: an in-root `move-plan.json` matched by `**/*.json`
+  stays byte-identical through dry-run and apply; final check validates the
+  original move, and a second dry-run parses it and reports the expected
+  `missing_source` state instead of consuming a corrupted plan.
+- Import risk boundary: same-directory and moved-referrer cases expose target
+  identity but keep `expected_specifier: null` with remediation unknown; a
+  standard multiline `import { ... } from "./old"` is reported.
 - Copied install: the test copies only `move-path/`, invokes both executable
   scripts with `python -I -S` from an outside cwd, and uses a JSON plan. It
   passed without repository helpers, site packages, or network access.
@@ -59,7 +72,7 @@ Commands observed:
 ```text
 .venv/bin/python \
   -m pytest tests/test_move_path.py -q -k 'not standalone_typescript_fixture_typechecks_after_an_import_safe_move'
-# 14 passed, 1 deselected
+# 17 passed, 1 deselected
 
 .venv/bin/ruff check \
   .claude/skills/move-path/scripts/move_path.py tests/test_move_path.py
@@ -87,8 +100,25 @@ Failed: tsc --noEmit is required for the TypeScript native-typecheck acceptance 
 ```
 
 As a result, the full targeted test command is honestly incomplete here:
-`14 passed, 1 failed`. Re-run it in a host with an already-installed TypeScript
+`17 passed, 1 failed`. Re-run it in a host with an already-installed TypeScript
 compiler before accepting D4/D7.
+
+## Fresh installed forward evidence
+
+The fresh installed run at `/tmp/es-forward-move.3U1DIN` exercised committed
+revision `a4e73fe` through the copied skill under system `python3`, outside the
+source checkout. It moved `src/legacy.ts` to `src/workflow.ts`, updated
+`docs/guide.md` and `config.json`, left the source import in
+`src/consumer.ts` byte-for-byte as `./legacy`, and recorded the ignored import
+risk in both final reports. The host had no `tsc`, so no native typecheck was
+claimed or installed.
+
+That run also supplied the repair evidence: its report invented
+`expected_specifier: "workflow.ts"`. The repaired schema now preserves the
+resolved before/after target only, sets `expected_specifier` to `null`, and
+labels remediation unknown without TypeScript module resolution. The forward
+plan was under the normally excluded `.engineering/local/` tree, so the new
+in-root plan regression separately covers the self-rewrite failure.
 
 ## Boundaries, reuse, and translation
 
@@ -124,13 +154,11 @@ host Python 3.11+ interpreter. The smallest later UX improvement is an
 installer/router-visible JSON plan template that names the ignored-import
 report before users apply a move.
 
-Residual risk: static import records intentionally under-detect multiline
-imports, aliases, package imports, dynamic imports, and TypeScript
-configuration.
-They are warnings, not a safe move authorization. The native typecheck and
-fresh forward-test evidence are both pending: the former needs installed
-`tsc`; the latter is reserved for the root integrator because available agent
-slots were full.
+Residual risk: static import records intentionally under-detect unusual import
+syntax, aliases, package imports, dynamic imports, and TypeScript
+configuration. They are warnings, not a safe move authorization. Fresh
+installed forward evidence now exists; native typecheck remains pending until
+an environment provides `tsc`.
 
 Serial integrator proposals, intentionally not implemented in this isolated
 lane:

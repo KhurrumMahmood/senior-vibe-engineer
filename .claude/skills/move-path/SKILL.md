@@ -51,6 +51,9 @@ stdlib JSON plan as the guaranteed installed format. The script never rewrites
 TypeScript or TSX source imports, including relative imports whose target or
 referrer is moved; it emits those as `code_imports.ignored` risk records in
 the JSON report and under **Ignored TypeScript Imports** in the Markdown report.
+Treat remediation as unknown until a TypeScript module resolver proves the
+correct spelling. The advisory scanner covers common single-line and multiline
+static `import`/`export ... from` forms; it is not an exhaustive import inventory.
 
 Do not claim an import-safe module move. Python import rewrites, TypeScript
 path aliases, package exports, project references, barrel compatibility,

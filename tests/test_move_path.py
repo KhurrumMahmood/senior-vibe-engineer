@@ -463,7 +463,8 @@ def test_typescript_move_json_plan_rewrites_references_but_reports_ignored_impor
     assert any(
         item["file"] == "src/consumer.ts"
         and item["specifier"] == "./old"
-        and item["expected_specifier"] == "../lib/new.ts"
+        and item["expected_specifier"] is None
+        and item["remediation"] == "unknown_without_typescript_module_resolution"
         and item["target_before"] == "src/old.ts"
         and item["target_after"] == "lib/new.ts"
         for item in report["code_imports"]["ignored"]
@@ -471,7 +472,8 @@ def test_typescript_move_json_plan_rewrites_references_but_reports_ignored_impor
     assert any(
         item["file"] == "src/moved.ts"
         and item["specifier"] == "./stable"
-        and item["expected_specifier"] == "../src/stable.ts"
+        and item["expected_specifier"] is None
+        and item["remediation"] == "unknown_without_typescript_module_resolution"
         and item["target_before"] == "src/stable.ts"
         and item["target_after"] == "src/stable.ts"
         for item in report["code_imports"]["ignored"]
@@ -490,7 +492,7 @@ def test_typescript_move_json_plan_rewrites_references_but_reports_ignored_impor
     assert any(
         item["file"] == "src/consumer.ts"
         and item["specifier"] == "./old"
-        and item["expected_specifier"] == "../lib/new.ts"
+        and item["expected_specifier"] is None
         and item["target_before"] == "src/old.ts"
         and item["target_after"] == "lib/new.ts"
         for item in applied["code_imports"]["ignored"]
@@ -498,8 +500,129 @@ def test_typescript_move_json_plan_rewrites_references_but_reports_ignored_impor
     assert any(
         item["file"] == "src/moved.ts"
         and item["specifier"] == "./stable"
-        and item["expected_specifier"] == "../src/stable.ts"
+        and item["expected_specifier"] is None
         for item in applied["code_imports"]["ignored"]
+    )
+
+
+def test_in_root_json_plan_is_not_rewritten_by_its_own_reference_scope(tmp_path):
+    move_path = _load_move_path()
+    _write(tmp_path / "src" / "old.ts", "export const value = 1;\n")
+    _write(tmp_path / "docs" / "index.md", "[Source](../src/old.ts)\n")
+    _write_json(tmp_path / "config.json", {"entry": "src/old.ts"})
+    plan = tmp_path / "move-plan.json"
+    _write_json(
+        plan,
+        {
+            "version": 1,
+            "moves": [{"from": "src/old.ts", "to": "lib/new.ts"}],
+            "reference_scope": {"include": ["**/*.md", "**/*.json"]},
+            "rewrite": {
+                "markdown_links": "update",
+                "exact_text_paths": "update",
+                "code_imports": "ignore",
+            },
+        },
+    )
+    plan_before = plan.read_bytes()
+    report_dir = tmp_path / ".engineering" / "local" / "move-path"
+
+    dry_run = move_path.run_plan(
+        plan_path=plan,
+        project_root=tmp_path,
+        mode="dry-run",
+        report_dir=report_dir,
+    )
+    assert plan.read_bytes() == plan_before
+    assert not any(row["file_before"] == "move-plan.json" for row in dry_run["auto_rewrites"])
+
+    applied = move_path.run_plan(
+        plan_path=plan,
+        project_root=tmp_path,
+        mode="apply",
+        report_dir=report_dir,
+    )
+    assert plan.read_bytes() == plan_before
+    assert applied["mode"] == "check"
+    assert applied["blocked"] == []
+    assert applied["summary"]["post_broken_links"] == 0
+    assert (tmp_path / "lib" / "new.ts").is_file()
+    assert (tmp_path / "docs" / "index.md").read_text(encoding="utf-8") == "[Source](../lib/new.ts)\n"
+    assert json.loads((tmp_path / "config.json").read_text(encoding="utf-8"))["entry"] == "lib/new.ts"
+
+    repeated = move_path.run_plan(
+        plan_path=plan,
+        project_root=tmp_path,
+        mode="dry-run",
+        report_dir=report_dir,
+    )
+    assert plan.read_bytes() == plan_before
+    assert any(item["kind"] == "missing_source" and item["path"] == "src/old.ts" for item in repeated["blocked"])
+
+
+def test_ignored_import_risk_does_not_invent_a_module_specifier(tmp_path):
+    move_path = _load_move_path()
+    _write(tmp_path / "src" / "legacy.ts", "export const value = 1;\n")
+    _write(
+        tmp_path / "src" / "consumer.ts",
+        'import { value } from "./legacy";\nimport { packageValue } from "legacy";\n',
+    )
+    plan = tmp_path / "moves.json"
+    _write_json(
+        plan,
+        {
+            "moves": [{"from": "src/legacy.ts", "to": "src/workflow.ts"}],
+            "rewrite": {"code_imports": "ignore"},
+        },
+    )
+
+    report = move_path.run_plan(
+        plan_path=plan,
+        project_root=tmp_path,
+        mode="dry-run",
+        report_dir=tmp_path / "reports",
+    )
+
+    assert len(report["code_imports"]["ignored"]) == 1
+    risk = report["code_imports"]["ignored"][0]
+    assert risk["specifier"] == "./legacy"
+    assert risk["expected_specifier"] is None
+    assert risk["remediation"] == "unknown_without_typescript_module_resolution"
+    rendered = (tmp_path / "reports" / "report.md").read_text(encoding="utf-8")
+    assert "expected `workflow.ts`" not in rendered
+    assert "remediation unknown without TypeScript module resolution" in rendered
+
+
+def test_multiline_static_import_to_moved_typescript_file_is_reported(tmp_path):
+    move_path = _load_move_path()
+    _write(tmp_path / "src" / "old.ts", "export const first = 1;\nexport const second = 2;\n")
+    _write(
+        tmp_path / "src" / "consumer.ts",
+        'import {\n  first,\n  second,\n} from "./old";\nexport const total = first + second;\n',
+    )
+    plan = tmp_path / "moves.json"
+    _write_json(
+        plan,
+        {
+            "moves": [{"from": "src/old.ts", "to": "lib/new.ts"}],
+            "rewrite": {"code_imports": "ignore"},
+        },
+    )
+
+    report = move_path.run_plan(
+        plan_path=plan,
+        project_root=tmp_path,
+        mode="dry-run",
+        report_dir=tmp_path / "reports",
+    )
+
+    assert any(
+        item["file"] == "src/consumer.ts"
+        and item["lineno"] == 4
+        and item["specifier"] == "./old"
+        and item["target_before"] == "src/old.ts"
+        and item["target_after"] == "lib/new.ts"
+        for item in report["code_imports"]["ignored"]
     )
 
 

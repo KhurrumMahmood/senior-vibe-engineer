@@ -46,8 +46,8 @@ TS_IMPORT_RE = re.compile(
     r"""(?mx)
     ^[ \t]*
     (?:
-        import[ \t]+(?:type[ \t]+)?(?:(?!\n).*?[ \t]+from[ \t]+)?
-      | export[ \t]+(?:type[ \t]+)?(?:(?!\n).*?[ \t]+from[ \t]+)
+        (?:import|export)[ \t]+(?:type[ \t]+)?[^;\"']*?[ \t]+from[ \t]+
+      | import[ \t]*
     )
     (?P<quote>[\"'])(?P<specifier>[^\"'\\\n]+)(?P=quote)
     """
@@ -472,7 +472,7 @@ def resolve_typescript_import(
 
 
 def ignored_typescript_imports(root: Path, files: list[str], moves: list[MoveSpec]) -> list[dict]:
-    """Report local TS/TSX imports invalidated by moving their target or referrer."""
+    """Report local TS/TSX imports at risk when their target or referrer moves."""
     ignored: list[dict] = []
     for rel in files:
         if Path(rel).suffix not in TYPESCRIPT_SUFFIXES:
@@ -488,16 +488,22 @@ def ignored_typescript_imports(root: Path, files: list[str], moves: list[MoveSpe
                 continue
             after = after_path_for(before, moves)
             referrer_after = after_path_for(rel, moves)
-            expected_specifier = format_reference(before, after, referrer_after, specifier)
-            if expected_specifier == specifier:
+            if after == before and referrer_after == rel:
                 continue
+            changed_identity = []
+            if after != before:
+                changed_identity.append("target")
+            if referrer_after != rel:
+                changed_identity.append("referrer")
             ignored.append(
                 {
                     "file": rel,
                     "file_after": referrer_after,
                     "lineno": line_for_offset(text, match.start("specifier")),
                     "specifier": specifier,
-                    "expected_specifier": expected_specifier,
+                    "expected_specifier": None,
+                    "remediation": "unknown_without_typescript_module_resolution",
+                    "changed_identity": changed_identity,
                     "target_before": before,
                     "target_after": after,
                     "reason": "rewrite.code_imports is ignore; TypeScript source imports are not rewritten",
@@ -1088,8 +1094,8 @@ def render_markdown(payload: dict) -> str:
         for item in payload["code_imports"]["ignored"][:200]:
             out.append(
                 f"- `{item['file']}`:{item['lineno']} `{item['specifier']}`: "
-                f"expected `{item['expected_specifier']}` for `{item['target_before']}` -> "
-                f"`{item['target_after']}` ({item['reason']})"
+                f"`{item['target_before']}` -> `{item['target_after']}`; remediation unknown without "
+                f"TypeScript module resolution ({item['reason']})"
             )
     else:
         out.append("- No local TypeScript/TSX import is invalidated by a moved target or referrer.")
@@ -1112,7 +1118,7 @@ def write_report(report_dir: Path, payload: dict) -> None:
 def merge_ignored_code_imports(pre_apply: list[dict], post_apply: list[dict]) -> list[dict]:
     """Retain pre-move TS import risks when the final check has moved the referrer."""
     merged: list[dict] = []
-    seen: set[tuple[str, int, str, str, str, str]] = set()
+    seen: set[tuple[str, int, str, str | None, str, str]] = set()
     for item in [*pre_apply, *post_apply]:
         key = (
             item["file"],
@@ -1144,6 +1150,12 @@ def run_plan(
     moves: list[MoveSpec] = plan["_moves"]
     includes, excludes = plan_patterns(plan)
     files = iter_scope_files(root, includes, excludes)
+    try:
+        plan_rel = repo_rel(plan_path, root)
+    except ValueError:
+        plan_rel = None
+    if plan_rel is not None:
+        files = [rel for rel in files if rel != plan_rel]
     ignored_code_imports = ignored_typescript_imports(root, iter_typescript_source_files(root, excludes), moves)
     if mode == "check":
         blocked = validate_applied_moves(root, moves)
