@@ -1,0 +1,212 @@
+{
+  "batch": "validated-neutral-orchestration-typescript",
+  "revision": "d841441",
+  "family": [
+    "converge",
+    "harvest-learnings",
+    "organize-project-structure",
+    "orient",
+    "project-interview"
+  ],
+  "invariant": {
+    "portable_principle": "Post-phase routing, learning harvest, repository topology design, lifecycle orientation, and human-intent profiling can produce their complete core artifacts independently of the host application language.",
+    "python_or_framework_mechanism": "None in the core judgment. Some prescribed closeout steps call repository-owned Python helpers or shared doctrine that are not selected-skill install closure.",
+    "typescript_mechanism": "One locked TypeScript 5.9.3 host provides realistic code/tool paths, native typecheck/test commands, forged surfaces, and an immutable source boundary; no selected skill parses TypeScript.",
+    "explicit_non_goals": [
+      "TypeScript syntax, type, module-resolution, or framework analysis",
+      "Source mutation, move application, standard adoption, or next-step execution",
+      "A generic prompt executor, copied repository runtime, custom installer, or shared helper platform",
+      "Claims that absent effectiveness, move-path, discovery, or evidence-gate helpers ran"
+    ]
+  },
+  "reference_repairs": [
+    {
+      "issue": "No core skill prose or language reference behavior required repair.",
+      "repair": "None; this batch added validation evidence only.",
+      "evidence": "The stock install and output oracle pass without editing the five selected skill directories."
+    },
+    {
+      "issue": "Three selected workflows name optional repository helpers or shared doctrine absent from a selected-skill copy.",
+      "repair": "No broad infrastructure was built; final artifacts and this packet disclose the exact unavailable step and do not fabricate execution.",
+      "evidence": "The focused test asserts those paths are absent and checks each matching disclosure."
+    }
+  ],
+  "language_model": {
+    "syntax": [
+      "Ordinary .ts files are host evidence only; no syntax fact is inferred by the skills."
+    ],
+    "type_system": [
+      "TypeScript 5.9.3 strict no-emit typecheck validates the locked host before and after replay."
+    ],
+    "module_resolution": [
+      "NodeNext compilation validates host imports; no skill resolves the graph."
+    ],
+    "runtime": [
+      "Prompt-led SKILL/knowledge closure plus captured durable output oracles.",
+      "Node's native test runner and a host-local lint run through npm test."
+    ],
+    "framework": [
+      "None; package metadata does not trigger a framework claim."
+    ]
+  },
+  "tooling": {
+    "selected": "Pinned skills@1.5.19 --copy installation, locked npm dependencies, native TypeScript checks, and one pytest final-output oracle.",
+    "rejected_alternatives": {
+      "typescript_variants": "The five accepted core invariants do not consume language syntax or semantics.",
+      "generic_prompt_executor": "Captured judgment is not an executable runtime contract and no second consumer exists.",
+      "copied_repository_helpers": "Would hide the product's selected-skill closure gap and broaden this validation batch into infrastructure.",
+      "simulated_helper_transcripts": "Would violate the skills' artifact-truth and honest-failure rules."
+    },
+    "version_and_resolution": "package-lock.json pins TypeScript 5.9.3; npm ci runs offline. The stock installer is pinned as skills@1.5.19.",
+    "closure_mode": "One exact combined stock copy installs only the five selected prompt workflows. Local knowledge/scripts copy where owned; repository helpers, sibling _common doctrine, and unselected move-path remain absent and disclosed.",
+    "preflight_and_failure_codes": [
+      "npm ci --offline --ignore-scripts, npm run typecheck, and npm test must exit 0.",
+      "skills@1.5.19 add must exit 0 and install exactly the selected five directories.",
+      "Artifact oracles fail on missing fields, unearned claims, absent final files, or source hash drift."
+    ]
+  },
+  "outcome_contract": {
+    "inputs": [
+      "One locked TypeScript delivery-operations host",
+      "Five natural tasks with host facts and human intent but no expected result",
+      "Exactly five stock-copied selected skill directories"
+    ],
+    "structured_outputs": [
+      "reports/converge/scan-20260719-160000/verdict.json and verdict.md",
+      "reports/harvest/scan-20260719-160100/harvest.json and harvest.md",
+      "reports/organize-project-structure/scan-20260719-160200/topology-plan.md",
+      ".engineering/project-state.json",
+      "reports/project-interview/scan-20260719-160400/profile.yml, profile.md, open-questions.md, evidence.json, and closure disclosure"
+    ],
+    "must_fire": [
+      "Converge emits every fixed verdict field and one necessary next step.",
+      "Harvest translation filter records at least one stays-home item and tags every portable item.",
+      "Structure plan separates ideal/constrained topology, deterministic moves, and judgment.",
+      "Orient maps human facts onto exactly one value per independent axis.",
+      "Project interview records supplied intent and leaves unresolved topics open."
+    ],
+    "must_not_fire": [
+      "Any TypeScript application source mutation",
+      "Any implementation of the convergence next step, structure move, or harvested standard",
+      "Any inferred stakes without human facts",
+      "Any helper/doctrine execution claim for a path absent from the selected install",
+      "Any skill beyond the selected five in the installed root"
+    ],
+    "native_test_command": "npm ci --offline --ignore-scripts && npm run typecheck && npm test",
+    "native_guard_command": "node scripts/lint/no-inline-delivery-metric.mjs"
+  },
+  "evidence": {
+    "python_reference": [
+      "No Python-language invariant exists to port; the selected skill sources remained byte-identical.",
+      "Repository Python helpers are explicitly treated as optional host facilities, not copied runtime."
+    ],
+    "typescript": [
+      "tests/test_validated_neutral_typescript_orchestration.py runs native checks, exact stock install, five final-output oracles, and repeated src fingerprints.",
+      "The locked fixture contains realistic runtime, tooling, forged knowledge, structural ambiguity, and human-intent facts without requiring compiler parsing by a skill.",
+      "All application src bytes remain unchanged after install and every artifact replay."
+    ],
+    "commands_and_artifact_paths": [
+      "<repo>/.venv/bin/python -m pytest -q tests/test_validated_neutral_typescript_orchestration.py (1 passed in 17.80s)",
+      "<repo>/.venv/bin/ruff check tests/test_validated_neutral_typescript_orchestration.py (All checks passed!)",
+      "npx --yes skills@1.5.19 add <checkout> --skill converge --skill harvest-learnings --skill organize-project-structure --skill orient --skill project-interview --agent codex --copy -y",
+      "tests/fixtures/validated-neutral-typescript/orchestration/artifacts/**",
+      "Commit d841441 explicit-file pre-commit hooks passed"
+    ]
+  },
+  "false_positive_boundary": {
+    "known_false_positives": [],
+    "known_false_negatives": [
+      "Captured artifacts do not prove fresh-agent independent judgment.",
+      "Converge effectiveness logging, organize shared-doctrine/move execution, and project-interview discovery/evidence-gate execution remain unproved from selected install."
+    ],
+    "legitimate_similar_shapes": [
+      "A convergence phase can advance, park, branch, or discard; this host honestly requires repair because artifact evidence is weak.",
+      "A domain contract may stay home even when its ownership principle ports.",
+      "An orientation can be prototype or production; the selected rung follows supplied pilot reliance facts rather than source appearance.",
+      "An interview draft may be useful and human-answered without being applied to durable project doctrine."
+    ]
+  },
+  "generalized": [
+    "Prompt-led language-neutral outcomes can be proved by exact copied installation plus final-artifact oracles.",
+    "Artifact truth, provenance, translation tests, activation tags, lifecycle topology, and human-declared state do not require a host-language variant.",
+    "Natural-task fixtures and repeated source fingerprints expose useful outcome and no-mutation boundaries."
+  ],
+  "did_not_generalize": [
+    "Native host commands and concrete framework/tool discovery constraints",
+    "Repository-owned effectiveness, project discovery, evidence gate, move-path, and sibling doctrine availability",
+    "Fresh-agent interpretation of the natural prompt",
+    "Any TypeScript parser, compiler-fact, Node framework, or runtime implementation claim"
+  ],
+  "reuse_decision": {
+    "shared_candidate": "Generic prompt-only executor or captured-artifact materializer.",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": [
+      "The reusable result is a validation procedure, not runtime code.",
+      "Each skill has a different final artifact contract and the selected directories contain no shared executable path."
+    ],
+    "owner": "Serial integrator only after a measured installed replay demonstrates a repeated runtime need."
+  },
+  "translation_prerequisites": {
+    "rust": {
+      "native_tool": "cargo test or cargo check on a locked crate",
+      "idiomatic_representation": "Rust source/tool roots and forged project artifacts referenced by the same prompt-led outcomes",
+      "required_fixtures": ["locked crate", "five natural tasks", "final-output oracles", "source fingerprint"],
+      "semantic_gaps": ["fresh-agent replay", "host helper/doctrine closure"]
+    },
+    "go": {
+      "native_tool": "go test ./...",
+      "idiomatic_representation": "Go module roots and native commands named in structure/profile evidence",
+      "required_fixtures": ["locked Go module", "five final-output contracts", "source fingerprint"],
+      "semantic_gaps": ["fresh-agent replay", "host helper/doctrine closure"]
+    },
+    "java_or_kotlin": {
+      "native_tool": "the host's pinned Gradle or Maven compile/test task",
+      "idiomatic_representation": "source sets and build roots preserved by the constrained topology",
+      "required_fixtures": ["locked JVM project", "five final-output contracts", "source fingerprint"],
+      "semantic_gaps": ["build-tool constraint review", "fresh-agent replay", "host helper/doctrine closure"]
+    },
+    "csharp": {
+      "native_tool": "dotnet test",
+      "idiomatic_representation": "solution/project roots and native state/profile evidence",
+      "required_fixtures": ["locked solution", "five final-output contracts", "source fingerprint"],
+      "semantic_gaps": ["fresh-agent replay", "host helper/doctrine closure"]
+    },
+    "ruby": {
+      "native_tool": "the locked bundle exec rake test command",
+      "idiomatic_representation": "Ruby application/library and Bundler roots preserved in topology constraints",
+      "required_fixtures": ["locked Bundler host", "five final-output contracts", "source fingerprint"],
+      "semantic_gaps": ["fresh-agent replay", "host helper/doctrine closure"]
+    }
+  },
+  "user_experience": {
+    "install_steps": [
+      "Run one pinned stock copy command naming exactly the five skills.",
+      "Give the selected installed skill a natural host task and review its durable result.",
+      "Treat named repository helper/doctrine steps as unavailable unless the host actually supplies them."
+    ],
+    "wall_time_seconds": 17.8,
+    "agent_confusions": [
+      "A selected prompt skill may still name root helpers or sibling doctrine; stock copying SKILL.md does not make those facilities appear.",
+      "A valid final artifact does not justify fabricating an effectiveness, move-path, discovery, or evidence-gate transcript."
+    ],
+    "repeated_work": [
+      "One host and one exact install are reused, while tasks and artifact contracts stay skill-specific."
+    ],
+    "smallest_later_improvement": "Run one independent fresh-user replay and use observed confusion to choose at most one focused closure repair."
+  },
+  "residual_risks": [
+    "D6 independent fresh-user replay is pending.",
+    "Captured output oracles validate shape and host grounding but do not execute model judgment.",
+    "Converge effectiveness telemetry is unavailable from selected install.",
+    "Organize-project-structure cannot load shared doctrine or execute move-path from selected install.",
+    "Project-interview cannot run repository discovery or its prescribed evidence gate from selected install."
+  ],
+  "next_decision": {
+    "recommendation": "Mark the five core outcomes validated-neutral with explicit installed-closure disclosures, then run the deferred fresh-user replay before considering UX repairs.",
+    "rationale": "The final outcomes are complete, host-language independent, stock-selected installation and source immutability are proven, and missing optional facilities are visible rather than simulated.",
+    "blockers": [
+      "D6 fresh non-context replay remains open for independent judgment evidence."
+    ]
+  }
+}
