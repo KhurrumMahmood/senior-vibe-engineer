@@ -1,7 +1,7 @@
 ---
 name: find-omnibus
-description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Walks the target with per-language symbol-extraction adapters (exact AST for Python; column-0 declaration heuristic for JavaScript/TypeScript — ADR 0032), groups top-level symbols by head-noun cluster, counts SRP "and"s, ranks by responsibility count plus security/side-effect sensitivity and LOC, fans out scout sub-agents that apply the refactor-subsystem §1.2.5 facet-vs-domain rule, and produces a decomposition-candidates report. Never edits code — hands off to `/refactor-subsystem <spec-id>` in decomposition mode, or escalates to a substrate ADR when the target layer cannot absorb a decomposition (ADR 0032 rule 3).
-argument-hint: "--target <directory> [--language python|javascript]"
+description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans, a legacy JavaScript heuristic, and a bundled TypeScript Compiler API parser for ESM `.ts`/`.tsx` top-level functions, typed arrows, and classes; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.
+argument-hint: "--target <directory> [--language python|javascript|typescript]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -13,7 +13,10 @@ best_for: |
   diagnostics, persistence, raw SQL, import/export, task dispatch, or
   filesystem writes; produces decomposition candidates that hand off
   to /refactor-subsystem. Covers Python (exact) and JavaScript/
-  TypeScript (heuristic; findings carry analyzer provenance).
+  TypeScript (Compiler API syntax spans for ESM top-level functions, typed
+  arrows, and classes; findings carry analyzer provenance). TypeScript needs
+  Node and the host's project-local `typescript` package, but no tsconfig or
+  framework.
 not_for: |
   Single-responsibility files that are merely large (cohesive >500 LOC
   is fine — avoid splitting for size alone). Layer violations
@@ -21,9 +24,9 @@ not_for: |
   execution (use /refactor-subsystem in decomposition mode).
   Languages without an extraction adapter yet — check
   /find-perimeter-gaps for what is and isn't covered.
-language: python
+language: any
 framework: any
-scans: [python]
+scans: [python, typescript]
 scout_model: cheap
 ---
 
@@ -63,6 +66,10 @@ Write toward these gates from Stage 0.
 - **Project root:** this worktree's root.
 - **Python:** `.venv/bin/python` (detectors are stdlib-only, but this
   repo runs them through the venv for consistent tooling).
+- **TypeScript v1:** Node plus `typescript` resolvable from the target
+  project's `package.json`. The bundled parser needs syntax spans only; it
+  deliberately does not read `tsconfig`, resolve modules, inspect types, or
+  infer framework behavior. Missing prerequisites fail Stage 1 clearly.
 - **Project-specific defaults** (generic-verb strip list, skip
   patterns, directory-package precedent, known false-positive
   shapes): in `knowledge/`.
@@ -208,14 +215,11 @@ interactively and the user is watching, or (b) a candidate is
   --scan-id "scan-${TS}" \
   --target <target>
 
-# Effectiveness log — one line per run, feeds reports/_meta/dashboard.md.
-.venv/bin/python scripts/log_effectiveness.py \
-  --skill find-omnibus \
-  --scan-id "scan-${TS}" \
-  --target <target> \
-  --findings-total "$(.venv/bin/python -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("summary",{}).get("findings_total", len(d.get("findings", []))))' "${REPORT_DIR}/findings.json")" \
-  --buckets "$(.venv/bin/python -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])).get("summary",{}).get("buckets", {})))' "${REPORT_DIR}/findings.json")"
 ```
+
+The four scripts in this skill are self-contained; a host may record an
+effectiveness event separately, but that optional repository concern is not
+part of the selected-skill runtime.
 
 ### Stage 5 — Summarize
 
@@ -292,7 +296,8 @@ recommendation and no finding for the cohesive helper.
 .claude/skills/find-omnibus/
 ├── SKILL.md                  # this file — orchestrator
 ├── scripts/
-│   ├── detect.py             # Stage 1 — AST cluster extraction
+│   ├── detect.py             # Stage 1 — Python/JS/TS cluster extraction
+│   ├── detect_typescript_symbols.mjs  # bundled Compiler API TS/TSX spans
 │   ├── collapse.py           # Stage 2 — cap to top-N, assign ids
 │   └── report.py             # Stage 4 — render report.md + findings.json
 ├── agents/

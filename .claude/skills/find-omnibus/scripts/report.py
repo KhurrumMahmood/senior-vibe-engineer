@@ -33,13 +33,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import time
 from collections import Counter
 from pathlib import Path
 from typing import Any
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
-from skill_use import log_event  # noqa: E402
 
 
 BUCKET_ORDER: tuple[str, ...] = (
@@ -305,7 +301,6 @@ def render_report(
 
 
 def main(argv: list[str] | None = None) -> int:
-    start = time.monotonic()
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--candidates", required=True, type=Path,
                    help="candidates.jsonl from collapse.py")
@@ -334,12 +329,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     print(f"[report] wrote {args.output_md}", file=sys.stderr)
     print(f"[report] wrote {args.output_json}", file=sys.stderr)
-    log_event(
-        skill="find-omnibus",
-        target=args.target or str(args.candidates),
-        artifact=str(args.output_md),
-        elapsed_s=time.monotonic() - start,
-    )
     return 0
 
 
