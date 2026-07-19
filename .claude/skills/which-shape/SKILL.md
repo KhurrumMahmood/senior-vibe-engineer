@@ -87,8 +87,9 @@ The recommendation includes:
 - short loop sequence;
 - stop/reassess condition;
 - alternatives.
-- a pinned stock install command plus canonical definition/tooling locations
-  when the first next step names a skill that is not one of the routers.
+- a pinned stock install command for the first skill plus any companions
+  declared by the shape, with canonical definition/tooling locations, when
+  the first next step names a skill that is not one of the routers.
 
 If the script reports `confidence: low` — or any rationale line reads
 "fallback shape candidate" — do not present a single shape. Present the

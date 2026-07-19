@@ -239,6 +239,15 @@ def validate_shapes_payload(payload: dict[str, Any]) -> list[str]:
             _validate_boost(str(sid or index), shape["boost"], simple_ids, errors)
         if "context_exempt" in shape and not isinstance(shape["context_exempt"], bool):
             errors.append(f"{sid or index}: context_exempt must be a boolean")
+        install_with = shape.get("install_with", [])
+        if (
+            not isinstance(install_with, list)
+            or any(not isinstance(item, str) or not item for item in install_with)
+            or len(install_with) != len(set(install_with))
+        ):
+            errors.append(
+                f"{sid or index}: install_with must be a unique list of non-empty skill names"
+            )
         cues = shape.get("cues")
         if not isinstance(cues, dict):
             errors.append(f"{sid or index}: cues must be a mapping")
@@ -511,6 +520,8 @@ def route(
             winner["first_next"], winner["sequence"], project_root, skills_dir
         ),
     }
+    if winner.get("install_with"):
+        recommendation["install_with"] = list(winner["install_with"])
     alternatives = [
         {
             "shape": shape["id"],
@@ -534,12 +545,16 @@ def _skill_handoff(result: dict[str, Any], *, source: str, version: str, agent: 
     if match is None:
         return None
     skill = match.group(1)
+    skills = [skill, *rec.get("install_with", [])]
     command = [
         "npx", "--yes", f"skills@{version}", "add", source,
-        "--skill", skill, "--agent", agent, "--copy", "-y",
     ]
+    for selected_skill in skills:
+        command.extend(["--skill", selected_skill])
+    command.extend(["--agent", agent, "--copy", "-y"])
     return {
         "skill": skill,
+        "skills": skills,
         "source": source,
         "skills_cli_version": version,
         "agent": agent,

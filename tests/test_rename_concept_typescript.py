@@ -9,6 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILL_ROOT = REPO_ROOT / ".claude" / "skills" / "rename-concept"
@@ -341,7 +343,10 @@ def test_coupled_scanner_uses_project_relative_exclusions_and_never_follows_esca
     assert {record["file"] for record in _records(contained_output)} == {"contained-tree/legacy.ts"}
 
 
-def test_fresh_stock_agents_install_runs_only_documented_commands_on_clean_ts_host(tmp_path: Path) -> None:
+@pytest.mark.parametrize("router_name", ["which-skill", "which-shape"])
+def test_fresh_stock_agents_install_runs_only_documented_commands_on_clean_ts_host(
+    tmp_path: Path, router_name: str
+) -> None:
     host = _make_host(tmp_path)
     (host / "src" / "transition.ts").write_text(
         "export const canonicalStatus = 'canonical status';\n", encoding="utf-8"
@@ -358,21 +363,34 @@ def test_fresh_stock_agents_install_runs_only_documented_commands_on_clean_ts_ho
         for path in (host / "src").glob("*")
     }
 
-    router = tmp_path / "which-skill"
-    shutil.copytree(REPO_ROOT / ".claude" / "skills" / "which-skill", router)
-    routed = _run(
-        router / "scripts" / "match.py",
-        "use rename-concept to assess this TypeScript rename",
+    router = tmp_path / router_name
+    shutil.copytree(REPO_ROOT / ".claude" / "skills" / router_name, router)
+    task = (
+        "use rename-concept to assess this TypeScript rename"
+        if router_name == "which-skill"
+        else "rename the domain concept across the glossary and all TypeScript surfaces"
+    )
+    router_args = [
+        task,
         "--project-root",
         str(host),
         "--source",
         str(REPO_ROOT),
         "--json",
+    ]
+    if router_name == "which-shape":
+        router_args.append("--skip-log")
+    routed = _run(
+        router / "scripts" / ("match.py" if router_name == "which-skill" else "route.py"),
+        *router_args,
         cwd=host,
     )
     assert routed.returncode == 0, routed.stdout + routed.stderr
     routing = json.loads(routed.stdout)
-    assert routing["recommendation"] == "rename-concept"
+    if router_name == "which-skill":
+        assert routing["recommendation"] == "rename-concept"
+    else:
+        assert routing["recommendation"]["shape"] == "concept-rename"
     assert routing["install"]["skills"] == [
         "rename-concept",
         "find-concept-divergence",

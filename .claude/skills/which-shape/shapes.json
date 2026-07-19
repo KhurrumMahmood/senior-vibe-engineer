@@ -198,6 +198,9 @@
       "title": "Concept Rename",
       "summary": "Drive a glossary-worthy domain-concept rename to completion across every surface.",
       "first_next": "/rename-concept",
+      "install_with": [
+        "find-concept-divergence"
+      ],
       "sequence": [
         "/rename-concept <old> <new> \u2014 assess the scope-gate + two-band completeness gate",
         "record the rename in the glossary (concepts.yaml superseded_by + the canonical concept's avoid: block)",
