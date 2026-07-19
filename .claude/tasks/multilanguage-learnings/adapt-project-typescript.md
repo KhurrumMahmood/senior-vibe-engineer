@@ -269,11 +269,12 @@ must decide whether it should delegate to or be replaced by this accepted
 family-local closure without changing the frozen ownership boundary. Source
 root candidates are intentionally limited and can miss unconventional
 monorepo layouts. `adapter.yml` is JSON-compatible YAML rather than
-human-styled YAML. The review portion of D8 remains pending serial-integrator
-acceptance. The family-local path boundaries are now covered for timestamps,
+human-styled YAML. The family-local path boundaries are now covered for timestamps,
 artifact paths, the `latest` link, all four evidence artifacts, and external
 source symlinks.
 
-Recommendation: accept D1–D7 evidence, review this packet for D8, then keep
-TypeScript discovery family-local unless a concrete second selected skill
-needs the identical contract.
+Independent code re-review: **PASS**. No lane-local blockers remain.
+
+Recommendation: accept D1–D8 evidence, then keep TypeScript discovery
+family-local unless a concrete second selected skill needs the identical
+contract.
