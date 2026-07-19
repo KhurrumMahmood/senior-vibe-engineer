@@ -63,6 +63,15 @@ syntax exits 2. A forged noqa on that first-party receiver remains actionable;
 the only suppressed literal has semantic receiver type `VendorJobPayload` and
 a non-empty reason.
 
+A final parenthesis regression then failed before implementation with six of
+eight detector operations and seven of nine staged-guard hits. The smallest
+repair unwraps only `ParenthesizedExpression` at the four already-supported
+boundaries: state operands, direct `const` alias initializers, string literals,
+and terminal chained-assignment expressions. The parenthesized alias and
+`primary.state = (backup.state = "queued")` now preserve the same counts and
+both assignment targets. Type assertions, non-null expressions, `satisfies`,
+and general wrapper/dataflow analysis were not added without a proved need.
+
 Repair validation:
 
     10 passed — combined B2T/B2P targeted outcome suite
@@ -146,7 +155,8 @@ host-prerequisite probe printed by the installed skill handoff.
 
 The current guard intentionally protects only closed literal-union/enum
 property receivers and one-hop local `const` aliases initialized directly
-from such a property. Alias propagation, dynamic/computed access, arbitrary serializers,
-and framework ORM fields remain out of scope. Do not extract a shared
+from such a property; parentheses are transparent on the supported path. Alias
+propagation, other assertion wrappers, dynamic/computed access, arbitrary
+serializers, and framework ORM fields remain out of scope. Do not extract a shared
 TypeScript analysis layer until another accepted family proves the identical
 contract.

@@ -74,12 +74,20 @@ function loadCompiler(projectRoot, tsconfigPath) {
   return { ts, options: { ...parsed.options, jsx: parsed.options.jsx ?? ts.JsxEmit.Preserve } };
 }
 
+function unwrapParentheses(node, ts) {
+  let current = node;
+  while (current && ts.isParenthesizedExpression(current)) current = current.expression;
+  return current;
+}
+
 function literal(node, ts) {
-  return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) ? node.text : null;
+  const current = unwrapParentheses(node, ts);
+  return ts.isStringLiteral(current) || ts.isNoSubstitutionTemplateLiteral(current) ? current.text : null;
 }
 
 function stateProperty(node, ts) {
-  return ts.isPropertyAccessExpression(node) && STATE_FIELDS.has(node.name.text) ? node : null;
+  const current = unwrapParentheses(node, ts);
+  return ts.isPropertyAccessExpression(current) && STATE_FIELDS.has(current.name.text) ? current : null;
 }
 
 function typeName(type) {
@@ -124,13 +132,14 @@ function stateOperand(node, aliases, checker, ts, semantic) {
 }
 
 function terminalAssignedLiteral(node, ts) {
-  const direct = literal(node, ts);
+  const current = unwrapParentheses(node, ts);
+  const direct = literal(current, ts);
   if (direct !== null) return direct;
-  if (ts.isBinaryExpression(node) && [
+  if (ts.isBinaryExpression(current) && [
     ts.SyntaxKind.EqualsToken,
     ts.SyntaxKind.QuestionQuestionEqualsToken,
-  ].includes(node.operatorToken.kind)) {
-    return terminalAssignedLiteral(node.right, ts);
+  ].includes(current.operatorToken.kind)) {
+    return terminalAssignedLiteral(current.right, ts);
   }
   return null;
 }

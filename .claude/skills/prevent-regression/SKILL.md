@@ -102,7 +102,8 @@ family-local Compiler API guard. This branch supports only first-party bare
 string assignments and comparisons on a closed state/status/phase receiver:
 direct and reversed comparisons, one-hop local `const` aliases initialized
 directly from the property, plain and `??=` assignments, and every target in a chained
-assignment.
+assignment. Parentheses are transparent around the covered state operands,
+alias initializers, literals, and assignment expressions.
 It requires the host's pinned typescript package and tsconfig; missing or
 incompatible prerequisites exit 2 clearly. It does not create a general
 TypeScript lint generator, root lint wiring, or an ORM-aware rule.
@@ -130,7 +131,8 @@ noqa comment suppresses only the matched line when the Compiler API resolves
 its receiver to an explicit `Vendor*Payload|Request|Response|Event|Message|Wire`
 type. A vendor-looking filename, nearby text, or forged comment on a
 first-party receiver cannot suppress a finding. Computed properties and
-general alias/dataflow propagation remain out of scope. The serial
+other assertion wrappers, plus general alias/dataflow propagation, remain out
+of scope. The serial
 integrator, not this skill, owns applying host-wiring.diff to a global lint
 runner or hook.
 

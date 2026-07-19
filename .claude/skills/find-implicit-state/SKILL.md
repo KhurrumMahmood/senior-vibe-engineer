@@ -68,7 +68,9 @@ comparisons, one-hop local `const` aliases initialized directly from the
 property, plain and `??=` assignments, and every property target in a chained
 assignment. Vendor attribution comes from an explicit semantic receiver type
 named `Vendor*Payload|Request|Response|Event|Message|Wire`; filenames and
-nearby text never establish a vendor boundary. Computed properties and
+nearby text never establish a vendor boundary. Parentheses are transparent
+around state operands, direct alias initializers, literals, and chained
+assignment expressions. Computed properties, other assertion wrappers, and
 general dataflow remain out of scope. Invalid TypeScript exits 2.
 
 **Host prerequisites:** the target project owns a compatible typescript package

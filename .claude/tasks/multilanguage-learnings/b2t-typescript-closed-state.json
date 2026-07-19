@@ -1,6 +1,6 @@
 {
   "batch": "B2T",
-  "revision": "implementation 7db2f45d90ab034d98e56ecbe86604e4d019e9a0; adversarial repair is the commit containing this packet (hash reported in handoff)",
+  "revision": "implementation 7db2f45d90ab034d98e56ecbe86604e4d019e9a0; semantic repair 767a5451546987619c91cb396a0a5d41a4b364e9; parenthesis repair is the commit containing this packet (hash reported in handoff)",
   "family": [
     "find-implicit-state",
     "extract-enum",
@@ -27,6 +27,7 @@
       "TypeScript and TSX property assignment/comparison",
       "direct one-hop const property alias comparisons",
       "nullish and chained assignments",
+      "transparent parentheses on covered operands and assignment expressions",
       "as const runtime value object",
       "derived indexed-access union",
       "reasoned // noqa on a semantically explicit vendor receiver"
@@ -78,8 +79,10 @@
       "bare assignment",
       "nullish assignment",
       "every target in a chained assignment",
+      "parenthesized chained assignment",
       "direct comparison",
       "direct one-hop const alias comparison",
+      "parenthesized direct const alias initializer",
       "reversed comparison",
       "TSX comparison",
       "first-party receiver in a vendor-named file despite a forged noqa"
@@ -101,6 +104,7 @@
     "typescript": [
       "Red: tests/test_b2t_typescript_closed_state.py failed because detect_typescript_state.mjs did not exist.",
       "Repair red: the expanded outcome expected 8 first-party operations but the old detector returned 4.",
+      "Parenthesis repair red: the detector returned 6 of 8 operations and the generated guard returned 7 of 9 hits.",
       "Green: tests/test_b2t_typescript_closed_state.py: 2 passed.",
       "Combined B2T/B2P targeted outcome suite: 10 passed; skill meta/compliance tests: 5 passed; skill_comply harness: OVERALL PASS.",
       "Ruff, five Node syntax checks, learning JSON parsing, and git diff check passed.",
@@ -127,6 +131,7 @@
     ],
     "known_false_negatives": [
       "Alias propagation beyond a direct one-hop local const initializer is out of scope.",
+      "Type assertions, non-null expressions, satisfies expressions, and other wrappers are not transparent without a proved fixture need.",
       "Dynamic/computed property access and arbitrary serialization layers are out of scope."
     ],
     "legitimate_similar_shapes": [
@@ -245,6 +250,7 @@
   "residual_risks": [
     "Only literal-union/enum property receivers are protected.",
     "Only a direct one-hop local const alias is tracked; general dataflow is intentionally excluded.",
+    "Only ParenthesizedExpression is an explicitly transparent wrapper.",
     "No TypeScript ORM or serializer semantics are covered."
   ],
   "next_decision": {
