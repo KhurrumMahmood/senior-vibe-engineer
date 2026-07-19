@@ -1,6 +1,6 @@
 {
   "batch": "validated-neutral-orchestration-typescript",
-  "revision": "d841441",
+  "revision": "d841441 validation plus a92d996 project-interview installed closure",
   "family": [
     "converge",
     "harvest-learnings",
@@ -10,25 +10,25 @@
   ],
   "invariant": {
     "portable_principle": "Post-phase routing, learning harvest, repository topology design, lifecycle orientation, and human-intent profiling can produce their complete core artifacts independently of the host application language.",
-    "python_or_framework_mechanism": "None in the core judgment. Some prescribed closeout steps call repository-owned Python helpers or shared doctrine that are not selected-skill install closure.",
+    "python_or_framework_mechanism": "None in the core judgment. Project-interview now bundles focused stdlib discovery/apply and evidence helpers; converge effectiveness logging and organize structure doctrine/move execution remain outside selected-skill closure.",
     "typescript_mechanism": "One locked TypeScript 5.9.3 host provides realistic code/tool paths, native typecheck/test commands, forged surfaces, and an immutable source boundary; no selected skill parses TypeScript.",
     "explicit_non_goals": [
       "TypeScript syntax, type, module-resolution, or framework analysis",
       "Source mutation, move application, standard adoption, or next-step execution",
       "A generic prompt executor, copied repository runtime, custom installer, or shared helper platform",
-      "Claims that absent effectiveness, move-path, discovery, or evidence-gate helpers ran"
+      "Claims that the still-absent effectiveness logger, move-path skill, or shared structure doctrine ran"
     ]
   },
   "reference_repairs": [
     {
-      "issue": "No core skill prose or language reference behavior required repair.",
-      "repair": "None; this batch added validation evidence only.",
-      "evidence": "The stock install and output oracle pass without editing the five selected skill directories."
+      "issue": "The first independent D6 project-interview replay produced the right draft but failed because its documented root project_adapt and evidence_gate helpers were absent from selected-skill installation.",
+      "repair": "Bundle focused stdlib draft/apply and fixed evidence-gate helpers inside project-interview, resolve them through SKILL_DIR, and keep human approval as an explicit edit after visible answers.",
+      "evidence": "Revision a92d996 exact stock replay creates an unapproved TypeScript draft, refuses premature apply, proves evidence red at 2/3 and green at 3/3, and preserves source hashes."
     },
     {
-      "issue": "Three selected workflows name optional repository helpers or shared doctrine absent from a selected-skill copy.",
-      "repair": "No broad infrastructure was built; final artifacts and this packet disclose the exact unavailable step and do not fabricate execution.",
-      "evidence": "The focused test asserts those paths are absent and checks each matching disclosure."
+      "issue": "Converge and organize-project-structure still name optional repository helpers or shared doctrine absent from a selected-skill copy.",
+      "repair": "No unrelated infrastructure was built; their final artifacts and this packet continue to disclose the exact unavailable steps.",
+      "evidence": "The focused test asserts those unrelated paths remain absent while project-interview's two local scripts are installed."
     }
   ],
   "language_model": {
@@ -43,6 +43,7 @@
     ],
     "runtime": [
       "Prompt-led SKILL/knowledge closure plus captured durable output oracles.",
+      "Project-interview uses two isolated stdlib skill-local Python helpers for objective draft/apply and the fixed evidence gate.",
       "Node's native test runner and a host-local lint run through npm test."
     ],
     "framework": [
@@ -54,14 +55,15 @@
     "rejected_alternatives": {
       "typescript_variants": "The five accepted core invariants do not consume language syntax or semantics.",
       "generic_prompt_executor": "Captured judgment is not an executable runtime contract and no second consumer exists.",
-      "copied_repository_helpers": "Would hide the product's selected-skill closure gap and broaden this validation batch into infrastructure.",
+      "copied_repository_helpers": "Root helpers were rejected; only the required project-interview behavior was implemented in focused skill-local stdlib scripts.",
       "simulated_helper_transcripts": "Would violate the skills' artifact-truth and honest-failure rules."
     },
     "version_and_resolution": "package-lock.json pins TypeScript 5.9.3; npm ci runs offline. The stock installer is pinned as skills@1.5.19.",
-    "closure_mode": "One exact combined stock copy installs only the five selected prompt workflows. Local knowledge/scripts copy where owned; repository helpers, sibling _common doctrine, and unselected move-path remain absent and disclosed.",
+    "closure_mode": "One exact combined stock copy installs only the five selected workflows. Project-interview resolves its own draft/apply and evidence helpers from SKILL_DIR; repository scripts, sibling _common doctrine, and unselected move-path remain absent.",
     "preflight_and_failure_codes": [
       "npm ci --offline --ignore-scripts, npm run typecheck, and npm test must exit 0.",
       "skills@1.5.19 add must exit 0 and install exactly the selected five directories.",
+      "Project-interview apply exits 1 while user_approved is not true; its evidence gate exits 1 on missing shapes and 0 only at 3/3.",
       "Artifact oracles fail on missing fields, unearned claims, absent final files, or source hash drift."
     ]
   },
@@ -83,13 +85,13 @@
       "Harvest translation filter records at least one stays-home item and tags every portable item.",
       "Structure plan separates ideal/constrained topology, deterministic moves, and judgment.",
       "Orient maps human facts onto exactly one value per independent axis.",
-      "Project interview records supplied intent and leaves unresolved topics open."
+      "Project interview records supplied intent, leaves unresolved topics open, and passes its installed 3/3 evidence gate."
     ],
     "must_not_fire": [
       "Any TypeScript application source mutation",
       "Any implementation of the convergence next step, structure move, or harvested standard",
       "Any inferred stakes without human facts",
-      "Any helper/doctrine execution claim for a path absent from the selected install",
+      "Any execution claim for an unavailable helper or doctrine path",
       "Any skill beyond the selected five in the installed root"
     ],
     "native_test_command": "npm ci --offline --ignore-scripts && npm run typecheck && npm test",
@@ -101,23 +103,24 @@
       "Repository Python helpers are explicitly treated as optional host facilities, not copied runtime."
     ],
     "typescript": [
-      "tests/test_validated_neutral_typescript_orchestration.py runs native checks, exact stock install, five final-output oracles, and repeated src fingerprints.",
+      "tests/test_validated_neutral_typescript_orchestration.py runs native checks, exact stock install, installed project-interview red/green helper execution, five final-output oracles, and repeated src fingerprints.",
       "The locked fixture contains realistic runtime, tooling, forged knowledge, structural ambiguity, and human-intent facts without requiring compiler parsing by a skill.",
       "All application src bytes remain unchanged after install and every artifact replay."
     ],
     "commands_and_artifact_paths": [
-      "<repo>/.venv/bin/python -m pytest -q tests/test_validated_neutral_typescript_orchestration.py (1 passed in 17.80s)",
+      "<repo>/.venv/bin/python -m pytest -q tests/test_validated_neutral_typescript_orchestration.py (1 passed in 5.53s at a92d996)",
+      "<repo>/.venv/bin/python -m pytest -q tests/test_validated_neutral_typescript_orchestration.py tests/test_project_adapt.py (10 passed in 4.60s)",
       "<repo>/.venv/bin/ruff check tests/test_validated_neutral_typescript_orchestration.py (All checks passed!)",
       "npx --yes skills@1.5.19 add <checkout> --skill converge --skill harvest-learnings --skill organize-project-structure --skill orient --skill project-interview --agent codex --copy -y",
       "tests/fixtures/validated-neutral-typescript/orchestration/artifacts/**",
-      "Commit d841441 explicit-file pre-commit hooks passed"
+      "Commits d841441 and a92d996 explicit-file pre-commit hooks passed"
     ]
   },
   "false_positive_boundary": {
     "known_false_positives": [],
     "known_false_negatives": [
-      "Captured artifacts do not prove fresh-agent independent judgment.",
-      "Converge effectiveness logging, organize shared-doctrine/move execution, and project-interview discovery/evidence-gate execution remain unproved from selected install."
+      "The repaired helpers have not yet received an independent fresh-agent D6 rerun.",
+      "Converge effectiveness logging and organize shared-doctrine/move execution remain unproved from selected install."
     ],
     "legitimate_similar_shapes": [
       "A convergence phase can advance, park, branch, or discard; this host honestly requires repair because artifact evidence is weak.",
@@ -133,7 +136,8 @@
   ],
   "did_not_generalize": [
     "Native host commands and concrete framework/tool discovery constraints",
-    "Repository-owned effectiveness, project discovery, evidence gate, move-path, and sibling doctrine availability",
+    "Repository-owned effectiveness logging, move-path, and sibling structure-doctrine availability",
+    "Language-specific repo-discovery conventions beyond the focused objective facts emitted by project-interview",
     "Fresh-agent interpretation of the natural prompt",
     "Any TypeScript parser, compiler-fact, Node framework, or runtime implementation claim"
   ],
@@ -152,61 +156,60 @@
       "native_tool": "cargo test or cargo check on a locked crate",
       "idiomatic_representation": "Rust source/tool roots and forged project artifacts referenced by the same prompt-led outcomes",
       "required_fixtures": ["locked crate", "five natural tasks", "final-output oracles", "source fingerprint"],
-      "semantic_gaps": ["fresh-agent replay", "host helper/doctrine closure"]
+      "semantic_gaps": ["fresh-agent replay", "remaining converge/organize closure"]
     },
     "go": {
       "native_tool": "go test ./...",
       "idiomatic_representation": "Go module roots and native commands named in structure/profile evidence",
       "required_fixtures": ["locked Go module", "five final-output contracts", "source fingerprint"],
-      "semantic_gaps": ["fresh-agent replay", "host helper/doctrine closure"]
+      "semantic_gaps": ["fresh-agent replay", "remaining converge/organize closure"]
     },
     "java_or_kotlin": {
       "native_tool": "the host's pinned Gradle or Maven compile/test task",
       "idiomatic_representation": "source sets and build roots preserved by the constrained topology",
       "required_fixtures": ["locked JVM project", "five final-output contracts", "source fingerprint"],
-      "semantic_gaps": ["build-tool constraint review", "fresh-agent replay", "host helper/doctrine closure"]
+      "semantic_gaps": ["build-tool constraint review", "fresh-agent replay", "remaining converge/organize closure"]
     },
     "csharp": {
       "native_tool": "dotnet test",
       "idiomatic_representation": "solution/project roots and native state/profile evidence",
       "required_fixtures": ["locked solution", "five final-output contracts", "source fingerprint"],
-      "semantic_gaps": ["fresh-agent replay", "host helper/doctrine closure"]
+      "semantic_gaps": ["fresh-agent replay", "remaining converge/organize closure"]
     },
     "ruby": {
       "native_tool": "the locked bundle exec rake test command",
       "idiomatic_representation": "Ruby application/library and Bundler roots preserved in topology constraints",
       "required_fixtures": ["locked Bundler host", "five final-output contracts", "source fingerprint"],
-      "semantic_gaps": ["fresh-agent replay", "host helper/doctrine closure"]
+      "semantic_gaps": ["fresh-agent replay", "remaining converge/organize closure"]
     }
   },
   "user_experience": {
     "install_steps": [
       "Run one pinned stock copy command naming exactly the five skills.",
       "Give the selected installed skill a natural host task and review its durable result.",
-      "Treat named repository helper/doctrine steps as unavailable unless the host actually supplies them."
+      "Project-interview runs its documented skill-local helpers directly; treat only the separately named converge/organize facilities as unavailable."
     ],
     "wall_time_seconds": 17.8,
     "agent_confusions": [
-      "A selected prompt skill may still name root helpers or sibling doctrine; stock copying SKILL.md does not make those facilities appear.",
+      "The original project-interview prose named root helpers that stock copying could not supply; SKILL_DIR-local commands now make that path executable.",
       "A valid final artifact does not justify fabricating an effectiveness, move-path, discovery, or evidence-gate transcript."
     ],
     "repeated_work": [
       "One host and one exact install are reused, while tasks and artifact contracts stay skill-specific."
     ],
-    "smallest_later_improvement": "Run one independent fresh-user replay and use observed confusion to choose at most one focused closure repair."
+    "smallest_later_improvement": "Rerun the independent fresh-user project-interview task against a92d996 and require the pasted installed 3/3 gate output."
   },
   "residual_risks": [
-    "D6 independent fresh-user replay is pending.",
+    "D6 independent fresh-user rerun is pending after the original replay exposed the now-repaired blocker.",
     "Captured output oracles validate shape and host grounding but do not execute model judgment.",
     "Converge effectiveness telemetry is unavailable from selected install.",
-    "Organize-project-structure cannot load shared doctrine or execute move-path from selected install.",
-    "Project-interview cannot run repository discovery or its prescribed evidence gate from selected install."
+    "Organize-project-structure cannot load shared doctrine or execute move-path from selected install."
   ],
   "next_decision": {
-    "recommendation": "Mark the five core outcomes validated-neutral with explicit installed-closure disclosures, then run the deferred fresh-user replay before considering UX repairs.",
-    "rationale": "The final outcomes are complete, host-language independent, stock-selected installation and source immutability are proven, and missing optional facilities are visible rather than simulated.",
+    "recommendation": "Rerun the independent project-interview D6 task against a92d996, then mark the five core outcomes validated-neutral while retaining only the converge and organize closure disclosures.",
+    "rationale": "Project-interview's previously blocked discovery and prescribed evidence gate now execute from exact stock-selected installation with human approval protected and source immutability proven.",
     "blockers": [
-      "D6 fresh non-context replay remains open for independent judgment evidence."
+      "D6 fresh non-context rerun remains open for independent confirmation of the repaired installed journey."
     ]
   }
 }

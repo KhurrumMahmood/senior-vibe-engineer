@@ -1,7 +1,8 @@
 # Validated-neutral orchestration skills — TypeScript host handoff
 
-Validation revision: `d841441` (`test(validated-neutral): prove TypeScript
-orchestration outcomes`). Evidence date: 2026-07-19 UTC.
+Validation revisions: `d841441` (`test(validated-neutral): prove TypeScript
+orchestration outcomes`) plus `a92d996` (`fix(project-interview): bundle
+installed evidence closure`). Evidence date: 2026-07-19 UTC.
 
 ## Outcome and invariant
 
@@ -35,9 +36,9 @@ npx --yes skills@1.5.19 add <checkout> \
   --skill project-interview --agent codex --copy -y
 ```
 
-`harvest-learnings/knowledge/output-schema.md` and the local `orient` inference
-script/knowledge are copied correctly. The install also exposes honest closure
-gaps:
+`harvest-learnings/knowledge/output-schema.md`, the local `orient` inference
+script/knowledge, and both `project-interview/scripts/` helpers are copied
+correctly. Two unrelated workflows still expose honest closure gaps:
 
 - `converge` does not receive root `scripts/log_effectiveness.py`; its verdict
   and report render, but effectiveness logging is explicitly not claimed.
@@ -45,12 +46,26 @@ gaps:
   `_common/structural-design-principles.md` or `/move-path`; the plan uses the
   principles embedded in `SKILL.md` and does not claim a doctrine read, dry
   run, or applied move.
-- `project-interview` does not receive root `scripts/project_adapt.py` or
-  `scripts/evidence_gate.py`; the draft/evidence paths are validated by the
-  focused oracle, but repo discovery and the prescribed gate transcript are
-  explicitly not claimed.
 
-These are installed UX and closeout gaps, not TypeScript-language gaps. No
+The first independent D6 replay correctly rejected `project-interview` because
+its root `scripts/project_adapt.py` and `scripts/evidence_gate.py` dependencies
+were absent. Revision `a92d996` closes that blocker with focused skill-local,
+stdlib-only helpers. From the exact copied install, the draft helper now:
+
+- discovers objective TypeScript repo facts without importing human intent;
+- writes `user_approved: false` and unanswered interview questions;
+- refuses durable apply until a visible-answer edit sets the sole top-level
+  approval field to true; and
+- leaves application source unchanged.
+
+The installed evidence helper demonstrably fails at `2/3` when `profile.md` is
+hidden, then prints `OK: 3/3 required evidence shapes present.` after the
+artifact is restored. It also passes against the committed human-answered
+scan. No repository-level project-adapt/evidence-gate helper or toolkit venv is
+used at runtime.
+
+The two remaining items are installed UX and closeout gaps, not
+TypeScript-language gaps. No
 broad runtime, copied repository helper layer, or custom installer was added.
 
 ## Fixture and final-output proof
@@ -67,26 +82,34 @@ translation verdicts, target paths, or profile fields.
 1. Runs `npm ci --offline --ignore-scripts`, `npm run typecheck`, and `npm test`.
 2. Runs the exact pinned copied install and checks local closure and absent
    repository-owned dependencies.
-3. Materializes each captured final result and validates its skill-specific
+3. Runs the installed project-interview draft helper, proves no invented human
+   answers, verifies premature apply refusal, exercises evidence-gate red and
+   green, and records the prescribed passing summary.
+4. Materializes each captured final result and validates its skill-specific
    output contract rather than a parser/helper surrogate.
-4. Rechecks the full `src/` SHA-256 after installation and after every result,
+5. Rechecks the full `src/` SHA-256 after installation and after every result,
    checks the five source skill directories did not change, and reruns the
    native typecheck at the end.
 
-Focused evidence at `d841441`:
+Focused repair evidence at `a92d996`:
 
 ```text
 <repo>/.venv/bin/python -m pytest -q \
   tests/test_validated_neutral_typescript_orchestration.py
-1 passed in 17.80s
+1 passed in 5.53s
 
 <repo>/.venv/bin/ruff check \
   tests/test_validated_neutral_typescript_orchestration.py
 All checks passed!
 ```
 
-The commit's explicit-file pre-commit run also passed Ruff, YAML, whitespace,
-repository lints, host-reference checks, and diff checks.
+The combined focused run with `tests/test_project_adapt.py` passed 10 tests.
+The ecosystem smoke/import gate passed 11 explicit smokes and 45 import-floor
+checks. The commit's explicit-file pre-commit run also passed Ruff, YAML,
+whitespace, repository lints, host-reference checks, artifact drift, and diff
+checks. The generic skill-creator quick validator is inapplicable because it
+rejects this repository's required extended frontmatter; repository metadata
+lint passed all 76 skills instead.
 
 ## What generalized cleanly
 
@@ -107,9 +130,11 @@ repository lints, host-reference checks, and diff checks.
 The only TypeScript-specific mechanism is the native validation command and
 the fixture's actual file/tool paths. Future languages need a locked native
 host and its compiler/test command, not a variant of these five skills.
-Optional repo helpers and shared doctrine remain installation/facility
-dependencies as listed above. Their absence must remain visible until an
-installed journey demonstrates a small, product-worthy repair.
+The project-interview discovery/apply and evidence gate are now self-contained
+skill facilities. The remaining optional effectiveness logger, move helper,
+and shared structure doctrine stay installation/facility dependencies as
+listed above. Their absence must remain visible until an installed journey
+demonstrates a small, product-worthy repair.
 
 Do not extract a generic prompt executor, artifact-materialization runtime, or
 helper bundle. The captured outputs are validation evidence, not an executable
@@ -126,13 +151,13 @@ because the prompt workflow stayed neutral.
 
 ## Residual risks and next decision
 
-D6 remains pending: an independent fresh-user agent has not yet received only
-the raw host, installed skill, and natural prompt and produced one of these
-artifacts without the captured answer. The automated replay proves install
-shape, native host validity, final artifact contracts, and immutability, not
-independent model judgment.
+D6 re-review remains pending: the first independent fresh-user agent produced
+the correct draft but failed honestly on missing helpers. The repaired exact
+stock replay now proves the previously blocked commands and prescribed gate;
+an independent rerun should confirm the agent journey without the captured
+answer.
 
-The integrator can mark the five core outcomes `validated-neutral` with the
-three named closure disclosures. The next useful action is a fresh-user replay;
-only measured confusion in that replay should trigger a focused installation
-repair. UX work remains later priority.
+The integrator can mark the five core outcomes `validated-neutral` after that
+fresh rerun, retaining only the two unrelated closure disclosures. Only
+measured confusion in the rerun should trigger another focused repair. UX work
+remains later priority.
