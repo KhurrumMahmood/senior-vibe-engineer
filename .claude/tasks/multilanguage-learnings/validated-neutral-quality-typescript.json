@@ -1,0 +1,155 @@
+{
+  "batch": "validated-neutral-quality-typescript",
+  "revision": "3aef3e1",
+  "family": [
+    "diagnose",
+    "find-perimeter-gaps",
+    "gut-check",
+    "teach-pattern",
+    "triage-debt"
+  ],
+  "invariant": {
+    "portable_principle": "Debugging evidence, quality-perimeter truth, architectural signal, pattern briefing, and debt prioritization can produce durable host artifacts without interpreting the host application's source language.",
+    "typescript_mechanism": "A locked TypeScript 5.9.3 host supplies source roots, a real direct tsc contract failure, plan/ADR/pattern context, detector evidence, and cached debt audits while copied skills produce report-level outcomes.",
+    "explicit_non_goals": [
+      "TypeScript parser, compiler API, module-resolution, or framework claim",
+      "Node, React, Express, ORM, queue-provider, or package-manager support",
+      "Source mutation, automated remediation, guard generation, or a TypeScript-specific variant",
+      "A generic copied quality runtime or recreation of host spec/decision authorities"
+    ]
+  },
+  "reference_repairs": [
+    {
+      "skill": "diagnose",
+      "issue": "The documented evidence gate was repository-only and imported root _lib.",
+      "repair": "Added a selected-skill check-only evidence gate that reads sibling frontmatter and the scan manifest with stdlib only.",
+      "evidence": ".claude/skills/diagnose/scripts/evidence_gate.py and the installed replay in tests/test_validated_neutral_typescript_quality.py"
+    },
+    {
+      "skill": "find-perimeter-gaps",
+      "issue": "The documented scanner path reached back into .claude/skills in a checkout.",
+      "repair": "Documented SKILL_DIR and run the copied local scanner in the final-outcome test.",
+      "evidence": ".claude/skills/find-perimeter-gaps/SKILL.md and installed --fail-on-gap replay"
+    },
+    {
+      "skill": "triage-debt",
+      "issue": "Its selected path required uninstalled repository registry/audit/log scripts.",
+      "repair": "Use explicit host-owned cached JSON/JSONL inputs and write inputs.md provenance; do not recreate those authorities.",
+      "evidence": ".claude/skills/triage-debt/knowledge/cached-input-contract.md and the queue artifact"
+    }
+  ],
+  "language_model": {
+    "syntax": ["The fixture contains TypeScript source only as realistic host context.", "Only the diagnose reproducer invokes tsc to prove a concrete contract mismatch."],
+    "type_system": ["npm run typecheck proves the normal host baseline.", "npx --no-install tsc --noEmit --strict diagnostics/retry-contract.ts produces TS2322 for the diagnosis loop."],
+    "module_resolution": ["NodeNext resolution is supplied by the locked host but none of the five skill outcomes analyzes imports."],
+    "runtime": ["The two executable paths use copied local scripts with host python3.", "The three prompt-led paths read host-owned documents or retained cache data."],
+    "framework": ["None; package metadata does not imply a Node web framework."]
+  },
+  "tooling": {
+    "selected": "Pinned skills@1.5.19 stock copy install, locked TypeScript 5.9.3 host, final-artifact pytest oracle, copied local diagnose/perimeter executable checks.",
+    "rejected_alternatives": {
+      "typescript_variants": "The accepted outcomes are report/briefing/queue judgments, not TypeScript semantics.",
+      "copied_registry_runtime": "Duplicating specs.py, decisions.py, or logging scripts would recreate host authorities and violate the selected-core boundary.",
+      "shared_launcher": "No demonstrated second consumer needs an execution platform; prompt-led artifacts and two family-local scripts are sufficient."
+    },
+    "closure_mode": "Five separate one-skill installs; the test asserts the installed directory contains exactly that one selected skill.",
+    "native_preflight": "npm ci --offline --ignore-scripts && npm run typecheck"
+  },
+  "outcome_contract": {
+    "inputs": [
+      "tests/fixtures/validated-neutral-typescript/quality/host",
+      "five raw task files under tests/fixtures/validated-neutral-typescript/quality/tasks",
+      "one copied installed skill per replay"
+    ],
+    "structured_outputs": [
+      "diagnose evidence manifest plus diagnosis, reproduction, root-cause, verification, and cleanup reports",
+      "find-perimeter-gaps report.md and perimeter.json",
+      "gut-check cited plan reaction report",
+      "teach-pattern agent briefing",
+      "triage-debt inputs.md provenance and ranked queue"
+    ],
+    "must_fire": [
+      "TS2322 boundary mismatch is reproducible and diagnose evidence validates",
+      "the uncovered src/typescript matrix cell is visible under --fail-on-gap",
+      "gut-check separates raw and ADR-contradicted smells",
+      "teach-pattern cites host pattern, decision, exemplar, and counter-example",
+      "triage-debt chooses standardize-and-enforce for six repeated omnibus findings"
+    ],
+    "must_not_fire": [
+      "Any src tree mutation",
+      "A language:any detector pretending to cover TypeScript",
+      "An invented lint/enforcement authority",
+      "An uninstalled root registry/audit/log runtime"
+    ],
+    "native_test_command": "npm ci --offline --ignore-scripts && npm run typecheck",
+    "native_guard_command": null
+  },
+  "evidence": {
+    "commands": [
+      "$REPO_ROOT/.venv/bin/python -m pytest -q tests/test_validated_neutral_typescript_quality.py tests/test_perimeter_gaps.py tests/test_skill_detector_reads (5 passed)",
+      "$REPO_ROOT/.venv/bin/ruff check tests/test_validated_neutral_typescript_quality.py .claude/skills/diagnose/scripts/evidence_gate.py .claude/skills/find-perimeter-gaps/scripts/scan.py (All checks passed)",
+      "$REPO_ROOT/.venv/bin/python scripts/skill_meta.py lint --quiet (OK — 76 skills, 76 declaring new contract)",
+      "$REPO_ROOT/.venv/bin/python .claude/skills/_common/scripts/run_skill_smokes.py --quiet (passed)",
+      "pre-commit suite on commit 3aef3e1 (passed, including find-skill-artifact-drift)"
+    ],
+    "artifact_paths": [
+      "tests/fixtures/validated-neutral-typescript/quality/artifacts/**",
+      "tests/test_validated_neutral_typescript_quality.py"
+    ],
+    "d_status": {"D1": "pass", "D2": "not_applicable", "D3": "pass", "D4": "not_applicable", "D5": "pass", "D6": "integrator_deferred", "D7": "pass", "D8": "pass"}
+  },
+  "false_positive_boundary": {
+    "known_false_positives": [
+      "language:any is not detector coverage",
+      "a valid host typecheck is not evidence that the separate queue-adapter contract is valid",
+      "a repeated six-finding band is one missing standard, not six isolated repair tickets"
+    ],
+    "known_false_negatives": [
+      "Prompt-led artifacts cannot prove a fresh agent's independent judgment; D6 remains open.",
+      "Cached triage cannot determine whether a host's omitted audit input is clean."
+    ]
+  },
+  "generalized": [
+    "Selected prompt-led skills can be proved through separate stock installation, raw natural tasks, durable artifact contracts, and source fingerprints.",
+    "A local check-only helper is acceptable when it is the smallest explicit selected closure and does not reconstruct an uninstalled authority.",
+    "A host-owned cache can be an honest aggregator input when provenance and missing axes are recorded."
+  ],
+  "did_not_generalize": [
+    "The root repository's generic evidence gate and its full init/show behavior",
+    "Host registry generation, decision/spec auditing, and effectiveness logging",
+    "Framework architecture and any TypeScript semantic-analysis claim",
+    "Fresh-agent D6 execution"
+  ],
+  "reuse_decision": {
+    "shared_candidate": "A generic prompt-artifact launcher or copied host quality runtime.",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": ["The two executable closures have different input contracts; the remaining three are prompt-only.", "No second accepted consumer demonstrates a shared runtime need."],
+    "owner": "serial integrator only after an accepted second consumer"
+  },
+  "translation_prerequisites": {
+    "rust": {"native_tool": "cargo check", "idiomatic_representation": "locked crate plus host ADR/report context", "required_fixtures": ["raw quality tasks", "artifact contracts", "cache provenance"], "semantic_gaps": ["fresh D6 replay"]},
+    "go": {"native_tool": "go test ./...", "idiomatic_representation": "locked Go module plus host quality artifacts", "required_fixtures": ["raw quality tasks", "artifact contracts", "cache provenance"], "semantic_gaps": ["fresh D6 replay"]},
+    "java_or_kotlin": {"native_tool": "Gradle or Maven compile/test", "idiomatic_representation": "locked source set plus host quality artifacts", "required_fixtures": ["raw quality tasks", "artifact contracts", "cache provenance"], "semantic_gaps": ["fresh D6 replay"]},
+    "csharp": {"native_tool": "dotnet test", "idiomatic_representation": "locked project plus host quality artifacts", "required_fixtures": ["raw quality tasks", "artifact contracts", "cache provenance"], "semantic_gaps": ["fresh D6 replay"]},
+    "ruby": {"native_tool": "bundle exec rake test", "idiomatic_representation": "locked application plus host quality artifacts", "required_fixtures": ["raw quality tasks", "artifact contracts", "cache provenance"], "semantic_gaps": ["fresh D6 replay"]}
+  },
+  "user_experience": {
+    "install_steps": ["Run one pinned stock --copy install for the desired quality skill.", "Provide the host's own quality context or retained cache; no selected skill downloads a runtime."],
+    "wall_time_seconds": 28.03,
+    "agent_confusions": ["Source-tree-looking script paths are not a copied-install contract.", "A cached audit input must be declared unavailable when absent, never interpreted as zero debt."],
+    "repeated_work": ["One locked host is reused, but tasks and installed skills remain isolated."],
+    "smallest_later_improvement": "Run the deferred D6 fresh-agent replay before updating the shared coverage disposition."
+  },
+  "residual_risks": [
+    "D6 is not executed in this lane.",
+    "Diagnose proves a seam and intentionally does not authorize a source fix.",
+    "Triage cache producer behavior remains a host responsibility.",
+    "Gut-check and teach-pattern results depend on the supplied host documents being current."
+  ],
+  "next_decision": {
+    "recommendation": "After D6, promote exactly these five skills to validated-neutral for their tested artifact outcomes; do not add TypeScript variants or shared runtime.",
+    "rationale": "Separate stock installs, source fingerprints, concrete final artifacts, and explicit closure repairs prove a useful language-independent core without metadata-only relabeling.",
+    "blockers": ["Fresh non-context installed-skill D6 replay", "Serial integration of router/catalog/tracker state outside this lane"]
+  }
+}
