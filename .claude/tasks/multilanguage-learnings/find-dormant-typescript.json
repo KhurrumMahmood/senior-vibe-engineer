@@ -1,0 +1,219 @@
+{
+  "batch": "TypeScript find-dormant candidate",
+  "revision": "46a16c7",
+  "family": ["find-dormant"],
+  "invariant": {
+    "portable_principle": "A TypeScript dormant report may establish only that a non-exported top-level implementation lacks statically resolved references; it must never infer safe deletion or runtime unreachability.",
+    "python_or_framework_mechanism": "Preserved the Python vulture/AST/URL/silent-catch/scout pipeline. The focused regression locks the existing AST detector's positive, direct-reference negative, and framework-decorator must-not-fire behavior.",
+    "typescript_mechanism": "One family-local Node Compiler API command resolves host-local TypeScript from package.json, parses a named tsconfig, creates a Program/TypeChecker, compares declaration and reference symbol identity, and writes final Markdown/JSON review artifacts.",
+    "explicit_non_goals": [
+      "Safe deletion or source mutation",
+      "Routes, endpoints, error swallowing, or Python scout buckets",
+      "Dynamic imports, runtime loaders, external consumers, registries, event handlers, or framework reachability",
+      "Method or nested-function analysis",
+      "Framework/API ownership or cross-project completeness",
+      "A shared TypeScript parser/resolver platform",
+      "UX or performance optimization"
+    ]
+  },
+  "reference_repairs": [
+    "No Python detector behavior changed; its stable structured-output reference is now exercised by the focused TypeScript batch test.",
+    "Made direct/broad target exclusions project-root-relative and made direct/broad symlink behavior explicit for the TypeScript branch.",
+    "Made unresolved module resolution partial evidence rather than a clean static result.",
+    "Made static output containment explicit: report directories are only beneath reports/find-dormant and cannot traverse a symlink."
+  ],
+  "language_model": {
+    "syntax": [
+      "Eligible .ts and .tsx top-level function declarations, class declarations, and identifier-named function/arrow variable declarations",
+      "Compiler syntax diagnostics for eligible project sources",
+      "Static import, export-from, and import-equals module specifiers for project-resolution completeness"
+    ],
+    "type_system": [
+      "Compiler Program and TypeChecker resolve declaration/reference symbol identity.",
+      "Module exports are enumerated and excluded from private implementation candidates."
+    ],
+    "module_resolution": [
+      "Named project-local tsconfig supplies compiler options, paths aliases, and project references to createProgram.",
+      "resolveModuleName records unresolved eligible static specifiers as partial project state; cross-project completeness is not claimed."
+    ],
+    "runtime": [
+      "Host Node plus a project-local TypeScript package resolved from package.json.",
+      "Fixture package-lock pins TypeScript 5.9.3."
+    ],
+    "framework": [
+      "No framework is inferred. Registry, event, and framework callback values count as static references when directly present, while runtime-only reachability remains uncertainty."
+    ]
+  },
+  "tooling": {
+    "selected": "Family-local detect_typescript_dormant.mjs using the host-pinned TypeScript Compiler API Program/TypeChecker and named tsconfig.",
+    "rejected_alternatives": {
+      "lexical_grep": "Cannot distinguish a declaration/reference symbol from same-name text or aliases and would not satisfy genuine semantic TypeScript coverage.",
+      "vulture_or_python_scout": "Python/Django URL, silent-catch, git, and dynamic-dispatch judgments do not describe TypeScript runtime reachability.",
+      "shared_map_resolver": "map-subsystem proves a different module-map schema and closure; one additional consumer does not justify a shared runtime platform.",
+      "ts_morph_or_tree_sitter": "Adds a dependency without improving the required Program/TypeChecker identity and named-tsconfig outcome."
+    },
+    "version_and_resolution": "The locked host package-lock pins TypeScript 5.9.3. Installed execution resolves typescript from the audited host's package.json and rejects a package outside the project root.",
+    "closure_mode": "The selected find-dormant directory bundles the Node report command. Its documented command locates only .agents or .claude selected-skill roots and invokes Node directly; it has no toolkit venv, repository scripts/_lib, sibling _common, router, or catalog dependency.",
+    "preflight_and_failure_codes": [
+      "Exit 2 for missing target, direct/internal/external symlink target, missing/invalid/symlinked tsconfig, missing host TypeScript, syntax error, or unsafe report directory.",
+      "Return a final partial report for unresolved static module specifiers rather than silently presenting a complete project."
+    ]
+  },
+  "outcome_contract": {
+    "inputs": [
+      "Locked TypeScript 5.9.3 host fixture with named tsconfig and @app/* path alias",
+      "Unreferenced private implementation positive",
+      "Direct function use and exported API negatives",
+      "Registry/event/framework callback and TSX direct-reference must-not-fire shapes",
+      "String-addressed dynamic ambiguity, exclusion corpus, and symlink/report-containment cases"
+    ],
+    "structured_outputs": [
+      "reports/find-dormant/<scan>/report.md",
+      "reports/find-dormant/<scan>/findings.json"
+    ],
+    "must_fire": [
+      "unusedPrivate is exactly one review_required candidate with static_references=0",
+      "dynamicByName is an uncertain string-addressed symbol",
+      "summary.certain_delete is always zero",
+      "An unresolved alias produces status/project_resolution=partial"
+    ],
+    "must_not_fire": [
+      "directlyUsed, publicApi, publicArrow, registryCallback, eventCallback, frameworkCallback, and TSX direct-reference shape",
+      "Generated, vendor, spec, declaration, dependency, build, fixture, and test paths including direct excluded targets",
+      "Internal or external symlink traversal",
+      "Report writes outside reports/find-dormant or through a symlink",
+      "Missing compiler/tsconfig or TypeScript syntax errors represented as clean results",
+      "Any certain_delete outcome"
+    ],
+    "native_test_command": "npm ci --offline --ignore-scripts && npm run typecheck && npm test",
+    "native_guard_command": null
+  },
+  "evidence": {
+    "python_reference": [
+      "tests/test_find_dormant_typescript.py::test_python_detector_oracle_retains_positive_negative_and_dynamic_boundaries asserts exact JSONL from the unchanged Python detector."
+    ],
+    "typescript": [
+      "tests/test_find_dormant_typescript.py reaches final report.md/findings.json and asserts the exact candidate, uncertainty, no false-positive callbacks, partial/error states, exclusions, symlinks, report containment, copied closure, stock install, native checks, and source hashes.",
+      "The fixture runs npm ci --offline --ignore-scripts, npm run typecheck, and npm test before every integration replay."
+    ],
+    "commands_and_artifact_paths": [
+      ".venv/bin/python -m pytest tests/test_find_dormant_typescript.py tests/test_skill_taxonomy.py -q: 9 passed",
+      ".venv/bin/python -m ruff check tests/test_find_dormant_typescript.py: All checks passed",
+      "node --check .claude/skills/find-dormant/scripts/detect_typescript_dormant.mjs: passed",
+      ".venv/bin/python scripts/skill_meta.py lint: OK — 76 skills, 76 declaring new contract",
+      "git diff --check: clean",
+      "Committed pre-commit checks at 46a16c7: ruff, whitespace, project lints, no-host-references, and skill-artifact-drift passed",
+      "Final artifacts under reports/find-dormant/<scan>/report.md and reports/find-dormant/<scan>/findings.json are asserted in the focused copied and stock-install tests"
+    ],
+    "fresh_forward": {
+      "status": "pending_independent_non_context_replay",
+      "task": "Install only find-dormant into the raw locked TypeScript host, audit src with the installed documented command, produce the final report, and state what needs human review without changing source.",
+      "required_proof": [
+        "Use a clean host and a selected installed skill, not this checkout.",
+        "Do not supply the expected candidate or diagnosis to the agent.",
+        "Verify report.md/findings.json, native typecheck/tests before and after, and unchanged source hashes."
+      ],
+      "automated_harness": "test_copied_typescript_skill_and_stock_install_have_no_checkout_runtime exercises the same stock selected-skill final artifact journey; it is not presented as independent agent judgment."
+    }
+  },
+  "false_positive_boundary": {
+    "known_false_positives": [
+      "A private implementation can be reached dynamically, externally, through a framework, or by string dispatch despite zero resolved references.",
+      "A matching string literal is ambiguous, so it is surfaced as uncertain rather than review_required."
+    ],
+    "known_false_negatives": [
+      "Methods, nested functions, computed registry entries without a direct identifier, dynamic imports, runtime loaders, and cross-project references are intentionally not candidates.",
+      "Excluded/test/generated/vendor/symlink paths are intentionally absent."
+    ],
+    "legitimate_similar_shapes": [
+      "Registry, event, and framework callback values with direct symbol references remain clean.",
+      "Exported APIs remain clean even if no in-project source references them.",
+      "Unresolved module state is partial evidence, not a clean zero-reference conclusion."
+    ]
+  },
+  "generalized": [
+    "Host-pinned TypeScript resolution from package.json",
+    "Named-tsconfig Program/TypeChecker analysis",
+    "Final artifact rather than helper-only outcome assertions",
+    "Project-root-relative direct-target exclusions",
+    "Symlink-safe output containment and source hash checks",
+    "Copied and exact stock selected-skill closure replay"
+  ],
+  "did_not_generalize": [
+    "Python/Django detector and scout semantics",
+    "map-subsystem export/import graph schema",
+    "Runtime/framework reachability or deletion judgment",
+    "A global Compiler API service or parser platform"
+  ],
+  "reuse_decision": {
+    "shared_candidate": "Named project-local tsconfig Compiler API setup",
+    "actual_second_consumer": "map-subsystem",
+    "decision": "keep-family-local",
+    "evidence": [
+      "map-subsystem needs exports/import edges/barrels/partial map evidence; find-dormant needs private declarations, reference identity, uncertainty, and a no-deletion report.",
+      "The shared operational pattern is copied locally and does not yet demonstrate an identical reusable API or installed closure."
+    ],
+    "owner": "find-dormant TypeScript v1"
+  },
+  "translation_prerequisites": {
+    "rust": {
+      "native_tool": "rust-analyzer or compiler-backed crate graph",
+      "idiomatic_representation": "private functions/types, pub exports, resolved identifier references, macro-aware uncertainty",
+      "required_fixtures": ["private positive", "pub/direct/callback clean", "macro/dynamic uncertainty", "cargo test/check and stock replay"],
+      "semantic_gaps": ["macros", "trait dispatch", "conditional compilation"]
+    },
+    "go": {
+      "native_tool": "go/packages and go/types",
+      "idiomatic_representation": "unexported declarations and resolved identifier references",
+      "required_fixtures": ["private positive", "exported/direct handler clean", "reflection uncertainty", "go test and stock replay"],
+      "semantic_gaps": ["build tags", "reflection", "generated code"]
+    },
+    "java_or_kotlin": {
+      "native_tool": "compiler model or language server",
+      "idiomatic_representation": "package-private/private declarations, public API, resolved calls, annotation uncertainty",
+      "required_fixtures": ["private positive", "exported/listener clean", "reflection/annotation uncertainty", "native build/test and stock replay"],
+      "semantic_gaps": ["reflection", "annotation processing", "overloads"]
+    },
+    "csharp": {
+      "native_tool": "Roslyn workspace",
+      "idiomatic_representation": "private/internal declarations and resolved symbol references",
+      "required_fixtures": ["private positive", "public/event clean", "reflection/source-generator uncertainty", "dotnet test/build and stock replay"],
+      "semantic_gaps": ["reflection", "partial/source-generated types", "conditional compilation"]
+    },
+    "ruby": {
+      "native_tool": "Prism/Ripper plus explicit loader convention",
+      "idiomatic_representation": "private methods/constants and conservative static references",
+      "required_fixtures": ["private positive", "public/callback clean", "send/metaprogramming uncertainty", "native test and stock replay"],
+      "semantic_gaps": ["send", "monkey patching", "constant lookup"]
+    }
+  },
+  "user_experience": {
+    "install_steps": [
+      "Set FIND_DORMANT_SOURCE to the pinned source/ref and run the documented stock add command with only --skill find-dormant.",
+      "From the TypeScript host root set TARGET, optionally TSCONFIG and REPORT_NAME, then run the documented installed command.",
+      "Read reports/find-dormant/<scan>/report.md and findings.json as review leads; never use them as deletion authorization.",
+      "Run the host's native typecheck and tests before and after the audit."
+    ],
+    "wall_time_seconds": null,
+    "agent_confusions": [
+      "Zero static references is not runtime unreachability; the report makes this a review-only invariant.",
+      "A matching string literal is ambiguous rather than a reference proof, so it is visibly uncertain.",
+      "The TypeScript report is separate from Python's scout buckets and does not run Python/Django stages."
+    ],
+    "repeated_work": [
+      "map-subsystem supplied accepted host-compiler, named-tsconfig, exclusion, symlink, and stock-closure patterns, copied without a shared runtime."
+    ],
+    "smallest_later_improvement": "Complete the independent D6 replay before considering a second direct-reference shape from a real host; do not broaden to methods or runtime/framework analysis without a new outcome contract."
+  },
+  "residual_risks": [
+    "Static zero-reference candidates can be dynamically or externally live and therefore always need human review.",
+    "Exact string-name uncertainty catches one common dynamic shape but cannot resolve arbitrary computed dispatch.",
+    "The host must supply Node, a valid project-local tsconfig, and a package-local TypeScript compiler.",
+    "D6 independent non-context replay is intentionally pending serial integration."
+  ],
+  "next_decision": {
+    "recommendation": "Accept the narrow TypeScript v1 after the serial integrator completes D6; keep it family-local and leave routers/catalog/contracts/tracker to the integrator.",
+    "rationale": "The preserved Python oracle, Compiler API final report, locked positive/negative/must-not-fire corpus, explicit partial/error states, selected-skill closure, native checks, source immutability, and no-deletion schema prove the smallest honest useful outcome.",
+    "blockers": ["Independent non-context installed-skill D6 replay", "Serial integration of shared router/catalog/contract/tracker surfaces outside this lane"]
+  }
+}
