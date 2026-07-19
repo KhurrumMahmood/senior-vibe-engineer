@@ -1,6 +1,6 @@
 # TypeScript-first skill batch plan
 
-Status: B0, B2P, and B3 complete; B1, B2T, and the move-path pilot in progress
+Status: B0, B1, B2P, and B3 complete; B2T, move-path, and explain-code in progress
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -336,9 +336,7 @@ Acceptance:
 
 ### B1 — Portability truth and TypeScript routing metadata
 
-State: `in_progress` — `codex/ts-b1-portability` at
-`/private/tmp/engineering-skills-ts-b1`; skill-local portion only, with router
-integration reserved for the serial integrator
+State: `complete` — accepted on `codex/productization-restart` at `e6f6a5d`
 
 Skills: `find-concept-divergence`, `find-rule-surface-drift`,
 `find-skill-artifact-drift`, `find-skill-intent-drift`, and
@@ -378,28 +376,28 @@ Installed matcher language-source contract:
 
 Acceptance:
 
-- [ ] A glossary `avoid_term` in `.ts` and `.tsx` fires; canonical-only TSX,
+- [x] A glossary `avoid_term` in `.ts` and `.tsx` fires; canonical-only TSX,
   unrelated homonyms, generated/vendor paths, and a justified compatibility
   alias stay clean.
-- [ ] The four ecosystem/artifact skills preserve their existing behavior and
+- [x] The four ecosystem/artifact skills preserve their existing behavior and
   declare host-language neutrality without artificial TypeScript variants.
-- [ ] Regenerated router data retains the three portability fields and a
+- [x] Regenerated router data retains the three portability fields and a
   TypeScript fixture cannot select a known Django-only skill. The exact
   regression task `find repeated bare status literals in a TypeScript source
   file` must not select the current Python/Django `find-implicit-state` until
   B2T earns TypeScript support.
-- [ ] Before the copied-router test, the serial integrator removes the current
+- [x] Before the copied-router test, the serial integrator removes the current
   unearned TypeScript scan claim from `find-omnibus`; B4 restores it only after
   D1–D7 pass. The task `find an omnibus TypeScript module with too many
   unrelated responsibilities` returns unsupported/no-match until then.
-- [ ] The serial integrator corrects `find-workflow-state-gaps` from
+- [x] The serial integrator corrects `find-workflow-state-gaps` from
   `framework:any` to its current Django binding. A TypeScript workflow-state
   task cannot select it until a later concrete framework packet earns support.
-- [ ] A copy containing only the installed `which-skill` directory exercises
+- [x] A copy containing only the installed `which-skill` directory exercises
   explicit, exact-marker, ambiguous/mixed, and no-language cases outside the
   source checkout; the final recommendation and routing-context JSON are
   asserted, not just the regenerated catalog bytes.
-- [ ] D1, D3, D5–D8 pass. D2/D4 are not applicable because this batch corrects
+- [x] D1, D3, D5–D8 pass. D2/D4 are not applicable because this batch corrects
   text-scan coverage and routing truth, not a Python→TypeScript mutation.
 
 ### B2P — Python closed-state reference proof
@@ -712,3 +710,4 @@ corrected rather than treated as working framework neutrality.
 | 2026-07-19 UTC | working tree on `codex/productization-restart` | B3 TypeScript comment hygiene | Red-green implementation added TS/TSX positive/clean fixtures, a skill-local stdlib closure, shared detector/guard ownership, root lint wrapper, pre-commit and `--all` invocation coverage, and final report assertions. Fresh installed forward test produced four useful TS findings and kept an ordinary TSX component clean. Targeted suite: 30 passed; smoke: 23 bad findings and good fixtures clean; metadata/catalog/Ruff/JSON/diff checks passed. Full suite: 415 passed, 1 skipped, with one unrelated pre-existing calendar-sensitive `test_triage_audit.py` failure (its fixed 2026-06-11 fixture is compared by the CLI to real current time; neither test nor implementation is in this diff). Adversarial re-review: PASS after it exposed and verified the pre-commit/runner repair. |
 | 2026-07-19 UTC | `33e96a6` | B2P Python closed-state reference | Detector→review→enum proposal→guard reference accepted after adversarial repairs for parse-error rc 2, chained assignments, repo-ignore fallback, and whole-tree immutability. Targeted suite: 8 passed; copied `python3 -I -S` forward artifacts at `/tmp/es-forward-state.xDtbxT` preserved vendor/open-ended boundaries; independent re-review returned PASS. |
 | 2026-07-19 UTC | `eb4d498` | B1 router-language integration foundation | Bundled catalog now retains `language`, `framework`, and `scans`; copied matcher resolves explicit/exact language context, excludes unsupported language/framework/scanner claims, and returns `unsupported` instead of substituting a weaker skill. Unearned `find-omnibus` TypeScript and Django-bound workflow-state claims are withheld. Router suite: 19 passed; metadata/conformance/Ruff clean. B1 skill-local acceptance remains pending. |
+| 2026-07-19 UTC | `e6f6a5d` | B1 complete | TS/TSX concept findings plus four host-neutral artifact/rules skills pass copied `python -I -S` final-outcome tests. Two adversarial rounds found and repaired quoted/commented YAML false-clean/false-positive paths. The five real contracts are acknowledged and index `stale: ok`; catalog/routing integrated. Final integrated suite: 35 passed; independent re-review PASS. |
