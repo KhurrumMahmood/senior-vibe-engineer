@@ -2,7 +2,8 @@
 
 Status: B0, B1, B2P, B2T, B3, B4, move-path, explain-code, duplication,
 complexity, folder-topology, and adapt-project complete; audit-decisions is in
-native-parser repair; find-standard-gaps and rename-concept are in progress
+containment re-review; find-standard-gaps is complete; rename-concept and
+map-subsystem are in progress
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -609,7 +610,7 @@ These operate on the toolkit's own ledgers, catalogs, routers, rules, or
 bootstrap runtime. A TypeScript host does not require a language variant, but
 the final matrix still records a runtime review revision.
 
-### TypeScript-supported batches (16 unique skills)
+### TypeScript-supported batches (17 unique skills)
 
 - B1: `find-concept-divergence`, `find-rule-surface-drift`,
   `find-skill-artifact-drift`, `find-skill-intent-drift`,
@@ -622,11 +623,12 @@ the final matrix still records a runtime review revision.
 - Independent outcome pilots: `move-path`, `explain-code`,
   `find-duplication`.
 - Host adaptation: `adapt-project`.
+- Declared-standard coverage: `find-standard-gaps`.
 
-### Candidate language-level families and repairs (10)
+### Candidate language-level families and repairs (9)
 
 `audit-decisions`, `find-dormant`, `find-incomplete-sweep`,
-`find-semantic-duplication`, `find-standard-gaps`, `map-subsystem`,
+`find-semantic-duplication`, `map-subsystem`,
 `propose-boundary`, `propose-folder-reorganization`, `rename-concept`, and
 `unify-shadows`.
 
@@ -688,10 +690,14 @@ Active candidate promotion:
   not classify reliably. That implementation is being replaced with a
   skill-local host-TypeScript Compiler API helper rather than extended into a
   second hand-written TypeScript parser.
-- `find-standard-gaps` is `in_progress` in
-  `/private/tmp/engineering-skills-product-ts-gaps`. The frozen v1 standard is
-  direct `JSON.parse(...)` syntax enclosed by `try`, with unsupported
-  conditions reported honestly instead of counted as compliant.
+- `find-standard-gaps` is `complete` at `b6e627c..cd1e903` plus serial
+  router/catalog closeout. Its frozen v1 standard is direct
+  `JSON.parse(...)` syntax enclosed by `try`; parse failures and mixed
+  unsupported file surfaces are explicitly partial/non-clean. The final
+  review found and closed a mixed Python/JavaScript false-clean path, a
+  case-sensitive test-file exclusion, and stale routing metadata. Final
+  focused/installed/router integration: 61 passed; independent runtime
+  re-review PASS.
 - `rename-concept` is `in_progress` in
   `/private/tmp/engineering-skills-ts-rename-concept`. Its assessment remains
   read-only; lexical evidence may not be promoted as resolved identifier
@@ -783,3 +789,4 @@ corrected rather than treated as working framework neutrality.
 | 2026-07-19 UTC | `9b309f4..a6aaf5c` + integrated contract/router | TypeScript complexity complete | Family-local Compiler API syntax scoring reports exactly three branch-heavy declarations/methods/block arrows and preserves the Python six-band oracle. Stock installed forward task produced final artifacts with a measure-first verdict. Direct directory/file exclusion bypasses found adversarially were repaired project-root-relative; focused suite: 7 passed; final re-review PASS. |
 | 2026-07-19 UTC | `82859c7..d1f1e39` + integrated contract/router | TypeScript folder topology complete | Explicit-root lexical flat-prefix detection reports one three-sibling billing cluster, preserves Python-only and explicit combined mode, copied closure, and final report labels. Forward and adversarial defects in `.agents` docs, TS-only isolation, and explicit excluded roots were repaired; focused suite: 20 passed; final re-review PASS. |
 | 2026-07-19 UTC | `3651ccf..2d34690` + integrated contract/router | TypeScript project adaptation complete | TypeScript/TSX source-root counts trigger the same >200 caution as Python, keep excluded trees out, preserve Django detection, and never infer a Node framework from package.json. Fresh stock-installed D6 produced final adapter/report/evidence with unchanged source. Five adversarial path/compatibility/evidence defects were reproduced and repaired; focused re-review: 37 passed; final PASS. |
+| 2026-07-19 UTC | `b6e627c..cd1e903` + generated closeout | TypeScript standard-gap coverage complete | Host-pinned Compiler API syntax facts implement one framework-neutral `JSON.parse`-inside-`try` standard while Python remains green. Parse/read failures and mixed unsupported extensions are partial/non-clean, unsupported-only surfaces remain explicit, and stock-installed final artifacts report 4 sites/3 gaps. Adversarial review found and closed mixed-language false-clean behavior; integration corrected case-insensitive test exclusions, the host-owned standards hint, and exact TypeScript routing. Final focused/router suite: 61 passed; runtime re-review PASS. |

@@ -169,6 +169,11 @@ def test_installed_which_skill_routes_typescript_explanation(tmp_path):
             "test and source-root facts",
             "adapt-project",
         ),
+        (
+            "check coverage gaps where a declared TypeScript standard requires "
+            "direct JSON.parse calls to be enclosed by try",
+            "find-standard-gaps",
+        ),
     ],
 )
 def test_installed_which_skill_routes_typescript_analysis_skills(

@@ -21,7 +21,7 @@ not_for: |
   pattern (keep those as code review). Structural smells — omnibus,
   duplication, dormant code (use the find-* family). Executing the
   fixes (hand off to /fix-workflow). Authoring a bespoke one-off lint
-  when no standard will be reused (just write the lint).
+  when there is no reusable baseline policy (just write the lint).
 language: any
 framework: any
 scans: [python, typescript]

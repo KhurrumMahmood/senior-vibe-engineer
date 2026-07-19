@@ -631,13 +631,17 @@
     },
     {
       "name": "find-standard-gaps",
-      "description": "Detect places a declared baseline standard should apply but doesn't. A standard (a security check, a resilience rule, an input-validation or observability requirement) is declared once as an idea with an executable `ast` detector; `scan_coverage.py` then scans the tree and reports every site whose triggering situation holds but the standard is absent. Generalizes hand-written AST lints — declare a standard instead of authoring a bespoke lint. Detection-only; never edits code.",
+      "description": "Detect places a declared baseline standard should apply but doesn't. A standard (a security check, a resilience rule, an input-validation or observability requirement) is declared once as an idea with an executable `ast` detector; `scan_coverage.py` scans Python and narrow syntax-only TypeScript/TSX coverage and reports every site whose triggering situation holds but the standard is absent. Generalizes hand-written AST lints — declare a standard instead of authoring a bespoke lint. Detection-only; never edits code.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Checking that a baseline standard is applied everywhere its situation\noccurs — \"every external DB connection is inside a try\", \"every\noutbound HTTP call sets a timeout\", \"no call to X without guard Y\".\nEach standard is a declarative entry with an `ast` detector; the scan\nis deterministic, cheap, and syntactically precise.\nCensus mode (scripts/census.py) answers the upstream discovery question:\n\"what variants exist, which is the majority, who are the stragglers?\"\nUse census before declaring a standard to understand the current\npopulation; census output feeds /decide and standards declaration.\n",
-      "not_for": "Judgment-heavy ideas that do not reduce to a call/argument/block\npattern (keep those as code review). Structural smells — omnibus,\nduplication, dormant code (use the find-* family). Executing the\nfixes (hand off to /fix-workflow). Authoring a bespoke one-off lint\nwhen no standard will be reused (just write the lint).\n",
-      "language": "python",
+      "not_for": "Judgment-heavy ideas that do not reduce to a call/argument/block\npattern (keep those as code review). Structural smells — omnibus,\nduplication, dormant code (use the find-* family). Executing the\nfixes (hand off to /fix-workflow). Authoring a bespoke one-off lint\nwhen there is no reusable baseline policy (just write the lint).\n",
+      "language": "any",
       "framework": "any",
+      "scans": [
+        "python",
+        "typescript"
+      ],
       "_path": "skills/find-standard-gaps"
     },
     {
