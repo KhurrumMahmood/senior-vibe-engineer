@@ -200,6 +200,10 @@ def test_installed_which_skill_routes_typescript_explanation(tmp_path):
             "dormant code",
             "find-dormant",
         ),
+        (
+            "audit TypeScript call sites for an incomplete option property sweep",
+            "find-incomplete-sweep",
+        ),
     ],
 )
 def test_installed_which_skill_routes_typescript_analysis_skills(

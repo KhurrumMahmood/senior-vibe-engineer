@@ -484,13 +484,17 @@
     },
     {
       "name": "find-incomplete-sweep",
-      "description": "Advisory SUSPECT scan for incomplete sweeps — multi-site changes that were\nstarted but never finished, leaving a forgotten sibling call site at the old\nshape (\"updated N-1 of N\"). v0 implements one band: keyword-argument\nomission — among the call sites of one callee, a keyword the strong majority\nof siblings pass but one straggler does not. Gated on a git-trajectory\nsignal: a divergence counts as a forgotten sweep only when the\nkwarg-present sites were touched more recently than the straggler (the sweep\nlanded after the straggler was last edited). A straggler edited just as\nrecently is reported separately as likely-deliberate. Distinguishes\nabandoned partial work from legitimate post-completion cleanup via residue\ndirection. Detection-only — never edits code; hands off to /fix-workflow.\n",
+      "description": "Advisory SUSPECT scan for incomplete sweeps — multi-site changes that were\nstarted but never finished, leaving a forgotten sibling call site at the old\nshape (\"updated N-1 of N\"). Python retains the keyword-argument omission\nband; TypeScript/TSX v1 uses the host-pinned TypeScript Compiler API to group\nresolved project function calls by object-option property presence. Gated on a git-trajectory\nsignal: a divergence counts as a forgotten sweep only when the\nkwarg-present sites were touched more recently than the straggler (the sweep\nlanded after the straggler was last edited). A straggler edited just as\nrecently is reported separately as likely-deliberate. Distinguishes\nabandoned partial work from legitimate post-completion cleanup via residue\ndirection. Detection-only — never edits code; hands off to /fix-workflow.\n",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Reviewing a human- or AI-authored multi-file change where a sweep across\nsibling call sites may have stopped short: a new keyword argument threaded\nthrough some callers, a proxy/config param added to some call sites, an\noption passed at most but not all of a callee's call sites. The straggler is\nfully live (old shape still referenced and executing), so /find-dormant\ncannot see it. The git-trajectory gate keeps the signal to recently-swept\ndivergences rather than long-stable intentional asymmetry.\n",
       "not_for": "Single-site / one-line changes (no cluster, no sweep) — proceed directly.\nDeclared-intent vs realized-state drift at the plan / idea / ADR / contract\ngranularity (use /find-orphaned-ideas, /find-stale-artifacts,\n/audit-decisions).\nImplemented-but-unwired dead code (use /find-dormant) — that is the\nunreferenced half; this is the over-referenced-at-old-shape half.\nSameness-based duplication to unify (use /find-semantic-duplication or\n/unify-shadows) — this is divergence-within-cluster, not both-live sameness.\nMissing enum TYPE declaration (use /find-implicit-state).\nRefactor execution (this is detection only; hand off to /fix-workflow).\n",
-      "language": "python",
+      "language": "any",
       "framework": "any",
+      "scans": [
+        "python",
+        "typescript"
+      ],
       "_path": "skills/find-incomplete-sweep"
     },
     {
