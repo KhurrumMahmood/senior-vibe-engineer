@@ -30,9 +30,11 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import pathlib
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -81,34 +83,47 @@ def resolve_project_root(explicit: pathlib.Path | None = None) -> pathlib.Path:
 
 
 def assessment_output_path(output: pathlib.Path, project_root: pathlib.Path) -> pathlib.Path:
-    """Accept only a contained assessment report, resolving existing symlinks.
+    """Accept only a contained assessment report with no symlink components.
 
     The assessment is read-only with respect to the host source tree.  Its
     optional persistence surface is deliberately narrower: a report beneath
-    ``reports/rename-concept/`` in the selected project.  Resolve both the
-    report root and candidate before creating parents so an existing symlink
-    cannot redirect the write outside that subtree.
+    ``reports/rename-concept/`` in the selected project.  Validate the logical
+    path before creating parents, and reject every existing symlink component
+    from ``reports/`` through the final filename.  Even an in-project symlink
+    could otherwise redirect a nominal report write into host source.
     """
     project_root = project_root.resolve()
     report_root = project_root / "reports" / "rename-concept"
     candidate = output if output.is_absolute() else project_root / output
+    logical_output = pathlib.Path(os.path.abspath(candidate))
     try:
-        resolved_report_root = report_root.resolve(strict=False)
-        resolved_output = candidate.resolve(strict=False)
-    except (OSError, RuntimeError) as exc:
-        raise ValueError(f"assessment output could not be resolved: {exc}") from exc
-
-    try:
-        resolved_report_root.relative_to(project_root)
-        resolved_output.relative_to(resolved_report_root)
+        relative_output = logical_output.relative_to(report_root)
     except ValueError as exc:
         raise ValueError(
-            "assessment --output must resolve inside "
+            "assessment --output must be inside "
             "<project-root>/reports/rename-concept/"
         ) from exc
-    if resolved_output.exists() and resolved_output.is_dir():
+    if not relative_output.parts:
         raise ValueError("assessment --output must name a file inside reports/rename-concept/")
-    return resolved_output
+
+    current = project_root
+    for part in logical_output.relative_to(project_root).parts:
+        current /= part
+        try:
+            mode = current.lstat().st_mode
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            raise ValueError(f"assessment output component could not be inspected: {exc}") from exc
+        if stat.S_ISLNK(mode):
+            raise ValueError(
+                "assessment --output must not use symlink components inside "
+                "reports/rename-concept/"
+            )
+
+    if logical_output.exists() and logical_output.is_dir():
+        raise ValueError("assessment --output must name a file inside reports/rename-concept/")
+    return logical_output
 
 
 def load_glossary(path: pathlib.Path) -> dict:

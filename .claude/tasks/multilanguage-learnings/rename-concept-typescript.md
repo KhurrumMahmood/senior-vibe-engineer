@@ -1,6 +1,6 @@
 # rename-concept TypeScript compiler-assessment learning handoff
 
-Revision: implementation repairs `5c96af6` and `139c369`; this learning record is committed separately.
+Revision: implementation repairs `5c96af6`, `139c369`, and the final in-tree output-symlink guard.
 Evidence date: 2026-07-19.
 
 ## Invariant
@@ -33,10 +33,11 @@ hit as an identifier reference.
   whole-project type check as the rename gate.
 - `--output reports/rename-concept/assessment.json` persists the lifecycle,
   lexical candidates, compiler evidence, diagnostics, verdict, and open items.
-  The path must resolve within `<project-root>/reports/rename-concept/`; source
-  paths, external paths, and an existing output or ancestor symlink that
-  escapes the report subtree fail before parent creation or writing. Host source
-  stays unchanged.
+  The logical path must stay within `<project-root>/reports/rename-concept/`;
+  source paths, external paths, and every existing final or ancestor symlink
+  component fail before parent creation or writing. Rejecting in-tree symlinks
+  matters too: otherwise `reports -> src` turns a nominal report path into a
+  source overwrite. Host source stays unchanged.
 
 ## Two-stage TypeScript model
 
@@ -88,9 +89,10 @@ shadowed local, import alias, property key, string, and comment.
 
 1. A copied skill runs with `python -I -S`, reports dirty TS/TSX candidate
    classifications, persists JSON, and never mutates source.
-2. Assessment output accepts a contained report and rejects a source-overwrite,
-   external path, and output-ancestor symlink escape without writing outside the
-   report subtree.
+2. Assessment output accepts absolute and relative contained reports; rejects a
+   source path, source symlink, external/traversal path, report root, and every
+   final or ancestor symlink component; and proves `reports -> src` cannot
+   overwrite an existing source file.
 3. Direct ignored directory/file targets, a direct internal directory symlink
    or descendant beneath it, an excluded logical symlink alias, and an external
    symlink are excluded, while a direct ordinary contained directory still
@@ -119,7 +121,7 @@ Observed final verification:
   tests/test_skill_meta_jobs.py \
   tests/test_perimeter_gaps.py \
   tests/test_run_skill_smokes.py
-# 28 passed
+# 29 passed
 
 .venv/bin/python .claude/skills/rename-concept/scripts/smoke.py
 .venv/bin/python scripts/skill_meta.py lint --quiet

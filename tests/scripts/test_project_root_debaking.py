@@ -120,9 +120,8 @@ def test_cdiv_scan_missing_glossary_names_foreign_path(foreign_repo, tmp_path):
     assert str(REPO_ROOT) not in (r.stdout + r.stderr)  # not the kit's
 
 
-def test_cdiv_scan_outside_target_does_not_crash(foreign_repo, tmp_path):
-    """relative_to() used to raise for files outside the anchored root;
-    outside files now degrade to absolute-path labels."""
+def test_cdiv_scan_rejects_outside_target(foreign_repo, tmp_path):
+    """A direct target outside the anchored project is rejected safely."""
     _write_glossary(foreign_repo)
     outside = tmp_path / "elsewhere"
     outside.mkdir()
@@ -132,7 +131,7 @@ def test_cdiv_scan_outside_target_does_not_crash(foreign_repo, tmp_path):
              str(outside), cwd=foreign_repo)
     assert r.returncode == 0, r.stderr
     findings = [json.loads(ln) for ln in out.read_text().splitlines() if ln.strip()]
-    assert any(f["file"] == str(outside / "notes.md") for f in findings)
+    assert findings == []
 
 
 # --- find-incomplete-sweep scan.py: --paths anchor + manifest root ----------- #

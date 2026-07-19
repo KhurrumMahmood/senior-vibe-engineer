@@ -148,10 +148,12 @@ old/new candidate. If the host compiler is unavailable, an old-concept symbol
 remains, a candidate cannot be resolved, or no new-concept declaration exists,
 or parsing/relevant resolution diagnostics are present, the verdict stays
 incomplete. `--output` persists this exact read-only evidence as JSON; it
-accepts only paths that resolve inside
+accepts only logical paths inside
 `<project-root>/reports/rename-concept/`. Source paths, paths outside that
-subtree, and an existing output/ancestor symlink that escapes it are rejected
-before parent directories are created; it never alters a host source file.
+subtree, and any existing output/ancestor symlink component beneath the logical
+report path are rejected before parent directories are created — including an
+in-project symlink that redirects `reports/` into source. It never alters a
+host source file.
 
 Reports, read-only:
 

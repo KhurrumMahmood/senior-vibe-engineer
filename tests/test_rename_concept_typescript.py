@@ -134,13 +134,31 @@ def test_installed_assessment_finds_ts_and_tsx_drift_without_mutating_source(tmp
         if path.name != "external.ts"
     }
 
+    relative_assessment = Path("reports/rename-concept/relative-assessment.json")
+    relative_result = _run(
+        installed / "scripts" / "assess.py",
+        "legacy-status",
+        "canonical-status",
+        "--project-root",
+        str(host),
+        "--output",
+        str(relative_assessment),
+        cwd=tmp_path,
+    )
+    assert relative_result.returncode == 0, relative_result.stdout + relative_result.stderr
+    assert (host / relative_assessment).is_file()
+
     escaped_output = tmp_path / "escaped-assessment.json"
     escape_dir = host / "reports" / "rename-concept" / "escape"
     escape_dir.parent.mkdir(parents=True, exist_ok=True)
     os.symlink(tmp_path, escape_dir)
     for rejected_output in (
+        host / "reports",
+        host / "reports" / "rename-concept",
         host / "src" / "transition.ts",
+        host / "src" / "external.ts",
         escaped_output,
+        Path("../escaped-relative-assessment.json"),
         escape_dir / "assessment.json",
     ):
         rejected = _run(
@@ -157,11 +175,64 @@ def test_installed_assessment_finds_ts_and_tsx_drift_without_mutating_source(tmp
         assert "reports/rename-concept" in rejected.stderr
     assert not escaped_output.exists()
     assert not (tmp_path / "assessment.json").exists()
+    assert not (host.parent / "escaped-relative-assessment.json").exists()
+    assert outside.read_text(encoding="utf-8") == (
+        "export const legacyStatus = canonicalStatus; // legacy status\n"
+    )
     assert source_before == {
         path.relative_to(host).as_posix(): path.read_bytes()
         for path in (host / "src").glob("*")
         if path.name != "external.ts"
     }
+
+
+def test_assessment_output_rejects_all_in_tree_symlink_components(tmp_path: Path) -> None:
+    installed = _copy_installed_skills(tmp_path)
+    host = _make_host(tmp_path)
+    report_root = host / "reports" / "rename-concept"
+    contained = report_root / "contained"
+    contained.mkdir(parents=True)
+
+    final_target = contained / "final-target.json"
+    final_target.write_text("preserve final target\n", encoding="utf-8")
+    final_alias = report_root / "final-alias.json"
+    os.symlink(final_target, final_alias)
+
+    ancestor_alias = report_root / "ancestor-alias"
+    os.symlink(contained, ancestor_alias)
+
+    report_alias_root = tmp_path / "report-alias-case"
+    report_alias_root.mkdir()
+    report_alias_host = _make_host(report_alias_root)
+    source_report_dir = report_alias_host / "src" / "rename-concept"
+    source_report_dir.mkdir()
+    source_victim = source_report_dir / "victim.py"
+    source_victim.write_text("ORIGINAL_SOURCE_CONTENT = True\n", encoding="utf-8")
+    source_before = source_victim.read_bytes()
+    os.symlink(report_alias_host / "src", report_alias_host / "reports")
+
+    cases = (
+        (host, final_alias),
+        (host, ancestor_alias / "assessment.json"),
+        (report_alias_host, report_alias_host / "reports" / "rename-concept" / "victim.py"),
+    )
+    for project_root, rejected_output in cases:
+        rejected = _run(
+            installed / "scripts" / "assess.py",
+            "legacy-status",
+            "canonical-status",
+            "--project-root",
+            str(project_root),
+            "--output",
+            str(rejected_output),
+            cwd=tmp_path,
+        )
+        assert rejected.returncode == 2
+        assert "symlink components" in rejected.stderr
+
+    assert final_target.read_text(encoding="utf-8") == "preserve final target\n"
+    assert not (contained / "assessment.json").exists()
+    assert source_victim.read_bytes() == source_before
 
 
 def test_coupled_scanner_uses_project_relative_exclusions_and_never_follows_escape(tmp_path: Path) -> None:

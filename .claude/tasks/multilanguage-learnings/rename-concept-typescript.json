@@ -1,6 +1,6 @@
 {
   "batch": "rename-concept-typescript-compiler-v1",
-  "revision": "implementation repairs 5c96af6 and 139c369; this learning record is committed separately",
+  "revision": "implementation repairs 5c96af6, 139c369, and the final in-tree output-symlink guard",
   "family": ["rename-concept"],
   "invariant": {
     "portable_principle": "A lexical concept scan surfaces retired prose and identifier candidates; TypeScript completion additionally requires host-pinned Compiler API evidence with explicit symbol authority and blocking diagnostics.",
@@ -49,10 +49,10 @@
       "comment_text",
       "non_identifier_text"
     ],
-    "persistent_output": "--output reports/rename-concept/assessment.json contains lifecycle, lexical candidate, compiler, diagnostic, verdict, and open-item evidence; it must resolve inside that report subtree, so source/external paths and escaping output symlinks are rejected before mkdir/write."
+    "persistent_output": "--output reports/rename-concept/assessment.json contains lifecycle, lexical candidate, compiler, diagnostic, verdict, and open-item evidence; its logical path must stay inside that report subtree and every existing final or ancestor symlink component is rejected before mkdir/write, including in-tree aliases such as reports -> src."
   },
   "tree_safety": {
-    "principles": ["contained assessment output writes", "root-relative logical direct-target exclusions", "external-symlink containment", "no directory symlink traversal, including direct targets and descendants"],
+    "principles": ["contained assessment output writes with no final or ancestor symlink components", "root-relative logical direct-target exclusions", "external-symlink containment", "no directory symlink traversal, including direct targets and descendants"],
     "must_not_scan": ["host node_modules", "dist", "migrations", "reports", "external symlink targets"],
     "must_scan": ["a host nested under an ancestor named node_modules", "root-contained .ts and .tsx sources in the coupled scanner default surface"]
   },
@@ -60,7 +60,7 @@
     "fixture": "tests/fixtures/rename-concept-typescript/host/",
     "focused_cases": [
       "Copied python -I -S dirty TS/TSX assessment and source immutability",
-      "Contained assessment output plus source/external/escaping-symlink output rejection without writes",
+      "Absolute and relative contained assessment output plus report-root, source/source-symlink, external/traversal, and every final/ancestor symlink rejection without writes, including reports -> src source-overwrite prevention",
       "Direct ignored targets, direct internal directory symlink or descendant, excluded logical symlink alias, and escaped symlink exclusion; ordinary contained target still scans",
       "Stock documented one-command exact-two skill install/preflight/assess journey with COMPLETE clean host report",
       "Missing host TypeScript compiler blocks with structured evidence",
@@ -70,7 +70,7 @@
       "Internal-only names cannot establish authority"
     ],
     "native_test_command": ".venv/bin/python -m pytest -q tests/test_rename_concept_typescript.py",
-    "regression_result": "28 passed: TypeScript suite plus B1 portability, skill metadata, perimeter, and skill smoke tests."
+    "regression_result": "29 passed: TypeScript suite plus B1 portability, skill metadata, perimeter, and skill smoke tests."
   },
   "reuse_decision": {
     "shared_candidate": "find-concept-divergence lexical scanner",
