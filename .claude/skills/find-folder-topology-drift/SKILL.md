@@ -78,7 +78,7 @@ Keep these TypeScript shapes clean:
 
 - fewer than three siblings or three mixed first tokens;
 - `index.ts` / `index.tsx`, `.d.ts`, `*.spec.ts[x]`, and `*.test.ts[x]`;
-- anything under `tests/`, `__tests__/`, `generated/`, `vendor/`,
+- anything under `tests/`, `test/`, `__tests__/`, `specs/`, `generated/`, `vendor/`,
   `node_modules/`, `dist/`, `build/`, `coverage/`, or `reports/`;
 - any path subtracted by a repeatable, additive `--exclude PATTERN`.
 
