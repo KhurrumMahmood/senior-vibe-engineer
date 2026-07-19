@@ -1,6 +1,6 @@
 ---
 name: find-implicit-state
-description: Detect stringly-typed state comparisons and tuple-inferred identity patterns. Runs an AST scan for bare string literals compared to `.status`/`.phase`/`.state`, model fields declared without a `TextChoices` enum, and `.filter(status=..., *_at__...).first()` identity-inference shapes; collapses hits by file, fans out scout sub-agents to bucket each candidate, and produces a report that hands off to `/extract-enum` or `/introduce-fk`. Detection-only — never edits production code.
+description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus a narrow TypeScript closed-state branch. The TypeScript branch uses the host project's pinned Compiler API to distinguish first-party bare state operations from typed authorities, vendor wire boundaries, tests/fixtures, unrelated status text, and open-ended strings. Detection-only — never edits production code.
 argument-hint: "--target <directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
@@ -11,12 +11,17 @@ best_for: |
   literals; `.filter(status=..., *_at__...)` tuple-inferred identity.
   Targets the stringly-typed-state smell. Decided in: 0001
   (TextChoices for state).
+  In TypeScript, closed state receivers with repeated bare string
+  comparisons or assignments and a host-owned Compiler API.
 not_for: |
   Refactor execution — hands off to /extract-enum or /introduce-fk
   for the proposal, then /fix-workflow for execution. Lexical
   duplication on jscpd-only matches (use /find-duplication).
-language: python
-framework: django
+  Untyped/open-ended TypeScript strings, TypeScript ORM semantics, and a
+  generic TypeScript lint generator.
+language: any
+framework: any
+scans: [python, typescript]
 scout_model: cheap
 ---
 
@@ -48,6 +53,38 @@ don't.
   `/extract-enum <symbol>` or `/introduce-fk <symbol>`.
 - Zero edits to production code — detection-only audit.
 Write toward these gates from Stage 0.
+
+## TypeScript closed-state branch
+
+Use this branch only for .ts / .tsx code whose first-party
+state/status/phase receiver resolves to a closed string-literal union or
+project-native enum. Its supported outcome is evidence for replacing repeated
+first-party bare literals with an exported as const runtime value object and a
+derived union type. It does not claim a TypeScript ORM, migration,
+tuple-identity, or general text-literal detector.
+
+**Host prerequisites:** the target project owns a compatible typescript package
+and a readable tsconfig.json. The launcher resolves typescript from that
+project's package.json; it never uses a toolkit, global, or downloaded
+compiler. A missing package or tsconfig is a clear exit 2, not a lexical
+fallback.
+
+Run this branch instead of Python Stages 1–4:
+
+    REPORT_DIR="reports/implicit-state/scan-typescript-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$REPORT_DIR"
+    node .claude/skills/find-implicit-state/scripts/detect_typescript_state.mjs \
+      --target "$(pwd)" \
+      --project-root "$(pwd)" \
+      --tsconfig "$(pwd)/tsconfig.json" \
+      --output "$REPORT_DIR/findings.jsonl"
+
+Grade the run from the emitted JSONL and stderr line
+[detect_typescript_state]: it must contain first-party operations only for the
+migration candidate, while retaining classification records for typed
+authorities, vendor wire boundaries, tests/fixtures, unrelated status text,
+and open-ended strings. Hand that exact JSONL to the TypeScript branch of
+/extract-enum; do not run the Django collapse/scout/report stages on it.
 
 ## Scope
 

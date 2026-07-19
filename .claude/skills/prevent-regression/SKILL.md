@@ -31,7 +31,7 @@ not_for: |
   execution (use /fix-workflow or /refactor-subsystem). One-off
   pattern fixes the team has decided NOT to enforce broadly (just
   fix in place).
-language: python
+language: any
 framework: any
 ---
 
@@ -94,6 +94,38 @@ It blocks a bare string Django field, comparison, or assignment and accepts
 only a reasoned `# noqa: stringly-status: <reason>` vendor boundary. This is a
 family-local reference guard; it does not generate or install unrelated
 general-purpose rules.
+
+### TypeScript closed-state guard
+
+For a reviewed TypeScript closed-state proposal, stage—not install—the
+family-local Compiler API guard. This branch supports only first-party bare
+string assignments and comparisons on a closed state/status/phase receiver.
+It requires the host's pinned typescript package and tsconfig; missing or
+incompatible prerequisites exit 2 clearly. It does not create a general
+TypeScript lint generator, root lint wiring, or an ORM-aware rule.
+
+    ID="typescript-state"
+    OUT="reports/prevent-regression/$ID"
+    node .claude/skills/prevent-regression/scripts/generate_typescript_state_guard.mjs \
+      --id "$ID" \
+      --project-root "$(pwd)" \
+      --tsconfig "$(pwd)/tsconfig.json" \
+      --output-root "$OUT"
+
+    node .claude/skills/prevent-regression/scripts/verify_typescript_state_guard.mjs \
+      --rule "$OUT/scripts/lint/no_stringly_state.mjs" \
+      --bad "$OUT/tests/lint/no_stringly_state_bad.ts" \
+      --bad-tsx "$OUT/tests/lint/no_stringly_state_bad.tsx" \
+      --good "$OUT/tests/lint/no_stringly_state_good.ts" \
+      --good-tsx "$OUT/tests/lint/no_stringly_state_good.tsx"
+
+The completed report contains the staged no_stringly_state.mjs guard, paired
+TS/TSX bad and good fixtures, and host-wiring.diff. The verifier must paste
+BAD_RC=1, GOOD_RC=0; the generated guard uses exit 0 for clean, 1 for
+violations, and 2 for invocation/prerequisite/syntax errors. A reasoned
+noqa comment suppresses only the matched vendor-boundary line. The serial
+integrator, not this skill, owns applying host-wiring.diff to a global lint
+runner or hook.
 
 ## Argument parsing
 
