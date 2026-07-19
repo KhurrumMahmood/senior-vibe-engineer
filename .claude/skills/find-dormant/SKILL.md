@@ -1,7 +1,7 @@
 ---
 name: find-dormant
-description: Detect dead and quasi-dead code. Runs vulture + AST "defined but never referenced" checks, validates every candidate against real call sites, cross-references URL patterns with template URL-name usage, runs a git-log recency check, and produces a deletion-candidates report with evidence. Never deletes unilaterally — surfaces findings for user authorization, then hands off to `/fix-workflow`.
-argument-hint: "--target <directory>"
+description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX v1 uses a host-pinned Compiler API Program/TypeChecker to report non-exported, statically unreferenced top-level implementation candidates for human review. Never infers safe deletion from TypeScript static evidence.
+argument-hint: "--target <directory-or-file> [--language python|typescript]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -10,14 +10,19 @@ best_for: |
   Detecting dead and quasi-dead Python code, unused URL patterns,
   defined-but-unreferenced symbols. Validates against real call sites
   and template URL-name usage; cross-checks git-log recency. Never
-  deletes — surfaces evidence for /fix-workflow delete:<id>.
+  deletes — surfaces evidence for /fix-workflow delete:<id>. TypeScript/TSX
+  v1 reports only non-exported top-level implementations with zero resolved
+  static symbol references, and always requires human runtime review.
 not_for: |
   Removing flagged code (use /fix-workflow delete:<id>). Architectural
   smells like omnibus or layer violation (use those /find-* skills).
   Semantic duplication where two implementations coexist (use
-  /find-semantic-duplication).
-language: python
-framework: django
+  /find-semantic-duplication). TypeScript routes/endpoints, error swallowing,
+  dynamic imports, external consumers, registry/event/framework reachability,
+  or safe-deletion decisions are outside the TypeScript v1 contract.
+language: any
+framework: any
+scans: [python, typescript]
 scout_model: cheap
 ---
 
@@ -33,24 +38,101 @@ silently-broken, orphan-entry-with-live-internals) and the 6-step
 verification are documented in
 `knowledge/verification.md` — scouts read it, you don't.
 
+## TypeScript / TSX v1
+
+Use this separate branch only when the host supplies a named, project-local
+`tsconfig.json` and a `typescript` package installed under that host. The
+family-local Compiler API `Program` and `TypeChecker` identify **non-exported
+top-level functions, classes, and function-valued variables** with no resolved
+static symbol references in eligible `.ts`/`.tsx` project files.
+
+The result is a human-review candidate, never a deletion verdict. Dynamic and
+external consumers, registries, event handlers, framework callbacks, routes,
+endpoints, error swallowing, and runtime imports are outside the static model.
+The TypeScript branch must never infer safe deletion from a static result.
+In particular, registry, event, and framework callback shapes must not become
+static deletion candidates merely because their runtime dispatch is unknown.
+An exact matching string name is emitted as `uncertain`, not a candidate. A
+missing/invalid `tsconfig`, missing project-local Compiler API, or TypeScript
+syntax error exits 2. Unresolved static module specifiers produce a final
+`partial` report; they are never silently represented as a clean project.
+
+The TypeScript detector accepts a file or directory target, applies the same
+project-root-relative exclusion policy to broad and direct targets, and never
+follows an internal or external symbolic link. It writes only
+`reports/find-dormant/<scan>/report.md` and `findings.json`; report directories
+outside that location or through a symlink are rejected before a write.
+
+### Installed TypeScript command
+
+Set `FIND_DORMANT_SOURCE` to the pinned skill source/ref, then install exactly
+this selected skill. From the host root, run the second command with the target
+and tsconfig that should be audited. It uses no toolkit Python environment,
+repository script, sibling skill, or network access after installation.
+
+<!-- installed-command:stock-install:start -->
+```bash
+: "${FIND_DORMANT_SOURCE:?Set this to the pinned skill source/ref}"
+npx --yes skills@1.5.19 add "${FIND_DORMANT_SOURCE}" \
+  --skill find-dormant --agent codex --copy -y
+```
+<!-- installed-command:stock-install:end -->
+
+<!-- installed-command:typescript-scan:start -->
+```bash
+: "${TARGET:?Set TARGET to the TypeScript/TSX file or directory to audit}"
+TSCONFIG="${TSCONFIG:-tsconfig.json}"
+REPORT_NAME="${REPORT_NAME:-typescript-scan}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/find-dormant" \
+  ".claude/skills/find-dormant"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-dormant is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+node "${SKILL_ROOT}/scripts/detect_typescript_dormant.mjs" \
+  --target "${TARGET}" \
+  --project-root "$(pwd)" \
+  --tsconfig "${TSCONFIG}" \
+  --report-dir "reports/find-dormant/${REPORT_NAME}"
+```
+<!-- installed-command:typescript-scan:end -->
+
+Run the host's native `npm run typecheck` and tests before and after the audit.
+The detector reports its own named-tsconfig resolution state, but does not
+repair host diagnostics or establish runtime reachability.
+
 ## How success is judged
 
-- Every deletion candidate in `${REPORT_DIR}/report.md` carries a
+- Every Python deletion candidate in `${REPORT_DIR}/report.md` carries a
   Stage 3 scout verdict at `scout/<candidate_id>.json` with call-site
   evidence and a bucket (`certain_delete` / `orphan_endpoint` /
   `quasi_dead_broken` / `false_positive`); recency was checked.
 - `external_api_risk` orphan endpoints are flagged for human
   confirmation, never bucketed `certain_delete` silently.
+- Every TypeScript final report carries explicit `review_required` and
+  `uncertain` counts plus `certain_delete: 0`; no static finding crosses into a
+  Python scout/deletion bucket.
 - Nothing is deleted — recommendations route to `/fix-workflow
   delete:<name>` or `fix:<name>` after user authorization.
 Write toward these gates from Stage 0.
 
 ## Scope
 
-- **Target path:** the required `--target` argument. Must be a
-  directory.
+- **Target path:** the required `--target` argument. Python requires a
+  directory; TypeScript v1 accepts a `.ts`/`.tsx` file or directory.
 - **Project root:** this worktree's root.
 - **Python:** `.venv/bin/python` (never bare `python`).
+- **TypeScript v1:** Node plus a project-local `typescript` package and named
+  tsconfig. Its static program/type-checker model is intentionally separate
+  from the Python/Django detector and scout pipeline.
 - **Project-specific defaults** (grep locations, Django false
   positives, dynamic-dispatch patterns, candidate skip list): in
   `knowledge/`.
@@ -274,6 +356,8 @@ The report is the source of truth — do not enumerate every candidate.
 - Detecting duplication (that's `/find-duplication` /
   `/find-semantic-duplication`).
 - CI gates — periodic audit, not a per-commit check.
+- TypeScript safe deletion, framework/API ownership, dynamic dispatch, or any
+  route/endpoint/error-swallowing assessment.
 
 ## When things go sideways
 
@@ -297,7 +381,8 @@ The report is the source of truth — do not enumerate every candidate.
 │   ├── detect_unreferenced.py       # Stage 1
 │   ├── detect_silent_catches.py     # Stage 1
 │   ├── collapse.py                  # Stage 2
-│   └── report.py                    # Stage 4
+│   ├── report.py                    # Stage 4
+│   └── detect_typescript_dormant.mjs # TypeScript v1 final report
 ├── agents/
 │   └── verify.md                    # Stage 3 scout brief
 └── knowledge/                       # sub-agent context, never loaded by orchestrator
