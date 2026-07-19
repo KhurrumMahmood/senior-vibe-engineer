@@ -29,7 +29,20 @@ SKIP_DIRS = {
     "reports",
 }
 TEST_GLOBS = ("test_*.py", "tests_*.py", "tests.py", "conftest.py")
-TYPESCRIPT_SKIP_DIRS = {"__tests__", "fixtures", "generated", "test", "tests", "vendor"}
+TYPESCRIPT_SKIP_DIRS = {
+    "__tests__",
+    "build",
+    "coverage",
+    "dist",
+    "fixture",
+    "fixtures",
+    "generated",
+    "spec",
+    "specs",
+    "test",
+    "tests",
+    "vendor",
+}
 TYPESCRIPT_SKIP_GLOBS = (
     "*.d.ts", "*.d.tsx", "*.generated.ts", "*.generated.tsx",
     "*.min.ts", "*.min.tsx", "*-min.ts", "*-min.tsx",
@@ -549,18 +562,19 @@ def _iter_python_files(project_root: Path, paths: Iterable[str], include_tests: 
     return sorted(dict.fromkeys(clean))
 
 
-def _typescript_path_is_excluded(path: Path, target: Path) -> bool:
+def _typescript_path_is_excluded(path: Path, project_root: Path) -> bool:
     try:
-        parts = path.relative_to(target).parts
+        parts = path.relative_to(project_root).parts
     except ValueError:
         parts = path.parts
-    if any(part.lower() in TYPESCRIPT_SKIP_DIRS for part in parts[:-1]):
+    skipped_dirs = SKIP_DIRS | TYPESCRIPT_SKIP_DIRS
+    if any(part.lower() in skipped_dirs for part in parts[:-1]):
         return True
     return any(fnmatch.fnmatchcase(path.name, glob) for glob in TYPESCRIPT_SKIP_GLOBS)
 
 
 def _iter_typescript_files(project_root: Path, paths: Iterable[str]) -> list[Path]:
-    found: list[tuple[Path, Path]] = []
+    found: list[Path] = []
     for raw in paths:
         raw_path = Path(raw)
         candidates: Iterable[Path]
@@ -571,18 +585,16 @@ def _iter_typescript_files(project_root: Path, paths: Iterable[str]) -> list[Pat
             candidates = [candidate]
         for candidate in candidates:
             if candidate.is_file() and candidate.suffix.lower() in {".ts", ".tsx"}:
-                found.append((candidate, candidate.parent))
+                found.append(candidate)
             elif candidate.is_dir():
                 found.extend(
-                    (path, candidate)
+                    path
                     for path in candidate.rglob("*")
                     if path.is_file() and path.suffix.lower() in {".ts", ".tsx"}
                 )
     clean: list[Path] = []
-    for path, target in found:
-        if set(path.parts) & SKIP_DIRS:
-            continue
-        if _typescript_path_is_excluded(path, target):
+    for path in found:
+        if _typescript_path_is_excluded(path, project_root):
             continue
         clean.append(path.resolve())
     return sorted(dict.fromkeys(clean))

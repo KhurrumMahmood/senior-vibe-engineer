@@ -169,6 +169,49 @@ def test_typescript_syntax_and_prerequisite_failures_are_clear(tmp_path: Path) -
     assert "cannot run bundled TypeScript parser" in missing_node.stderr
 
 
+def test_typescript_exclusions_are_project_relative_for_direct_targets(tmp_path: Path) -> None:
+    host = _copy_host(tmp_path)
+    source = host / "src" / "complexity.ts"
+    excluded_dirs = (
+        "__tests__",
+        "build",
+        "coverage",
+        "dist",
+        "fixture",
+        "fixtures",
+        "generated",
+        "node_modules",
+        "reports",
+        "spec",
+        "specs",
+        "test",
+        "tests",
+        "vendor",
+    )
+
+    for directory_name in excluded_dirs:
+        directory = host / "src" / directory_name / "nested"
+        directory.mkdir(parents=True, exist_ok=True)
+        target = directory / "complexity.ts"
+        shutil.copy2(source, target)
+        for selected_target in (directory, target):
+            output = host / f"{directory_name}-{selected_target.name}.jsonl"
+            result = _run(
+                sys.executable,
+                str(SKILL / "scripts" / "detect.py"),
+                "--project-root",
+                str(host),
+                "--output",
+                str(output),
+                "--language",
+                "typescript",
+                str(selected_target),
+                cwd=host,
+            )
+            assert result.returncode == 0, result.stdout + result.stderr
+            assert _records(output) == [], selected_target
+
+
 def test_copied_skill_runs_without_toolkit_or_sibling_runtime(tmp_path: Path) -> None:
     host = _copy_host(tmp_path)
     installed = tmp_path / "installed" / "find-complexity-hotspots"
