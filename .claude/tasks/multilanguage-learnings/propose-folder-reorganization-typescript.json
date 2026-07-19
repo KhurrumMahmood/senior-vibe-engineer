@@ -1,0 +1,95 @@
+{
+  "batch": "TypeScript propose-folder-reorganization candidate",
+  "revision": "pending single logical commit on codex/ts-propose-folder-reorganization (base 6dfd0604c399ebe9029ed793ef9496272214bcb9)",
+  "family": ["propose-folder-reorganization"],
+  "invariant": {
+    "portable_principle": "A folder-move proposal may claim complete impact only when it enumerates every supported resolved static importer, its post-move specifier, explicit compatibility decision, and native verification plan; structural naming alone never authorizes a move.",
+    "python_or_framework_mechanism": "Preserve the existing Python AST inspection and Python/Django convention behavior unchanged.",
+    "typescript_mechanism": "A family-local host TypeScript Compiler API command resolves a named tsconfig's relative and paths-alias static module specifiers, calculates post-move specifiers, and writes proposal and inspection artifacts.",
+    "explicit_non_goals": [
+      "Executing file moves or import edits",
+      "Dynamic imports, CommonJS require calls, runtime loader, or external package reachability",
+      "Automatic cohesion, framework, React, Node, Next, ORM, or test-framework inference",
+      "Legacy file shims for direct subpaths",
+      "A shared TypeScript parser, resolver, or refactor platform"
+    ]
+  },
+  "reference_repairs": [
+    "Python inspect.py is unchanged; a focused positive import-impact and below-threshold replay protects its reference behavior.",
+    "Corrected TypeScript internal relative-import rewrite calculation to use the moved importer's destination rather than its original directory."
+  ],
+  "language_model": {
+    "syntax": [".ts and .tsx direct siblings", "static import/export-from/import-equals module specifiers", "index.ts/x barrels as importers but not cluster members"],
+    "type_system": ["Compiler Program syntax diagnostics block malformed selected source.", "TypeChecker module exports supply proposed new-barrel re-export names."],
+    "module_resolution": ["Named project-local tsconfig supplies compiler options and paths aliases.", "resolveModuleName resolves direct relative and paths-alias edges.", "Unresolved or symlink-blocked selected-member imports block the proposal."],
+    "runtime": ["Host Node and a TypeScript package resolved from host package.json.", "Locked fixture package-lock pins TypeScript 5.9.3."],
+    "framework": ["No framework assumption; TSX is a source extension only."]
+  },
+  "tooling": {
+    "selected": "Family-local Node TypeScript Compiler API resolver and checker in propose_typescript.mjs.",
+    "rejected_alternatives": {
+      "lexical_import_scan": "Cannot prove paths-alias destinations or distinguish unresolved facts from complete impact.",
+      "ts_morph_or_tree_sitter": "Adds dependencies without improving the accepted static module proposal.",
+      "shared_platform": "map-subsystem has a different final outcome, failure policy, and artifact surface; reuse is not yet a justification for shared runtime code.",
+      "automatic_cohesion_or_framework_policy": "Would overclaim a human and framework judgment that the locked fixture cannot establish."
+    },
+    "version_and_resolution": "The fixture lock pins TypeScript 5.9.3. Installed execution resolves only from the host package.json and rejects a resolved package outside project root.",
+    "closure_mode": "The selected skill bundles the Node command and no runtime imports from repository scripts, _common, sibling skills, or a toolkit venv.",
+    "preflight_and_failure_codes": ["Exit 2 for missing/outside/symlinked parent, tsconfig, or artifact path; invalid config/syntax; or missing project TypeScript.", "Write a blocked final artifact for unresolved or unsafe selected-member static imports.", "Write explicit deferred final artifacts for below-threshold, cohesive, scratch, and excluded targets."]
+  },
+  "outcome_contract": {
+    "inputs": ["Locked TypeScript 5.9.3 host with named paths-aware tsconfig", "One direct three-sibling cluster", "Human split/cohesive judgment", "Proposal and inspection paths under reports/propose-folder-reorganization"],
+    "structured_outputs": ["reports/propose-folder-reorganization/<name>/proposal.md", "reports/propose-folder-reorganization/<name>/inspection.json"],
+    "must_fire": ["Three billing source moves", "Seven complete resolved static impact rows including internal, relative, alias, and barrel re-export consumers", "Explicit preserve-existing-barrels/migrate-subpaths decision", "Blocked unresolved selected-member import", "Native typecheck after disposable move-plan application"],
+    "must_not_fire": ["Two-file, cohesive, scratch, generated, vendor, and test clusters", "Direct excluded targets", "Logical path escape and target/artifact symlink traversal", "Python reference behavior regression", "Repository runtime dependency after stock selected-skill install"],
+    "native_test_command": "npm ci --offline --ignore-scripts && npm run typecheck",
+    "native_guard_command": null
+  },
+  "evidence": {
+    "python_reference": ["tests/test_propose_folder_reorganization_typescript.py::test_python_reference_inspection_preserves_positive_and_below_threshold_oracles"],
+    "typescript": ["tests/test_propose_folder_reorganization_typescript.py asserts final proposal/JSON, move-plan native typecheck, deferrals, block, symlink safety, and selected stock install."],
+    "commands_and_artifact_paths": [".venv/bin/python -m pytest tests/test_propose_folder_reorganization_typescript.py -q: 7 passed", "node --check .claude/skills/propose-folder-reorganization/scripts/propose_typescript.mjs: passed", ".venv/bin/python -m ruff check tests/test_propose_folder_reorganization_typescript.py: All checks passed", ".venv/bin/python -m pytest tests/test_yaml_frontmatter.py tests/test_skill_meta_jobs.py tests/test_skill_taxonomy.py -q: 15 passed", ".venv/bin/python scripts/skill_meta.py lint: OK — 76 skills, 76 declaring new contract", "git diff --check: clean", "Installed replay writes .agents/skills/propose-folder-reorganization and reports/propose-folder-reorganization/installed-billing/{proposal.md,inspection.json} in its disposable outside-checkout host."],
+    "fresh_forward": {
+      "task": "Install only propose-folder-reorganization into a clean TypeScript host and create a read-only billing cluster proposal from the documented command.",
+      "installed_skill": "temporary outside-checkout host .agents/skills/propose-folder-reorganization",
+      "report_dir": "temporary outside-checkout host reports/propose-folder-reorganization/installed-billing",
+      "result": "Not run by the independent agent: command.package_install blocked npm ci --offline --ignore-scripts and the subsequent stock npx install because no user-approved scoped grant was available. The dedicated automated stock-install test separately proves selected-skill closure.",
+      "independent_agent": false,
+      "replay_kind": "fresh-host natural-command replay asserted by the dedicated stock-install test"
+    }
+  },
+  "false_positive_boundary": {
+    "known_false_positives": ["Static resolution cannot establish runtime or external-consumer reachability."],
+    "known_false_negatives": ["Dynamic imports, require calls, unsupported package specifiers, and excluded/symlinked paths are deliberately absent."],
+    "legitimate_similar_shapes": ["Cohesive clusters require explicit defer judgment.", "Existing index barrels are impact importers, not candidate members.", "Direct excluded targets defer rather than bypass source policy."]
+  },
+  "generalized": ["Host-pinned Compiler API loading", "Named-tsconfig direct/alias resolution", "Post-move relative specifier calculation", "Project-root direct-target exclusions", "Safe report path containment", "Final artifact and copied install proof"],
+  "did_not_generalize": ["Python AST package semantics", "Framework conventions", "Dynamic or runtime import reachability", "External package compatibility", "A generic move executor", "A shared Compiler API runtime"],
+  "reuse_decision": {
+    "shared_candidate": "Named host tsconfig Compiler API static module resolver",
+    "actual_second_consumer": "map-subsystem is the accepted prerequisite consumer; this proposal is a separate local consumer.",
+    "decision": "keep-family-local",
+    "evidence": ["map-subsystem and this skill need different source inventories, completeness statuses, artifact locations, and native handoffs.", "Selected-skill closure is clearer with a local command until an identical resolver/output contract is demonstrated."],
+    "owner": "propose-folder-reorganization TypeScript v1"
+  },
+  "translation_prerequisites": {
+    "rust": {"native_tool": "rust-analyzer or compiler-backed crate resolver", "idiomatic_representation": "use/re-export, mod.rs/lib.rs, Cargo workspace", "required_fixtures": ["direct/crate alias import", "barrel", "generated/test exclusions", "cargo check after plan"], "semantic_gaps": ["macros", "cfg", "workspace resolution"]},
+    "go": {"native_tool": "go/packages and go/types", "idiomatic_representation": "package imports and go.mod", "required_fixtures": ["module alias import", "_test.go/generated/vendor", "go test after plan"], "semantic_gaps": ["build tags", "replace/workspace semantics"]},
+    "java_or_kotlin": {"native_tool": "compiler model or language server", "idiomatic_representation": "package imports and Gradle/Maven source sets", "required_fixtures": ["multi-module import", "generated/test", "native build after plan"], "semantic_gaps": ["annotation processing", "multi-module resolution"]},
+    "csharp": {"native_tool": "Roslyn workspace", "idiomatic_representation": "project/namespace imports", "required_fixtures": ["project reference", "partial/generated/test", "dotnet build after plan"], "semantic_gaps": ["conditional compilation", "NuGet graph"]},
+    "ruby": {"native_tool": "Prism/Ripper plus explicit loader contract", "idiomatic_representation": "require and autoload convention", "required_fixtures": ["direct require", "spec/vendor", "native test after plan"], "semantic_gaps": ["dynamic requires", "constant lookup"]}
+  },
+  "user_experience": {
+    "install_steps": ["Set a pinned PROPOSE_FOLDER_REORGANIZATION_SOURCE and run the documented stock add command.", "Run the documented TypeScript proposal command with PFR_PARENT, PFR_PREFIX, PFR_CLUSTER_JUDGMENT, PFR_NAME, and optional PFR_TSCONFIG.", "Read inspection JSON and proposal Markdown before any move; run native typecheck before and after a human-approved move."],
+    "wall_time_seconds": null,
+    "agent_confusions": ["Filename clustering is not a cohesion verdict.", "A complete impact table must include imports internal to the moved cluster.", "An index barrel is excluded from candidate members but must remain an importer in the resolved table."],
+    "repeated_work": ["The accepted map-subsystem resolver supplied proof requirements but no source code was imported, preserving selected-skill closure."],
+    "smallest_later_improvement": "Accept a confirmed detector finding ID as input while retaining the explicit human cohesion judgment."
+  },
+    "residual_risks": ["A host must provide Node, package.json, project-local TypeScript, and a valid named tsconfig.", "Dynamic/runtime and external package reachability remain unavailable.", "A fresh independent agent was dispatched but blocked before npm ci --offline --ignore-scripts and stock npx install by command.package_install policy; D6 needs an explicit user-approved scoped grant before serial integration.", "No shared resolver extraction is justified yet."],
+  "next_decision": {
+    "recommendation": "Review and accept this narrow TypeScript proposal outcome; retain local resolver implementation.",
+    "rationale": "It proves a final read-only proposal, complete supported import impact, native feasibility, safe deferrals/blocks, and selected-skill stock closure without a platform or framework claim.",
+    "blockers": ["Serial integrator owns catalog/router/coverage-matrix/tracker changes outside this lane.", "An independent fresh-agent D6 review remains advisable before TypeScript-supported disposition is promoted."]
+  }
+}
