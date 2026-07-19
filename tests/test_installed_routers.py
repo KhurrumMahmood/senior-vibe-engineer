@@ -155,6 +155,15 @@ def test_installed_which_skill_routes_typescript_explanation(tmp_path):
             "spans and enclosing symbols",
             "find-duplication",
         ),
+        (
+            "audit syntactic branch complexity in TypeScript functions and methods",
+            "find-complexity-hotspots",
+        ),
+        (
+            "audit a TypeScript source root for a flat prefix filename cluster "
+            "among direct siblings",
+            "find-folder-topology-drift",
+        ),
     ],
 )
 def test_installed_which_skill_routes_typescript_analysis_skills(

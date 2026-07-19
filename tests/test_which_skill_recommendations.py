@@ -147,6 +147,33 @@ def test_typescript_lexical_clones_route_to_duplication():
     assert payload["install"]["skill"] == "find-duplication"
 
 
+def test_typescript_function_complexity_routes_to_complexity_hotspots():
+    returncode, payload = _run_match(
+        "audit syntactic branch complexity in TypeScript functions and methods",
+        "--top",
+        "10",
+    )
+
+    assert returncode == 0
+    assert payload["routing_context"]["language"] == "typescript"
+    assert payload["recommendation"] == "find-complexity-hotspots"
+    assert payload["install"]["skill"] == "find-complexity-hotspots"
+
+
+def test_typescript_flat_prefix_routes_to_folder_topology():
+    returncode, payload = _run_match(
+        "audit a TypeScript source root for a flat prefix filename cluster "
+        "among direct siblings",
+        "--top",
+        "10",
+    )
+
+    assert returncode == 0
+    assert payload["routing_context"]["language"] == "typescript"
+    assert payload["recommendation"] == "find-folder-topology-drift"
+    assert payload["install"]["skill"] == "find-folder-topology-drift"
+
+
 def test_explicit_language_is_authoritative_and_repeatable(tmp_path):
     catalog = tmp_path / "catalog.json"
     catalog.write_text(

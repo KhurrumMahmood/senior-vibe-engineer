@@ -1,7 +1,7 @@
 # TypeScript-first skill batch plan
 
-Status: B0, B1, B2P, B2T, B3, B4, move-path, explain-code, and duplication
-complete; folder-topology is the next independent pilot
+Status: B0, B1, B2P, B2T, B3, B4, move-path, explain-code, duplication,
+complexity, and folder-topology complete; adapt-project is in progress
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -553,7 +553,8 @@ Acceptance:
 
 ### B5 — Deep control-flow candidates
 
-State: `deferred` — dispatch only after B4 exposes a proven reusable AST need
+State: `split` — `find-complexity-hotspots` complete as an independent narrow
+syntax family; `find-incomplete-sweep` remains deferred pending semantic scope
 
 Skills: `find-complexity-hotspots` and `find-incomplete-sweep`.
 
@@ -564,12 +565,16 @@ semantic capability they need.
 
 Promotion gate:
 
-- [ ] B4 learning evidence identifies an exact reusable syntax contract used
-  by both skills, or the two skills are split into separate batches.
+- [x] B4 evidence showed different top-level-symbol and function-body
+  contracts, so the two skills were split instead of sharing a platform.
+- [x] Framework-specific ORM/React/Node signals are excluded from the
+  complexity fixture and final report.
+- [x] Complexity positive/negative/must-not-fire and installed final-report
+  evidence passed; `find-incomplete-sweep` remains unpromoted.
 - [ ] Framework-specific ORM/React/Node signals are excluded from the first
   language-level fixture.
 - [ ] Exact positive/negative/must-not-fire and final-report acceptance is
-  frozen before dispatch.
+  frozen before dispatch of `find-incomplete-sweep`.
 
 ## Catalog disposition map
 
@@ -598,7 +603,7 @@ These operate on the toolkit's own ledgers, catalogs, routers, rules, or
 bootstrap runtime. A TypeScript host does not require a language variant, but
 the final matrix still records a runtime review revision.
 
-### Ready or ordered batches (10 unique skills)
+### TypeScript-supported batches (12 unique skills)
 
 - B1: `find-concept-divergence`, `find-rule-surface-drift`,
   `find-skill-artifact-drift`, `find-skill-intent-drift`,
@@ -606,12 +611,13 @@ the final matrix still records a runtime review revision.
 - B2P/B2T: `find-implicit-state`, `extract-enum`, `prevent-regression`.
 - B3: `find-comment-drift`.
 - B4: `find-omnibus`.
+- Independent syntax/layout pilots: `find-complexity-hotspots`,
+  `find-folder-topology-drift`.
 
-### Candidate language-level families and repairs (16)
+### Candidate language-level families and repairs (14)
 
 `adapt-project`, `audit-decisions`, `explain-code`,
-`find-complexity-hotspots`, `find-dormant`,
-`find-duplication`, `find-folder-topology-drift`, `find-incomplete-sweep`,
+`find-dormant`, `find-duplication`, `find-incomplete-sweep`,
 `find-semantic-duplication`, `find-standard-gaps`, `map-subsystem`, `move-path`,
 `propose-boundary`, `propose-folder-reorganization`, `rename-concept`, and
 `unify-shadows`.
@@ -682,6 +688,16 @@ Active candidate promotion:
   integration. The accepted additive port preserves the self-contained Python
   scout/triage journey and adds conservative TypeScript clone evidence; rerun
   contamination and language-substitution regressions are pinned by tests.
+- `find-complexity-hotspots` is `complete` at `9b309f4..a6aaf5c` plus serial
+  contract/router integration. Its TypeScript branch reports only syntactic
+  per-function branch scores, preserves the Python six-band oracle, and passed
+  stock-install/fresh-forward evidence. Adversarial review found and repaired
+  target-relative exclusion bypasses before final PASS.
+- `find-folder-topology-drift` is `complete` at `82859c7..d1f1e39` plus serial
+  contract/router integration. Its explicit-root TypeScript mode reports only
+  direct flat-prefix clusters, preserves explicit combined Python+TS mode, and
+  passed installed forward evidence. Two adversarial rounds repaired TS-only
+  leakage, install-path docs, and explicit excluded-root bypasses before PASS.
 
 ### Framework-specific; do not dispatch without a named stack (22)
 
@@ -732,3 +748,5 @@ corrected rather than treated as working framework neutrality.
 | 2026-07-19 UTC | `5d225b2` + integrated contract/router | TypeScript explain-code complete | Stock-installed direct-export inventory and final rendering preserve Python behavior, disclose re-exports, reject invalid syntax, and avoid annotation collisions. Focused suite: 26 passed; copied isolated replay and independent re-review PASS. |
 | 2026-07-19 UTC | `ff79274` + integrated contract/router | Additive TypeScript duplication complete | TypeScript lexical clone triage keeps reliable spans and conservative judgment; Python detection/scout/triage remains a first-class self-contained path. Repairs covered cross-symbol spans, false transitive clustering, malformed jscpd output, rerun report ingestion, and an initially destructive TypeScript-only substitution. Combined suite: 12 passed; fresh installed journeys for both languages and independent re-review PASS. |
 | 2026-07-19 UTC | `df716f12` + integrated contract/router | B4 TypeScript omnibus complete | Compiler API symbol spans find ESM typed functions/arrows/classes across four domains while cohesive/generated/vendor/minified/spec paths stay clean and legacy Python/JS remain green. The stock `.agents` install now follows documented commands verbatim with bundled scout knowledge and no sibling tooling. Focused suite: 14 passed; fresh forward report found two confirmed candidates with unchanged source; independent closure re-review PASS. |
+| 2026-07-19 UTC | `9b309f4..a6aaf5c` + integrated contract/router | TypeScript complexity complete | Family-local Compiler API syntax scoring reports exactly three branch-heavy declarations/methods/block arrows and preserves the Python six-band oracle. Stock installed forward task produced final artifacts with a measure-first verdict. Direct directory/file exclusion bypasses found adversarially were repaired project-root-relative; focused suite: 7 passed; final re-review PASS. |
+| 2026-07-19 UTC | `82859c7..d1f1e39` + integrated contract/router | TypeScript folder topology complete | Explicit-root lexical flat-prefix detection reports one three-sibling billing cluster, preserves Python-only and explicit combined mode, copied closure, and final report labels. Forward and adversarial defects in `.agents` docs, TS-only isolation, and explicit excluded roots were repaired; focused suite: 20 passed; final re-review PASS. |

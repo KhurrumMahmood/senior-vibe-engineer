@@ -312,13 +312,17 @@
     },
     {
       "name": "find-complexity-hotspots",
-      "description": "Detect likely algorithmic, Django ORM, and structural complexity hotspots in Python code without changing production files. Runs a stdlib AST scan for nested loops, membership scans, sorting inside loops, QuerySet/manager calls inside loops, and high-branch functions; writes a timestamped report with ranked advisory findings. Use when a subsystem feels slow, export/discovery/extraction paths are growing expensive, or a refactor inventory needs a first-pass performance/complexity lead list.",
+      "description": "Detect advisory Python and TypeScript function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan for nested loops, membership scans, sort/repeated scans, Django query calls in loops, and high-branch functions; adds syntax-only TypeScript/TSX high-branch findings for function declarations, methods, and block-bodied arrows. Use when a subsystem feels expensive or difficult to follow and a read-only, evidence-backed lead list is needed before measurement or refactoring.",
       "tier": "maintenance",
       "job": "suspect",
-      "best_for": "Read-only scans for performance and complexity leads: nested loops,\nrepeated membership scans, sort-in-loop patterns, Django QuerySet calls\ninside loops, and unusually branchy functions. Useful before\n`/refactor-subsystem`, after export/discovery/extraction changes, or\nwhen a reviewer says \"this path feels expensive.\"\n",
-      "not_for": "Implementing optimizations (use `/fix-workflow cluster:<symbol>` or\ndirect edits after a human picks a finding). SQL query-plan tuning,\ndatabase indexing decisions, benchmark harness design, or memory\nprofiling. Broad architecture smells like omnibus modules (use\n`/find-omnibus`) or view/service layer leaks (use `/find-layer-violation`).\n",
-      "language": "python",
-      "framework": "django",
+      "best_for": "Read-only complexity leads. Python retains nested-loop, membership-scan,\nsort/repeated-scan, Django-query, and high-branch bands. TypeScript/TSX\nreports only per-function syntactic branch complexity with exact source spans\nand analyzer provenance.\n",
+      "not_for": "Implementing optimizations, SQL query-plan/index decisions, profiling, or\nbenchmark design. TypeScript React/Node/ORM semantics, receiver or\ntype claims, import resolution, and expression-bodied arrows are out of\nscope. Broad module-level responsibility sprawl belongs to /find-omnibus.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "typescript"
+      ],
       "_path": "skills/find-complexity-hotspots"
     },
     {
@@ -410,13 +414,17 @@
     },
     {
       "name": "find-folder-topology-drift",
-      "description": "Detect drift on the folder-topology surface — flat folders with N+ same-prefix sibling files (promote), tests-by-prefix populations that should live under a tests/ subfolder, URL-prefix views not grouped under a matching folder, same-domain helper sprawl at root level, and folder packages whose source-module count fell below the ≥3 threshold (demote). SUSPECT skill governing the placement convention defined in ADR 0006 (folder-organization). The convention is bidirectional — folders earn packaging at ≥3 siblings and lose it below ≥3.",
+      "description": "Read-only SUSPECT audit for Python folder-topology drift and a narrow, explicit-root TypeScript/TSX flat-prefix cluster. Python retains its ADR 0006 promotion and demotion bands; TypeScript v1 reports only three-or-more direct `.ts`/`.tsx` siblings sharing a first `_` or `-` token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.",
       "tier": "maintenance",
       "job": "suspect",
-      "best_for": "Auditing a Python package's directory layout against ADR 0006's\nbidirectional ≥3-sibling threshold. Catches in the **promote**\ndirection: same-prefix sibling sprawl (e.g. `views/site_config_*.py`),\n`tests_*.py` populations that should be folders, URL-prefix views not\ngrouped under a matching `views/<prefix>/` folder, and same-domain\nhelper modules at root level. Catches in the **demote** direction\n(Rule 5): folder packages whose source-module count has fallen below\n≥3 because files merged, deleted, or moved out — packaging is\nearned, not preserved. Pairs with `/propose-folder-reorganization`\nfor the per-cluster proposal and `/refactor-subsystem` for the\nper-PR migration.\n",
-      "not_for": "File-level \"this module does too many things\" (use /find-omnibus —\nthat smell is intra-file, this one is intra-folder). Cross-layer\nworkflow drift (use /find-route-sprawl, /find-workflow-duplication,\n/find-frontend-contract-drift). Authoring or amending the folder-\norganization ADR itself (use /decide). Acting on findings — that\ngoes to /propose-folder-reorganization for the per-cluster proposal,\nthen /refactor-subsystem (decomposition mode) for the migration.\n",
-      "language": "python",
+      "best_for": "Auditing a Python package against ADR 0006's bidirectional ≥3-sibling\nthreshold, or inspecting an explicitly named TypeScript source root for a\nsimple same-domain filename cluster such as\n`billing_parser.ts`, `billing-validator.ts`, and `billing-types.ts`.\n",
+      "not_for": "Moving files, proving import safety, or deciding that a cluster must become\na package. TypeScript v1 does not inspect sparse-package demotion, test-folder\nreorganization, Next.js/pages conventions, barrels, module resolution, or\nframework ownership. Use /propose-folder-reorganization only after a human\nconfirms a Python finding; a TypeScript reorganization proposal needs its own\nresolved-import contract.\n",
+      "language": "any",
       "framework": "any",
+      "scans": [
+        "python",
+        "typescript"
+      ],
       "_path": "skills/find-folder-topology-drift"
     },
     {
