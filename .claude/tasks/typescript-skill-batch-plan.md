@@ -5,8 +5,8 @@ complexity, folder-topology, and adapt-project complete; audit-decisions is in
 complete; find-standard-gaps and map-subsystem are complete; rename-concept is
 complete; propose-boundary and propose-folder-reorganization are complete;
 find-dormant and find-incomplete-sweep are complete;
-find-semantic-duplication is complete and unify-shadows is in progress; the five-skill neutral planning
-batch is complete
+find-semantic-duplication and unify-shadows are complete; 18 neutral skills
+are accepted and project-interview is in closure repair
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -563,15 +563,14 @@ Acceptance:
 
 ### B5 — Deep control-flow candidates
 
-State: `split` — `find-complexity-hotspots` complete as an independent narrow
-syntax family; `find-incomplete-sweep` remains deferred pending semantic scope
+State: `complete-split` — both skills completed as independent families; no
+shared control-flow platform was introduced
 
 Skills: `find-complexity-hotspots` and `find-incomplete-sweep`.
 
-Candidate shared invariant: both need TypeScript function bodies, calls,
-defaults, and control-flow nesting. This is not yet a ready batch because they
-do not share a complete detection→action loop, and B4 may not produce the
-semantic capability they need.
+The initial shared-invariant hypothesis was rejected. Complexity consumes
+syntactic nesting/branch facts; incomplete-sweep consumes resolved calls,
+option-property presence, Git trajectory, and explicit verdicts.
 
 Promotion gate:
 
@@ -580,10 +579,10 @@ Promotion gate:
 - [x] Framework-specific ORM/React/Node signals are excluded from the
   complexity fixture and final report.
 - [x] Complexity positive/negative/must-not-fire and installed final-report
-  evidence passed; `find-incomplete-sweep` remains unpromoted.
-- [ ] Framework-specific ORM/React/Node signals are excluded from the first
+  evidence passed independently.
+- [x] Framework-specific ORM/React/Node signals are excluded from the first
   language-level fixture.
-- [ ] Exact positive/negative/must-not-fire and final-report acceptance is
+- [x] Exact positive/negative/must-not-fire and final-report acceptance is
   frozen before dispatch of `find-incomplete-sweep`.
 
 ## Catalog disposition map
@@ -591,14 +590,24 @@ Promotion gate:
 This map assigns every skill to one present disposition. A later accepted
 learning report may move a skill, but no agent should infer an unlisted port.
 
-### Shared, validated-neutral (5 accepted; 10 pending)
+### Shared, validated-neutral (18 accepted; 1 pending)
 
 Accepted in the TypeScript planning-host batch: `architecture-fit`, `decide`,
 `design-it-twice`, `plan-spec`, and `scope-feature`.
 
-Pending: `converge`, `diagnose`, `find-perimeter-gaps`, `gut-check`,
-`harvest-learnings`, `organize-project-structure`, `orient`,
-`project-interview`, `teach-pattern`, and `triage-debt`.
+The B1 artifact-hygiene skills `find-rule-surface-drift`,
+`find-skill-artifact-drift`, `find-skill-intent-drift`, and
+`find-stale-artifacts` are also validated-neutral: their scan surfaces are
+rules, skill artifacts, intent contracts, and repository artifacts rather
+than host application syntax.
+
+Accepted in the quality and orchestration batches: `converge`, `diagnose`,
+`find-perimeter-gaps`, `gut-check`, `harvest-learnings`,
+`organize-project-structure`, `orient`, `teach-pattern`, and `triage-debt`.
+
+Pending: `project-interview`, whose fresh installed replay produced useful
+evidence-cited drafts but failed its required gate because two named helpers
+were absent. A narrow selected-skill closure repair is active.
 
 The accepted planning skills produced their final scoped/architected/decision/
 comparative-design/spec artifacts from an installed TypeScript host without a
@@ -606,7 +615,8 @@ language-specific implementation or source mutation. Fresh forward use also
 completed all five artifacts. Missing optional repository helpers and doctrine
 docs were disclosed and bypassed by following the installed artifact contracts
 directly; they remain TypeScript-cleanup/user-experience work, not evidence of a
-language variant. Pending skills remain `validation_state: blocked-closure`.
+language variant. `project-interview` remains
+`validation_state: blocked-closure` until its installed gate passes.
 
 ### Ecosystem/runtime implementation, not a host-language variant (13)
 
@@ -619,11 +629,9 @@ These operate on the toolkit's own ledgers, catalogs, routers, rules, or
 bootstrap runtime. A TypeScript host does not require a language variant, but
 the final matrix still records a runtime review revision.
 
-### TypeScript-supported batches (25 unique skills)
+### TypeScript-supported batches (22 unique skills)
 
-- B1: `find-concept-divergence`, `find-rule-surface-drift`,
-  `find-skill-artifact-drift`, `find-skill-intent-drift`,
-  `find-stale-artifacts`.
+- B1 source scan: `find-concept-divergence`.
 - B2P/B2T: `find-implicit-state`, `extract-enum`, `prevent-regression`.
 - B3: `find-comment-drift`.
 - B4: `find-omnibus`.
@@ -641,15 +649,16 @@ the final matrix still records a runtime review revision.
 - Conservative dormant review: `find-dormant`.
 - Resolved incomplete-sweep review: `find-incomplete-sweep`.
 - Typed semantic-duplication triage: `find-semantic-duplication`.
+- Structured semantic-resolution proposal: `unify-shadows`.
 
-### Candidate language-level families and repairs (1)
+### Candidate language-level families and repairs (0)
 
-`unify-shadows`.
+None. Every generally applicable language-level candidate has an accepted
+TypeScript outcome.
 
-These require a crisp action/output handoff, fixture policy, or a proven parser
-consumer before batching. Apparent chains such as omnibus→refactor,
-duplication→unify, folder-topology→move, and concept-divergence→rename are not
-ready merely because their verbs line up.
+The clarified contracts below are retained as implementation history: they
+prevented verb-adjacent skills from being bundled before each outcome and
+handoff had independent evidence.
 
 #### Clarified candidate contracts
 
@@ -758,6 +767,13 @@ Active candidate promotion:
   found one confirmation, one dynamic/unresolved uncertainty, and three
   explicit rejections; native checks and source immutability passed.
 
+- `unify-shadows` is `complete` at `b7cb4b6..03c6638` plus serial
+  router/catalog closeout. It validates one confirmed structured TypeScript
+  finding before writes, preserves all four upstream shapes, and emits cited
+  proposal/evidence/scope artifacts. Fresh installed use produced an honest
+  `share_utilities` proposal with caller limits, native tests, stop conditions,
+  human approval, invalid-input abstention, and unchanged source hashes.
+
 - `move-path` is `complete` on `codex/productization-restart` at `6e65140` plus
   its generated-index/catalog closeout. Its v1 contract guarantees a
   self-contained JSON plan path, keeps YAML optional when PyYAML is available,
@@ -852,4 +868,7 @@ framework-neutral TypeScript eligibility.
 | 2026-07-19 UTC | `3c4e556..2453674` + serial closeout | TypeScript dormant review complete | Project-local Program/TypeChecker reports statically unreferenced non-exported top-level implementations for human review only; dynamic string reachability remains uncertain and `certain_delete` is always zero. Exact stock selected install, focused/native suite, partial/error states, path containment, and source immutability passed. Fresh installed forward use reported 1 review-required/1 uncertain/0 certain-delete with native checks green; D6 PASS. |
 | 2026-07-19 UTC | `67c13af..7e3ea4f` + serial closeout | TypeScript incomplete-sweep review complete | Host-pinned Compiler API facts group resolved direct/alias calls by object-option property presence and preserve overload/default/spread/framework boundaries. Fresh installed use found two raw divergences and correctly promoted none without Git blame trajectory; packet/verdict/triage artifacts, native checks, stock closure, and source immutability passed; D6 PASS. |
 | 2026-07-19 UTC | `a9a68eb` + serial closeout | TypeScript semantic-duplication triage complete | Family-local Program/TypeChecker facts produced one typed same-outcome/different-code confirmation, one dynamic/unresolved uncertainty, and three caller/lexical/policy rejections with a capability matrix. Exact stock install, Python reference repairs, native checks, source immutability, and fresh forward use passed; D6 PASS. |
+| 2026-07-19 UTC | `b7cb4b6..03c6638` + serial closeout | TypeScript unify-shadows complete | One confirmed structured finding produced cited proposal/evidence/scope artifacts for `share_utilities`; all four shapes and invalid-input pre-write gates are locked. Exact stock install, native checks/tests, source immutability, containment, and fresh forward use passed; D6 PASS. |
 | 2026-07-19 UTC | `9f4fbdc..e800856` + fresh forward use | Five planning skills validated neutral | One locked TypeScript 5.9.3 host and exact combined stock copy install proved final artifacts for scope-feature, architecture-fit, decide, design-it-twice, and plan-spec with source fingerprints unchanged. A fresh agent independently produced all five without reference artifacts or language-specific implementation. Missing optional repo helpers/doctrine were disclosed; the core installed artifact contracts remained usable. Focused automated evidence: 4 tests / 75 parametrized checks; D6 PASS with residual UX cleanup recorded. |
+| 2026-07-19 UTC | `e7b413b..5143bf6` + fresh forward use | Five quality skills validated neutral | Diagnose, perimeter gaps, gut-check, teach-pattern, and triage-debt produced useful installed TypeScript-host evidence without language variants. The fresh replay passed all five, including the local diagnosis evidence gate and cached-input debt contract; native checks and source hashes were unchanged. |
+| 2026-07-19 UTC | `eec276d..3352392` + fresh forward use | Orchestration neutrality review | Converge, harvest-learnings, organize-project-structure, and orient produced useful installed outcomes with native checks and unchanged source. Project-interview remained pending because its required installed evidence helpers were absent; the failure was retained as a closure repair rather than accepted. |

@@ -14,10 +14,9 @@ best_for: |
   `reports/unify-shadows/<finding-id>/proposal.md` with migration
   plan, caller impact, test matrix, and stop condition.
 not_for: |
-  Detection of semantic duplication (use /find-semantic-duplication).
+  Raw candidate detection (run /find-semantic-duplication first).
   Lexical near-clones (use /find-duplication then /fix-workflow).
-  Refactor execution (use /fix-workflow semantic:<id> after proposal
-  approval).
+  Applying production edits happens downstream after proposal approval.
 language: any
 framework: any
 scans: [python, typescript]

@@ -1131,13 +1131,17 @@
     },
     {
       "name": "unify-shadows",
-      "description": "Turn a semantic-duplication finding into an implementation-ready proposal. Consumes a confirmed finding from /find-semantic-duplication (shape = keep_separate_document_why | share_utilities | complete_migration | merge_at_workflow) and emits reports/unify-shadows/<finding-id>/proposal.md with the migration plan, caller impact, test matrix, and stop condition. Hands off to /fix-workflow semantic:<id>.",
+      "description": "Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX v1 consumes the accepted structured /find-semantic-duplication finding and emits proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.",
       "tier": "maintenance",
       "job": "explain",
-      "best_for": "A confirmed semantic-duplication finding from\n/find-semantic-duplication (shape =\nkeep_separate_document_why | share_utilities | complete_migration |\nmerge_at_workflow). Produces an implementation-ready proposal at\n`reports/unify-shadows/<finding-id>/proposal.md` with migration\nplan, caller impact, test matrix, and stop condition.\n",
-      "not_for": "Detection of semantic duplication (use /find-semantic-duplication).\nLexical near-clones (use /find-duplication then /fix-workflow).\nRefactor execution (use /fix-workflow semantic:<id> after proposal\napproval).\n",
-      "language": "python",
-      "framework": "django",
+      "best_for": "One confirmed Python or TypeScript semantic-duplication finding from\n/find-semantic-duplication (shape =\nkeep_separate_document_why | share_utilities | complete_migration |\nmerge_at_workflow). Produces an implementation-ready proposal at\n`reports/unify-shadows/<finding-id>/proposal.md` with migration\nplan, caller impact, test matrix, and stop condition.\n",
+      "not_for": "Raw candidate detection (run /find-semantic-duplication first).\nLexical near-clones (use /find-duplication then /fix-workflow).\nApplying production edits happens downstream after proposal approval.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "typescript"
+      ],
       "_path": "skills/unify-shadows"
     },
     {

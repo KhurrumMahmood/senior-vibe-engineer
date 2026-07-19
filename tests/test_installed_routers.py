@@ -209,6 +209,11 @@ def test_installed_which_skill_routes_typescript_explanation(tmp_path):
             "typed outcome and different code",
             "find-semantic-duplication",
         ),
+        (
+            "turn a confirmed TypeScript semantic finding into an implementation-ready "
+            "proposal with caller impact and a stop condition",
+            "unify-shadows",
+        ),
     ],
 )
 def test_installed_which_skill_routes_typescript_analysis_skills(
