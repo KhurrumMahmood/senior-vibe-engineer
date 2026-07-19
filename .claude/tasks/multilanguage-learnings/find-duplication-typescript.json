@@ -1,6 +1,6 @@
 {
   "batch": "find-duplication-typescript-v1",
-  "revision": "5d5394f9290fb521799157f4730528e5970ae0e0",
+  "revision": "8e4a585e20bcf8a3ae47cdef51e413673b99eb2c",
   "family": ["find-duplication"],
   "invariant": {
     "portable_principle": "Surface substantial lexical or near-lexical clone evidence with reliable source ranges and enclosing symbols, without converting lexical similarity into a refactoring-safety claim.",
@@ -99,11 +99,12 @@
     ],
     "commands_and_artifact_paths": [
       "Red-first transcript: .venv/bin/python -m pytest tests/test_find_duplication_typescript.py -q -> 4 failed before production scripts/reports existed.",
-      "Green after adversarial repair: .venv/bin/python -m pytest tests/test_find_duplication_typescript.py -q -> 8 passed.",
+      "Green after rerun hardening: .venv/bin/python -m pytest tests/test_find_duplication_typescript.py -q -> 10 passed.",
       "Lint: .venv/bin/ruff check .claude/skills/find-duplication tests/test_find_duplication_typescript.py -> All checks passed.",
       "Native: NPM_CONFIG_CACHE=/tmp/find-duplication-npm-cache npx --offline --yes -p typescript@5.9.3 tsc --noEmit -p tests/fixtures/find-duplication-typescript/typescript-host/tsconfig.json -> 0.",
       "Copied replay: /tmp/find-duplication-final-install.mEW5CW and /tmp/find-duplication-final-host.JRyLma/reports/{jscpd,collapsed.json,ranked.json,triage.md,findings.json}; all installed python3 -I -S stages returned 0, assertions found only ts-jscpd-0001 with the expected two symbols, and source hashes were byte-identical before/after.",
-      "Fresh forward replay: /tmp/find-duplication-forward.VwLoi4/host/reports/duplication/scan-20260719-080641; installed python3 -I -S wrapper/collapse/rank/report all returned 0, produced ts-jscpd-0001 with the two expected symbols, omitted one unmapped raw pair, reported no excluded boundary path, and preserved source fingerprint f506d3fe7ab415e6aced3cd93237e3c18bcc654881e737fec87e96927e3b81f6."
+      "Fresh forward replay: /tmp/find-duplication-forward.VwLoi4/host/reports/duplication/scan-20260719-080641; installed python3 -I -S wrapper/collapse/rank/report all returned 0, produced ts-jscpd-0001 with the two expected symbols, omitted one unmapped raw pair, reported no excluded boundary path, and preserved source fingerprint f506d3fe7ab415e6aced3cd93237e3c18bcc654881e737fec87e96927e3b81f6.",
+      "Post-D6 rerun proof: /private/tmp/find-duplication-rerun-repair.XqTK05; two full copied-skill python3 -I -S runs targeted the host root with arbitrary nested outputs, the second retained only original src/ sites, eligible sources contained no output/staging path, and source manifests remained byte-identical."
     ]
   },
   "d6_final_replay": {
@@ -154,7 +155,45 @@
       "identical": true,
       "verification": "IDENTICAL: source SHA-256 manifests match before and after the audit."
     },
-    "note": "Earlier forward evidence is retained only as historical context; this clean-room journey is the final D6 evidence."
+    "note": "This is the final clean-room single-run evidence for revision 5d5394f; final adversarial review later exposed a natural-rerun defect repaired and separately proven at revision 8e4a585."
+  },
+  "rerun_hardening": {
+    "status": "completed",
+    "outcome": "pass",
+    "implementation_revision": "8e4a585e20bcf8a3ae47cdef51e413673b99eb2c",
+    "reproduction_root": "/private/tmp/find-duplication-rerun.pbamNy",
+    "root_cause": "A host-root target recursively rediscovered prior output-local .jscpd-input copies because output, reports, and staging directories were not source-enumeration boundaries.",
+    "repair": [
+      "Enumerate eligible source before creating the current staging tree and exclude the resolved current output root.",
+      "Exclude every .jscpd-input and conventional reports tree during source discovery and defensive collapse filtering.",
+      "Remove empty, invalid, or schema-invalid jscpd-report.json output and never write completed run metadata for it."
+    ],
+    "regressions": [
+      "test_copied_runner_rerun_does_not_scan_nested_prior_output copies the skill, scans the host root twice with arbitrary nested output paths, and asserts second-run sites remain the two original src files.",
+      "test_offline_runner_removes_empty_or_invalid_json_report covers both empty and syntactically invalid zero-exit detector output and asserts report/run artifacts are absent."
+    ],
+    "copied_replay_root": "/private/tmp/find-duplication-rerun-repair.XqTK05",
+    "execution": "Two full run_jscpd -> collapse_typescript -> rank -> report passes used copied scripts with python3 -I -S, target=host root, and outputs under host/arbitrary-audit-output/{first,second}.",
+    "second_run": {
+      "eligible_source_count": 5,
+      "nested_output_reingested": false,
+      "finding_ids": ["ts-jscpd-0001"],
+      "sites": ["src/queue_one.ts", "src/queue_two.ts"],
+      "artifacts_sha256": {
+        "jscpd/jscpd-report.json": "b836450ca4f6705d04b66b77fbe779f04e67db93c37d811577c2cf858fe20d19",
+        "collapsed.json": "52c2c41cafb97ce21e1b46fe0bfaae15c6b83d950d082761ed894db3c30279ae",
+        "ranked.json": "fe99fa981b919ad460cabc484d6ac3fa5691b4df334c13d3f09d737dc949e3ab",
+        "triage.md": "50c0ea39d2173ac2928e8b3a2b8edda15b854827abbfa2b113dbab6945d06560",
+        "findings.json": "2aaea49f89c640535e920502967d70a91de7eff1ee583081ed305d94ca0038a6"
+      }
+    },
+    "source_preservation": {
+      "pre_manifest": "/private/tmp/find-duplication-rerun-repair.XqTK05/source-before.sha256",
+      "post_manifest": "/private/tmp/find-duplication-rerun-repair.XqTK05/source-after.sha256",
+      "pre_sha256": "219b3169f4b8261f265e66d667fa851830f230f6852ce5c4e0531d394713b47e",
+      "post_sha256": "219b3169f4b8261f265e66d667fa851830f230f6852ce5c4e0531d394713b47e",
+      "identical": true
+    }
   },
   "false_positive_boundary": {
     "known_false_positives": [

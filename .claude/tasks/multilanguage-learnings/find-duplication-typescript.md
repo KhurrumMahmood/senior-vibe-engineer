@@ -1,7 +1,8 @@
 # find-duplication TypeScript v1 learning report
 
-Implementation revision: `5d5394f9290fb521799157f4730528e5970ae0e0` on
-`codex/ts-duplication`; D6 clean-room replay completed 2026-07-19 UTC.
+Current implementation revision: `8e4a585e20bcf8a3ae47cdef51e413673b99eb2c`
+on `codex/ts-duplication`; D6 clean-room replay and post-D6 rerun hardening
+completed 2026-07-19 UTC.
 
 ## Outcome and scope
 
@@ -90,7 +91,7 @@ After production work:
 ```bash
 .venv/bin/python \
   -m pytest tests/test_find_duplication_typescript.py -q
-# 8 passed
+# 10 passed
 
 .venv/bin/ruff check \
   .claude/skills/find-duplication tests/test_find_duplication_typescript.py
@@ -159,6 +160,45 @@ The preserved verification says `IDENTICAL: source SHA-256 manifests match
 before and after the audit.` D6 therefore closes with the installed final
 output, task handoff, command output, artifact hashes, and read-only source
 proof intact.
+
+## Post-D6 rerun hardening
+
+Final adversarial review reproduced a P1 rerun defect at
+`/private/tmp/find-duplication-rerun.pbamNy`: when `--target` named the host
+root and report output lived below it, a second run rediscovered the first
+run’s `.jscpd-input` source copies and reported false sites below `reports/`.
+The repair now enumerates source before staging, excludes the current output
+root, skips every `.jscpd-input` and conventional `reports` tree, and applies
+the report/staging boundary again while collapsing hand-supplied evidence.
+Invalid or empty zero-exit detector JSON is also deleted, matching the skill’s
+failure contract rather than leaving an unusable `jscpd-report.json` behind.
+
+The exact regression copies only the selected skill, runs it twice with
+`python -I -S`, uses the host root as target, and puts each output under an
+arbitrary nested `arbitrary-audit-output/` path. The second collapsed artifact
+must contain exactly one finding whose sites remain `src/queue_one.ts` and
+`src/queue_two.ts`; its `run.json` must list no nested output source. Separate
+coverage feeds both empty and syntactically invalid JSON from a zero-exit fake
+detector and asserts that neither `jscpd-report.json` nor `run.json` survives.
+
+A real copied-skill/offline replay is preserved at
+`/private/tmp/find-duplication-rerun-repair.XqTK05`. Both full four-stage runs
+used `python3 -I -S`, targeted the host root, and wrote beneath the arbitrary
+nested output directory. The second run retained only `ts-jscpd-0001` with
+original sites `src/queue_one.ts` and `src/queue_two.ts`; its five eligible
+sources contain no output or staging path. Second-run artifact SHA-256 hashes
+are:
+
+- `jscpd/jscpd-report.json` — `b836450ca4f6705d04b66b77fbe779f04e67db93c37d811577c2cf858fe20d19`
+- `collapsed.json` — `52c2c41cafb97ce21e1b46fe0bfaae15c6b83d950d082761ed894db3c30279ae`
+- `ranked.json` — `fe99fa981b919ad460cabc484d6ac3fa5691b4df334c13d3f09d737dc949e3ab`
+- `triage.md` — `50c0ea39d2173ac2928e8b3a2b8edda15b854827abbfa2b113dbab6945d06560`
+- `findings.json` — `2aaea49f89c640535e920502967d70a91de7eff1ee583081ed305d94ca0038a6`
+
+The pre/post `src` manifests are byte-identical and both hash to
+`219b3169f4b8261f265e66d667fa851830f230f6852ce5c4e0531d394713b47e`.
+This post-D6 evidence is tied to implementation revision
+`8e4a585e20bcf8a3ae47cdef51e413673b99eb2c`.
 
 ## False-positive boundary
 
