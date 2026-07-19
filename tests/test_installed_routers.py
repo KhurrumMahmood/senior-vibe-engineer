@@ -96,7 +96,7 @@ def test_installed_which_skill_runs_with_bundled_catalog(
     assert f"--skill {expected_skill}" in payload["install"]["command"]
 
 
-def test_installed_which_skill_filters_typescript_without_repository_runtime(tmp_path):
+def test_installed_which_skill_routes_earned_typescript_state_skill(tmp_path):
     host = tmp_path / "host"
     router = _install_router(host, "which-skill")
 
@@ -111,14 +111,12 @@ def test_installed_which_skill_filters_typescript_without_repository_runtime(tmp
         cwd=host,
     )
 
-    assert result.returncode == 1, result.stderr
+    assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
     assert payload["routing_context"]["language"] == "typescript"
     assert payload["routing_context"]["language_source"] == "task_marker"
-    assert payload["recommendation"] == "unsupported"
-    assert "find-implicit-state" in {
-        item["name"] for item in payload["excluded_unsupported"]
-    }
+    assert payload["recommendation"] == "find-implicit-state"
+    assert payload["install"]["skill"] == "find-implicit-state"
 
 
 def test_default_router_set_is_exactly_three():

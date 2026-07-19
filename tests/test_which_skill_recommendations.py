@@ -84,14 +84,14 @@ def test_one_line_debug_prompt_does_not_trigger_diagnose():
     assert payload["inferred_tier"] == "quick"
 
 
-def test_exact_typescript_marker_excludes_unearned_state_skill():
+def test_exact_typescript_marker_routes_to_earned_state_skill():
     returncode, payload = _run_match(
         "find repeated bare status literals in a TypeScript source file",
         "--top",
         "10",
     )
 
-    assert returncode == 1
+    assert returncode == 0
     assert payload["routing_context"] == {
         "language": "typescript",
         "languages": ["typescript"],
@@ -102,9 +102,8 @@ def test_exact_typescript_marker_excludes_unearned_state_skill():
         "framework_source": None,
         "filtering_applied": True,
     }
-    assert payload["recommendation"] == "unsupported"
-    excluded = {item["name"]: item["reason"] for item in payload["excluded_unsupported"]}
-    assert excluded["find-implicit-state"] == "declares language=python"
+    assert payload["recommendation"] == "find-implicit-state"
+    assert payload["install"]["skill"] == "find-implicit-state"
 
 
 def test_unearned_omnibus_typescript_claim_returns_unsupported():

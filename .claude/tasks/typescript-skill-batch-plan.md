@@ -1,6 +1,7 @@
 # TypeScript-first skill batch plan
 
-Status: B0, B1, B2P, B3, and move-path complete; B2T and explain-code in progress
+Status: B0, B1, B2P, B2T, B3, and move-path complete; explain-code and
+duplication pilots in adversarial repair
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -437,8 +438,8 @@ Acceptance:
 
 ### B2T — TypeScript closed-state outcome
 
-State: `in_progress` — `codex/ts-b2t` at
-`/private/tmp/engineering-skills-ts-b2t`
+State: `complete` — accepted after independent adversarial re-review at
+`54a9db3`; integrated on `codex/productization-restart`
 
 Skills: `find-implicit-state` (new TypeScript state-only branch),
 `extract-enum` (TypeScript proposal branch), a reviewed fixture mutation, and
@@ -473,21 +474,21 @@ lint-runner wiring; the family agent does not edit global wiring.
 
 Acceptance:
 
-- [ ] Detection distinguishes first-party state from a typed union/enum,
+- [x] Detection distinguishes first-party state from a typed union/enum,
   vendor payload literals, unrelated `status` text, tests/fixtures, and
   open-ended strings.
-- [ ] `extract-enum` consumes the detector result, inventories all callers and
+- [x] `extract-enum` consumes the detector result, inventories all callers and
   boundaries, and emits an implementation-ready TypeScript proposal.
-- [ ] The reviewed fixture change passes `tsc --noEmit` and its native tests.
-- [ ] A narrow TypeScript-AST guard uses the same 0/1/2 CLI contract, fires on
+- [x] The reviewed fixture change passes `tsc --noEmit` and its native tests.
+- [x] A narrow TypeScript-AST guard uses the same 0/1/2 CLI contract, fires on
   all pre-fix variants, and stays quiet on fixed/must-not-fire fixtures and a
   reasoned `// noqa` vendor boundary.
-- [ ] From a stock-installed `prevent-regression` directory outside the
+- [x] From a stock-installed `prevent-regression` directory outside the
   checkout, the family-local generator stages the named guard artifact and
   the verifier executes that staged artifact against the standalone fixture.
-- [ ] Stock-installed copies run outside this repository using only declared
+- [x] Stock-installed copies run outside this repository using only declared
   host prerequisites; a fresh-context agent completes the useful proposal.
-- [ ] D1–D8 pass.
+- [x] D1–D8 pass.
 
 ### B3 — TypeScript comment hygiene
 
@@ -711,3 +712,4 @@ corrected rather than treated as working framework neutrality.
 | 2026-07-19 UTC | `eb4d498` | B1 router-language integration foundation | Bundled catalog now retains `language`, `framework`, and `scans`; copied matcher resolves explicit/exact language context, excludes unsupported language/framework/scanner claims, and returns `unsupported` instead of substituting a weaker skill. Unearned `find-omnibus` TypeScript and Django-bound workflow-state claims are withheld. Router suite: 19 passed; metadata/conformance/Ruff clean. B1 skill-local acceptance remains pending. |
 | 2026-07-19 UTC | `e6f6a5d` | B1 complete | TS/TSX concept findings plus four host-neutral artifact/rules skills pass copied `python -I -S` final-outcome tests. Two adversarial rounds found and repaired quoted/commented YAML false-clean/false-positive paths. The five real contracts are acknowledged and index `stale: ok`; catalog/routing integrated. Final integrated suite: 35 passed; independent re-review PASS. |
 | 2026-07-19 UTC | `6e65140` + generated closeout | TypeScript move-path complete | Standalone TS/TSX path/text moves use self-contained JSON plans, preserve plan authority bytes, rewrite identity-resolved docs/config, and report rather than rewrite source imports. Adversarial repairs covered invalid invented specifiers, multiline imports, NodeNext emitted-file substitutions, declaration variants, and residue self-reporting. TypeScript 5.9.3 native suite plus routers/shape: 70 passed; copied closure and independent final review PASS. |
+| 2026-07-19 UTC | `54a9db3` + integrated contracts | B2T TypeScript closed-state outcome | The self-contained TypeScript Compiler API family now detects first-party closed state, proposes the `as const` authority and caller migration, stages and verifies a 0/1/2 guard, and preserves typed/open-ended/vendor/test boundaries. Adversarial repairs covered semantic receiver attribution, forged suppressions, direct and parenthesized aliases, `??=`, chained assignments, and syntax failures. A stock exact-three-skill `skills@1.5.19` install and fresh forward proposal at `/private/tmp/b2t-forward.lb5LzK` passed; final focused integration suite: 29 passed; independent re-review PASS. |
