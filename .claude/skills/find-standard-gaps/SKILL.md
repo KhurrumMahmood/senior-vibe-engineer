@@ -54,11 +54,11 @@ work; there is no scout fan-out. The detector model (how `ast` and
   situation-site count, gap count, coverage % — with no standard silently
   dropped (`manual`/`skill` standards reported as skipped).
 - Each standard carries an explicit analyzability verdict:
-  `gated_out`, `language_unsupported`, `no_files_matched`, and `error`
+  `gated_out`, `language_unsupported`, `no_files_matched`, `partial`, and `error`
   are surfaced as non-passing statuses, never passed off as 0 gaps /
   compliant.
 - Clean standards are named as positive results only when their status is
-  `scanned`, their gap count is 0, and `skipped_files` is 0.
+  `scanned` and their gap count is 0.
 - No production edits — the run writes only under
   `reports/standard-gaps/scan-<TS>/`.
 
@@ -204,8 +204,10 @@ record in `coverage.json`. Report to the user in ≤10 lines:
 - per standard: situation-site count, gap count, coverage %;
 - the highest-priority gaps (a security/resilience standard with gaps
   outranks a style one);
-- standards that came back **clean** (`status: scanned`, 0 gaps,
-  `skipped_files: 0`) — name them, that is a positive result;
+- standards that came back **clean** (`status: scanned`, 0 gaps) — name
+  them, that is a positive result;
+- standards that were `partial` — name their skipped-file count separately;
+  their gaps are triage evidence, but the standard is not clean/compliant;
 - standards that were `gated_out`, `language_unsupported`,
   `no_files_matched`, `skipped`, or `error` — name them separately and
   do not count them as compliant;
@@ -250,8 +252,8 @@ unsupported condition as a clean scan. Missing Node, missing host-local
 `typescript`, or a TypeScript parser preflight failure also returns
 `language_unsupported`, never 0 gaps. Mixed Python plus TypeScript/TSX paths
 are scanned together only for the shared `enclosed_by: "try"` contract.
-A per-file TS syntax/read failure increments `skipped_files`; that is a partial
-scan, so never call it clean even when its gap count is 0.
+A per-file TS syntax/read failure produces `status: partial` with
+`skipped_files`; that is never clean/compliant even when its gap count is 0.
 
 ## When the target language or condition isn't supported
 
@@ -303,7 +305,8 @@ deciding satisfaction.
 | A standard is `gated_out` | Report it as out of scope for the declared project state. It was not scanned and is not a 0-gap pass |
 | A standard reports a huge gap count | The detector is too broad, or the situation regex matches non-code — tighten `call_matches`, or switch a `grep` standard to `ast` |
 | A `grep` standard flags comments/strings | Expected — `grep` is comment/string-blind. Convert it to an `ast` detector |
-| 0 standards scanned | Check `coverage.json`: all entries are likely `gated_out`, `manual`/`skill`, `no_files_matched`, or `error`. Report the actual statuses |
+| 0 standards fully scanned | Check `coverage.json`: entries may be `partial`, `gated_out`, `manual`/`skill`, `no_files_matched`, or `error`. Report the actual statuses |
+| `partial` | Report skipped-file count and parser/read boundary. Do not call 0 gaps compliant; repair the source or scanner and re-run |
 | `no_files_matched` | Treat as a misconfigured glob or wrong project root, not as compliance |
 | `language_unsupported` | Check the reported reason (unsupported language/condition or missing TS prerequisite), then apply the unsupported branch above |
 | A gap is a deliberate exception | Not a tool failure — note it at fix time; a future `--allow` list could record approved exceptions |

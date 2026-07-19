@@ -212,8 +212,9 @@ a real host project (2026-05-21):
   receiver identity, runtime globals, or framework conventions. It is a direct
   syntax detector, not a TypeScript linter or semantic API audit.
 - `scan_coverage.py` reports a per-standard status. **Only `scanned` is
-  a real coverage result.** `gated_out` (activation thresholds not met),
-  `no_files_matched` (a misconfigured glob), `language_unsupported`, and
-  a `scanned` result with `skipped_files > 0` all mean part or all of the
-  surface went unexamined — never read them as "0 gaps = compliant". A clean
-  result needs `status: scanned`, 0 gaps, and `skipped_files: 0`.
+  a clean coverage result.** `partial` means one or more files were not read
+  or parsed; its gaps are triage evidence, not a compliance verdict.
+  `gated_out` (activation thresholds not met), `no_files_matched` (a
+  misconfigured glob), `language_unsupported`, and `error` all mean
+  part or all of the surface went unexamined — never read them as "0 gaps =
+  compliant". A clean result needs `status: scanned` and 0 gaps.

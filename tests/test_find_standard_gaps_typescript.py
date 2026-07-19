@@ -251,12 +251,15 @@ def test_typescript_syntax_failure_is_explicitly_partial_not_clean(tmp_path: Pat
 
     assert result.returncode == 0, result.stdout + result.stderr
     finding = _result(output)
-    assert finding["status"] == "scanned"
+    assert finding["status"] == "partial"
     assert finding["scanned_files"] == 0
     assert finding["skipped_files"] == 1
     assert finding["situation_sites"] == 0
     assert finding["gaps"] == []
-    assert "1 skipped" in (output / "coverage.md").read_text(encoding="utf-8")
+    report = (output / "coverage.md").read_text(encoding="utf-8")
+    assert "1 skipped" in report
+    assert "not clean/compliant" in report
+    assert "PARTIAL" in result.stdout
 
 
 def test_typescript_exclusions_and_external_symlink_escapes_are_project_relative(

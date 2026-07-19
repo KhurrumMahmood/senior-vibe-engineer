@@ -27,8 +27,10 @@ Per-standard status in the output:
                             (maturity, stakes). Computed BEFORE the
                             detector — it is NOT scanned, NOT counted as
                             gaps, and is NEVER a "0 gaps" pass.
-  - `scanned`             — ran; see gaps. `skipped_files` flags any
-                            file that could not be read/parsed.
+  - `scanned`             — fully ran; see gaps.
+  - `partial`             — some files could not be read/parsed. Findings
+                            are useful triage evidence but the standard is
+                            not clean/compliant.
   - `no_files_matched`    — the detector's `paths` matched nothing. A
                             misconfigured glob / project-root — NOT a
                             pass.
@@ -510,9 +512,10 @@ def analyze_idea(root: Path, idea: dict, state: dict) -> dict:
                     "matched": result["matched"], "extensions": result["extensions"],
                     "error": reason}
         sites, gaps = result["sites"], result["gaps"]
-        return {**base, "status": "scanned",
+        skipped_files = result["skipped_files"]
+        return {**base, "status": "partial" if skipped_files else "scanned",
                 "scanned_files": result["scanned_files"],
-                "skipped_files": result["skipped_files"],
+                "skipped_files": skipped_files,
                 "situation_sites": len(sites), "gaps": gaps,
                 "coverage": round((len(sites) - len(gaps)) / len(sites), 4)
                 if sites else None}
@@ -538,15 +541,20 @@ def render_report(source: str, results: list[dict], state: dict) -> str:
               "skipped. Run `/orient` to declare the project's real "
               "(maturity, stakes) and gate stakes-driven rungs honestly.", ""]
     scanned = [r for r in results if r["status"] == "scanned"]
-    with_gaps = [r for r in scanned if r["gaps"]]
+    partial = [r for r in results if r["status"] == "partial"]
+    analyzed = [*scanned, *partial]
+    with_gaps = [r for r in analyzed if r["gaps"]]
     gated = [r for r in results if r["status"] == "gated_out"]
     unsupported = [r for r in results if r["status"] == "language_unsupported"]
     no_files = [r for r in results if r["status"] == "no_files_matched"]
     L += ["## Summary", "",
-          f"- {len(results)} standard(s) in input; {len(scanned)} scanned, "
-          f"{len(gated)} gated out (out of scope at the declared state)",
-          f"- **{sum(len(r['gaps']) for r in scanned)} coverage gap(s)** "
+          f"- {len(results)} standard(s) in input; {len(scanned)} fully scanned, "
+          f"{len(partial)} partial, {len(gated)} gated out (out of scope at the declared state)",
+          f"- **{sum(len(r['gaps']) for r in analyzed)} coverage gap(s)** "
           f"across {len(with_gaps)} standard(s)"]
+    if partial:
+        L.append(f"- ⚠ {len(partial)} standard(s) **partial** — one or more files "
+                 "could not be read or parsed; these are not clean/compliant results")
     if gated:
         L.append(f"- {len(gated)} standard(s) **gated out** — not in scope for "
                  f"`{state.get('maturity', '?')}/{state.get('stakes', '?')}`; "
@@ -581,13 +589,15 @@ def render_report(source: str, results: list[dict], state: dict) -> str:
         if r["status"] == "gated_out":
             continue  # already listed in the gated-out section above
         L.append(f"### `{r['id']}` — {r['label']}")
-        if r["status"] == "scanned":
+        if r["status"] in ("scanned", "partial"):
             sites = r["situation_sites"]
             cov = "n/a" if not sites else f"{int(100 * (sites - len(r['gaps'])) / sites)}%"
             skipped = f", {r['skipped_files']} skipped" if r["skipped_files"] else ""
             L.append(f"- detector: `{r['detector_kind']}` · "
                      f"{sites} situation site(s), **{len(r['gaps'])} gap(s)**, "
                      f"coverage {cov} ({r['scanned_files']} files analyzed{skipped})")
+            if r["status"] == "partial":
+                L.append("- ⚠ _partial: skipped files mean this result is not clean/compliant_")
             for g in r["gaps"]:
                 L.append(f"  - `{g['file']}:{g['line']}` — {g['text']}")
         else:
@@ -654,23 +664,28 @@ def main() -> int:
               f"skipped. Run /orient to declare (maturity, stakes).")
 
     scanned = [r for r in results if r["status"] == "scanned"]
+    partial = [r for r in results if r["status"] == "partial"]
+    analyzed = [*scanned, *partial]
     gated = [r for r in results if r["status"] == "gated_out"]
     unsupported = [r for r in results if r["status"] == "language_unsupported"]
     no_files = [r for r in results if r["status"] == "no_files_matched"]
-    total_gaps = sum(len(r["gaps"]) for r in scanned)
+    total_gaps = sum(len(r["gaps"]) for r in analyzed)
     flags = []
     if gated:
         flags.append(f"{len(gated)} gated out")
+    if partial:
+        flags.append(f"{len(partial)} partial")
     if unsupported:
         flags.append(f"{len(unsupported)} language-unsupported")
     if no_files:
         flags.append(f"{len(no_files)} no-files-matched")
-    print(f"state {state['maturity']}/{state['stakes']}: scanned "
-          f"{len(scanned)}/{len(results)} standard(s): {total_gaps} "
+    print(f"state {state['maturity']}/{state['stakes']}: fully scanned "
+          f"{len(scanned)}/{len(results)} standard(s), {len(partial)} partial: {total_gaps} "
           f"coverage gap(s)" + ("; " + ", ".join(flags) if flags else ""))
-    for r in scanned:
+    for r in analyzed:
         skipped = f", {r['skipped_files']} skipped" if r["skipped_files"] else ""
-        print(f"  {r['id']} [{r['detector_kind']}]: {len(r['gaps'])} gap(s) "
+        status = "PARTIAL — " if r["status"] == "partial" else ""
+        print(f"  {r['id']} [{r['detector_kind']}]: {status}{len(r['gaps'])} gap(s) "
               f"of {r['situation_sites']} situation site(s){skipped}")
     for r in gated:
         print(f"  {r['id']}: GATED OUT — {r['reason']}")
