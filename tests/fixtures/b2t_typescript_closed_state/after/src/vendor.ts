@@ -1,4 +1,5 @@
 import { JobState, type JobState as JobStateValue } from "./job-state.js";
+import type { Job } from "./jobs.js";
 
 export interface VendorJobPayload {
   state: "queued" | "running" | "done";
@@ -13,4 +14,8 @@ export function decodeVendorJobState(payload: VendorJobPayload): JobStateValue {
     return JobState.RUNNING;
   }
   return JobState.DONE;
+}
+
+export function vendorFileFirstPartyCheck(job: Job): boolean {
+  return job.state === JobState.DONE;
 }

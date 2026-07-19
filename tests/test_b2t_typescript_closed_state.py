@@ -6,7 +6,9 @@ before/after mutation, and generated guard artifact.
 """
 from __future__ import annotations
 
+from collections import Counter
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -105,12 +107,22 @@ def test_b2t_typescript_closed_state_outcome_and_installed_guard(tmp_path: Path)
     }
     assert {"literal_union", "string_enum"} <= authority_kinds
     first_party = [r for r in records if r["classification"] == "first_party_state_operation"]
-    assert {(r["operation"], r["literal"]) for r in first_party} == {
-        ("assignment", "queued"),
-        ("comparison", "running"),
-        ("comparison", "done"),
-    }
+    assert len(first_party) == 8
+    assert Counter((r["operation"], r["literal"]) for r in first_party) == Counter({
+        ("assignment", "queued"): 4,
+        ("comparison", "queued"): 1,
+        ("comparison", "running"): 1,
+        ("comparison", "done"): 2,
+    })
+    assert Counter(r["file"] for r in first_party) == Counter({
+        "src/jobs.ts": 7,
+        "src/vendor.ts": 1,
+    })
     assert all(r["carrier_type"] == "JobState" for r in first_party)
+    vendor_boundaries = [r for r in records if r["classification"] == "vendor_wire_boundary"]
+    assert len(vendor_boundaries) == 1
+    assert vendor_boundaries[0]["receiver_type"] == "VendorJobPayload"
+    assert vendor_boundaries[0]["file"] == "src/vendor.ts"
     missing_tsconfig = _run(
         "node", str(installed_root / "find-implicit-state" / "scripts" / DETECT.name),
         "--target", str(before), "--project-root", str(before),
@@ -119,6 +131,20 @@ def test_b2t_typescript_closed_state_outcome_and_installed_guard(tmp_path: Path)
     )
     assert missing_tsconfig.returncode == 2
     assert "project-local TypeScript requires tsconfig" in missing_tsconfig.stderr
+    invalid_target = before / "invalid-probe"
+    invalid_target.mkdir()
+    (invalid_target / "broken.ts").write_text(
+        "export function broken(: boolean {\n",
+        encoding="utf-8",
+    )
+    invalid = _run(
+        "node", str(installed_root / "find-implicit-state" / "scripts" / DETECT.name),
+        "--target", str(invalid_target), "--project-root", str(before),
+        "--tsconfig", str(before / "tsconfig.json"), "--output", str(tmp_path / "invalid.jsonl"),
+        cwd=before,
+    )
+    assert invalid.returncode == 2
+    assert "syntax error" in invalid.stderr
 
     enum_dir = before / "reports" / "extract-enum" / "job-state"
     targets = enum_dir / "targets.json"
@@ -131,7 +157,7 @@ def test_b2t_typescript_closed_state_outcome_and_installed_guard(tmp_path: Path)
     assert collect.returncode == 0, collect.stdout + collect.stderr
     target_data = json.loads(targets.read_text(encoding="utf-8"))
     assert target_data["runtime_value_name"] == "JobState"
-    assert target_data["callers_by_file"] == {"src/jobs.ts": 3}
+    assert target_data["callers_by_file"] == {"src/jobs.ts": 7, "src/vendor.ts": 1}
     assert target_data["vendor_boundaries"] == ["src/vendor.ts"]
     proposal_text = proposal.read_text(encoding="utf-8")
     assert "export const JobState = {" in proposal_text
@@ -159,7 +185,7 @@ def test_b2t_typescript_closed_state_outcome_and_installed_guard(tmp_path: Path)
     bad = _run("node", str(guard), str(bad_ts), str(bad_tsx), cwd=after)
     good = _run("node", str(guard), str(good_ts), str(good_tsx), cwd=after)
     assert bad.returncode == 1, bad.stdout + bad.stderr
-    assert len(bad.stdout.splitlines()) == 4
+    assert len(bad.stdout.splitlines()) == 9
     assert good.returncode == 0, good.stdout + good.stderr
     assert good.stdout == ""
     verify = _run(
@@ -169,6 +195,18 @@ def test_b2t_typescript_closed_state_outcome_and_installed_guard(tmp_path: Path)
     )
     assert verify.returncode == 0, verify.stdout + verify.stderr
     assert "PASS: BAD_RC=1, GOOD_RC=0" in verify.stdout
+    pre_fix_guard = _run(
+        "node", str(guard), str(before / "src" / "jobs.ts"), str(before / "src" / "vendor.ts"),
+        cwd=after,
+    )
+    assert pre_fix_guard.returncode == 1
+    assert len(pre_fix_guard.stdout.splitlines()) == 8
+    assert "vendor.ts" in pre_fix_guard.stdout
+    fixed_guard = _run(
+        "node", str(guard), str(after / "src" / "jobs.ts"), str(after / "src" / "vendor.ts"),
+        cwd=after,
+    )
+    assert fixed_guard.returncode == 0, fixed_guard.stdout + fixed_guard.stderr
     bad_cli = _run("node", str(guard), cwd=after)
     assert bad_cli.returncode == 2
     assert "usage: no_stringly_state.mjs" in bad_cli.stderr
@@ -178,3 +216,71 @@ def test_b2t_typescript_closed_state_outcome_and_installed_guard(tmp_path: Path)
     )
     assert missing_prerequisite.returncode == 2
     assert "project-local TypeScript" in missing_prerequisite.stderr
+
+
+def test_b2t_selected_skills_install_with_pinned_stock_cli(tmp_path: Path) -> None:
+    stock_host = tmp_path / "stock-host"
+    stock_host.mkdir()
+    install = subprocess.run(
+        [
+            "npx", "--yes", "skills@1.5.19", "add", str(REPO_ROOT),
+            "--skill", "find-implicit-state",
+            "--skill", "extract-enum",
+            "--skill", "prevent-regression",
+            "--agent", "codex", "--copy", "-y",
+        ],
+        cwd=stock_host,
+        env={**os.environ, "DO_NOT_TRACK": "1"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert install.returncode == 0, install.stdout + install.stderr
+    installed = stock_host / ".agents" / "skills"
+    assert {path.name for path in installed.iterdir()} == {
+        "find-implicit-state",
+        "extract-enum",
+        "prevent-regression",
+    }
+    assert all(
+        not path.resolve().is_relative_to(REPO_ROOT.resolve())
+        for path in installed.iterdir()
+    )
+
+    before = _copy_host(tmp_path, "before")
+    report = before / "reports"
+    findings = report / "findings.jsonl"
+    targets = report / "targets.json"
+    proposal = report / "proposal.md"
+    detect = _run(
+        "node", str(installed / "find-implicit-state" / "scripts" / DETECT.name),
+        "--target", str(before), "--project-root", str(before),
+        "--tsconfig", str(before / "tsconfig.json"), "--output", str(findings), cwd=stock_host,
+    )
+    assert detect.returncode == 0, detect.stdout + detect.stderr
+    collect = _run(
+        "node", str(installed / "extract-enum" / "scripts" / COLLECT.name),
+        "--findings", str(findings), "--project-root", str(before),
+        "--output", str(targets), "--proposal", str(proposal), cwd=stock_host,
+    )
+    assert collect.returncode == 0, collect.stdout + collect.stderr
+
+    after = _copy_host(tmp_path, "after")
+    stage = after / "reports" / "prevent-regression" / "stock"
+    generate = _run(
+        "node", str(installed / "prevent-regression" / "scripts" / GENERATE_GUARD.name),
+        "--id", "stock", "--project-root", str(after),
+        "--tsconfig", str(after / "tsconfig.json"), "--output-root", str(stage), cwd=stock_host,
+    )
+    assert generate.returncode == 0, generate.stdout + generate.stderr
+    verify = _run(
+        "node", str(installed / "prevent-regression" / "scripts" / VERIFY_GUARD.name),
+        "--rule", str(stage / "scripts" / "lint" / "no_stringly_state.mjs"),
+        "--bad", str(stage / "tests" / "lint" / "no_stringly_state_bad.ts"),
+        "--bad-tsx", str(stage / "tests" / "lint" / "no_stringly_state_bad.tsx"),
+        "--good", str(stage / "tests" / "lint" / "no_stringly_state_good.ts"),
+        "--good-tsx", str(stage / "tests" / "lint" / "no_stringly_state_good.tsx"),
+        cwd=after,
+    )
+    assert verify.returncode == 0, verify.stdout + verify.stderr
+    assert "PASS: BAD_RC=1, GOOD_RC=0" in verify.stdout

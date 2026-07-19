@@ -63,6 +63,14 @@ first-party bare literals with an exported as const runtime value object and a
 derived union type. It does not claim a TypeScript ORM, migration,
 tuple-identity, or general text-literal detector.
 
+The bounded syntax contract covers direct property comparisons, reversed
+comparisons, one-hop local `const` aliases initialized directly from the
+property, plain and `??=` assignments, and every property target in a chained
+assignment. Vendor attribution comes from an explicit semantic receiver type
+named `Vendor*Payload|Request|Response|Event|Message|Wire`; filenames and
+nearby text never establish a vendor boundary. Computed properties and
+general dataflow remain out of scope. Invalid TypeScript exits 2.
+
 **Host prerequisites:** the target project owns a compatible typescript package
 and a readable tsconfig.json. The launcher resolves typescript from that
 project's package.json; it never uses a toolkit, global, or downloaded

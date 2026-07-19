@@ -68,10 +68,11 @@ This branch consumes JSONL from
 find-implicit-state/scripts/detect_typescript_state.mjs; it does not infer
 TypeScript candidates with a regex and does not accept a Django finding ID.
 The supported target is one closed first-party state field/type with repeated
-bare string assignment or comparison operations. Its proposal creates one
+bare string assignment or comparison operations, including detector-attributed
+direct aliases and chained assignment targets. Its proposal creates one
 exported runtime value object declared as const, derives the union from that
 object, migrates every first-party caller, and preserves vendor wire literals
-only at named, reasoned boundaries.
+only at named, reasoned semantic receiver boundaries.
 
 It explicitly excludes Django TextChoices, migrations, tuple identity,
 Prisma/TypeORM/Sequelize conventions, generic enum preference, and a

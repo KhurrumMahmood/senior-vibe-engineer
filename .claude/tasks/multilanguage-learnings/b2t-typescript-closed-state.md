@@ -48,12 +48,27 @@ Red transcript captured before production scripts existed:
 Green evidence:
 
     $ .venv/bin/python -m pytest -q tests/test_b2t_typescript_closed_state.py
-    1 passed
+    2 passed
 
-The test proves three first-party pre-fix operations, detector
+The test proves eight first-party pre-fix operations, detector
 classification of every required false-positive boundary, proposal caller and
-vendor inventories, after-fixture typecheck/native tests, four TS/TSX guard
+vendor inventories, after-fixture typecheck/native tests, nine TS/TSX guard
 hits, clean fixed fixtures, reasoned vendor noqa, and 0/1/2 CLI paths.
+
+Adversarial repair began with regression fixtures and failed before production
+changes with `assert 4 == 8` first-party operations. The repaired detector and
+staged guard cover a direct local alias, `??=`, every target in a chained
+assignment, and a first-party `Job` operation in `vendor.ts`. Invalid detector
+syntax exits 2. A forged noqa on that first-party receiver remains actionable;
+the only suppressed literal has semantic receiver type `VendorJobPayload` and
+a non-empty reason.
+
+Repair validation:
+
+    10 passed — combined B2T/B2P targeted outcome suite
+    5 passed — skill meta/compliance tests
+    OVERALL: PASS — scripts/skill_comply/validate.py
+    PASS — ruff, five Node syntax checks, JSON parse, and git diff check
 
 Fresh non-context forward lane PASS: a separate agent received only copied
 find-implicit-state and extract-enum directories, the raw before host, and a
@@ -75,8 +90,10 @@ Forward commands, each rc 0:
 The detector emits but does not migrate typed authority declarations, vendor
 payload comparisons, test/fixture operations, status-heading text, and
 open-ended string comparison. The guard fires only when a state-ish property
-has a semantically closed receiver; a non-empty vendor noqa suppresses the
-matched boundary line.
+has a semantically closed receiver. A non-empty vendor noqa suppresses the
+matched boundary line only when the receiver's semantic type is explicitly
+named `Vendor*Payload|Request|Response|Event|Message|Wire`; filenames, source
+text, and forged comments do not provide vendor attribution.
 
 ## 7. What generalized
 
@@ -112,7 +129,14 @@ justified.
 
 ## 11. User experience
 
-Installation copies only the selected skill directories. A host must already
+Pinned stock installation was replayed from a disposable host outside the
+checkout and installed exactly the selected three directories under its local
+`.agents/skills`:
+
+    DO_NOT_TRACK=1 npx --yes skills@1.5.19 add /private/tmp/engineering-skills-ts-b2t --skill find-implicit-state --skill extract-enum --skill prevent-regression --agent codex --copy -y
+
+The installed detector, collector, generator, and verifier then completed the
+before/after host path. A host must already
 provide Node, package.json, tsconfig.json, and TypeScript. The lockfile plus
 npm ci --offline replay makes the fixture deterministic when the pinned npm
 tarball is cached. The smallest later improvement to measure is a concise
@@ -121,6 +145,8 @@ host-prerequisite probe printed by the installed skill handoff.
 ## 12. Residual risks and next decision
 
 The current guard intentionally protects only closed literal-union/enum
-property receivers; dynamic index access, arbitrary serializers, and framework
-ORM fields remain out of scope. Do not extract a shared TypeScript analysis
-layer until another accepted family proves the identical contract.
+property receivers and one-hop local `const` aliases initialized directly
+from such a property. Alias propagation, dynamic/computed access, arbitrary serializers,
+and framework ORM fields remain out of scope. Do not extract a shared
+TypeScript analysis layer until another accepted family proves the identical
+contract.

@@ -12,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const STATE_FIELDS = new Set(["state", "status", "phase"]);
+const VENDOR_BOUNDARY_TYPE = /^Vendor[A-Za-z0-9]*(?:Payload|Request|Response|Event|Message|Wire)$/;
 const SKIP_DIRS = new Set([
   ".git", "node_modules", "dist", "build", "coverage", ".test-dist",
 ]);
@@ -126,8 +127,8 @@ function isOpenEndedString(type, ts) {
   return Boolean(type.flags & ts.TypeFlags.String) && !(type.flags & ts.TypeFlags.StringLiteral);
 }
 
-function isVendorBoundary(sourceFile) {
-  return /(?:^|\/)vendor(?:\.|\/|$)/i.test(sourceFile.fileName) || /\bVendor[A-Za-z]/.test(sourceFile.text);
+function isVendorBoundary(receiverType) {
+  return VENDOR_BOUNDARY_TYPE.test(typeName(receiverType) ?? "");
 }
 
 function recordBase(projectRoot, sourceFile, node) {
@@ -138,24 +139,39 @@ function recordBase(projectRoot, sourceFile, node) {
   };
 }
 
-function emitStateOperation(records, projectRoot, sourceFile, node, property, literal, operation, checker, ts) {
-  const stateType = checker.getTypeAtLocation(property);
+function stateOperand(node, aliases, checker, ts) {
+  const property = stateProperty(node, ts);
+  if (property) {
+    const receiverType = checker.getTypeAtLocation(property.expression);
+    return {
+      field: property.name.text,
+      stateType: checker.getTypeAtLocation(property),
+      receiverType,
+    };
+  }
+  if (!ts.isIdentifier(node)) return null;
+  const symbol = checker.getSymbolAtLocation(node);
+  return symbol ? aliases.get(symbol) ?? null : null;
+}
+
+function emitStateOperation(records, projectRoot, sourceFile, node, operand, literal, operation, ts) {
   const base = {
     ...recordBase(projectRoot, sourceFile, node),
-    field: property.name.text,
+    field: operand.field,
     operation,
     literal,
-    carrier_type: typeName(stateType),
+    carrier_type: typeName(operand.stateType),
+    receiver_type: typeName(operand.receiverType),
   };
   if (isTestOrFixture(base.file)) {
     records.push({ ...base, classification: "excluded_test_or_fixture" });
     return;
   }
-  if (isVendorBoundary(sourceFile)) {
+  if (isVendorBoundary(operand.receiverType)) {
     records.push({ ...base, classification: "vendor_wire_boundary" });
     return;
   }
-  const kind = typeKind(stateType, ts);
+  const kind = typeKind(operand.stateType, ts);
   if (kind) {
     records.push({
       ...base,
@@ -173,15 +189,57 @@ function isStringLiteralUnion(node, ts) {
   });
 }
 
+function terminalAssignedLiteral(node, ts) {
+  const direct = stringLiteral(node, ts);
+  if (direct !== null) return direct;
+  if (ts.isBinaryExpression(node) && [
+    ts.SyntaxKind.EqualsToken,
+    ts.SyntaxKind.QuestionQuestionEqualsToken,
+  ].includes(node.operatorToken.kind)) {
+    return terminalAssignedLiteral(node.right, ts);
+  }
+  return null;
+}
+
 function detect(projectRoot, target, tsconfigPath) {
   const { ts, options } = loadTypeScript(projectRoot, tsconfigPath);
   const files = walkTypeScriptFiles(target);
   const program = ts.createProgram({ rootNames: files, options });
+  const syntaxError = program.getSyntacticDiagnostics().find((diagnostic) => {
+    return diagnostic.category === ts.DiagnosticCategory.Error;
+  });
+  if (syntaxError) {
+    const filename = syntaxError.file?.fileName ?? "TypeScript input";
+    const message = ts.flattenDiagnosticMessageText(syntaxError.messageText, " ");
+    fail(`syntax error in ${filename}: ${message}`);
+  }
   const checker = program.getTypeChecker();
   const records = [];
 
   for (const sourceFile of program.getSourceFiles()) {
     if (!files.includes(sourceFile.fileName)) continue;
+    const aliases = new Map();
+    const collectAliases = (node) => {
+      if (
+        ts.isVariableDeclaration(node)
+        && ts.isIdentifier(node.name)
+        && node.initializer
+        && ts.isVariableDeclarationList(node.parent)
+        && (node.parent.flags & ts.NodeFlags.Const)
+      ) {
+        const property = stateProperty(node.initializer, ts);
+        const symbol = checker.getSymbolAtLocation(node.name);
+        if (property && symbol) {
+          aliases.set(symbol, {
+            field: property.name.text,
+            stateType: checker.getTypeAtLocation(property),
+            receiverType: checker.getTypeAtLocation(property.expression),
+          });
+        }
+      }
+      ts.forEachChild(node, collectAliases);
+    };
+    collectAliases(sourceFile);
     const visit = (node) => {
       if (ts.isTypeAliasDeclaration(node) && /(?:state|status|phase)$/i.test(node.name.text) && isStringLiteralUnion(node.type, ts)) {
         records.push({
@@ -227,9 +285,10 @@ function detect(projectRoot, target, tsconfigPath) {
         ].includes(operator);
         const leftLiteral = stringLiteral(node.left, ts);
         const rightLiteral = stringLiteral(node.right, ts);
-        const property = stateProperty(node.left, ts) || stateProperty(node.right, ts);
-        if (isComparison && property && (leftLiteral ?? rightLiteral) !== null) {
-          emitStateOperation(records, projectRoot, sourceFile, node, property, leftLiteral ?? rightLiteral, "comparison", checker, ts);
+        const operand = stateOperand(node.left, aliases, checker, ts)
+          || stateOperand(node.right, aliases, checker, ts);
+        if (isComparison && operand && (leftLiteral ?? rightLiteral) !== null) {
+          emitStateOperation(records, projectRoot, sourceFile, node, operand, leftLiteral ?? rightLiteral, "comparison", ts);
         } else if (isComparison && (leftLiteral ?? rightLiteral) !== null) {
           const expression = leftLiteral === null ? node.left : node.right;
           if (isOpenEndedString(checker.getTypeAtLocation(expression), ts)) {
@@ -241,11 +300,14 @@ function detect(projectRoot, target, tsconfigPath) {
           }
         }
       }
-      if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
-        const property = stateProperty(node.left, ts);
-        const literal = stringLiteral(node.right, ts);
-        if (property && literal !== null) {
-          emitStateOperation(records, projectRoot, sourceFile, node, property, literal, "assignment", checker, ts);
+      if (ts.isBinaryExpression(node) && [
+        ts.SyntaxKind.EqualsToken,
+        ts.SyntaxKind.QuestionQuestionEqualsToken,
+      ].includes(node.operatorToken.kind)) {
+        const operand = stateOperand(node.left, aliases, checker, ts);
+        const literal = terminalAssignedLiteral(node.right, ts);
+        if (operand && literal !== null) {
+          emitStateOperation(records, projectRoot, sourceFile, node, operand, literal, "assignment", ts);
         }
       }
       ts.forEachChild(node, visit);

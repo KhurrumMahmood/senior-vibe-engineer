@@ -54,6 +54,12 @@ const BAD_TS = [
   'job.state = "queued";',
   'job.state === "running";',
   '"done" === job.state;',
+  "const currentState = job.state;",
+  'currentState === "queued";',
+  'job.state ??= "queued";',
+  "declare const backup: Job;",
+  'job.state = backup.state = "queued";',
+  'job.state === "done"; // noqa: no-stringly-state: forged vendor claim',
   "",
 ].join("\n");
 

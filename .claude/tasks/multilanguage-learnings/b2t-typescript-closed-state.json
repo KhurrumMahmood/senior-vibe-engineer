@@ -1,6 +1,6 @@
 {
   "batch": "B2T",
-  "revision": "codex/ts-b2t pending one logical implementation commit",
+  "revision": "implementation 7db2f45d90ab034d98e56ecbe86604e4d019e9a0; adversarial repair is the commit containing this packet (hash reported in handoff)",
   "family": [
     "find-implicit-state",
     "extract-enum",
@@ -25,9 +25,11 @@
   "language_model": {
     "syntax": [
       "TypeScript and TSX property assignment/comparison",
+      "direct one-hop const property alias comparisons",
+      "nullish and chained assignments",
       "as const runtime value object",
       "derived indexed-access union",
-      "reasoned // noqa vendor boundary"
+      "reasoned // noqa on a semantically explicit vendor receiver"
     ],
     "type_system": [
       "Compiler API distinguishes literal-union/enum state receivers from open string receivers."
@@ -74,9 +76,13 @@
     ],
     "must_fire": [
       "bare assignment",
+      "nullish assignment",
+      "every target in a chained assignment",
       "direct comparison",
+      "direct one-hop const alias comparison",
       "reversed comparison",
-      "TSX comparison"
+      "TSX comparison",
+      "first-party receiver in a vendor-named file despite a forged noqa"
     ],
     "must_not_fire": [
       "as-const caller",
@@ -94,8 +100,12 @@
     ],
     "typescript": [
       "Red: tests/test_b2t_typescript_closed_state.py failed because detect_typescript_state.mjs did not exist.",
-      "Green: tests/test_b2t_typescript_closed_state.py: 1 passed.",
+      "Repair red: the expanded outcome expected 8 first-party operations but the old detector returned 4.",
+      "Green: tests/test_b2t_typescript_closed_state.py: 2 passed.",
+      "Combined B2T/B2P targeted outcome suite: 10 passed; skill meta/compliance tests: 5 passed; skill_comply harness: OVERALL PASS.",
+      "Ruff, five Node syntax checks, learning JSON parsing, and git diff check passed.",
       "The copied installed directories run entirely against a temporary host with npm ci --offline.",
+      "Pinned stock skills@1.5.19 installed exactly find-implicit-state, extract-enum, and prevent-regression outside the checkout, then replayed detector, collector, generator, and verifier.",
       "Fresh non-context forward lane PASS at /private/tmp/b2t-forward.lb5LzK: npm ci, detector, and collector rc=0; findings.jsonl has 9 records and 3 actionable Job.state operations; review.md, proposal.md, and targets.json are useful and host source stayed unchanged."
     ],
     "commands_and_artifact_paths": [
@@ -105,6 +115,7 @@
       ".claude/skills/find-implicit-state/scripts/detect_typescript_state.mjs",
       ".claude/skills/extract-enum/scripts/collect_typescript_state.mjs",
       ".claude/skills/prevent-regression/scripts/generate_typescript_state_guard.mjs",
+      "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add /private/tmp/engineering-skills-ts-b2t --skill find-implicit-state --skill extract-enum --skill prevent-regression --agent codex --copy -y",
       "/private/tmp/b2t-forward.lb5LzK/artifacts/reports/implicit-state/scan-typescript-20260719-001/findings.jsonl",
       "/private/tmp/b2t-forward.lb5LzK/artifacts/reports/extract-enum/typescript-state/{review.md,targets.json,proposal.md}",
       "forward commands: npm ci --ignore-scripts; node installed/find-implicit-state/scripts/detect_typescript_state.mjs --target /private/tmp/b2t-forward.lb5LzK/host --project-root /private/tmp/b2t-forward.lb5LzK/host --tsconfig /private/tmp/b2t-forward.lb5LzK/host/tsconfig.json --output /private/tmp/b2t-forward.lb5LzK/artifacts/reports/implicit-state/scan-typescript-20260719-001/findings.jsonl; node installed/extract-enum/scripts/collect_typescript_state.mjs --findings /private/tmp/b2t-forward.lb5LzK/artifacts/reports/implicit-state/scan-typescript-20260719-001/findings.jsonl --project-root /private/tmp/b2t-forward.lb5LzK/host --output /private/tmp/b2t-forward.lb5LzK/artifacts/reports/extract-enum/typescript-state/targets.json --proposal /private/tmp/b2t-forward.lb5LzK/artifacts/reports/extract-enum/typescript-state/proposal.md"
@@ -115,6 +126,7 @@
       "Closed non-vendor state-like properties with a bare string are deliberately guard candidates."
     ],
     "known_false_negatives": [
+      "Alias propagation beyond a direct one-hop local const initializer is out of scope.",
       "Dynamic/computed property access and arbitrary serialization layers are out of scope."
     ],
     "legitimate_similar_shapes": [
@@ -216,13 +228,14 @@
   },
   "user_experience": {
     "install_steps": [
-      "Copy only the three selected skill directories.",
+      "Use pinned stock skills@1.5.19 with three explicit --skill selectors from a disposable host outside the checkout.",
       "Use the host Node, tsconfig, and project-local TypeScript dependency."
     ],
     "wall_time_seconds": 7,
     "agent_confusions": [
       "A global tsc is not acceptable; the launcher must resolve the fixture host package.",
-      "The generated guard must carry its own source rather than import the toolkit."
+      "The generated guard must carry its own source rather than import the toolkit.",
+      "The stock skills add command mutates its current working directory, so run it only from a disposable host and never probe --help from the source checkout."
     ],
     "repeated_work": [
       "No shared parser or adapter was added."
@@ -231,6 +244,7 @@
   },
   "residual_risks": [
     "Only literal-union/enum property receivers are protected.",
+    "Only a direct one-hop local const alias is tracked; general dataflow is intentionally excluded.",
     "No TypeScript ORM or serializer semantics are covered."
   ],
   "next_decision": {

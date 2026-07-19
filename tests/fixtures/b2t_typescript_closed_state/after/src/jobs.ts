@@ -18,3 +18,16 @@ export function isRunning(job: Job): boolean {
 export function isDone(job: Job): boolean {
   return JobState.DONE === job.state;
 }
+
+export function isQueuedAlias(job: Job): boolean {
+  const currentState = job.state;
+  return currentState === JobState.QUEUED;
+}
+
+export function ensureQueued(job: Job): void {
+  job.state ??= JobState.QUEUED;
+}
+
+export function queueBoth(primary: Job, backup: Job): void {
+  primary.state = backup.state = JobState.QUEUED;
+}

@@ -99,7 +99,10 @@ general-purpose rules.
 
 For a reviewed TypeScript closed-state proposal, stage—not install—the
 family-local Compiler API guard. This branch supports only first-party bare
-string assignments and comparisons on a closed state/status/phase receiver.
+string assignments and comparisons on a closed state/status/phase receiver:
+direct and reversed comparisons, one-hop local `const` aliases initialized
+directly from the property, plain and `??=` assignments, and every target in a chained
+assignment.
 It requires the host's pinned typescript package and tsconfig; missing or
 incompatible prerequisites exit 2 clearly. It does not create a general
 TypeScript lint generator, root lint wiring, or an ORM-aware rule.
@@ -123,7 +126,11 @@ The completed report contains the staged no_stringly_state.mjs guard, paired
 TS/TSX bad and good fixtures, and host-wiring.diff. The verifier must paste
 BAD_RC=1, GOOD_RC=0; the generated guard uses exit 0 for clean, 1 for
 violations, and 2 for invocation/prerequisite/syntax errors. A reasoned
-noqa comment suppresses only the matched vendor-boundary line. The serial
+noqa comment suppresses only the matched line when the Compiler API resolves
+its receiver to an explicit `Vendor*Payload|Request|Response|Event|Message|Wire`
+type. A vendor-looking filename, nearby text, or forged comment on a
+first-party receiver cannot suppress a finding. Computed properties and
+general alias/dataflow propagation remain out of scope. The serial
 integrator, not this skill, owns applying host-wiring.diff to a global lint
 runner or hook.
 

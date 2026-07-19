@@ -9,6 +9,7 @@ import path from "node:path";
 
 const RULE = "no-stringly-state";
 const STATE_FIELDS = new Set(["state", "status", "phase"]);
+const VENDOR_BOUNDARY_TYPE = /^Vendor[A-Za-z0-9]*(?:Payload|Request|Response|Event|Message|Wire)$/;
 const NOQA = new RegExp("//\\s*noqa:\\s*" + RULE + ":\\s*\\S");
 
 function failure(message) {
@@ -81,6 +82,15 @@ function stateProperty(node, ts) {
   return ts.isPropertyAccessExpression(node) && STATE_FIELDS.has(node.name.text) ? node : null;
 }
 
+function typeName(type) {
+  const symbol = type.aliasSymbol || type.getSymbol?.();
+  return symbol?.getName?.() ?? null;
+}
+
+function vendorBoundary(receiverType) {
+  return VENDOR_BOUNDARY_TYPE.test(typeName(receiverType) ?? "");
+}
+
 function closedState(type, ts) {
   if (type.flags & ts.TypeFlags.StringLiteral) return true;
   const symbol = type.getSymbol?.();
@@ -100,23 +110,81 @@ function hasNoqa(sourceFile, node) {
   return NOQA.test(sourceFile.text.split(/\r?\n/)[line] ?? "");
 }
 
+function stateOperand(node, aliases, checker, ts, semantic) {
+  const property = stateProperty(node, ts);
+  if (property) {
+    return {
+      stateType: semantic ? checker.getTypeAtLocation(property) : null,
+      receiverType: semantic ? checker.getTypeAtLocation(property.expression) : null,
+    };
+  }
+  if (!semantic || !ts.isIdentifier(node)) return null;
+  const symbol = checker.getSymbolAtLocation(node);
+  return symbol ? aliases.get(symbol) ?? null : null;
+}
+
+function terminalAssignedLiteral(node, ts) {
+  const direct = literal(node, ts);
+  if (direct !== null) return direct;
+  if (ts.isBinaryExpression(node) && [
+    ts.SyntaxKind.EqualsToken,
+    ts.SyntaxKind.QuestionQuestionEqualsToken,
+  ].includes(node.operatorToken.kind)) {
+    return terminalAssignedLiteral(node.right, ts);
+  }
+  return null;
+}
+
 function collect(sourceFile, checker, ts, semantic) {
   const hits = [];
+  const aliases = new Map();
+  if (semantic) {
+    const collectAliases = (node) => {
+      if (
+        ts.isVariableDeclaration(node)
+        && ts.isIdentifier(node.name)
+        && node.initializer
+        && ts.isVariableDeclarationList(node.parent)
+        && (node.parent.flags & ts.NodeFlags.Const)
+      ) {
+        const property = stateProperty(node.initializer, ts);
+        const symbol = checker.getSymbolAtLocation(node.name);
+        if (property && symbol) {
+          aliases.set(symbol, {
+            stateType: checker.getTypeAtLocation(property),
+            receiverType: checker.getTypeAtLocation(property.expression),
+          });
+        }
+      }
+      ts.forEachChild(node, collectAliases);
+    };
+    collectAliases(sourceFile);
+  }
   const visit = (node) => {
     if (ts.isBinaryExpression(node)) {
       const leftLiteral = literal(node.left, ts);
       const rightLiteral = literal(node.right, ts);
-      const property = stateProperty(node.left, ts) || stateProperty(node.right, ts);
       const comparison = [
         ts.SyntaxKind.EqualsEqualsToken,
         ts.SyntaxKind.EqualsEqualsEqualsToken,
         ts.SyntaxKind.ExclamationEqualsToken,
         ts.SyntaxKind.ExclamationEqualsEqualsToken,
       ].includes(node.operatorToken.kind);
-      const assignment = node.operatorToken.kind === ts.SyntaxKind.EqualsToken;
-      if (property && (leftLiteral ?? rightLiteral) !== null && (comparison || assignment)) {
-        const typed = semantic ? closedState(checker.getTypeAtLocation(property), ts) : true;
-        if (typed && !hasNoqa(sourceFile, node)) {
+      const assignment = [
+        ts.SyntaxKind.EqualsToken,
+        ts.SyntaxKind.QuestionQuestionEqualsToken,
+      ].includes(node.operatorToken.kind);
+      const operand = comparison
+        ? stateOperand(node.left, aliases, checker, ts, semantic)
+          || stateOperand(node.right, aliases, checker, ts, semantic)
+        : stateOperand(node.left, aliases, checker, ts, semantic);
+      const stringValue = assignment
+        ? terminalAssignedLiteral(node.right, ts)
+        : leftLiteral ?? rightLiteral;
+      if (operand && stringValue !== null && (comparison || assignment)) {
+        const typed = semantic ? closedState(operand.stateType, ts) : true;
+        const suppress = semantic && vendorBoundary(operand.receiverType) && hasNoqa(sourceFile, node);
+        if (typed && !suppress) {
           const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
           hits.push({
             line: position.line + 1,

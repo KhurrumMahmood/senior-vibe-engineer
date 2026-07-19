@@ -39,8 +39,8 @@ function main() {
   process.stdout.write("rule  : " + rule + "\n");
   process.stdout.write("bad   : rc=" + bad.status + " hits=" + badHits + "\n");
   process.stdout.write("good  : rc=" + good.status + " hits=" + goodHits + "\n");
-  if (bad.status !== 1 || badHits !== 4 || good.status !== 0 || goodHits !== 0) {
-    process.stdout.write("FAIL: expected BAD_RC=1 with 4 hits and GOOD_RC=0 with 0 hits.\n");
+  if (bad.status !== 1 || badHits !== 9 || good.status !== 0 || goodHits !== 0) {
+    process.stdout.write("FAIL: expected BAD_RC=1 with 9 hits and GOOD_RC=0 with 0 hits.\n");
     process.exitCode = 1;
     return;
   }
