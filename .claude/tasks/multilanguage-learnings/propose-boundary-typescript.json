@@ -1,0 +1,92 @@
+{
+  "batch": "TypeScript propose-boundary candidate",
+  "revision": "5e8ebb41d3c3bea056f201faaba77852cd9bffae",
+  "family": ["propose-boundary"],
+  "invariant": {
+    "portable_principle": "A boundary proposal may recommend an extraction only when its public API, private reaches, caller impact, and verification plan are grounded in a complete static graph; incomplete or cohesive evidence must defer rather than invent a seam.",
+    "python_or_framework_mechanism": "Preserve the existing Python AST helper, scoring, and JSON behavior unchanged.",
+    "typescript_mechanism": "A family-local Compiler API command resolves eligible static modules, top-level target symbols, and target-local call signatures through one named host tsconfig, then writes inspection JSON and final proposal Markdown.",
+    "explicit_non_goals": [
+      "Source mutation, codemods, or refactor execution",
+      "Dynamic import, runtime loader, reflection, decorator, or external-consumer reachability",
+      "React, Node, ORM, route, dependency-injection, or other framework semantics",
+      "Safe deletion or framework-aware API ownership claims",
+      "A shared TypeScript parser, resolver, or fact platform"
+    ]
+  },
+  "reference_repairs": [
+    "No Python reference defect was found; tests pin the existing positive, cohesive, and excluded behavior without editing propose.py.",
+    "The TypeScript path treats unresolved static modules and compiler-reported ambiguous export stars as explicit defers, rather than copying Python's name-only graph assumptions."
+  ],
+  "language_model": {
+    "syntax": ["TypeScript and TSX top-level declarations", "static import, export-from, and import-equals module specifiers", "call expressions with compiler-resolved signatures"],
+    "type_system": ["A Program and TypeChecker resolve declaration symbols and call signatures.", "Underscore-prefixed exported helpers are private by proposal convention, so external reaches are blockers rather than public API candidates."],
+    "module_resolution": ["The named tsconfig supplies compiler options, paths aliases, and project references.", "resolveModuleName establishes relative and alias destinations.", "Unresolved selected imports and diagnostic 2308 ambiguous export-star records make the graph partial and defer the proposal."],
+    "runtime": ["Node resolves TypeScript only from the target host package.json.", "The locked fixture package-lock pins TypeScript 5.9.3."],
+    "framework": ["No framework assumption; TSX is accepted only as a source extension and no framework semantics are inferred."]
+  },
+  "tooling": {
+    "selected": "Family-local Node TypeScript Compiler API resolver in propose_typescript.mjs.",
+    "rejected_alternatives": {
+      "lexical_import_and_call_scan": "Cannot prove paths alias destinations, barrel destinations, or resolved call targets.",
+      "ts_morph_or_tree_sitter": "Adds dependencies without improving the accepted host-Compiler-API graph contract.",
+      "shared_typescript_platform": "map-subsystem has related resolution mechanics, but no second consumer has proven identical proposal facts, output, deferral, exclusions, and copied-install closure."
+    },
+    "version_and_resolution": "The fixture lock pins TypeScript 5.9.3. The installed runner requires package.json and resolves the package from that host inside project root.",
+    "closure_mode": "Only the selected skill directory is copied. The documented command locates .agents or .claude and invokes the bundled Node runner without repository Python, scripts/_lib, _common, sibling skills, or a toolkit venv.",
+    "preflight_and_failure_codes": ["Exit 2 for missing target, direct symbolic-link target, missing/invalid tsconfig, missing host TypeScript, or target syntax error.", "Emit defer_unresolved_graph for unresolved selected imports or ambiguous export symbols.", "Emit defer_no_seam for a complete but cohesive one-domain target."]
+  },
+  "outcome_contract": {
+    "inputs": ["Locked TypeScript 5.9.3 host fixture", "Named tsconfig with @orders/* alias", "Legacy target containing quote and settlement domains plus direct, alias, and barrel consumers"],
+    "structured_outputs": ["reports/propose-boundary/<name>/inspection.json", "reports/propose-boundary/<name>/proposal.md"],
+    "must_fire": ["Resolved quote and settlement candidate seams", "Resolved settlementCapture to _quoteNormalize private cross-boundary call", "Resolved direct, alias, and barrel caller impact", "Public API table, compatibility/barrel plan, and native verification plan in final proposal"],
+    "must_not_fire": ["Cohesive shipping target", "Unresolved alias or ambiguous export barrel as a refactor recommendation", "Generated, vendor, test, declaration, build, fixture, dependency, or direct excluded target inclusion", "Direct external symlink traversal", "Repository-level runtime import from a copied selected skill"],
+    "native_test_command": "npm ci --offline --ignore-scripts && npm run typecheck && npm test",
+    "native_guard_command": null
+  },
+  "evidence": {
+    "python_reference": ["The focused suite invokes propose.py against positive, cohesive, and node_modules-excluded temporary hosts; all preserve current behavior."],
+    "typescript": ["tests/test_propose_boundary_typescript.py asserts final JSON/Markdown, resolved call/import evidence, direct/alias/barrel impact, no-seam and incomplete-graph defers, exclusions, symlink failure, stock closure, and narrow documentation.", "The locked fixture runs npm run typecheck and npm test before proposal analysis."],
+    "commands_and_artifact_paths": [".venv/bin/python -m pytest tests/test_propose_boundary_typescript.py -q: 7 passed", "node --check .claude/skills/propose-boundary/scripts/propose_typescript.mjs: passed", ".venv/bin/python -m ruff check .claude/skills/propose-boundary/scripts/propose.py tests/test_propose_boundary_typescript.py: passed with an existing propose.py noqa-format warning", ".venv/bin/python scripts/skill_meta.py lint: OK — 76 skills, 76 declaring new contract", "The stock test executes the installed documented command and writes reports/propose-boundary/typescript-legacy/inspection.json and proposal.md in an external temporary host."],
+    "fresh_forward": {
+      "task": "Install only propose-boundary into a clean TypeScript host, request a boundary proposal for src/legacy, and inspect the final artifact without editing source.",
+      "automated_installed_replay": "Passed in the focused stock-install test using the exact documented command blocks and selected copied skill.",
+      "independent_agent": false,
+      "status": "pending independent D6 replay"
+    }
+  },
+  "false_positive_boundary": {
+    "known_false_positives": ["Static module facts cannot prove external package consumers or runtime reachability.", "Underscore privacy is an explicit TypeScript v1 proposal convention, not compiler-enforced encapsulation."],
+    "known_false_negatives": ["Dynamic imports, loaders, reflection, framework registries, decorators, and excluded/symlinked paths are intentionally unavailable.", "Ambiguity detection is limited to compiler diagnostic 2308 export-star conflicts in selected target files."],
+    "legitimate_similar_shapes": ["A cohesive shipping target is a defer, not a fabricated split.", "Direct, alias, and barrel importers are distinguished and listed instead of being collapsed into one caller count.", "An unresolved or ambiguous graph still writes a reviewable proposal explaining why it deferred."]
+  },
+  "generalized": ["Host-pinned Compiler API loading", "Named tsconfig resolution", "Final-artifact assertions", "Project-root-relative exclusions and symlink rejection", "Explicit incomplete evidence", "Selected-skill stock-install replay"],
+  "did_not_generalize": ["Python AST scoring", "Framework/runtime semantics", "A shared Compiler API resolver module", "Safe code movement or automated compatibility rewrites", "Cross-project package/reference completeness"],
+  "reuse_decision": {
+    "shared_candidate": "Host-pinned named-tsconfig module resolver",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": ["map-subsystem and propose-boundary consume different facts and produce different output/deferral contracts.", "No accepted second proposal consumer proves the same caller-impact and call-resolution requirements."],
+    "owner": "propose-boundary TypeScript v1"
+  },
+  "translation_prerequisites": {
+    "rust": {"native_tool": "rust-analyzer or compiler-backed crate graph plus syn", "idiomatic_representation": "pub items, use/re-export edges, mod/lib barrels, Cargo workspace members", "required_fixtures": ["direct and crate-alias importers", "re-export barrel", "private cross-module reach", "cargo check/test and copied install"], "semantic_gaps": ["macro expansion", "conditional compilation", "workspace dependency resolution"]},
+    "go": {"native_tool": "go/packages and go/types", "idiomatic_representation": "exported identifiers, package imports, internal packages, module replacements", "required_fixtures": ["direct/module-alias importers", "private boundary reach", "go test and copied install"], "semantic_gaps": ["build tags", "generated package code", "workspace/replace semantics"]},
+    "java_or_kotlin": {"native_tool": "compiler model or language server", "idiomatic_representation": "public declarations, package imports, Gradle/Maven source sets", "required_fixtures": ["multi-module importers", "package facade/barrel equivalent", "private reach", "native build/test and copied install"], "semantic_gaps": ["annotation processing", "overloads", "multi-module build resolution"]},
+    "csharp": {"native_tool": "Roslyn workspace", "idiomatic_representation": "public symbols, using/project references, solution boundaries", "required_fixtures": ["project reference importers", "public facade", "private reach", "dotnet build/test and copied install"], "semantic_gaps": ["partial/source-generated types", "conditional compilation", "NuGet resolution"]},
+    "ruby": {"native_tool": "Prism/Ripper plus an explicit loader convention", "idiomatic_representation": "public constants, require/re-export convention, gem boundaries", "required_fixtures": ["direct require and facade", "private constant reach", "native test and copied install"], "semantic_gaps": ["dynamic requires", "monkey patching", "constant lookup"]}
+  },
+  "user_experience": {
+    "install_steps": ["Set PROPOSE_BOUNDARY_SOURCE to the pinned source/ref and run the documented selected-skill install command.", "From the host root, use PROPOSE_TARGET, PROPOSE_TSCONFIG, and PROPOSE_NAME only when defaults do not fit, then run the documented proposal command.", "Review proposal.md with inspection.json before authorizing a refactor."],
+    "wall_time_seconds": null,
+    "agent_confusions": ["A resolved import graph is not a framework or runtime reachability graph.", "A barrel must be named in compatibility planning, not mistaken for an implementation module.", "An externally imported underscore helper is a migration blocker even if TypeScript permits the export."],
+    "repeated_work": ["The accepted map-subsystem pattern informed host-local resolution and stock closure, but no code was imported or shared."],
+    "smallest_later_improvement": "After a D6 replay and an independently accepted second boundary-style consumer, measure whether a shared resolver contract would actually remove repeated code without weakening its output guarantees."
+  },
+  "residual_risks": ["D6 independent fresh-agent replay remains pending serial integration.", "Dynamic/runtime/framework reachability and external consumers remain deliberately unavailable.", "Hosts must provide Node, package.json, a host-local TypeScript package, and valid tsconfig.", "Ambiguous export handling is intentionally narrow to selected diagnostic evidence."],
+  "next_decision": {
+    "recommendation": "Keep the resolver local and run the independent installed-host D6 replay before promotion.",
+    "rationale": "The positive final proposal, conservative defers, native fixture checks, and exact selected-skill stock replay prove a useful framework-neutral v1 without a platform expansion.",
+    "blockers": ["Fresh non-context agent D6 replay", "Serial integration of shared catalog/router/tracker claims outside this lane"]
+  }
+}
