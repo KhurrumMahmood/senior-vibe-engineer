@@ -32,8 +32,8 @@ reference is visible rather than silently disappearing.
 ## How success is judged
 
 - Write `drift.md`, `raw-drift.json`, `registry-audit.json`, and
-  `link-check.txt` under one requested report directory. Do not claim a scan
-  ran without all four artifacts.
+  `link-check.txt` under one requested report directory that resolves inside
+  `--project-root`. Do not claim a scan ran without all four artifacts.
 - Include valid `decision:NNNN` references from TypeScript and TSX comments in
   both final artifacts. A valid reference prevents an old accepted ADR from
   being reported as unreferenced.
@@ -41,7 +41,8 @@ reference is visible rather than silently disappearing.
   Registry status/link checks remain visible in their compatibility artifacts.
 - Keep the registry and source files read-only. Exit `0` for clean, `1` when
   drift rows are present, and `2` for invalid paths, unsupported/malformed
-  decision frontmatter, unavailable TypeScript tooling, or invalid TS/TSX.
+  decision frontmatter, unavailable TypeScript tooling, invalid TS/TSX, or a
+  report directory that resolves outside the project root.
 
 ## Supported reference contract
 
@@ -153,6 +154,7 @@ The report can surface these drift classes:
 | Symptom | Action |
 |---|---|
 | Exit 2 | Correct the project/target path or frontmatter; restore Node.js/the host's local `typescript`; or repair TS/TSX syntax. Do not treat a failed parse as a clean audit. |
+| Report directory resolves outside `--project-root` | Use a project-relative report path, or an absolute path contained by the project root. `..` escapes and existing output/ancestor symlinks that resolve outside are rejected before any artifact is written. |
 | TS/TSX exists but TypeScript is unavailable | Install the project's locked dependencies so `typescript` resolves from `package.json`, then re-run. Do not present an incomplete TypeScript scan as clean. |
 | A desired reference is in an identifier, string, regex, or JSX text | Do not count it. Add a supported comment at the authoritative location. |
 | An excluded tree is supplied directly with `--target` | The scan is clean for references by design; exclusions cannot be bypassed by narrowing the target. |

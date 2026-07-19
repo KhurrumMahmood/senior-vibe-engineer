@@ -229,6 +229,17 @@ def _resolve_target(raw: str, project_root: Path) -> Path:
     return target
 
 
+def _resolve_output_dir(raw: Path, project_root: Path) -> Path:
+    """Return a report directory resolved inside the project root."""
+    candidate = Path(raw)
+    output_dir = candidate.resolve() if candidate.is_absolute() else (project_root / candidate).resolve()
+    try:
+        output_dir.relative_to(project_root)
+    except ValueError as exc:
+        raise ValueError(f"output directory is outside project root: {raw}") from exc
+    return output_dir
+
+
 def iter_scannable_files(project_root: Path, targets: Iterable[Path]) -> list[Path]:
     found: set[Path] = set()
     for target in targets:
@@ -546,7 +557,7 @@ def run(args: argparse.Namespace) -> int:
     project_root = args.project_root.resolve()
     if not project_root.is_dir():
         raise ValueError(f"project root does not exist: {project_root}")
-    output_dir = args.output_dir.resolve()
+    output_dir = _resolve_output_dir(args.output_dir, project_root)
     targets = [_resolve_target(raw, project_root) for raw in args.target] if args.target else [project_root]
     decisions = load_decisions(project_root / "ai-docs" / "decisions")
     references = [reference for path in iter_scannable_files(project_root, targets) for reference in scan_references(path, project_root)]

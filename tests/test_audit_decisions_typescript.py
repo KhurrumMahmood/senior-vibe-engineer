@@ -13,6 +13,12 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILL = REPO_ROOT / ".claude" / "skills" / "audit-decisions"
 FIXTURE = REPO_ROOT / "tests" / "fixtures" / "audit-decisions-typescript" / "host"
+REPORT_ARTIFACTS = {
+    "drift.md",
+    "link-check.txt",
+    "raw-drift.json",
+    "registry-audit.json",
+}
 
 
 def _run(
@@ -191,6 +197,63 @@ def test_typescript_sources_require_a_host_local_compiler_api_dependency(tmp_pat
     assert result.returncode == 2
     assert "project-local TypeScript package is unavailable" in result.stderr
     assert not output.exists()
+
+
+@pytest.mark.parametrize("path_kind", ["absolute", "parent-traversal"])
+def test_output_dir_rejects_path_outside_project_without_writing(
+    tmp_path: Path,
+    path_kind: str,
+) -> None:
+    host = _copy_host(tmp_path)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    output = outside / "audit-decisions"
+    argument = output if path_kind == "absolute" else Path("..") / "outside" / "audit-decisions"
+
+    result = _audit(SKILL, host, argument)
+
+    assert result.returncode == 2
+    assert "output directory is outside project root" in result.stderr
+    assert not output.exists()
+    assert list(outside.iterdir()) == []
+
+
+@pytest.mark.parametrize("escape_kind", ["output-symlink", "ancestor-symlink"])
+def test_output_dir_rejects_symlink_escape_without_writing(
+    tmp_path: Path,
+    escape_kind: str,
+) -> None:
+    host = _copy_host(tmp_path)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    if escape_kind == "output-symlink":
+        output = host / "report-link"
+        output.symlink_to(outside, target_is_directory=True)
+    else:
+        ancestor = host / "reports-link"
+        ancestor.symlink_to(outside, target_is_directory=True)
+        output = ancestor / "audit-decisions"
+
+    result = _audit(SKILL, host, output)
+
+    assert result.returncode == 2
+    assert "output directory is outside project root" in result.stderr
+    assert list(outside.iterdir()) == []
+
+
+@pytest.mark.parametrize("use_absolute_path", [False, True])
+def test_output_dir_accepts_contained_relative_and_absolute_paths(
+    tmp_path: Path,
+    use_absolute_path: bool,
+) -> None:
+    host = _copy_host(tmp_path)
+    output = host / "reports" / "audit-decisions" / "contained"
+    argument = output if use_absolute_path else output.relative_to(host)
+
+    result = _audit(SKILL, host, argument)
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert {path.name for path in output.iterdir()} == REPORT_ARTIFACTS
 
 
 @pytest.mark.parametrize(
