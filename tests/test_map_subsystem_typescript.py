@@ -63,6 +63,29 @@ def _map(
     return result, output, evidence
 
 
+def _map_with_paths(
+    host: Path,
+    *,
+    output: Path,
+    evidence: Path,
+) -> subprocess.CompletedProcess[str]:
+    return _run(
+        "node",
+        str(SCRIPT),
+        "--target",
+        "src/features",
+        "--project-root",
+        str(host),
+        "--tsconfig",
+        "tsconfig.json",
+        "--output",
+        str(output),
+        "--evidence",
+        str(evidence),
+        cwd=host,
+    )
+
+
 def _load(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -234,6 +257,30 @@ def test_typescript_map_never_traverses_internal_or_external_directory_symlinks(
     direct, _, _ = _map(SKILL, host, "src/external-link", name="symlink-direct")
     assert direct.returncode == 2
     assert "symbolic link" in direct.stderr
+
+
+def test_typescript_map_refuses_source_or_symlinked_artifact_paths(tmp_path: Path) -> None:
+    host = _copy_host(tmp_path)
+    victim = host / "src" / "features" / "widget.tsx"
+    before = victim.read_bytes()
+    source_output = _map_with_paths(
+        host,
+        output=victim,
+        evidence=host / "reports" / "map" / "safe" / "typescript-map.json",
+    )
+    assert source_output.returncode == 2
+    assert "artifact output" in source_output.stderr
+    assert victim.read_bytes() == before
+
+    os.symlink(host / "src", host / "reports")
+    linked_report = _map_with_paths(
+        host,
+        output=host / ".claude" / "docs" / "subsystems" / "safe.md",
+        evidence=host / "reports" / "map" / "unsafe" / "typescript-map.json",
+    )
+    assert linked_report.returncode == 2
+    assert "symbolic link" in linked_report.stderr
+    assert victim.read_bytes() == before
 
 
 def test_stock_install_runs_documented_map_command_without_checkout_runtime(tmp_path: Path) -> None:

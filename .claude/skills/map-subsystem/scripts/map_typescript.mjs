@@ -95,6 +95,22 @@ function traversesSymbolicLink(projectRoot, absolutePath) {
   return false;
 }
 
+function safeArtifactPath(projectRoot, suppliedPath, allowedRoot, label) {
+  const artifact = resolveProjectPath(projectRoot, suppliedPath, label);
+  if (!isWithin(allowedRoot, artifact) || artifact === allowedRoot) {
+    fail(`${label} must stay beneath ${relativePath(projectRoot, allowedRoot)}/: ${suppliedPath}`);
+  }
+  const parts = path.relative(projectRoot, artifact).split(path.sep).filter(Boolean);
+  let current = projectRoot;
+  for (const part of parts) {
+    current = path.join(current, part);
+    if (fs.existsSync(current) && fs.lstatSync(current).isSymbolicLink()) {
+      fail(`${label} must not traverse a symbolic link: ${suppliedPath}`);
+    }
+  }
+  return artifact;
+}
+
 function loadProjectTypeScript(projectRoot) {
   const packageJson = path.join(projectRoot, "package.json");
   if (!fs.existsSync(packageJson)) {
@@ -543,6 +559,26 @@ function main() {
   if (traversesSymbolicLink(projectRoot, target)) fail(`target must not traverse a symbolic link: ${target}`);
   const targetStats = fs.lstatSync(target);
   if (targetStats.isSymbolicLink()) fail(`target must not be a symbolic link: ${target}`);
+  const outputPath = safeArtifactPath(
+    projectRoot,
+    args.output,
+    path.join(projectRoot, ".claude", "docs", "subsystems"),
+    "artifact output",
+  );
+  const evidencePath = safeArtifactPath(
+    projectRoot,
+    args.evidence,
+    path.join(projectRoot, "reports", "map"),
+    "artifact evidence",
+  );
+  const effectivenessLogPath = args.effectivenessLog
+    ? safeArtifactPath(
+      projectRoot,
+      args.effectivenessLog,
+      path.join(projectRoot, "reports", "_meta"),
+      "effectiveness log",
+    )
+    : null;
   const ts = loadProjectTypeScript(projectRoot);
   const config = resolveProjectTsconfig(ts, projectRoot, args.tsconfig);
   const exclusions = buildExclusionPolicy(projectRoot, config.declaredExcludes);
@@ -606,12 +642,11 @@ function main() {
     },
     unavailable_fields: UNAVAILABLE_FIELDS,
   };
-  writeAtomically(path.resolve(args.evidence), `${JSON.stringify(payload, null, 2)}\n`);
-  writeAtomically(path.resolve(args.output), renderMap(payload));
-  if (args.effectivenessLog) {
-    const logPath = path.resolve(args.effectivenessLog);
-    fs.mkdirSync(path.dirname(logPath), { recursive: true });
-    fs.appendFileSync(logPath, `${JSON.stringify({
+  writeAtomically(evidencePath, `${JSON.stringify(payload, null, 2)}\n`);
+  writeAtomically(outputPath, renderMap(payload));
+  if (effectivenessLogPath) {
+    fs.mkdirSync(path.dirname(effectivenessLogPath), { recursive: true });
+    fs.appendFileSync(effectivenessLogPath, `${JSON.stringify({
       skill: "map-subsystem",
       scan_id: `map-typescript-${Date.now()}`,
       ts: new Date().toISOString(),
