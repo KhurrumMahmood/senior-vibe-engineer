@@ -1,6 +1,6 @@
 # TypeScript-first skill batch plan
 
-Status: B0 and B3 complete; B1, B2P, and the move-path pilot in progress
+Status: B0, B2P, and B3 complete; B1, B2T, and the move-path pilot in progress
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -404,9 +404,8 @@ Acceptance:
 
 ### B2P — Python closed-state reference proof
 
-State: `in_progress` — `codex/ts-state-reference` at
-`/private/tmp/engineering-skills-ts-state-reference`; B2T remains blocked until
-independent acceptance of this reference proof
+State: `complete` — accepted at `33e96a6` after independent adversarial
+re-review; B2T is active at `/private/tmp/engineering-skills-ts-b2t`
 
 Skills: `find-implicit-state` (string-state branch), `extract-enum`, a reviewed
 representative fixture mutation, and the state-specific path of
@@ -428,19 +427,20 @@ and B2P learning files. No concurrent work may touch `prevent-regression`.
 
 Acceptance:
 
-- [ ] A disposable Django-shaped fixture produces real detector JSONL,
+- [x] A disposable Django-shaped fixture produces real detector JSONL,
   collapsed/reviewed findings, extractor targets/proposal, a reviewed enum
   before/after change, and lint red-before/green-after evidence.
-- [ ] Positive, negative, must-not-fire, vendor-boundary, structured-output,
+- [x] Positive, negative, must-not-fire, vendor-boundary, structured-output,
   and native Python tests are checked in.
-- [ ] Copied installed skills execute outside the toolkit checkout with no
+- [x] Copied installed skills execute outside the toolkit checkout with no
   repository-level imports or toolkit venv.
-- [ ] D1–D8 pass, with the TypeScript clauses of D3/D4 deferred specifically
+- [x] D1–D8 pass, with the TypeScript clauses of D3/D4 deferred specifically
   to B2T.
 
 ### B2T — TypeScript closed-state outcome
 
-State: `proposed` — blocked only on accepted B2P evidence
+State: `in_progress` — `codex/ts-b2t` at
+`/private/tmp/engineering-skills-ts-b2t`
 
 Skills: `find-implicit-state` (new TypeScript state-only branch),
 `extract-enum` (TypeScript proposal branch), a reviewed fixture mutation, and
@@ -710,3 +710,5 @@ corrected rather than treated as working framework neutrality.
 | 2026-07-18 | this planning commit | B0 independent lanes | Three fresh non-context Terra xhigh lanes independently reviewed detector families, mutation/guard chains, and tooling/installed closure. Their disagreement split the state work into B2P/B2T, kept the first TypeScript wrapper family-local, added the small B1/B3 batches, and moved unproven or framework-bound chains out of the dispatch queue. |
 | 2026-07-18 | this planning commit | B0 verification | Targeted baseline: 38 adapter, omnibus, perimeter, metadata, and router tests passed. The learning template parsed as JSON; `git diff --check` passed. A fresh goal-anchored adversarial review first found two real router-honesty defects; after adding explicit language-source/filtering rules, copied-router regressions, and withholding unearned omnibus/workflow claims, the reviewer returned PASS and reconfirmed exact 76-skill coverage. |
 | 2026-07-19 UTC | working tree on `codex/productization-restart` | B3 TypeScript comment hygiene | Red-green implementation added TS/TSX positive/clean fixtures, a skill-local stdlib closure, shared detector/guard ownership, root lint wrapper, pre-commit and `--all` invocation coverage, and final report assertions. Fresh installed forward test produced four useful TS findings and kept an ordinary TSX component clean. Targeted suite: 30 passed; smoke: 23 bad findings and good fixtures clean; metadata/catalog/Ruff/JSON/diff checks passed. Full suite: 415 passed, 1 skipped, with one unrelated pre-existing calendar-sensitive `test_triage_audit.py` failure (its fixed 2026-06-11 fixture is compared by the CLI to real current time; neither test nor implementation is in this diff). Adversarial re-review: PASS after it exposed and verified the pre-commit/runner repair. |
+| 2026-07-19 UTC | `33e96a6` | B2P Python closed-state reference | Detector→review→enum proposal→guard reference accepted after adversarial repairs for parse-error rc 2, chained assignments, repo-ignore fallback, and whole-tree immutability. Targeted suite: 8 passed; copied `python3 -I -S` forward artifacts at `/tmp/es-forward-state.xDtbxT` preserved vendor/open-ended boundaries; independent re-review returned PASS. |
+| 2026-07-19 UTC | `eb4d498` | B1 router-language integration foundation | Bundled catalog now retains `language`, `framework`, and `scans`; copied matcher resolves explicit/exact language context, excludes unsupported language/framework/scanner claims, and returns `unsupported` instead of substituting a weaker skill. Unearned `find-omnibus` TypeScript and Django-bound workflow-state claims are withheld. Router suite: 19 passed; metadata/conformance/Ruff clean. B1 skill-local acceptance remains pending. |
