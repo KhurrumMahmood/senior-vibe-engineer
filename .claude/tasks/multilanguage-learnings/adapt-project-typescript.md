@@ -5,7 +5,9 @@ self-contained TypeScript discovery`) and `023010c`
 (`fix(adapt-project): default artifacts to host root`), plus `5f7dd5a`
 (`fix(adapt-project): preserve Python stack heuristic`). The learning packet
 is intentionally separate from implementation. `7337b1a` strengthens the
-closure regression to use the pinned stock Codex installer.
+closure regression to use the pinned stock Codex installer. `085b2b9` repairs
+the fresh D6 shell-expansion defect and executes the installed documented
+commands verbatim in regression coverage.
 
 ## 1. Invariant
 
@@ -107,7 +109,7 @@ Green commands at `e63a032`:
 git diff --check
 ```
 
-Those checks produced 29 passed, metadata `OK — 76 skills, 76 declaring new
+Those checks produced 30 passed, metadata `OK — 76 skills, 76 declaring new
 contract`, a green import-floor/smoke gate, and green lint/pre-commit/diff.
 The full decode-safety conformance test was also run; it still fails on three
 pre-existing `find-duplication` reads, but no longer lists either
@@ -164,28 +166,36 @@ language-level packet.
 
 ## 9. Fresh-forward packet (D6)
 
-D6 is **pending**, not passed. A nested fresh agent was requested after a
-capacity slot appeared, but the dispatcher rejected the request with `agent
-thread limit reached`.
+D6 **passed** at
+`/private/tmp/adapt-project-typescript-forward.qABrrP/forward-evidence/journey-evidence.md`.
+A fresh non-context agent used only the raw host and installed
+`.agents/skills/adapt-project` closure, then produced the final adapter/report
+for the natural task.
 
-The exact raw packet is ready for the next available fresh, non-context agent:
+The first one-line shell form,
+`ADAPT_PROJECT_SKILL="..." python3 ... "$ADAPT_PROJECT_SKILL/scripts/discover.py"`,
+failed honestly with exit `2`: shell expansion happens before the temporary
+environment assignment, so Python received `/scripts/discover.py`. The agent
+then used a prior assignment line; discovery and the evidence gate both exited
+`0`. It produced the exact final artifacts under:
 
-- raw host: `/private/tmp/adapt-project-typescript-forward.qABrrP/host`
-- only installed skill:
-  `/private/tmp/adapt-project-typescript-forward.qABrrP/host/.agents/skills/adapt-project`
-- start cwd: `/private/tmp/adapt-project-typescript-forward.qABrrP`
-- natural task: “I have just installed the adapt-project skill in this
-  TypeScript project. Discover objective project facts without changing the
-  host, put the resulting adapter and human-readable report outside the host,
-  and tell me which cautions or follow-up questions I should review.”
-- constraints: inspect only that host and installed skill; use `python3 -I
-  -S`; do not inspect any checkout; do not supply expected counts, framework
-  answer, or caution; run the installed evidence checker; report exact commands
-  and artifact paths.
+- `/private/tmp/adapt-project-typescript-forward.qABrrP/forward-evidence/skill-artifacts/reports/adapt-project/scan-20260719-101037/adapter.yml`
+- `/private/tmp/adapt-project-typescript-forward.qABrrP/forward-evidence/skill-artifacts/reports/adapt-project/scan-20260719-101037/adapter.json`
+- `/private/tmp/adapt-project-typescript-forward.qABrrP/forward-evidence/skill-artifacts/reports/adapt-project/scan-20260719-101037/report.md`
+- `/private/tmp/adapt-project-typescript-forward.qABrrP/forward-evidence/skill-artifacts/reports/adapt-project/scan-20260719-101037/evidence.json`
 
-The packet does not require a package install, network, toolkit venv, sibling
-skill, or repository script. The temporary path must be recreated with
-`seed_host.py --source-files 201 --excluded-files 25` if it expires.
+The final output reports 201 eligible TypeScript files (101 `.ts`, 100
+`.tsx`), zero frameworks, and useful large-root/no-local-guardrail cautions.
+The source fingerprint before and after is the same
+`25845e911e4a575829a028ee10115019811bb1f3ec03770e1cd5a85605cda0a6`; no
+`.engineering/project/adapter.yml` was written.
+
+Repair `085b2b9` keeps `ADAPT_PROJECT_SKILL` on a preceding assignment line,
+documents why the one-line temporary assignment is unsafe, and extracts both
+installed pipeline blocks from `SKILL.md` after a pinned stock Codex install.
+The regression concatenates and runs them verbatim with `/bin/sh`; it passes
+only when discovery writes final artifacts and the evidence command prints
+`adapt-project evidence OK`.
 
 ## 10. Next-language translation
 
@@ -211,7 +221,10 @@ Observed install is one normal stock copy of the selected skill under
 `.agents/skills/adapt-project`; execution needs host Python only and completed
 in under one second for the 201-file fixture. The biggest user friction was
 the old documentation pointing to repository-global scripts that are absent
-from a copied skill. The smallest later improvement worth measuring is a
+from a copied skill, followed by the D6 shell-expansion hazard in a temporary
+one-line `ADAPT_PROJECT_SKILL` assignment. The installed command now requires
+the variable assignment on its own preceding line and is replayed verbatim in
+the copied closure test. The smallest later improvement worth measuring is a
 serial, evidence-backed decision about whether other adapter-family skills
 need the same self-contained closure; do not extract a shared runtime before
 there is a second accepted consumer.
@@ -224,10 +237,9 @@ must decide whether it should delegate to or be replaced by this accepted
 family-local closure without changing the frozen ownership boundary. Source
 root candidates are intentionally limited and can miss unconventional
 monorepo layouts. `adapter.yml` is JSON-compatible YAML rather than
-human-styled YAML. D6 and the review portion of D8 remain pending because of
-the agent thread limit.
+human-styled YAML. The review portion of D8 remains pending serial-integrator
+acceptance.
 
-Recommendation: accept D1–D5 and D7 evidence provisionally, complete the
-prepared fresh D6 replay, review this packet, then keep TypeScript discovery
-family-local unless a concrete second selected skill needs the identical
-contract.
+Recommendation: accept D1–D7 evidence, review this packet for D8, then keep
+TypeScript discovery family-local unless a concrete second selected skill
+needs the identical contract.
