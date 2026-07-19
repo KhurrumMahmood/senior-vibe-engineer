@@ -28,7 +28,14 @@ ranges, not a reusable TypeScript parser.
 The wrapper validates the emitted jscpd 4.0.5 JSON schema before path
 normalization or completion metadata: an object with statistics, a duplicate
 list, and valid duplicate file/range records. A zero exit plus malformed JSON
-is a detector failure, not a clean scan.
+is a detector failure, not a clean scan, and the unusable report is removed.
+
+Source discovery excludes the current output root, every `.jscpd-input` tree,
+and conventional `reports` trees before copying. This is required for natural
+reruns where `--target` is the host root and report directories live beneath
+it: a previous disposable staging copy must never become source evidence in a
+later scan. The collapse stage applies the report/staging boundary defensively
+to hand-supplied detector output as well.
 
 ## Rejected alternatives
 
@@ -43,7 +50,8 @@ is a detector failure, not a clean scan.
 
 ## Boundary reminders
 
-- Exclude generated, tests, declarations, vendor, build, and dependency trees.
+- Exclude generated, tests, declarations, vendor, build, dependency, report,
+  and detector-staging trees.
 - Drop overload signatures, even if a raw jscpd input contains them.
 - Keep behaviorally different code clean when it has no lexical clone evidence.
 - Treat every reported cluster as a human-review lead, never a change request.

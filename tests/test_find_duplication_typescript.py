@@ -73,6 +73,44 @@ def _write_fake_npx_payload(path: Path, payload: object) -> None:
     path.chmod(0o755)
 
 
+def _write_fake_npx_text(path: Path, report_text: str) -> None:
+    path.write_text(
+        "#!/usr/bin/env python3\n"
+        "import pathlib, sys\n"
+        "args = sys.argv[1:]\n"
+        "output = pathlib.Path(args[args.index('--output') + 1])\n"
+        "output.mkdir(parents=True, exist_ok=True)\n"
+        f"(output / 'jscpd-report.json').write_text({report_text!r})\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+
+
+def _write_fake_staging_detector(path: Path) -> None:
+    path.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json, pathlib, sys\n"
+        "args = sys.argv[1:]\n"
+        "output = pathlib.Path(args[args.index('--output') + 1])\n"
+        "staging = pathlib.Path(args[-1])\n"
+        "first = sorted(staging.rglob('queue_one.ts'))\n"
+        "second = sorted(staging.rglob('queue_two.ts'))\n"
+        "duplicates = []\n"
+        "for left, right in zip(first, second, strict=True):\n"
+        "    duplicates.append({\n"
+        "        'format': 'typescript',\n"
+        "        'lines': 13,\n"
+        "        'firstFile': {'name': str(left), 'start': 7, 'end': 19},\n"
+        "        'secondFile': {'name': str(right), 'start': 7, 'end': 19},\n"
+        "    })\n"
+        "payload = {'statistics': {'formats': {}, 'total': {}}, 'duplicates': duplicates}\n"
+        "output.mkdir(parents=True, exist_ok=True)\n"
+        "(output / 'jscpd-report.json').write_text(json.dumps(payload))\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+
+
 def test_python_reference_oracle_is_stable_and_keeps_different_code_clean(tmp_path: Path) -> None:
     installed = tmp_path / "installed" / "find-duplication"
     shutil.copytree(SKILL, installed)
@@ -371,6 +409,68 @@ def test_family_local_offline_runner_and_copied_install_closure(tmp_path: Path) 
     assert json.loads((report_dir / "findings.json").read_text())["findings"]
 
 
+def test_copied_runner_rerun_does_not_scan_nested_prior_output(tmp_path: Path) -> None:
+    installed = tmp_path / "installed" / "find-duplication"
+    shutil.copytree(SKILL, installed)
+    host = _copy_host(tmp_path)
+    fake_npx = tmp_path / "fake-npx"
+    _write_fake_staging_detector(fake_npx)
+
+    for scan_id in ("first", "second"):
+        report_dir = host / "arbitrary-audit-output" / scan_id
+        runner = _run(
+            sys.executable,
+            "-I",
+            "-S",
+            str(installed / "scripts" / "run_jscpd.py"),
+            "--target",
+            str(host),
+            "--output",
+            str(report_dir / "jscpd"),
+            "--npx-bin",
+            str(fake_npx),
+            cwd=host,
+        )
+        assert runner.returncode == 0, runner.stdout + runner.stderr
+
+        collapse = _run(
+            sys.executable,
+            "-I",
+            "-S",
+            str(installed / "scripts" / "collapse_typescript.py"),
+            "--jscpd-report",
+            str(report_dir / "jscpd" / "jscpd-report.json"),
+            "--target",
+            str(host),
+            "--project-root",
+            str(host),
+            "--output",
+            str(report_dir / "collapsed.json"),
+            cwd=host,
+        )
+        assert collapse.returncode == 0, collapse.stdout + collapse.stderr
+
+    second = json.loads(
+        (host / "arbitrary-audit-output" / "second" / "collapsed.json").read_text()
+    )
+    assert len(second["findings"]) == 1
+    assert {site["file"] for site in second["findings"][0]["sites"]} == {
+        "src/queue_one.ts",
+        "src/queue_two.ts",
+    }
+    eligible_sources = json.loads(
+        (
+            host
+            / "arbitrary-audit-output"
+            / "second"
+            / "jscpd"
+            / "run.json"
+        ).read_text()
+    )["eligible_sources"]
+    assert eligible_sources
+    assert all("/arbitrary-audit-output/" not in source for source in eligible_sources)
+
+
 def test_offline_runner_fails_clearly_without_the_pinned_cache(tmp_path: Path) -> None:
     host = _copy_host(tmp_path)
     result = _run(
@@ -414,3 +514,32 @@ def test_offline_runner_rejects_malformed_zero_exit_jscpd_report(tmp_path: Path)
     assert "unexpected jscpd report schema" in result.stderr
     assert not (output / "jscpd-report.json").exists()
     assert not (output / "run.json").exists()
+
+
+def test_offline_runner_removes_empty_or_invalid_json_report(tmp_path: Path) -> None:
+    installed = tmp_path / "installed" / "find-duplication"
+    shutil.copytree(SKILL, installed)
+    host = _copy_host(tmp_path)
+
+    for index, report_text in enumerate(("", "{not-json")):
+        fake_npx = tmp_path / f"fake-npx-{index}"
+        _write_fake_npx_text(fake_npx, report_text)
+        output = tmp_path / f"report-{index}" / "jscpd"
+        result = _run(
+            sys.executable,
+            "-I",
+            "-S",
+            str(installed / "scripts" / "run_jscpd.py"),
+            "--target",
+            str(host / "src"),
+            "--output",
+            str(output),
+            "--npx-bin",
+            str(fake_npx),
+            cwd=host,
+        )
+
+        assert result.returncode == 3
+        assert "did not write a valid JSON report" in result.stderr
+        assert not (output / "jscpd-report.json").exists()
+        assert not (output / "run.json").exists()

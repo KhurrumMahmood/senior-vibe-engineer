@@ -24,6 +24,7 @@ TYPESCRIPT_SUFFIXES = frozenset({".ts", ".tsx"})
 SKIP_DIRECTORIES = frozenset(
     {
         ".git",
+        ".jscpd-input",
         ".next",
         ".venv",
         "__tests__",
@@ -32,6 +33,7 @@ SKIP_DIRECTORIES = frozenset(
         "dist",
         "generated",
         "node_modules",
+        "reports",
         "test",
         "tests",
         "vendor",

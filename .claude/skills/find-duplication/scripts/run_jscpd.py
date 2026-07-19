@@ -28,6 +28,7 @@ TYPESCRIPT_SUFFIXES = frozenset({".ts", ".tsx"})
 SKIP_DIRECTORIES = frozenset(
     {
         ".git",
+        ".jscpd-input",
         ".next",
         ".venv",
         "__tests__",
@@ -36,6 +37,7 @@ SKIP_DIRECTORIES = frozenset(
         "dist",
         "generated",
         "node_modules",
+        "reports",
         "test",
         "tests",
         "vendor",
@@ -43,9 +45,14 @@ SKIP_DIRECTORIES = frozenset(
 )
 
 
-def is_eligible_source(path: Path, target: Path) -> bool:
+def is_eligible_source(
+    path: Path, target: Path, *, excluded_roots: tuple[Path, ...] = ()
+) -> bool:
     """Return whether *path* belongs in the TypeScript lexical scan."""
     if not path.is_file() or path.suffix.lower() not in TYPESCRIPT_SUFFIXES:
+        return False
+    resolved = path.resolve()
+    if any(resolved == root or resolved.is_relative_to(root) for root in excluded_roots):
         return False
     name = path.name.lower()
     if name.endswith(".d.ts") or ".test." in name or ".spec." in name:
@@ -59,11 +66,19 @@ def is_eligible_source(path: Path, target: Path) -> bool:
     return not any(part.lower() in SKIP_DIRECTORIES for part in ancestors)
 
 
-def iter_sources(target: Path) -> list[Path]:
+def iter_sources(target: Path, *, excluded_roots: tuple[Path, ...] = ()) -> list[Path]:
     if target.is_file():
-        return [target] if is_eligible_source(target, target.parent) else []
+        return (
+            [target]
+            if is_eligible_source(
+                target, target.parent, excluded_roots=excluded_roots
+            )
+            else []
+        )
     return sorted(
-        path for path in target.rglob("*") if is_eligible_source(path, target)
+        path
+        for path in target.rglob("*")
+        if is_eligible_source(path, target, excluded_roots=excluded_roots)
     )
 
 
@@ -71,10 +86,10 @@ def stage_sources(target: Path, output: Path) -> tuple[Path, list[Path]]:
     """Copy eligible sources to an output-local input tree and return it."""
     source_root = target if target.is_dir() else target.parent
     staging = output / ".jscpd-input"
+    sources = iter_sources(target, excluded_roots=(output.resolve(),))
     if staging.exists():
         shutil.rmtree(staging)
     staging.mkdir(parents=True)
-    sources = iter_sources(target)
     for source in sources:
         destination = staging / source.relative_to(source_root)
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -212,6 +227,7 @@ def run(
         )
         return 3
     if result.returncode:
+        report_path.unlink(missing_ok=True)
         detail = (result.stderr or result.stdout).strip()
         print(
             f"error: pinned jscpd@{JSCPD_VERSION} is unavailable offline. "
@@ -225,6 +241,7 @@ def run(
     try:
         payload = json.loads(report_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
+        report_path.unlink(missing_ok=True)
         print(f"error: jscpd did not write a valid JSON report: {exc}", file=sys.stderr)
         return 3
     schema_error = _report_schema_error(payload)
@@ -239,7 +256,7 @@ def run(
         "version": JSCPD_VERSION,
         "offline": True,
         "eligible_source_count": len(sources),
-        "excluded_source_policy": "generated,test,declaration,vendor",
+        "excluded_source_policy": "generated,test,declaration,vendor,output,report,staging",
     }
     report_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     run_path.write_text(
