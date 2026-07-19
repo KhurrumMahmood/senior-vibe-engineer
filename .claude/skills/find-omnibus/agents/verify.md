@@ -1,9 +1,8 @@
 # Scout brief — verify one omnibus-module candidate
 
-This file is a **prompt template** the orchestrator expands and sends
-to a sub-agent. Placeholders are double-brace `{{name}}`. The
-orchestrator fills them in and calls
-`Agent(subagent_type="general-purpose", prompt=<expanded>)`.
+This file is a **prompt template** the orchestrator expands and sends through
+the host's standard sub-agent capability. Placeholders are double-brace
+`{{name}}`.
 
 Fresh sub-agent, no prior context. Everything the scout needs is either
 inline below or in the knowledge files it will Read.
@@ -36,14 +35,10 @@ Write your output here: `{{output_path}}`
 
 Read in this order:
 
-1. `{{skill_root}}/knowledge/` (host-project overlay) — shared conventions
-   + omnibus-specific notes (directory packages, shim files, known
-   decomposed subsystems).
-2. `{{skill_root}}/knowledge/verification.md` — bucket definitions,
+1. `{{skill_root}}/knowledge/verification.md` — bucket definitions,
    the refactor-subsystem §1.2.5 "facets vs domains" evaluation rule,
-   false-positive hints, output schema.
-3. `{{skill_root}}/../_common/interface-depth.md` — deletion test and
-   locality guidance for the decomposition sketch.
+   false-positive hints, the deletion test, locality guidance, and output
+   schema. This bundled file is the complete knowledge dependency.
 
 ### Verification procedure (follow in order — do not skip)
 
@@ -93,8 +88,8 @@ If there are 3+ domains but they are mainly workflow coordination
 payload context) rather than domain logic, use
 `coordination_omnibus`.
 
-If you catch a **known false-positive shape** (see `knowledge/`
-for the list — thin re-export `__init__.py`, directory-package shims,
+If you catch a **known false-positive shape** (see the bundled
+`knowledge/verification.md` list — thin re-export `__init__.py`, directory-package shims,
 migrations aggregator, urls.py), bucket as `facets_not_domains` with
 `false_positive_reason` naming the shape.
 

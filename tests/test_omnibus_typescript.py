@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -14,8 +15,19 @@ SKILL = REPO_ROOT / ".claude" / "skills" / "find-omnibus"
 FIXTURE = REPO_ROOT / "tests" / "fixtures" / "b4_typescript_omnibus"
 
 
-def _run(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(args, cwd=cwd, capture_output=True, text=True, check=False)
+def _run(
+    *args: str,
+    cwd: Path,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        args,
+        cwd=cwd,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
 
 def _copy_host(tmp_path: Path) -> Path:
@@ -32,6 +44,39 @@ def _copy_host(tmp_path: Path) -> Path:
 
 def _records(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+
+
+def _documented_command(skill: Path, name: str) -> str:
+    text = (skill / "SKILL.md").read_text(encoding="utf-8")
+    match = re.search(
+        rf"<!-- installed-command:{name}:start -->\n```bash\n(.*?)\n```\n"
+        rf"<!-- installed-command:{name}:end -->",
+        text,
+        re.DOTALL,
+    )
+    assert match is not None, name
+    return match.group(1)
+
+
+def _write_scouts(candidates: Path, scout_dir: Path) -> None:
+    scout_dir.mkdir(exist_ok=True)
+    for candidate in _records(candidates):
+        (scout_dir / f"{candidate['candidate_id']}.json").write_text(
+            json.dumps({
+                "candidate_id": candidate["candidate_id"],
+                "file": candidate["file"],
+                "bucket": "confirmed_omnibus",
+                "domains_confirmed": ["invoice", "shipment", "customer", "inventory"],
+                "facets_collapsed": [],
+                "srp_rewrite": "This module handles four independent record domains.",
+                "decomposition_sketch": [],
+                "decomposition_depth_note": "Each domain has a separate public surface.",
+                "false_positive_reason": None,
+                "notes": "Locked TypeScript outcome fixture.",
+                "recommendation": "decompose",
+            }),
+            encoding="utf-8",
+        )
 
 
 def _run_pipeline(skill: Path, host: Path, artifacts: Path, *, isolated: bool) -> list[dict]:
@@ -58,25 +103,8 @@ def _run_pipeline(skill: Path, host: Path, artifacts: Path, *, isolated: bool) -
         cwd=host,
     )
     assert collapse.returncode == 0, collapse.stdout + collapse.stderr
-    candidate_records = _records(candidates)
     scout_dir = artifacts / "scout"
-    scout_dir.mkdir()
-    for candidate in candidate_records:
-        (scout_dir / f"{candidate['candidate_id']}.json").write_text(
-            json.dumps({
-                "candidate_id": candidate["candidate_id"],
-                "file": candidate["file"],
-                "bucket": "confirmed_omnibus",
-                "domains_confirmed": ["invoice", "shipment", "customer", "inventory"],
-                "srp_rewrite": "This module handles four independent record domains.",
-                "decomposition_sketch": [],
-                "decomposition_depth_note": "Each domain has a separate public surface.",
-                "false_positive_reason": None,
-                "notes": "Locked TypeScript outcome fixture.",
-                "recommendation": "decompose",
-            }),
-            encoding="utf-8",
-        )
+    _write_scouts(candidates, scout_dir)
     report = _run(
         *prefix,
         str(skill / "scripts" / "report.py"),
@@ -143,26 +171,99 @@ def test_copied_skill_is_self_contained_for_typescript_pipeline(tmp_path: Path) 
     assert "scripts/_lib" not in (installed / "scripts" / "detect.py").read_text(encoding="utf-8")
 
 
+def test_frontmatter_truthfully_declares_all_supported_scanners() -> None:
+    text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+
+    assert "language: any" in text
+    assert "scans: [python, javascript, typescript]" in text
+    assert "JavaScript (legacy" in text
+
+
+def test_documented_resolver_supports_source_tree_without_path_translation() -> None:
+    resolver = _documented_command(SKILL, "resolve")
+    result = _run(
+        "bash",
+        "-c",
+        f'{resolver}\nprintf "%s\\n" "$SKILL_ROOT"',
+        cwd=REPO_ROOT,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.splitlines()[-1] == str(SKILL.resolve())
+
+
+def test_selected_skill_scout_context_has_no_external_runtime_dependency() -> None:
+    closure = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (
+            SKILL / "SKILL.md",
+            SKILL / "agents" / "verify.md",
+            SKILL / "knowledge" / "verification.md",
+        )
+    )
+
+    for forbidden in (
+        "dispatch_scout_cheap",
+        "tools/code_agent",
+        "../_common",
+        ".claude/skills/find-omnibus/scripts/",
+        "subagent_type=",
+    ):
+        assert forbidden not in closure
+    assert "standard sub-agent capability" in closure
+    assert "complete bundled false-positive list" in closure
+
+
 def test_selected_skill_installs_with_pinned_stock_cli(tmp_path: Path) -> None:
-    stock_host = tmp_path / "stock-host"
-    stock_host.mkdir()
+    host = _copy_host(tmp_path)
     install = subprocess.run(
         [
             "npx", "--yes", "skills@1.5.19", "add", str(REPO_ROOT),
             "--skill", "find-omnibus", "--agent", "codex", "--copy", "-y",
         ],
-        cwd=stock_host,
+        cwd=host,
         env={**os.environ, "DO_NOT_TRACK": "1"},
         capture_output=True,
         text=True,
         check=False,
     )
     assert install.returncode == 0, install.stdout + install.stderr
-    installed = stock_host / ".agents" / "skills" / "find-omnibus"
+    installed = host / ".agents" / "skills" / "find-omnibus"
     assert installed.is_dir()
     assert not installed.resolve().is_relative_to(REPO_ROOT.resolve())
 
-    host = _copy_host(tmp_path)
-    records = _run_pipeline(installed, host, host / "reports" / "stock", isolated=True)
+    commands = {
+        name: _documented_command(installed, name)
+        for name in ("resolve", "setup", "detect", "collapse", "report")
+    }
+    command_env = {**os.environ, "TARGET": "src"}
+    for stage in ("setup", "detect", "collapse"):
+        result = _run(
+            "bash",
+            "-c",
+            f"{commands['resolve']}\n{commands[stage]}",
+            cwd=host,
+            env=command_env,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
+    report_dir = (host / "reports" / "omnibus" / "latest").resolve()
+    candidates = report_dir / "candidates.jsonl"
+    _write_scouts(candidates, report_dir / "scout")
+    render = _run(
+        "bash",
+        "-c",
+        f"{commands['resolve']}\n{commands['report']}",
+        cwd=host,
+        env=command_env,
+    )
+    assert render.returncode == 0, render.stdout + render.stderr
+
+    records = _records(report_dir / "omnibus.jsonl")
+    findings = json.loads((report_dir / "findings.json").read_text(encoding="utf-8"))
 
     _assert_typescript_outcome(records)
+    assert findings["summary"]["bucket_counts"]["confirmed_omnibus"] == 2
+    assert (report_dir / "report.md").is_file()
+    assert len(list((report_dir / "scout").glob("*.json"))) == 2
+    assert ".agents/skills/find-omnibus" in commands["resolve"]

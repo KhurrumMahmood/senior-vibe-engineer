@@ -12,11 +12,11 @@ best_for: |
   files that mix credentials, admin APIs, CSRF/auth, command/network
   diagnostics, persistence, raw SQL, import/export, task dispatch, or
   filesystem writes; produces decomposition candidates that hand off
-  to /refactor-subsystem. Covers Python (exact) and JavaScript/
-  TypeScript (Compiler API syntax spans for ESM top-level functions, typed
-  arrows, and classes; findings carry analyzer provenance). TypeScript needs
-  Node and the host's project-local `typescript` package, but no tsconfig or
-  framework.
+  to /refactor-subsystem. Covers Python (exact AST), JavaScript (legacy
+  declaration heuristic), and TypeScript (Compiler API syntax spans for ESM
+  top-level functions, typed arrows, and classes). Findings carry analyzer
+  provenance. TypeScript needs Node and the host's project-local `typescript`
+  package, but no tsconfig or framework.
 not_for: |
   Single-responsibility files that are merely large (cohesive >500 LOC
   is fine — avoid splitting for size alone). Layer violations
@@ -26,8 +26,7 @@ not_for: |
   /find-perimeter-gaps for what is and isn't covered.
 language: any
 framework: any
-scans: [python, typescript]
-scout_model: cheap
+scans: [python, javascript, typescript]
 ---
 
 # /find-omnibus
@@ -64,8 +63,8 @@ Write toward these gates from Stage 0.
 - **Target path:** the required `--target` argument. Must be a
   directory.
 - **Project root:** this worktree's root.
-- **Python:** `.venv/bin/python` (detectors are stdlib-only, but this
-  repo runs them through the venv for consistent tooling).
+- **Python:** host Python 3.11+; use the host `.venv/bin/python` when present,
+  otherwise `python3`. Never depend on a toolkit venv.
 - **TypeScript v1:** Node plus `typescript` resolvable from the target
   project's `package.json`. The bundled parser needs syntax spans only; it
   deliberately does not read `tsconfig`, resolve modules, inspect types, or
@@ -81,21 +80,49 @@ Write toward these gates from Stage 0.
 
 ## Pipeline stages (each has a contract)
 
-Each stage reads files the previous stage wrote and writes files the
-next stage reads. Run scripts with `.venv/bin/python` and capture stderr so
-failures surface.
+Each stage reads files the previous stage wrote and writes files the next
+stage reads. Set `TARGET` to the requested directory. Before each command
+block, run this resolver verbatim from the project root; it supports both the
+stock install location and this repository's source-tree location:
+
+<!-- installed-command:resolve:start -->
+```bash
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/find-omnibus" \
+  ".claude/skills/find-omnibus"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-omnibus is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+if [ -x ".venv/bin/python" ]; then
+  HOST_PYTHON="$(pwd)/.venv/bin/python"
+else
+  HOST_PYTHON="python3"
+fi
+```
+<!-- installed-command:resolve:end -->
 
 ### Stage 0 — Setup
 
 **Pre:** none. **Post:** `${REPORT_DIR}` exists, `latest` symlink
 points to it.
 
+<!-- installed-command:setup:start -->
 ```bash
+: "${TARGET:?Set TARGET to the directory to audit}"
 TS=$(date +%Y%m%d-%H%M%S)
 REPORT_DIR="reports/omnibus/scan-${TS}"
 mkdir -p "${REPORT_DIR}/scout"
 ln -sfn "scan-${TS}" reports/omnibus/latest
 ```
+<!-- installed-command:setup:end -->
 
 ### Stage 1 — Detect
 
@@ -103,24 +130,31 @@ ln -sfn "scan-${TS}" reports/omnibus/latest
 record per flagged file (score-sorted by responsibility count, then
 security/side-effect sensitivity, then LOC).
 
+<!-- installed-command:detect:start -->
 ```bash
-.venv/bin/python .claude/skills/find-omnibus/scripts/detect.py \
-  --target <target> \
+: "${TARGET:?Set TARGET to the directory to audit}"
+REPORT_DIR="reports/omnibus/$(readlink reports/omnibus/latest)"
+"${HOST_PYTHON}" "${SKILL_ROOT}/scripts/detect.py" \
+  --target "${TARGET}" \
   --project-root "$(pwd)" \
   --output "${REPORT_DIR}/omnibus.jsonl"
 ```
+<!-- installed-command:detect:end -->
 
 ### Stage 2 — Collapse
 
 **Pre:** `omnibus.jsonl`. **Post:** `${REPORT_DIR}/candidates.jsonl` —
 top-30 candidates with `candidate_id` assigned.
 
+<!-- installed-command:collapse:start -->
 ```bash
-.venv/bin/python .claude/skills/find-omnibus/scripts/collapse.py \
+REPORT_DIR="reports/omnibus/$(readlink reports/omnibus/latest)"
+"${HOST_PYTHON}" "${SKILL_ROOT}/scripts/collapse.py" \
   --detections "${REPORT_DIR}/omnibus.jsonl" \
   --output "${REPORT_DIR}/candidates.jsonl" \
   --top 30
 ```
+<!-- installed-command:collapse:end -->
 
 ### Stage 3 — Verify (parallel fan-out)
 
@@ -128,24 +162,26 @@ top-30 candidates with `candidate_id` assigned.
 `${REPORT_DIR}/scout/<candidate_id>.json` for every verified
 candidate.
 
-This is the **only stage where LLM judgment runs**. Dispatch one
-sub-agent per top-10 candidate (or fewer if the candidate list is
-shorter). Each sub-agent receives:
+This is the **only stage where LLM judgment runs**. Use the host agent's
+standard sub-agent capability directly. Dispatch one fresh read-only sub-agent
+per top-10 candidate (or fewer if the candidate list is shorter). Do not invoke
+an external model CLI, toolkit dispatcher, host adapter, or another skill.
+Each sub-agent receives:
 
 - the candidate JSON (one line from `candidates.jsonl`),
 - the prompt template from `agents/verify.md`,
-- paths to `knowledge/*` files,
+- the bundled `knowledge/verification.md`,
 - an output path it must write to.
 
 **Budget:** verify up to the **top 10 candidates by default**. If the
 user asked for a deeper scan, raise the budget. If the user asked for
 a specific subset (e.g., "only the views"), filter before dispatch.
 
-For each candidate, expand `agents/verify.md` (substitute
+For each candidate, expand the bundled `agents/verify.md` (substitute
 `{{candidate_id}}`, `{{candidate_json}}`, `{{project_root}}`,
-`{{skill_root}}`, `{{output_path}}`) and dispatch with
-`subagent_type=general-purpose`. Send all Agent calls in a **single
-message** so they run concurrently.
+`{{skill_root}}`, `{{output_path}}`) and send it through the standard
+sub-agent capability. Dispatch concurrently when capacity allows; when it does
+not, dispatch serially. Capacity may change latency, never the verdict source.
 
 Declare the verdict to every scout: its output is accepted only if it
 writes valid JSON at `{{output_path}}`, uses one of the four buckets,
@@ -158,64 +194,24 @@ If a scout returns invalid JSON or flags the verification as aborted,
 re-dispatch once with a stricter "respond only with file-write
 confirmation" nudge; skip the candidate if it fails twice.
 
-#### Dispatch mode — Agent tool vs cheap subprocess
-
-This skill declares `scout_model: cheap` — the verify step is read-and-
-classify against the four buckets in `verify.md` (`confirmed_omnibus` /
-`borderline` / `coordination_omnibus` / `facets_not_domains`), no cross-
-file synthesis, no shell. That makes it safe on Haiku-class scouts.
-
-For nesting-safe + low-cost fan-out, dispatch each candidate as a
-`tools/code_agent.py --read-only` subprocess via
-`.claude/skills/_common/dispatch_scout_cheap.sh`. The `--read-only`
-flag drops bash, spawn_agent, claude_tools, and validate_jsonld — the
-scout has only read_file/write_file/glob/grep, with workdir
-containment enforced (commit `168ca3c1`). Cheap models can't
-hallucinate calls to tools that aren't in the registry.
-
-```bash
-# One subprocess per candidate; parallelize with `&` + wait.
-while read -r line; do
-    cid=$(jq -r '.candidate_id' <<<"$line")
-    out="${REPORT_DIR}/scout/${cid}.json"
-    .claude/skills/_common/dispatch_scout_cheap.sh \
-        .claude/skills/find-omnibus/agents/verify.md \
-        "$out" \
-        candidate_id="$cid" \
-        candidate_json="$(jq -c . <<<"$line")" \
-        project_root="$(pwd)" \
-        skill_root=".claude/skills/find-omnibus" \
-        output_path="$out" &
-done < "${REPORT_DIR}/candidates.jsonl"
-wait
-```
-
-**Tradeoffs.** Cheap subprocess dispatch adds ~2-4s spawn per scout
-and runs Claude Haiku 4.5 through the team's Expedient gateway by
-default (see `tools/agent-config.json`); set `DISPATCH_SCOUT_MODEL`
-to swap in any other alias (e.g., `cerebras` for personal-account
-free-tier capacity). The `Agent` tool path is faster (~0s spawn) and
-uses the orchestrator's session model (Sonnet/Opus tier — more
-judgment, billed). Use the cheap subprocess by default; fall back to
-`Agent` when (a) only a handful of candidates need verification
-interactively and the user is watching, or (b) a candidate is
-`borderline` and a stronger model's judgment is worth the cost.
-
 ### Stage 4 — Report
 
 **Pre:** `candidates.jsonl`, `scout/*.json`. **Post:**
 `${REPORT_DIR}/report.md` and `${REPORT_DIR}/findings.json`.
 
+<!-- installed-command:report:start -->
 ```bash
-.venv/bin/python .claude/skills/find-omnibus/scripts/report.py \
+: "${TARGET:?Set TARGET to the directory to audit}"
+REPORT_DIR="reports/omnibus/$(readlink reports/omnibus/latest)"
+"${HOST_PYTHON}" "${SKILL_ROOT}/scripts/report.py" \
   --candidates "${REPORT_DIR}/candidates.jsonl" \
   --scout-dir "${REPORT_DIR}/scout" \
   --output-md "${REPORT_DIR}/report.md" \
   --output-json "${REPORT_DIR}/findings.json" \
-  --scan-id "scan-${TS}" \
-  --target <target>
-
+  --scan-id "$(basename "${REPORT_DIR}")" \
+  --target "${TARGET}"
 ```
+<!-- installed-command:report:end -->
 
 The four scripts in this skill are self-contained; a host may record an
 effectiveness event separately, but that optional repository concern is not
@@ -293,7 +289,7 @@ recommendation and no finding for the cohesive helper.
 ## Repository layout
 
 ```
-.claude/skills/find-omnibus/
+find-omnibus/
 ├── SKILL.md                  # this file — orchestrator
 ├── scripts/
 │   ├── detect.py             # Stage 1 — Python/JS/TS cluster extraction
