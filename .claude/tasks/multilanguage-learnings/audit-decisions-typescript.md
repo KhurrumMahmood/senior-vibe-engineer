@@ -109,28 +109,57 @@ a property of the host path, not of invocation convenience.
 | D3 TypeScript outcome | Locked TS/TSX positive, negative, must-not-fire fixture reaches `drift.md` and `raw-drift.json`. | pass |
 | D4 change/guard | Not applicable: advisory/read-only audit, no code change or blocking guard. | n/a |
 | D5 installed closure | Copied and real stock `skills@1.5.19` selected-skill tests run `python3 -I -S` outside checkout. | pass |
-| D6 fresh forward | Fresh nested dispatch returned `agent thread limit reached`; exact clean packet remains ready below. | pending |
+| D6 fresh forward | A fresh non-context lane used only the stock-installed skill and raw host, produced all four final artifacts, identified the single real orphan, and preserved source bytes. | pass |
 | D7 regression/conformance | Focused regressions, Ruff, py_compile, metadata, smoke, artifact drift, and conformance passed. | pass |
 | D8 learning handoff | This MD/JSON pair contains evidence, exclusions, and translation prerequisites. | ready for review |
 
-## D6 prepared packet
+## D6 installed forward journey
 
-The clean raw host is
-`/private/tmp/audit-decisions-forward.LOk2mx/host`; it contains the fixture and
-only `.agents/skills/audit-decisions`, installed with:
+A fresh non-context lane received only the clean stock-installed host at
+`/private/tmp/audit-decisions-forward.LOk2mx/host` and this natural task:
+“Audit this project’s decision registry and inline decision references.
+Produce the skill’s final report artifacts and summarize which drift needs
+engineering attention. Do not edit source files.” It read the installed
+instructions and ran only:
 
 ```text
-DO_NOT_TRACK=1 npx --offline --yes skills@1.5.19 add \
-  /private/tmp/engineering-skills-ts-audit-decisions \
-  --skill audit-decisions --agent codex --copy -y
+python3 -I -S .agents/skills/audit-decisions/scripts/audit.py \
+  --project-root "$PWD" \
+  --output-dir "$PWD/reports/audit-decisions/forward-full-project"
 ```
 
-The non-context natural task is: “Audit this project’s decision registry and
-inline decision references. Produce the skill’s final report artifacts and
-summarize which drift needs engineering attention. Do not edit source files.”
-The eventual forward lane must use only that installed directory and host
-`python3 -I -S`, without reading the source checkout, tests, learning packet,
-or expected result.
+Exit `1` was the documented completed-with-drift result. The independent
+interpretation identified exactly one actionable finding: P0
+`code-ref-orphan` at `src/decision_refs.ts:20` for nonexistent
+`decision:9999`. It correctly reported the three-ADR registry and link checks
+healthy, with no broken supersession, missing applies-to paths, aged proposals,
+or unreferenced decisions. It recommended authoring ADR 9999 only if the
+comment represents a real decision, otherwise removing or replacing the stale
+reference, then re-running the audit.
+
+All required artifacts are preserved under
+`/private/tmp/audit-decisions-forward.LOk2mx/host/reports/audit-decisions/forward-full-project/`:
+
+| Artifact | SHA-256 |
+|---|---|
+| `drift.md` | `2ed13724742dc3edda35967b0f9a5a893378dcf848149082ffac16ddad43705c` |
+| `raw-drift.json` | `453bae8322011f888180ad1986edcbb15b0a033f98350b79b99f362094222adf` |
+| `registry-audit.json` | `69c5b7ce62cfd2397002e625137e8d01f13fba56ab73842bde79e6a4ca9df2f0` |
+| `link-check.txt` | `e684789cbf0e14973ecd88b9bc961543fd1b060445544fabc0ce4394655e281f` |
+
+The pre/post aggregate source manifest was identical at
+`c06a54d9b4edec541f49238ff5ec54494a2220364bb940cb055c20f2b00332f0`;
+the installed skill was also unchanged. Complete transcripts, independent
+interpretation, hashes, and friction notes are preserved under
+`/private/tmp/audit-decisions-forward.LOk2mx/forward-evidence/`.
+
+The installed instructions were sufficient with no TypeScript toolchain,
+package install, virtual environment, network, or `tsconfig`. The runner
+printed the primary artifact path despite exit `1`, and all four outputs landed
+predictably together. The only minor clarity friction was the phrase
+“TS/TSX comment references: 7 total” above an inventory containing ten total
+cross-language references; it is a correct TypeScript subtotal, but explicitly
+labeling it “TypeScript subtotal” would reduce ambiguity in a later UX pass.
 
 ## False-positive boundary, reuse, and next languages
 
@@ -162,5 +191,6 @@ Residual risks are deliberate: malformed TypeScript can defeat lexical
 attribution, uncommon JSX/type grammar may under-report a real comment, and
 the stdlib frontmatter compatibility parser supports the registry's scalar and
 list fields rather than arbitrary YAML. It fails visibly rather than silently
-inventing an audit result. Keep this family lexical and read-only until D6
-replays cleanly and a concrete future language requires a different parser.
+inventing an audit result. D6 confirms that this family should remain lexical,
+read-only, and family-local until a concrete future language requires a
+different parser.

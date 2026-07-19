@@ -41,7 +41,7 @@
     "native_guard_command": null
   },
   "evidence": {
-    "d1_to_d8": {"D1": "pass", "D2": "pass", "D3": "pass", "D4": "not applicable", "D5": "pass", "D6": "pending: agent thread limit", "D7": "pass", "D8": "ready for review"},
+    "d1_to_d8": {"D1": "pass", "D2": "pass", "D3": "pass", "D4": "not applicable", "D5": "pass", "D6": "pass", "D7": "pass", "D8": "pass"},
     "commands_and_results": [
       ".venv/bin/python -m pytest -q tests/test_audit_decisions_typescript.py: 15 passed",
       ".venv/bin/python -m pytest -q tests/test_audit_decisions_typescript.py tests/test_decisions.py tests/test_yaml_frontmatter.py: 53 passed",
@@ -49,13 +49,27 @@
       ".venv/bin/python scripts/skill_meta.py lint: 76/76 OK",
       ".venv/bin/python .claude/skills/_common/scripts/run_skill_smokes.py --skills-dir .claude/skills --timeout 20 --quiet: passed",
       ".venv/bin/python scripts/skill_comply/validate.py: OVERALL PASS",
-      "stock skills@1.5.19 selected install plus python3 -I -S: passed in dedicated test"
+      "stock skills@1.5.19 selected install plus python3 -I -S: passed in dedicated test",
+      "fresh installed command exited 1 as documented drift and produced all four final artifacts; exactly one P0 orphan, healthy registry/links, unchanged source"
     ],
     "fresh_forward": {
-      "status": "pending",
-      "reason": "spawn_agent returned agent thread limit reached after implementation commit",
-      "packet": "/private/tmp/audit-decisions-forward.LOk2mx/host",
-      "task": "Audit this project’s decision registry and inline decision references. Produce the skill’s final report artifacts and summarize which drift needs engineering attention. Do not edit source files."
+      "status": "pass",
+      "task": "Audit this project’s decision registry and inline decision references. Produce the skill’s final report artifacts and summarize which drift needs engineering attention. Do not edit source files.",
+      "installed_host": "/private/tmp/audit-decisions-forward.LOk2mx/host",
+      "evidence_dir": "/private/tmp/audit-decisions-forward.LOk2mx/forward-evidence",
+      "report_dir": "/private/tmp/audit-decisions-forward.LOk2mx/host/reports/audit-decisions/forward-full-project",
+      "command": "python3 -I -S .agents/skills/audit-decisions/scripts/audit.py --project-root $PWD --output-dir $PWD/reports/audit-decisions/forward-full-project",
+      "exit_code": 1,
+      "exit_interpretation": "documented completed-with-drift result, not an execution failure",
+      "result": "Exactly one P0 code-ref-orphan at src/decision_refs.ts:20 for nonexistent decision:9999; all three ADRs parsed, registry and links were healthy, and there was no other drift.",
+      "artifact_sha256": {
+        "drift.md": "2ed13724742dc3edda35967b0f9a5a893378dcf848149082ffac16ddad43705c",
+        "raw-drift.json": "453bae8322011f888180ad1986edcbb15b0a033f98350b79b99f362094222adf",
+        "registry-audit.json": "69c5b7ce62cfd2397002e625137e8d01f13fba56ab73842bde79e6a4ca9df2f0",
+        "link-check.txt": "e684789cbf0e14973ecd88b9bc961543fd1b060445544fabc0ce4394655e281f"
+      },
+      "source_manifest_before_after": "c06a54d9b4edec541f49238ff5ec54494a2220364bb940cb055c20f2b00332f0",
+      "installed_skill_unchanged": true
     }
   },
   "false_positive_boundary": {
@@ -81,10 +95,10 @@
   "user_experience": {
     "install_steps": ["npx skills@1.5.19 copies only audit-decisions", "run installed scripts/audit.py with host python3 -I -S", "read drift.md and raw-drift.json"],
     "wall_time_seconds": null,
-    "agent_confusions": ["An instruction-only source checkout appeared to work while the selected install lacked the registry script.", "Direct-target exclusions must be rooted at the project, not target."],
+    "agent_confusions": ["An instruction-only source checkout appeared to work while the selected install lacked the registry script.", "Direct-target exclusions must be rooted at the project, not target.", "The final report's TS/TSX count is a correct language subtotal, but the adjacent cross-language inventory makes an explicit subtotal label clearer."],
     "repeated_work": ["A temporary installer run in the source worktree created untracked output and was removed; all final evidence uses the external host."],
-    "smallest_later_improvement": "Add a brief scan-scope count only if a measured large-host usability need appears."
+    "smallest_later_improvement": "Label the TS/TSX reference count explicitly as a TypeScript subtotal; add broader scan-scope counts only if a measured large-host usability need appears."
   },
-  "residual_risks": ["D6 forward replay is pending", "lexical TSX handling intentionally does not claim arbitrary grammar completeness", "frontmatter parser fails unsupported shapes rather than importing PyYAML"],
-  "next_decision": {"recommendation": "Keep comment attribution lexical and family-local; complete D6 before claiming full batch completion.", "rationale": "The accepted outcome needs comment boundaries, not semantic TypeScript facts.", "blockers": ["fresh non-context forward replay"]}
+  "residual_risks": ["lexical TSX handling intentionally does not claim arbitrary grammar completeness", "frontmatter parser fails unsupported shapes rather than importing PyYAML", "the final Markdown's TypeScript subtotal label can be clearer in a later UX pass"],
+  "next_decision": {"recommendation": "Accept the additive TypeScript audit path and keep comment attribution lexical and family-local.", "rationale": "The locked final-artifact suite, stock installed closure, and fresh non-context outcome prove that the accepted contract needs comment boundaries rather than semantic TypeScript facts.", "blockers": []}
 }
