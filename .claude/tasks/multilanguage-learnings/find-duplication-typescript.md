@@ -1,6 +1,7 @@
 # find-duplication TypeScript v1 learning report
 
-Revision: adversarial repair in progress on `codex/ts-duplication`, 2026-07-19 UTC
+Implementation revision: `5d5394f9290fb521799157f4730528e5970ae0e0` on
+`codex/ts-duplication`; D6 clean-room replay completed 2026-07-19 UTC.
 
 ## Outcome and scope
 
@@ -89,7 +90,7 @@ After production work:
 ```bash
 .venv/bin/python \
   -m pytest tests/test_find_duplication_typescript.py -q
-# 5 passed
+# 8 passed
 
 .venv/bin/ruff check \
   .claude/skills/find-duplication tests/test_find_duplication_typescript.py
@@ -119,10 +120,45 @@ fingerprint before/after was exactly
 `f506d3fe7ab415e6aced3cd93237e3c18bcc654881e737fec87e96927e3b81f6`.
 
 The preceding forward replay predates the adversarial repair and does not count
-as D6 evidence. A new no-context installed forward replay from the repair
-commit is pending with the parent task; its handoff must preserve the installed
-skill path, raw host/output paths, command transcript, report/source hashes,
-and byte-identical source-tree proof.
+as D6 evidence. D6 was rerun from implementation commit
+`5d5394f9290fb521799157f4730528e5970ae0e0` as a genuinely fresh, no-context
+clean-room journey. The preserved task was: “Audit this TypeScript project for
+meaningful duplicated implementation, produce the skill’s final report
+artifacts, and tell me which findings deserve engineering review. Do not edit
+source files.” Its SHA-256 is
+`a027d91e56b9333d6f6604133ae498ffa24ed8c9f46a47d6f8af4e0811b8c370`.
+
+The pinned stock installer (`skills@1.5.19`) copied only `find-duplication` to
+`/private/tmp/find-duplication-ts-journey.KpDQtl/host/.agents/skills/find-duplication`.
+The full evidence handoff is
+`/private/tmp/find-duplication-ts-journey.KpDQtl/evidence`; its command record
+and pipeline transcript have SHA-256 hashes
+`bb0a50fbc700278c56d69ce181b47913d950e1a63f75b226b1e9ff06fcb4f514`
+and `5df7844322d195bf8cf78a07a360880b58e0218a68be7b4d5d3090d337e6da75`.
+The four installed stages completed with raw=2, filtered=1, findings=1 and
+P0/P1/P2=0/0/1. The one conservative `ts-jscpd-0001` finding covers 13 lines
+between `summarizeQueuedEntries` and `summarizePendingEntries`; the other raw
+pair was correctly filtered as `span_crosses_symbol_boundary`. The independent
+interpretation recommends routine P2 review and explicitly rejects automatic
+consolidation.
+
+The final report directory is
+`/private/tmp/find-duplication-ts-journey.KpDQtl/host/reports/duplication/scan-20260719-083525`.
+Artifact SHA-256 hashes are:
+
+- `jscpd/jscpd-report.json` — `03dc2b397d6e9ef98e44c92a47ee5b9e4f5351f95c639d7fb7057f1aba246819`
+- `jscpd/run.json` — `2630546c2fb959b18da992948a64cf632080f97f1a4e557508a6ffb744f1a5ad`
+- `collapsed.json` — `23070a4f2de201072f66161d3819ddcc3801ba55cca83f4741e5927bd0096561`
+- `ranked.json` — `fe3784ae16ccc080091813e8449dde590a55d46741bcb275cd6e334a00870820`
+- `triage.md` — `a178dff9d49cbdeaf82bc30a03479f96fadec903286b505d925d27e5d2d67c20`
+- `findings.json` — `9b42507e3ba508ac51501a06a3a0680f1377bfee76a143da38dfbd5095c3bc35`
+
+The pre- and post-audit source manifests are byte-identical and each hashes to
+`f506d3fe7ab415e6aced3cd93237e3c18bcc654881e737fec87e96927e3b81f6`.
+The preserved verification says `IDENTICAL: source SHA-256 manifests match
+before and after the audit.` D6 therefore closes with the installed final
+output, task handoff, command output, artifact hashes, and read-only source
+proof intact.
 
 ## False-positive boundary
 

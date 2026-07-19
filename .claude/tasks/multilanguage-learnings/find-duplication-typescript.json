@@ -1,6 +1,6 @@
 {
   "batch": "find-duplication-typescript-v1",
-  "revision": "adversarial-repair-2026-07-19",
+  "revision": "5d5394f9290fb521799157f4730528e5970ae0e0",
   "family": ["find-duplication"],
   "invariant": {
     "portable_principle": "Surface substantial lexical or near-lexical clone evidence with reliable source ranges and enclosing symbols, without converting lexical similarity into a refactoring-safety claim.",
@@ -99,7 +99,7 @@
     ],
     "commands_and_artifact_paths": [
       "Red-first transcript: .venv/bin/python -m pytest tests/test_find_duplication_typescript.py -q -> 4 failed before production scripts/reports existed.",
-      "Green: .venv/bin/python -m pytest tests/test_find_duplication_typescript.py -q -> 5 passed.",
+      "Green after adversarial repair: .venv/bin/python -m pytest tests/test_find_duplication_typescript.py -q -> 8 passed.",
       "Lint: .venv/bin/ruff check .claude/skills/find-duplication tests/test_find_duplication_typescript.py -> All checks passed.",
       "Native: NPM_CONFIG_CACHE=/tmp/find-duplication-npm-cache npx --offline --yes -p typescript@5.9.3 tsc --noEmit -p tests/fixtures/find-duplication-typescript/typescript-host/tsconfig.json -> 0.",
       "Copied replay: /tmp/find-duplication-final-install.mEW5CW and /tmp/find-duplication-final-host.JRyLma/reports/{jscpd,collapsed.json,ranked.json,triage.md,findings.json}; all installed python3 -I -S stages returned 0, assertions found only ts-jscpd-0001 with the expected two symbols, and source hashes were byte-identical before/after.",
@@ -107,16 +107,54 @@
     ]
   },
   "d6_final_replay": {
-    "status": "pending",
-    "scope": "A genuinely fresh no-context agent must run the copied installed skill from this repair commit against a fresh host copy.",
-    "required_handoff": [
-      "installed skill path and source commit",
-      "raw host path and report output path",
-      "four python -I -S command results",
-      "detector/report artifact hashes",
-      "before/after source-tree hashes proving no source change"
-    ],
-    "note": "Earlier forward evidence predates the adversarial repair and is retained only as historical context."
+    "status": "completed",
+    "outcome": "pass",
+    "implementation_revision": "5d5394f9290fb521799157f4730528e5970ae0e0",
+    "journey_root": "/private/tmp/find-duplication-ts-journey.KpDQtl",
+    "host_root": "/private/tmp/find-duplication-ts-journey.KpDQtl/host",
+    "installed_skill": "/private/tmp/find-duplication-ts-journey.KpDQtl/host/.agents/skills/find-duplication",
+    "installer": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add /private/tmp/engineering-skills-ts-duplication --skill find-duplication --agent codex --copy -y",
+    "task": {
+      "path": "/private/tmp/find-duplication-ts-journey.KpDQtl/evidence/task.txt",
+      "sha256": "a027d91e56b9333d6f6604133ae498ffa24ed8c9f46a47d6f8af4e0811b8c370",
+      "text": "Audit this TypeScript project for meaningful duplicated implementation, produce the skill’s final report artifacts, and tell me which findings deserve engineering review. Do not edit source files."
+    },
+    "evidence_root": "/private/tmp/find-duplication-ts-journey.KpDQtl/evidence",
+    "command_record": {
+      "path": "/private/tmp/find-duplication-ts-journey.KpDQtl/evidence/commands.md",
+      "sha256": "bb0a50fbc700278c56d69ce181b47913d950e1a63f75b226b1e9ff06fcb4f514"
+    },
+    "pipeline_transcript": {
+      "path": "/private/tmp/find-duplication-ts-journey.KpDQtl/evidence/pipeline.transcript",
+      "sha256": "5df7844322d195bf8cf78a07a360880b58e0218a68be7b4d5d3090d337e6da75",
+      "summary": "run_jscpd, collapse_typescript, rank, and report completed; raw=2, filtered=1, findings=1; P0=0, P1=0, P2=1"
+    },
+    "report_dir": "/private/tmp/find-duplication-ts-journey.KpDQtl/host/reports/duplication/scan-20260719-083525",
+    "artifacts_sha256": {
+      "jscpd/jscpd-report.json": "03dc2b397d6e9ef98e44c92a47ee5b9e4f5351f95c639d7fb7057f1aba246819",
+      "jscpd/run.json": "2630546c2fb959b18da992948a64cf632080f97f1a4e557508a6ffb744f1a5ad",
+      "collapsed.json": "23070a4f2de201072f66161d3819ddcc3801ba55cca83f4741e5927bd0096561",
+      "ranked.json": "fe3784ae16ccc080091813e8449dde590a55d46741bcb275cd6e334a00870820",
+      "triage.md": "a178dff9d49cbdeaf82bc30a03479f96fadec903286b505d925d27e5d2d67c20",
+      "findings.json": "9b42507e3ba508ac51501a06a3a0680f1377bfee76a143da38dfbd5095c3bc35"
+    },
+    "finding": {
+      "finding_id": "ts-jscpd-0001",
+      "priority_tier": "P2",
+      "shared_lines": 13,
+      "symbols": ["summarizeQueuedEntries", "summarizePendingEntries"],
+      "filtered_pair_reason": "span_crosses_symbol_boundary",
+      "recommendation": "Human engineering review only; do not consolidate automatically."
+    },
+    "source_preservation": {
+      "pre_manifest": "/private/tmp/find-duplication-ts-journey.KpDQtl/evidence/source-manifest-pre.sha256",
+      "post_manifest": "/private/tmp/find-duplication-ts-journey.KpDQtl/evidence/source-manifest-post.sha256",
+      "pre_sha256": "f506d3fe7ab415e6aced3cd93237e3c18bcc654881e737fec87e96927e3b81f6",
+      "post_sha256": "f506d3fe7ab415e6aced3cd93237e3c18bcc654881e737fec87e96927e3b81f6",
+      "identical": true,
+      "verification": "IDENTICAL: source SHA-256 manifests match before and after the audit."
+    },
+    "note": "Earlier forward evidence is retained only as historical context; this clean-room journey is the final D6 evidence."
   },
   "false_positive_boundary": {
     "known_false_positives": [
