@@ -870,11 +870,11 @@
     },
     {
       "name": "which-cleanup",
-      "description": "Diff-driven, scope-tiered closeout router. Given what changed (files / --staged / --changed-from REF / --commit SHA / --range A..B / --area NAME / --since SPEC), it sizes the change and recommends which code-quality skills to run at task closeout — bucketed pre-baseline / post-sweep / guard-tail — escalating from an advisory checklist (small) to a multi-agent scoped scanner fan-out (medium) to a runnable closeout plan / Workflow + spec stub (large). Also runs backward as a coverage audit over a commit range. Advisory and read-only against production code.",
+      "description": "Route a completed change to proportionate cleanup and guard skills. Use after editing or committing code when the agent should inspect only the changed scope, decide how much closeout is warranted, and locate/install the specific follow-up skills and their bundled tooling. The portable default is advisory, stdlib-only, and does not load or run the recommended skill bodies.",
       "tier": "cross-cutting",
       "job": "meta",
-      "best_for": "End-of-task / post-commit closeout: \"I changed these files (or made these\ncommits); which cleanup + GUARD skills should I run, scaled to how big the\nchange is?\" Also a backward coverage audit (\"over the last N commits, which\ntouched subsystems have no recent scan of an implied skill?\").\n",
-      "not_for": "Forward task routing before work starts (use /which-shape then /which-skill).\nA global, periodic \"what debt is accumulating\" sweep over cached reports (use\n/triage-debt). The verification-tier / test-obligation check (complementary —\nuse /find-test-obligation-drift). Running or fixing anything: this is advisory\nand read-only against production code. Invoking with no scope to scan the whole\nrepo — it requires a diff / paths / area / since scope.\n",
+      "best_for": "End-of-task closeout: identify cleanup and GUARD work warranted by changed\nfiles or a bounded Git diff. Use when the question is “I changed this; what\nengineering checks should happen before I call it done?”\n",
+      "not_for": "Forward routing before work starts (use /which-shape then /which-skill).\nA global debt sweep (use /triage-debt). Running every recommended scanner,\nediting production code, or scanning the whole repository without a scope.\n",
       "lanes": [
         "routing"
       ],
@@ -882,20 +882,18 @@
       "entrypoint": true,
       "consumes": [
         "changed_paths",
-        "commit_range",
-        "area_name"
+        "commit_range"
       ],
       "produces": [
         "closeout_recommendation",
-        "coverage_audit"
+        "selected_skill_handoffs"
       ],
       "risk_triggers": [
         "post-change",
         "multi-file",
-        "cross-subsystem",
         "missing-guard"
       ],
-      "max_overhead": "Trivial scope: one-line advice, no scan dir. Small: checklist only, no fan-out.",
+      "max_overhead": "Return the bounded roster and stop; do not run recommended skills automatically.",
       "_path": "skills/which-cleanup"
     },
     {

@@ -1,6 +1,6 @@
 # Engineering-skills productization restart
 
-Status: milestone 1 local candidate passed — public publication pending
+Status: active — revised three-router milestone 1 candidate
 
 This is the small progress tracker for the restart. Update checkboxes only
 after the named command or journey passes at a committed revision. Tests,
@@ -39,13 +39,15 @@ generic executor.
 - [x] **I1 — Stock discovery.** From a clean checkout, the pinned command
   `npx --yes skills@1.5.19 add <source> --list` exits zero and lists exactly
   76 skills.
-- [x] **I2 — Router-only install.** From an empty Git host, one documented
-  stock command installs exactly `which-shape` and `which-skill`; the source
-  checkout remains clean.
-- [x] **I3 — Self-contained routers.** Copies containing only each installed
+- [ ] **I2 — Router-only install.** From an empty Git host, one documented
+  stock command installs exactly `which-shape`, `which-skill`, and
+  `which-cleanup`; the source checkout remains clean.
+- [ ] **I3 — Self-contained routers.** Copies containing only each installed
   router directory run under Python isolated/no-site mode outside the source
   checkout. `which-shape` returns the expected shape for two fixtures;
-  `which-skill` returns the expected skill for two fixtures. Neither imports a
+  `which-skill` returns the expected skill for two fixtures; `which-cleanup`
+  returns a bounded closeout roster with selected-skill/tooling locations.
+  None imports a
   repository-level module, requires a toolkit venv, third-party Python
   package, or network access.
 - [x] **I4 — Selected-skill handoff.** `which-skill` emits a pinned stock
@@ -55,11 +57,11 @@ generic executor.
   installed routers, selected installed skill, fixture project, and user task,
   produces the fixture's expected useful artifact. The initial selected skill
   is prompt-only or self-contained.
-- [x] **I6 — Standard removal boundary.** The documented stock removal path
+- [ ] **I6 — Standard removal boundary.** The documented stock removal path
   removes the installed skill directories and leaves a sentinel outside the
   standard skill paths byte-identical. No promise is made about preserving
   user edits inside installed skill directories.
-- [x] **I7 — Clean replay and goal-anchored review.** One clean scripted replay
+- [ ] **I7 — Clean replay and goal-anchored review.** One clean scripted replay
   passes I1–I6 at a single revision. A fresh-context reviewer receives the
   ordered product goals and reports no goal-critical or concrete user-harm
   blocker.
@@ -110,7 +112,7 @@ it is necessary.
 
 ## Current slice
 
-Publish `c404944` (or its successor) to the public distribution ref and replay
-the README using the public URL. This is a release step, not new installer
-development. TypeScript-family implementation and optional high-assurance work
-remain inactive until the public replay passes.
+Finish and replay the revised three-router candidate, then publish its successor
+to the public distribution ref and replay the README using the public URL.
+TypeScript-family implementation and optional high-assurance work remain
+inactive until the public replay passes.

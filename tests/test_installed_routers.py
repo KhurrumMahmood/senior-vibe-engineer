@@ -11,6 +11,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_ROOT = REPO_ROOT / ".claude" / "skills"
+DEFAULT_ROUTERS = ("which-shape", "which-skill", "which-cleanup")
 
 
 def _install_router(host: Path, name: str) -> Path:
@@ -60,6 +61,11 @@ def test_installed_which_shape_runs_without_repository_runtime(
 
     payload = _json_output(result)
     assert payload["recommendation"]["shape"] == expected_shape
+    if expected_shape == "project-intake":
+        assert payload["install"]["skill"] == "adapt-project"
+        assert "--skill adapt-project" in payload["install"]["command"]
+    else:
+        assert "install" not in payload
 
 
 @pytest.mark.parametrize(
@@ -88,3 +94,32 @@ def test_installed_which_skill_runs_with_bundled_catalog(
     assert payload["recommendation"] == expected_skill
     assert payload["task_packet"]["produces"]
     assert f"--skill {expected_skill}" in payload["install"]["command"]
+
+
+def test_default_router_set_is_exactly_three():
+    assert DEFAULT_ROUTERS == ("which-shape", "which-skill", "which-cleanup")
+
+
+def test_installed_which_cleanup_routes_without_repository_runtime(tmp_path):
+    host = tmp_path / "host"
+    router = _install_router(host, "which-cleanup")
+
+    result = _run_isolated(
+        router / "scripts" / "route.py",
+        "src/app.py",
+        "tests/test_app.py",
+        "--project-root",
+        str(host),
+        "--source",
+        "/tmp/engineering-skills-source",
+        "--json",
+        cwd=host,
+    )
+
+    payload = _json_output(result)
+    assert payload["scope_band"] == "small"
+    recommendations = {item["skill"]: item for item in payload["recommendations"]}
+    assert "find-test-obligation-drift" in recommendations
+    handoff = recommendations["find-test-obligation-drift"]["install"]
+    assert handoff["source"] == "/tmp/engineering-skills-source"
+    assert "--skill find-test-obligation-drift" in handoff["command"]

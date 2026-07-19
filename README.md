@@ -14,7 +14,7 @@ This README is the **human entrypoint**. AI agents (Claude Code, Codex,
 Augment, Cursor, Gemini) should start at
 [`AGENTS.md`](./AGENTS.md) → [`.claude/CLAUDE.md`](./.claude/CLAUDE.md).
 
-**Where to start:** install the two lightweight routers, then let
+**Where to start:** install the three lightweight routers, then let
 `which-skill` install only the skill selected for the task. Repository
 contributors use `/engineer-init` for the development venv and hooks.
 
@@ -101,18 +101,20 @@ contributors use `/engineer-init` for the development venv and hooks.
 ## Quick start
 
 ```bash
-# From the host project. The command installs only the two routers.
+# From the host project. The command installs only the three routers.
 ENGINEERING_SKILLS_SOURCE=https://github.com/KhurrumMahmood/senior-vibe-engineer # host-ref-allow: public distribution repository
 DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \
   "$ENGINEERING_SKILLS_SOURCE" \
-  --skill which-shape --skill which-skill --agent codex --copy -y
+  --skill which-shape --skill which-skill --skill which-cleanup \
+  --agent codex --copy -y
 ```
 
-Ask the agent to use `which-shape` when the operating mode is unclear, then
-use `which-skill` for the tactical choice. Both routers run with system
-Python and do not load the other 74 skill bodies. A successful `which-skill`
-result includes the pinned `skills@1.5.19` command for installing only its
-winner.
+Ask the agent to use `which-shape` when the operating mode is unclear,
+`which-skill` for the tactical choice, and `which-cleanup` after changes are
+made. The three routers run with system Python and do not load the other 73
+skill bodies. Their results point to the relevant skill definition and tooling
+at the canonical source and include pinned `skills@1.5.19` commands for
+installing only the selected follow-up skills.
 
 To remove all skills installed for the project:
 
@@ -144,7 +146,7 @@ will convert those skills one cohesive family at a time.
    runner, …) that need `PyYAML` from `requirements.txt`. Until the venv
    exists the slash command is listed but errors on its first script
    call. Run the repository-development block above — or `/engineer-init` —
-   when developing the full checkout. Prompt-only skills and the two routers
+   when developing the full checkout. Prompt-only skills and the three routers
    do not require it.
 
 2. **Older script-backed skills must run from a full checkout.** Their scripts use

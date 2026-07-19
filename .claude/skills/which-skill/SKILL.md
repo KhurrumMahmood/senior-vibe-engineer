@@ -109,6 +109,8 @@ The matcher returns JSON with:
 - `tier_hints` and `job_hints` — the matched signal words
 - `recommendation` — the top-scoring skill name OR `proceed_directly`
 - `install.command` — pinned stock command for installing only the winner
+- `install.locations` — canonical pointers to the selected skill definition,
+  its bundled scripts, and shared source tooling
 - `task_packet` — the optional task-packet fields (`lanes`, `stage`,
   `entrypoint`, `consumes`, `produces`, `evidence_required`,
   `risk_triggers`, `max_overhead`) declared by the winning skill, or

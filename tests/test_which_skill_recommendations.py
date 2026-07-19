@@ -105,6 +105,17 @@ def test_recommendation_includes_pinned_selected_skill_install():
             "https://github.com/KhurrumMahmood/senior-vibe-engineer "  # host-ref-allow: public distribution repository
             "--skill diagnose --agent codex --copy -y"
         ),
+        "locations": {
+            "definition": (
+                "https://github.com/KhurrumMahmood/senior-vibe-engineer::.claude/skills/diagnose/SKILL.md"  # host-ref-allow: public distribution repository
+            ),
+            "bundled_tooling": (
+                "https://github.com/KhurrumMahmood/senior-vibe-engineer::.claude/skills/diagnose/scripts/"  # host-ref-allow: public distribution repository
+            ),
+            "shared_tooling": (
+                "https://github.com/KhurrumMahmood/senior-vibe-engineer::scripts/"  # host-ref-allow: public distribution repository
+            ),
+        },
     }
 
 

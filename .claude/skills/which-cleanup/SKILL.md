@@ -1,7 +1,7 @@
 ---
 name: which-cleanup
-description: Diff-driven, scope-tiered closeout router. Given what changed (files / --staged / --changed-from REF / --commit SHA / --range A..B / --area NAME / --since SPEC), it sizes the change and recommends which code-quality skills to run at task closeout — bucketed pre-baseline / post-sweep / guard-tail — escalating from an advisory checklist (small) to a multi-agent scoped scanner fan-out (medium) to a runnable closeout plan / Workflow + spec stub (large). Also runs backward as a coverage audit over a commit range. Advisory and read-only against production code.
-argument-hint: "[paths… | --staged | --changed-from REF | --commit SHA | --range A..B | --area NAME | --since SPEC]"
+description: Route a completed change to proportionate cleanup and guard skills. Use after editing or committing code when the agent should inspect only the changed scope, decide how much closeout is warranted, and locate/install the specific follow-up skills and their bundled tooling. The portable default is advisory, stdlib-only, and does not load or run the recommended skill bodies.
+argument-hint: "[paths… | --staged | --changed-from REF | --commit SHA | --range A..B]"
 allowed-tools: Bash, Read
 user-invocable: true
 tier: cross-cutting
@@ -9,170 +9,114 @@ job: meta
 language: any
 framework: any
 best_for: |
-  End-of-task / post-commit closeout: "I changed these files (or made these
-  commits); which cleanup + GUARD skills should I run, scaled to how big the
-  change is?" Also a backward coverage audit ("over the last N commits, which
-  touched subsystems have no recent scan of an implied skill?").
+  End-of-task closeout: identify cleanup and GUARD work warranted by changed
+  files or a bounded Git diff. Use when the question is “I changed this; what
+  engineering checks should happen before I call it done?”
 not_for: |
-  Forward task routing before work starts (use /which-shape then /which-skill).
-  A global, periodic "what debt is accumulating" sweep over cached reports (use
-  /triage-debt). The verification-tier / test-obligation check (complementary —
-  use /find-test-obligation-drift). Running or fixing anything: this is advisory
-  and read-only against production code. Invoking with no scope to scan the whole
-  repo — it requires a diff / paths / area / since scope.
-escalate_to: |
-  /triage-debt for the global picture once the diff-scoped closeout is done;
-  /refactor-subsystem to execute a large-band closeout plan from the spec stub.
-  Mass-finding rule: when a dispatched scanner returns one band with ≥5
-  findings on the touched surface, escalate that cluster as ONE
-  standardize-and-enforce candidate (/decide → extract the primitive →
-  /prevent-regression), not per-item fixes.
-delegate_from: |
-  /which-shape (the task-closeout shape points here).
+  Forward routing before work starts (use /which-shape then /which-skill).
+  A global debt sweep (use /triage-debt). Running every recommended scanner,
+  editing production code, or scanning the whole repository without a scope.
 lanes: [routing]
 stage: verify
 entrypoint: true
-consumes: [changed_paths, commit_range, area_name]
-produces: [closeout_recommendation, coverage_audit]
-risk_triggers: [post-change, multi-file, cross-subsystem, missing-guard]
-max_overhead: "Trivial scope: one-line advice, no scan dir. Small: checklist only, no fan-out."
+consumes: [changed_paths, commit_range]
+produces: [closeout_recommendation, selected_skill_handoffs]
+risk_triggers: [post-change, multi-file, missing-guard]
+max_overhead: "Return the bounded roster and stop; do not run recommended skills automatically."
 ---
 
 # /which-cleanup
 
-The **diff-driven** sibling of `/which-skill` (text → skill) and `/which-shape`
-(situation → operating loop). Those answer "what am I about to do?"; this answers
-**"I just changed this — what cleanup do I owe, and how hard do I go?"** It is the
-subsystem registry's planned closeout consumer (ADR 0023). The registry is
-project-supplied: with no `.claude/subsystems.yaml`, it degrades to the universal
-floor + scope-band sizing (no subsystem-specific scanners), the same way
-`/which-shape` degrades when project state is absent.
+Route a completed change to a small, proportionate closeout roster. This is the
+third default router alongside `/which-shape` and `/which-skill`:
 
-Advisory and read-only: it recommends and, for large scope, *emits a plan* — it
-never edits production code or runs the skills it names. The only writes are under
-`reports/which-cleanup/` and an opt-in spec stub under `ai-docs/specs/`.
+- `/which-shape` chooses the operating loop;
+- `/which-skill` chooses a task skill;
+- `/which-cleanup` chooses post-change checks and guards.
 
-## Forms
+Do not execute the recommended skills. Return their exact stock install
+commands and source locations so the calling agent can load only what it needs.
 
-```bash
-/which-cleanup                       # the working-tree diff (uncommitted changes)
-/which-cleanup --staged              # the staged diff
-/which-cleanup --changed-from main   # everything since a ref
-/which-cleanup --commit <sha>        # one commit (commits often happen mid-work)
-/which-cleanup --range A..B          # a commit range
-/which-cleanup --area site_intelligence   # a whole subsystem surface
-/which-cleanup --since 3.days.ago    # everything touched since a time spec
-/which-cleanup app/services/extraction/field_chat.py  # explicit paths
-```
+## Run
 
-Backward (coverage audit):
+From a Codex project installation:
 
 ```bash
-.venv/bin/python .claude/skills/which-cleanup/scripts/coverage.py audit --last 50
-.venv/bin/python .claude/skills/which-cleanup/scripts/coverage.py audit --since 2026-05-01
+cd .agents/skills/which-cleanup
+python3 scripts/route.py <scope args> --project-root <host-root> --json
 ```
 
-Both scripts anchor target-project paths (registry, reports, specs, git scope)
-on `--project-root`, defaulting to the git toplevel of the cwd (else the cwd) —
-the kit may be installed in a different repo than the project being audited.
-Pass `--project-root <dir>` to target a project explicitly.
+Supported scopes:
 
-## How it works
-
-```
-resolve scope ─► classify band ─► select tiered roster ─► escalate by band
-(diff_resolution)  (classify.py)   (subsystems.yaml +       (closeout.py)
-                                    each skill's job:)
+```text
+<path> [<path> ...]
+--staged
+--changed-from <ref>
+--commit <sha>
+--range <a..b>
 ```
 
-The roster is read **live** from the registry: each touched subsystem contributes
-its `related_skills` plus the `/find-*` scanners its `adjacency` smell tokens imply,
-bucketed into point-in-time tiers by reading each skill's own `job:` frontmatter
-(`map` → pre-baseline, `suspect`/`explain`/`refactor` → post-sweep, `guard` →
-guard-tail). A small universal floor (`find-comment-drift`,
-`find-test-obligation-drift`, `prevent-regression`; plus `find-doc-link-rot` on doc
-changes and `find-concept-divergence` on large rename-prone shapes) is always added.
+With no scope flag, inspect the working-tree, staged, and untracked file lists.
+The portable router requires only Python’s standard library and Git when a diff
+scope is used.
 
-## Pipeline
+## Interpret the result
 
-```bash
-.venv/bin/python .claude/skills/which-cleanup/scripts/run.py <scope args> [--json] [--max-scouts N] [--project-root DIR]
-```
+Honor these fields:
 
-It resolves the scope, classifies the band, builds the tiered roster, writes
-`<project-root>/reports/which-cleanup/scan-<TS>/closeout.{json,md}` (+ `latest`),
-and logs one line to `<project-root>/reports/_meta/effectiveness.jsonl`. Read
-`closeout.md` and act on it.
+- `scope_band`: `trivial`, `small`, `medium`, or `large`, based on changed-file
+  count. It controls roster width, not correctness or risk by itself.
+- `resolved_paths`: the exact bounded paths considered.
+- `recommendations[]`: skill, reason, pinned stock `install.command`, and
+  `locations` for its definition, skill-local scripts, and shared source
+  tooling.
+- `source`: the canonical repository and conventional skill/tool roots.
+- `limitations`: what portable mode deliberately does not infer.
 
-## Escalation by band
+The universal closeout floor is test-obligation drift, comment drift, and
+regression prevention. Wider changes additionally surface duplication,
+omnibus-module, and incomplete-sweep checks. This is a conservative router,
+not proof that every recommendation applies.
 
-| Band | Thresholds (OR, highest wins) | What you get |
-|---|---|---|
-| **trivial** | 1 file, ≤1 subsystem, <30 LOC | One line: run the touched test; optional `/decide`. No scan dir. |
-| **small** | 2–5 files, 1 subsystem, <200 LOC | A 3-tier checklist. You run what's relevant. |
-| **medium** | 6–20 files, 1–2 subsystems, <1500 LOC | Checklist **plus** a fan-out roster — dispatch the post-sweep scanners as concurrent read-only scouts (below). |
-| **large** | >20 files **OR** ≥3 subsystems **OR** ≥1500 LOC | A sequenced MAP→SUSPECT→EXPLAIN→REFACTOR→GUARD plan in `closeout.md`; with `--emit-plan`, also a `/refactor-subsystem` spec stub + a Workflow script. |
+## Handoff
 
-**Medium — dispatch the fan-out (multi-agent).** The `fanout` list in `closeout.json`
-is the capped (`--max-scouts`, default 5) post-sweep roster, each command already
-**scoped to the changed files**. Dispatch them as concurrent read-only scouts —
-e.g. one `_common/dispatch_scout_cheap.sh` invocation per scanner sent in a single
-message (the `find-duplication` / `find-omnibus` pattern) — then triage the union. This cheap-dispatch path requires the host `tools.code_agent` backend (`<!-- host-adapter -->`); use inline scouting when that backend is absent.
-Scope to the changed files only; never re-scan the whole repo.
+For each relevant recommendation:
 
-**Large — hand off, don't auto-run.** The sequenced plan is always in `closeout.md`.
-With `--emit-plan`, a spec stub (`ai-docs/specs/<area>-closeout-<TS>.md`) is written for
-`/refactor-subsystem`, plus a Workflow script under the scan dir that fans the
-post-sweep scanners out as agents for users who opt into the Workflow tool.
-`/which-cleanup` never auto-runs a multi-scanner sweep.
+1. Run only its `install.command`.
+2. Load the installed skill’s `SKILL.md`.
+3. Use its `locations.bundled_tooling` and `locations.shared_tooling` pointers
+   to find the related deterministic tooling at the canonical source.
+4. Follow that skill’s own support and runtime claims; a location is not a
+   claim that the tooling is language-neutral or independently installable.
 
-## Backward coverage audit
+Skip irrelevant recommendations explicitly. Keep mutations serial even when
+multiple read-only checks can run independently.
 
-`coverage.py audit` runs the same selection in reverse over a commit range: it finds
-the touched subsystems, computes the skills they imply, and subtracts the skills with
-a recent scan in `effectiveness.jsonl` — surfacing **gaps**, with **GUARD-tier gaps
-highlighted**. The effectiveness `target` field is free-form, so the join is
-best-effort (a host project can extend the path normalization); anything
-un-joinable lands in an explicit `unmappable_targets` section — never silently
-dropped. `coverage.py check` is the referential-integrity guard (every recommendable
-skill resolves to a real skill dir); it is wired into CI (`.github/workflows/ci.yml`).
+## Boundaries
 
-## Non-goals
+- Advisory only; never edits production files or runs the selected skills.
+- Does not load all skill bodies or a repository-wide execution runtime.
+- Does not promise subsystem-specific routing without a separately installed
+  project profile or task skill.
+- The source checkout retains richer historical closeout scripts for its own
+  development, but they are not part of this portable default path.
+- No custom installer, dispatcher, workflow coordinator, or trust layer is
+  required.
 
-- **Not a forward planner.** Before work starts, use `/which-shape` then `/which-skill`.
-- **Not `/triage-debt`.** That is global + periodic over cached reports; this is
-  diff-scoped + forward and runs fresh selection. Large-band closeout *hands off* to
-  `/triage-debt` for the global picture rather than duplicating its scoring.
-- **Not `/find-test-obligation-drift`.** That answers "what *tests*"; this answers
-  "what *cleanup skills*". FTOD is one entry in the universal floor.
-- **Never edits or runs.** Advisory only; writes under `reports/` and the opt-in
-  spec stub.
+## Failure handling
 
-## When things go sideways
+- No changed paths: report no recommendation and stop successfully.
+- Invalid or conflicting scope flags: surface the usage error.
+- Git unavailable for a diff scope: report an empty scope; ask for explicit
+  paths rather than scanning the repository.
+- Recommended skill unavailable or unsupported: report the source location and
+  limitation; do not invent or inline its behavior.
 
-| Symptom | Action |
-|---|---|
-| No scope given and working tree clean | Prints "no changes detected"; not an error. Pass a scope to audit something specific. |
-| `--area` name unknown | Exits 2 with the bad name; run `.venv/bin/python scripts/subsystems.py list`. |
-| Many `unmatched` files | The registry doesn't cover those paths — extend `.claude/subsystems.yaml` (they still count toward the band). |
-| Medium fan-out feels expensive | Lower `--max-scouts`, or treat the checklist as advisory and run the highest-value scanner only. |
-| Audit shows many `unmappable_targets` | Expected — effectiveness targets are free-form. They are surfaced, not counted as coverage. |
+## Files
 
-## Repository layout
-
-```
+```text
 .claude/skills/which-cleanup/
-├── SKILL.md            # this file — orchestrator
+├── SKILL.md
 └── scripts/
-    ├── run.py          # forward closeout orchestrator
-    ├── classify.py     # scope-band thresholds (tunable knobs)
-    ├── select_scanners.py  # registry adjacency + job-tier → roster
-    ├── closeout.py     # ranking, render, large-band plan/spec/workflow
-    ├── coverage.py     # backward audit + referential-integrity check
-    └── smoke.py        # detector smoke test
+    └── route.py       # portable stdlib-only installed router
 ```
-
-Shared substrate (not reinvented): `scripts/query_planner.py` (`report_for_files`),
-`.claude/skills/_common/diff_resolution.py` (scope resolution, shared with
-`/find-test-obligation-drift`), `scripts/subsystems.py`, and each skill's `job:`
-frontmatter via `scripts/_lib/yaml_frontmatter.py`.

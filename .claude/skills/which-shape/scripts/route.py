@@ -10,6 +10,7 @@ import argparse
 import datetime
 import json
 import re
+import shlex
 import sys
 import time
 from pathlib import Path
@@ -19,6 +20,8 @@ SCRIPT_PATH = Path(__file__).resolve()
 SKILL_DIR = SCRIPT_PATH.parents[1]
 SKILLS_DIR = SKILL_DIR.parent
 DEFAULT_SHAPES = SKILL_DIR / "shapes.json"
+DEFAULT_SOURCE = "https://github.com/KhurrumMahmood/senior-vibe-engineer"  # host-ref-allow: public distribution repository
+DEFAULT_CLI_VERSION = "1.5.19"
 
 # A `/skill-name` reference inside a shape's first_next / sequence text.
 SKILL_TOKEN_RE = re.compile(r"/([a-z][a-z0-9]+(?:-[a-z0-9]+)*)")
@@ -525,6 +528,30 @@ def route(
     }
 
 
+def _skill_handoff(result: dict[str, Any], *, source: str, version: str, agent: str) -> dict | None:
+    rec = result["recommendation"]
+    match = SKILL_TOKEN_RE.search(rec["first_next"])
+    if match is None:
+        return None
+    skill = match.group(1)
+    command = [
+        "npx", "--yes", f"skills@{version}", "add", source,
+        "--skill", skill, "--agent", agent, "--copy", "-y",
+    ]
+    return {
+        "skill": skill,
+        "source": source,
+        "skills_cli_version": version,
+        "agent": agent,
+        "command": "DO_NOT_TRACK=1 " + shlex.join(command),
+        "locations": {
+            "definition": f"{source}::.claude/skills/{skill}/SKILL.md",
+            "bundled_tooling": f"{source}::.claude/skills/{skill}/scripts/",
+            "shared_tooling": f"{source}::scripts/",
+        },
+    }
+
+
 def render_markdown(result: dict[str, Any]) -> str:
     rec = result["recommendation"]
     ctx = result["project_context"]
@@ -543,6 +570,15 @@ def render_markdown(result: dict[str, Any]) -> str:
     lines.extend(["", f"First next: {rec['first_next']}", "", "Loop:"])
     lines.extend(f"- {step}" for step in rec["sequence"])
     lines.extend(["", f"Stop/reassess: {rec['stop']}"])
+    if result.get("install"):
+        lines.extend(
+            [
+                "",
+                f"Install /{result['install']['skill']}:",
+                f"  {result['install']['command']}",
+                f"Definition/tooling: {result['install']['locations']['definition']}",
+            ]
+        )
     if rec.get("inactive_steps"):
         lines.extend(["", "Inactive here (skipped for this repo):"])
         for step in rec["inactive_steps"]:
@@ -590,6 +626,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
     parser.add_argument("--shapes", type=Path, default=DEFAULT_SHAPES)
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--source", default=DEFAULT_SOURCE)
+    parser.add_argument("--skills-cli-version", default=DEFAULT_CLI_VERSION)
+    parser.add_argument("--agent", default="codex")
     parser.add_argument(
         "--status", type=Path, default=None,
         help="status.json override (default: <project-root>/.engineering/local/status.json; "
@@ -614,6 +653,14 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         task = " ".join(args.task).strip()
         result = route(task, args.project_root.resolve(), args.shapes, status_path=args.status)
+        handoff = _skill_handoff(
+            result,
+            source=args.source,
+            version=args.skills_cli_version,
+            agent=args.agent,
+        )
+        if handoff is not None:
+            result["install"] = handoff
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

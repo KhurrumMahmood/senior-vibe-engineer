@@ -281,6 +281,14 @@ def install_command(*, source: str, version: str, skill: str, agent: str) -> str
     return "DO_NOT_TRACK=1 " + shlex.join(command)
 
 
+def skill_locations(source: str, skill: str) -> dict[str, str]:
+    return {
+        "definition": f"{source}::.claude/skills/{skill}/SKILL.md",
+        "bundled_tooling": f"{source}::.claude/skills/{skill}/scripts/",
+        "shared_tooling": f"{source}::scripts/",
+    }
+
+
 def _build_task_packet(skill: dict) -> dict:
     """Pull the optional task-packet fields off a skill, omitting any
     that aren't declared. Returns {} if the skill carries none."""
@@ -434,6 +442,7 @@ def cmd_match(args, catalog_path: Path) -> int:
             skill=out["recommendation"],
             agent=args.agent,
         ),
+        "locations": skill_locations(args.source, out["recommendation"]),
     }
     if args.json:
         print(json.dumps(out, indent=2))
