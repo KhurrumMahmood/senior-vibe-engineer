@@ -1,6 +1,7 @@
 # explain-code TypeScript v1 learning handoff
 
-Implementation revision: `0103a9e` (`feat: add TypeScript explain-code pilot`)
+Implementation revisions: `0103a9e` (initial pilot), `2ae7739` (first
+adversarial repair), and the final repair revision recorded in the handoff.
 
 ## 1. Invariant
 
@@ -30,8 +31,11 @@ also dropped the Python directory exclusions for `migrations/` and
   namespace/variable declarations in `.ts` and `.tsx`.
 - Type system: no facts are inferred; type/interface names are inventory
   targets only.
-- Module resolution: explicitly absent. `export { ... }`, `export *`, and
-  default expressions are emitted as unresolved records.
+- Module resolution: explicitly absent. `export { ... }`, `export *`,
+  `export type *`, and default expressions are emitted as unresolved records.
+- Syntax integrity: a bounded lexical check blocks unterminated comments,
+  strings, templates, and regex literals plus unbalanced delimiters before any
+  `targets.json` is written. It is not a TypeScript grammar or type check.
 - Runtime: the collector and renderer are stdlib Python scripts, runnable with
   isolated host Python; they do not run Node or a TypeScript compiler.
 - Framework: none. Test, generated, declaration, vendor, build, and
@@ -70,6 +74,24 @@ Post-review red transcript before the lexical repairs:
 literal hid the following export while a multi-binding export lost `second`;
 same-basename/same-symbol targets shared one symbol key and annotation path.
 ```
+
+Final adversarial red transcript before the closing repairs:
+
+```text
+4 failed — `export type *` and re-export-only files could not reach the final
+artifact; `export const enum Palette` was classified as variable `enum`;
+truncated TypeScript wrote a normal inventory; normalized paths such as
+`a-b/index.ts` and `a_b/index.ts` still produced the same target key.
+```
+
+The closing regressions copy only the skill and invoke both scripts under
+isolated `python -I -S`. They prove a re-export-only file writes a final document
+and both sidecars, const enums retain the enum name/kind, malformed lexical
+structure exits nonzero without an inventory, and path-digest keys remain
+unique even when normalized path spellings collide. The focused suite finished
+with 7 passed; the final focused plus metadata/read-safety/skill-compliance suite
+finished with 26 passed. Ruff, the 76-skill metadata lint, JSON validation,
+diff check, and the explicit-file pre-commit run were clean.
 
 Green commands at `0103a9e`:
 
@@ -126,12 +148,14 @@ sidecars, and the fresh lane's raw inventory evidence were not reinterpreted.
 
 Legitimate private helpers and public symbols in test/generated/vendor trees do
 not become annotation targets. Strings, comments, and regex literals containing
-braces or `export` do not become targets or corrupt top-level depth. Simple
-multi-binding exports inventory every identifier. Alias/re-export syntax is not
-a false positive: it is retained as an explicit unresolved region. Known false
-negatives are anonymous default exports and any module-resolved public surface.
-Exported destructuring binding patterns remain explicitly unresolved instead
-of silently disappearing.
+braces or `export` do not become targets or corrupt top-level depth. Truncated
+lexical structures block the inventory rather than producing trusted-looking
+targets. Simple multi-binding exports inventory every identifier. Alias and
+re-export syntax, including `export type *`, is not a false positive: it is
+retained as an explicit unresolved region and can form the entire final
+artifact. Known false negatives are anonymous default exports and any
+module-resolved public surface. Exported destructuring binding patterns remain
+explicitly unresolved instead of silently disappearing.
 
 ## 7. What generalized
 
@@ -173,9 +197,10 @@ earned TypeScript route and the serial integrator must regenerate the catalog.
 
 ## 12. Residual risks and next decision
 
-The collector is lexical, so unusual multiline/type-heavy declaration spans and
-anonymous defaults are intentionally incomplete. TypeScript v1 cannot resolve
-an alias to determine whether it names a local symbol or a barrel dependency.
+The collector is lexical, so its syntax-integrity gate does not prove full
+TypeScript grammar validity; unusual multiline/type-heavy declaration spans and
+anonymous defaults remain intentionally incomplete. TypeScript v1 cannot
+resolve an alias to determine whether it names a local symbol or a barrel dependency.
 The fresh non-context D6 forward run passed. The serial integrator still needs
 to regenerate the router catalog and review the resulting TypeScript-only
 eligibility. Expand to module resolution only when a named `tsconfig`-backed

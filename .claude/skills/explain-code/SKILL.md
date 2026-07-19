@@ -93,10 +93,15 @@ document and sidecars as a Python public symbol.** Direct exported functions,
 classes, enums, interfaces, types, namespaces, and variables are eligible.
 
 The collector is intentionally lexical. It does not resolve imports, aliases,
-barrels, `export { ... }`, `export *`, or default expressions. Those forms are
-written to `targets.json`'s `unexplained` list and must appear in the final
-document and `unexplained.txt`; do not replace that region with an inferred
-contract. It ignores test, generated, declaration, vendor, build, and
+barrels, `export { ... }`, `export *`, `export type *`, or default expressions.
+Those forms are written to `targets.json`'s `unexplained` list and must appear
+in the final document and `unexplained.txt`; do not replace that region with an
+inferred contract. A re-export-only target therefore has zero scout targets but
+still proceeds to synthesis so its unresolved public surface remains visible.
+Before writing inventory, a bounded lexical integrity check rejects unterminated
+comments, strings, templates, or regex literals and unbalanced delimiters. This
+is not a TypeScript grammar or type check. The collector ignores test,
+generated, declaration, vendor, build, and
 `node_modules` descendants relative to the requested target. The TypeScript
 v1 contract makes no React, Node, framework, type-checker, or module-resolution
 claim.
@@ -193,13 +198,15 @@ Two paths:
    ```
 
    The Python reference path walks the AST; the TypeScript path collects only
-   named direct exports. Both compute a stable LOC + branch-count approximation
-   and rank by `(no_docstring, branch_count, LOC > 50)` descending. Before
-   dispatching scouts, read `targets.json`: every `unexplained` export is a
-   mandatory final-doc region, not a scout target.
+   named direct exports after its bounded lexical integrity check. Both compute
+   a stable LOC + branch-count approximation and rank by `(no_docstring,
+   branch_count, LOC > 50)` descending. Before dispatching scouts, read
+   `targets.json`: every `unexplained` export is a mandatory final-doc region,
+   not a scout target.
 
-If the inventory returns zero symbols, abort with a one-line error:
-the target is either empty, private-only, or misresolved.
+If the inventory returns neither symbols nor unexplained regions, abort with a
+one-line error: the target is either empty, private-only, or misresolved. If it
+returns only unexplained regions, skip scout dispatch and proceed to synthesis.
 
 ### Stage 2 — Annotate (parallel fan-out)
 
@@ -370,7 +377,9 @@ of truth.
 | Target path doesn't exist | Abort with a one-line error + suggestion to re-run with the correct path |
 | Inventory sees an alias/re-export/default expression | Keep its `unexplained` record in the final doc; do not dispatch a scout that invents resolution |
 | Target has only unsupported / ignored source files | Abort with a one-line message; do not fall back to scanning tests or vendor code |
-| `targets.json` lists 0 symbols | Target is empty or private-only — abort with a one-line message |
+| TypeScript lexical integrity check fails | Abort without writing `targets.json`; report the source file and malformed construct |
+| `targets.json` lists 0 symbols and 0 unexplained regions | Target is empty or private-only — abort with a one-line message |
+| `targets.json` lists 0 symbols but has unexplained regions | Skip scouts and render the unresolved public surface and sidecars |
 | `knowledge/explanation-format.md` is missing or empty | Abort before synthesis; the top-level doc shape is undefined |
 | Stage 3 cannot write `unexplained.txt` or `surprises.txt` | Stop before effectiveness logging and report the exact write failure |
 | Scout returns `annotation_incomplete` on first try | Re-dispatch once with a stricter "respond only with file-write confirmation" nudge |

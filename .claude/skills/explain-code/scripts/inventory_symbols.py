@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import hashlib
 import json
 import re
 import sys
@@ -88,7 +89,7 @@ TS_VARIABLE_EXPORT_RE = re.compile(
     re.DOTALL,
 )
 TS_UNRESOLVED_EXPORT_RE = re.compile(
-    r"^\s*export\s+(?:(?:type\s+)?\{|\*|default\b|=\s*)"
+    r"^\s*export\s+(?:(?:type\s+)?(?:\{|\*)|default\b|=\s*)"
 )
 TS_BRANCH_RE = re.compile(r"\b(?:if|for|while|catch|case)\b|&&|\|\||\?")
 
@@ -345,7 +346,41 @@ def _mask_typescript_noncode(source: str) -> str:
         index += 1
         if char == quote:
             state = "code"
-    return "".join(out)
+    if state not in {"code", "line-comment"}:
+        label = {
+            "block-comment": "block comment",
+            "single": "single-quoted string",
+            "double": "double-quoted string",
+            "template": "template literal",
+            "regex": "regex literal",
+            "regex-class": "regex character class",
+        }.get(state, state)
+        raise ValueError(f"unterminated {label}")
+    masked = "".join(out)
+    _validate_typescript_delimiters(masked)
+    return masked
+
+
+def _validate_typescript_delimiters(masked: str) -> None:
+    """Block truncated/mismatched lexical shapes without claiming a parser."""
+    expected_close = {"(": ")", "[": "]", "{": "}"}
+    opening_for = {value: key for key, value in expected_close.items()}
+    stack: list[tuple[str, int]] = []
+    line = 1
+    for char in masked:
+        if char == "\n":
+            line += 1
+        elif char in expected_close:
+            stack.append((char, line))
+        elif char in opening_for:
+            if not stack or stack[-1][0] != opening_for[char]:
+                raise ValueError(f"unexpected {char!r} on line {line}")
+            stack.pop()
+    if stack:
+        opening, opening_line = stack[-1]
+        raise ValueError(
+            f"unclosed {opening!r} from line {opening_line}; expected {expected_close[opening]!r}"
+        )
 
 
 def _looks_like_regex_start(source: str, slash_index: int) -> bool:
@@ -502,18 +537,28 @@ def _typescript_export_statement(source_lines: list[str], start: int) -> str:
 
 def _inventory_typescript_file(
     path: Path, file_rel: Path
-) -> tuple[list[dict[str, Any]], int, list[dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], int, list[dict[str, Any]], bool]:
     source = _read_source(path)
     if source is None:
-        return [], 0, []
+        return [], 0, [], False
     source_lines = source.splitlines()
-    masked_lines = _mask_typescript_noncode(source).splitlines()
+    try:
+        masked_lines = _mask_typescript_noncode(source).splitlines()
+    except ValueError as exc:
+        print(f"error: {file_rel}: lexical syntax check failed: {exc}", file=sys.stderr)
+        return [], 0, [], False
     public: list[dict[str, Any]] = []
     unexplained: list[dict[str, Any]] = []
     total = 0
     for index in sorted(_top_level_line_indexes(masked_lines)):
         masked_line = masked_lines[index]
-        if re.match(r"^\s*export\s+(?:declare\s+)?(?:const|let|var)\b", masked_line):
+        variable_export = re.match(
+            r"^\s*export\s+(?:declare\s+)?(?:const|let|var)\b", masked_line
+        )
+        const_enum = re.match(
+            r"^\s*export\s+(?:declare\s+)?const\s+enum\b", masked_line
+        )
+        if variable_export and not const_enum:
             end = _typescript_statement_end(masked_lines, index)
             statement = "\n".join(masked_lines[index : end + 1])
             names, unknown_binding = _typescript_variable_exports(statement)
@@ -578,7 +623,7 @@ def _inventory_typescript_file(
             masked_line,
         ):
             total += 1
-    return public, total, unexplained
+    return public, total, unexplained, True
 
 
 def _is_ignored(path: Path, target: Path) -> bool:
@@ -631,7 +676,8 @@ def _resolve_collisions(entries: list[dict[str, Any]]) -> None:
         file_stem = str(Path(entry["file"]).with_suffix(""))
         safe_path = re.sub(r"[^A-Za-z0-9]+", "_", file_stem).strip("_")
         safe_symbol = re.sub(r"[^A-Za-z0-9]+", "_", entry["symbol"]).strip("_")
-        candidate = f"{safe_path}__{safe_symbol}"
+        path_digest = hashlib.sha256(str(entry["file"]).encode("utf-8")).hexdigest()[:10]
+        candidate = f"{safe_path}__{safe_symbol}__{path_digest}"
         candidates[candidate] = candidates.get(candidate, 0) + 1
         entry["symbol_key"] = candidate
     for entry in entries:
@@ -666,6 +712,7 @@ def main(argv: list[str] | None = None) -> int:
     all_unexplained: list[dict[str, Any]] = []
     total_symbols = 0
     languages: set[str] = set()
+    invalid_typescript = False
     for path in files:
         file_rel = _display_path(path, repo_root)
         if path.suffix.casefold() == ".py":
@@ -674,12 +721,17 @@ def main(argv: list[str] | None = None) -> int:
             all_public.extend(entries)
             total_symbols += file_total
         else:
-            entries, file_total, unresolved = _inventory_typescript_file(path, file_rel)
+            entries, file_total, unresolved, valid = _inventory_typescript_file(
+                path, file_rel
+            )
             languages.add("typescript")
             all_public.extend(entries)
             total_symbols += file_total
             all_unexplained.extend(unresolved)
-    if not all_public:
+            invalid_typescript = invalid_typescript or not valid
+    if invalid_typescript:
+        return 1
+    if not all_public and not all_unexplained:
         print(f"error: no public symbols in {args.target}", file=sys.stderr)
         return 1
 

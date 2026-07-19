@@ -267,7 +267,10 @@ def test_typescript_multibinding_and_regex_literal_keep_following_export(
         "first",
         "second",
         "afterRegex",
+        "Palette",
     }
+    palette = next(item for item in targets["targets"] if item["symbol"] == "Palette")
+    assert palette["kind"] == "enum"
     assert targets["unexplained"] == []
 
 
@@ -293,6 +296,10 @@ def test_same_basename_symbols_have_distinct_annotations(tmp_path: Path) -> None
     targets = json.loads(targets_path.read_text(encoding="utf-8"))
     assert [item["symbol"] for item in targets["targets"]] == ["shared", "shared"]
     assert len({item["symbol_key"] for item in targets["targets"]}) == 2
+    assert {item["file"] for item in targets["targets"]} == {
+        "src/a-b/index.ts",
+        "src/a_b/index.ts",
+    }
 
     annotations = report_dir / "annotations"
     annotations.mkdir(parents=True)
@@ -319,5 +326,81 @@ def test_same_basename_symbols_have_distinct_annotations(tmp_path: Path) -> None
     )
     assert render.returncode == 0, render.stdout + render.stderr
     rendered = document.read_text(encoding="utf-8")
-    assert "`src/a/index.ts` owns this distinct `shared` export." in rendered
-    assert "`src/b/index.ts` owns this distinct `shared` export." in rendered
+    assert "`src/a-b/index.ts` owns this distinct `shared` export." in rendered
+    assert "`src/a_b/index.ts` owns this distinct `shared` export." in rendered
+
+
+def test_reexport_only_target_renders_visible_unexplained_output(tmp_path: Path) -> None:
+    host = tmp_path / "host"
+    shutil.copytree(FIXTURES / "reexport-only-host", host)
+    installed = tmp_path / "installed" / "explain-code"
+    shutil.copytree(SKILL, installed)
+    report_dir = host / "reports" / "explanations" / "src"
+    targets_path = report_dir / "targets.json"
+
+    collect = _run_isolated(
+        installed / "scripts" / "inventory_symbols.py",
+        "--target",
+        "src",
+        "--repo-root",
+        str(host),
+        "--output",
+        str(targets_path),
+        cwd=host,
+    )
+    assert collect.returncode == 0, collect.stdout + collect.stderr
+    targets = json.loads(targets_path.read_text(encoding="utf-8"))
+    assert targets["targets"] == []
+    assert {item["symbol"] for item in targets["unexplained"]} == {
+        'export { Local as PublicLocal } from "./local"',
+        'export * from "./values"',
+        'export type * from "./types"',
+    }
+
+    annotations = report_dir / "annotations"
+    annotations.mkdir(parents=True)
+    document = host / "reports" / "explanations" / "src.md"
+    render = _run_isolated(
+        installed / "scripts" / "render_explanation.py",
+        "--targets",
+        str(targets_path),
+        "--annotations-dir",
+        str(annotations),
+        "--output",
+        str(document),
+        "--summary",
+        "This target contains only unresolved re-exports and has no directly annotatable declarations.",
+        "--regenerated",
+        "2026-07-19T00:00:00Z",
+        cwd=host,
+    )
+    assert render.returncode == 0, render.stdout + render.stderr
+    rendered = document.read_text(encoding="utf-8")
+    assert "Annotated this run | 0" in rendered
+    assert 'export type * from "./types"' in rendered
+    unexplained = (report_dir / "unexplained.txt").read_text(encoding="utf-8")
+    assert unexplained.count("TypeScript v1 does not resolve") == 3
+
+
+def test_truncated_typescript_blocks_without_targets_artifact(tmp_path: Path) -> None:
+    host = tmp_path / "host"
+    shutil.copytree(FIXTURES / "invalid-host", host)
+    installed = tmp_path / "installed" / "explain-code"
+    shutil.copytree(SKILL, installed)
+    output = host / "reports" / "targets.json"
+
+    result = _run_isolated(
+        installed / "scripts" / "inventory_symbols.py",
+        "--target",
+        "src",
+        "--repo-root",
+        str(host),
+        "--output",
+        str(output),
+        cwd=host,
+    )
+
+    assert result.returncode != 0
+    assert "lexical syntax check failed" in result.stderr
+    assert "unclosed" in result.stderr
+    assert not output.exists()

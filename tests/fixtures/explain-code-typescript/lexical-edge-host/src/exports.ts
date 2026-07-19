@@ -5,3 +5,8 @@ const openBracePattern = /\{/;
 export function afterRegex(): RegExp {
   return openBracePattern;
 }
+
+export const enum Palette {
+  Red,
+  Blue,
+}

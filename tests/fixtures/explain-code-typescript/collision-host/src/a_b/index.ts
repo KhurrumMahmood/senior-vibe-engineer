@@ -1,3 +1,3 @@
 export function shared(): string {
-  return "b";
+  return "underscore";
 }

@@ -1,6 +1,6 @@
 {
   "batch": "explain-code-typescript",
-  "revision": "0103a9e implementation plus 447c620 D6 closeout and post-review repair commit recorded in final handoff",
+  "revision": "0103a9e implementation plus 447c620 D6 closeout, 2ae7739 first repair, and final repair commit recorded in handoff",
   "family": ["explain-code"],
   "invariant": {
     "portable_principle": "A durable explanation document must cover every selected direct public symbol and visibly preserve behavior that cannot honestly be explained.",
@@ -27,7 +27,8 @@
   "language_model": {
     "syntax": ["Named direct top-level export function/class/enum/interface/type/namespace/variable declarations in .ts and .tsx."],
     "type_system": ["No type-checker facts are claimed; exported types/interfaces are inventory targets only."],
-    "module_resolution": ["None. export aliases, export stars, and default expressions become visible unresolved records."],
+    "module_resolution": ["None. export aliases, export stars including export type *, and default expressions become visible unresolved records."],
+    "syntax_integrity": ["A bounded lexical check rejects unterminated comment/string/template/regex states and unbalanced delimiters before targets.json is written; it is not a TypeScript grammar or type check."],
     "runtime": ["Stdlib Python collector and renderer run with isolated host Python; no Node execution."],
     "framework": ["None; test/generated/declaration/vendor/build/node_modules descendants are excluded relative to the target."]
   },
@@ -40,19 +41,19 @@
     },
     "version_and_resolution": "No TypeScript package or parser is installed; Python stdlib only.",
     "closure_mode": "Copied .claude/skills/explain-code invoked by python -I -S outside the checkout.",
-    "preflight_and_failure_codes": ["1 for missing/unsupported/no-public-symbol target", "2 for invocation, artifact-read, or artifact-write error"]
+    "preflight_and_failure_codes": ["1 for missing/unsupported/no-public-surface target or failed TypeScript lexical integrity", "2 for invocation, artifact-read, or artifact-write error"]
   },
   "outcome_contract": {
     "inputs": ["A .py, .ts, .tsx file or directory target", "Scout annotations for each selected target", "A truthful human-authored summary"],
     "structured_outputs": ["targets.json", "reports/explanations/<slug>.md", "annotations/<symbol>.md", "unexplained.txt", "surprises.txt"],
-    "must_fire": ["Direct exported branchy TypeScript function", "Every name in a simple direct multi-binding export", "A direct export following a brace-containing regex literal", "Direct exported typed arrow function", "Direct exported TSX function", "Alias/re-export entries as final-document unexplained regions"],
-    "must_not_fire": ["Private helper", "Python migrations descendant", "Python tests_*.py module", "TypeScript test descendant", "Generated descendant", "Vendor descendant", "A requested target beneath a vendor-named ancestor", "Annotation reuse for same-basename/same-symbol files"],
+    "must_fire": ["Direct exported branchy TypeScript function", "Every name in a simple direct multi-binding export", "A direct export following a brace-containing regex literal", "Direct exported typed arrow function", "Direct exported TSX function", "const enum under its declared name and enum kind", "Alias/re-export entries including export type * as final-document unexplained regions", "A re-export-only target's final document and sidecars"],
+    "must_not_fire": ["Private helper", "Python migrations descendant", "Python tests_*.py module", "TypeScript test descendant", "Generated descendant", "Vendor descendant", "A requested target beneath a vendor-named ancestor", "Annotation reuse when normalized paths and symbol/line values collide", "targets.json for lexically malformed TypeScript"],
     "native_test_command": ".venv/bin/python -m pytest -q tests/test_explain_code_typescript.py",
     "native_guard_command": null
   },
   "evidence": {
     "python_reference": ["Red before initial repair: copied skill failed with ModuleNotFoundError: _lib.", "Post-review red: directory inventory re-included migrations/ and tests_reference.py.", "Green oracle: tests/test_explain_code_typescript.py::test_python_targets_reference_oracle_is_stable_and_copyable verifies file and directory payloads under copied python -I -S."],
-    "typescript": ["tests/test_explain_code_typescript.py copies only the skill, runs inventory and renderer with python -I -S from isolated hosts, and asserts the final doc, sidecars, stable JSON, exclusions, collision-free annotations, multi-binding exports, regex masking, and source immutability.", "Original Ruff plus 18 targeted metadata/read-safety tests passed at 0103a9e; post-review final commands/counts are listed with the final handoff.", "The exact D6 natural task was: Explain the direct public exports in src and produce the skill’s complete explanation artifact and sidecars. No expected diagnosis was supplied; the parent holds the prompt/tool record and no transcript file exists.", "Fresh non-context D6 at /private/tmp/explain-code-forward.kvpvVc explained decide/renderLabel/Badge, preserved three unresolved export forms plus one missing fallback region, excluded private/test/generated/vendor shapes, and left source hashes unchanged.", "Adversarial review found one unsupported sentence claiming typed-signature enforcement. The final artifact summary now accurately calls signatures source declarations and says no type-checking/enforcement occurred; the fresh annotations, sidecars, and inventory evidence are unchanged."],
+    "typescript": ["tests/test_explain_code_typescript.py copies only the skill, runs inventory and renderer with python -I -S from isolated hosts, and asserts the final doc, sidecars, stable JSON, exclusions, collision-free annotations, multi-binding exports, regex masking, lexical-integrity blocking, re-export-only rendering, and source immutability.", "Original Ruff plus 18 targeted metadata/read-safety tests passed at 0103a9e.", "Final adversarial red: four exact copied-skill regressions failed for re-export-only/type-star visibility, const-enum classification, malformed-input blocking, and normalized-path key uniqueness; all four passed after the closing repair.", "Final green: 7 focused tests and 26 focused plus metadata/read-safety/skill-compliance tests passed; Ruff, 76-skill metadata lint, JSON validation, diff check, and explicit-file pre-commit were clean.", "The exact D6 natural task was: Explain the direct public exports in src and produce the skill’s complete explanation artifact and sidecars. No expected diagnosis was supplied; the parent holds the prompt/tool record and no transcript file exists.", "Fresh non-context D6 at /private/tmp/explain-code-forward.kvpvVc explained decide/renderLabel/Badge, preserved three unresolved export forms plus one missing fallback region, excluded private/test/generated/vendor shapes, and left source hashes unchanged.", "Adversarial review found one unsupported sentence claiming typed-signature enforcement. The final artifact summary now accurately calls signatures source declarations and says no type-checking/enforcement occurred; the fresh annotations, sidecars, and inventory evidence are unchanged."],
     "commands_and_artifact_paths": [
       ".venv/bin/ruff check .claude/skills/explain-code/scripts tests/test_explain_code_typescript.py",
       ".venv/bin/python -m pytest -q tests/test_explain_code_typescript.py tests/test_skill_detector_reads.py tests/test_skill_taxonomy.py tests/test_yaml_frontmatter.py",
@@ -61,6 +62,8 @@
       "tests/fixtures/explain-code-typescript/typescript-host",
       "tests/fixtures/explain-code-typescript/lexical-edge-host",
       "tests/fixtures/explain-code-typescript/collision-host",
+      "tests/fixtures/explain-code-typescript/reexport-only-host",
+      "tests/fixtures/explain-code-typescript/invalid-host",
       "/private/tmp/explain-code-forward.kvpvVc/host/typescript-host/reports/explanations/src.md",
       "python3 -I -S <installed>/scripts/inventory_symbols.py --target src --output <artifacts>/targets.json --max 15 (rc 0; 3 annotated / 3 public / 8 total / 3 unresolved exports)",
       "python3 -I -S <installed>/scripts/render_explanation.py --targets <artifacts>/targets.json --annotations-dir <artifacts>/annotations --output reports/explanations/src.md (rc 0; 4 unexplained / 2 surprises)"
@@ -68,7 +71,7 @@
   },
   "false_positive_boundary": {
     "known_false_positives": ["None in the locked fixtures; comments, strings, and expression-position regex literals are masked before export matching and brace-depth accounting."],
-    "known_false_negatives": ["Anonymous default exports", "resolved aliases/barrels and module-derived public surface", "complex generic comma shapes beyond the lexical binding splitter"],
+    "known_false_negatives": ["Anonymous default exports", "resolved aliases/barrels and module-derived public surface", "complex generic comma shapes beyond the lexical binding splitter", "TypeScript grammar errors that retain balanced delimiters and terminated lexical states"],
     "legitimate_similar_shapes": ["Private helpers and public test/generated/vendor code stay out of targets; alias/re-export syntax remains unexplained instead of becoming a direct symbol."]
   },
   "generalized": ["The targets JSON schema, budget, scout artifact shape, renderer-owned sidecars, and source-immutability proof work for the Python reference and TypeScript v1."],
@@ -94,7 +97,7 @@
     "repeated_work": ["The renderer turns required final-doc/sidecar assembly into a repeatable command rather than a manual synthesis checklist."],
     "smallest_later_improvement": "Measure a catalog representation for a skill with a Python reference implementation and a narrowly earned TypeScript variant."
   },
-  "residual_risks": ["Lexical spans can be incomplete for unusual multiline/type-heavy exports.", "No TypeScript module resolver exists by design.", "The generated router catalog is stale until the serial integrator regenerates it; this lane is not authorized to edit it."],
+  "residual_risks": ["Lexical spans can be incomplete for unusual multiline/type-heavy exports.", "The bounded integrity gate is not a full TypeScript grammar check.", "No TypeScript module resolver exists by design.", "The generated router catalog is stale until the serial integrator regenerates it; this lane is not authorized to edit it."],
   "next_decision": {
     "recommendation": "Integrate the catalog/frontmatter change serially and review the TypeScript-only eligibility; D6 is complete.",
     "rationale": "The accepted direct-export outcome has no need for a compiler API; a resolver should only be considered after a named tsconfig-backed consumer requires it.",
