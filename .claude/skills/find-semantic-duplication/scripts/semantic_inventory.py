@@ -234,7 +234,14 @@ def cmd_callers(args: argparse.Namespace) -> int:
     project_root = Path(args.project_root).resolve()
     definitions = [record for record in _read_jsonl(Path(args.inventory)) if record.get("type") == "def"]
     sources = _iter_sources(project_root, project_root)
-    all_text = {path.relative_to(project_root).as_posix(): path.read_text(encoding="utf-8") for path in sources}
+    all_text: dict[str, str] = {}
+    for path in sources:
+        try:
+            all_text[path.relative_to(project_root).as_posix()] = path.read_text(
+                encoding="utf-8"
+            )
+        except (OSError, UnicodeDecodeError) as error:
+            print(f"[semantic_inventory] WARN skipping {path}: {error}", file=sys.stderr)
     records: list[dict[str, Any]] = []
     for definition in definitions:
         name = definition["name"]
