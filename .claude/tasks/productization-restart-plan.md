@@ -1,6 +1,6 @@
 # Engineering-skills productization restart
 
-Status: active — revised three-router milestone 1 candidate
+Status: revised three-router local candidate passed — public publication pending
 
 This is the small progress tracker for the restart. Update checkboxes only
 after the named command or journey passes at a committed revision. Tests,
@@ -39,10 +39,10 @@ generic executor.
 - [x] **I1 — Stock discovery.** From a clean checkout, the pinned command
   `npx --yes skills@1.5.19 add <source> --list` exits zero and lists exactly
   76 skills.
-- [ ] **I2 — Router-only install.** From an empty Git host, one documented
+- [x] **I2 — Router-only install.** From an empty Git host, one documented
   stock command installs exactly `which-shape`, `which-skill`, and
   `which-cleanup`; the source checkout remains clean.
-- [ ] **I3 — Self-contained routers.** Copies containing only each installed
+- [x] **I3 — Self-contained routers.** Copies containing only each installed
   router directory run under Python isolated/no-site mode outside the source
   checkout. `which-shape` returns the expected shape for two fixtures;
   `which-skill` returns the expected skill for two fixtures; `which-cleanup`
@@ -57,11 +57,11 @@ generic executor.
   installed routers, selected installed skill, fixture project, and user task,
   produces the fixture's expected useful artifact. The initial selected skill
   is prompt-only or self-contained.
-- [ ] **I6 — Standard removal boundary.** The documented stock removal path
+- [x] **I6 — Standard removal boundary.** The documented stock removal path
   removes the installed skill directories and leaves a sentinel outside the
   standard skill paths byte-identical. No promise is made about preserving
   user edits inside installed skill directories.
-- [ ] **I7 — Clean replay and goal-anchored review.** One clean scripted replay
+- [x] **I7 — Clean replay and goal-anchored review.** One clean scripted replay
   passes I1–I6 at a single revision. A fresh-context reviewer receives the
   ordered product goals and reports no goal-critical or concrete user-harm
   blocker.
@@ -109,10 +109,12 @@ it is necessary.
 | 2026-07-18 | `7c14dd4` | I6 | `skills@1.5.19 remove --all` removed all three installed skill directories. `KEEP.txt` remained SHA-256 `1954cbe1b926f93e3cd432127f483e7db98ab6bfa7453060205ef90b60225fb3`; only empty standard directories and `skills-lock.json` remained. |
 | 2026-07-18 | `c404944` | I1–I7 replay | From one clean Git host: stock discovery found 76; exactly two routers installed; two `which-shape` and two `which-skill` isolated fixtures passed; the emitted local-source command installed only `gut-check`; a fresh GPT-5.6 Terra xhigh agent produced four cited strong-smell findings from the committed fixture; removal deleted all three skill directories and preserved the sentinel hash above. Targeted suite: 47 passed. A goal-anchored fresh reviewer returned PASS with no goal-critical finding and rejected unrelated platform expansion. |
 | 2026-07-18 | `c404944` | Release prerequisite | The local candidate is complete, but the README's public source still resolves to `ce257f57…`, not `c404944`. Publish the candidate to that distribution ref, then replay the public URL before calling installation publicly complete. |
+| 2026-07-18 | `f26d9ea` | Revised I2–I6 | Stock `skills@1.5.19` installed exactly the three default routers. All ran from installed directories under `python3 -I -S`; shape, task, and cleanup results included selected-skill install commands plus definition, bundled-tooling, and shared-tooling locations. Only selected `gut-check` was then added; a fresh GPT-5.6 Terra xhigh agent produced five cited strong-smell findings. `remove --all` removed all four directories and preserved the sentinel SHA-256 `1954cbe1b926f93e3cd432127f483e7db98ab6bfa7453060205ef90b60225fb3`. Targeted suite: 73 passed, 1 intentional skip. |
+| 2026-07-18 | `f26d9ea` | Revised I7 | A fresh goal-anchored reviewer returned PASS with no goal-critical or concrete-user-harm blocker. It confirmed exact-three default installation, selected-only follow-up installation, isolated execution, useful output, and sentinel-preserving removal; it explicitly rejected custom trust/installer, multi-surface, coordinator, benchmark, and premature TypeScript expansion. |
 
 ## Current slice
 
-Finish and replay the revised three-router candidate, then publish its successor
-to the public distribution ref and replay the README using the public URL.
-TypeScript-family implementation and optional high-assurance work remain
-inactive until the public replay passes.
+Publish the reviewed three-router candidate to the public distribution ref and
+replay the README using the public URL. This is a release step, not new
+installer development. TypeScript-family implementation and optional
+high-assurance work remain inactive until the public replay passes.
