@@ -670,7 +670,8 @@ def main() -> int:
         default=[],
         help=(
             "Declared TypeScript/TSX source root. Repeat for separate roots. "
-            "Without this flag, TypeScript is not scanned."
+            "With no --root, scan TypeScript only; pass both root forms for "
+            "an additive Python and TypeScript scan."
         ),
     )
     # spec:project-structure-redesign-phase-2::IM-26
@@ -714,10 +715,17 @@ def main() -> int:
             return 2
         typescript_roots.append(root)
 
-    findings = detect(
-        project_root=project_root,
-        scope=scope,
-        min_cluster_size=args.min_cluster_size,
+    # A TypeScript-root-only invocation is intentionally TypeScript-only. The
+    # preserved Python scan runs when TypeScript was not requested, or when the
+    # caller explicitly supplies --root to request a combined scan.
+    findings = (
+        detect(
+            project_root=project_root,
+            scope=scope,
+            min_cluster_size=args.min_cluster_size,
+        )
+        if not typescript_roots or args.root is not None
+        else []
     )
     if typescript_roots:
         findings.extend(

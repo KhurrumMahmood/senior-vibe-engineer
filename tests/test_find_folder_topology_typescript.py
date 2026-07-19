@@ -141,6 +141,61 @@ def test_typescript_flat_prefix_final_artifacts_are_narrow_and_read_only(
     assert _tree_hashes(host / "src") == source_before
 
 
+def test_typescript_root_only_does_not_scan_python_elsewhere_in_host(
+    tmp_path: Path,
+) -> None:
+    host = tmp_path / "mixed-fixture-host"
+    shutil.copytree(FIXTURES, host / "fixture")
+    detections = host / "reports" / "typescript-only.jsonl"
+
+    result = _detect(
+        SKILL,
+        host,
+        detections,
+        "--typescript-root",
+        "fixture/typescript-host/src",
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    records = _read_jsonl(detections)
+    assert len(records) == 1
+    assert records[0]["language"] == "typescript"
+    assert records[0]["pattern"] == "flat_prefix_cluster"
+    assert records[0]["file"] == "fixture/typescript-host/src/billing"
+
+
+def test_explicit_python_and_typescript_roots_produce_an_additive_combined_scan(
+    tmp_path: Path,
+) -> None:
+    host = tmp_path / "combined-fixture-host"
+    shutil.copytree(FIXTURES, host / "fixture")
+    detections = host / "reports" / "combined.jsonl"
+
+    result = _detect(
+        SKILL,
+        host,
+        detections,
+        "--root",
+        "fixture/python-reference/positive/src",
+        "--typescript-root",
+        "fixture/typescript-host/src",
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    records = _read_jsonl(detections)
+    assert len(records) == 5
+    assert {record.get("language", "python") for record in records} == {
+        "python",
+        "typescript",
+    }
+    assert {record["pattern"] for record in records} == {
+        "flat_prefix_cluster",
+        "pages_route_mirror",
+        "sparse_folder_package",
+        "tests_by_prefix",
+    }
+
+
 def test_typescript_excludes_and_declared_additive_excludes_stay_clean(tmp_path: Path) -> None:
     host = _copy_host(tmp_path)
     ignored = host / "src" / "ignored"
@@ -199,3 +254,10 @@ def test_copied_stock_skill_runs_from_an_unrelated_cwd_without_common_helpers(
     assert render.returncode == 0, render.stdout + render.stderr
     assert json.loads(findings_path.read_text(encoding="utf-8"))["findings"][0]["language"] == "typescript"
     assert all("_common" not in path.read_text(encoding="utf-8") for path in installed.rglob("*.py"))
+
+
+def test_installed_examples_use_the_stock_codex_agents_location() -> None:
+    instructions = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+
+    assert ".agents/skills/find-folder-topology-drift" in instructions
+    assert ".claude/skills/find-folder-topology-drift" not in instructions

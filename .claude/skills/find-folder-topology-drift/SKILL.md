@@ -64,6 +64,10 @@ does not scan TypeScript. Each root must be an existing directory inside
 `--project-root`; an invalid root is `scan-blocked` (exit 2), never a fallback
 whole-repo scan.
 
+An invocation with `--typescript-root` and no `--root` is TypeScript-only; it
+does not scan Python elsewhere in the host and needs no exclusion for Python
+trees. Pass both root forms only when an additive combined scan is intended.
+
 Within every declared root, the detector groups direct `.ts` and `.tsx`
 siblings by the first token before `_` or `-`. It emits exactly one
 `flat_prefix_cluster` record per token with at least three files and a token of
@@ -84,25 +88,26 @@ move. Those claims are deliberately outside this v1.
 
 ## Pipeline
 
-Run from the host project. Set `SKILL_DIR` to the installed skill directory;
-use the host's Python 3.11+ interpreter outside this repository. During source
-checkout validation only, use this worktree's `.venv/bin/python`.
+Run from the host project. The stock Codex install places this skill under
+`.agents/skills/`; use the host's Python 3.11+ interpreter outside this
+repository. During source-checkout validation only, use this worktree's
+`.venv/bin/python`.
 
 ```bash
-HOST="$PWD"
-SKILL_DIR="$HOST/.claude/skills/find-folder-topology-drift"
-SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
-REPORT_DIR="$HOST/reports/find-folder-topology-drift/$SCAN_ID"
-mkdir -p "$REPORT_DIR"
-cd "$SKILL_DIR"
+FT_PROJECT_ROOT="$PWD"
+FT_SKILL_DIR="$FT_PROJECT_ROOT/.agents/skills/find-folder-topology-drift"
+FT_SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
+FT_REPORT_DIR="$FT_PROJECT_ROOT/reports/find-folder-topology-drift/$FT_SCAN_ID"
+mkdir -p "$FT_REPORT_DIR"
+cd "$FT_SKILL_DIR"
 python3 scripts/detect.py \
-  --project-root "$HOST" \
+  --project-root "$FT_PROJECT_ROOT" \
   --typescript-root src \
-  --output "$REPORT_DIR/detections.jsonl"
+  --output "$FT_REPORT_DIR/detections.jsonl"
 python3 scripts/report.py \
-  --detections "$REPORT_DIR/detections.jsonl" \
-  --output-md "$REPORT_DIR/report.md" \
-  --output-json "$REPORT_DIR/findings.json" \
+  --detections "$FT_REPORT_DIR/detections.jsonl" \
+  --output-md "$FT_REPORT_DIR/report.md" \
+  --output-json "$FT_REPORT_DIR/findings.json" \
   --target "src" \
   --language typescript
 ```
@@ -110,21 +115,22 @@ python3 scripts/report.py \
 For Python, omit `--typescript-root` and optionally replace it with `--root`:
 
 ```bash
-cd "$SKILL_DIR"
+cd "$FT_SKILL_DIR"
 python3 scripts/detect.py \
-  --project-root "$HOST" \
+  --project-root "$FT_PROJECT_ROOT" \
   --root app/services \
   --exclude 'app/services/scratch' \
-  --output "$REPORT_DIR/detections.jsonl"
+  --output "$FT_REPORT_DIR/detections.jsonl"
 python3 scripts/report.py \
-  --detections "$REPORT_DIR/detections.jsonl" \
-  --output-md "$REPORT_DIR/report.md" \
-  --output-json "$REPORT_DIR/findings.json" \
+  --detections "$FT_REPORT_DIR/detections.jsonl" \
+  --output-md "$FT_REPORT_DIR/report.md" \
+  --output-json "$FT_REPORT_DIR/findings.json" \
   --target "app/services" \
   --language python
 ```
 
-For a combined run, pass both root forms and use `--language mixed`. Do not
+For a combined run, pass both `--root <python-subtree>` and
+`--typescript-root <typescript-subtree>`, then use `--language mixed`. Do not
 label a TypeScript-only artifact `python` or a combined artifact `typescript`.
 
 ## Read the artifacts before acting
@@ -145,19 +151,21 @@ Run this after changing the installed scripts. It proves the documented
 TypeScript command and final artifacts, not that an arbitrary host is clean.
 
 ```bash
-HOST="$(mktemp -d /tmp/folder-topology-replay.XXXXXX)"
-mkdir -p "$HOST/src/billing" "$HOST/reports"
-touch "$HOST/src/billing/billing_parser.ts" \
-  "$HOST/src/billing/billing-validator.ts" \
-  "$HOST/src/billing/billing-types.ts"
-cd "$SKILL_DIR"
+FT_INSTALL_ROOT="$PWD"
+FT_SKILL_DIR="$FT_INSTALL_ROOT/.agents/skills/find-folder-topology-drift"
+FT_REPLAY_ROOT="$(mktemp -d /tmp/folder-topology-replay.XXXXXX)"
+mkdir -p "$FT_REPLAY_ROOT/src/billing" "$FT_REPLAY_ROOT/reports"
+touch "$FT_REPLAY_ROOT/src/billing/billing_parser.ts" \
+  "$FT_REPLAY_ROOT/src/billing/billing-validator.ts" \
+  "$FT_REPLAY_ROOT/src/billing/billing-types.ts"
+cd "$FT_SKILL_DIR"
 python3 scripts/detect.py \
-  --project-root "$HOST" --typescript-root src \
-  --output "$HOST/reports/detections.jsonl"
+  --project-root "$FT_REPLAY_ROOT" --typescript-root src \
+  --output "$FT_REPLAY_ROOT/reports/detections.jsonl"
 python3 scripts/report.py \
-  --detections "$HOST/reports/detections.jsonl" \
-  --output-md "$HOST/reports/report.md" \
-  --output-json "$HOST/reports/findings.json" \
+  --detections "$FT_REPLAY_ROOT/reports/detections.jsonl" \
+  --output-md "$FT_REPLAY_ROOT/reports/report.md" \
+  --output-json "$FT_REPLAY_ROOT/reports/findings.json" \
   --target src --language typescript
 ```
 
