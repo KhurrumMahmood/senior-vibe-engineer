@@ -431,7 +431,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         report = json.loads(args.jscpd_report.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         print(f"error: cannot read jscpd report: {exc}", file=sys.stderr)
         return 2
     target, project_root = args.target.resolve(), args.project_root.resolve()

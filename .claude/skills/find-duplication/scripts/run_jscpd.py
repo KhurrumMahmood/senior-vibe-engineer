@@ -240,7 +240,7 @@ def run(
 
     try:
         payload = json.loads(report_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         report_path.unlink(missing_ok=True)
         print(f"error: jscpd did not write a valid JSON report: {exc}", file=sys.stderr)
         return 3

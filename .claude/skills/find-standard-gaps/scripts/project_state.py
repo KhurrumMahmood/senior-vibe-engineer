@@ -30,10 +30,14 @@ Stdlib-only. Read-only against the project.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 # The scanner bundles its narrow state-home resolver so an installed skill has
 # no dependency on the toolkit's sibling `_common` directory.
+_SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
 import engineering_home as _home
 
 # Ordinal ladders for >= comparison. Index = severity; a higher index
