@@ -50,6 +50,100 @@ A review finding may add work only when it materially affects the current
 TypeScript batch, the next required installed journey, or prevents concrete
 critical user harm.
 
+## Full TypeScript coverage target
+
+“Full TypeScript coverage” means complete, honest coverage of the ecosystem's
+language-level product—not a claim that Django workflows have become React or
+Node workflows by changing metadata.
+
+At completion, every one of the 76 skills must have exactly one mechanically
+checkable disposition:
+
+- `validated-neutral`: the skill's outcome is independent of host language and
+  a representative installed TypeScript-host task proves that no language
+  variant is needed;
+- `typescript-supported`: the skill's declared TypeScript invariant passes
+  D1–D8 through its final installed outcome;
+- `stack-bound`: the skill encodes a named framework/ORM/router/UI contract and
+  is truthfully excluded from framework-neutral TypeScript routing; or
+- `ecosystem-runtime`: the skill operates on this toolkit rather than host
+  source language.
+
+No skill may remain `candidate`, claim TypeScript from suffix handling alone,
+or silently under-detect TypeScript at this milestone. `stack-bound` is a
+complete and honest language-coverage result, but it is not cross-framework
+support. A later Node/React/Express/ORM packet must be separately named and
+validated before any of the 20 framework-specific skills changes disposition.
+
+The milestone is complete only when:
+
+- [ ] A committed 76-row coverage matrix contains one unique disposition,
+  evidence path, installed command, and latest reviewed revision per skill.
+- [ ] Every generally applicable language-level skill is either
+  `typescript-supported` or has evidence that it is genuinely
+  `validated-neutral`; metadata-only relabeling does not count.
+- [ ] Every `typescript-supported` skill passes its final report/proposal or
+  mutation/guard outcome, copied-install closure, native TypeScript
+  verification where applicable, fresh forward task, and adversarial review.
+- [ ] Copied stock routers carry `language`, `framework`, and `scans`, select
+  only eligible skills for exact TypeScript tasks, and return explicit
+  unsupported/no-match for stack-bound or not-yet-earned claims.
+- [ ] No installed selected skill imports repository-level `scripts/`, sibling
+  `_common`, another uninstalled skill, a toolkit venv, or an undeclared
+  network dependency.
+- [ ] One clean-host matrix replays a read-only detector, proposal-only skill,
+  safe path mutation, state mutation/guard, and semantic-analysis skill using
+  TypeScript fixtures; all native tests and the Python regression paths pass.
+- [ ] The completion review finds no remaining ambiguous language claim and no
+  shared TypeScript infrastructure without at least two accepted consumers.
+
+### Full-coverage execution sequence
+
+Each numbered wave is a dependency gate. Within a wave, at most three
+path-disjoint skill lanes run concurrently; shared router/catalog/dependency
+changes remain serial-integrator work.
+
+1. **Accept the current foundation.** Independently review and integrate B1,
+   B3, the narrow `move-path` TypeScript contract, and B2P. Complete the B1
+   router-language integration and establish the first coverage-matrix rows.
+2. **Complete the state family (B2T).** Implement the family-local Compiler API
+   path for `find-implicit-state`, `extract-enum`, and `prevent-regression`;
+   prove detection → proposal → applied fixture mutation → `tsc`/native tests
+   → guard red/green → installed replay.
+3. **Prove syntax facts without a platform.** Port `find-omnibus` first for
+   trustworthy top-level TypeScript symbol spans. Use its accepted evidence to
+   scope, not assume, the separate `find-complexity-hotspots` function-body
+   syntax contract.
+4. **Run independent lexical/outcome pilots.** In separate worktrees, port
+   `explain-code`, `find-duplication`, and `find-folder-topology-drift`; then
+   `find-standard-gaps` and `rename-concept` after their concrete standards and
+   B1 concept inputs are frozen. These lanes may reuse validation procedure,
+   not a speculative common parser.
+5. **Prove module resolution with real consumers.** Port `map-subsystem` first
+   with one project-local `tsconfig` resolver. Only after acceptance may
+   `propose-boundary` and `propose-folder-reorganization` reuse the exact
+   demonstrated resolution contract. The completed narrow `move-path` v1
+   remains honest about ignored imports; import-safe mutation is an optional
+   later extension, not a hidden prerequisite.
+6. **Complete semantic families separately.** Port `find-dormant`,
+   `find-incomplete-sweep`, and `find-semantic-duplication` as independent
+   Compiler API consumers with their already-frozen judgment boundaries. Port
+   `unify-shadows` only after the semantic report schema and TypeScript handoff
+   are accepted.
+7. **Close routing, installation, and evidence.** Regenerate the catalog,
+   finish the 76-row matrix, run the five clean-host journeys, replay Python
+   regressions, and adversarially audit every remaining `validated-neutral`,
+   `typescript-supported`, `stack-bound`, and `ecosystem-runtime` claim.
+
+### Parallel queue after the current reviews
+
+- Critical path: B2P acceptance → B2T.
+- Parallel syntax lane: `find-omnibus`.
+- Parallel lexical lane: `explain-code`.
+- Next queue: `find-duplication`, then folder-topology policy/pilot.
+- Serial integration after each wave: contracts, frontmatter, router catalog,
+  coverage rows, installed forward tests, and learning review.
+
 ## What counts as a batch
 
 A batch is a cohesive invariant family. Its skills share at least two of:
