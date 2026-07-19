@@ -37,3 +37,8 @@ export {
   nestedGenericSelfClosing,
   quotedCommaAttribute,
 };
+
+const typeArgumentComments = <Select</* decision:0001 */ number, // decision:0002
+  /** decision:0003 */ string> />;
+
+export { typeArgumentComments };

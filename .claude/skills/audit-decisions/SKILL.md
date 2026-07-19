@@ -40,8 +40,8 @@ reference is visible rather than silently disappearing.
 - Preserve Python comment, Markdown, and HTML reference handling additively.
   Registry status/link checks remain visible in their compatibility artifacts.
 - Keep the registry and source files read-only. Exit `0` for clean, `1` when
-  drift rows are present, and `2` for invalid paths or unsupported/malformed
-  decision frontmatter.
+  drift rows are present, and `2` for invalid paths, unsupported/malformed
+  decision frontmatter, unavailable TypeScript tooling, or invalid TS/TSX.
 
 ## Supported reference contract
 
@@ -57,15 +57,20 @@ digits. It is recognized only in these real comment forms:
   TSX expression (`{/* decision:0001 */}`), including expressions inside JSX
   fragments.
 
-The lexical scanner ignores string literals, template text, regex literals,
-and TSX text nodes, including comment-shaped text in elements or fragments.
-Quoted JSX attribute contents do not affect tag recognition. TypeScript generic
-angle syntax is not treated as a JSX element, while generic JSX tag arguments
-remain part of their opening tag and cannot consume following code. The scanner
-does not parse identifiers, resolve imports, interpret types, or infer
-React/Node/other framework behavior. A TypeScript Compiler API, package manager,
-network access, shared parser, and host `tsconfig` are not required for this
-comment-only invariant.
+The bundled Node helper parses each TS/TSX source with the host project's
+project-local `typescript` Compiler API. It accepts real comment trivia in code
+(including JSX expressions and generic JSX type arguments) while excluding
+string literals, template text, regex literals, and TSX text nodes, including
+comment-shaped text in elements or fragments. It rejects syntax errors rather
+than producing a partial reference inventory. The helper does not parse
+identifiers, resolve imports, interpret types, or infer React/Node/other
+framework behavior; it needs no `tsconfig`, Program, or type checker.
+
+If a scannable `.ts` or `.tsx` file exists, Node.js and a `typescript` package
+resolvable from `--project-root/package.json` are required. Install the host's
+locked dependencies before running the audit (for example `npm ci`); do not
+substitute a global TypeScript installation. The scan itself performs no package
+manager operation or network access.
 
 ### Existing reference forms
 
@@ -94,7 +99,8 @@ inverse check because a partial target cannot establish that conclusion.
 ## Installed workflow
 
 Stock Codex copies this selected skill to `.agents/skills/audit-decisions`.
-From the host project root, with Python 3.11+:
+From the host project root, with Python 3.11+, Node.js, and the host's
+project-local `typescript` dependency installed:
 
 ```bash
 AUDIT_PROJECT_ROOT="$PWD"
@@ -116,9 +122,12 @@ python3 -I -S "${AUDIT_SKILL_DIR}"/scripts/audit.py \
   --target src
 ```
 
-The installed executable imports only Python standard-library modules from this
-selected directory. It does not need a toolkit virtualenv, repository helper,
-sibling skill, host package manager, or network connection.
+The registry and Python/Markdown/HTML paths import only Python standard-library
+modules from this selected directory. When a TS/TSX file is in scope, the
+selected skill invokes its bundled `.mjs` helper with host Node.js and the
+project-local `typescript` Compiler API. It does not need a toolkit virtualenv,
+repository helper, sibling skill, global TypeScript installation, host `tsconfig`,
+or network connection at scan time.
 
 ## Read the final artifact before acting
 
@@ -143,8 +152,8 @@ The report can surface these drift classes:
 
 | Symptom | Action |
 |---|---|
-| Exit 2 | Correct the project/target path or frontmatter. Do not treat a failed parse as a clean audit. |
-| No TypeScript tooling installed | Continue: this lexical comment scan requires only host Python. |
+| Exit 2 | Correct the project/target path or frontmatter; restore Node.js/the host's local `typescript`; or repair TS/TSX syntax. Do not treat a failed parse as a clean audit. |
+| TS/TSX exists but TypeScript is unavailable | Install the project's locked dependencies so `typescript` resolves from `package.json`, then re-run. Do not present an incomplete TypeScript scan as clean. |
 | A desired reference is in an identifier, string, regex, or JSX text | Do not count it. Add a supported comment at the authoritative location. |
 | An excluded tree is supplied directly with `--target` | The scan is clean for references by design; exclusions cannot be bypassed by narrowing the target. |
 | A relationship/link diagnostic is present | Read `link-check.txt`, repair the ADR deliberately, then re-run. |
@@ -155,5 +164,6 @@ The report can surface these drift classes:
 audit-decisions/
 ├── SKILL.md
 └── scripts/
-    └── audit.py
+    ├── audit.py
+    └── detect_typescript_comments.mjs
 ```

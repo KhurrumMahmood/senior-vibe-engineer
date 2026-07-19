@@ -12,9 +12,11 @@ export const documented = `decision:9003`;
 const expression = `${/* decision:0001 */ "safe"}`;
 const pattern = /decision:9004/;
 const escapedCommentPattern = /\/\* decision:9005 \*\//;
+if (true) /\/* decision:9204/.test("input");
 const regexAfterTypeof = typeof /[/* decision:9444]/;
 const regexAfterVoid = void /[/* decision:9445]/;
-const regexAfterInstanceof = value instanceof /[/* decision:9446]/;
+const value: any = null;
+const regexAfterInstanceof = value instanceof (/[/* decision:9446]/ as any);
 const generic = <T,>(value: T) => {
   // decision:0003
   return value;

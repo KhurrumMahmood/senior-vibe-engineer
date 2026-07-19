@@ -14,6 +14,7 @@ import datetime as dt
 import io
 import json
 import re
+import subprocess
 import sys
 import tokenize
 from dataclasses import dataclass
@@ -243,252 +244,6 @@ def iter_scannable_files(project_root: Path, targets: Iterable[Path]) -> list[Pa
     return sorted(found, key=lambda path: _relative(path, project_root))
 
 
-class TypeScriptCommentScanner:
-    """Small lexical scanner for TS comments, strings, templates, regexes, and JSX text."""
-
-    def __init__(self, text: str, *, tsx: bool) -> None:
-        self.text = text
-        self.tsx = tsx
-        self.references: list[tuple[int, str, str]] = []
-
-    def scan(self) -> list[tuple[int, str, str]]:
-        self._scan_code(0, stop_on_brace=False)
-        return self.references
-
-    def _record_comment(self, start: int, end: int, form: str) -> None:
-        for match in REFERENCE.finditer(self.text[start:end]):
-            self.references.append((start + match.start(), match.group(1), form))
-
-    def _skip_quoted(self, index: int, quote: str) -> int:
-        index += 1
-        while index < len(self.text):
-            if self.text[index] == "\\":
-                index += 2
-            elif self.text[index] == quote:
-                return index + 1
-            else:
-                index += 1
-        return index
-
-    def _scan_template(self, index: int) -> int:
-        index += 1
-        while index < len(self.text):
-            char = self.text[index]
-            if char == "\\":
-                index += 2
-            elif char == "`":
-                return index + 1
-            elif char == "$" and index + 1 < len(self.text) and self.text[index + 1] == "{":
-                index = self._scan_code(index + 2, stop_on_brace=True)
-            else:
-                index += 1
-        return index
-
-    def _can_start_regex(self, index: int) -> bool:
-        previous = index - 1
-        while previous >= 0 and self.text[previous].isspace():
-            previous -= 1
-        if previous < 0 or self.text[previous] in "=([{,:;!?&|^~<>+-*%":
-            return True
-        word_end = previous + 1
-        while previous >= 0 and (self.text[previous].isalnum() or self.text[previous] in "_$"):
-            previous -= 1
-        word = self.text[previous + 1:word_end]
-        if previous >= 0 and self.text[previous] == ".":
-            return False
-        return word in {
-            "await", "case", "delete", "do", "else", "in", "instanceof",
-            "new", "return", "throw", "typeof", "void", "yield",
-        }
-
-    def _skip_regex(self, index: int) -> int:
-        index += 1
-        in_class = False
-        while index < len(self.text):
-            char = self.text[index]
-            if char == "\\":
-                index += 2
-            elif char == "[":
-                in_class = True
-                index += 1
-            elif char == "]":
-                in_class = False
-                index += 1
-            elif char == "/" and not in_class:
-                index += 1
-                while index < len(self.text) and self.text[index].isalpha():
-                    index += 1
-                return index
-            elif char in "\r\n":
-                return index
-            else:
-                index += 1
-        return index
-
-    def _jsx_can_start(self, index: int) -> bool:
-        if not self.tsx or index + 1 >= len(self.text):
-            return False
-        is_fragment = self.text[index + 1] == ">"
-        if not is_fragment and not self.text[index + 1].isalpha():
-            return False
-        previous = index - 1
-        while previous >= 0 and self.text[previous].isspace():
-            previous -= 1
-        if previous >= 0 and self.text[previous] not in "=([{,:;!?":
-            word_end = previous + 1
-            while previous >= 0 and (self.text[previous].isalnum() or self.text[previous] in "_$"):
-                previous -= 1
-            if self.text[previous + 1:word_end] != "return":
-                return False
-        if is_fragment:
-            return True
-
-        name_end = index + 1
-        while name_end < len(self.text) and (self.text[name_end].isalnum() or self.text[name_end] in "_$-."):
-            name_end += 1
-        cursor = name_end
-        angle_depth = 1
-        tag_tokens: list[str] = []
-        while cursor < len(self.text):
-            char = self.text[cursor]
-            if char in {"'", '"'}:
-                cursor = self._skip_quoted(cursor, char)
-            elif char == "{":
-                cursor = self._skip_balanced_braces(cursor + 1)
-            elif char == "<":
-                angle_depth += 1
-                cursor += 1
-            elif char == ">":
-                if angle_depth > 1 and cursor > 0 and self.text[cursor - 1] == "=":
-                    cursor += 1
-                    continue
-                angle_depth -= 1
-                if angle_depth == 0:
-                    break
-                cursor += 1
-            elif angle_depth == 1:
-                tag_tokens.append(char)
-                cursor += 1
-            else:
-                cursor += 1
-        if cursor >= len(self.text):
-            return False
-
-        probe = "".join(tag_tokens)
-        if "," in probe or re.search(r"\bextends\b", probe):
-            return False
-        after = cursor + 1
-        while after < len(self.text) and self.text[after].isspace():
-            after += 1
-        return not (not probe.strip() and after < len(self.text) and self.text[after] == "(")
-
-    def _skip_balanced_braces(self, index: int) -> int:
-        depth = 1
-        while index < len(self.text) and depth:
-            char = self.text[index]
-            if char in {"'", '"'}:
-                index = self._skip_quoted(index, char)
-            elif char == "`":
-                index = self._skip_template_literal(index)
-            elif char == "{":
-                depth += 1
-                index += 1
-            elif char == "}":
-                depth -= 1
-                index += 1
-            else:
-                index += 1
-        return index
-
-    def _skip_template_literal(self, index: int) -> int:
-        index += 1
-        while index < len(self.text):
-            if self.text[index] == "\\":
-                index += 2
-            elif self.text[index] == "`":
-                return index + 1
-            else:
-                index += 1
-        return index
-
-    def _skip_jsx_tag(self, index: int) -> tuple[int, bool, bool]:
-        """Return (after tag, is_closing, is_self_closing)."""
-        closing = self.text.startswith("</", index)
-        index += 2 if closing else 1
-        angle_depth = 1
-        while index < len(self.text):
-            char = self.text[index]
-            if char in {"'", '"'}:
-                index = self._skip_quoted(index, char)
-            elif char == "{":
-                index = self._scan_code(index + 1, stop_on_brace=True)
-            elif char == "<":
-                angle_depth += 1
-                index += 1
-            elif char == ">":
-                if angle_depth > 1 and index > 0 and self.text[index - 1] == "=":
-                    index += 1
-                    continue
-                angle_depth -= 1
-                if angle_depth:
-                    index += 1
-                    continue
-                back = index - 1
-                while back >= 0 and self.text[back].isspace():
-                    back -= 1
-                return index + 1, closing, self.text[back] == "/"
-            else:
-                index += 1
-        return index, closing, False
-
-    def _scan_jsx_element(self, index: int) -> int:
-        index, closing, self_closing = self._skip_jsx_tag(index)
-        if closing or self_closing:
-            return index
-        while index < len(self.text):
-            if self.text[index] == "{":
-                index = self._scan_code(index + 1, stop_on_brace=True)
-            elif self.text[index] == "<" and index + 1 < len(self.text):
-                if self.text.startswith("</", index):
-                    return self._skip_jsx_tag(index)[0]
-                if self.text[index + 1].isalpha() or self.text[index + 1] == ">":
-                    index = self._scan_jsx_element(index)
-                else:
-                    index += 1
-            else:
-                index += 1
-        return index
-
-    def _scan_code(self, index: int, *, stop_on_brace: bool) -> int:
-        while index < len(self.text):
-            char = self.text[index]
-            if stop_on_brace and char == "}":
-                return index + 1
-            if char in {"'", '"'}:
-                index = self._skip_quoted(index, char)
-            elif char == "`":
-                index = self._scan_template(index)
-            elif char == "{":
-                index = self._scan_code(index + 1, stop_on_brace=True)
-            elif char == "/" and index + 1 < len(self.text) and self.text[index + 1] == "/":
-                end = self.text.find("\n", index)
-                end = len(self.text) if end < 0 else end
-                self._record_comment(index, end, "line")
-                index = end
-            elif char == "/" and index + 1 < len(self.text) and self.text[index + 1] == "*":
-                end = self.text.find("*/", index + 2)
-                end = len(self.text) if end < 0 else end + 2
-                self._record_comment(index, end, "jsdoc" if self.text.startswith("/**", index) else "block")
-                index = end
-            elif char == "/" and self._can_start_regex(index):
-                index = self._skip_regex(index)
-            elif char == "<" and self._jsx_can_start(index):
-                index = self._scan_jsx_element(index)
-            else:
-                index += 1
-        return index
-
-
 def _reference_dict(path: Path, project_root: Path, line: int, identifier: str, language: str, comment_form: str) -> dict[str, Any]:
     return {
         "path": _relative(path, project_root),
@@ -497,6 +252,44 @@ def _reference_dict(path: Path, project_root: Path, line: int, identifier: str, 
         "language": language,
         "comment_form": comment_form,
     }
+
+
+def _typescript_references(path: Path, project_root: Path) -> list[tuple[int, str, str]]:
+    """Return Compiler API-confirmed comment references from one TS/TSX file."""
+    launcher = Path(__file__).resolve().with_name("detect_typescript_comments.mjs")
+    try:
+        result = subprocess.run(
+            ["node", str(launcher), "--file", str(path), "--project-root", str(project_root)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise ValueError(f"cannot run bundled TypeScript comment parser: {exc}") from exc
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise ValueError(f"TypeScript comment parser failed for {_relative(path, project_root)}: {detail}")
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"TypeScript comment parser emitted invalid JSON for {_relative(path, project_root)}") from exc
+    if not isinstance(payload, list):
+        raise ValueError(f"TypeScript comment parser emitted an invalid result for {_relative(path, project_root)}")
+    references: list[tuple[int, str, str]] = []
+    for item in payload:
+        if not isinstance(item, dict):
+            raise ValueError(f"TypeScript comment parser emitted an invalid reference for {_relative(path, project_root)}")
+        line, identifier, form = item.get("line"), item.get("id"), item.get("comment_form")
+        if (
+            not isinstance(line, int)
+            or line < 1
+            or not isinstance(identifier, str)
+            or not REFERENCE.fullmatch(f"decision:{identifier}")
+            or form not in {"line", "block", "jsdoc"}
+        ):
+            raise ValueError(f"TypeScript comment parser emitted an invalid reference for {_relative(path, project_root)}")
+        references.append((line, identifier, form))
+    return references
 
 
 def scan_references(path: Path, project_root: Path) -> list[dict[str, Any]]:
@@ -516,8 +309,8 @@ def scan_references(path: Path, project_root: Path) -> list[dict[str, Any]]:
         except (tokenize.TokenError, IndentationError):
             return []
     elif suffix in {".ts", ".tsx"}:
-        for offset, identifier, form in TypeScriptCommentScanner(text, tsx=suffix == ".tsx").scan():
-            references.append(_reference_dict(path, project_root, text.count("\n", 0, offset) + 1, identifier, "typescript", form))
+        for line, identifier, form in _typescript_references(path, project_root):
+            references.append(_reference_dict(path, project_root, line, identifier, "typescript", form))
     elif suffix == ".md":
         for match in MARKDOWN_REFERENCE.finditer(text):
             references.append(_reference_dict(path, project_root, text.count("\n", 0, match.start()) + 1, match.group(1), "markdown", "hash"))
