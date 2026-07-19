@@ -4,12 +4,12 @@ skill: find-implicit-state
 job: suspect
 problem_class: "stringly-typed-state / tuple-identity detection (SUSPECT)"
 intent: >
-  Detect stringly-typed state comparisons and tuple-inferred identity patterns via
-  an AST scan — bare string literals compared to `.status`/`.phase`/`.state`,
-  model fields declared without a `TextChoices` enum, and
-  `.filter(status=..., *_at__...).first()` identity-inference shapes. Collapses by
-  file, fans out scout sub-agents to bucket each candidate, hands off to
-  /extract-enum or /introduce-fk.
+  Detect Django stringly-typed state and tuple-inferred identity patterns, plus
+  a narrow TypeScript closed-state branch. The TypeScript path uses the host's
+  pinned Compiler API to distinguish first-party bare operations and direct
+  aliases from typed authorities, vendor receiver types, tests/fixtures,
+  unrelated text, and open-ended strings. It hands reviewed state findings to
+  /extract-enum and Django tuple identity to /introduce-fk.
 solves: >
   The stringly-typed-state smell — state encoded as bare strings instead of a
   TextChoices enum, and entity identity inferred from a (status, timestamp) tuple
@@ -51,6 +51,7 @@ provenance_confidence:
   temporal: low
   dogfood: low
 evidence:
+  - "a36c2c9–297dd27 — B2T semantic TypeScript detector, pinned fixture/native tests, stock-selected install replay, and adversarial repairs for vendor attribution, aliases, compound/chained/parenthesized operations, and syntax-error failure."
   - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
   - "has scripts/detect.py; no fixtures/ oracle (has_fixtures false) — structural med, not high"
   - "precedents.yml read-decode-safety.v1 names find-implicit-state/scripts/detect.py as the canonical scanner-skip exemplar"

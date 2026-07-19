@@ -9,7 +9,9 @@ intent: >
   class of defect cannot silently return. GUARD skill at the closing end of the maintenance
   loop. Ships scripts/generate_rule.py + scripts/verify_rule.py to scaffold a rule and
   prove it discriminates (red on the pre-fix shape, green on the post-fix shape) before it
-  is wired into CI/pre-commit.
+  is wired into CI/pre-commit. Its closed-state family also stages and verifies a
+  self-contained TypeScript Compiler API guard with the same 0/1/2 contract; host wiring
+  remains an explicit proposal for the integrator.
 solves: >
   Fixes that don't stick — a bug or pattern violation gets fixed once, then drifts back in
   later because nothing mechanically rejects the bad shape on the next change.
@@ -42,6 +44,7 @@ provenance_confidence:
   temporal: low
   dogfood: med
 evidence:
+  - "a36c2c9–297dd27 — B2T stages a selected-skill TypeScript state guard, paired TS/TSX fixtures, host-wiring diff, and verifier; adversarial tests cover semantic vendor-only suppression, direct aliases, compound/chained/parenthesized assignments, and syntax failures."
   - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
   - "scripts/generate_rule.py + scripts/verify_rule.py — a guard-authoring/verification signature (scaffold a rule, prove it discriminates red/green); no fixtures/ pair"
   - "no reports/prevent-regression dir on disk — no captured ES2 guard-authoring run"

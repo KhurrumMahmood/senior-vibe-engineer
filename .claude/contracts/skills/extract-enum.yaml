@@ -3,13 +3,12 @@ schema_version: 2
 skill: extract-enum
 job: explain
 problem_class: stringly-typed-state consolidation proposal (maintenance EXPLAIN/bridge)
-intent: Turn a stringly-typed state field into a TextChoices enum proposal. Consumes an extract-enum candidate
-  from /find-implicit-state (or an explicit `<file>::<field>` target) and emits reports/extract-enum/<target>/proposal.md
-  with the enum class, caller migration table, data-migration risks, and stop condition. Read-only — no
-  code edits. Hands off to /fix-workflow or /refactor-subsystem.
-solves: A model status/phase/state field carried as bare strings compared across the codebase, with no
-  TextChoices enum — bridges a detected implicit-state finding into a concrete enum + caller-migration
-  + data-migration plan.
+intent: Turn a reviewed stringly-typed state finding into an implementation-ready named-authority proposal.
+  The Django branch proposes TextChoices with caller/data-migration risks; the TypeScript branch consumes
+  semantic detector JSONL and proposes one exported `as const` runtime value object plus derived union,
+  caller inventory, vendor boundaries, and stop condition. Read-only — no code edits.
+solves: A status/phase/state carrier repeated as bare strings with no single symbolic authority — bridges
+  a reviewed implicit-state finding into a concrete language-idiomatic authority and caller-migration plan.
 born:
   commit: 90f8567
   date: '2026-05-15'
@@ -114,6 +113,7 @@ provenance_confidence:
   temporal: low
   dogfood: low
 evidence:
+- "a36c2c9–297dd27 — B2T TypeScript detector-to-proposal fixture, pinned native tests, exact-three stock install replay, fresh forward task, and adversarial semantic-boundary repairs."
 - 90f8567 — born in the big-bang ecosystem-extraction commit alongside 54 sibling skills (temporal weak)
 - precedents.yml entry explain-job-is-read-only-proposal.v1 names extract-enum as a transform-named, correctly
   job=explain proposer (proposes the enum, REFACTOR executes it)
