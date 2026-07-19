@@ -1,0 +1,8 @@
+{
+  "summary": {},
+  "bare_int_request": [],
+  "shadow_safe_helpers": [],
+  "call_llm_defs": [],
+  "json_loads_request_body": [],
+  "function_clone_candidates": []
+}

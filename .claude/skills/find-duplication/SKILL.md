@@ -1,245 +1,151 @@
 ---
 name: find-duplication
-description: Detect structural and lexical code duplication. Runs jscpd and the AST visitor in parallel, collapses overlapping clone pairs into method-identity findings, fans out sub-agent investigators, and produces a triage report with a dormant-code side-channel. Hands off to `/fix-workflow` for execution.
-argument-hint: "--target <directory>"
-allowed-tools: Bash, Read, Grep, Glob, Write, Agent
+description: Report TypeScript/TSX lexical or near-lexical clone clusters with pinned offline jscpd evidence, reliable source spans, and conservative enclosing-symbol names. The triage is read-only and never claims that consolidation is safe.
+argument-hint: "--target <TypeScript-source-directory>"
+allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
 job: suspect
 best_for: |
-  Lexical / structural copy-paste — two methods with identical or
-  near-identical bodies. Runs jscpd + AST visitor in parallel,
-  collapses overlapping clone pairs into method-identity findings,
-  produces a P0/P1/P2 triage report.
+  TypeScript or TSX copy/paste candidates whose repeated text is substantial
+  enough for a lexical detector. Produces a durable triage report for human
+  investigation, including source ranges and the enclosing symbols that the
+  family-local mapper can establish reliably.
 not_for: |
-  Semantic duplication where the code differs but the workflow
-  overlaps (use /find-semantic-duplication). Refactor execution (use
-  /fix-workflow cluster:<id>). Cross-layer drift (template/JS/Python
-  for one workflow — use /find-workflow-duplication).
-language: python
-framework: django
+  Semantic duplication, equivalence, safe extraction, or automated
+  consolidation. This v1 does not resolve imports, understand framework
+  conventions, prove overload compatibility, or make a refactoring proposal.
+language: typescript
+framework: any
+scans: [typescript]
 ---
 
 # /find-duplication
 
-You are the **orchestrator** for a duplication audit. Your job is to drive a
-pipeline of scripts and sub-agent investigators; the judgment calls live in
-the scout brief and the knowledge files, not in this prompt.
+Run a read-only TypeScript lexical-duplication audit. The outcome is evidence,
+not a change plan: every result names jscpd spans and the enclosing symbols the
+mapper could prove, but no result establishes that two implementations have the
+same behavior or can safely be merged.
 
-## How success is judged
+## TypeScript v1 contract
 
-- `${REPORT_DIR}/triage.md` + `findings.json` exist, and every
-  investigated finding carries a Stage 4 scout verdict at
-  `scout/<finding_id>.json` — nothing dropped silently between
-  `ranked.json` and `classified.json`.
-- The closeout pastes the real Stage 2/3/5 stderr lines (`[collapse]`,
-  `[rank]`, `[report]`) plus the scout JSON count; claims without those
-  artifacts do not satisfy the audit.
-- Cluster IDs in the triage report resolve as `/fix-workflow
-  cluster:<id>` arguments; dormant candidates flow to the
-  side-channel, never get acted on here.
-- Zero edits to production files — this is a read-only audit.
-Write toward these gates from Stage 0.
+This revision reports only TypeScript/TSX lexical or near-lexical clone clusters
+where both clone sites have a reliable source range and an enclosing function or
+block-bodied arrow symbol. It deliberately drops a jscpd pair when either site
+cannot be mapped confidently. It also excludes generated, test, declaration,
+vendor, build, and `node_modules` paths before jscpd runs, then applies the same
+boundary defensively while collapsing a report. Overload signatures are never
+triage findings.
 
-## Scope
+The scanner has no TypeScript type-checker, module-resolution, React, Node, or
+framework claim. It does not compare behavior, public API compatibility,
+exception policy, side effects, caller context, or ownership. “Lexical clone”
+means duplicated detector text, not “safe to consolidate.”
 
-- **Target path:** the required `--target` argument. Must be a directory.
-- **Project root:** this worktree's root.
-- **Python:** `.venv/bin/python` (never bare `python`).
-- **Project-specific defaults** (ignore paths, dispatch registries, shadow
-  helper names, test suites): in `knowledge/`.
+Python remains a frozen stdlib reference replay for the pre-existing collapse
+shape. The installed router should advertise this revision as TypeScript-only;
+the reference replay does not earn a broader routing claim.
 
-## Pipeline stages (each one has a contract)
+## Required result
 
-Each stage reads files the previous stage wrote and writes files the next
-stage reads. Run scripts with `.venv/bin/python` and capture stderr so
-failures surface.
+The run is complete only when all of these artifacts exist under the chosen
+report directory:
 
-### Stage 0 — Setup
+- `jscpd/jscpd-report.json` — the pinned tool output after paths are restored
+  from the disposable staging tree to the host source tree.
+- `collapsed.json` and `ranked.json` — deterministic lexical clusters with
+  filtering/accounting metadata.
+- `triage.md` and `findings.json` — the final user-facing and structured
+  artifacts. The Markdown repeats the no-automatic-consolidation boundary.
 
-**Pre:** none. **Post:** `${REPORT_DIR}` exists, `latest` symlink points to it.
+The audit must not modify source files. The jscpd staging copy and report files
+are audit artifacts, not host-source changes.
 
-```bash
-TS=$(date +%Y%m%d-%H%M%S)
-REPORT_DIR="reports/duplication/scan-${TS}"
-mkdir -p "${REPORT_DIR}/jscpd" "${REPORT_DIR}/scout"
-ln -sfn "scan-${TS}" reports/duplication/latest
-```
+## Offline pinned dependency
 
-### Stage 1 — Detect (parallel)
-
-**Pre:** target directory exists. **Post:** `jscpd/jscpd-report.json` and
-`ast_findings.json` both present and non-empty.
-
-Run both commands concurrently in one Bash message:
+The family-local wrapper invokes exactly `jscpd@4.0.5` with `npx --offline` and
+`NPM_CONFIG_OFFLINE=true`. It never falls back to the network. A missing cache
+returns status 3 with a clear preflight error. Before an offline scan, populate
+the chosen npm cache deliberately using stock npm in an environment where a
+network install is allowed, then keep the scan itself offline:
 
 ```bash
-# lexical clones (Type 1 + near-Type 2). The wrapper pins jscpd and uses
-# a deterministic npm cache; --offline-ok writes a skipped-lexical report
-# so the AST side can still run when npm/network is unavailable.
-.venv/bin/python scripts/lint/run_jscpd.py <target> \
-  --output "${REPORT_DIR}/jscpd" --offline-ok
-
-# AST patterns (shadow helpers, bare_int_request, cross-module clones, ...)
-.venv/bin/python scripts/duplication_audit.py <target> \
-  > "${REPORT_DIR}/ast_findings.json"
+NPM_CONFIG_CACHE="/path/to/jscpd-cache" \
+  npx --yes jscpd@4.0.5 --version
 ```
 
-### Stage 2 — Collapse
+The cache location is explicit runtime input, not a repository dependency. The
+selected skill carries no repository `scripts/`, `_common`, toolkit virtualenv,
+or generic executor dependency. See `knowledge/typescript-v1.md` for the tool
+decision and rejected alternatives.
 
-**Pre:** Stage 1 outputs exist. **Post:** `${REPORT_DIR}/collapsed.json` —
-jscpd pairs grouped by method identity, AST categories normalized to the
-common finding shape, intentional-repeat names filtered.
+## Pipeline
+
+From the TypeScript host project, set the installed skill path explicitly. Use
+the host's Python 3.11+ interpreter; use this repository's `.venv/bin/python`
+only while validating the source checkout.
 
 ```bash
-.venv/bin/python .claude/skills/find-duplication/scripts/collapse.py \
-  --jscpd-report "${REPORT_DIR}/jscpd/jscpd-report.json" \
-  --ast-findings "${REPORT_DIR}/ast_findings.json" \
-  --target <target> \
-  --project-root "$(pwd)" \
-  --output "${REPORT_DIR}/collapsed.json"
+PYTHON="${PYTHON:-python3}"
+SKILL_ROOT="${SKILL_ROOT:-.claude/skills/find-duplication}"
+SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
+REPORT_DIR="reports/duplication/${SCAN_ID}"
+TARGET="src"
+NPM_CACHE="${NPM_CACHE:-/tmp/engineering-skills-jscpd-cache}"
+RUN_JSCPD="$SKILL_ROOT"/scripts/run_jscpd.py
+COLLAPSE_TYPESCRIPT="$SKILL_ROOT"/scripts/collapse_typescript.py
+RANK="$SKILL_ROOT"/scripts/rank.py
+REPORT="$SKILL_ROOT"/scripts/report.py
+
+mkdir -p "$REPORT_DIR/jscpd"
+"$PYTHON" "$RUN_JSCPD" \
+  --target "$TARGET" \
+  --output "$REPORT_DIR/jscpd" \
+  --npm-cache "$NPM_CACHE"
+"$PYTHON" "$COLLAPSE_TYPESCRIPT" \
+  --jscpd-report "$REPORT_DIR/jscpd/jscpd-report.json" \
+  --target "$TARGET" \
+  --project-root "$PWD" \
+  --output "$REPORT_DIR/collapsed.json"
+"$PYTHON" "$RANK" \
+  --input "$REPORT_DIR/collapsed.json" \
+  --output "$REPORT_DIR/ranked.json"
+"$PYTHON" "$REPORT" \
+  --input "$REPORT_DIR/ranked.json" \
+  --output-md "$REPORT_DIR/triage.md" \
+  --output-json "$REPORT_DIR/findings.json" \
+  --scan-id "$SCAN_ID"
+ln -sfn "$SCAN_ID" reports/duplication/latest
 ```
 
-### Stage 3 — Rank
+Run all four stages. Do not render a new triage from stale intermediate files
+after a failed offline detector preflight.
 
-**Pre:** `collapsed.json`. **Post:** `${REPORT_DIR}/ranked.json` — each
-finding has a `rank_meta` block (priority, tier, effort hint); findings are
-sorted P0 → P2, highest priority first.
+## How to read the result
 
-```bash
-.venv/bin/python .claude/skills/find-duplication/scripts/rank.py \
-  --input "${REPORT_DIR}/collapsed.json" \
-  --output "${REPORT_DIR}/ranked.json"
-```
+- A nonempty cluster means the pinned lexical detector found repeated text and
+  the mapper located both spans inside named symbols. Read both bodies and
+  callers before deciding whether they even represent the same concept.
+- An empty report means no eligible lexical clone reached this detector’s
+  threshold. It does not prove the code is free of semantic duplication.
+- A pair omitted as `unmapped_symbol` is intentionally not promoted to a
+  cluster; TypeScript v1 prefers a false negative to a fabricated symbol name.
+- Generated/test/declaration/overload exclusions are false-positive boundaries,
+  not evidence that such code is never duplicated.
 
-### Stage 4 — Investigate (parallel fan-out)
-
-**Pre:** `ranked.json`. **Post:** `${REPORT_DIR}/scout/<finding_id>.json` for
-every investigated finding; a single `${REPORT_DIR}/classified.json`
-aggregating them.
-
-This is the **only stage where LLM judgment runs**. You (the orchestrator)
-do **not** read the clone bodies — you dispatch one sub-agent per finding
-(or batch if there are many). Each sub-agent receives:
-
-- the finding JSON,
-- the prompt template from `agents/investigate.md`,
-- paths to `knowledge/*` files,
-- an output path it must write to.
-
-Budget: investigate **top 10 by priority** by default. If there are fewer
-than 10 findings, investigate them all. If the user asked for a deeper
-scan, raise the limit.
-
-For each finding, expand the `agents/investigate.md` template (substitute
-`{{finding_id}}`, `{{finding_json}}`, `{{project_root}}`, `{{skill_root}}`,
-`{{output_path}}`) and dispatch with `subagent_type=general-purpose`. Send
-all Agent calls in a **single message** so they run concurrently.
-
-Declare the verdict to every scout: its output is accepted only if it
-writes valid JSON at `{{output_path}}`, uses one `fix_shape` from the
-brief, accounts for dormant candidates separately, and cites the files it
-read in `notes`. When merging, reject or re-dispatch malformed scout
-files; do not let `report.py` turn an unjudged finding into an actionable
-cluster.
-
-After the sub-agents return, combine their JSON files:
-
-```bash
-.venv/bin/python -c "
-import json, glob, pathlib
-out = {'findings': [], 'dormant_candidates': []}
-for p in sorted(glob.glob('${REPORT_DIR}/scout/*.json')):
-    d = json.loads(pathlib.Path(p).read_text())
-    out['findings'].append(d)
-    out['dormant_candidates'].extend(d.get('dormant_candidates') or [])
-pathlib.Path('${REPORT_DIR}/classified.json').write_text(json.dumps(out, indent=2))
-"
-```
-
-### Stage 5 — Report
-
-**Pre:** `ranked.json`, `classified.json`. **Post:** `${REPORT_DIR}/triage.md`
-and `${REPORT_DIR}/findings.json`.
-
-```bash
-.venv/bin/python .claude/skills/find-duplication/scripts/report.py \
-  --input "${REPORT_DIR}/ranked.json" \
-  --classified "${REPORT_DIR}/classified.json" \
-  --output-md "${REPORT_DIR}/triage.md" \
-  --output-json "${REPORT_DIR}/findings.json" \
-  --scan-id "scan-${TS}"
-
-# Effectiveness log — one line per run, feeds reports/_meta/dashboard.md.
-# Derive counts from findings.json; shape is {duplication, shadow,
-# dormant, pattern-violation, other}. See `.claude/skills/_common/skill-conventions.md`.
-.venv/bin/python scripts/log_effectiveness.py \
-  --skill find-duplication \
-  --scan-id "scan-${TS}" \
-  --target <target> \
-  --findings-total "$(.venv/bin/python -c 'import json,sys; print(len(json.load(open(sys.argv[1])).get("findings", [])))' "${REPORT_DIR}/findings.json")" \
-  --buckets "$(.venv/bin/python -c 'import json,sys,collections; f=json.load(open(sys.argv[1])).get("findings", []); c=collections.Counter(x.get("shape","other") for x in f); print(json.dumps(dict(c)))' "${REPORT_DIR}/findings.json")"
-```
-
-### Stage 6 — Summarize
-
-Report to the user in ≤10 lines:
-
-- counts by shape (duplication, dormant, shadow, pattern-violation),
-- top 3 clusters by priority (one line each),
-- any latent-bug risks flagged,
-- path to `${REPORT_DIR}/triage.md` and the `latest` symlink,
-- recommended next slash command.
-
-The triage report is the source of truth — do not enumerate every finding.
-
-## Replay case
-
-When `scripts/collapse.py`, `scripts/rank.py`, `scripts/report.py`, or
-the scout JSON schema changes, replay a disposable target containing two
-30-line Python functions with identical bodies plus one unrelated
-function. Expected evidence: Stage 1 writes a lexical report (or the
-documented skipped-lexical artifact when `--offline-ok` is needed) and
-`ast_findings.json`; Stage 2 collapses the duplicate pair into exactly
-one finding; Stage 3 preserves one ranked finding; after one hand-written
-scout JSON for that finding, Stage 5 writes `triage.md` and
-`findings.json` with one actionable finding and zero dormant candidates.
-
-## Non-goals
-
-- Executing fixes (that's `/fix-workflow`).
-- Dead-code detection as a primary task (that's `/find-dormant`; dormant
-  findings here are a side-channel).
-- Editing files or running tests (this is a read-only audit).
-- Per-commit CI gates — this is a periodic audit.
-
-## When things go sideways
+## Failure handling
 
 | Symptom | Action |
 |---|---|
-| Stage 1 jscpd is skipped | Check `${REPORT_DIR}/jscpd/skipped-lexical.json`; lexical evidence is unavailable but AST findings can still proceed |
-| Any script exits non-zero | Stop at the failing stage, paste the exact command and stderr, and do not summarize downstream artifacts from a previous run |
-| Stage 2 reports 0 findings | Target probably excluded — check `ignore_patterns` in `collapsed.json`, verify target has non-test Python files |
-| Stage 4 sub-agent returns invalid JSON | Re-dispatch with a stricter "respond with only the file write confirmation" nudge; skip finding if it fails twice |
-| Scout says "dormant" on a registered class | It skipped the registry-dispatch check — re-dispatch citing `knowledge/false-positives.md` explicitly |
-| Priority ranking puts a sprawl pattern above a genuine clone | Expected — the multiplicity cap (`MULT_CAP` in rank.py) bounds sprawl influence; inspect by hand if it still dominates |
+| Wrapper exits 3 | Populate the exact `jscpd@4.0.5` npm cache explicitly, then retry. Do not turn on a silent network fallback. |
+| Wrapper exits 2 | Correct the target: it must be a directory with eligible `.ts` or `.tsx` files. |
+| Collapse reports mapped finding count 0 | Read `filter_reasons` in `collapsed.json`; do not substitute module-level or guessed symbols. |
+| A report names a generated/test/declaration path | Stop and treat it as a detector-boundary defect; do not triage it. |
+| A cluster looks safe at a glance | Treat that as an investigation lead only. TypeScript v1 has made no semantic or refactor-safety determination. |
 
-## Repository layout
+## Non-goals
 
-```
-.claude/skills/find-duplication/
-├── SKILL.md                      # this file — orchestrator
-├── scripts/
-│   ├── collapse.py               # Stage 2
-│   ├── rank.py                   # Stage 3
-│   └── report.py                 # Stage 5
-├── agents/
-│   └── investigate.md            # Stage 4 scout brief
-└── knowledge/                    # sub-agent context, never loaded by orchestrator
-    ├── false-positives.md
-    └── learnings.md
-```
-
-The orchestrator (you) **never reads files in `knowledge/`**. Those are for
-the scout sub-agents. Keeping them out of your context is the whole point
-of this architecture.
+- Modifying source, generating codemods, or dispatching a refactor.
+- Type checking, import resolution, call-graph analysis, or semantic cloning.
+- Inventing a shared TypeScript parser/executor platform for another skill.
+- Downloading dependencies during an audit.

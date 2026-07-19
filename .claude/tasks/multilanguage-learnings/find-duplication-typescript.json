@@ -1,0 +1,203 @@
+{
+  "batch": "find-duplication-typescript-v1",
+  "revision": "working-tree-2026-07-19T08:05Z",
+  "family": ["find-duplication"],
+  "invariant": {
+    "portable_principle": "Surface substantial lexical or near-lexical clone evidence with reliable source ranges and enclosing symbols, without converting lexical similarity into a refactoring-safety claim.",
+    "python_or_framework_mechanism": "The pre-existing Python jscpd-collapse reference path now uses the standard-library AST directly to resolve enclosing Python symbols and no longer imports the repository adapter registry.",
+    "typescript_mechanism": "Pinned jscpd finds lexical clones in a staged eligible .ts/.tsx input; a family-local lexical span mapper retains only pairs whose ranges lie within a proven function declaration or block-bodied arrow symbol.",
+    "explicit_non_goals": [
+      "Semantic equivalence or safe consolidation",
+      "Type checking, TypeScript Compiler API facts, import resolution, or call graphs",
+      "Class-method, decorator, namespace, or arbitrary expression-symbol mapping when the lexical mapper cannot prove the span",
+      "React, Node, framework, overload-compatibility, or codemod claims",
+      "Network access during an audit"
+    ]
+  },
+  "reference_repairs": [
+    "Removed the Python collapse script's repository-level scripts/_lib language-adapter import and froze the reference oracle with a positive pair, a behaviorally different clean file, stable JSON, and a no-AST-findings input.",
+    "Changed TypeScript triage rendering so a lexical finding explicitly says that semantic equivalence and refactor safety are unknown and does not route directly to an execution command.",
+    "Added output-local jscpd staging so generated/test/declaration/vendor files are excluded before the external detector sees them, then rechecked the same boundary while collapsing raw reports.",
+    "Dropped overload-signature pairs and any pair without a reliable enclosing symbol instead of inventing a module-level name."
+  ],
+  "language_model": {
+    "syntax": [
+      ".ts and .tsx suffixes",
+      "line/block comments and quoted/template strings are masked before lexical mapping",
+      "function declarations, overload signatures, and block-bodied arrow declarations",
+      "jscpd source line ranges"
+    ],
+    "type_system": [
+      "Typed parameters and return annotations are treated as text for jscpd tokenization.",
+      "No type relation, overload compatibility, assignability, or generic fact is inferred."
+    ],
+    "module_resolution": ["None; source paths are only normalized against the explicit project root."],
+    "runtime": [
+      "Python 3.11+ standard library for the installed scripts",
+      "Node/npm with an explicitly pre-populated npm cache containing jscpd@4.0.5",
+      "TypeScript 5.9.3 from the same explicit cache for fixture typecheck evidence"
+    ],
+    "framework": ["None"]
+  },
+  "tooling": {
+    "selected": "Family-local jscpd@4.0.5 invoked by stock npx --offline, followed by a family-local TypeScript lexical span-to-symbol mapper.",
+    "rejected_alternatives": {
+      "typescript_compiler_api": "The accepted result is lexical cloning, not type or resolved-symbol facts; adding a Program/TypeChecker would expand this one-skill dependency surface without improving the claimed outcome.",
+      "tree_sitter_or_ts_morph": "Would add a parser/runtime dependency without replacing jscpd's lexical near-clone detector or earning a semantic claim.",
+      "handwritten_duplicate_detector": "Would duplicate mature token-clone behavior while being less trustworthy about thresholding.",
+      "runtime_network_fallback": "Would make an audit depend on registry availability and violate the copied-install offline contract.",
+      "shared_typescript_parser_platform": "No second accepted consumer has demonstrated this exact lexical span-mapping contract."
+    },
+    "version_and_resolution": "jscpd is exactly 4.0.5; run_jscpd.py passes --offline and NPM_CONFIG_OFFLINE=true with a caller-selected NPM_CONFIG_CACHE. The pinned cache is deliberately provisioned with stock npm before a scan and never fetched during a scan.",
+    "closure_mode": "Copy only the find-duplication directory; invoke scripts with python3 -I -S outside the checkout. jscpd is an explicitly declared host tool/cache prerequisite, not a repository import or toolkit venv dependency.",
+    "preflight_and_failure_codes": [
+      "run_jscpd.py: 0 for a completed report",
+      "run_jscpd.py: 2 for an invalid/non-directory target or no eligible source",
+      "run_jscpd.py: 3 for a missing/failed pinned offline jscpd cache or invalid detector report",
+      "collapse_typescript.py: 2 for invalid required paths or JSON"
+    ]
+  },
+  "outcome_contract": {
+    "inputs": [
+      "A TypeScript source directory",
+      "An explicit npm cache already containing jscpd@4.0.5",
+      "A project root for stable reported paths"
+    ],
+    "structured_outputs": [
+      "jscpd/jscpd-report.json and run.json",
+      "collapsed.json with filter reasons and cluster spans",
+      "ranked.json",
+      "triage.md and findings.json"
+    ],
+    "must_fire": [
+      "Two typed exported functions with an identical substantial body",
+      "Final triage/JSON records ts-jscpd-0001, both relative source paths, source spans, and enclosing symbol names",
+      "The triage repeats that automatic consolidation is unsafe"
+    ],
+    "must_not_fire": [
+      "Behaviorally different source pair without lexical clone evidence",
+      "Generated source",
+      "Test source",
+      "Declaration files",
+      "Function overload signatures",
+      "A clone range without a reliable enclosing symbol"
+    ],
+    "native_test_command": ".venv/bin/python -m pytest tests/test_find_duplication_typescript.py -q; NPM_CONFIG_CACHE=/tmp/find-duplication-npm-cache npx --offline --yes -p typescript@5.9.3 tsc --noEmit -p tests/fixtures/find-duplication-typescript/typescript-host/tsconfig.json",
+    "native_guard_command": null
+  },
+  "evidence": {
+    "python_reference": [
+      "tests/test_find_duplication_typescript.py::test_python_reference_oracle_is_stable_and_keeps_different_code_clean executes the repaired stdlib collapse.py against locked first.py/second.py and keeps different.py out of its one finding."
+    ],
+    "typescript": [
+      "The final-artifact test feeds a locked jscpd report containing the real typed clone and generated/test/declaration/overload boundary pairs through collapse_typescript.py -> rank.py -> report.py, asserts exactly one cluster, source spans/symbols, conservative triage wording, and byte-identical source hashes.",
+      "The copied-install test copies only the selected skill and runs each executable with python -I -S; it verifies the runner's --offline/jscpd@4.0.5 command shape and final findings JSON.",
+      "A real offline jscpd@4.0.5 replay against the copied fixture wrote one ts-jscpd-0001 cluster for summarizeQueuedEntries/summarizePendingEntries; TypeScript 5.9.3 tsc --noEmit passed the .ts/.tsx fixture."
+    ],
+    "commands_and_artifact_paths": [
+      "Red-first transcript: .venv/bin/python -m pytest tests/test_find_duplication_typescript.py -q -> 4 failed before production scripts/reports existed.",
+      "Green: .venv/bin/python -m pytest tests/test_find_duplication_typescript.py -q -> 5 passed.",
+      "Lint: .venv/bin/ruff check .claude/skills/find-duplication tests/test_find_duplication_typescript.py -> All checks passed.",
+      "Native: NPM_CONFIG_CACHE=/tmp/find-duplication-npm-cache npx --offline --yes -p typescript@5.9.3 tsc --noEmit -p tests/fixtures/find-duplication-typescript/typescript-host/tsconfig.json -> 0.",
+      "Copied replay: /tmp/find-duplication-final-install.mEW5CW and /tmp/find-duplication-final-host.JRyLma/reports/{jscpd,collapsed.json,ranked.json,triage.md,findings.json}; all installed python3 -I -S stages returned 0, assertions found only ts-jscpd-0001 with the expected two symbols, and source hashes were byte-identical before/after.",
+      "Fresh forward replay: /tmp/find-duplication-forward.VwLoi4/host/reports/duplication/scan-20260719-080641; installed python3 -I -S wrapper/collapse/rank/report all returned 0, produced ts-jscpd-0001 with the two expected symbols, omitted one unmapped raw pair, reported no excluded boundary path, and preserved source fingerprint f506d3fe7ab415e6aced3cd93237e3c18bcc654881e737fec87e96927e3b81f6."
+    ]
+  },
+  "false_positive_boundary": {
+    "known_false_positives": [
+      "jscpd can detect intentional repeated generated/test/declaration text if it receives it; staging and defensive collapse filtering exclude those categories.",
+      "Overload signatures are structurally repetitive but are not implementation clones, so they are dropped."
+    ],
+    "known_false_negatives": [
+      "Any clone whose range cannot be enclosed in a function declaration or block-bodied arrow is deliberately omitted.",
+      "Class methods, decorators, namespaces, expression-bodied arrows, and unusual syntax may be omitted until a separately scoped parser contract earns support.",
+      "Lexically divergent semantic duplicates are outside this v1."
+    ],
+    "legitimate_similar_shapes": [
+      "The typed behaviorally different functions remain clean because they contain no substantial repeated lexical fragment.",
+      "TSX is eligible source but no React/component semantics are inferred."
+    ]
+  },
+  "generalized": [
+    "Outcome-first positive/negative/must-not-fire fixture method",
+    "Source immutability snapshot around a read-only audit",
+    "Copied-skill python -I -S closure test shape",
+    "Explicit external-tool preflight and no-network failure policy"
+  ],
+  "did_not_generalize": [
+    "Python AST symbol collection versus TypeScript lexical span mapping",
+    "jscpd tokenization and npm cache provisioning",
+    "TypeScript overload syntax and TSX handling",
+    "Semantic equivalence, caller analysis, and refactor recommendation"
+  ],
+  "reuse_decision": {
+    "shared_candidate": "The narrow outcome/closure validation procedure, not the TypeScript mapper or jscpd wrapper implementation.",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": [
+      "This is the only accepted consumer of the jscpd + lexical symbol-span contract.",
+      "Other TypeScript families need Compiler API or different lexical outcomes, so a common parser/executor would be speculative."
+    ],
+    "owner": "find-duplication TypeScript v1"
+  },
+  "translation_prerequisites": {
+    "rust": {
+      "native_tool": "cargo or a pinned clone detector plus rust-analyzer only if symbol facts are claimed",
+      "idiomatic_representation": "free functions, impl methods, macro-generated code, and trait default methods",
+      "required_fixtures": ["typed free-function clone", "generated/build output", "tests", "trait overload-like boundary", "macro-derived source"],
+      "semantic_gaps": ["macro expansion", "trait resolution", "impl method identity"]
+    },
+    "go": {
+      "native_tool": "go toolchain plus a pinned clone detector; go/packages only for package/symbol claims",
+      "idiomatic_representation": "package functions, methods, generated files, and build-tag variants",
+      "required_fixtures": ["typed function clone", "_test.go", "generated file", "interface method", "build-tag alternative"],
+      "semantic_gaps": ["build tags", "method sets", "package identity"]
+    },
+    "java_or_kotlin": {
+      "native_tool": "javac/kotlinc plus a pinned detector; compiler/language server for overload symbol claims",
+      "idiomatic_representation": "methods, overloads, generated sources, and annotation-processor output",
+      "required_fixtures": ["typed method clone", "test source", "generated source", "overload signatures", "annotation-generated member"],
+      "semantic_gaps": ["overload resolution", "inheritance", "annotation processing"]
+    },
+    "csharp": {
+      "native_tool": "dotnet/Roslyn plus a pinned detector",
+      "idiomatic_representation": "methods, overloads, partial classes, generated sources, and test projects",
+      "required_fixtures": ["typed method clone", "test project", "generated file", "overload", "partial type"],
+      "semantic_gaps": ["partial declarations", "source generators", "symbol identity"]
+    },
+    "ruby": {
+      "native_tool": "Ruby parser or a pinned lexical detector; language server/runtime analysis before method ownership claims",
+      "idiomatic_representation": "module methods, reopened classes, metaprogrammed methods, and spec files",
+      "required_fixtures": ["method clone", "spec file", "generated file", "metaprogrammed definition", "module reopen"],
+      "semantic_gaps": ["dynamic dispatch", "open classes", "runtime-defined methods"]
+    }
+  },
+  "user_experience": {
+    "install_steps": [
+      "Copy the selected find-duplication skill directory",
+      "Deliberately populate the caller-selected jscpd@4.0.5 npm cache once with stock npm",
+      "Run four host-Python commands to produce the final artifacts"
+    ],
+    "wall_time_seconds": 8.1,
+    "agent_confusions": [
+      "A source-checkout jscpd wrapper made the old Python skill look installed when it depended on repository scripts.",
+      "npm's ordinary npx behavior fetches by default, so an explicit cache preflight is necessary to keep audit execution deterministic/offline.",
+      "A raw jscpd pair can start above a function body, so reporting a guessed symbol would falsely imply precise ownership."
+    ],
+    "repeated_work": [
+      "The raw tool output has to be staged/rebased and then collapsed into user-facing spans; this is intentional family-local evidence handling, not a reusable executor."
+    ],
+    "smallest_later_improvement": "Have the serial router/catalog integration expose the exact offline cache preflight and four-command copied-skill invocation, then measure whether one wrapper command is worth adding."
+  },
+  "residual_risks": [
+    "The host must deliberately provision a cache before the offline scan; this is an external Node/npm prerequisite.",
+    "The lexical span mapper favors omitted candidates over guessed symbols and therefore under-reports valid clone shapes.",
+    "jscpd result formats are pinned by version but must be revalidated when the version changes.",
+    "The fresh forward replay reused an agent that had unrelated explain-code task context because a new agent slot was unavailable; it received no find-duplication diagnosis or expected result."
+  ],
+  "next_decision": {
+    "recommendation": "Accept this as a TypeScript lexical-duplication pilot only after the independent adversarial review confirms the copied artifacts; do not extract shared TypeScript infrastructure yet.",
+    "rationale": "The user-visible final triage now proves the narrow outcome with an honest false-negative boundary and a selected-skill offline closure, while semantic analysis would be a separate capability.",
+    "blockers": ["Independent adversarial review", "Serial integrator routing/catalog decision"]
+  }
+}

@@ -66,7 +66,12 @@ def _render_finding(
         )
     lines.append("")
 
-    if info.get("fix_shape"):
+    if f.get("consolidation_safety") == "unknown_human_review_required":
+        lines.append(
+            "**Assessment:** Lexical evidence only — semantic equivalence and "
+            "refactor safety are unknown."
+        )
+    elif info.get("fix_shape"):
         lines.append(f"**Recommended fix shape:** {info['fix_shape']}")
     else:
         lines.append("**Recommended fix shape:** *scout investigation pending*")
@@ -76,7 +81,13 @@ def _render_finding(
         lines.append("")
         lines.append(info["notes"])
     lines.append("")
-    lines.append(f"**Next step:** `/fix-workflow cluster:{f['finding_id']}`")
+    if f.get("consolidation_safety") == "unknown_human_review_required":
+        lines.append(
+            "**Next step:** Review both bodies and callers before proposing any "
+            "refactor; this lexical match does not establish safe consolidation."
+        )
+    else:
+        lines.append(f"**Next step:** `/fix-workflow cluster:{f['finding_id']}`")
     lines.append("")
     return "\n".join(lines)
 
@@ -108,6 +119,15 @@ def render_triage(
     lines.append(f"**Project root:** `{meta.get('project_root', '?')}`")
     lines.append(f"**Generated:** {meta.get('generated_at', '?')}")
     lines.append("")
+
+    if meta.get("language") == "typescript":
+        lines.append(
+            "> **TypeScript v1 boundary:** This is lexical/near-lexical clone "
+            "evidence with source spans and enclosing symbols. Do not consolidate "
+            "automatically; behavior, callers, overload semantics, and ownership "
+            "still require human review."
+        )
+        lines.append("")
 
     lines.append("## Headline numbers")
     lines.append("")
@@ -182,10 +202,17 @@ def render_triage(
     lines.append("")
     if findings:
         top = findings[0]
-        lines.append(
-            f"Run `/fix-workflow {top['finding_id']}` to execute the "
-            f"top-ranked cluster,"
-        )
+        if meta.get("language") == "typescript":
+            lines.append(
+                f"Review the evidence for `{top['finding_id']}` before deciding "
+                "whether any refactor is appropriate; this report makes no "
+                "consolidation recommendation."
+            )
+        else:
+            lines.append(
+                f"Run `/fix-workflow {top['finding_id']}` to execute the "
+                f"top-ranked cluster,"
+            )
         if dormant:
             lines.append(
                 "or `/find-dormant` to process the side-channel findings "
