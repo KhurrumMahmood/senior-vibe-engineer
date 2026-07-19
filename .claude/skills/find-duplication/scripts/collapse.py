@@ -28,9 +28,18 @@ from typing import Any
 
 
 DEFAULT_IGNORES: list[str] = [
+    "test_*.py",
+    "tests.py",
+    "tests/**",
     "**/tests_*.py",
+    "**/test_*.py",
     "**/tests/**",
+    "migrations/**",
     "**/migrations/**",
+    "reports/**",
+    "**/reports/**",
+    ".jscpd-input/**",
+    "**/.jscpd-input/**",
     "sites/*/scrape.py",
     "**/vendor_*.py",
     "**/staticfiles/**",
@@ -549,6 +558,7 @@ def main(argv: list[str] | None = None) -> int:
         "scan_meta": {
             "target": args.target,
             "project_root": args.project_root,
+            "language": "python",
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "ignore_patterns": ignore_patterns,
             "jscpd_raw_pair_count": jscpd_stats["raw_pair_count"],

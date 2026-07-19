@@ -1,92 +1,61 @@
 ---
 name: find-duplication
-description: Report TypeScript/TSX lexical or near-lexical clone clusters with pinned offline jscpd evidence, reliable source spans, and conservative enclosing-symbol names. The triage is read-only and never claims that consolidation is safe.
-argument-hint: "--target <TypeScript-source-directory>"
-allowed-tools: Bash, Read, Grep, Glob, Write
+description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative TypeScript/TSX lexical clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
+argument-hint: "--target <source-directory>"
+allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
 best_for: |
-  TypeScript or TSX copy/paste candidates whose repeated text is substantial
-  enough for a lexical detector. Produces a durable triage report for human
-  investigation, including source ranges and the enclosing symbols that the
-  family-local mapper can establish reliably.
+  Python/Django copy-paste and canonical-pattern candidates that need the
+  established P0/P1/P2 scout triage, or TypeScript/TSX lexical clone
+  candidates that need reliable source spans without a consolidation claim.
 not_for: |
-  Semantic duplication, equivalence, safe extraction, or automated
-  consolidation. This v1 does not resolve imports, understand framework
-  conventions, prove overload compatibility, or make a refactoring proposal.
-language: typescript
+  Semantic duplication where code differs substantially (use
+  /find-semantic-duplication), cross-layer workflow drift, or executing a
+  refactor. TypeScript v1 does not prove semantic equivalence or safe reuse.
+language: any
 framework: any
-scans: [typescript]
+scans: [python, typescript]
 ---
 
 # /find-duplication
 
-Run a read-only TypeScript lexical-duplication audit. The outcome is evidence,
-not a change plan: every result names jscpd spans and the enclosing symbols the
-mapper could prove, but no result establishes that two implementations have the
-same behavior or can safely be merged.
+Run the language branch that matches the target. Python and TypeScript share a
+skill name and report vocabulary, but not a detector model or outcome claim.
 
-## TypeScript v1 contract
+## Route before running
 
-This revision reports only TypeScript/TSX lexical or near-lexical clone clusters
-where both clone-site endpoints fit the same reliable source range and an
-enclosing function or block-bodied arrow symbol. It deliberately drops a jscpd
-pair when either site cannot be mapped confidently. It also excludes generated,
-test, declaration, vendor, build, `node_modules`, report, and staging paths
-before jscpd runs, then applies the same boundary defensively while collapsing
-a report. Overload signatures are never triage findings.
+Inspect eligible source suffixes under `--target`:
 
-The scanner has no TypeScript type-checker, module-resolution, React, Node, or
-framework claim. It does not compare behavior, public API compatibility,
-exception policy, side effects, caller context, or ownership. “Lexical clone”
-means duplicated detector text, not “safe to consolidate.”
+- `.py` only: run the **Python legacy triage branch**.
+- `.ts`/`.tsx` only: run the **TypeScript lexical-evidence branch**.
+- both: run both branches into separate `python/` and `typescript/` report
+  directories and summarize them separately. Do not merge their findings or
+  apply the Python scout verdict contract to TypeScript evidence.
+- neither: stop and report that this skill has no eligible source.
 
-Python remains a frozen stdlib reference replay for the pre-existing collapse
-shape. The installed router should advertise this revision as TypeScript-only;
-the reference replay does not earn a broader routing claim.
+Use a host Python 3.11+ interpreter. The selected skill is self-contained: no
+repository-level `scripts/`, `_common`, toolkit virtualenv, or shared language
+adapter is part of either installed path.
 
-## Required result
+## Python legacy triage branch
 
-The run is complete only when all of these artifacts exist under the chosen
-report directory:
+The Python branch preserves the original user journey: pinned lexical
+detection plus Python AST pattern detection, method-identity collapse, ranking,
+per-finding scout investigation, a dormant-code side-channel, and final
+`triage.md`/`findings.json` suitable for `/fix-workflow` handoff.
 
-- `jscpd/jscpd-report.json` — the pinned tool output after paths are restored
-  from the disposable staging tree to the host source tree.
-- `collapsed.json` and `ranked.json` — deterministic lexical clusters with
-  filtering/accounting metadata. Distinct source occurrences remain distinct;
-  pairs join a cluster only through overlapping occurrences.
-- `triage.md` and `findings.json` — the final user-facing and structured
-  artifacts. The Markdown repeats the no-automatic-consolidation boundary.
+### Python success contract
 
-The audit must not modify source files. The jscpd staging copy and report files
-are audit artifacts, not host-source changes. Rerunning with the host root as
-the target is safe even when current or prior output directories are nested
-under that target: output and `.jscpd-input` trees are not detector input.
+- Every final finding was present in `ranked.json` and has a valid scout JSON
+  in `scout/<finding_id>.json` before it becomes actionable.
+- `classified.json` preserves all scout verdicts and dormant candidates.
+- `triage.md` and `findings.json` include the same `fix_shape`, notes, latent
+  bug risk, and side-channel evidence.
+- Production source is unchanged.
 
-## Offline pinned dependency
-
-The family-local wrapper invokes exactly `jscpd@4.0.5` with `npx --offline` and
-`NPM_CONFIG_OFFLINE=true`. It never falls back to the network. A missing cache
-returns status 3 with a clear preflight error. Before an offline scan, populate
-the chosen npm cache deliberately using stock npm in an environment where a
-network install is allowed, then keep the scan itself offline:
-
-```bash
-NPM_CONFIG_CACHE="/path/to/jscpd-cache" \
-  npx --yes jscpd@4.0.5 --version
-```
-
-The cache location is explicit runtime input, not a repository dependency. The
-selected skill carries no repository `scripts/`, `_common`, toolkit virtualenv,
-or generic executor dependency. See `knowledge/typescript-v1.md` for the tool
-decision and rejected alternatives.
-
-## Pipeline
-
-From the TypeScript host project, set the installed skill path explicitly. Use
-the host's Python 3.11+ interpreter; use this repository's `.venv/bin/python`
-only while validating the source checkout.
+### Python setup
 
 ```bash
 PYTHON="${PYTHON:-python3}"
@@ -95,24 +64,155 @@ SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
 REPORT_DIR="reports/duplication/${SCAN_ID}"
 TARGET="src"
 NPM_CACHE="${NPM_CACHE:-/tmp/engineering-skills-jscpd-cache}"
-RUN_JSCPD="$SKILL_ROOT"/scripts/run_jscpd.py
-COLLAPSE_TYPESCRIPT="$SKILL_ROOT"/scripts/collapse_typescript.py
+RUN_PY_JSCPD="$SKILL_ROOT"/scripts/run_jscpd_python.py
+DETECT_PY="$SKILL_ROOT"/scripts/detect_python.py
+COLLAPSE_PY="$SKILL_ROOT"/scripts/collapse.py
 RANK="$SKILL_ROOT"/scripts/rank.py
 REPORT="$SKILL_ROOT"/scripts/report.py
+mkdir -p "$REPORT_DIR/jscpd" "$REPORT_DIR/scout"
+```
 
-mkdir -p "$REPORT_DIR/jscpd"
-"$PYTHON" "$RUN_JSCPD" \
+### Python Stage 1 — detect
+
+Run the two family-local commands. They are independent and may run in
+parallel. `--offline-ok` preserves the legacy AST-only degraded mode when the
+exact jscpd cache is absent; the resulting report says `skipped_lexical` and
+must never be described as a clean lexical scan.
+
+```bash
+"$PYTHON" "$RUN_PY_JSCPD" \
   --target "$TARGET" \
   --output "$REPORT_DIR/jscpd" \
-  --npm-cache "$NPM_CACHE"
-"$PYTHON" "$COLLAPSE_TYPESCRIPT" \
+  --npm-cache "$NPM_CACHE" \
+  --offline-ok
+
+"$PYTHON" "$DETECT_PY" "$TARGET" \
+  --project-root "$PWD" \
+  --output "$REPORT_DIR/ast-findings.json"
+```
+
+The lexical wrapper pins `jscpd@4.0.5`, runs `npx --offline`, stages only
+eligible production `.py` files, and excludes tests, migrations, vendor,
+generated, report, output, and prior `.jscpd-input` trees. The AST detector is
+stdlib-only and retains the legacy categories: unsafe request integer parsing,
+shadow safe-conversion helpers, repeated LLM-call helpers, inline request-body
+JSON parsing, and same-name/same-arity cross-module candidates.
+
+### Python Stage 2 — collapse
+
+```bash
+"$PYTHON" "$COLLAPSE_PY" \
   --jscpd-report "$REPORT_DIR/jscpd/jscpd-report.json" \
+  --ast-findings "$REPORT_DIR/ast-findings.json" \
   --target "$TARGET" \
   --project-root "$PWD" \
   --output "$REPORT_DIR/collapsed.json"
+```
+
+Expected stderr begins with `[collapse]`. Default filters remove tests,
+migrations, vendor/framework boilerplate, reports, and staging input. Python
+enclosing-symbol mapping uses stdlib `ast` inside the copied skill.
+
+### Python Stage 3 — rank
+
+```bash
 "$PYTHON" "$RANK" \
   --input "$REPORT_DIR/collapsed.json" \
   --output "$REPORT_DIR/ranked.json"
+```
+
+This preserves the original multiplicity × divergence × blast-radius ranking
+and P0/P1/P2 tiers.
+
+### Python Stage 4 — investigate
+
+This is the only Python stage where LLM judgment runs. Investigate the top 10
+ranked findings by default (or all when fewer exist). For each finding:
+
+1. Expand `agents/investigate.md` with `finding_id`, the finding JSON,
+   `project_root`, `skill_root`, and `output_path`.
+2. Dispatch a fresh general-purpose sub-agent. Dispatch independent scouts in
+   parallel when the host supports it.
+3. Require the scout to read `knowledge/false-positives.md`, any host overlay,
+   and `knowledge/learnings.md` when ambiguity matches a precedent.
+4. Accept only schema-valid JSON using one documented `fix_shape`. Re-dispatch
+   malformed output; never silently promote an unreviewed finding.
+
+Merge the accepted scout files:
+
+```bash
+"$PYTHON" -c '
+import glob, json, pathlib, sys
+report = pathlib.Path(sys.argv[1])
+out = {"findings": [], "dormant_candidates": []}
+for name in sorted(glob.glob(str(report / "scout" / "*.json"))):
+    data = json.loads(pathlib.Path(name).read_text())
+    out["findings"].append(data)
+    out["dormant_candidates"].extend(data.get("dormant_candidates") or [])
+(report / "classified.json").write_text(json.dumps(out, indent=2) + "\n")
+' "$REPORT_DIR"
+```
+
+### Python Stage 5 — final report
+
+```bash
+"$PYTHON" "$REPORT" \
+  --input "$REPORT_DIR/ranked.json" \
+  --classified "$REPORT_DIR/classified.json" \
+  --output-md "$REPORT_DIR/triage.md" \
+  --output-json "$REPORT_DIR/findings.json" \
+  --scan-id "$SCAN_ID"
+ln -sfn "$SCAN_ID" reports/duplication/latest
+```
+
+The final report preserves the original scout `fix_shape`, notes, latent bug
+risk, `/fix-workflow cluster:<finding_id>` handoff, and dormant-code
+side-channel. Summarize counts by shape, the top three clusters, latent risks,
+the final artifact path, and the recommended next command in at most 10 lines.
+
+## TypeScript lexical-evidence branch
+
+TypeScript v1 reports only lexical or near-lexical clone clusters where each
+complete site range fits one proven function declaration or block-bodied arrow
+symbol. It excludes generated, tests, declarations, vendor, dependencies,
+build, report, output, and staging paths. Distinct occurrences remain distinct;
+raw pairs cluster only through overlapping occurrences.
+
+This branch has no TypeScript type checker, module resolution, React/Node
+framework model, caller proof, or refactor-safety claim. It does not run Python
+scouts or hand findings directly to `/fix-workflow`.
+
+### TypeScript setup and pipeline
+
+Provision the exact cache deliberately outside the audit when needed:
+
+```bash
+NPM_CONFIG_CACHE="/path/to/jscpd-cache" npx --yes jscpd@4.0.5 --version
+```
+
+Then run all four installed stages:
+
+```bash
+PYTHON="${PYTHON:-python3}"
+SKILL_ROOT="${SKILL_ROOT:-.claude/skills/find-duplication}"
+SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
+REPORT_DIR="reports/duplication/${SCAN_ID}"
+TARGET="src"
+NPM_CACHE="${NPM_CACHE:-/tmp/engineering-skills-jscpd-cache}"
+RUN_TS_JSCPD="$SKILL_ROOT"/scripts/run_jscpd.py
+COLLAPSE_TS="$SKILL_ROOT"/scripts/collapse_typescript.py
+RANK="$SKILL_ROOT"/scripts/rank.py
+REPORT="$SKILL_ROOT"/scripts/report.py
+mkdir -p "$REPORT_DIR/jscpd"
+
+"$PYTHON" "$RUN_TS_JSCPD" \
+  --target "$TARGET" --output "$REPORT_DIR/jscpd" --npm-cache "$NPM_CACHE"
+"$PYTHON" "$COLLAPSE_TS" \
+  --jscpd-report "$REPORT_DIR/jscpd/jscpd-report.json" \
+  --target "$TARGET" --project-root "$PWD" \
+  --output "$REPORT_DIR/collapsed.json"
+"$PYTHON" "$RANK" \
+  --input "$REPORT_DIR/collapsed.json" --output "$REPORT_DIR/ranked.json"
 "$PYTHON" "$REPORT" \
   --input "$REPORT_DIR/ranked.json" \
   --output-md "$REPORT_DIR/triage.md" \
@@ -121,37 +221,39 @@ mkdir -p "$REPORT_DIR/jscpd"
 ln -sfn "$SCAN_ID" reports/duplication/latest
 ```
 
-Run all four stages. Do not render a new triage from stale intermediate files
-after a failed offline detector preflight.
+Required artifacts are `jscpd/jscpd-report.json`, `collapsed.json`,
+`ranked.json`, `triage.md`, and `findings.json`. The final Markdown repeats
+“Do not consolidate automatically.” A nonempty cluster is an investigation
+lead only. `unmapped_symbol`, `span_crosses_symbol_boundary`, overload, and
+excluded-path omissions are deliberate false-negative boundaries.
 
-## How to read the result
+## Mixed targets
 
-- A nonempty cluster means the pinned lexical detector found repeated text and
-  the mapper located both spans inside named symbols. Read both bodies and
-  callers before deciding whether they even represent the same concept.
-- An empty report means no eligible lexical clone reached this detector’s
-  threshold. It does not prove the code is free of semantic duplication.
-- A pair omitted as `unmapped_symbol` is intentionally not promoted to a
-  cluster; TypeScript v1 prefers a false negative to a fabricated symbol name.
-- A pair omitted as `span_crosses_symbol_boundary` crossed or escaped its
-  start symbol, so its range cannot support a reliable owner claim.
-- Generated/test/declaration/overload exclusions are false-positive boundaries,
-  not evidence that such code is never duplicated.
+For a mixed repository, use one outer scan ID and separate branches:
+
+```text
+reports/duplication/<scan-id>/python/...
+reports/duplication/<scan-id>/typescript/...
+```
+
+Run Python with its AST + scout stages and TypeScript with its conservative
+four-stage evidence path. Produce two final reports and summarize them under
+their own claims. Do not concatenate their ranked JSON.
 
 ## Failure handling
 
 | Symptom | Action |
 |---|---|
-| Wrapper exits 3 | Populate the exact `jscpd@4.0.5` npm cache explicitly, then retry. Do not turn on a silent network fallback. |
-| Wrapper exits 2 | Correct the target: it must be a directory with eligible `.ts` or `.tsx` files. |
-| Wrapper reports invalid/empty JSON or an unexpected jscpd schema | Treat the detector run as failed. The wrapper removes the unusable report and never marks it complete or clean. |
-| Collapse reports mapped finding count 0 | Read `filter_reasons` in `collapsed.json`; do not substitute module-level or guessed symbols. |
-| A report names a generated/test/declaration path | Stop and treat it as a detector-boundary defect; do not triage it. |
-| A cluster looks safe at a glance | Treat that as an investigation lead only. TypeScript v1 has made no semantic or refactor-safety determination. |
+| Either wrapper exits 2 | Correct the target; it must contain eligible source for that language. |
+| Either wrapper exits 3 | Populate the exact offline cache, or for Python only rerun with `--offline-ok` and label the result AST-only/degraded. |
+| Invalid/empty or schema-invalid jscpd JSON | Stop. The wrapper removes the unusable report and never marks the scan complete or clean. |
+| Python scout JSON is invalid | Re-dispatch; do not pass an unreviewed finding to the final report. |
+| TypeScript finding looks safe | Keep the human-review boundary; lexical similarity is not refactor safety. |
+| A report names tests, generated, migrations, report, or staging source | Treat it as a detector-boundary defect and stop. |
 
 ## Non-goals
 
-- Modifying source, generating codemods, or dispatching a refactor.
-- Type checking, import resolution, call-graph analysis, or semantic cloning.
-- Inventing a shared TypeScript parser/executor platform for another skill.
-- Downloading dependencies during an audit.
+- Editing source or executing a refactor.
+- Treating dormant code as a primary duplication finding.
+- Turning TypeScript lexical evidence into semantic equivalence.
+- Creating a shared parser, detector service, or cross-family runtime.

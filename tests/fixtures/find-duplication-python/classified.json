@@ -1,0 +1,15 @@
+{
+  "findings": [
+    {
+      "finding_id": "jscpd-0001",
+      "investigation_status": "reviewed",
+      "fix_shape": "extract_helper",
+      "confidence": "high",
+      "latent_bug_risk": "none",
+      "notes": "Both production bodies were read and are lexically identical in the fixture; the unrelated and excluded files are not findings.",
+      "tests_that_guard_this_area": ["tests.test_queue_summary"],
+      "dormant_candidates": []
+    }
+  ],
+  "dormant_candidates": []
+}
