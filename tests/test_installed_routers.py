@@ -174,6 +174,14 @@ def test_installed_which_skill_routes_typescript_explanation(tmp_path):
             "direct JSON.parse calls to be enclosed by try",
             "find-standard-gaps",
         ),
+        (
+            "audit decision registry drift and TypeScript decision references",
+            "audit-decisions",
+        ),
+        (
+            "map a TypeScript subsystem exported surface and resolved imports",
+            "map-subsystem",
+        ),
     ],
 )
 def test_installed_which_skill_routes_typescript_analysis_skills(

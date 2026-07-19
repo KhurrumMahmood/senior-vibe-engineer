@@ -10,8 +10,8 @@ best_for: |
   Periodic (monthly / pre-release) decision-registry hygiene and a precise
   check that inline decision references still point at real ADRs.
 not_for: |
-  Authoring or amending ADRs, resolving a drift row, parsing TypeScript
-  identifiers, or inferring runtime/framework semantics.
+  Authoring or amending ADRs, acting on a reported row, identifier/import
+  resolution, or inferring runtime/framework semantics.
 escalate_to: |
   None. This skill is read-only; each finding names the human's next command.
 delegate_from: |

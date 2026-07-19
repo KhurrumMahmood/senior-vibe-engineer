@@ -4,12 +4,11 @@ skill: map-subsystem
 job: map
 problem_class: "subsystem MAP — durable inventory doc"
 intent: >
-  Produce or refresh a durable inventory doc for a subsystem at
-  .claude/docs/subsystems/<name>.md — file list, public surface, responsibility
-  table, dependency graph, and convention-compliance score. The MAP job of the
-  five-jobs maintenance nervous system; its output feeds every downstream
-  SUSPECT/EXPLAIN/REFACTOR pass on the same subsystem, so it must be accurate,
-  re-readable without the skill loaded, and cheaply refreshable. No refactor intent.
+  Produce or refresh a durable inventory doc for a Python or TypeScript/TSX
+  subsystem at .claude/docs/subsystems/<name>.md. The TypeScript v1 branch uses
+  the host-pinned Compiler API and named tsconfig to inventory exported surface,
+  resolved inbound/outbound imports, barrel boundaries, workflow participation,
+  and diagnostic completeness without inventing unavailable judgment fields.
 solves: >
   A subsystem nobody can change confidently because its public surface,
   responsibilities, and dependency edges live only in the code — the map makes
@@ -22,11 +21,12 @@ dogfood_kind: host-attested
 dogfooded_on:
   - "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 2 effectiveness records, 0 scan dirs, learnings_file=false, 2026-04-20..2026-04-20."
   - "none-found — extracted big-bang into ES2 (90f8567), not dogfooded in this repo. ES2 has no host subsystems to map: no .claude/docs/subsystems/<name>.md outputs and no reports/map dir on disk. Has a scripts/ doc generator but no fixtures/ oracle."
-reports_dir: none
+  - "2026-07-19 stock-installed TypeScript forward map: 3 files, 5 exports, 2 inbound/outbound imports, 0 unresolved, native typecheck green, and source unchanged."
+reports_dir: reports/map
 run_evidence:
-  count: 0
-  first: null
-  latest: null
+  count: 1
+  first: "2026-07-19"
+  latest: "2026-07-19"
 embodies_decisions:
   adr: []
   precedent: []
@@ -52,6 +52,7 @@ evidence:
   - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
   - "has scripts/ doc generator + knowledge/ output-format spec; no fixtures/ oracle (has_fixtures false)"
   - "no .claude/docs/subsystems/ outputs and no reports/map dir on disk in ES2 — nothing mapped here"
+  - "tests/test_map_subsystem_typescript.py proves direct and alias resolution, barrel boundaries, exclusions, partial/error states, artifact containment, copied closure, and stock-installed final output."
 gaps:
-  - "DIVERGENCE from the host-a intent base: host-a classed this subsystem-refactor (two real subsystems mapped to .claude/docs/subsystems/views-collections.md + views-crawling.md, co-born with GUARD lints). ES2 is the portable skill ecosystem with no host subsystems, so nothing has been mapped and dogfood_kind is none-found."
+  - "TypeScript v1 does not infer responsibility clusters, dynamic/runtime imports, framework semantics, or a lint-policy score; unavailable fields remain explicit."
   - "embodies_decisions.adr is []: ADR 0017 (staged-boundary) names map-subsystem only as a context/signal source feeding the planning chain, not as the enforcement/realization of the decision, so it is not attributed."

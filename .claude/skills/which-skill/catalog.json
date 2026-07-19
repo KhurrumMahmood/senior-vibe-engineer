@@ -46,13 +46,19 @@
     },
     {
       "name": "audit-decisions",
-      "description": "Cross-cutting drift scanner for the decision registry. Wraps `scripts/decisions.py audit --json` + `link-check`, then layers four checks the script doesn't run on its own — `# decision:NNNN` code references vs registry, broken supersedes chains, `proposed`-status decisions older than 30 days, `applies_to:` paths that no longer exist on disk. Output: `reports/audit-decisions/scan-<TS>/drift.md` with one row per drift symptom and a recommended next command for each. Read-only — never edits ADRs or production code.",
+      "description": "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python comments, Markdown/HTML references, and TypeScript/TSX comments.",
       "tier": "cross-cutting",
       "job": "guard",
-      "best_for": "Periodic (monthly / pre-release) hygiene of the decision registry.\nCatches three classes of rot the registry-as-substrate can develop:\n(a) code references to ADRs that have been deleted/renumbered,\n(b) supersession chains that break (A superseded by B; B doesn't\nexist or doesn't claim to supersede A), (c) decisions that stalled in\n`proposed` and were never accepted-or-deprecated. Use after a batch\nof refactors that shuffled `applies_to:` paths.\n",
-      "not_for": "Authoring new ADRs (use /decide). Detecting code-level smells (use a\nfind-* SUSPECT skill). Resolving the drift this skill surfaces — the\nuser invokes the recommended next command per row (/decide\n--supersede, /decide --amend, etc.).\n",
+      "best_for": "Periodic (monthly / pre-release) decision-registry hygiene and a precise\ncheck that inline decision references still point at real ADRs.\n",
+      "not_for": "Authoring or amending ADRs, acting on a reported row, identifier/import\nresolution, or inferring runtime/framework semantics.\n",
       "language": "any",
       "framework": "any",
+      "scans": [
+        "python",
+        "markdown",
+        "html",
+        "typescript"
+      ],
       "_path": "skills/audit-decisions"
     },
     {
@@ -784,13 +790,17 @@
     },
     {
       "name": "map-subsystem",
-      "description": "Produce or refresh a durable inventory doc for a subsystem at .claude/docs/subsystems/<name>.md. Covers file list, public surface, responsibility table, dependency graph, convention-compliance score. No refactor intent — MAP skill in the maintenance nervous system.",
+      "description": "Produce or refresh a durable inventory doc for a Python or TypeScript/TSX subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; TypeScript/TSX v1 uses the host-pinned Compiler API plus one named tsconfig resolver for exported surface and resolved imports. No refactor intent — MAP skill in the maintenance nervous system.",
       "tier": "maintenance",
       "job": "map",
       "best_for": "Producing or refreshing a durable inventory doc for a subsystem at\n`.claude/docs/subsystems/<name>.md` — file list, public surface,\nresponsibility table, dependency graph, convention-compliance\nscore. MAP skill in the maintenance nervous system.\n",
       "not_for": "Cross-subsystem product workflows (use /map-product-workflow).\nPer-symbol behavior annotation (use /explain-code). Refactor\nexecution (use /refactor-subsystem with a spec).\n",
-      "language": "python",
+      "language": "any",
       "framework": "any",
+      "scans": [
+        "python",
+        "typescript"
+      ],
       "_path": "skills/map-subsystem"
     },
     {

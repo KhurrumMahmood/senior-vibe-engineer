@@ -2,8 +2,9 @@
 
 Status: B0, B1, B2P, B2T, B3, B4, move-path, explain-code, duplication,
 complexity, folder-topology, and adapt-project complete; audit-decisions is in
-containment re-review; find-standard-gaps is complete; rename-concept and
-map-subsystem are in progress
+complete; find-standard-gaps and map-subsystem are complete; rename-concept is
+in containment repair; propose-boundary and propose-folder-reorganization are
+in progress
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -610,7 +611,7 @@ These operate on the toolkit's own ledgers, catalogs, routers, rules, or
 bootstrap runtime. A TypeScript host does not require a language variant, but
 the final matrix still records a runtime review revision.
 
-### TypeScript-supported batches (17 unique skills)
+### TypeScript-supported batches (19 unique skills)
 
 - B1: `find-concept-divergence`, `find-rule-surface-drift`,
   `find-skill-artifact-drift`, `find-skill-intent-drift`,
@@ -624,11 +625,12 @@ the final matrix still records a runtime review revision.
   `find-duplication`.
 - Host adaptation: `adapt-project`.
 - Declared-standard coverage: `find-standard-gaps`.
+- Portable decision references: `audit-decisions`.
+- Resolved subsystem inventory: `map-subsystem`.
 
-### Candidate language-level families and repairs (9)
+### Candidate language-level families and repairs (7)
 
-`audit-decisions`, `find-dormant`, `find-incomplete-sweep`,
-`find-semantic-duplication`, `map-subsystem`,
+`find-dormant`, `find-incomplete-sweep`, `find-semantic-duplication`,
 `propose-boundary`, `propose-folder-reorganization`, `rename-concept`, and
 `unify-shadows`.
 
@@ -683,13 +685,11 @@ Cross-cutting decisions from this clarification:
 
 Active candidate promotion:
 
-- `audit-decisions` is `in_progress` in
-  `/private/tmp/engineering-skills-ts-audit-decisions`. Its first installed
-  stdlib scanner passed the ordinary fixture but adversarial review found
-  valid TSX generic-type comments and a control-flow regex boundary it could
-  not classify reliably. That implementation is being replaced with a
-  skill-local host-TypeScript Compiler API helper rather than extended into a
-  second hand-written TypeScript parser.
+- `audit-decisions` is `complete` at `4313c73..6dfd060` plus serial
+  router/catalog closeout. Parser-owned TypeScript/TSX comment trivia preserves
+  Python/Markdown/HTML references, rejects malformed or unavailable compiler
+  paths, confines final artifacts to a canonical report subtree, and passed
+  stock-installed forward evidence and independent containment re-review.
 - `find-standard-gaps` is `complete` at `b6e627c..cd1e903` plus serial
   router/catalog closeout. Its frozen v1 standard is direct
   `JSON.parse(...)` syntax enclosed by `try`; parse failures and mixed
@@ -701,8 +701,17 @@ Active candidate promotion:
 - `rename-concept` is `in_progress` in
   `/private/tmp/engineering-skills-ts-rename-concept`. Its assessment remains
   read-only; lexical evidence may not be promoted as resolved identifier
-  completeness, so the lane must add compiler-backed evidence or return an
-  explicit unresolved result for that gate.
+  completeness. Its compiler-backed result and exact-two stock install passed,
+  but final review reproduced an in-tree report-symlink source overwrite; the
+  lane is repairing that concrete containment defect before integration.
+
+- `map-subsystem` is `complete` at `fc52e10..cd41674` plus serial
+  router/catalog closeout. The host-pinned Compiler API and named tsconfig
+  resolve direct and alias imports, preserve barrel boundaries, expose partial
+  unresolved state, reject unsafe targets/artifacts, and passed native,
+  stock-installed, and fresh forward evidence. This accepted resolver contract
+  now permits independent `propose-boundary` and
+  `propose-folder-reorganization` implementation lanes.
 
 - `move-path` is `complete` on `codex/productization-restart` at `6e65140` plus
   its generated-index/catalog closeout. Its v1 contract guarantees a
@@ -790,3 +799,5 @@ corrected rather than treated as working framework neutrality.
 | 2026-07-19 UTC | `82859c7..d1f1e39` + integrated contract/router | TypeScript folder topology complete | Explicit-root lexical flat-prefix detection reports one three-sibling billing cluster, preserves Python-only and explicit combined mode, copied closure, and final report labels. Forward and adversarial defects in `.agents` docs, TS-only isolation, and explicit excluded roots were repaired; focused suite: 20 passed; final re-review PASS. |
 | 2026-07-19 UTC | `3651ccf..2d34690` + integrated contract/router | TypeScript project adaptation complete | TypeScript/TSX source-root counts trigger the same >200 caution as Python, keep excluded trees out, preserve Django detection, and never infer a Node framework from package.json. Fresh stock-installed D6 produced final adapter/report/evidence with unchanged source. Five adversarial path/compatibility/evidence defects were reproduced and repaired; focused re-review: 37 passed; final PASS. |
 | 2026-07-19 UTC | `b6e627c..cd1e903` + generated closeout | TypeScript standard-gap coverage complete | Host-pinned Compiler API syntax facts implement one framework-neutral `JSON.parse`-inside-`try` standard while Python remains green. Parse/read failures and mixed unsupported extensions are partial/non-clean, unsupported-only surfaces remain explicit, and stock-installed final artifacts report 4 sites/3 gaps. Adversarial review found and closed mixed-language false-clean behavior; integration corrected case-insensitive test exclusions, the host-owned standards hint, and exact TypeScript routing. Final focused/router suite: 61 passed; runtime re-review PASS. |
+| 2026-07-19 UTC | `4313c73..6dfd060` + serial closeout | TypeScript decision audit complete | Project-local Compiler API comment trivia recognizes valid TS/TSX decision references while strings, regex, template text, and JSX text stay clean. Final drift artifacts, Python/Markdown/HTML regressions, malformed/missing-tool failures, copied closure, exact stock install, and canonical report containment passed. Integrated focused suite with map and registry regressions: 74 passed; independent containment re-review PASS. |
+| 2026-07-19 UTC | `fc52e10..cd41674` + serial closeout | TypeScript subsystem map complete | Named tsconfig resolution produces exported surface, direct/alias inbound and outbound edges, barrel boundaries, workflow participation, diagnostics, and honest partial state. Unsafe targets and artifact paths reject; stock-installed fresh forward output mapped 3 files/5 exports/2 import edges with native typecheck green and source unchanged. Integrated focused suite with audit and taxonomy regressions: 74 passed; independent re-review PASS. |
