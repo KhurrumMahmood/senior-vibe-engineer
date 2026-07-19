@@ -20,4 +20,20 @@ const genericWithConstraint = <T extends unknown>(value: T) => {
   return value;
 };
 
-export { fragment, genericWithComma, genericWithConstraint, quotedCommaAttribute };
+const genericSelfClosing = <Select<number> />; /* decision:0002 */
+const nestedGenericSelfClosing = <Select<Map<string, number>> data-label="a,b>c" />; // decision:0003
+const memberGenericSelfClosing = <UI.Select<Result<string>, Error> />; /** decision:0001 */
+const functionGenericSelfClosing = <Select<(value: string) => number> />; // decision:0003
+const genericElement = <Select<number>>/* decision:9450 */</Select>; // decision:0002
+
+export {
+  fragment,
+  functionGenericSelfClosing,
+  genericElement,
+  genericSelfClosing,
+  genericWithComma,
+  genericWithConstraint,
+  memberGenericSelfClosing,
+  nestedGenericSelfClosing,
+  quotedCommaAttribute,
+};

@@ -60,11 +60,12 @@ digits. It is recognized only in these real comment forms:
 The lexical scanner ignores string literals, template text, regex literals,
 and TSX text nodes, including comment-shaped text in elements or fragments.
 Quoted JSX attribute contents do not affect tag recognition. TypeScript generic
-angle syntax is not treated as a JSX element. The scanner does not parse
-identifiers, resolve imports, interpret types, or infer React/Node/other
-framework behavior. A TypeScript Compiler API, package manager, network access,
-shared parser, and host `tsconfig` are not required for this comment-only
-invariant.
+angle syntax is not treated as a JSX element, while generic JSX tag arguments
+remain part of their opening tag and cannot consume following code. The scanner
+does not parse identifiers, resolve imports, interpret types, or infer
+React/Node/other framework behavior. A TypeScript Compiler API, package manager,
+network access, shared parser, and host `tsconfig` are not required for this
+comment-only invariant.
 
 ### Existing reference forms
 

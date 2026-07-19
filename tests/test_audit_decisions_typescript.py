@@ -67,7 +67,7 @@ def test_typescript_and_existing_reference_forms_reach_final_drift_artifacts(tmp
     assert [(row["evidence"]["path"], row["adr_id"]) for row in orphan_rows] == [
         ("src/decision_refs.ts", "9999"),
     ]
-    assert "TS/TSX comment references: 10 total" in (output / "drift.md").read_text(encoding="utf-8")
+    assert "TS/TSX comment references: 15 total" in (output / "drift.md").read_text(encoding="utf-8")
 
 
 def test_typescript_literals_jsx_text_and_regexes_never_create_references(tmp_path: Path) -> None:
@@ -80,7 +80,7 @@ def test_typescript_literals_jsx_text_and_regexes_never_create_references(tmp_pa
     ids = {ref["id"] for ref in _raw(output)["references"]}
     assert not ids & {
         "9001", "9002", "9003", "9004", "9005", "9006", "9007",
-        "9441", "9442", "9443", "9444", "9445", "9446",
+        "9441", "9442", "9443", "9444", "9445", "9446", "9450",
     }
 
 
@@ -94,10 +94,13 @@ def test_tsx_fragment_expression_comment_remains_a_real_reference(tmp_path: Path
     fragment_refs = [
         ref
         for ref in _raw(output)["references"]
-        if ref["path"] == "src/decision_refs.tsx" and ref["id"] == "0001"
+        if (
+            ref["path"] == "src/decision_refs.tsx"
+            and ref["id"] == "0001"
+            and ref["comment_form"] == "block"
+        )
     ]
     assert len(fragment_refs) == 2
-    assert {ref["comment_form"] for ref in fragment_refs} == {"block"}
 
     tsx_refs = [
         ref
@@ -106,9 +109,32 @@ def test_tsx_fragment_expression_comment_remains_a_real_reference(tmp_path: Path
     ]
     assert {(ref["id"], ref["comment_form"]) for ref in tsx_refs} == {
         ("0001", "block"),
+        ("0001", "jsdoc"),
         ("0002", "block"),
+        ("0002", "line"),
         ("0003", "line"),
     }
+
+
+def test_generic_jsx_tag_arguments_do_not_consume_following_comments(tmp_path: Path) -> None:
+    host = _copy_host(tmp_path)
+    output = host / "reports" / "audit-decisions" / "generic-jsx-boundary"
+
+    result = _audit(SKILL, host, output)
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    refs = [
+        (ref["line"], ref["id"], ref["comment_form"])
+        for ref in _raw(output)["references"]
+        if ref["path"] == "src/decision_refs.tsx" and ref["line"] >= 23
+    ]
+    assert refs == [
+        (23, "0002", "block"),
+        (24, "0003", "line"),
+        (25, "0001", "jsdoc"),
+        (26, "0003", "line"),
+        (27, "0002", "line"),
+    ]
 
 
 @pytest.mark.parametrize(

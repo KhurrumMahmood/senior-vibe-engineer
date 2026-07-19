@@ -347,6 +347,7 @@ class TypeScriptCommentScanner:
         while name_end < len(self.text) and (self.text[name_end].isalnum() or self.text[name_end] in "_$-."):
             name_end += 1
         cursor = name_end
+        angle_depth = 1
         tag_tokens: list[str] = []
         while cursor < len(self.text):
             char = self.text[cursor]
@@ -354,10 +355,21 @@ class TypeScriptCommentScanner:
                 cursor = self._skip_quoted(cursor, char)
             elif char == "{":
                 cursor = self._skip_balanced_braces(cursor + 1)
+            elif char == "<":
+                angle_depth += 1
+                cursor += 1
             elif char == ">":
-                break
-            else:
+                if angle_depth > 1 and cursor > 0 and self.text[cursor - 1] == "=":
+                    cursor += 1
+                    continue
+                angle_depth -= 1
+                if angle_depth == 0:
+                    break
+                cursor += 1
+            elif angle_depth == 1:
                 tag_tokens.append(char)
+                cursor += 1
+            else:
                 cursor += 1
         if cursor >= len(self.text):
             return False
@@ -403,13 +415,24 @@ class TypeScriptCommentScanner:
         """Return (after tag, is_closing, is_self_closing)."""
         closing = self.text.startswith("</", index)
         index += 2 if closing else 1
+        angle_depth = 1
         while index < len(self.text):
             char = self.text[index]
             if char in {"'", '"'}:
                 index = self._skip_quoted(index, char)
             elif char == "{":
                 index = self._scan_code(index + 1, stop_on_brace=True)
+            elif char == "<":
+                angle_depth += 1
+                index += 1
             elif char == ">":
+                if angle_depth > 1 and index > 0 and self.text[index - 1] == "=":
+                    index += 1
+                    continue
+                angle_depth -= 1
+                if angle_depth:
+                    index += 1
+                    continue
                 back = index - 1
                 while back >= 0 and self.text[back].isspace():
                     back -= 1
