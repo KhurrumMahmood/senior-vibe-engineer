@@ -230,13 +230,25 @@ def _resolve_target(raw: str, project_root: Path) -> Path:
 
 
 def _resolve_output_dir(raw: Path, project_root: Path) -> Path:
-    """Return a report directory resolved inside the project root."""
+    """Return a resolved per-run directory below the project's audit report root."""
+    configured_report_root = project_root / "reports" / "audit-decisions"
+    report_root = configured_report_root.resolve()
+    try:
+        report_root.relative_to(project_root)
+    except ValueError as exc:
+        raise ValueError(
+            f"audit report root resolves outside project root: {configured_report_root}"
+        ) from exc
+    if report_root != configured_report_root:
+        raise ValueError(f"audit report root must not resolve through a symlink: {configured_report_root}")
     candidate = Path(raw)
     output_dir = candidate.resolve() if candidate.is_absolute() else (project_root / candidate).resolve()
     try:
-        output_dir.relative_to(project_root)
+        output_dir.relative_to(report_root)
     except ValueError as exc:
-        raise ValueError(f"output directory is outside project root: {raw}") from exc
+        raise ValueError(f"output directory must resolve below {report_root}: {raw}") from exc
+    if output_dir == report_root:
+        raise ValueError(f"output directory must name a run below {report_root}: {raw}")
     return output_dir
 
 

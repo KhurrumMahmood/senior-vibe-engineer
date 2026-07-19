@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -19,6 +20,7 @@ REPORT_ARTIFACTS = {
     "raw-drift.json",
     "registry-audit.json",
 }
+REPORT_ROOT = Path("reports") / "audit-decisions"
 
 
 def _run(
@@ -200,7 +202,7 @@ def test_typescript_sources_require_a_host_local_compiler_api_dependency(tmp_pat
 
 
 @pytest.mark.parametrize("path_kind", ["absolute", "parent-traversal"])
-def test_output_dir_rejects_path_outside_project_without_writing(
+def test_output_dir_rejects_path_outside_report_root_without_writing(
     tmp_path: Path,
     path_kind: str,
 ) -> None:
@@ -213,12 +215,45 @@ def test_output_dir_rejects_path_outside_project_without_writing(
     result = _audit(SKILL, host, argument)
 
     assert result.returncode == 2
-    assert "output directory is outside project root" in result.stderr
+    assert "output directory must resolve below" in result.stderr
     assert not output.exists()
     assert list(outside.iterdir()) == []
 
+    if path_kind == "absolute":
+        source_dir = host / "src"
+        preseeded = source_dir / "drift.md"
+        preseeded.write_text("source artifact must survive\n", encoding="utf-8")
+        source_sha_before = hashlib.sha256(preseeded.read_bytes()).hexdigest()
+        source_result = _audit(SKILL, host, source_dir)
 
-@pytest.mark.parametrize("escape_kind", ["output-symlink", "ancestor-symlink"])
+        assert source_result.returncode == 2
+        assert "output directory must resolve below" in source_result.stderr
+        assert hashlib.sha256(preseeded.read_bytes()).hexdigest() == source_sha_before
+        assert not (source_dir / "registry-audit.json").exists()
+        assert not (source_dir / "link-check.txt").exists()
+        assert not (source_dir / "raw-drift.json").exists()
+
+        arbitrary = Path("scratch") / "audit-output"
+        arbitrary_result = _audit(SKILL, host, arbitrary)
+
+        assert arbitrary_result.returncode == 2
+        assert "output directory must resolve below" in arbitrary_result.stderr
+        assert not (host / arbitrary).exists()
+
+        report_root = host / REPORT_ROOT
+        report_root.mkdir(parents=True)
+        shared_drift = report_root / "drift.md"
+        shared_drift.write_text("shared latest report must survive\n", encoding="utf-8")
+        shared_sha_before = hashlib.sha256(shared_drift.read_bytes()).hexdigest()
+        root_result = _audit(SKILL, host, report_root)
+
+        assert root_result.returncode == 2
+        assert "output directory must name a run below" in root_result.stderr
+        assert hashlib.sha256(shared_drift.read_bytes()).hexdigest() == shared_sha_before
+        assert {path.name for path in report_root.iterdir()} == {"drift.md"}
+
+
+@pytest.mark.parametrize("escape_kind", ["output-symlink", "report-root-symlink"])
 def test_output_dir_rejects_symlink_escape_without_writing(
     tmp_path: Path,
     escape_kind: str,
@@ -227,18 +262,34 @@ def test_output_dir_rejects_symlink_escape_without_writing(
     outside = tmp_path / "outside"
     outside.mkdir()
     if escape_kind == "output-symlink":
-        output = host / "report-link"
+        report_root = host / REPORT_ROOT
+        report_root.mkdir(parents=True)
+        output = report_root / "escaped"
         output.symlink_to(outside, target_is_directory=True)
     else:
-        ancestor = host / "reports-link"
-        ancestor.symlink_to(outside, target_is_directory=True)
-        output = ancestor / "audit-decisions"
+        reports = host / "reports"
+        reports.symlink_to(outside, target_is_directory=True)
+        output = reports / "audit-decisions" / "run"
 
     result = _audit(SKILL, host, output)
 
     assert result.returncode == 2
-    assert "output directory is outside project root" in result.stderr
+    assert "audit report root resolves outside project root" in result.stderr or "output directory must resolve below" in result.stderr
     assert list(outside.iterdir()) == []
+    if escape_kind == "report-root-symlink":
+        reports.unlink()
+        source_dir = host / "src"
+        preseeded = source_dir / "drift.md"
+        preseeded.write_text("source artifact must survive symlink escape\n", encoding="utf-8")
+        source_sha_before = hashlib.sha256(preseeded.read_bytes()).hexdigest()
+        reports.symlink_to(source_dir, target_is_directory=True)
+
+        source_result = _audit(SKILL, host, Path("reports") / "audit-decisions" / "run")
+
+        assert source_result.returncode == 2
+        assert "audit report root must not resolve through a symlink" in source_result.stderr
+        assert hashlib.sha256(preseeded.read_bytes()).hexdigest() == source_sha_before
+        assert not (source_dir / "audit-decisions" / "registry-audit.json").exists()
 
 
 @pytest.mark.parametrize("use_absolute_path", [False, True])
@@ -247,7 +298,7 @@ def test_output_dir_accepts_contained_relative_and_absolute_paths(
     use_absolute_path: bool,
 ) -> None:
     host = _copy_host(tmp_path)
-    output = host / "reports" / "audit-decisions" / "contained"
+    output = host / REPORT_ROOT / "contained"
     argument = output if use_absolute_path else output.relative_to(host)
 
     result = _audit(SKILL, host, argument)
