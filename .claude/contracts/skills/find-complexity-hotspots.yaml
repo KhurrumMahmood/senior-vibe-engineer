@@ -3,9 +3,10 @@ schema_version: 2
 skill: find-complexity-hotspots
 job: suspect
 problem_class: performance / complexity hotspot detection (SUSPECT)
-intent: Surface likely algorithmic, Django ORM, and structural complexity hotspots via a read-only stdlib
-  AST scan (nested loops, membership scans, sort-in-loop, QuerySet calls inside loops, high-branch functions),
-  ranked as advisory leads — without touching production files.
+intent: Surface likely algorithmic, Django ORM, and structural complexity hotspots as read-only advisory
+  leads. Preserve the six-band Python stdlib-AST scan, and add a narrow TypeScript Compiler API path for
+  syntactic branch scores on function declarations, methods, and block-bodied arrows — without framework,
+  type, receiver, runtime-cost, automatic-refactor, or production-write claims.
 solves: Expensive code paths grow silently; before a refactor there was no first-pass, repo-wide lead
   list of where complexity concentrates, so reviewers guessed at 'this feels slow.'
 born:
@@ -54,6 +55,10 @@ evidence:
   set
 - fixtures/good (clean.py) + fixtures/bad (hotspots.py) present — the ranking regression oracle
 - reports/find-complexity-hotspots/scan-20260517-023234 — one on-disk self-scan run (local, gitignored)
+- Additive Python/TypeScript fixtures, copied and stock-installed closure tests, fresh forward evidence,
+  direct-target exclusion regressions, and language-porting lessons are indexed by
+  .claude/tasks/multilanguage-learnings/find-complexity-hotspots-typescript.{md,json}.
 gaps:
 - No precedents.yml entry and no ADR in ai-docs/decisions/ names find-complexity-hotspots, so embodies_decisions
   is empty; intent rests on SKILL.md + the fixtures oracle.
+- "TypeScript support is intentionally syntax-only: it excludes function expressions, expression-bodied arrows, imports, calls, types, receivers, React/Node/ORM semantics, and any performance verdict."
