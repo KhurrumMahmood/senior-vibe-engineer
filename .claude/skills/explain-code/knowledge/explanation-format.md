@@ -4,6 +4,11 @@ Every `reports/explanations/<target-slug>.md` follows the same shape so
 a reader can absorb it without the skill loaded. This doc is the
 canonical reference for what Stage 3 emits.
 
+For TypeScript v1, this format is intentionally honest about lexical limits:
+the `Unexplained regions` section includes any `export { ... }`, `export *`,
+or unresolved default export reported by `targets.json`. These entries are not
+annotation failures; they are evidence that module resolution was not claimed.
+
 ## Structure
 
 1. Target metadata (front-matter-ish, one code block).

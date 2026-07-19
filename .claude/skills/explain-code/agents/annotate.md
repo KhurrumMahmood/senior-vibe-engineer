@@ -46,8 +46,9 @@ annotation is done unless `{{output_path}}` has been written.
 cd {{project_root}}
 ```
 
-Use `Grep` for the symbol's definition (`def <bare-name>` or
-`class <name>` for classes; `^<NAME>` assignment for module vars).
+Use `Grep` for the symbol's definition (`def <bare-name>` / `class <name>`
+for Python, or `export function <bare-name>`, `export class <name>`,
+`export const <name>`, `export interface <name>`, etc. for TypeScript).
 Trust the symbol name, not any cached line number — source drifts.
 
 If you cannot locate the symbol, write `{{output_path}}` with
@@ -246,3 +247,4 @@ no preamble):
 | Caller count is 50+ | First 10 + per-subsystem rollup; do NOT enumerate all |
 | Symbol is a `__init__` that just assigns `self.x = x` | Still produce the annotation but with short sections — "Intent: initialize instance attributes; no business logic." and note whether the constructor has hidden side-effects like network calls |
 | The symbol is re-exported through `__init__.py` | Note the re-export in "Callers" as a subsystem summary (`re-exported via core/services/__init__.py`); don't double-count |
+| A TypeScript alias or re-export is listed in `targets.json` | Do not annotate it as a direct symbol. The orchestrator renders its inventory record as an unresolved region because TypeScript v1 does not resolve modules. |

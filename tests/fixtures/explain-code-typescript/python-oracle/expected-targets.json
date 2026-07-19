@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "language": "python",
+  "target": "src/sample.py",
+  "files": [
+    "src/sample.py"
+  ],
+  "symbol_count_total": 3,
+  "public_symbol_count": 1,
+  "max": 15,
+  "targets": [
+    {
+      "symbol_key": "sample__branchy",
+      "file": "src/sample.py",
+      "symbol": "branchy",
+      "kind": "function",
+      "lineno": 4,
+      "loc": 4,
+      "branch_count": 2,
+      "has_docstring": false,
+      "rank_score": 12
+    }
+  ],
+  "overflow": [],
+  "unexplained": []
+}

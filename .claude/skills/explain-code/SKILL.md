@@ -1,6 +1,6 @@
 ---
 name: explain-code
-description: Read-only EXPLAIN skill that converts a file, directory package, or named subsystem into an annotated behavior doc at reports/explanations/<target>.md. Fans out scout sub-agents per public symbol to capture intent, pre/postconditions, invariants, callers, and unexplained regions. Complements /map-subsystem (inventory) by producing the behavioral annotation that lets a human trust the code well enough to change it. Hands off to /fix-workflow or /refactor-subsystem when the unexplained regions resolve into concrete smells.
+description: Read-only EXPLAIN skill that converts a Python target or a TypeScript/TSX target's direct public exports into an annotated behavior doc at reports/explanations/<target>.md. TypeScript v1 visibly leaves aliases and re-exports unexplained rather than claiming module resolution.
 argument-hint: "<file-path-or-directory-or-subsystem-name>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -16,8 +16,9 @@ not_for: |
   Pure inventory without behavioral annotation (use /map-subsystem).
   Cross-workflow product topology (use /map-product-workflow).
   Refactor execution (use /fix-workflow or /refactor-subsystem).
-language: python
-framework: django
+language: typescript
+framework: any
+scans: [python, typescript]
 ---
 
 # /explain-code
@@ -84,11 +85,33 @@ Write toward these gates from Stage 0.
    its own scout (`agents/annotate.md`). The orchestrator merges
    annotations into the top-level explanation doc.
 
+## TypeScript v1 contract
+
+For a `.ts` or `.tsx` file (or directory), the supported invariant is:
+**each named, direct, top-level export receives the same complete explanation
+document and sidecars as a Python public symbol.** Direct exported functions,
+classes, enums, interfaces, types, namespaces, and variables are eligible.
+
+The collector is intentionally lexical. It does not resolve imports, aliases,
+barrels, `export { ... }`, `export *`, or default expressions. Those forms are
+written to `targets.json`'s `unexplained` list and must appear in the final
+document and `unexplained.txt`; do not replace that region with an inferred
+contract. It ignores test, generated, declaration, vendor, build, and
+`node_modules` descendants relative to the requested target. The TypeScript
+v1 contract makes no React, Node, framework, type-checker, or module-resolution
+claim.
+
+Python remains the reference inventory path and has the same stable
+`targets.json` schema, but the installed router must advertise this revision as
+TypeScript-only until it can express multi-language eligibility. Do not infer
+that a successful TypeScript run supports another language.
+
 ## Scope
 
 - **Project root:** this worktree's root.
-- **Python:** `.venv/bin/python` for helper scripts. The inventory
-  helper is stdlib-only, but use the repo venv for consistency.
+- **Executor:** `${PYTHON:-python3}`. Both helpers are stdlib-only and run
+  from a copied installed skill with `python3 -I -S`; use the repository's
+  `.venv/bin/python` while validating this source checkout.
 - **Output:** `reports/explanations/<target-slug>.md` and
   `reports/explanations/<target-slug>/annotations/<symbol>.md`. Never
   touches any other file.
@@ -133,6 +156,8 @@ the rest are listed as follow-on candidates in the summary.
 `latest` symlink updated.
 
 ```bash
+PROJECT_ROOT="${PROJECT_ROOT:-$PWD}"
+SKILL_ROOT="${SKILL_ROOT:-.claude/skills/explain-code}"
 TARGET_SLUG="<derived slug>"
 REPORT_DIR="reports/explanations/${TARGET_SLUG}"
 mkdir -p "${REPORT_DIR}/annotations"
@@ -156,21 +181,22 @@ Two paths:
    `targets.json` with those symbols, prioritizing any that appear
    under "Open questions".
 
-2. **No map page.** Run the AST inventory helper:
+2. **No map page.** Run the standalone inventory helper. It uses the Python
+   AST reference path for `.py`, and a direct-export lexical path for `.ts` /
+   `.tsx`:
 
    ```bash
-   .venv/bin/python .claude/skills/explain-code/scripts/inventory_symbols.py \
+   "${PYTHON:-python3}" "${SKILL_ROOT}/scripts/inventory_symbols.py" \
      --target "<target-path>" \
      --output "${REPORT_DIR}/targets.json" \
      --max 15
    ```
 
-   The helper walks the AST, enumerates public symbols (functions,
-   classes, class methods — no leading underscore, not in a module
-   `__all__` that excludes them), computes LOC + branch-count
-   approximation + `has_docstring` flag, and ranks by
-   `(no_docstring, branch_count, LOC > 50)` descending. Output schema
-   is documented in the helper's module docstring.
+   The Python reference path walks the AST; the TypeScript path collects only
+   named direct exports. Both compute a stable LOC + branch-count approximation
+   and rank by `(no_docstring, branch_count, LOC > 50)` descending. Before
+   dispatching scouts, read `targets.json`: every `unexplained` export is a
+   mandatory final-doc region, not a scout target.
 
 If the inventory returns zero symbols, abort with a one-line error:
 the target is either empty, private-only, or misresolved.
@@ -219,7 +245,21 @@ the gap in the synthesized doc.
 `reports/explanations/${TARGET_SLUG}.md`.
 
 Read `knowledge/explanation-format.md`, then read every annotation
-file. Write the top-level doc following that format file. Structure:
+file. Supply a truthful ≤5-sentence summary and render the top-level doc with
+the installed helper. It verifies every selected annotation uses the scout's
+required sections and writes the mandatory sidecars:
+
+```bash
+"${PYTHON:-python3}" "${SKILL_ROOT}/scripts/render_explanation.py" \
+  --targets "${REPORT_DIR}/targets.json" \
+  --annotations-dir "${REPORT_DIR}/annotations" \
+  --output "reports/explanations/${TARGET_SLUG}.md" \
+  --summary "<what it does; what it enforces; what it does not enforce>" \
+  --project-root "$PROJECT_ROOT"
+```
+
+The renderer never invents behavioral claims. It aggregates each scout's
+annotation and the inventory's unresolved export records. Structure:
 
 1. Target metadata (path, LOC, public symbol count, regenerated
    timestamp).
@@ -248,10 +288,13 @@ These files are mandatory Stage 3 outputs. Stage 4's missing-file
 fallback is defensive recovery for interrupted runs, not permission to
 omit the sidecars.
 
-### Stage 4 — Effectiveness log
+### Stage 4 — Optional host effectiveness log
 
 **Pre:** explanation doc written. **Post:** one line appended to
-`reports/_meta/effectiveness.jsonl`.
+`reports/_meta/effectiveness.jsonl` only when the host separately owns an
+effectiveness logger. This is not part of the copied TypeScript v1 closure:
+the selected skill must not reach back into toolkit-level `scripts/` merely to
+log telemetry.
 
 ```bash
 ANNOTATED=$(ls "${REPORT_DIR}/annotations/" 2>/dev/null | wc -l | tr -d ' ')
@@ -265,9 +308,9 @@ if [ -f "${REPORT_DIR}/surprises.txt" ]; then
 else
   SURPRISES=0
 fi
-PUBLIC=$(.venv/bin/python -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["targets"]))' "${REPORT_DIR}/targets.json")
+PUBLIC=$("${PYTHON:-python3}" -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["targets"]))' "${REPORT_DIR}/targets.json")
 
-.venv/bin/python scripts/log_effectiveness.py \
+"${PYTHON:-python3}" scripts/log_effectiveness.py \
   --skill explain-code \
   --scan-id "explanation-${TARGET_SLUG}-$(date -u +%Y%m%d-%H%M%S)" \
   --target "<original-target-path>" \
@@ -309,6 +352,11 @@ of truth.
   it does not propose a new one.
 - Annotating every symbol. Budget is 15 per run; the remainder become
   follow-on candidates.
+- Resolving TypeScript modules, export aliases, barrels, or default
+  expressions. Keep them visibly unexplained until a separately accepted
+  resolver-backed contract exists.
+- Including TypeScript test, generated, declaration, vendor, build, or
+  `node_modules` files in a directory inventory.
 - Touching production code.
 - Running tests — the explanation is source-level.
 
@@ -317,7 +365,8 @@ of truth.
 | Symptom | Action |
 |---|---|
 | Target path doesn't exist | Abort with a one-line error + suggestion to re-run with the correct path |
-| AST walk errors on a non-Python file | Skip it, flag in the doc's "Files" metadata |
+| Inventory sees an alias/re-export/default expression | Keep its `unexplained` record in the final doc; do not dispatch a scout that invents resolution |
+| Target has only unsupported / ignored source files | Abort with a one-line message; do not fall back to scanning tests or vendor code |
 | `targets.json` lists 0 symbols | Target is empty or private-only — abort with a one-line message |
 | `knowledge/explanation-format.md` is missing or empty | Abort before synthesis; the top-level doc shape is undefined |
 | Stage 3 cannot write `unexplained.txt` or `surprises.txt` | Stop before effectiveness logging and report the exact write failure |
@@ -352,7 +401,8 @@ test -s .claude/skills/explain-code/knowledge/explanation-format.md && \
 .claude/skills/explain-code/
 ├── SKILL.md                         # this file — orchestrator
 ├── scripts/
-│   └── inventory_symbols.py         # Stage 1 AST inventory (stdlib-only)
+│   ├── inventory_symbols.py         # Stage 1 Python/TS inventory (stdlib-only)
+│   └── render_explanation.py        # Stage 3 document + sidecar renderer
 ├── agents/
 │   └── annotate.md                  # Stage 2 scout brief
 └── knowledge/                       # orchestrator output-format reference

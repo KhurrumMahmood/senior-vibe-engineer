@@ -1,63 +1,16 @@
 #!/usr/bin/env python3
-"""Enumerate public symbols for /explain-code Stage 1.
+"""Enumerate /explain-code targets without a repository runtime dependency.
 
-Walks the AST of a target file (or every `*.py` under a target directory),
-emits one entry per public symbol, and ranks them by
-`(no_docstring, branch_count, LOC > 50)` descending. The `/explain-code`
-orchestrator consumes the output to dispatch per-symbol annotation scouts.
+The Python path is the frozen reference oracle: it preserves the existing AST
+public-surface and ranking rules. TypeScript v1 is intentionally narrower. It
+collects *named, direct, top-level* ``export`` declarations from ``.ts`` and
+``.tsx`` files using a lexical scanner. It does not resolve imports, aliases,
+barrels, or default expressions; those exports are emitted in ``unexplained``
+so an explanation cannot quietly claim coverage it did not earn.
 
-Usage:
-
-    .venv/bin/python .claude/skills/explain-code/scripts/inventory_symbols.py \\
-      --target core/services/agentic_discovery_service.py \\
-      --output reports/explanations/services-agentic-discovery-service/targets.json \\
-      --max 15
-
-Public-symbol rule (matches `/map-subsystem` Stage 2):
-
-- Top-level function / class / assignment with a non-leading-underscore name.
-- Public methods on a class (non-leading-underscore names).
-- If the module defines a module-level `__all__`, only names in `__all__`
-  count as public.
-
-Branch count is an approximation: count of AST nodes of type `If`, `For`,
-`While`, `Try`, `With`, `BoolOp`, and `IfExp` within the symbol body.
-Good-enough proxy for cyclomatic complexity; we don't need exact.
-
-Exit status:
-
-    0  targets.json written (≥ 1 symbol)
-    1  target path invalid or no public symbols found
-    2  invocation error
-
-Output schema:
-
-    {
-      "target": "core/services/agentic_discovery_service.py",
-      "files": ["core/services/agentic_discovery_service.py"],
-      "symbol_count_total": 34,
-      "public_symbol_count": 22,
-      "max": 15,
-      "targets": [
-        {
-          "symbol_key": "agentic_discovery_service__discover",
-          "file": "core/services/agentic_discovery_service.py",
-          "symbol": "AgenticDiscoveryService.discover",
-          "kind": "method",
-          "lineno": 156,
-          "loc": 78,
-          "branch_count": 14,
-          "has_docstring": true,
-          "rank_score": 14
-        },
-        ...
-      ],
-      "overflow": [
-        {"symbol_key": "...", "file": "...", "symbol": "...", "reason": "budget-cap"}
-      ]
-    }
-
-Stdlib-only; use `.venv/bin/python` in this repo.
+The result is a stable JSON artifact consumed by the /explain-code scouts and
+the family-local renderer. This script is stdlib-only so a copied skill can run
+with isolated host Python tools.
 """
 
 from __future__ import annotations
@@ -65,184 +18,112 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
 
-# Route Python parsing through the shared per-language adapter registry
-# (ADR 0032). This skill's ranking is Python-AST-specific (branch counts,
-# docstrings, `__all__`, module-level constants, `__init__` handling) —
-# detail the language-neutral Symbol record cannot carry — so it stays a
-# Python-only consumer: it asks the registry for the file's adapter and
-# only proceeds when that adapter exposes the raw `ast.Module`
-# (CAP_PYTHON_AST), keeping the existing AST walk. Wire the repo
-# `scripts/` dir onto sys.path so the package imports when this skill
-# script runs standalone.
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
-_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
-if _SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPTS_DIR)
 
-from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
-
-
-BRANCH_NODE_TYPES: tuple[type[ast.AST], ...] = (
-    ast.If,
-    ast.For,
-    ast.AsyncFor,
-    ast.While,
-    ast.Try,
-    ast.With,
-    ast.AsyncWith,
-    ast.BoolOp,
-    ast.IfExp,
+PYTHON_SUFFIXES = frozenset({".py"})
+TYPESCRIPT_SUFFIXES = frozenset({".ts", ".tsx"})
+SOURCE_SUFFIXES = PYTHON_SUFFIXES | TYPESCRIPT_SUFFIXES
+IGNORED_DIRECTORY_NAMES = frozenset(
+    {
+        "__pycache__",
+        "__tests__",
+        ".next",
+        "build",
+        "coverage",
+        "dist",
+        "generated",
+        "node_modules",
+        "test",
+        "tests",
+        "vendor",
+    }
 )
+TEST_FILE_RE = re.compile(r"(?:^test_|^spec_|_test\.|\.test\.|\.spec\.)", re.IGNORECASE)
+TS_IDENTIFIER = r"[$A-Za-z_][\w$]*"
+TS_DIRECT_EXPORTS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "function",
+        re.compile(
+            rf"^\s*export\s+(?:default\s+)?(?:declare\s+)?(?:async\s+)?function\s*\*?\s+(?P<name>{TS_IDENTIFIER})\b"
+        ),
+    ),
+    (
+        "class",
+        re.compile(
+            rf"^\s*export\s+(?:default\s+)?(?:declare\s+)?(?:abstract\s+)?class\s+(?P<name>{TS_IDENTIFIER})\b"
+        ),
+    ),
+    (
+        "enum",
+        re.compile(
+            rf"^\s*export\s+(?:declare\s+)?(?:const\s+)?enum\s+(?P<name>{TS_IDENTIFIER})\b"
+        ),
+    ),
+    (
+        "interface",
+        re.compile(
+            rf"^\s*export\s+(?:declare\s+)?interface\s+(?P<name>{TS_IDENTIFIER})\b"
+        ),
+    ),
+    (
+        "type",
+        re.compile(rf"^\s*export\s+type\s+(?P<name>{TS_IDENTIFIER})\b"),
+    ),
+    (
+        "namespace",
+        re.compile(
+            rf"^\s*export\s+(?:declare\s+)?(?:namespace|module)\s+(?P<name>{TS_IDENTIFIER})\b"
+        ),
+    ),
+    (
+        "module-var",
+        re.compile(
+            rf"^\s*export\s+(?:declare\s+)?(?:const|let|var)\s+(?P<name>{TS_IDENTIFIER})\b"
+        ),
+    ),
+)
+TS_UNRESOLVED_EXPORT_RE = re.compile(
+    r"^\s*export\s+(?:(?:type\s+)?\{|\*|default\b|=\s*)"
+)
+TS_BRANCH_RE = re.compile(r"\b(?:if|for|while|catch|case)\b|&&|\|\||\?")
 
 
 def _is_public(name: str, dunder_all: set[str] | None) -> bool:
-    """A name is public iff it doesn't start with `_` AND (if `__all__`
-    is defined) appears in `__all__`."""
-    if name.startswith("_"):
-        return False
-    if dunder_all is not None and name not in dunder_all:
-        return False
-    return True
+    """A Python name is public iff it is non-private and allowed by __all__."""
+    return not name.startswith("_") and (dunder_all is None or name in dunder_all)
 
 
 def _loc(node: ast.AST) -> int:
-    """Rough LOC for an AST node — last line minus start line plus one.
-    Blank lines and comments count; we don't want clever."""
     end = getattr(node, "end_lineno", None)
-    if end is None:
-        return 1
-    return max(1, end - node.lineno + 1)
+    return max(1, end - node.lineno + 1) if end is not None else 1
 
 
-def _branch_count(node: ast.AST) -> int:
-    """Count branch-like AST nodes in the subtree rooted at `node`.
-    Does NOT subtract `node` itself if it happens to be a branch — the
-    caller is a function/class body, not a branch."""
-    return sum(1 for child in ast.walk(node) if isinstance(child, BRANCH_NODE_TYPES))
+def _python_branch_count(node: ast.AST) -> int:
+    branch_nodes: tuple[type[ast.AST], ...] = (
+        ast.If,
+        ast.For,
+        ast.AsyncFor,
+        ast.While,
+        ast.Try,
+        ast.With,
+        ast.AsyncWith,
+        ast.BoolOp,
+        ast.IfExp,
+    )
+    return sum(1 for child in ast.walk(node) if isinstance(child, branch_nodes))
 
 
 def _symbol_key(file_rel: Path, symbol: str) -> str:
-    """Stable key: `<basename>__<bare-name>`. Uses the module stem (not
-    the full relative path) so keys stay short; collisions get the full
-    qualified name appended by the caller."""
-    base = file_rel.stem
-    tail = symbol.rsplit(".", 1)[-1]
-    return f"{base}__{tail}"
+    return f"{file_rel.stem}__{symbol.rsplit('.', 1)[-1]}"
 
 
-def _dunder_all(tree: ast.Module) -> set[str] | None:
-    """Return the set of names in a module-level `__all__`, or None if
-    no such assignment exists. Only handles `__all__ = [...]` or
-    `__all__ = (...)`. Dynamic `__all__` = ignored (None)."""
-    for node in tree.body:
-        if not isinstance(node, ast.Assign):
-            continue
-        for target in node.targets:
-            if isinstance(target, ast.Name) and target.id == "__all__":
-                if isinstance(node.value, (ast.List, ast.Tuple)):
-                    names: set[str] = set()
-                    for elt in node.value.elts:
-                        if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
-                            names.add(elt.value)
-                    return names
-    return None
-
-
-def _inventory_file(path: Path, repo_root: Path) -> tuple[list[dict[str, Any]], int]:
-    """Return (public_symbols, total_symbol_count) for one Python file.
-
-    `total_symbol_count` counts every top-level declaration (private + public)
-    for the summary stats. Public methods on public classes also count.
-    """
-    # Route through the shared adapter registry; this analysis needs the
-    # raw Python AST, so skip any file whose adapter can't supply it
-    # (non-Python suffix, or no adapter) rather than crash.
-    adapter = get_adapter(path)
-    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
-        return [], 0
-
-    try:
-        source = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError) as exc:
-        print(f"warn: cannot read {path}: {exc}", file=sys.stderr)
-        return [], 0
-
-    tree = adapter.parse(source)
-    if tree is None:
-        print(f"warn: cannot parse {path}", file=sys.stderr)
-        return [], 0
-
-    dunder_all = _dunder_all(tree)
-    file_rel = path.relative_to(repo_root) if path.is_absolute() else path
-    public: list[dict[str, Any]] = []
-    total = 0
-
-    for node in tree.body:
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            total += 1
-            name = node.name
-            if not _is_public(name, dunder_all):
-                continue
-            public.append(
-                _build_entry(
-                    file_rel=file_rel,
-                    symbol=name,
-                    kind="function",
-                    node=node,
-                )
-            )
-        elif isinstance(node, ast.ClassDef):
-            total += 1
-            class_name = node.name
-            class_public = _is_public(class_name, dunder_all)
-            if class_public:
-                public.append(
-                    _build_entry(
-                        file_rel=file_rel,
-                        symbol=class_name,
-                        kind="class",
-                        node=node,
-                    )
-                )
-            # Methods on a public class — enumerate regardless of class
-            # visibility? Only enumerate on public classes; private
-            # classes' methods aren't part of the public surface.
-            if class_public:
-                for sub in node.body:
-                    if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                        method_name = sub.name
-                        # Special-case: `__init__` is a public constructor,
-                        # everything else starting with `_` is private.
-                        if method_name.startswith("_") and method_name != "__init__":
-                            continue
-                        public.append(
-                            _build_entry(
-                                file_rel=file_rel,
-                                symbol=f"{class_name}.{method_name}",
-                                kind="method",
-                                node=sub,
-                            )
-                        )
-        elif isinstance(node, ast.Assign):
-            total += 1
-            # Module-level public constants — rare target for /explain-code
-            # but surface them for completeness.
-            for target in node.targets:
-                if isinstance(target, ast.Name) and _is_public(target.id, dunder_all):
-                    public.append(
-                        _build_entry(
-                            file_rel=file_rel,
-                            symbol=target.id,
-                            kind="module-var",
-                            node=node,
-                        )
-                    )
-
-    return public, total
+def _rank_score(*, loc: int, branches: int, has_doc: bool, kind: str) -> int:
+    score = branches + (0 if has_doc else 10) + (5 if loc > 50 else 0)
+    return min(score, 20) if kind == "class" else score
 
 
 def _build_entry(
@@ -250,158 +131,439 @@ def _build_entry(
     file_rel: Path,
     symbol: str,
     kind: str,
-    node: ast.AST,
+    lineno: int,
+    loc: int,
+    branch_count: int,
+    has_docstring: bool,
 ) -> dict[str, Any]:
-    loc = _loc(node)
-    branches = _branch_count(node)
-    has_doc = False
-    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-        has_doc = bool(ast.get_docstring(node))
     return {
         "symbol_key": _symbol_key(file_rel, symbol),
         "file": str(file_rel),
         "symbol": symbol,
         "kind": kind,
-        "lineno": node.lineno,
+        "lineno": lineno,
         "loc": loc,
-        "branch_count": branches,
-        "has_docstring": has_doc,
+        "branch_count": branch_count,
+        "has_docstring": has_docstring,
         "rank_score": _rank_score(
-            loc=loc, branches=branches, has_doc=has_doc, kind=kind
+            loc=loc,
+            branches=branch_count,
+            has_doc=has_docstring,
+            kind=kind,
         ),
     }
 
 
-def _rank_score(*, loc: int, branches: int, has_doc: bool, kind: str = "function") -> int:
-    """Higher = more worth annotating. Rule:
-       - missing docstring: +10
-       - branch count: direct contribution
-       - LOC > 50: +5
-       - classes are capped at the raw score of their heaviest method
-         when that method is also in the list (handled post-pass in
-         `_demote_shadowed_classes`) — here we just apply a flat cap
-         so very large class bodies don't dominate.
-    Deliberately coarse — ranking is a hint, not a verdict."""
-    score = branches
-    if not has_doc:
-        score += 10
-    if loc > 50:
-        score += 5
-    # Classes frequently inherit their branch count from every method;
-    # cap them so an omnibus class doesn't push every method off the
-    # annotation budget. Methods and functions are the meaningful unit.
-    if kind == "class":
-        score = min(score, 20)
-    return score
+def _dunder_all(tree: ast.Module) -> set[str] | None:
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(isinstance(target, ast.Name) and target.id == "__all__" for target in node.targets):
+            continue
+        if not isinstance(node.value, (ast.List, ast.Tuple)):
+            return None
+        names = {
+            element.value
+            for element in node.value.elts
+            if isinstance(element, ast.Constant) and isinstance(element.value, str)
+        }
+        return names
+    return None
+
+
+def _read_source(path: Path) -> str | None:
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        print(f"warn: cannot read {path}: {exc}", file=sys.stderr)
+        return None
+
+
+def _inventory_python_file(path: Path, file_rel: Path) -> tuple[list[dict[str, Any]], int]:
+    source = _read_source(path)
+    if source is None:
+        return [], 0
+    try:
+        tree = ast.parse(source, filename=str(path))
+    except SyntaxError as exc:
+        print(f"warn: cannot parse {path}: {exc.msg}", file=sys.stderr)
+        return [], 0
+
+    dunder_all = _dunder_all(tree)
+    public: list[dict[str, Any]] = []
+    total = 0
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            total += 1
+            if _is_public(node.name, dunder_all):
+                public.append(
+                    _build_entry(
+                        file_rel=file_rel,
+                        symbol=node.name,
+                        kind="function",
+                        lineno=node.lineno,
+                        loc=_loc(node),
+                        branch_count=_python_branch_count(node),
+                        has_docstring=bool(ast.get_docstring(node)),
+                    )
+                )
+        elif isinstance(node, ast.ClassDef):
+            total += 1
+            class_public = _is_public(node.name, dunder_all)
+            if class_public:
+                public.append(
+                    _build_entry(
+                        file_rel=file_rel,
+                        symbol=node.name,
+                        kind="class",
+                        lineno=node.lineno,
+                        loc=_loc(node),
+                        branch_count=_python_branch_count(node),
+                        has_docstring=bool(ast.get_docstring(node)),
+                    )
+                )
+                for method in node.body:
+                    if not isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        continue
+                    if method.name.startswith("_") and method.name != "__init__":
+                        continue
+                    public.append(
+                        _build_entry(
+                            file_rel=file_rel,
+                            symbol=f"{node.name}.{method.name}",
+                            kind="method",
+                            lineno=method.lineno,
+                            loc=_loc(method),
+                            branch_count=_python_branch_count(method),
+                            has_docstring=bool(ast.get_docstring(method)),
+                        )
+                    )
+        elif isinstance(node, ast.Assign):
+            total += 1
+            for target in node.targets:
+                if isinstance(target, ast.Name) and _is_public(target.id, dunder_all):
+                    public.append(
+                        _build_entry(
+                            file_rel=file_rel,
+                            symbol=target.id,
+                            kind="module-var",
+                            lineno=node.lineno,
+                            loc=_loc(node),
+                            branch_count=_python_branch_count(node),
+                            has_docstring=False,
+                        )
+                    )
+    return public, total
+
+
+def _mask_typescript_noncode(source: str) -> str:
+    """Replace comments and strings with spaces while retaining line positions.
+
+    This is deliberately a collector, not a TypeScript parser. Masking is only
+    enough to prevent words such as ``export`` in comments or strings from
+    becoming public symbols, and to keep brace counting useful for top-level
+    declaration detection.
+    """
+    out: list[str] = []
+    index = 0
+    state = "code"
+    while index < len(source):
+        char = source[index]
+        following = source[index + 1] if index + 1 < len(source) else ""
+        if state == "code":
+            if char == "/" and following == "/":
+                out.extend((" ", " "))
+                index += 2
+                state = "line-comment"
+                continue
+            if char == "/" and following == "*":
+                out.extend((" ", " "))
+                index += 2
+                state = "block-comment"
+                continue
+            if char in {"'", '"', "`"}:
+                out.append(" ")
+                index += 1
+                state = {"'": "single", '"': "double", "`": "template"}[char]
+                continue
+            out.append(char)
+            index += 1
+            continue
+        if state == "line-comment":
+            out.append("\n" if char == "\n" else " ")
+            index += 1
+            if char == "\n":
+                state = "code"
+            continue
+        if state == "block-comment":
+            if char == "*" and following == "/":
+                out.extend((" ", " "))
+                index += 2
+                state = "code"
+            else:
+                out.append("\n" if char == "\n" else " ")
+                index += 1
+            continue
+        quote = {"single": "'", "double": '"', "template": "`"}[state]
+        if char == "\\":
+            out.append(" ")
+            index += 1
+            if index < len(source):
+                escaped = source[index]
+                out.append("\n" if escaped == "\n" else " ")
+                index += 1
+            continue
+        out.append("\n" if char == "\n" else " ")
+        index += 1
+        if char == quote:
+            state = "code"
+    return "".join(out)
+
+
+def _top_level_line_indexes(masked_lines: list[str]) -> set[int]:
+    depth = 0
+    top_level: set[int] = set()
+    for index, line in enumerate(masked_lines):
+        if depth == 0:
+            top_level.add(index)
+        depth += line.count("{") - line.count("}")
+        depth = max(depth, 0)
+    return top_level
+
+
+def _typescript_has_docstring(source_lines: list[str], declaration_line: int) -> bool:
+    index = declaration_line - 1
+    while index >= 0 and not source_lines[index].strip():
+        index -= 1
+    if index < 0 or "*/" not in source_lines[index]:
+        return False
+    while index >= 0:
+        if "/**" in source_lines[index]:
+            return True
+        if "/*" in source_lines[index]:
+            return False
+        index -= 1
+    return False
+
+
+def _typescript_declaration_end(masked_lines: list[str], start: int, kind: str) -> int:
+    """Return a conservative, line-based lexical span end for ranking only."""
+    block_kinds = {"class", "enum", "function", "interface", "namespace"}
+    depth = 0
+    opened = False
+    for index in range(start, len(masked_lines)):
+        line = masked_lines[index]
+        if kind in block_kinds:
+            for char in line:
+                if char == "{":
+                    depth += 1
+                    opened = True
+                elif char == "}" and opened:
+                    depth -= 1
+            if opened and depth <= 0:
+                return index
+        elif ";" in line:
+            return index
+        elif index > start and not line.strip():
+            return index - 1
+    return start if not opened and kind in block_kinds else len(masked_lines) - 1
+
+
+def _typescript_direct_export(line: str) -> tuple[str, str] | None:
+    for kind, pattern in TS_DIRECT_EXPORTS:
+        match = pattern.match(line)
+        if match:
+            return kind, match.group("name")
+    return None
+
+
+def _typescript_export_statement(source_lines: list[str], start: int) -> str:
+    pieces: list[str] = []
+    for line in source_lines[start:]:
+        pieces.append(line.strip())
+        if ";" in line:
+            break
+    return " ".join(pieces).rstrip(";").strip()
+
+
+def _inventory_typescript_file(
+    path: Path, file_rel: Path
+) -> tuple[list[dict[str, Any]], int, list[dict[str, Any]]]:
+    source = _read_source(path)
+    if source is None:
+        return [], 0, []
+    source_lines = source.splitlines()
+    masked_lines = _mask_typescript_noncode(source).splitlines()
+    public: list[dict[str, Any]] = []
+    unexplained: list[dict[str, Any]] = []
+    total = 0
+    for index in sorted(_top_level_line_indexes(masked_lines)):
+        masked_line = masked_lines[index]
+        direct = _typescript_direct_export(masked_line)
+        if direct is not None:
+            kind, name = direct
+            total += 1
+            end = _typescript_declaration_end(masked_lines, index, kind)
+            segment = "\n".join(masked_lines[index : end + 1])
+            public.append(
+                _build_entry(
+                    file_rel=file_rel,
+                    symbol=name,
+                    kind=kind,
+                    lineno=index + 1,
+                    loc=max(1, end - index + 1),
+                    branch_count=len(TS_BRANCH_RE.findall(segment)),
+                    has_docstring=_typescript_has_docstring(source_lines, index),
+                )
+            )
+            continue
+        if TS_UNRESOLVED_EXPORT_RE.match(masked_line):
+            total += 1
+            statement = _typescript_export_statement(source_lines, index)
+            unexplained.append(
+                {
+                    "file": str(file_rel),
+                    "symbol": statement,
+                    "kind": "unresolved-export",
+                    "lineno": index + 1,
+                    "reason": "TypeScript v1 does not resolve export aliases or re-exports.",
+                }
+            )
+            continue
+        if re.match(
+            rf"^\s*(?:declare\s+)?(?:async\s+)?function\s+{TS_IDENTIFIER}\b|^\s*(?:abstract\s+)?class\s+{TS_IDENTIFIER}\b|^\s*(?:const|let|var)\s+{TS_IDENTIFIER}\b",
+            masked_line,
+        ):
+            total += 1
+    return public, total, unexplained
+
+
+def _is_ignored(path: Path, target: Path) -> bool:
+    try:
+        relative = path.relative_to(target)
+    except ValueError:
+        return False
+    parts = relative.parts
+    if any(part.casefold() in IGNORED_DIRECTORY_NAMES for part in parts[:-1]):
+        return True
+    name = path.name.casefold()
+    return (
+        TEST_FILE_RE.search(name) is not None
+        or name.endswith(".d.ts")
+        or ".generated." in name
+        or name.startswith("generated_")
+    )
+
+
+def _collect_files(target: Path) -> list[Path]:
+    if target.is_file():
+        return [target] if target.suffix.casefold() in SOURCE_SUFFIXES else []
+    if not target.is_dir():
+        return []
+    return [
+        path
+        for path in sorted(target.rglob("*"))
+        if path.is_file()
+        and path.suffix.casefold() in SOURCE_SUFFIXES
+        and not _is_ignored(path, target)
+    ]
+
+
+def _display_path(path: Path, repo_root: Path) -> Path:
+    try:
+        return path.relative_to(repo_root)
+    except ValueError:
+        return path
 
 
 def _resolve_collisions(entries: list[dict[str, Any]]) -> None:
-    """If two entries share the same `symbol_key`, append the full symbol
-    to disambiguate. Mutates in place."""
     counts: dict[str, int] = {}
-    for e in entries:
-        counts[e["symbol_key"]] = counts.get(e["symbol_key"], 0) + 1
-    for e in entries:
-        if counts[e["symbol_key"]] > 1:
-            # Append the qualified symbol (dot-replaced) so the key stays
-            # filesystem-safe.
-            suffix = e["symbol"].replace(".", "_")
-            e["symbol_key"] = f"{e['symbol_key']}__{suffix}"
+    for entry in entries:
+        key = entry["symbol_key"]
+        counts[key] = counts.get(key, 0) + 1
+    for entry in entries:
+        if counts[entry["symbol_key"]] > 1:
+            entry["symbol_key"] = f"{entry['symbol_key']}__{entry['symbol'].replace('.', '_')}"
 
 
-def _collect_files(target: Path, repo_root: Path) -> list[Path]:
-    """Return a list of `*.py` files to inventory.
-
-    - Single file: [target]
-    - Directory: every `*.py` under target excluding `__pycache__/`,
-      `migrations/`, and tests.
-    """
-    if target.is_file():
-        if target.suffix != ".py":
-            return []
-        return [target]
-    if target.is_dir():
-        files: list[Path] = []
-        for p in sorted(target.rglob("*.py")):
-            parts = set(p.relative_to(target).parts)
-            if "__pycache__" in parts or "migrations" in parts:
-                continue
-            # Skip test files — they're not public surface.
-            if p.name.startswith("tests_") or p.name.startswith("test_"):
-                continue
-            files.append(p)
-        return files
-    return []
-
-
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--target", required=True, type=Path, help="File or directory")
+    parser.add_argument("--target", required=True, type=Path, help="Python, TS, or TSX file/directory")
     parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument(
-        "--max",
-        type=int,
-        default=15,
-        help="Max annotated symbols (budget cap; default 15)",
-    )
+    parser.add_argument("--max", type=int, default=15, help="Max annotations (default: 15)")
     parser.add_argument(
         "--repo-root",
         type=Path,
         default=Path.cwd(),
-        help="Repo root for computing file paths (default: cwd)",
+        help="Root used for stable relative file names (default: cwd)",
     )
-    args = parser.parse_args()
-
-    if not args.target.exists():
+    args = parser.parse_args(argv)
+    target_arg = str(args.target)
+    target = args.target.resolve()
+    repo_root = args.repo_root.resolve()
+    if not target.exists():
         print(f"error: target not found: {args.target}", file=sys.stderr)
         return 1
-
-    files = _collect_files(args.target, args.repo_root)
+    files = _collect_files(target)
     if not files:
-        print(f"error: no Python files under {args.target}", file=sys.stderr)
+        print(f"error: no supported source files under {args.target}", file=sys.stderr)
         return 1
 
     all_public: list[dict[str, Any]] = []
+    all_unexplained: list[dict[str, Any]] = []
     total_symbols = 0
-    for f in files:
-        entries, file_total = _inventory_file(f, args.repo_root)
-        all_public.extend(entries)
-        total_symbols += file_total
-
+    languages: set[str] = set()
+    for path in files:
+        file_rel = _display_path(path, repo_root)
+        if path.suffix.casefold() == ".py":
+            entries, file_total = _inventory_python_file(path, file_rel)
+            languages.add("python")
+            all_public.extend(entries)
+            total_symbols += file_total
+        else:
+            entries, file_total, unresolved = _inventory_typescript_file(path, file_rel)
+            languages.add("typescript")
+            all_public.extend(entries)
+            total_symbols += file_total
+            all_unexplained.extend(unresolved)
     if not all_public:
         print(f"error: no public symbols in {args.target}", file=sys.stderr)
         return 1
 
     _resolve_collisions(all_public)
-    all_public.sort(key=lambda e: e["rank_score"], reverse=True)
-
+    all_public.sort(key=lambda entry: (-entry["rank_score"], entry["file"], entry["lineno"], entry["symbol"]))
+    all_unexplained.sort(key=lambda entry: (entry["file"], entry["lineno"], entry["symbol"]))
     budget = max(1, args.max)
     selected = all_public[:budget]
-    overflow = [
-        {
-            "symbol_key": e["symbol_key"],
-            "file": e["file"],
-            "symbol": e["symbol"],
-            "reason": "budget-cap",
-        }
-        for e in all_public[budget:]
-    ]
-
     payload = {
-        "target": str(args.target),
-        "files": [str(f.relative_to(args.repo_root)) if f.is_absolute() else str(f) for f in files],
+        "schema_version": 1,
+        "language": next(iter(languages)) if len(languages) == 1 else "mixed",
+        "target": target_arg,
+        "files": [str(_display_path(path, repo_root)) for path in files],
         "symbol_count_total": total_symbols,
         "public_symbol_count": len(all_public),
         "max": budget,
         "targets": selected,
-        "overflow": overflow,
+        "overflow": [
+            {
+                "symbol_key": entry["symbol_key"],
+                "file": entry["file"],
+                "symbol": entry["symbol"],
+                "reason": "budget-cap",
+            }
+            for entry in all_public[budget:]
+        ],
+        "unexplained": all_unexplained,
     }
-
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    try:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    except OSError as exc:
+        print(f"error: cannot write {args.output}: {exc}", file=sys.stderr)
+        return 2
     print(
-        f"wrote {args.output}: {len(selected)} annotated / "
-        f"{len(all_public)} public / {total_symbols} total"
+        f"wrote {args.output}: {len(selected)} annotated / {len(all_public)} public / "
+        f"{total_symbols} total / {len(all_unexplained)} unresolved exports"
     )
     return 0
 
