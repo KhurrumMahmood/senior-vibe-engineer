@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -69,6 +70,35 @@ def _run_native_package_checks(host: Path) -> None:
         ["npm", "test"], cwd=host, capture_output=True, text=True, check=False,
     )
     assert native_test.returncode == 0, native_test.stdout + native_test.stderr
+
+
+def _install_stock_codex_skill(host: Path) -> Path:
+    install = subprocess.run(
+        [
+            "npx",
+            "--yes",
+            "skills@1.5.19",
+            "add",
+            str(REPO_ROOT),
+            "--skill",
+            "adapt-project",
+            "--agent",
+            "codex",
+            "--copy",
+            "-y",
+        ],
+        cwd=host,
+        env={**os.environ, "DO_NOT_TRACK": "1"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert install.returncode == 0, install.stdout + install.stderr
+    installed = host / ".agents" / "skills" / "adapt-project"
+    assert installed.is_dir()
+    assert {path.name for path in (host / ".agents" / "skills").iterdir()} == {"adapt-project"}
+    assert not installed.resolve().is_relative_to(REPO_ROOT.resolve())
+    return installed
 
 
 def _discover(skill_root: Path, host: Path, artifacts: Path, *, cwd: Path) -> tuple[dict, Path]:
@@ -177,8 +207,7 @@ def test_type_script_size_boundary_and_exclusion_only_root_do_not_raise_large_so
 def test_copied_agents_install_is_isolated_and_writes_adapter_report_and_evidence(tmp_path: Path) -> None:
     host = tmp_path / "typescript-host"
     _seed_typescript_host(host, source_files=201, excluded_files=25)
-    installed = host / ".agents" / "skills" / "adapt-project"
-    shutil.copytree(SKILL_ROOT, installed)
+    installed = _install_stock_codex_skill(host)
     artifacts = tmp_path / "artifacts"
 
     adapter, scan_dir = _discover(installed, host, artifacts, cwd=tmp_path)
