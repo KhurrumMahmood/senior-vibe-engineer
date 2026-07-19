@@ -1,6 +1,6 @@
 # TypeScript-first skill batch plan
 
-Status: B0 complete; B1 and B2P ready for isolated worktrees
+Status: B0 and B3 complete; B1 and B2P ready for isolated worktrees
 
 This tracker turns the second product goal—genuine multi-language support,
 beginning with TypeScript—into agent-sized units. It does not reopen installer
@@ -171,6 +171,55 @@ Unknown values are explicit `null` or empty arrays. In particular, no shared
 abstraction is extracted when `reuse_decision.actual_second_consumer` is
 `null`. Copy `.claude/tasks/multilanguage-learning-template.json` rather than
 inventing a new per-batch shape.
+
+## Pilot-derived implementation guidance
+
+B3 is the reference procedure for parallel TypeScript conversions. It is a
+process template, not a shared parser design. Give each implementing agent the
+following ordered loop and require evidence at every boundary:
+
+1. **Freeze the outcome before choosing a tool.** Name the final report,
+   proposal, change, or guard a user will receive; distinguish deterministic
+   facts from agent judgment; list Python/framework modes excluded from TS v1.
+2. **Prove the reference path.** Add or lock Python positive, clean, and
+   must-not-fire fixtures. Repair discovered reference defects before copying
+   behavior. B3's stale contract and source-tree-only imports would otherwise
+   have been reproduced as “TypeScript support.”
+3. **Write the TypeScript outcome test red.** Include a positive, negative,
+   must-not-fire, and final-artifact assertion. A parser/symbol unit test alone
+   is not the acceptance test. Capture the red transcript before production
+   edits.
+4. **Prove selected-skill closure immediately.** Copy only the owned skill to
+   a directory outside the checkout and run it with isolated host tools. Do
+   this before polishing shared infrastructure. B3 exposed repository
+   `_common` imports and an external guard owner at this step.
+5. **Use the least semantic tool that can prove the accepted outcome.** B3's
+   lexical invariant needed suffix and typed-signature handling, not a TS
+   compiler. State/dormancy/resolved-import work must use compiler facts rather
+   than stretching this regex approach.
+6. **Keep detection and enforcement consistent without conflating them.** A
+   guard may block a reasoned subset of advisory detector records. Put reusable
+   enforcement inside the installed closure and make repository wiring thin.
+7. **Exercise real repository shapes.** Include hidden ancestors, generated
+   and test exclusions, TSX, typed arrows/functions, and host invocation from a
+   different cwd. Apply skip rules relative to the requested target, not the
+   toolkit's absolute parent path.
+8. **Run a fresh forward test.** Give a non-context agent only the installed
+   skill, raw fixture, and natural task. It must produce and interpret the
+   final user artifact without being told the expected diagnosis.
+9. **Extract evidence, not speculative abstractions.** Write both learning
+   files, name exact code that could be reused, and keep it family-local until
+   an actual second consumer demonstrates the same contract.
+10. **Review against the ordered product goals.** Reject metadata-only ports,
+    source-checkout-only success, platform expansion without a batch outcome,
+    and any review request that does not materially improve installability,
+    TypeScript usefulness, or later measurable UX.
+
+Parallel lanes own only their skill directories, namespaced fixtures/tests,
+and learning files. If two candidates need a shared adapter, catalog, root
+dependency, installer behavior, or global lint wiring, they are not safe
+parallel edits: each lane records its proposed interface and the serial
+integrator resolves it after both evidence packets are reviewed.
 
 ## Ordered batch map
 
@@ -346,14 +395,15 @@ Acceptance:
 
 ### B3 — TypeScript comment hygiene
 
-State: `ready` — may run parallel with B2P; no parser dependency
+State: `complete` on `codex/productization-restart`
 
 Skill and guard: `find-comment-drift` plus its shared enforcement consumer
 `scripts/lint/no_comment_drift.py`.
 
 Invariant: the advisory scan and diff guard agree about useful comments,
-docstrings, JSDoc, and template comments. Current suffix handling covers
-`.py/.js/.html`, not `.ts/.tsx`.
+docstrings, JSDoc, and template comments. The pre-pilot baseline covered
+`.py/.js/.html`; B3 adds `.jsx/.ts/.tsx` through the final lint runner and
+pre-commit invocation path as well as the detector.
 
 Owned paths: the skill directory, comment lint, B3 fixtures/tests and learning
 files. Router-catalog regeneration remains integrator owned.
@@ -366,16 +416,17 @@ selected skill can invoke `scripts/guard.py` directly without repository
 
 Acceptance:
 
-- [ ] Must-fire fixtures include a typed exported/async function and typed
+- [x] Must-fire fixtures include a typed exported/async function and typed
   arrow handler with narration or thin JSDoc.
-- [ ] Useful typed JSDoc stays clean; an ordinary TSX component does not become
+- [x] Useful typed JSDoc stays clean; an ordinary TSX component does not become
   a JSDoc candidate merely because it contains JSX.
-- [ ] Detector and lint return the same TS/TSX findings while preserving the
-  existing Python/JS/HTML good/bad smoke behavior.
-- [ ] A copy containing only the installed `find-comment-drift` directory runs
+- [x] The lint's blocking subset is derived from the same detector records for
+  TS/TSX, while advisory-only records stay non-blocking and the existing
+  Python/JS/HTML good/bad smoke behavior is preserved.
+- [x] A copy containing only the installed `find-comment-drift` directory runs
   both its detector and `scripts/guard.py` against TS/TSX fixtures outside the
   source checkout.
-- [ ] D1–D8 pass; D4 uses detector/guard red-green evidence rather than a code
+- [x] D1–D8 pass; D4 uses detector/guard red-green evidence rather than a code
   mutation.
 
 ### B4 — First-class TypeScript omnibus detection
@@ -468,6 +519,48 @@ consumer before batching. Apparent chains such as omnibus→refactor,
 duplication→unify, folder-topology→move, and concept-divergence→rename are not
 ready merely because their verbs line up.
 
+#### Clarified candidate contracts
+
+Three fresh non-context review lanes inspected the 14 skills against their
+actual scripts, fixtures, contracts, installed closure, and downstream
+consumer. The result is intentionally not a new mega-batch. Each row below is
+the minimum honest TypeScript v1 and the evidence required before its state may
+move from `candidate` to `ready`.
+
+| Candidate | Minimum honest TypeScript v1 | Tooling / prerequisite gate | Promotion oracle and definition of done |
+|---|---|---|---|
+| `explain-code` | Produce the complete explanation document and sidecars for direct explicit top-level exports; unresolved aliases/re-exports remain visibly unexplained. | Freeze a Python `targets.json` reference oracle. A lexical export collector is allowed; no resolver claim. | Positive exported branchy symbols, private/test must-not-fire cases, final explanation with honest unexplained region, copied-install run, and fresh-agent outcome. |
+| `find-complexity-hotspots` | Advisory syntactic TS function-body complexity only: nesting and branch score. Exclude ORM, React/Node, and receiver-type claims. | A proven family-local TypeScript body AST; type checker only if a later contract claims container/API identity. | Existing six-band Python oracle stays green; locked TS positive/clean/must-not-fire fixture produces the final report; copied closure and forward test pass. Keep separate from incomplete-sweep. |
+| `find-dormant` | Report statically unreferenced, non-exported TS implementation candidates for human review; never infer safe deletion. Exclude routes/endpoints/error swallowing. | Project-local Compiler API `Program`/`TypeChecker` and resolvable `tsconfig`; dynamic/external reachability stays a judgment boundary. | Unreferenced private must fire; direct references and exported APIs stay clean; registry/event/framework shapes are must-not-fire; no result is `certain_delete` from static evidence alone. |
+| `find-duplication` | Report lexical/near-lexical TS clone clusters with reliable source spans and enclosing symbols; never claim consolidation is safe. | Family-local jscpd invocation plus a TS span-to-symbol mapper and deterministic/offline dependency resolution. | One real typed clone cluster, behaviorally different negative pair, generated/test/declaration/overload must-not-fire corpus, final `triage.md`/JSON, and copied-install replay. |
+| `find-folder-topology-drift` | A narrow lexical TS flat-prefix cluster under declared source roots only. No package-demotion, Next/pages, or barrel claim. | First freeze a repository-neutral TS folder policy: prefixes, source roots, test colocation, generated/vendor exclusions, and barrel treatment. | Exactly one three-sibling positive cluster; two siblings, tests, `index.ts`, generated/vendor stay clean; final report only claims `flat_prefix_cluster`; copied closure passes. |
+| `find-incomplete-sweep` | Do not promote a lexical approximation. A TS sweep groups resolved call sites and options/property presence, then produces scout packets and explicit human verdicts. | Compiler program/resolution for callees, aliases, spreads, overloads, defaults, and Git trajectory; first freeze the final `triaged.md` writer/oracle. | Full candidate→packet→verdict→triage journey on a locked fixture, framework APIs explicitly excluded, installed closure, and fresh forward result. Keep separate from complexity. |
+| `find-semantic-duplication` | Function-level, typed TS candidates only; output confirmed/uncertain/rejected triage plus capability matrix. No workflow/structural claim. | Compiler `Program`/`TypeChecker` and direct-call resolution. First repair missing `end_line`, unused workflow/artifact inventories, and `uncertain` filtering in the Python reference path. | Same-outcome/different-code positive, caller→callee and lexical-clone negatives, protocol/test-double/divergent-policy must-not-fire cases, final triage, copied closure, and forward scout. |
+| `find-standard-gaps` | One concrete TS standard with explicit unsupported and mixed-language behavior; the declared standards file remains the durable user artifact. | Choose the host standard first. Lexical grep can enumerate candidates only; structural/API standards need TS AST and often type resolution. | Add the actual config plus positive/negative/must-not-fire fixtures, final `coverage.md`/JSON, honest unsupported states, copied closure, and forward test. Do not build a generic detector platform first. |
+| `map-subsystem` | Complete TS subsystem map only: exported surface, resolved inbound/outbound imports, workflow participation, and applicable compliance. A partial lexical inventory must not masquerade as the artifact. | Named `tsconfig`/project-reference/alias resolver and TS lint policy. | Multi-file direct+alias import fixture, test/generated/vendor exclusions, accurate final map counts and unavailable fields, copied closure, and forward outcome. |
+| `move-path` | Deterministic TS/TSX path/text move with Markdown/HTML/config/reference rewrites; explicitly ignore source imports and expose that risk. | Decide self-contained JSON plan versus bundled PyYAML. No parser is needed until import-safe moves are claimed. | Extend the strong existing move oracle with standalone TS file, docs/config references, external/prose/import must-not-fire cases, explicit ignored-import report, `tsc --noEmit`, and copied-install replay. First near-term candidate. |
+| `propose-boundary` | Proposal from a resolved TS symbol/import/call graph, including public API, compatibility/barrel plan, caller impact, and characterization tests. | `tsconfig` resolver plus ES-module/barrel compatibility decision. First reconcile documented versus implemented graph/scoring schema. | Two-domain cross-private fixture must fire; cohesive/unresolved cases defer; final proposal cites resolved evidence and native test/typecheck command; copied closure and forward test pass. |
+| `propose-folder-reorganization` | One TS cluster proposal with complete resolved import-impact table, tree/move/test plan, and compatibility decision. | TS module-specifier resolver plus `index.ts`/subpath/test convention. It is not automatically batched with detector or mover. | Direct relative+alias importer positive; below-threshold/scratch/unresolved cases stay clean or explicitly block; final proposal and native verification plus copied closure. |
+| `rename-concept` | Assessment-only TS/TSX lifecycle report: lexical retired prose plus resolved identifier completeness; no codemod claim. | B1 must first make `find-concept-divergence` TS/TSX-correct and self-contained. Identifier completeness later needs language-service references and `tsc --noEmit`. | Genuine old→new TS/TSX fixture, positive/clean/prose/identifier must-not-fire cases, TS guard-recognition contract, persistent structured assessment, copied closure, and forward test. |
+| `unify-shadows` | Consume one confirmed structured TS semantic finding and produce an evidence-cited proposal; `keep_separate_document_why` is a valid success. | Proven semantic report schema and explicit TS handoff. First add templates for all upstream result shapes and repair unknown-caller parsing/scope fallback. | Missing/unconfirmed/wrong-kind inputs fail before synthesis; keep-separate never emits a merge plan; final proposal includes caller impact, native test matrix, stop condition, human approval, and copied closure. |
+
+Cross-cutting decisions from this clarification:
+
+- `move-path` is the next plausible standalone candidate after B3 because its
+  narrow path/text contract needs no TypeScript parser. `explain-code` is the
+  next plausible lexical analysis pilot, but only after its Python oracle.
+- `map-subsystem`, `propose-boundary`, `propose-folder-reorganization`, and
+  import-safe `move-path` require a named `tsconfig`-aware module resolver.
+- `find-dormant`, `find-incomplete-sweep`, and `find-semantic-duplication`
+  require semantic compiler facts. The B3 lexical pilot does not justify that
+  platform.
+- `find-duplication`, `find-standard-gaps`, folder topology, and rename each
+  need independent outcome contracts; name adjacency does not establish a
+  shared batch.
+- All 14 currently fail the selected-skill installed-closure criterion. None
+  may claim TypeScript readiness merely because the source checkout can reach
+  repository helpers.
+
 ### Framework-specific; do not dispatch without a named stack (20)
 
 `extract-cotton-primitive`, `extract-state-type`,
@@ -507,3 +600,4 @@ corrected rather than treated as working framework neutrality.
 | 2026-07-18 | this planning commit | B0 inventory | Frontmatter census: 33 `any/any`, 5 `any/django`, 15 `python/any`, 23 `python/django`; 76 total. A mechanical disposition check found 31 + 1 + 10 + 14 + 20 = 76, with no omission or duplicate. Existing shared JS/TS adapter exposes only top-level-symbol capability and is explicitly a column-zero heuristic. |
 | 2026-07-18 | this planning commit | B0 independent lanes | Three fresh non-context Terra xhigh lanes independently reviewed detector families, mutation/guard chains, and tooling/installed closure. Their disagreement split the state work into B2P/B2T, kept the first TypeScript wrapper family-local, added the small B1/B3 batches, and moved unproven or framework-bound chains out of the dispatch queue. |
 | 2026-07-18 | this planning commit | B0 verification | Targeted baseline: 38 adapter, omnibus, perimeter, metadata, and router tests passed. The learning template parsed as JSON; `git diff --check` passed. A fresh goal-anchored adversarial review first found two real router-honesty defects; after adding explicit language-source/filtering rules, copied-router regressions, and withholding unearned omnibus/workflow claims, the reviewer returned PASS and reconfirmed exact 76-skill coverage. |
+| 2026-07-19 UTC | working tree on `codex/productization-restart` | B3 TypeScript comment hygiene | Red-green implementation added TS/TSX positive/clean fixtures, a skill-local stdlib closure, shared detector/guard ownership, root lint wrapper, pre-commit and `--all` invocation coverage, and final report assertions. Fresh installed forward test produced four useful TS findings and kept an ordinary TSX component clean. Targeted suite: 30 passed; smoke: 23 bad findings and good fixtures clean; metadata/catalog/Ruff/JSON/diff checks passed. Full suite: 415 passed, 1 skipped, with one unrelated pre-existing calendar-sensitive `test_triage_audit.py` failure (its fixed 2026-06-11 fixture is compared by the CLI to real current time; neither test nor implementation is in this diff). Adversarial re-review: PASS after it exposed and verified the pre-commit/runner repair. |

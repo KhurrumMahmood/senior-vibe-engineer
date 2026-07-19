@@ -73,7 +73,7 @@ repos:
         name: "comment-drift (comments and docstrings must stay aligned with code)"
         entry: python scripts/lint/run.py --rule comment-drift
         language: python
-        types_or: [python, javascript, html]
+        types_or: [python, javascript, jsx, ts, tsx, html]
 
       - id: codegen-emits-new-paths
         name: "codegen-emits-new-paths (codegen output stays on canonical paths)"

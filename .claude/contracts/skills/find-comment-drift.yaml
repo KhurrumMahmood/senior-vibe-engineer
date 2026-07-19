@@ -4,14 +4,15 @@ skill: find-comment-drift
 job: suspect
 problem_class: "comment / code drift detection (SUSPECT)"
 intent: >
-  Read-only stdlib scan that surfaces comments and docstrings likely to have
-  drifted from the code they describe (stale references to renamed symbols,
-  contradicted counts/paths, TODO/FIXME rot), ranked as advisory leads without
-  touching production files.
+  Read-only stdlib scan that surfaces likely comment, docstring, JSDoc, and
+  template-comment drift across Python, JavaScript/JSX, TypeScript/TSX, and
+  HTML. Its repository guard reuses the detector's narrower blocking subset;
+  all findings remain review leads rather than authorization to rewrite code.
 solves: >
-  Comments lie as code changes around them; there was no first-pass, repo-wide
-  lead list of where prose has drifted from behavior, so reviewers only caught
-  stale comments by accident during unrelated reads.
+  Comments lie as code changes around them, while AI-grown code also accumulates
+  narration, detached banners, ceremonial JSDoc, and brittle line references.
+  The shared detector gives reviewers and the guard one explicit first-pass
+  contract instead of divergent language-specific heuristics.
 born:
   commit: "90f8567"
   date: "2026-05-15"
@@ -44,10 +45,12 @@ provenance_confidence:
   temporal: low
   dogfood: high
 evidence:
-  - 'scan-surface declared via scans: frontmatter [python, javascript, templates] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
+  - 'scan-surface declared via scans: frontmatter [python, javascript, typescript, templates] (TypeScript/TSX pilot 2026-07-19 UTC) — the scan surface is part of the intent surface and audited by /find-perimeter-gaps'
   - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
   - "has_scripts: true / has_fixtures: true per es2_skill_facts.yaml — scanner + good/bad oracle both present (structural high)"
   - "reports/find-comment-drift/scan-20260516-020251 — one on-disk self-scan run on the ES2 tree (local, gitignored)"
   - "precedents.yml read-decode-safety.v1 names .claude/skills/find-comment-drift/scripts/detect.py as a scanner-skip exemplar"
+  - "tests/test_comment_drift_typescript.py proves TS/TSX must-fire and clean fixtures, detector/guard agreement, reasoned allow-listing, and copied-skill execution under isolated stdlib Python"
 gaps:
   - "Only one self-scan run on disk, but the fixtures pair is a real regression oracle, so dogfood is high on the oracle axis rather than on run count."
+  - "The JS/TS scanner is intentionally lexical: it does not resolve exports, types, aliases, or modules, so jsdoc_candidate remains advisory and ordinary TSX components are kept outside the candidate heuristic."

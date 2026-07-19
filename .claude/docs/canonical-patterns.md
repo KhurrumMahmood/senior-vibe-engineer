@@ -112,8 +112,11 @@ allow-list marker. See `linting.md` for the install/escape-valve mechanics and
 - **`comment-drift` / `scripts/lint/no_comment_drift.py`** — bad
   comments must not enter the live code surface. This blocks stale
   terminology, detached section banners, obvious narration comments,
-  noisy template section comments, and brittle line-number doc references.
-  It deliberately does **not** block thin-public-docstring or
+  noisy template section comments, and brittle line-number doc references in
+  Python, JavaScript/JSX, TypeScript/TSX, and HTML/template files. The
+  repository entry point is a thin wrapper around the detector and guard
+  bundled with `/find-comment-drift`. It deliberately does **not** block
+  thin-public-docstring or
   `jsdoc_candidate` findings; those stay advisory in `/find-comment-drift`
   so the skill can guide broader taste passes without making every commit
   a prose rewrite. Allow-list via `# noqa: comment-drift: <reason>` /

@@ -4,9 +4,9 @@ description: |
   Advisory SUSPECT scan for comments, docstrings, JSDoc, and template
   comments that have drifted from the code they are meant to clarify.
   Flags detached section banners, narration comments, missing or thin
-  public class docstrings, stale terminology, JavaScript functions that
-  deserve real JSDoc, thin ceremonial JSDoc, noisy HTML comments, and
-  fragile doc references.
+  public class docstrings, stale terminology, JavaScript and TypeScript
+  functions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML
+  comments, and fragile doc references.
 argument-hint: "[paths... - no paths uses the detector's legacy default surface]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -23,8 +23,8 @@ not_for: |
   exact prose style, or proving runtime behavior. Use targeted tests and
   existing lints for behavior and correctness.
 language: any
-framework: django
-scans: [python, javascript, templates]
+framework: any
+scans: [python, javascript, typescript, templates]
 ---
 
 # /find-comment-drift
@@ -36,10 +36,15 @@ missing natural JSDoc, and noisy template comments.
 
 This skill never edits code and never blocks commits. It writes findings
 under `reports/find-comment-drift/scan-<UTC>/` so a cleanup pass can use
-the report as a checklist. The commit-time `comment-drift` lint imports the
-same detector but fails only the bad-comment subset on the legacy
-site-workflow surface; JSDoc candidates and thin docstrings remain
-advisory here.
+the report as a checklist. The bundled `scripts/guard.py` and the repository
+`comment-drift` lint consume the same detector but fail only the bad-comment
+subset; JSDoc candidates and thin docstrings remain advisory here.
+
+The detector is language-neutral only within its declared lexical bands. It
+scans Python, JavaScript/JSX, TypeScript/TSX, and HTML/template comments. It
+does not use TypeScript type or module resolution, prove that a function is a
+public API, or require JSDoc for ordinary TSX components solely because they
+contain JSX.
 
 ## How success is judged
 
@@ -147,6 +152,21 @@ mkdir -p "$REPORT_DIR"
   --target ".claude/skills/find-comment-drift"
 ```
 
+When the selected skill has been copied outside the toolkit checkout, invoke
+the copied scripts with the host's Python 3.11+ interpreter. No repository
+`scripts/`, `_common`, toolkit venv, Node package, or network access is
+required:
+
+```
+python3 /path/to/find-comment-drift/scripts/detect.py \
+  --project-root "$PWD" \
+  --output /tmp/comment-drift.jsonl \
+  src
+python3 /path/to/find-comment-drift/scripts/guard.py \
+  --project-root "$PWD" \
+  src
+```
+
 If shell process substitution or symlinks are awkward in the current
 environment, create the directory with any equivalent safe command. The
 required artifacts are:
@@ -166,8 +186,9 @@ required artifacts are:
   too-short docstring.
 - `stale_comment_term`: comments/docstrings using stale terminology such
   as `SiteConfig`.
-- `jsdoc_candidate`: JavaScript functions, handlers, initializers, async
-  workflows, or global helpers that should have real JSDoc.
+- `jsdoc_candidate`: JavaScript or TypeScript functions, handlers,
+  initializers, async workflows, or global helpers that should have real
+  JSDoc. This is a lexical review lead, not proof of exported API status.
 - `thin_jsdoc_comment`: JSDoc exists, but it is too ceremonial to describe
   the useful parameter, return-value, side-effect, or workflow contract.
 - `noisy_html_comment`: Django/HTML comments that duplicate visible
@@ -183,9 +204,9 @@ Before trusting changes to the detector, run:
 .venv/bin/python .claude/skills/find-comment-drift/scripts/smoke.py
 ```
 
-The smoke test scans good/bad Python, JavaScript, and Django-template
-fixtures and asserts that every detector band has at least one bad
-fixture while the good fixtures stay clean.
+The smoke test scans good/bad Python, JavaScript, TypeScript, TSX, and
+HTML/template fixtures and asserts that every detector band has at least one
+bad fixture while the good fixtures stay clean.
 
 Use this smoke output as the replay case for detector or contract
 repairs. Paste the command output; do not summarize it as "smoke passed"

@@ -17,18 +17,14 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
 
-# KIT_ROOT anchors kit-relative imports ONLY (_common). Scanned paths anchor
-# on --project-root, which defaults to the git toplevel of the cwd (matching
-# the sibling detectors) — the kit may live in a different repo (ADR 0024).
-KIT_ROOT = Path(__file__).resolve().parents[4]
-COMMON_DIR = KIT_ROOT / ".claude" / "skills" / "_common"
-if str(COMMON_DIR) not in sys.path:
-    sys.path.insert(0, str(COMMON_DIR))
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
-from diff_resolution import resolve_project_root  # noqa: E402
-from product_topology import iter_files, relpath, write_jsonl  # noqa: E402
+from support import iter_files, relpath, resolve_project_root, write_jsonl  # noqa: E402
 
-SUFFIXES = (".py", ".js", ".html")
+SUFFIXES = (".py", ".js", ".jsx", ".ts", ".tsx", ".html")
+JAVASCRIPT_SUFFIXES = frozenset({".js", ".jsx", ".ts", ".tsx"})
 DEFAULT_TARGETS = (
     "app/pages/sites",
     "app/site_management",
@@ -86,7 +82,7 @@ STALE_TERM_RE = re.compile(
     r"\b(?:SiteConfig|Site Configuration|site configuration|site config)\b"
 )
 DOC_REF_RE = re.compile(
-    r"\b(?:L\d{2,}|line\s+\d{2,}|[A-Za-z0-9_./-]+\.(?:py|js|html):\d{1,5})\b",
+    r"\b(?:L\d{2,}|line\s+\d{2,}|[A-Za-z0-9_./-]+\.(?:py|js|jsx|ts|tsx|html):\d{1,5})\b",
     re.IGNORECASE,
 )
 NARRATION_RE = re.compile(
@@ -124,8 +120,9 @@ SECTION_LABEL_RE = re.compile(
     re.IGNORECASE,
 )
 JS_FUNCTION_RE = re.compile(
-    r"^\s*(?:export\s+)?(?:(?P<async1>async)\s+)?function\s+(?P<fn>[A-Za-z_$][\w$]*)\s*\("
-    r"|^\s*(?:export\s+)?(?:const|let|var)\s+(?P<const>[A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>|[A-Za-z_$][\w$]*\s*=>)"
+    r"^\s*(?:export\s+(?:default\s+)?)?(?:(?P<async1>async)\s+)?function\s+(?P<fn>[A-Za-z_$][\w$]*)\s*\("
+    r"|^\s*(?:export\s+)?(?:const|let|var)\s+(?P<const>[A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:"
+    r"function\b|\([^)]*\)\s*(?::\s*[^=\n]+?)?\s*=>|[A-Za-z_$][\w$]*\s*=>)"
     r"|^\s*window\.(?P<win>[A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?function\b"
 )
 JSDOC_NAME_RE = re.compile(
@@ -394,6 +391,7 @@ def extract_js_params(line: str) -> list[str]:
         if not param or param.startswith(("...", "{", "[")):
             continue
         param = param.split("=", 1)[0].strip()
+        param = param.split(":", 1)[0].strip().rstrip("?")
         if re.fullmatch(r"[A-Za-z_$][\w$]*", param):
             params.append(param)
     return params
@@ -587,7 +585,7 @@ def scan_files(files: Iterable[Path], project_root: Path) -> list[Finding]:
     for path in files:
         if path.suffix == ".py":
             findings.extend(scan_python(path, project_root))
-        elif path.suffix == ".js":
+        elif path.suffix.lower() in JAVASCRIPT_SUFFIXES:
             findings.extend(scan_javascript(path, project_root))
         elif path.suffix == ".html":
             findings.extend(scan_html(path, project_root))
