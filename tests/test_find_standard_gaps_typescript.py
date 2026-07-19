@@ -125,13 +125,17 @@ def test_mixed_python_and_typescript_sources_are_scanned_together(tmp_path: Path
         "import json\n\ndef unsafe(value):\n    return json.loads(value)\n",
         encoding="utf-8",
     )
+    (host / "src" / "legacy.js").write_text(
+        "export const unsafe = (value) => JSON.parse(value);\n",
+        encoding="utf-8",
+    )
     ideas = _write_ideas(
         host,
         {
             "kind": "ast",
             "call_matches": r"^(JSON\.parse|json\.loads)$",
             "enclosed_by": "try",
-            "paths": ["src/**/*.py", "src/**/*.ts", "src/**/*.tsx"],
+            "paths": ["src/**/*"],
         },
     )
     output = host / "reports" / "mixed"
@@ -140,14 +144,98 @@ def test_mixed_python_and_typescript_sources_are_scanned_together(tmp_path: Path
 
     assert result.returncode == 0, result.stdout + result.stderr
     finding = _result(output)
-    assert finding["status"] == "scanned"
+    assert finding["status"] == "partial"
     assert finding["scanned_files"] == 3
+    assert finding["skipped_files"] == 0
+    assert finding["unsupported_files"] == 1
+    assert finding["unsupported_extensions"] == [".js"]
     assert {(gap["file"], gap["line"]) for gap in finding["gaps"]} == {
         ("src/json.ts", 2),
         ("src/json.ts", 16),
         ("src/panel.tsx", 4),
         ("src/legacy.py", 4),
     }
+    report = (output / "coverage.md").read_text(encoding="utf-8")
+    assert "1 unsupported (.js)" in report
+    assert "not clean/compliant" in report
+    assert "PARTIAL" in result.stdout
+
+
+def test_direct_mixed_directory_target_never_marks_protected_python_plus_js_clean(
+    tmp_path: Path,
+) -> None:
+    host = tmp_path / "python-js-host"
+    source = host / "app"
+    source.mkdir(parents=True)
+    (source / "protected.py").write_text(
+        "import json\n\ndef safe(value):\n    try:\n        return json.loads(value)\n"
+        "    except ValueError:\n        return None\n",
+        encoding="utf-8",
+    )
+    (source / "unsafe.js").write_text(
+        "export const unsafe = (value) => JSON.parse(value);\n",
+        encoding="utf-8",
+    )
+    ideas = _write_ideas(
+        host,
+        {
+            "kind": "ast",
+            "call_matches": r"^(JSON\.parse|json\.loads)$",
+            "enclosed_by": "try",
+            "paths": ["app"],
+        },
+    )
+    output = host / "reports" / "direct-mixed-directory"
+
+    result = _scan(SKILL, host, ideas, output)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    finding = _result(output)
+    assert finding["status"] == "partial"
+    assert finding["scanned_files"] == 1
+    assert finding["skipped_files"] == 0
+    assert finding["unsupported_files"] == 1
+    assert finding["unsupported_extensions"] == [".js"]
+    assert finding["situation_sites"] == 1
+    assert finding["gaps"] == []
+    assert finding["coverage"] == 1.0
+    report = (output / "coverage.md").read_text(encoding="utf-8")
+    assert "1 unsupported (.js)" in report
+    assert "not clean/compliant" in report
+    assert "PARTIAL" in result.stdout
+
+
+def test_unsupported_extension_without_supported_files_is_language_unsupported(
+    tmp_path: Path,
+) -> None:
+    host = tmp_path / "javascript-host"
+    source = host / "app"
+    source.mkdir(parents=True)
+    (source / "unsafe.js").write_text(
+        "export const unsafe = (value) => JSON.parse(value);\n",
+        encoding="utf-8",
+    )
+    ideas = _write_ideas(
+        host,
+        {
+            "kind": "ast",
+            "call_matches": r"^JSON\.parse$",
+            "enclosed_by": "try",
+            "paths": ["app"],
+        },
+    )
+    output = host / "reports" / "javascript-only"
+
+    result = _scan(SKILL, host, ideas, output)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    finding = _result(output)
+    assert finding["status"] == "language_unsupported"
+    assert finding["matched"] == 1
+    assert finding["extensions"] == [".js"]
+    report = (output / "coverage.md").read_text(encoding="utf-8")
+    assert "language-unsupported" in report
+    assert "LANGUAGE-UNSUPPORTED" in result.stdout
 
 
 def test_python_requires_kwarg_behavior_stays_available_without_node(tmp_path: Path) -> None:

@@ -132,10 +132,13 @@ not pass, and its gap count must not be read as zero.
 - The **`grep` detector is cross-language** (it operates on text) — but
   comment/string-blind, so trust it for *enumerating* situations, not
   for deciding satisfaction.
-- When an `ast` standard's paths are another language, use a TS-unsupported
-  condition, or cannot satisfy the TS preflight, `scan_coverage.py` reports
-  `language_unsupported` — never a false "0 gaps". The orchestrator then
-  applies the **"When the target language or condition isn't supported"**
+- When an `ast` standard matches both supported Python/TS/TSX files and an
+  unsupported extension, `scan_coverage.py` retains the supported findings but
+  reports `partial`, with `unsupported_files` and
+  `unsupported_extensions`; it is never a false "0 gaps" pass. When no
+  supported files remain, when a TS-unsupported condition is used, or when the
+  TS preflight cannot run, it reports `language_unsupported`. The orchestrator
+  then applies the **"When the target language or condition isn't supported"**
   rule in `SKILL.md`: small surface → read it directly; large surface → build
   the detector tooling first.
 - The cross-language path is **tree-sitter** — one parsing library with
@@ -212,8 +215,10 @@ a real host project (2026-05-21):
   receiver identity, runtime globals, or framework conventions. It is a direct
   syntax detector, not a TypeScript linter or semantic API audit.
 - `scan_coverage.py` reports a per-standard status. **Only `scanned` is
-  a clean coverage result.** `partial` means one or more files were not read
-  or parsed; its gaps are triage evidence, not a compliance verdict.
+  a clean coverage result.** `partial` means one or more files were not read,
+  parsed, or had an unsupported extension; its gaps are triage evidence, not a
+  compliance verdict. `unsupported_files` and `unsupported_extensions` make
+  that unexamined surface explicit when supported findings are still reported.
   `gated_out` (activation thresholds not met), `no_files_matched` (a
   misconfigured glob), `language_unsupported`, and `error` all mean
   part or all of the surface went unexamined — never read them as "0 gaps =

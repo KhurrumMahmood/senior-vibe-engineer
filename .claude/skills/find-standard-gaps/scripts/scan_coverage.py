@@ -28,9 +28,10 @@ Per-standard status in the output:
                             detector — it is NOT scanned, NOT counted as
                             gaps, and is NEVER a "0 gaps" pass.
   - `scanned`             — fully ran; see gaps.
-  - `partial`             — some files could not be read/parsed. Findings
-                            are useful triage evidence but the standard is
-                            not clean/compliant.
+  - `partial`             — some files could not be read/parsed or had an
+                            unsupported extension. Findings from supported
+                            files are useful triage evidence but the standard
+                            is not clean/compliant.
   - `no_files_matched`    — the detector's `paths` matched nothing. A
                             misconfigured glob / project-root — NOT a
                             pass.
@@ -317,7 +318,9 @@ def run_ast_detector(root: Path, detector: dict):
     Possible result shapes: `{no_files}`, `{unsupported}`, or
     `{sites, gaps, scanned_files, skipped_files}`. A file that fails to
     read/parse — or whose traversal hits the recursion limit — is counted
-    as `skipped`, never silently folded into `scanned_files`.
+    as `skipped`, never silently folded into `scanned_files`. A matched file
+    with an unsupported extension is counted separately so the orchestrator
+    can report an otherwise useful supported-file scan as partial.
 
     Finds Call nodes whose dotted name matches `call_matches`, then checks
     one satisfaction condition — exactly one of `enclosed_by` (`try`|
@@ -351,12 +354,17 @@ def run_ast_detector(root: Path, detector: dict):
     py_files = [f for f in matched if f.suffix == ".py"]
     ts_candidates = [f for f in matched if f.suffix.lower() in TYPESCRIPT_SUFFIXES]
     ts_files = [f for f in ts_candidates if not _typescript_path_is_excluded(f, root)]
+    unsupported_files = [
+        f for f in matched
+        if f.suffix != ".py" and f.suffix.lower() not in TYPESCRIPT_SUFFIXES
+    ]
     if not py_files and not ts_files:
+        if unsupported_files:
+            exts = sorted({f.suffix.lower() or "<none>" for f in unsupported_files})
+            return {"unsupported": True, "matched": len(unsupported_files),
+                    "extensions": exts[:8]}, None
         if ts_candidates:
             return {"no_files": True, "excluded": True}, None
-        exts = sorted({f.suffix or "<none>" for f in matched})
-        return {"unsupported": True, "matched": len(matched),
-                "extensions": exts[:8]}, None
     if ts_files and requires_kwarg:
         return {"unsupported": True, "matched": len(ts_files),
                 "extensions": sorted({f.suffix.lower() for f in ts_files}),
@@ -468,8 +476,14 @@ def run_ast_detector(root: Path, detector: dict):
                 gaps.append(site)
     sites.sort(key=lambda site: (site["file"], site["line"], site["text"]))
     gaps.sort(key=lambda site: (site["file"], site["line"], site["text"]))
-    return {"sites": sites, "gaps": gaps,
-            "scanned_files": analyzed, "skipped_files": skipped}, None
+    result = {"sites": sites, "gaps": gaps,
+              "scanned_files": analyzed, "skipped_files": skipped}
+    if unsupported_files:
+        result["unsupported_files"] = len(unsupported_files)
+        result["unsupported_extensions"] = sorted(
+            {f.suffix.lower() or "<none>" for f in unsupported_files},
+        )
+    return result, None
 
 
 # --------------------------------------------------------------------------
@@ -513,12 +527,18 @@ def analyze_idea(root: Path, idea: dict, state: dict) -> dict:
                     "error": reason}
         sites, gaps = result["sites"], result["gaps"]
         skipped_files = result["skipped_files"]
-        return {**base, "status": "partial" if skipped_files else "scanned",
-                "scanned_files": result["scanned_files"],
-                "skipped_files": skipped_files,
-                "situation_sites": len(sites), "gaps": gaps,
-                "coverage": round((len(sites) - len(gaps)) / len(sites), 4)
-                if sites else None}
+        unsupported_files = result.get("unsupported_files", 0)
+        analyzed = {**base,
+                    "status": "partial" if skipped_files or unsupported_files else "scanned",
+                    "scanned_files": result["scanned_files"],
+                    "skipped_files": skipped_files,
+                    "situation_sites": len(sites), "gaps": gaps,
+                    "coverage": round((len(sites) - len(gaps)) / len(sites), 4)
+                    if sites else None}
+        if unsupported_files:
+            analyzed["unsupported_files"] = unsupported_files
+            analyzed["unsupported_extensions"] = result["unsupported_extensions"]
+        return analyzed
     if kind == "skill":
         return {**base, "status": "skipped",
                 "error": "detector kind 'skill' is not implemented in v1"}
@@ -554,7 +574,8 @@ def render_report(source: str, results: list[dict], state: dict) -> str:
           f"across {len(with_gaps)} standard(s)"]
     if partial:
         L.append(f"- ⚠ {len(partial)} standard(s) **partial** — one or more files "
-                 "could not be read or parsed; these are not clean/compliant results")
+                 "could not be read/parsed or had unsupported extensions; these are not "
+                 "clean/compliant results")
     if gated:
         L.append(f"- {len(gated)} standard(s) **gated out** — not in scope for "
                  f"`{state.get('maturity', '?')}/{state.get('stakes', '?')}`; "
@@ -593,11 +614,24 @@ def render_report(source: str, results: list[dict], state: dict) -> str:
             sites = r["situation_sites"]
             cov = "n/a" if not sites else f"{int(100 * (sites - len(r['gaps'])) / sites)}%"
             skipped = f", {r['skipped_files']} skipped" if r["skipped_files"] else ""
+            unsupported_files = r.get("unsupported_files", 0)
+            unsupported_display = (
+                f", {unsupported_files} unsupported "
+                f"({', '.join(r['unsupported_extensions'])})"
+                if unsupported_files else ""
+            )
             L.append(f"- detector: `{r['detector_kind']}` · "
                      f"{sites} situation site(s), **{len(r['gaps'])} gap(s)**, "
-                     f"coverage {cov} ({r['scanned_files']} files analyzed{skipped})")
+                     f"coverage {cov} ({r['scanned_files']} files analyzed{skipped}"
+                     f"{unsupported_display})")
             if r["status"] == "partial":
-                L.append("- ⚠ _partial: skipped files mean this result is not clean/compliant_")
+                causes = []
+                if r["skipped_files"]:
+                    causes.append("skipped files")
+                if unsupported_files:
+                    causes.append("unsupported extensions")
+                L.append("- ⚠ _partial: " + " and ".join(causes)
+                         + " mean this result is not clean/compliant_")
             for g in r["gaps"]:
                 L.append(f"  - `{g['file']}:{g['line']}` — {g['text']}")
         else:
@@ -684,9 +718,15 @@ def main() -> int:
           f"coverage gap(s)" + ("; " + ", ".join(flags) if flags else ""))
     for r in analyzed:
         skipped = f", {r['skipped_files']} skipped" if r["skipped_files"] else ""
+        unsupported_files = r.get("unsupported_files", 0)
+        unsupported_display = (
+            f", {unsupported_files} unsupported "
+            f"({', '.join(r['unsupported_extensions'])})"
+            if unsupported_files else ""
+        )
         status = "PARTIAL — " if r["status"] == "partial" else ""
         print(f"  {r['id']} [{r['detector_kind']}]: {status}{len(r['gaps'])} gap(s) "
-              f"of {r['situation_sites']} situation site(s){skipped}")
+              f"of {r['situation_sites']} situation site(s){skipped}{unsupported_display}")
     for r in gated:
         print(f"  {r['id']}: GATED OUT — {r['reason']}")
     for r in unsupported:

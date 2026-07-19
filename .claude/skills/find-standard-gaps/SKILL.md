@@ -73,9 +73,10 @@ work; there is no scout fan-out. The detector model (how `ast` and
 3. **A gap is not a verdict.** A flagged gap is high-confidence "the
    standard is not applied here" — not "this is a bug." Some gaps are
    deliberate exceptions. Triage is a fix-time decision.
-4. **A clean standard is a result.** A standard with 0 gaps and 0 skipped
-   files is a passing standard — it confirms the codebase upholds the rule,
-   and the scan becomes a regression guard if re-run.
+4. **A clean standard is a result.** A standard with 0 gaps, 0 skipped files,
+   and 0 unsupported matched files is a passing standard — it confirms the
+   codebase upholds the rule, and the scan becomes a regression guard if
+   re-run.
 
 ## Scope
 
@@ -206,8 +207,9 @@ record in `coverage.json`. Report to the user in ≤10 lines:
   outranks a style one);
 - standards that came back **clean** (`status: scanned`, 0 gaps) — name
   them, that is a positive result;
-- standards that were `partial` — name their skipped-file count separately;
-  their gaps are triage evidence, but the standard is not clean/compliant;
+- standards that were `partial` — name their skipped-file count and any
+  unsupported-file count/extensions separately; their gaps are triage evidence,
+  but the standard is not clean/compliant;
 - standards that were `gated_out`, `language_unsupported`,
   `no_files_matched`, `skipped`, or `error` — name them separately and
   do not count them as compliant;
@@ -254,6 +256,10 @@ unsupported condition as a clean scan. Missing Node, missing host-local
 are scanned together only for the shared `enclosed_by: "try"` contract.
 A per-file TS syntax/read failure produces `status: partial` with
 `skipped_files`; that is never clean/compliant even when its gap count is 0.
+When an `ast` path also matches an unsupported extension (for example `.js`),
+the scanner still reports findings from supported `.py`/`.ts`/`.tsx` files but
+returns `partial` with `unsupported_files` and `unsupported_extensions`.
+If no supported files remain, it returns `language_unsupported` instead.
 
 ## When the target language or condition isn't supported
 
@@ -306,7 +312,7 @@ deciding satisfaction.
 | A standard reports a huge gap count | The detector is too broad, or the situation regex matches non-code — tighten `call_matches`, or switch a `grep` standard to `ast` |
 | A `grep` standard flags comments/strings | Expected — `grep` is comment/string-blind. Convert it to an `ast` detector |
 | 0 standards fully scanned | Check `coverage.json`: entries may be `partial`, `gated_out`, `manual`/`skill`, `no_files_matched`, or `error`. Report the actual statuses |
-| `partial` | Report skipped-file count and parser/read boundary. Do not call 0 gaps compliant; repair the source or scanner and re-run |
+| `partial` | Report skipped-file count plus unsupported-file count/extensions when present. Do not call 0 gaps compliant; repair the source, narrow the paths, or extend the scanner and re-run |
 | `no_files_matched` | Treat as a misconfigured glob or wrong project root, not as compliance |
 | `language_unsupported` | Check the reported reason (unsupported language/condition or missing TS prerequisite), then apply the unsupported branch above |
 | A gap is a deliberate exception | Not a tool failure — note it at fix time; a future `--allow` list could record approved exceptions |
