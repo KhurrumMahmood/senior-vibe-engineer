@@ -1,0 +1,93 @@
+{
+  "batch": "explain-code-typescript",
+  "revision": "0103a9e",
+  "family": ["explain-code"],
+  "invariant": {
+    "portable_principle": "A durable explanation document must cover every selected direct public symbol and visibly preserve behavior that cannot honestly be explained.",
+    "python_or_framework_mechanism": "Python AST public-symbol inventory, including __all__, class methods, AST branch count, and docstrings; no Django behavior is part of this batch.",
+    "typescript_mechanism": "Masked lexical collection of named direct top-level TypeScript/TSX exports, with a scout-backed renderer for the explanation document and sidecars.",
+    "explicit_non_goals": [
+      "TypeScript module resolution, import resolution, barrels, aliases, default expressions, or caller/type-checker facts",
+      "React, Node, or other framework behavior",
+      "Mutation, proposed change, guard, generic parser platform, executor, or evaluator"
+    ]
+  },
+  "reference_repairs": [
+    {
+      "issue": "The copied Python inventory imported repository-level scripts/_lib/lang_adapter and failed under python -I -S.",
+      "repair": "Restored a stdlib-only Python AST path and froze tests/fixtures/explain-code-typescript/python-oracle/expected-targets.json.",
+      "evidence": "The copied Python oracle test now passes under isolated Python."
+    }
+  ],
+  "language_model": {
+    "syntax": ["Named direct top-level export function/class/enum/interface/type/namespace/variable declarations in .ts and .tsx."],
+    "type_system": ["No type-checker facts are claimed; exported types/interfaces are inventory targets only."],
+    "module_resolution": ["None. export aliases, export stars, and default expressions become visible unresolved records."],
+    "runtime": ["Stdlib Python collector and renderer run with isolated host Python; no Node execution."],
+    "framework": ["None; test/generated/declaration/vendor/build/node_modules descendants are excluded relative to the target."]
+  },
+  "tooling": {
+    "selected": "Family-local masked lexical collector plus family-local annotation renderer.",
+    "rejected_alternatives": {
+      "typescript_compiler_api": "Not needed for direct named exports and would add an undeclared install dependency plus an unearned resolver claim.",
+      "bare_regular_expression": "Would misread comments/strings and has no honest unresolved-export path.",
+      "shared_language_adapter": "The only existing coupling broke copied installation; no second consumer justifies a shared seam."
+    },
+    "version_and_resolution": "No TypeScript package or parser is installed; Python stdlib only.",
+    "closure_mode": "Copied .claude/skills/explain-code invoked by python -I -S outside the checkout.",
+    "preflight_and_failure_codes": ["1 for missing/unsupported/no-public-symbol target", "2 for invocation, artifact-read, or artifact-write error"]
+  },
+  "outcome_contract": {
+    "inputs": ["A .py, .ts, .tsx file or directory target", "Scout annotations for each selected target", "A truthful human-authored summary"],
+    "structured_outputs": ["targets.json", "reports/explanations/<slug>.md", "annotations/<symbol>.md", "unexplained.txt", "surprises.txt"],
+    "must_fire": ["Direct exported branchy TypeScript function", "Direct exported typed arrow function", "Direct exported TSX function", "Alias/re-export entries as final-document unexplained regions"],
+    "must_not_fire": ["Private helper", "Test descendant", "Generated descendant", "Vendor descendant", "A requested target beneath a vendor-named ancestor"],
+    "native_test_command": ".venv/bin/python -m pytest -q tests/test_explain_code_typescript.py",
+    "native_guard_command": null
+  },
+  "evidence": {
+    "python_reference": ["Red before repair: copied skill failed with ModuleNotFoundError: _lib.", "Green oracle: tests/test_explain_code_typescript.py::test_python_targets_reference_oracle_is_stable_and_copyable."],
+    "typescript": ["tests/test_explain_code_typescript.py copies only the skill, runs inventory and renderer with python -I -S from an isolated host, and asserts the final doc, sidecars, stable JSON, exclusions, and source immutability.", "Ruff plus 18 targeted metadata/read-safety tests passed at 0103a9e."],
+    "commands_and_artifact_paths": [
+      ".venv/bin/ruff check .claude/skills/explain-code/scripts tests/test_explain_code_typescript.py",
+      ".venv/bin/python -m pytest -q tests/test_explain_code_typescript.py tests/test_skill_detector_reads.py tests/test_skill_taxonomy.py tests/test_yaml_frontmatter.py",
+      ".venv/bin/python scripts/skill_meta.py lint --quiet",
+      "git diff --check",
+      "tests/fixtures/explain-code-typescript/typescript-host"
+    ]
+  },
+  "false_positive_boundary": {
+    "known_false_positives": ["None in the locked fixture; comments/strings are masked before lexical matching."],
+    "known_false_negatives": ["Anonymous default exports", "multi-binding export declarations beyond the first binding", "resolved aliases/barrels and module-derived public surface"],
+    "legitimate_similar_shapes": ["Private helpers and public test/generated/vendor code stay out of targets; alias/re-export syntax remains unexplained instead of becoming a direct symbol."]
+  },
+  "generalized": ["The targets JSON schema, budget, scout artifact shape, renderer-owned sidecars, and source-immutability proof work for the Python reference and TypeScript v1."],
+  "did_not_generalize": ["Python AST semantics (__all__, methods, docstrings, branch nodes) and TypeScript export/TSX semantics remain variant-specific.", "Module resolution and caller discovery are not generalized from a lexical pilot."],
+  "reuse_decision": {
+    "shared_candidate": "Comment/string masking and annotation-to-sidecar rendering.",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": ["The prior shared-adapter dependency failed copied installation; no second accepted consumer has demonstrated an identical contract."],
+    "owner": "serial integrator only if a future second consumer proves the same contract"
+  },
+  "translation_prerequisites": {
+    "rust": {"native_tool": "syn or rust-analyzer", "idiomatic_representation": "pub items, modules, use re-exports", "required_fixtures": ["public branchy item", "private/test clean", "pub use unresolved/export case", "rendered final artifact"], "semantic_gaps": ["crate/module resolution"]},
+    "go": {"native_tool": "go/parser with go/types if export/package facts are claimed", "idiomatic_representation": "capitalized exported declarations and package imports", "required_fixtures": ["exported branchy function", "private/test clean", "package alias/re-export uncertainty", "rendered final artifact"], "semantic_gaps": ["package/module resolution"]},
+    "java_or_kotlin": {"native_tool": "compiler parser or language server", "idiomatic_representation": "public classes/methods, imports, re-exports where available", "required_fixtures": ["public branchy symbol", "private/test clean", "import/alias uncertainty", "rendered final artifact"], "semantic_gaps": ["overloads, inheritance, module resolution"]},
+    "csharp": {"native_tool": "Roslyn", "idiomatic_representation": "public members, namespaces, using aliases", "required_fixtures": ["public branchy member", "private/test clean", "using alias uncertainty", "rendered final artifact"], "semantic_gaps": ["partial classes, project references"]},
+    "ruby": {"native_tool": "Prism or Ripper", "idiomatic_representation": "public methods, constants, modules, require/autoload", "required_fixtures": ["public branchy method/constant", "private/test clean", "autoload/re-export uncertainty", "rendered final artifact"], "semantic_gaps": ["dynamic method visibility and load resolution"]}
+  },
+  "user_experience": {
+    "install_steps": ["Copy the selected skill", "Run its stdlib scripts with host Python; no Node, package manager, network, toolkit venv, or sibling skill is required."],
+    "wall_time_seconds": null,
+    "agent_confusions": ["The original frontmatter could only encode one language despite retaining a Python reference path; the batch advertises TypeScript until router metadata can model the two-path state."],
+    "repeated_work": ["The renderer turns required final-doc/sidecar assembly into a repeatable command rather than a manual synthesis checklist."],
+    "smallest_later_improvement": "Measure a catalog representation for a skill with a Python reference implementation and a narrowly earned TypeScript variant."
+  },
+  "residual_risks": ["Lexical spans can be incomplete for unusual multiline/type-heavy exports.", "No TypeScript module resolver exists by design.", "D6 fresh forward test is pending parent scheduling.", "The generated router catalog is stale until the serial integrator regenerates it; this lane is not authorized to edit it."],
+  "next_decision": {
+    "recommendation": "Wait for the D6 fresh installed-skill outcome, then integrate the catalog/frontmatter change serially and review the TypeScript-only eligibility.",
+    "rationale": "The accepted direct-export outcome has no need for a compiler API; a resolver should only be considered after a named tsconfig-backed consumer requires it.",
+    "blockers": ["Fresh D6 result", "serial-integrator router catalog regeneration"]
+  }
+}
