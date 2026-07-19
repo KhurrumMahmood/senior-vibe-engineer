@@ -22,6 +22,7 @@ import move_path  # noqa: E402
 
 ASSUMPTIONS = [
     "The move plan is the source of truth for old->new path identity.",
+    "The exact resolved move-plan file is an authority input and is excluded from residue findings.",
     "Bare top-level directory words are not residue unless they appear as path prefixes.",
     "Absolute POSIX and Windows-style paths are generated from the current project root.",
     "Matches are suggestions: historical/provenance references may be intentionally retained.",
@@ -50,7 +51,7 @@ def audit(
     moves: list[move_path.MoveSpec] = plan["_moves"]
     includes, excludes = move_path.plan_patterns(plan)
     excludes.extend(extra_excludes or [])
-    files = move_path.iter_scope_files(root, includes, excludes)
+    files = move_path.exclude_authority_file(move_path.iter_scope_files(root, includes, excludes), plan_path, root)
     tokens = move_path.path_residue_tokens(root, moves)
 
     findings: list[dict] = []

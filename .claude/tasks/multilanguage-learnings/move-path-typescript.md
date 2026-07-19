@@ -1,7 +1,7 @@
 # move-path TypeScript v1 learning report
 
-Installed forward-tested revision: `a4e73fe`, 2026-07-19 UTC. The repair
-revision that incorporates the resulting findings is reported at handoff.
+Installed forward-tested revision: `a4e73fe`, 2026-07-19 UTC. Second-review
+repair base: `e8e0488`. The final repair revision is reported at handoff.
 
 ## Outcome and invariant
 
@@ -27,7 +27,7 @@ an in-root JSON plan included by `**/*.json` could rewrite its own `from`
 field during apply, corrupting the operation's authority input and making the
 post-apply check meaningless. JSON is now stdlib-only, YAML is explicitly
 optional, and the exact resolved plan file is always excluded from reference
-rewrites.
+rewrites and residue-audit findings.
 
 The chosen tool is the existing family-local Python filesystem/path resolver
 plus a narrow static-import risk scan. No TypeScript compiler, parser,
@@ -37,6 +37,12 @@ recognizes common single-line and multiline static `import`/`export ... from`
 forms well enough to expose a move-target risk. It never proposes a replacement
 specifier: extension, leading `./`, package spelling, and compiler-mode choices
 remain unknown without TypeScript module resolution.
+
+NodeNext-style emitted specifiers need a small identity bridge even though
+imports stay untouched. When no real emitted file exists, `.js` may identify
+`.ts`/`.tsx`, `.mjs` may identify only `.mts`, and `.cjs` may identify only
+`.cts`. Exact runtime files win, cross-module-kind guesses stay unreported,
+and the report still proposes no replacement spelling.
 
 ## Fixture and execution evidence
 
@@ -61,6 +67,12 @@ remain unknown without TypeScript module resolution.
 - Import risk boundary: same-directory and moved-referrer cases expose target
   identity but keep `expected_specifier: null` with remediation unknown; a
   standard multiline `import { ... } from "./old"` is reported.
+- NodeNext boundary: emitted `.js`, `.mjs`, and `.cjs` relative specifiers
+  identify moved `.ts`/`.tsx`, `.mts`, and `.cts` sources respectively for
+  advisory risk. A real `.js` file and an `.mjs` -> `.cts` mismatch stay clean.
+- Residue authority guard: `audit_path_residue.py` excludes the exact in-root
+  plan, so its required `from` value is not misreported as stale operational
+  residue.
 - Copied install: the test copies only `move-path/`, invokes both executable
   scripts with `python -I -S` from an outside cwd, and uses a JSON plan. It
   passed without repository helpers, site packages, or network access.
@@ -72,10 +84,12 @@ Commands observed:
 ```text
 .venv/bin/python \
   -m pytest tests/test_move_path.py -q -k 'not standalone_typescript_fixture_typechecks_after_an_import_safe_move'
-# 17 passed, 1 deselected
+# 19 passed, 1 deselected
 
 .venv/bin/ruff check \
-  .claude/skills/move-path/scripts/move_path.py tests/test_move_path.py
+  .claude/skills/move-path/scripts/move_path.py \
+  .claude/skills/move-path/scripts/audit_path_residue.py \
+  tests/test_move_path.py
 # All checks passed!
 
 .venv/bin/python \
@@ -100,7 +114,7 @@ Failed: tsc --noEmit is required for the TypeScript native-typecheck acceptance 
 ```
 
 As a result, the full targeted test command is honestly incomplete here:
-`17 passed, 1 failed`. Re-run it in a host with an already-installed TypeScript
+`19 passed, 1 failed`. Re-run it in a host with an already-installed TypeScript
 compiler before accepting D4/D7.
 
 ## Fresh installed forward evidence
@@ -156,7 +170,9 @@ report before users apply a move.
 
 Residual risk: static import records intentionally under-detect unusual import
 syntax, aliases, package imports, dynamic imports, and TypeScript
-configuration. They are warnings, not a safe move authorization. Fresh
+configuration. The NodeNext bridge covers only conventional emitted/source
+suffix pairs and cannot prove package or compiler configuration. Findings are
+warnings, not a safe move authorization. Fresh
 installed forward evidence now exists; native typecheck remains pending until
 an environment provides `tsc`.
 
@@ -169,3 +185,5 @@ lane:
    typecheck acceptance test; do not add a network install step.
 3. Decide whether a future `tsconfig`-aware resolver is justified before any
    import-rewrite mode is exposed.
+4. Regenerate the shared catalog after accepting the branch, and reconcile the
+   current `shapes.yml` user journey with the skill's guaranteed JSON-plan path.

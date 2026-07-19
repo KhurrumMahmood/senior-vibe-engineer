@@ -52,8 +52,13 @@ TS_IMPORT_RE = re.compile(
     (?P<quote>[\"'])(?P<specifier>[^\"'\\\n]+)(?P=quote)
     """
 )
-TYPESCRIPT_SUFFIXES = (".ts", ".tsx")
+TYPESCRIPT_SUFFIXES = (".ts", ".tsx", ".mts", ".cts")
 TYPESCRIPT_MODULE_SUFFIXES = (".ts", ".tsx", ".d.ts")
+EMITTED_SPECIFIER_SOURCE_SUFFIXES = {
+    ".js": (".ts", ".tsx"),
+    ".mjs": (".mts",),
+    ".cjs": (".cts",),
+}
 
 
 @dataclasses.dataclass(frozen=True)
@@ -278,6 +283,15 @@ def iter_scope_files(root: Path, includes: list[str], excludes: list[str]) -> li
     return out
 
 
+def exclude_authority_file(files: list[str], authority_path: Path, root: Path) -> list[str]:
+    """Exclude an exact resolved authority input from text scans and rewrites."""
+    try:
+        authority_rel = repo_rel(authority_path, root)
+    except ValueError:
+        return files
+    return [rel for rel in files if rel != authority_rel]
+
+
 def iter_typescript_source_files(root: Path, excludes: list[str]) -> list[str]:
     """Collect TS/TSX import-risk sources even when text rewriting excludes them."""
     out: list[str] = []
@@ -462,7 +476,12 @@ def resolve_typescript_import(
     if resolved is None:
         return None
     candidates = [resolved]
-    if not resolved.endswith(TYPESCRIPT_MODULE_SUFFIXES):
+    emitted_suffix = Path(resolved).suffix.lower()
+    source_suffixes = EMITTED_SPECIFIER_SOURCE_SUFFIXES.get(emitted_suffix)
+    if source_suffixes is not None:
+        stem = resolved.removesuffix(emitted_suffix)
+        candidates.extend(stem + suffix for suffix in source_suffixes)
+    elif not resolved.endswith(TYPESCRIPT_MODULE_SUFFIXES):
         candidates.extend(resolved + suffix for suffix in TYPESCRIPT_MODULE_SUFFIXES)
         candidates.extend(resolved + "/index" + suffix for suffix in TYPESCRIPT_MODULE_SUFFIXES)
     for candidate in candidates:
@@ -1149,13 +1168,7 @@ def run_plan(
     code_import_mode(plan)
     moves: list[MoveSpec] = plan["_moves"]
     includes, excludes = plan_patterns(plan)
-    files = iter_scope_files(root, includes, excludes)
-    try:
-        plan_rel = repo_rel(plan_path, root)
-    except ValueError:
-        plan_rel = None
-    if plan_rel is not None:
-        files = [rel for rel in files if rel != plan_rel]
+    files = exclude_authority_file(iter_scope_files(root, includes, excludes), plan_path, root)
     ignored_code_imports = ignored_typescript_imports(root, iter_typescript_source_files(root, excludes), moves)
     if mode == "check":
         blocked = validate_applied_moves(root, moves)

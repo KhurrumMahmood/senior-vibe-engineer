@@ -626,6 +626,85 @@ def test_multiline_static_import_to_moved_typescript_file_is_reported(tmp_path):
     )
 
 
+def test_nodenext_emitted_specifiers_resolve_to_moved_typescript_sources_conservatively(tmp_path):
+    move_path = _load_move_path()
+    _write(tmp_path / "src" / "legacy.ts", "export const legacy = 1;\n")
+    _write(tmp_path / "src" / "view.tsx", "export const View = () => <div />;\n")
+    _write(tmp_path / "src" / "module.mts", "export const moduleValue = 2;\n")
+    _write(tmp_path / "src" / "common.cts", "export const commonValue = 3;\n")
+    _write(tmp_path / "src" / "wrong.cts", "export const wrongValue = 4;\n")
+    _write(tmp_path / "src" / "shadow.js", "export const runtimeValue = 5;\n")
+    _write(tmp_path / "src" / "shadow.ts", "export const sourceValue = 6;\n")
+    _write(
+        tmp_path / "src" / "consumer.ts",
+        'import { legacy } from "./legacy.js";\n'
+        'import { View } from "./view.js";\n'
+        'import { moduleValue } from "./module.mjs";\n'
+        'import { commonValue } from "./common.cjs";\n'
+        'import { wrongValue } from "./wrong.mjs";\n'
+        'import { runtimeValue } from "./shadow.js";\n',
+    )
+    plan = tmp_path / "moves.json"
+    _write_json(
+        plan,
+        {
+            "moves": [
+                {"from": "src/legacy.ts", "to": "lib/legacy.ts"},
+                {"from": "src/view.tsx", "to": "lib/view.tsx"},
+                {"from": "src/module.mts", "to": "lib/module.mts"},
+                {"from": "src/common.cts", "to": "lib/common.cts"},
+                {"from": "src/wrong.cts", "to": "lib/wrong.cts"},
+                {"from": "src/shadow.ts", "to": "lib/shadow.ts"},
+            ],
+            "rewrite": {"code_imports": "ignore"},
+        },
+    )
+
+    report = move_path.run_plan(
+        plan_path=plan,
+        project_root=tmp_path,
+        mode="dry-run",
+        report_dir=tmp_path / "reports",
+    )
+
+    risks = {item["specifier"]: item for item in report["code_imports"]["ignored"]}
+    assert risks["./legacy.js"]["target_before"] == "src/legacy.ts"
+    assert risks["./legacy.js"]["target_after"] == "lib/legacy.ts"
+    assert risks["./view.js"]["target_before"] == "src/view.tsx"
+    assert risks["./view.js"]["target_after"] == "lib/view.tsx"
+    assert risks["./module.mjs"]["target_before"] == "src/module.mts"
+    assert risks["./module.mjs"]["target_after"] == "lib/module.mts"
+    assert risks["./common.cjs"]["target_before"] == "src/common.cts"
+    assert risks["./common.cjs"]["target_after"] == "lib/common.cts"
+    assert all(item["expected_specifier"] is None for item in risks.values())
+    assert "./wrong.mjs" not in risks
+    assert "./shadow.js" not in risks
+
+
+def test_residue_audit_excludes_the_plan_authority_file(tmp_path):
+    audit_path_residue = _load_audit_path_residue()
+    _write(tmp_path / "lib" / "new.ts", "export const value = 1;\n")
+    _write_json(tmp_path / "config.json", {"entry": "lib/new.ts"})
+    plan = tmp_path / "move-plan.json"
+    _write_json(
+        plan,
+        {
+            "moves": [{"from": "src/old.ts", "to": "lib/new.ts"}],
+            "reference_scope": {"include": ["**/*.json"]},
+            "rewrite": {"exact_text_paths": "update", "code_imports": "ignore"},
+        },
+    )
+
+    payload = audit_path_residue.audit(
+        plan_path=plan,
+        project_root=tmp_path,
+        max_samples=10,
+    )
+
+    assert payload["summary"]["findings"] == 0
+    assert not any(item["file"] == "move-plan.json" for item in payload["findings"])
+
+
 def test_json_plan_is_stdlib_only_when_the_selected_skill_is_copied(tmp_path):
     install_root = tmp_path / "installed"
     copied_skill = install_root / "move-path"

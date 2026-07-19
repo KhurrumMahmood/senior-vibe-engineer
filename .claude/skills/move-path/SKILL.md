@@ -53,7 +53,9 @@ referrer is moved; it emits those as `code_imports.ignored` risk records in
 the JSON report and under **Ignored TypeScript Imports** in the Markdown report.
 Treat remediation as unknown until a TypeScript module resolver proves the
 correct spelling. The advisory scanner covers common single-line and multiline
-static `import`/`export ... from` forms; it is not an exhaustive import inventory.
+static `import`/`export ... from` forms. It recognizes conservative NodeNext
+source identity pairs (`.js` -> `.ts`/`.tsx`, `.mjs` -> `.mts`, `.cjs` ->
+`.cts`) only for risk reporting; it is not an exhaustive import inventory.
 
 Do not claim an import-safe module move. Python import rewrites, TypeScript
 path aliases, package exports, project references, barrel compatibility,
@@ -170,6 +172,10 @@ that may store paths outside Markdown links: JSON/CSV manifests, lockfiles,
 scripts, notebooks, generated reports, command examples, or copied absolute
 paths. The helper scans the move plan's reference scope for old relative,
 root-relative, absolute POSIX, and Windows-style path spellings, then writes:
+
+The selected move plan is an authority input. Both the mover and residue audit
+exclude its exact resolved path even when `reference_scope` matches it; never
+rewrite or report the plan's required `from` values as stale residue.
 
 - assumptions that define what the scan can and cannot prove;
 - machine-readable findings in
