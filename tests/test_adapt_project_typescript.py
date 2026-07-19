@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -99,6 +100,18 @@ def _install_stock_codex_skill(host: Path) -> Path:
     assert {path.name for path in (host / ".agents" / "skills").iterdir()} == {"adapt-project"}
     assert not installed.resolve().is_relative_to(REPO_ROOT.resolve())
     return installed
+
+
+def _documented_command(skill: Path, name: str) -> str:
+    text = (skill / "SKILL.md").read_text(encoding="utf-8")
+    match = re.search(
+        rf"\s*<!-- installed-command:{name}:start -->\n\s*```bash\n(.*?)\n\s*```\n"
+        rf"\s*<!-- installed-command:{name}:end -->",
+        text,
+        re.DOTALL,
+    )
+    assert match is not None, name
+    return match.group(1)
 
 
 def _discover(skill_root: Path, host: Path, artifacts: Path, *, cwd: Path) -> tuple[dict, Path]:
@@ -220,6 +233,29 @@ def test_copied_agents_install_is_isolated_and_writes_adapter_report_and_evidenc
     assert (scan_dir / "evidence.json").is_file()
     assert adapter["stack"]["frameworks"] == []
     assert not (host / ".engineering" / "project" / "adapter.yml").exists()
+
+
+def test_installed_documented_pipeline_is_verbatim_shell_safe(tmp_path: Path) -> None:
+    host = tmp_path / "typescript-host"
+    _seed_typescript_host(host, source_files=201, excluded_files=25)
+    installed = _install_stock_codex_skill(host)
+    command = "\n".join((
+        _documented_command(installed, "discover"),
+        _documented_command(installed, "check-evidence"),
+    ))
+
+    result = subprocess.run(
+        ["/bin/sh", "-c", command],
+        cwd=host,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    scan_dir = host / "reports" / "adapt-project" / "latest"
+    assert (scan_dir / "adapter.json").is_file()
+    assert "adapt-project evidence OK" in result.stdout
 
 
 def test_default_artifact_root_is_the_requested_host_not_the_installed_skill_directory(tmp_path: Path) -> None:

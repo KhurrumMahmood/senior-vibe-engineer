@@ -99,6 +99,7 @@ used, `--artifact-root` must be outside the host project.
 1. Resolve `PROJECT_ROOT` and `ARTIFACT_ROOT`.
 2. Run discovery:
 
+   <!-- installed-command:discover:start -->
    ```bash
    PROJECT_ROOT="${PROJECT_ROOT:-$(pwd)}"
    ARTIFACT_ROOT="${ARTIFACT_ROOT:-$PROJECT_ROOT}"
@@ -109,10 +110,13 @@ used, `--artifact-root` must be outside the host project.
      --artifact-root "${ARTIFACT_ROOT}")"
    printf '%s\n' "$SCAN_DIR"
    ```
+   <!-- installed-command:discover:end -->
 
    Add `--no-host-write` only with an artifact root outside the project for a
    dogfood run, or add `--apply` only after the user explicitly wants durable
-   project state written.
+   project state written. Keep `ADAPT_PROJECT_SKILL` on its own preceding
+   assignment line: a command-local environment assignment does not affect
+   expansion of `$ADAPT_PROJECT_SKILL` in the same command line.
 
 3. Read the generated `adapter.yml` and `report.md`.
 4. Surface:
@@ -122,10 +126,12 @@ used, `--artifact-root` must be outside the host project.
    - open questions that require `/project-interview`.
 5. Before claiming done, run the evidence gate on the scan directory:
 
+   <!-- installed-command:check-evidence:start -->
    ```bash
    python3 -I -S scripts/check_evidence.py \
      --scan-dir "$SCAN_DIR"
    ```
+   <!-- installed-command:check-evidence:end -->
 
    If discovery ran in a previous shell, pass its timestamped scan path
    explicitly instead of relying on `latest`.
