@@ -1,8 +1,9 @@
 # adapt-project TypeScript v1 learning handoff
 
-Implementation revision: `e63a032` (`feat(adapt-project): add self-contained
-TypeScript discovery`). The learning packet is intentionally a separate
-commit.
+Implementation revisions: `e63a032` (`feat(adapt-project): add
+self-contained TypeScript discovery`) and `023010c`
+(`fix(adapt-project): default artifacts to host root`). The learning packet is
+intentionally separate from implementation.
 
 ## 1. Invariant
 
@@ -101,7 +102,7 @@ Green commands at `e63a032`:
 git diff --check
 ```
 
-Those checks produced 28 passed, metadata `OK — 76 skills, 76 declaring new
+Those checks produced 29 passed, metadata `OK — 76 skills, 76 declaring new
 contract`, a green import-floor/smoke gate, and green lint/pre-commit/diff.
 The full decode-safety conformance test was also run; it still fails on three
 pre-existing `find-duplication` reads, but no longer lists either
@@ -127,6 +128,9 @@ This wrote and verified:
 
 The artifact says `typescript`, no framework, 201 source files, and the
 large-root caution; it does not write `.engineering/project/adapter.yml`.
+The copied-install regression also proves that an omitted `--artifact-root`
+writes under the requested host's `reports/`, never the installed skill
+directory.
 
 ## 6. False-positive boundary
 

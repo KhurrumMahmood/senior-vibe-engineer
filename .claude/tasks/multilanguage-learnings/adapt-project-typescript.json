@@ -1,6 +1,6 @@
 {
   "batch": "adapt-project-typescript",
-  "revision": "e63a032",
+  "revision": "e63a032 implementation plus 023010c default-artifact repair",
   "family": ["adapt-project"],
   "invariant": {
     "portable_principle": "Objective source-root facts drive the same large-root caution for Python and TypeScript without turning observed frequency into doctrine.",
@@ -48,9 +48,9 @@
     "native_guard_command": null
   },
   "evidence": {
-    "python_reference": ["tests/test_adapt_project_typescript.py freezes the 201 positive, 200 negative, and node_modules-only must-not-fire Python count/caution outcomes.", "tests/test_project_adapt.py remains green: 14 targeted Python/adapt tests passed."],
-    "typescript": ["The locked fixture materializes 201 alternating .ts/.tsx sources plus seven excluded trees and runs offline npm ci, typecheck, and native test before final discovery.", "Copied-install test puts only adapt-project under .agents/skills and invokes its commands with python -I -S from outside the checkout.", "Manual final artifact at /private/tmp/adapt-project-typescript-forward.qABrrP/artifacts/reports/adapt-project/scan-20260719-121500 has TypeScript=201, frameworks=[], the large-root caution, and passing evidence check."],
-    "commands_and_artifact_paths": ["$REPO_ROOT/.venv/bin/python -m pytest -q tests/test_adapt_project_typescript.py tests/test_project_adapt.py tests/test_skill_taxonomy.py tests/test_run_skill_smokes.py (28 passed)", "$REPO_ROOT/.venv/bin/python scripts/skill_meta.py lint --quiet", "$REPO_ROOT/.venv/bin/python .claude/skills/_common/scripts/run_skill_smokes.py --quiet", "$REPO_ROOT/.venv/bin/ruff check .claude/skills/adapt-project/scripts tests/test_adapt_project_typescript.py tests/fixtures/adapt-project-typescript/seed_host.py", "python3 -I -S host/.agents/skills/adapt-project/scripts/discover.py --project-root host --artifact-root artifacts --no-host-write --timestamp 20260719-121500", "python3 -I -S host/.agents/skills/adapt-project/scripts/check_evidence.py --scan-dir artifacts/reports/adapt-project/scan-20260719-121500"]
+    "python_reference": ["tests/test_adapt_project_typescript.py freezes the 201 positive, 200 negative, and node_modules-only must-not-fire Python count/caution outcomes.", "tests/test_project_adapt.py remains green: 15 targeted Python/adapt tests passed."],
+    "typescript": ["The locked fixture materializes 201 alternating .ts/.tsx sources plus seven excluded trees and runs offline npm ci, typecheck, and native test before final discovery.", "Copied-install test puts only adapt-project under .agents/skills and invokes its commands with python -I -S from outside the checkout.", "A copied-install regression proves that omitting --artifact-root writes reports to the requested host rather than the installed skill directory.", "Manual final artifact at /private/tmp/adapt-project-typescript-forward.qABrrP/artifacts/reports/adapt-project/scan-20260719-121500 has TypeScript=201, frameworks=[], the large-root caution, and passing evidence check."],
+    "commands_and_artifact_paths": ["$REPO_ROOT/.venv/bin/python -m pytest -q tests/test_adapt_project_typescript.py tests/test_project_adapt.py tests/test_skill_taxonomy.py tests/test_run_skill_smokes.py (29 passed)", "$REPO_ROOT/.venv/bin/python scripts/skill_meta.py lint --quiet", "$REPO_ROOT/.venv/bin/python .claude/skills/_common/scripts/run_skill_smokes.py --quiet", "$REPO_ROOT/.venv/bin/ruff check .claude/skills/adapt-project/scripts tests/test_adapt_project_typescript.py tests/fixtures/adapt-project-typescript/seed_host.py", "python3 -I -S host/.agents/skills/adapt-project/scripts/discover.py --project-root host --artifact-root artifacts --no-host-write --timestamp 20260719-121500", "python3 -I -S host/.agents/skills/adapt-project/scripts/check_evidence.py --scan-dir artifacts/reports/adapt-project/scan-20260719-121500"]
   },
   "false_positive_boundary": {
     "known_false_positives": ["None in the locked fixture: React/Vite package metadata is not classified as a framework."],
