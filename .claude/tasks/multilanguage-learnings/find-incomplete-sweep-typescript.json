@@ -1,0 +1,101 @@
+{
+  "batch": "find-incomplete-sweep-typescript-v1",
+  "revision": "8fa9371",
+  "family": "semantic incomplete-execution residue",
+  "invariant": "A strong majority of resolved live call sites applies an option/property shape while a sibling resolved call site remains at the old shape; the compiler supplies evidence, but a human owns the forgotten-versus-deliberate verdict.",
+  "reference_repairs": {
+    "python_oracle": "The legacy Python detector and 14-test regression path remain green.",
+    "closure_repair": "scan.py and scout.py now resolve project roots locally instead of importing uninstalled sibling _common runtime; their existing output behavior remains covered by project-root and Python oracle tests.",
+    "final_output_oracle": "triage.py is the new language-neutral fixed-vocabulary writer and rejects partial verdict accounting before it writes triaged.md."
+  },
+  "language_model": {
+    "syntax": "Eligible TS/TSX calls carry an object-literal option argument; a local const object literal spread is recursively expanded only when statically available.",
+    "type_system": "The project-local Compiler API Program resolves call signatures. A project FunctionDeclaration is the group identity, so import aliases join and overload declarations stay distinct.",
+    "module_resolution": "One named host tsconfig supplies NodeNext/path-alias resolution; unresolved static modules are a visible partial state.",
+    "runtime": "Git blame supplies the trajectory discriminator. Dynamic callees, runtime dispatch, unresolved spreads, and unavailable blame data do not become forgotten findings.",
+    "framework": "Method signatures, framework APIs, JSX/React conventions, routes, and ORM semantics are deferred rather than inferred."
+  },
+  "tooling": {
+    "accepted": "A family-local Node TypeScript Compiler API launcher resolved from the target host package.json.",
+    "rejected": {
+      "lexical_grouping": "Cannot distinguish aliases, overloads, or method/framework APIs honestly.",
+      "ts_morph_or_tree_sitter": "Adds a dependency without improving the locked outcome.",
+      "shared_typescript_platform": "No accepted second consumer proves the same fact and output contract."
+    },
+    "closure": "The selected skill contains every repository-owned runtime file; Node and the host-pinned compiler remain explicit host prerequisites."
+  },
+  "outcome_contract": {
+    "fixture": "tests/fixtures/find-incomplete-sweep-typescript/host pins TypeScript 5.9.3.",
+    "positive": "buildRequest groups direct import plus alias calls and two resolved spreads: three newer region=us sites versus one old omitted site, promoted over destructured region=global.",
+    "negative_and_boundaries": [
+      "complete four-site property shape",
+      "default-equal stableRequest omission down-ranked",
+      "separate overload signatures",
+      "framework method signature deferred",
+      "generated/vendor/spec/declared-excluded direct targets",
+      "internal/external symlinks and all detector/scout/triage output containment",
+      "invalid source, missing tsconfig, missing compiler, and unresolved-module partial state"
+    ],
+    "final_artifacts": ["manifest.json", "findings.md", "scout_packets.json", "scout_verdicts.json", "triaged.md"],
+    "source_mutation": "All fixture source hashes remain byte-identical before and after the detector, scout, and triage journey."
+  },
+  "evidence": {
+    "focused": ".venv/bin/python -m pytest -q tests/test_find_incomplete_sweep_typescript.py tests/scripts/test_project_root_debaking.py => 15 passed",
+    "python_oracle": ".venv/bin/python .claude/skills/find-incomplete-sweep/scripts/test_scan.py => 14 passed",
+    "native": "Each locked host performs npm ci --offline --ignore-scripts, npm run typecheck, and npm test before the scan; copied and stock executions repeat native checks afterwards.",
+    "closure": "Focused test copies the selected skill and invokes the exact skills@1.5.19 stock-install and installed TypeScript command outside the checkout.",
+    "conformance": [
+      "ruff check on touched Python runtime and test: passed",
+      "node --check detect_typescript_sweep.mjs: passed",
+      "py_compile scan.py scout.py triage.py: passed",
+      "scripts/skill_meta.py lint: OK — 76 skills, 76 declaring new contract",
+      "git diff --check: clean"
+    ],
+    "d6": "Pending an integrator fresh no-context installed-skill replay; automated stock final-artifact proof is intentionally not represented as D6."
+  },
+  "false_positive_boundary": {
+    "default_equal": "An omitted property with a destructured default remains down-ranked when sibling values equal that default.",
+    "overloads": "Resolved overload signatures do not join a property-presence group.",
+    "framework": "A repeated external/framework method signature is deferred rather than flagged.",
+    "uncertainty": "Unknown spreads and dynamic callees are partial/deferred, never lexical omissions."
+  },
+  "generalized": [
+    "candidate to packet to explicit verdict to final triage handoff",
+    "fixed verdict vocabulary and final writer accounting",
+    "git-trajectory signal",
+    "project-relative exclusions and report containment",
+    "host-pinned compiler loading and selected-skill closure proof"
+  ],
+  "did_not_generalize": [
+    "Python AST collection or Django lookup filters",
+    "framework API, route, ORM, JSX, or runtime dispatch semantics",
+    "arbitrary object/property dataflow",
+    "a shared TypeScript parser or semantic fact platform"
+  ],
+  "reuse_decision": {
+    "reuse_now": "Future families may reuse the proof procedure and host-compiler containment rules by copying them into their own selected skill.",
+    "do_not_extract": "Do not extract detect_typescript_sweep.mjs or a global resolver until a second accepted consumer requires its precise call/property/default/trajectory facts."
+  },
+  "translation_prerequisites": {
+    "schema_version": 2,
+    "rust": "Cargo-pinned semantic call resolution plus struct/default property fixture, Git trajectory, final triage, native cargo test, and selected-skill closure.",
+    "go": "go/packages or compiler-backed call identity plus option struct/default fixture, Git trajectory, final triage, native go test, and selected-skill closure.",
+    "java_kotlin": "Compiler/index-backed overload and named/default option model, Git trajectory, final triage, native build/test, and selected-skill closure.",
+    "csharp": "Roslyn-backed call/overload/default model, Git trajectory, final triage, native dotnet test, and selected-skill closure.",
+    "ruby": "A conservative static call/property model with explicit dynamic deferral, Git trajectory, final triage, native test, and selected-skill closure."
+  },
+  "user_experience": {
+    "observed": "The installed command performs detector then Scout and intentionally stops for a human verdict. triage.py provides exact missing/invalid-accounting errors.",
+    "smallest_later_improvement": "Scaffold an empty scout_verdicts.json with packet IDs only; never prefill a judgment."
+  },
+  "residual_risks": [
+    "Nested/non-const/aliased spreads, constructors, methods, callbacks, and generic conditional APIs remain out of scope.",
+    "Only one named tsconfig project-resolution boundary is claimed; cross-project/reference/package semantics remain deferred.",
+    "Git history without usable blame cannot establish trajectory and therefore does not gate in a finding.",
+    "D6 still requires a fresh independent installed replay."
+  ],
+  "next_decision": {
+    "recommendation": "Run D6 as an integrator-owned fresh installed-skill replay, then independently review this bounded outcome.",
+    "stop_rule": "Do not add framework semantics or a shared TypeScript platform without a newly accepted explicit contract and fixture."
+  }
+}
