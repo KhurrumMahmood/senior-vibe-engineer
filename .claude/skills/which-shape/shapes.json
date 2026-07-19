@@ -313,9 +313,9 @@
       "summary": "Rename or move files/directories as a deterministic batch, updating resolvable references safely.",
       "first_next": "/move-path",
       "sequence": [
-        "/move-path --plan moves.yml --dry-run \u2014 compute virtual after-tree, safe rewrites, suggestions, and blocked findings",
+        "/move-path --plan moves.json --dry-run \u2014 compute virtual after-tree, safe rewrites, suggestions, and blocked findings",
         "review the move map, blocked/suggested references, and Git impact",
-        "/move-path --plan moves.yml --apply, then /move-path --plan moves.yml --check"
+        "/move-path --plan moves.json --apply, then /move-path --plan moves.json --check"
       ],
       "stop": "Stop if the rename is glossary terminology rather than filesystem identity \u2014 use Concept Rename.",
       "cues": {

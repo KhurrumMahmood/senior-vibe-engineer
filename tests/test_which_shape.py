@@ -63,6 +63,14 @@ def test_project_structure_routes_to_project_structure_not_path_move(tmp_path):
     assert _shape_for("make the repo top-level folder structure more intuitive", tmp_path) == "project-structure"
 
 
+def test_path_move_routes_to_stdlib_json_plan(tmp_path):
+    result = route.route("move src/old.ts to src/new.ts and update path references", tmp_path)
+
+    assert result["recommendation"]["shape"] == "path-move"
+    assert all("moves.json" in step for step in result["recommendation"]["sequence"] if "/move-path" in step)
+    assert all("moves.yml" not in step for step in result["recommendation"]["sequence"])
+
+
 def test_task_closeout_strong_cues_route_to_task_closeout(tmp_path):
     assert _shape_for("the work is finished; run a closeout cleanup over the changed files", tmp_path) == "task-closeout"
 
