@@ -324,8 +324,15 @@
       "job": "suspect",
       "best_for": "Catching cross-subsystem concept-drift cases (a function/module name\nin one subsystem that conceptually duplicates a canonical name in\nanother). Pairs with the canonical glossary at\n`.claude/contracts/concepts.yaml`: if a divergence exists for a\nconcept that isn't yet glossary-tracked, the strict scan will miss\nit — add the concept first, then re-run.\n",
       "not_for": "Refactor execution (this is detection only); enforcing renames that\nalready have a dedicated lint — set `coverage_lint:` on the\nsuperseded concept and the scanner will skip co-occurrence noise so\nthe lint owns the rename; fuzzy/similarity-based identifier matching\n(deferred — strict canonical-name + avoid-term grep only in v1).\n",
-      "language": "python",
+      "language": "any",
       "framework": "any",
+      "scans": [
+        "python",
+        "javascript",
+        "typescript",
+        "markdown",
+        "templates"
+      ],
       "_path": "skills/find-concept-divergence"
     },
     {
@@ -532,7 +539,7 @@
       "job": "suspect",
       "best_for": "Auditing the agent-rules surface (CLAUDE.md + .claude/docs/) against\nADR 0005's tiered-storage convention. Catches: always-loaded surface\nbloat, dormant docs that no longer earn their place,\ntable-vs-filesystem drift, and docs registered but never referenced\nby any other artifact. Also scans /ONBOARDING.md (the human entry\npoint) for broken links and registered docs the human path never\nmentions.\n",
       "not_for": "Code-side drift (use /find-doc-route-drift for documented route\ndrift, /find-frontend-contract-drift for template-to-JS drift).\nDecision-registry drift (use /audit-decisions). Authoring or amending\nthe agent-rules ADR itself (use /decide). Acting on findings — that\ngoes to /fix-workflow with the cluster id.\n",
-      "language": "python",
+      "language": "any",
       "framework": "any",
       "scans": [
         "markdown"
@@ -567,7 +574,7 @@
         "findings"
       ],
       "max_overhead": "Run one detect+report pass; treat Band B as a review queue, never an auto-patch list.",
-      "language": "python",
+      "language": "any",
       "framework": "any",
       "scans": [
         "python",
@@ -582,7 +589,7 @@
       "job": "suspect",
       "best_for": "Keeping the skill ecosystem's recorded \"why each skill exists / what it\nsolves / what it was dogfooded on\" honest as skills are added, edited,\nrenamed, or deleted. The canonical case is catching a skill whose\nSKILL.md was reworked (new problem class, narrowed scope, merged\nresponsibility) without its intent contract being updated to match — the\nsilent reversion the contracts exist to prevent. Also surfaces the\nduplication picture: each contract's `duplication_risk[]` block records\nsibling skills that touch the same surface and the `not_for` line that\ndisambiguates them, rolled up into `_index.yaml` and\n`_duplication-watchlist.yaml`.\n",
       "not_for": "The other two layers of the skill-meta trio. Frontmatter *contract*\nvalidation (required fields, enum values, name==dir) — that is\n`scripts/skill_meta.py lint`. SKILL.md prose ↔ on-disk artifact\ncoherence (a documented script/flag/tool the files no longer provide) —\nthat is `/find-skill-artifact-drift`. Authoring or revising a skill\nitself, which should also write or refresh its intent contract — that is\n`/plan-skill`. Agent-rules doc-surface drift (oversized always-loaded\nfiles, dormant docs, broken onboarding links) — `/find-rule-surface-drift`.\nThis skill never edits skill directories or per-skill intent contracts and\nnever blocks a commit; it is advisory unless run `--strict` in CI. By\ndefault it does refresh the generated contract roll-up\n`_index.yaml`; pass `--no-index` for a no-write audit.\n",
-      "language": "python",
+      "language": "any",
       "framework": "any",
       "_path": "skills/find-skill-intent-drift"
     },
@@ -593,7 +600,7 @@
       "job": "suspect",
       "best_for": "Periodic (monthly / quarterly) hygiene of working-artifact directories\nthat accumulate cruft as side effects of active work — `ai-docs/plans/`,\n`ai-docs/specs/`, and `reports/`. Surfaces deletion candidates with\nevidence: abandoned plans, plans untouched past a soft staleness budget,\naged `reports/<skill>/scan-<TS>/` directories not pointed at by\n`latest`, and orphan top-level `reports/*.md` files. Pairs with manual\ndelete or a thin executor; never deletes unilaterally.\n",
       "not_for": "Code-side dead-code detection (use /find-dormant).\nAgent-rules surface drift in `.claude/CLAUDE.md` or `.claude/docs/`\n(use /find-rule-surface-drift) — that one defends ADR 0005's tiered\nstorage convention.\nDecision-registry drift in `ai-docs/decisions/` (use /audit-decisions).\nActing on findings — manual delete or a thin executor; the skill is\nread-only.\n",
-      "language": "python",
+      "language": "any",
       "framework": "any",
       "scans": [
         "markdown"
