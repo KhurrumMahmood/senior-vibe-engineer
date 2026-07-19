@@ -135,29 +135,106 @@ def resolve_project_root(explicit: Path | None = None) -> Path:
     return Path(root).resolve() if root else cwd.resolve()
 
 
-def _yaml_scalar(raw: str) -> Any:
-    """Parse the small scalar/list profile used by the glossary schema.
+def _parse_quoted_scalar(value: str, start: int) -> tuple[str, int]:
+    """Return one YAML-profile quoted scalar and the first unread index."""
+    quote = value[start]
+    if quote == '"':
+        try:
+            parsed, consumed = json.JSONDecoder().raw_decode(value[start:])
+        except json.JSONDecodeError as exc:
+            raise ValueError("unsupported double-quoted YAML scalar") from exc
+        if not isinstance(parsed, str):
+            raise ValueError("YAML flow lists must contain scalar values")
+        return parsed, start + consumed
 
-    The scanner needs only the schema fields it consumes.  Keeping this
-    profile local lets a copied skill read normal glossary YAML without a
-    toolkit venv or a repository-level YAML helper; it is intentionally not a
-    general YAML implementation.
-    """
-    value = raw.strip()
-    if not value:
-        return ""
-    if value.startswith("[") and value.endswith("]"):
-        inner = value[1:-1].strip()
-        return [] if not inner else [_yaml_scalar(item) for item in inner.split(",")]
-    if (value.startswith('"') and value.endswith('"')) or (
-        value.startswith("'") and value.endswith("'")
-    ):
-        return value[1:-1]
+    cursor = start + 1
+    chars: list[str] = []
+    while cursor < len(value):
+        char = value[cursor]
+        if char != "'":
+            chars.append(char)
+            cursor += 1
+            continue
+        if cursor + 1 < len(value) and value[cursor + 1] == "'":
+            chars.append("'")
+            cursor += 2
+            continue
+        return "".join(chars), cursor + 1
+    raise ValueError("unterminated single-quoted YAML scalar")
+
+
+def _parse_plain_scalar(value: str) -> Any:
     if value in {"true", "True"}:
         return True
     if value in {"false", "False"}:
         return False
     return value
+
+
+def _parse_flow_sequence(value: str) -> list[Any]:
+    """Parse a scalar-only YAML flow sequence without losing quoted commas.
+
+    This is deliberately narrower than YAML: the glossary profile accepts
+    scalar list entries, including single-quoted and JSON-style double-quoted
+    strings. Nested collections and malformed entries fail rather than being
+    split into different scan terms.
+    """
+    end = len(value) - 1
+    cursor = 1
+    items: list[Any] = []
+
+    while True:
+        while cursor < end and value[cursor].isspace():
+            cursor += 1
+        if cursor == end:
+            return items
+        if cursor > end:
+            raise ValueError("unterminated YAML flow sequence")
+
+        if value[cursor] in {'"', "'"}:
+            item, cursor = _parse_quoted_scalar(value, cursor)
+        else:
+            start = cursor
+            while cursor < end and value[cursor] not in {",", "]"}:
+                if value[cursor] in {"[", "{"}:
+                    raise ValueError("nested YAML flow collections are unsupported")
+                cursor += 1
+            token = value[start:cursor].strip()
+            if not token:
+                raise ValueError("empty YAML flow-list entry")
+            item = _parse_plain_scalar(token)
+        items.append(item)
+
+        while cursor < end and value[cursor].isspace():
+            cursor += 1
+        if cursor == end:
+            return items
+        if cursor > end or value[cursor] != ",":
+            raise ValueError("unsupported YAML flow-list entry")
+        cursor += 1
+
+
+def _yaml_scalar(raw: str) -> Any:
+    """Parse the scalar/list profile used by the glossary schema.
+
+    The scanner needs only the schema fields it consumes. Keeping this profile
+    local lets a copied skill read normal glossary YAML without a toolkit venv
+    or repository-level YAML helper; it is intentionally not a general YAML
+    implementation.
+    """
+    value = raw.strip()
+    if not value:
+        return ""
+    if value.startswith("["):
+        if not value.endswith("]"):
+            raise ValueError("unterminated YAML flow sequence")
+        return _parse_flow_sequence(value)
+    if value.startswith(('"', "'")):
+        parsed, end = _parse_quoted_scalar(value, 0)
+        if value[end:].strip():
+            raise ValueError("unsupported content after YAML scalar")
+        return parsed
+    return _parse_plain_scalar(value)
 
 
 def _load_glossary_yaml(text: str) -> dict[str, Any]:
@@ -233,7 +310,10 @@ def load_glossary(path: Path) -> dict[str, Any]:
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
-        data = _load_glossary_yaml(text)
+        try:
+            data = _load_glossary_yaml(text)
+        except ValueError as exc:
+            sys.exit(f"glossary read/parse error: {exc}")
     if not isinstance(data, dict) or "concepts" not in data:
         sys.exit("glossary missing top-level `concepts:` block")
     return data

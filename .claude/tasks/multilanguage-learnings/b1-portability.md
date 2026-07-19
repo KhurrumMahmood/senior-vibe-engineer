@@ -1,6 +1,8 @@
 # B1 portability learning report
 
-Revision: working tree on `codex/ts-b1-portability`, 2026-07-18 UTC
+Revision: `28671a38afb476d970c6242e0782f7d07cbb8de8` baseline +
+`<B1 YAML fallback repair commit>` on `codex/ts-b1-portability`, 2026-07-19
+UTC
 
 ## Outcome
 
@@ -31,7 +33,10 @@ detector reads; no cosmetic TypeScript scan was added.
 
 - `find-concept-divergence` omitted `.tsx` from its source suffix set and
   imported repository `_common/diff_resolution.py`; it now has a local target
-  resolver and a schema-specific, stdlib glossary reader.
+  resolver and a schema-specific, stdlib glossary reader. Its scalar flow-list
+  reader preserves quoted comma-containing values (including aliases) rather
+  than splitting them into false terms; nested flow collections remain outside
+  the declared glossary profile and fail clearly.
 - The rule-surface, artifact, and stale-artifact reporters imported repository
   `_common/product_topology.py`. Their small JSONL/report closure now lives in
   each selected reporter, rather than in a new shared platform.
@@ -58,7 +63,7 @@ detector reads; no cosmetic TypeScript scan was added.
   ```bash
   .venv/bin/python \
     -m pytest -q tests/test_b1_portability.py
-  # 3 passed
+  # 4 passed
   ```
 
   The copied-skill test uses `python -I -S` from an external host directory
@@ -66,7 +71,14 @@ detector reads; no cosmetic TypeScript scan was added.
   `find-concept-divergence`, `find-rule-surface-drift`,
   `find-skill-artifact-drift`, `find-skill-intent-drift`, and
   `find-stale-artifacts` do not import repository `_common`, root `scripts/`,
-  or a toolkit venv on the exercised paths.
+  or a toolkit venv on the exercised paths. A fresh copied
+  `find-concept-divergence` run found exactly the two actionable
+  `avoid_term_hit`s in `src/deprecated.ts` and `src/deprecated.tsx`; its final
+  JSONL/report kept the compatibility alias, identifier homonym, generated
+  `dist/`, and vendored `node_modules/` paths clean. The quoted-comma alias
+  regression also reaches the final copied report: a backtick TypeScript
+  transition using `legacy, status` and `canonical, status` renders the one
+  expected `superseded_co_occurrence` finding rather than a false clean.
 - Existing oracles remain green:
 
   ```bash
@@ -85,7 +97,7 @@ detector reads; no cosmetic TypeScript scan was added.
   finding final report. The concept scanner also read the repository's
   ordinary YAML glossary under `python -I -S` and emitted its final artifacts.
 - Project checks passed: `scripts/skill_meta.py lint` (76 skills), targeted
-  pytest (14 passed), `scripts/skill_comply/validate.py` (PASS), targeted
+  pytest (15 passed), `scripts/skill_comply/validate.py` (PASS), targeted
   Ruff (all checks passed), and the B1 artifact-drift gate (clean).
 - The generic skill-creator `quick_validate.py` rejected valid extended
   frontmatter fields (`argument-hint`, `best_for`, `framework`, `job`,

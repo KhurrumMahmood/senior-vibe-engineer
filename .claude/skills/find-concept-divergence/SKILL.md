@@ -94,6 +94,13 @@ If the glossary is missing or unparseable the scan exits with a clear
 error rather than degrading silently — concept-divergence detection
 has no meaningful default behavior without it.
 
+Copied installs use a schema-specific stdlib profile, not a general YAML
+engine: normal block lists and scalar flow lists are supported; quoted flow
+values preserve commas (single quotes or JSON-style double quotes). Nested
+flow collections and other unsupported shapes stop the scan with a parse error
+rather than becoming different search terms. Normalize those entries to the
+documented block-list shape before running the scan.
+
 ## Schema convention: `competing_terms:` vs overload ambiguities
 
 `competing_terms:` is for terms that genuinely compete *for the same

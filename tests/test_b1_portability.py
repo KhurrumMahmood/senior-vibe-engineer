@@ -105,7 +105,16 @@ def test_copied_b1_skills_run_with_isolated_host_tools(tmp_path: Path) -> None:
         cwd=host,
     )
     assert concept.returncode == 0, concept.stdout + concept.stderr
-    assert "src/deprecated.tsx" in concept_report.read_text(encoding="utf-8")
+    assert {
+        (record["band"], record["file"], record["term"])
+        for record in _records(concept_findings)
+    } == {
+        ("avoid_term_hit", "src/deprecated.ts", "deprecated status"),
+        ("avoid_term_hit", "src/deprecated.tsx", "deprecated status"),
+    }
+    concept_report_text = concept_report.read_text(encoding="utf-8")
+    assert "src/deprecated.tsx" in concept_report_text
+    assert "No drift detected" not in concept_report_text
 
     rules_root = host / ".claude"
     rules_root.mkdir(exist_ok=True)
@@ -229,3 +238,60 @@ def test_copied_b1_skills_run_with_isolated_host_tools(tmp_path: Path) -> None:
     )
     assert stale_report.returncode == 0, stale_report.stdout + stale_report.stderr
     assert json.loads((stale_out / "findings.json").read_text())["summary"]["findings_total"] == 0
+
+
+def test_copied_concept_skill_preserves_quoted_comma_alias_in_final_report(tmp_path: Path) -> None:
+    installed_skill = tmp_path / "installed" / "find-concept-divergence"
+    shutil.copytree(SKILLS_ROOT / "find-concept-divergence", installed_skill)
+    host = tmp_path / "host"
+    shutil.copytree(FIXTURE_HOST, host)
+    (host / ".claude" / "contracts" / "concepts.yaml").write_text(
+        """\
+concepts:
+  - name: legacy-status
+    aliases: ["legacy, status"]
+    superseded_by: canonical-status
+  - name: canonical-status
+    aliases: ["canonical, status"]
+flagged_ambiguities: []
+        """,
+        encoding="utf-8",
+    )
+    shutil.rmtree(host / "src")
+    (host / "src").mkdir()
+    (host / "src" / "quoted-alias.ts").write_text(
+        "export const statusTransition = `legacy, status -> canonical, status`;\n",
+        encoding="utf-8",
+    )
+    out = host / "reports" / "find-concept-divergence" / "quoted-alias"
+    findings = out / "findings.jsonl"
+    report = out / "report.md"
+
+    result = _isolated(
+        installed_skill / "scripts" / "scan.py",
+        "--project-root",
+        str(host),
+        "--output",
+        str(findings),
+        "--report",
+        str(report),
+        ".",
+        cwd=host,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert _records(findings) == [
+        {
+            "band": "superseded_co_occurrence",
+            "concept": "legacy-status",
+            "superseded_by": "canonical-status",
+            "file": "src/quoted-alias.ts",
+            "side": "old",
+            "line": 1,
+            "term": "legacy, status",
+            "match": "export const statusTransition = `legacy, status -> canonical, status`;",
+        }
+    ]
+    report_text = report.read_text(encoding="utf-8")
+    assert "superseded_co_occurrence (1)" in report_text
+    assert "`legacy, status`" in report_text
