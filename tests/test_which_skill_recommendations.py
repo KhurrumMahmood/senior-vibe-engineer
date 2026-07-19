@@ -106,6 +106,20 @@ def test_exact_typescript_marker_routes_to_earned_state_skill():
     assert payload["install"]["skill"] == "find-implicit-state"
 
 
+def test_typescript_direct_export_explanation_routes_to_explain_code():
+    returncode, payload = _run_match(
+        "produce an annotated behavior doc for the direct public exports "
+        "in this TypeScript module",
+        "--top",
+        "10",
+    )
+
+    assert returncode == 0
+    assert payload["routing_context"]["language"] == "typescript"
+    assert payload["recommendation"] == "explain-code"
+    assert payload["install"]["skill"] == "explain-code"
+
+
 def test_unearned_omnibus_typescript_claim_returns_unsupported():
     returncode, payload = _run_match(
         "find an omnibus TypeScript module with too many unrelated responsibilities",

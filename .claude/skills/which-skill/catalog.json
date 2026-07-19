@@ -210,13 +210,17 @@
     },
     {
       "name": "explain-code",
-      "description": "Read-only EXPLAIN skill that converts a file, directory package, or named subsystem into an annotated behavior doc at reports/explanations/<target>.md. Fans out scout sub-agents per public symbol to capture intent, pre/postconditions, invariants, callers, and unexplained regions. Complements /map-subsystem (inventory) by producing the behavioral annotation that lets a human trust the code well enough to change it. Hands off to /fix-workflow or /refactor-subsystem when the unexplained regions resolve into concrete smells.",
+      "description": "Read-only EXPLAIN skill that converts a Python target or a TypeScript/TSX target's direct public exports into an annotated behavior doc at reports/explanations/<target>.md. TypeScript v1 visibly leaves aliases and re-exports unexplained rather than claiming module resolution.",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "Producing an annotated behavior doc for a file, directory package,\nor named subsystem — pre/postconditions, invariants, callers,\nunexplained regions. Read-only. Complements /map-subsystem inventory\nby adding the behavioral annotation that lets a human trust the code\nenough to change it.\n",
       "not_for": "Pure inventory without behavioral annotation (use /map-subsystem).\nCross-workflow product topology (use /map-product-workflow).\nRefactor execution (use /fix-workflow or /refactor-subsystem).\n",
-      "language": "python",
-      "framework": "django",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "typescript"
+      ],
       "_path": "skills/explain-code"
     },
     {

@@ -119,6 +119,29 @@ def test_installed_which_skill_routes_earned_typescript_state_skill(tmp_path):
     assert payload["install"]["skill"] == "find-implicit-state"
 
 
+def test_installed_which_skill_routes_typescript_explanation(tmp_path):
+    host = tmp_path / "host"
+    router = _install_router(host, "which-skill")
+
+    result = _run_isolated(
+        router / "scripts" / "match.py",
+        "produce an annotated behavior doc for the direct public exports "
+        "in this TypeScript module",
+        "--project-root",
+        str(host),
+        "--top",
+        "10",
+        "--json",
+        cwd=host,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["routing_context"]["language"] == "typescript"
+    assert payload["recommendation"] == "explain-code"
+    assert payload["install"]["skill"] == "explain-code"
+
+
 def test_default_router_set_is_exactly_three():
     assert DEFAULT_ROUTERS == ("which-shape", "which-skill", "which-cleanup")
 
