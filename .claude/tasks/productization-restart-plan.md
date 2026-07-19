@@ -93,6 +93,23 @@ skills are not acceptance criteria.
 
 Do not start implementation until milestone 2 closes.
 
+Before claiming the router-led journey works well, validate decision quality
+for all three default routers. Use one small committed corpus and focused test,
+not a general evaluator platform:
+
+1. Cover clear matches, ambiguous cases, direct/no-skill cases, misleading or
+   negated cues, and different scope sizes for `which-shape`, `which-skill`,
+   and `which-cleanup`.
+2. Give each case an expected route or allowed set; ambiguous cases may instead
+   require a named discriminating question.
+3. Require every selected non-router skill to include its install command and
+   definition/bundled-tooling/shared-tooling locations.
+4. Require all clear cases to match, zero known heavy-router false positives on
+   direct tasks, and zero missing handoffs. Every discovered misroute becomes a
+   regression case before changing heuristics.
+5. Forward-test one representative installed journey per router with fresh
+   context and judge the final task outcome, not merely the router JSON.
+
 Freeze representative installed workflows and their outcome checks. Measure
 completion, correctness, wall time, tokens, repeated context, and human
 interventions. Batch complementary read-only lenses; keep mutations serial.
