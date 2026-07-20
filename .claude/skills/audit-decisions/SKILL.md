@@ -1,6 +1,6 @@
 ---
 name: audit-decisions
-description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python comments, Markdown/HTML references, JavaScript/JSX/MJS/CJS comments, and TypeScript/TSX comments."
+description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, JavaScript-family, and TypeScript comments plus Markdown/HTML references."
 argument-hint: "[--target PATH]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -19,7 +19,7 @@ delegate_from: |
   and orphaned inline decision references.
 language: any
 framework: any
-scans: [python, markdown, html, javascript, typescript]
+scans: [python, markdown, html, javascript, typescript, go]
 ---
 
 # /audit-decisions
@@ -41,11 +41,20 @@ both final artifacts. JavaScript uses the same syntax-only parser for `.js`,
   being reported as unreferenced.
 - Preserve Python comment, Markdown, and HTML reference handling additively.
   Registry status/link checks remain visible in their compatibility artifacts.
+- Include valid references from authored Go line and block comments in both
+  final artifacts; strings, raw strings, tests, generated source, and vendor
+  source must not create references.
 - Keep the registry and source files read-only. Exit `0` for clean, `1` when
   drift rows are present, and `2` for invalid paths, unsupported/malformed
   decision frontmatter, unavailable project-local TypeScript tooling, invalid
   JavaScript/TypeScript syntax, or a
   report directory outside the per-run audit-report location.
+
+Successful audits are atomic and write `status: complete` to `raw-drift.json`.
+The Go v1 path never publishes `partial` evidence: any in-scope Go file must
+parse before artifacts are written. Missing/old Go is `unsupported`; malformed
+Go or a parser execution/data error is `failed`; both exit `2` without a report
+directory. These states are not clean audits.
 
 ## Supported reference contract
 
@@ -83,6 +92,21 @@ manager operation or network access.
 - Markdown: the established `# decision:NNNN` form.
 - HTML: the established `# decision:NNNN` form, normally inside `<!-- -->`.
 
+### Go comments v1
+
+For `.go`, the supported token is the same lowercase `decision:NNNN` form in a
+real `//` line comment or `/* ... */` block comment. The bundled Go helper uses
+the standard-library `go/parser` comment groups, so quoted/interpreted strings,
+raw strings, identifiers, and comment-shaped text never count. Every selected
+Go file must parse; the audit does not silently keep references from the
+well-formed subset.
+
+Go is discovered from `PATH` and must be Go 1.22 or newer. The helper is
+stdlib-only and runs from the copied skill; it does not load packages, honor or
+evaluate build tags, resolve imports, use `go/packages`, mutate the module, or
+access the network. This is the weakest native fact needed to distinguish real
+Go comments from literals.
+
 The selected runner accepts ordinary scalar frontmatter plus inline or block
 lists for the registry fields it checks (`supersedes`, `superseded_by`,
 `applies_to`, `embodied_by`, `tags`). It fails clearly instead of silently
@@ -95,6 +119,8 @@ caller directly targets an excluded directory or file. Generated, vendor,
 dependency, build, report, coverage, fixture, and test/spec paths never create
 references. The same policy excludes common VCS/venv/cache trees and TypeScript
 declarations, `.test`, `.spec`, and minified files.
+Go additionally excludes `*_test.go`, generated-name files, and files with the
+canonical `// Code generated ... DO NOT EDIT.` header.
 
 `--target` narrows the reference scan only. It still validates the registry and
 links, but intentionally omits the whole-project `unreferenced-decision`
@@ -103,8 +129,9 @@ inverse check because a partial target cannot establish that conclusion.
 ## Installed workflow
 
 Stock Codex copies this selected skill to `.agents/skills/audit-decisions`.
-From the host project root, with Python 3.11+, Node.js, and the host's
-project-local `typescript` dependency installed:
+From the host project root, with Python 3.11+, Go 1.22+ when `.go` files are in
+scope, and Node.js plus the host's project-local `typescript` dependency when
+JavaScript-family files are in scope:
 
 ```bash
 AUDIT_PROJECT_ROOT="$PWD"
@@ -132,6 +159,9 @@ selected skill invokes its bundled `.mjs` helper with host Node.js and the
 project-local `typescript` Compiler API. It does not need a toolkit virtualenv,
 repository helper, sibling skill, global TypeScript installation, host `tsconfig`,
 or network connection at scan time.
+When Go is in scope, the selected skill instead invokes its bundled `.go`
+helper with the discovered Go 1.22+ executable; it has no host module or
+third-party dependency.
 
 ## Read the final artifact before acting
 
@@ -157,6 +187,8 @@ The report can surface these drift classes:
 | Symptom | Action |
 |---|---|
 | Exit 2 | Correct the project/target path or frontmatter; restore Node.js/the host's local `typescript`; or repair TS/TSX syntax. Do not treat a failed parse as a clean audit. |
+| Go reports `status=unsupported` | Put Go 1.22+ on `PATH` and re-run; do not present an audit that omitted selected Go files. |
+| Go reports `status=failed` | Repair the named Go syntax/parser failure and re-run; no partial report is valid. |
 | Report directory is rejected | Use a run directory below `reports/audit-decisions/`, such as `reports/audit-decisions/scan-20260719-120000`. Absolute paths are allowed only when they resolve below that same directory. The report root itself, source/arbitrary project paths, `..` escapes, output/ancestor symlinks that escape it, and a report-root symlink are rejected before any artifact is written. |
 | TS/TSX exists but TypeScript is unavailable | Install the project's locked dependencies so `typescript` resolves from `package.json`, then re-run. Do not present an incomplete TypeScript scan as clean. |
 | A desired reference is in an identifier, string, regex, or JSX text | Do not count it. Add a supported comment at the authoritative location. |
@@ -170,5 +202,13 @@ audit-decisions/
 ├── SKILL.md
 └── scripts/
     ├── audit.py
+    ├── detect_go_comments.go
     └── detect_typescript_comments.mjs
+```
+
+## Replay case
+
+```bash
+(cd tests/fixtures/audit-decisions-go-g1 && go test ./...)
+.venv/bin/python -m pytest -q tests/test_audit_decisions_go_g1.py
 ```

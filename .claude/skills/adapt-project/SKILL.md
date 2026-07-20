@@ -1,6 +1,6 @@
 ---
 name: adapt-project
-description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads stack markers, commands, tests, CI, docs, source roots, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
+description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, and Go stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
 argument-hint: "[--project-root <path>] [--artifact-root <path>] [--apply|--no-host-write]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -61,6 +61,14 @@ and human review decide what deserves to become doctrine.
 - The summary surfaces high-confidence facts, standardization cautions,
   sensitive surfaces, and open questions without inferring project
   philosophy.
+- A Go module's final adapter and report count only authored `.go` source,
+  classify `go.mod`, emit `go test ./...`, and declare `status: complete`.
+
+Status is atomic. `complete` means every requested filesystem fact and artifact
+was written. This read-only Go inventory has no honest `partial` mode and does
+not need native tooling, so `partial` and `unsupported` are reserved rather
+than emitted. A path or write error is `failed`: the command exits nonzero and
+the run must not be presented as a completed adapter.
 
 ## JavaScript-family v1 contract
 
@@ -78,6 +86,23 @@ but it does not establish React, Vite, Next, Express, or any other framework.
 This branch does not infer framework behavior from JavaScript or TypeScript,
 resolve modules, type-check the host, or decide that observed code is a
 healthy standard.
+
+## Go v1 contract
+
+Source-root facts add `go_files` and `go` to `source_languages` only when at
+least one authored `.go` file is present. Counts exclude dependency, vendor,
+build, generated, fixture, test-directory, `*_test.go`, generated-name, and
+canonical `// Code generated ... DO NOT EDIT.` files. The same `>200` large-root
+standardization caution used for Python and JavaScript-family source applies to
+Go. Root-level Go files use the `.` source-root row; conventional `cmd`,
+`internal`, and `pkg` trees are source-root candidates alongside existing roots.
+
+A root `go.mod` is an objective Go language/package-manager marker and adds the
+native test command `go test ./...`; `go.work` is a language marker only. This
+is filesystem discovery, so the skill does not require Go, parse source, load
+packages, interpret build constraints, infer a framework, or claim that the
+observed module layout is healthy. Native fixture verification runs separately
+from the discovery command.
 
 ## Forms
 
@@ -191,6 +216,17 @@ examples of healthy use.
 | `scripts/check_evidence.py` reports no `evidence.json` manifest | Treat the adaptation as incomplete; rerun discovery or inspect the scan directory before claiming done |
 | `check_evidence.py` reports missing `adapter` or `report` evidence | Fix the scan so `evidence.json` points to existing `adapter.yml` and `report.md`, then rerun the gate |
 | `check_evidence.py` reports malformed JSON or missing scan dir | Surface the usage/data error and stop; do not fabricate a passing evidence transcript |
+
+## Replay case
+
+From the source repository, the locked Go fixture must first pass its native
+boundary and then reach the final adapter/evidence boundary without source
+mutation:
+
+```bash
+(cd tests/fixtures/adapt-project-go-g1 && go test ./...)
+.venv/bin/python -m pytest -q tests/test_adapt_project_go_g1.py
+```
 
 ## Inspiration
 

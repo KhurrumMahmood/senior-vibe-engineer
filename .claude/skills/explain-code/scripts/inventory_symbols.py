@@ -19,7 +19,10 @@ import argparse
 import ast
 import hashlib
 import json
+import os
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -28,7 +31,9 @@ from typing import Any
 PYTHON_SUFFIXES = frozenset({".py"})
 TYPESCRIPT_SUFFIXES = frozenset({".ts", ".tsx"})
 JAVASCRIPT_SUFFIXES = frozenset({".js", ".jsx", ".mjs", ".cjs"})
-SOURCE_SUFFIXES = PYTHON_SUFFIXES | TYPESCRIPT_SUFFIXES | JAVASCRIPT_SUFFIXES
+GO_SUFFIXES = frozenset({".go"})
+SOURCE_SUFFIXES = PYTHON_SUFFIXES | TYPESCRIPT_SUFFIXES | JAVASCRIPT_SUFFIXES | GO_SUFFIXES
+MINIMUM_GO_VERSION = (1, 22)
 IGNORED_DIRECTORY_NAMES = frozenset(
     {
         "__pycache__",
@@ -40,8 +45,15 @@ IGNORED_DIRECTORY_NAMES = frozenset(
         "generated",
         "migrations",
         "node_modules",
+        "testdata",
         "test",
         "tests",
+        "fixture",
+        "fixtures",
+        "third_party",
+        "third-party",
+        "deps",
+        "dependencies",
         "vendor",
     }
 )
@@ -116,6 +128,14 @@ JS_COMMONJS_ASSIGNMENT_RE = re.compile(
 )
 JS_COMMONJS_UNRESOLVED_RE = re.compile(r"^\s*module\.exports\s*=")
 JS_BRANCH_RE = TS_BRANCH_RE
+GO_GENERATED_MARKER_RE = re.compile(r"^// Code generated .* DO NOT EDIT\.$")
+
+
+class GoInventoryError(ValueError):
+    def __init__(self, status: str, message: str, *, exit_code: int = 2) -> None:
+        super().__init__(message)
+        self.status = status
+        self.exit_code = exit_code
 
 
 def _is_public(name: str, dunder_all: set[str] | None) -> bool:
@@ -979,27 +999,163 @@ def _inventory_javascript_file(
     return public, total, unexplained, True
 
 
-def _is_ignored(path: Path, target: Path) -> bool:
+def _go_tool() -> Path:
+    discovered = shutil.which("go")
+    if discovered is None:
+        raise GoInventoryError("unsupported", "Go toolchain is unavailable")
+    go = Path(discovered)
     try:
-        relative = path.relative_to(target)
-    except ValueError:
+        result = subprocess.run(
+            [str(go), "version"], capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        raise GoInventoryError("unsupported", f"cannot run Go toolchain: {exc}") from exc
+    match = re.search(r"\bgo(\d+)\.(\d+)(?:\.\d+)?\b", result.stdout)
+    if result.returncode or match is None:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise GoInventoryError(
+            "unsupported", f"cannot determine Go toolchain version: {detail}"
+        )
+    if (int(match.group(1)), int(match.group(2))) < MINIMUM_GO_VERSION:
+        raise GoInventoryError("unsupported", "Go inventory requires Go >= 1.22")
+    return go
+
+
+def _inventory_go_file(
+    path: Path, file_rel: Path, go: Path
+) -> tuple[list[dict[str, Any]], int, list[dict[str, Any]], str]:
+    launcher = Path(__file__).resolve().with_name("inventory_go.go")
+    try:
+        result = subprocess.run(
+            [
+                str(go),
+                "run",
+                str(launcher),
+                "--file",
+                str(path),
+                "--display",
+                str(file_rel),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            env={
+                **os.environ,
+                "GO111MODULE": "off",
+                "GOTOOLCHAIN": "local",
+                "GOWORK": "off",
+            },
+        )
+    except OSError as exc:
+        raise GoInventoryError("unsupported", f"cannot run Go inventory: {exc}") from exc
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise GoInventoryError(
+            "failed", f"Go inventory failed for {file_rel}: {detail}"
+        )
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise GoInventoryError(
+            "failed", f"Go inventory emitted invalid JSON for {file_rel}"
+        ) from exc
+    if (
+        not isinstance(payload, dict)
+        or payload.get("status") not in {"complete", "partial"}
+        or not isinstance(payload.get("targets"), list)
+        or not isinstance(payload.get("unexplained"), list)
+        or not isinstance(payload.get("total_symbols"), int)
+    ):
+        raise GoInventoryError("failed", f"Go inventory emitted an invalid result for {file_rel}")
+    public: list[dict[str, Any]] = []
+    for item in payload["targets"]:
+        if not isinstance(item, dict):
+            raise GoInventoryError("failed", f"Go inventory emitted an invalid target for {file_rel}")
+        try:
+            public.append(
+                _build_entry(
+                    file_rel=file_rel,
+                    symbol=str(item["symbol"]),
+                    kind=str(item["kind"]),
+                    lineno=int(item["lineno"]),
+                    loc=int(item["loc"]),
+                    branch_count=int(item["branch_count"]),
+                    has_docstring=bool(item["has_docstring"]),
+                )
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise GoInventoryError(
+                "failed", f"Go inventory emitted an invalid target for {file_rel}"
+            ) from exc
+    if not all(isinstance(item, dict) for item in payload["unexplained"]):
+        raise GoInventoryError(
+            "failed", f"Go inventory emitted an invalid unexplained record for {file_rel}"
+        )
+    return public, payload["total_symbols"], payload["unexplained"], payload["status"]
+
+
+def _is_generated_go(path: Path) -> bool:
+    if path.suffix.casefold() != ".go":
         return False
-    parts = relative.parts
+    in_block_comment = False
+    try:
+        with path.open(encoding="utf-8") as source:
+            for raw_line in source:
+                remaining = raw_line.lstrip("\ufeff \t")
+                while True:
+                    if in_block_comment:
+                        end = remaining.find("*/")
+                        if end < 0:
+                            break
+                        in_block_comment = False
+                        remaining = remaining[end + 2 :].lstrip()
+                        continue
+                    if not remaining.strip():
+                        break
+                    if remaining.startswith("//"):
+                        if GO_GENERATED_MARKER_RE.fullmatch(remaining.rstrip("\r\n")):
+                            return True
+                        break
+                    if remaining.startswith("/*"):
+                        in_block_comment = True
+                        remaining = remaining[2:]
+                        continue
+                    return False
+    except (OSError, UnicodeDecodeError):
+        return False
+    return False
+
+
+def _is_ignored(path: Path, repo_root: Path) -> bool:
+    try:
+        repo_relative = path.resolve().relative_to(repo_root.resolve())
+    except ValueError:
+        return True
+    parts = repo_relative.parts
     if any(part.casefold() in IGNORED_DIRECTORY_NAMES for part in parts[:-1]):
         return True
     name = path.name.casefold()
-    return (
+    ignored = (
         TEST_FILE_RE.search(name) is not None
         or name.endswith(".d.ts")
         or ".generated." in name
         or name.startswith("generated_")
         or name.endswith((".min.js", ".min.jsx", ".min.mjs", ".min.cjs"))
     )
+    if ignored or path.suffix.casefold() not in GO_SUFFIXES:
+        return ignored
+    return (
+        "generated" in name
+        or _is_generated_go(path)
+    )
 
 
-def _collect_files(target: Path) -> list[Path]:
+def _collect_files(target: Path, repo_root: Path) -> list[Path]:
     if target.is_file():
-        return [target] if target.suffix.casefold() in SOURCE_SUFFIXES else []
+        return [target] if (
+            target.suffix.casefold() in SOURCE_SUFFIXES
+            and not _is_ignored(target, repo_root)
+        ) else []
     if not target.is_dir():
         return []
     return [
@@ -1007,7 +1163,7 @@ def _collect_files(target: Path) -> list[Path]:
         for path in sorted(target.rglob("*"))
         if path.is_file()
         and path.suffix.casefold() in SOURCE_SUFFIXES
-        and not _is_ignored(path, target)
+        and not _is_ignored(path, repo_root)
     ]
 
 
@@ -1039,6 +1195,71 @@ def _resolve_collisions(entries: list[dict[str, Any]]) -> None:
             entry["symbol_key"] = f"{entry['symbol_key']}__line_{entry['lineno']}"
 
 
+def _remove_artifact(path: Path) -> None:
+    if not (path.exists() or path.is_symlink()):
+        return
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path)
+    else:
+        path.unlink()
+
+
+def _canonical_explanation_artifacts(
+    output: Path, repo_root: Path
+) -> tuple[Path, list[Path]] | None:
+    """Return latest plus the target-keyed artifact set for the documented layout."""
+    explanations_root = repo_root / "reports" / "explanations"
+    if (
+        output.name != "targets.json"
+        or output.parent.parent.resolve() != explanations_root.resolve()
+        or output.parent.is_symlink()
+        or output.parent.resolve().parent != explanations_root.resolve()
+    ):
+        return None
+    report_dir = output.parent
+    return explanations_root / "latest", [
+        output,
+        explanations_root / f"{report_dir.name}.md",
+        report_dir / "annotations",
+        report_dir / "unexplained.txt",
+        report_dir / "surprises.txt",
+    ]
+
+
+def _validate_output_destination(output: Path, repo_root: Path) -> None:
+    """Refuse a documented report path whose target directory escapes by symlink."""
+    explanations_root = repo_root / "reports" / "explanations"
+    if (
+        output.name == "targets.json"
+        and output.parent.parent.resolve() == explanations_root.resolve()
+        and (
+            output.parent.is_symlink()
+            or output.parent.resolve().parent != explanations_root.resolve()
+        )
+    ):
+        raise ValueError(
+            f"target report directory must stay directly under {explanations_root}"
+        )
+
+
+def _invalidate_artifacts(output: Path, repo_root: Path) -> None:
+    """Remove every prior artifact that could make a failed rerun look complete."""
+    canonical = _canonical_explanation_artifacts(output, repo_root)
+    if canonical is None:
+        _remove_artifact(output)
+        return
+    latest, artifacts = canonical
+    if latest.is_symlink():
+        try:
+            points_to_target = latest.resolve(strict=False) == output.parent.resolve()
+        except OSError:
+            points_to_target = latest.readlink() == Path(output.parent.name)
+        if points_to_target:
+            latest.unlink()
+    for artifact in artifacts:
+        _remove_artifact(artifact)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -1059,12 +1280,35 @@ def main(argv: list[str] | None = None) -> int:
     target_arg = str(args.target)
     target = args.target.resolve()
     repo_root = args.repo_root.resolve()
+    output_resolved = args.output.resolve()
+    if args.output.is_dir():
+        print(f"error: output path must be a file: {args.output}", file=sys.stderr)
+        return 2
+    if output_resolved.suffix.casefold() in SOURCE_SUFFIXES:
+        print(
+            f"error: output overlaps a supported source path: {args.output}",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        _validate_output_destination(args.output, repo_root)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    try:
+        _invalidate_artifacts(args.output, repo_root)
+    except OSError as exc:
+        print(f"error: cannot invalidate {args.output}: {exc}", file=sys.stderr)
+        return 2
     if not target.exists():
         print(f"error: target not found: {args.target}", file=sys.stderr)
         return 1
-    files = _collect_files(target)
+    files = _collect_files(target, repo_root)
     if not files:
-        print(f"error: no supported source files under {args.target}", file=sys.stderr)
+        print(
+            f"status=unsupported: no supported source files under {args.target}",
+            file=sys.stderr,
+        )
         return 1
 
     all_public: list[dict[str, Any]] = []
@@ -1073,6 +1317,8 @@ def main(argv: list[str] | None = None) -> int:
     languages: set[str] = set()
     invalid_typescript = False
     invalid_javascript = False
+    go_status = "complete"
+    go_tool: Path | None = None
     for path in files:
         file_rel = _display_path(path, repo_root)
         if path.suffix.casefold() == ".py":
@@ -1089,7 +1335,7 @@ def main(argv: list[str] | None = None) -> int:
             total_symbols += file_total
             all_unexplained.extend(unresolved)
             invalid_typescript = invalid_typescript or not valid
-        else:
+        elif path.suffix.casefold() in JAVASCRIPT_SUFFIXES:
             entries, file_total, unresolved, valid = _inventory_javascript_file(
                 path, file_rel
             )
@@ -1098,6 +1344,22 @@ def main(argv: list[str] | None = None) -> int:
             total_symbols += file_total
             all_unexplained.extend(unresolved)
             invalid_javascript = invalid_javascript or not valid
+        else:
+            try:
+                if go_tool is None:
+                    go_tool = _go_tool()
+                entries, file_total, unresolved, file_status = _inventory_go_file(
+                    path, file_rel, go_tool
+                )
+            except GoInventoryError as exc:
+                print(f"status={exc.status}: {exc}", file=sys.stderr)
+                return exc.exit_code
+            languages.add("go")
+            all_public.extend(entries)
+            total_symbols += file_total
+            all_unexplained.extend(unresolved)
+            if file_status == "partial":
+                go_status = "partial"
     if invalid_typescript or invalid_javascript:
         return 1
     if not all_public and not all_unexplained:
@@ -1129,6 +1391,15 @@ def main(argv: list[str] | None = None) -> int:
         ],
         "unexplained": all_unexplained,
     }
+    if "go" in languages:
+        payload["status"] = go_status
+        payload["analysis"] = {
+            "go": {
+                "status": go_status,
+                "analyzer": "go-parser-go-ast",
+                "minimum_go_version": "1.22",
+            }
+        }
     try:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

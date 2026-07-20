@@ -10,6 +10,9 @@ or unresolved default export reported by `targets.json`. These entries are not
 annotation failures; they are evidence that module resolution was not claimed.
 Likewise, a TypeScript signature is a declared source fact, not an enforced or
 type-checked contract unless a future accepted outcome actually runs a compiler.
+For Go v1, exported aliases and build-constrained files follow the same visible
+abstention rule: they appear under `Unexplained regions`; the renderer must not
+turn them into resolved package behavior or imply that package loading ran.
 
 ## Structure
 

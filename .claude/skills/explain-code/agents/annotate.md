@@ -35,7 +35,8 @@ annotation is done unless `{{output_path}}` has been written.
 - `{{file_path}}` — absolute path to the symbol's file
 - `{{symbol}}` — qualified name (`Cls.method`, bare function name, or
   module variable name)
-- `{{kind}}` — one of `function`, `method`, `class`, `module-var`
+- `{{kind}}` — one of `function`, `method`, `class`, `type`, `interface`,
+  `enum`, `namespace`, `module-var`
 - `{{project_root}}` — absolute path to the your-project worktree
 - `{{skill_root}}` — absolute path to `.claude/skills/explain-code/`
 - `{{output_path}}` — absolute path to write your annotation markdown
@@ -48,7 +49,10 @@ cd {{project_root}}
 
 Use `Grep` for the symbol's definition (`def <bare-name>` / `class <name>`
 for Python, or `export function <bare-name>`, `export class <name>`,
-`export const <name>`, `export interface <name>`, etc. for TypeScript).
+`export const <name>`, `export interface <name>`, etc. for TypeScript; use
+`func <name>`, `func (<receiver>) <name>`, `type <name>`, or `var/const <name>`
+for Go). Go aliases and build-constrained files belong to the inventory's
+unexplained records and are not scout targets.
 Trust the symbol name, not any cached line number — source drifts.
 
 If you cannot locate the symbol, write `{{output_path}}` with
@@ -132,8 +136,8 @@ them as testable statements. Examples:
   `url_patterns` is also non-empty — the function does not silently
   return an all-empty result on error."*
 
-If no non-trivial invariants exist, write *"No invariants beyond
-standard Python reference semantics."*.
+If no non-trivial invariants exist, write *"No invariants beyond the
+language's standard reference/value semantics."*.
 
 ### Callers
 Run from `{{project_root}}`:
@@ -248,3 +252,4 @@ no preamble):
 | Symbol is a `__init__` that just assigns `self.x = x` | Still produce the annotation but with short sections — "Intent: initialize instance attributes; no business logic." and note whether the constructor has hidden side-effects like network calls |
 | The symbol is re-exported through `__init__.py` | Note the re-export in "Callers" as a subsystem summary (`re-exported via core/services/__init__.py`); don't double-count |
 | A TypeScript alias or re-export is listed in `targets.json` | Do not annotate it as a direct symbol. The orchestrator renders its inventory record as an unresolved region because TypeScript v1 does not resolve modules. |
+| A Go alias or build-constrained file is listed in `targets.json` | Do not annotate it as a direct symbol. The orchestrator renders the inventory record as an unresolved region because Go v1 does not resolve aliases or select build tags. |

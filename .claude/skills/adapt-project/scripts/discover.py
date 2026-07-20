@@ -11,7 +11,9 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import re
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -31,6 +33,7 @@ SOURCE_ROOT_CANDIDATES = (
     "ai-docs",
     ".claude",
 )
+GO_SOURCE_ROOT_CANDIDATES = ("cmd", "internal", "pkg")
 DOC_NAMES = ("AGENTS.md", "CLAUDE.md", "CONTEXT.md", "ONBOARDING.md", "README.md")
 COMMON_SKIP_PARTS = frozenset({
     ".git",
@@ -53,6 +56,15 @@ JAVASCRIPT_FAMILY_NON_SOURCE_PARTS = frozenset({
     "tests",
     "__tests__",
     "vendor",
+})
+GO_NON_SOURCE_PARTS = JAVASCRIPT_FAMILY_NON_SOURCE_PARTS | frozenset({
+    "testdata",
+    "fixture",
+    "fixtures",
+    "third_party",
+    "third-party",
+    "deps",
+    "dependencies",
 })
 SENSITIVE_NAME_RE = re.compile(
     r"(secret|credential|token|password|key|auth|ai_runtime|intelligence|sidecar|"
@@ -122,6 +134,57 @@ def is_javascript_source(path: Path) -> bool:
     )
 
 
+def _is_generated_go(path: Path) -> bool:
+    """Match Go's canonical marker only in the leading comment preamble."""
+    in_block_comment = False
+    try:
+        with path.open(encoding="utf-8") as source:
+            for raw_line in source:
+                remaining = raw_line.lstrip("\ufeff \t")
+                while True:
+                    if in_block_comment:
+                        end = remaining.find("*/")
+                        if end < 0:
+                            break
+                        in_block_comment = False
+                        remaining = remaining[end + 2 :].lstrip()
+                        continue
+                    if not remaining.strip():
+                        break
+                    if remaining.startswith("//"):
+                        if re.fullmatch(
+                            r"// Code generated .* DO NOT EDIT\.",
+                            remaining.rstrip("\r\n"),
+                        ):
+                            return True
+                        break
+                    if remaining.startswith("/*"):
+                        in_block_comment = True
+                        remaining = remaining[2:]
+                        continue
+                    return False
+    except (OSError, UnicodeDecodeError):
+        return False
+    return False
+
+
+def is_go_source(path: Path, project_root: Path) -> bool:
+    """Recognize authored Go source without parsing or loading packages."""
+    if path.suffix != ".go":
+        return False
+    try:
+        policy_parts = path.resolve().relative_to(project_root.resolve()).parts
+    except ValueError:
+        return False
+    if any(part in COMMON_SKIP_PARTS for part in policy_parts) or any(
+        part in GO_NON_SOURCE_PARTS for part in policy_parts
+    ):
+        return False
+    if path.name.endswith("_test.go") or "generated" in path.name.casefold():
+        return False
+    return not _is_generated_go(path)
+
+
 def is_within(path: Path, root: Path) -> bool:
     try:
         path.resolve().relative_to(root.resolve())
@@ -140,9 +203,33 @@ def load_package(path: Path) -> dict[str, Any]:
 
 def source_roots(root: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for name in SOURCE_ROOT_CANDIDATES:
+    root_go_paths = [
+        item
+        for item in root.glob("*.go")
+        if is_within(item, root) and is_go_source(item, root)
+    ]
+    if root_go_paths:
+        rows.append(
+            {
+                "path": ".",
+                "python_files": 0,
+                "typescript_files": 0,
+                "typescript_file_kinds": {"ts": 0, "tsx": 0},
+                "markdown_files": sum(1 for item in root.glob("*.md") if item.is_file()),
+                "source_languages": ["go"],
+                "go_files": len(root_go_paths),
+            }
+        )
+    for name in (*SOURCE_ROOT_CANDIDATES, *GO_SOURCE_ROOT_CANDIDATES):
         path = root / name
         if not path.is_dir() or not is_within(path, root):
+            continue
+        go_paths = [
+            item
+            for item in path.rglob("*.go")
+            if is_within(item, root) and is_go_source(item, root)
+        ]
+        if name in GO_SOURCE_ROOT_CANDIDATES and not go_paths:
             continue
         python_files = sum(
             1 for item in path.rglob("*.py") if is_within(item, root) and not is_common_ignored(item)
@@ -163,6 +250,7 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
             for suffix in (".js", ".jsx", ".mjs", ".cjs")
         }
         javascript_files = sum(len(paths) for paths in javascript_paths.values())
+        go_files = len(go_paths)
         source_languages: list[str] = []
         if python_files:
             source_languages.append("python")
@@ -170,6 +258,8 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
             source_languages.append("typescript")
         if javascript_files:
             source_languages.append("javascript")
+        if go_files:
+            source_languages.append("go")
         markdown_files = sum(
             1 for item in path.rglob("*.md") if is_within(item, root) and not is_common_ignored(item)
         )
@@ -190,6 +280,8 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
             row["javascript_file_kinds"] = {
                 suffix: len(paths) for suffix, paths in javascript_paths.items()
             }
+        if go_files:
+            row["go_files"] = go_files
         rows.append(row)
     return rows
 
@@ -209,6 +301,10 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         languages.append("javascript")
     elif package_paths and not languages:
         languages.append("javascript")
+    if (root / "go.mod").is_file() or (root / "go.work").is_file() or any(
+        row.get("go_files", 0) for row in roots
+    ):
+        languages.append("go")
 
     package_managers: list[str] = []
     for marker, manager in (("pnpm-lock.yaml", "pnpm"), ("package-lock.json", "npm"), ("yarn.lock", "yarn")):
@@ -218,6 +314,8 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         package_managers.append("npm")
     if (root / "requirements.txt").is_file() or (root / "pyproject.toml").is_file():
         package_managers.append("pip")
+    if (root / "go.mod").is_file():
+        package_managers.append("go")
 
     requirements_text = "\n".join(read_text(path) for path in requirements)
     python_config = requirements_text + "\n" + read_text(root / "pyproject.toml")
@@ -225,6 +323,7 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
 
     markers = [name for name in (
         "manage.py", "pyproject.toml", "requirements.txt", "package.json", "pnpm-lock.yaml", "vite.config.ts", "tsconfig.json",
+        "go.mod", "go.work",
     ) if (root / name).exists()]
     return {
         "languages": languages,
@@ -261,6 +360,8 @@ def detect_commands(root: Path, stack: dict[str, Any]) -> dict[str, list[str]]:
                 commands["lint"].append(command)
             if name in {"dev", "start"}:
                 commands["dev"].append(command)
+    if "go" in stack["languages"] and (root / "go.mod").is_file():
+        commands["test"].append("go test ./...")
     return {kind: sorted(set(values)) for kind, values in commands.items()}
 
 
@@ -318,7 +419,7 @@ def detect_sensitive_surfaces(root: Path) -> list[dict[str, str]]:
         elif path.is_file() and path.name in {".env", ".env.local"}:
             surfaces.append({"path": rel, "kind": "file", "reason": "environment secrets file"})
         elif path.is_file() and SENSITIVE_NAME_RE.search(rel) and path.suffix in {
-            ".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".md"
+            ".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".go", ".md"
         }:
             surfaces.append({"path": rel, "kind": "file", "reason": "sensitive-looking name"})
     return surfaces
@@ -329,6 +430,7 @@ def standardization(source_root_rows: list[dict[str, Any]], guards: dict[str, An
         row["python_files"] > 200
         or row["typescript_files"] > 200
         or row.get("javascript_files", 0) > 200
+        or row.get("go_files", 0) > 200
         for row in source_root_rows
     )
     cautions = [
@@ -357,6 +459,15 @@ def discover(project_root: Path) -> dict[str, Any]:
     guards = detect_lints_and_guards(root)
     adapter: dict[str, Any] = {
         "schema_version": ADAPTER_SCHEMA_VERSION,
+        "status": "complete",
+        "analysis": {
+            "go": {
+                "status": "complete",
+                "analyzer": "filesystem-source-inventory",
+            }
+        }
+        if "go" in stack["languages"]
+        else {},
         "generated_at": utc_now(),
         "project": {"name": root.name, "root": str(root)},
         "stack": stack,
@@ -406,6 +517,8 @@ def adapter_markdown(adapter: dict[str, Any]) -> str:
                     f"JavaScript: {row['javascript_files']} ({js_kinds['js']} .js, "
                     f"{js_kinds['jsx']} .jsx, {js_kinds['mjs']} .mjs, {js_kinds['cjs']} .cjs); "
                 )
+            if row.get("go_files"):
+                line += f"Go: {row['go_files']}; "
             lines.append(line + f"classified: {', '.join(row['source_languages']) or 'none'}")
     else:
         lines.append("- (none inferred)")
@@ -422,6 +535,22 @@ def adapter_markdown(adapter: dict[str, Any]) -> str:
     lines.extend(["", "## Open Questions"])
     lines.extend(f"- {question}" for question in adapter["open_questions"])
     return "\n".join(lines) + "\n"
+
+
+def _validate_latest_replaceable(latest: Path) -> None:
+    if not (latest.exists() or latest.is_symlink()):
+        return
+    if latest.is_dir() and not latest.is_symlink():
+        raise ValueError("latest scan link must be replaceable")
+    if not (latest.is_file() or latest.is_symlink()):
+        raise ValueError("latest scan link must be replaceable")
+
+
+def _cleanup_scan_artifact(scan_dir: Path) -> None:
+    try:
+        shutil.rmtree(scan_dir)
+    except OSError:
+        pass
 
 
 def write_discovery(project_root: Path, artifact_root: Path, *, timestamp: str | None, apply: bool, no_host_write: bool) -> Path:
@@ -444,37 +573,53 @@ def write_discovery(project_root: Path, artifact_root: Path, *, timestamp: str |
     scan_dir = (reports_root / sid).resolve()
     if scan_dir.parent != reports_root or not is_within(scan_dir, reports_root):
         raise ValueError("scan directory must stay beneath artifact reports")
-    scan_dir.mkdir(parents=True, exist_ok=True)
-    adapter = discover(project_root)
-    serialized = json.dumps(adapter, indent=2, sort_keys=True) + "\n"
-    (scan_dir / "adapter.yml").write_text(serialized, encoding="utf-8")
-    (scan_dir / "adapter.json").write_text(serialized, encoding="utf-8")
-    (scan_dir / "report.md").write_text(adapter_markdown(adapter), encoding="utf-8")
-    (scan_dir / "evidence.json").write_text(json.dumps({
-        "skill": "adapt-project",
-        "scan_id": sid,
-        "produced_at": utc_now(),
-        "evidence": {"adapter": "adapter.yml", "report": "report.md"},
-        "notes": "no host writes" if no_host_write else "",
-    }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     latest = reports_root / "latest"
-    if latest.exists() or latest.is_symlink():
-        if latest.is_dir() and not latest.is_symlink():
-            raise ValueError("latest scan link must be replaceable")
-        try:
-            latest.unlink()
-        except OSError as exc:
-            raise ValueError("latest scan link must be replaceable") from exc
+    _validate_latest_replaceable(latest)
+    latest_temporary = reports_root / f".{sid}.latest"
+    if latest_temporary.exists() or latest_temporary.is_symlink():
+        raise ValueError("temporary latest scan link already exists")
+    scan_created = False
     try:
-        latest.symlink_to(scan_dir.name)
-        if latest.resolve() != scan_dir or not is_within(latest.resolve(), reports_root):
+        scan_dir.mkdir()
+        scan_created = True
+        adapter = discover(project_root)
+        serialized = json.dumps(adapter, indent=2, sort_keys=True) + "\n"
+        (scan_dir / "adapter.yml").write_text(serialized, encoding="utf-8")
+        (scan_dir / "adapter.json").write_text(serialized, encoding="utf-8")
+        (scan_dir / "report.md").write_text(adapter_markdown(adapter), encoding="utf-8")
+        (scan_dir / "evidence.json").write_text(json.dumps({
+            "skill": "adapt-project",
+            "scan_id": sid,
+            "produced_at": utc_now(),
+            "evidence": {"adapter": "adapter.yml", "report": "report.md"},
+            "notes": "no host writes" if no_host_write else "",
+        }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        if apply:
+            destination = project_root / ".engineering" / "project" / "adapter.yml"
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(serialized, encoding="utf-8")
+        latest_temporary.symlink_to(scan_dir.name)
+        if latest_temporary.resolve() != scan_dir or not is_within(latest_temporary.resolve(), reports_root):
             raise ValueError("latest scan link must stay beneath artifact reports")
+        os.replace(latest_temporary, latest)
     except OSError as exc:
+        if latest_temporary.exists() or latest_temporary.is_symlink():
+            try:
+                latest_temporary.unlink()
+            except OSError:
+                pass
+        if scan_created:
+            _cleanup_scan_artifact(scan_dir)
         raise ValueError("could not create contained latest scan link") from exc
-    if apply:
-        destination = project_root / ".engineering" / "project" / "adapter.yml"
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(serialized, encoding="utf-8")
+    except ValueError:
+        if latest_temporary.exists() or latest_temporary.is_symlink():
+            try:
+                latest_temporary.unlink()
+            except OSError:
+                pass
+        if scan_created:
+            _cleanup_scan_artifact(scan_dir)
+        raise
     return scan_dir
 
 
@@ -501,7 +646,7 @@ def main(argv: list[str] | None = None) -> int:
             no_host_write=args.no_host_write,
         ))
     except ValueError as exc:
-        print(f"error: {exc}", file=sys.stderr)
+        print(f"error: status=failed: {exc}", file=sys.stderr)
         return 2
     return 0
 

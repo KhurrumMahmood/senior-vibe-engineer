@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from datetime import UTC, datetime
@@ -181,6 +182,11 @@ def render(
         file_name = str(item.get("file", "target"))
         unexplained_lines.append(f"- `{file_name}` — `{symbol}`: {reason}")
 
+    status_row = (
+        f"\n| Status | {targets['status']} |"
+        if targets.get("status") in {"complete", "partial"}
+        else ""
+    )
     metadata = (
         f"# Explanation — {target_name}\n\n"
         "| Field | Value |\n"
@@ -192,6 +198,7 @@ def render(
         f"| Annotated this run | {len(selected)} |\n"
         f"| Overflow | {len(overflow)} (see targets.json) |\n"
         f"| Regenerated | {regenerated} |"
+        f"{status_row}"
     )
     chunks = [metadata, f"## Summary\n\n{summary.strip()}"]
     if selected:
@@ -220,6 +227,31 @@ def render(
     return len(unexplained_lines), len(surprise_lines)
 
 
+def _publish_latest(output: Path, annotations_dir: Path) -> None:
+    """Publish latest only after the complete documented artifact set exists."""
+    report_dir = annotations_dir.parent
+    explanations_root = output.parent
+    if (
+        report_dir.parent != explanations_root
+        or output.name != f"{report_dir.name}.md"
+        or annotations_dir.name != "annotations"
+    ):
+        return
+    latest = explanations_root / "latest"
+    if latest.exists() and not latest.is_symlink():
+        raise ValueError(f"latest explanation path is not replaceable: {latest}")
+    temporary = explanations_root / f".{report_dir.name}.latest"
+    if temporary.exists() or temporary.is_symlink():
+        temporary.unlink()
+    try:
+        temporary.symlink_to(report_dir.name)
+        os.replace(temporary, latest)
+    except OSError as exc:
+        if temporary.exists() or temporary.is_symlink():
+            temporary.unlink()
+        raise ValueError(f"cannot publish latest explanation: {exc}") from exc
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--targets", required=True, type=Path)
@@ -240,6 +272,7 @@ def main(argv: list[str] | None = None) -> int:
             regenerated=regenerated,
             project_root=args.project_root.resolve(),
         )
+        _publish_latest(args.output, args.annotations_dir)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

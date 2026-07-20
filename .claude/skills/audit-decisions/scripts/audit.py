@@ -13,7 +13,9 @@ import argparse
 import datetime as dt
 import io
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
 import tokenize
@@ -32,10 +34,12 @@ EXCLUDED_DIRS = frozenset({
     "bower_components", "vendor", "third_party", "third-party", "deps",
     "dependencies", "dist", "build", "out", "coverage", "reports",
     "generated", "__generated__", "test", "tests", "__tests__", "spec",
-    "specs", "fixture", "fixtures", ".next", ".cache", "site-packages",
+    "specs", "testdata", "fixture", "fixtures", ".next", ".cache", "site-packages",
 })
 SCRIPT_SUFFIXES = {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"}
-SCANNED_SUFFIXES = {".py", ".md", ".html", ".htm", *SCRIPT_SUFFIXES}
+GO_SUFFIXES = {".go"}
+SCANNED_SUFFIXES = {".py", ".md", ".html", ".htm", *SCRIPT_SUFFIXES, *GO_SUFFIXES}
+MINIMUM_GO_VERSION = (1, 22)
 
 
 @dataclass(frozen=True)
@@ -213,6 +217,8 @@ def _is_excluded(path: Path, project_root: Path) -> bool:
     name = path.name.lower()
     return (
         name.startswith("test_")
+        or name.endswith("_test.go")
+        or (name.endswith(".go") and "generated" in name)
         or name.endswith(
             tuple(
                 f".{marker}{suffix}"
@@ -223,6 +229,41 @@ def _is_excluded(path: Path, project_root: Path) -> bool:
         )
         or ".min." in name
     )
+
+
+def _is_generated_go(path: Path) -> bool:
+    if path.suffix.lower() != ".go":
+        return False
+    in_block_comment = False
+    try:
+        with path.open(encoding="utf-8") as source:
+            for raw_line in source:
+                remaining = raw_line.lstrip("\ufeff \t")
+                while True:
+                    if in_block_comment:
+                        end = remaining.find("*/")
+                        if end < 0:
+                            break
+                        in_block_comment = False
+                        remaining = remaining[end + 2 :].lstrip()
+                        continue
+                    if not remaining.strip():
+                        break
+                    if remaining.startswith("//"):
+                        if re.fullmatch(
+                            r"// Code generated .* DO NOT EDIT\.",
+                            remaining.rstrip("\r\n"),
+                        ):
+                            return True
+                        break
+                    if remaining.startswith("/*"):
+                        in_block_comment = True
+                        remaining = remaining[2:]
+                        continue
+                    return False
+    except (OSError, UnicodeDecodeError):
+        return False
+    return False
 
 
 def _resolve_target(raw: str, project_root: Path) -> Path:
@@ -266,11 +307,16 @@ def iter_scannable_files(project_root: Path, targets: Iterable[Path]) -> list[Pa
         if _is_excluded(target, project_root):
             continue
         if target.is_file():
-            if target.suffix.lower() in SCANNED_SUFFIXES:
+            if target.suffix.lower() in SCANNED_SUFFIXES and not _is_generated_go(target):
                 found.add(target)
             continue
         for path in sorted(target.rglob("*")):
-            if path.is_file() and path.suffix.lower() in SCANNED_SUFFIXES and not _is_excluded(path, project_root):
+            if (
+                path.is_file()
+                and path.suffix.lower() in SCANNED_SUFFIXES
+                and not _is_excluded(path, project_root)
+                and not _is_generated_go(path)
+            ):
                 found.add(path)
     return sorted(found, key=lambda path: _relative(path, project_root))
 
@@ -323,12 +369,91 @@ def _script_references(path: Path, project_root: Path) -> list[tuple[int, str, s
     return references
 
 
+def _go_tool() -> Path:
+    discovered = shutil.which("go")
+    if discovered is None:
+        raise ValueError("status=unsupported: Go toolchain is unavailable")
+    go = Path(discovered)
+    try:
+        result = subprocess.run(
+            [str(go), "version"], capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        raise ValueError(f"status=unsupported: cannot run Go toolchain: {exc}") from exc
+    match = re.search(r"\bgo(\d+)\.(\d+)(?:\.\d+)?\b", result.stdout)
+    if result.returncode or match is None:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise ValueError(f"status=unsupported: cannot determine Go toolchain version: {detail}")
+    version = (int(match.group(1)), int(match.group(2)))
+    if version < MINIMUM_GO_VERSION:
+        raise ValueError("status=unsupported: Go comments require Go >= 1.22")
+    return go
+
+
+def _go_references(path: Path, project_root: Path) -> list[tuple[int, str, str]]:
+    launcher = Path(__file__).resolve().with_name("detect_go_comments.go")
+    go = _go_tool()
+    try:
+        result = subprocess.run(
+            [str(go), "run", str(launcher), "--file", str(path)],
+            capture_output=True,
+            text=True,
+            check=False,
+            env={
+                **os.environ,
+                "GO111MODULE": "off",
+                "GOTOOLCHAIN": "local",
+                "GOWORK": "off",
+            },
+        )
+    except OSError as exc:
+        raise ValueError(f"status=unsupported: cannot run Go comment parser: {exc}") from exc
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise ValueError(
+            f"status=failed: Go comment parser failed for {_relative(path, project_root)}: {detail}"
+        )
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"status=failed: Go comment parser emitted invalid JSON for {_relative(path, project_root)}"
+        ) from exc
+    if not isinstance(payload, list):
+        raise ValueError(
+            f"status=failed: Go comment parser emitted an invalid result for {_relative(path, project_root)}"
+        )
+    references: list[tuple[int, str, str]] = []
+    for item in payload:
+        if not isinstance(item, dict):
+            raise ValueError(
+                f"status=failed: Go comment parser emitted an invalid reference for {_relative(path, project_root)}"
+            )
+        line, identifier, form = item.get("line"), item.get("id"), item.get("comment_form")
+        if (
+            not isinstance(line, int)
+            or line < 1
+            or not isinstance(identifier, str)
+            or not REFERENCE.fullmatch(f"decision:{identifier}")
+            or form not in {"line", "block"}
+        ):
+            raise ValueError(
+                f"status=failed: Go comment parser emitted an invalid reference for {_relative(path, project_root)}"
+            )
+        references.append((line, identifier, form))
+    return references
+
+
 def scan_references(path: Path, project_root: Path) -> list[dict[str, Any]]:
+    suffix = path.suffix.lower()
     try:
         text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+    except (OSError, UnicodeDecodeError) as exc:
+        if suffix in GO_SUFFIXES:
+            raise ValueError(
+                f"status=failed: cannot read Go source {_relative(path, project_root)}: {exc}"
+            ) from exc
         return []
-    suffix = path.suffix.lower()
     references: list[dict[str, Any]] = []
     if suffix == ".py":
         try:
@@ -343,6 +468,11 @@ def scan_references(path: Path, project_root: Path) -> list[dict[str, Any]]:
         language = "typescript" if suffix in {".ts", ".tsx"} else "javascript"
         for line, identifier, form in _script_references(path, project_root):
             references.append(_reference_dict(path, project_root, line, identifier, language, form))
+    elif suffix in GO_SUFFIXES:
+        for line, identifier, form in _go_references(path, project_root):
+            references.append(
+                _reference_dict(path, project_root, line, identifier, "go", form)
+            )
     elif suffix == ".md":
         for match in MARKDOWN_REFERENCE.finditer(text):
             references.append(_reference_dict(path, project_root, text.count("\n", 0, match.start()) + 1, match.group(1), "markdown", "hash"))
@@ -528,6 +658,7 @@ def render_drift(scan_id: str, decisions: list[Decision], references: list[dict[
     )}
     ts_count = sum(reference["language"] == "typescript" for reference in references)
     js_count = sum(reference["language"] == "javascript" for reference in references)
+    go_count = sum(reference["language"] == "go" for reference in references)
     lines = [
         f"# Decision-registry drift — {scan_id}",
         "",
@@ -546,7 +677,8 @@ def render_drift(scan_id: str, decisions: list[Decision], references: list[dict[
         "",
         "## Reference inventory",
         "",
-        f"JS/JSX/MJS/CJS comment references: {js_count} total; TS/TSX: {ts_count} total. Resolved references are retained here even when they create no drift row.",
+        f"JS/JSX/MJS/CJS comment references: {js_count} total; TS/TSX: {ts_count} total; "
+        f"Go comment references: {go_count} total. Resolved references are retained here even when they create no drift row.",
     ])
     if references:
         for reference in references:
@@ -582,7 +714,12 @@ def run(args: argparse.Namespace) -> int:
     output_dir = _resolve_output_dir(args.output_dir, project_root)
     targets = [_resolve_target(raw, project_root) for raw in args.target] if args.target else [project_root]
     decisions = load_decisions(project_root / "ai-docs" / "decisions")
-    references = [reference for path in iter_scannable_files(project_root, targets) for reference in scan_references(path, project_root)]
+    scannable_files = iter_scannable_files(project_root, targets)
+    references = [
+        reference
+        for path in scannable_files
+        for reference in scan_references(path, project_root)
+    ]
     known_ids = {decision.id for decision in decisions}
     for reference in references:
         reference["resolved"] = reference["id"] in known_ids
@@ -601,6 +738,16 @@ def run(args: argparse.Namespace) -> int:
         link_lines.append(f"OK — {len(decisions)} decisions, all links resolve{tail}")
     (output_dir / "link-check.txt").write_text("\n".join(link_lines) + "\n", encoding="utf-8")
     raw = {
+        "status": "complete",
+        "analysis": {
+            "go": {
+                "status": "complete",
+                "analyzer": "go-parser-comments",
+                "minimum_go_version": "1.22",
+            }
+        }
+        if any(path.suffix.lower() in GO_SUFFIXES for path in scannable_files)
+        else {},
         "scan_id": scan_id,
         "project_root": str(project_root),
         "targets": [_relative(target, project_root) for target in targets],
