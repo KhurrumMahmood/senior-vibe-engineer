@@ -220,6 +220,18 @@ auditable when completeness matters.
 - Acceptance: correctness does not regress; wall time, tokens, repeated context
   bytes, and human interventions are reported; coordination code is built only
   for a measured need.
+- Frozen benchmark contract: seven paired trials for both TypeScript and
+  JavaScript, alternating condition order, using the same three copied
+  read-only closures (`audit-decisions`, `find-complexity-hotspots`, and
+  `find-standard-gaps`). Serial and max-three parallel semantic projections
+  must be identical, native checks must pass, source bytes must not change,
+  and interventions/failures must remain zero. Setup time is excluded.
+- Pre-declared materiality gate: native parallel execution earns a product
+  launcher experiment only if each language saves at least 20% at the median,
+  saves at least 100 ms in absolute median wall time, and wins at least five of
+  seven pairs. Packet/closure/input-overlap bytes are reported separately;
+  actual model tokens and OS read bytes remain explicitly unmeasured. A native
+  pass cannot by itself justify an agent workflow coordinator.
 - Non-goals: a workflow platform before a fixed benchmark demonstrates value.
 
 ### ML-010 — Select and validate the next major-language pilot
