@@ -149,7 +149,7 @@ Acceptance:
 
 ## Phase P1 — Build the minimal portability harness
 
-State: `pending`
+State: `in_progress`
 
 This phase builds test and inventory infrastructure, not a cross-language
 analysis platform.
@@ -353,7 +353,7 @@ Acceptance:
 | Phase | State | Revision/worktree | Fixture hosts | Verification | Fresh replay/review | Learning artifact |
 |---|---|---|---|---|---|---|
 | P0 TypeScript synthesis | complete | P0 commit (this revision) | Accepted TypeScript coverage fixtures | Matrix/coverage/router: 51 passed; canonical: 666 passed, 2 environment skips | Fresh review found missing current closure paths; repaired; bounded re-review PASS | `.claude/tasks/multilanguage-typescript-transfer-guide.md` plus raw linked packets |
-| P1 portability harness | pending | — | — | — | — | — |
+| P1 portability harness | in_progress | Source-inventory slice (this revision) | Synthetic mixed-role host; accepted adapt-project and map-subsystem TypeScript hosts | Source inventory: 3 passed; canonical P0 baseline remains 666 passed, 2 skips | Product review pending for full P1; slice adds no analyzer or skill mutation | Inventory contract implemented; capability/router and journey-harness work remain |
 | P2 JavaScript coverage | pending | — | — | — | — | — |
 | P3 Go pilot | pending | — | — | — | — | — |
 | P4 route frameworks | pending | — | — | — | — | — |

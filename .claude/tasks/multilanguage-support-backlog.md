@@ -52,7 +52,7 @@ auditable when completeness matters.
 
 ### ML-001 — Repository file-role and content classification
 
-- State: `proposed`
+- State: `in_progress`
 - User value: skills can reason about what a file *is*, not only its suffix,
   while avoiding generated, vendored, declaration-only, test, or configuration
   surfaces that require different treatment.
@@ -68,6 +68,11 @@ auditable when completeness matters.
   omission or false positive without duplicating the classifier.
 - Non-goals: a universal AST, a mandatory whole-repository indexing service,
   framework inference from package names alone, or mutation authority.
+- Current slice: `scripts/source_inventory.py` inventories Python/TypeScript
+  roles, visible unsupported-language files, excluded roots, and ambiguity.
+  Its contract matches the accepted production-source boundaries of both
+  `adapt-project` and `map-subsystem`; completion still requires demonstrating
+  a user-visible omission or false-positive reduction in two consumers.
 
 ### ML-002 — Natural-language language and framework context for routing
 
