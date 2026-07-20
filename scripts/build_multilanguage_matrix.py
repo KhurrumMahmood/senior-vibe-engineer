@@ -116,7 +116,7 @@ FRAMEWORK_FAMILIES = {
 SHARED_PRIMITIVES = [
     {
         "primitive": "project-local-typescript-resolution",
-        "p1_decision": "candidate",
+        "p1_decision": "deferred-until-real-repair",
         "consumers": [
             "audit-decisions",
             "find-complexity-hotspots",
@@ -136,7 +136,7 @@ SHARED_PRIMITIVES = [
     },
     {
         "primitive": "tsconfig-project-loading",
-        "p1_decision": "candidate",
+        "p1_decision": "deferred-until-real-repair",
         "consumers": [
             "find-dormant",
             "find-implicit-state",
@@ -152,7 +152,7 @@ SHARED_PRIMITIVES = [
     },
     {
         "primitive": "project-path-containment",
-        "p1_decision": "candidate",
+        "p1_decision": "deferred-until-real-repair",
         "consumers": [
             "find-dormant",
             "find-incomplete-sweep",
@@ -167,7 +167,7 @@ SHARED_PRIMITIVES = [
     },
     {
         "primitive": "first-party-typescript-inventory",
-        "p1_decision": "candidate",
+        "p1_decision": "shared-contract",
         "consumers": [
             "adapt-project",
             "find-concept-divergence",

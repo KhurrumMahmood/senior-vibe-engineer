@@ -305,6 +305,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--output", type=Path, help="Contained JSON output path")
     args = parser.parse_args(argv)
+    output: Path | None = None
     try:
         project = _validate_root(args.project_root, label="project root")
         if args.output is not None:
@@ -316,13 +317,25 @@ def main(argv: list[str] | None = None) -> int:
             if args.output.exists() and args.output.is_symlink():
                 raise InventoryError(f"output may not be a symbolic link: {args.output}")
         payload = build_inventory(project, args.source_root)
+        if output is not None:
+            inventoried = [project / row["path"] for row in payload["files"]]
+            collides = _relative(output, project) in {
+                row["path"] for row in payload["files"]
+            } or (
+                output.exists()
+                and any(output.samefile(path) for path in inventoried)
+            )
+            if collides:
+                raise InventoryError(
+                    f"output may not replace an inventoried source file: {args.output}"
+                )
     except InventoryError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
     rendered = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
-    if args.output is not None:
-        _write_atomic(args.output, rendered)
+    if output is not None:
+        _write_atomic(output, rendered)
     else:
         sys.stdout.write(rendered)
     return 0

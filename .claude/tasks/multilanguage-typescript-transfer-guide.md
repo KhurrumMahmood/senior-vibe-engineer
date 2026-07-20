@@ -74,7 +74,7 @@ generated matrix.
 ## Repeated TypeScript primitives
 
 The generated matrix records exact consumer lists and keeps this inventory
-fresh. P1 may test these primitives, in this order:
+fresh. P1 evaluated these primitives in this order:
 
 1. project-local TypeScript resolution and project-root containment;
 2. explicit `tsconfig` loading with preserved diagnostics;
@@ -82,9 +82,12 @@ fresh. P1 may test these primitives, in this order:
 4. complete first-party `.ts`/`.tsx` inventory with attributed exclusions; and
 5. a shared status vocabulary only—not a shared analysis result schema.
 
-Candidates 1–4 may become small runtime helpers after one syntax and one
-semantic consumer preserve their final outputs. Candidate 5 stays a contract
-unless two consumers demonstrate an identical executable interface.
+P1 stopped runtime extraction: candidates 1–3 remain family-local until a real
+two-consumer repair proves both the API and the selected-install closure.
+Candidate 4 produced the shared read-only source-inventory contract, without
+coupling analyzers to it. Candidate 5 became the test-harness outcome contract,
+not a shared analysis result schema. See the P1 decision in
+`multilanguage-expansion-plan.md` for the promotion trigger.
 
 Do not extract the following merely because several files use the Compiler
 API:

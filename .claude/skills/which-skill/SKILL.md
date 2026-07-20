@@ -151,8 +151,10 @@ The matcher returns JSON with:
   availability, and the default fresh non-context-sub-agent execution mode.
   Before the on-demand library is bootstrapped, capability metadata reports a
   stable unavailable reason instead of guessing.
-- `optional_install` — pinned stock command for ambient installation of the
-  exact closure, used only when the user explicitly requests it
+- `optional_install` — a pinned stock command only when every member of the
+  exact closure has passed selected-install evidence; otherwise it is an
+  explicit unavailable result. It is used only when the user requests ambient
+  installation.
 - `task_packet` — the optional task-packet fields (`lanes`, `stage`,
   `entrypoint`, `consumes`, `produces`, `evidence_required`,
   `risk_triggers`, `max_overhead`) declared by the winning skill, or

@@ -95,7 +95,9 @@ The recommendation includes:
   shape, with exact local guide/tool paths, shared source inventory, validated
   language/fact/outcome capability rows for that closure, and a fresh
   non-context-sub-agent default;
-- a pinned ambient-install command only as an explicit optional alternative.
+- a pinned ambient-install command only as an explicit optional alternative
+  when every selected closure member has passed install evidence; otherwise
+  the output reports why that optional path is unavailable.
 
 If the script reports `confidence: low` — or any rationale line reads
 "fallback shape candidate" — do not present a single shape. Present the

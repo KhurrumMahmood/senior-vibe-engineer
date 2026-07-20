@@ -8,6 +8,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = REPO_ROOT / "scripts" / "source_inventory.py"
@@ -131,6 +133,31 @@ def test_inventory_rejects_outside_roots_and_output(tmp_path: Path) -> None:
     assert bad_output.returncode == 2
     assert "output must stay within project root" in bad_output.stderr
     assert not (outside / "inventory.json").exists()
+
+    source = host / "src" / "app.py"
+    before = source.read_bytes()
+    source_output = _run(
+        "--project-root",
+        str(host),
+        "--output",
+        str(source),
+    )
+    assert source_output.returncode == 2
+    assert "output may not replace an inventoried source file" in source_output.stderr
+    assert source.read_bytes() == before
+
+    case_variant = source.with_name("APP.py")
+    if not case_variant.exists() or not case_variant.samefile(source):
+        pytest.skip("case-variant alias requires a case-insensitive filesystem")
+    case_output = _run(
+        "--project-root",
+        str(host),
+        "--output",
+        str(case_variant),
+    )
+    assert case_output.returncode == 2
+    assert "output may not replace an inventoried source file" in case_output.stderr
+    assert source.read_bytes() == before
 
 
 def test_inventory_matches_two_accepted_skill_family_source_boundaries(

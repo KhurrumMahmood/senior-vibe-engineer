@@ -621,7 +621,7 @@ def _capability_handoff(library_root: Path, skills: list[str]) -> dict[str, Any]
         return {**unavailable, "reason": "manifest_missing"}
     try:
         payload = json.loads(manifest.read_text(encoding="utf-8"))
-        if payload.get("schema_version") != 1:
+        if not isinstance(payload, dict) or payload.get("schema_version") != 1:
             raise TypeError("unsupported capability manifest schema")
         rows = payload["skills"]
         if not isinstance(rows, list):
@@ -674,6 +674,34 @@ def _capability_handoff(library_root: Path, skills: list[str]) -> dict[str, Any]
     return {"available": True, "manifest": str(manifest), "skills": selected}
 
 
+def _validated_optional_install(handoff: dict, capabilities: dict) -> dict:
+    result = {key: value for key, value in handoff.items() if key != "command"}
+    if not capabilities["available"]:
+        return {
+            **result,
+            "available": False,
+            "reason": capabilities["reason"],
+            "evidence": [],
+        }
+    evidence = [
+        {"skill": row["skill"], "status": row["optional_install_status"]}
+        for row in capabilities["skills"]
+    ]
+    if any(row["status"] != "passed" for row in evidence):
+        return {
+            **result,
+            "available": False,
+            "reason": "selected_skill_install_not_validated",
+            "evidence": evidence,
+        }
+    return {
+        **result,
+        "available": True,
+        "evidence": evidence,
+        "command": handoff["command"],
+    }
+
+
 def render_markdown(result: dict[str, Any]) -> str:
     rec = result["recommendation"]
     ctx = result["project_context"]
@@ -706,12 +734,18 @@ def render_markdown(result: dict[str, Any]) -> str:
             lines.append(f"  Shared tooling: {result['handoff']['shared_tooling']}")
         if not result["handoff"]["available"]:
             lines.append("  Library unavailable: run the which-skill library bootstrap first.")
-        lines.extend(
-            [
-                "  Optional ambient install (only when explicitly requested):",
-                f"    {result['optional_install']['command']}",
-            ]
-        )
+        if result["optional_install"]["available"]:
+            lines.extend(
+                [
+                    "  Optional ambient install (only when explicitly requested):",
+                    f"    {result['optional_install']['command']}",
+                ]
+            )
+        else:
+            lines.append(
+                "  Optional ambient install unavailable: "
+                f"{result['optional_install']['reason']}"
+            )
     if rec.get("inactive_steps"):
         lines.extend(["", "Inactive here (skipped for this repo):"])
         for step in rec["inactive_steps"]:
@@ -805,7 +839,9 @@ def main(argv: list[str] | None = None) -> int:
             if not library_root.is_absolute():
                 library_root = project_root / library_root
             result["handoff"] = _library_handoff(library_root.resolve(), handoff["skills"])
-            result["optional_install"] = handoff
+            result["optional_install"] = _validated_optional_install(
+                handoff, result["handoff"]["capabilities"]
+            )
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

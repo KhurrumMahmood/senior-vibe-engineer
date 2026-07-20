@@ -157,7 +157,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         consumers = primitive["consumers"]
         assert len(consumers) == len(set(consumers)) >= 2, primitive
         assert set(consumers) <= language_names, primitive
-        assert primitive["p1_decision"] in {"candidate", "contract-only"}
+        assert primitive["p1_decision"] in {
+            "contract-only",
+            "deferred-until-real-repair",
+            "shared-contract",
+        }
         assert primitive["boundary"]
 
     guide = TRANSFER_GUIDE.read_text(encoding="utf-8")

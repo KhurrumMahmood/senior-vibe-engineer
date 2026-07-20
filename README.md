@@ -126,9 +126,10 @@ project-scoped sibling cache
 `<project-parent>/.engineering-skills/<project-name>` by default, outside both
 the target repository and standard skill-discovery roots. Router results point
 to only the selected guide/tool closure and
-recommend a fresh non-context sub-agent for non-trivial work. A pinned
-`skills@1.5.19` selected-skill command remains available only when the user
-explicitly chooses ambient installation.
+recommend a fresh non-context sub-agent for non-trivial work. After bootstrap,
+a pinned `skills@1.5.19` selected-skill command is emitted only when every
+closure member has passed selected-install evidence and the user explicitly
+chooses ambient installation; other closures report that path unavailable.
 
 To remove all skills installed for the project:
 

@@ -345,11 +345,9 @@ def test_recommendation_prefers_on_demand_handoff_and_keeps_install_optional(tmp
         "source": "https://github.com/KhurrumMahmood/senior-vibe-engineer",  # host-ref-allow: public distribution repository
         "skills_cli_version": "1.5.19",
         "agent": "codex",
-        "command": (
-            "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add "
-            "https://github.com/KhurrumMahmood/senior-vibe-engineer "  # host-ref-allow: public distribution repository
-            "--skill diagnose --agent codex --copy -y"
-        ),
+        "available": False,
+        "reason": "manifest_missing",
+        "evidence": [],
     }
 
 

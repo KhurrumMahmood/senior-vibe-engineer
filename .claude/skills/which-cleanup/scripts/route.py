@@ -134,7 +134,7 @@ def capability_handoff(library_root: Path, skills: list[str]) -> dict:
         return {**unavailable, "reason": "manifest_missing"}
     try:
         payload = json.loads(manifest.read_text(encoding="utf-8"))
-        if payload.get("schema_version") != 1:
+        if not isinstance(payload, dict) or payload.get("schema_version") != 1:
             raise TypeError("unsupported capability manifest schema")
         rows = payload["skills"]
         if not isinstance(rows, list):
@@ -187,6 +187,45 @@ def capability_handoff(library_root: Path, skills: list[str]) -> dict:
     return {"available": True, "manifest": str(manifest), "skills": selected}
 
 
+def optional_install_handoff(
+    *, source: str, version: str, skill: str, agent: str, capabilities: dict
+) -> dict:
+    result = {
+        "source": source,
+        "skills_cli_version": version,
+        "agent": agent,
+    }
+    if not capabilities["available"]:
+        return {
+            **result,
+            "available": False,
+            "reason": capabilities["reason"],
+            "evidence": [],
+        }
+    evidence = [
+        {"skill": row["skill"], "status": row["optional_install_status"]}
+        for row in capabilities["skills"]
+    ]
+    if any(row["status"] != "passed" for row in evidence):
+        return {
+            **result,
+            "available": False,
+            "reason": "selected_skill_install_not_validated",
+            "evidence": evidence,
+        }
+    return {
+        **result,
+        "available": True,
+        "evidence": evidence,
+        "command": install_command(
+            source=source,
+            version=version,
+            skill=skill,
+            agent=agent,
+        ),
+    }
+
+
 def recommendations(paths: list[str], band: str) -> list[tuple[str, str]]:
     if not paths:
         return []
@@ -222,22 +261,19 @@ def build_result(args: argparse.Namespace) -> dict:
     band = scope_band(len(paths))
     recs = []
     for skill, reason in recommendations(paths, band):
+        handoff = library_handoff(library_root, skill)
         recs.append(
             {
                 "skill": skill,
                 "reason": reason,
-                "handoff": library_handoff(library_root, skill),
-                "optional_install": {
-                    "source": args.source,
-                    "skills_cli_version": args.skills_cli_version,
-                    "agent": args.agent,
-                    "command": install_command(
-                        source=args.source,
-                        version=args.skills_cli_version,
-                        skill=skill,
-                        agent=args.agent,
-                    ),
-                },
+                "handoff": handoff,
+                "optional_install": optional_install_handoff(
+                    source=args.source,
+                    version=args.skills_cli_version,
+                    skill=skill,
+                    agent=args.agent,
+                    capabilities=handoff["capabilities"],
+                ),
             }
         )
     return {
@@ -273,10 +309,20 @@ def render(result: dict) -> str:
                 f"- /{item['skill']}: {item['reason']}",
                 f"  Guide: {item['handoff']['guides'][0]['guide']}",
                 f"  Default: {item['handoff']['default_execution']}",
-                "  Optional ambient install (only when explicitly requested):",
-                f"    {item['optional_install']['command']}",
             ]
         )
+        if item["optional_install"]["available"]:
+            lines.extend(
+                [
+                    "  Optional ambient install (only when explicitly requested):",
+                    f"    {item['optional_install']['command']}",
+                ]
+            )
+        else:
+            lines.append(
+                "  Optional ambient install unavailable: "
+                f"{item['optional_install']['reason']}"
+            )
     return "\n".join(lines) + "\n"
 
 

@@ -145,6 +145,10 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
             "optional_install_status": "passed",
         }
     ]
+    assert payload["optional_install"]["available"] is True
+    assert payload["optional_install"]["evidence"] == [
+        {"skill": "diagnose", "status": "passed"}
+    ]
     assert "--skill diagnose" in payload["optional_install"]["command"]
 
     resource_routed = _run_isolated(
@@ -174,6 +178,12 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "closure_skills": ["plan-feature"],
         "optional_install_status": "deferred-named-stack",
     }
+    assert resource_payload["optional_install"]["available"] is False
+    assert (
+        resource_payload["optional_install"]["reason"]
+        == "selected_skill_install_not_validated"
+    )
+    assert "command" not in resource_payload["optional_install"]
 
     typescript_routed = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
@@ -241,6 +251,12 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "closure_skills": ["find-test-obligation-drift"],
         "optional_install_status": "deferred-named-stack",
     }
+    cleanup_install = cleanup_recommendations["find-test-obligation-drift"][
+        "optional_install"
+    ]
+    assert cleanup_install["available"] is False
+    assert cleanup_install["reason"] == "selected_skill_install_not_validated"
+    assert "command" not in cleanup_install
 
     rename_routed = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
@@ -264,6 +280,11 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert [row["optional_install_status"] for row in rename_capabilities["skills"]] == [
         "passed",
         "passed",
+    ]
+    assert rename_payload["optional_install"]["available"] is True
+    assert "--skill rename-concept" in rename_payload["optional_install"]["command"]
+    assert "--skill find-concept-divergence" in rename_payload["optional_install"][
+        "command"
     ]
 
 
@@ -291,7 +312,7 @@ def test_library_bootstrap_refuses_to_overwrite_an_existing_incomplete_destinati
 
 @pytest.mark.parametrize(
     "corruption",
-    ["schema", "duplicate", "missing-selected", "closure-mismatch"],
+    ["wrong-root", "schema", "duplicate", "missing-selected", "closure-mismatch"],
 )
 def test_installed_router_reports_invalid_capability_manifest(tmp_path, corruption):
     host = tmp_path / "host"
@@ -308,7 +329,9 @@ def test_installed_router_reports_invalid_capability_manifest(tmp_path, corrupti
         )
     )
     diagnose = next(row for row in payload["skills"] if row["skill"] == "diagnose")
-    if corruption == "schema":
+    if corruption == "wrong-root":
+        payload = []
+    elif corruption == "schema":
         payload["schema_version"] = 2
     elif corruption == "duplicate":
         payload["skills"].append(dict(diagnose))
@@ -368,7 +391,9 @@ def test_installed_which_shape_runs_without_repository_runtime(
     if expected_shape == "project-intake":
         assert payload["handoff"]["skills"] == ["adapt-project"]
         assert payload["optional_install"]["skill"] == "adapt-project"
-        assert "--skill adapt-project" in payload["optional_install"]["command"]
+        assert payload["optional_install"]["available"] is False
+        assert payload["optional_install"]["reason"] == "manifest_missing"
+        assert "command" not in payload["optional_install"]
     else:
         assert "handoff" not in payload
         assert "optional_install" not in payload
@@ -400,7 +425,9 @@ def test_installed_which_skill_runs_with_bundled_catalog(
     assert payload["recommendation"] == expected_skill
     assert payload["task_packet"]["produces"]
     assert payload["handoff"]["skills"] == [expected_skill]
-    assert f"--skill {expected_skill}" in payload["optional_install"]["command"]
+    assert payload["optional_install"]["available"] is False
+    assert payload["optional_install"]["reason"] == "manifest_missing"
+    assert "command" not in payload["optional_install"]
 
 
 def test_installed_which_skill_routes_earned_typescript_state_skill(tmp_path):
@@ -639,4 +666,6 @@ def test_installed_which_cleanup_routes_without_repository_runtime(tmp_path):
     assert handoff["capabilities"]["reason"] == "manifest_missing"
     optional_install = recommendations["find-test-obligation-drift"]["optional_install"]
     assert optional_install["source"] == "/tmp/engineering-skills-source"
-    assert "--skill find-test-obligation-drift" in optional_install["command"]
+    assert optional_install["available"] is False
+    assert optional_install["reason"] == "manifest_missing"
+    assert "command" not in optional_install

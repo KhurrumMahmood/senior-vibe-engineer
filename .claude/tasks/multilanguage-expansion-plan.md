@@ -1,6 +1,6 @@
 # Multi-language and framework expansion plan
 
-Status: active — P0 complete; P1 is the next phase
+Status: active — P0 and P1 complete; P2 is the next phase
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
@@ -149,7 +149,7 @@ Acceptance:
 
 ## Phase P1 — Build the minimal portability harness
 
-State: `in_progress`
+State: `complete`
 
 This phase builds test and inventory infrastructure, not a cross-language
 analysis platform.
@@ -162,26 +162,57 @@ Deliverables:
 - a reusable journey harness that runs a guide/tool closure from the on-demand
   library, invokes native checks, fingerprints sources, and records the final
   outcome; and
-- the smallest shared TypeScript project primitive justified by P0, migrated
-  first into one syntax consumer and one semantic/project consumer.
+- either the smallest shared TypeScript project primitive justified by a real
+  two-consumer repair, or an evidence-backed stop decision that leaves the
+  family-local implementations intact.
 
 Acceptance:
 
-- [ ] Every first-party `.py`, `.ts`, and `.tsx` fixture file appears once in
+- [x] Every first-party `.py`, `.ts`, and `.tsx` fixture file appears once in
       the inventory; every exclusion has a machine-readable reason; ambiguous
       fixtures remain ambiguous.
-- [ ] The harness distinguishes complete, partial, unsupported, tool-missing,
+- [x] The harness distinguishes complete, partial, unsupported, tool-missing,
       syntax-error, native-check-failure, and unexpected-source-mutation.
-- [ ] One syntax skill and one semantic/project skill produce byte-equivalent
-      accepted artifacts before and after shared-primitive adoption.
-- [ ] Those two skills still work from the default on-demand library journey.
-- [ ] Optional selected-skill installation is either self-contained and tested
+- [x] The TypeScript primitive decision follows the shared-tooling rule: an
+      adopted helper has byte-equivalent syntax and semantic/project consumers,
+      or a documented stop decision explains why extraction would not reduce
+      code or would obscure a selected skill's closure.
+- [x] Any adopted primitive's consumers still work from the default on-demand
+      library journey; when extraction stops, the existing family-local
+      on-demand journeys remain green.
+- [x] Optional selected-skill installation is either self-contained and tested
       or explicitly reported unavailable; it never fails on a hidden import.
-- [ ] No analysis-specific AST walker or report schema moves into shared code.
+- [x] No analysis-specific AST walker or report schema moves into shared code.
 
 Stop condition: if the shared primitive does not reduce repeated code or makes
 either consumer's closure less clear, keep the implementations family-local
 and retain only the harness and capability contract.
+
+### P1 TypeScript primitive decision
+
+Decision: **stop extraction and keep the analyzer implementations
+family-local**.
+
+The P0 inventory confirms repeated project-local TypeScript loading,
+`tsconfig` handling, and containment code. A shared runtime file under the
+on-demand library would, however, give stock-selected skill installs a hidden
+repository-level import; copying that helper into every selected skill would
+preserve the duplication instead of reducing it. There is also no current
+two-consumer correctness repair whose before/after behavior would justify the
+migration. Forcing a syntax and semantic consumer through a new abstraction
+would therefore add packaging work without improving a user outcome.
+
+P1 retains two smaller contracts that do cross a proven boundary:
+
+- `scripts/source_inventory.py` is a read-only shared inventory contract, but
+  skill analyzers are not coupled to it until a real omission or false positive
+  proves the value of migration; and
+- the test-only journey harness normalizes final outcome evidence without
+  moving any analyzer, AST walker, or report schema into shared code.
+
+Reconsider extraction only when one real repair must change at least two
+accepted consumers and the helper can remain explicit in both the on-demand
+and selected-install closures.
 
 ## Phase P2 — JavaScript coverage
 
@@ -353,7 +384,7 @@ Acceptance:
 | Phase | State | Revision/worktree | Fixture hosts | Verification | Fresh replay/review | Learning artifact |
 |---|---|---|---|---|---|---|
 | P0 TypeScript synthesis | complete | P0 commit (this revision) | Accepted TypeScript coverage fixtures | Matrix/coverage/router: 51 passed; canonical: 666 passed, 2 environment skips | Fresh review found missing current closure paths; repaired; bounded re-review PASS | `.claude/tasks/multilanguage-typescript-transfer-guide.md` plus raw linked packets |
-| P1 portability harness | in_progress | Source-inventory slice (this revision) | Synthetic mixed-role host; accepted adapt-project and map-subsystem TypeScript hosts | Source inventory: 3 passed; canonical P0 baseline remains 666 passed, 2 skips | Product review pending for full P1; slice adds no analyzer or skill mutation | Inventory contract implemented; capability/router and journey-harness work remain |
+| P1 portability harness | complete | `2015c3f`, `7b4cd09`, and this revision | Synthetic seven-outcome hosts; fresh bootstrapped `map-subsystem` complete/partial hosts | Focused P1 integration: 90 passed; canonical: 686 passed, 2 documented environment skips; final collision regression: 3 passed | Fresh product-aligned review found four bounded defects; all repaired and bounded re-review passed | Capability projection, exact install evidence, test-only journey contract, and explicit TypeScript extraction stop decision |
 | P2 JavaScript coverage | pending | — | — | — | — | — |
 | P3 Go pilot | pending | — | — | — | — | — |
 | P4 route frameworks | pending | — | — | — | — | — |

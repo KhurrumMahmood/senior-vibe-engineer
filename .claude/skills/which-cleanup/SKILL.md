@@ -71,8 +71,9 @@ Honor these fields:
 - `resolved_paths`: the exact bounded paths considered.
 - `recommendations[]`: skill, reason, primary on-demand `handoff` with the
   shared source-inventory path and manifest-backed language/fact/outcome
-  capability row, and an `optional_install` command used only when the user
-  requests ambient installation.
+  capability row, and an `optional_install` result used only when the user
+  requests ambient installation. The command is present only for closures with
+  passed selected-install evidence; unvalidated closures are explicit.
 - `source`: the canonical repository and conventional skill/tool roots.
 - `limitations`: what portable mode deliberately does not infer.
 

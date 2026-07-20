@@ -418,7 +418,7 @@ def capability_handoff(library_root: Path, skills: list[str]) -> dict:
         return {**unavailable, "reason": "manifest_missing"}
     try:
         payload = json.loads(manifest.read_text(encoding="utf-8"))
-        if payload.get("schema_version") != 1:
+        if not isinstance(payload, dict) or payload.get("schema_version") != 1:
             raise TypeError("unsupported capability manifest schema")
         rows = payload["skills"]
         if not isinstance(rows, list):
@@ -509,6 +509,53 @@ def library_handoff(library_root: Path, skills: list[str]) -> dict:
             "task packet, selected skill roots, and shared guidance/tool paths. For small work, "
             "read from the same bounded roots directly. Do not install the skills unless the "
             "user explicitly asks."
+        ),
+    }
+
+
+def optional_install_handoff(
+    *,
+    skill: str,
+    skills: list[str],
+    source: str,
+    version: str,
+    agent: str,
+    capabilities: dict,
+) -> dict:
+    result = {
+        "skill": skill,
+        "skills": skills,
+        "source": source,
+        "skills_cli_version": version,
+        "agent": agent,
+    }
+    if not capabilities["available"]:
+        return {
+            **result,
+            "available": False,
+            "reason": capabilities["reason"],
+            "evidence": [],
+        }
+    evidence = [
+        {"skill": row["skill"], "status": row["optional_install_status"]}
+        for row in capabilities["skills"]
+    ]
+    if any(row["status"] != "passed" for row in evidence):
+        return {
+            **result,
+            "available": False,
+            "reason": "selected_skill_install_not_validated",
+            "evidence": evidence,
+        }
+    return {
+        **result,
+        "available": True,
+        "evidence": evidence,
+        "command": install_command(
+            source=source,
+            version=version,
+            skills=skills,
+            agent=agent,
         ),
     }
 
@@ -707,19 +754,14 @@ def cmd_match(args, catalog_path: Path) -> int:
     install_skills = [out["recommendation"], *winner.get("install_with", [])]
     library_root = resolve_library_root(args.project_root.resolve(), args.library_root)
     out["handoff"] = library_handoff(library_root, install_skills)
-    out["optional_install"] = {
-        "skill": out["recommendation"],
-        "skills": install_skills,
-        "source": args.source,
-        "skills_cli_version": args.skills_cli_version,
-        "agent": args.agent,
-        "command": install_command(
-            source=args.source,
-            version=args.skills_cli_version,
-            skills=install_skills,
-            agent=args.agent,
-        ),
-    }
+    out["optional_install"] = optional_install_handoff(
+        skill=out["recommendation"],
+        skills=install_skills,
+        source=args.source,
+        version=args.skills_cli_version,
+        agent=args.agent,
+        capabilities=out["handoff"]["capabilities"],
+    )
     if args.json:
         print(json.dumps(out, indent=2))
     else:
@@ -748,8 +790,14 @@ def cmd_match(args, catalog_path: Path) -> int:
         print(f"  Default: {out['handoff']['default_execution']}")
         if not out["handoff"]["available"]:
             print("  Library unavailable: run the which-skill library bootstrap first.")
-        print("  Optional ambient install (only when explicitly requested):")
-        print(f"    {out['optional_install']['command']}")
+        if out["optional_install"]["available"]:
+            print("  Optional ambient install (only when explicitly requested):")
+            print(f"    {out['optional_install']['command']}")
+        else:
+            print(
+                "  Optional ambient install unavailable: "
+                f"{out['optional_install']['reason']}"
+            )
         if len(above) < len(top):
             print()
             print("Below threshold (shown for context):")
