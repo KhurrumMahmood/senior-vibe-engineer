@@ -30,8 +30,8 @@ EXPECTED_COUNTS = {
     "framework-bound": 22,
 }
 EXPECTED_JAVASCRIPT_COUNTS = {
-    "pending-validation": 18,
-    "javascript-supported": 4,
+    "pending-validation": 12,
+    "javascript-supported": 10,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
