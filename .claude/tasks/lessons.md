@@ -162,3 +162,16 @@ to apply it. Do not use this file as a progress tracker or backlog.
   operations as narrow so absent profiles cannot override them, and put
   disambiguation in skill metadata before adding scorer special cases. Replay
   from a clean three-router host with the task skills available only on demand.
+
+## 2026-07-20 — Parallelize declared read-only closures, not engineering judgment
+
+- **Rule:** A bounded launcher may concurrently run up to three explicitly
+  selected, independent read-only closures; keep mutations serial and do not
+  infer a general coordinator from native-process timing alone.
+- **Why:** Seven paired TypeScript trials and seven JavaScript trials preserved
+  identical outcomes and cut median native wall time by about 50%, but did not
+  measure model tokens, actual filesystem reads, routing, synthesis, or agent
+  intervention cost.
+- **Apply:** Build only the explicit launcher experiment earned by ML-009.
+  Require separate live-agent evidence before adding automatic lens selection,
+  dependency DAGs, shared context, retries, or a synthesis coordinator.

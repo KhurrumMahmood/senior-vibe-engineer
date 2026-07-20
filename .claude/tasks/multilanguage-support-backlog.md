@@ -209,7 +209,7 @@ auditable when completeness matters.
 
 ### ML-009 — Cross-language batching and performance measurement
 
-- State: `scheduled`
+- State: `complete`
 - User value: applying several relevant engineering lenses should be faster and
   repeat less context than running every skill serially.
 - Trigger: representative installed workflows exist and serial measurements
@@ -233,6 +233,39 @@ auditable when completeness matters.
   actual model tokens and OS read bytes remain explicitly unmeasured. A native
   pass cannot by itself justify an agent workflow coordinator.
 - Non-goals: a workflow platform before a fixed benchmark demonstrates value.
+- Completion evidence: `scripts/benchmark_readonly_lenses.py` and
+  `tests/test_readonly_lens_batch_benchmark.py` produced seven correct paired
+  trials per language with zero failures, interventions, native-check
+  failures, or source changes. TypeScript saved 414.719 ms / 50.19% at the
+  median and JavaScript saved 409.126 ms / 49.42%; parallel won 7/7 pairs in
+  both languages. The compact result is
+  `.claude/tasks/ml009-readonly-batch-results.json`. Each condition used the
+  same 438-byte task packets and 167,171-byte copied closure; eligible-input
+  overlap proxies were 1,774 bytes for TypeScript and 1,968 for JavaScript.
+  Model tokens and actual filesystem-read bytes remain unmeasured, so this
+  closes the native benchmark only and does not support a coordinator claim.
+
+### ML-011 — Bounded explicit read-only launcher experiment
+
+- State: `scheduled`
+- User value: an agent can request a known set of independent read-only lenses
+  once and receive their final artifacts faster, without ambient skill loading
+  or a general workflow platform.
+- Trigger: ML-009 passed its pre-declared materiality gate for both languages.
+- Smallest experiment: expose an explicit ordered list of at most three
+  capability-declared read-only closures, run them concurrently from the
+  on-demand library, and return each lane's outcome independently.
+- Acceptance: one fresh router-only TypeScript host and one JavaScript host
+  select the fixed ML-009 lanes explicitly; no task skill is ambient-installed;
+  final semantic projections match serial execution; one lane failure remains
+  isolated and visible; mutations are rejected; and seven paired production-
+  launcher trials preserve the ML-009 correctness gate and material wall-time
+  benefit.
+- Non-goals: automatic complementary-lens selection, dependency DAGs, shared
+  context caches, retries, synthesis ownership, mutation parallelism, or an
+  agent workflow coordinator. Any coordinator proposal requires a separate
+  live-agent benchmark of tokens, context transfer, failures, and human
+  interventions.
 
 ### ML-010 — Select and validate the next major-language pilot
 

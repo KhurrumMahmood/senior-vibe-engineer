@@ -1,6 +1,7 @@
 # Multi-language and framework expansion plan
 
-Status: active — P0, P1, P2, U1, and P3 complete; measured batching next
+Status: active — P0, P1, P2, U1, P3, and the measured batching gate complete;
+P4 next
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
@@ -414,6 +415,23 @@ nine user-relevant contract gaps during review, so the remaining nineteen
 skills are split into evidence-gated cohorts in the transfer guide rather than
 launched as one campaign.
 
+## Efficiency gate E1 — Measured read-only batching
+
+State: `complete`
+
+The frozen ML-009 benchmark ran the same three copied read-only closures in
+serial and at max-three concurrency for seven paired trials in both TypeScript
+and JavaScript. All semantic projections matched; native checks passed; sources
+were unchanged; and failures and interventions remained zero. TypeScript saved
+414.719 ms / 50.19% at the median and JavaScript saved 409.126 ms / 49.42%,
+with parallel winning 7/7 pairs in each language. Setup, native post-checks,
+and artifact hashing were outside the timed boundary.
+
+Decision: the evidence earns only the bounded explicit launcher experiment in
+ML-011. It does not measure model tokens or actual filesystem reads and does
+not justify automatic lens selection, a DAG/context cache, synthesis
+coordination, or parallel mutation.
+
 ## Phase P4 — Route/workflow framework pilot
 
 State: `pending`
@@ -520,6 +538,7 @@ Acceptance:
 | P2 JavaScript coverage | complete | baseline `eedb3ae`; cohort repairs through `e618ef4`; route/artifact repairs `fa26b9f`, `7713dc6`, `fb0c71d`, `23737ce`, `02524a1` | Inventory/matrix/router fixtures, all four cohort outcomes, and three fresh mixed JS/TS hosts | Focused repaired integration passed 115; final canonical root modules passed 681 with 1 intentional skip | Three forward journeys passed without route override; first RED routes and review findings became regressions; final product review PASS | 22/22 language-level skills promoted; accepted transfer guide captures native/family-local reuse, rejected custom lexer, route-first validation, and next-language brief |
 | U1 router journey stabilization | complete | `5bc7618` and this revision | 30-case decision corpus plus copied default-router host | Focused router surface: 201 passed, 1 intentional skip; canonical tests: 770 passed, 2 intentional skips | Installed three-router replay passed; product-framed adversarial findings repaired; bounded re-review PASS | ML-007 retains only broader low-confidence ambiguity refinement; no general evaluator or coordinator added |
 | P3 Go pilot | complete | `1b6e2eb`, `6de5762`, `966be1c`, `3492764`, `39115e7`, and this closeout | Three locked standalone modules plus generated/vendor/malformed/tool/topology cases | Go-focused families: 27 passed; preserved cross-language family set: 61 passed, 1 intentional skip; move-path Go/Python preservation after the staging repair: 29 passed, 1 intentional skip; capability/router projection: 71 passed; canonical suite before the final bounded staging repair: 807 passed, 2 intentional skips | Three non-context implementation lanes; each original product-framed reviewer returned PASS after bounded repairs; final closeout review also passed after the advertised staging path was repaired | Three `*-go` packet pairs plus the Go synthesis and measured expansion estimate in `.claude/tasks/multilanguage-typescript-transfer-guide.md` |
+| E1 read-only batching | complete | benchmark implementation commit (this revision) | Fresh isolated TypeScript and JavaScript hosts per condition and trial | Focused contract: 2 passed; frozen benchmark: 7 paired trials per language, semantic/native/source gates all passed, zero failures/interventions | Fresh product-framed review found a single-language gate bypass; repaired at CLI and aggregate layers; bounded re-review PASS | `.claude/tasks/ml009-readonly-batch-results.json`; ML-011 is the bounded product follow-up |
 | P4 route frameworks | pending | — | — | — | — | — |
 | P5 next-language selection | pending | — | — | — | — | — |
 
