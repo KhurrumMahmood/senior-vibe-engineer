@@ -115,8 +115,9 @@ multiple read-only checks can run independently.
 
 - No changed paths: report no recommendation and stop successfully.
 - Invalid or conflicting scope flags: surface the usage error.
-- Git unavailable for a diff scope: report an empty scope; ask for explicit
-  paths rather than scanning the repository.
+- Git unavailable or an invalid/empty diff scope: return a structured
+  resolution failure; ask for explicit in-project paths rather than scanning
+  or silently broadening to the working tree.
 - Recommended skill unavailable or unsupported: report the source location and
   limitation; do not invent or inline its behavior.
 

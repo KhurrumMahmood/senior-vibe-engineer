@@ -178,10 +178,13 @@ auditable when completeness matters.
   misroute becomes a regression.
 - Non-goals: a general evaluator or learned router.
 - Observed evidence: JavaScript P2 converted four exact natural prompts into
-  regressions, but neighboring generic planning probes still chose
-  low-confidence `bug-fix` at the shape layer and `extract-enum` for a database
-  migration at the tactical layer. Those are real corpus seeds, not reasons to
-  expand the completed language-outcome work into a general router rewrite.
+  regressions. U1 added a committed 30-case corpus across all three routers and
+  repaired the gating tactical misroutes, ordered-phase errors, stack-bound
+  handoff claim, and cleanup resolution failures. Generic database/API plans
+  now abstain tactically; the shape router still represents them as a
+  low-confidence fallback without an executable handoff. First-class ambiguity
+  wording remains useful follow-up, but is not a reason to delay the Go pilot or
+  expand this work into a general evaluator.
 
 ### ML-008 — Make proposal candidate cutoffs visible
 

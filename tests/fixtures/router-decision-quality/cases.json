@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "which_shape": [
+    {
+      "id": "S1",
+      "prompt": "Onboard this unknown inherited repository and tell me what operating loop to start with.",
+      "expected": ["project-intake"],
+      "handoff": "available"
+    },
+    {
+      "id": "S2",
+      "prompt": "Fix the one-line typo in the settings label.",
+      "expected": ["direct-change"],
+      "handoff": "none"
+    },
+    {
+      "id": "S3",
+      "prompt": "This inherited mixed JavaScript/TypeScript project has several concerns under src/boundary. Propose a maintainable module boundary for that target, including public API, caller impact, compatibility plan, and verification plan. Do not modify source.",
+      "expected": ["boundary-proposal"],
+      "handoff": "available"
+    },
+    {
+      "id": "S4",
+      "prompt": "Move src/old.js to lib/new.js, update every safe affected JavaScript import and the checked-project configuration, and verify the project still works. Keep unrelated TypeScript source unchanged.",
+      "expected": ["path-move"],
+      "handoff": "available"
+    },
+    {
+      "id": "S5",
+      "prompt": "Propose a database migration plan for the users table.",
+      "expected_confidence": "low",
+      "handoff": "none"
+    },
+    {
+      "id": "S6",
+      "prompt": "Write a compatibility plan for upgrading the API.",
+      "expected_confidence": "low",
+      "handoff": "none"
+    },
+    {
+      "id": "S7",
+      "prompt": "This is not a typo; the whole subsystem terminology is wrong and the glossary-backed domain concept must be renamed everywhere.",
+      "expected": ["concept-rename"],
+      "handoff": "available"
+    },
+    {
+      "id": "S8",
+      "prompt": "The parser bug keeps coming back after each fix; prevent this regression from returning again.",
+      "expected": ["regression-prevention"],
+      "handoff": "available"
+    },
+    {
+      "id": "S9",
+      "prompt": "First audit this inherited subsystem, then propose a module boundary, and after approval execute the refactor and add a regression guard.",
+      "expected": ["health-audit", "legacy-stabilization"],
+      "handoff": "none"
+    },
+    {
+      "id": "S10",
+      "prompt": "Plan a new Rust CLI capability that spans configuration, persistence, and two user workflows.",
+      "expected": ["feature-shaping"],
+      "handoff": "blocked"
+    }
+  ],
+  "which_skill": [
+    {
+      "id": "K1",
+      "prompt": "Diagnose the failing export job regression; we do not yet have a reliable reproduction.",
+      "expected": ["diagnose"],
+      "exit": 0
+    },
+    {
+      "id": "K2",
+      "prompt": "Fix a tiny one-line typo in the settings label.",
+      "expected": ["proceed_directly"],
+      "exit": 1
+    },
+    {
+      "id": "K3",
+      "prompt": "Move src/old.js to lib/new.js, update every safe affected JavaScript import and the checked-project configuration, and verify the project still works. Keep unrelated TypeScript source unchanged.",
+      "expected": ["move-path"],
+      "exit": 0
+    },
+    {
+      "id": "K4",
+      "prompt": "This inherited mixed JavaScript/TypeScript project has several concerns under src/boundary. Propose a maintainable module boundary for that target, including public API, caller impact, compatibility plan, and verification plan. Do not modify source.",
+      "expected": ["propose-boundary"],
+      "exit": 0
+    },
+    {
+      "id": "K5",
+      "prompt": "Propose a database migration plan for the users table.",
+      "expected": ["proceed_directly"],
+      "exit": 1
+    },
+    {
+      "id": "K6",
+      "prompt": "Write a compatibility plan for upgrading the API.",
+      "expected": ["decide", "proceed_directly"],
+      "exit": [0, 1]
+    },
+    {
+      "id": "K7",
+      "prompt": "Find repeated bare status literals in a TypeScript source file.",
+      "expected": ["find-implicit-state"],
+      "exit": 0
+    },
+    {
+      "id": "K8",
+      "prompt": "Find an omnibus Rust module with too many unrelated responsibilities.",
+      "expected": ["unsupported"],
+      "exit": 1
+    },
+    {
+      "id": "K9",
+      "prompt": "Do not diagnose this again: the parser failure is already reproduced and the root cause is known; make the narrow fix and verify it.",
+      "expected": ["proceed_directly"],
+      "exit": 1
+    },
+    {
+      "id": "K10",
+      "prompt": "Map this inherited subsystem, find duplication, then refactor the approved clusters and add a regression guard.",
+      "expected": ["which-shape"],
+      "exit": 0
+    },
+    {
+      "id": "K11",
+      "prompt": "Run impact-feature for a TypeScript service.",
+      "expected": ["unsupported"],
+      "exit": 1
+    }
+  ],
+  "which_cleanup": [
+    {"id": "C0", "count": 0, "band": "trivial", "recommendation_count": 0},
+    {"id": "C1", "count": 1, "band": "trivial", "recommendation_count": 3},
+    {"id": "C2", "count": 2, "band": "small", "recommendation_count": 3},
+    {"id": "C3", "count": 5, "band": "small", "recommendation_count": 3},
+    {"id": "C4", "count": 6, "band": "medium", "recommendation_count": 5},
+    {"id": "C5", "count": 20, "band": "medium", "recommendation_count": 5},
+    {"id": "C6", "count": 21, "band": "large", "recommendation_count": 6},
+    {"id": "C7", "paths": ["src/app.py", "./src/app.py"], "resolved_count": 1, "band": "trivial", "recommendation_count": 3},
+    {"id": "C8", "scope": "known_git_range", "resolved_count": 2, "band": "small", "recommendation_count": 3}
+  ]
+}

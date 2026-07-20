@@ -28,6 +28,25 @@ SKILL_TOKEN_RE = re.compile(r"/([a-z][a-z0-9]+(?:-[a-z0-9]+)*)")
 
 SCHEMA_VERSION = 1
 WORD_RE = re.compile(r"[a-z][a-z0-9_-]+")
+ORDERED_FIRST_PHASE_RE = re.compile(
+    r"(?is)^\s*first\b(?P<first>.+?)"
+    r"(?:[,;.]?\s+(?:and\s+)?then\b|[,;.]?\s+before\b|[,;.]?\s+and\s+after\b|"
+    r"[,;.]?\s+after\s+(?:approval|that|this)\b)"
+)
+LANGUAGE_MARKERS = {
+    "python": re.compile(r"(?i)(?:\bpython\b|\.py\b)"),
+    "typescript": re.compile(r"(?i)(?:\btypescript\b|\.tsx?\b)"),
+    "javascript": re.compile(r"(?i)(?:\bjavascript\b|(?:\.[cm]?js|\.jsx)\b)"),
+    "rust": re.compile(r"(?i)(?:\brust\b|\.rs\b)"),
+    "go": re.compile(
+        r"(?:\bGolang\b|\bGo\b(?=\s+(?:project|repo|repository|module|service|"
+        r"package|code|source|file|CLI|application|app)\b)|\.go\b)"
+    ),
+    "java": re.compile(r"(?i)(?:\bjava\b|\.java\b)"),
+    "csharp": re.compile(r"(?i)(?:\bc#\b|\bcsharp\b|\.cs\b)"),
+    "ruby": re.compile(r"(?i)(?:\bruby\b|\.rb\b)"),
+    "php": re.compile(r"(?i)(?:\bphp\b|\.php\b)"),
+}
 STOPWORDS = {
     "a", "an", "and", "are", "as", "at", "be", "by", "do", "for", "from",
     "has", "have", "i", "if", "in", "into", "is", "it", "of", "on", "or",
@@ -51,6 +70,24 @@ _RULE_KEYS = {"conditions", "weight", "rationale"}
 
 def tokenize(text: str) -> set[str]:
     return {word for word in WORD_RE.findall(text.lower()) if word not in STOPWORDS and len(word) > 1}
+
+
+def _first_ordered_phase(task: str) -> str | None:
+    """Return an explicitly ordered first phase, if the user supplied one.
+
+    A multi-phase request should be routed from its first stated phase and
+    reassessed at that phase's stop condition. Scoring the entire request can
+    otherwise jump to a lexically louder final guard or refactor phase.
+    """
+    match = ORDERED_FIRST_PHASE_RE.search(task)
+    if match is None:
+        return None
+    first = match.group("first").strip(" ,;:.-")
+    return first if len(tokenize(first)) >= 2 else None
+
+
+def _named_languages(task: str) -> list[str]:
+    return [name for name, pattern in LANGUAGE_MARKERS.items() if pattern.search(task)]
 
 
 def _load_registry(path: Path) -> dict[str, Any]:
@@ -495,7 +532,9 @@ def route(
         raise ValueError("empty situation description")
     shapes = load_shapes(shapes_path)
     context = project_context_state(project_root)
-    task_tokens = tokenize(task)
+    first_phase = _first_ordered_phase(task)
+    scoring_task = first_phase or task
+    task_tokens = tokenize(scoring_task)
     shapes_by_id = {str(shape["id"]): shape for shape in shapes}
     narrow_cues = narrow_cue_union(shapes)
     ranked: list[tuple[int, dict[str, Any], list[str]]] = []
@@ -506,6 +545,11 @@ def route(
 
     score, winner, rationale = ranked[0]
     confidence = "high" if score >= 40 else "medium" if score >= 24 else "low"
+    if first_phase is not None:
+        rationale = [
+            f"explicit first phase routed before later phases: {first_phase}",
+            *rationale,
+        ]
     recommendation = {
         "shape": winner["id"],
         "title": winner["title"],
@@ -531,18 +575,26 @@ def route(
         }
         for alt_score, shape, _ in ranked[1:4]
     ]
-    return {
+    result = {
         "task": task,
         "project_context": context,
         "recommendation": recommendation,
         "alternatives": alternatives,
     }
+    if first_phase is not None:
+        result["routing_scope"] = {
+            "mode": "first_ordered_phase",
+            "text": first_phase,
+        }
+    return result
 
 
 def _skill_handoff(result: dict[str, Any], *, source: str, version: str, agent: str) -> dict | None:
     rec = result["recommendation"]
     match = SKILL_TOKEN_RE.search(rec["first_next"])
     if match is None:
+        return None
+    if match.end() < len(rec["first_next"]) and rec["first_next"][match.end()] in "-*":
         return None
     skill = match.group(1)
     skills = [skill, *rec.get("install_with", [])]
@@ -598,6 +650,43 @@ def _library_handoff(library_root: Path, skills: list[str]) -> dict[str, Any]:
             "explicitly asks."
         ),
     }
+
+
+def _apply_task_capability_gate(handoff: dict[str, Any], task: str) -> None:
+    """Make filesystem presence subordinate to declared task eligibility."""
+    capabilities = handoff["capabilities"]
+    if not capabilities.get("available"):
+        return
+    languages = _named_languages(task)
+    blocked: list[dict[str, str]] = []
+    for row in capabilities["skills"]:
+        for language in languages:
+            if language == "typescript":
+                disposition = row["typescript_disposition"]
+                eligible = disposition in {"typescript-supported", "validated-neutral"}
+            elif language == "javascript":
+                disposition = row["javascript_disposition"]
+                eligible = disposition in {"javascript-supported", "validated-neutral"}
+            elif language == "python":
+                continue
+            else:
+                disposition = row["expansion_disposition"]
+                eligible = disposition != "framework-bound"
+            if not eligible:
+                blocked.append({
+                    "skill": row["skill"],
+                    "language": language,
+                    "disposition": disposition,
+                })
+    if not blocked:
+        return
+    handoff["available"] = False
+    handoff["reason"] = "selected_skill_stack_bound_for_language"
+    handoff["blocked"] = blocked
+    handoff["instruction"] = (
+        "Do not execute the selected skill for the named language. Choose a "
+        "supported tactical path or generalize and validate the skill first."
+    )
 
 
 CAPABILITY_FIELDS = (
@@ -734,7 +823,14 @@ def render_markdown(result: dict[str, Any]) -> str:
         if result["handoff"]["shared_tooling"]:
             lines.append(f"  Shared tooling: {result['handoff']['shared_tooling']}")
         if not result["handoff"]["available"]:
-            lines.append("  Library unavailable: run the which-skill library bootstrap first.")
+            if result["handoff"].get("reason") == "selected_skill_stack_bound_for_language":
+                blocked = ", ".join(
+                    f"/{item['skill']} for {item['language']} ({item['disposition']})"
+                    for item in result["handoff"]["blocked"]
+                )
+                lines.append(f"  Handoff blocked by declared capability: {blocked}.")
+            else:
+                lines.append("  Library unavailable: run the which-skill library bootstrap first.")
         if result["optional_install"]["available"]:
             lines.extend(
                 [
@@ -840,9 +936,15 @@ def main(argv: list[str] | None = None) -> int:
             if not library_root.is_absolute():
                 library_root = project_root / library_root
             result["handoff"] = _library_handoff(library_root.resolve(), handoff["skills"])
+            capability_task = result.get("routing_scope", {}).get("text", task)
+            _apply_task_capability_gate(result["handoff"], capability_task)
             result["optional_install"] = _validated_optional_install(
                 handoff, result["handoff"]["capabilities"]
             )
+            if result["handoff"].get("reason") == "selected_skill_stack_bound_for_language":
+                result["optional_install"].pop("command", None)
+                result["optional_install"]["available"] = False
+                result["optional_install"]["reason"] = result["handoff"]["reason"]
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

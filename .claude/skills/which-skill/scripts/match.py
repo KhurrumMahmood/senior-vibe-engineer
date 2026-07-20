@@ -102,6 +102,8 @@ LANGUAGE_ALIASES = {
     "javascript": "javascript",
     "py": "python",
     "python": "python",
+    "rs": "rust",
+    "rust": "rust",
     "ts": "typescript",
     "typescript": "typescript",
 }
@@ -109,7 +111,37 @@ LANGUAGE_MARKERS = {
     "typescript": re.compile(r"(?i)(?:\btypescript\b|\.tsx?\b)"),
     "javascript": re.compile(r"(?i)(?:\bjavascript\b|(?:\.[cm]?js|\.jsx)\b)"),
     "python": re.compile(r"(?i)(?:\bpython\b|\.py\b)"),
+    "rust": re.compile(r"(?i)(?:\brust\b|\.rs\b)"),
 }
+
+# Planning verbs and broad technical nouns occur throughout the catalog. They
+# describe a task's form, not the evidence needed to select one particular
+# skill. A match composed only of these terms must not clear the threshold on
+# job/tier boosts alone.
+NON_DISCRIMINATING_MATCH_TOKENS = frozenset({
+    "again", "already", "api", "cause", "compatibility", "database", "diagnose",
+    "diagnosis", "draft", "failure", "fix", "guard", "implementation",
+    "known", "migration", "migrations", "narrow", "not", "plan", "planning",
+    "proposal", "propose", "refactor", "regression", "reproduce", "reproduced",
+    "root", "table", "tables", "upgrade", "upgrades", "upgrading", "user",
+    "users", "verify", "verification", "write",
+})
+
+NEGATED_DIAGNOSIS_RE = re.compile(
+    r"\b(?:do\s+not|don't|dont|avoid|stop|no\s+need\s+to)"
+    r"(?:\s+\w+){0,2}\s+(?:diagnose|debug|investigate)\b",
+    re.IGNORECASE,
+)
+KNOWN_ROOT_CAUSE_RE = re.compile(
+    r"\b(?:root\s+cause|cause)\s+(?:is\s+)?(?:already\s+)?"
+    r"(?:known|identified|confirmed)\b",
+    re.IGNORECASE,
+)
+COMPLETED_REPRODUCTION_RE = re.compile(
+    r"\b(?:already\s+)?(?:reproduced|reproducible|confirmed)\b",
+    re.IGNORECASE,
+)
+ORDERED_PHASE_RE = re.compile(r"\b(?:then|after|before|finally|next)\b", re.IGNORECASE)
 
 
 def _read_manifest(root: Path) -> dict:
@@ -209,6 +241,51 @@ def is_skill_development_signal(task_tokens: set[str]) -> bool:
     "create a new skill" prompts to product-feature or obligation scans.
     """
     return bool(task_tokens & SKILL_DEVELOPMENT_HINTS) and bool(task_tokens & SKILL_DEVELOPMENT_ACTIONS)
+
+
+def is_completed_or_negated_diagnosis(task: str) -> bool:
+    """Whether the prompt says diagnostic work is already complete or unwanted."""
+    if NEGATED_DIAGNOSIS_RE.search(task):
+        return True
+    return bool(
+        KNOWN_ROOT_CAUSE_RE.search(task)
+        and COMPLETED_REPRODUCTION_RE.search(task)
+    )
+
+
+def is_ordered_multi_phase_task(task: str, task_tokens: set[str]) -> bool:
+    """Recognize an ordered workflow that needs shape routing before a phase skill."""
+    if not ORDERED_PHASE_RE.search(task):
+        return False
+    phase_jobs = {
+        job
+        for job in ("map", "suspect", "refactor", "guard")
+        if task_tokens & JOB_HINTS[job]
+    }
+    return len(phase_jobs) >= 2
+
+
+def has_explicit_skill_request(skill: dict, task_tokens: set[str]) -> bool:
+    skill_name = str(skill.get("name", "")).strip().lower()
+    return bool(skill_name and skill_name in task_tokens)
+
+
+def has_substantive_skill_evidence(skill: dict, task_tokens: set[str]) -> bool:
+    """Return whether task wording identifies this skill beyond generic routing form.
+
+    Catalog prose necessarily mentions common delivery verbs ("plan", "fix")
+    and broad artifacts ("API", "migration"). Those overlaps are useful for
+    ranking *after* a skill is grounded, but they cannot alone authorize a
+    recommendation. Explicit and natural skill names remain authoritative.
+    """
+    skill_name = str(skill.get("name", ""))
+    natural_name_tokens = tokenize(skill_name.replace("-", " "))
+    if has_explicit_skill_request(skill, task_tokens):
+        return True
+    if len(natural_name_tokens) > 1 and natural_name_tokens <= task_tokens:
+        return True
+    best_for_tokens = tokenize(skill.get("best_for", ""))
+    return bool((task_tokens & best_for_tokens) - NON_DISCRIMINATING_MATCH_TOKENS)
 
 
 def _normalize_values(values: list[str] | None, aliases: dict[str, str] | None = None) -> list[str]:
@@ -589,6 +666,8 @@ def cmd_match(args, catalog_path: Path) -> int:
         inferred_job = "plan"
         tier_hits = sorted(set(tier_hits) | {"skill-development"})
         job_hits = sorted(set(job_hits) | {"skill-development"})
+    diagnosis_is_complete = is_completed_or_negated_diagnosis(task)
+    ordered_multi_phase = is_ordered_multi_phase_task(task, task_tokens)
 
     try:
         skills = load_skills(catalog_path)
@@ -626,9 +705,20 @@ def cmd_match(args, catalog_path: Path) -> int:
             )
         return 1
 
+    explicit_skill_requested = any(
+        has_explicit_skill_request(skill, task_tokens)
+        for skill in skills
+    )
     ranked = []
     for sk in skills:
         score, rationale = score_skill(sk, task_tokens, inferred_tier, inferred_job)
+        if (
+            ordered_multi_phase
+            and not explicit_skill_requested
+            and sk.get("name") == "which-shape"
+        ):
+            score += 100
+            rationale.append("ordered multi-phase workflow: route through which-shape")
         ranked.append((score, sk, rationale))
     ranked.sort(key=lambda t: (-t[0], t[1].get("name", "")))
 
@@ -645,8 +735,16 @@ def cmd_match(args, catalog_path: Path) -> int:
     excluded_unsupported = []
     for score, sk, rationale in ranked:
         name = sk.get("name", "")
+        recommendable = (
+            has_substantive_skill_evidence(sk, task_tokens)
+            or (
+                ordered_multi_phase
+                and not explicit_skill_requested
+                and name == "which-shape"
+            )
+        ) and not (diagnosis_is_complete and name == "diagnose")
         if name and not _is_skill_active(project_root, name):
-            if score >= threshold:
+            if score >= threshold and recommendable:
                 excluded_inactive.append({
                     "name": name,
                     "score": score,
@@ -655,14 +753,15 @@ def cmd_match(args, catalog_path: Path) -> int:
             continue
         portability_reason = portability_exclusion(sk, routing_context)
         if portability_reason is not None:
-            if score >= threshold:
+            if score >= threshold and recommendable:
                 excluded_unsupported.append({
                     "name": name,
                     "score": score,
                     "reason": portability_reason,
                 })
             continue
-        active_ranked.append((score, sk, rationale))
+        if recommendable:
+            active_ranked.append((score, sk, rationale))
 
     top = active_ranked[: args.top]
     above = [r for r in top if r[0] >= threshold]

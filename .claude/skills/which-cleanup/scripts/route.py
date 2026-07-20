@@ -6,13 +6,35 @@ import argparse
 import json
 import shlex
 import subprocess
+import sys
 from pathlib import Path
 
 DEFAULT_SOURCE = "https://github.com/KhurrumMahmood/senior-vibe-engineer"  # host-ref-allow: public distribution repository
 DEFAULT_CLI_VERSION = "1.5.19"
 
 
-def _run_git(root: Path, args: list[str]) -> list[str]:
+class ResolutionFailure(Exception):
+    """A requested path or Git scope could not be resolved safely."""
+
+    def __init__(self, *, target: str, code: str, detail: str) -> None:
+        super().__init__(detail)
+        self.target = target
+        self.code = code
+        self.detail = detail
+
+    def as_dict(self) -> dict:
+        return {
+            "status": "resolution_failed",
+            "resolution": {
+                "status": "failed",
+                "target": self.target,
+                "code": self.code,
+                "detail": self.detail,
+            },
+        }
+
+
+def _run_git(root: Path, args: list[str], *, target: str) -> list[str]:
     try:
         result = subprocess.run(
             ["git", *args],
@@ -21,32 +43,122 @@ def _run_git(root: Path, args: list[str]) -> list[str]:
             capture_output=True,
             text=True,
         )
-    except OSError:
-        return []
+    except OSError as exc:
+        raise ResolutionFailure(
+            target=target,
+            code="git_unavailable",
+            detail="Git is unavailable; use explicit in-project paths instead.",
+        ) from exc
     if result.returncode != 0:
-        return []
+        raise ResolutionFailure(
+            target=target,
+            code="git_scope_unresolvable",
+            detail=f"Git could not resolve {target}.",
+        )
     return sorted({line.strip() for line in result.stdout.splitlines() if line.strip()})
+
+
+def _require_git_repository(root: Path, *, target: str) -> None:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--is-inside-work-tree"],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as exc:
+        raise ResolutionFailure(
+            target=target,
+            code="git_unavailable",
+            detail="Git is unavailable; use explicit in-project paths instead.",
+        ) from exc
+    if result.returncode != 0 or result.stdout.strip() != "true":
+        raise ResolutionFailure(
+            target=target,
+            code="not_git_repository",
+            detail="The project root is not inside a Git working tree; use explicit in-project paths instead.",
+        )
+
+
+def _normalize_explicit_paths(root: Path, paths: list[str]) -> list[str]:
+    normalized = set()
+    for raw_path in paths:
+        if not raw_path.strip():
+            raise ResolutionFailure(
+                target="explicit paths",
+                code="empty_explicit_path",
+                detail="An explicit path is empty; provide a project-relative path.",
+            )
+        path = Path(raw_path)
+        resolved = path.resolve() if path.is_absolute() else (root / path).resolve()
+        try:
+            project_relative = resolved.relative_to(root)
+        except ValueError as exc:
+            raise ResolutionFailure(
+                target="explicit paths",
+                code="path_outside_project",
+                detail=f"Explicit path resolves outside the project root: {raw_path}",
+            ) from exc
+        normalized.add(project_relative.as_posix())
+    return sorted(normalized)
 
 
 def resolve_paths(args: argparse.Namespace, root: Path) -> tuple[str, list[str]]:
     if args.paths:
-        return "explicit paths", sorted(set(args.paths))
+        return "explicit paths", _normalize_explicit_paths(root, args.paths)
     if args.staged:
-        return "staged diff", _run_git(root, ["diff", "--cached", "--name-only"])
-    if args.changed_from:
-        return f"changes from {args.changed_from}", _run_git(
-            root, ["diff", "--name-only", args.changed_from]
+        target = "staged diff"
+        _require_git_repository(root, target=target)
+        return target, _run_git(root, ["diff", "--cached", "--name-only"], target=target)
+    if args.changed_from is not None:
+        target = f"changes from {args.changed_from or '<empty>'}"
+        if not args.changed_from.strip():
+            raise ResolutionFailure(
+                target=target,
+                code="empty_git_scope",
+                detail="The changed-from ref is empty; provide a ref or explicit in-project paths.",
+            )
+        _require_git_repository(root, target=target)
+        return target, _run_git(
+            root, ["diff", "--name-only", args.changed_from], target=target
         )
-    if args.commit:
-        return f"commit {args.commit}", _run_git(
-            root, ["diff-tree", "--no-commit-id", "--name-only", "-r", args.commit]
+    if args.commit is not None:
+        target = f"commit {args.commit or '<empty>'}"
+        if not args.commit.strip():
+            raise ResolutionFailure(
+                target=target,
+                code="empty_git_scope",
+                detail="The commit ref is empty; provide a commit or explicit in-project paths.",
+            )
+        _require_git_repository(root, target=target)
+        return target, _run_git(
+            root,
+            ["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", args.commit],
+            target=target,
         )
-    if args.range:
-        return f"range {args.range}", _run_git(root, ["diff", "--name-only", args.range])
-    return "working tree", sorted(
-        set(_run_git(root, ["diff", "--name-only"]))
-        | set(_run_git(root, ["diff", "--cached", "--name-only"]))
-        | set(_run_git(root, ["ls-files", "--others", "--exclude-standard"]))
+    if args.range is not None:
+        target = f"range {args.range or '<empty>'}"
+        if not args.range.strip():
+            raise ResolutionFailure(
+                target=target,
+                code="empty_git_scope",
+                detail="The Git range is empty; provide a range or explicit in-project paths.",
+            )
+        _require_git_repository(root, target=target)
+        return target, _run_git(root, ["diff", "--name-only", args.range], target=target)
+    target = "working tree"
+    _require_git_repository(root, target=target)
+    return target, sorted(
+        set(_run_git(root, ["diff", "--name-only"], target=target))
+        | set(_run_git(root, ["diff", "--cached", "--name-only"], target=target))
+        | set(
+            _run_git(
+                root,
+                ["ls-files", "--others", "--exclude-standard"],
+                target=target,
+            )
+        )
     )
 
 
@@ -344,10 +456,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--agent", default="codex")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
-    selected = sum(bool(value) for value in (args.staged, args.changed_from, args.commit, args.range))
+    selected = int(args.staged) + sum(
+        value is not None for value in (args.changed_from, args.commit, args.range)
+    )
     if args.paths and selected or selected > 1:
         parser.error("choose exactly one path or diff scope")
-    result = build_result(args)
+    try:
+        result = build_result(args)
+    except ResolutionFailure as exc:
+        if args.json:
+            print(json.dumps(exc.as_dict(), indent=2, sort_keys=True))
+        else:
+            print(f"error: {exc.detail}", file=sys.stderr)
+        return 2
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
     else:

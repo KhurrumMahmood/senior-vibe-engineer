@@ -1,6 +1,6 @@
 # Multi-language and framework expansion plan
 
-Status: active — P0, P1, and P2 complete; U1 in progress before P3
+Status: active — P0, P1, P2, and U1 complete; P3 pending
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
@@ -305,7 +305,7 @@ Acceptance:
 
 ## Phase U1 — Installed user-journey stabilization
 
-State: `in_progress`
+State: `complete`
 
 This bounded interlude closes reproduced UX defects before another language
 depends on the routers. It is not a general routing or evaluation platform.
@@ -317,23 +317,31 @@ Acceptance:
       Python and JavaScript/TypeScript outcomes.
 - [x] The candidate-cutoff repair passes copied/final-artifact tests and a
       product-aligned review.
-- [ ] One committed corpus covers clear, ambiguous/direct, misleading/negated,
+- [x] One committed corpus covers clear, ambiguous/direct, misleading/negated,
       varied-scope, and language/stack-bound cases for all three default
       routers.
-- [ ] Clear cases match their expected route or allowed set; confirmed
+- [x] Clear cases match their expected route or allowed set; confirmed
       high-impact misroutes become exact regressions before heuristic repair.
-- [ ] Every selected task skill exposes its exact on-demand closure and keeps
+- [x] Every selected task skill exposes its exact on-demand closure and keeps
       ambient installation explicitly secondary.
-- [ ] One representative installed forward replay per router reaches the
+- [x] One representative installed forward replay per router reaches the
       expected handoff or final outcome without loading unrelated skill headers.
-- [ ] Review finds no gating router-decision, handoff, or likely-user-harm
+- [x] Review finds no gating router-decision, handoff, or likely-user-harm
       defect; broader low-confidence cases remain in ML-007 with evidence.
 
 Evidence:
 
 - `5bc7618`: cross-language cutoff selection includes ties and reports omitted
   candidates; focused proposal suite passed 10 and bounded re-review passed.
-- Router corpus and replay: in progress.
+- This revision: the committed 30-case corpus covers ten shape, eleven skill,
+  and nine cleanup decisions. Confirmed defects became regressions for generic
+  plan false positives, completed diagnosis, ordered phases, stack-bound
+  handoffs, and cleanup path/Git resolution. The focused router surface passed
+  201 with one intentional skip; the canonical `tests` suite excluding fixture
+  projects passed 770 with two intentional skips. Installed copies of all three
+  routers bootstrapped the on-demand library and reached their expected
+  handoffs. Product-framed adversarial review findings were repaired and the
+  bounded re-review passed.
 
 ## Phase P3 — Go three-family pilot
 
@@ -474,6 +482,7 @@ Acceptance:
 | P0 TypeScript synthesis | complete | P0 commit (this revision) | Accepted TypeScript coverage fixtures | Matrix/coverage/router: 51 passed; canonical: 666 passed, 2 environment skips | Fresh review found missing current closure paths; repaired; bounded re-review PASS | `.claude/tasks/multilanguage-typescript-transfer-guide.md` plus raw linked packets |
 | P1 portability harness | complete | `2015c3f`, `7b4cd09`, and this revision | Synthetic seven-outcome hosts; fresh bootstrapped `map-subsystem` complete/partial hosts | Focused P1 integration: 90 passed; canonical: 686 passed, 2 documented environment skips; final collision regression: 3 passed | Fresh product-aligned review found four bounded defects; all repaired and bounded re-review passed | Capability projection, exact install evidence, test-only journey contract, and explicit TypeScript extraction stop decision |
 | P2 JavaScript coverage | complete | baseline `eedb3ae`; cohort repairs through `e618ef4`; route/artifact repairs `fa26b9f`, `7713dc6`, `fb0c71d`, `23737ce`, `02524a1` | Inventory/matrix/router fixtures, all four cohort outcomes, and three fresh mixed JS/TS hosts | Focused repaired integration passed 115; final canonical root modules passed 681 with 1 intentional skip | Three forward journeys passed without route override; first RED routes and review findings became regressions; final product review PASS | 22/22 language-level skills promoted; accepted transfer guide captures native/family-local reuse, rejected custom lexer, route-first validation, and next-language brief |
+| U1 router journey stabilization | complete | `5bc7618` and this revision | 30-case decision corpus plus copied default-router host | Focused router surface: 201 passed, 1 intentional skip; canonical tests: 770 passed, 2 intentional skips | Installed three-router replay passed; product-framed adversarial findings repaired; bounded re-review PASS | ML-007 retains only broader low-confidence ambiguity refinement; no general evaluator or coordinator added |
 | P3 Go pilot | pending | — | — | — | — | — |
 | P4 route frameworks | pending | — | — | — | — | — |
 | P5 next-language selection | pending | — | — | — | — | — |
