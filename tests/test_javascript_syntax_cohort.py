@@ -107,9 +107,14 @@ def test_javascript_syntax_cohort_reaches_final_artifacts_for_all_suffixes(
         },
         "include": ["audit/**/*", "syntax/**/*"],
     }), encoding="utf-8")
+    package_json = host / "package.json"
+    package = json.loads(package_json.read_text(encoding="utf-8"))
+    package.setdefault("scripts", {})["check-js"] = (
+        "tsc --project jsconfig.syntax.json"
+    )
+    package_json.write_text(json.dumps(package, indent=2) + "\n", encoding="utf-8")
     native = _run(
-        str(host / "node_modules" / ".bin" / "tsc"),
-        "--project", str(jsconfig),
+        "npm", "run", "check-js",
         cwd=host,
     )
     assert native.returncode == 0, native.stdout + native.stderr

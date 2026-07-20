@@ -30,7 +30,8 @@ EXPECTED_COUNTS = {
     "framework-bound": 22,
 }
 EXPECTED_JAVASCRIPT_COUNTS = {
-    "pending-validation": 22,
+    "pending-validation": 18,
+    "javascript-supported": 4,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -141,12 +142,22 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["learning_packets"], row
             assert row["framework_family"] is None
             assert optional_install["status"] == "passed"
-            assert row["javascript_disposition"] == "pending-validation"
-            assert row["javascript_evidence_modes"] == ["pending"]
-            assert row["javascript_evidence_path"] is None
-            assert row["javascript_native_check"] is None
-            assert row["javascript_reviewed_revision"] is None
-            assert row["javascript_limitation"] is None
+            if row["javascript_disposition"] == "pending-validation":
+                assert row["javascript_evidence_modes"] == ["pending"]
+                assert row["javascript_evidence_path"] is None
+                assert row["javascript_native_check"] is None
+                assert row["javascript_reviewed_revision"] is None
+            else:
+                assert row["javascript_disposition"] in {
+                    "javascript-supported",
+                    "javascript-limited",
+                }
+                assert "pending" not in row["javascript_evidence_modes"]
+                assert (REPO_ROOT / row["javascript_evidence_path"]).is_file()
+                assert row["javascript_native_check"]
+                assert row["javascript_reviewed_revision"]
+            if row["javascript_disposition"] != "javascript-limited":
+                assert row["javascript_limitation"] is None
         elif row["expansion_disposition"] == "framework-bound":
             framework_rows.append(row)
             assert row["fact_level"] == "framework"

@@ -11,7 +11,7 @@
     },
     {
       "path": ".claude/tasks/javascript-language-coverage.json",
-      "sha256": "cc9286953bedbe053b1353eaf80dede59f9c586c61d988e044642b756da08983"
+      "sha256": "4aa3db224bbbeb4e34e954e9bd6b9f29d1df30d6102a155a9a57a0e8d87074b4"
     }
   ],
   "counts": {
@@ -208,14 +208,18 @@
       "skill": "audit-decisions",
       "expansion_disposition": "language-level",
       "typescript_disposition": "typescript-supported",
-      "javascript_disposition": "pending-validation",
+      "javascript_disposition": "javascript-supported",
       "javascript_cohort": "syntax",
       "javascript_evidence_modes": [
-        "pending"
+        "syntax"
       ],
-      "javascript_evidence_path": null,
-      "javascript_native_check": null,
-      "javascript_reviewed_revision": null,
+      "javascript_evidence_path": "tests/test_javascript_syntax_cohort.py",
+      "javascript_native_check": [
+        "npm",
+        "run",
+        "check-js"
+      ],
+      "javascript_reviewed_revision": "a5337cb",
       "javascript_limitation": null,
       "fact_level": "syntax",
       "outcome_class": "read-only-report",
@@ -1033,14 +1037,18 @@
       "skill": "find-complexity-hotspots",
       "expansion_disposition": "language-level",
       "typescript_disposition": "typescript-supported",
-      "javascript_disposition": "pending-validation",
+      "javascript_disposition": "javascript-supported",
       "javascript_cohort": "syntax",
       "javascript_evidence_modes": [
-        "pending"
+        "syntax"
       ],
-      "javascript_evidence_path": null,
-      "javascript_native_check": null,
-      "javascript_reviewed_revision": null,
+      "javascript_evidence_path": "tests/test_javascript_syntax_cohort.py",
+      "javascript_native_check": [
+        "npm",
+        "run",
+        "check-js"
+      ],
+      "javascript_reviewed_revision": "a5337cb",
       "javascript_limitation": null,
       "fact_level": "syntax",
       "outcome_class": "read-only-report",
@@ -1736,14 +1744,18 @@
       "skill": "find-omnibus",
       "expansion_disposition": "language-level",
       "typescript_disposition": "typescript-supported",
-      "javascript_disposition": "pending-validation",
+      "javascript_disposition": "javascript-supported",
       "javascript_cohort": "syntax",
       "javascript_evidence_modes": [
-        "pending"
+        "syntax"
       ],
-      "javascript_evidence_path": null,
-      "javascript_native_check": null,
-      "javascript_reviewed_revision": null,
+      "javascript_evidence_path": "tests/test_javascript_syntax_cohort.py",
+      "javascript_native_check": [
+        "npm",
+        "run",
+        "check-js"
+      ],
+      "javascript_reviewed_revision": "a5337cb",
       "javascript_limitation": null,
       "fact_level": "syntax",
       "outcome_class": "read-only-report",
@@ -2254,14 +2266,18 @@
       "skill": "find-standard-gaps",
       "expansion_disposition": "language-level",
       "typescript_disposition": "typescript-supported",
-      "javascript_disposition": "pending-validation",
+      "javascript_disposition": "javascript-supported",
       "javascript_cohort": "syntax",
       "javascript_evidence_modes": [
-        "pending"
+        "syntax"
       ],
-      "javascript_evidence_path": null,
-      "javascript_native_check": null,
-      "javascript_reviewed_revision": null,
+      "javascript_evidence_path": "tests/test_javascript_syntax_cohort.py",
+      "javascript_native_check": [
+        "npm",
+        "run",
+        "check-js"
+      ],
+      "javascript_reviewed_revision": "a5337cb",
       "javascript_limitation": null,
       "fact_level": "syntax",
       "outcome_class": "read-only-report",

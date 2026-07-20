@@ -221,6 +221,11 @@ State: `in_progress`
 Scope: `.js`, `.jsx`, `.mjs`, and `.cjs`, including mixed JS/TS projects.
 JavaScript support is not inferred from TypeScript filename traversal.
 
+Progress: 4 of 22 language-level skills are evidence-backed
+`javascript-supported` (the complete syntax cohort); 18 remain
+`pending-validation`. The other 54 skills retain explicit neutral,
+stack-bound, or ecosystem-runtime dispositions.
+
 Independent worktree batches after the P1 interfaces are frozen:
 
 1. lexical/filesystem cohort;
@@ -432,7 +437,7 @@ Acceptance:
 |---|---|---|---|---|---|---|
 | P0 TypeScript synthesis | complete | P0 commit (this revision) | Accepted TypeScript coverage fixtures | Matrix/coverage/router: 51 passed; canonical: 666 passed, 2 environment skips | Fresh review found missing current closure paths; repaired; bounded re-review PASS | `.claude/tasks/multilanguage-typescript-transfer-guide.md` plus raw linked packets |
 | P1 portability harness | complete | `2015c3f`, `7b4cd09`, and this revision | Synthetic seven-outcome hosts; fresh bootstrapped `map-subsystem` complete/partial hosts | Focused P1 integration: 90 passed; canonical: 686 passed, 2 documented environment skips; final collision regression: 3 passed | Fresh product-aligned review found four bounded defects; all repaired and bounded re-review passed | Capability projection, exact install evidence, test-only journey contract, and explicit TypeScript extraction stop decision |
-| P2 JavaScript coverage | in progress | baseline commit pending | Inventory/matrix/router fixtures for `.js`, `.jsx`, `.mjs`, and `.cjs` | Source inventory, matrix, and router recommendation: 25 passed; installed replay pending baseline commit | Fresh product review pending completed cohorts | Frozen 76-skill disposition contract and 22-skill cohort map; individual outcomes remain pending until backed by real JavaScript evidence |
+| P2 JavaScript coverage | in progress | baseline `eedb3ae`; syntax cohort `a5337cb` | Inventory/matrix/router fixtures plus `tests/test_javascript_syntax_cohort.py` | Baseline installed replay: 79 passed; syntax cohort and projection: 57 passed; additive TypeScript regression: 55 passed | Fresh product review pending completed cohorts | 4/22 language-level skills promoted from real syntax outcomes; syntax transfer packet at `.claude/tasks/javascript-syntax-learning.md` |
 | P3 Go pilot | pending | — | — | — | — | — |
 | P4 route frameworks | pending | — | — | — | — | — |
 | P5 next-language selection | pending | — | — | — | — | — |

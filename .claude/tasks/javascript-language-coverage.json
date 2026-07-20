@@ -35,11 +35,11 @@
     {
       "skill": "audit-decisions",
       "cohort": "syntax",
-      "disposition": "pending-validation",
-      "evidence_modes": ["pending"],
-      "evidence_path": null,
-      "native_check": null,
-      "reviewed_revision": null
+      "disposition": "javascript-supported",
+      "evidence_modes": ["syntax"],
+      "evidence_path": "tests/test_javascript_syntax_cohort.py",
+      "native_check": ["npm", "run", "check-js"],
+      "reviewed_revision": "a5337cb"
     },
     {
       "skill": "explain-code",
@@ -71,11 +71,11 @@
     {
       "skill": "find-complexity-hotspots",
       "cohort": "syntax",
-      "disposition": "pending-validation",
-      "evidence_modes": ["pending"],
-      "evidence_path": null,
-      "native_check": null,
-      "reviewed_revision": null
+      "disposition": "javascript-supported",
+      "evidence_modes": ["syntax"],
+      "evidence_path": "tests/test_javascript_syntax_cohort.py",
+      "native_check": ["npm", "run", "check-js"],
+      "reviewed_revision": "a5337cb"
     },
     {
       "skill": "find-concept-divergence",
@@ -134,11 +134,11 @@
     {
       "skill": "find-omnibus",
       "cohort": "syntax",
-      "disposition": "pending-validation",
-      "evidence_modes": ["pending"],
-      "evidence_path": null,
-      "native_check": null,
-      "reviewed_revision": null
+      "disposition": "javascript-supported",
+      "evidence_modes": ["syntax"],
+      "evidence_path": "tests/test_javascript_syntax_cohort.py",
+      "native_check": ["npm", "run", "check-js"],
+      "reviewed_revision": "a5337cb"
     },
     {
       "skill": "find-semantic-duplication",
@@ -152,11 +152,11 @@
     {
       "skill": "find-standard-gaps",
       "cohort": "syntax",
-      "disposition": "pending-validation",
-      "evidence_modes": ["pending"],
-      "evidence_path": null,
-      "native_check": null,
-      "reviewed_revision": null
+      "disposition": "javascript-supported",
+      "evidence_modes": ["syntax"],
+      "evidence_path": "tests/test_javascript_syntax_cohort.py",
+      "native_check": ["npm", "run", "check-js"],
+      "reviewed_revision": "a5337cb"
     },
     {
       "skill": "map-subsystem",
