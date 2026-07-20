@@ -73,6 +73,9 @@
                   "unknown",
                   "inherited"
                 ]
+              },
+              {
+                "type": "not-narrow"
               }
             ],
             "weight": 36,
@@ -118,6 +121,9 @@
                   "unknown",
                   "inherited"
                 ]
+              },
+              {
+                "type": "not-narrow"
               }
             ],
             "weight": 18,
@@ -356,6 +362,7 @@
         "task-closeout"
       ],
       "boost": {
+        "narrow_signal": true,
         "cues": [
           "move",
           "moving",
@@ -578,6 +585,55 @@
         ],
         "weight": 30,
         "rationale": "task asks for an advisory scan"
+      }
+    },
+    {
+      "id": "boundary-proposal",
+      "title": "Boundary Proposal",
+      "summary": "Propose a maintainable module boundary without applying source changes.",
+      "first_next": "/propose-boundary",
+      "sequence": [
+        "inspect the named target, callers, and current public surface",
+        "/propose-boundary",
+        "review the proposed API, compatibility path, and verification obligations"
+      ],
+      "stop": "Stop before source mutation; execution requires a separately approved refactor task.",
+      "cues": {
+        "strong": [
+          "boundary",
+          "boundaries",
+          "propose",
+          "compatibility"
+        ],
+        "normal": [
+          "module",
+          "public",
+          "caller",
+          "impact",
+          "api",
+          "target"
+        ],
+        "negative": [
+          "approved",
+          "apply",
+          "execute",
+          "move"
+        ]
+      },
+      "alternatives": [
+        "refactor-execution",
+        "project-structure"
+      ],
+      "boost": {
+        "narrow_signal": true,
+        "cues": [
+          "boundary",
+          "boundaries",
+          "propose",
+          "compatibility"
+        ],
+        "weight": 30,
+        "rationale": "task asks for a bounded module-boundary proposal without execution"
       }
     },
     {

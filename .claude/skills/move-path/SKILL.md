@@ -12,6 +12,9 @@ best_for: |
   should update in one batch. Best when a move map can be reviewed first
   and the desired behavior is "compute a virtual after-tree, rewrite safe
   references once, apply with git-aware moves, then verify."
+  Also use the checked-JavaScript mode for explicit `.js`, `.jsx`, `.mjs`, or
+  `.cjs` file moves that must update safe relative imports and checked-project
+  configuration while leaving unrelated TypeScript source unchanged.
 not_for: |
   Domain-concept terminology renames in prose (use /rename-concept).
   Python/TypeScript import refactors unless a language adapter has been

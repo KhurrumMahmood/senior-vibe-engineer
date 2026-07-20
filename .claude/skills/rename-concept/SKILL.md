@@ -46,6 +46,9 @@ not_for: |
   radius (use an IDE or a scoped find-and-replace) — the scope-gate bails
   these. Bulk drift detection across ALL concepts at once (use
   /find-concept-divergence directly — this skill filters it to ONE requested term).
+  Filesystem path or file moves and their import/reference updates (use
+  /move-path), even when the paths happen to contain generic names such as
+  `old` and `new`.
   General module decomposition or service extraction (use /refactor-subsystem).
   Authoring the DECISION itself — the ADR content is human judgment; this skill
   reports status, it does not decide. Executing the codemod — there
