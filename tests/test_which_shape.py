@@ -95,6 +95,16 @@ def test_boundary_proposal_beats_inherited_project_intake(tmp_path):
     assert result["recommendation"]["first_next"] == "/propose-boundary"
 
 
+def test_non_boundary_plans_do_not_route_to_boundary_proposal(tmp_path):
+    tasks = (
+        "propose a database migration plan for the users table",
+        "write a compatibility plan for upgrading the API",
+    )
+
+    for task in tasks:
+        assert _shape_for(task, tmp_path) != "boundary-proposal"
+
+
 def test_task_closeout_strong_cues_route_to_task_closeout(tmp_path):
     assert _shape_for("the work is finished; run a closeout cleanup over the changed files", tmp_path) == "task-closeout"
 

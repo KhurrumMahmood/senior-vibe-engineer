@@ -601,11 +601,11 @@
       "cues": {
         "strong": [
           "boundary",
-          "boundaries",
-          "propose",
-          "compatibility"
+          "boundaries"
         ],
         "normal": [
+          "propose",
+          "compatibility",
           "module",
           "public",
           "caller",
@@ -625,15 +625,35 @@
         "project-structure"
       ],
       "boost": {
+        "mode": "first-match",
         "narrow_signal": true,
-        "cues": [
-          "boundary",
-          "boundaries",
-          "propose",
-          "compatibility"
-        ],
-        "weight": 30,
-        "rationale": "task asks for a bounded module-boundary proposal without execution"
+        "rules": [
+          {
+            "conditions": [
+              {
+                "type": "cue-hit",
+                "cues": [
+                  "boundary",
+                  "boundaries"
+                ]
+              },
+              {
+                "type": "cue-hit",
+                "cues": [
+                  "propose",
+                  "compatibility"
+                ]
+              }
+            ],
+            "weight": 30,
+            "rationale": "task asks for a bounded module-boundary proposal without execution"
+          },
+          {
+            "conditions": [],
+            "weight": -30,
+            "rationale": "task does not name both a boundary and proposal intent"
+          }
+        ]
       }
     },
     {
