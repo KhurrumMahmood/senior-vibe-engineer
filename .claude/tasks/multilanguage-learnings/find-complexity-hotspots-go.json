@@ -1,6 +1,6 @@
 {
   "batch": "P3 Go detector pilot",
-  "revision": "pending-commit",
+  "revision": "3492764",
   "family": ["find-complexity-hotspots"],
   "invariant": {
     "portable_principle": "A high branch score is a read-only structural lead, never a performance or safe-refactor verdict.",
@@ -46,7 +46,7 @@
   },
   "user_experience": {
     "install_steps": ["Use the on-demand skill closure.", "Run scripts/run.py with --language go from the host root.", "Read reports/find-complexity-hotspots/latest before acting."],
-    "wall_time_seconds": null,
+    "wall_time_seconds": 34.77,
     "agent_confusions": ["A partial build-tag report is not clean.", "A score is not performance evidence."],
     "repeated_work": [],
     "smallest_later_improvement": "Add build-context evaluation only after a real host demonstrates that partial tag handling blocks useful review."

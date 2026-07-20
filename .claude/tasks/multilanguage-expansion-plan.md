@@ -1,6 +1,6 @@
 # Multi-language and framework expansion plan
 
-Status: active — P0, P1, P2, and U1 complete; P3 in progress
+Status: active — P0, P1, P2, U1, and P3 complete; measured batching next
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
@@ -345,7 +345,7 @@ Evidence:
 
 ## Phase P3 — Go three-family pilot
 
-State: `in_progress`
+State: `complete`
 
 Pilot families:
 
@@ -388,24 +388,31 @@ rather than substituting a weaker one.
 
 Acceptance:
 
-- [ ] All three closures run from the on-demand library against a locked,
+- [x] All three closures run from the on-demand library against a locked,
       non-repository Go module.
-- [ ] Native Go tools and minimum versions are discovered explicitly; missing
+- [x] Native Go tools and minimum versions are discovered explicitly; missing
       tools return unsupported rather than clean.
-- [ ] Positive, negative, must-not-fire, malformed, generated/vendor, and
+- [x] Positive, negative, must-not-fire, malformed, generated/vendor, and
       ambiguous fixtures exist for each family.
-- [ ] The detector emits its final ranked artifact, the proposal cites resolved
+- [x] The detector emits its final ranked artifact, the proposal cites resolved
       package evidence, and the mutation produces only its declared diff.
-- [ ] `gofmt` and `go test ./...` pass after the mutation journey.
-- [ ] A fresh-context replay completes all three outcomes without consulting
+- [x] `gofmt` and `go test ./...` pass after the mutation journey.
+- [x] A fresh-context replay completes all three outcomes without consulting
       TypeScript implementation history.
-- [ ] The translation guide is revised with what transferred, what did not,
+- [x] The translation guide is revised with what transferred, what did not,
       and a measured estimate for expanding the remaining language-level
       cohort.
 
 Expansion gate: do not schedule full Go coverage unless the pilot demonstrates
 that at least two of the three family contracts transfer without skill-specific
 platform work and the expected user value justifies the measured effort.
+
+Gate decision: passed for staged expansion, not for a blanket conversion.
+All three outcomes reached their final user boundary with family-local native
+helpers and no shared execution/parser platform. The measured pilot also found
+nine user-relevant contract gaps during review, so the remaining nineteen
+skills are split into evidence-gated cohorts in the transfer guide rather than
+launched as one campaign.
 
 ## Phase P4 — Route/workflow framework pilot
 
@@ -512,7 +519,7 @@ Acceptance:
 | P1 portability harness | complete | `2015c3f`, `7b4cd09`, and this revision | Synthetic seven-outcome hosts; fresh bootstrapped `map-subsystem` complete/partial hosts | Focused P1 integration: 90 passed; canonical: 686 passed, 2 documented environment skips; final collision regression: 3 passed | Fresh product-aligned review found four bounded defects; all repaired and bounded re-review passed | Capability projection, exact install evidence, test-only journey contract, and explicit TypeScript extraction stop decision |
 | P2 JavaScript coverage | complete | baseline `eedb3ae`; cohort repairs through `e618ef4`; route/artifact repairs `fa26b9f`, `7713dc6`, `fb0c71d`, `23737ce`, `02524a1` | Inventory/matrix/router fixtures, all four cohort outcomes, and three fresh mixed JS/TS hosts | Focused repaired integration passed 115; final canonical root modules passed 681 with 1 intentional skip | Three forward journeys passed without route override; first RED routes and review findings became regressions; final product review PASS | 22/22 language-level skills promoted; accepted transfer guide captures native/family-local reuse, rejected custom lexer, route-first validation, and next-language brief |
 | U1 router journey stabilization | complete | `5bc7618` and this revision | 30-case decision corpus plus copied default-router host | Focused router surface: 201 passed, 1 intentional skip; canonical tests: 770 passed, 2 intentional skips | Installed three-router replay passed; product-framed adversarial findings repaired; bounded re-review PASS | ML-007 retains only broader low-confidence ambiguity refinement; no general evaluator or coordinator added |
-| P3 Go pilot | pending | — | — | — | — | — |
+| P3 Go pilot | complete | `1b6e2eb`, `6de5762`, `966be1c`, `3492764`, `39115e7`, and this closeout | Three locked standalone modules plus generated/vendor/malformed/tool/topology cases | Go-focused families: 27 passed; preserved cross-language family set: 61 passed, 1 intentional skip; move-path Go/Python preservation after the staging repair: 29 passed, 1 intentional skip; capability/router projection: 71 passed; canonical suite before the final bounded staging repair: 807 passed, 2 intentional skips | Three non-context implementation lanes; each original product-framed reviewer returned PASS after bounded repairs; final closeout review also passed after the advertised staging path was repaired | Three `*-go` packet pairs plus the Go synthesis and measured expansion estimate in `.claude/tasks/multilanguage-typescript-transfer-guide.md` |
 | P4 route frameworks | pending | — | — | — | — | — |
 | P5 next-language selection | pending | — | — | — | — | — |
 
@@ -522,7 +529,7 @@ Acceptance:
       usable and documented.
 - [x] JavaScript has a complete, honest 76-skill disposition and all applicable
       language-level outcomes have validated evidence.
-- [ ] Go has passed the three-family pilot and either has an evidence-approved
+- [x] Go has passed the three-family pilot and either has an evidence-approved
       expansion plan or an explicit stop decision.
 - [ ] Express and FastAPI route/workflow journeys reach consumer artifacts from
       framework-specific native fixtures.

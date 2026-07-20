@@ -224,7 +224,7 @@ auditable when completeness matters.
 
 ### ML-010 — Select and validate the next major-language pilot
 
-- State: `scheduled`
+- State: `complete`
 - User value: TypeScript learning is converted into repeatable support for
   another common language without another blanket conversion campaign.
 - Trigger: the TypeScript learning synthesis is usable and target-language
@@ -238,6 +238,13 @@ auditable when completeness matters.
 - Non-goals: simultaneous full coverage of Go, Rust, Java/Kotlin, C#, and Ruby.
 - Scheduled scope: P3 of `.claude/tasks/multilanguage-expansion-plan.md` names a
   three-family Go pilot and requires an evidence gate before broader Go work.
+- Completion evidence: `1b6e2eb`, `6de5762`, `966be1c`, `3492764`, and
+  `39115e7`; all three family reviewers passed after bounded repairs. The
+  remaining nineteen skills are staged as G1/G1D/G2/G3 in the transfer guide.
+- Residual Go backlog: add test-only caller impact to `propose-boundary` when a
+  real proposal needs it; record the detector's resolved Go path in every final
+  artifact rather than only its version. None changes the three accepted pilot
+  outcomes or justifies a shared Go platform today.
 
 ## External release dependency (tracked, not a language feature)
 

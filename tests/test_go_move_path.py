@@ -109,6 +109,46 @@ def test_go_leaf_package_move_updates_exact_imports_and_native_boundary(tmp_path
     assert native.returncode == 0, native.stdout + native.stderr
 
 
+def test_go_directory_move_stages_only_verified_after_paths(tmp_path: Path) -> None:
+    module = _module()
+    host = _host(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=host, check=True)
+    subprocess.run(["git", "config", "user.email", "fixture@example.com"], cwd=host, check=True)
+    subprocess.run(["git", "config", "user.name", "Fixture"], cwd=host, check=True)
+    subprocess.run(["git", "add", "."], cwd=host, check=True)
+    subprocess.run(["git", "commit", "-qm", "fixture"], cwd=host, check=True)
+    plan = _plan(host)
+
+    applied = module.run_plan(
+        plan_path=plan,
+        project_root=host,
+        mode="apply",
+        report_dir=host / "reports" / "move-path",
+        stage=True,
+    )
+
+    assert applied["go"]["status"] == "complete"
+    staged = subprocess.run(
+        ["git", "diff", "--cached", "--name-status"],
+        cwd=host,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    assert "pkg/legacy/legacy.go" in staged
+    assert "pkg/workflow/legacy.go" in staged
+    assert "app/consumer.go" in staged
+    assert "docs/move.md" in staged
+    unstaged = subprocess.run(
+        ["git", "diff", "--name-only", "--", "app", "docs", "pkg"],
+        cwd=host,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    assert unstaged == ""
+
+
 def test_copied_skill_closure_runs_without_repository_helpers(tmp_path: Path) -> None:
     host = _host(tmp_path)
     plan = _plan(host)

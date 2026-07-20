@@ -28,7 +28,8 @@ therefore labelled `syntax_candidate` rather than resolved call identity.
 The installed command runs the bundled `propose_go.go` via the host `go` tool.
 It has no toolkit Python, sibling-skill, shared-script, third-party module, or
 network import. Missing Go prints an explicit unsupported status before it
-attempts `go run`; an old Go writes unsupported evidence. Malformed source
+attempts `go run`; its shell preflight also rejects Go below 1.22 before a
+newer host module can make `go run` fail or fetch a toolchain. Malformed source
 writes failed syntax evidence and exits nonzero.
 
 ## Locked evidence
@@ -51,7 +52,8 @@ documented command.
 
 ## Limits and follow-up
 
-Go v1 does not claim support for build matrices, cgo, workspaces, `replace`,
+Go v1 explicitly defers active workspaces and `replace` directives and does
+not claim support for build matrices, cgo,
 reflection, interface dispatch, dynamic runtime behavior, external consumers,
 or `go/types` symbol identity. It also does not treat package-private calls as
 external private imports: they are human-reviewed migration blockers for a

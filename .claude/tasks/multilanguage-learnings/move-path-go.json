@@ -1,10 +1,11 @@
 {
   "batch": "move-path-go-pilot",
+  "revision": "3492764",
   "family": ["move-path"],
   "invariant": "Move one leaf, non-main Go package directory within one root module and rewrite only go/parser-confirmed exact import string literals.",
   "native_model": {
     "module": "one root go.mod; workspaces and nested modules are unsupported",
-    "minimum_version": "the root go.mod Go directive",
+    "minimum_version": "Go 1.22 or the higher root go.mod directive",
     "tools": ["go", "gofmt", "go/parser", "go/ast"]
   },
   "outcomes": {
@@ -15,5 +16,7 @@
   },
   "reused": ["virtual after-tree", "authority-plan exclusion", "filesystem transaction", "JSON reports", "copied-skill replay"],
   "not_transferred": ["TypeScript module resolution", "JavaScript compiler configuration", "generic Go symbol/package refactoring", "workspace or multi-module support"],
+  "tooling_evidence": "PATH-discovered /opt/homebrew/bin/go and gofmt; local version go1.26.5; installed commands do not hardcode that path.",
+  "focused_test_wall_time_seconds": null,
   "next_language_guidance": "Use a native parser only for the exact fact needed; do not promote a one-package mutation adapter into a shared refactoring runtime without a second accepted consumer."
 }

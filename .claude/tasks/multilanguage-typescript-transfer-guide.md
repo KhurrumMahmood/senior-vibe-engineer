@@ -132,3 +132,63 @@ Every pilot produces one compact JSON and Markdown pair recording:
 - reused primitive and why it was actually equivalent;
 - rejected abstractions and why; and
 - concrete guidance for the next language.
+
+## Go pilot synthesis and staged expansion decision
+
+The three-family Go pilot passed. `find-complexity-hotspots` reached its ranked
+report from direct `go/ast` facts, `propose-boundary` reached a cited package
+proposal from `go list` plus syntax facts, and `move-path` completed and rolled
+back a bounded package move using exact `ImportSpec` spans. Each closure ran
+from the on-demand library with PATH-discovered Go 1.22+ and no third-party Go
+dependency. No TypeScript analyzer or universal parser transferred.
+
+What transferred was the product contract: freeze the final artifact/diff,
+choose the weakest sufficient native fact, distinguish partial/unsupported/
+failed from clean, fingerprint source, run native verification, and replay the
+copied closure. What remained family-local was equally important: complexity
+scoring, package/API proposal facts, and transactional import rewriting share
+neither a result schema nor a safe runtime seam.
+
+Measured effort:
+
+- The frozen packet at `56a0db4` reached published capability projection at
+  `39115e7` in a 66-minute observed integration window with three parallel
+  lanes. This is wall time for this pilot, not a promise or a measure of total
+  model compute.
+- The pilot added about 2,269 non-test skill/runtime lines across the three
+  distinct outcomes, plus 1,012 lines in their Go-specific test modules and a
+  set of locked fixtures.
+- The three focused Go modules contain 27 tests. The final combined family
+  regression run preserved Python/TypeScript behavior with 61 passing and one
+  intentional skip in 73.19 seconds.
+- Product-framed review found one stale-result defect, four move-boundary
+  defects, three proposal-contract defects, and one installed old-tool launcher
+  defect before all three lanes passed re-review.
+
+Linear extrapolation would therefore be misleading. A defensible planning
+range for the remaining nineteen language-level skills is roughly 20–35 agent
+hours, or 8–16 wall-clock hours with three genuinely independent lanes and
+serial integration/review. Semantic families are the uncertainty driver. Work
+must stop and re-estimate after each cohort.
+
+Approved cohorts, in order:
+
+1. **G1 — bounded lexical/syntax outcomes:** `adapt-project`,
+   `audit-decisions`, `explain-code`, `find-comment-drift`,
+   `find-concept-divergence`, `find-folder-topology-drift`, `find-omnibus`, and
+   `find-standard-gaps`. These may share source inventory only where the
+   existing contract already fits; final artifacts remain skill-owned.
+2. **G1D — duplication separately:** `find-duplication`. Its native/offline
+   detector choice is a separate decision and must not hold G1 hostage.
+3. **G2 — semantic/project evidence:** `find-dormant`, `find-implicit-state`,
+   `find-incomplete-sweep`, `find-semantic-duplication`, `map-subsystem`, and
+   `rename-concept`. Pilot a maximum of three before deciding whether identical
+   `go list`/`go/types` facts actually warrant extraction.
+4. **G3 — proposals and guards:** `extract-enum`, `prevent-regression`,
+   `propose-folder-reorganization`, and `unify-shadows`. These begin only from
+   accepted upstream Go evidence; they do not create a second analyzer by
+   convenience.
+
+Every cohort retains the P3 closure, fixture, native-oracle, source-safety, and
+fresh-review gates. Promotion remains per skill. A failed or ambiguous row
+stays `pending-validation`; the router must not infer cohort-wide support.

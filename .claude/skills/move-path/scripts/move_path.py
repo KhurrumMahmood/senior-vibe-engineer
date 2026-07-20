@@ -1393,8 +1393,6 @@ def apply_moves_and_rewrites(
     moves: list[MoveSpec],
     after_texts: dict[str, str],
     touched_text_files_before: list[str],
-    *,
-    stage: bool,
 ) -> None:
     for move in sorted(moves, key=lambda m: len(m.src), reverse=True):
         move_one(root, move.src, move.dst)
@@ -1402,15 +1400,25 @@ def apply_moves_and_rewrites(
         after = after_path_for(before, moves)
         if after in after_texts:
             _write_text(root / after, after_texts[after])
-    if stage and is_git_repo(root):
-        stage_paths: set[str] = set()
-        for move in moves:
-            stage_paths.add(move.src)
-            stage_paths.add(move.dst)
-        for before in touched_text_files_before:
-            stage_paths.add(before)
-            stage_paths.add(after_path_for(before, moves))
-        subprocess.run(["git", "add", "--", *sorted(stage_paths)], cwd=root, check=True)
+
+
+def stage_applied_paths(
+    root: Path,
+    moves: list[MoveSpec],
+    touched_text_files_before: list[str],
+) -> None:
+    """Stage only paths that exist after a successful move and native checks."""
+    if not is_git_repo(root):
+        return
+    candidates = {
+        *(move.dst for move in moves),
+        *(after_path_for(before, moves) for before in touched_text_files_before),
+    }
+    existing = sorted(
+        rel for rel in candidates if (root / rel).exists() or (root / rel).is_symlink()
+    )
+    if existing:
+        subprocess.run(["git", "add", "--", *existing], cwd=root, check=True)
 
 
 def report_payload(
@@ -1799,7 +1807,7 @@ def run_plan(
             write_report(report_dir, payload)
             raise SystemExit(f"gofmt preflight prevents apply; see {report_dir / 'report.md'}")
     snapshots = snapshot_move_inputs(root, moves, touched_before) if go is not None else {path: (root / path).read_bytes() for path in touched_before}
-    apply_moves_and_rewrites(root, moves, after_texts, touched_before, stage=stage)
+    apply_moves_and_rewrites(root, moves, after_texts, touched_before)
     if javascript is not None:
         checked_after = checked_javascript(root, config, [after_path_for(path, moves) for path in javascript_files])
         if checked_after["status"] != "complete":
@@ -1834,6 +1842,8 @@ def run_plan(
             raise SystemExit(f"Go native verification failed; source rolled back; see {report_dir / 'report.md'}")
         add_go_report(payload, go, go_replacements, native=native)
         write_report(report_dir, payload)
+        if stage:
+            stage_applied_paths(root, moves, touched_before)
         return payload
     # Re-run check after mutation so report reflects final state.
     post_apply = run_plan(
@@ -1853,6 +1863,8 @@ def run_plan(
         post_apply["javascript"] = payload["javascript"]
         post_apply["summary"]["javascript_status"] = payload["javascript"]["status"]
         write_report(report_dir, post_apply)
+    if stage:
+        stage_applied_paths(root, moves, touched_before)
     return post_apply
 
 

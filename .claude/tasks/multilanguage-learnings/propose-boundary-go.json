@@ -1,6 +1,6 @@
 {
   "batch": "Go propose-boundary pilot",
-  "revision": "pending-commit",
+  "revision": "3492764",
   "family": ["propose-boundary"],
   "invariant": {
     "portable_principle": "A Go boundary proposal may recommend an extraction only when native module/package/import facts establish a complete enough public API and caller-impact view; cohesive, unresolved, ambiguous, generated, or configuration-dependent targets defer rather than inventing a seam.",
@@ -71,7 +71,7 @@
   },
   "user_experience": {
     "install_steps": ["Route to the on-demand library, then run the documented Go proposal command from a module root.", "Review inspection.json and proposal.md before authorizing a refactor."],
-    "wall_time_seconds": null,
+    "wall_time_seconds": 4.68,
     "agent_confusions": ["go list package resolution is stronger than parser-only imports but does not prove symbol/call identity.", "Go has no TypeScript-style barrel; compatibility is a temporary package facade, not automatic re-export generation."],
     "repeated_work": ["Outcome and evidence boundaries transfer; no analyzer code is shared."],
     "smallest_later_improvement": "Only evaluate go/types or go/packages after a second accepted consumer proves it needs identical semantic facts and a copied offline closure."
