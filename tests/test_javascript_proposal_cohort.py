@@ -103,6 +103,13 @@ exports.legacyRead = legacyRead;
 exports.legacyWrite = legacyWrite;
 """,
     )
+    _write(
+        host / "src" / "boundary" / "archive.cjs",
+        """function archiveRead() { return 1; }
+function archiveWrite() { return archiveRead(); }
+module.exports = { archiveRead, archiveWrite };
+""",
+    )
     _write(host / "src" / "boundary-consumer.js", 'import { quotePrice } from "./boundary/quote.js";\nvoid quotePrice;\n')
     _write(host / "src" / "boundary-alias.mjs", 'import { settlementCapture } from "@app/boundary/settlement.mjs";\nvoid settlementCapture;\n')
     _write(host / "src" / "boundary-require.cjs", 'const legacy = require("./boundary/legacy.cjs");\nvoid legacy;\n')
@@ -238,8 +245,26 @@ def test_checked_javascript_proposals_reach_copied_final_artifacts_without_sourc
     assert boundary_payload["status"] == "complete"
     assert boundary_payload["recommendation"] == "refactor"
     assert boundary_payload["graph"]["module_resolution"] == "complete"
-    assert boundary_payload["target"]["source_files"] == 4
-    assert "Checked-JavaScript" in boundary_proposal.read_text(encoding="utf-8")
+    assert boundary_payload["target"]["source_files"] == 5
+    symbols = {row["name"]: row for row in boundary_payload["symbols"]}
+    assert symbols["legacyRead"]["public"] is True
+    assert symbols["legacyWrite"]["public"] is True
+    assert symbols["archiveRead"]["public"] is True
+    assert symbols["archiveWrite"]["public"] is True
+    assert {
+        "legacyRead",
+        "legacyWrite",
+        "archiveRead",
+        "archiveWrite",
+    } <= {
+        name
+        for seam in boundary_payload["candidate_seams"]
+        for name in seam["proposed_public_api"]
+    }
+    rendered_boundary = boundary_proposal.read_text(encoding="utf-8")
+    assert "Checked-JavaScript" in rendered_boundary
+    assert "`index.js`/`index.jsx`/`index.mjs`/`index.cjs`" in rendered_boundary
+    assert "index.ts" not in rendered_boundary
 
     folder = _copy_skill(tmp_path, "propose-folder-reorganization")
     folder_inspection = host / "reports" / "propose-folder-reorganization" / "javascript" / "inspection.json"
@@ -351,6 +376,39 @@ def test_checked_javascript_proposal_failures_remain_explicit_and_non_mutating(t
     assert partial.returncode == 0, partial.stderr
     assert json.loads((host / "reports/propose-boundary/partial/inspection.json").read_text())["status"] == "partial"
 
+    dynamic = host / "src" / "dynamic-boundary"
+    _write(
+        dynamic / "runtime.cjs",
+        """function dynamicRead() { return 1; }
+function dynamicWrite() { return dynamicRead(); }
+function archiveRead() { return 1; }
+function archiveWrite() { return archiveRead(); }
+const exportName = "dynamicRead";
+exports[exportName] = dynamicRead;
+module.exports = { archiveRead, ...loadRuntimeExports() };
+""",
+    )
+    dynamic_result = _node(
+        boundary / "scripts" / "propose_typescript.mjs",
+        "--target", "src/dynamic-boundary", "--project-root", str(host), "--tsconfig", "jsconfig.json",
+        "--language", "javascript", "--inspection", "reports/propose-boundary/dynamic/inspection.json",
+        "--proposal", "reports/propose-boundary/dynamic/proposal.md", cwd=host,
+    )
+    assert dynamic_result.returncode == 0, dynamic_result.stderr
+    dynamic_payload = json.loads(
+        (host / "reports/propose-boundary/dynamic/inspection.json").read_text(encoding="utf-8")
+    )
+    assert dynamic_payload["status"] == "partial"
+    assert dynamic_payload["recommendation"] == "defer_partial_commonjs"
+    assert "partial_commonjs_exports" in dynamic_payload["defer_signals"]
+    assert not next(
+        row for row in dynamic_payload["symbols"] if row["name"] == "dynamicRead"
+    )["public"]
+    assert dynamic_payload["commonjs_exports"]["requires_confirmation"]
+    assert "source/runtime confirmation" in (
+        host / "reports/propose-boundary/dynamic/proposal.md"
+    ).read_text(encoding="utf-8")
+
     broken = host / "src" / "broken"
     _write(broken / "bad.js", "export function broken( { return 1; }\n")
     malformed = _node(
@@ -397,4 +455,9 @@ def test_checked_javascript_proposal_failures_remain_explicit_and_non_mutating(t
     )
     assert rejected_partial.returncode == 2
     assert not (host / "reports" / "unify-shadows" / "partial").exists()
-    assert _hashes(host / "src") == before | {"broken/bad.js": hashlib.sha256((broken / "bad.js").read_bytes()).hexdigest()}
+    assert _hashes(host / "src") == before | {
+        "broken/bad.js": hashlib.sha256((broken / "bad.js").read_bytes()).hexdigest(),
+        "dynamic-boundary/runtime.cjs": hashlib.sha256(
+            (dynamic / "runtime.cjs").read_bytes()
+        ).hexdigest(),
+    }

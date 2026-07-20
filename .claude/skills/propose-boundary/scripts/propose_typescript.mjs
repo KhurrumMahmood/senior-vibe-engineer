@@ -354,10 +354,109 @@ function signatureFor(checker, symbol, declaration, ts) {
   return checker.typeToString(type, declaration, ts.TypeFormatFlags.NoTruncation);
 }
 
+function isModuleExports(node, ts) {
+  return ts.isPropertyAccessExpression(node)
+    && ts.isIdentifier(node.expression)
+    && node.expression.text === "module"
+    && node.name.text === "exports";
+}
+
+function commonJsExportAssignment(left, ts) {
+  if (ts.isPropertyAccessExpression(left)) {
+    if (ts.isIdentifier(left.expression) && left.expression.text === "exports") {
+      return { form: "exports_property", exportedName: left.name.text };
+    }
+    if (isModuleExports(left.expression, ts)) {
+      return { form: "module_exports_property", exportedName: left.name.text };
+    }
+  }
+  if (isModuleExports(left, ts)) return { form: "module_exports_object", exportedName: null };
+  const text = left.getText();
+  if (text.startsWith("exports[") || text.startsWith("module.exports[")) {
+    return { form: "computed_commonjs_property", exportedName: null };
+  }
+  return null;
+}
+
+function collectCommonJsExports(sourceFile, declarationNames, projectRoot, ts) {
+  const exportedLocals = new Set();
+  const bounded = [];
+  const requiresConfirmation = [];
+  const record = (node, form, reason, exportedName = null, localName = null) => {
+    const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
+    const item = {
+      file: relativePath(projectRoot, sourceFile.fileName),
+      line: position.line + 1,
+      form,
+      exported_name: exportedName,
+      local_name: localName,
+    };
+    if (reason) requiresConfirmation.push({ ...item, reason });
+    else bounded.push(item);
+  };
+  for (const statement of sourceFile.statements) {
+    if (!ts.isExpressionStatement(statement) || !ts.isBinaryExpression(statement.expression)) continue;
+    const assignment = statement.expression;
+    if (assignment.operatorToken.kind !== ts.SyntaxKind.EqualsToken) continue;
+    const target = commonJsExportAssignment(assignment.left, ts);
+    if (!target) continue;
+    if (target.form === "module_exports_object") {
+      if (!ts.isObjectLiteralExpression(assignment.right)) {
+        record(assignment, target.form, "module.exports is assigned from a non-literal expression");
+        continue;
+      }
+      for (const property of assignment.right.properties) {
+        let exportedName = null;
+        let localName = null;
+        if (ts.isShorthandPropertyAssignment(property)) {
+          exportedName = property.name.text;
+          localName = property.name.text;
+        } else if (
+          ts.isPropertyAssignment(property)
+          && ts.isIdentifier(property.name)
+          && ts.isIdentifier(property.initializer)
+        ) {
+          exportedName = property.name.text;
+          localName = property.initializer.text;
+        }
+        if (
+          !exportedName || exportedName !== localName
+          || !declarationNames.has(localName)
+        ) {
+          record(property, target.form, "object member is not a same-name reference to a top-level declaration", exportedName, localName);
+          continue;
+        }
+        exportedLocals.add(localName);
+        record(property, target.form, null, exportedName, localName);
+      }
+      continue;
+    }
+    if (
+      target.exportedName
+      && ts.isIdentifier(assignment.right)
+      && target.exportedName === assignment.right.text
+      && declarationNames.has(assignment.right.text)
+    ) {
+      exportedLocals.add(assignment.right.text);
+      record(assignment, target.form, null, target.exportedName, assignment.right.text);
+    } else {
+      record(
+        assignment,
+        target.form,
+        "property assignment is not a same-name reference to a top-level declaration",
+        target.exportedName,
+        ts.isIdentifier(assignment.right) ? assignment.right.text : null,
+      );
+    }
+  }
+  return { exportedLocals, bounded, requiresConfirmation };
+}
+
 function collectSymbols(program, targetFiles, projectRoot, ts) {
   const checker = program.getTypeChecker();
   const records = [];
   const bySymbol = new Map();
+  const commonjs = { bounded: [], requires_confirmation: [] };
   const targetSet = new Set(targetFiles.map((file) => path.resolve(file)));
   for (const sourceFile of program.getSourceFiles()) {
     const file = path.resolve(sourceFile.fileName);
@@ -376,6 +475,16 @@ function collectSymbols(program, targetFiles, projectRoot, ts) {
         }
       }
     }
+    const commonJsExports = activeLanguage === "javascript"
+      ? collectCommonJsExports(
+        sourceFile,
+        new Set(declarations.map((item) => item.name.text)),
+        projectRoot,
+        ts,
+      )
+      : { exportedLocals: new Set(), bounded: [], requiresConfirmation: [] };
+    commonjs.bounded.push(...commonJsExports.bounded);
+    commonjs.requires_confirmation.push(...commonJsExports.requiresConfirmation);
     for (const item of declarations) {
       const symbol = checker.getSymbolAtLocation(item.name);
       if (!symbol) continue;
@@ -385,8 +494,8 @@ function collectSymbols(program, targetFiles, projectRoot, ts) {
         name,
         file: relativePath(projectRoot, file),
         kind: symbolKind(item.declaration, ts),
-        public: item.exported && !name.startsWith("_"),
-        exported: item.exported,
+        public: (item.exported || commonJsExports.exportedLocals.has(name)) && !name.startsWith("_"),
+        exported: item.exported || commonJsExports.exportedLocals.has(name),
         private_by_convention: name.startsWith("_"),
         line: position.line + 1,
         signature: signatureFor(checker, symbol, item.declaration, ts),
@@ -397,7 +506,7 @@ function collectSymbols(program, targetFiles, projectRoot, ts) {
       bySymbol.set(symbol, record);
     }
   }
-  return { checker, records, bySymbol };
+  return { checker, records, bySymbol, commonjs };
 }
 
 function resolveSymbol(checker, symbol, ts) {
@@ -598,6 +707,9 @@ function renderProposal(payload) {
     `- Eligible source files: ${payload.target.source_files}.`,
     `- Resolved inbound module edges: ${payload.graph.inbound_imports.length}; resolved target call edges: ${payload.graph.call_edges.length}.`,
     `- Unresolved target imports: ${payload.graph.unresolved_imports.length}; ambiguous exported symbols: ${payload.graph.ambiguous_symbols.length}.`,
+    ...(payload.language === "javascript" ? [
+      `- Bounded CommonJS export assignments: ${payload.commonjs_exports.bounded.length}; assignments requiring confirmation: ${payload.commonjs_exports.requires_confirmation.length}.`,
+    ] : []),
     "",
   ];
   if (payload.recommendation !== "refactor") {
@@ -605,6 +717,9 @@ function renderProposal(payload) {
     if (payload.graph.unresolved_imports.length > 0) lines.push("No extraction proposal is safe while unresolved static module specifiers remain in the target graph.");
     if (payload.graph.ambiguous_symbols.length > 0) lines.push("No extraction proposal is safe while ambiguous exported symbols remain in the target graph.");
     if (payload.uncovered_files.length > 0) lines.push("No extraction proposal is safe while selected JavaScript files are outside the checked config.");
+    if (payload.language === "javascript" && payload.commonjs_exports.requires_confirmation.length > 0) {
+      lines.push("No extraction proposal is safe while CommonJS export expressions require source/runtime confirmation.");
+    }
     if (payload.defer_signals.includes("single_cluster_no_seam")) lines.push("No extraction proposal is safe: the eligible symbols form one cohesive domain rather than a partition.");
     lines.push("", "Resolve the graph or choose a different target, then rerun this read-only proposal.", "");
   } else {
@@ -633,7 +748,10 @@ function renderProposal(payload) {
       lines.push("");
     }
     lines.push("## Compatibility and barrel plan", "");
-    lines.push("- Preserve the existing barrel `index.ts`/`index.tsx` as a compatibility entry point while it re-exports the chosen public symbols from the extracted modules.");
+    const entryPoints = payload.language === "javascript"
+      ? "`index.js`/`index.jsx`/`index.mjs`/`index.cjs`"
+      : "`index.ts`/`index.tsx`";
+    lines.push(`- Preserve the existing barrel ${entryPoints} as a compatibility entry point while it re-exports the chosen public symbols from the extracted modules.`);
     lines.push("- Keep alias and direct import paths observable in the caller-impact table; migrate direct deep imports deliberately, not by an unverified codemod.");
     lines.push("- Do not re-export underscore-prefixed helpers. Callers reaching them are Phase 1 blockers, not compatibility coverage.", "");
     lines.push("## Caller impact", "", "| Importer | Specifier | Resolved target | Style | Private reach |", "|---|---|---|---|---|");
@@ -693,15 +811,21 @@ function main() {
   const moduleGraph = collectModuleGraph(program, targetFiles, symbolFacts, projectRoot, config, exclusions, ts);
   const calls = collectCallEdges(program, targetFiles, symbolFacts, projectRoot, ts);
   const ambiguous = ambiguousSymbols(ts, program, targetFiles, projectRoot);
-  const graphBlocked = moduleGraph.unresolved.length > 0 || ambiguous.length > 0 || uncoveredFiles.length > 0;
+  const commonJsBlocked = args.language === "javascript"
+    && symbolFacts.commonjs.requires_confirmation.length > 0;
+  const graphBlocked = moduleGraph.unresolved.length > 0 || ambiguous.length > 0
+    || uncoveredFiles.length > 0 || commonJsBlocked;
   const seams = graphBlocked ? [] : candidateSeams(symbolFacts.records, calls, moduleGraph.inbound, args.candidates);
   const deferSignals = [];
   if (moduleGraph.unresolved.length > 0) deferSignals.push("unresolved_module_resolution");
   if (ambiguous.length > 0) deferSignals.push("ambiguous_symbol_resolution");
   if (uncoveredFiles.length > 0) deferSignals.push("partial_config_coverage");
+  if (commonJsBlocked) deferSignals.push("partial_commonjs_exports");
   if (!graphBlocked && seams.length === 0) deferSignals.push("single_cluster_no_seam");
   const recommendation = graphBlocked
-    ? (uncoveredFiles.length > 0 ? "defer_partial_config" : "defer_unresolved_graph")
+    ? (uncoveredFiles.length > 0
+      ? "defer_partial_config"
+      : (commonJsBlocked ? "defer_partial_commonjs" : "defer_unresolved_graph"))
     : (seams.length === 0 ? "defer_no_seam" : "refactor");
   const targetExcluded = targetFiles.length === 0 && exclusions.isExcluded(target, targetStats.isDirectory());
   const payload = {
@@ -709,7 +833,9 @@ function main() {
     skill: "propose-boundary",
     language: args.language,
     analyzer: args.language === "javascript" ? "typescript-compiler-api-checked-javascript" : "typescript-compiler-api",
-    status: uncoveredFiles.length > 0 ? "partial" : (recommendation === "refactor" ? "complete" : "deferred"),
+    status: uncoveredFiles.length > 0 || commonJsBlocked
+      ? "partial"
+      : (recommendation === "refactor" ? "complete" : "deferred"),
     recommendation,
     target: {
       path: relativePath(projectRoot, target),
@@ -719,6 +845,7 @@ function main() {
     },
     tsconfig: relativePath(projectRoot, config.path),
     uncovered_files: uncoveredFiles,
+    ...(args.language === "javascript" ? { commonjs_exports: symbolFacts.commonjs } : {}),
     symbols: symbolFacts.records.map(({ start, end, ...record }) => record),
     graph: {
       module_resolution: graphBlocked ? "partial" : "complete",

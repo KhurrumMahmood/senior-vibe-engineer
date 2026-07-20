@@ -118,6 +118,8 @@ def test_typescript_proposal_reaches_final_artifact_from_resolved_graph(tmp_path
     )
     assert "## Compatibility and barrel plan" in rendered
     assert "src/legacy/index.ts" in rendered
+    assert "`index.ts`/`index.tsx`" in rendered
+    assert "index.js" not in rendered
     assert "## Characterization and native verification plan" in rendered
     assert "npm run typecheck" in rendered
     assert "npm test" in rendered
@@ -227,7 +229,7 @@ def test_skill_docs_truthfully_limit_typescript_v1() -> None:
 
     assert "language: any" in text
     assert "framework: any" in text
-    assert "scans: [python, typescript]" in text
+    assert "scans: [python, typescript, javascript]" in text
     assert "project-local `tsconfig.json`" in text
     assert "unresolved or ambiguous" in text
     assert "framework semantics" in text

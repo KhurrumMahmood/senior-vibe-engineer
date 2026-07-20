@@ -111,7 +111,15 @@ outside that named config as `partial`, never a clean proposal:
   blockers rather than compatibility coverage.
 - Record resolved inbound and outbound static imports, target-local resolved
   calls, direct/alias/barrel caller impact, and a compatibility plan that keeps
-  the existing `index.ts`/`index.tsx` barrel as a temporary re-export surface.
+  the existing TypeScript `index.ts`/`index.tsx` or JavaScript
+  `index.js`/`index.jsx`/`index.mjs`/`index.cjs` barrel as a temporary re-export
+  surface.
+- In checked JavaScript, treat only same-name, top-level declaration references
+  assigned through literal `exports.name`, `module.exports.name`, or
+  `module.exports = { name }` forms as resolved CommonJS public API evidence.
+  Computed, spread, aliased, or expression-backed CommonJS exports make the
+  proposal `partial` until source/runtime confirmation establishes the public
+  contract.
 - Give a characterization matrix and cite the host's native typecheck/test
   commands for the human-approved move. The proposal never edits source or
   runs a codemod.
