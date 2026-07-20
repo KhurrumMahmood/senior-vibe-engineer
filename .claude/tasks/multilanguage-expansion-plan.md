@@ -1,6 +1,6 @@
 # Multi-language and framework expansion plan
 
-Status: active — P0, P1, P2, and U1 complete; P3 pending
+Status: active — P0, P1, P2, and U1 complete; P3 in progress
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
@@ -345,7 +345,7 @@ Evidence:
 
 ## Phase P3 — Go three-family pilot
 
-State: `pending`
+State: `in_progress`
 
 Pilot families:
 
@@ -356,6 +356,35 @@ Pilot families:
 
 The pilot may revise these selections during P0 only if the replacement keeps
 one detector, one proposal, and one mutation/guard outcome.
+
+### Frozen pilot work packet
+
+All lanes start from this revision and own disjoint skill, fixture, test, and
+learning-packet paths. Shared source inventory, router/catalog projection,
+capability matrix, plan status, integration tests, and final review remain with
+the serial owner.
+
+| Lane | Branch/worktree | Locked outcome |
+|---|---|---|
+| Detector | `codex/go-detector-pilot` | `find-complexity-hotspots` emits the existing final report from direct `go/parser`/`go/ast` function facts without counting nested closures. |
+| Proposal | `codex/go-proposal-pilot` | `propose-boundary` emits a read-only proposal from one Go module/package graph, or defers on cohesive, unresolved, or ambiguous evidence. |
+| Mutation | `codex/go-move-pilot` | `move-path` moves one reviewed leaf package directory, rewrites only AST-confirmed exact module imports, and rolls back on native failure. |
+
+Each lane fixture is a standalone module outside repository discovery with a
+`go 1.22` directive, positive and clean source, native tests, generated/vendor
+must-not-fire source, and test-created malformed/tool-missing cases. The
+selected skill must run from a copied on-demand closure with no third-party Go
+dependency or repository import. Go is discovered from `PATH`, must be at least
+1.22, and the exact resolved version/path is evidence rather than a hard-coded
+workstation path. `gofmt` and `go test ./...` are native oracles.
+
+The shared inventory now recognizes `.go` and `_test.go`; this does not promote
+any skill. After the three lanes integrate, the 76-row capability matrix will
+add one Go disposition per skill: only the three accepted pilots may be
+`go-pilot-supported`, the other language-level skills remain
+`pending-validation`, neutral/runtime rows retain their existing meaning, and
+framework rows remain stack-bound. Routers must refuse a pending Go skill
+rather than substituting a weaker one.
 
 Acceptance:
 

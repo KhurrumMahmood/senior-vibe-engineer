@@ -54,6 +54,7 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     _write(host / "tools" / "release.py", "print('release')\n")
     _write(host / "vite.config.ts", "export default {};\n")
     _write(host / "src" / "main.go", "package main\n")
+    _write(host / "src" / "main_test.go", "package main\n")
     _write(host / "node_modules" / "pkg" / "vendor.ts", "export const vendor = 1;\n")
     _write(host / "dist" / "bundle.ts", "export const bundled = 1;\n")
     external = tmp_path / "external"
@@ -70,6 +71,7 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert payload["schema_version"] == 1
     assert payload["status"] == "complete"
     assert payload["capabilities"]["inventory_languages"] == [
+        "go",
         "javascript",
         "python",
         "typescript",
@@ -93,6 +95,7 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
         "tools/release.py",
         "vite.config.ts",
         "src/main.go",
+        "src/main_test.go",
     } == set(files)
 
     assert files["src/app.py"]["role"] == "source"
@@ -118,8 +121,9 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert files["vite.config.ts"]["role"] == "configuration"
     assert files["fixtures/ambiguous.ts"]["classification"] == "ambiguous"
     assert files["fixtures/ambiguous.ts"]["reason"] == "fixture_or_product_data"
-    assert files["src/main.go"]["classification"] == "unsupported"
-    assert files["src/main.go"]["reason"] == "language_not_enabled"
+    assert files["src/main.go"]["language"] == "go"
+    assert files["src/main.go"]["classification"] == "classified"
+    assert files["src/main_test.go"]["role"] == "test"
 
     excluded = {row["path"]: row["reason"] for row in payload["excluded_roots"]}
     assert excluded["node_modules"] == "external_dependency"
@@ -130,7 +134,6 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert "linked/escaped.ts" not in files
 
     assert payload["counts"]["files"] == len(files)
-    assert payload["counts"]["classification"]["unsupported"] == 1
     assert payload["counts"]["classification"]["ambiguous"] == 1
 
 

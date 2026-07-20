@@ -18,11 +18,11 @@ SUPPORTED_SUFFIXES = {
     ".jsx": "javascript",
     ".mjs": "javascript",
     ".cjs": "javascript",
+    ".go": "go",
     ".ts": "typescript",
     ".tsx": "typescript",
 }
 UNSUPPORTED_SUFFIXES = {
-    ".go": "go",
     ".rs": "rust",
     ".java": "java",
     ".kt": "kotlin",
@@ -89,6 +89,7 @@ def _is_test_name(name: str) -> bool:
     return (
         lowered.startswith("test_")
         or lowered.endswith("_test.py")
+        or lowered.endswith("_test.go")
         or any(
             marker in lowered
             for marker in (
