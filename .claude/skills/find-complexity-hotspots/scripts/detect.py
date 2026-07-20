@@ -11,6 +11,8 @@ import argparse
 import ast
 import fnmatch
 import json
+import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -63,6 +65,28 @@ SCRIPT_SUFFIXES = {
     "typescript": {".ts", ".tsx"},
     "javascript": {".js", ".jsx", ".mjs", ".cjs"},
 }
+GO_SKIP_DIRS = {
+    "__tests__",
+    "build",
+    "coverage",
+    "dist",
+    "fixture",
+    "fixtures",
+    "gen",
+    "generated",
+    "spec",
+    "specs",
+    "test",
+    "testdata",
+    "tests",
+    "vendor",
+}
+GO_SKIP_GLOBS = (
+    "*_test.go",
+    "*.generated.go",
+    "*_generated.go",
+)
+GO_MIN_VERSION = (1, 22, 0)
 
 QUERYSET_METHODS = {
     "aggregate",
@@ -132,6 +156,19 @@ BRANCH_NODES = (
 
 class TypeScriptExtractionError(RuntimeError):
     """Raised when syntax-only TypeScript facts cannot be established."""
+
+
+class GoExtractionError(RuntimeError):
+    """Raised when syntax-only Go facts cannot be established honestly."""
+
+
+@dataclass(frozen=True)
+class ScanResult:
+    """Final detector records plus bounded language-level execution evidence."""
+
+    records: list[dict[str, Any]]
+    status: str = "complete"
+    analysis: dict[str, Any] | None = None
 
 
 def _relpath(path: Path | str, project_root: Path) -> str:
@@ -551,6 +588,115 @@ def _script_high_branch_records(
     return records
 
 
+def _go_toolchain() -> tuple[str, str]:
+    """Resolve and validate the host Go toolchain without bundling one."""
+    executable = shutil.which("go")
+    if executable is None:
+        raise GoExtractionError("Go toolchain is unavailable on PATH")
+    try:
+        result = subprocess.run(
+            [executable, "version"], capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        raise GoExtractionError(f"cannot run Go toolchain: {exc}") from exc
+    rendered = (result.stdout or result.stderr).strip()
+    if result.returncode != 0:
+        raise GoExtractionError(f"cannot determine Go version: {rendered or 'unknown error'}")
+    match = re.search(r"\bgo(\d+)\.(\d+)(?:\.(\d+))?\b", rendered)
+    if match is None:
+        raise GoExtractionError(f"cannot parse Go version: {rendered or 'unknown version'}")
+    version = tuple(int(part or 0) for part in match.groups())
+    if version < GO_MIN_VERSION:
+        minimum = ".".join(str(part) for part in GO_MIN_VERSION)
+        raise GoExtractionError(f"Go detector requires Go >= {minimum}; found go{'.'.join(map(str, version))}")
+    return executable, f"go{'.'.join(map(str, version))}"
+
+
+def _go_complexity(path: Path, project_root: Path) -> dict[str, Any]:
+    """Return stdlib parser facts for one eligible Go source file."""
+    executable, _version = _go_toolchain()
+    launcher = Path(__file__).resolve().with_name("detect_go_complexity.go")
+    try:
+        result = subprocess.run(
+            [
+                executable,
+                "run",
+                str(launcher),
+                "--file",
+                str(path),
+                "--project-root",
+                str(project_root),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise GoExtractionError(f"cannot run bundled Go parser: {exc}") from exc
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or "unknown parser failure"
+        raise GoExtractionError(detail)
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise GoExtractionError("bundled Go parser emitted invalid JSON") from exc
+    if not isinstance(payload, dict):
+        raise GoExtractionError("bundled Go parser emitted a non-object result")
+    if payload.get("schema_version") != 1:
+        raise GoExtractionError("bundled Go parser emitted an unsupported schema")
+    if payload.get("status") not in {"complete", "partial"}:
+        raise GoExtractionError("bundled Go parser emitted an invalid status")
+    if payload.get("analyzer") != "go-parser-go-ast":
+        raise GoExtractionError("bundled Go parser emitted an invalid analyzer")
+    if not isinstance(payload.get("go_version"), str) or not payload["go_version"]:
+        raise GoExtractionError("bundled Go parser omitted its Go version")
+    if not isinstance(payload.get("records"), list) or not isinstance(payload.get("skipped"), list):
+        raise GoExtractionError("bundled Go parser emitted invalid records")
+    return payload
+
+
+def _go_high_branch_records(
+    path: Path, project_root: Path, payload: dict[str, Any]
+) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for fact in payload["records"]:
+        try:
+            branch_score = int(fact["branch_score"])
+            loc = int(fact["loc"])
+            symbol = str(fact["symbol"])
+            kind = str(fact["kind"])
+            lineno = int(fact["lineno"])
+            end_lineno = int(fact["end_lineno"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise GoExtractionError("bundled Go parser emitted an invalid function") from exc
+        if branch_score < 18 and not (branch_score >= 12 and loc >= 120):
+            continue
+        records.append(
+            finding(
+                "high-branch-function",
+                path,
+                lineno,
+                f"`{symbol}` has approximate syntactic branch score {branch_score} over {loc} LOC.",
+                "Read the block and its input sizes before changing it; preserve observable "
+                "behavior with native Go tests if a behavior-backed boundary emerges.",
+                project_root,
+                confidence="medium" if branch_score >= 18 else "low",
+                next_skill="manual-review",
+                guard_candidate=False,
+                symbol=symbol,
+                impact=min(90, branch_score * 3 + loc // 20),
+                category="structural",
+                branch_score=branch_score,
+                loc=loc,
+                end_lineno=end_lineno,
+                kind=kind,
+                language="go",
+                analyzer="go-parser-go-ast",
+            )
+        )
+    return records
+
+
 def _iter_python_files(project_root: Path, paths: Iterable[str], include_tests: bool) -> list[Path]:
     found: list[Path] = []
     for raw in paths:
@@ -618,6 +764,69 @@ def _iter_script_files(
     return sorted(dict.fromkeys(clean))
 
 
+def _go_exclusion_reason(path: Path, project_root: Path) -> str | None:
+    if path.is_symlink():
+        return "symlink_boundary"
+    try:
+        parts = path.relative_to(project_root).parts
+    except ValueError:
+        return "outside_project_root"
+    directories = {part.lower() for part in parts[:-1]}
+    if directories & SKIP_DIRS:
+        return "excluded_directory"
+    if directories & GO_SKIP_DIRS:
+        return "go_excluded_directory"
+    if any(fnmatch.fnmatchcase(path.name, glob) for glob in GO_SKIP_GLOBS):
+        return "generated_or_test_filename"
+    return None
+
+
+def _iter_go_files(
+    project_root: Path, paths: Iterable[str]
+) -> tuple[list[Path], list[dict[str, str]]]:
+    found: list[Path] = []
+    excluded: list[dict[str, str]] = []
+    seen: set[Path] = set()
+    seen_exclusions: set[tuple[str, str]] = set()
+
+    def note_exclusion(path: Path, reason: str) -> None:
+        relative = _relpath(path, project_root)
+        key = (relative, reason)
+        if key not in seen_exclusions:
+            seen_exclusions.add(key)
+            excluded.append({"file": relative, "reason": reason})
+
+    for raw in paths:
+        raw_path = Path(raw)
+        candidates: Iterable[Path]
+        if any(ch in raw for ch in "*?[]"):
+            candidates = project_root.glob(raw)
+        else:
+            candidate = raw_path if raw_path.is_absolute() else project_root / raw_path
+            candidates = [candidate]
+        for candidate in candidates:
+            if candidate.is_file() and candidate.suffix.lower() == ".go":
+                possible = [candidate]
+            elif candidate.is_dir():
+                possible = [
+                    path for path in candidate.rglob("*.go")
+                    if path.is_file() or path.is_symlink()
+                ]
+            else:
+                possible = []
+            for path in possible:
+                reason = _go_exclusion_reason(path, project_root)
+                if reason is not None:
+                    note_exclusion(path, reason)
+                    continue
+                resolved = path.resolve()
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
+                found.append(resolved)
+    return sorted(found), sorted(excluded, key=lambda row: (row["file"], row["reason"]))
+
+
 def _dedupe(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     seen: set[tuple[str, int, str, str]] = set()
     out: list[dict[str, Any]] = []
@@ -642,17 +851,19 @@ def _positive_int(raw: str) -> int:
     return value
 
 
-def detect(
+def detect_scan(
     project_root: Path,
     paths: list[str],
     *,
     include_tests: bool = False,
     max_findings: int = 80,
     languages: set[str] | None = None,
-) -> list[dict[str, Any]]:
+) -> ScanResult:
     project_root = project_root.resolve()
     records: list[dict[str, Any]] = []
-    wanted = languages or {"javascript", "python", "typescript"}
+    wanted = languages or {"go", "javascript", "python", "typescript"}
+    status = "complete"
+    analysis: dict[str, Any] = {}
     if "python" in wanted:
         for path in _iter_python_files(project_root, paths, include_tests):
             try:
@@ -672,6 +883,53 @@ def detect(
             except TypeScriptExtractionError as exc:
                 raise TypeScriptExtractionError(f"{path}: {exc}") from exc
 
+    if "go" in wanted:
+        go_files, exclusions = _iter_go_files(project_root, paths)
+        analyzed = 0
+        ambiguous: list[dict[str, str]] = []
+        actual_version: str | None = None
+        for path in go_files:
+            try:
+                payload = _go_complexity(path, project_root)
+            except GoExtractionError as exc:
+                raise GoExtractionError(f"{path}: {exc}") from exc
+            actual_version = str(payload["go_version"])
+            skipped = payload["skipped"]
+            if payload["status"] == "partial":
+                status = "partial"
+                for row in skipped:
+                    if not isinstance(row, dict) or row.get("reason") != "build-constraint-ambiguous":
+                        raise GoExtractionError("bundled Go parser emitted invalid partial evidence")
+                    ambiguous.append({"file": str(row.get("file", "")), "reason": "build-constraint-ambiguous"})
+                continue
+            if skipped:
+                for row in skipped:
+                    if not isinstance(row, dict) or not isinstance(row.get("file"), str) or not isinstance(row.get("reason"), str):
+                        raise GoExtractionError("bundled Go parser emitted invalid skipped evidence")
+                    exclusions.append({"file": row["file"], "reason": row["reason"]})
+                continue
+            analyzed += 1
+            records.extend(_go_high_branch_records(path, project_root, payload))
+        minimum = ".".join(str(part) for part in GO_MIN_VERSION)
+        analysis["go"] = {
+            "status": status if go_files else "complete",
+            "analyzer": "go-parser-go-ast",
+            "minimum_go_version": minimum,
+            "actual_go_version": actual_version,
+            "files": {
+                "eligible": len(go_files),
+                "analyzed": analyzed,
+                "excluded": len(exclusions),
+                "ambiguous": len(ambiguous),
+            },
+            "exclusions": sorted(exclusions, key=lambda row: (row["file"], row["reason"])),
+            "ambiguous": sorted(ambiguous, key=lambda row: (row["file"], row["reason"])),
+            "limitations": (
+                ["Build-constrained Go source was not evaluated; findings cover only analyzed files."]
+                if ambiguous else []
+            ),
+        }
+
     records = [normalize_record(record, project_root) for record in _dedupe(records)]
     confidence_rank = {"high": 0, "medium": 1, "low": 2}
     records.sort(
@@ -682,7 +940,25 @@ def detect(
             int(r.get("lineno") or 1),
         )
     )
-    return records[:max_findings]
+    return ScanResult(records=records[:max_findings], status=status, analysis=analysis or None)
+
+
+def detect(
+    project_root: Path,
+    paths: list[str],
+    *,
+    include_tests: bool = False,
+    max_findings: int = 80,
+    languages: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Compatibility wrapper for callers that consume JSONL records only."""
+    return detect_scan(
+        project_root,
+        paths,
+        include_tests=include_tests,
+        max_findings=max_findings,
+        languages=languages,
+    ).records
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -695,28 +971,28 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--language",
         action="append",
-        choices=("javascript", "python", "typescript"),
+        choices=("go", "javascript", "python", "typescript"),
         default=[],
         help="Restrict scanning to one or more supported languages.",
     )
     args = parser.parse_args(argv)
 
     try:
-        records = detect(
+        scan = detect_scan(
             args.project_root,
             args.paths,
             include_tests=args.include_tests,
             max_findings=args.max_findings,
             languages=set(args.language) or None,
         )
-    except TypeScriptExtractionError as exc:
+    except (TypeScriptExtractionError, GoExtractionError) as exc:
         print(f"[find-complexity-hotspots] ERROR: {exc}", file=sys.stderr)
         return 2
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8") as fh:
-        for record in records:
+        for record in scan.records:
             fh.write(json.dumps(record, sort_keys=True) + "\n")
-    print(f"wrote {len(records)} findings to {args.output}")
+    print(f"wrote {len(scan.records)} findings to {args.output} (status={scan.status})")
     return 0
 
 

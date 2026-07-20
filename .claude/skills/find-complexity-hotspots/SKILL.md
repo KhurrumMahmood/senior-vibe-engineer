@@ -1,7 +1,7 @@
 ---
 name: find-complexity-hotspots
-description: Detect advisory Python, JavaScript, and TypeScript function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only JS/JSX/MJS/CJS/TS/TSX high-branch findings for function declarations, methods, and block-bodied arrows.
-argument-hint: "<paths> [--language python|javascript|typescript]"
+description: Detect advisory Python, JavaScript, TypeScript, and Go function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only JS/JSX/MJS/CJS/TS/TSX and Go high-branch findings for named body-bearing functions and methods.
+argument-hint: "<paths> [--language python|javascript|typescript|go]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -18,8 +18,10 @@ not_for: |
   scope. Broad module-level responsibility sprawl belongs to /find-omnibus.
 language: any
 framework: any
-scans: [python, javascript, typescript]
+scans: [python, javascript, typescript, go]
 ---
+
+<!-- TypeScript compatibility subset: scans: [python, javascript, typescript] -->
 
 # /find-complexity-hotspots
 
@@ -29,9 +31,10 @@ proof that an optimization is safe or valuable.
 ## How success is judged
 
 - The final report directory contains `detections.jsonl`, `report.md`, and
-  `findings.json`, with `latest` pointing to that run. Do not claim a scan ran
+  `findings.json`, with `latest` pointing to that run. Go reports also state
+  `complete` or `partial` and any build-tag ambiguity. Do not claim a scan ran
   without these artifacts.
-- Python findings preserve the six established bands. JavaScript and TypeScript findings carry
+- Python findings preserve the six established bands. JavaScript, TypeScript, and Go findings carry
   their exact `language`, `analyzer: "typescript-compiler-api"`, function
   start/end lines, LOC, and branch score in both JSON artifacts; `report.md`
   prints the analyzer provenance.
@@ -63,6 +66,20 @@ proof that an optimization is safe or valuable.
   uses `createSourceFile`, not a tsconfig, Program, TypeChecker, shared parser,
   or fact platform. Missing Node/package, malformed parser output, or TypeScript
   syntax errors stop the run with exit code 2 instead of silently under-detecting.
+- **Go v1:** `.go` named functions and receiver methods using the host Go
+  toolchain's standard-library `go/parser` and `go/ast`. It counts `if`,
+  `for`, `range`, `switch`, type-switch, `select`, `&&`, and `||` in the direct
+  function body only. Nested function literals, imports, calls, interfaces,
+  and type/package identity are outside the claim.
+- **Go exclusions and ambiguity:** `_test.go`, vendor, generated/gen, fixture,
+  build, and report paths are excluded even when directly targeted. Go's
+  `Code generated ... DO NOT EDIT.` marker is excluded using `ast.IsGenerated`.
+  Explicit `//go:build` or `// +build` files are withheld with
+  `build-constraint-ambiguous`, and the final report is `partial`, never clean.
+- **Go prerequisite:** a `go` executable on `PATH`, version **Go >= 1.22.0**.
+  Missing or older Go, malformed eligible source, or malformed parser output
+  stops the run with exit code 2; do not present a previous `latest` report as
+  this run's result.
 
 ## Installed command
 
@@ -103,9 +120,10 @@ fi
 ```
 <!-- installed-command:run:end -->
 
-Use `--language typescript` to make the narrow TypeScript v1 contract
-explicit, or `--language python` to retain the Python-only scan. The default is
-additive: it scans supported Python and TypeScript files found under `TARGET`.
+Use `--language typescript` or `--language go` to make the narrow native parser
+contract explicit, or `--language python` to retain the Python-only scan. The
+default is additive: it scans supported Python, JavaScript, TypeScript, and Go
+files found under `TARGET`.
 `--skip-effectiveness-log` is retained for command compatibility; selected-skill
 execution has no toolkit telemetry dependency.
 
@@ -126,25 +144,28 @@ For direct detector debugging, write only JSONL:
   Preserve filters, authorization, ordering, duplicates, and data-size behavior
   before replacing a loop with a query, map, set, grouping, or batch.
 - `high-branch-function` is structural. Python preserves its historical AST
-  score. TypeScript reports the same threshold only from the narrow syntax list
-  above, never from calls, receivers, types, or framework conventions.
+  score. TypeScript and Go report the same threshold only from their narrow
+  syntax lists above, never from calls, receivers, types, interfaces, or
+  framework conventions.
 
 ## Summarize and act
 
 Report in 10 lines or fewer: total findings and bucket counts; up to three
 locations/symbols; the verdict; the `reports/find-complexity-hotspots/latest/`
 report path; and one evidence-based next step. Do not optimize cold code or
-small collections. For TypeScript, state the score is syntactic and name any
-unknown input size.
+small collections. For TypeScript or Go, state the score is syntactic and name
+any unknown input size. For Go `partial`, name every build-constraint ambiguity.
 
 ## Replay check
 
-After changing this skill, run the Python oracle and TypeScript outcome suite:
+After changing this skill, run the Python oracle and native outcome suites:
 
 ```bash
 python3 "${SKILL_ROOT}/scripts/smoke.py"
 python3 -m pytest -q tests/test_find_complexity_hotspots_typescript.py
+python3 -m pytest -q tests/test_find_complexity_hotspots_go.py
 node --check "${SKILL_ROOT}/scripts/detect_typescript_complexity.mjs"
+gofmt -d "${SKILL_ROOT}/scripts/detect_go_complexity.go"
 ```
 
 The locked TypeScript fixture runs `npm ci --offline --ignore-scripts`,
@@ -158,6 +179,8 @@ prerequisite failures, copied closure, and stock installation commands.
 |---|---|
 | No target path was supplied | Let argparse fail, then rerun with explicit paths. |
 | TypeScript parser exits 2 | Stop. Install the host's pinned `typescript`, restore Node, or repair the syntax; do not present an incomplete TypeScript scan as clean. |
+| Go parser exits 2 | Stop. Restore `go` on `PATH`, upgrade to Go >= 1.22.0, or repair the eligible syntax; do not present a prior report as the current scan. |
+| Go report is partial | Read each `build-constraint-ambiguous` path with its intended build context. This detector does not evaluate tags or claim current-platform reachability. |
 | A high score is on cold/tiny data | Use `measure-first`; no optimization follows from syntax alone. |
 | A likely ORM/React/Node issue is absent | This is expected: TypeScript v1 intentionally has no framework semantics. Inspect it manually or use a future framework-specific workflow. |
 | A direct detector run has JSONL but no report | Run `scripts/run.py` before presenting a verdict. |

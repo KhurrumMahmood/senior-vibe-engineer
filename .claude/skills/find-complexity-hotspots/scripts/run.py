@@ -15,7 +15,12 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 sys.dont_write_bytecode = True
 
-from detect import TypeScriptExtractionError, detect  # noqa: E402
+from detect import (  # noqa: E402
+    GoExtractionError,
+    ScanResult,
+    TypeScriptExtractionError,
+    detect_scan,
+)
 
 
 def _positive_int(raw: str) -> int:
@@ -45,13 +50,36 @@ def _render_simple_report(
     title: str,
     records: list[dict[str, Any]],
     target: str,
+    *,
+    status: str,
+    analysis: dict[str, Any] | None,
 ) -> tuple[str, dict[str, Any]]:
     buckets: dict[str, int] = {}
     for record in records:
         key = str(record.get("pattern") or record.get("bucket") or "finding")
         buckets[key] = buckets.get(key, 0) + 1
 
-    lines = [f"# {title}", "", f"**Target:** `{target}`", f"**Findings:** {len(records)}", ""]
+    lines = [
+        f"# {title}",
+        "",
+        f"**Target:** `{target}`",
+        f"**Status:** {status}",
+        f"**Findings:** {len(records)}",
+        "",
+    ]
+    if analysis and "go" in analysis:
+        go = analysis["go"]
+        lines.extend([
+            "## Go analysis", "",
+            f"- **Analyzer:** `{go['analyzer']}`",
+            f"- **Toolchain:** `{go['actual_go_version'] or 'not-run'}` "
+            f"(minimum `{go['minimum_go_version']}`)",
+        ])
+        for limitation in go.get("limitations", []):
+            lines.append(f"- **Limitation:** {limitation}")
+        for row in go.get("ambiguous", []):
+            lines.append(f"- **Ambiguous:** `{row['file']}` — `{row['reason']}`")
+        lines.append("")
     if buckets:
         lines.extend(["## Buckets", "", "| Bucket | Count |", "|---|---|"])
         for bucket, count in sorted(buckets.items()):
@@ -79,20 +107,27 @@ def _render_simple_report(
             lines.append("")
 
     return "\n".join(lines), {
+        "status": status,
         "summary": {"findings_total": len(records), "buckets": buckets},
+        **({"analysis": analysis} if analysis else {}),
         "findings": records,
     }
 
 
 def _write_scan_outputs(
-    records: list[dict[str, Any]],
+    scan: ScanResult,
     target: str,
     project_root: Path,
 ) -> Path:
     scan_id = _utc_scan_id("scan")
     report_dir = project_root / "reports" / "find-complexity-hotspots" / scan_id
-    _write_jsonl(records, report_dir / "detections.jsonl")
-    markdown, findings = _render_simple_report("Complexity hotspot audit", records, target)
+    _write_jsonl(scan.records, report_dir / "detections.jsonl")
+    markdown, findings = _render_simple_report(
+        "Complexity hotspot audit",
+        scan.records,
+        target,
+        status=scan.status, analysis=scan.analysis,
+    )
     findings["skill"] = "find-complexity-hotspots"
     findings["scan_id"] = scan_id
     findings["target"] = target
@@ -116,7 +151,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--language",
         action="append",
-        choices=("javascript", "python", "typescript"),
+        choices=("go", "javascript", "python", "typescript"),
         default=[],
         help="Restrict scanning to one or more supported languages.",
     )
@@ -125,17 +160,17 @@ def main(argv: list[str] | None = None) -> int:
     project_root = args.project_root.resolve()
     target = " ".join(args.paths)
     try:
-        records = detect(
+        scan = detect_scan(
             project_root,
             args.paths,
             include_tests=args.include_tests,
             max_findings=args.max_findings,
             languages=set(args.language) or None,
         )
-    except TypeScriptExtractionError as exc:
+    except (TypeScriptExtractionError, GoExtractionError) as exc:
         print(f"[find-complexity-hotspots] ERROR: {exc}", file=sys.stderr)
         return 2
-    report_dir = _write_scan_outputs(records, target, project_root)
+    report_dir = _write_scan_outputs(scan, target, project_root)
     print(f"wrote {report_dir}")
     return 0
 

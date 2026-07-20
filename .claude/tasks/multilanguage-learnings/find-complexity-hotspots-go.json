@@ -1,0 +1,60 @@
+{
+  "batch": "P3 Go detector pilot",
+  "revision": "pending-commit",
+  "family": ["find-complexity-hotspots"],
+  "invariant": {
+    "portable_principle": "A high branch score is a read-only structural lead, never a performance or safe-refactor verdict.",
+    "python_or_framework_mechanism": "Python retains six stdlib-AST heuristic bands.",
+    "typescript_mechanism": "JavaScript/TypeScript retain family-local Compiler API syntax facts.",
+    "explicit_non_goals": ["package/import resolution", "type identity", "interface dispatch", "build-tag evaluation", "current-platform reachability"]
+  },
+  "language_model": {
+    "syntax": ["named functions", "receiver methods", "direct control-flow body walk", "nested func literals excluded"],
+    "type_system": [],
+    "module_resolution": [],
+    "runtime": ["host Go executable on PATH, Go >= 1.22.0"],
+    "framework": []
+  },
+  "tooling": {
+    "selected": "go run bundled detect_go_complexity.go using go/parser, go/ast, and ast.IsGenerated",
+    "rejected_alternatives": {"shared_parser": "No second Go consumer proves a common runtime seam.", "go_packages": "Syntax-only complexity does not need package or type facts."},
+    "version_and_resolution": "Discover go from PATH; local verification used /opt/homebrew/bin/go go1.26.5.",
+    "closure_mode": "The Go launcher stays in the selected skill scripts directory and imports only the Go standard library.",
+    "preflight_and_failure_codes": ["missing or older Go: rc 2", "malformed eligible Go: rc 2", "generated/vendor/test direct target: clean exclusion", "explicit build tag: partial artifact"]
+  },
+  "outcome_contract": {
+    "inputs": ["explicit file, directory, or glob", "--project-root", "--language go"],
+    "structured_outputs": ["detections.jsonl", "report.md", "findings.json with status and Go analysis metadata"],
+    "must_fire": ["score-18 named function", "score-18 receiver method"],
+    "must_not_fire": ["clean function", "nested function literal", "_test.go", "generated name/marker", "generated directory", "vendor"],
+    "native_test_command": "go test ./...",
+    "native_guard_command": "gofmt -d <fixture Go files>"
+  },
+  "false_positive_boundary": {
+    "known_false_positives": ["Dense validation or policy code can legitimately score highly."],
+    "known_false_negatives": ["Calls, dynamic dispatch, interfaces, and nested func literals are intentionally not scored."],
+    "legitimate_similar_shapes": ["Build-constrained source produces partial rather than a clean report or platform claim."]
+  },
+  "generalized": ["family-local native parser", "explicit analyzer provenance", "source fingerprint oracle", "positive/negative/must-not-fire/malformed/tool-missing fixture design"],
+  "did_not_generalize": ["Go AST walk", "receiver rendering", "build constraint handling", "a universal parser or shared fact platform"],
+  "reuse_decision": {
+    "shared_candidate": "Go parser/toolchain bootstrap",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": ["Only this P3 family needs the exact direct-body score and installed closure today."],
+    "owner": "find-complexity-hotspots"
+  },
+  "user_experience": {
+    "install_steps": ["Use the on-demand skill closure.", "Run scripts/run.py with --language go from the host root.", "Read reports/find-complexity-hotspots/latest before acting."],
+    "wall_time_seconds": null,
+    "agent_confusions": ["A partial build-tag report is not clean.", "A score is not performance evidence."],
+    "repeated_work": [],
+    "smallest_later_improvement": "Add build-context evaluation only after a real host demonstrates that partial tag handling blocks useful review."
+  },
+  "residual_risks": ["Filename platform constraints and cgo are not interpreted.", "The fixture does not establish package or runtime behavior claims."],
+  "next_decision": {
+    "recommendation": "Keep the detector family-local and use its evidence to evaluate P3 expansion only after the proposal and mutation lanes complete.",
+    "rationale": "The final report, native checks, exclusions, failures, and copied closure are proven without a shared platform.",
+    "blockers": []
+  }
+}
