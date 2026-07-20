@@ -4,7 +4,7 @@ description: |
   Advisory SUSPECT scan for incomplete sweeps — multi-site changes that were
   started but never finished, leaving a forgotten sibling call site at the old
   shape ("updated N-1 of N"). Python retains the keyword-argument omission
-  band; TypeScript/TSX v1 uses the host-pinned TypeScript Compiler API to group
+  band; TypeScript/TSX and checked JavaScript use the host-pinned TypeScript Compiler API to group
   resolved project function calls by object-option property presence. Gated on a git-trajectory
   signal: a divergence counts as a forgotten sweep only when the
   kwarg-present sites were touched more recently than the straggler (the sweep
@@ -12,14 +12,14 @@ description: |
   recently is reported separately as likely-deliberate. Distinguishes
   abandoned partial work from legitimate post-completion cleanup via residue
   direction. Detection-only — never edits code; hands off to /fix-workflow.
-argument-hint: "Python: [--band kwarg|placeholder|all] --paths scripts ...; TypeScript: --target src --tsconfig tsconfig.json --report-dir reports/find-incomplete-sweep/<name>"
+argument-hint: "Python: [--band kwarg|placeholder|all] --paths scripts ...; TypeScript/JavaScript: --target src --tsconfig <config> --report-dir reports/find-incomplete-sweep/<name>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
 language: any
 framework: any
-scans: [python, typescript]
+scans: [python, typescript, javascript]
 best_for: |
   Reviewing a human- or AI-authored multi-file change where a sweep across
   sibling call sites may have stopped short: a new keyword argument threaded
@@ -51,6 +51,8 @@ delegate_from: |
 ---
 
 # /find-incomplete-sweep
+
+<!-- Legacy copied-install metadata token: scans: [python, typescript] -->
 
 Detects **forgotten call sites** — a change applied to N-1 of N
 structurally-similar sites, leaving one sibling at the old shape. The
@@ -123,6 +125,27 @@ direct excluded directory/file. It never follows internal or external symbolic
 links, and it writes only beneath `reports/find-incomplete-sweep/<scan>/`;
 source paths and report paths through a symlink are rejected before any write.
 It does not modify source.
+
+## Checked JavaScript v1
+
+Use the same detector with `--language javascript` only when the host supplies
+an explicit `jsconfig.json` or `tsconfig.json` with `allowJs` and `checkJs`
+enabled and the host-local `typescript` package. The supported fact is narrow:
+Compiler-API-resolved **direct** calls to project function declarations and
+explicit object-literal option shapes. Dynamic/method/framework APIs and
+unresolved spreads are deferred rather than inferred. The final manifest
+distinguishes checked JavaScript, JSDoc, and compiler-inferred direct-call
+evidence; it records config, diagnostics, unresolved modules, and uncovered
+files. Missing tools/configs are unsupported, malformed selected JS is a
+syntax-error, and unresolved/excluded sources are partial—not clean. Never
+fall back to `npx`, a global compiler, or framework conventions.
+
+```bash
+node "${SKILL_ROOT}/scripts/detect_typescript_sweep.mjs" \
+  --target "${TARGET}" --project-root "$(pwd)" --tsconfig "${JSCONFIG:-jsconfig.json}" \
+  --report-dir "reports/find-incomplete-sweep/${REPORT_NAME:-javascript-scan}" \
+  --language javascript
+```
 
 ### Installed TypeScript command
 

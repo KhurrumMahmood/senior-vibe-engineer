@@ -8,15 +8,15 @@ description: |
   completeness gate, so renames land half-applied. This skill (v0, assess-only)
   reports the scope-gate verdict, blast radius, a per-step lifecycle status
   table, and the completeness gate. It performs strict lexical assessment of
-  Python, JavaScript, TypeScript, and TSX text. For `.ts` and `.tsx`, a
-  host-pinned TypeScript Compiler API resolves glossary identifier candidates,
+  Python, JavaScript, TypeScript, and TSX text. For `.ts`, `.tsx`, and checked
+  `.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,
   declarations, and references; it does not claim whole-project type-checking,
   JSX runtime behavior, or codemod safety.
   The old and new names must not co-occur lexically in
   live code (/find-concept-divergence superseded_co_occurrence, band 3) AND no
   retired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)
   — both must be CLEAN for a lexical candidate assessment to pass. A
-  TypeScript/TSX host additionally needs a successful Compiler API evidence
+  TypeScript/TSX or checked-JavaScript host additionally needs a successful Compiler API evidence
   run that resolves old/new identifier candidates. Definition of done is the
   two-band gate, every lifecycle step resolved, and that evidence where
   TypeScript/TSX is in scope — NOT a codemod having run. Drives the two
@@ -290,3 +290,22 @@ this assess-only skill.
 
 Pairs with `/find-incomplete-sweep`: this **assesses** whether a rename is
 done; that **catches** a half-done sweep after the fact.
+
+## Checked JavaScript boundary
+
+The JavaScript evidence runner is available only when the host has its own
+`typescript` package and an explicit `jsconfig.json` or `tsconfig.json` with
+`allowJs` and `checkJs` enabled. It preserves the same distinction between
+resolved exported symbols, aliases, shadowed locals, property keys, and
+unresolved identifiers, while retaining strings/comments as non-identifier
+boundary evidence. It accepts `.js`, `.jsx`, `.mjs`, and `.cjs` without
+framework inference.
+
+The emitted assessment JSON records the selected config, compiler diagnostics,
+uncovered sources, and separate checked-JavaScript, JSDoc, and inferred
+evidence. A missing config/compiler is unsupported, malformed selected JS is
+syntax-error, and unresolved or excluded relevant JS makes completion partial;
+none is converted to a lexical clean result. The copied skill retains its
+family-local runner and still requires the declared `find-concept-divergence`
+companion for the lexical gate. It never uses `npx`, a global compiler, or
+mutates source.

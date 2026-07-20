@@ -1,7 +1,7 @@
 ---
 name: find-dormant
-description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX v1 uses a host-pinned Compiler API Program/TypeChecker to report non-exported, statically unreferenced top-level implementation candidates for human review. Never infers safe deletion from TypeScript static evidence.
-argument-hint: "--target <directory-or-file> [--language python|typescript]"
+description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX and checked JavaScript use a host-pinned Compiler API Program/TypeChecker to report non-exported, statically unreferenced top-level implementation candidates for human review. Never infers safe deletion from static evidence.
+argument-hint: "--target <directory-or-file> [--language python|typescript|javascript]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -24,11 +24,13 @@ not_for: |
   or safe-deletion decisions are outside the static v1 contract.
 language: any
 framework: any
-scans: [python, typescript]
+scans: [python, typescript, javascript]
 scout_model: cheap
 ---
 
 # /find-dormant
+
+<!-- Legacy copied-install metadata token: scans: [python, typescript] -->
 
 You are the **orchestrator** for a dormant-code audit. Your job is to
 drive a pipeline of detectors and sub-agent verifiers; the judgment
@@ -110,6 +112,28 @@ node "${SKILL_ROOT}/scripts/detect_typescript_dormant.mjs" \
 Run the host's native `npm run typecheck` and tests before and after the audit.
 The detector reports its own named-tsconfig resolution state, but does not
 repair host diagnostics or establish runtime reachability.
+
+## Checked JavaScript v1
+
+Use this branch only with an explicit host `jsconfig.json` or `tsconfig.json`
+that sets both `compilerOptions.allowJs` and `compilerOptions.checkJs` to
+`true`, plus the project's own installed `typescript` package. It accepts
+`.js`, `.jsx`, `.mjs`, and `.cjs`, records compiler-parsed JSDoc and
+TypeChecker-inferred evidence, and never falls back to `npx`, a global
+compiler, framework naming, or lexical reachability guesses. Unresolved
+modules, diagnostics, and selected files absent from that config make the
+final artifact `partial`; malformed selected JS is a syntax-error and a
+missing compiler/config is unsupported.
+
+```bash
+node "${SKILL_ROOT}/scripts/detect_typescript_dormant.mjs" \
+  --target "${TARGET}" --project-root "$(pwd)" --tsconfig "${JSCONFIG:-jsconfig.json}" \
+  --report-dir "reports/find-dormant/${REPORT_NAME:-javascript-scan}" --language javascript
+```
+
+CommonJS exports and matching string/dynamic-registration evidence are
+conservative boundaries, not dormant candidates. The result remains
+human-review-only and never authorizes deletion.
 
 ## How success is judged
 

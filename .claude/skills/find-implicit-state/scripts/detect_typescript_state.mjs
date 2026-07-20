@@ -16,6 +16,7 @@ const VENDOR_BOUNDARY_TYPE = /^Vendor[A-Za-z0-9]*(?:Payload|Request|Response|Eve
 const SKIP_DIRS = new Set([
   ".git", "node_modules", "dist", "build", "coverage", ".test-dist",
 ]);
+const JAVASCRIPT_SUFFIXES = new Set([".js", ".jsx", ".mjs", ".cjs"]);
 
 function fail(message) {
   throw new Error(message);
@@ -31,19 +32,25 @@ function parseArgs(argv) {
     }
     options[flag.slice(2)] = value;
   }
+  const language = options.language ?? "typescript";
+  if (!["typescript", "javascript"].includes(language)) fail("--language must be typescript or javascript");
   for (const key of ["target", "project-root", "tsconfig", "output"]) {
     if (!options[key]) fail(`missing required --${key}`);
   }
+  if (language === "javascript" && !options.manifest) fail("checked JavaScript requires --manifest <json>");
+  options.language = language;
   return options;
 }
 
-function loadTypeScript(projectRoot, tsconfigPath) {
+function loadTypeScript(projectRoot, tsconfigPath, language) {
   const packageJson = path.join(projectRoot, "package.json");
   if (!fs.existsSync(packageJson)) {
     fail(`project-local TypeScript requires ${packageJson}`);
   }
   if (!fs.existsSync(tsconfigPath)) {
-    fail(`project-local TypeScript requires tsconfig at ${tsconfigPath}`);
+    fail(language === "javascript"
+      ? `unsupported: checked JavaScript requires an explicit jsconfig/tsconfig at ${tsconfigPath}`
+      : `project-local TypeScript requires tsconfig at ${tsconfigPath}`);
   }
   let ts;
   try {
@@ -60,17 +67,28 @@ function loadTypeScript(projectRoot, tsconfigPath) {
   if (configError) {
     fail(`cannot parse tsconfig ${tsconfigPath}: ${ts.flattenDiagnosticMessageText(configError.messageText, " ")}`);
   }
-  return { ts, options: parsed.options };
+  if (language === "javascript" && (!parsed.options.allowJs || !parsed.options.checkJs)) {
+    fail("unsupported: checked JavaScript requires compilerOptions.allowJs and compilerOptions.checkJs set to true");
+  }
+  return {
+    ts,
+    options: parsed.options,
+    fileNames: parsed.fileNames.map((file) => path.resolve(file)),
+    configPath: tsconfigPath,
+  };
 }
 
-function walkTypeScriptFiles(target) {
+function walkTypeScriptFiles(target, language) {
   const files = [];
   const visit = (current) => {
     for (const entry of fs.readdirSync(current, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
       const candidate = path.join(current, entry.name);
       if (entry.isDirectory()) {
         if (!SKIP_DIRS.has(entry.name)) visit(candidate);
-      } else if (/\.(?:ts|tsx)$/.test(entry.name) && !/\.d\.ts$/.test(entry.name)) {
+      } else if (
+        (language === "javascript" ? JAVASCRIPT_SUFFIXES.has(path.extname(entry.name).toLowerCase()) : /\.(?:ts|tsx)$/.test(entry.name))
+        && !/\.d\.ts$/.test(entry.name)
+      ) {
         files.push(candidate);
       }
     }
@@ -84,7 +102,7 @@ function relative(projectRoot, file) {
 }
 
 function isTestOrFixture(file) {
-  return /(^|\/)(?:tests?|__tests__|fixtures?)(\/|$)|\.(?:test|spec)\.(?:ts|tsx)$/.test(file);
+  return /(^|\/)(?:tests?|__tests__|fixtures?)(\/|$)|\.(?:test|spec)\.(?:ts|tsx|js|jsx|mjs|cjs)$/.test(file);
 }
 
 function sourceLine(sourceFile, node) {
@@ -151,10 +169,18 @@ function stateOperand(node, aliases, checker, ts) {
   const property = stateProperty(node, ts);
   if (property) {
     const receiverType = checker.getTypeAtLocation(property.expression);
+    const stateType = checker.getTypeAtLocation(property);
+    const typeSymbol = stateType.aliasSymbol || stateType.getSymbol?.();
+    const jsdocAuthority = Boolean(typeSymbol?.declarations?.some((declaration) => (
+      ts.isJSDocTypedefTag(declaration)
+      || ts.isJSDocPropertyTag(declaration)
+      || declaration.getFullText?.().includes("/**")
+    )));
     return {
       field: property.name.text,
-      stateType: checker.getTypeAtLocation(property),
+      stateType,
       receiverType,
+      jsdocAuthority,
     };
   }
   if (!ts.isIdentifier(node)) return null;
@@ -162,7 +188,7 @@ function stateOperand(node, aliases, checker, ts) {
   return symbol ? aliases.get(symbol) ?? null : null;
 }
 
-function emitStateOperation(records, projectRoot, sourceFile, node, operand, literal, operation, ts) {
+function emitStateOperation(records, projectRoot, sourceFile, node, operand, literal, operation, ts, language) {
   const base = {
     ...recordBase(projectRoot, sourceFile, node),
     field: operand.field,
@@ -180,7 +206,7 @@ function emitStateOperation(records, projectRoot, sourceFile, node, operand, lit
     return;
   }
   const kind = typeKind(operand.stateType, ts);
-  if (kind) {
+  if (kind && (language !== "javascript" || operand.jsdocAuthority)) {
     records.push({
       ...base,
       classification: "first_party_state_operation",
@@ -188,7 +214,10 @@ function emitStateOperation(records, projectRoot, sourceFile, node, operand, lit
     });
     return;
   }
-  records.push({ ...base, classification: "open_ended_string" });
+  records.push({
+    ...base,
+    classification: language === "javascript" && kind ? "missing_jsdoc_state_authority" : "open_ended_string",
+  });
 }
 
 function isStringLiteralUnion(node, ts) {
@@ -210,23 +239,43 @@ function terminalAssignedLiteral(node, ts) {
   return null;
 }
 
-function detect(projectRoot, target, tsconfigPath) {
-  const { ts, options } = loadTypeScript(projectRoot, tsconfigPath);
-  const files = walkTypeScriptFiles(target);
-  const program = ts.createProgram({ rootNames: files, options });
+function staticModuleSpecifiers(ts, sourceFile) {
+  const specifiers = [];
+  const visit = (node) => {
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteralLike(node.moduleSpecifier)) {
+      specifiers.push(node.moduleSpecifier.text);
+    } else if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "require" && node.arguments.length === 1 && ts.isStringLiteralLike(node.arguments[0])) {
+      specifiers.push(node.arguments[0].text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return specifiers;
+}
+
+function detect(projectRoot, target, tsconfigPath, language) {
+  const config = loadTypeScript(projectRoot, tsconfigPath, language);
+  const { ts, options } = config;
+  const files = walkTypeScriptFiles(target, language);
+  const configured = new Set(config.fileNames);
+  const uncoveredFiles = language === "javascript"
+    ? files.filter((file) => !configured.has(file)).map((file) => ({ file: relative(projectRoot, file), reason: "not_in_explicit_jsconfig_or_tsconfig" }))
+    : [];
+  const selectedFiles = language === "javascript" ? files.filter((file) => configured.has(file)) : files;
+  const program = ts.createProgram({ rootNames: language === "javascript" ? config.fileNames : files, options });
   const syntaxError = program.getSyntacticDiagnostics().find((diagnostic) => {
     return diagnostic.category === ts.DiagnosticCategory.Error;
   });
   if (syntaxError) {
-    const filename = syntaxError.file?.fileName ?? "TypeScript input";
+    const filename = syntaxError.file?.fileName ?? `${language === "javascript" ? "JavaScript" : "TypeScript"} input`;
     const message = ts.flattenDiagnosticMessageText(syntaxError.messageText, " ");
-    fail(`syntax error in ${filename}: ${message}`);
+    fail(`syntax-error: ${language === "javascript" ? "JavaScript" : "TypeScript"} syntax error in ${filename}: ${message}`);
   }
   const checker = program.getTypeChecker();
   const records = [];
 
   for (const sourceFile of program.getSourceFiles()) {
-    if (!files.includes(sourceFile.fileName)) continue;
+    if (!selectedFiles.includes(sourceFile.fileName)) continue;
     const aliases = new Map();
     const collectAliases = (node) => {
       if (
@@ -297,7 +346,7 @@ function detect(projectRoot, target, tsconfigPath) {
         const operand = stateOperand(node.left, aliases, checker, ts)
           || stateOperand(node.right, aliases, checker, ts);
         if (isComparison && operand && (leftLiteral ?? rightLiteral) !== null) {
-          emitStateOperation(records, projectRoot, sourceFile, node, operand, leftLiteral ?? rightLiteral, "comparison", ts);
+          emitStateOperation(records, projectRoot, sourceFile, node, operand, leftLiteral ?? rightLiteral, "comparison", ts, language);
         } else if (isComparison && (leftLiteral ?? rightLiteral) !== null) {
           const expression = leftLiteral === null ? node.left : node.right;
           if (isOpenEndedString(checker.getTypeAtLocation(expression), ts)) {
@@ -316,14 +365,42 @@ function detect(projectRoot, target, tsconfigPath) {
         const operand = stateOperand(node.left, aliases, checker, ts);
         const literal = terminalAssignedLiteral(node.right, ts);
         if (operand && literal !== null) {
-          emitStateOperation(records, projectRoot, sourceFile, node, operand, literal, "assignment", ts);
+          emitStateOperation(records, projectRoot, sourceFile, node, operand, literal, "assignment", ts, language);
         }
       }
       ts.forEachChild(node, visit);
     };
     visit(sourceFile);
   }
-  return records;
+  const sourceFiles = selectedFiles.map((file) => program.getSourceFile(file)).filter(Boolean);
+  const cache = ts.createModuleResolutionCache(projectRoot, (file) => file, options);
+  const unresolved = sourceFiles.flatMap((sourceFile) => staticModuleSpecifiers(ts, sourceFile)
+    .filter((specifier) => !ts.resolveModuleName(specifier, sourceFile.fileName, options, ts.sys, cache).resolvedModule)
+    .map((specifier) => ({ file: relative(projectRoot, sourceFile.fileName), specifier })));
+  const diagnostics = language === "javascript"
+    ? program.getSemanticDiagnostics().filter((diagnostic) => diagnostic.file && selectedFiles.includes(diagnostic.file.fileName)).map((diagnostic) => ({
+      file: relative(projectRoot, diagnostic.file.fileName),
+      message: ts.flattenDiagnosticMessageText(diagnostic.messageText, " "),
+    }))
+    : [];
+  const jsdocDeclarations = sourceFiles.reduce((count, sourceFile) => count + (sourceFile.text.match(/\/\*\*/g)?.length ?? 0), 0);
+  return {
+    records,
+    manifest: {
+      language,
+      analyzer: language === "javascript" ? "typescript-compiler-api-checked-javascript" : "typescript-compiler-api",
+      status: unresolved.length || uncoveredFiles.length || diagnostics.length ? "partial" : "complete",
+      config: relative(projectRoot, config.configPath),
+      diagnostics,
+      unresolved_modules: unresolved,
+      uncovered_files: uncoveredFiles,
+      semantic_evidence: language === "javascript" ? {
+        checked_javascript: true,
+        jsdoc: { declarations: jsdocDeclarations, authority: "finite JSDoc type only" },
+        compiler_inferred: { state_operations: records.filter((record) => record.classification === "first_party_state_operation").length },
+      } : undefined,
+    },
+  };
 }
 
 function main() {
@@ -331,12 +408,21 @@ function main() {
   const projectRoot = path.resolve(args["project-root"]);
   const target = path.resolve(args.target);
   const tsconfig = path.resolve(args.tsconfig);
-  if (!fs.existsSync(target) || !fs.statSync(target).isDirectory()) fail(`target directory not found: ${target}`);
-  const records = detect(projectRoot, target, tsconfig);
+  if (!fs.existsSync(target) || !fs.statSync(target).isDirectory() || fs.lstatSync(target).isSymbolicLink()) fail(`target directory not found or is symbolic link: ${target}`);
+  const outcome = detect(projectRoot, target, tsconfig, args.language);
+  const records = outcome.records;
   fs.mkdirSync(path.dirname(path.resolve(args.output)), { recursive: true });
   fs.writeFileSync(path.resolve(args.output), `${records.map((record) => JSON.stringify(record)).join("\n")}${records.length ? "\n" : ""}`);
+  if (args.language === "javascript") {
+    const manifest = path.resolve(args.manifest);
+    if (!manifest.startsWith(`${projectRoot}${path.sep}`) || (fs.existsSync(manifest) && fs.lstatSync(manifest).isSymbolicLink())) {
+      fail("manifest must stay inside the project root and must not be a symbolic link");
+    }
+    fs.mkdirSync(path.dirname(manifest), { recursive: true });
+    fs.writeFileSync(manifest, `${JSON.stringify(outcome.manifest, null, 2)}\n`);
+  }
   const actionable = records.filter((record) => record.classification === "first_party_state_operation").length;
-  process.stderr.write(`[detect_typescript_state] ${records.length} records; ${actionable} first-party state operations\n`);
+  process.stderr.write(`[detect_${args.language}_state] ${records.length} records; ${actionable} first-party state operations\n`);
 }
 
 try {

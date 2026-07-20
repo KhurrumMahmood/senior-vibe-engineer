@@ -1,7 +1,7 @@
 ---
 name: find-semantic-duplication
-description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX function-level typed leads using a host-local Compiler API Program/TypeChecker. TypeScript reports confirmed, uncertain, and rejected candidates with capability matrices; it does not infer workflows, structural duplication, or safe refactors.
-argument-hint: "--target <directory> [--language python|typescript]"
+description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX and checked-JavaScript function-level leads using a host-local Compiler API Program/TypeChecker. Compiler branches report confirmed, uncertain, and rejected candidates with capability matrices; they do not infer workflows, structural duplication, or safe refactors.
+argument-hint: "--target <directory> [--language python|typescript|javascript]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -18,7 +18,7 @@ not_for: |
   dynamic dispatch, framework behavior, and automatic consolidation.
 language: any
 framework: any
-scans: [python, typescript]
+scans: [python, typescript, javascript]
 ---
 
 # /find-semantic-duplication
@@ -105,6 +105,26 @@ node "${SKILL_ROOT}/scripts/detect_typescript.mjs" \
 Run the host's native typecheck before and after the audit. A TypeScript
 confirmed lead still requires source/caller/runtime review before any
 `/fix-workflow semantic:<id>` action.
+
+## Checked JavaScript v1
+
+Use `detect_typescript.mjs --language javascript` only with a host-local
+Compiler API and named `jsconfig.json` or `tsconfig.json` that explicitly sets
+`allowJs` and `checkJs`. It accepts `.js`, `.jsx`, `.mjs`, and `.cjs`; it can
+confirm only pairs with compatible JSDoc or TypeChecker-inferred return shapes
+whose direct calls resolve through the program. Dynamic calls, methods,
+framework behavior, workflow semantics, and lexical clones remain deferred or
+rejected. The final artifact records config, diagnostics, unresolved/uncovered
+sources, plus distinct checked-JS, JSDoc, and inferred evidence. Missing
+tools/configs are unsupported, malformed JS is syntax-error, and unresolved
+or excluded sources are partial. Never use `npx`, a global compiler, or a
+generic language platform.
+
+```bash
+node "${SKILL_ROOT}/scripts/detect_typescript.mjs" \
+  --target "${TARGET}" --project-root "$(pwd)" --tsconfig "${JSCONFIG:-jsconfig.json}" \
+  --report-dir "reports/semantic-duplication/${REPORT_NAME:-javascript-scan}" --language javascript
+```
 
 ## Python function-triage branch
 

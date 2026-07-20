@@ -1,7 +1,7 @@
 ---
 name: find-implicit-state
-description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus a narrow TypeScript closed-state branch. The TypeScript branch uses the host project's pinned Compiler API to distinguish first-party bare state operations from typed authorities, vendor wire boundaries, tests/fixtures, unrelated status text, and open-ended strings. Detection-only — never edits production code.
-argument-hint: "--target <directory>"
+description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript and checked-JavaScript closed-state branches. The compiler branches distinguish first-party bare state operations from typed authorities, vendor wire boundaries, tests/fixtures, unrelated status text, and open-ended strings. Detection-only — never edits production code.
+argument-hint: "--target <directory> [--language typescript|javascript]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -21,7 +21,7 @@ not_for: |
   generic TypeScript lint generator.
 language: any
 framework: any
-scans: [python, typescript]
+scans: [python, typescript, javascript]
 scout_model: cheap
 ---
 
@@ -95,6 +95,26 @@ migration candidate, while retaining classification records for typed
 authorities, vendor wire boundaries, tests/fixtures, unrelated status text,
 and open-ended strings. Hand that exact JSONL to the TypeScript branch of
 /extract-enum; do not run the Django collapse/scout/report stages on it.
+
+## Checked JavaScript closed-state branch
+
+Use this branch only with a host-local `typescript` Compiler API and an
+explicit `jsconfig.json` or `tsconfig.json` that enables both `allowJs` and
+`checkJs`. It accepts `.js`, `.jsx`, `.mjs`, and `.cjs`, but promotes an
+operation only when the receiver has a demonstrated finite JSDoc authority;
+untyped/open strings remain classification evidence, never a migration lead.
+The manifest records the config, diagnostics, unresolved modules, uncovered
+sources, compiler-parsed JSDoc, and TypeChecker inference. A missing tool or
+config is unsupported, malformed selected JS is syntax-error, and any
+unresolved/excluded source is partial. Do not use `npx`, a global compiler,
+or framework inference.
+
+```bash
+node .claude/skills/find-implicit-state/scripts/detect_typescript_state.mjs \
+  --target src --project-root "$(pwd)" --tsconfig "${JSCONFIG:-jsconfig.json}" \
+  --output reports/implicit-state/javascript.jsonl \
+  --manifest reports/implicit-state/javascript.manifest.json --language javascript
+```
 
 ## Scope
 

@@ -235,6 +235,18 @@ def typescript_source_files(project_root: pathlib.Path) -> list[str]:
     )
 
 
+def javascript_source_files(project_root: pathlib.Path) -> list[str]:
+    """Return safe first-party JavaScript files for checked identifier evidence."""
+    detector = detector_module()
+    if detector is None:
+        return []
+    return sorted(
+        path.relative_to(project_root).as_posix()
+        for path in detector.iter_files(detector.DEFAULT_TARGETS, project_root)
+        if path.suffix in {".js", ".jsx", ".mjs", ".cjs"}
+    )
+
+
 def concept_terms(concept: str, project_root: pathlib.Path) -> list[str]:
     """Return the glossary name and aliases for one requested concept."""
     try:
@@ -291,6 +303,58 @@ def run_typescript_identifier_evidence(
             evidence = json.loads(output.read_text(encoding="utf-8"))
             if result.returncode != 0 and evidence.get("status") == "resolved":
                 return {"status": "unavailable", "reason": "TypeScript evidence runner failed"}
+            return evidence
+    except (subprocess.SubprocessError, OSError, json.JSONDecodeError, ValueError) as exc:
+            return {"status": "unavailable", "reason": str(exc)}
+
+
+def run_javascript_identifier_evidence(
+    project_root: pathlib.Path,
+    old_terms: list[str],
+    new_terms: list[str],
+    sources: list[str],
+) -> dict:
+    """Invoke checked-JavaScript evidence only with a host config and compiler."""
+    config = next(
+        (candidate for candidate in (project_root / "jsconfig.json", project_root / "tsconfig.json") if candidate.is_file()),
+        None,
+    )
+    if config is None:
+        return {
+            "status": "unsupported",
+            "reason": "checked JavaScript requires an explicit project-local jsconfig.json or tsconfig.json",
+        }
+    node = shutil.which("node")
+    runner = pathlib.Path(__file__).resolve().with_name("typescript_identifier_evidence.mjs")
+    if not node:
+        return {"status": "unavailable", "reason": "node executable is unavailable"}
+    if not runner.exists():
+        return {"status": "unavailable", "reason": "bundled checked-JavaScript evidence runner is missing"}
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = pathlib.Path(temp_dir) / "javascript-identifiers.json"
+            result = subprocess.run(
+                [
+                    node,
+                    str(runner),
+                    "--project-root", str(project_root),
+                    "--old-terms", json.dumps(old_terms),
+                    "--new-terms", json.dumps(new_terms),
+                    "--sources", json.dumps(sources),
+                    "--language", "javascript",
+                    "--config", str(config.relative_to(project_root)),
+                    "--output", str(output),
+                ],
+                cwd=project_root,
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            if not output.exists():
+                return {"status": "unavailable", "reason": f"checked-JavaScript evidence runner exited {result.returncode}"}
+            evidence = json.loads(output.read_text(encoding="utf-8"))
+            if result.returncode and evidence.get("status") == "resolved":
+                return {"status": "unavailable", "reason": "checked-JavaScript evidence runner failed"}
             return evidence
     except (subprocess.SubprocessError, OSError, json.JSONDecodeError, ValueError) as exc:
         return {"status": "unavailable", "reason": str(exc)}
@@ -464,6 +528,7 @@ def main():
     supersede = read_glossary_supersede(old, project_root)
     lint = guard_lint_exists(old, project_root)
     typescript_files = typescript_source_files(project_root)
+    javascript_files = javascript_source_files(project_root)
     typescript_evidence = (
         run_typescript_identifier_evidence(
             project_root,
@@ -474,7 +539,23 @@ def main():
         if typescript_files
         else None
     )
-    lexical_candidates = classify_lexical_candidates(divergence, old, typescript_evidence or {})
+    javascript_evidence = (
+        run_javascript_identifier_evidence(
+            project_root,
+            concept_terms(old, project_root),
+            concept_terms(new, project_root),
+            javascript_files,
+        )
+        if javascript_files
+        else None
+    )
+    combined_evidence = {
+        "occurrences": [
+            *(typescript_evidence or {}).get("occurrences", []),
+            *(javascript_evidence or {}).get("occurrences", []),
+        ],
+    }
+    lexical_candidates = classify_lexical_candidates(divergence, old, combined_evidence)
 
     is_concept = supersede not in ("<no entry>", "<no concepts.yaml>")
     supersede_set = supersede not in ("<not superseded>", "<no entry>", "<no concepts.yaml>")
@@ -524,6 +605,25 @@ def main():
         else:
             reason = (typescript_evidence or {}).get("reason", "unknown resolver failure")
             print("  [identifiers] TypeScript/TSX: UNAVAILABLE — " + str(reason))
+    if javascript_files:
+        if javascript_evidence and javascript_evidence.get("status") == "resolved":
+            declarations = javascript_evidence.get("declarations", {})
+            occurrences = javascript_evidence.get("occurrences", [])
+            old_declarations = len(declarations.get("old", [])) if isinstance(declarations, dict) else 0
+            new_declarations = len(declarations.get("new", [])) if isinstance(declarations, dict) else 0
+            resolution_diagnostics = len(javascript_evidence.get("resolution_diagnostics", []))
+            old_references = sum(
+                item.get("classification") == "old_concept_symbol"
+                for item in occurrences
+                if isinstance(item, dict)
+            )
+            print("  [identifiers] checked JavaScript: RESOLVED — compiler API "
+                  f"{javascript_evidence.get('typescript_version', '?')}; "
+                  f"old declarations={old_declarations}, old references={old_references}, "
+                  f"new declarations={new_declarations}, resolution diagnostics={resolution_diagnostics}.")
+        else:
+            reason = (javascript_evidence or {}).get("reason", "unknown resolver failure")
+            print("  [identifiers] checked JavaScript: " + str((javascript_evidence or {}).get("status", "UNAVAILABLE")).upper() + " — " + str(reason))
 
     print("\n## completeness gate (find-concept-divergence)")
     print("  Two bands must BOTH be clean. Band 3 (superseded_co_occurrence) is")
@@ -572,6 +672,10 @@ def main():
                       f"`{candidate['term']}` → {candidate['classification']}")
             if len(lexical_candidates) > 20:
                 print(f"      … (+{len(lexical_candidates)-20} more)")
+    if javascript_files:
+        print("\n  ### checked JavaScript identifier evidence (Compiler API)")
+        if not javascript_evidence or javascript_evidence.get("status") != "resolved":
+            print("    PARTIAL/UNAVAILABLE — cannot certify checked-JavaScript identifier completeness.")
 
     if (co_occur is not None and not co_occur) and old_files_live:
         print(f"\n  NOTE: {len(old_files_live)} live file(s) still mention '{old}' "
@@ -590,8 +694,13 @@ def main():
     gate_green = band3_green and band1_green
     done = gate_green and (supersede_matches_new if is_concept else True) and bool(lint)
     evidence_resolved = bool(typescript_evidence and typescript_evidence.get("status") == "resolved")
+    javascript_resolved = bool(javascript_evidence and javascript_evidence.get("status") == "resolved")
     evidence_declarations = (typescript_evidence or {}).get("declarations", {})
-    evidence_occurrences = (typescript_evidence or {}).get("occurrences", [])
+    javascript_declarations = (javascript_evidence or {}).get("declarations", {})
+    evidence_occurrences = [
+        *(typescript_evidence or {}).get("occurrences", []),
+        *(javascript_evidence or {}).get("occurrences", []),
+    ]
     old_symbol_references = sum(
         item.get("classification") == "old_concept_symbol"
         for item in evidence_occurrences
@@ -602,8 +711,11 @@ def main():
         for item in evidence_occurrences
         if isinstance(item, dict)
     )
-    new_symbol_declarations = len(evidence_declarations.get("new", [])) if isinstance(evidence_declarations, dict) else 0
-    resolution_diagnostics = len((typescript_evidence or {}).get("resolution_diagnostics", []))
+    new_symbol_declarations = (
+        (len(evidence_declarations.get("new", [])) if isinstance(evidence_declarations, dict) else 0)
+        + (len(javascript_declarations.get("new", [])) if isinstance(javascript_declarations, dict) else 0)
+    )
+    resolution_diagnostics = len((typescript_evidence or {}).get("resolution_diagnostics", [])) + len((javascript_evidence or {}).get("resolution_diagnostics", []))
     typescript_complete = (
         not typescript_files
         or (
@@ -614,14 +726,24 @@ def main():
             and resolution_diagnostics == 0
         )
     )
+    javascript_complete = (
+        not javascript_files
+        or (
+            javascript_resolved
+            and not (javascript_evidence or {}).get("uncovered_files")
+            and not (javascript_evidence or {}).get("resolution_diagnostics")
+        )
+    )
     open_items: list[str] = []
     if co_occur is None or avoid_hits is None:
         verdict = "INCONCLUSIVE"
         print("  INCONCLUSIVE — completeness gate could not run (see above).")
-    elif not typescript_complete:
+    elif not typescript_complete or not javascript_complete:
         missing: list[str] = []
         if not evidence_resolved:
             missing.append("TypeScript compiler evidence unavailable")
+        if javascript_files and not javascript_resolved:
+            missing.append("checked-JavaScript compiler evidence unavailable or partial")
         if old_symbol_references:
             missing.append(f"old concept symbol references ({old_symbol_references})")
         if unresolved_identifiers:
@@ -678,6 +800,7 @@ def main():
                 "candidate_classifications": lexical_candidates,
             },
             "typescript_identifier_evidence": typescript_evidence,
+            "javascript_identifier_evidence": javascript_evidence,
             "verdict": verdict,
             "open_items": open_items,
         }

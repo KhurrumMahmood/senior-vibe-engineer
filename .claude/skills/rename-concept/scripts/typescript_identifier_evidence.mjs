@@ -14,7 +14,7 @@ import path from "node:path";
 function usage(message) {
   if (message) process.stderr.write(`${message}\n`);
   process.stderr.write(
-    "usage: typescript_identifier_evidence.mjs --project-root DIR --old-terms JSON --new-terms JSON --sources JSON --output FILE\n",
+    "usage: typescript_identifier_evidence.mjs --project-root DIR --old-terms JSON --new-terms JSON --sources JSON --output FILE [--language typescript|javascript] [--config jsconfig.json]\n",
   );
   process.exit(2);
 }
@@ -160,6 +160,9 @@ const oldTerms = parseJson(values.get("old-terms") ?? "[]", "--old-terms");
 const newTerms = parseJson(values.get("new-terms") ?? "[]", "--new-terms");
 const sourceLabels = parseJson(values.get("sources") ?? "[]", "--sources");
 if (![oldTerms, newTerms, sourceLabels].every(Array.isArray)) usage("terms and sources must be JSON arrays");
+const language = values.get("language") ?? "typescript";
+if (!["typescript", "javascript"].includes(language)) usage("--language must be typescript or javascript");
+const suppliedConfig = values.get("config") ?? (language === "javascript" ? "jsconfig.json" : "tsconfig.json");
 
 let ts;
 try {
@@ -179,12 +182,13 @@ try {
 }
 
 const sourcePaths = [];
+const sourceSuffixes = language === "javascript" ? new Set([".js", ".jsx", ".mjs", ".cjs"]) : new Set([".ts", ".tsx"]);
 for (const label of sourceLabels) {
   if (typeof label !== "string") continue;
   const candidate = path.resolve(projectRoot, label);
   try {
     const resolved = fs.realpathSync(candidate);
-    if (isWithin(resolved, projectRoot) && fs.statSync(resolved).isFile()) sourcePaths.push(resolved);
+    if (isWithin(resolved, projectRoot) && fs.statSync(resolved).isFile() && sourceSuffixes.has(path.extname(resolved).toLowerCase())) sourcePaths.push(resolved);
   } catch {
     // The Python caller already filtered safe files. A concurrent deletion is
     // represented by absence rather than following a new filesystem path.
@@ -203,7 +207,7 @@ function diagnosticRecord(diagnostic, kind) {
   };
 }
 
-const configPath = path.join(projectRoot, "tsconfig.json");
+const configPath = path.resolve(projectRoot, suppliedConfig);
 let compilerOptions = {
   target: ts.ScriptTarget.ES2022,
   module: ts.ModuleKind.NodeNext,
@@ -212,7 +216,7 @@ let compilerOptions = {
   skipLibCheck: true,
 };
 const configDiagnostics = [];
-if (fs.existsSync(configPath)) {
+if (fs.existsSync(configPath) && isWithin(configPath, projectRoot) && !fs.lstatSync(configPath).isSymbolicLink()) {
   const config = ts.readConfigFile(configPath, ts.sys.readFile);
   if (config.error) {
     configDiagnostics.push(diagnosticRecord(config.error, "config"));
@@ -221,9 +225,33 @@ if (fs.existsSync(configPath)) {
     configDiagnostics.push(...parsed.errors.map((diagnostic) => diagnosticRecord(diagnostic, "config")));
     compilerOptions = { ...compilerOptions, ...parsed.options };
   }
+} else if (language === "javascript") {
+  writeJson(output, {
+    status: "unsupported",
+    language,
+    reason: "checked JavaScript requires an explicit project-local jsconfig/tsconfig",
+    config: suppliedConfig,
+  });
+  process.exit(3);
+}
+if (language === "javascript" && (!compilerOptions.allowJs || !compilerOptions.checkJs)) {
+  writeJson(output, {
+    status: "unsupported",
+    language,
+    reason: "checked JavaScript requires compilerOptions.allowJs and compilerOptions.checkJs set to true",
+    config: sourceLabel({ fileName: configPath }, projectRoot),
+  });
+  process.exit(3);
 }
 
-const program = ts.createProgram({ rootNames: sourcePaths, options: compilerOptions });
+const configForCoverage = ts.readConfigFile(configPath, ts.sys.readFile);
+const parsedForCoverage = configForCoverage.error ? null : ts.parseJsonConfigFileContent(configForCoverage.config, ts.sys, path.dirname(configPath));
+const configuredFiles = new Set((parsedForCoverage?.fileNames ?? sourcePaths).map((source) => path.resolve(source)));
+const uncoveredFiles = language === "javascript"
+  ? sourcePaths.filter((source) => !configuredFiles.has(source)).map((source) => sourceLabel({ fileName: source }, projectRoot))
+  : [];
+const coveredSources = language === "javascript" ? sourcePaths.filter((source) => configuredFiles.has(source)) : sourcePaths;
+const program = ts.createProgram({ rootNames: language === "javascript" ? [...configuredFiles] : sourcePaths, options: compilerOptions });
 const checker = program.getTypeChecker();
 const oldNames = new Set(oldTerms.filter((term) => typeof term === "string"));
 const newNames = new Set(newTerms.filter((term) => typeof term === "string"));
@@ -231,7 +259,7 @@ const oldSymbols = new Set();
 const newSymbols = new Set();
 const declarations = { old: [], new: [] };
 
-for (const sourcePath of sourcePaths) {
+for (const sourcePath of coveredSources) {
   const sourceFile = program.getSourceFile(sourcePath);
   if (!sourceFile) continue;
   const visitDeclaration = (node) => {
@@ -254,7 +282,7 @@ for (const sourcePath of sourcePaths) {
 }
 
 const occurrences = [];
-for (const sourcePath of sourcePaths) {
+for (const sourcePath of coveredSources) {
   const sourceFile = program.getSourceFile(sourcePath);
   if (!sourceFile) continue;
   const visitOccurrence = (node) => {
@@ -291,7 +319,7 @@ for (const sourcePath of sourcePaths) {
 
 const parseDiagnostics = [];
 const semanticDiagnostics = [];
-for (const sourcePath of sourcePaths) {
+for (const sourcePath of coveredSources) {
   const sourceFile = program.getSourceFile(sourcePath);
   if (!sourceFile) continue;
   parseDiagnostics.push(...sourceFile.parseDiagnostics.map((diagnostic) => diagnosticRecord(diagnostic, "parse")));
@@ -310,12 +338,42 @@ const resolutionDiagnostics = [
   )),
 ];
 const diagnostics = ts.getPreEmitDiagnostics(program).slice(0, 20).map((diagnostic) => diagnosticRecord(diagnostic, "pre_emit"));
+if (language === "javascript" && parseDiagnostics.length > 0) {
+  writeJson(output, {
+    status: "syntax-error",
+    language,
+    config: sourceLabel({ fileName: configPath }, projectRoot),
+    diagnostics: parseDiagnostics,
+    unresolved_files: uncoveredFiles,
+  });
+  process.exit(2);
+}
+const textualBoundaries = [];
+for (const sourcePath of coveredSources) {
+  const sourceFile = program.getSourceFile(sourcePath);
+  if (!sourceFile) continue;
+  sourceFile.text.split(/\r?\n/).forEach((line, index) => {
+    if (![...oldNames, ...newNames].some((term) => line.includes(term))) return;
+    if (/\/\/|\/\*|["'`]/.test(line)) {
+      textualBoundaries.push({ file: sourceLabel(sourceFile, projectRoot), line: index + 1, classification: "string_or_comment_boundary" });
+    }
+  });
+}
 writeJson(output, {
-  status: "resolved",
+  status: language === "javascript" && (uncoveredFiles.length || resolutionDiagnostics.length) ? "partial" : "resolved",
+  language,
   typescript_version: ts.version,
-  source_files: sourcePaths.map((sourcePath) => path.relative(projectRoot, sourcePath).split(path.sep).join("/")),
+  config: sourceLabel({ fileName: configPath }, projectRoot),
+  source_files: coveredSources.map((sourcePath) => path.relative(projectRoot, sourcePath).split(path.sep).join("/")),
+  uncovered_files: uncoveredFiles,
+  semantic_evidence: language === "javascript" ? {
+    checked_javascript: true,
+    jsdoc: { declarations: coveredSources.reduce((count, source) => count + (program.getSourceFile(source)?.text.match(/\/\*\*/g)?.length ?? 0), 0) },
+    compiler_inferred: { resolved_identifiers: occurrences.length },
+  } : undefined,
   declarations,
   occurrences,
+  textual_boundaries: textualBoundaries,
   config_diagnostics: configDiagnostics,
   resolution_diagnostics: resolutionDiagnostics,
   diagnostics,

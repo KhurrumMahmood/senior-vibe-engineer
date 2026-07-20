@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a Python or TypeScript/TSX subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; TypeScript/TSX v1 uses the host-pinned Compiler API plus one named tsconfig resolver for exported surface and resolved imports. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, or checked-JavaScript subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; compiler branches use the host-pinned Compiler API plus one named config resolver for exported surface and resolved imports. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -17,7 +17,7 @@ not_for: |
   execution (use /refactor-subsystem with a spec).
 language: any
 framework: any
-scans: [python, typescript]
+scans: [python, typescript, javascript]
 ---
 
 # /map-subsystem
@@ -114,6 +114,26 @@ node "${SKILL_ROOT}/scripts/map_typescript.mjs" \
 The host's normal native check remains separate evidence. For example, run
 `npm run typecheck` (or that host's documented `tsc --noEmit` command) before
 and after mapping; the mapper records diagnostics but does not repair them.
+
+## Checked JavaScript v1
+
+Use `map_typescript.mjs --language javascript` only with a host-local
+`typescript` package and an explicit `jsconfig.json` or `tsconfig.json` that
+sets `allowJs` and `checkJs`. It accepts `.js`, `.jsx`, `.mjs`, and `.cjs`,
+maps explicit ESM edges plus bounded literal `require(...)` edges, and leaves
+unresolved edges visible. It records config, compiler diagnostics, uncovered
+files, compiler-parsed JSDoc, and inferred edge counts. Missing tools/configs
+are unsupported, malformed selected JS is syntax-error, and unresolved or
+excluded relevant sources are partial. It never falls back to `npx`, a global
+compiler, framework inference, or a shared language platform.
+
+```bash
+node "${SKILL_ROOT}/scripts/map_typescript.mjs" \
+  --target "${MAP_TARGET:-src}" --project-root "$(pwd)" \
+  --tsconfig "${JSCONFIG:-jsconfig.json}" --language javascript \
+  --output ".claude/docs/subsystems/${MAP_NAME:-javascript-subsystem}.md" \
+  --evidence "reports/map/${MAP_NAME:-javascript-subsystem}/javascript-map.json"
+```
 
 ## How success is judged
 

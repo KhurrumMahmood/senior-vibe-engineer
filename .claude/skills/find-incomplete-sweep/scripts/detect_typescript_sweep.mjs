@@ -14,7 +14,8 @@ import childProcess from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-const SOURCE_EXTENSIONS = new Set([".ts", ".tsx"]);
+const TYPESCRIPT_SOURCE_EXTENSIONS = new Set([".ts", ".tsx"]);
+const JAVASCRIPT_SOURCE_EXTENSIONS = new Set([".js", ".jsx", ".mjs", ".cjs"]);
 const BUILTIN_EXCLUDED_DIRECTORIES = new Set([
   ".git", ".venv", "venv", "node_modules", "dist", "build", "coverage",
   "__tests__", "test", "tests", "fixtures", "fixture", "generated", "vendor",
@@ -30,7 +31,7 @@ function parseArgs(argv) {
   const values = new Map();
   let noGate = false;
   const allowed = new Set([
-    "--target", "--project-root", "--tsconfig", "--report-dir", "--min-callsites", "--majority-frac", "--min-present",
+    "--target", "--project-root", "--tsconfig", "--report-dir", "--min-callsites", "--majority-frac", "--min-present", "--language",
   ]);
   for (let index = 0; index < argv.length;) {
     const flag = argv[index];
@@ -59,6 +60,8 @@ function parseArgs(argv) {
   if (!Number.isInteger(minCallsites) || minCallsites < 2) fail("--min-callsites must be an integer >= 2");
   if (!Number.isFinite(majorityFrac) || majorityFrac <= 0 || majorityFrac > 1) fail("--majority-frac must be in (0, 1]");
   if (!Number.isInteger(minPresent) || minPresent < 1) fail("--min-present must be an integer >= 1");
+  const language = values.get("--language") ?? "typescript";
+  if (!["typescript", "javascript"].includes(language)) fail("--language must be typescript or javascript");
   return {
     target: values.get("--target"),
     projectRoot: values.get("--project-root"),
@@ -68,6 +71,7 @@ function parseArgs(argv) {
     majorityFrac,
     minPresent,
     noGate,
+    language,
   };
 }
 
@@ -145,17 +149,22 @@ function diagnosticText(ts, diagnostic) {
   return `${diagnostic.file.fileName}:${position.line + 1}: ${text}`;
 }
 
-function resolveProjectTsconfig(ts, projectRoot, suppliedTsconfig) {
+function resolveProjectTsconfig(ts, projectRoot, suppliedTsconfig, language) {
   const tsconfigPath = resolveProjectPath(projectRoot, suppliedTsconfig, "tsconfig");
-  if (!fs.existsSync(tsconfigPath)) fail(`project-local TypeScript requires tsconfig: ${tsconfigPath}`);
+  if (!fs.existsSync(tsconfigPath)) fail(language === "javascript"
+    ? `unsupported: checked JavaScript requires an explicit jsconfig/tsconfig: ${tsconfigPath}`
+    : `project-local TypeScript requires tsconfig: ${tsconfigPath}`);
   const stats = fs.lstatSync(tsconfigPath);
-  if (stats.isSymbolicLink()) fail(`tsconfig must not be a symbolic link: ${tsconfigPath}`);
-  if (!stats.isFile()) fail(`project-local TypeScript requires tsconfig: ${tsconfigPath}`);
+  if (stats.isSymbolicLink()) fail(`${language === "javascript" ? "JavaScript config" : "tsconfig"} must not be a symbolic link: ${tsconfigPath}`);
+  if (!stats.isFile()) fail(`project config is not a file: ${tsconfigPath}`);
   const read = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
   if (read.error) fail(`invalid tsconfig: ${diagnosticText(ts, read.error)}`);
   const parsed = ts.parseJsonConfigFileContent(read.config, ts.sys, path.dirname(tsconfigPath), undefined, tsconfigPath);
   const errors = parsed.errors.filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error);
   if (errors.length > 0) fail(`invalid tsconfig: ${diagnosticText(ts, errors[0])}`);
+  if (language === "javascript" && (!parsed.options.allowJs || !parsed.options.checkJs)) {
+    fail("unsupported: checked JavaScript requires compilerOptions.allowJs and compilerOptions.checkJs set to true");
+  }
   return {
     path: tsconfigPath,
     options: parsed.options,
@@ -185,7 +194,7 @@ function globToRegExp(glob) {
   return new RegExp(`${result}$`);
 }
 
-function buildExclusionPolicy(projectRoot, declaredExcludes) {
+function buildExclusionPolicy(projectRoot, declaredExcludes, language) {
   const rules = declaredExcludes
     .map((rule) => rule.replaceAll("\\", "/").replace(/^\.\//, "").replace(/\/$/, ""))
     .filter(Boolean)
@@ -205,13 +214,10 @@ function buildExclusionPolicy(projectRoot, declaredExcludes) {
       const directoryParts = directory ? parts : parts.slice(0, -1);
       if (directoryParts.some((part) => BUILTIN_EXCLUDED_DIRECTORIES.has(part.toLowerCase()))) return true;
       const filename = parts.at(-1)?.toLowerCase() ?? "";
+      const extension = language === "javascript" ? "(?:js|jsx|mjs|cjs)" : "(?:ts|tsx)";
       if (!directory && (
         filename.endsWith(".d.ts") || filename.endsWith(".d.tsx")
-        || filename.endsWith(".test.ts") || filename.endsWith(".test.tsx")
-        || filename.endsWith(".spec.ts") || filename.endsWith(".spec.tsx")
-        || filename.endsWith(".generated.ts") || filename.endsWith(".generated.tsx")
-        || filename.endsWith(".min.ts") || filename.endsWith(".min.tsx")
-        || filename.endsWith(".bundle.ts") || filename.endsWith(".bundle.tsx")
+        || new RegExp(`\\.(?:test|spec|generated|min|bundle)\\.${extension}$`).test(filename)
         || filename.startsWith("test_") || filename.startsWith("tests_")
         || filename.endsWith("_test.ts") || filename.endsWith("_test.tsx")
       )) return true;
@@ -220,18 +226,19 @@ function buildExclusionPolicy(projectRoot, declaredExcludes) {
   };
 }
 
-function isSourcePath(absolutePath) {
-  return SOURCE_EXTENSIONS.has(path.extname(absolutePath).toLowerCase())
+function isSourcePath(absolutePath, language) {
+  const extensions = language === "javascript" ? JAVASCRIPT_SOURCE_EXTENSIONS : TYPESCRIPT_SOURCE_EXTENSIONS;
+  return extensions.has(path.extname(absolutePath).toLowerCase())
     && !absolutePath.toLowerCase().endsWith(".d.ts")
     && !absolutePath.toLowerCase().endsWith(".d.tsx");
 }
 
-function collectTargetSources(target, projectRoot, exclusions) {
+function collectTargetSources(target, projectRoot, exclusions, language) {
   if (traversesSymbolicLink(projectRoot, target)) fail(`target must not traverse a symbolic link: ${target}`);
   const stats = fs.lstatSync(target);
   if (stats.isSymbolicLink()) fail(`target must not be a symbolic link: ${target}`);
   if (stats.isFile()) {
-    if (!isSourcePath(target)) fail(`target must be a .ts or .tsx file, or a directory: ${target}`);
+    if (!isSourcePath(target, language)) fail(`target must be a ${language === "javascript" ? ".js, .jsx, .mjs, or .cjs" : ".ts or .tsx"} file, or a directory: ${target}`);
     return exclusions.isExcluded(target) ? [] : [target];
   }
   if (!stats.isDirectory()) fail(`target must be a file or directory: ${target}`);
@@ -245,18 +252,18 @@ function collectTargetSources(target, projectRoot, exclusions) {
       if (entry.isSymbolicLink()) continue;
       if (entry.isDirectory()) {
         if (!exclusions.isExcluded(child, true)) pending.push(child);
-      } else if (entry.isFile() && isSourcePath(child) && !exclusions.isExcluded(child)) files.push(child);
+      } else if (entry.isFile() && isSourcePath(child, language) && !exclusions.isExcluded(child)) files.push(child);
     }
   }
   return files.sort((left, right) => relativePath(projectRoot, left).localeCompare(relativePath(projectRoot, right)));
 }
 
-function collectEligibleProgramSources(program, projectRoot, exclusions) {
+function collectEligibleProgramSources(program, projectRoot, exclusions, language) {
   return program.getSourceFiles().filter((sourceFile) => {
     const absolute = path.resolve(sourceFile.fileName);
     return isWithin(projectRoot, absolute)
       && !traversesSymbolicLink(projectRoot, absolute)
-      && isSourcePath(absolute)
+      && isSourcePath(absolute, language)
       && !exclusions.isExcluded(absolute);
   });
 }
@@ -360,6 +367,13 @@ function staticModuleSpecifiers(ts, sourceFile) {
       && ts.isStringLiteralLike(statement.moduleReference.expression)
     ) specifiers.push(statement.moduleReference.expression.text);
   }
+  const visit = (node) => {
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "require" && node.arguments.length === 1 && ts.isStringLiteralLike(node.arguments[0])) {
+      specifiers.push(node.arguments[0].text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
   return specifiers;
 }
 
@@ -376,12 +390,12 @@ function unresolvedModules(ts, sourceFiles, config, projectRoot) {
   return unresolved.sort((left, right) => left.file.localeCompare(right.file) || left.specifier.localeCompare(right.specifier));
 }
 
-function addCallFacts(targetFiles, program, projectRoot, exclusions, ts) {
+function addCallFacts(targetFiles, program, projectRoot, exclusions, ts, language) {
   const checker = program.getTypeChecker();
   const supported = new Map();
   const deferredGroups = new Map();
   const unresolvedCalls = [];
-  const projectSources = new Set(collectEligibleProgramSources(program, projectRoot, exclusions).map((sourceFile) => path.resolve(sourceFile.fileName)));
+  const projectSources = new Set(collectEligibleProgramSources(program, projectRoot, exclusions, language).map((sourceFile) => path.resolve(sourceFile.fileName)));
 
   function addGroup(groups, key, details, call) {
     if (!groups.has(key)) groups.set(key, { ...details, calls: [] });
@@ -591,23 +605,35 @@ function main() {
   if (targetStats.isSymbolicLink()) fail(`target must not be a symbolic link: ${target}`);
   const reportDir = safeReportDirectory(projectRoot, args.reportDir);
   const ts = loadProjectTypeScript(projectRoot);
-  const config = resolveProjectTsconfig(ts, projectRoot, args.tsconfig);
-  const exclusions = buildExclusionPolicy(projectRoot, config.declaredExcludes);
-  const targetFiles = collectTargetSources(target, projectRoot, exclusions);
+  const config = resolveProjectTsconfig(ts, projectRoot, args.tsconfig, args.language);
+  const exclusions = buildExclusionPolicy(projectRoot, config.declaredExcludes, args.language);
+  const targetFiles = collectTargetSources(target, projectRoot, exclusions, args.language);
+  const configuredFiles = new Set(config.fileNames.map((file) => path.resolve(file)));
+  const uncoveredFiles = args.language === "javascript"
+    ? targetFiles.filter((file) => !configuredFiles.has(file)).map((file) => ({
+      file: relativePath(projectRoot, file), reason: "not_in_explicit_jsconfig_or_tsconfig",
+    }))
+    : [];
+  const coveredTargetFiles = args.language === "javascript"
+    ? targetFiles.filter((file) => configuredFiles.has(file))
+    : targetFiles;
+  if (args.language === "javascript" && targetFiles.length === 0 && exclusions.isExcluded(target, targetStats.isDirectory())) {
+    uncoveredFiles.push({ file: relativePath(projectRoot, target), reason: "excluded_by_project_config" });
+  }
   const program = ts.createProgram({
-    rootNames: [...new Set([...config.fileNames, ...targetFiles])],
+    rootNames: args.language === "javascript" ? config.fileNames : [...new Set([...config.fileNames, ...targetFiles])],
     options: config.options,
     projectReferences: config.projectReferences,
   });
   const syntaxDiagnostics = program.getSyntacticDiagnostics().filter((diagnostic) => {
     if (!diagnostic.file) return false;
     const source = path.resolve(diagnostic.file.fileName);
-    return isWithin(projectRoot, source) && !exclusions.isExcluded(source);
+    return isWithin(projectRoot, source) && !exclusions.isExcluded(source) && isSourcePath(source, args.language);
   });
-  if (syntaxDiagnostics.length > 0) fail(`TypeScript syntax errors: ${diagnosticText(ts, syntaxDiagnostics[0])}`);
-  const targetSources = targetFiles.map((file) => program.getSourceFile(file)).filter(Boolean);
+  if (syntaxDiagnostics.length > 0) fail(`${args.language === "javascript" ? "JavaScript" : "TypeScript"} syntax errors: ${diagnosticText(ts, syntaxDiagnostics[0])}`);
+  const targetSources = coveredTargetFiles.map((file) => program.getSourceFile(file)).filter(Boolean);
   const unresolved = unresolvedModules(ts, targetSources, config, projectRoot);
-  const facts = addCallFacts(targetFiles, program, projectRoot, exclusions, ts);
+  const facts = addCallFacts(coveredTargetFiles, program, projectRoot, exclusions, ts, args.language);
   const thresholds = {
     minCallsites: args.minCallsites,
     majorityFrac: args.majorityFrac,
@@ -620,12 +646,15 @@ function main() {
     ...candidates.unresolvedSpreads,
   ].sort((left, right) => left.file.localeCompare(right.file) || left.line - right.line || left.reason.localeCompare(right.reason));
   const targetExcluded = targetFiles.length === 0 && exclusions.isExcluded(target, targetStats.isDirectory());
-  const partial = unresolved.length > 0 || facts.unresolvedCalls.length > 0 || candidates.unresolvedSpreads.length > 0;
+  const semanticDiagnostics = args.language === "javascript"
+    ? program.getSemanticDiagnostics().filter((diagnostic) => diagnostic.file && coveredTargetFiles.includes(path.resolve(diagnostic.file.fileName)))
+    : [];
+  const partial = unresolved.length > 0 || facts.unresolvedCalls.length > 0 || candidates.unresolvedSpreads.length > 0 || uncoveredFiles.length > 0 || semanticDiagnostics.length > 0;
   const payload = {
     schema_version: 1,
-    band: "typescript-option-omission",
-    language: "typescript",
-    analyzer: "typescript-compiler-api",
+    band: `${args.language}-option-omission`,
+    language: args.language,
+    analyzer: args.language === "javascript" ? "typescript-compiler-api-checked-javascript" : "typescript-compiler-api",
     status: partial ? "partial" : "complete",
     project_root: projectRoot,
     target: {
@@ -634,12 +663,26 @@ function main() {
       exclusion: targetExcluded ? "excluded" : "included",
     },
     tsconfig: relativePath(projectRoot, config.path),
+    ...(args.language === "javascript" ? {
+      config: relativePath(projectRoot, config.path),
+      diagnostics: semanticDiagnostics.map((diagnostic) => diagnosticText(ts, diagnostic)),
+      uncovered_files: uncoveredFiles,
+      semantic_evidence: {
+        checked_javascript: true,
+        jsdoc: { declarations: targetSources.reduce((count, source) => count + (source.text.match(/\/\*\*/g)?.length ?? 0), 0) },
+        compiler_inferred: {
+          resolved_direct_calls: [...facts.supported.values()].reduce((count, group) => count + group.calls.length, 0),
+        },
+      },
+    } : {}),
     project_resolution: {
-      state: unresolved.length > 0 ? "partial" : "complete",
+      state: partial ? "partial" : "complete",
       unresolved_modules: unresolved,
     },
     scope: {
-      supported: "Resolved calls to project function declarations with object-option property presence.",
+      supported: args.language === "javascript"
+        ? "Checked JavaScript TypeChecker-resolved direct calls to project functions with explicit object-option property presence."
+        : "Resolved calls to project function declarations with object-option property presence.",
       deferred: "Method/framework APIs, dynamic receivers, unresolved spreads, runtime dispatch, and framework semantics.",
     },
     findings: candidates.findings.sort((left, right) => left.straggler.localeCompare(right.straggler)),
@@ -657,7 +700,7 @@ function main() {
   writeAtomically(path.join(reportDir, "manifest.json"), `${JSON.stringify(payload, null, 2)}\n`);
   writeAtomically(path.join(reportDir, "findings.md"), renderFindings(payload));
   console.error(
-    `[find-incomplete-sweep-typescript] wrote ${reportDir} `
+    `[find-incomplete-sweep-${args.language}] wrote ${reportDir} `
     + `(gated_in=${payload.summary.gated_in} raw=${payload.summary.raw_divergence_candidates} status=${payload.status})`,
   );
 }
@@ -666,6 +709,6 @@ try {
   main();
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
-  console.error(`[find-incomplete-sweep-typescript] ERROR: ${message}`);
+  console.error(`[find-incomplete-sweep] ERROR: ${message}`);
   process.exitCode = 2;
 }
