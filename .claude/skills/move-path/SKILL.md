@@ -1,6 +1,6 @@
 ---
 name: move-path
-description: Deterministically plan, dry-run, apply, and verify standalone TypeScript/TSX file or directory moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. An explicit checked-JavaScript mode updates bounded literal module references through the host Compiler API. Use for a reviewed move map with JSON plans, dry-run reporting, Git-aware moves, and explicit ignored-import risk. TypeScript/TSX source imports are never rewritten in v1; import-safe module moves need a resolver-aware follow-up.
+description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module, updating only AST-confirmed exact import string literals. TypeScript/TSX source imports are never rewritten in v1.
 argument-hint: "--plan moves.json --dry-run|--apply|--check"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 user-invocable: true
@@ -23,7 +23,7 @@ not_for: |
   /refactor-subsystem). Blind global find-and-replace.
 language: any
 framework: any
-scans: [javascript, typescript]
+scans: [go, javascript, typescript]
 ---
 
 # /move-path
@@ -84,6 +84,28 @@ apply. Preflight and post-apply native checks must be `complete`; a failed
 post-apply check reverses the moves and restores source snapshots. Review the
 `javascript.status`, `javascript.exact_changes`, and any blocked records in
 the JSON report before accepting the move.
+
+## Checked-Go Package Boundary
+
+Enable Go rewriting only with `rewrite.code_imports: "update-go"`. The pilot
+automates exactly one non-`main`, leaf package-directory move inside the root
+`go.mod` module, for example `pkg/legacy/` to `pkg/workflow/`. It discovers
+`go`, `gofmt`, the root module path, and the minimum Go version declared by
+`go.mod`; it does not install tools or dependencies.
+
+The bundled Go helper parses source with `go/parser` and rewrites only exact
+`ImportSpec.Path` literals equal to the moved package's module import path.
+Aliases, blank/dot imports, package names, and comments remain unchanged.
+Before applying, the tool rejects workspaces, nested modules, package trees,
+`main`, generated/vendor/symlink/cgo/build-tag/go-generate shapes, malformed
+source, and any old module path found outside an AST import literal. These are
+unsupported or partial findings, never guessed rewrites.
+
+The transaction runs targeted `gofmt -d` before changing disk, then `gofmt
+-w`, an exact source-diff oracle, and `go test ./...` after the move. A failed
+native or exact check restores moved and rewritten source. It is not a Go
+symbol rename, package-name rename, workspace migration, or general Go
+refactor engine.
 
 ## Commands
 
@@ -149,6 +171,17 @@ For checked JavaScript, add this opt-in branch to the plan:
   "javascript": {
     "config": "jsconfig.json"
   }
+}
+```
+
+For the bounded Go package move, use:
+
+```json
+{
+  "moves": [
+    {"from": "pkg/legacy/", "to": "pkg/workflow/", "mode": "directory"}
+  ],
+  "rewrite": {"code_imports": "update-go"}
 }
 ```
 

@@ -55,6 +55,7 @@ TS_IMPORT_RE = re.compile(
 TYPESCRIPT_SUFFIXES = (".ts", ".tsx", ".mts", ".cts")
 TYPESCRIPT_MODULE_SUFFIXES = (".ts", ".tsx", ".d.ts")
 JAVASCRIPT_SUFFIXES = (".js", ".jsx", ".mjs", ".cjs")
+GO_SUFFIX = ".go"
 EMITTED_SPECIFIER_SOURCE_SUFFIXES = {
     ".js": (".ts", ".tsx", ".d.ts"),
     ".mjs": (".mts", ".d.mts"),
@@ -471,9 +472,213 @@ def mode_for(plan: dict, key: str, default: str = "ignore") -> str:
 def code_import_mode(plan: dict) -> str:
     """Return the only supported source-import policy without implying safety."""
     value = str((plan.get("rewrite") or {}).get("code_imports", "ignore"))
-    if value not in {"ignore", "update-javascript"}:
-        raise SystemExit("rewrite.code_imports only supports ignore or update-javascript; TypeScript imports require a resolver-aware move")
+    if value not in {"ignore", "update-javascript", "update-go"}:
+        raise SystemExit("rewrite.code_imports only supports ignore, update-javascript, or update-go; TypeScript imports require a resolver-aware move")
     return value
+
+
+def _go_version(value: str) -> tuple[int, int, int] | None:
+    match = re.search(r"\bgo(\d+)\.(\d+)(?:\.(\d+))?\b", value)
+    if match is None:
+        return None
+    return int(match.group(1)), int(match.group(2)), int(match.group(3) or 0)
+
+
+def _go_minimum(value: str) -> tuple[int, int, int] | None:
+    match = re.fullmatch(r"(\d+)\.(\d+)(?:\.(\d+))?", value.strip())
+    if match is None:
+        return None
+    return int(match.group(1)), int(match.group(2)), int(match.group(3) or 0)
+
+
+def go_tooling(root: Path, moves: list[MoveSpec], *, post_apply: bool = False) -> dict:
+    """Discover the one-root-module contract without installing anything."""
+    outcome: dict = {"status": "unsupported", "blocked": []}
+    if len(moves) != 1:
+        outcome["blocked"].append({"kind": "go_move_count_unsupported"})
+        return outcome
+    move = moves[0]
+    if move.mode != "directory":
+        outcome["blocked"].append({"kind": "go_package_move_must_be_directory", "path": move.src})
+        return outcome
+    package_path = root / (move.dst if post_apply else move.src)
+    if not package_path.is_dir():
+        outcome["blocked"].append({
+            "kind": "go_destination_package_missing_after_move" if post_apply else "go_package_move_must_be_directory",
+            "path": move.dst if post_apply else move.src,
+        })
+        return outcome
+    if any("vendor" == part for part in (*Path(move.src).parts, *Path(move.dst).parts)):
+        outcome["blocked"].append({"kind": "go_vendor_path_unsupported", "path": move.src})
+        return outcome
+    if (root / move.src).is_symlink() or (root / move.dst).is_symlink():
+        outcome["blocked"].append({"kind": "go_symlink_boundary", "path": move.src})
+        return outcome
+    go = shutil.which("go")
+    gofmt = shutil.which("gofmt")
+    if go is None:
+        outcome["blocked"].append({"kind": "go_tool_missing", "tool": "go"})
+        return outcome
+    if gofmt is None:
+        outcome["blocked"].append({"kind": "go_tool_missing", "tool": "gofmt"})
+        return outcome
+    try:
+        version_result = subprocess.run([go, "version"], cwd=root, text=True, capture_output=True, check=False)
+        workspace = subprocess.run([go, "env", "GOWORK"], cwd=root, text=True, capture_output=True, check=False)
+        module_file = subprocess.run([go, "env", "GOMOD"], cwd=root, text=True, capture_output=True, check=False)
+        module = subprocess.run(
+            [go, "mod", "edit", "-json"],
+            cwd=root,
+            text=True,
+            capture_output=True,
+            check=False,
+            env={**os.environ, "GOWORK": "off"},
+        )
+    except OSError as exc:
+        outcome["blocked"].append({"kind": "go_tool_invocation_failed", "detail": str(exc)})
+        return outcome
+    actual = _go_version(version_result.stdout + version_result.stderr)
+    if version_result.returncode != 0 or actual is None:
+        outcome["blocked"].append({"kind": "go_version_unreadable", "detail": version_result.stderr.strip()})
+        return outcome
+    if workspace.returncode != 0 or workspace.stdout.strip():
+        outcome["blocked"].append({"kind": "go_workspace_unsupported", "detail": workspace.stdout.strip() or workspace.stderr.strip()})
+        return outcome
+    expected_mod = (root / "go.mod").resolve()
+    reported_mod = Path(module_file.stdout.strip()).resolve() if module_file.stdout.strip() else None
+    if module_file.returncode != 0 or reported_mod != expected_mod:
+        outcome["blocked"].append({"kind": "go_root_module_required", "detail": module_file.stdout.strip() or module_file.stderr.strip()})
+        return outcome
+    try:
+        module_payload = json.loads(module.stdout)
+    except json.JSONDecodeError:
+        module_payload = None
+    if module.returncode != 0 or not isinstance(module_payload, dict):
+        outcome["blocked"].append({"kind": "go_module_metadata_unavailable", "detail": module.stderr.strip()})
+        return outcome
+    path = ((module_payload.get("Module") or {}).get("Path"))
+    minimum_text = module_payload.get("Go")
+    minimum = _go_minimum(str(minimum_text or ""))
+    if not isinstance(path, str) or not path or minimum is None:
+        outcome["blocked"].append({"kind": "go_module_version_required"})
+        return outcome
+    if actual < minimum:
+        outcome["blocked"].append({"kind": "go_version_too_old", "actual": version_result.stdout.strip(), "minimum": minimum_text})
+        return outcome
+    outcome.update({
+        "status": "complete",
+        "go": {"path": go, "version": version_result.stdout.strip(), "minimum": minimum_text},
+        "gofmt": {"path": gofmt},
+        "module": {"path": path, "go_mod": expected_mod.as_posix()},
+    })
+    return outcome
+
+
+def checked_go(root: Path, moves: list[MoveSpec], tooling: dict) -> dict:
+    """Ask the copied, stdlib-only Go helper for exact import-literal spans."""
+    if tooling.get("status") != "complete":
+        return tooling
+    move = moves[0]
+    command = [
+        tooling["go"]["path"],
+        "run",
+        str(Path(__file__).with_name("go_package_import_spans.go")),
+        "--project-root",
+        str(root),
+        "--from",
+        move.src,
+        "--to",
+        move.dst,
+        "--module",
+        tooling["module"]["path"],
+    ]
+    result = subprocess.run(
+        command,
+        cwd=root,
+        text=True,
+        capture_output=True,
+        check=False,
+        env={**os.environ, "GOWORK": "off"},
+    )
+    try:
+        outcome = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        outcome = {"status": "failed", "error": "Go helper emitted invalid JSON", "blocked": []}
+    outcome["returncode"] = result.returncode
+    outcome["tooling"] = tooling
+    if result.returncode != 0 and outcome.get("status") == "complete":
+        outcome["status"] = "failed"
+        outcome["error"] = result.stderr.strip() or "Go helper failed"
+    return outcome
+
+
+def utf8_offset(text: str, offset: int) -> int:
+    """Convert Go token byte offsets to Python string offsets."""
+    total = 0
+    for index, char in enumerate(text):
+        if total >= offset:
+            return index
+        total += len(char.encode("utf-8"))
+    return len(text)
+
+
+def go_rewrites(root: Path, moves: list[MoveSpec], outcome: dict) -> tuple[list[Replacement], list[dict]]:
+    replacements: list[Replacement] = []
+    blocked = list(outcome.get("blocked") or [])
+    if outcome.get("status") != "complete":
+        return replacements, blocked
+    for item in outcome.get("spans", []):
+        source = item["file"]
+        text = _read_text(root / source)
+        start = utf8_offset(text, int(item["start"]))
+        end = utf8_offset(text, int(item["end"]))
+        old_literal = item["old_literal"]
+        if text[start:end] != old_literal:
+            blocked.append({"kind": "go_import_span_mismatch", "path": source, "line": item["line"]})
+            continue
+        replacements.append(Replacement(
+            file_before=source,
+            file_after=after_path_for(source, moves),
+            start=start,
+            end=end,
+            old=old_literal,
+            new=item["new_literal"],
+            kind="go_import",
+            confidence="auto",
+            target_before=item["old"],
+            target_after=item["new"],
+        ))
+    return replacements, blocked
+
+
+def _native_result(
+    command: list[str], root: Path, *, write: bool = False, require_empty_stdout: bool = False
+) -> dict:
+    result = subprocess.run(
+        command,
+        cwd=root,
+        text=True,
+        capture_output=True,
+        check=False,
+        env={**os.environ, "GOWORK": "off"},
+    )
+    return {
+        "argv": command,
+        "returncode": result.returncode,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "write": write,
+        "passed": result.returncode == 0 and (not require_empty_stdout or not result.stdout),
+    }
+
+
+def run_gofmt(root: Path, gofmt: str, files: list[str], *, write: bool = False) -> dict:
+    command = [gofmt, "-w" if write else "-d", *[str(root / path) for path in files]]
+    return _native_result(command, root, write=write, require_empty_stdout=not write)
+
+
+def run_go_test(root: Path, go: str) -> dict:
+    return _native_result([go, "test", "./..."], root)
 
 
 def javascript_config(plan: dict, root: Path) -> Path | None:
@@ -1213,20 +1418,21 @@ def render_markdown(payload: dict) -> str:
             out.append(f"- `{item.get('kind')}`: `{item}`")
     else:
         out.append("- None")
-    out.extend(["", "## Ignored TypeScript Imports", ""])
-    out.append(
-        "- `rewrite.code_imports: ignore`: TypeScript and TSX source imports are not rewritten; "
-        "review affected imports before applying this move."
-    )
-    if payload["code_imports"]["ignored"]:
-        for item in payload["code_imports"]["ignored"][:200]:
-            out.append(
-                f"- `{item['file']}`:{item['lineno']} `{item['specifier']}`: "
-                f"`{item['target_before']}` -> `{item['target_after']}`; remediation unknown without "
-                f"TypeScript module resolution ({item['reason']})"
-            )
-    else:
-        out.append("- No local TypeScript/TSX import is invalidated by a moved target or referrer.")
+    if payload["code_imports"]["mode"] == "ignore":
+        out.extend(["", "## Ignored TypeScript Imports", ""])
+        out.append(
+            "- `rewrite.code_imports: ignore`: TypeScript and TSX source imports are not rewritten; "
+            "review affected imports before applying this move."
+        )
+        if payload["code_imports"]["ignored"]:
+            for item in payload["code_imports"]["ignored"][:200]:
+                out.append(
+                    f"- `{item['file']}`:{item['lineno']} `{item['specifier']}`: "
+                    f"`{item['target_before']}` -> `{item['target_after']}`; remediation unknown without "
+                    f"TypeScript module resolution ({item['reason']})"
+                )
+        else:
+            out.append("- No local TypeScript/TSX import is invalidated by a moved target or referrer.")
     if javascript := payload.get("javascript"):
         out.extend(["", "## Checked JavaScript", ""])
         out.append(f"- Status: `{javascript['status']}`")
@@ -1235,6 +1441,16 @@ def render_markdown(payload: dict) -> str:
             out.append(f"- Detail: {javascript['error']}")
         if javascript.get("rolled_back"):
             out.append("- Source changes were rolled back after the host-native check failed.")
+    if go := payload.get("go"):
+        out.extend(["", "## Checked Go Package Move", ""])
+        out.append(f"- Status: `{go['status']}`")
+        out.append(f"- Updated import spans: {len(go.get('updates', []))}")
+        if go.get("old_import"):
+            out.append(f"- Import identity: `{go['old_import']}` -> `{go['new_import']}`")
+        if go.get("error"):
+            out.append(f"- Detail: {go['error']}")
+        if go.get("rolled_back"):
+            out.append("- Source changes were rolled back after the Go native check failed.")
     out.extend(["", "## Post-Apply Broken Links", ""])
     if payload["post_broken_links"]:
         for item in payload["post_broken_links"]:
@@ -1261,6 +1477,74 @@ def add_javascript_report(payload: dict, outcome: dict, replacements: list[Repla
         "rolled_back": rolled_back,
     }
     payload["summary"]["javascript_status"] = outcome["status"]
+
+
+def add_go_report(
+    payload: dict,
+    outcome: dict,
+    replacements: list[Replacement],
+    *,
+    native: dict | None = None,
+    rolled_back: bool = False,
+) -> None:
+    payload["code_imports"] = {
+        "mode": "update-go",
+        "risk": "Only exact Go AST import string literals are updated; runtime and non-import paths are not rewritten.",
+        "ignored": [],
+    }
+    payload["go"] = {
+        "mode": "update-go",
+        "status": outcome.get("status", "failed"),
+        "error": outcome.get("error"),
+        "tooling": outcome.get("tooling"),
+        "old_import": outcome.get("old_import"),
+        "new_import": outcome.get("new_import"),
+        "updates": [dataclasses.asdict(item) for item in replacements],
+        "exact_changes": [dataclasses.asdict(item) for item in replacements],
+        "blocked": outcome.get("blocked", []),
+        "native": native or {},
+        "rolled_back": rolled_back,
+    }
+    payload["summary"]["go_status"] = outcome.get("status", "failed")
+
+
+def snapshot_move_inputs(root: Path, moves: list[MoveSpec], touched_before: list[str]) -> dict[str, bytes]:
+    """Capture the bounded moved tree and rewritten files for native rollback."""
+    paths = set(touched_before)
+    for move in moves:
+        source = root / move.src
+        if source.is_dir():
+            for path in source.rglob("*"):
+                if path.is_file() and not path.is_symlink():
+                    paths.add(repo_rel(path, root))
+    return {path: (root / path).read_bytes() for path in sorted(paths) if (root / path).is_file()}
+
+
+def rollback_move_inputs(root: Path, moves: list[MoveSpec], snapshots: dict[str, bytes]) -> None:
+    for move in sorted(moves, key=lambda item: len(item.src)):
+        if (root / move.dst).exists() and not (root / move.src).exists():
+            move_one(root, move.dst, move.src)
+    for path, contents in snapshots.items():
+        target = root / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(contents)
+
+
+def exact_snapshot_match(
+    root: Path,
+    moves: list[MoveSpec],
+    snapshots: dict[str, bytes],
+    after_texts: dict[str, str],
+) -> bool:
+    """Prove gofmt changed no source beyond the declared after-tree."""
+    for before, contents in snapshots.items():
+        after = after_path_for(before, moves)
+        expected = after_texts.get(after)
+        expected_bytes = expected.encode("utf-8") if expected is not None else contents
+        path = root / after
+        if not path.is_file() or path.read_bytes() != expected_bytes:
+            return False
+    return True
 
 
 def merge_ignored_code_imports(pre_apply: list[dict], post_apply: list[dict]) -> list[dict]:
@@ -1321,6 +1605,27 @@ def run_plan(
         )
         if import_mode == "update-javascript":
             add_javascript_report(payload, checked_javascript(root, config, javascript_files), [])
+        if import_mode == "update-go":
+            tooling = go_tooling(root, moves, post_apply=True)
+            native: dict = {}
+            if tooling.get("status") == "complete":
+                go_files = [
+                    repo_rel(path, root)
+                    for path in sorted(root.rglob("*.go"))
+                    if path.is_file() and not path.is_symlink() and "vendor" not in path.relative_to(root).parts
+                ]
+                native["gofmt"] = run_gofmt(root, tooling["gofmt"]["path"], go_files)
+                native["go_test"] = run_go_test(root, tooling["go"]["path"])
+                old_import = tooling["module"]["path"].rstrip("/") + "/" + moves[0].src
+                remaining = [path for path in go_files if old_import in _read_text(root / path)]
+                if remaining:
+                    tooling["blocked"].append({"kind": "go_old_import_remains_after_move", "paths": remaining})
+                tooling.update({
+                    "old_import": old_import,
+                    "new_import": tooling["module"]["path"].rstrip("/") + "/" + moves[0].dst,
+                    "status": "complete" if all(item["passed"] for item in native.values()) and not remaining else "failed",
+                })
+            add_go_report(payload, tooling, [], native=native)
         write_report(report_dir, payload)
         return payload
 
@@ -1328,7 +1633,9 @@ def run_plan(
     replacements, suggestions, reference_blocked = detect_references(root, plan, moves, files)
     blocked.extend(reference_blocked)
     javascript = checked_javascript(root, config, javascript_files) if import_mode == "update-javascript" else None
+    go = checked_go(root, moves, go_tooling(root, moves)) if import_mode == "update-go" else None
     javascript_replacements: list[Replacement] = []
+    go_replacements: list[Replacement] = []
     if javascript is not None:
         if javascript["status"] == "complete":
             javascript_replacements, javascript_blocked = javascript_rewrites(root, moves, javascript)
@@ -1339,8 +1646,18 @@ def run_plan(
             blocked.append({"kind": f"javascript_{javascript['status']}", "detail": javascript.get("error")})
     elif any(Path(move.src).suffix.lower() in JAVASCRIPT_SUFFIXES for move in moves):
         blocked.append({"kind": "javascript_updates_not_enabled", "detail": "JavaScript moves require update-javascript"})
+    if go is not None:
+        if go.get("status") == "complete":
+            go_replacements, go_blocked = go_rewrites(root, moves, go)
+            blocked.extend(go_blocked)
+            if go_blocked:
+                go["status"] = "unsupported"
+        else:
+            blocked.append({"kind": f"go_{go.get('status', 'failed')}", "detail": go.get("error"), "findings": go.get("blocked", [])})
     replacements.extend(javascript_replacements)
-    after_texts = build_after_texts(root, sorted({*files, *javascript_files}), moves, replacements)
+    replacements.extend(go_replacements)
+    go_files = go.get("go_files", []) if go is not None else []
+    after_texts = build_after_texts(root, sorted({*files, *javascript_files, *go_files}), moves, replacements)
     after_paths = all_repo_paths_after(root, moves)
     post_broken = verify_markdown_links(root, after_texts, after_paths)
 
@@ -1365,6 +1682,8 @@ def run_plan(
     )
     if javascript is not None:
         add_javascript_report(payload, javascript, javascript_replacements)
+    if go is not None:
+        add_go_report(payload, go, go_replacements)
     write_report(report_dir, payload)
 
     safety = plan.get("safety") or {}
@@ -1376,7 +1695,20 @@ def run_plan(
         raise SystemExit(f"blocked findings prevent apply; see {report_dir / 'report.md'}")
     if fail_on_broken and post_broken:
         raise SystemExit(f"post-apply broken links prevent apply; see {report_dir / 'report.md'}")
-    snapshots = {path: (root / path).read_bytes() for path in touched_before}
+    native: dict = {}
+    go_touched_before: list[str] = []
+    if go is not None:
+        go_touched_before = sorted({*go.get("moved_files", []), *(item["file"] for item in go.get("spans", []))})
+        native["gofmt_preflight"] = run_gofmt(root, go["tooling"]["gofmt"]["path"], go_touched_before)
+        if not native["gofmt_preflight"]["passed"]:
+            go["status"] = "partial"
+            go.setdefault("blocked", []).append({"kind": "go_unformatted_touched_source"})
+            add_go_report(payload, go, go_replacements, native=native)
+            payload["blocked"].append({"kind": "go_unformatted_touched_source"})
+            payload["summary"]["blocked"] = len(payload["blocked"])
+            write_report(report_dir, payload)
+            raise SystemExit(f"gofmt preflight prevents apply; see {report_dir / 'report.md'}")
+    snapshots = snapshot_move_inputs(root, moves, touched_before) if go is not None else {path: (root / path).read_bytes() for path in touched_before}
     apply_moves_and_rewrites(root, moves, after_texts, touched_before, stage=stage)
     if javascript is not None:
         checked_after = checked_javascript(root, config, [after_path_for(path, moves) for path in javascript_files])
@@ -1391,6 +1723,28 @@ def run_plan(
             payload["summary"]["blocked"] = len(payload["blocked"])
             write_report(report_dir, payload)
             raise SystemExit(f"checked JavaScript failed; source rolled back; see {report_dir / 'report.md'}")
+    if go is not None:
+        go_touched_after = [after_path_for(path, moves) for path in go_touched_before]
+        native["gofmt"] = run_gofmt(root, go["tooling"]["gofmt"]["path"], go_touched_after, write=True)
+        native["gofmt_check"] = run_gofmt(root, go["tooling"]["gofmt"]["path"], go_touched_after)
+        native["go_test"] = run_go_test(root, go["tooling"]["go"]["path"])
+        exact = exact_snapshot_match(root, moves, snapshots, after_texts)
+        if not exact:
+            native["exact_diff"] = {"passed": False}
+        else:
+            native["exact_diff"] = {"passed": True}
+        if not all(item["passed"] for item in native.values()):
+            rollback_move_inputs(root, moves, snapshots)
+            go["status"] = "failed"
+            go.setdefault("blocked", []).append({"kind": "go_native_or_exact_check_failed"})
+            add_go_report(payload, go, go_replacements, native=native, rolled_back=True)
+            payload["blocked"].append({"kind": "go_native_or_exact_check_failed"})
+            payload["summary"]["blocked"] = len(payload["blocked"])
+            write_report(report_dir, payload)
+            raise SystemExit(f"Go native verification failed; source rolled back; see {report_dir / 'report.md'}")
+        add_go_report(payload, go, go_replacements, native=native)
+        write_report(report_dir, payload)
+        return payload
     # Re-run check after mutation so report reflects final state.
     post_apply = run_plan(
         plan_path=plan_path,
