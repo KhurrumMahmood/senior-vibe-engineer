@@ -98,6 +98,15 @@ def test_typescript_proposal_reaches_final_artifact_from_resolved_graph(tmp_path
     assert payload["recommendation"] == "refactor"
     assert payload["graph"]["module_resolution"] == "complete"
     assert payload["graph"]["ambiguous_symbols"] == []
+    assert payload["candidate_selection"] == {
+        "requested": 2,
+        "eligible": 2,
+        "returned": 2,
+        "cutoff_score": 0.75,
+        "ties_included": False,
+        "omitted_count": 0,
+        "omitted": [],
+    }
     assert {edge["style"] for edge in payload["graph"]["inbound_imports"]} == {
         "alias",
         "barrel",

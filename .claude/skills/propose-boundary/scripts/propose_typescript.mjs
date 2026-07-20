@@ -604,7 +604,7 @@ function leadingDomain(name) {
   return match ? match[0].toLowerCase() : null;
 }
 
-function candidateSeams(symbols, calls, inbound, requested) {
+function candidateSeams(symbols, calls, inbound) {
   const grouped = new Map();
   for (const symbol of symbols) {
     const domain = leadingDomain(symbol.name);
@@ -650,8 +650,43 @@ function candidateSeams(symbols, calls, inbound, requested) {
   });
   return seams
     .filter((seam) => seam.members.length < allNames.size)
-    .sort((left, right) => right.scores.combined - left.scores.combined || left.cluster_id.localeCompare(right.cluster_id))
-    .slice(0, requested);
+    .sort((left, right) => right.scores.combined - left.scores.combined || left.cluster_id.localeCompare(right.cluster_id));
+}
+
+function selectCandidateSeams(ranked, requested) {
+  if (ranked.length === 0) {
+    return {
+      seams: [],
+      evidence: {
+        requested,
+        eligible: 0,
+        returned: 0,
+        cutoff_score: null,
+        ties_included: false,
+        omitted_count: 0,
+        omitted: [],
+      },
+    };
+  }
+  const cutoffIndex = Math.min(requested, ranked.length) - 1;
+  const cutoffScore = ranked[cutoffIndex].scores.combined;
+  const seams = ranked.filter((seam) => seam.scores.combined >= cutoffScore);
+  const omitted = ranked.slice(seams.length).map((seam) => ({
+    cluster_id: seam.cluster_id,
+    score: seam.scores.combined,
+  }));
+  return {
+    seams,
+    evidence: {
+      requested,
+      eligible: ranked.length,
+      returned: seams.length,
+      cutoff_score: cutoffScore,
+      ties_included: seams.length > requested,
+      omitted_count: omitted.length,
+      omitted,
+    },
+  };
 }
 
 function ambiguousSymbols(ts, program, targetFiles, projectRoot) {
@@ -707,6 +742,7 @@ function renderProposal(payload) {
     `- Eligible source files: ${payload.target.source_files}.`,
     `- Resolved inbound module edges: ${payload.graph.inbound_imports.length}; resolved target call edges: ${payload.graph.call_edges.length}.`,
     `- Unresolved target imports: ${payload.graph.unresolved_imports.length}; ambiguous exported symbols: ${payload.graph.ambiguous_symbols.length}.`,
+    `- Candidate cutoff: requested ${payload.candidate_selection.requested}; returned ${payload.candidate_selection.returned} of ${payload.candidate_selection.eligible} eligible${payload.candidate_selection.ties_included ? " (ties at the cutoff included)" : ""}; omitted ${payload.candidate_selection.omitted_count}.`,
     ...(payload.language === "javascript" ? [
       `- Bounded CommonJS export assignments: ${payload.commonjs_exports.bounded.length}; assignments requiring confirmation: ${payload.commonjs_exports.requires_confirmation.length}.`,
     ] : []),
@@ -815,7 +851,9 @@ function main() {
     && symbolFacts.commonjs.requires_confirmation.length > 0;
   const graphBlocked = moduleGraph.unresolved.length > 0 || ambiguous.length > 0
     || uncoveredFiles.length > 0 || commonJsBlocked;
-  const seams = graphBlocked ? [] : candidateSeams(symbolFacts.records, calls, moduleGraph.inbound, args.candidates);
+  const rankedSeams = graphBlocked ? [] : candidateSeams(symbolFacts.records, calls, moduleGraph.inbound);
+  const candidateSelection = selectCandidateSeams(rankedSeams, args.candidates);
+  const seams = candidateSelection.seams;
   const deferSignals = [];
   if (moduleGraph.unresolved.length > 0) deferSignals.push("unresolved_module_resolution");
   if (ambiguous.length > 0) deferSignals.push("ambiguous_symbol_resolution");
@@ -856,6 +894,7 @@ function main() {
       call_edges: calls,
     },
     candidate_seams: seams,
+    candidate_selection: candidateSelection.evidence,
     caller_impact: moduleGraph.inbound,
     defer_signals: deferSignals,
     native_verification: {

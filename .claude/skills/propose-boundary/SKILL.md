@@ -232,8 +232,12 @@ orchestrator treats the argument as a path and falls through to Form A.
 ```
 
 Requests N alternative boundary cuts (default: 1). The helper scores
-every candidate seam against the full criterion set and the proposal
-ranks the top N. The human picks one (or none) before hand-off.
+every candidate seam against the full criterion set and returns the top N plus
+every candidate tied at the cutoff. `candidate_selection` records the requested,
+eligible, and returned counts, cutoff score, whether ties expanded the result,
+and every lower-scored omitted candidate. Returned tie identities and scores
+remain in `candidate_seams`, so a limit never silently hides a cutoff-equivalent
+seam. The human picks one (or none) before hand-off.
 
 If the target doesn't exist, has fewer than 2 Python files AND fewer
 than 6 public symbols total, the orchestrator stops, logs
@@ -273,12 +277,15 @@ The helper writes `inspection.json` with:
   resolved within the target.
 - `candidate_seams` — list of `{cluster_id, members, rationale,
   proposed_public_api, callers_into_private_helpers, scores}` for the
-  top N candidate boundary cuts.
+  top N candidate boundary cuts plus every seam tied at the cutoff.
+- `candidate_selection` — `{requested, eligible, returned, cutoff_score,
+  ties_included, omitted_count, omitted}`. Each omitted row names its
+  `cluster_id` and score.
 - `defer_signals` — guardrail trips (`target_below_threshold`,
   `single_cluster_no_seam`, `scratch_code`).
 
 Stage 2 — **scout callers (optional).** For each `proposed_public_api`
-symbol in the top candidate seam, the orchestrator dispatches a cheap
+symbol in every returned candidate seam, the orchestrator dispatches a cheap
 read-only scout via `.claude/skills/_common/dispatch_scout_cheap.sh`
 (Bash + grep — no Agent tool; the allowed-tools list stays
 read-only-tight) to confirm the call sites in
@@ -310,7 +317,8 @@ The proposal markdown has these sections, in order:
 **Target kind:** file | directory | skill_directory
 **Total LOC:** <N>
 **Public symbols:** <K>
-**Candidate seams scored:** <C> (top <N> presented)
+**Candidate seams:** requested <N>; returned <R> of <C> eligible;
+cutoff <S>; ties included: yes | no; omitted <O>
 
 ## Current shape
 
@@ -346,7 +354,8 @@ working after extraction.)
 
 ## Candidate seam 2 — <cluster_id> (score: <S>)
 
-(Same structure, included only when `--candidates N` with N ≥ 2.)
+(Repeat this section for every row in `candidate_seams`, including ties that
+expanded the result beyond requested N.)
 
 ## Orchestration shim shape (skill-directory targets only)
 

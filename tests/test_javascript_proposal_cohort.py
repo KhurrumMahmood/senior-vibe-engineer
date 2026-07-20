@@ -246,6 +246,22 @@ def test_checked_javascript_proposals_reach_copied_final_artifacts_without_sourc
     assert boundary_payload["recommendation"] == "refactor"
     assert boundary_payload["graph"]["module_resolution"] == "complete"
     assert boundary_payload["target"]["source_files"] == 5
+    assert boundary_payload["candidate_selection"] == {
+        "requested": 2,
+        "eligible": 5,
+        "returned": 5,
+        "cutoff_score": 1,
+        "ties_included": True,
+        "omitted_count": 0,
+        "omitted": [],
+    }
+    assert {row["cluster_id"] for row in boundary_payload["candidate_seams"]} == {
+        "archive",
+        "legacy",
+        "panel",
+        "quote",
+        "settlement",
+    }
     symbols = {row["name"]: row for row in boundary_payload["symbols"]}
     assert symbols["legacyRead"]["public"] is True
     assert symbols["legacyWrite"]["public"] is True
@@ -263,6 +279,7 @@ def test_checked_javascript_proposals_reach_copied_final_artifacts_without_sourc
     }
     rendered_boundary = boundary_proposal.read_text(encoding="utf-8")
     assert "Checked-JavaScript" in rendered_boundary
+    assert "requested 2; returned 5 of 5 eligible (ties at the cutoff included)" in rendered_boundary
     assert "`index.js`/`index.jsx`/`index.mjs`/`index.cjs`" in rendered_boundary
     assert "index.ts" not in rendered_boundary
 

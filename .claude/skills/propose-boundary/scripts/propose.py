@@ -515,7 +515,6 @@ def _candidate_seams(
     co_edit_pairs: list[dict],
     naming_cluster_map: dict[str, str],
     import_records: list[dict],
-    top_n: int,
     threshold: float,
 ) -> list[CandidateSeam]:
     seams: list[CandidateSeam] = []
@@ -552,8 +551,41 @@ def _candidate_seams(
             callers_into_private_helpers=reach_into,
             scores=scores,
         ))
-    seams.sort(key=lambda s: s.scores["combined"], reverse=True)
-    return seams[:top_n]
+    seams.sort(key=lambda seam: (-seam.scores["combined"], seam.cluster_id))
+    return seams
+
+
+def _select_candidate_seams(
+    ranked: list[CandidateSeam], requested: int
+) -> tuple[list[CandidateSeam], dict]:
+    if not ranked:
+        return [], {
+            "requested": requested,
+            "eligible": 0,
+            "returned": 0,
+            "cutoff_score": None,
+            "ties_included": False,
+            "omitted_count": 0,
+            "omitted": [],
+        }
+    cutoff_index = min(requested, len(ranked)) - 1
+    cutoff_score = ranked[cutoff_index].scores["combined"]
+    selected = [
+        seam for seam in ranked if seam.scores["combined"] >= cutoff_score
+    ]
+    omitted = [
+        {"cluster_id": seam.cluster_id, "score": seam.scores["combined"]}
+        for seam in ranked[len(selected):]
+    ]
+    return selected, {
+        "requested": requested,
+        "eligible": len(ranked),
+        "returned": len(selected),
+        "cutoff_score": cutoff_score,
+        "ties_included": len(selected) > requested,
+        "omitted_count": len(omitted),
+        "omitted": omitted,
+    }
 
 
 def _defer_signals(
@@ -654,15 +686,17 @@ def main() -> int:
 
     import_records = _scan_project_imports(project_root, files, sym_by_name)
 
-    seams = _candidate_seams(
+    ranked_seams = _candidate_seams(
         clusters,
         sym_by_name,
         call_edges_with_file,
         co_edit_pairs,
         seed_map,
         import_records,
-        args.candidates,
         args.seam_threshold,
+    )
+    seams, candidate_selection = _select_candidate_seams(
+        ranked_seams, args.candidates
     )
 
     defer_signals = _defer_signals(target_path, files, symbols, seams, project_root)
@@ -687,6 +721,7 @@ def main() -> int:
         ],
         "import_records": import_records,
         "candidate_seams": [asdict(s) for s in seams],
+        "candidate_selection": candidate_selection,
         "defer_signals": defer_signals,
         "parameters": {
             "co_edit_days": args.co_edit_days,
