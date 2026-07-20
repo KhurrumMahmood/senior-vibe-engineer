@@ -1,6 +1,6 @@
 ---
 name: propose-boundary
-description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX or checked-JavaScript v1 uses a host-resolved symbol/import/call graph and emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility/barrel plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
+description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX or checked-JavaScript v1 uses a host-resolved symbol/import/call graph; Go v1 uses host `go list` package/import facts plus standard-library AST facts. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
 argument-hint: "<target-path-or-name> [--candidates N]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -30,7 +30,7 @@ not_for: |
   fit → /plan-spec).
 language: any
 framework: any
-scans: [python, typescript, javascript]
+scans: [python, typescript, javascript, go]
 ---
 
 # /propose-boundary
@@ -186,6 +186,83 @@ node "${SKILL_ROOT}/scripts/propose_typescript.mjs" \
   --proposal "reports/propose-boundary/${PROPOSE_NAME}/proposal.md"
 ```
 <!-- installed-command:typescript-proposal:end -->
+
+## Go v1
+
+The former `scans: [python, typescript, javascript]` declaration is superseded
+by the frontmatter Go entry; existing Python and TypeScript/checked-JavaScript
+contracts are unchanged.
+
+Use this branch for one package directory in one Go module. It is a deliberately
+narrow, read-only proposal: host `go list -e -json -mod=readonly ./...`
+establishes the module's active package/import facts, while the bundled
+standard-library Go program uses `go/parser`/`go/ast` for top-level declarations
+and syntax-level local-call candidates. It never downloads or imports
+`go/packages`, `go/types`, a language server, or any third-party module.
+
+Go v1 may recommend an extraction only when all of these facts are available:
+
+- a PATH-discovered Go tool is at least Go 1.22 and the target host is one
+  root `go.mod` module without a replacement;
+- `go list` establishes the target package import path and every first-party
+  direct or alias importer;
+- the target has two or more named top-level symbol domains, each with at
+  least two declarations; and
+- no build-tag/cgo source, unresolved package graph, dot/blank importer, or
+  generated/vendor/test target makes the evidence incomplete.
+
+Uppercase identifiers are the only public API candidates. Go cannot import an
+unexported identifier from another package, so package-private cross-domain
+calls are listed as migration blockers rather than a TypeScript-style external
+private-import claim. Those calls are AST syntax candidates, not `go/types`
+call identities. The proposal preserves the old package import path only as a
+human-approved temporary forwarding/type-alias facade; it never writes one.
+
+This v1 explicitly defers modules using `replace`, build-tagged or cgo target
+source, dot/blank importers, unresolved packages, generated/vendor/test
+targets, and cohesive one-domain packages. Dynamic loading, reflection,
+interfaces, build matrices, workspaces, external consumers, and runtime
+reachability remain outside the claim. A missing or old Go tool emits an
+`unsupported` inspection outcome rather than a clean proposal. Malformed Go
+source emits a failed syntax outcome.
+
+### Installed Go proposal command
+
+Run this from the Go module root after the router has exposed the on-demand
+library. It uses only the selected skill's bundled Go source and the host Go
+toolchain; it does not require the toolkit Python environment, sibling skills,
+or a network dependency.
+
+<!-- installed-command:go-proposal:start -->
+```bash
+PROPOSE_TARGET="${PROPOSE_TARGET:-internal/legacy}"
+PROPOSE_NAME="${PROPOSE_NAME:-go-legacy}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/propose-boundary" \
+  ".claude/skills/propose-boundary"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "propose-boundary is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+if ! command -v go >/dev/null 2>&1; then
+  printf '%s\n' '{"status":"unsupported","failure_kind":"go_tool_missing"}'
+  exit 0
+fi
+go run "${SKILL_ROOT}/scripts/propose_go.go" \
+  --target "${PROPOSE_TARGET}" \
+  --project-root "$(pwd)" \
+  --candidates 2 \
+  --inspection "reports/propose-boundary/${PROPOSE_NAME}/inspection.json" \
+  --proposal "reports/propose-boundary/${PROPOSE_NAME}/proposal.md"
+```
+<!-- installed-command:go-proposal:end -->
 
 ## Python scope
 

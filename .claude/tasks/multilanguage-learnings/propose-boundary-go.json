@@ -1,0 +1,81 @@
+{
+  "batch": "Go propose-boundary pilot",
+  "revision": "pending-commit",
+  "family": ["propose-boundary"],
+  "invariant": {
+    "portable_principle": "A Go boundary proposal may recommend an extraction only when native module/package/import facts establish a complete enough public API and caller-impact view; cohesive, unresolved, ambiguous, generated, or configuration-dependent targets defer rather than inventing a seam.",
+    "python_or_framework_mechanism": "The existing Python and TypeScript/checked-JavaScript implementations remain unchanged.",
+    "typescript_mechanism": "No TypeScript mechanism is reused. The Go implementation is a family-local standard-library command.",
+    "explicit_non_goals": [
+      "Source mutation, codemods, or refactor execution",
+      "go/packages, go/types, gopls, third-party modules, or network-time dependencies",
+      "Build matrices, workspaces, module replacements, cgo, reflection, interfaces, dynamic/runtime reachability, or external consumers",
+      "go/types-resolved local call identity or safe automatic compatibility rewrites"
+    ]
+  },
+  "reference_repairs": [
+    "The pilot adds a Go-only runner and does not change the accepted Python or TypeScript paths.",
+    "A proposal uses `go list` for active package/import facts and labels AST local calls as syntax candidates rather than overclaiming semantic identity."
+  ],
+  "language_model": {
+    "syntax": ["Top-level functions, types, constants, variables, import declarations, and unqualified local call syntax from go/parser/go/ast."],
+    "type_system": ["Capitalized identifiers are candidate public API only.", "The pilot intentionally does not claim go/types call identity."],
+    "module_resolution": ["go list -e -json -mod=readonly ./... resolves the root module's target package and first-party direct/alias importers.", "Dot/blank imports, package errors, build-tag/cgo files, module replacements, and non-root modules defer."],
+    "runtime": ["PATH-discovered Go >=1.22 is recorded from `go version`.", "The runner imports only the Go standard library and uses no network dependency."],
+    "framework": ["No framework semantics are inferred."]
+  },
+  "tooling": {
+    "selected": "Family-local Go command using go list plus go/parser/go/ast.",
+    "rejected_alternatives": {
+      "parser_only": "Cannot establish active module import paths, package selection, or first-party importer facts.",
+      "go_packages": "golang.org/x/tools is an external module whose copied-skill closure can require a module cache or network; it exceeds this package/import-only pilot.",
+      "go_types": "Would broaden the fact claim and import-resolution surface without being necessary for a human-reviewed proposal pilot."
+    },
+    "version_and_resolution": "Discover `go` from PATH, require Go 1.22+, record its resolved path/version, and invoke `go list -e -json -mod=readonly` from the host module root.",
+    "closure_mode": "The copied/on-demand skill needs only SKILL.md and scripts/propose_go.go plus host Go; no toolkit Python, shared scripts, sibling skill, third-party module, or network import is used.",
+    "preflight_and_failure_codes": ["Missing or too-old Go writes unsupported evidence.", "Malformed source writes failed syntax evidence and exits nonzero through `go run`.", "Unresolved, ambiguous, build-constrained, or excluded targets write an explicit non-refactor outcome."]
+  },
+  "outcome_contract": {
+    "inputs": ["A locked standalone Go 1.22 module.", "One target package directory and a positive direct plus alias importer graph."],
+    "structured_outputs": ["reports/propose-boundary/<name>/inspection.json", "reports/propose-boundary/<name>/proposal.md"],
+    "must_fire": ["Two named `quote`/`settlement` seams with exported API candidates.", "Direct and alias Go import impact.", "A syntax-labelled package-private cross-domain call and a temporary package-facade compatibility plan."],
+    "must_not_fire": ["Cohesive shipping package.", "Build-tagged, dot-import, unresolved, malformed, generated, vendor, test, missing-tool, or old-tool cases.", "Any source mutation or hidden repository/toolkit import from a copied skill."],
+    "native_test_command": "gofmt ./... && go test ./...",
+    "native_guard_command": null
+  },
+  "evidence": {
+    "python_reference": ["Existing Python candidate-selection and TypeScript proposal suites remain regression coverage."],
+    "typescript": ["Not applicable to this family-local Go pilot."],
+    "commands_and_artifact_paths": ["tests/test_propose_boundary_go.py exercises final JSON/Markdown, tied cutoff, every defer boundary, copied closure, source fingerprints, Go formatting, and `go test ./...`."]
+  },
+  "false_positive_boundary": {
+    "known_false_positives": ["A syntax-only unqualified call can be shadowed; it is clearly labelled as a candidate for human verification.", "A package import proves package-level impact, not every runtime symbol use."],
+    "known_false_negatives": ["Dot/blank imports, build tags, cgo, workspaces, replacements, reflection, interfaces, generated code, and external modules defer rather than being analyzed."],
+    "legitimate_similar_shapes": ["A one-domain package is a complete analysis with `defer_no_seam`, not a failed analysis.", "Go package-private calls are migration blockers, not external private-import findings."]
+  },
+  "generalized": ["Final-artifact assertions", "candidate cutoff ties and omission evidence", "tool-version discovery", "source fingerprint proof", "copied-closure replay", "complete/partial/unsupported/failed outcome vocabulary"],
+  "did_not_generalize": ["The Python AST helper", "TypeScript compiler resolver", "a cross-language AST or package graph platform", "go/packages/go/types wrappers", "Go refactor generation"],
+  "reuse_decision": {
+    "shared_candidate": "Go module/package resolver",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": ["Only this accepted proposal outcome currently needs its exact package/import, deferral, and copied-closure contract."],
+    "owner": "propose-boundary Go v1"
+  },
+  "translation_prerequisites": {
+    "rust": {"native_tool": "Cargo metadata plus a stdlib/syn-limited syntax fact", "idiomatic_representation": "crate imports and pub items", "required_fixtures": ["crate alias importer", "re-export facade", "cargo test"], "semantic_gaps": ["macros", "conditional compilation"]},
+    "go": {"native_tool": "go list plus go/parser/go/ast", "idiomatic_representation": "module package imports and exported identifiers", "required_fixtures": ["direct/alias importer", "dot import", "build tag", "generated/vendor/test", "go test"], "semantic_gaps": ["go/types identity", "workspaces/replaces", "runtime reachability"]},
+    "java_or_kotlin": {"native_tool": "compiler or build-model package facts", "idiomatic_representation": "package imports and public symbols", "required_fixtures": ["multi-module caller", "native test"], "semantic_gaps": ["annotation processing"]},
+    "csharp": {"native_tool": "Roslyn workspace", "idiomatic_representation": "project references and public symbols", "required_fixtures": ["project-reference caller", "dotnet test"], "semantic_gaps": ["source generation"]},
+    "ruby": {"native_tool": "parser plus explicit loader convention", "idiomatic_representation": "require paths and public constants", "required_fixtures": ["direct require", "native test"], "semantic_gaps": ["dynamic requires"]}
+  },
+  "user_experience": {
+    "install_steps": ["Route to the on-demand library, then run the documented Go proposal command from a module root.", "Review inspection.json and proposal.md before authorizing a refactor."],
+    "wall_time_seconds": null,
+    "agent_confusions": ["go list package resolution is stronger than parser-only imports but does not prove symbol/call identity.", "Go has no TypeScript-style barrel; compatibility is a temporary package facade, not automatic re-export generation."],
+    "repeated_work": ["Outcome and evidence boundaries transfer; no analyzer code is shared."],
+    "smallest_later_improvement": "Only evaluate go/types or go/packages after a second accepted consumer proves it needs identical semantic facts and a copied offline closure."
+  },
+  "residual_risks": ["The pilot intentionally defers build configurations and module topologies outside one root module.", "A human still validates syntax-labelled local calls before extraction."],
+  "next_decision": {"recommendation": "Keep the Go package/import runner family-local and let P3 evidence decide whether a second consumer justifies any reusable primitive.", "rationale": "The pilot reaches a useful final proposal without external Go modules or a universal platform.", "blockers": []}
+}
