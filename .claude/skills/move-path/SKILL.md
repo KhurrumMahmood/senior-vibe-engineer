@@ -1,6 +1,6 @@
 ---
 name: move-path
-description: Deterministically plan, dry-run, apply, and verify standalone TypeScript/TSX file or directory moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Use for a reviewed move map with JSON plans, dry-run reporting, Git-aware moves, and explicit ignored-import risk. TypeScript/TSX source imports are never rewritten in v1; import-safe module moves need a resolver-aware follow-up.
+description: Deterministically plan, dry-run, apply, and verify standalone TypeScript/TSX file or directory moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. An explicit checked-JavaScript mode updates bounded literal module references through the host Compiler API. Use for a reviewed move map with JSON plans, dry-run reporting, Git-aware moves, and explicit ignored-import risk. TypeScript/TSX source imports are never rewritten in v1; import-safe module moves need a resolver-aware follow-up.
 argument-hint: "--plan moves.json --dry-run|--apply|--check"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 user-invocable: true
@@ -25,11 +25,11 @@ framework: any
 # /move-path
 
 You are the orchestrator for safe batched standalone TypeScript/TSX path
-moves. The deterministic script owns filesystem moves, path normalization,
-reference resolution, patch generation, and verification. Your job is to
-prepare or inspect the plan, run dry-run first, review uncertainty buckets and
-ignored-import risk, then apply only when the report is clean enough for the
-intended change.
+moves, plus an opt-in bounded checked-JavaScript mode. The deterministic
+script owns filesystem moves, path normalization, reference resolution, patch
+generation, and verification. Your job is to prepare or inspect the plan, run
+dry-run first, review uncertainty buckets and ignored-import risk, then apply
+only when the report is clean enough for the intended change.
 
 ## Core Contract
 
@@ -63,6 +63,23 @@ Do not claim an import-safe module move. Python import rewrites, TypeScript
 path aliases, package exports, project references, barrel compatibility,
 dynamic imports, and framework-specific routing are out of scope. They need a
 named `tsconfig`-aware resolver and separate acceptance evidence.
+
+## Checked-JavaScript Boundary
+
+Enable JavaScript rewriting only with both
+`rewrite.code_imports: "update-javascript"` and a named
+`javascript.config`. The family-local Node helper loads the host's pinned
+TypeScript Compiler API and requires that config to enable `allowJs` and
+`checkJs`. It gathers literal AST spans for static `import`/`export`, literal
+`import()`, and literal `require()` in `.js`, `.jsx`, `.mjs`, and `.cjs`.
+
+The mover rewrites only explicit relative JavaScript filenames. Bare packages,
+aliases, extension inference, framework conventions, and nonliteral dynamic
+imports are unsupported; a moved referrer with one of those forms blocks
+apply. Preflight and post-apply native checks must be `complete`; a failed
+post-apply check reverses the moves and restores source snapshots. Review the
+`javascript.status`, `javascript.exact_changes`, and any blocked records in
+the JSON report before accepting the move.
 
 ## Commands
 
@@ -118,6 +135,19 @@ Useful options:
 They are not part of the guaranteed copied-skill path; choose `.json` for a
 stdlib-only installation.
 
+For checked JavaScript, add this opt-in branch to the plan:
+
+```json
+{
+  "rewrite": {
+    "code_imports": "update-javascript"
+  },
+  "javascript": {
+    "config": "jsconfig.json"
+  }
+}
+```
+
 ## Confidence Buckets
 
 - `auto` — resolved identity, safe to update.
@@ -139,7 +169,8 @@ describing the old layout rather than linking to the current identity.
 3. Read `.engineering/local/move-path/report.md` and
    `.engineering/local/move-path/report.json`.
 4. Resolve `blocked` findings. Review `suggest` findings and every ignored
-   TypeScript import that resolves to a move target.
+   TypeScript import that resolves to a move target. In checked-JavaScript
+   mode, require a `complete` JavaScript status and review each exact change.
 5. Run `--apply` only after the dry-run report matches the intended
    transform.
 6. Run `--check` after manual follow-up edits or before commit.

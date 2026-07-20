@@ -136,6 +136,47 @@ of scope. The serial
 integrator, not this skill, owns applying host-wiring.diff to a global lint
 runner or hook.
 
+### Checked-JavaScript closed-state guard
+
+For a reviewed JavaScript closed-state proposal, first run the JavaScript
+detector and retain its complete manifest plus findings. The generator accepts
+only that evidence: a complete checked-JavaScript result and at least one
+first-party state-operation finding. It never fabricates findings from an
+unsupported, partial, or failed detector run. It requires the host's pinned
+TypeScript Compiler API and a named `jsconfig`/`tsconfig` that enables both
+`allowJs` and `checkJs`.
+
+    ID="javascript-state"
+    OUT="reports/prevent-regression/$ID"
+    node .claude/skills/prevent-regression/scripts/generate_javascript_state_guard.mjs \
+      --id "$ID" \
+      --project-root "$(pwd)" \
+      --config "$(pwd)/jsconfig.json" \
+      --findings reports/implicit-state/findings.jsonl \
+      --manifest reports/implicit-state/manifest.json \
+      --output-root "$OUT"
+
+    node .claude/skills/prevent-regression/scripts/verify_javascript_state_guard.mjs \
+      --rule "$OUT/scripts/lint/no_stringly_state_javascript.mjs" \
+      --bad "$OUT/tests/lint/no_stringly_state_bad.js" \
+      --bad "$OUT/tests/lint/no_stringly_state_bad.jsx" \
+      --bad "$OUT/tests/lint/no_stringly_state_bad.mjs" \
+      --bad "$OUT/tests/lint/no_stringly_state_bad.cjs" \
+      --good "$OUT/tests/lint/no_stringly_state_good.js" \
+      --good "$OUT/tests/lint/no_stringly_state_good.jsx" \
+      --good "$OUT/tests/lint/no_stringly_state_good.mjs" \
+      --good "$OUT/tests/lint/no_stringly_state_good.cjs"
+
+The completed proposal stages—not installs—the guard, four bad/good fixture
+pairs, and `host-wiring.diff`. The verifier must paste `BAD_RC=1, GOOD_RC=0`
+and runs every `.js`, `.jsx`, `.mjs`, and `.cjs` fixture independently. The
+guard covers direct/reversed comparisons, assignments, and one-hop local
+`const` aliases on first-party JSDoc closed `state`/`status`/`phase` values.
+It accepts a reasoned vendor-boundary `noqa` only when Compiler API type
+evidence matches the explicit vendor type names; general dataflow, computed
+properties, aliases, and framework semantics remain out of scope. The serial
+integrator owns applying the staged wiring.
+
 ## Argument parsing
 
 Four forms. Detect and route:

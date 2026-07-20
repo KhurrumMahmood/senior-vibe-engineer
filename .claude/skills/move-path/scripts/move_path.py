@@ -54,6 +54,7 @@ TS_IMPORT_RE = re.compile(
 )
 TYPESCRIPT_SUFFIXES = (".ts", ".tsx", ".mts", ".cts")
 TYPESCRIPT_MODULE_SUFFIXES = (".ts", ".tsx", ".d.ts")
+JAVASCRIPT_SUFFIXES = (".js", ".jsx", ".mjs", ".cjs")
 EMITTED_SPECIFIER_SOURCE_SUFFIXES = {
     ".js": (".ts", ".tsx", ".d.ts"),
     ".mjs": (".mts", ".d.mts"),
@@ -275,7 +276,10 @@ def iter_scope_files(root: Path, includes: list[str], excludes: list[str]) -> li
     for path in sorted(root.rglob("*")):
         if not path.is_file():
             continue
-        rel = repo_rel(path, root)
+        try:
+            rel = repo_rel(path, root)
+        except ValueError:
+            continue
         if matches_any(rel, excludes):
             continue
         if matches_any(rel, includes):
@@ -300,6 +304,22 @@ def iter_typescript_source_files(root: Path, excludes: list[str]) -> list[str]:
             continue
         rel = repo_rel(path, root)
         if not matches_any(rel, excludes):
+            out.append(rel)
+    return out
+
+
+def iter_javascript_source_files(root: Path, excludes: list[str]) -> list[str]:
+    out: list[str] = []
+    for path in sorted(root.rglob("*")):
+        if path.suffix.lower() not in JAVASCRIPT_SUFFIXES:
+            continue
+        try:
+            rel = path.relative_to(root).as_posix()
+        except ValueError:
+            continue
+        if not matches_any(rel, excludes) and not (
+            "tests" in Path(rel).parts or re.search(r"\.(?:test|spec)\.(?:js|jsx|mjs|cjs)$", rel)
+        ):
             out.append(rel)
     return out
 
@@ -450,10 +470,97 @@ def mode_for(plan: dict, key: str, default: str = "ignore") -> str:
 
 def code_import_mode(plan: dict) -> str:
     """Return the only supported source-import policy without implying safety."""
-    value = mode_for(plan, "code_imports", "ignore")
-    if value != "ignore":
-        raise SystemExit("rewrite.code_imports only supports ignore; TypeScript imports require a resolver-aware move")
+    value = str((plan.get("rewrite") or {}).get("code_imports", "ignore"))
+    if value not in {"ignore", "update-javascript"}:
+        raise SystemExit("rewrite.code_imports only supports ignore or update-javascript; TypeScript imports require a resolver-aware move")
     return value
+
+
+def javascript_config(plan: dict, root: Path) -> Path | None:
+    section = plan.get("javascript") or {}
+    if not isinstance(section, dict) or not section.get("config"):
+        return None
+    try:
+        return (root / normalize_plan_path(str(section["config"]), root)).resolve()
+    except ValueError as exc:
+        raise SystemExit(f"invalid javascript.config: {exc}") from exc
+
+
+def checked_javascript(root: Path, config: Path | None, files: list[str]) -> dict:
+    if config is None:
+        return {"status": "unsupported", "error": "javascript.config is required for update-javascript"}
+    node = shutil.which("node")
+    if node is None:
+        return {"status": "unsupported", "error": "node is not available on PATH"}
+    command = [
+        node,
+        str(Path(__file__).with_name("javascript_module_spans.mjs")),
+        "--project-root",
+        str(root),
+        "--config",
+        str(config),
+        *[str(root / file) for file in files],
+    ]
+    result = subprocess.run(command, cwd=root, text=True, capture_output=True, check=False)
+    try:
+        outcome = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        outcome = {"status": "failed", "error": "JavaScript helper emitted invalid JSON"}
+    outcome["returncode"] = result.returncode
+    return outcome
+
+
+def utf16_offset(text: str, offset: int) -> int:
+    units = 0
+    for index, char in enumerate(text):
+        if units >= offset:
+            return index
+        units += 2 if ord(char) > 0xFFFF else 1
+    return len(text)
+
+
+def javascript_rewrites(root: Path, moves: list[MoveSpec], outcome: dict) -> tuple[list[Replacement], list[dict]]:
+    replacements: list[Replacement] = []
+    blocked: list[dict] = []
+    for item in outcome.get("unsupported", []):
+        if after_path_for(item["file"], moves) != item["file"]:
+            blocked.append({"kind": "javascript_dynamic_import", "path": item["file"], "detail": item["kind"]})
+    for item in outcome.get("module_specifiers", []):
+        source = item["file"]
+        specifier = item["specifier"]
+        body, query, fragment = split_target(specifier)
+        resolved = resolve_reference(body, source, root) if not query and not fragment else None
+        source_after = after_path_for(source, moves)
+        target_after = after_path_for(resolved, moves) if resolved else None
+        affected = source_after != source or (resolved is not None and target_after != resolved)
+        if not affected or not body.startswith(("./", "../")):
+            continue
+        if (
+            resolved is None
+            or Path(resolved).suffix.lower() not in JAVASCRIPT_SUFFIXES
+            or not (root / resolved).is_file()
+            or (root / resolved).is_symlink()
+        ):
+            blocked.append({"kind": "javascript_import_unresolved", "path": source, "line": item["line"], "specifier": specifier})
+            continue
+        text = _read_text(root / source)
+        start = utf16_offset(text, item["start"])
+        end = utf16_offset(text, item["end"])
+        replacement = Replacement(
+            file_before=source,
+            file_after=source_after,
+            start=start,
+            end=end,
+            old=specifier,
+            new=format_reference(resolved, target_after or resolved, source_after, specifier),
+            kind="javascript_import",
+            confidence="auto",
+            target_before=resolved,
+            target_after=target_after or resolved,
+        )
+        if replacement.old != replacement.new:
+            replacements.append(replacement)
+    return replacements, blocked
 
 
 def resolve_typescript_import(
@@ -621,9 +728,8 @@ def detect_references(
 
     for rel in files:
         path = root / rel
-        # Never mutate TypeScript source. The separate risk scan records only
-        # local static imports that resolve to a moved identity.
-        if path.suffix in TYPESCRIPT_SUFFIXES:
+        # Source code is handled only by its language-specific path.
+        if path.suffix.lower() in {*TYPESCRIPT_SUFFIXES, *JAVASCRIPT_SUFFIXES}:
             continue
         try:
             text = _read_text(path)
@@ -787,7 +893,7 @@ def build_after_texts(root: Path, files: list[str], moves: list[MoveSpec], repla
 def all_repo_paths_after(root: Path, moves: list[MoveSpec]) -> set[str]:
     paths: set[str] = set()
     for path in root.rglob("*"):
-        if path.is_file():
+        if path.is_file() and not path.is_symlink():
             rel = repo_rel(path, root)
             if rel.startswith(".git/"):
                 continue
@@ -826,7 +932,7 @@ def current_texts(root: Path, files: list[str]) -> dict[str, str]:
 def current_paths(root: Path) -> set[str]:
     paths: set[str] = set()
     for path in root.rglob("*"):
-        if path.is_file():
+        if path.is_file() and not path.is_symlink():
             rel = repo_rel(path, root)
             if not rel.startswith(".git/"):
                 paths.add(rel)
@@ -1121,6 +1227,14 @@ def render_markdown(payload: dict) -> str:
             )
     else:
         out.append("- No local TypeScript/TSX import is invalidated by a moved target or referrer.")
+    if javascript := payload.get("javascript"):
+        out.extend(["", "## Checked JavaScript", ""])
+        out.append(f"- Status: `{javascript['status']}`")
+        out.append(f"- Updated import spans: {len(javascript.get('updates', []))}")
+        if javascript.get("error"):
+            out.append(f"- Detail: {javascript['error']}")
+        if javascript.get("rolled_back"):
+            out.append("- Source changes were rolled back after the host-native check failed.")
     out.extend(["", "## Post-Apply Broken Links", ""])
     if payload["post_broken_links"]:
         for item in payload["post_broken_links"]:
@@ -1135,6 +1249,18 @@ def write_report(report_dir: Path, payload: dict) -> None:
     report_dir.mkdir(parents=True, exist_ok=True)
     _write_text(report_dir / "report.json", json.dumps(payload, indent=2, sort_keys=True) + "\n")
     _write_text(report_dir / "report.md", render_markdown(payload))
+
+
+def add_javascript_report(payload: dict, outcome: dict, replacements: list[Replacement], *, rolled_back: bool = False) -> None:
+    payload["javascript"] = {
+        "mode": "update-javascript",
+        "status": outcome["status"],
+        "error": outcome.get("error"),
+        "updates": [dataclasses.asdict(item) for item in replacements],
+        "exact_changes": [dataclasses.asdict(item) for item in replacements],
+        "rolled_back": rolled_back,
+    }
+    payload["summary"]["javascript_status"] = outcome["status"]
 
 
 def merge_ignored_code_imports(pre_apply: list[dict], post_apply: list[dict]) -> list[dict]:
@@ -1168,11 +1294,13 @@ def run_plan(
     root = project_root or git_root(Path.cwd()) or Path.cwd()
     root = root.resolve()
     plan = load_plan(plan_path, root)
-    code_import_mode(plan)
+    import_mode = code_import_mode(plan)
     moves: list[MoveSpec] = plan["_moves"]
     includes, excludes = plan_patterns(plan)
     files = exclude_authority_file(iter_scope_files(root, includes, excludes), plan_path, root)
     ignored_code_imports = ignored_typescript_imports(root, iter_typescript_source_files(root, excludes), moves)
+    javascript_files = iter_javascript_source_files(root, excludes)
+    config = javascript_config(plan, root) if import_mode == "update-javascript" else None
     if mode == "check":
         blocked = validate_applied_moves(root, moves)
         texts = current_texts(root, files)
@@ -1191,13 +1319,28 @@ def run_plan(
             dirty=[],
             ignored_code_imports=ignored_code_imports,
         )
+        if import_mode == "update-javascript":
+            add_javascript_report(payload, checked_javascript(root, config, javascript_files), [])
         write_report(report_dir, payload)
         return payload
 
     blocked = validate_moves(root, moves)
     replacements, suggestions, reference_blocked = detect_references(root, plan, moves, files)
     blocked.extend(reference_blocked)
-    after_texts = build_after_texts(root, files, moves, replacements)
+    javascript = checked_javascript(root, config, javascript_files) if import_mode == "update-javascript" else None
+    javascript_replacements: list[Replacement] = []
+    if javascript is not None:
+        if javascript["status"] == "complete":
+            javascript_replacements, javascript_blocked = javascript_rewrites(root, moves, javascript)
+            blocked.extend(javascript_blocked)
+            if javascript_blocked:
+                javascript["status"] = "partial"
+        else:
+            blocked.append({"kind": f"javascript_{javascript['status']}", "detail": javascript.get("error")})
+    elif any(Path(move.src).suffix.lower() in JAVASCRIPT_SUFFIXES for move in moves):
+        blocked.append({"kind": "javascript_updates_not_enabled", "detail": "JavaScript moves require update-javascript"})
+    replacements.extend(javascript_replacements)
+    after_texts = build_after_texts(root, sorted({*files, *javascript_files}), moves, replacements)
     after_paths = all_repo_paths_after(root, moves)
     post_broken = verify_markdown_links(root, after_texts, after_paths)
 
@@ -1220,6 +1363,8 @@ def run_plan(
         dirty=dirty,
         ignored_code_imports=ignored_code_imports,
     )
+    if javascript is not None:
+        add_javascript_report(payload, javascript, javascript_replacements)
     write_report(report_dir, payload)
 
     safety = plan.get("safety") or {}
@@ -1231,7 +1376,21 @@ def run_plan(
         raise SystemExit(f"blocked findings prevent apply; see {report_dir / 'report.md'}")
     if fail_on_broken and post_broken:
         raise SystemExit(f"post-apply broken links prevent apply; see {report_dir / 'report.md'}")
+    snapshots = {path: (root / path).read_bytes() for path in touched_before}
     apply_moves_and_rewrites(root, moves, after_texts, touched_before, stage=stage)
+    if javascript is not None:
+        checked_after = checked_javascript(root, config, [after_path_for(path, moves) for path in javascript_files])
+        if checked_after["status"] != "complete":
+            for move in sorted(moves, key=lambda item: len(item.src)):
+                if (root / move.dst).exists() and not (root / move.src).exists():
+                    move_one(root, move.dst, move.src)
+            for path, contents in snapshots.items():
+                (root / path).write_bytes(contents)
+            add_javascript_report(payload, checked_after, javascript_replacements, rolled_back=True)
+            payload["blocked"].append({"kind": f"javascript_{checked_after['status']}", "detail": checked_after.get("error")})
+            payload["summary"]["blocked"] = len(payload["blocked"])
+            write_report(report_dir, payload)
+            raise SystemExit(f"checked JavaScript failed; source rolled back; see {report_dir / 'report.md'}")
     # Re-run check after mutation so report reflects final state.
     post_apply = run_plan(
         plan_path=plan_path,
@@ -1245,6 +1404,10 @@ def run_plan(
     if merged_imports != post_apply["code_imports"]["ignored"]:
         post_apply["code_imports"]["ignored"] = merged_imports
         post_apply["summary"]["ignored_code_import_risks"] = len(merged_imports)
+        write_report(report_dir, post_apply)
+    if javascript is not None:
+        post_apply["javascript"] = payload["javascript"]
+        post_apply["summary"]["javascript_status"] = payload["javascript"]["status"]
         write_report(report_dir, post_apply)
     return post_apply
 
