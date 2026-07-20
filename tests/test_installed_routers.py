@@ -126,6 +126,25 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         library_root / ".claude" / "skills" / "_common"
     )
     assert payload["handoff"]["shared_guidance"] == str(library_root / ".claude" / "docs")
+    assert payload["handoff"]["source_inventory_tool"] == str(
+        library_root / "scripts" / "source_inventory.py"
+    )
+    assert payload["handoff"]["capabilities"]["available"] is True
+    assert payload["handoff"]["capabilities"]["manifest"] == str(
+        library_root / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
+    )
+    assert payload["handoff"]["capabilities"]["skills"] == [
+        {
+            "skill": "diagnose",
+            "expansion_disposition": "validated-neutral",
+            "typescript_disposition": "validated-neutral",
+            "fact_level": "neutral",
+            "outcome_class": "not-applicable",
+            "framework_family": None,
+            "closure_skills": ["diagnose"],
+            "optional_install_status": "passed",
+        }
+    ]
     assert "--skill diagnose" in payload["optional_install"]["command"]
 
     resource_routed = _run_isolated(
@@ -145,6 +164,107 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     selected_root = Path(resource_payload["handoff"]["guides"][0]["skill_root"])
     assert (selected_root / "agents" / "impact-scout.md").is_file()
     assert (selected_root / "knowledge").is_dir()
+    assert resource_payload["handoff"]["capabilities"]["skills"][0] == {
+        "skill": "plan-feature",
+        "expansion_disposition": "framework-bound",
+        "typescript_disposition": "stack-bound",
+        "fact_level": "framework",
+        "outcome_class": "framework-specific",
+        "framework_family": "architecture-planning",
+        "closure_skills": ["plan-feature"],
+        "optional_install_status": "deferred-named-stack",
+    }
+
+    typescript_routed = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "find repeated bare status literals in src/job.ts",
+        "--project-root",
+        str(host),
+        "--json",
+        cwd=host,
+    )
+    typescript_payload = _json_output(typescript_routed)
+    assert typescript_payload["handoff"]["capabilities"]["skills"][0] == {
+        "skill": "find-implicit-state",
+        "expansion_disposition": "language-level",
+        "typescript_disposition": "typescript-supported",
+        "fact_level": "semantic-project",
+        "outcome_class": "read-only-report",
+        "framework_family": None,
+        "closure_skills": ["find-implicit-state"],
+        "optional_install_status": "passed",
+    }
+
+    shape_routed = _run_isolated(
+        installed["which-shape"] / "scripts" / "route.py",
+        "onboard an unknown inherited repo and figure out what loop to run",
+        "--project-root",
+        str(host),
+        "--json",
+        "--skip-log",
+        cwd=host,
+    )
+    shape_payload = _json_output(shape_routed)
+    assert shape_payload["handoff"]["capabilities"]["skills"][0] == {
+        "skill": "adapt-project",
+        "expansion_disposition": "language-level",
+        "typescript_disposition": "typescript-supported",
+        "fact_level": "lexical-filesystem",
+        "outcome_class": "configuration-output",
+        "framework_family": None,
+        "closure_skills": ["adapt-project"],
+        "optional_install_status": "passed",
+    }
+
+    cleanup_routed = _run_isolated(
+        installed["which-cleanup"] / "scripts" / "route.py",
+        "src/app.py",
+        "tests/test_app.py",
+        "--project-root",
+        str(host),
+        "--json",
+        cwd=host,
+    )
+    cleanup_payload = _json_output(cleanup_routed)
+    cleanup_recommendations = {
+        item["skill"]: item for item in cleanup_payload["recommendations"]
+    }
+    assert cleanup_recommendations["find-test-obligation-drift"]["handoff"][
+        "capabilities"
+    ]["skills"][0] == {
+        "skill": "find-test-obligation-drift",
+        "expansion_disposition": "framework-bound",
+        "typescript_disposition": "stack-bound",
+        "fact_level": "framework",
+        "outcome_class": "framework-specific",
+        "framework_family": "framework-quality",
+        "closure_skills": ["find-test-obligation-drift"],
+        "optional_install_status": "deferred-named-stack",
+    }
+
+    rename_routed = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use rename-concept to rename the TypeScript domain term",
+        "--project-root",
+        str(host),
+        "--json",
+        cwd=host,
+    )
+    rename_payload = _json_output(rename_routed)
+    rename_capabilities = rename_payload["handoff"]["capabilities"]
+    assert rename_payload["handoff"]["skills"] == [
+        "rename-concept",
+        "find-concept-divergence",
+    ]
+    assert rename_capabilities["available"] is True
+    assert rename_capabilities["skills"][0]["closure_skills"] == [
+        "rename-concept",
+        "find-concept-divergence",
+    ]
+    assert [row["optional_install_status"] for row in rename_capabilities["skills"]] == [
+        "passed",
+        "passed",
+    ]
 
 
 def test_library_bootstrap_refuses_to_overwrite_an_existing_incomplete_destination(tmp_path):
@@ -167,6 +287,57 @@ def test_library_bootstrap_refuses_to_overwrite_an_existing_incomplete_destinati
     assert result.returncode == 2
     assert "existing library is incomplete" in result.stderr
     assert sentinel.read_text(encoding="utf-8") == "owned by host\n"
+
+
+@pytest.mark.parametrize(
+    "corruption",
+    ["schema", "duplicate", "missing-selected", "closure-mismatch"],
+)
+def test_installed_router_reports_invalid_capability_manifest(tmp_path, corruption):
+    host = tmp_path / "host"
+    router = _install_router(host, "which-skill")
+    library_root = host.parent / ".engineering-skills" / host.name
+    guide = library_root / ".claude" / "skills" / "diagnose" / "SKILL.md"
+    guide.parent.mkdir(parents=True)
+    guide.write_text("# diagnose\n", encoding="utf-8")
+    manifest = library_root / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
+    manifest.parent.mkdir(parents=True)
+    payload = json.loads(
+        (REPO_ROOT / ".claude" / "tasks" / "multilanguage-skill-matrix.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    diagnose = next(row for row in payload["skills"] if row["skill"] == "diagnose")
+    if corruption == "schema":
+        payload["schema_version"] = 2
+    elif corruption == "duplicate":
+        payload["skills"].append(dict(diagnose))
+    elif corruption == "missing-selected":
+        payload["skills"] = [row for row in payload["skills"] if row["skill"] != "diagnose"]
+    else:
+        diagnose["on_demand_closure"]["closure_skills"] = [
+            "diagnose",
+            "find-duplication",
+        ]
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = _run_isolated(
+        router / "scripts" / "match.py",
+        "diagnose failing export job regression with no reproduction yet",
+        "--project-root",
+        str(host),
+        "--json",
+        cwd=host,
+    )
+
+    routed = _json_output(result)
+    assert routed["recommendation"] == "diagnose"
+    assert routed["handoff"]["capabilities"] == {
+        "available": False,
+        "manifest": str(manifest),
+        "skills": [],
+        "reason": "manifest_invalid_or_incomplete",
+    }
 
 
 @pytest.mark.parametrize(
@@ -253,6 +424,8 @@ def test_installed_which_skill_routes_earned_typescript_state_skill(tmp_path):
     assert payload["routing_context"]["language_source"] == "task_marker"
     assert payload["recommendation"] == "find-implicit-state"
     assert payload["handoff"]["skills"] == ["find-implicit-state"]
+    assert payload["handoff"]["capabilities"]["available"] is False
+    assert payload["handoff"]["capabilities"]["reason"] == "manifest_missing"
 
 
 def test_installed_which_skill_routes_typescript_explanation(tmp_path):
@@ -462,6 +635,8 @@ def test_installed_which_cleanup_routes_without_repository_runtime(tmp_path):
     assert "find-test-obligation-drift" in recommendations
     handoff = recommendations["find-test-obligation-drift"]["handoff"]
     assert handoff["skills"] == ["find-test-obligation-drift"]
+    assert handoff["capabilities"]["available"] is False
+    assert handoff["capabilities"]["reason"] == "manifest_missing"
     optional_install = recommendations["find-test-obligation-drift"]["optional_install"]
     assert optional_install["source"] == "/tmp/engineering-skills-source"
     assert "--skill find-test-obligation-drift" in optional_install["command"]

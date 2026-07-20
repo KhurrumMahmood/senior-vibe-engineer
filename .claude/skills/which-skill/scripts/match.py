@@ -397,6 +397,84 @@ def resolve_library_root(project_root: Path, library_root: Path | None) -> Path:
     return root.resolve()
 
 
+CAPABILITY_FIELDS = (
+    "skill",
+    "expansion_disposition",
+    "typescript_disposition",
+    "fact_level",
+    "outcome_class",
+    "framework_family",
+)
+
+
+def capability_handoff(library_root: Path, skills: list[str]) -> dict:
+    manifest = library_root / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
+    unavailable = {
+        "available": False,
+        "manifest": str(manifest),
+        "skills": [],
+    }
+    if not manifest.is_file():
+        return {**unavailable, "reason": "manifest_missing"}
+    try:
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+        if payload.get("schema_version") != 1:
+            raise TypeError("unsupported capability manifest schema")
+        rows = payload["skills"]
+        if not isinstance(rows, list):
+            raise TypeError("skills must be a list")
+        by_name = {}
+        for row in rows:
+            if not isinstance(row, dict) or not isinstance(row.get("skill"), str):
+                raise TypeError("capability row must have a skill name")
+            name = row["skill"]
+            if not name or name in by_name:
+                raise TypeError("capability skill names must be unique and non-empty")
+            by_name[name] = row
+        selected = []
+        for skill in skills:
+            row = by_name[skill]
+            if any(field not in row for field in CAPABILITY_FIELDS):
+                raise KeyError("selected capability row is incomplete")
+            if any(
+                not isinstance(row[field], str) or not row[field]
+                for field in CAPABILITY_FIELDS
+                if field != "framework_family"
+            ) or not (
+                row["framework_family"] is None
+                or isinstance(row["framework_family"], str)
+            ):
+                raise TypeError("selected capability fields are invalid")
+            closure = row["on_demand_closure"]["closure_skills"]
+            install_status = row["optional_install"]["status"]
+            if (
+                not isinstance(closure, list)
+                or not closure
+                or closure[0] != skill
+                or len(closure) != len(set(closure))
+                or any(not isinstance(member, str) or not member for member in closure)
+                or any(member not in by_name for member in closure)
+                or not isinstance(install_status, str)
+            ):
+                raise TypeError("selected capability closure is invalid")
+            selected.append(
+                {
+                    **{field: row[field] for field in CAPABILITY_FIELDS},
+                    "closure_skills": closure,
+                    "optional_install_status": install_status,
+                }
+            )
+        if selected and selected[0]["closure_skills"] != skills:
+            raise TypeError("router handoff does not match the declared closure")
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError):
+        return {**unavailable, "reason": "manifest_invalid_or_incomplete"}
+    return {
+        "available": True,
+        "manifest": str(manifest),
+        "skills": selected,
+    }
+
+
 def library_handoff(library_root: Path, skills: list[str]) -> dict:
     guides = []
     for skill in skills:
@@ -411,6 +489,7 @@ def library_handoff(library_root: Path, skills: list[str]) -> dict:
             }
         )
     shared_tooling = library_root / "scripts"
+    source_inventory = shared_tooling / "source_inventory.py"
     common_guidance = library_root / ".claude" / "skills" / "_common"
     shared_guidance = library_root / ".claude" / "docs"
     return {
@@ -421,8 +500,10 @@ def library_handoff(library_root: Path, skills: list[str]) -> dict:
         "skills": skills,
         "guides": guides,
         "shared_tooling": str(shared_tooling) if shared_tooling.is_dir() else None,
+        "source_inventory_tool": str(source_inventory) if source_inventory.is_file() else None,
         "common_guidance": str(common_guidance) if common_guidance.is_dir() else None,
         "shared_guidance": str(shared_guidance) if shared_guidance.is_dir() else None,
+        "capabilities": capability_handoff(library_root, skills),
         "instruction": (
             "For non-trivial work, give a fresh non-context sub-agent the task, project root, "
             "task packet, selected skill roots, and shared guidance/tool paths. For small work, "

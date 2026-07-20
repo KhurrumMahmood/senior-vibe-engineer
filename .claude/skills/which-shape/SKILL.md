@@ -92,8 +92,9 @@ The recommendation includes:
 - stop/reassess condition;
 - alternatives.
 - an on-demand handoff for the first skill plus any companions declared by the
-  shape, with exact local guide/tool paths and a fresh non-context-sub-agent
-  default;
+  shape, with exact local guide/tool paths, shared source inventory, validated
+  language/fact/outcome capability rows for that closure, and a fresh
+  non-context-sub-agent default;
 - a pinned ambient-install command only as an explicit optional alternative.
 
 If the script reports `confidence: low` — or any rationale line reads

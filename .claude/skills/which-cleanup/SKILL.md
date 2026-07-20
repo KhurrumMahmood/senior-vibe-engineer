@@ -69,9 +69,10 @@ Honor these fields:
 - `scope_band`: `trivial`, `small`, `medium`, or `large`, based on changed-file
   count. It controls roster width, not correctness or risk by itself.
 - `resolved_paths`: the exact bounded paths considered.
-- `recommendations[]`: skill, reason, primary on-demand `handoff`, and an
-  `optional_install` command used only when the user requests ambient
-  installation.
+- `recommendations[]`: skill, reason, primary on-demand `handoff` with the
+  shared source-inventory path and manifest-backed language/fact/outcome
+  capability row, and an `optional_install` command used only when the user
+  requests ambient installation.
 - `source`: the canonical repository and conventional skill/tool roots.
 - `limitations`: what portable mode deliberately does not infer.
 

@@ -318,8 +318,20 @@ def test_recommendation_prefers_on_demand_handoff_and_keeps_install_optional(tmp
             }
         ],
         "shared_tooling": None,
+        "source_inventory_tool": None,
         "common_guidance": None,
         "shared_guidance": None,
+        "capabilities": {
+            "available": False,
+            "manifest": str(
+                library_root
+                / ".claude"
+                / "tasks"
+                / "multilanguage-skill-matrix.json"
+            ),
+            "skills": [],
+            "reason": "manifest_missing",
+        },
         "instruction": (
             "For non-trivial work, give a fresh non-context sub-agent the task, project root, "
             "task packet, selected skill roots, and shared guidance/tool paths. For small work, "

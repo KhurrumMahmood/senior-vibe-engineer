@@ -71,6 +71,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
     assert set(names) == catalog_names
     assert Counter(row["expansion_disposition"] for row in rows) == EXPECTED_COUNTS
     assert payload["counts"] == EXPECTED_COUNTS
+    assert Counter(row["optional_install"]["status"] for row in rows) == {
+        "passed": 41,
+        "deferred-named-stack": 22,
+        "not-host-language-variant": 13,
+    }
 
     source_by_path = {row["path"]: row["sha256"] for row in payload["sources"]}
     for source in (CATALOG, TYPESCRIPT_COVERAGE):
@@ -90,6 +95,8 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         companions = row["catalog"]["install_with"]
         assert closure["mode"] == "on-demand-library"
         assert closure["closure_skills"] == [row["skill"], *companions]
+        assert len(closure["closure_skills"]) == len(set(closure["closure_skills"]))
+        assert set(closure["closure_skills"]) <= catalog_names
         assert [guide["skill"] for guide in closure["guides"]] == closure[
             "closure_skills"
         ]

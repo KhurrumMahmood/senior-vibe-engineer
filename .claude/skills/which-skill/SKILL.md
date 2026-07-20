@@ -146,8 +146,11 @@ The matcher returns JSON with:
 - `recommendation: unsupported` — returned instead of silently substituting a
   weaker skill when the strongest semantic match is ineligible for the host
 - `handoff` — the winner plus declared companions, exact local guide and
-  bundled/shared tooling paths, availability, and the default fresh
-  non-context-sub-agent execution mode
+  bundled/shared tooling paths (including the shared source inventory), the
+  manifest-backed language/fact/outcome capability rows for the exact closure,
+  availability, and the default fresh non-context-sub-agent execution mode.
+  Before the on-demand library is bootstrapped, capability metadata reports a
+  stable unavailable reason instead of guessing.
 - `optional_install` — pinned stock command for ambient installation of the
   exact closure, used only when the user explicitly requests it
 - `task_packet` — the optional task-packet fields (`lanes`, `stage`,
