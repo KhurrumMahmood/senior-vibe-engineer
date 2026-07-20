@@ -1,13 +1,13 @@
 ---
 name: propose-folder-reorganization
-description: Turn a confirmed Python or TypeScript folder-topology cluster into a per-cluster reorganization proposal. TypeScript v1 resolves direct relative and tsconfig `paths` alias import impact, records barrel/subpath compatibility, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
+description: Turn a confirmed Python, TypeScript, or checked-JavaScript folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves direct relative and config `paths` alias import impact, records barrel/subpath compatibility, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
 argument-hint: "<folder-topology:ID or parent::prefix>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
 job: explain
 best_for: |
-  A TypeScript flat-prefix folder cluster needing resolved import impact,
+  A TypeScript or checked-JavaScript flat-prefix folder cluster needing resolved import impact,
   a target tree, barrel/subpath compatibility, and native verification plan.
   A confirmed folder-topology drift finding ready for a per-cluster
   reorganization proposal — produces the current → proposed tree,
@@ -25,7 +25,7 @@ not_for: |
   recommends `defer_scratch_code` instead of a refactor.
 language: any
 framework: any
-scans: [python, typescript]
+scans: [python, typescript, javascript]
 ---
 
 # /propose-folder-reorganization
@@ -106,9 +106,9 @@ Write toward these gates from Stage 0.
 - **Read-only.** No file moves, no edits, no Edit tool. The
   orchestrator's `allowed-tools` list intentionally excludes Edit.
 
-## TypeScript / TSX v1 — one resolved cluster proposal
+## TypeScript / TSX and checked-JavaScript v1 — one resolved cluster proposal
 
-The Python workflow below remains unchanged. This additive TypeScript branch
+The Python workflow below remains unchanged. This additive typed-source branch
 is for one human-confirmed flat file cluster only; it does not infer a Node,
 React, Next, ORM, or test-framework convention.
 
@@ -116,7 +116,8 @@ React, Next, ORM, or test-framework convention.
 
 Given a direct parent directory, a prefix, a named project-local `tsconfig`,
 and the host's own installed `typescript` package, produce a read-only
-proposal for three or more eligible `prefix-*.ts[x]` or `prefix_*.ts[x]`
+proposal for three or more eligible `prefix-*.ts[x]` / `prefix_*.ts[x]` or
+`prefix-*.js[x]` / `prefix_*.js[x]` (including `.mjs` and `.cjs`)
 siblings. The final proposal and its JSON inspection contain:
 
 - every selected source file and its destination beneath
@@ -139,7 +140,13 @@ refactor verdict.
 
 This v1 does not execute the move, discover test ownership, resolve dynamic
 or runtime module loading, infer framework conventions, preserve unlisted
-external package subpaths, or claim a TypeScript framework migration.
+external package subpaths, or claim a TypeScript or JavaScript framework migration.
+
+Checked JavaScript passes `--language javascript` with a named `jsconfig.json`
+or `tsconfig.json` that sets `allowJs` and `checkJs`. It accepts `.js`, `.jsx`,
+`.mjs`, and `.cjs`, including a JS cluster in a mixed JS/TS root. A selected
+file omitted from that config is an explicit `partial`/`defer_partial_config`
+artifact, not a move authority.
 
 ### TypeScript guardrails and statuses
 
@@ -186,6 +193,7 @@ npx --yes skills@1.5.19 add "${PROPOSE_FOLDER_REORGANIZATION_SOURCE}" \
 PFR_PARENT="${PFR_PARENT:-src}"
 PFR_PREFIX="${PFR_PREFIX:-billing}"
 PFR_CLUSTER_JUDGMENT="${PFR_CLUSTER_JUDGMENT:-split}"
+PFR_LANGUAGE="${PFR_LANGUAGE:-typescript}" # typescript | javascript
 PFR_TSCONFIG="${PFR_TSCONFIG:-tsconfig.json}"
 PFR_NAME="${PFR_NAME:-${PFR_PARENT//\//-}__${PFR_PREFIX}}"
 SKILL_ROOT=""
@@ -207,6 +215,7 @@ node "${SKILL_ROOT}/scripts/propose_typescript.mjs" \
   --prefix "${PFR_PREFIX}" \
   --cluster-judgment "${PFR_CLUSTER_JUDGMENT}" \
   --project-root "$(pwd)" \
+  --language "${PFR_LANGUAGE}" \
   --tsconfig "${PFR_TSCONFIG}" \
   --proposal "reports/propose-folder-reorganization/${PFR_NAME}/proposal.md" \
   --inspection "reports/propose-folder-reorganization/${PFR_NAME}/inspection.json"

@@ -1,13 +1,13 @@
 ---
 name: unify-shadows
-description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX v1 consumes the accepted structured /find-semantic-duplication finding and emits proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
+description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX and checked-JavaScript v1 consume the accepted structured /find-semantic-duplication finding and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
 argument-hint: "<semantic:SC-N | semantic:TS-SD-NNNN | explicit target spec>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
 job: explain
 best_for: |
-  One confirmed Python or TypeScript semantic-duplication finding from
+  One confirmed Python, TypeScript, or checked-JavaScript semantic-duplication finding from
   /find-semantic-duplication (shape =
   keep_separate_document_why | share_utilities | complete_migration |
   merge_at_workflow). Produces an implementation-ready proposal at
@@ -19,7 +19,7 @@ not_for: |
   Applying production edits happens downstream after proposal approval.
 language: any
 framework: any
-scans: [python, typescript]
+scans: [python, typescript, javascript]
 ---
 
 # /unify-shadows
@@ -101,14 +101,15 @@ Write toward these gates from Stage 0.
   orchestrator reads the section for the scan's `consolidation_shape`
   during Stage 3; scouts do not read it.
 
-## TypeScript / TSX v1 — structured proposal consumer
+## TypeScript / TSX and checked-JavaScript v1 — structured proposal consumer
 
 This branch consumes the final machine-readable output from the accepted
-TypeScript path of `/find-semantic-duplication`. It does not parse the legacy
+TypeScript or checked-JavaScript path of `/find-semantic-duplication`. It does not parse the legacy
 triage Markdown, run scouts, re-detect duplication, or infer framework/runtime
 behavior. The input must have:
 
-- `skill: "find-semantic-duplication"` and `language: "typescript"`;
+- `skill: "find-semantic-duplication"` and matching `language: "typescript"` or
+  `language: "javascript"` selected with `--language`;
 - exactly one selected record in both `confirmed` and the accepted public
   `findings` list;
 - `investigation_status: "confirmed"`, `level: "function"`, at least two
@@ -117,7 +118,7 @@ behavior. The input must have:
 - a readable capability matrix beside `findings.json` with the static return,
   returned-fields, direct-call, and exception/async evidence rows.
 
-The TypeScript detector's `caller_count` covers compiler-resolved incoming
+The typed-source detector's `caller_count` covers compiler-resolved incoming
 calls from its eligible candidate graph. It does **not** carry complete
 project caller locations. The proposal renders `null`/`-1` as unknown and
 requires a full language-service/reference inventory before approval; it
@@ -128,6 +129,12 @@ plus filesystem/JSON APIs. It writes no host source and needs no toolkit venv,
 repository script, sibling skill, shared TypeScript service, or network call.
 It records the host's declared `npm run typecheck` and `npm test` commands in
 the test matrix without executing the refactor or tests itself.
+
+Checked JavaScript accepts only current `.js`, `.jsx`, `.mjs`, and `.cjs`
+member spans from a `language: "javascript"` confirmed finding. It preserves
+the finding's complete/partial evidence boundary: partial, uncertain, malformed,
+or unsupported input exits 2 before synthesis; it never upgrades an inferred
+or lexical duplicate into a consolidation proposal.
 
 ### Installed TypeScript commands
 
@@ -147,7 +154,8 @@ writes only beneath `reports/unify-shadows/`.
 
 <!-- installed-command:typescript-proposal:start -->
 ```bash
-: "${UNIFY_FINDINGS:?Set UNIFY_FINDINGS to the confirmed TypeScript findings.json}"
+: "${UNIFY_FINDINGS:?Set UNIFY_FINDINGS to the confirmed typed-source findings.json}"
+: "${UNIFY_LANGUAGE:=typescript}" # typescript | javascript
 : "${UNIFY_FINDING_ID:?Set UNIFY_FINDING_ID to one confirmed TS-SD identifier}"
 SKILL_ROOT=""
 for SKILL_CANDIDATE in \
@@ -167,6 +175,7 @@ node "${SKILL_ROOT}/scripts/propose_typescript.mjs" \
   --findings "${UNIFY_FINDINGS}" \
   --finding-id "${UNIFY_FINDING_ID}" \
   --project-root "$(pwd)" \
+  --language "${UNIFY_LANGUAGE}" \
   --proposal "reports/unify-shadows/${UNIFY_FINDING_ID}/proposal.md" \
   --evidence "reports/unify-shadows/${UNIFY_FINDING_ID}/evidence.json"
 ```
@@ -180,7 +189,7 @@ partial proposal.
 
 ## Argument parsing
 
-The forms below are the retained Python/scout branch. TypeScript uses the
+The forms below are the retained Python/scout branch. Typed-source uses the
 installed structured proposal command above and requires a `TS-SD-*` finding
 ID plus its exact `findings.json` path.
 

@@ -1,6 +1,6 @@
 ---
 name: extract-enum
-description: Turn a confirmed Django string-state field into a TextChoices proposal, or a reviewed TypeScript closed-state detector result into an as-const runtime-value-object proposal. Emits an implementation-ready caller and boundary inventory without editing production code.
+description: Turn a confirmed Django string-state field into a TextChoices proposal, or a reviewed TypeScript or checked-JavaScript closed-state detector result into an as-const runtime-value-object proposal. Emits an implementation-ready caller and boundary inventory without editing production code.
 argument-hint: "<implicit-state:ID or FILE::FIELD>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -11,7 +11,7 @@ best_for: |
   target) on a Django model field, ready for a TextChoices proposal —
   produces the enum class, caller migration table, data-migration risks,
   and stop condition. Read-only. Decided in: 0001 (TextChoices for state).
-  For TypeScript, consume the closed-state detector JSONL to propose one
+  For TypeScript or checked JavaScript, consume the closed-state detector JSONL to propose one
   exported as-const runtime value object, its derived union, all caller
   migrations, and named vendor boundaries.
 not_for: |
@@ -23,7 +23,7 @@ not_for: |
   `str`-valued Enum (`enum.StrEnum` on 3.11+, or `class X(str, Enum)`),
   not TextChoices, and the collector only walks model fields; apply that
   conversion by hand.
-  Do not use the TypeScript branch for untyped/open-ended strings, a
+  Do not use the TypeScript or checked-JavaScript branch for untyped/open-ended strings, a
   framework-specific ORM representation, or a project-native string enum
   without fixture evidence for that convention.
 language: any
@@ -62,11 +62,14 @@ supporting `targets.json` and `profile.md`.
   after human review.
 Write toward these gates from Stage 0.
 
-## TypeScript closed-state branch
+## TypeScript and checked-JavaScript closed-state branch
 
 This branch consumes JSONL from
 find-implicit-state/scripts/detect_typescript_state.mjs; it does not infer
-TypeScript candidates with a regex and does not accept a Django finding ID.
+TypeScript or JavaScript candidates with a regex and does not accept a Django finding ID.
+Checked JavaScript accepts only `.js`, `.jsx`, `.mjs`, and `.cjs` records from
+a named checked config; a mixed JS/TS root is allowed, but the proposal's
+authority is the selected JavaScript detector artifact only.
 The supported target is one closed first-party state field/type with repeated
 bare string assignment or comparison operations, including detector-attributed
 direct aliases and chained assignment targets. Its proposal creates one
@@ -79,15 +82,22 @@ Prisma/TypeORM/Sequelize conventions, generic enum preference, and a
 project-native string enum unless the host's reviewed fixture establishes that
 as the existing convention.
 
-    REPORT_DIR="reports/extract-enum/typescript-state"
+    STATE_LANGUAGE="${STATE_LANGUAGE:-typescript}" # typescript | javascript
+    STATE_MANIFEST="${STATE_MANIFEST:-/dev/null}" # JavaScript: detector manifest (required)
+    REPORT_DIR="reports/extract-enum/${STATE_LANGUAGE}-state"
     mkdir -p "$REPORT_DIR"
     node .claude/skills/extract-enum/scripts/collect_typescript_state.mjs \
       --findings reports/implicit-state/<scan>/findings.jsonl \
       --project-root "$(pwd)" \
+      --language "${STATE_LANGUAGE}" \
+      --manifest "${STATE_MANIFEST}" \
       --output "$REPORT_DIR/targets.json" \
       --proposal "$REPORT_DIR/proposal.md"
 
-The command exits 2 if the detector result is malformed, empty, or mixes
+For JavaScript, the detector manifest is required and must report a complete
+checked-JavaScript run (`allowJs` + `checkJs`) with finite JSDoc authority;
+partial, missing-JSDoc, and open/untyped evidence exits 2 before an artifact
+exists. The command exits 2 if the detector result is malformed, empty, or mixes
 multiple state fields/types. Grade success from targets.json, proposal.md,
 and [collect_typescript_state] stderr: the proposal must enumerate every
 first-party caller, all distinct literals, and the excluded vendor boundary.

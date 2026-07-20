@@ -1,13 +1,13 @@
 ---
 name: propose-boundary
-description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX v1 uses a host-resolved symbol/import/call graph and emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility/barrel plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
+description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX or checked-JavaScript v1 uses a host-resolved symbol/import/call graph and emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility/barrel plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
 argument-hint: "<target-path-or-name> [--candidates N]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
 job: explain
 best_for: |
-  A TypeScript target needing resolved symbol, import, and call-graph evidence
+  A TypeScript or checked-JavaScript target needing resolved symbol, import, and call-graph evidence
   for a public API, barrel compatibility, and caller-impact proposal.
   A file or directory where distinct domain concerns live side-by-side
   with no defined public contract — sibling modules reach into each
@@ -30,7 +30,7 @@ not_for: |
   fit → /plan-spec).
 language: any
 framework: any
-scans: [python, typescript]
+scans: [python, typescript, javascript]
 ---
 
 # /propose-boundary
@@ -86,7 +86,11 @@ supporting `inspection.json`.
    the proposal includes an "Orchestration shim shape" section
    sketching how the original skill name keeps working after split.
 
-## TypeScript / TSX v1
+## TypeScript / TSX and checked-JavaScript v1
+
+The inherited TypeScript subset was `scans: [python, typescript]`; the
+frontmatter declaration adds JavaScript only for the checked-JavaScript path
+described here.
 
 Use this branch only when the target host supplies one named, project-local `tsconfig.json`
 and its own installed `typescript` package. The bundled runner
@@ -95,7 +99,11 @@ top-level target symbols, and target-local call targets. The final artifact is
 an `inspection.json` plus `proposal.md`, not a lexical suggestion: it cites
 the resolved direct, alias, and barrel import evidence it used.
 
-This is the minimum framework-neutral TypeScript contract:
+This is the minimum framework-neutral typed-source contract. Checked JavaScript
+uses `--language javascript`, a named `jsconfig.json` or `tsconfig.json`, and
+`compilerOptions.allowJs` plus `checkJs` set to true. It accepts `.js`, `.jsx`,
+`.mjs`, and `.cjs` (including a mixed JS/TS host) and records selected files
+outside that named config as `partial`, never a clean proposal:
 
 - Propose a boundary only when two or more coherent top-level symbol domains
   form a partition within the target. Public API candidates are exported,
@@ -112,7 +120,7 @@ This is the minimum framework-neutral TypeScript contract:
   split. Excluded generated/vendor/test/declaration/minified/build trees stay
   excluded even when named directly.
 
-TypeScript v1 does not infer framework semantics: React, Node, ORM, route,
+This v1 does not infer framework semantics: React, Node, ORM, route,
 dependency-injection, runtime loading, dynamic import, reflection, decorator,
 or other framework behavior. It does not follow directory symlinks and rejects a direct symlink
 target. A missing or invalid `tsconfig`, missing project-local TypeScript, or
@@ -143,8 +151,9 @@ npx --yes skills@1.5.19 add "${PROPOSE_BOUNDARY_SOURCE}" \
 <!-- installed-command:typescript-proposal:start -->
 ```bash
 PROPOSE_TARGET="${PROPOSE_TARGET:-src/legacy}"
+PROPOSE_LANGUAGE="${PROPOSE_LANGUAGE:-typescript}" # typescript | javascript
 PROPOSE_TSCONFIG="${PROPOSE_TSCONFIG:-tsconfig.json}"
-PROPOSE_NAME="${PROPOSE_NAME:-typescript-legacy}"
+PROPOSE_NAME="${PROPOSE_NAME:-${PROPOSE_LANGUAGE}-legacy}"
 SKILL_ROOT=""
 for SKILL_CANDIDATE in \
   ".agents/skills/propose-boundary" \
@@ -162,6 +171,7 @@ fi
 node "${SKILL_ROOT}/scripts/propose_typescript.mjs" \
   --target "${PROPOSE_TARGET}" \
   --project-root "$(pwd)" \
+  --language "${PROPOSE_LANGUAGE}" \
   --tsconfig "${PROPOSE_TSCONFIG}" \
   --candidates 2 \
   --inspection "reports/propose-boundary/${PROPOSE_NAME}/inspection.json" \

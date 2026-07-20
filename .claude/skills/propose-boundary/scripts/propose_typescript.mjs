@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Produce a read-only TypeScript boundary proposal from compiler-resolved facts.
+ * Produce a read-only TypeScript or checked-JavaScript boundary proposal from compiler-resolved facts.
  *
  * The resolver is deliberately family-local: this proposal needs static module
  * edges, target-local symbols, and call targets. It is not a generic analysis
@@ -10,7 +10,11 @@ import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
 
-const SOURCE_EXTENSIONS = new Set([".ts", ".tsx"]);
+const SOURCE_EXTENSIONS = {
+  typescript: new Set([".ts", ".tsx"]),
+  javascript: new Set([".js", ".jsx", ".mjs", ".cjs"]),
+};
+let activeLanguage = "typescript";
 const EXCLUDED_DIRECTORIES = new Set([
   ".git", ".venv", "venv", "node_modules", "dist", "build", "coverage",
   "__tests__", "test", "tests", "fixtures", "fixture", "generated", "vendor",
@@ -25,7 +29,7 @@ function fail(message) {
 
 function parseArgs(argv) {
   const allowed = new Set([
-    "--target", "--project-root", "--tsconfig", "--candidates", "--inspection", "--proposal",
+    "--target", "--project-root", "--tsconfig", "--candidates", "--inspection", "--proposal", "--language",
   ]);
   const values = new Map();
   for (let index = 0; index < argv.length; index += 2) {
@@ -44,6 +48,8 @@ function parseArgs(argv) {
   }
   const candidates = Number(values.get("--candidates") ?? "1");
   if (!Number.isInteger(candidates) || candidates < 1) fail("--candidates must be a positive integer");
+  const language = values.get("--language") ?? "typescript";
+  if (!["typescript", "javascript"].includes(language)) fail("--language must be typescript or javascript");
   return {
     target: values.get("--target"),
     projectRoot: values.get("--project-root"),
@@ -51,6 +57,7 @@ function parseArgs(argv) {
     candidates,
     inspection: values.get("--inspection"),
     proposal: values.get("--proposal"),
+    language,
   };
 }
 
@@ -130,7 +137,7 @@ function diagnosticText(ts, diagnostic) {
   return `${relativePath(path.dirname(path.dirname(diagnostic.file.fileName)), diagnostic.file.fileName)}:${position.line + 1}: ${text}`;
 }
 
-function resolveProjectTsconfig(ts, projectRoot, suppliedTsconfig) {
+function resolveProjectTsconfig(ts, projectRoot, suppliedTsconfig, language) {
   const tsconfigPath = resolveProjectPath(projectRoot, suppliedTsconfig, "tsconfig");
   if (!fs.existsSync(tsconfigPath)) fail(`project-local TypeScript requires tsconfig: ${tsconfigPath}`);
   const stats = fs.lstatSync(tsconfigPath);
@@ -147,6 +154,9 @@ function resolveProjectTsconfig(ts, projectRoot, suppliedTsconfig) {
   );
   const errors = parsed.errors.filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error);
   if (errors.length > 0) fail(`invalid tsconfig: ${diagnosticText(ts, errors[0])}`);
+  if (language === "javascript" && (!parsed.options.allowJs || !parsed.options.checkJs)) {
+    fail("unsupported: checked JavaScript requires compilerOptions.allowJs and compilerOptions.checkJs set to true");
+  }
   return {
     path: tsconfigPath,
     options: parsed.options,
@@ -199,15 +209,12 @@ function buildExclusionPolicy(projectRoot, declaredExcludes) {
       const directoryParts = directory ? parts : parts.slice(0, -1);
       if (directoryParts.some((part) => EXCLUDED_DIRECTORIES.has(part.toLowerCase()))) return true;
       const filename = parts.at(-1)?.toLowerCase() ?? "";
+      const suffix = activeLanguage === "javascript" ? "(?:js|jsx|mjs|cjs)" : "(?:ts|tsx)";
       if (!directory && (
         filename.endsWith(".d.ts") || filename.endsWith(".d.tsx")
-        || filename.endsWith(".test.ts") || filename.endsWith(".test.tsx")
-        || filename.endsWith(".spec.ts") || filename.endsWith(".spec.tsx")
-        || filename.endsWith(".generated.ts") || filename.endsWith(".generated.tsx")
-        || filename.endsWith(".min.ts") || filename.endsWith(".min.tsx")
-        || filename.endsWith(".bundle.ts") || filename.endsWith(".bundle.tsx")
+        || new RegExp(`\\.(?:test|spec|generated|min|bundle)\\.${suffix}$`).test(filename)
         || filename.startsWith("test_") || filename.startsWith("tests_")
-        || filename.endsWith("_test.ts") || filename.endsWith("_test.tsx")
+        || new RegExp(`_test\\.${suffix}$`).test(filename)
       )) return true;
       return declared(relative, directory);
     },
@@ -215,7 +222,7 @@ function buildExclusionPolicy(projectRoot, declaredExcludes) {
 }
 
 function isSourcePath(absolutePath) {
-  return SOURCE_EXTENSIONS.has(path.extname(absolutePath).toLowerCase())
+  return SOURCE_EXTENSIONS[activeLanguage].has(path.extname(absolutePath).toLowerCase())
     && !absolutePath.toLowerCase().endsWith(".d.ts")
     && !absolutePath.toLowerCase().endsWith(".d.tsx");
 }
@@ -225,7 +232,7 @@ function collectTargetSources(target, projectRoot, exclusions) {
   const stats = fs.lstatSync(target);
   if (stats.isSymbolicLink()) fail(`target must not be a symbolic link: ${target}`);
   if (stats.isFile()) {
-    if (!isSourcePath(target)) fail(`target must be a .ts or .tsx file, or a directory: ${target}`);
+    if (!isSourcePath(target)) fail(`target must be a ${activeLanguage === "javascript" ? ".js, .jsx, .mjs, or .cjs" : ".ts or .tsx"} file, or a directory: ${target}`);
     return exclusions.isExcluded(target) ? [] : [target];
   }
   if (!stats.isDirectory()) fail(`target must be a file or directory: ${target}`);
@@ -289,6 +296,21 @@ function moduleSpecifiers(sourceFile, ts) {
       && ts.isStringLiteralLike(statement.moduleReference.expression)
     ) {
       records.push({ kind: "import_equals", specifier: statement.moduleReference.expression.text, bindings: [statement.name.text] });
+    } else if (ts.isVariableStatement(statement)) {
+      for (const declaration of statement.declarationList.declarations) {
+        const initializer = declaration.initializer;
+        if (
+          ts.isIdentifier(declaration.name)
+          && initializer
+          && ts.isCallExpression(initializer)
+          && ts.isIdentifier(initializer.expression)
+          && initializer.expression.text === "require"
+          && initializer.arguments.length === 1
+          && ts.isStringLiteralLike(initializer.arguments[0])
+        ) {
+          records.push({ kind: "require", specifier: initializer.arguments[0].text, bindings: [declaration.name.text] });
+        }
+      }
     }
   }
   return records;
@@ -445,7 +467,9 @@ function collectModuleGraph(program, targetFiles, symbols, projectRoot, config, 
       const privateBindings = item.bindings.filter((binding) => (
         symbols.records.some((symbol) => symbol.name === binding && !symbol.public)
       ));
-      const barrel = /^index\.tsx?$/i.test(path.basename(resolvedAbsolute));
+      const barrel = activeLanguage === "javascript"
+        ? /^index\.(?:js|jsx|mjs|cjs)$/i.test(path.basename(resolvedAbsolute))
+        : /^index\.tsx?$/i.test(path.basename(resolvedAbsolute));
       inbound.push({
         source_file: record.file,
         kind: record.kind,
@@ -551,10 +575,11 @@ function nativeCommands(projectRoot) {
 }
 
 function renderProposal(payload) {
+  const languageLabel = payload.language === "javascript" ? "Checked-JavaScript" : "TypeScript";
   const lines = [
     "---",
     "skill: propose-boundary",
-    "language: typescript",
+    `language: ${payload.language}`,
     `target: ${payload.target.path}`,
     `recommendation: ${payload.recommendation}`,
     `graph_status: ${payload.graph.module_resolution}`,
@@ -562,14 +587,14 @@ function renderProposal(payload) {
     "",
     `# Boundary proposal — ${payload.target.path}`,
     "",
-    "> **Detected by:** `/propose-boundary` TypeScript / TSX v1 (read-only; no edits applied)",
+    `> **Detected by:** \`/propose-boundary\` ${languageLabel} v1 (read-only; no edits applied)`,
     "> **Executed by:** `/refactor-subsystem` only after human approval.",
     "",
     `Recommendation: **${payload.recommendation}**`,
     "",
     "## Resolved graph evidence",
     "",
-    `- Compiler API: host-pinned TypeScript with \`${payload.tsconfig}\`.`,
+    `- Compiler API: host-pinned TypeScript with \`${payload.tsconfig}\` (${languageLabel}).`,
     `- Eligible source files: ${payload.target.source_files}.`,
     `- Resolved inbound module edges: ${payload.graph.inbound_imports.length}; resolved target call edges: ${payload.graph.call_edges.length}.`,
     `- Unresolved target imports: ${payload.graph.unresolved_imports.length}; ambiguous exported symbols: ${payload.graph.ambiguous_symbols.length}.`,
@@ -579,6 +604,7 @@ function renderProposal(payload) {
     lines.push("## Stop condition", "");
     if (payload.graph.unresolved_imports.length > 0) lines.push("No extraction proposal is safe while unresolved static module specifiers remain in the target graph.");
     if (payload.graph.ambiguous_symbols.length > 0) lines.push("No extraction proposal is safe while ambiguous exported symbols remain in the target graph.");
+    if (payload.uncovered_files.length > 0) lines.push("No extraction proposal is safe while selected JavaScript files are outside the checked config.");
     if (payload.defer_signals.includes("single_cluster_no_seam")) lines.push("No extraction proposal is safe: the eligible symbols form one cohesive domain rather than a partition.");
     lines.push("", "Resolve the graph or choose a different target, then rerun this read-only proposal.", "");
   } else {
@@ -638,6 +664,7 @@ function writeAtomically(destination, contents) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
+  activeLanguage = args.language;
   const projectRoot = requireExistingDirectory(path.resolve(args.projectRoot), "project root");
   const target = resolveProjectPath(projectRoot, args.target, "target");
   if (!fs.existsSync(target)) fail(`target does not exist: ${target}`);
@@ -648,36 +675,41 @@ function main() {
   const inspectionPath = safeArtifactPath(projectRoot, args.inspection, reportRoot, "inspection artifact");
   const proposalPath = safeArtifactPath(projectRoot, args.proposal, reportRoot, "proposal artifact");
   const ts = loadProjectTypeScript(projectRoot);
-  const config = resolveProjectTsconfig(ts, projectRoot, args.tsconfig);
+  const config = resolveProjectTsconfig(ts, projectRoot, args.tsconfig, args.language);
   const exclusions = buildExclusionPolicy(projectRoot, config.declaredExcludes);
   const targetFiles = collectTargetSources(target, projectRoot, exclusions);
+  const configuredFiles = new Set(config.fileNames);
+  const uncoveredFiles = args.language === "javascript"
+    ? targetFiles.filter((file) => !configuredFiles.has(file)).map((file) => relativePath(projectRoot, file))
+    : [];
   const program = ts.createProgram({
     rootNames: [...new Set([...config.fileNames, ...targetFiles])],
     options: config.options,
     projectReferences: config.projectReferences,
   });
   const syntaxDiagnostics = targetFiles.flatMap((file) => program.getSyntacticDiagnostics(program.getSourceFile(file)));
-  if (syntaxDiagnostics.length > 0) fail(`TypeScript syntax errors: ${diagnosticText(ts, syntaxDiagnostics[0])}`);
+  if (syntaxDiagnostics.length > 0) fail(`${args.language === "javascript" ? "JavaScript" : "TypeScript"} syntax errors: ${diagnosticText(ts, syntaxDiagnostics[0])}`);
   const symbolFacts = collectSymbols(program, targetFiles, projectRoot, ts);
   const moduleGraph = collectModuleGraph(program, targetFiles, symbolFacts, projectRoot, config, exclusions, ts);
   const calls = collectCallEdges(program, targetFiles, symbolFacts, projectRoot, ts);
   const ambiguous = ambiguousSymbols(ts, program, targetFiles, projectRoot);
-  const graphBlocked = moduleGraph.unresolved.length > 0 || ambiguous.length > 0;
+  const graphBlocked = moduleGraph.unresolved.length > 0 || ambiguous.length > 0 || uncoveredFiles.length > 0;
   const seams = graphBlocked ? [] : candidateSeams(symbolFacts.records, calls, moduleGraph.inbound, args.candidates);
   const deferSignals = [];
   if (moduleGraph.unresolved.length > 0) deferSignals.push("unresolved_module_resolution");
   if (ambiguous.length > 0) deferSignals.push("ambiguous_symbol_resolution");
+  if (uncoveredFiles.length > 0) deferSignals.push("partial_config_coverage");
   if (!graphBlocked && seams.length === 0) deferSignals.push("single_cluster_no_seam");
   const recommendation = graphBlocked
-    ? "defer_unresolved_graph"
+    ? (uncoveredFiles.length > 0 ? "defer_partial_config" : "defer_unresolved_graph")
     : (seams.length === 0 ? "defer_no_seam" : "refactor");
   const targetExcluded = targetFiles.length === 0 && exclusions.isExcluded(target, targetStats.isDirectory());
   const payload = {
     schema_version: 1,
     skill: "propose-boundary",
-    language: "typescript",
-    analyzer: "typescript-compiler-api",
-    status: recommendation === "refactor" ? "complete" : "deferred",
+    language: args.language,
+    analyzer: args.language === "javascript" ? "typescript-compiler-api-checked-javascript" : "typescript-compiler-api",
+    status: uncoveredFiles.length > 0 ? "partial" : (recommendation === "refactor" ? "complete" : "deferred"),
     recommendation,
     target: {
       path: relativePath(projectRoot, target),
@@ -686,6 +718,7 @@ function main() {
       source_files: targetFiles.length,
     },
     tsconfig: relativePath(projectRoot, config.path),
+    uncovered_files: uncoveredFiles,
     symbols: symbolFacts.records.map(({ start, end, ...record }) => record),
     graph: {
       module_resolution: graphBlocked ? "partial" : "complete",

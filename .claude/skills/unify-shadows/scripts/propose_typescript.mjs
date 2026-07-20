@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Turn one confirmed TypeScript semantic-duplication finding into a proposal.
+ * Turn one confirmed TypeScript or checked-JavaScript semantic finding into a proposal.
  *
  * This consumer is deliberately skill-local. It validates the accepted
  * find-semantic-duplication findings.json contract, cites source spans and the
@@ -30,6 +30,7 @@ function parseArgs(argv) {
     "--project-root",
     "--proposal",
     "--evidence",
+    "--language",
   ]);
   if (argv.length % 2 !== 0) fail("every argument requires a value");
   const values = new Map();
@@ -45,8 +46,12 @@ function parseArgs(argv) {
     }
     values.set(flag, value);
   }
-  for (const required of allowed) {
+  for (const required of ["--findings", "--finding-id", "--project-root", "--proposal", "--evidence"]) {
     if (!values.has(required)) fail(`missing required argument: ${required}`);
+  }
+  const language = values.get("--language") ?? "typescript";
+  if (!["typescript", "javascript"].includes(language)) {
+    fail("--language must be typescript or javascript");
   }
   return {
     findings: values.get("--findings"),
@@ -54,6 +59,7 @@ function parseArgs(argv) {
     projectRoot: values.get("--project-root"),
     proposal: values.get("--proposal"),
     evidence: values.get("--evidence"),
+    language,
   };
 }
 
@@ -129,13 +135,16 @@ function requireText(value, label) {
   return value;
 }
 
-function selectFinding(payload, findingId) {
+function selectFinding(payload, findingId, language) {
   requirePlainObject(payload, "findings payload");
   if (payload.skill !== "find-semantic-duplication") {
     fail(`wrong finding kind: expected skill=find-semantic-duplication, got ${String(payload.skill)}`);
   }
-  if (payload.language !== "typescript") {
-    fail(`TypeScript proposal requires language=typescript, got ${String(payload.language)}`);
+  if (payload.language !== language) {
+    fail(`${language === "javascript" ? "checked-JavaScript" : "TypeScript"} proposal requires language=${language}, got ${String(payload.language)}`);
+  }
+  if (language === "javascript" && payload.status && payload.status !== "complete") {
+    fail(`checked-JavaScript finding is ${String(payload.status)}; refresh complete evidence before synthesis`);
   }
   if (!Array.isArray(payload.confirmed)) fail("findings payload requires a confirmed array");
   const matches = payload.confirmed.filter(
@@ -169,11 +178,12 @@ function selectFinding(payload, findingId) {
   return finding;
 }
 
-function validateMember(projectRoot, rawMember, index) {
+function validateMember(projectRoot, rawMember, index, language) {
   const member = requirePlainObject(rawMember, `member ${index + 1}`);
   const file = requireText(member.file, `member ${index + 1}.file`);
-  if (path.isAbsolute(file) || ![".ts", ".tsx"].includes(path.extname(file).toLowerCase())) {
-    fail(`member ${index + 1} must cite a project-relative TypeScript source file`);
+  const extensions = language === "javascript" ? [".js", ".jsx", ".mjs", ".cjs"] : [".ts", ".tsx"];
+  if (path.isAbsolute(file) || !extensions.includes(path.extname(file).toLowerCase())) {
+    fail(`member ${index + 1} must cite a project-relative ${language === "javascript" ? "JavaScript" : "TypeScript"} source file`);
   }
   const absolute = resolveProjectFile(projectRoot, file, `member ${index + 1} source`);
   const qualifiedName = requireText(
@@ -351,7 +361,8 @@ function stopConditions(finding, members, commands) {
   return [...common, ...byShape[finding.consolidation_shape], ...native].join("\n");
 }
 
-function renderProposal(projectRoot, findingsFile, finding, members, matrix, commands) {
+function renderProposal(projectRoot, findingsFile, finding, members, matrix, commands, language) {
+  const languageLabel = language === "javascript" ? "Checked-JavaScript" : "TypeScript";
   const summary = requireText(finding.shared_core_description, "shared_core_description");
   const notes = typeof finding.notes === "string" && finding.notes.trim()
     ? finding.notes.trim().replace(/[\r\n]+/g, " ")
@@ -372,7 +383,7 @@ function renderProposal(projectRoot, findingsFile, finding, members, matrix, com
     `| Characterization | Host-native tests around ${members.map((member) => `\`${member.qualifiedName}\``).join(", ")} | Pin returned fields, errors, async policy, and caller expectations before source changes. |`,
   ];
   return [
-    `# TypeScript shadow proposal — ${finding.finding_id}`,
+    `# ${languageLabel} shadow proposal — ${finding.finding_id}`,
     "",
     `**Shape:** \`${finding.consolidation_shape}\``,
     `**Structured input:** \`${relativePath(projectRoot, findingsFile)}\``,
@@ -389,7 +400,7 @@ function renderProposal(projectRoot, findingsFile, finding, members, matrix, com
     "",
     ...memberRows,
     "",
-    "The proposal may affect only these cited TypeScript members and their human-confirmed project callers. Adjacent code is out of scope.",
+    `The proposal may affect only these cited ${languageLabel} members and their human-confirmed project callers. Adjacent code is out of scope.`,
     "",
     "## Evidence",
     "",
@@ -407,7 +418,7 @@ function renderProposal(projectRoot, findingsFile, finding, members, matrix, com
     "|---|---|---:|---|",
     ...callerRows,
     "",
-    "## Native TypeScript test matrix",
+    `## Native ${languageLabel} test matrix`,
     "",
     "| Gate | Command / suite | Required result |",
     "|---|---|---|",
@@ -449,12 +460,12 @@ function run(args) {
   }
   const findingsFile = resolveProjectFile(projectRoot, args.findings, "findings file");
   const payload = loadJson(findingsFile, "findings file");
-  const finding = selectFinding(payload, requireText(args.findingId, "finding id"));
+  const finding = selectFinding(payload, requireText(args.findingId, "finding id"), args.language);
   if (!Array.isArray(finding.members) || finding.members.length < 2) {
     fail(`${args.findingId} requires at least two members`);
   }
   const members = finding.members.map(
-    (member, index) => validateMember(projectRoot, member, index),
+    (member, index) => validateMember(projectRoot, member, index, args.language),
   );
   const matrix = matrixEvidence(projectRoot, findingsFile, finding);
   const commands = nativeCommands(projectRoot);
@@ -465,11 +476,12 @@ function run(args) {
     members,
     matrix,
     commands,
+    args.language,
   );
   const evidencePayload = {
     status: "proposal_ready_for_human_review",
     skill: "unify-shadows",
-    language: "typescript",
+    language: args.language,
     finding_id: finding.finding_id,
     shape: finding.consolidation_shape,
     structured_input: relativePath(projectRoot, findingsFile),
