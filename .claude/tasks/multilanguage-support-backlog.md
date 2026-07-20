@@ -143,7 +143,7 @@ auditable when completeness matters.
 
 ### ML-006 — JavaScript disposition and shared JS/TS behavior
 
-- State: `scheduled`
+- State: `done`
 - User value: repositories containing `.js`, `.jsx`, `.mjs`, or `.cjs` receive
   honest support instead of being accidentally included or omitted by
   TypeScript tooling.
@@ -158,10 +158,14 @@ auditable when completeness matters.
 - Scheduled scope: P2 of `.claude/tasks/multilanguage-expansion-plan.md` owns
   the exact suffix set, mixed-host behavior, four independent cohorts, and the
   76-row completion gate.
+- Completion evidence: 22/22 language-level skills are
+  `javascript-supported`; three fresh router-only/on-demand outcomes and final
+  product review passed; the canonical root-module suite passed 681 with one
+  intentional skip. The accepted transfer guide records the bounded contract.
 
 ### ML-007 — Router decision-quality corpus across languages
 
-- State: `proposed`
+- State: `candidate`
 - User value: the three default routers reliably lead agents to the right
   language-capable skill or to an honest unsupported/question state.
 - Trigger: user-journey milestone work begins, after the next language scope is
@@ -173,8 +177,31 @@ auditable when completeness matters.
   guide/tool closure and explicitly secondary install option; every repaired
   misroute becomes a regression.
 - Non-goals: a general evaluator or learned router.
+- Observed evidence: JavaScript P2 converted four exact natural prompts into
+  regressions, but neighboring generic planning probes still chose
+  low-confidence `bug-fix` at the shape layer and `extract-enum` for a database
+  migration at the tactical layer. Those are real corpus seeds, not reasons to
+  expand the completed language-outcome work into a general router rewrite.
 
-### ML-008 — Cross-language batching and performance measurement
+### ML-008 — Make proposal candidate cutoffs visible
+
+- State: `proposed`
+- User value: a boundary proposal does not silently omit equally ranked
+  concerns merely because the command's candidate limit was reached.
+- Trigger: the final JavaScript proposal journey required changing
+  `--candidates 2` to `--candidates 4` after two equally scored domains were
+  absent from the first artifact.
+- Smallest experiment: report the count and scores of omitted candidates and
+  either include ties at the cutoff or tell the agent which explicit flag will
+  include them; keep documented and script defaults identical.
+- Acceptance: a tied four-domain fixture makes every included/omitted domain
+  visible, the final proposal remains deterministic, and ordinary small
+  targets do not grow noisier.
+- Non-goals: removing bounded candidate limits, adding a generic ranking
+  platform, or blocking JavaScript P2 when the final artifact already includes
+  the explicitly requested domains.
+
+### ML-009 — Cross-language batching and performance measurement
 
 - State: `proposed`
 - User value: applying several relevant engineering lenses should be faster and
@@ -189,7 +216,7 @@ auditable when completeness matters.
   for a measured need.
 - Non-goals: a workflow platform before a fixed benchmark demonstrates value.
 
-### ML-009 — Select and validate the next major-language pilot
+### ML-010 — Select and validate the next major-language pilot
 
 - State: `scheduled`
 - User value: TypeScript learning is converted into repeatable support for

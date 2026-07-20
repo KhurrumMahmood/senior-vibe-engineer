@@ -1,6 +1,6 @@
 # Multi-language and framework expansion plan
 
-Status: active — P0 and P1 complete; P2 in progress
+Status: active — P0, P1, and P2 complete; P3 pending
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
@@ -216,7 +216,7 @@ and selected-install closures.
 
 ## Phase P2 — JavaScript coverage
 
-State: `in_progress`
+State: `complete`
 
 Scope: `.js`, `.jsx`, `.mjs`, and `.cjs`, including mixed JS/TS projects.
 JavaScript support is not inferred from TypeScript filename traversal.
@@ -293,11 +293,11 @@ Acceptance:
       mixed JS/TS roots cannot silently omit either language.
 - [x] Semantic skills declare whether evidence comes from checked JavaScript,
       JSDoc, inferred compiler facts, or a partial lexical/syntax fallback.
-- [ ] Clear JavaScript prompts route to eligible closures; ambiguous mixed-host
+- [x] Clear JavaScript prompts route to eligible closures; ambiguous mixed-host
       prompts ask or return a bounded set rather than guessing.
-- [ ] Every batch passes native fixtures, source-integrity checks, a fresh
+- [x] Every batch passes native fixtures, source-integrity checks, a fresh
       on-demand replay, and product-aligned review.
-- [ ] The final integrated suite and exact 76-row matrix check pass.
+- [x] The final integrated suite and exact 76-row matrix check pass.
 
 ## Phase P3 — Go three-family pilot
 
@@ -437,26 +437,26 @@ Acceptance:
 |---|---|---|---|---|---|---|
 | P0 TypeScript synthesis | complete | P0 commit (this revision) | Accepted TypeScript coverage fixtures | Matrix/coverage/router: 51 passed; canonical: 666 passed, 2 environment skips | Fresh review found missing current closure paths; repaired; bounded re-review PASS | `.claude/tasks/multilanguage-typescript-transfer-guide.md` plus raw linked packets |
 | P1 portability harness | complete | `2015c3f`, `7b4cd09`, and this revision | Synthetic seven-outcome hosts; fresh bootstrapped `map-subsystem` complete/partial hosts | Focused P1 integration: 90 passed; canonical: 686 passed, 2 documented environment skips; final collision regression: 3 passed | Fresh product-aligned review found four bounded defects; all repaired and bounded re-review passed | Capability projection, exact install evidence, test-only journey contract, and explicit TypeScript extraction stop decision |
-| P2 JavaScript coverage | in progress | baseline `eedb3ae`; syntax `a5337cb`; lexical `263f2ac` + portability fix `1f1c574`; semantic `f06b6c5` + closure repair `7fb4caf`; proposal `87960c4`; mutation/guard `59aa031` | Inventory/matrix/router fixtures plus all four cohort outcome tests | Syntax and related regression: 57 + 55 passed; lexical + related regression: 67 passed; semantic serial replay: 29 passed; proposal serial replay: 29 passed; mutation/guard serial replay: 23 passed, 1 environment skip; exact 22/22 matrix/router closeout: 57 passed | Goal-anchored semantic review found two real closure defects and both were repaired; final three forward journeys and completion review pending | 22/22 language-level skills promoted locally; transfer packets and `.claude/tasks/javascript-transfer-guide.md` capture the family-local/native-tool strategy and rejected custom-lexer attempt |
+| P2 JavaScript coverage | complete | baseline `eedb3ae`; cohort repairs through `e618ef4`; route/artifact repairs `fa26b9f`, `7713dc6`, `fb0c71d`, `23737ce`, `02524a1` | Inventory/matrix/router fixtures, all four cohort outcomes, and three fresh mixed JS/TS hosts | Focused repaired integration passed 115; final canonical root modules passed 681 with 1 intentional skip | Three forward journeys passed without route override; first RED routes and review findings became regressions; final product review PASS | 22/22 language-level skills promoted; accepted transfer guide captures native/family-local reuse, rejected custom lexer, route-first validation, and next-language brief |
 | P3 Go pilot | pending | — | — | — | — | — |
 | P4 route frameworks | pending | — | — | — | — | — |
 | P5 next-language selection | pending | — | — | — | — | — |
 
 ## Final definition of done for this plan
 
-- [ ] The three-router installation and on-demand library journey remains
+- [x] The three-router installation and on-demand library journey remains
       usable and documented.
-- [ ] JavaScript has a complete, honest 76-skill disposition and all applicable
+- [x] JavaScript has a complete, honest 76-skill disposition and all applicable
       language-level outcomes have validated evidence.
 - [ ] Go has passed the three-family pilot and either has an evidence-approved
       expansion plan or an explicit stop decision.
 - [ ] Express and FastAPI route/workflow journeys reach consumer artifacts from
       framework-specific native fixtures.
 - [ ] The next major language is selected from evidence rather than assumed.
-- [ ] Shared tooling exists only where at least two consumers prove the same
+- [x] Shared tooling exists only where at least two consumers prove the same
       primitive; no universal parser or execution platform was introduced by
       default.
-- [ ] Every completed phase links tests, native checks, fresh on-demand replay,
+- [x] Every completed phase links tests, native checks, fresh on-demand replay,
       product-aligned review, and reusable learning.
-- [ ] Remaining language, framework, and performance ideas are recorded in the
+- [x] Remaining language, framework, and performance ideas are recorded in the
       backlog with concrete promotion triggers.

@@ -1,6 +1,6 @@
 # JavaScript language-expansion transfer guide
 
-Status: draft until JavaScript P2 final journeys pass
+Status: accepted — JavaScript P2 complete
 
 This guide compresses the cohort learning packets into instructions for the
 next language pilot. The raw evidence remains in
@@ -116,8 +116,15 @@ if at least two families transfer without skill-specific platform work.
   generator/template/verifier contract and proves independent bad/good
   behavior across all four suffixes.
 
-Pending:
+The three mixed-host journeys passed from clean three-router installations
+with task skills loaded only from the on-demand library. Two first attempts
+proved why direct outcome tests are insufficient: missing project context
+overrode an explicit boundary proposal, and generic `old`/`new` path names
+overrode an explicit file move. The repaired routers now preserve bounded
+operation intent, and the exact natural prompts are regression tests.
 
-- mixed-host forward-journey outcomes;
-- final product-aligned review verdict; and
-- any accepted backlog items.
+The final product-aligned review passed after two bounded repairs: boundary
+proposal routing now requires actual boundary intent, and checked-JavaScript
+proposal evidence resolves literal CommonJS exports while downgrading dynamic
+forms to partial. Candidate cutoff visibility is intentionally deferred as
+ML-008; the broader router corpus is ML-007.

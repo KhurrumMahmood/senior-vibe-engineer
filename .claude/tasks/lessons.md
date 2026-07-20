@@ -134,3 +134,31 @@ to apply it. Do not use this file as a progress tracker or backlog.
   prerequisite. Pin a fixture lockfile and test parser-valid JSX type arguments,
   regex-after-control-flow, parse failure, unavailable dependency, and copied
   skill execution.
+
+## 2026-07-20 — Run package-manager lifecycle commands only in disposable hosts
+
+- **Rule:** Never exercise stock skill install/remove commands from the
+  engineering-skills source checkout; set the command's working directory to a
+  disposable target host explicitly.
+- **Why:** `skills remove --all` can classify the source checkout's tracked
+  `.claude/skills` tree as installed content and delete it. Source selection
+  and command working directory are independent; an absolute `add <source>`
+  argument does not make the target host implicit.
+- **Apply:** Create the host, `cd` into it (or set `cwd`) before every lifecycle
+  command, assert exactly the three router directories appeared there, and
+  check the source worktree after the command. Keep removal verification in
+  the disposable host and never use the source repository as an install target.
+
+## 2026-07-20 — Validate routers with the user's full natural task
+
+- **Rule:** A language capability is not closed until a fresh installed journey
+  routes the user's full natural-language task through both `/which-shape` and
+  `/which-skill`; direct skill tests do not substitute for that route.
+- **Why:** The JavaScript proposal and mutation outcomes worked when invoked
+  directly, but realistic prompts first routed to project intake and concept
+  rename. Missing project context and generic path names (`old`/`new`) had more
+  lexical weight than the explicit bounded operation.
+- **Apply:** Keep exact failed prompts as regressions. Mark explicit bounded
+  operations as narrow so absent profiles cannot override them, and put
+  disambiguation in skill metadata before adding scorer special cases. Replay
+  from a clean three-router host with the task skills available only on demand.

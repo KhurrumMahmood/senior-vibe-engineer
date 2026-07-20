@@ -1,6 +1,6 @@
 # JavaScript P2 closeout
 
-Status: in progress
+Status: complete
 
 Purpose: close the first four remaining JavaScript agenda items without
 expanding into a shared execution platform:
@@ -35,7 +35,7 @@ expanding into a shared execution platform:
 | Proposal artifacts | complete | `engineering-skills-js-proposal` / `codex/js-proposal` | `extract-enum`, `propose-boundary`, `propose-folder-reorganization`, `unify-shadows` | Final useful proposal for each skill; explicit partial/unsupported behavior; source byte preservation |
 | Mutation and guard | complete | `engineering-skills-js-mutation-v2` / `codex/js-mutation-guard-v2` | `move-path`, `prevent-regression` | Exact intended mutation/guard diff; native check after application; rollback/no-write behavior on unsafe input |
 | Serial integration | complete | `engineering-skills-product` / `codex/productization-restart` | coverage matrix, generated matrix, router projections, shared tests, plan/evidence | Exact 76-row disposition and 22/22 language-level closure |
-| Fresh validation | pending | fresh non-context agents and disposable hosts | no production ownership | Three representative router→on-demand→outcome journeys and product verdict |
+| Fresh validation | complete | fresh non-context agents and disposable hosts | no production ownership | Three representative router→on-demand→outcome journeys and final product review passed |
 
 ## Gate A — Semantic review closure
 
@@ -110,15 +110,15 @@ Use disposable, non-repository hosts and fresh non-context agents. The agent
 receives only the user task, installed routers, routed on-demand guide/tool
 closure, and host fixture—not expected findings.
 
-- [ ] Read-only/proposal journey: a mixed JS/TS prompt routes to one eligible
+- [x] Read-only/proposal journey: a mixed JS/TS prompt routes to one eligible
       proposal skill and reaches its final cited artifact.
-- [ ] Mutation journey: a JavaScript path change routes to `move-path`, applies
+- [x] Mutation journey: a JavaScript path change routes to `move-path`, applies
       only the expected diff, and passes the host native check.
-- [ ] Guard journey: a JavaScript invariant routes to `prevent-regression`,
+- [x] Guard journey: a JavaScript invariant routes to `prevent-regression`,
       emits a runnable guard, and proves both pass and fail behavior.
-- [ ] Clear prompts do not ask unnecessary questions; ambiguous language or
+- [x] Clear prompts do not ask unnecessary questions; ambiguous language or
       incomplete configuration returns a bounded question/partial outcome.
-- [ ] A product-aligned fresh review reports no gating installation,
+- [x] A product-aligned fresh review reports no gating installation,
       capability-honesty, final-outcome, source-safety, or likely-user-harm
       defect.
 
@@ -132,7 +132,7 @@ closure, and host fixture—not expected findings.
 - [x] Name candidate shared tooling only when at least two accepted consumers
       now demonstrate the same smaller interface; otherwise record a stop
       decision.
-- [ ] Update the broad expansion plan and backlog with evidence, not guesses.
+- [x] Update the broad expansion plan and backlog with evidence, not guesses.
 
 ## Evidence log
 
@@ -144,6 +144,14 @@ closure, and host fixture—not expected findings.
 | 2026-07-20 | `7fb4caf`, promoted as `a839d89` | A PASS | Literal JavaScript commands work from copied `.agents` and `.claude` layouts; a real gated detector→scout→verdict→triage path passes and labels checked JavaScript honestly. Serial JavaScript plus four related TypeScript suites: 29 passed with the project venv prepended to `PATH`; the first serial run exposed only the machine's invalid system-Python 3.13 code signature. Node checks, scoped pre-commit, and diff check passed in-lane. |
 | 2026-07-20 | `59aa031`, promoted as `a26d0bb` | B mutation/guard PASS | The clean v2 lane replaced a rejected 500-line custom lexer with a 138-line host-compiler span helper plus existing move machinery. Copied-closure outcomes passed 2 tests; serial mover/guard replay passed 23 with 1 named environment skip. Exact changes, native checks, rollback, guard pass/fail, partial/unsupported boundaries, metadata, lint, and pre-commit passed. Learning: `.claude/tasks/javascript-mutation-guard-learning.md`. |
 | 2026-07-20 | serial working tree after `a26d0bb` | C PASS | Coverage contains exactly 22 `javascript-supported` rows and no pending row; generated catalog/matrix are current at 76 skills. Matrix/router closeout passed 57 tests, and the broader cohort/router/inventory/harness integration passed 87 of 88 before the single stale `move-path` language declaration was repaired to `language: any` plus explicit JavaScript/TypeScript scans. |
+| 2026-07-20 | journeys before `fa26b9f` | D RED | The outcomes themselves worked, but the natural proposal task routed to Project Intake and the path task routed to Concept Rename. Neither result counted as a router-to-outcome pass; the exact prompts became regressions. |
+| 2026-07-20 | `fa26b9f` | D routing repair PASS | Added the bounded Boundary Proposal shape, made explicit path/proposal operations outrank missing project context, and clarified move-vs-concept metadata. Shape/skill regressions passed 56; installed-router, matrix, and P2 closeout suites passed 57. |
+| 2026-07-20 | `fa26b9f` fresh hosts | D journeys PASS | Three-router/on-demand replays selected `boundary-proposal` → `propose-boundary`, `path-move` → `move-path`, and `regression-prevention` → detector/guard with no route override. Proposal preserved 169 tracked-file hashes and passed three native commands; mutation produced one byte-identical move plus five exact rewrites, preserved all TS/TSX bytes, and passed dry-run/apply/check/residue/native checks; guard proved fail/pass behavior across four suffixes without source mutation. |
+| 2026-07-20 | `7713dc6` | C regression cleanup PASS | The broad root suite exposed three stale pre-JavaScript assertions/fixtures. They were updated to the accepted JavaScript metadata and host-pinned compiler prerequisite; focused replay passed 6 and the canonical root-module suite passed 678 with 1 intentional skip. |
+| 2026-07-20 | review after `7713dc6` | D review RED | Product-aligned review accepted two gating journey defects: generic proposal/compatibility prompts over-activated the new boundary shape, and checked-JavaScript boundary output called its graph complete while missing literal CommonJS exports and rendering TypeScript compatibility filenames. The tied-candidate cutoff was recorded as non-gating backlog item ML-008. |
+| 2026-07-20 | `fb0c71d`, `23737ce`, `02524a1` | D repair PASS | Boundary-shape boost now requires boundary plus proposal intent; both forward routers retain exact neighboring negative prompts while the full mixed-JS/TS task still routes correctly. `propose-boundary` resolves bounded literal CommonJS exports, downgrades computed/spread/runtime forms to partial, and renders JavaScript entrypoints. Focused integration passed 115 tests. |
+| 2026-07-20 | fresh host after `23737ce` | D proposal replay PASS | Three-router/on-demand replay selected `boundary-proposal` → `propose-boundary`, automatically classified both literal CommonJS exports as public, emitted all four requested seams and JavaScript entrypoint text, passed three native commands, and preserved source bytes. The replay exposed a remaining tactical metadata false positive; `02524a1` repaired it with exact regressions. |
+| 2026-07-20 | review after `02524a1` | D final review PASS | Fresh product-aligned review found no gating defect. It judged the bounded shape justified, CommonJS evidence honest, router-only/on-demand behavior preserved, source safety sufficient, and the 22/22 claim earned. Candidate-cutoff visibility remains ML-008; broader low-confidence router probes remain ML-007. Final canonical root-module suite: 681 passed, 1 intentional skip. |
 
 ## Completion rule
 
