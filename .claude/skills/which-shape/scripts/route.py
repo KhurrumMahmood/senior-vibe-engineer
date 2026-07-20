@@ -667,6 +667,9 @@ def _apply_task_capability_gate(handoff: dict[str, Any], task: str) -> None:
             elif language == "javascript":
                 disposition = row["javascript_disposition"]
                 eligible = disposition in {"javascript-supported", "validated-neutral"}
+            elif language == "go":
+                disposition = row["go_disposition"]
+                eligible = disposition in {"go-pilot-supported", "validated-neutral"}
             elif language == "python":
                 continue
             else:
@@ -681,7 +684,13 @@ def _apply_task_capability_gate(handoff: dict[str, Any], task: str) -> None:
     if not blocked:
         return
     handoff["available"] = False
-    handoff["reason"] = "selected_skill_stack_bound_for_language"
+    if all(
+        item["disposition"] in {"framework-bound", "stack-bound"}
+        for item in blocked
+    ):
+        handoff["reason"] = "selected_skill_stack_bound_for_language"
+    else:
+        handoff["reason"] = "selected_skill_not_validated_for_language"
     handoff["blocked"] = blocked
     handoff["instruction"] = (
         "Do not execute the selected skill for the named language. Choose a "
@@ -694,6 +703,7 @@ CAPABILITY_FIELDS = (
     "expansion_disposition",
     "typescript_disposition",
     "javascript_disposition",
+    "go_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -823,7 +833,10 @@ def render_markdown(result: dict[str, Any]) -> str:
         if result["handoff"]["shared_tooling"]:
             lines.append(f"  Shared tooling: {result['handoff']['shared_tooling']}")
         if not result["handoff"]["available"]:
-            if result["handoff"].get("reason") == "selected_skill_stack_bound_for_language":
+            if result["handoff"].get("reason") in {
+                "selected_skill_stack_bound_for_language",
+                "selected_skill_not_validated_for_language",
+            }:
                 blocked = ", ".join(
                     f"/{item['skill']} for {item['language']} ({item['disposition']})"
                     for item in result["handoff"]["blocked"]
@@ -941,7 +954,10 @@ def main(argv: list[str] | None = None) -> int:
             result["optional_install"] = _validated_optional_install(
                 handoff, result["handoff"]["capabilities"]
             )
-            if result["handoff"].get("reason") == "selected_skill_stack_bound_for_language":
+            if result["handoff"].get("reason") in {
+                "selected_skill_stack_bound_for_language",
+                "selected_skill_not_validated_for_language",
+            }:
                 result["optional_install"].pop("command", None)
                 result["optional_install"]["available"] = False
                 result["optional_install"]["reason"] = result["handoff"]["reason"]

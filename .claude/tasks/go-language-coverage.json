@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "phase": "p3-go-pilot",
+  "suffixes": [".go"],
+  "minimum_go_version": "1.22.0",
+  "allowed_dispositions": ["pending-validation", "go-pilot-supported"],
+  "baseline_revision": "56a0db4",
+  "skills": [
+    {"skill": "adapt-project", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "audit-decisions", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "explain-code", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "extract-enum", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-comment-drift", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-complexity-hotspots", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-concept-divergence", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-dormant", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-duplication", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-folder-topology-drift", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-implicit-state", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-incomplete-sweep", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-omnibus", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-semantic-duplication", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-standard-gaps", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "map-subsystem", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "move-path", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "prevent-regression", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "propose-boundary", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "propose-folder-reorganization", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "rename-concept", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "unify-shadows", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null}
+  ]
+}

@@ -98,6 +98,8 @@ SKILL_DEVELOPMENT_ACTIONS = frozenset({
 WORD_RE = re.compile(r"[a-z][a-z0-9_-]+")
 
 LANGUAGE_ALIASES = {
+    "go": "go",
+    "golang": "go",
     "js": "javascript",
     "javascript": "javascript",
     "py": "python",
@@ -108,6 +110,10 @@ LANGUAGE_ALIASES = {
     "typescript": "typescript",
 }
 LANGUAGE_MARKERS = {
+    "go": re.compile(
+        r"(?:\bGolang\b|\bGo\b(?=\s+(?:project|repo|repository|module|service|"
+        r"package|code|source|file|CLI|application|app)\b)|\.go\b)"
+    ),
     "typescript": re.compile(r"(?i)(?:\btypescript\b|\.tsx?\b)"),
     "javascript": re.compile(r"(?i)(?:\bjavascript\b|(?:\.[cm]?js|\.jsx)\b)"),
     "python": re.compile(r"(?i)(?:\bpython\b|\.py\b)"),
@@ -479,6 +485,7 @@ CAPABILITY_FIELDS = (
     "expansion_disposition",
     "typescript_disposition",
     "javascript_disposition",
+    "go_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -551,6 +558,22 @@ def capability_handoff(library_root: Path, skills: list[str]) -> dict:
         "manifest": str(manifest),
         "skills": selected,
     }
+
+
+def capability_language_exclusion(capabilities: dict, routing_context: dict) -> str | None:
+    if not capabilities.get("available"):
+        return None
+    for language in routing_context["languages"]:
+        for row in capabilities["skills"]:
+            if language == "go" and row["go_disposition"] not in {
+                "go-pilot-supported",
+                "validated-neutral",
+            }:
+                return (
+                    f"/{row['skill']} declares go_disposition="
+                    f"{row['go_disposition']}"
+                )
+    return None
 
 
 def library_handoff(library_root: Path, skills: list[str]) -> dict:
@@ -854,6 +877,30 @@ def cmd_match(args, catalog_path: Path) -> int:
     install_skills = [out["recommendation"], *winner.get("install_with", [])]
     library_root = resolve_library_root(args.project_root.resolve(), args.library_root)
     out["handoff"] = library_handoff(library_root, install_skills)
+    capability_reason = capability_language_exclusion(
+        out["handoff"]["capabilities"], routing_context
+    )
+    if capability_reason is not None:
+        blocked_name = out["recommendation"]
+        out.pop("handoff")
+        out.pop("task_packet", None)
+        out["recommendation"] = "unsupported"
+        out["unsupported"] = {
+            "name": blocked_name,
+            "score": above[0][0],
+            "reason": capability_reason,
+        }
+        out["rationale"] = (
+            f"The strongest matching skill, /{blocked_name}, is not eligible for "
+            f"the resolved language/framework: {capability_reason}. No weaker "
+            "skill was substituted."
+        )
+        if args.json:
+            print(json.dumps(out, indent=2))
+        else:
+            print(f"Task: {task}")
+            print(out["rationale"])
+        return 1
     out["optional_install"] = optional_install_handoff(
         skill=out["recommendation"],
         skills=install_skills,

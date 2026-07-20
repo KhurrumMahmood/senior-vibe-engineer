@@ -113,3 +113,21 @@ def test_plaintext_stack_block_names_capability_instead_of_bootstrap(tmp_path, c
     assert code == 0
     assert "Handoff blocked by declared capability" in output
     assert "run the which-skill library bootstrap" not in output
+
+
+def test_pending_go_shape_has_no_executable_handoff(tmp_path, capsys):
+    code = route.main([
+        "Propose a Go package boundary for the legacy module without editing source.",
+        "--project-root", str(tmp_path),
+        "--library-root", str(REPO_ROOT),
+        "--skip-log",
+        "--json",
+    ])
+
+    payload = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert payload["recommendation"]["shape"] == "boundary-proposal"
+    assert payload["handoff"]["available"] is False
+    assert payload["handoff"]["reason"] == "selected_skill_not_validated_for_language"
+    assert payload["optional_install"]["available"] is False
+    assert "command" not in payload["optional_install"]

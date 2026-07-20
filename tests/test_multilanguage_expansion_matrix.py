@@ -21,6 +21,7 @@ TYPESCRIPT_COVERAGE = (
 JAVASCRIPT_COVERAGE = (
     REPO_ROOT / ".claude" / "tasks" / "javascript-language-coverage.json"
 )
+GO_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "go-language-coverage.json"
 BUILDER = REPO_ROOT / "scripts" / "build_multilanguage_matrix.py"
 
 EXPECTED_COUNTS = {
@@ -40,6 +41,12 @@ EXPECTED_JAVASCRIPT_COHORT_COUNTS = {
     "syntax": 4,
     "semantic-read-only": 6,
     "proposal-mutation-guard": 6,
+}
+EXPECTED_GO_COUNTS = {
+    "pending-validation": 22,
+    "validated-neutral": 19,
+    "stack-bound": 22,
+    "ecosystem-runtime": 13,
 }
 FACT_LEVELS = {
     "neutral",
@@ -89,6 +96,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
     assert Counter(row["javascript_disposition"] for row in rows) == (
         EXPECTED_JAVASCRIPT_COUNTS
     )
+    assert Counter(row["go_disposition"] for row in rows) == EXPECTED_GO_COUNTS
     assert Counter(row["optional_install"]["status"] for row in rows) == {
         "passed": 41,
         "deferred-named-stack": 22,
@@ -96,7 +104,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
     }
 
     source_by_path = {row["path"]: row["sha256"] for row in payload["sources"]}
-    for source in (CATALOG, TYPESCRIPT_COVERAGE, JAVASCRIPT_COVERAGE):
+    for source in (CATALOG, TYPESCRIPT_COVERAGE, JAVASCRIPT_COVERAGE, GO_COVERAGE):
         relative = str(source.relative_to(REPO_ROOT))
         assert source_by_path[relative] == _sha256(source)
 
@@ -157,20 +165,37 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
                 assert row["javascript_reviewed_revision"]
             if row["javascript_disposition"] != "javascript-limited":
                 assert row["javascript_limitation"] is None
+            if row["go_disposition"] == "pending-validation":
+                assert row["go_evidence_path"] is None
+                assert row["go_native_check"] is None
+                assert row["go_reviewed_revision"] is None
+            else:
+                assert row["go_disposition"] == "go-pilot-supported"
+                assert (REPO_ROOT / row["go_evidence_path"]).is_file()
+                assert row["go_native_check"]
+                assert row["go_reviewed_revision"]
         elif row["expansion_disposition"] == "framework-bound":
             framework_rows.append(row)
             assert row["fact_level"] == "framework"
             assert row["outcome_class"] == "framework-specific"
             assert row["framework_family"]
             assert row["javascript_disposition"] == "stack-bound"
+            assert row["go_disposition"] == "stack-bound"
         elif row["expansion_disposition"] == "validated-neutral":
             assert row["fact_level"] == "neutral"
             assert row["outcome_class"] == "not-applicable"
             assert row["javascript_disposition"] == "validated-neutral"
+            assert row["go_disposition"] == "validated-neutral"
         else:
             assert row["fact_level"] == "ecosystem-runtime"
             assert row["outcome_class"] == "not-applicable"
             assert row["javascript_disposition"] == "ecosystem-runtime"
+            assert row["go_disposition"] == "ecosystem-runtime"
+
+        if row["expansion_disposition"] != "language-level":
+            assert row["go_evidence_path"] is None
+            assert row["go_native_check"] is None
+            assert row["go_reviewed_revision"] is None
 
         if row["expansion_disposition"] != "language-level":
             assert row["javascript_cohort"] is None
