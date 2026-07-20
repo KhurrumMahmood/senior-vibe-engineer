@@ -82,6 +82,7 @@ TSCONFIG="${TSCONFIG:-tsconfig.json}"
 REPORT_NAME="${REPORT_NAME:-typescript-scan}"
 SKILL_ROOT=""
 for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-semantic-duplication" \
   ".agents/skills/find-semantic-duplication" \
   ".claude/skills/find-semantic-duplication"
 do
@@ -91,7 +92,7 @@ do
   fi
 done
 if [ -z "${SKILL_ROOT}" ]; then
-  printf '%s\n' "find-semantic-duplication is not installed in .agents/skills or .claude/skills" >&2
+  printf '%s\n' "find-semantic-duplication is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
   exit 2
 fi
 node "${SKILL_ROOT}/scripts/detect_typescript.mjs" \
@@ -120,11 +121,34 @@ tools/configs are unsupported, malformed JS is syntax-error, and unresolved
 or excluded sources are partial. Never use `npx`, a global compiler, or a
 generic language platform.
 
+<!-- installed-command:javascript-scan:start -->
 ```bash
+: "${TARGET:?Set TARGET to the checked-JavaScript file or directory to audit}"
+JSCONFIG="${JSCONFIG:-jsconfig.json}"
+REPORT_NAME="${REPORT_NAME:-javascript-scan}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-semantic-duplication" \
+  ".agents/skills/find-semantic-duplication" \
+  ".claude/skills/find-semantic-duplication"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-semantic-duplication is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
 node "${SKILL_ROOT}/scripts/detect_typescript.mjs" \
-  --target "${TARGET}" --project-root "$(pwd)" --tsconfig "${JSCONFIG:-jsconfig.json}" \
-  --report-dir "reports/semantic-duplication/${REPORT_NAME:-javascript-scan}" --language javascript
+  --target "${TARGET}" --project-root "$(pwd)" --tsconfig "${JSCONFIG}" \
+  --report-dir "reports/semantic-duplication/${REPORT_NAME}" --language javascript
 ```
+<!-- installed-command:javascript-scan:end -->
+
+This is a standalone host-root command: it resolves the selected skill itself
+and does not inherit `SKILL_ROOT` from the TypeScript command above.
 
 ## Python function-triage branch
 

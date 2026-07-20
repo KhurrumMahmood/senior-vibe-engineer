@@ -109,12 +109,34 @@ config is unsupported, malformed selected JS is syntax-error, and any
 unresolved/excluded source is partial. Do not use `npx`, a global compiler,
 or framework inference.
 
+<!-- installed-command:javascript-state:start -->
 ```bash
-node .claude/skills/find-implicit-state/scripts/detect_typescript_state.mjs \
-  --target src --project-root "$(pwd)" --tsconfig "${JSCONFIG:-jsconfig.json}" \
+: "${TARGET:?Set TARGET to the checked-JavaScript directory to inspect}"
+JSCONFIG="${JSCONFIG:-jsconfig.json}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-implicit-state" \
+  ".agents/skills/find-implicit-state" \
+  ".claude/skills/find-implicit-state"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-implicit-state is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+node "${SKILL_ROOT}/scripts/detect_typescript_state.mjs" \
+  --target "${TARGET}" --project-root "$(pwd)" --tsconfig "${JSCONFIG}" \
   --output reports/implicit-state/javascript.jsonl \
   --manifest reports/implicit-state/javascript.manifest.json --language javascript
 ```
+<!-- installed-command:javascript-state:end -->
+
+This is a standalone host-root command: it resolves the selected skill itself
+under either supported installation layout.
 
 ## Scope
 

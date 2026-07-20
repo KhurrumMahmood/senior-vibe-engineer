@@ -89,6 +89,7 @@ MAP_TARGET="${MAP_TARGET:-src/features}"
 MAP_TSCONFIG="${MAP_TSCONFIG:-tsconfig.json}"
 SKILL_ROOT=""
 for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/map-subsystem" \
   ".agents/skills/map-subsystem" \
   ".claude/skills/map-subsystem"
 do
@@ -98,7 +99,7 @@ do
   fi
 done
 if [ -z "${SKILL_ROOT}" ]; then
-  printf '%s\n' "map-subsystem is not installed in .agents/skills or .claude/skills" >&2
+  printf '%s\n' "map-subsystem is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
   exit 2
 fi
 node "${SKILL_ROOT}/scripts/map_typescript.mjs" \
@@ -127,13 +128,36 @@ are unsupported, malformed selected JS is syntax-error, and unresolved or
 excluded relevant sources are partial. It never falls back to `npx`, a global
 compiler, framework inference, or a shared language platform.
 
+<!-- installed-command:javascript-map:start -->
 ```bash
+: "${MAP_TARGET:?Set MAP_TARGET to the checked-JavaScript file or directory to map}"
+JSCONFIG="${JSCONFIG:-jsconfig.json}"
+MAP_NAME="${MAP_NAME:-javascript-subsystem}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/map-subsystem" \
+  ".agents/skills/map-subsystem" \
+  ".claude/skills/map-subsystem"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "map-subsystem is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
 node "${SKILL_ROOT}/scripts/map_typescript.mjs" \
-  --target "${MAP_TARGET:-src}" --project-root "$(pwd)" \
-  --tsconfig "${JSCONFIG:-jsconfig.json}" --language javascript \
-  --output ".claude/docs/subsystems/${MAP_NAME:-javascript-subsystem}.md" \
-  --evidence "reports/map/${MAP_NAME:-javascript-subsystem}/javascript-map.json"
+  --target "${MAP_TARGET}" --project-root "$(pwd)" \
+  --tsconfig "${JSCONFIG}" --language javascript \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/javascript-map.json"
 ```
+<!-- installed-command:javascript-map:end -->
+
+This is a standalone host-root command: it resolves the selected skill itself
+and does not inherit `SKILL_ROOT` from the TypeScript command above.
 
 ## How success is judged
 

@@ -560,8 +560,9 @@ function deferredRows(groups, thresholds) {
 }
 
 function renderFindings(payload) {
+  const languageLabel = payload.language === "javascript" ? "checked JavaScript v1" : "TypeScript v1";
   const lines = [
-    "# find-incomplete-sweep — findings (TypeScript v1)",
+    `# find-incomplete-sweep — findings (${languageLabel})`,
     "",
     `Status: **${payload.status}**. Compiler-backed resolved call and object-option evidence only.`,
     "",

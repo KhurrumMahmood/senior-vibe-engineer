@@ -119,38 +119,40 @@ def parse_straggler(ref: str) -> tuple[str, int] | None:
         return None
 
 
-def ensure_typescript_output_containment(scan_dir: pathlib.Path, manifest: dict,
-                                        project_root: pathlib.Path) -> None:
-    """Preserve the detector's report-root and no-symlink promise in Step A."""
-    if manifest.get("language") != "typescript":
+def ensure_compiler_manifest_output_containment(scan_dir: pathlib.Path, manifest: dict,
+                                                project_root: pathlib.Path) -> None:
+    """Preserve every compiler-manifest run's report-root and no-symlink promise."""
+    language = manifest.get("language")
+    if language not in {"typescript", "javascript"}:
         return
+    language_label = "TypeScript" if language == "typescript" else "checked JavaScript"
     allowed_root = project_root / "reports" / "find-incomplete-sweep"
     if ".." in scan_dir.parts:
-        raise ValueError("TypeScript scout packet path must not contain parent traversal")
+        raise ValueError(f"{language_label} scout packet path must not contain parent traversal")
     try:
         scan_dir.relative_to(allowed_root)
     except ValueError as exc:
         raise ValueError(
-            "TypeScript scout packets must stay beneath reports/find-incomplete-sweep/"
+            f"{language_label} scout packets must stay beneath reports/find-incomplete-sweep/"
         ) from exc
     current = project_root
     try:
         parts = scan_dir.relative_to(project_root).parts
     except ValueError as exc:
-        raise ValueError("TypeScript scout packets must stay inside the project root") from exc
+        raise ValueError(f"{language_label} scout packets must stay inside the project root") from exc
     try:
         scan_dir.resolve().relative_to(allowed_root.resolve())
     except ValueError as exc:
         raise ValueError(
-            "TypeScript scout packets must stay beneath reports/find-incomplete-sweep/"
+            f"{language_label} scout packets must stay beneath reports/find-incomplete-sweep/"
         ) from exc
     for part in parts:
         current /= part
         if current.is_symlink():
-            raise ValueError("TypeScript scout packets must not traverse a symbolic link")
+            raise ValueError(f"{language_label} scout packets must not traverse a symbolic link")
     output = scan_dir / "scout_packets.json"
     if output.is_symlink():
-        raise ValueError("TypeScript scout packet output must not be a symbolic link")
+        raise ValueError(f"{language_label} scout packet output must not be a symbolic link")
 
 
 def build_present_index(scan_mod, paths: list[str], project_root: pathlib.Path):
@@ -197,7 +199,7 @@ def main():
                     help="present-site windows to include per finding")
     ap.add_argument("--paths", nargs="+", default=None,
                     help="paths to re-scan for present-site locations "
-                         "(required for Python manifests; TypeScript manifests "
+                         "(required for Python manifests; compiler manifests "
                          "carry compiler-resolved present-site locations)")
     ap.add_argument("--project-root", type=pathlib.Path, default=None,
                     help="Target project root the manifest paths are relative to "
@@ -226,7 +228,7 @@ def main():
     else:
         project_root = resolve_project_root(None)
     try:
-        ensure_typescript_output_containment(raw_scan_dir, manifest, project_root)
+        ensure_compiler_manifest_output_containment(raw_scan_dir, manifest, project_root)
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(2)
@@ -240,10 +242,10 @@ def main():
              "packet_count": 0, "packets": []}, indent=2))
         return
 
-    is_typescript = manifest.get("language") == "typescript"
-    if not is_typescript and not args.paths:
+    is_compiler_manifest = manifest.get("language") in {"typescript", "javascript"}
+    if not is_compiler_manifest and not args.paths:
         ap.error("--paths is required for a Python manifest")
-    if not is_typescript:
+    if not is_compiler_manifest:
         scan_mod = load_scan_module()
         by_kwarg, _by_callee = build_present_index(scan_mod, args.paths, project_root)
 
@@ -256,7 +258,7 @@ def main():
             continue
         straggler_file, straggler_line = ref
 
-        if is_typescript:
+        if is_compiler_manifest:
             declared_present = f.get("present_sites", [])
             present_locs = []
             for item in declared_present:

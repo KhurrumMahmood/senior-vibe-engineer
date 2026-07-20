@@ -51,3 +51,21 @@ matrix builder, shared harness, or B2J fixture/schema was modified here. The
 serial productization owner should consume the six earned `javascript` scan
 claims after this commit, update the inventory/router/matrices, and decide
 whether project-level JS config discovery belongs in its integration layer.
+
+## Compiler-manifest closure repair
+
+Treat `language` as an artifact contract, not a TypeScript-only switch. A
+checked-JavaScript detector manifest carries the same compiler-resolved
+`present_sites` and owned-report containment promise as TypeScript, so the
+scout and triage stages must recognize both languages as compiler manifests.
+Guard that agreement with a real git-trajectory-gated JavaScript fixture that
+proves detector → packet → human verdict → `triaged.md`; a `--no-gate` result
+proves only candidate detection, not the user handoff.
+
+Copied command blocks are executable API. Each checked-JavaScript block resets
+and resolves `SKILL_ROOT` inside the block, preferring
+`.agents/skills/on-demand`, then the stock `.agents/skills`, then
+`.claude/skills`; never rely on a variable initialized by a preceding
+TypeScript block or hardcode one router layout. Execute the literal copied
+blocks under every supported layout with a hostile inherited `SKILL_ROOT` to
+keep that contract honest.

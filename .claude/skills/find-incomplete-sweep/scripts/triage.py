@@ -4,8 +4,8 @@
 The detector and scout deliberately stop before judgment.  This writer is the
 single final-output oracle: every packet must receive one explicit fixed-vocab
 verdict before a forgotten-first triage can exist.  It is language-neutral so
-the existing Python and compiler-backed TypeScript paths share the same human
-handoff without sharing detection logic.
+the Python, compiler-backed TypeScript, and checked-JavaScript paths share the
+same human handoff without sharing detection logic.
 """
 from __future__ import annotations
 
@@ -77,43 +77,45 @@ def validate_verdicts(packets: dict, verdicts: dict) -> list[dict]:
     return [by_id[packet_id] for packet_id in packet_ids]
 
 
-def ensure_typescript_output_containment(scan_dir: Path, packets: dict) -> None:
-    """Keep a TypeScript final writer inside the detector-owned report root.
+def ensure_compiler_manifest_output_containment(scan_dir: Path, packets: dict) -> None:
+    """Keep every compiler-manifest final writer inside its detector-owned report root.
 
     Python's legacy `--out` supports broader caller-selected output locations.
-    The new TypeScript runner deliberately promises stricter report containment,
-    so Step C preserves that boundary instead of reopening a symlink path after
-    the detector and scout have completed.
+    The compiler runners deliberately promise stricter report containment, so
+    Step C preserves that boundary instead of reopening a symlink path after the
+    detector and scout have completed.
     """
-    if packets.get("language") != "typescript":
+    language = packets.get("language")
+    if language not in {"typescript", "javascript"}:
         return
+    language_label = "TypeScript" if language == "typescript" else "checked JavaScript"
     root_value = packets.get("project_root")
     if not isinstance(root_value, str) or not root_value:
-        raise TriageError("TypeScript packets must record their project root")
+        raise TriageError(f"{language_label} packets must record their project root")
     project_root = Path(root_value).resolve()
     allowed_root = project_root / "reports" / "find-incomplete-sweep"
     if ".." in scan_dir.parts:
-        raise TriageError("TypeScript triage path must not contain parent traversal")
+        raise TriageError(f"{language_label} triage path must not contain parent traversal")
     try:
         scan_dir.relative_to(allowed_root)
     except ValueError as exc:
-        raise TriageError("TypeScript triage must stay beneath reports/find-incomplete-sweep/") from exc
+        raise TriageError(f"{language_label} triage must stay beneath reports/find-incomplete-sweep/") from exc
     current = project_root
     try:
         parts = scan_dir.relative_to(project_root).parts
     except ValueError as exc:
-        raise TriageError("TypeScript triage must stay inside its project root") from exc
+        raise TriageError(f"{language_label} triage must stay inside its project root") from exc
     try:
         scan_dir.resolve().relative_to(allowed_root.resolve())
     except ValueError as exc:
-        raise TriageError("TypeScript triage must stay beneath reports/find-incomplete-sweep/") from exc
+        raise TriageError(f"{language_label} triage must stay beneath reports/find-incomplete-sweep/") from exc
     for part in parts:
         current /= part
         if current.is_symlink():
-            raise TriageError("TypeScript triage must not traverse a symbolic link")
+            raise TriageError(f"{language_label} triage must not traverse a symbolic link")
     output = scan_dir / "triaged.md"
     if output.is_symlink():
-        raise TriageError("TypeScript triage output must not be a symbolic link")
+        raise TriageError(f"{language_label} triage output must not be a symbolic link")
 
 
 def render_triage(packets: dict, ordered_verdicts: list[dict]) -> str:
@@ -173,7 +175,7 @@ def main() -> None:
     scan_dir = raw_scan_dir.resolve()
     packets = _load_json(scan_dir / "scout_packets.json")
     verdicts = _load_json(scan_dir / "scout_verdicts.json")
-    ensure_typescript_output_containment(raw_scan_dir, packets)
+    ensure_compiler_manifest_output_containment(raw_scan_dir, packets)
     ordered = validate_verdicts(packets, verdicts)
     output = scan_dir / "triaged.md"
     output.write_text(render_triage(packets, ordered), encoding="utf-8")

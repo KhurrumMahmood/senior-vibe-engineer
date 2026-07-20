@@ -89,6 +89,7 @@ TSCONFIG="${TSCONFIG:-tsconfig.json}"
 REPORT_NAME="${REPORT_NAME:-typescript-scan}"
 SKILL_ROOT=""
 for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-dormant" \
   ".agents/skills/find-dormant" \
   ".claude/skills/find-dormant"
 do
@@ -98,7 +99,7 @@ do
   fi
 done
 if [ -z "${SKILL_ROOT}" ]; then
-  printf '%s\n' "find-dormant is not installed in .agents/skills or .claude/skills" >&2
+  printf '%s\n' "find-dormant is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
   exit 2
 fi
 node "${SKILL_ROOT}/scripts/detect_typescript_dormant.mjs" \
@@ -125,11 +126,34 @@ modules, diagnostics, and selected files absent from that config make the
 final artifact `partial`; malformed selected JS is a syntax-error and a
 missing compiler/config is unsupported.
 
+<!-- installed-command:javascript-scan:start -->
 ```bash
+: "${TARGET:?Set TARGET to the checked-JavaScript file or directory to audit}"
+JSCONFIG="${JSCONFIG:-jsconfig.json}"
+REPORT_NAME="${REPORT_NAME:-javascript-scan}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-dormant" \
+  ".agents/skills/find-dormant" \
+  ".claude/skills/find-dormant"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-dormant is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
 node "${SKILL_ROOT}/scripts/detect_typescript_dormant.mjs" \
-  --target "${TARGET}" --project-root "$(pwd)" --tsconfig "${JSCONFIG:-jsconfig.json}" \
-  --report-dir "reports/find-dormant/${REPORT_NAME:-javascript-scan}" --language javascript
+  --target "${TARGET}" --project-root "$(pwd)" --tsconfig "${JSCONFIG}" \
+  --report-dir "reports/find-dormant/${REPORT_NAME}" --language javascript
 ```
+<!-- installed-command:javascript-scan:end -->
+
+This is a standalone host-root command: it resolves the selected skill itself
+and does not inherit `SKILL_ROOT` from the TypeScript command above.
 
 CommonJS exports and matching string/dynamic-registration evidence are
 conservative boundaries, not dormant candidates. The result remains

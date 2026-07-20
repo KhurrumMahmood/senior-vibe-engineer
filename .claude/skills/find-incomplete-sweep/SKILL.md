@@ -140,12 +140,48 @@ files. Missing tools/configs are unsupported, malformed selected JS is a
 syntax-error, and unresolved/excluded sources are partial—not clean. Never
 fall back to `npx`, a global compiler, or framework conventions.
 
+The checked-JavaScript manifest follows the same human handoff as the
+TypeScript compiler manifest: the detector writes gated-in findings plus their
+compiler-resolved `present_sites`; `scout.py` converts only those findings into
+`scout_packets.json` without `--paths`; a judge writes one fixed-vocabulary
+record per packet to `scout_verdicts.json`; then `triage.py` validates that
+accounting and writes forgotten-first `triaged.md`. The compiler output is a
+lead, not a completion or an automatic code change.
+
+<!-- installed-command:javascript-scan:start -->
 ```bash
+: "${TARGET:?Set TARGET to the checked-JavaScript file or directory to inspect}"
+JSCONFIG="${JSCONFIG:-jsconfig.json}"
+REPORT_NAME="${REPORT_NAME:-javascript-scan}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-incomplete-sweep" \
+  ".agents/skills/find-incomplete-sweep" \
+  ".claude/skills/find-incomplete-sweep"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-incomplete-sweep is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
 node "${SKILL_ROOT}/scripts/detect_typescript_sweep.mjs" \
-  --target "${TARGET}" --project-root "$(pwd)" --tsconfig "${JSCONFIG:-jsconfig.json}" \
-  --report-dir "reports/find-incomplete-sweep/${REPORT_NAME:-javascript-scan}" \
+  --target "${TARGET}" --project-root "$(pwd)" --tsconfig "${JSCONFIG}" \
+  --report-dir "reports/find-incomplete-sweep/${REPORT_NAME}" \
   --language javascript
+python3 "${SKILL_ROOT}/scripts/scout.py" \
+  --scan-dir "reports/find-incomplete-sweep/${REPORT_NAME}" \
+  --project-root "$(pwd)"
 ```
+<!-- installed-command:javascript-scan:end -->
+
+This standalone host-root command resolves the selected skill itself and stops
+at packets. It does not inherit `SKILL_ROOT` from the TypeScript command below.
+After the required human/scout verdicts are written, use Step C to create
+`triaged.md`.
 
 ### Installed TypeScript command
 
@@ -169,6 +205,7 @@ TSCONFIG="${TSCONFIG:-tsconfig.json}"
 REPORT_NAME="${REPORT_NAME:-typescript-scan}"
 SKILL_ROOT=""
 for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-incomplete-sweep" \
   ".agents/skills/find-incomplete-sweep" \
   ".claude/skills/find-incomplete-sweep"
 do
@@ -178,7 +215,7 @@ do
   fi
 done
 if [ -z "${SKILL_ROOT}" ]; then
-  printf '%s\n' "find-incomplete-sweep is not installed in .agents/skills or .claude/skills" >&2
+  printf '%s\n' "find-incomplete-sweep is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
   exit 2
 fi
 node "${SKILL_ROOT}/scripts/detect_typescript_sweep.mjs" \
@@ -287,10 +324,11 @@ call line ± 8 lines), 1–2 present-site windows (siblings that DO pass the
 kwarg, so shapes are comparable), and the divergence metadata (callee, kwarg,
 `majority_frac`, `group_size`, trajectory note). It re-derives present-site
 locations by importing `scan.py`'s collector — detection logic is never
-duplicated. The TypeScript manifest instead carries the compiler-resolved
-present-site locations, so its scout invocation omits `--paths`. The judge
-reads packets; it does **not** re-derive evidence. (`--paths` must match the
-original Python scan so the present-site index is identical.)
+duplicated. Compiler manifests for TypeScript and checked JavaScript carry the
+compiler-resolved present-site locations, so their scout invocation omits
+`--paths`. The judge reads packets; it does **not** re-derive evidence.
+(`--paths` must match the original Python scan so the present-site index is
+identical.)
 
 ### Step B — fan out one judgment per packet
 
@@ -340,7 +378,23 @@ the judge's brief.
 Run the fixed writer after collecting `<scan-dir>/scout_verdicts.json`:
 
 ```bash
-python3 <skill-root>/scripts/triage.py --scan-dir reports/find-incomplete-sweep/scan-<TS>
+: "${SCAN_DIR:?Set SCAN_DIR to reports/find-incomplete-sweep/<scan>}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-incomplete-sweep" \
+  ".agents/skills/find-incomplete-sweep" \
+  ".claude/skills/find-incomplete-sweep"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-incomplete-sweep is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+python3 "${SKILL_ROOT}/scripts/triage.py" --scan-dir "${SCAN_DIR}"
 ```
 
 It rejects duplicate, missing, unknown, invalid-vocabulary, or rationale-free
