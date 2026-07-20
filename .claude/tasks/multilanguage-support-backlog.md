@@ -103,7 +103,7 @@ auditable when completeness matters.
 
 ### ML-004 — Normalize and compress cross-language learning packets
 
-- State: `proposed`
+- State: `done`
 - User value: the next language can reuse proven contracts without loading the
   full TypeScript implementation history.
 - Trigger: planning the first non-TypeScript pilot reveals which packet fields
@@ -114,10 +114,14 @@ auditable when completeness matters.
   tooling, fixtures, false-positive boundaries, and installed-outcome checks
   without reading unrelated packets; raw evidence remains recoverable.
 - Non-goals: deleting accepted evidence or designing a generic knowledge base.
+- Evidence: P0 of `.claude/tasks/multilanguage-expansion-plan.md` generated the
+  76-row matrix and `.claude/tasks/multilanguage-typescript-transfer-guide.md`.
+  A fresh no-context reader found one missing current-closure field; after the
+  repair, bounded re-review passed for all 22 language-level rows.
 
 ### ML-005 — Framework-specific TypeScript lanes
 
-- State: `proposed`
+- State: `scheduled`
 - User value: the 22 honestly stack-bound skills can support concrete Node,
   React, ORM, router, or UI ecosystems rather than making vague TypeScript
   claims.
@@ -129,10 +133,12 @@ auditable when completeness matters.
   skill only for earned contexts.
 - Non-goals: treating language support as framework support or covering every
   JavaScript framework speculatively.
+- Scheduled scope: P4 of `.claude/tasks/multilanguage-expansion-plan.md` limits
+  the first framework work to the route/workflow family, Express, and FastAPI.
 
 ### ML-006 — JavaScript disposition and shared JS/TS behavior
 
-- State: `proposed`
+- State: `scheduled`
 - User value: repositories containing `.js`, `.jsx`, `.mjs`, or `.cjs` receive
   honest support instead of being accidentally included or omitted by
   TypeScript tooling.
@@ -144,6 +150,9 @@ auditable when completeness matters.
   disposition and representative installed evidence; unsupported syntax and
   mixed-host behavior are visible.
 - Non-goals: claiming JavaScript coverage from shared file traversal alone.
+- Scheduled scope: P2 of `.claude/tasks/multilanguage-expansion-plan.md` owns
+  the exact suffix set, mixed-host behavior, four independent cohorts, and the
+  76-row completion gate.
 
 ### ML-007 — Router decision-quality corpus across languages
 
@@ -177,7 +186,7 @@ auditable when completeness matters.
 
 ### ML-009 — Select and validate the next major-language pilot
 
-- State: `proposed`
+- State: `scheduled`
 - User value: TypeScript learning is converted into repeatable support for
   another common language without another blanket conversion campaign.
 - Trigger: the TypeScript learning synthesis is usable and target-language
@@ -189,6 +198,8 @@ auditable when completeness matters.
   useful outcomes on locked native fixtures, preserve unsupported boundaries,
   and produce an updated translation guide before wider batching.
 - Non-goals: simultaneous full coverage of Go, Rust, Java/Kotlin, C#, and Ruby.
+- Scheduled scope: P3 of `.claude/tasks/multilanguage-expansion-plan.md` names a
+  three-family Go pilot and requires an evidence gate before broader Go work.
 
 ## External release dependency (tracked, not a language feature)
 

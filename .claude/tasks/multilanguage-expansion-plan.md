@@ -1,6 +1,6 @@
 # Multi-language and framework expansion plan
 
-Status: proposed — planning complete enough to review; no implementation started
+Status: active — P0 complete; P1 is the next phase
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
@@ -121,7 +121,7 @@ a promise to port three ecosystems simultaneously.
 
 ## Phase P0 — Freeze baseline and synthesize TypeScript learning
 
-State: `pending`
+State: `complete`
 
 Deliverables:
 
@@ -135,17 +135,17 @@ Deliverables:
 
 Acceptance:
 
-- [ ] Matrix contains 76 unique skills with counts 19 neutral, 13 runtime, 22
+- [x] Matrix contains 76 unique skills with counts 19 neutral, 13 runtime, 22
       language-level, and 22 framework-bound.
-- [ ] A freshness check fails if catalog membership or a disposition changes
+- [x] A freshness check fails if catalog membership or a disposition changes
       without regenerating the matrix.
-- [ ] A fresh reader can identify native tooling, positive/must-not-fire
+- [x] A fresh reader can identify native tooling, positive/must-not-fire
       fixtures, failure semantics, final artifact, and installed/on-demand
       closure for each language-level family without reading unrelated packet
       history.
-- [ ] The duplication inventory cites at least two concrete consumers for every
+- [x] The duplication inventory cites at least two concrete consumers for every
       proposed shared primitive.
-- [ ] Current TypeScript focused and canonical suites remain green.
+- [x] Current TypeScript focused and canonical suites remain green.
 
 ## Phase P1 — Build the minimal portability harness
 
@@ -352,7 +352,7 @@ Acceptance:
 
 | Phase | State | Revision/worktree | Fixture hosts | Verification | Fresh replay/review | Learning artifact |
 |---|---|---|---|---|---|---|
-| P0 TypeScript synthesis | pending | — | — | — | — | — |
+| P0 TypeScript synthesis | complete | P0 commit (this revision) | Accepted TypeScript coverage fixtures | Matrix/coverage/router: 51 passed; canonical: 666 passed, 2 environment skips | Fresh review found missing current closure paths; repaired; bounded re-review PASS | `.claude/tasks/multilanguage-typescript-transfer-guide.md` plus raw linked packets |
 | P1 portability harness | pending | — | — | — | — | — |
 | P2 JavaScript coverage | pending | — | — | — | — | — |
 | P3 Go pilot | pending | — | — | — | — | — |
