@@ -34,7 +34,8 @@ EXCLUDED_DIRS = frozenset({
     "generated", "__generated__", "test", "tests", "__tests__", "spec",
     "specs", "fixture", "fixtures", ".next", ".cache", "site-packages",
 })
-SCANNED_SUFFIXES = {".py", ".md", ".html", ".htm", ".ts", ".tsx"}
+SCRIPT_SUFFIXES = {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"}
+SCANNED_SUFFIXES = {".py", ".md", ".html", ".htm", *SCRIPT_SUFFIXES}
 
 
 @dataclass(frozen=True)
@@ -212,7 +213,14 @@ def _is_excluded(path: Path, project_root: Path) -> bool:
     name = path.name.lower()
     return (
         name.startswith("test_")
-        or name.endswith((".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx", ".d.ts"))
+        or name.endswith(
+            tuple(
+                f".{marker}{suffix}"
+                for marker in ("test", "spec")
+                for suffix in SCRIPT_SUFFIXES
+            )
+            + (".d.ts",)
+        )
         or ".min." in name
     )
 
@@ -277,8 +285,8 @@ def _reference_dict(path: Path, project_root: Path, line: int, identifier: str, 
     }
 
 
-def _typescript_references(path: Path, project_root: Path) -> list[tuple[int, str, str]]:
-    """Return Compiler API-confirmed comment references from one TS/TSX file."""
+def _script_references(path: Path, project_root: Path) -> list[tuple[int, str, str]]:
+    """Return Compiler API-confirmed comments from one JS or TS file."""
     launcher = Path(__file__).resolve().with_name("detect_typescript_comments.mjs")
     try:
         result = subprocess.run(
@@ -288,20 +296,20 @@ def _typescript_references(path: Path, project_root: Path) -> list[tuple[int, st
             check=False,
         )
     except OSError as exc:
-        raise ValueError(f"cannot run bundled TypeScript comment parser: {exc}") from exc
+        raise ValueError(f"cannot run bundled script comment parser: {exc}") from exc
     if result.returncode:
         detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
-        raise ValueError(f"TypeScript comment parser failed for {_relative(path, project_root)}: {detail}")
+        raise ValueError(f"script comment parser failed for {_relative(path, project_root)}: {detail}")
     try:
         payload = json.loads(result.stdout)
     except json.JSONDecodeError as exc:
-        raise ValueError(f"TypeScript comment parser emitted invalid JSON for {_relative(path, project_root)}") from exc
+        raise ValueError(f"script comment parser emitted invalid JSON for {_relative(path, project_root)}") from exc
     if not isinstance(payload, list):
-        raise ValueError(f"TypeScript comment parser emitted an invalid result for {_relative(path, project_root)}")
+        raise ValueError(f"script comment parser emitted an invalid result for {_relative(path, project_root)}")
     references: list[tuple[int, str, str]] = []
     for item in payload:
         if not isinstance(item, dict):
-            raise ValueError(f"TypeScript comment parser emitted an invalid reference for {_relative(path, project_root)}")
+            raise ValueError(f"script comment parser emitted an invalid reference for {_relative(path, project_root)}")
         line, identifier, form = item.get("line"), item.get("id"), item.get("comment_form")
         if (
             not isinstance(line, int)
@@ -310,7 +318,7 @@ def _typescript_references(path: Path, project_root: Path) -> list[tuple[int, st
             or not REFERENCE.fullmatch(f"decision:{identifier}")
             or form not in {"line", "block", "jsdoc"}
         ):
-            raise ValueError(f"TypeScript comment parser emitted an invalid reference for {_relative(path, project_root)}")
+            raise ValueError(f"script comment parser emitted an invalid reference for {_relative(path, project_root)}")
         references.append((line, identifier, form))
     return references
 
@@ -331,9 +339,10 @@ def scan_references(path: Path, project_root: Path) -> list[dict[str, Any]]:
                     references.append(_reference_dict(path, project_root, token.start[0], match.group(1), "python", "line"))
         except (tokenize.TokenError, IndentationError):
             return []
-    elif suffix in {".ts", ".tsx"}:
-        for line, identifier, form in _typescript_references(path, project_root):
-            references.append(_reference_dict(path, project_root, line, identifier, "typescript", form))
+    elif suffix in SCRIPT_SUFFIXES:
+        language = "typescript" if suffix in {".ts", ".tsx"} else "javascript"
+        for line, identifier, form in _script_references(path, project_root):
+            references.append(_reference_dict(path, project_root, line, identifier, language, form))
     elif suffix == ".md":
         for match in MARKDOWN_REFERENCE.finditer(text):
             references.append(_reference_dict(path, project_root, text.count("\n", 0, match.start()) + 1, match.group(1), "markdown", "hash"))
@@ -518,6 +527,7 @@ def render_drift(scan_id: str, decisions: list[Decision], references: list[dict[
         "broken-supersession", "code-ref-orphan", "applies-to-missing", "proposed-too-long", "unreferenced-decision",
     )}
     ts_count = sum(reference["language"] == "typescript" for reference in references)
+    js_count = sum(reference["language"] == "javascript" for reference in references)
     lines = [
         f"# Decision-registry drift — {scan_id}",
         "",
@@ -536,7 +546,7 @@ def render_drift(scan_id: str, decisions: list[Decision], references: list[dict[
         "",
         "## Reference inventory",
         "",
-        f"TS/TSX comment references: {ts_count} total. Resolved references are retained here even when they create no drift row.",
+        f"JS/JSX/MJS/CJS comment references: {js_count} total; TS/TSX: {ts_count} total. Resolved references are retained here even when they create no drift row.",
     ])
     if references:
         for reference in references:

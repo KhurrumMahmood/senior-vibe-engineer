@@ -8,12 +8,11 @@ this skill so a copied installation has its complete runtime closure:
 
 * Python uses the stdlib ``ast`` module, including the existing god-class
   method expansion.
-* JavaScript keeps the existing column-zero declaration heuristic.
-* TypeScript and TSX use the host project's pinned TypeScript Compiler API
+* JavaScript, JSX, TypeScript, and TSX use the host project's pinned TypeScript Compiler API
   through the bundled ``detect_typescript_symbols.mjs`` launcher. It reports
   exact top-level spans for functions, function-valued variables, and classes.
 
-TypeScript v1 is syntax-only: it needs Node and a ``typescript`` package
+The script-family path is syntax-only: it needs Node and a ``typescript`` package
 resolvable from ``--project-root`` but does not need a tsconfig, type checker,
 module resolution, framework model, or semantic responsibility claims.
 """
@@ -58,7 +57,7 @@ class TypeScriptExtractionError(RuntimeError):
 _LANGUAGES: tuple[str, ...] = ("javascript", "python", "typescript")
 _LANGUAGE_EXTENSIONS: dict[str, frozenset[str]] = {
     "python": frozenset({".py"}),
-    "javascript": frozenset({".js", ".mjs", ".cjs"}),
+    "javascript": frozenset({".js", ".jsx", ".mjs", ".cjs"}),
     "typescript": frozenset({".ts", ".tsx"}),
 }
 _DEFAULT_SKIP_DIRS: frozenset[str] = frozenset({
@@ -70,8 +69,11 @@ _TYPESCRIPT_SKIP_DIRS: frozenset[str] = frozenset({
 })
 _DEFAULT_SKIP_FILE_GLOBS: tuple[str, ...] = (
     "tests_*.py", "test_*.py", "tests.py", "conftest.py", "__init__.py",
-    "*.min.js", "*.min.css", "*-min.js", "*.bundle.js",
-    "*.test.js", "*.spec.js",
+    "*.min.js", "*.min.jsx", "*.min.mjs", "*.min.cjs", "*.min.css",
+    "*-min.js", "*-min.jsx", "*-min.mjs", "*-min.cjs",
+    "*.bundle.js", "*.bundle.jsx", "*.bundle.mjs", "*.bundle.cjs",
+    "*.test.js", "*.test.jsx", "*.test.mjs", "*.test.cjs",
+    "*.spec.js", "*.spec.jsx", "*.spec.mjs", "*.spec.cjs",
     "*.d.ts", "*.d.tsx", "*.min.ts", "*.min.tsx", "*-min.ts",
     "*-min.tsx", "*.bundle.ts", "*.bundle.tsx", "*.generated.ts",
     "*.generated.tsx", "*.test.ts", "*.test.tsx", "*.spec.ts",
@@ -289,9 +291,6 @@ def _scan_file(filepath: Path, rel: str, project_root: Path) -> dict[str, object
     if language == "python":
         extracted = _python_symbols(source)
         analyzer = "python-ast"
-    elif language == "javascript":
-        extracted = _javascript_symbols(source)
-        analyzer = "js-heuristic"
     else:
         extracted = _typescript_symbols(filepath, project_root)
         analyzer = "typescript-compiler-api"

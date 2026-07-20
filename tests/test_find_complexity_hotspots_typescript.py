@@ -274,7 +274,7 @@ def test_frontmatter_and_docs_name_the_narrow_typescript_contract() -> None:
 
     assert "language: any" in text
     assert "framework: any" in text
-    assert "scans: [python, typescript]" in text
+    assert "scans: [python, javascript, typescript]" in text
     assert "block-bodied arrows" in text
     assert "React/Node/ORM" in text
     assert "expression-bodied arrows" in text

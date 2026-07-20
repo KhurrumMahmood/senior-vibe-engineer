@@ -1,6 +1,6 @@
 ---
 name: audit-decisions
-description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python comments, Markdown/HTML references, and TypeScript/TSX comments."
+description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python comments, Markdown/HTML references, JavaScript/JSX/MJS/CJS comments, and TypeScript/TSX comments."
 argument-hint: "[--target PATH]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -19,7 +19,7 @@ delegate_from: |
   and orphaned inline decision references.
 language: any
 framework: any
-scans: [python, markdown, html, typescript]
+scans: [python, markdown, html, javascript, typescript]
 ---
 
 # /audit-decisions
@@ -36,13 +36,15 @@ reference is visible rather than silently disappearing.
   `--project-root/reports/audit-decisions/`. Do not claim a scan ran without
   all four artifacts.
 - Include valid `decision:NNNN` references from TypeScript and TSX comments in
-  both final artifacts. A valid reference prevents an old accepted ADR from
+both final artifacts. JavaScript uses the same syntax-only parser for `.js`,
+`.jsx`, `.mjs`, and `.cjs`. A valid reference prevents an old accepted ADR from
   being reported as unreferenced.
 - Preserve Python comment, Markdown, and HTML reference handling additively.
   Registry status/link checks remain visible in their compatibility artifacts.
 - Keep the registry and source files read-only. Exit `0` for clean, `1` when
   drift rows are present, and `2` for invalid paths, unsupported/malformed
-  decision frontmatter, unavailable TypeScript tooling, invalid TS/TSX, or a
+  decision frontmatter, unavailable project-local TypeScript tooling, invalid
+  JavaScript/TypeScript syntax, or a
   report directory outside the per-run audit-report location.
 
 ## Supported reference contract

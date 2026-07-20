@@ -1,7 +1,7 @@
 ---
 name: find-complexity-hotspots
-description: Detect advisory Python and TypeScript function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan for nested loops, membership scans, sort/repeated scans, Django query calls in loops, and high-branch functions; adds syntax-only TypeScript/TSX high-branch findings for function declarations, methods, and block-bodied arrows. Use when a subsystem feels expensive or difficult to follow and a read-only, evidence-backed lead list is needed before measurement or refactoring.
-argument-hint: "<paths> [--language python|typescript]"
+description: Detect advisory Python, JavaScript, and TypeScript function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only JS/JSX/MJS/CJS/TS/TSX high-branch findings for function declarations, methods, and block-bodied arrows.
+argument-hint: "<paths> [--language python|javascript|typescript]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -18,7 +18,7 @@ not_for: |
   scope. Broad module-level responsibility sprawl belongs to /find-omnibus.
 language: any
 framework: any
-scans: [python, typescript]
+scans: [python, javascript, typescript]
 ---
 
 # /find-complexity-hotspots
@@ -31,8 +31,8 @@ proof that an optimization is safe or valuable.
 - The final report directory contains `detections.jsonl`, `report.md`, and
   `findings.json`, with `latest` pointing to that run. Do not claim a scan ran
   without these artifacts.
-- Python findings preserve the six established bands. TypeScript findings carry
-  `language: "typescript"`, `analyzer: "typescript-compiler-api"`, function
+- Python findings preserve the six established bands. JavaScript and TypeScript findings carry
+  their exact `language`, `analyzer: "typescript-compiler-api"`, function
   start/end lines, LOC, and branch score in both JSON artifacts; `report.md`
   prints the analyzer provenance.
 - Use one verdict: `no-hotspots`, `measure-first`, `actionable-hotspot`, or

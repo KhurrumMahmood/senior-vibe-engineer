@@ -1,6 +1,6 @@
 ---
 name: find-omnibus
-description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans, a legacy JavaScript heuristic, and a bundled TypeScript Compiler API parser for ESM `.ts`/`.tsx` top-level functions, typed arrows, and classes; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.
+description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans and a bundled TypeScript Compiler API syntax parser for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, and `.tsx` top-level functions, arrows, and classes; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.
 argument-hint: "--target <directory> [--language python|javascript|typescript]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
@@ -12,10 +12,9 @@ best_for: |
   files that mix credentials, admin APIs, CSRF/auth, command/network
   diagnostics, persistence, raw SQL, import/export, task dispatch, or
   filesystem writes; produces decomposition candidates that hand off
-  to /refactor-subsystem. Covers Python (exact AST), JavaScript (legacy
-  declaration heuristic), and TypeScript (Compiler API syntax spans for ESM
-  top-level functions, typed arrows, and classes). Findings carry analyzer
-  provenance. TypeScript needs Node and the host's project-local `typescript`
+  to /refactor-subsystem. Covers Python (exact AST) and JavaScript/TypeScript
+  (Compiler API syntax spans for top-level functions, arrows, and classes).
+  Findings carry analyzer provenance. Script-family analysis needs Node and the host's project-local `typescript`
   package, but no tsconfig or framework.
 not_for: |
   Single-responsibility files that are merely large (cohesive >500 LOC

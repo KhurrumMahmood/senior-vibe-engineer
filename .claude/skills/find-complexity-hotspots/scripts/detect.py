@@ -43,13 +43,26 @@ TYPESCRIPT_SKIP_DIRS = {
     "tests",
     "vendor",
 }
-TYPESCRIPT_SKIP_GLOBS = (
+SCRIPT_SKIP_GLOBS = (
     "*.d.ts", "*.d.tsx", "*.generated.ts", "*.generated.tsx",
     "*.min.ts", "*.min.tsx", "*-min.ts", "*-min.tsx",
     "*.bundle.ts", "*.bundle.tsx", "*.spec.ts", "*.spec.tsx",
     "*.test.ts", "*.test.tsx", "test_*.ts", "test_*.tsx",
     "tests_*.ts", "tests_*.tsx", "*_test.ts", "*_test.tsx",
+    "*.generated.js", "*.generated.jsx", "*.generated.mjs", "*.generated.cjs",
+    "*.min.js", "*.min.jsx", "*.min.mjs", "*.min.cjs",
+    "*-min.js", "*-min.jsx", "*-min.mjs", "*-min.cjs",
+    "*.bundle.js", "*.bundle.jsx", "*.bundle.mjs", "*.bundle.cjs",
+    "*.spec.js", "*.spec.jsx", "*.spec.mjs", "*.spec.cjs",
+    "*.test.js", "*.test.jsx", "*.test.mjs", "*.test.cjs",
+    "test_*.js", "test_*.jsx", "test_*.mjs", "test_*.cjs",
+    "tests_*.js", "tests_*.jsx", "tests_*.mjs", "tests_*.cjs",
+    "*_test.js", "*_test.jsx", "*_test.mjs", "*_test.cjs",
 )
+SCRIPT_SUFFIXES = {
+    "typescript": {".ts", ".tsx"},
+    "javascript": {".js", ".jsx", ".mjs", ".cjs"},
+}
 
 QUERYSET_METHODS = {
     "aggregate",
@@ -502,7 +515,9 @@ def _typescript_complexity(path: Path, project_root: Path) -> list[dict[str, Any
     return validated
 
 
-def _typescript_high_branch_records(path: Path, project_root: Path) -> list[dict[str, Any]]:
+def _script_high_branch_records(
+    path: Path, project_root: Path, language: str
+) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for fact in _typescript_complexity(path, project_root):
         branch_score = int(fact["branch_score"])
@@ -517,7 +532,7 @@ def _typescript_high_branch_records(path: Path, project_root: Path) -> list[dict
                 int(fact["lineno"]),
                 f"`{symbol}` has approximate syntactic branch score {branch_score} over {loc} LOC.",
                 "Read the block and its input sizes before changing it; preserve observable "
-                "behavior with native TypeScript tests if a behavior-backed boundary emerges.",
+                f"behavior with native {language} tests if a behavior-backed boundary emerges.",
                 project_root,
                 confidence="medium" if branch_score >= 18 else "low",
                 next_skill="manual-review",
@@ -529,7 +544,7 @@ def _typescript_high_branch_records(path: Path, project_root: Path) -> list[dict
                 loc=loc,
                 end_lineno=int(fact["end_lineno"]),
                 kind=str(fact["kind"]),
-                language="typescript",
+                language=language,
                 analyzer="typescript-compiler-api",
             )
         )
@@ -570,10 +585,13 @@ def _typescript_path_is_excluded(path: Path, project_root: Path) -> bool:
     skipped_dirs = SKIP_DIRS | TYPESCRIPT_SKIP_DIRS
     if any(part.lower() in skipped_dirs for part in parts[:-1]):
         return True
-    return any(fnmatch.fnmatchcase(path.name, glob) for glob in TYPESCRIPT_SKIP_GLOBS)
+    return any(fnmatch.fnmatchcase(path.name, glob) for glob in SCRIPT_SKIP_GLOBS)
 
 
-def _iter_typescript_files(project_root: Path, paths: Iterable[str]) -> list[Path]:
+def _iter_script_files(
+    project_root: Path, paths: Iterable[str], language: str
+) -> list[Path]:
+    suffixes = SCRIPT_SUFFIXES[language]
     found: list[Path] = []
     for raw in paths:
         raw_path = Path(raw)
@@ -584,13 +602,13 @@ def _iter_typescript_files(project_root: Path, paths: Iterable[str]) -> list[Pat
             candidate = raw_path if raw_path.is_absolute() else project_root / raw_path
             candidates = [candidate]
         for candidate in candidates:
-            if candidate.is_file() and candidate.suffix.lower() in {".ts", ".tsx"}:
+            if candidate.is_file() and candidate.suffix.lower() in suffixes:
                 found.append(candidate)
             elif candidate.is_dir():
                 found.extend(
                     path
                     for path in candidate.rglob("*")
-                    if path.is_file() and path.suffix.lower() in {".ts", ".tsx"}
+                    if path.is_file() and path.suffix.lower() in suffixes
                 )
     clean: list[Path] = []
     for path in found:
@@ -634,7 +652,7 @@ def detect(
 ) -> list[dict[str, Any]]:
     project_root = project_root.resolve()
     records: list[dict[str, Any]] = []
-    wanted = languages or {"python", "typescript"}
+    wanted = languages or {"javascript", "python", "typescript"}
     if "python" in wanted:
         for path in _iter_python_files(project_root, paths, include_tests):
             try:
@@ -645,10 +663,12 @@ def detect(
             visitor = ComplexityVisitor(path, project_root)
             visitor.visit(tree)
             records.extend(visitor.records)
-    if "typescript" in wanted:
-        for path in _iter_typescript_files(project_root, paths):
+    for language in ("javascript", "typescript"):
+        if language not in wanted:
+            continue
+        for path in _iter_script_files(project_root, paths, language):
             try:
-                records.extend(_typescript_high_branch_records(path, project_root))
+                records.extend(_script_high_branch_records(path, project_root, language))
             except TypeScriptExtractionError as exc:
                 raise TypeScriptExtractionError(f"{path}: {exc}") from exc
 
@@ -675,7 +695,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--language",
         action="append",
-        choices=("python", "typescript"),
+        choices=("javascript", "python", "typescript"),
         default=[],
         help="Restrict scanning to one or more supported languages.",
     )

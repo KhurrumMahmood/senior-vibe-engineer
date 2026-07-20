@@ -82,7 +82,9 @@ def test_typescript_and_existing_reference_forms_reach_final_drift_artifacts(tmp
     assert [(row["evidence"]["path"], row["adr_id"]) for row in orphan_rows] == [
         ("src/decision_refs.ts", "9999"),
     ]
-    assert "TS/TSX comment references: 18 total" in (output / "drift.md").read_text(encoding="utf-8")
+    assert "JS/JSX/MJS/CJS comment references: 0 total; TS/TSX: 18 total" in (
+        output / "drift.md"
+    ).read_text(encoding="utf-8")
 
 
 def test_typescript_literals_jsx_text_and_regexes_never_create_references(tmp_path: Path) -> None:

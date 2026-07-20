@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Extract direct TypeScript/TSX call facts for find-standard-gaps.
+ * Extract direct JavaScript/TypeScript call facts for find-standard-gaps.
  *
  * The launcher resolves only the host project's pinned `typescript` package
  * and creates a syntax tree. It never reads a tsconfig, builds a Program,
@@ -21,7 +21,7 @@ function parseArgs(argv) {
   if (argv.length === 4 && argv[0] === "--file" && argv[2] === "--project-root") {
     return { check: false, file: path.resolve(argv[1]), projectRoot: path.resolve(argv[3]) };
   }
-  fail("usage: detect_typescript_calls.mjs --check --project-root <path> | --file <ts-or-tsx> --project-root <path>");
+  fail("usage: detect_typescript_calls.mjs --check --project-root <path> | --file <js-or-ts> --project-root <path>");
 }
 
 function loadTypeScript(projectRoot) {
@@ -106,12 +106,19 @@ function main() {
     process.stdout.write('{"ok":true}\n');
     return;
   }
-  if (!/\.(?:ts|tsx)$/i.test(args.file)) {
-    fail(`TypeScript source must end in .ts or .tsx: ${args.file}`);
+  if (!/\.(?:js|jsx|mjs|cjs|ts|tsx)$/i.test(args.file)) {
+    fail(`JavaScript/TypeScript source has an unsupported suffix: ${args.file}`);
   }
   if (!fs.existsSync(args.file)) fail(`TypeScript source does not exist: ${args.file}`);
   const text = fs.readFileSync(args.file, "utf8");
-  const scriptKind = args.file.toLowerCase().endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const lower = args.file.toLowerCase();
+  const scriptKind = lower.endsWith(".tsx")
+    ? ts.ScriptKind.TSX
+    : lower.endsWith(".jsx")
+      ? ts.ScriptKind.JSX
+      : /\.(?:js|mjs|cjs)$/.test(lower)
+        ? ts.ScriptKind.JS
+        : ts.ScriptKind.TS;
   const sourceFile = ts.createSourceFile(args.file, text, ts.ScriptTarget.Latest, true, scriptKind);
   if (sourceFile.parseDiagnostics.length > 0) {
     const diagnostic = sourceFile.parseDiagnostics[0];

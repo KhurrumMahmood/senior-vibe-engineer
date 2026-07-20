@@ -1,6 +1,6 @@
 ---
 name: find-standard-gaps
-description: Detect places a declared baseline standard should apply but doesn't. A standard (a security check, a resilience rule, an input-validation or observability requirement) is declared once as an idea with an executable `ast` detector; `scan_coverage.py` scans Python and narrow syntax-only TypeScript/TSX coverage and reports every site whose triggering situation holds but the standard is absent. Generalizes hand-written AST lints — declare a standard instead of authoring a bespoke lint. Detection-only; never edits code.
+description: Detect places a declared baseline standard should apply but doesn't. A standard is declared once with an executable `ast` detector; `scan_coverage.py` scans Python and narrow syntax-only JavaScript/TypeScript direct-call coverage and reports every site whose triggering situation holds but the standard is absent. Detection-only; never edits code.
 argument-hint: "<host-owned standards JSON — copy standards.example.json, adapt it, and pass its path>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -24,7 +24,7 @@ not_for: |
   when there is no reusable baseline policy (just write the lint).
 language: any
 framework: any
-scans: [python, typescript]
+scans: [python, javascript, typescript]
 ---
 
 # /find-standard-gaps

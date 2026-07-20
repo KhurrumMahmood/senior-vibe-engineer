@@ -51,7 +51,7 @@ found, MAX (production / public-adversarial) is assumed so nothing is
 silently skipped, with a prominent warning to run `/orient`. See
 knowledge/detector-model.md and project_state.py.
 
-The Python runner is stdlib-only. TS/TSX scans additionally require Node and
+The Python runner is stdlib-only. JavaScript/TypeScript scans additionally require Node and
 the host's project-local `typescript` package. Read-only against the codebase.
 
 Usage:
@@ -96,7 +96,7 @@ SKIP_DIRS = {".venv", "__pycache__", "migrations", ".git", "node_modules",
 # Python 3.11+ `try/except*` is a distinct node; treat it like `try`.
 _TRY_TYPES = (ast.Try,) + ((ast.TryStar,) if hasattr(ast, "TryStar") else ())
 
-TYPESCRIPT_SUFFIXES = {".ts", ".tsx"}
+SCRIPT_SUFFIXES = {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"}
 TYPESCRIPT_SKIP_DIRS = {
     "__tests__", "build", "coverage", "dist", "fixture", "fixtures",
     "generated", "reports", "spec", "specs", "test", "tests", "vendor",
@@ -107,6 +107,15 @@ TYPESCRIPT_SKIP_FILE_GLOBS = (
     "*.bundle.ts", "*.bundle.tsx", "*.spec.ts", "*.spec.tsx",
     "*.test.ts", "*.test.tsx", "test_*.ts", "test_*.tsx",
     "tests_*.ts", "tests_*.tsx", "*_test.ts", "*_test.tsx",
+    "*.generated.js", "*.generated.jsx", "*.generated.mjs", "*.generated.cjs",
+    "*.min.js", "*.min.jsx", "*.min.mjs", "*.min.cjs",
+    "*-min.js", "*-min.jsx", "*-min.mjs", "*-min.cjs",
+    "*.bundle.js", "*.bundle.jsx", "*.bundle.mjs", "*.bundle.cjs",
+    "*.spec.js", "*.spec.jsx", "*.spec.mjs", "*.spec.cjs",
+    "*.test.js", "*.test.jsx", "*.test.mjs", "*.test.cjs",
+    "test_*.js", "test_*.jsx", "test_*.mjs", "test_*.cjs",
+    "tests_*.js", "tests_*.jsx", "tests_*.mjs", "tests_*.cjs",
+    "*_test.js", "*_test.jsx", "*_test.mjs", "*_test.cjs",
 )
 
 
@@ -355,11 +364,11 @@ def run_ast_detector(root: Path, detector: dict):
     if not matched:
         return {"no_files": True}, None
     py_files = [f for f in matched if f.suffix == ".py"]
-    ts_candidates = [f for f in matched if f.suffix.lower() in TYPESCRIPT_SUFFIXES]
+    ts_candidates = [f for f in matched if f.suffix.lower() in SCRIPT_SUFFIXES]
     ts_files = [f for f in ts_candidates if not _typescript_path_is_excluded(f, root)]
     unsupported_files = [
         f for f in matched
-        if f.suffix != ".py" and f.suffix.lower() not in TYPESCRIPT_SUFFIXES
+        if f.suffix != ".py" and f.suffix.lower() not in SCRIPT_SUFFIXES
     ]
     if not py_files and not ts_files:
         if unsupported_files:
@@ -371,21 +380,25 @@ def run_ast_detector(root: Path, detector: dict):
     if ts_files and requires_kwarg:
         return {"unsupported": True, "matched": len(ts_files),
                 "extensions": sorted({f.suffix.lower() for f in ts_files}),
-                "reason": "the TypeScript `ast` branch supports only "
+                "reason": "the JavaScript/TypeScript `ast` branch supports only "
                           "`enclosed_by: try`; `requires_kwarg` names Python "
                           "call syntax and has no equivalent detector contract yet"}, None
     if ts_files and enclosed_by == "with":
         return {"unsupported": True, "matched": len(ts_files),
                 "extensions": sorted({f.suffix.lower() for f in ts_files}),
-                "reason": "the TypeScript `ast` branch supports only "
+                "reason": "the JavaScript/TypeScript `ast` branch supports only "
                           "`enclosed_by: try`; JavaScript/TypeScript has no "
                           "Python-style `with` block"}, None
     if ts_files:
         unavailable = _typescript_preflight(root)
         if unavailable:
-            return {"unsupported": True, "matched": len(ts_files),
-                    "extensions": sorted({f.suffix.lower() for f in ts_files}),
-                    "reason": unavailable}, None
+            if py_files:
+                unsupported_files.extend(ts_files)
+                ts_files = []
+            else:
+                return {"unsupported": True, "matched": len(ts_files),
+                        "extensions": sorted({f.suffix.lower() for f in ts_files}),
+                        "reason": unavailable}, None
 
     sites: list[dict] = []
     gaps: list[dict] = []
@@ -521,7 +534,7 @@ def analyze_idea(root: Path, idea: dict, state: dict) -> dict:
                              f"--project-root.{excluded} This is NOT a passing result."}
         if result.get("unsupported"):
             reason = result.get("reason") or (
-                "the `ast` detector supports Python and TypeScript/TSX only; "
+                "the `ast` detector supports Python and JavaScript/TypeScript only; "
                 f"{result['matched']} file(s) matched `paths` but none are supported "
                 f"source files (found: {', '.join(result['extensions'])})."
             )

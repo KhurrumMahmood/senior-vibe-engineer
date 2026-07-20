@@ -116,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--language",
         action="append",
-        choices=("python", "typescript"),
+        choices=("javascript", "python", "typescript"),
         default=[],
         help="Restrict scanning to one or more supported languages.",
     )

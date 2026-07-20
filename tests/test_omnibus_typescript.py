@@ -176,7 +176,7 @@ def test_frontmatter_truthfully_declares_all_supported_scanners() -> None:
 
     assert "language: any" in text
     assert "scans: [python, javascript, typescript]" in text
-    assert "JavaScript (legacy" in text
+    assert "JavaScript/TypeScript" in text
 
 
 def test_documented_resolver_supports_source_tree_without_path_translation() -> None:

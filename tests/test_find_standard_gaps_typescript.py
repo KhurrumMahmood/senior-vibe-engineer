@@ -144,21 +144,18 @@ def test_mixed_python_and_typescript_sources_are_scanned_together(tmp_path: Path
 
     assert result.returncode == 0, result.stdout + result.stderr
     finding = _result(output)
-    assert finding["status"] == "partial"
-    assert finding["scanned_files"] == 3
+    assert finding["status"] == "scanned"
+    assert finding["scanned_files"] == 4
     assert finding["skipped_files"] == 0
-    assert finding["unsupported_files"] == 1
-    assert finding["unsupported_extensions"] == [".js"]
     assert {(gap["file"], gap["line"]) for gap in finding["gaps"]} == {
         ("src/json.ts", 2),
         ("src/json.ts", 16),
         ("src/panel.tsx", 4),
         ("src/legacy.py", 4),
+        ("src/legacy.js", 1),
     }
     report = (output / "coverage.md").read_text(encoding="utf-8")
-    assert "1 unsupported (.js)" in report
-    assert "not clean/compliant" in report
-    assert "PARTIAL" in result.stdout
+    assert "src/legacy.js:1" in report
 
 
 def test_direct_mixed_directory_target_never_marks_protected_python_plus_js_clean(
@@ -496,6 +493,6 @@ def test_frontmatter_and_docs_name_the_narrow_typescript_contract() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
 
     assert "language: any" in text
-    assert "scans: [python, typescript]" in text
+    assert "scans: [python, javascript, typescript]" in text
     assert "TypeScript Compiler API" in text
     assert "does not resolve aliases, types, receivers, or frameworks" in text

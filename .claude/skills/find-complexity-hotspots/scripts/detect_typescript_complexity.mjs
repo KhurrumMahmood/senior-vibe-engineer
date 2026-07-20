@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Extract syntax-only per-function TypeScript complexity facts.
+ * Extract syntax-only per-function JavaScript/TypeScript complexity facts.
  *
  * This launcher is family-local. It resolves the target host's pinned
  * `typescript` package and uses `createSourceFile`; it never reads a tsconfig,
@@ -17,7 +17,7 @@ function fail(message) {
 
 function parseArgs(argv) {
   if (argv.length !== 4 || argv[0] !== "--file" || argv[2] !== "--project-root") {
-    fail("usage: detect_typescript_complexity.mjs --file <ts-or-tsx> --project-root <path>");
+    fail("usage: detect_typescript_complexity.mjs --file <js-or-ts> --project-root <path>");
   }
   return { file: path.resolve(argv[1]), projectRoot: path.resolve(argv[3]) };
 }
@@ -165,11 +165,18 @@ function functions(sourceFile, ts) {
 
 function main() {
   const { file, projectRoot } = parseArgs(process.argv.slice(2));
-  if (!/\.(?:ts|tsx)$/i.test(file)) fail(`TypeScript source must end in .ts or .tsx: ${file}`);
-  if (!fs.existsSync(file)) fail(`TypeScript source does not exist: ${file}`);
+  if (!/\.(?:js|jsx|mjs|cjs|ts|tsx)$/i.test(file)) fail(`JavaScript/TypeScript source has an unsupported suffix: ${file}`);
+  if (!fs.existsSync(file)) fail(`source does not exist: ${file}`);
   const ts = loadTypeScript(projectRoot);
   const text = fs.readFileSync(file, "utf8");
-  const scriptKind = file.toLowerCase().endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const lower = file.toLowerCase();
+  const scriptKind = lower.endsWith(".tsx")
+    ? ts.ScriptKind.TSX
+    : lower.endsWith(".jsx")
+      ? ts.ScriptKind.JSX
+      : /\.(?:js|mjs|cjs)$/.test(lower)
+        ? ts.ScriptKind.JS
+        : ts.ScriptKind.TS;
   const sourceFile = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, scriptKind);
   if (sourceFile.parseDiagnostics.length > 0) {
     const diagnostic = sourceFile.parseDiagnostics[0];
