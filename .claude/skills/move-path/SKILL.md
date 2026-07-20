@@ -18,8 +18,9 @@ not_for: |
   explicitly added and enabled. Large behavior-changing subsystem splits
   that need characterization tests and human Phase 4 sign-off (use
   /refactor-subsystem). Blind global find-and-replace.
-language: typescript
+language: any
 framework: any
+scans: [javascript, typescript]
 ---
 
 # /move-path

@@ -31,10 +31,10 @@ expanding into a shared execution platform:
 
 | Lane | State | Worktree / branch | Owned skills | Required evidence |
 |---|---|---|---|---|
-| Semantic closure repair | in progress | `engineering-skills-js-semantic-repair` / `codex/js-semantic-repair` | `find-dormant`, `find-implicit-state`, `find-incomplete-sweep`, `find-semantic-duplication`, `map-subsystem` command/docs closure plus `find-incomplete-sweep` packet/triage code | Literal copied/on-demand commands; gated JavaScript detector→scout→triage; relevant TypeScript regression |
-| Proposal artifacts | in progress | `engineering-skills-js-proposal` / `codex/js-proposal` | `extract-enum`, `propose-boundary`, `propose-folder-reorganization`, `unify-shadows` | Final useful proposal for each skill; explicit partial/unsupported behavior; source byte preservation |
-| Mutation and guard | in progress | `engineering-skills-js-mutation` / `codex/js-mutation-guard` | `move-path`, `prevent-regression` | Exact intended mutation/guard diff; native check after application; rollback/no-write behavior on unsafe input |
-| Serial integration | pending | `engineering-skills-product` / `codex/productization-restart` | coverage matrix, generated matrix, router projections, shared tests, plan/evidence | Exact 76-row disposition and 22/22 language-level closure |
+| Semantic closure repair | complete | `engineering-skills-js-semantic-repair` / `codex/js-semantic-repair` | `find-dormant`, `find-implicit-state`, `find-incomplete-sweep`, `find-semantic-duplication`, `map-subsystem` command/docs closure plus `find-incomplete-sweep` packet/triage code | Literal copied/on-demand commands; gated JavaScript detector→scout→triage; relevant TypeScript regression |
+| Proposal artifacts | complete | `engineering-skills-js-proposal` / `codex/js-proposal` | `extract-enum`, `propose-boundary`, `propose-folder-reorganization`, `unify-shadows` | Final useful proposal for each skill; explicit partial/unsupported behavior; source byte preservation |
+| Mutation and guard | complete | `engineering-skills-js-mutation-v2` / `codex/js-mutation-guard-v2` | `move-path`, `prevent-regression` | Exact intended mutation/guard diff; native check after application; rollback/no-write behavior on unsafe input |
+| Serial integration | complete | `engineering-skills-product` / `codex/productization-restart` | coverage matrix, generated matrix, router projections, shared tests, plan/evidence | Exact 76-row disposition and 22/22 language-level closure |
 | Fresh validation | pending | fresh non-context agents and disposable hosts | no production ownership | Three representative router→on-demand→outcome journeys and product verdict |
 
 ## Gate A — Semantic review closure
@@ -49,15 +49,15 @@ The fresh product-aligned review of `f06b6c5` found two accepted gating defects:
 
 Acceptance:
 
-- [ ] Every affected JavaScript command runs literally from a copied skill in
+- [x] Every affected JavaScript command runs literally from a copied skill in
       both `.claude/skills` and `.agents/skills` layouts without inherited shell
       variables.
-- [ ] `find-incomplete-sweep` completes detector→scout→triage for a gated-in
+- [x] `find-incomplete-sweep` completes detector→scout→triage for a gated-in
       JavaScript fixture and renders JavaScript rather than TypeScript labels.
-- [ ] Missing config/tool, malformed syntax, uncovered files, and unresolved
+- [x] Missing config/tool, malformed syntax, uncovered files, and unresolved
       edges retain non-clean outcomes.
-- [ ] Relevant existing TypeScript journeys remain green.
-- [ ] A committed repair and exact verification commands are logged below.
+- [x] Relevant existing TypeScript journeys remain green.
+- [x] A committed repair and exact verification commands are logged below.
 
 ## Gate B — Final six skill outcomes
 
@@ -74,34 +74,34 @@ General contract for `.js`, `.jsx`, `.mjs`, and `.cjs`:
 
 Per-skill acceptance:
 
-- [ ] `extract-enum` produces a reviewable finite-state JavaScript proposal
+- [x] `extract-enum` produces a reviewable finite-state JavaScript proposal
       from demonstrated authority and refuses open/untyped strings.
-- [ ] `propose-boundary` produces a resolved public API/caller/compatibility
+- [x] `propose-boundary` produces a resolved public API/caller/compatibility
       proposal or an explicit defer when the graph is partial or cohesive.
-- [ ] `propose-folder-reorganization` produces an exact move/import/test plan
+- [x] `propose-folder-reorganization` produces an exact move/import/test plan
       from resolved JavaScript imports or defers unsafe/unresolved cases.
-- [ ] `unify-shadows` consumes a confirmed JavaScript semantic finding and
+- [x] `unify-shadows` consumes a confirmed JavaScript semantic finding and
       produces a cited proposal; keep-separate remains a successful verdict.
-- [ ] `move-path` applies only its declared JavaScript path/import changes and
+- [x] `move-path` applies only its declared JavaScript path/import changes and
       passes the fixture's native check; unsafe paths leave source unchanged.
-- [ ] `prevent-regression` emits and executes a bounded JavaScript guard for a
+- [x] `prevent-regression` emits and executes a bounded JavaScript guard for a
       proven invariant; unsupported facts do not fabricate a clean guard.
-- [ ] Both lanes record positive, negative, must-not-fire, malformed,
+- [x] Both lanes record positive, negative, must-not-fire, malformed,
       tool/config-missing, partial, copied-closure, and source-integrity cases
       appropriate to their outcomes.
-- [ ] Both lanes commit a learning packet describing reuse, non-transferable
+- [x] Both lanes commit a learning packet describing reuse, non-transferable
       semantics, and recommendations for Go/other languages.
 
 ## Gate C — Serial 22/22 integration
 
-- [ ] All 22 language-level rows are `javascript-supported` or have a named,
+- [x] All 22 language-level rows are `javascript-supported` or have a named,
       evidence-backed `javascript-limited` disposition; none remain pending.
-- [ ] The generated matrix contains exactly 76 unique skills with unchanged
+- [x] The generated matrix contains exactly 76 unique skills with unchanged
       19 neutral, 13 runtime, 22 language-level, and 22 stack-bound totals.
-- [ ] `.js`, `.jsx`, `.mjs`, and `.cjs` remain visible in mixed JS/TS inventory.
-- [ ] Routers expose the exact selected closure and honest JavaScript
+- [x] `.js`, `.jsx`, `.mjs`, and `.cjs` remain visible in mixed JS/TS inventory.
+- [x] Routers expose the exact selected closure and honest JavaScript
       capability from the on-demand library.
-- [ ] The focused cohort, matrix, router, inventory, harness, and related
+- [x] The focused cohort, matrix, router, inventory, harness, and related
       TypeScript regression suites pass at one committed revision.
 
 ## Gate D — Final user journeys and review
@@ -124,12 +124,12 @@ closure, and host fixture—not expected findings.
 
 ## Learning closeout
 
-- [ ] Consolidate the three cohort packets into one JavaScript transfer note.
-- [ ] Record which TypeScript mechanisms transferred unchanged, which required
+- [x] Consolidate the cohort packets into one JavaScript transfer note.
+- [x] Record which TypeScript mechanisms transferred unchanged, which required
       JavaScript/JSDoc branches, and which must remain family-local.
-- [ ] Record measured implementation/test friction and what should change in
+- [x] Record measured implementation/test friction and what should change in
       the next-language agent brief.
-- [ ] Name candidate shared tooling only when at least two accepted consumers
+- [x] Name candidate shared tooling only when at least two accepted consumers
       now demonstrate the same smaller interface; otherwise record a stop
       decision.
 - [ ] Update the broad expansion plan and backlog with evidence, not guesses.
@@ -139,6 +139,11 @@ closure, and host fixture—not expected findings.
 | Date | Revision | Gate | Evidence / result |
 |---|---|---|---|
 | 2026-07-20 | `f06b6c5` reviewed after serial promotion `6a08ada` | A RED | Fresh product review found the command-root and incomplete-sweep final-journey defects above. No speculative platform or hardening findings were accepted. |
+| 2026-07-20 | serial working tree after `e4413b7` | C RED | `tests/test_javascript_p2_closeout.py` intentionally fails at 16 supported / 6 pending; proposal and guard capabilities remain pending, and the JavaScript `move-path` prompt is currently unsupported. This is the locked before-state for final integration. |
+| 2026-07-20 | `87960c4`, promoted as `399f8b9` | B proposal PASS | Four copied-skill JavaScript proposal outcomes passed (2 focused tests); related TypeScript suites passed 2 + 7 + 7 + 13. All four runners passed `node --check`; Ruff, strict skill metadata lint, scoped pre-commit, and serial 29-test replay passed. Learning: `.claude/tasks/javascript-proposal-learning.md`. |
+| 2026-07-20 | `7fb4caf`, promoted as `a839d89` | A PASS | Literal JavaScript commands work from copied `.agents` and `.claude` layouts; a real gated detector→scout→verdict→triage path passes and labels checked JavaScript honestly. Serial JavaScript plus four related TypeScript suites: 29 passed with the project venv prepended to `PATH`; the first serial run exposed only the machine's invalid system-Python 3.13 code signature. Node checks, scoped pre-commit, and diff check passed in-lane. |
+| 2026-07-20 | `59aa031`, promoted as `a26d0bb` | B mutation/guard PASS | The clean v2 lane replaced a rejected 500-line custom lexer with a 138-line host-compiler span helper plus existing move machinery. Copied-closure outcomes passed 2 tests; serial mover/guard replay passed 23 with 1 named environment skip. Exact changes, native checks, rollback, guard pass/fail, partial/unsupported boundaries, metadata, lint, and pre-commit passed. Learning: `.claude/tasks/javascript-mutation-guard-learning.md`. |
+| 2026-07-20 | serial working tree after `a26d0bb` | C PASS | Coverage contains exactly 22 `javascript-supported` rows and no pending row; generated catalog/matrix are current at 76 skills. Matrix/router closeout passed 57 tests, and the broader cohort/router/inventory/harness integration passed 87 of 88 before the single stale `move-path` language declaration was repaired to `language: any` plus explicit JavaScript/TypeScript scans. |
 
 ## Completion rule
 

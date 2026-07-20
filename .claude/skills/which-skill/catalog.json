@@ -46,7 +46,7 @@
     },
     {
       "name": "audit-decisions",
-      "description": "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python comments, Markdown/HTML references, and TypeScript/TSX comments.",
+      "description": "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python comments, Markdown/HTML references, JavaScript/JSX/MJS/CJS comments, and TypeScript/TSX comments.",
       "tier": "cross-cutting",
       "job": "guard",
       "best_for": "Periodic (monthly / pre-release) decision-registry hygiene and a precise\ncheck that inline decision references still point at real ADRs.\n",
@@ -57,6 +57,7 @@
         "python",
         "markdown",
         "html",
+        "javascript",
         "typescript"
       ],
       "_path": "skills/audit-decisions"
@@ -216,7 +217,7 @@
     },
     {
       "name": "explain-code",
-      "description": "Read-only EXPLAIN skill that converts a Python target or a TypeScript/TSX target's direct public exports into an annotated behavior doc at reports/explanations/<target>.md. TypeScript v1 visibly leaves aliases and re-exports unexplained rather than claiming module resolution.",
+      "description": "Read-only EXPLAIN skill that converts a Python, JavaScript-family, or TypeScript/TSX target's direct public exports into an annotated behavior doc at reports/explanations/<target>.md. JavaScript and TypeScript lexical branches visibly leave aliases, stars, defaults, and unresolved exports unexplained rather than claiming module resolution.",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "Producing an annotated behavior doc for a file, directory package,\nor named subsystem — pre/postconditions, invariants, callers,\nunexplained regions. Read-only. Complements /map-subsystem inventory\nby adding the behavioral annotation that lets a human trust the code\nenough to change it.\n",
@@ -225,6 +226,7 @@
       "framework": "any",
       "scans": [
         "python",
+        "javascript",
         "typescript"
       ],
       "_path": "skills/explain-code"
@@ -242,11 +244,11 @@
     },
     {
       "name": "extract-enum",
-      "description": "Turn a confirmed Django string-state field into a TextChoices proposal, or a reviewed TypeScript closed-state detector result into an as-const runtime-value-object proposal. Emits an implementation-ready caller and boundary inventory without editing production code.",
+      "description": "Turn a confirmed Django string-state field into a TextChoices proposal, or a reviewed TypeScript or checked-JavaScript closed-state detector result into an as-const runtime-value-object proposal. Emits an implementation-ready caller and boundary inventory without editing production code.",
       "tier": "maintenance",
       "job": "explain",
-      "best_for": "A confirmed implicit-state finding (or explicit `<file>::<field>`\ntarget) on a Django model field, ready for a TextChoices proposal —\nproduces the enum class, caller migration table, data-migration risks,\nand stop condition. Read-only. Decided in: 0001 (TextChoices for state).\nFor TypeScript, consume the closed-state detector JSONL to propose one\nexported as-const runtime value object, its derived union, all caller\nmigrations, and named vendor boundaries.\n",
-      "not_for": "Detection (use /find-implicit-state first). Tuple-inferred-identity\nsub-shape — a `.filter(status=X, *_at__...).first()` pattern (use\n/introduce-fk). Refactor execution (use /fix-workflow). Non-model\nfirst-party string sentinels (a dataclass attribute, function return,\nmodule constant, or command-internal outcome) — those take a plain\n`str`-valued Enum (`enum.StrEnum` on 3.11+, or `class X(str, Enum)`),\nnot TextChoices, and the collector only walks model fields; apply that\nconversion by hand.\nDo not use the TypeScript branch for untyped/open-ended strings, a\nframework-specific ORM representation, or a project-native string enum\nwithout fixture evidence for that convention.\n",
+      "best_for": "A confirmed implicit-state finding (or explicit `<file>::<field>`\ntarget) on a Django model field, ready for a TextChoices proposal —\nproduces the enum class, caller migration table, data-migration risks,\nand stop condition. Read-only. Decided in: 0001 (TextChoices for state).\nFor TypeScript or checked JavaScript, consume the closed-state detector JSONL to propose one\nexported as-const runtime value object, its derived union, all caller\nmigrations, and named vendor boundaries.\n",
+      "not_for": "Detection (use /find-implicit-state first). Tuple-inferred-identity\nsub-shape — a `.filter(status=X, *_at__...).first()` pattern (use\n/introduce-fk). Refactor execution (use /fix-workflow). Non-model\nfirst-party string sentinels (a dataclass attribute, function return,\nmodule constant, or command-internal outcome) — those take a plain\n`str`-valued Enum (`enum.StrEnum` on 3.11+, or `class X(str, Enum)`),\nnot TextChoices, and the collector only walks model fields; apply that\nconversion by hand.\nDo not use the TypeScript or checked-JavaScript branch for untyped/open-ended strings, a\nframework-specific ORM representation, or a project-native string enum\nwithout fixture evidence for that convention.\n",
       "language": "any",
       "framework": "any",
       "_path": "skills/extract-enum"
@@ -318,7 +320,7 @@
     },
     {
       "name": "find-complexity-hotspots",
-      "description": "Detect advisory Python and TypeScript function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan for nested loops, membership scans, sort/repeated scans, Django query calls in loops, and high-branch functions; adds syntax-only TypeScript/TSX high-branch findings for function declarations, methods, and block-bodied arrows. Use when a subsystem feels expensive or difficult to follow and a read-only, evidence-backed lead list is needed before measurement or refactoring.",
+      "description": "Detect advisory Python, JavaScript, and TypeScript function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only JS/JSX/MJS/CJS/TS/TSX high-branch findings for function declarations, methods, and block-bodied arrows.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Read-only complexity leads. Python retains nested-loop, membership-scan,\nsort/repeated-scan, Django-query, and high-branch bands. TypeScript/TSX\nreports only per-function syntactic branch complexity with exact source spans\nand analyzer provenance.\n",
@@ -327,6 +329,7 @@
       "framework": "any",
       "scans": [
         "python",
+        "javascript",
         "typescript"
       ],
       "_path": "skills/find-complexity-hotspots"
@@ -394,7 +397,7 @@
     },
     {
       "name": "find-dormant",
-      "description": "Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX v1 uses a host-pinned Compiler API Program/TypeChecker to report non-exported, statically unreferenced top-level implementation candidates for human review. Never infers safe deletion from TypeScript static evidence.",
+      "description": "Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX and checked JavaScript use a host-pinned Compiler API Program/TypeChecker to report non-exported, statically unreferenced top-level implementation candidates for human review. Never infers safe deletion from static evidence.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "TypeScript private implementations that appear statically unreferenced and\nneed a conservative dormant-code review with no safe-deletion claim.\nDetecting dead and quasi-dead Python code, unused URL patterns,\ndefined-but-unreferenced symbols. Validates against real call sites\nand template URL-name usage; cross-checks git-log recency. Never\ndeletes — surfaces evidence for /fix-workflow delete:<id>. TypeScript/TSX\nv1 reports only non-exported top-level implementations with zero resolved\nstatic symbol references, and always requires human runtime review.\n",
@@ -403,28 +406,30 @@
       "framework": "any",
       "scans": [
         "python",
-        "typescript"
+        "typescript",
+        "javascript"
       ],
       "_path": "skills/find-dormant"
     },
     {
       "name": "find-duplication",
-      "description": "Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative TypeScript/TSX lexical clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.",
+      "description": "Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family and TypeScript/TSX lexical clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.",
       "tier": "maintenance",
       "job": "suspect",
-      "best_for": "Python/Django copy-paste and canonical-pattern candidates that need the\nestablished P0/P1/P2 scout triage, or TypeScript/TSX lexical clone\ncandidates that need reliable source spans without a consolidation claim.\n",
-      "not_for": "Semantic duplication where code differs substantially (use\n/find-semantic-duplication), cross-layer workflow drift, or executing a\nrefactor. TypeScript v1 does not prove semantic equivalence or safe reuse.\n",
+      "best_for": "Python/Django copy-paste and canonical-pattern candidates that need the\nestablished P0/P1/P2 scout triage, or JavaScript-family/TypeScript lexical clone\ncandidates that need reliable source spans without a consolidation claim.\n",
+      "not_for": "Semantic duplication where code differs substantially (use\n/find-semantic-duplication), cross-layer workflow drift, or executing a\nrefactor. JavaScript and TypeScript v1 do not prove semantic equivalence or safe reuse.\n",
       "language": "any",
       "framework": "any",
       "scans": [
         "python",
+        "javascript",
         "typescript"
       ],
       "_path": "skills/find-duplication"
     },
     {
       "name": "find-folder-topology-drift",
-      "description": "Read-only SUSPECT audit for Python folder-topology drift and a narrow, explicit-root TypeScript/TSX flat-prefix cluster. Python retains its ADR 0006 promotion and demotion bands; TypeScript v1 reports only three-or-more direct `.ts`/`.tsx` siblings sharing a first `_` or `-` token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.",
+      "description": "Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family or TypeScript flat-prefix clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript and TypeScript v1 report only three-or-more direct source siblings sharing a first `_` or `-` token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Auditing a Python package against ADR 0006's bidirectional ≥3-sibling\nthreshold, or inspecting an explicitly named TypeScript source root for a\nsimple same-domain filename cluster such as\n`billing_parser.ts`, `billing-validator.ts`, and `billing-types.ts`.\n",
@@ -433,6 +438,7 @@
       "framework": "any",
       "scans": [
         "python",
+        "javascript",
         "typescript"
       ],
       "_path": "skills/find-folder-topology-drift"
@@ -469,7 +475,7 @@
     },
     {
       "name": "find-implicit-state",
-      "description": "Detect Django stringly-typed state and tuple-inferred identity patterns, plus a narrow TypeScript closed-state branch. The TypeScript branch uses the host project's pinned Compiler API to distinguish first-party bare state operations from typed authorities, vendor wire boundaries, tests/fixtures, unrelated status text, and open-ended strings. Detection-only — never edits production code.",
+      "description": "Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript and checked-JavaScript closed-state branches. The compiler branches distinguish first-party bare state operations from typed authorities, vendor wire boundaries, tests/fixtures, unrelated status text, and open-ended strings. Detection-only — never edits production code.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Stringly-typed status / phase / state comparisons against bare\nliterals; `.filter(status=..., *_at__...)` tuple-inferred identity.\nTargets the stringly-typed-state smell. Decided in: 0001\n(TextChoices for state).\nIn TypeScript, closed state receivers with repeated bare string\ncomparisons or assignments and a host-owned Compiler API.\n",
@@ -478,13 +484,14 @@
       "framework": "any",
       "scans": [
         "python",
-        "typescript"
+        "typescript",
+        "javascript"
       ],
       "_path": "skills/find-implicit-state"
     },
     {
       "name": "find-incomplete-sweep",
-      "description": "Advisory SUSPECT scan for incomplete sweeps — multi-site changes that were\nstarted but never finished, leaving a forgotten sibling call site at the old\nshape (\"updated N-1 of N\"). Python retains the keyword-argument omission\nband; TypeScript/TSX v1 uses the host-pinned TypeScript Compiler API to group\nresolved project function calls by object-option property presence. Gated on a git-trajectory\nsignal: a divergence counts as a forgotten sweep only when the\nkwarg-present sites were touched more recently than the straggler (the sweep\nlanded after the straggler was last edited). A straggler edited just as\nrecently is reported separately as likely-deliberate. Distinguishes\nabandoned partial work from legitimate post-completion cleanup via residue\ndirection. Detection-only — never edits code; hands off to /fix-workflow.\n",
+      "description": "Advisory SUSPECT scan for incomplete sweeps — multi-site changes that were\nstarted but never finished, leaving a forgotten sibling call site at the old\nshape (\"updated N-1 of N\"). Python retains the keyword-argument omission\nband; TypeScript/TSX and checked JavaScript use the host-pinned TypeScript Compiler API to group\nresolved project function calls by object-option property presence. Gated on a git-trajectory\nsignal: a divergence counts as a forgotten sweep only when the\nkwarg-present sites were touched more recently than the straggler (the sweep\nlanded after the straggler was last edited). A straggler edited just as\nrecently is reported separately as likely-deliberate. Distinguishes\nabandoned partial work from legitimate post-completion cleanup via residue\ndirection. Detection-only — never edits code; hands off to /fix-workflow.\n",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Reviewing a human- or AI-authored multi-file change where a sweep across\nsibling call sites may have stopped short: a new keyword argument threaded\nthrough some callers, a proxy/config param added to some call sites, an\noption passed at most but not all of a callee's call sites. The straggler is\nfully live (old shape still referenced and executing), so /find-dormant\ncannot see it. The git-trajectory gate keeps the signal to recently-swept\ndivergences rather than long-stable intentional asymmetry.\n",
@@ -493,7 +500,8 @@
       "framework": "any",
       "scans": [
         "python",
-        "typescript"
+        "typescript",
+        "javascript"
       ],
       "_path": "skills/find-incomplete-sweep"
     },
@@ -510,10 +518,10 @@
     },
     {
       "name": "find-omnibus",
-      "description": "Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans, a legacy JavaScript heuristic, and a bundled TypeScript Compiler API parser for ESM `.ts`/`.tsx` top-level functions, typed arrows, and classes; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.",
+      "description": "Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans and a bundled TypeScript Compiler API syntax parser for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, and `.tsx` top-level functions, arrows, and classes; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.",
       "tier": "maintenance",
       "job": "suspect",
-      "best_for": "Files answering questions from 3+ unrelated domains — the SRP \"and\"\ntest counts 3+ \"and\"s. Ranks by responsibility count, then boosts\nfiles that mix credentials, admin APIs, CSRF/auth, command/network\ndiagnostics, persistence, raw SQL, import/export, task dispatch, or\nfilesystem writes; produces decomposition candidates that hand off\nto /refactor-subsystem. Covers Python (exact AST), JavaScript (legacy\ndeclaration heuristic), and TypeScript (Compiler API syntax spans for ESM\ntop-level functions, typed arrows, and classes). Findings carry analyzer\nprovenance. TypeScript needs Node and the host's project-local `typescript`\npackage, but no tsconfig or framework.\n",
+      "best_for": "Files answering questions from 3+ unrelated domains — the SRP \"and\"\ntest counts 3+ \"and\"s. Ranks by responsibility count, then boosts\nfiles that mix credentials, admin APIs, CSRF/auth, command/network\ndiagnostics, persistence, raw SQL, import/export, task dispatch, or\nfilesystem writes; produces decomposition candidates that hand off\nto /refactor-subsystem. Covers Python (exact AST) and JavaScript/TypeScript\n(Compiler API syntax spans for top-level functions, arrows, and classes).\nFindings carry analyzer provenance. Script-family analysis needs Node and the host's project-local `typescript`\npackage, but no tsconfig or framework.\n",
       "not_for": "Single-responsibility files that are merely large (cohesive >500 LOC\nis fine — avoid splitting for size alone). Layer violations\nspecifically in views (use /find-layer-violation). Refactor\nexecution (use /refactor-subsystem in decomposition mode).\nLanguages without an extraction adapter yet — check\n/find-perimeter-gaps for what is and isn't covered.\n",
       "language": "any",
       "framework": "any",
@@ -584,7 +592,7 @@
     },
     {
       "name": "find-semantic-duplication",
-      "description": "Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX function-level typed leads using a host-local Compiler API Program/TypeChecker. TypeScript reports confirmed, uncertain, and rejected candidates with capability matrices; it does not infer workflows, structural duplication, or safe refactors.",
+      "description": "Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX and checked-JavaScript function-level leads using a host-local Compiler API Program/TypeChecker. Compiler branches report confirmed, uncertain, and rejected candidates with capability matrices; they do not infer workflows, structural duplication, or safe refactors.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Two independently-written, live functions that plausibly solve the same\nproblem with different code shape. Python uses scout confirmation; TypeScript\nv1 uses typed return-shape and direct-call evidence before human review.\n",
@@ -593,7 +601,8 @@
       "framework": "any",
       "scans": [
         "python",
-        "typescript"
+        "typescript",
+        "javascript"
       ],
       "_path": "skills/find-semantic-duplication"
     },
@@ -649,7 +658,7 @@
     },
     {
       "name": "find-standard-gaps",
-      "description": "Detect places a declared baseline standard should apply but doesn't. A standard (a security check, a resilience rule, an input-validation or observability requirement) is declared once as an idea with an executable `ast` detector; `scan_coverage.py` scans Python and narrow syntax-only TypeScript/TSX coverage and reports every site whose triggering situation holds but the standard is absent. Generalizes hand-written AST lints — declare a standard instead of authoring a bespoke lint. Detection-only; never edits code.",
+      "description": "Detect places a declared baseline standard should apply but doesn't. A standard is declared once with an executable `ast` detector; `scan_coverage.py` scans Python and narrow syntax-only JavaScript/TypeScript direct-call coverage and reports every site whose triggering situation holds but the standard is absent. Detection-only; never edits code.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Checking that a baseline standard is applied everywhere its situation\noccurs — \"every external DB connection is inside a try\", \"every\noutbound HTTP call sets a timeout\", \"no call to X without guard Y\".\nEach standard is a declarative entry with an `ast` detector; the scan\nis deterministic, cheap, and syntactically precise.\nCensus mode (scripts/census.py) answers the upstream discovery question:\n\"what variants exist, which is the majority, who are the stragglers?\"\nUse census before declaring a standard to understand the current\npopulation; census output feeds /decide and standards declaration.\n",
@@ -658,6 +667,7 @@
       "framework": "any",
       "scans": [
         "python",
+        "javascript",
         "typescript"
       ],
       "_path": "skills/find-standard-gaps"
@@ -802,7 +812,7 @@
     },
     {
       "name": "map-subsystem",
-      "description": "Produce or refresh a durable inventory doc for a Python or TypeScript/TSX subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; TypeScript/TSX v1 uses the host-pinned Compiler API plus one named tsconfig resolver for exported surface and resolved imports. No refactor intent — MAP skill in the maintenance nervous system.",
+      "description": "Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, or checked-JavaScript subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; compiler branches use the host-pinned Compiler API plus one named config resolver for exported surface and resolved imports. No refactor intent — MAP skill in the maintenance nervous system.",
       "tier": "maintenance",
       "job": "map",
       "best_for": "Producing or refreshing a durable inventory doc for a subsystem at\n`.claude/docs/subsystems/<name>.md` — file list, public surface,\nresponsibility table, dependency graph, convention-compliance\nscore. MAP skill in the maintenance nervous system.\n",
@@ -811,7 +821,8 @@
       "framework": "any",
       "scans": [
         "python",
-        "typescript"
+        "typescript",
+        "javascript"
       ],
       "_path": "skills/map-subsystem"
     },
@@ -828,13 +839,17 @@
     },
     {
       "name": "move-path",
-      "description": "Deterministically plan, dry-run, apply, and verify standalone TypeScript/TSX file or directory moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Use for a reviewed move map with JSON plans, dry-run reporting, Git-aware moves, and explicit ignored-import risk. TypeScript/TSX source imports are never rewritten in v1; import-safe module moves need a resolver-aware follow-up.",
+      "description": "Deterministically plan, dry-run, apply, and verify standalone TypeScript/TSX file or directory moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. An explicit checked-JavaScript mode updates bounded literal module references through the host Compiler API. Use for a reviewed move map with JSON plans, dry-run reporting, Git-aware moves, and explicit ignored-import risk. TypeScript/TSX source imports are never rewritten in v1; import-safe module moves need a resolver-aware follow-up.",
       "tier": "maintenance",
       "job": "refactor",
       "best_for": "Everyday but high-blast path moves: moving or renaming Markdown docs,\ndirectories, fixtures, scripts, or mixed repo surfaces where references\nshould update in one batch. Best when a move map can be reviewed first\nand the desired behavior is \"compute a virtual after-tree, rewrite safe\nreferences once, apply with git-aware moves, then verify.\"\n",
       "not_for": "Domain-concept terminology renames in prose (use /rename-concept).\nPython/TypeScript import refactors unless a language adapter has been\nexplicitly added and enabled. Large behavior-changing subsystem splits\nthat need characterization tests and human Phase 4 sign-off (use\n/refactor-subsystem). Blind global find-and-replace.\n",
-      "language": "typescript",
+      "language": "any",
       "framework": "any",
+      "scans": [
+        "javascript",
+        "typescript"
+      ],
       "_path": "skills/move-path"
     },
     {
@@ -978,31 +993,33 @@
     },
     {
       "name": "propose-boundary",
-      "description": "Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX v1 uses a host-resolved symbol/import/call graph and emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility/barrel plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).",
+      "description": "Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX or checked-JavaScript v1 uses a host-resolved symbol/import/call graph and emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility/barrel plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).",
       "tier": "maintenance",
       "job": "explain",
-      "best_for": "A TypeScript target needing resolved symbol, import, and call-graph evidence\nfor a public API, barrel compatibility, and caller-impact proposal.\nA file or directory where distinct domain concerns live side-by-side\nwith no defined public contract — sibling modules reach into each\nother's private helpers, change-amplification touches the same N\nfiles for every feature, test setup explodes because exercising one\ncluster requires fixturing the others. Produces candidate seams +\nproposed public API + shim shape + characterization-test matrix.\nRead-only. Works on `.claude/skills/<name>/` directories too —\nsub-phases (parsed from SKILL.md `## Phase N` headings) are treated\nas symbols, naming-prefix alignment as the cluster signal.\n",
+      "best_for": "A TypeScript or checked-JavaScript target needing resolved symbol, import, and call-graph evidence\nfor a public API, barrel compatibility, and caller-impact proposal.\nA file or directory where distinct domain concerns live side-by-side\nwith no defined public contract — sibling modules reach into each\nother's private helpers, change-amplification touches the same N\nfiles for every feature, test setup explodes because exercising one\ncluster requires fixturing the others. Produces candidate seams +\nproposed public API + shim shape + characterization-test matrix.\nRead-only. Works on `.claude/skills/<name>/` directories too —\nsub-phases (parsed from SKILL.md `## Phase N` headings) are treated\nas symbols, naming-prefix alignment as the cluster signal.\n",
       "not_for": "Detection of which subsystems exist (use /map-subsystem first).\nIntra-file responsibility split where the smell is one file with\nthree domains (use /find-omnibus then /refactor-subsystem). Folder-\ntopology promotion / demotion (use /find-folder-topology-drift +\n/propose-folder-reorganization). Refactor execution (use\n/refactor-subsystem in decomposition mode). Proposals spanning multiple\nsubsystems are outside v1 and stay in the\nSystem-tier chain (/scope-feature → /impact-feature → /architecture-\nfit → /plan-spec).\n",
       "language": "any",
       "framework": "any",
       "scans": [
         "python",
-        "typescript"
+        "typescript",
+        "javascript"
       ],
       "_path": "skills/propose-boundary"
     },
     {
       "name": "propose-folder-reorganization",
-      "description": "Turn a confirmed Python or TypeScript folder-topology cluster into a per-cluster reorganization proposal. TypeScript v1 resolves direct relative and tsconfig `paths` alias import impact, records barrel/subpath compatibility, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.",
+      "description": "Turn a confirmed Python, TypeScript, or checked-JavaScript folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves direct relative and config `paths` alias import impact, records barrel/subpath compatibility, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.",
       "tier": "maintenance",
       "job": "explain",
-      "best_for": "A TypeScript flat-prefix folder cluster needing resolved import impact,\na target tree, barrel/subpath compatibility, and native verification plan.\nA confirmed folder-topology drift finding ready for a per-cluster\nreorganization proposal — produces the current → proposed tree,\nfile-move table, import-impact summary, characterization-test\nmatrix, and the rule-of-thumb call (`tests_by_prefix` opportunistic\nvs `flat_prefix_cluster` per-PR). Read-only. Decided in: ADR 0006\n(folder-organization).\n",
+      "best_for": "A TypeScript or checked-JavaScript flat-prefix folder cluster needing resolved import impact,\na target tree, barrel/subpath compatibility, and native verification plan.\nA confirmed folder-topology drift finding ready for a per-cluster\nreorganization proposal — produces the current → proposed tree,\nfile-move table, import-impact summary, characterization-test\nmatrix, and the rule-of-thumb call (`tests_by_prefix` opportunistic\nvs `flat_prefix_cluster` per-PR). Read-only. Decided in: ADR 0006\n(folder-organization).\n",
       "not_for": "Detection (use /find-folder-topology-drift first). File-level\ndecomposition where the smell is intra-file, not intra-folder\n(use /find-omnibus). Refactor execution (use /refactor-subsystem in\ndecomposition mode). Authoring or amending the folder-organization\nADR itself (use /decide). Collapsing scratch / custom-job code (project memory:\nproject_core_vs_scratch_code.md) — the proposal still runs but\nrecommends `defer_scratch_code` instead of a refactor.\n",
       "language": "any",
       "framework": "any",
       "scans": [
         "python",
-        "typescript"
+        "typescript",
+        "javascript"
       ],
       "_path": "skills/propose-folder-reorganization"
     },
@@ -1030,7 +1047,7 @@
     },
     {
       "name": "rename-concept",
-      "description": "Assess a domain-concept rename against its full lifecycle and a mandatory\ntwo-band completeness gate, read-only. Renaming a concept that lives in the\nglossary spans many surfaces — identifiers, docs, the cross-tool agent\nmirrors — and is executed from tribal knowledge with no front door and no\ncompleteness gate, so renames land half-applied. This skill (v0, assess-only)\nreports the scope-gate verdict, blast radius, a per-step lifecycle status\ntable, and the completeness gate. It performs strict lexical assessment of\nPython, JavaScript, TypeScript, and TSX text. For `.ts` and `.tsx`, a\nhost-pinned TypeScript Compiler API resolves glossary identifier candidates,\ndeclarations, and references; it does not claim whole-project type-checking,\nJSX runtime behavior, or codemod safety.\nThe old and new names must not co-occur lexically in\nlive code (/find-concept-divergence superseded_co_occurrence, band 3) AND no\nretired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)\n— both must be CLEAN for a lexical candidate assessment to pass. A\nTypeScript/TSX host additionally needs a successful Compiler API evidence\nrun that resolves old/new identifier candidates. Definition of done is the\ntwo-band gate, every lifecycle step resolved, and that evidence where\nTypeScript/TSX is in scope — NOT a codemod having run. Drives the two\nrename-relevant /find-concept-divergence bands through a required coupled\ninstallation; the assessment logic does not duplicate their matching rules.\nThe write half (author + dry-run a codemod plan, scaffold a reintroduction\nlint, --apply) is a v1 gap pending a codemod harness in this\necosystem (see Deferred, below).\n",
+      "description": "Assess a domain-concept rename against its full lifecycle and a mandatory\ntwo-band completeness gate, read-only. Renaming a concept that lives in the\nglossary spans many surfaces — identifiers, docs, the cross-tool agent\nmirrors — and is executed from tribal knowledge with no front door and no\ncompleteness gate, so renames land half-applied. This skill (v0, assess-only)\nreports the scope-gate verdict, blast radius, a per-step lifecycle status\ntable, and the completeness gate. It performs strict lexical assessment of\nPython, JavaScript, TypeScript, and TSX text. For `.ts`, `.tsx`, and checked\n`.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,\ndeclarations, and references; it does not claim whole-project type-checking,\nJSX runtime behavior, or codemod safety.\nThe old and new names must not co-occur lexically in\nlive code (/find-concept-divergence superseded_co_occurrence, band 3) AND no\nretired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)\n— both must be CLEAN for a lexical candidate assessment to pass. A\nTypeScript/TSX or checked-JavaScript host additionally needs a successful Compiler API evidence\nrun that resolves old/new identifier candidates. Definition of done is the\ntwo-band gate, every lifecycle step resolved, and that evidence where\nTypeScript/TSX is in scope — NOT a codemod having run. Drives the two\nrename-relevant /find-concept-divergence bands through a required coupled\ninstallation; the assessment logic does not duplicate their matching rules.\nThe write half (author + dry-run a codemod plan, scaffold a reintroduction\nlint, --apply) is a v1 gap pending a codemod harness in this\necosystem (see Deferred, below).\n",
       "tier": "maintenance",
       "job": "refactor",
       "best_for": "A TypeScript, JavaScript, or Python glossary concept rename lifecycle\nassessment with a persistent completeness gate. Assessing whether a\nglossary-worthy, wide-blast change is COMPLETE —\nthe long tail (string-literal references, the guard lint, the cross-tool\nagent mirrors, the docs) is exactly what a rushed pass forgets, and the\ntwo-band gate is what catches a rename that is identifier-clean but still\ncarries retired prose. Use when the rename is glossary-tracked and the cost\nof a half-applied result is real. Pairs with /find-concept-divergence (which\nDETECTS the drift): this skill consumes that detector and frames it as a\nper-rename definition of done.\n",
@@ -1134,16 +1151,17 @@
     },
     {
       "name": "unify-shadows",
-      "description": "Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX v1 consumes the accepted structured /find-semantic-duplication finding and emits proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.",
+      "description": "Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX and checked-JavaScript v1 consume the accepted structured /find-semantic-duplication finding and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.",
       "tier": "maintenance",
       "job": "explain",
-      "best_for": "One confirmed Python or TypeScript semantic-duplication finding from\n/find-semantic-duplication (shape =\nkeep_separate_document_why | share_utilities | complete_migration |\nmerge_at_workflow). Produces an implementation-ready proposal at\n`reports/unify-shadows/<finding-id>/proposal.md` with migration\nplan, caller impact, test matrix, and stop condition.\n",
+      "best_for": "One confirmed Python, TypeScript, or checked-JavaScript semantic-duplication finding from\n/find-semantic-duplication (shape =\nkeep_separate_document_why | share_utilities | complete_migration |\nmerge_at_workflow). Produces an implementation-ready proposal at\n`reports/unify-shadows/<finding-id>/proposal.md` with migration\nplan, caller impact, test matrix, and stop condition.\n",
       "not_for": "Raw candidate detection (run /find-semantic-duplication first).\nLexical near-clones (use /find-duplication then /fix-workflow).\nApplying production edits happens downstream after proposal approval.\n",
       "language": "any",
       "framework": "any",
       "scans": [
         "python",
-        "typescript"
+        "typescript",
+        "javascript"
       ],
       "_path": "skills/unify-shadows"
     },

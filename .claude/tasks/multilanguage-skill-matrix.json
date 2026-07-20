@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "90557570ceee210a5e0c28061a8d0134c7cb6b3f8b98ce241c7c371a8c9b3cf2"
+      "sha256": "593f8733ad6fe3d3256a73eee329f52b622a3971da30dfc15186eb9dbd9f399f"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -11,7 +11,7 @@
     },
     {
       "path": ".claude/tasks/javascript-language-coverage.json",
-      "sha256": "4bfa2ce70ffbd019456a29d85a7ad85f6a5ee0e8c4fa661775c3416c5bbeecb0"
+      "sha256": "06f72e16ee71e772dc462a4042496d9952c134933f8e7fb6c1284a5b9e1422a7"
     }
   ],
   "counts": {
@@ -238,6 +238,7 @@
           "python",
           "markdown",
           "html",
+          "javascript",
           "typescript"
         ],
         "install_with": []
@@ -650,6 +651,7 @@
         "framework": "any",
         "scans": [
           "python",
+          "javascript",
           "typescript"
         ],
         "install_with": []
@@ -737,14 +739,22 @@
       "skill": "extract-enum",
       "expansion_disposition": "language-level",
       "typescript_disposition": "typescript-supported",
-      "javascript_disposition": "pending-validation",
+      "javascript_disposition": "javascript-supported",
       "javascript_cohort": "proposal-mutation-guard",
       "javascript_evidence_modes": [
-        "pending"
+        "checked-javascript",
+        "jsdoc",
+        "compiler-inferred"
       ],
-      "javascript_evidence_path": null,
-      "javascript_native_check": null,
-      "javascript_reviewed_revision": null,
+      "javascript_evidence_path": "tests/test_javascript_proposal_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_proposal_cohort.py"
+      ],
+      "javascript_reviewed_revision": "87960c4",
       "javascript_limitation": null,
       "fact_level": "semantic-project",
       "outcome_class": "proposal-only",
@@ -1078,6 +1088,7 @@
         "framework": "any",
         "scans": [
           "python",
+          "javascript",
           "typescript"
         ],
         "install_with": []
@@ -1363,7 +1374,8 @@
         "framework": "any",
         "scans": [
           "python",
-          "typescript"
+          "typescript",
+          "javascript"
         ],
         "install_with": []
       },
@@ -1425,6 +1437,7 @@
         "framework": "any",
         "scans": [
           "python",
+          "javascript",
           "typescript"
         ],
         "install_with": []
@@ -1486,6 +1499,7 @@
         "framework": "any",
         "scans": [
           "python",
+          "javascript",
           "typescript"
         ],
         "install_with": []
@@ -1655,7 +1669,8 @@
         "framework": "any",
         "scans": [
           "python",
-          "typescript"
+          "typescript",
+          "javascript"
         ],
         "install_with": []
       },
@@ -1719,7 +1734,8 @@
         "framework": "any",
         "scans": [
           "python",
-          "typescript"
+          "typescript",
+          "javascript"
         ],
         "install_with": []
       },
@@ -2144,7 +2160,8 @@
         "framework": "any",
         "scans": [
           "python",
-          "typescript"
+          "typescript",
+          "javascript"
         ],
         "install_with": []
       },
@@ -2358,6 +2375,7 @@
         "framework": "any",
         "scans": [
           "python",
+          "javascript",
           "typescript"
         ],
         "install_with": []
@@ -2933,7 +2951,8 @@
         "framework": "any",
         "scans": [
           "python",
-          "typescript"
+          "typescript",
+          "javascript"
         ],
         "install_with": []
       },
@@ -3020,23 +3039,33 @@
       "skill": "move-path",
       "expansion_disposition": "language-level",
       "typescript_disposition": "typescript-supported",
-      "javascript_disposition": "pending-validation",
+      "javascript_disposition": "javascript-supported",
       "javascript_cohort": "proposal-mutation-guard",
       "javascript_evidence_modes": [
-        "pending"
+        "checked-javascript",
+        "compiler-inferred"
       ],
-      "javascript_evidence_path": null,
-      "javascript_native_check": null,
-      "javascript_reviewed_revision": null,
+      "javascript_evidence_path": "tests/test_javascript_mutation_guard_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_mutation_guard_cohort.py"
+      ],
+      "javascript_reviewed_revision": "59aa031",
       "javascript_limitation": null,
       "fact_level": "lexical-filesystem",
       "outcome_class": "source-mutation",
       "framework_family": null,
       "catalog": {
         "job": "refactor",
-        "language": "typescript",
+        "language": "any",
         "framework": "any",
-        "scans": [],
+        "scans": [
+          "javascript",
+          "typescript"
+        ],
         "install_with": []
       },
       "on_demand_closure": {
@@ -3322,14 +3351,22 @@
       "skill": "prevent-regression",
       "expansion_disposition": "language-level",
       "typescript_disposition": "typescript-supported",
-      "javascript_disposition": "pending-validation",
+      "javascript_disposition": "javascript-supported",
       "javascript_cohort": "proposal-mutation-guard",
       "javascript_evidence_modes": [
-        "pending"
+        "checked-javascript",
+        "jsdoc",
+        "compiler-inferred"
       ],
-      "javascript_evidence_path": null,
-      "javascript_native_check": null,
-      "javascript_reviewed_revision": null,
+      "javascript_evidence_path": "tests/test_javascript_mutation_guard_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_mutation_guard_cohort.py"
+      ],
+      "javascript_reviewed_revision": "59aa031",
       "javascript_limitation": null,
       "fact_level": "semantic-project",
       "outcome_class": "guard-generation",
@@ -3425,14 +3462,21 @@
       "skill": "propose-boundary",
       "expansion_disposition": "language-level",
       "typescript_disposition": "typescript-supported",
-      "javascript_disposition": "pending-validation",
+      "javascript_disposition": "javascript-supported",
       "javascript_cohort": "proposal-mutation-guard",
       "javascript_evidence_modes": [
-        "pending"
+        "checked-javascript",
+        "compiler-inferred"
       ],
-      "javascript_evidence_path": null,
-      "javascript_native_check": null,
-      "javascript_reviewed_revision": null,
+      "javascript_evidence_path": "tests/test_javascript_proposal_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_proposal_cohort.py"
+      ],
+      "javascript_reviewed_revision": "87960c4",
       "javascript_limitation": null,
       "fact_level": "semantic-project",
       "outcome_class": "proposal-only",
@@ -3443,7 +3487,8 @@
         "framework": "any",
         "scans": [
           "python",
-          "typescript"
+          "typescript",
+          "javascript"
         ],
         "install_with": []
       },
@@ -3480,14 +3525,21 @@
       "skill": "propose-folder-reorganization",
       "expansion_disposition": "language-level",
       "typescript_disposition": "typescript-supported",
-      "javascript_disposition": "pending-validation",
+      "javascript_disposition": "javascript-supported",
       "javascript_cohort": "proposal-mutation-guard",
       "javascript_evidence_modes": [
-        "pending"
+        "checked-javascript",
+        "compiler-inferred"
       ],
-      "javascript_evidence_path": null,
-      "javascript_native_check": null,
-      "javascript_reviewed_revision": null,
+      "javascript_evidence_path": "tests/test_javascript_proposal_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_proposal_cohort.py"
+      ],
+      "javascript_reviewed_revision": "87960c4",
       "javascript_limitation": null,
       "fact_level": "semantic-project",
       "outcome_class": "proposal-only",
@@ -3498,7 +3550,8 @@
         "framework": "any",
         "scans": [
           "python",
-          "typescript"
+          "typescript",
+          "javascript"
         ],
         "install_with": []
       },
@@ -3961,14 +4014,22 @@
       "skill": "unify-shadows",
       "expansion_disposition": "language-level",
       "typescript_disposition": "typescript-supported",
-      "javascript_disposition": "pending-validation",
+      "javascript_disposition": "javascript-supported",
       "javascript_cohort": "proposal-mutation-guard",
       "javascript_evidence_modes": [
-        "pending"
+        "checked-javascript",
+        "jsdoc",
+        "compiler-inferred"
       ],
-      "javascript_evidence_path": null,
-      "javascript_native_check": null,
-      "javascript_reviewed_revision": null,
+      "javascript_evidence_path": "tests/test_javascript_proposal_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_proposal_cohort.py"
+      ],
+      "javascript_reviewed_revision": "87960c4",
       "javascript_limitation": null,
       "fact_level": "semantic-project",
       "outcome_class": "proposal-only",
@@ -3979,7 +4040,8 @@
         "framework": "any",
         "scans": [
           "python",
-          "typescript"
+          "typescript",
+          "javascript"
         ],
         "install_with": []
       },
