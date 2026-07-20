@@ -1,7 +1,7 @@
 ---
 name: find-omnibus
-description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans and a bundled TypeScript Compiler API syntax parser for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, and `.tsx` top-level functions, arrows, and classes; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.
-argument-hint: "--target <directory> [--language python|javascript|typescript]"
+description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans, a bundled TypeScript Compiler API parser for JavaScript/TypeScript, and a bundled Go 1.22+ standard-library syntax parser; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.
+argument-hint: "--target <directory> [--language python|javascript|typescript|go]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -12,10 +12,9 @@ best_for: |
   files that mix credentials, admin APIs, CSRF/auth, command/network
   diagnostics, persistence, raw SQL, import/export, task dispatch, or
   filesystem writes; produces decomposition candidates that hand off
-  to /refactor-subsystem. Covers Python (exact AST) and JavaScript/TypeScript
-  (Compiler API syntax spans for top-level functions, arrows, and classes).
-  Findings carry analyzer provenance. Script-family analysis needs Node and the host's project-local `typescript`
-  package, but no tsconfig or framework.
+  to /refactor-subsystem. Covers Python, JavaScript/TypeScript, and Go with
+  family-local syntax parsers. Findings carry analyzer provenance. The script
+  paths resolve no types and assume no framework.
 not_for: |
   Single-responsibility files that are merely large (cohesive >500 LOC
   is fine — avoid splitting for size alone). Layer violations
@@ -25,7 +24,7 @@ not_for: |
   /find-perimeter-gaps for what is and isn't covered.
 language: any
 framework: any
-scans: [python, javascript, typescript]
+scans: [python, javascript, typescript, go]
 ---
 
 # /find-omnibus
@@ -68,6 +67,11 @@ Write toward these gates from Stage 0.
   project's `package.json`. The bundled parser needs syntax spans only; it
   deliberately does not read `tsconfig`, resolve modules, inspect types, or
   infer framework behavior. Missing prerequisites fail Stage 1 clearly.
+- **Go v1:** Go 1.22+ on `PATH`. The bundled helper uses `go/parser` and
+  `go/ast` for top-level functions and methods only; it resolves no imports or
+  types. Generated, vendored, test, and `testdata` sources are excluded.
+  Build-constrained files stop the scan as unsupported rather than being
+  silently omitted.
 - **Project-specific defaults** (generic-verb strip list, skip
   patterns, directory-package precedent, known false-positive
   shapes): in `knowledge/`.
@@ -291,8 +295,9 @@ recommendation and no finding for the cohesive helper.
 find-omnibus/
 ├── SKILL.md                  # this file — orchestrator
 ├── scripts/
-│   ├── detect.py             # Stage 1 — Python/JS/TS cluster extraction
+│   ├── detect.py             # Stage 1 — Python/JS/TS/Go cluster extraction
 │   ├── detect_typescript_symbols.mjs  # bundled Compiler API TS/TSX spans
+│   ├── detect_go_symbols.go  # bundled Go standard-library syntax facts
 │   ├── collapse.py           # Stage 2 — cap to top-N, assign ids
 │   └── report.py             # Stage 4 — render report.md + findings.json
 ├── agents/

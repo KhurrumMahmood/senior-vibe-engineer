@@ -11,6 +11,9 @@ this skill so a copied installation has its complete runtime closure:
 * JavaScript, JSX, TypeScript, and TSX use the host project's pinned TypeScript Compiler API
   through the bundled ``detect_typescript_symbols.mjs`` launcher. It reports
   exact top-level spans for functions, function-valued variables, and classes.
+* Go uses the host's Go 1.22+ standard-library parser through the bundled
+  ``detect_go_symbols.go`` launcher. Build-constrained files are refused rather
+  than silently treated as analyzed.
 
 The script-family path is syntax-only: it needs Node and a ``typescript`` package
 resolvable from ``--project-root`` but does not need a tsconfig, type checker,
@@ -23,6 +26,7 @@ import ast
 import fnmatch
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -54,8 +58,13 @@ class TypeScriptExtractionError(RuntimeError):
     """Raised when the bundled TypeScript parser cannot establish facts."""
 
 
-_LANGUAGES: tuple[str, ...] = ("javascript", "python", "typescript")
+class GoExtractionError(RuntimeError):
+    """Raised when the bundled Go parser cannot establish facts honestly."""
+
+
+_LANGUAGES: tuple[str, ...] = ("go", "javascript", "python", "typescript")
 _LANGUAGE_EXTENSIONS: dict[str, frozenset[str]] = {
+    "go": frozenset({".go"}),
     "python": frozenset({".py"}),
     "javascript": frozenset({".js", ".jsx", ".mjs", ".cjs"}),
     "typescript": frozenset({".ts", ".tsx"}),
@@ -67,6 +76,11 @@ _DEFAULT_SKIP_DIRS: frozenset[str] = frozenset({
 _TYPESCRIPT_SKIP_DIRS: frozenset[str] = frozenset({
     "__tests__", "fixtures", "generated", "test", "tests", "vendor",
 })
+_GO_SKIP_DIRS: frozenset[str] = frozenset({
+    "fixture", "fixtures", "gen", "generated", "test", "testdata", "tests", "vendor",
+})
+_GO_SKIP_FILE_GLOBS: tuple[str, ...] = ("*_test.go", "*.generated.go", "*_generated.go")
+_GO_MIN_VERSION = (1, 22, 0)
 _DEFAULT_SKIP_FILE_GLOBS: tuple[str, ...] = (
     "tests_*.py", "test_*.py", "tests.py", "conftest.py", "__init__.py",
     "*.min.js", "*.min.jsx", "*.min.mjs", "*.min.cjs", "*.min.css",
@@ -188,6 +202,86 @@ def _typescript_symbols(filepath: Path, project_root: Path) -> list[Symbol]:
         raise TypeScriptExtractionError("bundled TypeScript parser emitted an invalid symbol") from exc
 
 
+def _go_toolchain() -> str:
+    executable = shutil.which("go")
+    if executable is None:
+        raise GoExtractionError("Go toolchain is unavailable on PATH")
+    try:
+        result = subprocess.run(
+            [executable, "version"], capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        raise GoExtractionError(f"cannot run Go toolchain: {exc}") from exc
+    rendered = (result.stdout or result.stderr).strip()
+    match = re.search(r"\bgo(\d+)\.(\d+)(?:\.(\d+))?\b", rendered)
+    if result.returncode != 0 or match is None:
+        raise GoExtractionError(f"cannot determine Go version: {rendered or 'unknown error'}")
+    version = tuple(int(part or 0) for part in match.groups())
+    if version < _GO_MIN_VERSION:
+        raise GoExtractionError(
+            "Go parser requires Go >= 1.22.0; found go" + ".".join(map(str, version))
+        )
+    return executable
+
+
+def _go_symbols(filepaths: list[Path]) -> dict[Path, list[Symbol]]:
+    """Extract every eligible Go file through one compiler-driver launch."""
+    executable = _go_toolchain()
+    launcher = Path(__file__).resolve().with_name("detect_go_symbols.go")
+    try:
+        result = subprocess.run(
+            [executable, "run", str(launcher), "--", *(str(path) for path in filepaths)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise GoExtractionError(f"cannot run bundled Go parser: {exc}") from exc
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or "unknown parser failure"
+        raise GoExtractionError(detail)
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise GoExtractionError("bundled Go parser emitted invalid JSON") from exc
+    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+        raise GoExtractionError("bundled Go parser emitted an invalid payload")
+    if payload.get("analyzer") != "go-parser-go-ast" or not isinstance(payload.get("files"), list):
+        raise GoExtractionError("bundled Go parser emitted invalid symbol evidence")
+    requested = {path.resolve() for path in filepaths}
+    extracted: dict[Path, list[Symbol]] = {}
+    for file_payload in payload["files"]:
+        try:
+            path = Path(file_payload["file"]).resolve()
+            status = file_payload["status"]
+            records = file_payload["symbols"]
+        except (KeyError, TypeError) as exc:
+            raise GoExtractionError("bundled Go parser emitted invalid file evidence") from exc
+        if path not in requested or path in extracted or not isinstance(records, list):
+            raise GoExtractionError("bundled Go parser emitted mismatched file evidence")
+        if status == "syntax-error":
+            raise GoExtractionError(
+                f"syntax error in {path}: {file_payload.get('error') or 'unknown parse error'}"
+            )
+        if status == "build-constraint-unsupported":
+            raise GoExtractionError(f"build-constrained Go source is unsupported in v1: {path}")
+        if status not in {"complete", "generated"}:
+            raise GoExtractionError("bundled Go parser emitted an invalid status")
+        try:
+            extracted[path] = [
+                Symbol(
+                    str(record["name"]), str(record["cluster_name"]), str(record["kind"]),
+                    int(record["lineno"]), int(record["end_lineno"]), int(record["loc"]),
+                )
+                for record in records
+            ]
+        except (KeyError, TypeError, ValueError) as exc:
+            raise GoExtractionError("bundled Go parser emitted an invalid symbol") from exc
+    if set(extracted) != requested:
+        raise GoExtractionError("bundled Go parser omitted requested file evidence")
+    return extracted
+
+
 def _language_for(path: Path) -> str | None:
     suffix = path.suffix.lower()
     for language, extensions in _LANGUAGE_EXTENSIONS.items():
@@ -204,6 +298,19 @@ def _typescript_path_is_excluded(path: Path, target: Path) -> bool:
     return any(part.lower() in _TYPESCRIPT_SKIP_DIRS for part in parts[:-1])
 
 
+def _go_path_is_excluded(path: Path, project_root: Path) -> bool:
+    try:
+        logical = path.relative_to(project_root).parts
+        physical = path.resolve().relative_to(project_root).parts
+    except ValueError:
+        return True
+    return (
+        any(part.lower() in _GO_SKIP_DIRS for part in logical[:-1])
+        or any(part.lower() in _GO_SKIP_DIRS for part in physical[:-1])
+        or any(fnmatch.fnmatchcase(path.name.lower(), glob) for glob in _GO_SKIP_FILE_GLOBS)
+    )
+
+
 def _walk_source_files(
     target: Path,
     skip_file_globs: tuple[str, ...],
@@ -218,6 +325,8 @@ def _walk_source_files(
         if any(part in _DEFAULT_SKIP_DIRS for part in path.parts):
             continue
         if path.suffix.lower() in _LANGUAGE_EXTENSIONS["typescript"] and _typescript_path_is_excluded(path, target):
+            continue
+        if path.suffix.lower() == ".go" and _go_path_is_excluded(path, project_root):
             continue
         if any(fnmatch.fnmatchcase(path.name, glob) for glob in skip_file_globs):
             continue
@@ -253,7 +362,12 @@ def _risk_signals(rel: str, source: str, symbol_names: list[str]) -> tuple[int, 
     return len(signals), signals
 
 
-def _scan_file(filepath: Path, rel: str, project_root: Path) -> dict[str, object] | None:
+def _scan_file(
+    filepath: Path,
+    rel: str,
+    project_root: Path,
+    go_symbols: dict[Path, list[Symbol]],
+) -> dict[str, object] | None:
     language = _language_for(filepath)
     if language is None:
         return None
@@ -264,6 +378,9 @@ def _scan_file(filepath: Path, rel: str, project_root: Path) -> dict[str, object
     if language == "python":
         extracted = _python_symbols(source)
         analyzer = "python-ast"
+    elif language == "go":
+        extracted = go_symbols[filepath.resolve()]
+        analyzer = "go-parser-go-ast"
     else:
         extracted = _typescript_symbols(filepath, project_root)
         analyzer = "typescript-compiler-api"
@@ -333,6 +450,12 @@ def main(argv: list[str] | None = None) -> int:
         project_root,
         extensions,
     )
+    go_files = [path for path in files if path.suffix.lower() == ".go"]
+    try:
+        go_symbols = _go_symbols(go_files) if go_files else {}
+    except GoExtractionError as exc:
+        print(f"[detect_omnibus] ERROR: {exc}", file=sys.stderr)
+        return 2
     records: list[dict[str, object]] = []
     for filepath in files:
         try:
@@ -340,8 +463,8 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError:
             rel = str(filepath)
         try:
-            record = _scan_file(filepath, rel, project_root)
-        except TypeScriptExtractionError as exc:
+            record = _scan_file(filepath, rel, project_root, go_symbols)
+        except (TypeScriptExtractionError, GoExtractionError) as exc:
             print(f"[detect_omnibus] ERROR: {filepath}: {exc}", file=sys.stderr)
             return 2
         if record is not None:

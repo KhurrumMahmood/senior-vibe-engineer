@@ -45,9 +45,10 @@ the gap list directly — no second step.
 Finds `Call` nodes whose dotted name (e.g. `mysql.connector.connect`)
 matches `call_matches`, then checks **one** satisfaction condition:
 
-- `enclosed_by`: `try` | `with` — the call must be lexically inside
+- `enclosed_by`: `try` | `with` | `defer` — the call must be lexically inside
   that block. Enclosure resets at a nested-function boundary (a call in
-  a nested `def` is not protected by an outer `try` at runtime).
+  a nested `def` is not protected by an outer `try` at runtime). `defer` is
+  the Go-only direct-call contract described below.
 - `requires_kwarg`: `<name>` — the call must pass that keyword argument
   (a `**kwargs` spread counts — the detector cannot tell, so it assumes
   satisfied rather than false-flag).
@@ -64,6 +65,15 @@ Python-only and report `language_unsupported` for TS/TSX rather than a false
 clean result. The TS scanner does not resolve aliases, types, receivers, or
 framework APIs; call-name matching is syntactic. A nested function/callback
 resets `try` enclosure because its invocation timing is not established.
+
+For Go, v1 supports only `enclosed_by: "defer"`. A bundled Go 1.22+
+standard-library parser records directly spelled identifier, selector,
+parenthesized, and generic calls. Only the direct call governed by `defer` is
+satisfied; calls used to evaluate its receiver or arguments run immediately
+and remain gaps. The scanner does not resolve aliases, types, receivers, or
+signatures. Generated/test/vendor/testdata sources are excluded, while syntax
+failures and explicit or filename-based build constraints make the result
+partial rather than clean.
 
 ## The `grep` detector — fallback only
 
@@ -124,31 +134,31 @@ not pass, and its gap count must not be read as zero.
 
 ## Language support
 
-- The **`ast` detector supports Python plus narrow TypeScript/TSX syntax**.
+- The **`ast` detector supports Python plus narrow TypeScript/TSX and Go syntax**.
   Python retains both `enclosed_by` forms and `requires_kwarg` through
   CPython's standard-library `ast`. TS/TSX supports only `enclosed_by: try`
   through the bundled Compiler API launcher, which requires Node and a
-  `typescript` package resolvable from the host `package.json`.
+  `typescript` package resolvable from the host `package.json`. Go supports
+  only direct `enclosed_by: defer` through a bundled stdlib helper and requires
+  Go 1.22+ on `PATH`.
 - The **`grep` detector is cross-language** (it operates on text) — but
   comment/string-blind, so trust it for *enumerating* situations, not
   for deciding satisfaction.
-- When an `ast` standard matches both supported Python/TS/TSX files and an
+- When an `ast` standard matches both supported Python/TS/TSX/Go files and an
   unsupported extension, `scan_coverage.py` retains the supported findings but
   reports `partial`, with `unsupported_files` and
   `unsupported_extensions`; it is never a false "0 gaps" pass. When no
-  supported files remain, when a TS-unsupported condition is used, or when the
-  TS preflight cannot run, it reports `language_unsupported`. The orchestrator
+  supported files remain, when a language-unsupported condition is used, or
+  when the required TypeScript or Go preflight cannot run, it reports
+  `language_unsupported`. The orchestrator
   then applies the **"When the target language or condition isn't supported"**
   rule in `SKILL.md`: small surface → read it directly; large surface → build
   the detector tooling first.
-- The cross-language path is **tree-sitter** — one parsing library with
-  grammars for most languages and a uniform query API. It is a genuine
-  rebuild, not a free generalization: it adds a third-party dependency
-  (the skill is currently stdlib-only), node-type names differ per
-  grammar, and the satisfaction vocabulary is partly language-specific
-  (`requires_kwarg` is meaningless in Go/Java; `enclosed_by: try` is
-  meaningless in Go/Rust). Treat cross-language coverage as a scoped
-  project, not an incremental tweak.
+- Further language support remains a scoped adapter decision. Do not assume a
+  universal parser or node schema: satisfaction vocabulary is language-
+  specific (`requires_kwarg` is meaningless in Go/Java and `enclosed_by: try`
+  is meaningless in Go/Rust). Prefer the smallest native fact that proves one
+  useful standard contract.
 
 ## Scoping `paths`, and reading the count honestly
 

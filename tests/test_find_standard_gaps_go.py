@@ -1,0 +1,226 @@
+"""Go final-outcome, boundary, and copied-closure proof for standard gaps."""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SKILL = ROOT / ".claude" / "skills" / "find-standard-gaps"
+FIXTURE = ROOT / "tests" / "fixtures" / "find-standard-gaps-go"
+
+
+def _go() -> Path:
+    executable = shutil.which("go")
+    if executable:
+        return Path(executable)
+    fallback = Path("/opt/homebrew/bin/go")
+    if fallback.is_file():
+        return fallback
+    pytest.skip("Go toolchain is unavailable")
+
+
+def _env(cache: Path, *, path: str | None = None) -> dict[str, str]:
+    go = _go()
+    return {
+        **os.environ,
+        "PATH": path if path is not None else f"{go.parent}{os.pathsep}{os.environ.get('PATH', '')}",
+        "GOCACHE": str(cache),
+    }
+
+
+def _run(*args: str, cwd: Path, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(args, cwd=cwd, env=env, capture_output=True, text=True, check=False)
+
+
+def _host(tmp_path: Path) -> tuple[Path, dict[str, str]]:
+    host = tmp_path / "host"
+    shutil.copytree(FIXTURE, host)
+    env = _env(tmp_path / "go-cache")
+    native = _run("go", "test", "./...", cwd=host, env=env)
+    assert native.returncode == 0, native.stdout + native.stderr
+    return host, env
+
+
+def _fingerprints(host: Path) -> dict[str, str]:
+    return {
+        path.relative_to(host).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in sorted(host.rglob("*"))
+        if path.is_file() and "reports" not in path.parts
+    }
+
+
+def _scan(
+    skill: Path,
+    host: Path,
+    env: dict[str, str],
+    output: Path,
+    *,
+    isolated: bool = False,
+) -> subprocess.CompletedProcess[str]:
+    prefix = (sys.executable, "-I", "-S") if isolated else (sys.executable,)
+    return _run(
+        *prefix,
+        str(skill / "scripts" / "scan_coverage.py"),
+        "--ideas",
+        str(host / "standards.json"),
+        "--project-root",
+        str(host),
+        "--output-dir",
+        str(output),
+        cwd=host,
+        env=env,
+    )
+
+
+def _finding(output: Path) -> dict:
+    payload = json.loads((output / "coverage.json").read_text(encoding="utf-8"))
+    assert len(payload["results"]) == 1
+    return payload["results"][0]
+
+
+def _assert_outcome(output: Path) -> None:
+    finding = _finding(output)
+    assert finding["status"] == "scanned"
+    assert finding["scanned_files"] == 1
+    assert finding["skipped_files"] == 0
+    assert finding["situation_sites"] == 9
+    assert [(gap["file"], gap["line"]) for gap in finding["gaps"]] == [
+        ("src/resources.go", 12),
+        ("src/resources.go", 20),
+        ("src/resources.go", 24),
+        ("src/resources.go", 25),
+        ("src/resources.go", 26),
+    ]
+    assert finding["coverage"] == 0.4444
+    report = (output / "coverage.md").read_text(encoding="utf-8")
+    assert "5 gap(s)" in report
+    assert "src/resources.go:24" in report
+
+
+def test_go_defer_standard_reaches_final_artifacts_without_source_changes(tmp_path: Path) -> None:
+    host, env = _host(tmp_path)
+    before = _fingerprints(host)
+    output = host / "reports" / "go"
+
+    result = _scan(SKILL, host, env, output)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    _assert_outcome(output)
+    assert _fingerprints(host) == before
+
+
+def test_copied_go_closure_is_self_contained(tmp_path: Path) -> None:
+    host, env = _host(tmp_path)
+    copied = tmp_path / "on-demand" / "find-standard-gaps"
+    shutil.copytree(SKILL, copied)
+    output = host / "reports" / "copied"
+
+    result = _scan(copied, host, env, output, isolated=True)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    _assert_outcome(output)
+    assert (copied / "scripts" / "detect_go_calls.go").is_file()
+
+
+def test_malformed_go_is_partial_and_missing_tool_is_unsupported(tmp_path: Path) -> None:
+    host, env = _host(tmp_path)
+    (host / "src" / "broken.go").write_text("package resources\nfunc broken( {\n", encoding="utf-8")
+    broken_output = host / "reports" / "broken"
+
+    broken = _scan(SKILL, host, env, broken_output)
+
+    assert broken.returncode == 0, broken.stdout + broken.stderr
+    finding = _finding(broken_output)
+    assert finding["status"] == "partial"
+    assert finding["skipped_files"] == 1
+    assert finding["situation_sites"] == 9
+
+    (host / "src" / "broken.go").unlink()
+    (host / "src" / "constrained.go").write_text(
+        "//go:build special\n\npackage resources\nfunc constrained() { cleanup() }\n",
+        encoding="utf-8",
+    )
+    (host / "src" / "platform_windows.go").write_text(
+        "package resources\nfunc platformCleanup() { cleanup() }\n",
+        encoding="utf-8",
+    )
+    (host / "src" / "generated_windows.go").write_text(
+        "// Code generated by fixture-builder. DO NOT EDIT.\n\n"
+        "package resources\nfunc generatedPlatformCleanup() { cleanup() }\n",
+        encoding="utf-8",
+    )
+    constrained_output = host / "reports" / "constrained"
+    constrained = _scan(SKILL, host, env, constrained_output)
+    assert constrained.returncode == 0, constrained.stdout + constrained.stderr
+    constrained_finding = _finding(constrained_output)
+    assert constrained_finding["status"] == "partial"
+    assert constrained_finding["skipped_files"] == 2
+    (host / "src" / "constrained.go").unlink()
+    (host / "src" / "platform_windows.go").unlink()
+    (host / "src" / "generated_windows.go").unlink()
+
+    (host / "src" / "resources_windows_impl.go").write_text(
+        "package resources\nfunc ordinarySuffix() { defer cleanup() }\n",
+        encoding="utf-8",
+    )
+    ordinary_output = host / "reports" / "ordinary-suffix"
+    ordinary = _scan(SKILL, host, env, ordinary_output)
+    assert ordinary.returncode == 0, ordinary.stdout + ordinary.stderr
+    ordinary_finding = _finding(ordinary_output)
+    assert ordinary_finding["status"] == "scanned"
+    assert ordinary_finding["skipped_files"] == 0
+    assert ordinary_finding["situation_sites"] == 10
+    (host / "src" / "resources_windows_impl.go").unlink()
+
+    missing_output = host / "reports" / "missing"
+    missing = _scan(
+        SKILL,
+        host,
+        _env(tmp_path / "missing-cache", path=""),
+        missing_output,
+    )
+    assert missing.returncode == 0, missing.stdout + missing.stderr
+    unsupported = _finding(missing_output)
+    assert unsupported["status"] == "language_unsupported"
+    assert "Go toolchain is unavailable" in unsupported["error"]
+
+    fake_bin = tmp_path / "fake-bin"
+    fake_bin.mkdir()
+    fake_go = fake_bin / "go"
+    fake_go.write_text("#!/bin/sh\necho 'go version go1.21.13 fixture'\n", encoding="utf-8")
+    fake_go.chmod(0o755)
+    old_output = host / "reports" / "old"
+    old = _scan(SKILL, host, _env(tmp_path / "old-cache", path=str(fake_bin)), old_output)
+    assert old.returncode == 0, old.stdout + old.stderr
+    old_finding = _finding(old_output)
+    assert old_finding["status"] == "language_unsupported"
+    assert "Go detector requires Go >= 1.22.0" in old_finding["error"]
+
+
+def test_go_try_condition_is_not_misreported_as_clean(tmp_path: Path) -> None:
+    host, env = _host(tmp_path)
+    payload = json.loads((host / "standards.json").read_text(encoding="utf-8"))
+    payload["ideas"][0]["contract"]["detector"]["enclosed_by"] = "try"
+    (host / "standards.json").write_text(json.dumps(payload), encoding="utf-8")
+    output = host / "reports" / "unsupported-condition"
+
+    result = _scan(SKILL, host, env, output)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    finding = _finding(output)
+    assert finding["status"] == "language_unsupported"
+    assert "defer" in finding["error"]
+
+
+def test_go_frontmatter_declares_support() -> None:
+    text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    assert "scans: [python, javascript, typescript, go]" in text
+    assert "Go" in text

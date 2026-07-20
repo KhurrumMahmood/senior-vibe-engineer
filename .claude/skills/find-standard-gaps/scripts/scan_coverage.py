@@ -18,6 +18,8 @@ Detector kinds:
     `requires_kwarg`. Python uses CPython's AST; TypeScript/TSX supports
     the direct-syntax `enclosed_by: try` form through the host-local
     TypeScript Compiler API. Neither branch matches comments/strings.
+    Go supports the direct-syntax `enclosed_by: defer` form through the host's
+    Go 1.22+ standard-library parser.
   - `skill` — recognised, not implemented in v1.
   - `manual` — skipped; checked by hand.
 
@@ -36,7 +38,7 @@ Per-standard status in the output:
                             misconfigured glob / project-root — NOT a
                             pass.
   - `language_unsupported`— an `ast` standard whose source language or
-                            condition is unsupported, or whose TypeScript
+                            condition is unsupported, or whose native parser
                             prerequisite cannot be established.
   - `skipped` / `error`   — manual/skill detector, or a malformed one.
 A "0 gaps" result is only trustworthy under `status: scanned`.
@@ -51,8 +53,9 @@ found, MAX (production / public-adversarial) is assumed so nothing is
 silently skipped, with a prominent warning to run `/orient`. See
 knowledge/detector-model.md and project_state.py.
 
-The Python runner is stdlib-only. JavaScript/TypeScript scans additionally require Node and
-the host's project-local `typescript` package. Read-only against the codebase.
+The Python runner is stdlib-only. JavaScript/TypeScript scans additionally
+require Node and the host's project-local `typescript` package; Go scans
+require Go 1.22+ on PATH. Read-only against the codebase.
 
 Usage:
     python3 scan_coverage.py --ideas path/to/standards.json \\
@@ -66,6 +69,7 @@ import ast
 import fnmatch
 import json
 import re
+import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -117,6 +121,11 @@ TYPESCRIPT_SKIP_FILE_GLOBS = (
     "tests_*.js", "tests_*.jsx", "tests_*.mjs", "tests_*.cjs",
     "*_test.js", "*_test.jsx", "*_test.mjs", "*_test.cjs",
 )
+GO_SKIP_DIRS = {
+    "fixture", "fixtures", "gen", "generated", "test", "testdata", "tests", "vendor",
+}
+GO_SKIP_FILE_GLOBS = ("*_test.go", "*.generated.go", "*_generated.go")
+GO_MIN_VERSION = (1, 22, 0)
 
 
 def iter_files(root: Path, globs: list[str]) -> list[Path]:
@@ -182,6 +191,22 @@ def _typescript_path_is_excluded(path: Path, root: Path) -> bool:
             fnmatch.fnmatchcase(path.name.lower(), glob.lower())
             for glob in TYPESCRIPT_SKIP_FILE_GLOBS
         )
+    )
+
+
+def _go_path_is_excluded(path: Path, root: Path) -> bool:
+    """Whether a Go candidate is outside the first-party production policy."""
+    root = root.resolve()
+    try:
+        logical_rel = path.relative_to(root)
+        physical_rel = path.resolve().relative_to(root)
+    except ValueError:
+        return True
+    skipped = SKIP_DIRS | GO_SKIP_DIRS
+    return (
+        any(part.lower() in skipped for part in logical_rel.parts[:-1])
+        or any(part.lower() in skipped for part in physical_rel.parts[:-1])
+        or any(fnmatch.fnmatchcase(path.name.lower(), glob) for glob in GO_SKIP_FILE_GLOBS)
     )
 
 
@@ -324,8 +349,84 @@ def _typescript_calls(path: Path, root: Path) -> tuple[list[dict] | None, str | 
     return validated, None
 
 
+def _go_toolchain() -> tuple[str | None, str | None]:
+    """Return the Go executable, or an honest unavailable reason."""
+    executable = shutil.which("go")
+    if executable is None:
+        return None, "Go toolchain is unavailable on PATH"
+    try:
+        result = subprocess.run(
+            [executable, "version"], capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        return None, f"cannot run Go toolchain: {exc}"
+    rendered = (result.stdout or result.stderr).strip()
+    match = re.search(r"\bgo(\d+)\.(\d+)(?:\.(\d+))?\b", rendered)
+    if result.returncode != 0 or match is None:
+        return None, f"cannot determine Go version: {rendered or 'unknown error'}"
+    version = tuple(int(part or 0) for part in match.groups())
+    if version < GO_MIN_VERSION:
+        return None, "Go detector requires Go >= 1.22.0; found go" + ".".join(map(str, version))
+    return executable, None
+
+
+def _go_calls(paths: list[Path], executable: str) -> tuple[dict[Path, dict] | None, str | None]:
+    """Return direct call/defer facts through one compiler-driver launch."""
+    launcher = Path(__file__).resolve().with_name("detect_go_calls.go")
+    try:
+        result = subprocess.run(
+            [executable, "run", str(launcher), "--", *(str(path) for path in paths)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        return None, f"cannot run bundled Go parser: {exc}"
+    if result.returncode != 0:
+        return None, result.stderr.strip() or result.stdout.strip() or "Go parser failed"
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None, "bundled Go parser emitted invalid JSON"
+    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+        return None, "bundled Go parser emitted an invalid payload"
+    if payload.get("analyzer") != "go-parser-go-ast":
+        return None, "bundled Go parser emitted invalid analyzer evidence"
+    if not isinstance(payload.get("files"), list):
+        return None, "bundled Go parser emitted invalid file evidence"
+    requested = {path.resolve() for path in paths}
+    by_path: dict[Path, dict] = {}
+    allowed_statuses = {
+        "complete", "generated", "build-constraint-ambiguous", "read-error", "syntax-error",
+    }
+    for file_payload in payload["files"]:
+        if not isinstance(file_payload, dict):
+            return None, "bundled Go parser emitted invalid file evidence"
+        try:
+            path = Path(file_payload["file"]).resolve()
+            status = file_payload["status"]
+            records = file_payload["records"]
+        except (KeyError, TypeError):
+            return None, "bundled Go parser emitted invalid file evidence"
+        if path not in requested or path in by_path or status not in allowed_statuses:
+            return None, "bundled Go parser emitted mismatched file evidence"
+        if not isinstance(records, list):
+            return None, "bundled Go parser emitted invalid call records"
+        for record in records:
+            if not isinstance(record, dict):
+                return None, "bundled Go parser emitted an invalid call record"
+            if not isinstance(record.get("name"), str) or not isinstance(record.get("line"), int):
+                return None, "bundled Go parser emitted an invalid call record"
+            if not isinstance(record.get("text"), str) or not isinstance(record.get("in_defer"), bool):
+                return None, "bundled Go parser emitted an invalid call record"
+        by_path[path] = file_payload
+    if set(by_path) != requested:
+        return None, "bundled Go parser omitted requested file evidence"
+    return by_path, None
+
+
 def run_ast_detector(root: Path, detector: dict):
-    """Return ({...}, error_or_None) for Python plus narrow TS/TSX syntax.
+    """Return ({...}, error_or_None) for Python, script, and Go syntax.
 
     Possible result shapes: `{no_files}`, `{unsupported}`, or
     `{sites, gaps, scanned_files, skipped_files}`. A file that fails to
@@ -335,13 +436,14 @@ def run_ast_detector(root: Path, detector: dict):
     can report an otherwise useful supported-file scan as partial.
 
     Finds Call nodes whose dotted name matches `call_matches`, then checks
-    one satisfaction condition — exactly one of `enclosed_by` (`try`|
-    `with`, lexical block scope) or `requires_kwarg` (a `**kwargs` spread
-    counts as satisfied). A gap = a matched call that fails the condition.
+    one satisfaction condition — exactly one of `enclosed_by` (`try`,
+    `with`, or Go's `defer`) or `requires_kwarg` (a `**kwargs` spread counts as
+    satisfied). A gap = a matched call that fails the condition.
     Enclosure resets at a nested-function *body*; decorators and default
     arguments inherit the enclosing scope. TypeScript/TSX supports the direct
     syntactic `enclosed_by: try` form only, using the host's local TypeScript
-    Compiler API. It does not resolve aliases, types, receivers, or frameworks.
+    Compiler API. Go supports only `enclosed_by: defer` using `go/parser` and
+    `go/ast`. Neither path resolves aliases, types, receivers, or frameworks.
     """
     try:
         call_re = re.compile(detector["call_matches"])
@@ -353,8 +455,8 @@ def run_ast_detector(root: Path, detector: dict):
     requires_kwarg = detector.get("requires_kwarg")
     if bool(enclosed_by) == bool(requires_kwarg):
         return None, "ast detector needs exactly one of enclosed_by / requires_kwarg"
-    if enclosed_by and enclosed_by not in ("try", "with"):
-        return None, f"ast detector enclosed_by must be try|with, got {enclosed_by!r}"
+    if enclosed_by and enclosed_by not in ("try", "with", "defer"):
+        return None, f"ast detector enclosed_by must be try|with|defer, got {enclosed_by!r}"
 
     paths = detector.get("paths") or ["app/**/*.py"]
     try:
@@ -366,17 +468,52 @@ def run_ast_detector(root: Path, detector: dict):
     py_files = [f for f in matched if f.suffix == ".py"]
     ts_candidates = [f for f in matched if f.suffix.lower() in SCRIPT_SUFFIXES]
     ts_files = [f for f in ts_candidates if not _typescript_path_is_excluded(f, root)]
+    go_candidates = [f for f in matched if f.suffix.lower() == ".go"]
+    go_files = [f for f in go_candidates if not _go_path_is_excluded(f, root)]
     unsupported_files = [
         f for f in matched
-        if f.suffix != ".py" and f.suffix.lower() not in SCRIPT_SUFFIXES
+        if f.suffix != ".py"
+        and f.suffix.lower() not in SCRIPT_SUFFIXES
+        and f.suffix.lower() != ".go"
     ]
-    if not py_files and not ts_files:
+    if not py_files and not ts_files and not go_files:
         if unsupported_files:
             exts = sorted({f.suffix.lower() or "<none>" for f in unsupported_files})
             return {"unsupported": True, "matched": len(unsupported_files),
                     "extensions": exts[:8]}, None
-        if ts_candidates:
-            return {"no_files": True, "excluded": True}, None
+        if ts_candidates or go_candidates:
+            excluded_languages = []
+            if ts_candidates:
+                excluded_languages.append("typescript")
+            if go_candidates:
+                excluded_languages.append("go")
+            return {"no_files": True, "excluded": excluded_languages}, None
+    if enclosed_by == "defer":
+        unsupported_files.extend(py_files)
+        unsupported_files.extend(ts_files)
+        py_files = []
+        ts_files = []
+        if not go_files:
+            return {
+                "unsupported": True,
+                "matched": len(unsupported_files),
+                "extensions": sorted(
+                    {f.suffix.lower() or "<none>" for f in unsupported_files}
+                ),
+                "reason": "`enclosed_by: defer` is a Go-only syntax contract",
+            }, None
+    elif go_files:
+        if not py_files and not ts_files:
+            return {
+                "unsupported": True,
+                "matched": len(go_files),
+                "extensions": [".go"],
+                "reason": "the Go `ast` branch supports only `enclosed_by: defer`; "
+                "Go has no `try` or Python-style `with` block, and "
+                "`requires_kwarg` is not a Go call contract",
+            }, None
+        unsupported_files.extend(go_files)
+        go_files = []
     if ts_files and requires_kwarg:
         return {"unsupported": True, "matched": len(ts_files),
                 "extensions": sorted({f.suffix.lower() for f in ts_files}),
@@ -399,6 +536,20 @@ def run_ast_detector(root: Path, detector: dict):
                 return {"unsupported": True, "matched": len(ts_files),
                         "extensions": sorted({f.suffix.lower() for f in ts_files}),
                         "reason": unavailable}, None
+    go_executable: str | None = None
+    if go_files:
+        go_executable, unavailable = _go_toolchain()
+        if unavailable or go_executable is None:
+            if py_files or ts_files:
+                unsupported_files.extend(go_files)
+                go_files = []
+            else:
+                return {
+                    "unsupported": True,
+                    "matched": len(go_files),
+                    "extensions": [".go"],
+                    "reason": unavailable or "Go toolchain is unavailable",
+                }, None
 
     sites: list[dict] = []
     gaps: list[dict] = []
@@ -490,6 +641,33 @@ def run_ast_detector(root: Path, detector: dict):
             sites.append(site)
             if not record["in_try"]:
                 gaps.append(site)
+    generated_files = 0
+    go_payloads, batch_error = _go_calls(go_files, go_executable or "go") if go_files else ({}, None)
+    if batch_error or go_payloads is None:
+        go_payloads = {}
+    for path in go_files:
+        rel = str(path.relative_to(root))
+        payload = go_payloads.get(path.resolve())
+        if payload is None or payload["status"] in {"read-error", "syntax-error"}:
+            skipped += 1
+            continue
+        if payload["status"] == "generated":
+            generated_files += 1
+            continue
+        if payload["status"] == "build-constraint-ambiguous":
+            skipped += 1
+            continue
+        analyzed += 1
+        for record in payload["records"]:
+            name = record["name"]
+            if not name or not call_re.search(name):
+                continue
+            site = {"file": rel, "line": record["line"], "text": record["text"][:120]}
+            sites.append(site)
+            if not record["in_defer"]:
+                gaps.append(site)
+    if not analyzed and generated_files and not skipped and not unsupported_files:
+        return {"no_files": True, "excluded": ["go"]}, None
     sites.sort(key=lambda site: (site["file"], site["line"], site["text"]))
     gaps.sort(key=lambda site: (site["file"], site["line"], site["text"]))
     result = {"sites": sites, "gaps": gaps,
@@ -523,18 +701,22 @@ def analyze_idea(root: Path, idea: dict, state: dict) -> dict:
             return {**base, "status": "error", "error": err}
         if result.get("no_files"):
             globs = detector.get("paths") or ["app/**/*.py"]
-            excluded = (
-                " All matched TypeScript/TSX files were excluded by the fixed "
-                "source policy."
-                if result.get("excluded") else ""
-            )
+            excluded_languages = result.get("excluded") or []
+            if excluded_languages == ["typescript"]:
+                excluded = " All matched TypeScript/TSX files were excluded by the fixed source policy."
+            elif excluded_languages == ["go"]:
+                excluded = " All matched Go files were excluded by the fixed source policy."
+            elif excluded_languages:
+                excluded = " All matched JavaScript/TypeScript/Go files were excluded by the fixed source policy."
+            else:
+                excluded = ""
             return {**base, "status": "no_files_matched",
                     "error": f"the detector's `paths` ({', '.join(globs)}) "
                              f"matched no files — check the globs and "
                              f"--project-root.{excluded} This is NOT a passing result."}
         if result.get("unsupported"):
             reason = result.get("reason") or (
-                "the `ast` detector supports Python and JavaScript/TypeScript only; "
+                "the `ast` detector supports Python, JavaScript/TypeScript, and narrow Go syntax only; "
                 f"{result['matched']} file(s) matched `paths` but none are supported "
                 f"source files (found: {', '.join(result['extensions'])})."
             )
@@ -598,9 +780,9 @@ def render_report(source: str, results: list[dict], state: dict) -> str:
                  f"NOT scanned and NOT a \"0 gaps\" pass")
     if unsupported:
         L.append(f"- ⚠ {len(unsupported)} standard(s) **language-unsupported** — "
-                 "the requested language, detector condition, or TypeScript "
-                 "prerequisite could not be analyzed; see SKILL.md "
-                 "\"TypeScript/TSX support and limits\"")
+                 "the requested language, detector condition, or native "
+                 "prerequisite could not be analyzed; see the matching "
+                 "language support section in SKILL.md")
     if no_files:
         L.append(f"- ⚠ {len(no_files)} standard(s) matched **no files** — a "
                  f"misconfigured glob; NOT a passing result")

@@ -1,6 +1,6 @@
 ---
 name: find-standard-gaps
-description: Detect places a declared baseline standard should apply but doesn't. A standard is declared once with an executable `ast` detector; `scan_coverage.py` scans Python and narrow syntax-only JavaScript/TypeScript direct-call coverage and reports every site whose triggering situation holds but the standard is absent. Detection-only; never edits code.
+description: Detect places a declared baseline standard should apply but doesn't. A standard is declared once with an executable `ast` detector; `scan_coverage.py` scans Python, narrow syntax-only JavaScript/TypeScript direct-call coverage, and Go 1.22+ direct-call defer coverage and reports every site whose triggering situation holds but the standard is absent. Detection-only; never edits code.
 argument-hint: "<host-owned standards JSON — copy standards.example.json, adapt it, and pass its path>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -24,7 +24,7 @@ not_for: |
   when there is no reusable baseline policy (just write the lint).
 language: any
 framework: any
-scans: [python, javascript, typescript]
+scans: [python, javascript, typescript, go]
 ---
 
 # /find-standard-gaps
@@ -88,6 +88,11 @@ work; there is no scout fan-out. The detector model (how `ast` and
   the host project's `package.json`. The bundled Compiler API launcher uses
   `createSourceFile`; it does not read a tsconfig, construct a Program, or
   infer framework behavior.
+- **Go v1:** Go 1.22+ on `PATH`. The bundled standard-library parser supports
+  one syntax-only contract: `enclosed_by: "defer"` for directly spelled calls.
+  It resolves no imports, types, aliases, or receivers. Generated, vendored,
+  test, and `testdata` files are excluded; malformed or build-constrained
+  matched files make the result partial rather than clean.
 - **Output:** `reports/standard-gaps/scan-<TS>/` only. Never edits code.
 
 ## Installed command
@@ -261,6 +266,28 @@ the scanner still reports findings from supported `.py`/`.ts`/`.tsx` files but
 returns `partial` with `unsupported_files` and `unsupported_extensions`.
 If no supported files remain, it returns `language_unsupported` instead.
 
+## Go support and limits
+
+Go v1 supports `kind: "ast"`, a direct syntactic `call_matches` regular
+expression, and `enclosed_by: "defer"`. For example:
+
+```json
+{
+  "kind": "ast",
+  "call_matches": "^cleanup$",
+  "enclosed_by": "defer",
+  "paths": ["**/*.go"]
+}
+```
+
+The bundled `go/parser`/`go/ast` helper establishes only the direct call
+spelling and whether it executes beneath a `defer` statement. It does not
+prove symbol identity or function signatures. Other conditions return
+`language_unsupported`; missing or Go <1.22 tooling does the same. A matched
+syntax failure or build-constrained file makes the result `partial`, never
+clean. Generated, vendored, test, `testdata`, dependency, report, and external
+symlink paths are excluded by the fixed source policy.
+
 ## When the target language or condition isn't supported
 
 When a standard's `paths` cannot be analyzed,
@@ -389,6 +416,7 @@ list[Site]` that returns one `Site` per occurrence with a normalised
 │   ├── project_state.py      # ADR-0020 activation gate helper
 │   ├── engineering_home.py   # bundled state-home resolver
 │   ├── detect_typescript_calls.mjs  # TS/TSX syntax facts
+│   ├── detect_go_calls.go     # Go direct-call/defer syntax facts
 │   └── census.py             # census mode — discover before you declare
 ├── knowledge/
 │   └── detector-model.md     # the detector model + how to add a standard
