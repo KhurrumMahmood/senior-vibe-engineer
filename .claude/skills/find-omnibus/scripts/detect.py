@@ -107,14 +107,6 @@ _RISK_TERMS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("import_export", ("export", "csv", "excel", "xlsx", "workbook")),
 )
 _CAMEL_SPLIT = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
-_JS_DECL = re.compile(
-    r"^(?:(?:async\s+)?function\s+(?P<fn>[A-Za-z_$][\w$]*)\s*\("
-    r"|(?:const|let|var)\s+(?P<assigned>[A-Za-z_$][\w$]*)\s*=\s*"
-    r"(?:async\s*)?(?:function\b|\([^)\n]*\)\s*=>|[A-Za-z_$][\w$]*\s*=>)"
-    r"|class\s+(?P<cls>[A-Za-z_$][\w$]*)"
-    r"|window\.(?P<ns>[A-Za-z_$][\w$]*)\s*=)",
-    re.MULTILINE,
-)
 
 
 def _is_dunder(name: str) -> bool:
@@ -161,25 +153,6 @@ def _python_symbols(source: str) -> list[Symbol] | None:
                     node.name, node.name, "class", node.lineno,
                     node.end_lineno or node.lineno, _node_loc(node),
                 ))
-    return symbols
-
-
-def _javascript_symbols(source: str) -> list[Symbol]:
-    """Preserve the legacy JavaScript column-zero heuristic."""
-    lines = source.splitlines()
-    matches: list[tuple[int, str, str]] = []
-    for match in _JS_DECL.finditer(source):
-        group = next((name for name in ("fn", "assigned", "cls", "ns") if match.group(name)), None)
-        if group is not None:
-            matches.append((source.count("\n", 0, match.start()), match.group(group), group))
-    symbols: list[Symbol] = []
-    for index, (line_index, name, group) in enumerate(matches):
-        end = matches[index + 1][0] if index + 1 < len(matches) else len(lines)
-        loc = max(1, end - line_index)
-        symbols.append(Symbol(
-            name, name, "class" if group == "cls" else "function", line_index + 1,
-            line_index + loc, loc,
-        ))
     return symbols
 
 
