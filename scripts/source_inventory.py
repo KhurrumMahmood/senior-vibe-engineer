@@ -14,14 +14,14 @@ from pathlib import Path
 SUPPORTED_SUFFIXES = {
     ".py": "python",
     ".pyi": "python",
-    ".ts": "typescript",
-    ".tsx": "typescript",
-}
-UNSUPPORTED_SUFFIXES = {
     ".js": "javascript",
     ".jsx": "javascript",
     ".mjs": "javascript",
     ".cjs": "javascript",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+}
+UNSUPPORTED_SUFFIXES = {
     ".go": "go",
     ".rs": "rust",
     ".java": "java",
@@ -91,7 +91,20 @@ def _is_test_name(name: str) -> bool:
         or lowered.endswith("_test.py")
         or any(
             marker in lowered
-            for marker in (".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx")
+            for marker in (
+                ".test.js",
+                ".test.jsx",
+                ".test.mjs",
+                ".test.cjs",
+                ".spec.js",
+                ".spec.jsx",
+                ".spec.mjs",
+                ".spec.cjs",
+                ".test.ts",
+                ".test.tsx",
+                ".spec.ts",
+                ".spec.tsx",
+            )
         )
     )
 
@@ -256,7 +269,7 @@ def build_inventory(project_root: Path, source_roots: list[Path]) -> dict:
         "project_root": str(project),
         "source_roots": [_relative(root, project) or "." for root in resolved_roots],
         "capabilities": {
-            "inventory_languages": ["python", "typescript"],
+            "inventory_languages": sorted(set(SUPPORTED_SUFFIXES.values())),
             "unsupported_languages_are_visible": True,
             "analysis": "none",
             "mutation": "none",

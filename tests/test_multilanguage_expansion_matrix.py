@@ -18,6 +18,9 @@ CATALOG = REPO_ROOT / ".claude" / "skills" / "which-skill" / "catalog.json"
 TYPESCRIPT_COVERAGE = (
     REPO_ROOT / ".claude" / "tasks" / "typescript-skill-coverage.json"
 )
+JAVASCRIPT_COVERAGE = (
+    REPO_ROOT / ".claude" / "tasks" / "javascript-language-coverage.json"
+)
 BUILDER = REPO_ROOT / "scripts" / "build_multilanguage_matrix.py"
 
 EXPECTED_COUNTS = {
@@ -25,6 +28,18 @@ EXPECTED_COUNTS = {
     "ecosystem-runtime": 13,
     "language-level": 22,
     "framework-bound": 22,
+}
+EXPECTED_JAVASCRIPT_COUNTS = {
+    "pending-validation": 22,
+    "validated-neutral": 19,
+    "stack-bound": 22,
+    "ecosystem-runtime": 13,
+}
+EXPECTED_JAVASCRIPT_COHORT_COUNTS = {
+    "lexical-filesystem": 6,
+    "syntax": 4,
+    "semantic-read-only": 6,
+    "proposal-mutation-guard": 6,
 }
 FACT_LEVELS = {
     "neutral",
@@ -65,12 +80,15 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))["skills"]
     catalog_names = {row["name"] for row in catalog}
 
-    assert payload["schema_version"] == 1
+    assert payload["schema_version"] == 2
     assert len(rows) == 76
     assert len(names) == len(set(names))
     assert set(names) == catalog_names
     assert Counter(row["expansion_disposition"] for row in rows) == EXPECTED_COUNTS
     assert payload["counts"] == EXPECTED_COUNTS
+    assert Counter(row["javascript_disposition"] for row in rows) == (
+        EXPECTED_JAVASCRIPT_COUNTS
+    )
     assert Counter(row["optional_install"]["status"] for row in rows) == {
         "passed": 41,
         "deferred-named-stack": 22,
@@ -78,7 +96,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
     }
 
     source_by_path = {row["path"]: row["sha256"] for row in payload["sources"]}
-    for source in (CATALOG, TYPESCRIPT_COVERAGE):
+    for source in (CATALOG, TYPESCRIPT_COVERAGE, JAVASCRIPT_COVERAGE):
         relative = str(source.relative_to(REPO_ROOT))
         assert source_by_path[relative] == _sha256(source)
 
@@ -123,19 +141,39 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["learning_packets"], row
             assert row["framework_family"] is None
             assert optional_install["status"] == "passed"
+            assert row["javascript_disposition"] == "pending-validation"
+            assert row["javascript_evidence_modes"] == ["pending"]
+            assert row["javascript_evidence_path"] is None
+            assert row["javascript_native_check"] is None
+            assert row["javascript_reviewed_revision"] is None
+            assert row["javascript_limitation"] is None
         elif row["expansion_disposition"] == "framework-bound":
             framework_rows.append(row)
             assert row["fact_level"] == "framework"
             assert row["outcome_class"] == "framework-specific"
             assert row["framework_family"]
+            assert row["javascript_disposition"] == "stack-bound"
         elif row["expansion_disposition"] == "validated-neutral":
             assert row["fact_level"] == "neutral"
             assert row["outcome_class"] == "not-applicable"
+            assert row["javascript_disposition"] == "validated-neutral"
         else:
             assert row["fact_level"] == "ecosystem-runtime"
             assert row["outcome_class"] == "not-applicable"
+            assert row["javascript_disposition"] == "ecosystem-runtime"
+
+        if row["expansion_disposition"] != "language-level":
+            assert row["javascript_cohort"] is None
+            assert row["javascript_evidence_modes"] == ["not-applicable"]
+            assert row["javascript_evidence_path"] is None
+            assert row["javascript_native_check"] is None
+            assert row["javascript_reviewed_revision"] is None
+            assert row["javascript_limitation"] is None
 
     assert len(language_rows) == 22
+    assert Counter(row["javascript_cohort"] for row in language_rows) == (
+        EXPECTED_JAVASCRIPT_COHORT_COUNTS
+    )
     assert len(framework_rows) == 22
     assert {row["outcome_class"] for row in language_rows} >= {
         "read-only-report",

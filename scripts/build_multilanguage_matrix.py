@@ -17,6 +17,9 @@ DEFAULT_CATALOG = REPO_ROOT / ".claude" / "skills" / "which-skill" / "catalog.js
 DEFAULT_TYPESCRIPT_COVERAGE = (
     REPO_ROOT / ".claude" / "tasks" / "typescript-skill-coverage.json"
 )
+DEFAULT_JAVASCRIPT_COVERAGE = (
+    REPO_ROOT / ".claude" / "tasks" / "javascript-language-coverage.json"
+)
 DEFAULT_OUTPUT = REPO_ROOT / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
 
 DISPOSITION_MAP = {
@@ -51,6 +54,39 @@ LANGUAGE_CLASSIFICATION = {
     "propose-folder-reorganization": ("semantic-project", "proposal-only"),
     "rename-concept": ("semantic-project", "read-only-report"),
     "unify-shadows": ("semantic-project", "proposal-only"),
+}
+
+JAVASCRIPT_COHORTS = {
+    "lexical-filesystem": {
+        "adapt-project",
+        "explain-code",
+        "find-comment-drift",
+        "find-concept-divergence",
+        "find-duplication",
+        "find-folder-topology-drift",
+    },
+    "syntax": {
+        "audit-decisions",
+        "find-complexity-hotspots",
+        "find-omnibus",
+        "find-standard-gaps",
+    },
+    "semantic-read-only": {
+        "find-dormant",
+        "find-implicit-state",
+        "find-incomplete-sweep",
+        "find-semantic-duplication",
+        "map-subsystem",
+        "rename-concept",
+    },
+    "proposal-mutation-guard": {
+        "extract-enum",
+        "move-path",
+        "prevent-regression",
+        "propose-boundary",
+        "propose-folder-reorganization",
+        "unify-shadows",
+    },
 }
 
 LEARNING_PACKETS = {
@@ -259,11 +295,80 @@ def _on_demand_closure(skill: str, companions: list[str]) -> dict:
     }
 
 
-def build_matrix(catalog_path: Path, coverage_path: Path) -> dict:
+def _javascript_coverage(payload: dict) -> dict[str, dict]:
+    if payload.get("schema_version") != 1:
+        raise ValueError("JavaScript coverage schema must be 1")
+    if payload.get("suffixes") != [".js", ".jsx", ".mjs", ".cjs"]:
+        raise ValueError("JavaScript coverage must declare .js/.jsx/.mjs/.cjs")
+    allowed_dispositions = set(payload.get("allowed_dispositions", []))
+    allowed_evidence = set(payload.get("allowed_evidence_modes", []))
+    rows = payload.get("skills")
+    if not isinstance(rows, list):
+        raise ValueError("JavaScript coverage skills must be a list")
+    by_name: dict[str, dict] = {}
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get("skill"), str):
+            raise ValueError("JavaScript coverage rows need skill names")
+        skill = row["skill"]
+        if not skill or skill in by_name:
+            raise ValueError("JavaScript coverage skill names must be unique")
+        if row.get("disposition") not in allowed_dispositions:
+            raise ValueError(f"invalid JavaScript disposition for {skill}")
+        evidence_modes = row.get("evidence_modes")
+        if (
+            not isinstance(evidence_modes, list)
+            or not evidence_modes
+            or not set(evidence_modes) <= allowed_evidence
+        ):
+            raise ValueError(f"invalid JavaScript evidence modes for {skill}")
+        by_name[skill] = row
+
+    expected = set(LANGUAGE_CLASSIFICATION)
+    if set(by_name) != expected:
+        raise ValueError("JavaScript coverage must contain the 22 language-level skills")
+    for cohort, skills in JAVASCRIPT_COHORTS.items():
+        actual = {name for name, row in by_name.items() if row.get("cohort") == cohort}
+        if actual != skills:
+            raise ValueError(f"JavaScript cohort mismatch for {cohort}")
+    if set().union(*JAVASCRIPT_COHORTS.values()) != expected:
+        raise ValueError("JavaScript cohorts must assign every language-level skill once")
+
+    for skill, row in by_name.items():
+        disposition = row["disposition"]
+        if disposition == "pending-validation":
+            if row["evidence_modes"] != ["pending"] or any(
+                row.get(field) is not None
+                for field in ("evidence_path", "native_check", "reviewed_revision")
+            ):
+                raise ValueError(f"pending JavaScript row has premature evidence: {skill}")
+            continue
+        evidence_path = row.get("evidence_path")
+        native_check = row.get("native_check")
+        if (
+            "pending" in row["evidence_modes"]
+            or not isinstance(evidence_path, str)
+            or not (REPO_ROOT / evidence_path).is_file()
+            or not isinstance(native_check, list)
+            or not native_check
+            or any(not isinstance(arg, str) or not arg for arg in native_check)
+            or not isinstance(row.get("reviewed_revision"), str)
+            or not row["reviewed_revision"]
+        ):
+            raise ValueError(f"completed JavaScript row lacks evidence: {skill}")
+        if disposition == "javascript-limited" and not row.get("limitation"):
+            raise ValueError(f"limited JavaScript row lacks a limitation: {skill}")
+    return by_name
+
+
+def build_matrix(
+    catalog_path: Path, coverage_path: Path, javascript_coverage_path: Path
+) -> dict:
     catalog_payload = _read_json(catalog_path)
     coverage_payload = _read_json(coverage_path)
+    javascript_payload = _read_json(javascript_coverage_path)
     catalog = {row["name"]: row for row in catalog_payload.get("skills", [])}
     coverage = {row["skill"]: row for row in coverage_payload.get("skills", [])}
+    javascript_coverage = _javascript_coverage(javascript_payload)
     if not catalog or set(catalog) != set(coverage):
         raise ValueError("catalog and TypeScript coverage must contain the same skills")
 
@@ -321,11 +426,40 @@ def build_matrix(catalog_path: Path, coverage_path: Path) -> dict:
             learning_packets = []
             framework_family = None
 
+        if expansion == "language-level":
+            javascript = javascript_coverage[skill]
+            javascript_disposition = javascript["disposition"]
+            javascript_cohort = javascript["cohort"]
+            javascript_evidence_modes = javascript["evidence_modes"]
+            javascript_evidence_path = javascript["evidence_path"]
+            javascript_native_check = javascript["native_check"]
+            javascript_reviewed_revision = javascript["reviewed_revision"]
+            javascript_limitation = javascript.get("limitation")
+        else:
+            javascript_disposition = {
+                "validated-neutral": "validated-neutral",
+                "framework-bound": "stack-bound",
+                "ecosystem-runtime": "ecosystem-runtime",
+            }[expansion]
+            javascript_cohort = None
+            javascript_evidence_modes = ["not-applicable"]
+            javascript_evidence_path = None
+            javascript_native_check = None
+            javascript_reviewed_revision = None
+            javascript_limitation = None
+
         rows.append(
             {
                 "skill": skill,
                 "expansion_disposition": expansion,
                 "typescript_disposition": baseline,
+                "javascript_disposition": javascript_disposition,
+                "javascript_cohort": javascript_cohort,
+                "javascript_evidence_modes": javascript_evidence_modes,
+                "javascript_evidence_path": javascript_evidence_path,
+                "javascript_native_check": javascript_native_check,
+                "javascript_reviewed_revision": javascript_reviewed_revision,
+                "javascript_limitation": javascript_limitation,
                 "fact_level": fact_level,
                 "outcome_class": outcome_class,
                 "framework_family": framework_family,
@@ -361,10 +495,14 @@ def build_matrix(catalog_path: Path, coverage_path: Path) -> dict:
                 f"shared primitive {primitive['primitive']} needs two consumers"
             )
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "sources": [
             {"path": _relative(catalog_path), "sha256": _sha256(catalog_path)},
             {"path": _relative(coverage_path), "sha256": _sha256(coverage_path)},
+            {
+                "path": _relative(javascript_coverage_path),
+                "sha256": _sha256(javascript_coverage_path),
+            },
         ],
         "counts": {
             "validated-neutral": counts["validated-neutral"],
@@ -407,6 +545,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--typescript-coverage", type=Path, default=DEFAULT_TYPESCRIPT_COVERAGE
     )
+    parser.add_argument(
+        "--javascript-coverage", type=Path, default=DEFAULT_JAVASCRIPT_COVERAGE
+    )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
@@ -417,7 +558,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     try:
-        rendered = render(build_matrix(args.catalog, args.typescript_coverage))
+        rendered = render(
+            build_matrix(
+                args.catalog,
+                args.typescript_coverage,
+                args.javascript_coverage,
+            )
+        )
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

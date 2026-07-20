@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "phase": "p2-javascript",
+  "suffixes": [
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs"
+  ],
+  "allowed_dispositions": [
+    "pending-validation",
+    "javascript-supported",
+    "javascript-limited"
+  ],
+  "allowed_evidence_modes": [
+    "pending",
+    "checked-javascript",
+    "jsdoc",
+    "compiler-inferred",
+    "syntax",
+    "lexical",
+    "partial-fallback"
+  ],
+  "baseline_revision": "9562cd1",
+  "skills": [
+    {
+      "skill": "adapt-project",
+      "cohort": "lexical-filesystem",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "audit-decisions",
+      "cohort": "syntax",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "explain-code",
+      "cohort": "lexical-filesystem",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "extract-enum",
+      "cohort": "proposal-mutation-guard",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "find-comment-drift",
+      "cohort": "lexical-filesystem",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "find-complexity-hotspots",
+      "cohort": "syntax",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "find-concept-divergence",
+      "cohort": "lexical-filesystem",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "find-dormant",
+      "cohort": "semantic-read-only",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "find-duplication",
+      "cohort": "lexical-filesystem",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "find-folder-topology-drift",
+      "cohort": "lexical-filesystem",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "find-implicit-state",
+      "cohort": "semantic-read-only",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "find-incomplete-sweep",
+      "cohort": "semantic-read-only",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "find-omnibus",
+      "cohort": "syntax",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "find-semantic-duplication",
+      "cohort": "semantic-read-only",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "find-standard-gaps",
+      "cohort": "syntax",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "map-subsystem",
+      "cohort": "semantic-read-only",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "move-path",
+      "cohort": "proposal-mutation-guard",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "prevent-regression",
+      "cohort": "proposal-mutation-guard",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "propose-boundary",
+      "cohort": "proposal-mutation-guard",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "propose-folder-reorganization",
+      "cohort": "proposal-mutation-guard",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "rename-concept",
+      "cohort": "semantic-read-only",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    },
+    {
+      "skill": "unify-shadows",
+      "cohort": "proposal-mutation-guard",
+      "disposition": "pending-validation",
+      "evidence_modes": ["pending"],
+      "evidence_path": null,
+      "native_check": null,
+      "reviewed_revision": null
+    }
+  ]
+}

@@ -5,6 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MATCHER = REPO_ROOT / ".claude" / "skills" / "which-skill" / "scripts" / "match.py"
 CATALOG_BUILDER = REPO_ROOT / "scripts" / "build_router_catalog.py"
@@ -273,6 +275,17 @@ def test_mixed_exact_markers_do_not_guess_a_language():
     assert payload["routing_context"]["language_source"] is None
     assert payload["routing_context"]["task_language_markers"] == ["typescript", "python"]
     assert payload["routing_context"]["filtering_applied"] is False
+
+
+@pytest.mark.parametrize("suffix", ["mjs", "cjs"])
+def test_javascript_module_suffixes_are_detected(suffix):
+    returncode, payload = _run_match(
+        f"find complexity hotspots in src/config.{suffix}"
+    )
+
+    assert returncode in {0, 1}
+    assert payload["routing_context"]["languages"] == ["javascript"]
+    assert payload["routing_context"]["language_source"] == "task_marker"
 
 
 # --- activation enforcement -------------------------------------------------

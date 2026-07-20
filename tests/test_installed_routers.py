@@ -138,6 +138,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
             "skill": "diagnose",
             "expansion_disposition": "validated-neutral",
             "typescript_disposition": "validated-neutral",
+            "javascript_disposition": "validated-neutral",
             "fact_level": "neutral",
             "outcome_class": "not-applicable",
             "framework_family": None,
@@ -172,6 +173,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "skill": "plan-feature",
         "expansion_disposition": "framework-bound",
         "typescript_disposition": "stack-bound",
+        "javascript_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "architecture-planning",
@@ -198,6 +200,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "skill": "find-implicit-state",
         "expansion_disposition": "language-level",
         "typescript_disposition": "typescript-supported",
+        "javascript_disposition": "pending-validation",
         "fact_level": "semantic-project",
         "outcome_class": "read-only-report",
         "framework_family": None,
@@ -219,6 +222,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "skill": "adapt-project",
         "expansion_disposition": "language-level",
         "typescript_disposition": "typescript-supported",
+        "javascript_disposition": "pending-validation",
         "fact_level": "lexical-filesystem",
         "outcome_class": "configuration-output",
         "framework_family": None,
@@ -245,6 +249,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "skill": "find-test-obligation-drift",
         "expansion_disposition": "framework-bound",
         "typescript_disposition": "stack-bound",
+        "javascript_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "framework-quality",
@@ -332,7 +337,7 @@ def test_installed_router_reports_invalid_capability_manifest(tmp_path, corrupti
     if corruption == "wrong-root":
         payload = []
     elif corruption == "schema":
-        payload["schema_version"] = 2
+        payload["schema_version"] = 999
     elif corruption == "duplicate":
         payload["skills"].append(dict(diagnose))
     elif corruption == "missing-selected":

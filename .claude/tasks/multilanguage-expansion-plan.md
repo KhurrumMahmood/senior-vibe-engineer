@@ -1,6 +1,6 @@
 # Multi-language and framework expansion plan
 
-Status: active — P0 and P1 complete; P2 is the next phase
+Status: active — P0 and P1 complete; P2 in progress
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
@@ -216,7 +216,7 @@ and selected-install closures.
 
 ## Phase P2 — JavaScript coverage
 
-State: `pending`
+State: `in_progress`
 
 Scope: `.js`, `.jsx`, `.mjs`, and `.cjs`, including mixed JS/TS projects.
 JavaScript support is not inferred from TypeScript filename traversal.
@@ -230,6 +230,53 @@ Independent worktree batches after the P1 interfaces are frozen:
 
 Each worktree owns a disjoint skill list and learning packet. Shared harness or
 router changes remain serial integration work.
+
+### P2 frozen JavaScript contract
+
+A JavaScript claim is earned at the final skill outcome, never because the
+TypeScript compiler can parse a JavaScript file. Each language-level row ends
+as `javascript-supported` or `javascript-limited`; `pending-validation` is
+allowed only while its cohort is active.
+
+Evidence modes are fact-level provenance, not a host-wide badge:
+
+- `checked-javascript`: the file is included and successfully checked by the
+  host's explicit local JS configuration (`allowJs`, `checkJs`, `noEmit`, and
+  JSX mode recorded where relevant);
+- `jsdoc`: the fact is directly attributable to parser-recognized JSDoc;
+- `compiler-inferred`: the local compiler/language service resolved the fact,
+  with version, configuration, diagnostics, and unresolved edges recorded;
+- `syntax`: parsed declarations, branches, comments, or import shapes only;
+- `lexical`: exact text, path, name, or phrase evidence only; and
+- `partial-fallback`: a useful lexical/syntax result that visibly cannot make
+  the skill's stronger semantic claim.
+
+Missing project-local tools remain `tool-missing`; malformed selected syntax
+remains `syntax-error`; unresolved or uncovered relevant files make the
+artifact `partial`, not clean. `node --check` is sufficient only for declared
+plain-JavaScript module modes and never establishes JSX or semantic support.
+No framework meaning is inferred from JSX, dependencies, or file placement.
+
+The serial mixed-language fixture includes `.js`, `.jsx`, `.mjs`, `.cjs`,
+`.ts`, and `.tsx` plus test, generated/minified, vendor, ambiguous, and symlink
+cases. Every cohort adds positive, negative, must-not-fire, malformed,
+tool-missing, and partial cases appropriate to its fact level; native commands
+are literal host package scripts and read-only source fingerprints must remain
+unchanged.
+
+### P2 cohort ownership
+
+| Cohort | Skills | Shared-file rule |
+|---|---|---|
+| lexical/filesystem (6) | `adapt-project`, `explain-code`, `find-comment-drift`, `find-concept-divergence`, `find-duplication`, `find-folder-topology-drift` | Skill directories and cohort fixtures/learning only |
+| syntax (4) | `audit-decisions`, `find-complexity-hotspots`, `find-omnibus`, `find-standard-gaps` | Skill directories and cohort fixtures/learning only |
+| semantic/read-only (6) | `find-dormant`, `find-implicit-state`, `find-incomplete-sweep`, `find-semantic-duplication`, `map-subsystem`, `rename-concept` | Skill directories and cohort fixtures/learning only |
+| proposal/mutation/guard (6) | `extract-enum`, `move-path`, `prevent-regression`, `propose-boundary`, `propose-folder-reorganization`, `unify-shadows` | Skill directories and cohort fixtures/learning only |
+
+The serial owner alone changes source inventory, routers/catalogs, capability
+and coverage matrices, shared harness code, plan/backlog files, and integrated
+journey tests. Cohorts report evidence for those projections rather than
+editing shared registries in parallel.
 
 Acceptance:
 
@@ -385,7 +432,7 @@ Acceptance:
 |---|---|---|---|---|---|---|
 | P0 TypeScript synthesis | complete | P0 commit (this revision) | Accepted TypeScript coverage fixtures | Matrix/coverage/router: 51 passed; canonical: 666 passed, 2 environment skips | Fresh review found missing current closure paths; repaired; bounded re-review PASS | `.claude/tasks/multilanguage-typescript-transfer-guide.md` plus raw linked packets |
 | P1 portability harness | complete | `2015c3f`, `7b4cd09`, and this revision | Synthetic seven-outcome hosts; fresh bootstrapped `map-subsystem` complete/partial hosts | Focused P1 integration: 90 passed; canonical: 686 passed, 2 documented environment skips; final collision regression: 3 passed | Fresh product-aligned review found four bounded defects; all repaired and bounded re-review passed | Capability projection, exact install evidence, test-only journey contract, and explicit TypeScript extraction stop decision |
-| P2 JavaScript coverage | pending | — | — | — | — | — |
+| P2 JavaScript coverage | in progress | baseline commit pending | Inventory/matrix/router fixtures for `.js`, `.jsx`, `.mjs`, and `.cjs` | Source inventory, matrix, and router recommendation: 25 passed; installed replay pending baseline commit | Fresh product review pending completed cohorts | Frozen 76-skill disposition contract and 22-skill cohort map; individual outcomes remain pending until backed by real JavaScript evidence |
 | P3 Go pilot | pending | — | — | — | — | — |
 | P4 route frameworks | pending | — | — | — | — | — |
 | P5 next-language selection | pending | — | — | — | — | — |

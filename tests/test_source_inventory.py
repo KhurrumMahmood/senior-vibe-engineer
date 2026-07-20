@@ -43,6 +43,10 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     _write(host / "src" / "app.py", "VALUE = 1\n")
     _write(host / "src" / "service.ts", "export const value = 1;\n")
     _write(host / "src" / "View.tsx", "export const View = () => <div />;\n")
+    _write(host / "src" / "legacy.js", "export const legacy = 1;\n")
+    _write(host / "src" / "LegacyView.jsx", "export const LegacyView = () => null;\n")
+    _write(host / "src" / "worker.mjs", "export const worker = 1;\n")
+    _write(host / "src" / "settings.cjs", "module.exports = {};\n")
     _write(host / "src" / "types.d.ts", "export declare const value: number;\n")
     _write(host / "src" / "client.generated.ts", "export const generated = 1;\n")
     _write(host / "tests" / "test_app.py", "def test_app(): pass\n")
@@ -65,7 +69,11 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload["schema_version"] == 1
     assert payload["status"] == "complete"
-    assert payload["capabilities"]["inventory_languages"] == ["python", "typescript"]
+    assert payload["capabilities"]["inventory_languages"] == [
+        "javascript",
+        "python",
+        "typescript",
+    ]
     assert payload["capabilities"]["analysis"] == "none"
 
     files = {row["path"]: row for row in payload["files"]}
@@ -74,6 +82,10 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
         "src/app.py",
         "src/service.ts",
         "src/View.tsx",
+        "src/legacy.js",
+        "src/LegacyView.jsx",
+        "src/worker.mjs",
+        "src/settings.cjs",
         "src/types.d.ts",
         "src/client.generated.ts",
         "tests/test_app.py",
@@ -86,6 +98,19 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert files["src/app.py"]["role"] == "source"
     assert files["src/service.ts"]["language"] == "typescript"
     assert files["src/View.tsx"]["language"] == "typescript"
+    assert files["src/legacy.js"]["language"] == "javascript"
+    assert files["src/LegacyView.jsx"]["language"] == "javascript"
+    assert files["src/worker.mjs"]["language"] == "javascript"
+    assert files["src/settings.cjs"]["language"] == "javascript"
+    assert all(
+        files[path]["classification"] == "classified"
+        for path in (
+            "src/legacy.js",
+            "src/LegacyView.jsx",
+            "src/worker.mjs",
+            "src/settings.cjs",
+        )
+    )
     assert files["src/types.d.ts"]["role"] == "declaration"
     assert files["src/client.generated.ts"]["role"] == "generated"
     assert files["tests/test_app.py"]["role"] == "test"
