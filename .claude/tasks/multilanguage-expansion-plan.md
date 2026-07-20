@@ -1,7 +1,7 @@
 # Multi-language and framework expansion plan
 
 Status: active — P0, P1, P2, U1, P3, and the measured batching gate complete;
-P4 next
+ML-011 bounded launcher experiment next, then P4
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
