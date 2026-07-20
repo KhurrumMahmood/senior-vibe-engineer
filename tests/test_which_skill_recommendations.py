@@ -125,6 +125,30 @@ def test_checked_javascript_file_move_routes_to_move_path_not_concept_rename():
     assert payload["handoff"]["skills"][0] == "move-path"
 
 
+def test_generic_upgrade_plans_do_not_route_to_boundary_proposal():
+    for task in (
+        "propose a database migration plan for the users table",
+        "write a compatibility plan for upgrading the API",
+    ):
+        _returncode, payload = _run_match(task, "--top", "10")
+
+        assert payload["recommendation"] != "propose-boundary"
+
+
+def test_explicit_mixed_javascript_boundary_still_routes_to_propose_boundary():
+    returncode, payload = _run_match(
+        "This inherited mixed JavaScript/TypeScript project has several concerns "
+        "under src/boundary. Propose a maintainable module boundary for that target, "
+        "including public API, caller impact, compatibility plan, and verification plan. "
+        "Do not modify source.",
+        "--top",
+        "10",
+    )
+
+    assert returncode == 0
+    assert payload["recommendation"] == "propose-boundary"
+
+
 def test_exact_typescript_marker_routes_to_earned_state_skill():
     returncode, payload = _run_match(
         "find repeated bare status literals in a TypeScript source file",

@@ -8,7 +8,7 @@ tier: maintenance
 job: explain
 best_for: |
   A TypeScript or checked-JavaScript target needing resolved symbol, import, and call-graph evidence
-  for a public API, barrel compatibility, and caller-impact proposal.
+  for a stable public interface, backward-compatible barrel, and caller-impact proposal.
   A file or directory where distinct domain concerns live side-by-side
   with no defined public contract — sibling modules reach into each
   other's private helpers, change-amplification touches the same N
