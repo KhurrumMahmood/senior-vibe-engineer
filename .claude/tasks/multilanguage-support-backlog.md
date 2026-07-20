@@ -165,7 +165,7 @@ auditable when completeness matters.
 
 ### ML-007 — Router decision-quality corpus across languages
 
-- State: `candidate`
+- State: `in_progress`
 - User value: the three default routers reliably lead agents to the right
   language-capable skill or to an honest unsupported/question state.
 - Trigger: user-journey milestone work begins, after the next language scope is
@@ -185,7 +185,7 @@ auditable when completeness matters.
 
 ### ML-008 — Make proposal candidate cutoffs visible
 
-- State: `proposed`
+- State: `done`
 - User value: a boundary proposal does not silently omit equally ranked
   concerns merely because the command's candidate limit was reached.
 - Trigger: the final JavaScript proposal journey required changing
@@ -200,10 +200,13 @@ auditable when completeness matters.
 - Non-goals: removing bounded candidate limits, adding a generic ranking
   platform, or blocking JavaScript P2 when the final artifact already includes
   the explicitly requested domains.
+- Completion evidence: `5bc7618` includes all cutoff ties, reports deterministic
+  selection/omission evidence in Python and JavaScript/TypeScript artifacts,
+  passes the focused 10-test suite, and passed bounded product re-review.
 
 ### ML-009 — Cross-language batching and performance measurement
 
-- State: `proposed`
+- State: `scheduled`
 - User value: applying several relevant engineering lenses should be faster and
   repeat less context than running every skill serially.
 - Trigger: representative installed workflows exist and serial measurements

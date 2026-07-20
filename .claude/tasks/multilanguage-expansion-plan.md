@@ -1,6 +1,6 @@
 # Multi-language and framework expansion plan
 
-Status: active — P0, P1, and P2 complete; P3 pending
+Status: active — P0, P1, and P2 complete; U1 in progress before P3
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
@@ -109,15 +109,19 @@ walkers and report schemas stay with their skill families.
    harness before translating again.
 2. **JavaScript full disposition and coverage** — highest transfer from the
    TypeScript work; explicitly cover `.js`, `.jsx`, `.mjs`, and `.cjs`.
-3. **Go pilot, then gated expansion** — a deliberately different compiler and
+3. **Installed user-journey stabilization** — make proposal cutoffs visible
+   and validate all three default routers with a bounded decision corpus.
+4. **Go pilot, then gated expansion** — a deliberately different compiler and
    project model tests whether the contracts really transfer.
-4. **Route/workflow framework pilot** — Express first, then FastAPI as a second
+5. **Measured cross-skill batching** — benchmark fixed TypeScript/JavaScript
+   workflows and build only a demonstrated minimum before framework expansion.
+6. **Route/workflow framework pilot** — Express first, then FastAPI as a second
    adapter over the same user outcome.
-5. **Next language selection** — rank Java/JVM, C#/.NET, and Rust from actual
+7. **Next language selection** — rank Java/JVM, C#/.NET, and Rust from actual
    demand, native-tool availability, closure cost, and pilot transferability.
 
-Only items 1–4 are scheduled by this plan. The fifth is a selection gate, not
-a promise to port three ecosystems simultaneously.
+Items 1–6 are scheduled by this plan. The seventh is a selection gate, not a
+promise to port three ecosystems simultaneously.
 
 ## Phase P0 — Freeze baseline and synthesize TypeScript learning
 
@@ -298,6 +302,38 @@ Acceptance:
 - [x] Every batch passes native fixtures, source-integrity checks, a fresh
       on-demand replay, and product-aligned review.
 - [x] The final integrated suite and exact 76-row matrix check pass.
+
+## Phase U1 — Installed user-journey stabilization
+
+State: `in_progress`
+
+This bounded interlude closes reproduced UX defects before another language
+depends on the routers. It is not a general routing or evaluation platform.
+
+Acceptance:
+
+- [x] Proposal candidate limits include every cutoff tie and expose requested,
+      eligible, returned, cutoff, tied, and omitted evidence consistently in
+      Python and JavaScript/TypeScript outcomes.
+- [x] The candidate-cutoff repair passes copied/final-artifact tests and a
+      product-aligned review.
+- [ ] One committed corpus covers clear, ambiguous/direct, misleading/negated,
+      varied-scope, and language/stack-bound cases for all three default
+      routers.
+- [ ] Clear cases match their expected route or allowed set; confirmed
+      high-impact misroutes become exact regressions before heuristic repair.
+- [ ] Every selected task skill exposes its exact on-demand closure and keeps
+      ambient installation explicitly secondary.
+- [ ] One representative installed forward replay per router reaches the
+      expected handoff or final outcome without loading unrelated skill headers.
+- [ ] Review finds no gating router-decision, handoff, or likely-user-harm
+      defect; broader low-confidence cases remain in ML-007 with evidence.
+
+Evidence:
+
+- `5bc7618`: cross-language cutoff selection includes ties and reports omitted
+  candidates; focused proposal suite passed 10 and bounded re-review passed.
+- Router corpus and replay: in progress.
 
 ## Phase P3 — Go three-family pilot
 
