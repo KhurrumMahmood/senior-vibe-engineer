@@ -21,7 +21,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     records = read_jsonl(args.detections)
-    markdown, findings = render_simple_report("Comment-drift audit", records, args.target)
+    scan_path = args.detections.with_name("scan.json")
+    scan = None
+    if scan_path.is_file():
+        import json
+
+        scan = json.loads(scan_path.read_text(encoding="utf-8"))
+    markdown, findings = render_simple_report(
+        "Comment-drift audit", records, args.target, scan
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(markdown + "\n", encoding="utf-8")
     write_json(findings, args.output.with_name("findings.json"))

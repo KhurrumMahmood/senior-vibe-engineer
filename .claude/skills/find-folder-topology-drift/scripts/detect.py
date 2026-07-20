@@ -45,7 +45,17 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from support import BUILTIN_SKIP_DIRS, Scope, iter_paths, load_scope, matches_any  # noqa: E402
+from support import (  # noqa: E402
+    BUILTIN_SKIP_DIRS,
+    Scope,
+    go_scan_payload,
+    inventory_go,
+    iter_paths,
+    load_scope,
+    matches_any,
+    probe_go,
+    write_json,
+)
 
 SKILL_NAME = "find-folder-topology-drift"
 
@@ -768,6 +778,60 @@ def detect_javascript(
     return findings
 
 
+def _go_prefix_clusters(
+    files: list[Path], min_cluster_size: int
+) -> dict[tuple[Path, str], list[Path]]:
+    """Group eligible direct Go siblings by the first underscore token."""
+    grouped: dict[tuple[Path, str], list[Path]] = defaultdict(list)
+    for path in files:
+        stem = path.name[:-3]
+        if "_" not in stem:
+            continue
+        prefix = stem.split("_", 1)[0]
+        if len(prefix) < 2:
+            continue
+        grouped[(path.parent, prefix)].append(path)
+    return {
+        key: paths
+        for key, paths in grouped.items()
+        if len(paths) >= min_cluster_size
+    }
+
+
+def detect_go(
+    *, project_root: Path, files: list[Path], min_cluster_size: int
+) -> list[dict]:
+    """Detect Go direct-sibling prefix clusters from inventoried eligible files."""
+    findings: list[dict] = []
+    for (directory, prefix), paths in sorted(
+        _go_prefix_clusters(files, min_cluster_size).items(),
+        key=lambda item: (item[0][0].as_posix(), item[0][1]),
+    ):
+        rel_files = [path.relative_to(project_root).as_posix() for path in sorted(paths)]
+        location = directory.relative_to(project_root).as_posix()
+        findings.append(
+            {
+                "language": "go",
+                "pattern": "flat_prefix_cluster",
+                "file": location,
+                "lineno": 1,
+                "prefix": prefix,
+                "files": rel_files,
+                "summary": (
+                    f"Go directory `{location}` has {len(rel_files)} direct production "
+                    f"siblings sharing the first underscore token `{prefix}`: "
+                    f"{', '.join(path.name for path in sorted(paths))}."
+                ),
+                "recommendation": (
+                    f"Review the `{prefix}` files as a possible folder boundary. "
+                    "This Go v1 finding is filename-only: it does not prove package "
+                    "cohesion, import safety, build-tag equivalence, or a safe move."
+                ),
+            }
+        )
+    return findings
+
+
 def _resolve_within_project(
     value: Path, project_root: Path, flag: str
 ) -> Path | None:
@@ -815,6 +879,16 @@ def main() -> int:
             "an additive Python and JavaScript scan."
         ),
     )
+    parser.add_argument(
+        "--go-root",
+        action="append",
+        type=Path,
+        default=[],
+        help=(
+            "Declared Go source root. Repeat for separate roots. With no --root "
+            "or JavaScript/TypeScript root, scan Go only."
+        ),
+    )
     # spec:project-structure-redesign-phase-2::IM-26
     parser.add_argument(
         "--project-root",
@@ -838,6 +912,8 @@ def main() -> int:
     args = parser.parse_args()
 
     project_root = args.project_root.resolve()
+    if not args.go_root:
+        args.output.with_name("scan.json").unlink(missing_ok=True)
     scope = load_scope(project_root, SKILL_NAME)
     if args.root is not None:
         root = _resolve_within_project(args.root, project_root, "--root")
@@ -865,6 +941,40 @@ def main() -> int:
             return 2
         javascript_roots.append(root)
 
+    go_roots: list[Path] = []
+    for raw_root in args.go_root:
+        root = _resolve_within_project(raw_root, project_root, "--go-root")
+        if root is None or not root.is_dir():
+            if root is not None:
+                print(f"detect: --go-root must name a directory: {raw_root}", file=sys.stderr)
+            return 2
+        go_roots.append(root)
+
+    go_scan: dict | None = None
+    go_rc = 0
+    go_files: list[Path] = []
+    if go_roots:
+        tool, go_rc = probe_go()
+        if go_rc:
+            go_scan = {
+                **tool,
+                "language": "go",
+                "analyzer": "python-filesystem-names",
+                "syntax_contract": "filename-only; Go parse validity is not inspected",
+                "inventory": [],
+                "errors": [],
+                "summary": {"discovered": 0, "eligible": 0, "excluded": 0, "failed": 0},
+            }
+        else:
+            inventory, go_files, errors = inventory_go(
+                go_roots, project_root, list(args.exclude)
+            )
+            go_scan = go_scan_payload(tool, inventory, errors)
+            if not inventory:
+                go_scan["status"] = "unsupported"
+                go_scan["failure_kind"] = "no-go-files"
+                go_rc = 2
+
     # A TypeScript-root-only invocation is intentionally TypeScript-only. The
     # preserved Python scan runs when TypeScript was not requested, or when the
     # caller explicitly supplies --root to request a combined scan.
@@ -874,7 +984,7 @@ def main() -> int:
             scope=scope,
             min_cluster_size=args.min_cluster_size,
         )
-        if not (typescript_roots or javascript_roots) or args.root is not None
+        if not (typescript_roots or javascript_roots or go_roots) or args.root is not None
         else []
     )
     if typescript_roots:
@@ -895,6 +1005,14 @@ def main() -> int:
                 min_cluster_size=args.min_cluster_size,
             )
         )
+    if go_roots and go_rc == 0:
+        findings.extend(
+            detect_go(
+                project_root=project_root,
+                files=go_files,
+                min_cluster_size=args.min_cluster_size,
+            )
+        )
     findings.sort(key=lambda finding: (
         str(finding.get("language", "python")),
         str(finding.get("pattern", "")),
@@ -906,9 +1024,11 @@ def main() -> int:
     with args.output.open("w", encoding="utf-8") as f:
         for finding in findings:
             f.write(json.dumps(finding) + "\n")
+    if go_scan is not None:
+        write_json(go_scan, args.output.with_name("scan.json"))
 
     print(f"detect: wrote {len(findings)} findings to {args.output}", file=sys.stderr)
-    return 0
+    return go_rc
 
 
 if __name__ == "__main__":

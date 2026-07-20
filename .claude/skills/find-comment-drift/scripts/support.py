@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
+import re
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any, Iterable
@@ -25,6 +28,14 @@ SKIP_DIRS = {
     "vendor",
     "venv",
 }
+
+GO_MINIMUM_VERSION = (1, 22, 0)
+GO_MINIMUM_VERSION_TEXT = "1.22.0"
+GO_TEST_DIRS = frozenset({"test", "tests", "__tests__", "testdata", "fixtures"})
+GO_GENERATED_DIRS = frozenset({"generated", "gen"})
+GO_GENERATED_MARKER_RE = re.compile(
+    r"^// Code generated .* DO NOT EDIT\.$", re.MULTILINE
+)
 
 
 def resolve_project_root(explicit: Path | None = None) -> Path:
@@ -108,15 +119,182 @@ def write_json(data: dict[str, Any], path: Path) -> None:
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def probe_go() -> tuple[dict[str, Any], int]:
+    """Return Go tool evidence plus the detector exit code for that evidence."""
+    go_path = shutil.which("go")
+    if not go_path:
+        return {
+            "status": "unsupported",
+            "failure_kind": "go-tool-missing",
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 2
+    try:
+        result = subprocess.run(
+            [go_path, "version"], capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        return {
+            "status": "failed",
+            "failure_kind": "go-version-failed",
+            "detail": str(exc),
+            "go_path": go_path,
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 1
+    if result.returncode != 0:
+        return {
+            "status": "failed",
+            "failure_kind": "go-version-failed",
+            "detail": (result.stderr or result.stdout).strip(),
+            "go_path": go_path,
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 1
+    match = re.search(r"\bgo(\d+)\.(\d+)(?:\.(\d+))?\b", result.stdout)
+    if not match:
+        return {
+            "status": "failed",
+            "failure_kind": "go-version-unrecognized",
+            "detail": result.stdout.strip(),
+            "go_path": go_path,
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 1
+    version = tuple(int(value or 0) for value in match.groups())
+    evidence = {
+        "go_path": go_path,
+        "go_version": match.group(0),
+        "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+    }
+    if version < GO_MINIMUM_VERSION:
+        return {
+            **evidence,
+            "status": "unsupported",
+            "failure_kind": "go-version-too-old",
+        }, 2
+    return {**evidence, "status": "complete"}, 0
+
+
+def _go_exclusion(path: Path, project_root: Path, text: str | None) -> str | None:
+    rel = path.relative_to(project_root)
+    parent_parts = {part.lower() for part in rel.parts[:-1]}
+    name = path.name.lower()
+    if "vendor" in parent_parts:
+        return "vendor"
+    if parent_parts & GO_TEST_DIRS:
+        return "test-tree"
+    if name.endswith("_test.go"):
+        return "test-file"
+    if parent_parts & GO_GENERATED_DIRS:
+        return "generated-tree"
+    if name.endswith(("_generated.go", ".generated.go")) or name.startswith("zz_generated"):
+        return "generated-file"
+    if text is not None and GO_GENERATED_MARKER_RE.search(text[:2048]):
+        return "generated-marker"
+    return None
+
+
+def inventory_go(
+    targets: Iterable[str], project_root: Path
+) -> tuple[list[dict[str, Any]], list[Path], list[str]]:
+    """Inventory every selected Go file before applying comment eligibility."""
+    project_root = project_root.resolve()
+    discovered: dict[str, Path] = {}
+    errors: list[str] = []
+    for raw in targets:
+        logical = Path(raw)
+        logical = logical if logical.is_absolute() else project_root / logical
+        logical = Path(os.path.abspath(logical))
+        try:
+            logical.relative_to(project_root)
+        except ValueError:
+            errors.append(f"target-outside-project:{raw}")
+            continue
+        if not logical.exists():
+            errors.append(f"target-missing:{raw}")
+            continue
+        if logical.is_symlink():
+            if logical.suffix.lower() == ".go":
+                discovered[logical.relative_to(project_root).as_posix()] = logical
+            continue
+        if logical.is_file():
+            if logical.suffix.lower() == ".go":
+                discovered[logical.relative_to(project_root).as_posix()] = logical
+            continue
+        for directory, dirnames, filenames in os.walk(logical, followlinks=False):
+            current = Path(directory)
+            dirnames[:] = sorted(
+                name for name in dirnames if not (current / name).is_symlink()
+            )
+            for name in sorted(filenames):
+                if not name.lower().endswith(".go"):
+                    continue
+                path = current / name
+                discovered[path.relative_to(project_root).as_posix()] = path
+
+    inventory: list[dict[str, Any]] = []
+    eligible: list[Path] = []
+    for rel, path in sorted(discovered.items()):
+        if path.is_symlink():
+            inventory.append({"file": rel, "role": "excluded", "reason": "symlink"})
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            inventory.append(
+                {"file": rel, "role": "failed", "reason": "read-error", "detail": str(exc)}
+            )
+            continue
+        reason = _go_exclusion(path, project_root, text)
+        if reason:
+            inventory.append({"file": rel, "role": "excluded", "reason": reason})
+            continue
+        inventory.append({"file": rel, "role": "eligible"})
+        eligible.append(path)
+    return inventory, eligible, errors
+
+
+def go_scan_payload(
+    tool: dict[str, Any], inventory: list[dict[str, Any]], errors: list[str]
+) -> dict[str, Any]:
+    """Build the family-owned Go status and inventory artifact."""
+    failed = sum(row["role"] == "failed" for row in inventory)
+    status = "partial" if failed or errors else "complete"
+    return {
+        **tool,
+        "status": status,
+        "language": "go",
+        "analyzer": "python-go-comment-lexer",
+        "syntax_contract": "lexical-only; Go parse validity is not inspected",
+        "inventory": inventory,
+        "errors": errors,
+        "summary": {
+            "discovered": len(inventory),
+            "eligible": sum(row["role"] == "eligible" for row in inventory),
+            "excluded": sum(row["role"] == "excluded" for row in inventory),
+            "failed": failed + len(errors),
+        },
+    }
+
+
 def render_simple_report(
-    title: str, records: list[dict[str, Any]], target: str
+    title: str,
+    records: list[dict[str, Any]],
+    target: str,
+    scan: dict[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     buckets: dict[str, int] = {}
     for record in records:
         key = str(record.get("pattern") or record.get("bucket") or "finding")
         buckets[key] = buckets.get(key, 0) + 1
 
-    lines = [f"# {title}", "", f"**Target:** `{target}`", f"**Findings:** {len(records)}", ""]
+    lines = [f"# {title}", ""]
+    if scan:
+        lines.extend(
+            [
+                f"**Status:** `{scan['status']}`",
+                f"**Language:** `{scan['language']}`",
+                f"**Analyzer:** `{scan['analyzer']}`",
+            ]
+        )
+    lines.extend([f"**Target:** `{target}`", f"**Findings:** {len(records)}", ""])
     if buckets:
         lines.extend(["## Buckets", "", "| Bucket | Count |", "|---|---|"])
         for bucket, count in sorted(buckets.items()):
@@ -137,7 +315,11 @@ def render_simple_report(
                 lines.append(f"- **Recommendation:** {recommendation}")
             lines.append("")
 
-    return "\n".join(lines), {
+    payload: dict[str, Any] = {
         "summary": {"findings_total": len(records), "buckets": buckets},
         "findings": records,
     }
+    if scan:
+        payload["status"] = scan["status"]
+        payload["analysis"] = {"go": scan}
+    return "\n".join(lines), payload

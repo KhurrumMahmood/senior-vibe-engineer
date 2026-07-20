@@ -26,6 +26,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from collections import defaultdict
@@ -74,6 +75,14 @@ EXCLUDE_PREFIXES_DEFAULT = (
     "reports/",
 )
 EXCLUDE_SUFFIXES = (".worktree", ".min.js", ".min.jsx", ".min.mjs", ".min.cjs")
+
+GO_MINIMUM_VERSION = (1, 22, 0)
+GO_MINIMUM_VERSION_TEXT = "1.22.0"
+GO_TEST_DIRS = frozenset({"test", "tests", "__tests__", "testdata", "fixtures"})
+GO_GENERATED_DIRS = frozenset({"generated", "gen"})
+GO_GENERATED_MARKER_RE = re.compile(
+    r"^// Code generated .* DO NOT EDIT\.$", re.MULTILINE
+)
 
 
 def load_host_excludes() -> tuple[str, ...]:
@@ -134,6 +143,158 @@ def resolve_project_root(explicit: Path | None = None) -> Path:
         return cwd.resolve()
     root = result.stdout.strip()
     return Path(root).resolve() if root else cwd.resolve()
+
+
+def probe_go() -> tuple[dict[str, Any], int]:
+    """Discover Go from PATH and preserve unsupported/failed distinctions."""
+    go_path = shutil.which("go")
+    if not go_path:
+        return {
+            "status": "unsupported",
+            "failure_kind": "go-tool-missing",
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 2
+    try:
+        result = subprocess.run(
+            [go_path, "version"], capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        return {
+            "status": "failed",
+            "failure_kind": "go-version-failed",
+            "detail": str(exc),
+            "go_path": go_path,
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 1
+    if result.returncode != 0:
+        return {
+            "status": "failed",
+            "failure_kind": "go-version-failed",
+            "detail": (result.stderr or result.stdout).strip(),
+            "go_path": go_path,
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 1
+    match = re.search(r"\bgo(\d+)\.(\d+)(?:\.(\d+))?\b", result.stdout)
+    if not match:
+        return {
+            "status": "failed",
+            "failure_kind": "go-version-unrecognized",
+            "detail": result.stdout.strip(),
+            "go_path": go_path,
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 1
+    version = tuple(int(value or 0) for value in match.groups())
+    evidence = {
+        "go_path": go_path,
+        "go_version": match.group(0),
+        "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+    }
+    if version < GO_MINIMUM_VERSION:
+        return {
+            **evidence,
+            "status": "unsupported",
+            "failure_kind": "go-version-too-old",
+        }, 2
+    return {**evidence, "status": "complete"}, 0
+
+
+def _go_exclusion(path: Path, root: Path, text: str | None) -> str | None:
+    rel = path.relative_to(root)
+    parents = {part.lower() for part in rel.parts[:-1]}
+    name = path.name.lower()
+    if "vendor" in parents:
+        return "vendor"
+    if parents & GO_TEST_DIRS:
+        return "test-tree"
+    if name.endswith("_test.go"):
+        return "test-file"
+    if parents & GO_GENERATED_DIRS:
+        return "generated-tree"
+    if name.endswith(("_generated.go", ".generated.go")) or name.startswith("zz_generated"):
+        return "generated-file"
+    if text is not None and GO_GENERATED_MARKER_RE.search(text[:2048]):
+        return "generated-marker"
+    return None
+
+
+def inventory_go(
+    targets: Iterable[str], root: Path
+) -> tuple[list[dict[str, Any]], list[Path], list[str]]:
+    """Inventory selected Go files before applying strict-text eligibility."""
+    root = root.resolve()
+    discovered: dict[str, Path] = {}
+    errors: list[str] = []
+    for raw in targets:
+        logical = Path(raw)
+        logical = logical if logical.is_absolute() else root / logical
+        logical = Path(os.path.abspath(logical))
+        try:
+            logical.relative_to(root)
+        except ValueError:
+            errors.append(f"target-outside-project:{raw}")
+            continue
+        if not logical.exists():
+            errors.append(f"target-missing:{raw}")
+            continue
+        if logical.is_symlink():
+            if logical.suffix.lower() == ".go":
+                discovered[logical.relative_to(root).as_posix()] = logical
+            continue
+        if logical.is_file():
+            if logical.suffix.lower() == ".go":
+                discovered[logical.relative_to(root).as_posix()] = logical
+            continue
+        for directory, dirnames, filenames in os.walk(logical, followlinks=False):
+            current = Path(directory)
+            dirnames[:] = sorted(
+                name for name in dirnames if not (current / name).is_symlink()
+            )
+            for name in sorted(filenames):
+                if name.lower().endswith(".go"):
+                    path = current / name
+                    discovered[path.relative_to(root).as_posix()] = path
+
+    inventory: list[dict[str, Any]] = []
+    eligible: list[Path] = []
+    for rel, path in sorted(discovered.items()):
+        if path.is_symlink():
+            inventory.append({"file": rel, "role": "excluded", "reason": "symlink"})
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            inventory.append(
+                {"file": rel, "role": "failed", "reason": "read-error", "detail": str(exc)}
+            )
+            continue
+        reason = _go_exclusion(path, root, text)
+        if reason:
+            inventory.append({"file": rel, "role": "excluded", "reason": reason})
+            continue
+        inventory.append({"file": rel, "role": "eligible"})
+        eligible.append(path)
+    return inventory, eligible, errors
+
+
+def go_scan_payload(
+    tool: dict[str, Any], inventory: list[dict[str, Any]], errors: list[str]
+) -> dict[str, Any]:
+    failed = sum(row["role"] == "failed" for row in inventory)
+    return {
+        **tool,
+        "status": "partial" if failed or errors else "complete",
+        "language": "go",
+        "analyzer": "python-strict-text",
+        "syntax_contract": "strict-text; Go parse validity is not inspected",
+        "inventory": inventory,
+        "errors": errors,
+        "summary": {
+            "discovered": len(inventory),
+            "eligible": sum(row["role"] == "eligible" for row in inventory),
+            "excluded": sum(row["role"] == "excluded" for row in inventory),
+            "failed": failed + len(errors),
+        },
+    }
 
 
 def _parse_quoted_scalar(value: str, start: int) -> tuple[str, int]:
@@ -508,9 +669,19 @@ def _source_files(entry: dict[str, Any]) -> set[str]:
     return out
 
 
-def scan(glossary: dict[str, Any], targets: Iterable[str], root: Path) -> list[dict[str, Any]]:
+def scan(
+    glossary: dict[str, Any],
+    targets: Iterable[str],
+    root: Path,
+    *,
+    selected_files: list[Path] | None = None,
+    language: str | None = None,
+) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
-    files = list(iter_files(targets, root))
+    files = selected_files if selected_files is not None else list(iter_files(targets, root))
+
+    def record(values: dict[str, Any]) -> dict[str, Any]:
+        return {**values, **({"language": language} if language else {})}
 
     # Band 1: avoid-term hits.
     for concept in glossary.get("concepts", []):
@@ -533,12 +704,12 @@ def scan(glossary: dict[str, Any], targets: Iterable[str], root: Path) -> list[d
             if rel in source_files:
                 continue
             for hit in scan_file_for_terms(f, terms):
-                findings.append({
+                findings.append(record({
                     "band": "avoid_term_hit",
                     "concept": concept["name"],
                     "file": rel,
                     **hit,
-                })
+                }))
 
     # Band 2: competing-term coexistence (per ambiguity, per file).
     for amb in glossary.get("flagged_ambiguities", []):
@@ -560,13 +731,13 @@ def scan(glossary: dict[str, Any], targets: Iterable[str], root: Path) -> list[d
                 continue
             for _term, hits in file_hits.items():
                 for h in hits:
-                    findings.append({
+                    findings.append(record({
                         "band": "competing_term_coexistence",
                         "ambiguity_id": amb.get("id", "?"),
                         "competing_terms": list(file_hits.keys()),
                         "file": rel,
                         **h,
-                    })
+                    }))
 
     # Band 3: superseded co-occurrence. A concept may set `coverage_lint:`
     # to declare the rename is already enforced by a dedicated lint;
@@ -592,25 +763,44 @@ def scan(glossary: dict[str, Any], targets: Iterable[str], root: Path) -> list[d
             if not new_hits:
                 continue
             for h in old_hits:
-                findings.append({
+                findings.append(record({
                     "band": "superseded_co_occurrence",
                     "concept": concept["name"],
                     "superseded_by": replacement,
                     "file": _rel(f, root),
                     "side": "old",
                     **h,
-                })
+                }))
 
     return findings
 
 
-def write_report(findings: list[dict[str, Any]], path: Path) -> None:
+def write_report(
+    findings: list[dict[str, Any]],
+    path: Path,
+    scan_meta: dict[str, Any] | None = None,
+) -> None:
     by_band: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for f in findings:
         by_band[f["band"]].append(f)
     lines = ["# Concept-divergence scan", ""]
+    if scan_meta:
+        lines.extend(
+            [
+                f"**Status:** `{scan_meta['status']}`",
+                f"**Language:** `{scan_meta['language']}`",
+                f"**Analyzer:** `{scan_meta['analyzer']}`",
+                "",
+            ]
+        )
     if not findings:
-        lines.append("No drift detected against the current glossary.")
+        if not scan_meta or scan_meta.get("status") == "complete":
+            lines.append("No drift detected against the current glossary.")
+        else:
+            lines.append(
+                "Analysis did not complete cleanly; no absence-of-drift conclusion "
+                "is available. Resolve the status above and rerun."
+            )
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         return
     lines.append(f"Total findings: **{len(findings)}** across **{len(by_band)}** band(s).")
@@ -643,6 +833,12 @@ def main(argv: list[str] | None = None) -> int:
                          "the glossary default (default: git toplevel of cwd, else cwd)")
     ap.add_argument("--output", required=True, help="JSONL findings path")
     ap.add_argument("--report", required=True, help="Markdown report path")
+    ap.add_argument(
+        "--language",
+        choices=("auto", "go"),
+        default="auto",
+        help="Use `go` for the bounded Go inventory and strict-text contract.",
+    )
     ap.add_argument("targets", nargs="*", default=list(DEFAULT_TARGETS),
                     help="paths to scan (relative to repo root)")
     args = ap.parse_args(argv)
@@ -652,7 +848,39 @@ def main(argv: list[str] | None = None) -> int:
                      else project_root / ".claude/contracts/concepts.yaml")
     glossary = load_glossary(glossary_path)
     targets = args.targets or list(DEFAULT_TARGETS)
-    findings = scan(glossary, targets, project_root)
+    scan_meta: dict[str, Any] | None = None
+    status_rc = 0
+    if args.language == "go":
+        tool, status_rc = probe_go()
+        if status_rc:
+            scan_meta = {
+                **tool,
+                "language": "go",
+                "analyzer": "python-strict-text",
+                "syntax_contract": "strict-text; Go parse validity is not inspected",
+                "inventory": [],
+                "errors": [],
+                "summary": {"discovered": 0, "eligible": 0, "excluded": 0, "failed": 0},
+            }
+            findings: list[dict[str, Any]] = []
+        else:
+            inventory, files, errors = inventory_go(targets, project_root)
+            scan_meta = go_scan_payload(tool, inventory, errors)
+            if not inventory:
+                scan_meta["status"] = "unsupported"
+                scan_meta["failure_kind"] = "no-go-files"
+                status_rc = 2
+            findings = scan(
+                glossary,
+                targets,
+                project_root,
+                selected_files=files,
+                language="go",
+            )
+    else:
+        out_scan = Path(args.output).with_name("scan.json")
+        out_scan.unlink(missing_ok=True)
+        findings = scan(glossary, targets, project_root)
 
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -662,11 +890,16 @@ def main(argv: list[str] | None = None) -> int:
 
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    write_report(findings, report_path)
+    write_report(findings, report_path, scan_meta)
+    if scan_meta is not None:
+        scan_path = out_path.with_name("scan.json")
+        scan_path.write_text(
+            json.dumps(scan_meta, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
 
     print(f"wrote {len(findings)} findings → {out_path}")
     print(f"report → {report_path}")
-    return 0
+    return status_rc
 
 
 if __name__ == "__main__":

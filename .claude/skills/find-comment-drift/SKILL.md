@@ -6,7 +6,7 @@ description: |
   Flags detached section banners, narration comments, missing or thin
   public class docstrings, stale terminology, JavaScript and TypeScript
   functions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML
-  comments, and fragile doc references.
+  comments, fragile doc references, and a bounded Go lexical-comment surface.
 argument-hint: "[paths... - no paths uses the detector's legacy default surface]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -24,7 +24,7 @@ not_for: |
   existing lints for behavior and correctness.
 language: any
 framework: any
-scans: [python, javascript, typescript, templates]
+scans: [python, javascript, typescript, go, templates]
 ---
 
 # /find-comment-drift
@@ -41,10 +41,18 @@ the report as a checklist. The bundled `scripts/guard.py` and the repository
 subset; JSDoc candidates and thin docstrings remain advisory here.
 
 The detector is language-neutral only within its declared lexical bands. It
-scans Python, JavaScript/JSX/MJS/CJS, TypeScript/TSX, and HTML/template comments. It
+scans Python, JavaScript/JSX/MJS/CJS, TypeScript/TSX, Go, and HTML/template comments. It
 does not use TypeScript type or module resolution, prove that a function is a
 public API, or require JSDoc for ordinary TSX components solely because they
 contain JSX.
+
+Go is an explicit `--language go` mode. It inventories selected `.go` and
+`_test.go` files before eligibility, then uses the family-local
+`python-go-comment-lexer` to distinguish real `//`/`/* */` comments from
+comment-looking quoted, rune, and raw-string contents. It reports only the
+existing lexical stale-term, brittle-reference, banner, and narration bands;
+it does not parse declarations or claim exported-symbol documentation
+completeness.
 
 ## How success is judged
 
@@ -59,6 +67,10 @@ contain JSX.
   `findings.json`, not from memory or preference.
 - The skill remains read-only. Preserve, delete, or rewrite comments
   only in a separate cleanup pass after a human selects findings.
+- A Go run additionally records analysis status `complete`, `partial`,
+  `unsupported`, or `failed` in `scan.json` and `findings.json.analysis.go`.
+  Never relabel unreadable eligible source, a missing/old Go tool, or a tool
+  failure as a clean scan.
 
 ## Default Target
 
@@ -167,6 +179,28 @@ python3 /path/to/find-comment-drift/scripts/guard.py \
   src
 ```
 
+For a Go 1.22+ host, use the copied on-demand closure and explicit Go mode:
+
+```bash
+COMMENT_SKILL="$PWD/.agents/skills/find-comment-drift"
+COMMENT_REPORT="$PWD/reports/find-comment-drift/scan-go"
+mkdir -p "$COMMENT_REPORT"
+python3 "${COMMENT_SKILL}/scripts/detect.py" \
+  --project-root "$PWD" --language go \
+  --output "$COMMENT_REPORT/detections.jsonl" .
+python3 "${COMMENT_SKILL}/scripts/report.py" \
+  "$COMMENT_REPORT/detections.jsonl" \
+  --output "$COMMENT_REPORT/report.md" --target .
+go test ./...
+```
+
+The detector discovers `go` from `PATH` and requires Go >= 1.22.0. It writes
+`scan.json` beside `detections.jsonl`. The inventory includes every selected Go
+file before marking `_test.go`, test trees, generated files/trees/markers,
+vendor files, and symlinks ineligible. An invalid UTF-8 or lexically malformed
+eligible file makes the analysis `partial`. Ordinary Go parse errors do not:
+this contract is lexical and deliberately does not invoke `go/parser`.
+
 If shell process substitution or symlinks are awkward in the current
 environment, create the directory with any equivalent safe command. The
 required artifacts are:
@@ -174,6 +208,8 @@ required artifacts are:
 - `detections.jsonl` - one finding per line.
 - `report.md` - grouped human-readable report.
 - `findings.json` - machine-readable report summary.
+- `scan.json` - Go tool evidence, complete inventory, eligibility reasons, and
+  `complete`/`partial`/`unsupported`/`failed` analysis status (Go mode only).
 
 ## Detector Bands
 
@@ -230,3 +266,5 @@ input/output/side-effect contract.
 | A finding preserves important intent or safety context | Classify it as `noise` or `keep-comment` in the human summary and cite the adjacent code; do not rewrite it inside this skill. |
 | Smoke test fails after detector edits | Stop and fix the detector or fixture expectation before trusting any new report. |
 | A malformed file cannot be parsed | Report the parser failure and the file path, then continue only if the detector produced an explicit artifact for the skipped file. |
+| Go is missing or older than 1.22.0 | Keep the `unsupported` `scan.json`, install/select Go >= 1.22.0 on `PATH`, and re-run; do not present empty JSONL as clean. |
+| A Go file is unreadable or lexically unterminated | Keep the useful findings with `partial` status and cite the failed inventory row; do not silently omit it. |

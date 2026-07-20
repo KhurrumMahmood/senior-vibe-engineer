@@ -1,26 +1,26 @@
 ---
 name: find-folder-topology-drift
-description: Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family or TypeScript flat-prefix clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript and TypeScript v1 report only three-or-more direct source siblings sharing a first `_` or `-` token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.
-argument-hint: "[--root PATH] [--javascript-root PATH] [--typescript-root PATH] [--min-cluster-size 3 --exclude PATTERN]"
+description: Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, or Go flat-prefix clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript and TypeScript report direct source siblings sharing a first `_` or `-` token, while Go uses its valid first `_` token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.
+argument-hint: "[--root PATH] [--javascript-root PATH] [--typescript-root PATH] [--go-root PATH] [--min-cluster-size 3 --exclude PATTERN]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
 job: suspect
 best_for: |
   Auditing a Python package against ADR 0006's bidirectional ≥3-sibling
-  threshold, or inspecting an explicitly named TypeScript source root for a
+  threshold, or inspecting an explicitly named TypeScript or Go source root for a
   simple same-domain filename cluster such as
   `billing_parser.ts`, `billing-validator.ts`, and `billing-types.ts`.
 not_for: |
   Moving files, proving import safety, or deciding that a cluster must become
-  a package. TypeScript v1 does not inspect sparse-package demotion, test-folder
+  a package. TypeScript and Go v1 do not inspect sparse-package demotion, test-folder
   reorganization, Next.js/pages conventions, barrels, module resolution, or
   framework ownership. Use /propose-folder-reorganization only after a human
   confirms a Python finding; a TypeScript reorganization proposal needs its own
   resolved-import contract.
 language: any
 framework: any
-scans: [python, javascript, typescript]
+scans: [python, javascript, typescript, go]
 ---
 
 # /find-folder-topology-drift
@@ -39,6 +39,9 @@ candidate, never as authorization to move files.
   say `javascript` or `typescript`; the only pattern is `flat_prefix_cluster`.
 - Keep source read-only. The scripts may create only the requested report
   artifacts.
+- A Go run writes `scan.json` and reports analysis status `complete`, `partial`,
+  `unsupported`, or `failed`. `findings.json.analysis.go` must preserve the
+  same status and full pre-eligibility inventory.
 
 ## Supported invariants
 
@@ -96,6 +99,22 @@ dependency, build, report, test, and symlink paths. A JavaScript cluster is
 only a lexical naming observation; it proves no module resolution, package
 layout, import safety, framework convention, or safe move.
 
+### Go v1: explicit source roots only
+
+Pass one or more `--go-root` values. A Go-only invocation does not run the
+Python bands. The detector discovers Go from `PATH`, requires Go >= 1.22.0,
+and inventories every selected `.go` and `_test.go` file before eligibility.
+It explicitly excludes `_test.go`, test trees, generated files/trees/markers,
+vendor paths, symlinks, and additive `--exclude` paths.
+
+Eligible direct siblings are grouped by the first underscore token. At least
+three files with a token of at least two characters emit one Go
+`flat_prefix_cluster`. The `python-filesystem-names` analyzer is filename-only:
+it does not parse syntax, load packages, interpret build tags, resolve imports,
+or recommend a move. A malformed Go body can therefore still support this
+filename fact; unreadable UTF-8 is a failed inventory row and makes the result
+`partial`.
+
 ## Pipeline
 
 Run from the host project. The stock Codex install places this skill under
@@ -147,12 +166,33 @@ For a combined run, pass both `--root <python-subtree>` and
 `--typescript-root <typescript-subtree>`, then use `--language mixed`. Do not
 label a TypeScript-only artifact `python` or a combined artifact `typescript`.
 
+For a copied Go closure, use:
+
+```bash
+FT_PROJECT_ROOT="$PWD"
+FT_SKILL_DIR="$FT_PROJECT_ROOT/.agents/skills/find-folder-topology-drift"
+FT_REPORT_DIR="$FT_PROJECT_ROOT/reports/find-folder-topology-drift/scan-go"
+mkdir -p "$FT_REPORT_DIR"
+python3 "${FT_SKILL_DIR}/scripts/detect.py" \
+  --project-root "$FT_PROJECT_ROOT" --go-root . \
+  --output "$FT_REPORT_DIR/detections.jsonl"
+python3 "${FT_SKILL_DIR}/scripts/report.py" \
+  --detections "$FT_REPORT_DIR/detections.jsonl" \
+  --output-md "$FT_REPORT_DIR/report.md" \
+  --output-json "$FT_REPORT_DIR/findings.json" \
+  --target . --language go
+go test ./...
+```
+
 ## Read the artifacts before acting
 
 `detections.jsonl` is the detector truth. `report.md` is the human-readable
 summary. `findings.json` repeats the records and carries `scan_meta`, including
 the language label and the patterns actually present. For TypeScript v1, reject
 any output that has a pattern other than `flat_prefix_cluster`.
+
+Go mode also writes `scan.json`; grade Go completeness from it and
+`findings.json.analysis.go`, not from a zero-finding JSONL alone.
 
 For a Python `flat_prefix_cluster`, `tests_by_prefix`, or
 `sparse_folder_package`, `/propose-folder-reorganization` produces the
@@ -195,6 +235,9 @@ The expected final result is one finding labeled
 | The reporter fails after detection | Preserve `detections.jsonl`, mark `scan-blocked`, and paste the reporter failure. |
 | A TypeScript cluster needs an import-safe move plan | State that v1 does not resolve imports; request a TypeScript proposal contract instead of applying a Python package convention. |
 | A Python finding is scratch or a framework convention | Keep it advisory and record the reason in the downstream proposal or add an additive `--exclude`. |
+| Go is missing or older than 1.22.0 | Keep the `unsupported` `scan.json`, restore Go >= 1.22.0 on `PATH`, and re-run. |
+| A selected Go file is unreadable | Keep useful clusters with `partial` status and cite the failed inventory row; never claim the root was completely inventoried. |
+| A Go cluster needs a safe package move | State that v1 has no package/import/build-tag facts; use a separately proven Go proposal workflow. |
 
 ## Installed layout
 

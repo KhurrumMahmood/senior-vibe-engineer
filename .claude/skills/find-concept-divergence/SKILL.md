@@ -31,7 +31,7 @@ not_for: |
   (deferred — strict canonical-name + avoid-term grep only in v1).
 language: any
 framework: any
-scans: [python, javascript, typescript, markdown, templates]
+scans: [python, javascript, typescript, go, markdown, templates]
 ---
 
 # /find-concept-divergence
@@ -65,6 +65,17 @@ vendor, test, minified, and symlinked sources remain excluded by strict
 path-level rules; identifier-like terms use lexical word boundaries, not fuzzy
 or substring matching.
 
+Go support is an explicit `--language go` strict-text mode, not an inference
+from the generic suffix walk. It inventories every selected `.go` and
+`_test.go` file before excluding test, generated, vendor, and symlink surfaces.
+The `python-strict-text` analyzer applies the same exact term boundaries to
+eligible UTF-8 source; it does not parse Go syntax, packages, build tags,
+identifiers, comments, or string literals.
+
+The automatic non-Go surface remains
+`scans: [python, javascript, typescript, markdown, templates]`; only explicit
+Go mode promotes Go files into the supported inventory/status contract.
+
 ## How success is judged
 
 - The run is graded only by artifacts: pasted command output plus
@@ -80,6 +91,9 @@ or substring matching.
 - The skill remains read-only. It can recommend a rename, glossary
   update, ADR, exclusion, or lint handoff; it never edits the glossary,
   code, docs, or lint rules in this run.
+- Go `scan.json` status is exactly one of `complete`, `partial`, `unsupported`,
+  or `failed`. The Markdown report repeats it. Missing/old Go, unreadable
+  eligible source, and Go tool failures must never become `clean`.
 
 ## Glossary source
 
@@ -181,6 +195,29 @@ The scan writes:
 - `findings.jsonl` — one record per hit; fields `band`, `concept` or
   `ambiguity_id`, `file`, `line`, `match`, `term`.
 - `report.md` — grouped summary by band, sorted by concept then file.
+- `scan.json` — Go tool/version evidence, full Go inventory, eligibility
+  reasons, and analysis status when `--language go` is selected.
+
+### Go copied-closure pipeline
+
+Use Go >= 1.22.0 discovered from `PATH`; the fixture/native oracle remains the
+host's own `go test ./...`:
+
+```bash
+CONCEPT_SKILL="$PWD/.agents/skills/find-concept-divergence"
+CONCEPT_REPORT="$PWD/reports/find-concept-divergence/scan-go"
+mkdir -p "$CONCEPT_REPORT"
+python3 "${CONCEPT_SKILL}/scripts/scan.py" \
+  --project-root "$PWD" --language go \
+  --output "$CONCEPT_REPORT/findings.jsonl" \
+  --report "$CONCEPT_REPORT/report.md" .
+go test ./...
+```
+
+The strict-text outcome remains valid when eligible Go source is syntactically
+malformed because the claim is textual co-occurrence, not parse validity.
+Invalid UTF-8 or a read failure is different: it leaves a failed inventory row
+and makes the result `partial`.
 
 ## Output triage
 
@@ -244,3 +281,5 @@ against the current glossary; it does not prove the full repo is clean.
 | A hit appears only in a deliberate quote of deprecated terminology | Label it `noise`, cite the surrounding line, and only add an exclusion if the same noise recurs. |
 | A superseded concept declares `coverage_lint` | Treat that lint as owning the rename guard; do not double-count skipped co-occurrence noise as scanner drift. |
 | Agent triage omits glossary citations | Reject the dispatch output and read the report/glossary directly. |
+| Go is missing or older than 1.22.0 | Preserve the `unsupported` report/`scan.json`, restore Go >= 1.22.0 on `PATH`, and re-run. |
+| An eligible Go file cannot be decoded | Keep the report `partial` and cite the failed inventory row; never treat the remaining scan as complete. |

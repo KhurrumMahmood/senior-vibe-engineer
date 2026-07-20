@@ -11,6 +11,9 @@ from __future__ import annotations
 import fnmatch
 import json
 import os
+import re
+import shutil
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
@@ -23,6 +26,13 @@ BUILTIN_SKIP_DIRS = frozenset({
     ".next", ".cache", "migrations",
 })
 BUILTIN_SKIP_PREFIXES = (".claude/worktrees", ".engineering")
+GO_MINIMUM_VERSION = (1, 22, 0)
+GO_MINIMUM_VERSION_TEXT = "1.22.0"
+GO_TEST_DIRS = frozenset({"test", "tests", "__tests__", "testdata", "fixtures"})
+GO_GENERATED_DIRS = frozenset({"generated", "gen"})
+GO_GENERATED_MARKER_RE = re.compile(
+    r"^// Code generated .* DO NOT EDIT\.$", re.MULTILINE
+)
 _IGNORE_HEADINGS = {"ignore", "ignores", "skip", "path skip", "paths to skip"}
 _ROOTS_HEADINGS = {"roots", "root", "scan", "scan roots", "include"}
 
@@ -146,7 +156,155 @@ def write_json(data: dict[str, Any], path: Path) -> None:
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def render_simple_report(title: str, records: list[dict[str, Any]], target: str, language: str) -> tuple[str, dict[str, Any]]:
+def probe_go() -> tuple[dict[str, Any], int]:
+    """Discover the Go 1.22+ toolchain and preserve outcome distinctions."""
+    go_path = shutil.which("go")
+    if not go_path:
+        return {
+            "status": "unsupported",
+            "failure_kind": "go-tool-missing",
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 2
+    try:
+        result = subprocess.run(
+            [go_path, "version"], capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        return {
+            "status": "failed",
+            "failure_kind": "go-version-failed",
+            "detail": str(exc),
+            "go_path": go_path,
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 1
+    if result.returncode != 0:
+        return {
+            "status": "failed",
+            "failure_kind": "go-version-failed",
+            "detail": (result.stderr or result.stdout).strip(),
+            "go_path": go_path,
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 1
+    match = re.search(r"\bgo(\d+)\.(\d+)(?:\.(\d+))?\b", result.stdout)
+    if not match:
+        return {
+            "status": "failed",
+            "failure_kind": "go-version-unrecognized",
+            "detail": result.stdout.strip(),
+            "go_path": go_path,
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 1
+    version = tuple(int(value or 0) for value in match.groups())
+    evidence = {
+        "go_path": go_path,
+        "go_version": match.group(0),
+        "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+    }
+    if version < GO_MINIMUM_VERSION:
+        return {
+            **evidence,
+            "status": "unsupported",
+            "failure_kind": "go-version-too-old",
+        }, 2
+    return {**evidence, "status": "complete"}, 0
+
+
+def _go_exclusion(
+    path: Path, project_root: Path, text: str | None, excludes: list[str]
+) -> str | None:
+    rel = path.relative_to(project_root)
+    rel_text = rel.as_posix()
+    parents = {part.lower() for part in rel.parts[:-1]}
+    name = path.name.lower()
+    if "vendor" in parents:
+        return "vendor"
+    if parents & GO_TEST_DIRS:
+        return "test-tree"
+    if name.endswith("_test.go"):
+        return "test-file"
+    if parents & GO_GENERATED_DIRS:
+        return "generated-tree"
+    if name.endswith(("_generated.go", ".generated.go")) or name.startswith("zz_generated"):
+        return "generated-file"
+    if text is not None and GO_GENERATED_MARKER_RE.search(text[:2048]):
+        return "generated-marker"
+    if matches_any(rel_text, excludes):
+        return "declared-exclude"
+    return None
+
+
+def inventory_go(
+    roots: Iterable[Path], project_root: Path, excludes: list[str]
+) -> tuple[list[dict[str, Any]], list[Path], list[str]]:
+    """Inventory every selected Go file before filename eligibility rules."""
+    project_root = project_root.resolve()
+    discovered: dict[str, Path] = {}
+    errors: list[str] = []
+    for root in roots:
+        if root.is_symlink():
+            errors.append(f"symlink-root:{root.relative_to(project_root).as_posix()}")
+            continue
+        for directory, dirnames, filenames in os.walk(root, followlinks=False):
+            current = Path(directory)
+            dirnames[:] = sorted(
+                name for name in dirnames if not (current / name).is_symlink()
+            )
+            for name in sorted(filenames):
+                if not name.lower().endswith(".go"):
+                    continue
+                path = current / name
+                discovered[path.relative_to(project_root).as_posix()] = path
+
+    inventory: list[dict[str, Any]] = []
+    eligible: list[Path] = []
+    for rel, path in sorted(discovered.items()):
+        if path.is_symlink():
+            inventory.append({"file": rel, "role": "excluded", "reason": "symlink"})
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            inventory.append(
+                {"file": rel, "role": "failed", "reason": "read-error", "detail": str(exc)}
+            )
+            continue
+        reason = _go_exclusion(path, project_root, text, excludes)
+        if reason:
+            inventory.append({"file": rel, "role": "excluded", "reason": reason})
+            continue
+        inventory.append({"file": rel, "role": "eligible"})
+        eligible.append(path)
+    return inventory, eligible, errors
+
+
+def go_scan_payload(
+    tool: dict[str, Any], inventory: list[dict[str, Any]], errors: list[str]
+) -> dict[str, Any]:
+    failed = sum(row["role"] == "failed" for row in inventory)
+    return {
+        **tool,
+        "status": "partial" if failed or errors else "complete",
+        "language": "go",
+        "analyzer": "python-filesystem-names",
+        "syntax_contract": "filename-only; Go parse validity is not inspected",
+        "inventory": inventory,
+        "errors": errors,
+        "summary": {
+            "discovered": len(inventory),
+            "eligible": sum(row["role"] == "eligible" for row in inventory),
+            "excluded": sum(row["role"] == "excluded" for row in inventory),
+            "failed": failed + len(errors),
+        },
+    }
+
+
+def render_simple_report(
+    title: str,
+    records: list[dict[str, Any]],
+    target: str,
+    language: str,
+    scan: dict[str, Any] | None = None,
+) -> tuple[str, dict[str, Any]]:
     buckets: dict[str, int] = {}
     for record in records:
         pattern = str(record.get("pattern") or "finding")
@@ -154,6 +312,7 @@ def render_simple_report(title: str, records: list[dict[str, Any]], target: str,
     lines = [
         f"# {title}",
         "",
+        *([f"**Status:** `{scan['status']}`"] if scan else []),
         f"**Target:** `{target}`",
         f"**Language:** `{language}`",
         f"**Findings:** {len(records)}",
@@ -176,7 +335,7 @@ def render_simple_report(title: str, records: list[dict[str, Any]], target: str,
             if recommendation := record.get("recommendation"):
                 lines.append(f"- **Recommendation:** {recommendation}")
             lines.append("")
-    return "\n".join(lines), {
+    payload: dict[str, Any] = {
         "scan_meta": {
             "language": language,
             "supported_patterns": sorted(buckets),
@@ -185,3 +344,7 @@ def render_simple_report(title: str, records: list[dict[str, Any]], target: str,
         "summary": {"findings_total": len(records), "buckets": buckets},
         "findings": records,
     }
+    if scan:
+        payload["status"] = scan["status"]
+        payload["analysis"] = {"go": scan}
+    return "\n".join(lines), payload
