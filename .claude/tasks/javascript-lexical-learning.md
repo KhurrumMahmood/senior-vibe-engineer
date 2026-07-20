@@ -19,7 +19,7 @@ reports/configuration boundaries are exercised where the skill produces them.
 
 ## Verification
 
-Executed with `/Users/khurrummahmood/Projects/engineering-skills/.venv/bin/python`: <!-- host-ref-allow: required worktree validation interpreter -->
+Executed with the repository virtual environment's Python interpreter:
 
 ```text
 python -m pytest -q tests/test_javascript_lexical_cohort.py

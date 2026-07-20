@@ -4,12 +4,13 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILLS = REPO_ROOT / ".claude" / "skills"
-PYTHON = Path("/Users/khurrummahmood/Projects/engineering-skills/.venv/bin/python")  # host-ref-allow: required worktree validation interpreter
+PYTHON = Path(sys.executable)
 
 
 def _run(script: Path, *args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
