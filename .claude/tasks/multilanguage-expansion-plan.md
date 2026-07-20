@@ -221,9 +221,9 @@ State: `in_progress`
 Scope: `.js`, `.jsx`, `.mjs`, and `.cjs`, including mixed JS/TS projects.
 JavaScript support is not inferred from TypeScript filename traversal.
 
-Progress: 10 of 22 language-level skills are evidence-backed
-`javascript-supported` (the complete syntax and lexical/filesystem cohorts); 12 remain
-`pending-validation`. The other 54 skills retain explicit neutral,
+Progress: 16 of 22 language-level skills are evidence-backed
+`javascript-supported` (the complete syntax, lexical/filesystem, and
+semantic/read-only cohorts); 6 remain `pending-validation`. The other 54 skills retain explicit neutral,
 stack-bound, or ecosystem-runtime dispositions.
 
 Independent worktree batches after the P1 interfaces are frozen:
@@ -437,7 +437,7 @@ Acceptance:
 |---|---|---|---|---|---|---|
 | P0 TypeScript synthesis | complete | P0 commit (this revision) | Accepted TypeScript coverage fixtures | Matrix/coverage/router: 51 passed; canonical: 666 passed, 2 environment skips | Fresh review found missing current closure paths; repaired; bounded re-review PASS | `.claude/tasks/multilanguage-typescript-transfer-guide.md` plus raw linked packets |
 | P1 portability harness | complete | `2015c3f`, `7b4cd09`, and this revision | Synthetic seven-outcome hosts; fresh bootstrapped `map-subsystem` complete/partial hosts | Focused P1 integration: 90 passed; canonical: 686 passed, 2 documented environment skips; final collision regression: 3 passed | Fresh product-aligned review found four bounded defects; all repaired and bounded re-review passed | Capability projection, exact install evidence, test-only journey contract, and explicit TypeScript extraction stop decision |
-| P2 JavaScript coverage | in progress | baseline `eedb3ae`; syntax `a5337cb`; lexical `263f2ac` + portability fix `1f1c574` | Inventory/matrix/router fixtures plus syntax and lexical cohort outcome tests | Baseline installed replay: 79 passed; syntax projection: 57 passed; syntax TypeScript regression: 55 passed; lexical + related regression: 67 passed | Serial review removed one machine-local test path; fresh product review pending completed cohorts | 10/22 language-level skills promoted; transfer packets at `.claude/tasks/javascript-{syntax,lexical}-learning.md` |
+| P2 JavaScript coverage | in progress | baseline `eedb3ae`; syntax `a5337cb`; lexical `263f2ac` + portability fix `1f1c574`; semantic `f06b6c5` | Inventory/matrix/router fixtures plus syntax, lexical, and checked-JavaScript semantic cohort outcome tests | Baseline installed replay: 79 passed; syntax projection: 57 passed; syntax TypeScript regression: 55 passed; lexical + related regression: 67 passed; semantic cohort and related TypeScript regressions passed before serial projection | Serial review removed one machine-local test path; fresh product review running for the semantic cohort | 16/22 language-level skills promoted; transfer packets at `.claude/tasks/javascript-{syntax,lexical,semantic}-learning.md`; explicit config discovery remains family-local until a user journey proves a shared need |
 | P3 Go pilot | pending | — | — | — | — | — |
 | P4 route frameworks | pending | — | — | — | — | — |
 | P5 next-language selection | pending | — | — | — | — | — |
