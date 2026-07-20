@@ -320,7 +320,7 @@
     },
     {
       "name": "find-complexity-hotspots",
-      "description": "Detect advisory Python, JavaScript, and TypeScript function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only JS/JSX/MJS/CJS/TS/TSX high-branch findings for function declarations, methods, and block-bodied arrows.",
+      "description": "Detect advisory Python, JavaScript, TypeScript, and Go function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only JS/JSX/MJS/CJS/TS/TSX and Go high-branch findings for named body-bearing functions and methods.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Read-only complexity leads. Python retains nested-loop, membership-scan,\nsort/repeated-scan, Django-query, and high-branch bands. TypeScript/TSX\nreports only per-function syntactic branch complexity with exact source spans\nand analyzer provenance.\n",
@@ -330,7 +330,8 @@
       "scans": [
         "python",
         "javascript",
-        "typescript"
+        "typescript",
+        "go"
       ],
       "_path": "skills/find-complexity-hotspots"
     },
@@ -839,7 +840,7 @@
     },
     {
       "name": "move-path",
-      "description": "Deterministically plan, dry-run, apply, and verify standalone TypeScript/TSX file or directory moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. An explicit checked-JavaScript mode updates bounded literal module references through the host Compiler API. Use for a reviewed move map with JSON plans, dry-run reporting, Git-aware moves, and explicit ignored-import risk. TypeScript/TSX source imports are never rewritten in v1; import-safe module moves need a resolver-aware follow-up.",
+      "description": "Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module, updating only AST-confirmed exact import string literals. TypeScript/TSX source imports are never rewritten in v1.",
       "tier": "maintenance",
       "job": "refactor",
       "best_for": "Everyday but high-blast path moves: moving or renaming Markdown docs,\ndirectories, fixtures, scripts, or mixed repo surfaces where references\nshould update in one batch. Best when a move map can be reviewed first\nand the desired behavior is \"compute a virtual after-tree, rewrite safe\nreferences once, apply with git-aware moves, then verify.\"\nAlso use the checked-JavaScript mode for explicit `.js`, `.jsx`, `.mjs`, or\n`.cjs` file moves that must update safe relative imports and checked-project\nconfiguration while leaving unrelated TypeScript source unchanged.\n",
@@ -847,6 +848,7 @@
       "language": "any",
       "framework": "any",
       "scans": [
+        "go",
         "javascript",
         "typescript"
       ],
@@ -993,7 +995,7 @@
     },
     {
       "name": "propose-boundary",
-      "description": "Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX or checked-JavaScript v1 uses a host-resolved symbol/import/call graph and emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility/barrel plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).",
+      "description": "Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX or checked-JavaScript v1 uses a host-resolved symbol/import/call graph; Go v1 uses host `go list` package/import facts plus standard-library AST facts. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "A TypeScript or checked-JavaScript target needing resolved symbol, import, and call-graph evidence\nfor a stable public interface, backward-compatible barrel, and caller-impact proposal.\nA file or directory where distinct domain concerns live side-by-side\nwith no defined public contract — sibling modules reach into each\nother's private helpers, change-amplification touches the same N\nfiles for every feature, test setup explodes because exercising one\ncluster requires fixturing the others. Produces candidate seams +\nproposed public API + shim shape + characterization-test matrix.\nRead-only. Works on `.claude/skills/<name>/` directories too —\nsub-phases (parsed from SKILL.md `## Phase N` headings) are treated\nas symbols, naming-prefix alignment as the cluster signal.\n",
@@ -1003,7 +1005,8 @@
       "scans": [
         "python",
         "typescript",
-        "javascript"
+        "javascript",
+        "go"
       ],
       "_path": "skills/propose-boundary"
     },

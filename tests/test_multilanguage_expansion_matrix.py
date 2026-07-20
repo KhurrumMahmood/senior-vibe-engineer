@@ -43,7 +43,8 @@ EXPECTED_JAVASCRIPT_COHORT_COUNTS = {
     "proposal-mutation-guard": 6,
 }
 EXPECTED_GO_COUNTS = {
-    "pending-validation": 22,
+    "pending-validation": 19,
+    "go-pilot-supported": 3,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,

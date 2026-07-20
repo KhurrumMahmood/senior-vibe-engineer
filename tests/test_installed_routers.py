@@ -211,6 +211,27 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "optional_install_status": "passed",
     }
 
+    for skill, task in (
+        ("find-complexity-hotspots", "use find-complexity-hotspots on Go source"),
+        ("propose-boundary", "use propose-boundary for a Go package boundary"),
+        ("move-path", "use move-path to move a Go package directory"),
+    ):
+        go_routed = _run_isolated(
+            installed["which-skill"] / "scripts" / "match.py",
+            task,
+            "--project-root",
+            str(host),
+            "--json",
+            cwd=host,
+        )
+        go_payload = _json_output(go_routed)
+        assert go_payload["recommendation"] == skill
+        assert go_payload["handoff"]["available"] is True
+        assert go_payload["handoff"]["capabilities"]["skills"][0][
+            "go_disposition"
+        ] == "go-pilot-supported"
+        assert Path(go_payload["handoff"]["guides"][0]["guide"]).is_file()
+
     shape_routed = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",
         "onboard an unknown inherited repo and figure out what loop to run",

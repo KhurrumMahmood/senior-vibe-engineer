@@ -93,9 +93,27 @@ def test_rs_alias_preserves_explicit_language_portability_filtering():
     assert payload["unsupported"]["name"] == "find-omnibus"
 
 
-def test_pending_go_skill_is_unsupported_without_weaker_substitution(tmp_path):
+def test_go_pilot_skill_has_executable_handoff(tmp_path):
     returncode, payload = _run_match(
         "Use propose-boundary for a Go package boundary.",
+        "--project-root",
+        str(tmp_path),
+        "--library-root",
+        str(REPO_ROOT),
+    )
+
+    assert returncode == 0
+    assert payload["routing_context"]["languages"] == ["go"]
+    assert payload["recommendation"] == "propose-boundary"
+    assert payload["handoff"]["available"] is True
+    assert payload["handoff"]["capabilities"]["skills"][0]["go_disposition"] == (
+        "go-pilot-supported"
+    )
+
+
+def test_pending_go_skill_is_unsupported_without_weaker_substitution(tmp_path):
+    returncode, payload = _run_match(
+        "Use adapt-project to onboard this Go repository.",
         "--project-root",
         str(tmp_path),
         "--library-root",
@@ -105,6 +123,6 @@ def test_pending_go_skill_is_unsupported_without_weaker_substitution(tmp_path):
     assert returncode == 1
     assert payload["routing_context"]["languages"] == ["go"]
     assert payload["recommendation"] == "unsupported"
-    assert payload["unsupported"]["name"] == "propose-boundary"
+    assert payload["unsupported"]["name"] == "adapt-project"
     assert "go_disposition=pending-validation" in payload["unsupported"]["reason"]
     assert "handoff" not in payload

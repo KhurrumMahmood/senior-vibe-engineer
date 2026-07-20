@@ -115,7 +115,7 @@ def test_plaintext_stack_block_names_capability_instead_of_bootstrap(tmp_path, c
     assert "run the which-skill library bootstrap" not in output
 
 
-def test_pending_go_shape_has_no_executable_handoff(tmp_path, capsys):
+def test_supported_go_shape_has_executable_handoff(tmp_path, capsys):
     code = route.main([
         "Propose a Go package boundary for the legacy module without editing source.",
         "--project-root", str(tmp_path),
@@ -127,7 +127,8 @@ def test_pending_go_shape_has_no_executable_handoff(tmp_path, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert code == 0
     assert payload["recommendation"]["shape"] == "boundary-proposal"
-    assert payload["handoff"]["available"] is False
-    assert payload["handoff"]["reason"] == "selected_skill_not_validated_for_language"
-    assert payload["optional_install"]["available"] is False
-    assert "command" not in payload["optional_install"]
+    assert payload["handoff"]["available"] is True
+    assert payload["handoff"]["capabilities"]["skills"][0]["go_disposition"] == (
+        "go-pilot-supported"
+    )
+    assert payload["optional_install"]["available"] is True
