@@ -58,11 +58,12 @@ act on the findings.
 ## Host-language boundary
 
 The host code language is not a routing constraint: this is a strict textual
-glossary scan. It reads `.py`, `.js`, `.ts`, `.tsx`, template/HTML, and prose
-files; `.tsx` is included as TypeScript source, not as a separate framework
-mode. It does not parse TypeScript, resolve imports, infer types, or judge JSX
-runtime behavior. Generated and vendor trees remain excluded by the same
-path-level rules as other source languages.
+glossary scan. It reads `.py`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`,
+template/HTML, and prose files. It does not parse JavaScript or TypeScript,
+resolve imports, infer types, or judge JSX runtime behavior. Generated,
+vendor, test, minified, and symlinked sources remain excluded by strict
+path-level rules; identifier-like terms use lexical word boundaries, not fuzzy
+or substring matching.
 
 ## How success is judged
 

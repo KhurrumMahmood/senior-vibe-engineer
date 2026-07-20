@@ -1,7 +1,7 @@
 ---
 name: find-folder-topology-drift
-description: Read-only SUSPECT audit for Python folder-topology drift and a narrow, explicit-root TypeScript/TSX flat-prefix cluster. Python retains its ADR 0006 promotion and demotion bands; TypeScript v1 reports only three-or-more direct `.ts`/`.tsx` siblings sharing a first `_` or `-` token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.
-argument-hint: "[--root PATH] [--typescript-root PATH] [--min-cluster-size 3 --exclude PATTERN]"
+description: Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family or TypeScript flat-prefix clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript and TypeScript v1 report only three-or-more direct source siblings sharing a first `_` or `-` token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.
+argument-hint: "[--root PATH] [--javascript-root PATH] [--typescript-root PATH] [--min-cluster-size 3 --exclude PATTERN]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -20,7 +20,7 @@ not_for: |
   resolved-import contract.
 language: any
 framework: any
-scans: [python, typescript]
+scans: [python, javascript, typescript]
 ---
 
 # /find-folder-topology-drift
@@ -34,9 +34,9 @@ candidate, never as authorization to move files.
   paths and the detector/reporter output. Do not claim a scan ran without those
   artifacts.
 - Report `clean`, `drift-found`, or `scan-blocked`. `drift-found` is advisory.
-- Echo the supplied target in the final report. When TypeScript is scanned,
-  `findings.json.scan_meta.language` and every TypeScript detection say
-  `typescript`; its only pattern is `flat_prefix_cluster`.
+- Echo the supplied target in the final report. When JavaScript or TypeScript
+  is scanned, `findings.json.scan_meta.language` and every matching detection
+  say `javascript` or `typescript`; the only pattern is `flat_prefix_cluster`.
 - Keep source read-only. The scripts may create only the requested report
   artifacts.
 
@@ -86,6 +86,16 @@ Do not infer a framework convention, a barrel boundary, TypeScript module
 resolution, import safety, test placement, package density, or a safe file
 move. Those claims are deliberately outside this v1.
 
+### JavaScript v1: explicit source roots only
+
+Pass one or more `--javascript-root` values to scan `.js`, `.jsx`, `.mjs`, and
+`.cjs`. Its invocation and output contract matches the TypeScript lexical band
+but it is a separate JavaScript collector. It excludes `index.js[x]`/
+`index.mjs`/`index.cjs`, `*.spec.*`, `*.test.*`, generated, minified, vendor,
+dependency, build, report, test, and symlink paths. A JavaScript cluster is
+only a lexical naming observation; it proves no module resolution, package
+layout, import safety, framework convention, or safe move.
+
 ## Pipeline
 
 Run from the host project. The stock Codex install places this skill under
@@ -111,6 +121,10 @@ python3 scripts/report.py \
   --target "src" \
   --language typescript
 ```
+
+For JavaScript, replace `--typescript-root src` with `--javascript-root src`
+and pass `--language javascript` to the reporter. Use `--language mixed` only
+when deliberately combining explicit Python and/or both language roots.
 
 For Python, omit `--typescript-root` and optionally replace it with `--root`:
 

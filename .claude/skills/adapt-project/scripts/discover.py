@@ -42,9 +42,9 @@ COMMON_SKIP_PARTS = frozenset({
     "reports",
     "worktrees",
 })
-# These exclusions are deliberately TypeScript-specific.  The Python counter
-# below preserves the reference path's original skip behavior.
-TYPESCRIPT_NON_SOURCE_PARTS = frozenset({
+# These exclusions are deliberately JavaScript-family-specific.  The Python
+# counter below preserves the reference path's original skip behavior.
+JAVASCRIPT_FAMILY_NON_SOURCE_PARTS = frozenset({
     "build",
     "coverage",
     "dist",
@@ -100,11 +100,26 @@ def is_common_ignored(path: Path) -> bool:
 def is_typescript_source(path: Path) -> bool:
     if path.suffix not in {".ts", ".tsx"}:
         return False
-    if is_common_ignored(path) or any(part in TYPESCRIPT_NON_SOURCE_PARTS for part in path.parts):
+    if is_common_ignored(path) or any(part in JAVASCRIPT_FAMILY_NON_SOURCE_PARTS for part in path.parts):
         return False
     name = path.name
     return not (name.endswith(".d.ts") or name.endswith(".spec.ts") or name.endswith(".spec.tsx")
                 or name.endswith(".test.ts") or name.endswith(".test.tsx"))
+
+
+def is_javascript_source(path: Path) -> bool:
+    """Recognize first-party JavaScript without inferring a framework."""
+    if path.suffix not in {".js", ".jsx", ".mjs", ".cjs"}:
+        return False
+    if is_common_ignored(path) or any(part in JAVASCRIPT_FAMILY_NON_SOURCE_PARTS for part in path.parts):
+        return False
+    name = path.name.lower()
+    return not (
+        name.endswith((".spec.js", ".spec.jsx", ".spec.mjs", ".spec.cjs"))
+        or name.endswith((".test.js", ".test.jsx", ".test.mjs", ".test.cjs"))
+        or ".generated." in name
+        or name.endswith((".min.js", ".min.jsx", ".min.mjs", ".min.cjs"))
+    )
 
 
 def is_within(path: Path, root: Path) -> bool:
@@ -139,22 +154,43 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
             item for item in path.rglob("*.tsx") if is_within(item, root) and is_typescript_source(item)
         ]
         typescript_files = len(ts_paths) + len(tsx_paths)
+        javascript_paths = {
+            suffix[1:]: [
+                item
+                for item in path.rglob(f"*{suffix}")
+                if is_within(item, root) and is_javascript_source(item)
+            ]
+            for suffix in (".js", ".jsx", ".mjs", ".cjs")
+        }
+        javascript_files = sum(len(paths) for paths in javascript_paths.values())
         source_languages: list[str] = []
         if python_files:
             source_languages.append("python")
         if typescript_files:
             source_languages.append("typescript")
+        if javascript_files:
+            source_languages.append("javascript")
         markdown_files = sum(
             1 for item in path.rglob("*.md") if is_within(item, root) and not is_common_ignored(item)
         )
-        rows.append({
+        row = {
             "path": name,
             "python_files": python_files,
             "typescript_files": typescript_files,
             "typescript_file_kinds": {"ts": len(ts_paths), "tsx": len(tsx_paths)},
             "markdown_files": markdown_files,
             "source_languages": source_languages,
-        })
+        }
+        # Preserve the established Python/TypeScript adapter shape until a
+        # first-party JavaScript file is actually observed. JavaScript hosts
+        # receive the explicit count and suffix breakdown needed to audit the
+        # new evidence claim.
+        if javascript_files:
+            row["javascript_files"] = javascript_files
+            row["javascript_file_kinds"] = {
+                suffix: len(paths) for suffix, paths in javascript_paths.items()
+            }
+        rows.append(row)
     return rows
 
 
@@ -169,7 +205,9 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         languages.append("python")
     if any(row["typescript_files"] for row in roots):
         languages.append("typescript")
-    elif package_paths:
+    if any(row.get("javascript_files", 0) for row in roots):
+        languages.append("javascript")
+    elif package_paths and not languages:
         languages.append("javascript")
 
     package_managers: list[str] = []
@@ -279,14 +317,18 @@ def detect_sensitive_surfaces(root: Path) -> list[dict[str, str]]:
             surfaces.append({"path": rel, "kind": "directory", "reason": "sensitive-looking name"})
         elif path.is_file() and path.name in {".env", ".env.local"}:
             surfaces.append({"path": rel, "kind": "file", "reason": "environment secrets file"})
-        elif path.is_file() and SENSITIVE_NAME_RE.search(rel) and path.suffix in {".py", ".ts", ".tsx", ".md"}:
+        elif path.is_file() and SENSITIVE_NAME_RE.search(rel) and path.suffix in {
+            ".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".md"
+        }:
             surfaces.append({"path": rel, "kind": "file", "reason": "sensitive-looking name"})
     return surfaces
 
 
 def standardization(source_root_rows: list[dict[str, Any]], guards: dict[str, Any]) -> dict[str, Any]:
     has_many_files = any(
-        row["python_files"] > 200 or row["typescript_files"] > 200
+        row["python_files"] > 200
+        or row["typescript_files"] > 200
+        or row.get("javascript_files", 0) > 200
         for row in source_root_rows
     )
     cautions = [
@@ -354,11 +396,17 @@ def adapter_markdown(adapter: dict[str, Any]) -> str:
     if adapter["source_roots"]:
         for row in adapter["source_roots"]:
             kinds = row["typescript_file_kinds"]
-            lines.append(
+            line = (
                 f"- {row['path']} — Python: {row['python_files']}; TypeScript: {row['typescript_files']} "
                 f"({kinds['ts']} .ts, {kinds['tsx']} .tsx); Markdown: {row['markdown_files']}; "
-                f"classified: {', '.join(row['source_languages']) or 'none'}"
             )
+            if row.get("javascript_files"):
+                js_kinds = row["javascript_file_kinds"]
+                line += (
+                    f"JavaScript: {row['javascript_files']} ({js_kinds['js']} .js, "
+                    f"{js_kinds['jsx']} .jsx, {js_kinds['mjs']} .mjs, {js_kinds['cjs']} .cjs); "
+                )
+            lines.append(line + f"classified: {', '.join(row['source_languages']) or 'none'}")
     else:
         lines.append("- (none inferred)")
     lines.extend(["", "## Commands"])

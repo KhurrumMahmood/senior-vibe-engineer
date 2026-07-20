@@ -27,7 +27,8 @@ from typing import Any
 
 PYTHON_SUFFIXES = frozenset({".py"})
 TYPESCRIPT_SUFFIXES = frozenset({".ts", ".tsx"})
-SOURCE_SUFFIXES = PYTHON_SUFFIXES | TYPESCRIPT_SUFFIXES
+JAVASCRIPT_SUFFIXES = frozenset({".js", ".jsx", ".mjs", ".cjs"})
+SOURCE_SUFFIXES = PYTHON_SUFFIXES | TYPESCRIPT_SUFFIXES | JAVASCRIPT_SUFFIXES
 IGNORED_DIRECTORY_NAMES = frozenset(
     {
         "__pycache__",
@@ -92,6 +93,29 @@ TS_UNRESOLVED_EXPORT_RE = re.compile(
     r"^\s*export\s+(?:(?:type\s+)?(?:\{|\*)|default\b|=\s*)"
 )
 TS_BRANCH_RE = re.compile(r"\b(?:if|for|while|catch|case)\b|&&|\|\||\?")
+JS_DIRECT_EXPORTS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "function",
+        re.compile(
+            rf"^\s*export\s+(?:async\s+)?function\s*\*?\s+(?P<name>{TS_IDENTIFIER})\b"
+        ),
+    ),
+    (
+        "class",
+        re.compile(rf"^\s*export\s+class\s+(?P<name>{TS_IDENTIFIER})\b"),
+    ),
+)
+JS_VARIABLE_EXPORT_RE = re.compile(
+    r"^\s*export\s+(?:const|let|var)\s+(?P<bindings>.*)", re.DOTALL
+)
+JS_UNRESOLVED_EXPORT_RE = re.compile(
+    r"^\s*export\s+(?:(?:\{|\*)|default\b|=\s*)"
+)
+JS_COMMONJS_ASSIGNMENT_RE = re.compile(
+    rf"^\s*(?:module\.)?exports\.(?P<name>{TS_IDENTIFIER})\s*="
+)
+JS_COMMONJS_UNRESOLVED_RE = re.compile(r"^\s*module\.exports\s*=")
+JS_BRANCH_RE = TS_BRANCH_RE
 
 
 def _is_public(name: str, dunder_all: set[str] | None) -> bool:
@@ -626,6 +650,335 @@ def _inventory_typescript_file(
     return public, total, unexplained, True
 
 
+def _mask_javascript_noncode(source: str) -> str:
+    """Mask JavaScript comments, literals, and regexes without changing lines.
+
+    This intentionally stays a JavaScript-local lexical guard. It is not a
+    JavaScript parser and only establishes enough syntax integrity for direct
+    export collection to fail rather than silently omit malformed input.
+    """
+    out: list[str] = []
+    index = 0
+    state = "code"
+    while index < len(source):
+        char = source[index]
+        following = source[index + 1] if index + 1 < len(source) else ""
+        if state == "code":
+            if char == "/" and following == "/":
+                out.extend((" ", " "))
+                index += 2
+                state = "line-comment"
+                continue
+            if char == "/" and following == "*":
+                out.extend((" ", " "))
+                index += 2
+                state = "block-comment"
+                continue
+            if char in {"'", '"', "`"}:
+                out.append(" ")
+                index += 1
+                state = {"'": "single", '"': "double", "`": "template"}[char]
+                continue
+            if char == "/" and _javascript_looks_like_regex_start(source, index):
+                out.append(" ")
+                index += 1
+                state = "regex"
+                continue
+            out.append(char)
+            index += 1
+            continue
+        if state == "line-comment":
+            out.append("\n" if char == "\n" else " ")
+            index += 1
+            if char == "\n":
+                state = "code"
+            continue
+        if state == "block-comment":
+            if char == "*" and following == "/":
+                out.extend((" ", " "))
+                index += 2
+                state = "code"
+            else:
+                out.append("\n" if char == "\n" else " ")
+                index += 1
+            continue
+        if state in {"regex", "regex-class"}:
+            if char == "\\":
+                out.append(" ")
+                index += 1
+                if index < len(source):
+                    escaped = source[index]
+                    out.append("\n" if escaped == "\n" else " ")
+                    index += 1
+                continue
+            if char == "\n":
+                out.append("\n")
+                index += 1
+                state = "code"
+                continue
+            out.append(" ")
+            index += 1
+            if state == "regex" and char == "[":
+                state = "regex-class"
+            elif state == "regex-class" and char == "]":
+                state = "regex"
+            elif state == "regex" and char == "/":
+                state = "code"
+            continue
+        quote = {"single": "'", "double": '"', "template": "`"}[state]
+        if char == "\\":
+            out.append(" ")
+            index += 1
+            if index < len(source):
+                escaped = source[index]
+                out.append("\n" if escaped == "\n" else " ")
+                index += 1
+            continue
+        out.append("\n" if char == "\n" else " ")
+        index += 1
+        if char == quote:
+            state = "code"
+    if state not in {"code", "line-comment"}:
+        label = {
+            "block-comment": "block comment",
+            "single": "single-quoted string",
+            "double": "double-quoted string",
+            "template": "template literal",
+            "regex": "regex literal",
+            "regex-class": "regex character class",
+        }.get(state, state)
+        raise ValueError(f"unterminated {label}")
+    masked = "".join(out)
+    _validate_javascript_delimiters(masked)
+    return masked
+
+
+def _validate_javascript_delimiters(masked: str) -> None:
+    """Reject unbalanced JavaScript lexical delimiters before reporting."""
+    expected_close = {"(": ")", "[": "]", "{": "}"}
+    opening_for = {value: key for key, value in expected_close.items()}
+    stack: list[tuple[str, int]] = []
+    line = 1
+    for char in masked:
+        if char == "\n":
+            line += 1
+        elif char in expected_close:
+            stack.append((char, line))
+        elif char in opening_for:
+            if not stack or stack[-1][0] != opening_for[char]:
+                raise ValueError(f"unexpected {char!r} on line {line}")
+            stack.pop()
+    if stack:
+        opening, opening_line = stack[-1]
+        raise ValueError(
+            f"unclosed {opening!r} from line {opening_line}; expected {expected_close[opening]!r}"
+        )
+
+
+def _javascript_looks_like_regex_start(source: str, slash_index: int) -> bool:
+    """Recognize expression-position JavaScript regexes without parsing."""
+    before = source[:slash_index].rstrip()
+    if not before:
+        return True
+    if before.endswith(("=", "(", "[", "{", ",", ":", ";", "!", "?", "=>", "&&", "||")):
+        return True
+    word_match = re.search(r"([A-Za-z_$][\w$]*)$", before)
+    return bool(
+        word_match
+        and word_match.group(1)
+        in {"case", "delete", "in", "instanceof", "new", "return", "throw", "typeof", "void", "yield"}
+    )
+
+
+def _javascript_has_docstring(source_lines: list[str], declaration_line: int) -> bool:
+    index = declaration_line - 1
+    while index >= 0 and not source_lines[index].strip():
+        index -= 1
+    if index < 0 or "*/" not in source_lines[index]:
+        return False
+    while index >= 0:
+        if "/**" in source_lines[index]:
+            return True
+        if "/*" in source_lines[index]:
+            return False
+        index -= 1
+    return False
+
+
+def _javascript_declaration_end(masked_lines: list[str], start: int, kind: str) -> int:
+    depth = 0
+    opened = False
+    for index in range(start, len(masked_lines)):
+        line = masked_lines[index]
+        if kind in {"class", "function"}:
+            for char in line:
+                if char == "{":
+                    depth += 1
+                    opened = True
+                elif char == "}" and opened:
+                    depth -= 1
+            if opened and depth <= 0:
+                return index
+        elif ";" in line:
+            return index
+        elif index > start and not line.strip():
+            return index - 1
+    return start if not opened and kind in {"class", "function"} else len(masked_lines) - 1
+
+
+def _javascript_direct_export(line: str) -> tuple[str, str] | None:
+    for kind, pattern in JS_DIRECT_EXPORTS:
+        match = pattern.match(line)
+        if match:
+            return kind, match.group("name")
+    return None
+
+
+def _javascript_statement_end(masked_lines: list[str], start: int) -> int:
+    round_depth = square_depth = brace_depth = 0
+    for index in range(start, len(masked_lines)):
+        for char in masked_lines[index]:
+            if char == "(":
+                round_depth += 1
+            elif char == ")":
+                round_depth = max(0, round_depth - 1)
+            elif char == "[":
+                square_depth += 1
+            elif char == "]":
+                square_depth = max(0, square_depth - 1)
+            elif char == "{":
+                brace_depth += 1
+            elif char == "}":
+                brace_depth = max(0, brace_depth - 1)
+            elif char == ";" and round_depth == square_depth == brace_depth == 0:
+                return index
+    return start
+
+
+def _javascript_variable_exports(statement: str) -> tuple[list[str], bool]:
+    match = JS_VARIABLE_EXPORT_RE.match(statement)
+    if not match:
+        return [], False
+    names: list[str] = []
+    unknown = False
+    for binding in _split_top_level_commas(match.group("bindings").rstrip(";")):
+        name_match = re.match(rf"\s*(?P<name>{TS_IDENTIFIER})\b", binding)
+        if name_match:
+            names.append(name_match.group("name"))
+        elif binding.strip():
+            unknown = True
+    return names, unknown
+
+
+def _javascript_export_statement(source_lines: list[str], start: int) -> str:
+    pieces: list[str] = []
+    for line in source_lines[start:]:
+        pieces.append(line.strip())
+        if ";" in line:
+            break
+    return " ".join(pieces).rstrip(";").strip()
+
+
+def _inventory_javascript_file(
+    path: Path, file_rel: Path
+) -> tuple[list[dict[str, Any]], int, list[dict[str, Any]], bool]:
+    """Collect only direct ESM and property-form CommonJS exports."""
+    source = _read_source(path)
+    if source is None:
+        return [], 0, [], False
+    source_lines = source.splitlines()
+    try:
+        masked_lines = _mask_javascript_noncode(source).splitlines()
+    except ValueError as exc:
+        print(f"syntax-error: {file_rel}: JavaScript lexical check failed: {exc}", file=sys.stderr)
+        return [], 0, [], False
+    public: list[dict[str, Any]] = []
+    unexplained: list[dict[str, Any]] = []
+    total = 0
+    for index in sorted(_top_level_line_indexes(masked_lines)):
+        masked_line = masked_lines[index]
+        if JS_VARIABLE_EXPORT_RE.match(masked_line):
+            end = _javascript_statement_end(masked_lines, index)
+            statement = "\n".join(masked_lines[index : end + 1])
+            names, unknown_binding = _javascript_variable_exports(statement)
+            for name in names:
+                public.append(
+                    _build_entry(
+                        file_rel=file_rel,
+                        symbol=name,
+                        kind="module-var",
+                        lineno=index + 1,
+                        loc=max(1, end - index + 1),
+                        branch_count=len(JS_BRANCH_RE.findall(statement)),
+                        has_docstring=_javascript_has_docstring(source_lines, index),
+                    )
+                )
+            total += len(names) + (1 if unknown_binding else 0)
+            if unknown_binding:
+                unexplained.append({
+                    "file": str(file_rel),
+                    "symbol": _javascript_export_statement(source_lines, index),
+                    "kind": "unresolved-export-binding",
+                    "lineno": index + 1,
+                    "reason": "JavaScript v1 cannot enumerate this exported binding pattern lexically.",
+                })
+            continue
+        direct = _javascript_direct_export(masked_line)
+        if direct is not None:
+            kind, name = direct
+            total += 1
+            end = _javascript_declaration_end(masked_lines, index, kind)
+            segment = "\n".join(masked_lines[index : end + 1])
+            public.append(
+                _build_entry(
+                    file_rel=file_rel,
+                    symbol=name,
+                    kind=kind,
+                    lineno=index + 1,
+                    loc=max(1, end - index + 1),
+                    branch_count=len(JS_BRANCH_RE.findall(segment)),
+                    has_docstring=_javascript_has_docstring(source_lines, index),
+                )
+            )
+            continue
+        commonjs = JS_COMMONJS_ASSIGNMENT_RE.match(masked_line)
+        if commonjs:
+            total += 1
+            public.append(
+                _build_entry(
+                    file_rel=file_rel,
+                    symbol=commonjs.group("name"),
+                    kind="module-var",
+                    lineno=index + 1,
+                    loc=1,
+                    branch_count=0,
+                    has_docstring=_javascript_has_docstring(source_lines, index),
+                )
+            )
+            continue
+        if JS_UNRESOLVED_EXPORT_RE.match(masked_line) or JS_COMMONJS_UNRESOLVED_RE.match(masked_line):
+            total += 1
+            is_commonjs = JS_COMMONJS_UNRESOLVED_RE.match(masked_line) is not None
+            unexplained.append({
+                "file": str(file_rel),
+                "symbol": _javascript_export_statement(source_lines, index),
+                "kind": "unresolved-commonjs-export" if is_commonjs else "unresolved-export",
+                "lineno": index + 1,
+                "reason": (
+                    "JavaScript v1 cannot enumerate CommonJS object or dynamic exports lexically."
+                    if is_commonjs
+                    else "JavaScript v1 does not resolve export aliases, star exports, or default exports."
+                ),
+            })
+            continue
+        if re.match(
+            rf"^\s*(?:async\s+)?function\s+{TS_IDENTIFIER}\b|^\s*class\s+{TS_IDENTIFIER}\b|^\s*(?:const|let|var)\s+{TS_IDENTIFIER}\b",
+            masked_line,
+        ):
+            total += 1
+    return public, total, unexplained, True
+
+
 def _is_ignored(path: Path, target: Path) -> bool:
     try:
         relative = path.relative_to(target)
@@ -640,6 +993,7 @@ def _is_ignored(path: Path, target: Path) -> bool:
         or name.endswith(".d.ts")
         or ".generated." in name
         or name.startswith("generated_")
+        or name.endswith((".min.js", ".min.jsx", ".min.mjs", ".min.cjs"))
     )
 
 
@@ -687,7 +1041,12 @@ def _resolve_collisions(entries: list[dict[str, Any]]) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--target", required=True, type=Path, help="Python, TS, or TSX file/directory")
+    parser.add_argument(
+        "--target",
+        required=True,
+        type=Path,
+        help="Python, JavaScript-family, TS, or TSX file/directory",
+    )
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--max", type=int, default=15, help="Max annotations (default: 15)")
     parser.add_argument(
@@ -713,6 +1072,7 @@ def main(argv: list[str] | None = None) -> int:
     total_symbols = 0
     languages: set[str] = set()
     invalid_typescript = False
+    invalid_javascript = False
     for path in files:
         file_rel = _display_path(path, repo_root)
         if path.suffix.casefold() == ".py":
@@ -720,7 +1080,7 @@ def main(argv: list[str] | None = None) -> int:
             languages.add("python")
             all_public.extend(entries)
             total_symbols += file_total
-        else:
+        elif path.suffix.casefold() in TYPESCRIPT_SUFFIXES:
             entries, file_total, unresolved, valid = _inventory_typescript_file(
                 path, file_rel
             )
@@ -729,7 +1089,16 @@ def main(argv: list[str] | None = None) -> int:
             total_symbols += file_total
             all_unexplained.extend(unresolved)
             invalid_typescript = invalid_typescript or not valid
-    if invalid_typescript:
+        else:
+            entries, file_total, unresolved, valid = _inventory_javascript_file(
+                path, file_rel
+            )
+            languages.add("javascript")
+            all_public.extend(entries)
+            total_symbols += file_total
+            all_unexplained.extend(unresolved)
+            invalid_javascript = invalid_javascript or not valid
+    if invalid_typescript or invalid_javascript:
         return 1
     if not all_public and not all_unexplained:
         print(f"error: no public symbols in {args.target}", file=sys.stderr)

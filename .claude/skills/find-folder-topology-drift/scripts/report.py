@@ -21,7 +21,7 @@ def main() -> int:
     parser.add_argument("--target", required=True)
     parser.add_argument(
         "--language",
-        choices=("python", "typescript", "mixed"),
+        choices=("python", "javascript", "typescript", "mixed"),
         default=None,
         help="Language label for the final artifact; infer from detections when omitted.",
     )

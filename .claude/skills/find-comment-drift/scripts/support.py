@@ -14,9 +14,15 @@ SKIP_DIRS = {
     "__pycache__",
     "build",
     "dist",
+    "generated",
     "migrations",
     "node_modules",
+    "reports",
     "staticfiles",
+    "test",
+    "tests",
+    "__tests__",
+    "vendor",
     "venv",
 }
 
@@ -49,9 +55,15 @@ def iter_files(root: Path, suffixes: tuple[str, ...]) -> list[Path]:
     def is_eligible(path: Path) -> bool:
         relative = path.relative_to(root)
         parent_parts = relative.parts[:-1]
+        try:
+            path.resolve().relative_to(root)
+        except (OSError, ValueError):
+            return False
         return (
             path.is_file()
+            and not path.is_symlink()
             and path.suffix.lower() in suffixes
+            and not path.name.lower().endswith((".min.js", ".min.jsx", ".min.mjs", ".min.cjs"))
             and not any(
                 part in SKIP_DIRS or part.startswith(".") for part in parent_parts
             )

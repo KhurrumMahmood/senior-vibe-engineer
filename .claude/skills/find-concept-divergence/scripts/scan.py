@@ -63,7 +63,7 @@ DEFAULT_TARGETS = (
 EXCLUDE_SEGMENTS = frozenset({
     ".venv", "node_modules", ".git", "__pycache__", "dist", "build",
     ".pytest_cache", ".mypy_cache", ".ruff_cache",
-    "migrations",
+    "generated", "migrations", "test", "tests", "__tests__", "vendor",
 })
 # Portable defaults. Host projects extend via host_excludes.txt (see
 # load_host_excludes) — that's where project-specific rename tooling,
@@ -73,7 +73,7 @@ EXCLUDE_PREFIXES_DEFAULT = (
     ".claude/worktrees/",
     "reports/",
 )
-EXCLUDE_SUFFIXES = (".worktree",)
+EXCLUDE_SUFFIXES = (".worktree", ".min.js", ".min.jsx", ".min.mjs", ".min.cjs")
 
 
 def load_host_excludes() -> tuple[str, ...]:
@@ -103,7 +103,7 @@ EXCLUDE_PREFIXES = EXCLUDE_PREFIXES_DEFAULT + load_host_excludes()
 
 # Files we scan: source + prose. Binary / build artifacts are skipped.
 INCLUDE_SUFFIXES = frozenset({
-    ".py", ".pyi", ".md", ".html", ".js", ".ts", ".tsx", ".yaml", ".yml",
+    ".py", ".pyi", ".md", ".html", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".yaml", ".yml",
     ".txt", ".rst",
 })
 
@@ -432,6 +432,8 @@ def iter_files(targets: Iterable[str], root: Path) -> Iterable[Path]:
             continue
         if _has_directory_symlink_ancestor(p, root):
             continue
+        if p.is_symlink():
+            continue
         if p.is_file():
             if p.suffix in INCLUDE_SUFFIXES and p not in seen:
                 seen.add(p)
@@ -451,6 +453,8 @@ def iter_files(targets: Iterable[str], root: Path) -> Iterable[Path]:
             for name in filenames:
                 f = _candidate(str(current / name), root)
                 if f is None or f.suffix not in INCLUDE_SUFFIXES:
+                    continue
+                if f.is_symlink():
                     continue
                 if is_excluded(_rel(f, root)) or f in seen:
                     continue

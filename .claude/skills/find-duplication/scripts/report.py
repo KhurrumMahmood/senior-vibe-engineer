@@ -120,9 +120,10 @@ def render_triage(
     lines.append(f"**Generated:** {meta.get('generated_at', '?')}")
     lines.append("")
 
-    if meta.get("language") == "typescript":
+    if meta.get("language") in {"typescript", "javascript"}:
+        language_label = "TypeScript" if meta.get("language") == "typescript" else "JavaScript"
         lines.append(
-            "> **TypeScript v1 boundary:** This is lexical/near-lexical clone "
+            f"> **{language_label} v1 boundary:** This is lexical/near-lexical clone "
             "evidence with source spans and enclosing symbols. Do not consolidate "
             "automatically; behavior, callers, overload semantics, and ownership "
             "still require human review."
@@ -202,7 +203,7 @@ def render_triage(
     lines.append("")
     if findings:
         top = findings[0]
-        if meta.get("language") == "typescript":
+        if meta.get("language") in {"typescript", "javascript"}:
             lines.append(
                 f"Review the evidence for `{top['finding_id']}` before deciding "
                 "whether any refactor is appropriate; this report makes no "

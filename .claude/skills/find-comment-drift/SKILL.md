@@ -41,7 +41,7 @@ the report as a checklist. The bundled `scripts/guard.py` and the repository
 subset; JSDoc candidates and thin docstrings remain advisory here.
 
 The detector is language-neutral only within its declared lexical bands. It
-scans Python, JavaScript/JSX, TypeScript/TSX, and HTML/template comments. It
+scans Python, JavaScript/JSX/MJS/CJS, TypeScript/TSX, and HTML/template comments. It
 does not use TypeScript type or module resolution, prove that a function is a
 public API, or require JSDoc for ordinary TSX components solely because they
 contain JSX.

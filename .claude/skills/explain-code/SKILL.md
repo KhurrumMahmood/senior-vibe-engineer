@@ -1,6 +1,6 @@
 ---
 name: explain-code
-description: Read-only EXPLAIN skill that converts a Python target or a TypeScript/TSX target's direct public exports into an annotated behavior doc at reports/explanations/<target>.md. TypeScript v1 visibly leaves aliases and re-exports unexplained rather than claiming module resolution.
+description: Read-only EXPLAIN skill that converts a Python, JavaScript-family, or TypeScript/TSX target's direct public exports into an annotated behavior doc at reports/explanations/<target>.md. JavaScript and TypeScript lexical branches visibly leave aliases, stars, defaults, and unresolved exports unexplained rather than claiming module resolution.
 argument-hint: "<file-path-or-directory-or-subsystem-name>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -18,7 +18,7 @@ not_for: |
   Refactor execution (use /fix-workflow or /refactor-subsystem).
 language: any
 framework: any
-scans: [python, typescript]
+scans: [python, javascript, typescript]
 ---
 
 # /explain-code
@@ -85,7 +85,7 @@ Write toward these gates from Stage 0.
    its own scout (`agents/annotate.md`). The orchestrator merges
    annotations into the top-level explanation doc.
 
-## TypeScript v1 contract
+## JavaScript-family and TypeScript v1 contracts
 
 For a `.ts` or `.tsx` file (or directory), the supported invariant is:
 **each named, direct, top-level export receives the same complete explanation
@@ -106,10 +106,17 @@ generated, declaration, vendor, build, and
 v1 contract makes no React, Node, framework, type-checker, or module-resolution
 claim.
 
-Python remains the reference inventory path and has the same stable
-`targets.json` schema, but the installed router must advertise this revision as
-TypeScript-only until it can express multi-language eligibility. Do not infer
-that a successful TypeScript run supports another language.
+For `.js`, `.jsx`, `.mjs`, and `.cjs`, JavaScript v1 separately collects only
+named direct ESM functions/classes/variables and property-form CommonJS
+assignments. Aliases, star exports, default exports, CommonJS object/dynamic
+exports, and unenumerable bindings stay in `unexplained`. The same bounded
+lexical integrity check reports `syntax-error` and writes no `targets.json`
+for malformed selected JavaScript. It is not a JavaScript grammar, dynamic
+module-resolution, or semantic-export claim.
+
+Python remains the reference inventory path and all three branches retain the
+same stable `targets.json` schema. Do not infer that a successful JavaScript
+or TypeScript run supports the other language or resolves its modules.
 
 ## Scope
 

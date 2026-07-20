@@ -1,6 +1,6 @@
 ---
 name: find-duplication
-description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative TypeScript/TSX lexical clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
+description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family and TypeScript/TSX lexical clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
 argument-hint: "--target <source-directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
@@ -8,20 +8,20 @@ tier: maintenance
 job: suspect
 best_for: |
   Python/Django copy-paste and canonical-pattern candidates that need the
-  established P0/P1/P2 scout triage, or TypeScript/TSX lexical clone
+  established P0/P1/P2 scout triage, or JavaScript-family/TypeScript lexical clone
   candidates that need reliable source spans without a consolidation claim.
 not_for: |
   Semantic duplication where code differs substantially (use
   /find-semantic-duplication), cross-layer workflow drift, or executing a
-  refactor. TypeScript v1 does not prove semantic equivalence or safe reuse.
+  refactor. JavaScript and TypeScript v1 do not prove semantic equivalence or safe reuse.
 language: any
 framework: any
-scans: [python, typescript]
+scans: [python, javascript, typescript]
 ---
 
 # /find-duplication
 
-Run the language branch that matches the target. Python and TypeScript share a
+Run the language branch that matches the target. Python, JavaScript, and TypeScript share a
 skill name and report vocabulary, but not a detector model or outcome claim.
 
 ## Route before running
@@ -30,9 +30,10 @@ Inspect eligible source suffixes under `--target`:
 
 - `.py` only: run the **Python legacy triage branch**.
 - `.ts`/`.tsx` only: run the **TypeScript lexical-evidence branch**.
+- `.js`/`.jsx`/`.mjs`/`.cjs` only: run the **JavaScript lexical-evidence branch**.
 - both: run both branches into separate `python/` and `typescript/` report
   directories and summarize them separately. Do not merge their findings or
-  apply the Python scout verdict contract to TypeScript evidence.
+apply the Python scout verdict contract to JavaScript or TypeScript evidence.
 - neither: stop and report that this skill has no eligible source.
 
 Use a host Python 3.11+ interpreter. The selected skill is self-contained: no
@@ -227,6 +228,35 @@ Required artifacts are `jscpd/jscpd-report.json`, `collapsed.json`,
 lead only. `unmapped_symbol`, `span_crosses_symbol_boundary`, overload, and
 excluded-path omissions are deliberate false-negative boundaries.
 
+## JavaScript lexical-evidence branch
+
+JavaScript v1 accepts `.js`, `.jsx`, `.mjs`, and `.cjs` only through an
+explicit project-local `jscpd` binary. It never runs npm or npx and never
+installs a tool. The runner emits `run.json` with `tool-missing`,
+`syntax-error`, `tool-failed`, or `partial` when an established final clone
+report cannot be produced; none of those outcomes is clean.
+
+The collapse pass retains a reported pair only when both spans fit a named
+function or block-bodied arrow. It excludes generated, minified, test, vendor,
+dependency, report, staging, and symlink paths and maps source lines from the
+original host files. The final `triage.md` says “Do not consolidate automatically”; it is lexical evidence, not a behavior, caller, or semantic equivalence conclusion.
+
+```bash
+PYTHON="${PYTHON:-python3}"
+RUN_JS_JSCPD="$SKILL_ROOT"/scripts/run_jscpd_javascript.py
+COLLAPSE_JS="$SKILL_ROOT"/scripts/collapse_javascript.py
+JSCPD_BIN="$PWD/node_modules/.bin/jscpd"
+
+"$PYTHON" "$RUN_JS_JSCPD" --target "$TARGET" --project-root "$PWD" --output "$REPORT_DIR/jscpd" \
+  --jscpd-bin "$JSCPD_BIN" || exit $?
+"$PYTHON" "$COLLAPSE_JS" --jscpd-report "$REPORT_DIR/jscpd/jscpd-report.json" \
+  --target "$TARGET" --project-root "$PWD" --output "$REPORT_DIR/collapsed.json" || exit $?
+"$PYTHON" "$RANK" --input "$REPORT_DIR/collapsed.json" --output "$REPORT_DIR/ranked.json" || exit $?
+"$PYTHON" "$REPORT" --input "$REPORT_DIR/ranked.json" \
+  --output-md "$REPORT_DIR/triage.md" --output-json "$REPORT_DIR/findings.json" \
+  --scan-id "$SCAN_ID"
+```
+
 ## Mixed targets
 
 For a mixed repository, use one outer scan ID and separate branches:
@@ -234,10 +264,11 @@ For a mixed repository, use one outer scan ID and separate branches:
 ```text
 reports/duplication/<scan-id>/python/...
 reports/duplication/<scan-id>/typescript/...
+reports/duplication/<scan-id>/javascript/...
 ```
 
-Run Python with its AST + scout stages and TypeScript with its conservative
-four-stage evidence path. Produce two final reports and summarize them under
+Run Python with its AST + scout stages and JavaScript/TypeScript with their
+conservative evidence paths. Produce separate final reports and summarize them under
 their own claims. Do not concatenate their ranked JSON.
 
 ## Failure handling
@@ -249,6 +280,7 @@ their own claims. Do not concatenate their ranked JSON.
 | Invalid/empty or schema-invalid jscpd JSON | Stop. The wrapper removes the unusable report and never marks the scan complete or clean. |
 | Python scout JSON is invalid | Re-dispatch; do not pass an unreviewed finding to the final report. |
 | TypeScript finding looks safe | Keep the human-review boundary; lexical similarity is not refactor safety. |
+| JavaScript runner says `tool-missing`, `syntax-error`, `tool-failed`, or `partial` | Preserve `run.json` and report that outcome; do not synthesize a clean clone result. |
 | A report names tests, generated, migrations, report, or staging source | Treat it as a detector-boundary defect and stop. |
 
 ## Non-goals
@@ -256,4 +288,5 @@ their own claims. Do not concatenate their ranked JSON.
 - Editing source or executing a refactor.
 - Treating dormant code as a primary duplication finding.
 - Turning TypeScript lexical evidence into semantic equivalence.
+- Turning JavaScript lexical evidence into semantic equivalence.
 - Creating a shared parser, detector service, or cross-family runtime.

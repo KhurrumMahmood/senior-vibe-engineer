@@ -62,20 +62,22 @@ and human review decide what deserves to become doctrine.
   sensitive surfaces, and open questions without inferring project
   philosophy.
 
-## TypeScript v1 contract
+## JavaScript-family v1 contract
 
 Source-root facts retain the reference Python count and add
-`typescript_files`, a `.ts`/`.tsx` breakdown, and `source_languages`. The
-large-root standardization caution fires when either the Python count or the
-TypeScript count for a source root exceeds 200. TypeScript counts exclude
-`node_modules`, `dist`, `build`, `generated`, `vendor`, and test descendants,
-as well as declaration and `*.test`/`*.spec` files.
+`typescript_files` with a `.ts`/`.tsx` breakdown, `javascript_files` with a
+`.js`/`.jsx`/`.mjs`/`.cjs` breakdown, and `source_languages`. The large-root
+standardization caution fires when any of the Python, TypeScript, or
+JavaScript counts exceeds 200. JavaScript-family counts exclude `node_modules`,
+`dist`, `build`, `generated`, `vendor`, and test descendants, as well as
+declaration, `*.test`/`*.spec`, generated, and minified files.
 
 This is objective source-root discovery, not a Node-stack adapter. A
 `package.json` may contribute package-manager markers and declared commands,
 but it does not establish React, Vite, Next, Express, or any other framework.
-TypeScript v1 does not infer framework behavior, resolve modules, type-check
-the host, or decide that observed code is a healthy standard.
+This branch does not infer framework behavior from JavaScript or TypeScript,
+resolve modules, type-check the host, or decide that observed code is a
+healthy standard.
 
 ## Forms
 

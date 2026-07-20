@@ -646,6 +646,128 @@ def detect_typescript(
     return findings
 
 
+JAVASCRIPT_SUFFIXES = {".js", ".jsx", ".mjs", ".cjs"}
+JAVASCRIPT_SKIP_DIRS = TYPESCRIPT_SKIP_DIRS
+
+
+def _javascript_source_files_in(directory: Path) -> list[Path]:
+    """Return direct first-party JavaScript siblings for the lexical band."""
+    if not directory.is_dir():
+        return []
+    files: list[Path] = []
+    for path in sorted(directory.iterdir()):
+        if not (path.is_file() and not path.is_symlink() and path.suffix.lower() in JAVASCRIPT_SUFFIXES):
+            continue
+        name = path.name.lower()
+        stem = path.stem
+        if name in {"index.js", "index.jsx", "index.mjs", "index.cjs"}:
+            continue
+        if stem.endswith((".spec", ".test", ".generated", ".min")):
+            continue
+        files.append(path)
+    return files
+
+
+def _javascript_prefix_clusters(
+    modules: list[Path], min_cluster_size: int
+) -> dict[str, list[Path]]:
+    """Group direct JavaScript siblings by their first `_` or `-` token."""
+    by_prefix: dict[str, list[Path]] = defaultdict(list)
+    for module in modules:
+        stem = module.stem
+        positions = [position for position in (stem.find("_"), stem.find("-")) if position > 0]
+        if not positions:
+            continue
+        prefix = stem[: min(positions)]
+        if len(prefix) < 2:
+            continue
+        by_prefix[prefix].append(module)
+    return {
+        prefix: paths
+        for prefix, paths in by_prefix.items()
+        if len(paths) >= min_cluster_size
+    }
+
+
+def _javascript_directories(
+    source_root: Path,
+    project_root: Path,
+    excludes: list[str],
+) -> list[Path]:
+    """Walk an explicit JavaScript root without following generated trees."""
+    root_parts = {
+        part.lower()
+        for part in source_root.relative_to(project_root).parts
+    }
+    if root_parts & JAVASCRIPT_SKIP_DIRS:
+        return []
+    directories: list[Path] = []
+    for directory, child_dirs, _files in os.walk(source_root, followlinks=False):
+        current = Path(directory)
+        relative = current.relative_to(project_root).as_posix()
+        if matches_any(relative, excludes):
+            child_dirs[:] = []
+            continue
+        directories.append(current)
+        kept: list[str] = []
+        for child in child_dirs:
+            candidate = current / child
+            child_relative = candidate.relative_to(project_root).as_posix()
+            if (
+                candidate.is_symlink()
+                or child.lower() in JAVASCRIPT_SKIP_DIRS
+                or matches_any(child_relative, excludes)
+            ):
+                continue
+            kept.append(child)
+        child_dirs[:] = kept
+    return sorted(directories)
+
+
+def detect_javascript(
+    *,
+    project_root: Path,
+    source_roots: list[Path],
+    excludes: list[str],
+    min_cluster_size: int,
+) -> list[dict]:
+    """Detect explicit-root JavaScript lexical flat-prefix clusters only."""
+    findings: list[dict] = []
+    seen: set[Path] = set()
+    for source_root in source_roots:
+        for directory in _javascript_directories(source_root, project_root, excludes):
+            resolved = directory.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            for prefix, paths in sorted(
+                _javascript_prefix_clusters(
+                    _javascript_source_files_in(directory), min_cluster_size
+                ).items()
+            ):
+                files = [path.relative_to(project_root).as_posix() for path in paths]
+                location = directory.relative_to(project_root).as_posix()
+                findings.append({
+                    "language": "javascript",
+                    "pattern": "flat_prefix_cluster",
+                    "file": location,
+                    "lineno": 1,
+                    "prefix": prefix,
+                    "files": files,
+                    "summary": (
+                        f"JavaScript directory `{location}` has {len(files)} direct "
+                        f"siblings sharing the first domain token `{prefix}`: "
+                        f"{', '.join(path.name for path in paths)}."
+                    ),
+                    "recommendation": (
+                        f"Review the `{prefix}` files as a possible folder boundary. "
+                        "This JavaScript v1 finding is lexical only: it does not prove "
+                        "a move, import safety, or a framework-specific package layout."
+                    ),
+                })
+    return findings
+
+
 def _resolve_within_project(
     value: Path, project_root: Path, flag: str
 ) -> Path | None:
@@ -680,6 +802,17 @@ def main() -> int:
             "Declared TypeScript/TSX source root. Repeat for separate roots. "
             "With no --root, scan TypeScript only; pass both root forms for "
             "an additive Python and TypeScript scan."
+        ),
+    )
+    parser.add_argument(
+        "--javascript-root",
+        action="append",
+        type=Path,
+        default=[],
+        help=(
+            "Declared JavaScript/JSX/MJS/CJS source root. Repeat for separate roots. "
+            "With no --root, scan JavaScript only; pass both root forms for "
+            "an additive Python and JavaScript scan."
         ),
     )
     # spec:project-structure-redesign-phase-2::IM-26
@@ -723,6 +856,15 @@ def main() -> int:
             return 2
         typescript_roots.append(root)
 
+    javascript_roots: list[Path] = []
+    for raw_root in args.javascript_root:
+        root = _resolve_within_project(raw_root, project_root, "--javascript-root")
+        if root is None or not root.is_dir():
+            if root is not None:
+                print(f"detect: --javascript-root must name a directory: {raw_root}", file=sys.stderr)
+            return 2
+        javascript_roots.append(root)
+
     # A TypeScript-root-only invocation is intentionally TypeScript-only. The
     # preserved Python scan runs when TypeScript was not requested, or when the
     # caller explicitly supplies --root to request a combined scan.
@@ -732,7 +874,7 @@ def main() -> int:
             scope=scope,
             min_cluster_size=args.min_cluster_size,
         )
-        if not typescript_roots or args.root is not None
+        if not (typescript_roots or javascript_roots) or args.root is not None
         else []
     )
     if typescript_roots:
@@ -740,6 +882,15 @@ def main() -> int:
             detect_typescript(
                 project_root=project_root,
                 source_roots=typescript_roots,
+                excludes=list(args.exclude),
+                min_cluster_size=args.min_cluster_size,
+            )
+        )
+    if javascript_roots:
+        findings.extend(
+            detect_javascript(
+                project_root=project_root,
+                source_roots=javascript_roots,
                 excludes=list(args.exclude),
                 min_cluster_size=args.min_cluster_size,
             )

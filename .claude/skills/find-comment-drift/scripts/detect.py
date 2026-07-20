@@ -23,8 +23,8 @@ if str(SCRIPT_DIR) not in sys.path:
 
 from support import iter_files, relpath, resolve_project_root, write_jsonl  # noqa: E402
 
-SUFFIXES = (".py", ".js", ".jsx", ".ts", ".tsx", ".html")
-JAVASCRIPT_SUFFIXES = frozenset({".js", ".jsx", ".ts", ".tsx"})
+SUFFIXES = (".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".html")
+JAVASCRIPT_SUFFIXES = frozenset({".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"})
 DEFAULT_TARGETS = (
     "app/pages/sites",
     "app/site_management",
@@ -82,7 +82,7 @@ STALE_TERM_RE = re.compile(
     r"\b(?:SiteConfig|Site Configuration|site configuration|site config)\b"
 )
 DOC_REF_RE = re.compile(
-    r"\b(?:L\d{2,}|line\s+\d{2,}|[A-Za-z0-9_./-]+\.(?:py|js|jsx|ts|tsx|html):\d{1,5})\b",
+    r"\b(?:L\d{2,}|line\s+\d{2,}|[A-Za-z0-9_./-]+\.(?:py|js|jsx|mjs|cjs|ts|tsx|html):\d{1,5})\b",
     re.IGNORECASE,
 )
 NARRATION_RE = re.compile(
@@ -567,7 +567,7 @@ def collect_files(paths: Iterable[str], project_root: Path) -> list[Path]:
             path = project_root / path
         if path.is_dir():
             candidates = iter_files(path, SUFFIXES)
-        elif path.is_file() and path.suffix in SUFFIXES:
+        elif path.is_file() and not path.is_symlink() and path.suffix in SUFFIXES:
             candidates = [path]
         else:
             candidates = []
