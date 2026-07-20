@@ -55,7 +55,11 @@ TS_IMPORT_RE = re.compile(
 TYPESCRIPT_SUFFIXES = (".ts", ".tsx", ".mts", ".cts")
 TYPESCRIPT_MODULE_SUFFIXES = (".ts", ".tsx", ".d.ts")
 JAVASCRIPT_SUFFIXES = (".js", ".jsx", ".mjs", ".cjs")
-GO_SUFFIX = ".go"
+GO_PACKAGE_MOVE_MINIMUM = (1, 22, 0)
+GO_PACKAGE_MOVE_MINIMUM_TEXT = "1.22"
+GO_NON_SOURCE_TEXT_SUFFIXES = frozenset({".json", ".md", ".toml", ".txt", ".yaml", ".yml"})
+GO_NON_SOURCE_SKIP_PARTS = frozenset({".git", ".move-path", ".venv", "__pycache__", "generated", "node_modules", "vendor"})
+GENERATED_TEXT_MARKER_RE = re.compile(r"(?im)^\s*(?:(?://|#|<!--)\s*)?code generated .*do not edit")
 EMITTED_SPECIFIER_SOURCE_SUFFIXES = {
     ".js": (".ts", ".tsx", ".d.ts"),
     ".mjs": (".mts", ".d.mts"),
@@ -275,7 +279,7 @@ def matches_any(rel: str, patterns: list[str]) -> bool:
 def iter_scope_files(root: Path, includes: list[str], excludes: list[str]) -> list[str]:
     out: list[str] = []
     for path in sorted(root.rglob("*")):
-        if not path.is_file():
+        if path.is_symlink() or not path.is_file():
             continue
         try:
             rel = repo_rel(path, root)
@@ -491,6 +495,67 @@ def _go_minimum(value: str) -> tuple[int, int, int] | None:
     return int(match.group(1)), int(match.group(2)), int(match.group(3) or 0)
 
 
+def go_package_symlink_blocks(root: Path, package_path: Path) -> list[dict]:
+    """Reject symlinked shapes before a package-directory move can escape its tree."""
+    blocked: list[dict] = []
+    for path in sorted(package_path.rglob("*")):
+        if path.is_symlink():
+            blocked.append({"kind": "go_symlink_in_package", "path": path.relative_to(root).as_posix()})
+    return blocked
+
+
+def non_go_old_import_path_blocks(
+    root: Path,
+    old_import: str,
+    authority_path: Path,
+    report_dir: Path,
+) -> list[dict]:
+    """Find stale Go package identities only in bounded, first-party text files.
+
+    The Go helper already rejects dynamic uses in Go source. This separate scan
+    deliberately does not rewrite non-Go strings: config, documentation, and
+    runtime data can attach semantics to an import-shaped value that a generic
+    textual replacement cannot prove safe. Generated, vendored, symlinked, and
+    binary inputs are outside the first-party source boundary.
+    """
+    try:
+        authority_rel = authority_path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        authority_rel = None
+    excluded_paths = {(report_dir / name).resolve() for name in ("report.json", "report.md")}
+    blocked: list[dict] = []
+    for path in sorted(root.rglob("*")):
+        if path.is_symlink() or not path.is_file() or path.suffix.lower() not in GO_NON_SOURCE_TEXT_SUFFIXES:
+            continue
+        if path.resolve() in excluded_paths:
+            continue
+        rel = path.relative_to(root).as_posix()
+        parts = Path(rel).parts
+        if rel == authority_rel or any(part in GO_NON_SOURCE_SKIP_PARTS for part in parts):
+            continue
+        try:
+            contents = path.read_bytes()
+        except OSError as exc:
+            blocked.append({"kind": "go_non_go_text_unreadable", "path": rel, "detail": str(exc)})
+            continue
+        if b"\0" in contents:
+            continue
+        try:
+            text = contents.decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+        if GENERATED_TEXT_MARKER_RE.search(text[:2048]):
+            continue
+        offset = text.find(old_import)
+        if offset >= 0:
+            blocked.append({
+                "kind": "go_dynamic_old_import_path_non_go",
+                "path": rel,
+                "line": line_for_offset(text, offset),
+            })
+    return blocked
+
+
 def go_tooling(root: Path, moves: list[MoveSpec], *, post_apply: bool = False) -> dict:
     """Discover the one-root-module contract without installing anything."""
     outcome: dict = {"status": "unsupported", "blocked": []}
@@ -513,6 +578,9 @@ def go_tooling(root: Path, moves: list[MoveSpec], *, post_apply: bool = False) -
         return outcome
     if (root / move.src).is_symlink() or (root / move.dst).is_symlink():
         outcome["blocked"].append({"kind": "go_symlink_boundary", "path": move.src})
+        return outcome
+    if symlink_blocks := go_package_symlink_blocks(root, package_path):
+        outcome["blocked"].extend(symlink_blocks)
         return outcome
     go = shutil.which("go")
     gofmt = shutil.which("gofmt")
@@ -562,12 +630,23 @@ def go_tooling(root: Path, moves: list[MoveSpec], *, post_apply: bool = False) -
     if not isinstance(path, str) or not path or minimum is None:
         outcome["blocked"].append({"kind": "go_module_version_required"})
         return outcome
-    if actual < minimum:
-        outcome["blocked"].append({"kind": "go_version_too_old", "actual": version_result.stdout.strip(), "minimum": minimum_text})
+    required_minimum = max(minimum, GO_PACKAGE_MOVE_MINIMUM)
+    required_minimum_text = minimum_text if minimum >= GO_PACKAGE_MOVE_MINIMUM else GO_PACKAGE_MOVE_MINIMUM_TEXT
+    if actual < required_minimum:
+        outcome["blocked"].append({
+            "kind": "go_version_too_old",
+            "actual": version_result.stdout.strip(),
+            "minimum": required_minimum_text,
+        })
         return outcome
     outcome.update({
         "status": "complete",
-        "go": {"path": go, "version": version_result.stdout.strip(), "minimum": minimum_text},
+        "go": {
+            "path": go,
+            "version": version_result.stdout.strip(),
+            "minimum": required_minimum_text,
+            "module_minimum": minimum_text,
+        },
         "gofmt": {"path": gofmt},
         "module": {"path": path, "go_mod": expected_mod.as_posix()},
     })
@@ -1618,12 +1697,18 @@ def run_plan(
                 native["go_test"] = run_go_test(root, tooling["go"]["path"])
                 old_import = tooling["module"]["path"].rstrip("/") + "/" + moves[0].src
                 remaining = [path for path in go_files if old_import in _read_text(root / path)]
+                non_go_blocks = non_go_old_import_path_blocks(root, old_import, plan_path, report_dir)
                 if remaining:
                     tooling["blocked"].append({"kind": "go_old_import_remains_after_move", "paths": remaining})
+                tooling["blocked"].extend(non_go_blocks)
                 tooling.update({
                     "old_import": old_import,
                     "new_import": tooling["module"]["path"].rstrip("/") + "/" + moves[0].dst,
-                    "status": "complete" if all(item["passed"] for item in native.values()) and not remaining else "failed",
+                    "status": (
+                        "failed"
+                        if not all(item["passed"] for item in native.values()) or remaining
+                        else "partial" if non_go_blocks else "complete"
+                    ),
                 })
             add_go_report(payload, tooling, [], native=native)
         write_report(report_dir, payload)
@@ -1634,6 +1719,11 @@ def run_plan(
     blocked.extend(reference_blocked)
     javascript = checked_javascript(root, config, javascript_files) if import_mode == "update-javascript" else None
     go = checked_go(root, moves, go_tooling(root, moves)) if import_mode == "update-go" else None
+    if go is not None and go.get("status") == "complete":
+        non_go_blocks = non_go_old_import_path_blocks(root, go["old_import"], plan_path, report_dir)
+        if non_go_blocks:
+            go["blocked"].extend(non_go_blocks)
+            go["status"] = "partial"
     javascript_replacements: list[Replacement] = []
     go_replacements: list[Replacement] = []
     if javascript is not None:

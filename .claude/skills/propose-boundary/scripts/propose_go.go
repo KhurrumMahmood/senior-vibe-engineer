@@ -29,10 +29,13 @@ import (
 const defaultMinimumGo = "1.22"
 
 type moduleInfo struct {
-	Path      string      `json:"Path"`
-	Dir       string      `json:"Dir"`
-	GoVersion string      `json:"GoVersion"`
-	Replace   *moduleInfo `json:"Replace"`
+	Path      string `json:"Path"`
+	Dir       string `json:"Dir"`
+	GoVersion string `json:"GoVersion"`
+}
+
+type moduleFileInfo struct {
+	Replace []json.RawMessage `json:"Replace"`
 }
 
 type packageError struct {
@@ -53,13 +56,14 @@ type packageInfo struct {
 }
 
 type symbol struct {
-	Name      string `json:"name"`
-	File      string `json:"file"`
-	Line      int    `json:"line"`
-	Kind      string `json:"kind"`
-	Exported  bool   `json:"exported"`
-	Domain    string `json:"domain"`
-	Signature string `json:"signature"`
+	Name                          string   `json:"name"`
+	File                          string   `json:"file"`
+	Line                          int      `json:"line"`
+	Kind                          string   `json:"kind"`
+	Exported                      bool     `json:"exported"`
+	Domain                        string   `json:"domain"`
+	Signature                     string   `json:"signature"`
+	ExportedNamedTypeDependencies []string `json:"exported_named_type_dependencies,omitempty"`
 }
 
 type callEdge struct {
@@ -81,23 +85,24 @@ type importImpact struct {
 }
 
 type candidateSeam struct {
-	ClusterID                 string     `json:"cluster_id"`
-	Members                   []string   `json:"members"`
-	ProposedPublicAPI         []string   `json:"proposed_public_api"`
-	PrivateCrossDomainCalls   []callEdge `json:"private_cross_domain_calls"`
-	Rationale                 string     `json:"rationale"`
-	Scores                    any        `json:"scores"`
-	SyntaxOnlyLocalCallNotice string     `json:"syntax_only_local_call_notice"`
+	ClusterID                     string              `json:"cluster_id"`
+	Members                       []string            `json:"members"`
+	ProposedPublicAPI             []string            `json:"proposed_public_api"`
+	ExportedNamedTypeDependencies map[string][]string `json:"exported_named_type_dependencies"`
+	PrivateCrossDomainCalls       []callEdge          `json:"private_cross_domain_calls"`
+	Rationale                     string              `json:"rationale"`
+	Scores                        interface{}         `json:"scores"`
+	SyntaxOnlyLocalCallNotice     string              `json:"syntax_only_local_call_notice"`
 }
 
 type candidateSelection struct {
-	Requested    int     `json:"requested"`
-	Eligible     int     `json:"eligible"`
-	Returned     int     `json:"returned"`
-	CutoffScore  float64 `json:"cutoff_score"`
-	TiesIncluded bool    `json:"ties_included"`
-	OmittedCount int     `json:"omitted_count"`
-	Omitted      []any   `json:"omitted"`
+	Requested    int           `json:"requested"`
+	Eligible     int           `json:"eligible"`
+	Returned     int           `json:"returned"`
+	CutoffScore  float64       `json:"cutoff_score"`
+	TiesIncluded bool          `json:"ties_included"`
+	OmittedCount int           `json:"omitted_count"`
+	Omitted      []interface{} `json:"omitted"`
 }
 
 type runnerError struct {
@@ -165,6 +170,20 @@ func run(target, root, inspectionPath, proposalPath string, requested int, minim
 	if !atLeastGoVersion(version, minimumGo) {
 		return writeTerminal(root, inspectionPath, proposalPath, target, "unsupported", "defer_go_version", "go_version_too_old", fmt.Sprintf("Go %s is below the required Go %s.", version, minimumGo), 0)
 	}
+	workspace, workspaceErr := activeWorkspace(root, goPath)
+	if workspaceErr != nil {
+		return writeTerminal(root, inspectionPath, proposalPath, target, "unsupported", "defer_workspace_state", "go_workspace_check_failed", workspaceErr.Error(), 0)
+	}
+	if workspace != "" && workspace != "off" {
+		return writeTerminal(root, inspectionPath, proposalPath, target, "unsupported", "defer_workspace", "go_workspace_active", fmt.Sprintf("Go proposal v1 does not support an active go.work workspace: %s.", workspace), 0)
+	}
+	moduleFile, moduleFileErr := goModFacts(root, goPath)
+	if moduleFileErr != nil {
+		return writeTerminal(root, inspectionPath, proposalPath, target, "unsupported", "defer_not_go_module", "go_module_required", moduleFileErr.Error(), 0)
+	}
+	if len(moduleFile.Replace) > 0 {
+		return writeTerminal(root, inspectionPath, proposalPath, target, "unsupported", "defer_module_topology", "go_mod_replace", "Go proposal v1 does not support go.mod replace directives.", 0)
+	}
 
 	targetPath, err := projectPath(root, target)
 	if err != nil {
@@ -196,7 +215,7 @@ func run(target, root, inspectionPath, proposalPath string, requested int, minim
 		}
 		return writeTerminal(root, inspectionPath, proposalPath, target, "unsupported", "defer_not_go_module", "go_module_required", message, 0)
 	}
-	if clean(module.Dir) != clean(root) || module.Replace != nil {
+	if clean(module.Dir) != clean(root) {
 		return writeTerminal(root, inspectionPath, proposalPath, target, "unsupported", "defer_module_topology", "module_replace_or_nonroot", "Go proposal v1 requires the project root module without a replacement.", 0)
 	}
 
@@ -241,6 +260,7 @@ func run(target, root, inspectionPath, proposalPath string, requested int, minim
 		payload := basePayload(root, targetPath, files, excluded, goPath, version, minimumGo, module, selected, symbols, calls, impacts)
 		payload["status"] = "partial"
 		payload["recommendation"] = "defer_ambiguous_caller_evidence"
+		payload["message"] = "One or more importers use a dot or blank import, so caller-impact evidence is ambiguous."
 		payload["defer_signals"] = []string{"ambiguous_import_form"}
 		payload["ambiguous_caller_evidence"] = ambiguous
 		return writePayload(inspectAndProposal{inspectionPath, proposalPath, payload}, 0)
@@ -255,6 +275,7 @@ func run(target, root, inspectionPath, proposalPath string, requested int, minim
 	if len(seams) == 0 {
 		payload["status"] = "complete"
 		payload["recommendation"] = "defer_no_seam"
+		payload["message"] = "The inspected package has no second viable named declaration domain for a safe extraction proposal."
 		payload["defer_signals"] = []string{"single_cluster_no_seam"}
 	} else {
 		payload["status"] = "complete"
@@ -266,22 +287,22 @@ func run(target, root, inspectionPath, proposalPath string, requested int, minim
 type inspectAndProposal struct {
 	inspection string
 	proposal   string
-	payload    map[string]any
+	payload    map[string]interface{}
 }
 
 func writeTerminal(root, inspection, proposal, target, status, recommendation, reason, message string, exit int) *runnerError {
-	payload := map[string]any{
+	payload := map[string]interface{}{
 		"schema_version":      1,
 		"skill":               "propose-boundary",
 		"language":            "go",
 		"analyzer":            "go-list-plus-stdlib-ast",
 		"status":              status,
 		"recommendation":      recommendation,
-		"target":              map[string]any{"path": target},
+		"target":              map[string]interface{}{"path": target},
 		"failure_kind":        reason,
 		"message":             message,
-		"candidate_seams":     []any{},
-		"candidate_selection": candidateSelection{Requested: 0, Eligible: 0, Returned: 0, Omitted: []any{}},
+		"candidate_seams":     []interface{}{},
+		"candidate_selection": candidateSelection{Requested: 0, Eligible: 0, Returned: 0, Omitted: []interface{}{}},
 		"defer_signals":       []string{reason},
 	}
 	if err := writePayload(inspectAndProposal{inspection, proposal, payload}, exit); err != nil {
@@ -308,28 +329,28 @@ func writePayload(result inspectAndProposal, exit int) *runnerError {
 	return nil
 }
 
-func basePayload(root, targetPath string, files, excluded []string, goPath, version, minimum string, module moduleInfo, selected *packageInfo, symbols []symbol, calls []callEdge, impacts []importImpact) map[string]any {
-	return map[string]any{
+func basePayload(root, targetPath string, files, excluded []string, goPath, version, minimum string, module moduleInfo, selected *packageInfo, symbols []symbol, calls []callEdge, impacts []importImpact) map[string]interface{} {
+	return map[string]interface{}{
 		"schema_version": 1,
 		"skill":          "propose-boundary",
 		"language":       "go",
 		"analyzer":       "go-list-plus-stdlib-ast",
-		"tooling": map[string]any{
+		"tooling": map[string]interface{}{
 			"go_path": goPath, "go_version": version, "minimum_go": minimum,
 			"parser": "go/parser and go/ast (standard library)",
 		},
-		"module": map[string]any{"path": module.Path, "go_version": module.GoVersion},
-		"target": map[string]any{
+		"module": map[string]interface{}{"path": module.Path, "go_version": module.GoVersion},
+		"target": map[string]interface{}{
 			"path": relative(root, targetPath), "kind": "package_directory", "source_files": len(files), "excluded_files": excluded,
 			"package": selected.Name, "import_path": selected.ImportPath,
 		},
 		"symbols": symbols,
-		"graph": map[string]any{
+		"graph": map[string]interface{}{
 			"package_resolution": "complete", "inbound_imports": impacts, "syntax_local_calls": calls,
 			"call_identity_limit": "Local calls are syntax candidates only; this v1 does not claim go/types call identity.",
 		},
 		"caller_impact": impacts,
-		"native_verification": map[string]any{
+		"native_verification": map[string]interface{}{
 			"commands": []string{"gofmt -w <human-approved changed .go files>", "go test ./..."},
 			"scope":    "This read-only proposal does not run gofmt because gofmt mutates source.",
 		},
@@ -346,6 +367,26 @@ func moduleFacts(root, goPath string) (moduleInfo, error) {
 		return moduleInfo{}, err
 	}
 	return module, nil
+}
+
+func activeWorkspace(root, goPath string) (string, error) {
+	output, err := commandOutput(root, goPath, "env", "GOWORK")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(output), nil
+}
+
+func goModFacts(root, goPath string) (moduleFileInfo, error) {
+	output, err := commandOutput(root, goPath, "mod", "edit", "-json")
+	if err != nil {
+		return moduleFileInfo{}, err
+	}
+	var moduleFile moduleFileInfo
+	if err := json.Unmarshal([]byte(output), &moduleFile); err != nil {
+		return moduleFileInfo{}, err
+	}
+	return moduleFile, nil
 }
 
 func packageFacts(root, goPath string) ([]packageInfo, error) {
@@ -418,6 +459,8 @@ func inspectFiles(root string, files []string) ([]symbol, []callEdge, string, er
 	fset := token.NewFileSet()
 	var packageName string
 	var records []symbol
+	functions := map[string]*ast.FuncDecl{}
+	exportedNamedTypes := map[string]struct{}{}
 	filesByAST := map[*ast.File]string{}
 	for _, path := range files {
 		file, err := parser.ParseFile(fset, path, nil, parser.AllErrors)
@@ -435,12 +478,16 @@ func inspectFiles(root string, files []string) ([]symbol, []callEdge, string, er
 			case *ast.FuncDecl:
 				if item.Name != nil {
 					records = append(records, makeSymbol(root, fset, path, item.Name, "function"))
+					functions[item.Name.Name] = item
 				}
 			case *ast.GenDecl:
 				for _, spec := range item.Specs {
 					switch typed := spec.(type) {
 					case *ast.TypeSpec:
 						records = append(records, makeSymbol(root, fset, path, typed.Name, "type"))
+						if token.IsExported(typed.Name.Name) {
+							exportedNamedTypes[typed.Name.Name] = struct{}{}
+						}
 					case *ast.ValueSpec:
 						kind := "variable"
 						if item.Tok == token.CONST {
@@ -452,6 +499,13 @@ func inspectFiles(root string, files []string) ([]symbol, []callEdge, string, er
 					}
 				}
 			}
+		}
+	}
+	for index := range records {
+		record := &records[index]
+		function, isFunction := functions[record.Name]
+		if isFunction && record.Exported {
+			record.ExportedNamedTypeDependencies = exportedNamedTypeDependencies(function, exportedNamedTypes)
 		}
 	}
 	byName := map[string]symbol{}
@@ -492,6 +546,37 @@ func inspectFiles(root string, files []string) ([]symbol, []callEdge, string, er
 	return records, calls, packageName, nil
 }
 
+func exportedNamedTypeDependencies(function *ast.FuncDecl, namedTypes map[string]struct{}) []string {
+	dependencies := map[string]struct{}{}
+	collect := func(fields *ast.FieldList) {
+		if fields == nil {
+			return
+		}
+		for _, field := range fields.List {
+			ast.Inspect(field.Type, func(node ast.Node) bool {
+				identifier, ok := node.(*ast.Ident)
+				if !ok {
+					return true
+				}
+				if _, exists := namedTypes[identifier.Name]; exists {
+					dependencies[identifier.Name] = struct{}{}
+				}
+				return true
+			})
+		}
+	}
+	collect(function.Recv)
+	collect(function.Type.TypeParams)
+	collect(function.Type.Params)
+	collect(function.Type.Results)
+	result := make([]string, 0, len(dependencies))
+	for dependency := range dependencies {
+		result = append(result, dependency)
+	}
+	sort.Strings(result)
+	return result
+}
+
 func makeSymbol(root string, fset *token.FileSet, path string, identifier *ast.Ident, kind string) symbol {
 	position := fset.Position(identifier.Pos())
 	return symbol{Name: identifier.Name, File: relative(root, path), Line: position.Line, Kind: kind, Exported: token.IsExported(identifier.Name), Domain: leadingDomain(identifier.Name), Signature: kind + " " + identifier.Name}
@@ -522,16 +607,16 @@ func callerImpacts(root string, packages []packageInfo, targetImportPath, target
 				localName, style := targetPackageName, "default"
 				if spec.Name != nil {
 					localName = spec.Name.Name
-					switch localName {
-					case ".", "_":
+					if localName == "." || localName == "_" {
 						ambiguous = append(ambiguous, fmt.Sprintf("%s imports %s with %q", relative(root, path), importPath, localName))
-						continue
-					default:
+					} else {
 						style = "alias"
 					}
 				}
-				position := fset.Position(spec.Pos())
-				impacts = append(impacts, importImpact{CallerPackage: item.ImportPath, CallerDir: relative(root, item.Dir), File: relative(root, path), Line: position.Line, ImportPath: importPath, LocalName: localName, Style: style})
+				if localName != "." && localName != "_" {
+					position := fset.Position(spec.Pos())
+					impacts = append(impacts, importImpact{CallerPackage: item.ImportPath, CallerDir: relative(root, item.Dir), File: relative(root, path), Line: position.Line, ImportPath: importPath, LocalName: localName, Style: style})
+				}
 			}
 		}
 	}
@@ -565,12 +650,16 @@ func candidateSeams(symbols []symbol, calls []callEdge) []candidateSeam {
 	for _, domain := range viable {
 		members := byDomain[domain]
 		memberNames := map[string]bool{}
+		exportedNamedTypeDependencies := map[string][]string{}
 		var names, exported []string
 		for _, member := range members {
 			memberNames[member.Name] = true
 			names = append(names, member.Name)
 			if member.Exported {
 				exported = append(exported, member.Name)
+				if member.Kind == "function" && len(member.ExportedNamedTypeDependencies) > 0 {
+					exportedNamedTypeDependencies[member.Name] = member.ExportedNamedTypeDependencies
+				}
 			}
 		}
 		sort.Strings(names)
@@ -588,7 +677,7 @@ func candidateSeams(symbols []symbol, calls []callEdge) []candidateSeam {
 		}
 		score := float64(len(members))
 		seams = append(seams, candidateSeam{
-			ClusterID: domain, Members: names, ProposedPublicAPI: exported, PrivateCrossDomainCalls: privateCalls,
+			ClusterID: domain, Members: names, ProposedPublicAPI: exported, ExportedNamedTypeDependencies: exportedNamedTypeDependencies, PrivateCrossDomainCalls: privateCalls,
 			Rationale:                 fmt.Sprintf("%d top-level declarations share the %s domain token in one Go package.", len(members), domain),
 			Scores:                    map[string]float64{"named_member_count": score, "combined": score},
 			SyntaxOnlyLocalCallNotice: "Private cross-domain calls are AST syntax candidates, not go/types-resolved call identities.",
@@ -604,7 +693,7 @@ func candidateSeams(symbols []symbol, calls []callEdge) []candidateSeam {
 
 func selectSeams(ranked []candidateSeam, requested int) ([]candidateSeam, candidateSelection) {
 	if len(ranked) == 0 {
-		return []candidateSeam{}, candidateSelection{Requested: requested, Omitted: []any{}}
+		return []candidateSeam{}, candidateSelection{Requested: requested, Omitted: []interface{}{}}
 	}
 	cutoffIndex := requested - 1
 	if cutoffIndex >= len(ranked) {
@@ -612,41 +701,56 @@ func selectSeams(ranked []candidateSeam, requested int) ([]candidateSeam, candid
 	}
 	cutoff := ranked[cutoffIndex].Scores.(map[string]float64)["combined"]
 	selected := []candidateSeam{}
-	omitted := []any{}
+	omitted := []interface{}{}
 	for _, seam := range ranked {
 		if seam.Scores.(map[string]float64)["combined"] >= cutoff {
 			selected = append(selected, seam)
 		} else {
-			omitted = append(omitted, map[string]any{"cluster_id": seam.ClusterID, "score": seam.Scores.(map[string]float64)["combined"]})
+			omitted = append(omitted, map[string]interface{}{"cluster_id": seam.ClusterID, "score": seam.Scores.(map[string]float64)["combined"]})
 		}
 	}
 	return selected, candidateSelection{Requested: requested, Eligible: len(ranked), Returned: len(selected), CutoffScore: cutoff, TiesIncluded: len(selected) > requested, OmittedCount: len(omitted), Omitted: omitted}
 }
 
-func renderProposal(payload map[string]any) string {
+func renderProposal(payload map[string]interface{}) string {
 	status, _ := payload["status"].(string)
 	recommendation, _ := payload["recommendation"].(string)
-	target, _ := payload["target"].(map[string]any)
+	target, _ := payload["target"].(map[string]interface{})
 	path, _ := target["path"].(string)
 	var lines []string
 	lines = append(lines, "# Boundary proposal — "+path, "", "> **Detected by:** `/propose-boundary` Go v1 (read-only; no edits applied)", "> **Executed by:** `/refactor-subsystem` only after human approval.", "", "Recommendation: **"+recommendation+"**", "")
-	if tooling, ok := payload["tooling"].(map[string]any); ok {
+	if tooling, ok := payload["tooling"].(map[string]interface{}); ok {
 		lines = append(lines, "## Native Go evidence", "", fmt.Sprintf("- Go: `%v` (`%v`; minimum `%v`).", tooling["go_path"], tooling["go_version"], tooling["minimum_go"]), "- Package/import resolution: `go list -e -json -mod=readonly ./...`.", "- Source facts: standard-library `go/parser` and `go/ast`; no `go/packages` dependency.", "")
 	}
 	if status != "complete" || recommendation != "refactor" {
-		lines = append(lines, "## Stop condition", "", fmt.Sprintf("No extraction proposal is safe: %v.", payload["message"]), "Resolve the reported package, caller, build, or tool constraint and rerun this read-only proposal.", "")
+		lines = append(lines, "## Stop condition", "", fmt.Sprintf("No extraction proposal is safe: %s.", proposalStopMessage(payload, recommendation)), "Resolve the reported package, caller, build, or tool constraint and rerun this read-only proposal.", "")
 		return strings.Join(lines, "\n") + "\n"
 	}
 	selection := payload["candidate_selection"].(candidateSelection)
 	lines = append(lines, "## Candidate selection", "", fmt.Sprintf("Requested %d; returned %d of %d eligible; cutoff %.0f; ties included: %t; omitted %d.", selection.Requested, selection.Returned, selection.Eligible, selection.CutoffScore, selection.TiesIncluded, selection.OmittedCount), "")
 	seams := payload["candidate_seams"].([]candidateSeam)
 	for index, seam := range seams {
-		lines = append(lines, fmt.Sprintf("## Candidate seam %d — %s (score: %.0f)", index+1, seam.ClusterID, seam.Scores.(map[string]float64)["combined"]), "", "**Members.** `"+strings.Join(seam.Members, "`, `")+"`.", "", "**Proposed public API.**", "", "| Symbol | Current role |", "|---|---|")
+		lines = append(lines, fmt.Sprintf("## Candidate seam %d — %s (score: %.0f)", index+1, seam.ClusterID, seam.Scores.(map[string]float64)["combined"]), "", "**Members.** `"+strings.Join(seam.Members, "`, `")+"`.", "", "**Proposed public API.**", "", "| Symbol | Current role | Exported named-type dependencies |", "|---|---|---|")
 		if len(seam.ProposedPublicAPI) == 0 {
-			lines = append(lines, "| _None_ | A human must choose an exported contract before extraction. |")
+			lines = append(lines, "| _None_ | A human must choose an exported contract before extraction. | _None_ |")
 		}
 		for _, name := range seam.ProposedPublicAPI {
-			lines = append(lines, "| `"+name+"` | Preserve this exported package API through the temporary compatibility facade. |")
+			dependencies := seam.ExportedNamedTypeDependencies[name]
+			dependencyText := "_None detected_"
+			if len(dependencies) > 0 {
+				dependencyText = "`" + strings.Join(dependencies, "`, `") + "`"
+			}
+			lines = append(lines, "| `"+name+"` | Preserve this exported package API through the temporary compatibility facade. | "+dependencyText+" |")
+		}
+		if len(seam.ExportedNamedTypeDependencies) > 0 {
+			lines = append(lines, "", "**API compatibility decision.**")
+			for _, name := range seam.ProposedPublicAPI {
+				dependencies := seam.ExportedNamedTypeDependencies[name]
+				if len(dependencies) == 0 {
+					continue
+				}
+				lines = append(lines, fmt.Sprintf("- Preserve named type identity for `%s` with temporary type aliases before forwarding `%s`; do not substitute structurally similar types. This is syntax-level signature evidence only.", strings.Join(dependencies, "`, `"), name))
+			}
 		}
 		lines = append(lines, "", "**Private cross-domain calls.**", "")
 		if len(seam.PrivateCrossDomainCalls) == 0 {
@@ -669,6 +773,20 @@ func renderProposal(payload map[string]any) string {
 	}
 	lines = append(lines, "", "## Compatibility and verification plan", "", "1. Keep the existing package import path as a temporary facade; use forwarding functions and type aliases only for the human-approved exported API.", "2. Do not expose package-private helpers merely to make a split compile; migrate their callers to an explicit boundary.", "3. Add characterization tests for each exported API and each listed direct or alias importer.", "4. After the human-approved refactor, run:", "   - `gofmt -w <human-approved changed .go files>`", "   - `go test ./...`", "", "## Stop condition", "", "Every listed importer uses the approved public boundary, package-private cross-domain reaches are removed or deliberately retained, and the native checks remain green.", "")
 	return strings.Join(lines, "\n") + "\n"
+}
+
+func proposalStopMessage(payload map[string]interface{}, recommendation string) string {
+	if message, ok := payload["message"].(string); ok && message != "" {
+		return message
+	}
+	switch recommendation {
+	case "defer_no_seam":
+		return "the inspected package has no second viable named declaration domain for a safe extraction proposal"
+	case "defer_ambiguous_caller_evidence":
+		return "one or more importers use a dot or blank import, so caller-impact evidence is ambiguous"
+	default:
+		return "the inspection stopped without complete evidence for an extraction proposal"
+	}
 }
 
 func commandOutput(dir, program string, args ...string) (string, error) {

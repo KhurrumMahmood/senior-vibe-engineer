@@ -20,7 +20,7 @@
   "language_model": {
     "syntax": ["Top-level functions, types, constants, variables, import declarations, and unqualified local call syntax from go/parser/go/ast."],
     "type_system": ["Capitalized identifiers are candidate public API only.", "The pilot intentionally does not claim go/types call identity."],
-    "module_resolution": ["go list -e -json -mod=readonly ./... resolves the root module's target package and first-party direct/alias importers.", "Dot/blank imports, package errors, build-tag/cgo files, module replacements, and non-root modules defer."],
+    "module_resolution": ["go env GOWORK rejects an active workspace and go mod edit -json rejects any root-module replace directive before analysis.", "go list -e -json -mod=readonly ./... resolves the root module's target package and first-party direct/alias importers.", "Dot/blank imports, package errors, build-tag/cgo files, module replacements, active workspaces, and non-root modules defer."],
     "runtime": ["PATH-discovered Go >=1.22 is recorded from `go version`.", "The runner imports only the Go standard library and uses no network dependency."],
     "framework": ["No framework semantics are inferred."]
   },
@@ -40,7 +40,7 @@
     "structured_outputs": ["reports/propose-boundary/<name>/inspection.json", "reports/propose-boundary/<name>/proposal.md"],
     "must_fire": ["Two named `quote`/`settlement` seams with exported API candidates.", "Direct and alias Go import impact.", "A syntax-labelled package-private cross-domain call and a temporary package-facade compatibility plan."],
     "must_not_fire": ["Cohesive shipping package.", "Build-tagged, dot-import, unresolved, malformed, generated, vendor, test, missing-tool, or old-tool cases.", "Any source mutation or hidden repository/toolkit import from a copied skill."],
-    "native_test_command": "gofmt ./... && go test ./...",
+    "native_test_command": "go fmt ./... && go test ./...",
     "native_guard_command": null
   },
   "evidence": {

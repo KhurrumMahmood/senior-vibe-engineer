@@ -203,7 +203,8 @@ and syntax-level local-call candidates. It never downloads or imports
 Go v1 may recommend an extraction only when all of these facts are available:
 
 - a PATH-discovered Go tool is at least Go 1.22 and the target host is one
-  root `go.mod` module without a replacement;
+  root `go.mod` module with no active `go.work` workspace and no `replace`
+  directive (preflighted with `go env GOWORK` and `go mod edit -json`);
 - `go list` establishes the target package import path and every first-party
   direct or alias importer;
 - the target has two or more named top-level symbol domains, each with at
@@ -215,12 +216,18 @@ Uppercase identifiers are the only public API candidates. Go cannot import an
 unexported identifier from another package, so package-private cross-domain
 calls are listed as migration blockers rather than a TypeScript-style external
 private-import claim. Those calls are AST syntax candidates, not `go/types`
-call identities. The proposal preserves the old package import path only as a
-human-approved temporary forwarding/type-alias facade; it never writes one.
+call identities. For each selected exported function, the proposal also lists
+same-package exported named types found in its syntax-level signature so the
+human can explicitly preserve their identity with a temporary type alias. The
+proposal preserves the old package import path only as a human-approved
+temporary forwarding/type-alias facade; it never writes one.
 
-This v1 explicitly defers modules using `replace`, build-tagged or cgo target
-source, dot/blank importers, unresolved packages, generated/vendor/test
-targets, and cohesive one-domain packages. Dynamic loading, reflection,
+This v1 explicitly defers active `go.work` workspaces, modules using
+`replace`, build-tagged or cgo target source, dot/blank importers, unresolved
+packages, generated/vendor/test targets, and cohesive one-domain packages.
+The bundled runner avoids Go 1.18-only syntax so an older toolchain reaches
+the explicit Go-version deferral rather than failing to compile the runner.
+Dynamic loading, reflection,
 interfaces, build matrices, workspaces, external consumers, and runtime
 reachability remain outside the claim. A missing or old Go tool emits an
 `unsupported` inspection outcome rather than a clean proposal. Malformed Go
@@ -253,6 +260,25 @@ if [ -z "${SKILL_ROOT}" ]; then
 fi
 if ! command -v go >/dev/null 2>&1; then
   printf '%s\n' '{"status":"unsupported","failure_kind":"go_tool_missing"}'
+  exit 0
+fi
+GO_VERSION_OUTPUT="$(go version 2>/dev/null || true)"
+GO_VERSION_TOKEN="${GO_VERSION_OUTPUT#* go}"
+GO_VERSION_TOKEN="${GO_VERSION_TOKEN%% *}"
+GO_VERSION_MAJOR="${GO_VERSION_TOKEN%%.*}"
+GO_VERSION_REST="${GO_VERSION_TOKEN#*.}"
+GO_VERSION_MINOR="${GO_VERSION_REST%%.*}"
+case "${GO_VERSION_MAJOR}:${GO_VERSION_MINOR}" in
+  *[!0-9:]*|:*)
+    printf '%s\n' '{"status":"unsupported","failure_kind":"go_version_unreadable","minimum_go":"1.22"}'
+    exit 0
+    ;;
+esac
+if [ -z "${GO_VERSION_MAJOR}" ] || [ -z "${GO_VERSION_MINOR}" ] || \
+   [ "${GO_VERSION_MAJOR}" -lt 1 ] || \
+   { [ "${GO_VERSION_MAJOR}" -eq 1 ] && [ "${GO_VERSION_MINOR}" -lt 22 ]; }
+then
+  printf '%s\n' '{"status":"unsupported","failure_kind":"go_version_too_old","minimum_go":"1.22"}'
   exit 0
 fi
 go run "${SKILL_ROOT}/scripts/propose_go.go" \

@@ -90,16 +90,20 @@ the JSON report before accepting the move.
 Enable Go rewriting only with `rewrite.code_imports: "update-go"`. The pilot
 automates exactly one non-`main`, leaf package-directory move inside the root
 `go.mod` module, for example `pkg/legacy/` to `pkg/workflow/`. It discovers
-`go`, `gofmt`, the root module path, and the minimum Go version declared by
-`go.mod`; it does not install tools or dependencies.
+`go`, `gofmt`, the root module path, and the declared minimum Go version from
+`go.mod`; the actual toolchain must be Go 1.22 or newer (and meet a higher
+declared minimum). It does not install tools or dependencies.
 
 The bundled Go helper parses source with `go/parser` and rewrites only exact
 `ImportSpec.Path` literals equal to the moved package's module import path.
 Aliases, blank/dot imports, package names, and comments remain unchanged.
 Before applying, the tool rejects workspaces, nested modules, package trees,
 `main`, generated/vendor/symlink/cgo/build-tag/go-generate shapes, malformed
-source, and any old module path found outside an AST import literal. These are
-unsupported or partial findings, never guessed rewrites.
+source, cgo importers, and any symlinked file or subdirectory within the moved
+package. It also reports, without rewriting, an exact old module import path
+in first-party `.json`, `.yaml`, `.yml`, `.toml`, `.md`, or `.txt` text; vendor,
+generated, symlinked, and binary files are excluded from that bounded scan.
+These are unsupported or partial findings, never guessed rewrites.
 
 The transaction runs targeted `gofmt -d` before changing disk, then `gofmt
 -w`, an exact source-diff oracle, and `go test ./...` after the move. A failed

@@ -222,6 +222,61 @@ def test_go_syntax_and_tool_failures_are_explicit_and_not_clean(tmp_path: Path) 
     assert "requires Go >= 1.22.0" in old.stderr
 
 
+def test_malformed_go_rerun_invalidates_latest_report(tmp_path: Path) -> None:
+    host, env = _copy_host(tmp_path)
+    _run_pipeline(SKILL, host, env)
+    latest = host / "reports" / "find-complexity-hotspots" / "latest"
+    previous_report = latest.resolve()
+    (host / "src" / "broken.go").write_text(
+        "package complexity\nfunc broken( { return 1 }\n", encoding="utf-8"
+    )
+
+    result = _run(
+        sys.executable,
+        str(SKILL / "scripts" / "run.py"),
+        "--project-root",
+        str(host),
+        "--language",
+        "go",
+        "--skip-effectiveness-log",
+        "src",
+        cwd=host,
+        env=env,
+    )
+
+    assert result.returncode == 2
+    assert "syntax error" in result.stderr
+    assert not latest.exists()
+    assert not latest.is_symlink()
+    assert (previous_report / "findings.json").is_file()
+
+
+def test_missing_go_tool_rerun_invalidates_latest_report(tmp_path: Path) -> None:
+    host, env = _copy_host(tmp_path)
+    _run_pipeline(SKILL, host, env)
+    latest = host / "reports" / "find-complexity-hotspots" / "latest"
+    previous_report = latest.resolve()
+
+    result = _run(
+        sys.executable,
+        str(SKILL / "scripts" / "run.py"),
+        "--project-root",
+        str(host),
+        "--language",
+        "go",
+        "--skip-effectiveness-log",
+        "src",
+        cwd=host,
+        env=_go_env(tmp_path / "missing-cache", path=""),
+    )
+
+    assert result.returncode == 2
+    assert "Go toolchain is unavailable" in result.stderr
+    assert not latest.exists()
+    assert not latest.is_symlink()
+    assert (previous_report / "findings.json").is_file()
+
+
 def test_copied_skill_runs_without_toolkit_or_sibling_runtime(tmp_path: Path) -> None:
     host, env = _copy_host(tmp_path)
     installed = tmp_path / "installed" / "find-complexity-hotspots"

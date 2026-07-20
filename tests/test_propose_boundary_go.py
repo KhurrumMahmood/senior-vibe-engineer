@@ -9,12 +9,15 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILL = REPO_ROOT / ".claude" / "skills" / "propose-boundary"
 SCRIPT = SKILL / "scripts" / "propose_go.go"
 FIXTURE = REPO_ROOT / "tests" / "fixtures" / "propose-boundary-go"
-GO = "/opt/homebrew/bin/go"
+GO = shutil.which("go")
+pytestmark = pytest.mark.skipif(GO is None, reason="Go toolchain is required")
 
 
 def _run(
@@ -129,6 +132,15 @@ def test_go_positive_proposal_reaches_final_artifact_with_tied_cutoff(
     }
     quote = next(row for row in payload["candidate_seams"] if row["cluster_id"] == "quote")
     assert quote["proposed_public_api"] == ["QuotePreview", "QuotePrice"]
+    assert quote["exported_named_type_dependencies"] == {
+        "QuotePreview": ["Input"],
+        "QuotePrice": ["Input"],
+    }
+    assert any(
+        symbol["name"] == "QuotePrice"
+        and symbol["exported_named_type_dependencies"] == ["Input"]
+        for symbol in payload["symbols"]
+    )
     assert any(
         edge["caller_symbol"] == "SettlementCapture"
         and edge["callee_symbol"] == "quoteNormalize"
@@ -140,6 +152,7 @@ def test_go_positive_proposal_reaches_final_artifact_with_tied_cutoff(
     assert "gofmt -w <human-approved changed .go files>" in rendered
     assert "go test ./..." in rendered
     assert "ties included: true" in rendered
+    assert "Preserve named type identity for `Input`" in rendered
 
 
 def test_go_cohesive_package_defers_without_inventing_a_boundary(tmp_path: Path) -> None:
@@ -152,7 +165,10 @@ def test_go_cohesive_package_defers_without_inventing_a_boundary(tmp_path: Path)
     assert payload["recommendation"] == "defer_no_seam"
     assert payload["candidate_seams"] == []
     assert payload["defer_signals"] == ["single_cluster_no_seam"]
-    assert "No extraction proposal is safe" in proposal.read_text(encoding="utf-8")
+    rendered = proposal.read_text(encoding="utf-8")
+    assert "No extraction proposal is safe" in rendered
+    assert "<nil>" not in rendered
+    assert "no second viable named declaration domain" in rendered
 
 
 def test_go_package_and_caller_ambiguity_and_unresolved_graphs_defer(
@@ -168,12 +184,15 @@ def test_go_package_and_caller_ambiguity_and_unresolved_graphs_defer(
     assert build_payload["recommendation"] == "defer_build_constraints"
 
     dot_import = _copy_host(tmp_path, "ambiguous-caller")
-    dot_result, dot_inspection, _ = _propose(dot_import, "internal/legacy", name="dot-import")
+    dot_result, dot_inspection, dot_proposal = _propose(dot_import, "internal/legacy", name="dot-import")
     assert dot_result.returncode == 0, dot_result.stdout + dot_result.stderr
     dot_payload = _payload(dot_inspection)
     assert dot_payload["status"] == "partial"
     assert dot_payload["recommendation"] == "defer_ambiguous_caller_evidence"
     assert dot_payload["ambiguous_caller_evidence"]
+    dot_rendered = dot_proposal.read_text(encoding="utf-8")
+    assert "<nil>" not in dot_rendered
+    assert "caller-impact evidence is ambiguous" in dot_rendered
 
     unresolved = _copy_host(tmp_path, "unresolved")
     unresolved_result, unresolved_inspection, _ = _propose(
@@ -233,6 +252,78 @@ def test_go_old_and_missing_tool_paths_are_explicitly_unsupported(tmp_path: Path
     assert "go_tool_missing" in missing.stdout
 
 
+def test_go_workspace_and_replace_directives_are_explicitly_unsupported(
+    tmp_path: Path,
+) -> None:
+    workspace = _copy_host(tmp_path, "positive")
+    (workspace / "go.work").write_text("go 1.22\n\nuse .\n", encoding="utf-8")
+    workspace_result, workspace_inspection, _ = _propose(
+        workspace, "internal/legacy", name="workspace"
+    )
+    assert workspace_result.returncode == 0, workspace_result.stdout + workspace_result.stderr
+    workspace_payload = _payload(workspace_inspection)
+    assert workspace_payload["status"] == "unsupported"
+    assert workspace_payload["recommendation"] == "defer_workspace"
+    assert workspace_payload["failure_kind"] == "go_workspace_active"
+
+    replaced = tmp_path / "replace"
+    shutil.copytree(FIXTURE / "positive", replaced)
+    go_mod = replaced / "go.mod"
+    go_mod.write_text(
+        go_mod.read_text(encoding="utf-8") + "\nreplace example.com/unused => ./unused\n",
+        encoding="utf-8",
+    )
+    replace_result, replace_inspection, _ = _propose(
+        replaced, "internal/legacy", name="replace"
+    )
+    assert replace_result.returncode == 0, replace_result.stdout + replace_result.stderr
+    replace_payload = _payload(replace_inspection)
+    assert replace_payload["status"] == "unsupported"
+    assert replace_payload["recommendation"] == "defer_module_topology"
+    assert replace_payload["failure_kind"] == "go_mod_replace"
+
+
+def test_go_runner_source_avoids_go_1_18_any_alias() -> None:
+    assert re.search(r"\bany\b", SCRIPT.read_text(encoding="utf-8")) is None
+
+
+def test_documented_command_rejects_old_go_before_go_run(tmp_path: Path) -> None:
+    host = _copy_host(tmp_path, "positive")
+    installed = host / ".agents" / "skills" / "propose-boundary"
+    shutil.copytree(SKILL, installed)
+    fake_bin = tmp_path / "fake-bin"
+    fake_bin.mkdir()
+    attempted_run = tmp_path / "go-run-attempted"
+    fake_go = fake_bin / "go"
+    fake_go.write_text(
+        "#!/bin/sh\n"
+        "if [ \"$1\" = version ]; then\n"
+        "  printf '%s\\n' 'go version go1.21.9 darwin/arm64'\n"
+        "  exit 0\n"
+        "fi\n"
+        f"printf '%s\\n' attempted > {str(attempted_run)!r}\n"
+        "exit 99\n",
+        encoding="utf-8",
+    )
+    fake_go.chmod(0o755)
+
+    result = _run(
+        "/bin/bash",
+        "-c",
+        _documented_command(installed),
+        cwd=host,
+        env={**os.environ, "PATH": f"{fake_bin}:/usr/bin:/bin"},
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout) == {
+        "status": "unsupported",
+        "failure_kind": "go_version_too_old",
+        "minimum_go": "1.22",
+    }
+    assert not attempted_run.exists()
+
+
 def test_go_copied_skill_closure_runs_without_repository_imports(tmp_path: Path) -> None:
     host = _copy_host(tmp_path, "positive")
     before = _fingerprints(host)
@@ -265,3 +356,5 @@ def test_go_skill_docs_limit_the_family_local_v1() -> None:
     assert "go list -e -json -mod=readonly ./..." in text
     assert "go/parser`/`go/ast" in text
     assert "go/packages" in text
+    assert "go env GOWORK" in text
+    assert "go mod edit -json" in text

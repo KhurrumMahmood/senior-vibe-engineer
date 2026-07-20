@@ -46,6 +46,12 @@ def _write_json(data: dict[str, Any], path: Path) -> None:
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _invalidate_latest_report(project_root: Path) -> None:
+    latest = project_root / "reports" / "find-complexity-hotspots" / "latest"
+    if latest.is_symlink() or latest.exists():
+        latest.unlink()
+
+
 def _render_simple_report(
     title: str,
     records: list[dict[str, Any]],
@@ -135,8 +141,7 @@ def _write_scan_outputs(
     _write_json(findings, report_dir / "findings.json")
 
     latest = report_dir.parent / "latest"
-    if latest.is_symlink() or latest.exists():
-        latest.unlink()
+    _invalidate_latest_report(project_root)
     latest.symlink_to(scan_id)
     return report_dir
 
@@ -159,6 +164,7 @@ def main(argv: list[str] | None = None) -> int:
 
     project_root = args.project_root.resolve()
     target = " ".join(args.paths)
+    _invalidate_latest_report(project_root)
     try:
         scan = detect_scan(
             project_root,

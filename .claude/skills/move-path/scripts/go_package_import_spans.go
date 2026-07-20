@@ -237,6 +237,7 @@ func main() {
 	for _, file := range files {
 		moved := under(file.Path, fromPath)
 		accepted := [][2]int{}
+		importsC := false
 		importsOld := false
 		for _, spec := range file.AST.Imports {
 			start, end, line, value, ok := literalRange(file, spec)
@@ -246,6 +247,9 @@ func main() {
 			}
 			if value == "C" && moved {
 				result.Blocked = append(result.Blocked, blocked{Kind: "go_cgo_package", Path: file.Path})
+			}
+			if value == "C" {
+				importsC = true
 			}
 			if value != result.OldImport {
 				continue
@@ -268,6 +272,9 @@ func main() {
 		}
 		if importsOld && hasDirective(file.Text, "//go:generate") {
 			result.Blocked = append(result.Blocked, blocked{Kind: "go_generate_importer", Path: file.Path})
+		}
+		if importsOld && importsC {
+			result.Blocked = append(result.Blocked, blocked{Kind: "go_cgo_importer", Path: file.Path})
 		}
 		for offset := 0; ; {
 			index := strings.Index(string(file.Text[offset:]), result.OldImport)
