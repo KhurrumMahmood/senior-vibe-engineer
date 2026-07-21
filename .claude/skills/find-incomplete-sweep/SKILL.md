@@ -5,21 +5,22 @@ description: |
   started but never finished, leaving a forgotten sibling call site at the old
   shape ("updated N-1 of N"). Python retains the keyword-argument omission
   band; TypeScript/TSX and checked JavaScript use the host-pinned TypeScript Compiler API to group
-  resolved project function calls by object-option property presence. Gated on a git-trajectory
+  resolved project function calls by object-option property presence; Go uses host Go `go/types`
+  for one direct top-level function / keyed struct-option shape. Gated on a git-trajectory
   signal: a divergence counts as a forgotten sweep only when the
   kwarg-present sites were touched more recently than the straggler (the sweep
   landed after the straggler was last edited). A straggler edited just as
   recently is reported separately as likely-deliberate. Distinguishes
   abandoned partial work from legitimate post-completion cleanup via residue
   direction. Detection-only — never edits code; hands off to /fix-workflow.
-argument-hint: "Python: [--band kwarg|placeholder|all] --paths scripts ...; TypeScript/JavaScript: --target src --tsconfig <config> --report-dir reports/find-incomplete-sweep/<name>"
+argument-hint: "Python: [--band kwarg|placeholder|all] --paths scripts ...; TypeScript/JavaScript: --target src --tsconfig <config>; Go: --target . --report-dir reports/find-incomplete-sweep/<name>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
 language: any
 framework: any
-scans: [python, typescript, javascript]
+scans: [python, typescript, javascript, go]
 best_for: |
   Reviewing a human- or AI-authored multi-file change where a sweep across
   sibling call sites may have stopped short: a new keyword argument threaded
@@ -97,6 +98,17 @@ Two detector bands, selected with `--band` (default `kwarg`):
   asymmetry. Output: `placeholder_findings.md` + `placeholder_manifest.json`
   (separate files, so the kwarg band's scout input is never disturbed).
 - **`all`** — run both.
+
+## Go v1
+
+Load `knowledge/go-v1.md`. The family-local `go list` + `go/parser` +
+`go/types` analyzer admits direct project top-level calls with a keyed struct
+option literal. It needs one omission, identical comparable present values,
+and **every** present line newer than the straggler in Git.
+
+It visibly defers non-direct/non-project/dynamic calls, ambiguous or
+inconsistent literals, inactive builds, and unavailable Git evidence. Findings
+are advisory only. Use manifest `present_sites` with `scout.py` (no `--paths`), then the fixed-vocabulary verdict and `triage.py` flow. Run the copied-install command and outcome boundaries in `knowledge/go-v1.md`.
 
 ## TypeScript / TSX v1
 

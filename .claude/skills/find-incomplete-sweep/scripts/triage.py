@@ -86,9 +86,13 @@ def ensure_compiler_manifest_output_containment(scan_dir: Path, packets: dict) -
     detector and scout have completed.
     """
     language = packets.get("language")
-    if language not in {"typescript", "javascript"}:
+    if language not in {"typescript", "javascript", "go"}:
         return
-    language_label = "TypeScript" if language == "typescript" else "checked JavaScript"
+    language_label = {
+        "typescript": "TypeScript",
+        "javascript": "checked JavaScript",
+        "go": "Go",
+    }[language]
     root_value = packets.get("project_root")
     if not isinstance(root_value, str) or not root_value:
         raise TriageError(f"{language_label} packets must record their project root")
