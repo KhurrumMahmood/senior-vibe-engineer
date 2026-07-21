@@ -1,7 +1,7 @@
 {
   "batch": "Go semantic-maintenance family",
-  "status": "implemented-pending-review",
-  "revision": null,
+  "status": "accepted",
+  "revision": "bb4e5fa",
   "family": [
     "find-semantic-duplication",
     "unify-shadows",

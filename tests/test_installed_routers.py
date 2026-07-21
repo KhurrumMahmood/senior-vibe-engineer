@@ -205,7 +205,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "expansion_disposition": "language-level",
         "typescript_disposition": "typescript-supported",
         "javascript_disposition": "javascript-supported",
-        "go_disposition": "pending-validation",
+        "go_disposition": "go-supported",
         "java_disposition": "pending-validation",
         "fact_level": "semantic-project",
         "outcome_class": "read-only-report",

@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "2c35851cd4dfe2472d4b2154aebce478c6a37959ff8140d60f5ebf82d3c0f625"
+      "sha256": "377af454539dad28e2d5648dc6fc57ce88b56d270f689812e8ede1687079855c"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -15,7 +15,7 @@
     },
     {
       "path": ".claude/tasks/go-language-coverage.json",
-      "sha256": "410b5f3c2e25d60fcdb0063b8c135f80753c61bf535859944da82b5feb1bec47"
+      "sha256": "a1c619cf18ff4df501d69ffa3f0cf621f14317c30dede7720797cdeb852fad21"
     },
     {
       "path": ".claude/tasks/java-language-coverage.json",
@@ -2506,10 +2506,14 @@
       ],
       "javascript_reviewed_revision": "f06b6c5",
       "javascript_limitation": null,
-      "go_disposition": "pending-validation",
-      "go_evidence_path": null,
-      "go_native_check": null,
-      "go_reviewed_revision": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_semantic_duplication_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "go vet detect_go_semantic.go",
+        "source fingerprint and final triage assertions"
+      ],
+      "go_reviewed_revision": "bb4e5fa",
       "java_disposition": "pending-validation",
       "java_evidence_path": null,
       "java_native_check": null,
@@ -2524,7 +2528,8 @@
         "scans": [
           "python",
           "typescript",
-          "javascript"
+          "javascript",
+          "go"
         ],
         "install_with": []
       },
@@ -2554,7 +2559,8 @@
       "typescript_evidence_path": "tests/test_find_semantic_duplication_typescript.py",
       "typescript_reviewed_revision": "c611723",
       "learning_packets": [
-        ".claude/tasks/multilanguage-learnings/find-semantic-duplication-typescript.json"
+        ".claude/tasks/multilanguage-learnings/find-semantic-duplication-typescript.json",
+        ".claude/tasks/multilanguage-learnings/go-semantic-maintenance-family.json"
       ]
     },
     {
@@ -4331,10 +4337,14 @@
       ],
       "javascript_reviewed_revision": "f06b6c5",
       "javascript_limitation": null,
-      "go_disposition": "pending-validation",
-      "go_evidence_path": null,
-      "go_native_check": null,
-      "go_reviewed_revision": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_rename_concept_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "go vet go_identifier_evidence.go",
+        "copied closure and source fingerprint assertions"
+      ],
+      "go_reviewed_revision": "bb4e5fa",
       "java_disposition": "pending-validation",
       "java_evidence_path": null,
       "java_native_check": null,
@@ -4350,6 +4360,7 @@
           "python",
           "javascript",
           "typescript",
+          "go",
           "markdown",
           "templates"
         ],
@@ -4391,7 +4402,8 @@
       "typescript_reviewed_revision": "c611723",
       "learning_packets": [
         ".claude/tasks/multilanguage-learnings/b1-portability.json",
-        ".claude/tasks/multilanguage-learnings/rename-concept-typescript.json"
+        ".claude/tasks/multilanguage-learnings/rename-concept-typescript.json",
+        ".claude/tasks/multilanguage-learnings/go-semantic-maintenance-family.json"
       ]
     },
     {
@@ -4705,10 +4717,13 @@
       ],
       "javascript_reviewed_revision": "87960c4",
       "javascript_limitation": null,
-      "go_disposition": "pending-validation",
-      "go_evidence_path": null,
-      "go_native_check": null,
-      "go_reviewed_revision": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_unify_shadows_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "read-only proposal artifacts and source fingerprint assertions"
+      ],
+      "go_reviewed_revision": "bb4e5fa",
       "java_disposition": "pending-validation",
       "java_evidence_path": null,
       "java_native_check": null,
@@ -4723,7 +4738,8 @@
         "scans": [
           "python",
           "typescript",
-          "javascript"
+          "javascript",
+          "go"
         ],
         "install_with": []
       },
@@ -4753,7 +4769,8 @@
       "typescript_evidence_path": "tests/test_unify_shadows_typescript.py",
       "typescript_reviewed_revision": "c611723",
       "learning_packets": [
-        ".claude/tasks/multilanguage-learnings/unify-shadows-typescript.json"
+        ".claude/tasks/multilanguage-learnings/unify-shadows-typescript.json",
+        ".claude/tasks/multilanguage-learnings/go-semantic-maintenance-family.json"
       ]
     },
     {

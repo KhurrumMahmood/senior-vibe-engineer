@@ -1,7 +1,7 @@
 # Go semantic-maintenance family learning packet
 
-Status: implemented; fresh product-framed review and capability promotion are
-still required.
+Status: accepted at `bb4e5fa`; product-framed review passed after fixing
+logical-symlink traversal and cross-package rename-reference identity.
 
 ## Useful outcome
 

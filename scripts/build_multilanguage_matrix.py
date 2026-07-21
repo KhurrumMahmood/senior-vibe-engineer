@@ -105,15 +105,25 @@ LEARNING_PACKETS = {
     "find-implicit-state": ["b2p-state-reference", "b2t-typescript-closed-state"],
     "find-incomplete-sweep": ["find-incomplete-sweep-typescript"],
     "find-omnibus": ["find-omnibus-typescript"],
-    "find-semantic-duplication": ["find-semantic-duplication-typescript"],
+    "find-semantic-duplication": [
+        "find-semantic-duplication-typescript",
+        "go-semantic-maintenance-family",
+    ],
     "find-standard-gaps": ["find-standard-gaps-typescript"],
     "map-subsystem": ["map-subsystem-typescript"],
     "move-path": ["move-path-typescript"],
     "prevent-regression": ["b2p-state-reference", "b2t-typescript-closed-state"],
     "propose-boundary": ["propose-boundary-typescript"],
     "propose-folder-reorganization": ["propose-folder-reorganization-typescript"],
-    "rename-concept": ["b1-portability", "rename-concept-typescript"],
-    "unify-shadows": ["unify-shadows-typescript"],
+    "rename-concept": [
+        "b1-portability",
+        "rename-concept-typescript",
+        "go-semantic-maintenance-family",
+    ],
+    "unify-shadows": [
+        "unify-shadows-typescript",
+        "go-semantic-maintenance-family",
+    ],
 }
 
 FRAMEWORK_FAMILIES = {
