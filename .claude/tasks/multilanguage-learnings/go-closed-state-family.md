@@ -1,7 +1,7 @@
 # Go closed-state family learning packet
 
-Status: implementation and focused preservation evidence complete; capability
-promotion awaits fresh product review and a committed closeout revision.
+Status: accepted at `4d295de`; fresh product-framed re-review passed after four
+closure, claim-scope, guard-fixture, and portability repairs.
 
 ## Useful outcome
 

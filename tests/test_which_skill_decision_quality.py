@@ -139,6 +139,9 @@ def test_newly_supported_go_skill_has_executable_handoff(tmp_path):
         "find-folder-topology-drift",
         "find-omnibus",
         "find-standard-gaps",
+        "find-implicit-state",
+        "extract-enum",
+        "prevent-regression",
     ],
 )
 def test_each_new_go_capability_reaches_its_declared_handoff(tmp_path, skill):
@@ -160,7 +163,7 @@ def test_each_new_go_capability_reaches_its_declared_handoff(tmp_path, skill):
 
 def test_pending_go_skill_is_rejected_without_weaker_substitution(tmp_path):
     returncode, payload = _run_match(
-        "Use extract-enum on this Go module.",
+        "Use propose-folder-reorganization on this Go module.",
         "--project-root",
         str(tmp_path),
         "--library-root",
@@ -170,6 +173,27 @@ def test_pending_go_skill_is_rejected_without_weaker_substitution(tmp_path):
     assert returncode == 1
     assert payload["routing_context"]["languages"] == ["go"]
     assert payload["recommendation"] == "unsupported"
-    assert payload["unsupported"]["name"] == "extract-enum"
+    assert payload["unsupported"]["name"] == "propose-folder-reorganization"
     assert "go_disposition=pending-validation" in payload["unsupported"]["reason"]
     assert "handoff" not in payload
+
+
+def test_go_state_guard_handoff_includes_detector_companion(tmp_path):
+    returncode, payload = _run_match(
+        "Use prevent-regression on this Go module.",
+        "--project-root",
+        str(tmp_path),
+        "--library-root",
+        str(REPO_ROOT),
+    )
+
+    assert returncode == 0
+    assert payload["recommendation"] == "prevent-regression"
+    assert payload["handoff"]["skills"] == [
+        "prevent-regression",
+        "find-implicit-state",
+    ]
+    assert payload["optional_install"]["skills"] == [
+        "prevent-regression",
+        "find-implicit-state",
+    ]

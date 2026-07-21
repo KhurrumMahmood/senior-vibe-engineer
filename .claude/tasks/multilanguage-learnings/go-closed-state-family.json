@@ -1,6 +1,7 @@
 {
   "batch": "Go closed-state G3 family",
-  "status": "implementation_complete_pending_fresh_review",
+  "status": "accepted",
+  "revision": "4d295de",
   "family": [
     "find-implicit-state",
     "extract-enum",
@@ -44,5 +45,5 @@
     "tests/fixtures/find-implicit-state-go",
     ".claude/tasks/multilanguage-learnings/go-closed-state-family.md"
   ],
-  "next_gate": "Fresh product-framed review, accepted repairs, committed revision, then promote the three Go capability rows."
+  "next_gate": "Use the family learning to assess the five remaining Go rows without inheriting support automatically."
 }

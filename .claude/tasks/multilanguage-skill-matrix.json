@@ -15,7 +15,7 @@
     },
     {
       "path": ".claude/tasks/go-language-coverage.json",
-      "sha256": "c0c163715629dfc860abee88d2954cd8c8c079f391edf59d68b2991a79ff2b36"
+      "sha256": "410b5f3c2e25d60fcdb0063b8c135f80753c61bf535859944da82b5feb1bec47"
     },
     {
       "path": ".claude/tasks/java-language-coverage.json",
@@ -871,10 +871,13 @@
       ],
       "javascript_reviewed_revision": "87960c4",
       "javascript_limitation": null,
-      "go_disposition": "pending-validation",
-      "go_evidence_path": null,
-      "go_native_check": null,
-      "go_reviewed_revision": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_implicit_state_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "review-only proposal artifact and source fingerprint assertions"
+      ],
+      "go_reviewed_revision": "4d295de",
       "java_disposition": "pending-validation",
       "java_evidence_path": null,
       "java_native_check": null,
@@ -1931,10 +1934,14 @@
       ],
       "javascript_reviewed_revision": "f06b6c5",
       "javascript_limitation": null,
-      "go_disposition": "pending-validation",
-      "go_evidence_path": null,
-      "go_native_check": null,
-      "go_reviewed_revision": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_implicit_state_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "go vet detect_go_state.go",
+        "source fingerprint and final JSONL assertions"
+      ],
+      "go_reviewed_revision": "4d295de",
       "java_disposition": "pending-validation",
       "java_evidence_path": null,
       "java_native_check": null,
@@ -3918,10 +3925,13 @@
       ],
       "javascript_reviewed_revision": "59aa031",
       "javascript_limitation": null,
-      "go_disposition": "pending-validation",
-      "go_evidence_path": null,
-      "go_native_check": null,
-      "go_reviewed_revision": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_implicit_state_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "BAD_RC=1, GOOD_RC=0 staged-guard verification"
+      ],
+      "go_reviewed_revision": "4d295de",
       "java_disposition": "pending-validation",
       "java_evidence_path": null,
       "java_native_check": null,

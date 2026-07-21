@@ -1,6 +1,6 @@
 # Multi-language and framework expansion plan
 
-Status: active — P0, P1, P2, U1, P3, Go G1/G1D/G2, the bounded Java pilot,
+Status: active — P0, P1, P2, U1, P3, Go G1/G1D/G2/G3, the bounded Java pilot,
 and the measured E1/E2 batching and family-compression gates are complete
 
 Primary objective: make the generally applicable engineering skills useful on
@@ -430,7 +430,7 @@ must not block this phase.
 | G1 structural/standards | complete | `find-omnibus`, `find-standard-gaps` | Batched native syntax facts reach final reports; 51 focused/preserved tests passed; fresh review PASS. |
 | G1D duplication | complete | `find-duplication` | Batched native exact-body evidence reaches final triage from a copied closure; 23 family tests passed and fresh product-framed review reached PASS after three bounded correctness repairs. |
 | G2 semantic/project | complete | `map-subsystem`, `find-dormant` promoted; four candidates deferred | Two independent family-local pilots passed final artifacts, copied closures, preserved-language suites, and bounded re-review; actual overlap did not justify shared extraction. |
-| G3 proposals/guards | in_progress | `find-implicit-state` → `extract-enum` → `prevent-regression` implementation and focused preservation evidence complete; capability promotion awaits fresh review and committed closeout | One copied-closure maintenance loop now reaches resolved detector evidence, a review-only typed-constant proposal, and a staged exact-field guard. `propose-folder-reorganization` remains pending. |
+| G3 proposals/guards | complete | `find-implicit-state` → `extract-enum` → `prevent-regression` accepted at `4d295de`; capability closeout records the reviewed revision | One copied-closure maintenance loop reaches resolved detector evidence, a review-only typed-constant proposal, and a staged exact-field guard. `propose-folder-reorganization` remains pending. |
 
 G1 promotion is per skill. Shared capability, matrix, router, and plan changes
 remain serial; implementation lanes may not promote their own rows. Every lane
@@ -475,9 +475,8 @@ states, schemas, and copied closures differ. A shared primitive would add a new
 runtime boundary without reducing either user journey, so both remain
 family-local.
 
-G2 raised Go coverage to 14 of 22 language-level skills. The later G3
-closed-state slice has implementation evidence for three more rows, but they
-remain `pending-validation` until fresh review and committed closeout. The
+G2 raised Go coverage to 14 of 22 language-level skills. G3 promotes the
+closed-state family to 17 of 22 after fresh review and committed evidence. The
 remaining five rows need separate actionability or semantic-authority
 decisions; they do not inherit support from this family.
 
@@ -709,6 +708,7 @@ are demand-triggered rather than implied by the pilot.
 | P3E Go G1 expansion | complete | `e4fa2f4`, `dd37954`, `5298be2`, `bd9fe15`, and capability closeout | Eight skill-family Go fixtures with native modules and negative boundaries | Orientation: 18 Go + 47 preserved-language passed; structural/standards: 10 Go + 41 preserved/family tests passed; lexical/topology: 38 family tests passed | Three product-framed fresh reviews reached PASS after user-relevant source, status, filename-constraint, batching, and artifact-lifecycle findings became regressions | `.claude/tasks/multilanguage-learnings/go-g1-expansion.{json,md}`; 11/22 language-level skills now `go-supported` |
 | P3E Go G1D duplication | complete | `22147a3` plus capability closeout | One native Go module with exact cross-file and same-file clones, clean/generated/test/vendor/build-constrained/malformed/tool failure boundaries | Go/Python/TypeScript/JavaScript family suite: 23 passed; Ruff and gofmt clean | Fresh product-framed review reached PASS after generated-only, same-file labeling, and partial-report repairs | `.claude/tasks/multilanguage-learnings/find-duplication-go.{json,md}`; 12/22 language-level skills now `go-supported` |
 | P3E Go G2 pilots | complete | `94ce0d3`, `2147d5d`, `83d4767`, `0f2d458`, `eeb38da`, plus capability closeout | Independent package-map and dormant-review Go modules with active-build, generated/vendor/test, malformed/tool/symlink, source-safety, and final-artifact cases | Combined focused/preserved suites: 30 passed; final Go-only replay: 12 passed; Ruff, gofmt, and both Go vet checks passed | Map re-review PASS after two correctness and bloat repairs; dormant re-review PASS after last-good, active-build, symlink, malformed-sibling, and generated-evidence repairs | `.claude/tasks/multilanguage-learnings/{map-subsystem-go,find-dormant-go}.{json,md}`; 14/22 language-level skills now `go-supported`; no shared Go runtime extracted |
+| P3E Go G3 closed-state family | complete | `4d295de` plus capability closeout | Standalone Go 1.22 module covers direct state operations, named authority, possible vendor boundary, generated/test/build-inactive, malformed/tool, proposal, and staged guard outcomes | Go focused 5 passed; TypeScript 2 and Python 5 preservation tests passed; Ruff, gofmt, go vet, native Go, pre-commit, and diff checks passed | Product-framed review found four closure/claim/fixture/portability defects; all repaired and bounded re-review PASS | `.claude/tasks/multilanguage-learnings/go-closed-state-family.{json,md}`; 17/22 language-level skills now `go-supported`; Go-specific guides load on demand |
 | E1 read-only batching | complete | benchmark implementation commit (this revision) | Fresh isolated TypeScript and JavaScript hosts per condition and trial | Focused contract: 2 passed; frozen benchmark: 7 paired trials per language, semantic/native/source gates all passed, zero failures/interventions | Fresh product-framed review found a single-language gate bypass; repaired at CLI and aggregate layers; bounded re-review PASS | `.claude/tasks/ml009-readonly-batch-results.json`; ML-011 is the bounded product follow-up |
 | E2 compressed code-health family | complete | this revision | Five disposable TypeScript A/B/C triplets, one unseen TypeScript host, two invalid-standards sentinels | 15/15 timed conditions and 3/3 validation cases passed; context -78.84%, tokens -22.23%, median wall -52.68%; 78 focused product tests pass | Fresh product review and two bounded re-review turns closed seven user-real defects; final gate PASS. Live run directly constructed lanes; future preparation freezes route projections and partial resume uses the frozen host digest | `.claude/tasks/ml020-code-health-results.json` and `.claude/tasks/multilanguage-learnings/code-health-family-ml020.{json,md}` |
 | P4 route frameworks | pending | — | — | — | — | — |
