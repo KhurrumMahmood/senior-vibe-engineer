@@ -65,6 +65,33 @@ SCRIPT_SUFFIXES = {
     "typescript": {".ts", ".tsx"},
     "javascript": {".js", ".jsx", ".mjs", ".cjs"},
 }
+JAVA_SKIP_DIRS = {
+    ".gradle",
+    "build",
+    "coverage",
+    "dist",
+    "fixture",
+    "fixtures",
+    "generated",
+    "integrationtest",
+    "out",
+    "reports",
+    "target",
+    "test",
+    "testdata",
+    "testfixtures",
+    "tests",
+    "vendor",
+}
+JAVA_SKIP_GLOBS = (
+    "*Test.java",
+    "*Tests.java",
+    "*IT.java",
+    "*Generated.java",
+    "*.generated.java",
+    "*_generated.java",
+)
+JAVA_MIN_VERSION = (17, 0, 0)
 GO_SKIP_DIRS = {
     "__tests__",
     "build",
@@ -160,6 +187,10 @@ class TypeScriptExtractionError(RuntimeError):
 
 class GoExtractionError(RuntimeError):
     """Raised when syntax-only Go facts cannot be established honestly."""
+
+
+class JavaExtractionError(RuntimeError):
+    """Raised when syntax-only Java facts cannot be established honestly."""
 
 
 @dataclass(frozen=True)
@@ -697,6 +728,143 @@ def _go_high_branch_records(
     return records
 
 
+def _parse_java_version(
+    rendered: str, *, tool: str
+) -> tuple[tuple[int, int, int], str]:
+    """Parse the tool's own version line, ignoring launcher warnings."""
+    if tool == "java":
+        pattern = re.compile(r'\bversion\s+"(\d+)(?:\.(\d+))?(?:\.(\d+))?')
+    else:
+        pattern = re.compile(r"^javac\s+(\d+)(?:\.(\d+))?(?:\.(\d+))?\b")
+    matched_line = ""
+    match = None
+    for line in rendered.splitlines():
+        candidate = pattern.search(line.strip())
+        if candidate is not None:
+            match = candidate
+            matched_line = line.strip()
+            break
+    if match is None:
+        raise JavaExtractionError(
+            f"cannot parse {tool} version: {rendered or 'unknown version'}"
+        )
+    major, minor, patch = (int(part or 0) for part in match.groups())
+    if major == 1 and minor:
+        major, minor = minor, patch
+        patch = 0
+    return (major, minor, patch), matched_line
+
+
+def _java_toolchain() -> tuple[str, str, str, str]:
+    """Resolve a complete JDK 17+ without assuming Maven or Gradle."""
+    java = shutil.which("java")
+    javac = shutil.which("javac")
+    if java is None or javac is None:
+        missing = " and ".join(
+            name for name, executable in (("java", java), ("javac", javac))
+            if executable is None
+        )
+        raise JavaExtractionError(f"Java JDK is unavailable on PATH (missing {missing})")
+
+    versions: dict[str, str] = {}
+    for name, executable in (("java", java), ("javac", javac)):
+        try:
+            result = subprocess.run(
+                [executable, "-version"], capture_output=True, text=True, check=False
+            )
+        except OSError as exc:
+            raise JavaExtractionError(f"cannot run {name}: {exc}") from exc
+        rendered = (result.stdout or result.stderr).strip()
+        if result.returncode != 0:
+            raise JavaExtractionError(
+                f"cannot determine {name} version: {rendered or 'unknown error'}"
+            )
+        version, version_line = _parse_java_version(rendered, tool=name)
+        if version < JAVA_MIN_VERSION:
+            minimum = ".".join(str(part) for part in JAVA_MIN_VERSION)
+            found = ".".join(str(part) for part in version)
+            raise JavaExtractionError(
+                f"Java detector requires JDK >= {minimum}; {name} reports {found}"
+            )
+        versions[name] = version_line
+    return java, javac, versions["java"], versions["javac"]
+
+
+def _java_complexity(paths: list[Path], project_root: Path) -> tuple[dict[str, Any], str, str]:
+    """Return one batched JDK compiler-tree analysis for eligible Java sources."""
+    java, _javac, java_version, javac_version = _java_toolchain()
+    launcher = Path(__file__).resolve().with_name("detect_java_complexity.java")
+    command = [java, str(launcher), "--project-root", str(project_root)]
+    for path in paths:
+        command.extend(("--file", str(path)))
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=False)
+    except OSError as exc:
+        raise JavaExtractionError(f"cannot run bundled Java parser: {exc}") from exc
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or "unknown parser failure"
+        raise JavaExtractionError(detail)
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise JavaExtractionError("bundled Java parser emitted invalid JSON") from exc
+    if not isinstance(payload, dict):
+        raise JavaExtractionError("bundled Java parser emitted a non-object result")
+    if payload.get("schema_version") != 1:
+        raise JavaExtractionError("bundled Java parser emitted an unsupported schema")
+    if payload.get("analyzer") != "jdk-compiler-tree-api":
+        raise JavaExtractionError("bundled Java parser emitted an invalid analyzer")
+    if not isinstance(payload.get("java_version"), str) or not payload["java_version"]:
+        raise JavaExtractionError("bundled Java parser omitted its Java version")
+    if not isinstance(payload.get("files"), list):
+        raise JavaExtractionError("bundled Java parser emitted invalid file evidence")
+    return payload, java_version, javac_version
+
+
+def _java_high_branch_records(
+    path: Path, project_root: Path, facts: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for fact in facts:
+        try:
+            branch_score = int(fact["branch_score"])
+            loc = int(fact["loc"])
+            symbol = str(fact["symbol"])
+            kind = str(fact["kind"])
+            lineno = int(fact["lineno"])
+            end_lineno = int(fact["end_lineno"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise JavaExtractionError("bundled Java parser emitted an invalid method") from exc
+        if kind not in {"method", "constructor"}:
+            raise JavaExtractionError("bundled Java parser emitted an invalid method kind")
+        if branch_score < 18 and not (branch_score >= 12 and loc >= 120):
+            continue
+        records.append(
+            finding(
+                "high-branch-function",
+                path,
+                lineno,
+                f"`{symbol}` has approximate syntactic branch score {branch_score} over {loc} LOC.",
+                "Read the block and its input sizes before changing it; preserve observable "
+                "behavior with native Java tests if a behavior-backed boundary emerges.",
+                project_root,
+                confidence="medium" if branch_score >= 18 else "low",
+                next_skill="manual-review",
+                guard_candidate=False,
+                symbol=symbol,
+                impact=min(90, branch_score * 3 + loc // 20),
+                category="structural",
+                branch_score=branch_score,
+                loc=loc,
+                end_lineno=end_lineno,
+                kind=kind,
+                language="java",
+                analyzer="jdk-compiler-tree-api",
+            )
+        )
+    return records
+
+
 def _iter_python_files(project_root: Path, paths: Iterable[str], include_tests: bool) -> list[Path]:
     found: list[Path] = []
     for raw in paths:
@@ -827,6 +995,83 @@ def _iter_go_files(
     return sorted(found), sorted(excluded, key=lambda row: (row["file"], row["reason"]))
 
 
+def _java_exclusion_reason(path: Path, project_root: Path) -> str | None:
+    try:
+        relative = path.absolute().relative_to(project_root)
+    except ValueError:
+        return "outside_project_root"
+    cursor = project_root
+    for part in relative.parts:
+        cursor /= part
+        if cursor.is_symlink():
+            return "symlink_boundary"
+    parts = relative.parts
+    directories = {part.lower() for part in parts[:-1]}
+    if directories & SKIP_DIRS:
+        return "excluded_directory"
+    if directories & JAVA_SKIP_DIRS:
+        return "java_excluded_directory"
+    if path.suffix.lower() == ".java" and any(
+        fnmatch.fnmatchcase(path.name, glob) for glob in JAVA_SKIP_GLOBS
+    ):
+        return "generated_or_test_filename"
+    return None
+
+
+def _iter_java_files(
+    project_root: Path, paths: Iterable[str]
+) -> tuple[list[Path], list[dict[str, str]], list[dict[str, str]]]:
+    eligible: list[Path] = []
+    excluded: list[dict[str, str]] = []
+    unsupported: list[dict[str, str]] = []
+    seen: set[Path] = set()
+    seen_evidence: set[tuple[str, str]] = set()
+
+    def note(rows: list[dict[str, str]], path: Path, reason: str) -> None:
+        relative = _relpath(path, project_root)
+        key = (relative, reason)
+        if key not in seen_evidence:
+            seen_evidence.add(key)
+            rows.append({"file": relative, "reason": reason})
+
+    for raw in paths:
+        raw_path = Path(raw)
+        candidates: Iterable[Path]
+        if any(character in raw for character in "*?[]"):
+            candidates = project_root.glob(raw)
+        else:
+            candidate = raw_path if raw_path.is_absolute() else project_root / raw_path
+            candidates = [candidate]
+        for candidate in candidates:
+            if candidate.is_file() or candidate.is_symlink():
+                possible = [candidate] if candidate.suffix.lower() in {".java", ".kt", ".kts"} else []
+            elif candidate.is_dir():
+                possible = [
+                    path for path in candidate.rglob("*")
+                    if path.suffix.lower() in {".java", ".kt", ".kts"}
+                    and (path.is_file() or path.is_symlink())
+                ]
+            else:
+                possible = []
+            for path in possible:
+                reason = _java_exclusion_reason(path, project_root)
+                if reason is not None:
+                    note(excluded, path, reason)
+                    continue
+                if path.suffix.lower() in {".kt", ".kts"}:
+                    note(unsupported, path, "kotlin_source_present")
+                    continue
+                resolved = path.resolve()
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
+                eligible.append(resolved)
+    def order(row: dict[str, str]) -> tuple[str, str]:
+        return row["file"], row["reason"]
+
+    return sorted(eligible), sorted(excluded, key=order), sorted(unsupported, key=order)
+
+
 def _dedupe(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     seen: set[tuple[str, int, str, str]] = set()
     out: list[dict[str, Any]] = []
@@ -861,7 +1106,7 @@ def detect_scan(
 ) -> ScanResult:
     project_root = project_root.resolve()
     records: list[dict[str, Any]] = []
-    wanted = languages or {"go", "javascript", "python", "typescript"}
+    wanted = languages or {"go", "java", "javascript", "python", "typescript"}
     status = "complete"
     analysis: dict[str, Any] = {}
     if "python" in wanted:
@@ -930,6 +1175,81 @@ def detect_scan(
             ),
         }
 
+    if "java" in wanted:
+        java_files, exclusions, unsupported = _iter_java_files(project_root, paths)
+        analyzed = 0
+        actual_java_version: str | None = None
+        actual_javac_version: str | None = None
+        if unsupported:
+            status = "partial"
+        if java_files:
+            try:
+                payload, actual_java_version, actual_javac_version = _java_complexity(
+                    java_files, project_root
+                )
+            except JavaExtractionError as exc:
+                raise JavaExtractionError(f"Java batch: {exc}") from exc
+            expected = {_relpath(path, project_root): path for path in java_files}
+            observed: set[str] = set()
+            for file_fact in payload["files"]:
+                if not isinstance(file_fact, dict):
+                    raise JavaExtractionError("bundled Java parser emitted invalid file evidence")
+                file = file_fact.get("file")
+                file_status = file_fact.get("status")
+                facts = file_fact.get("records")
+                error = file_fact.get("error")
+                if (
+                    not isinstance(file, str)
+                    or file not in expected
+                    or file in observed
+                    or file_status not in {"complete", "generated", "syntax-error", "invalid-source"}
+                    or not isinstance(facts, list)
+                    or not isinstance(error, str)
+                ):
+                    raise JavaExtractionError("bundled Java parser emitted invalid file evidence")
+                observed.add(file)
+                if file_status in {"syntax-error", "invalid-source"}:
+                    raise JavaExtractionError(f"{file}: {error or file_status}")
+                if file_status == "generated":
+                    exclusions.append({"file": file, "reason": "generated_source_marker"})
+                    continue
+                analyzed += 1
+                records.extend(
+                    _java_high_branch_records(expected[file], project_root, facts)
+                )
+            if observed != set(expected):
+                raise JavaExtractionError("bundled Java parser omitted eligible source evidence")
+        exclusion_only = analyzed == 0 and bool(exclusions)
+        if exclusion_only:
+            status = "partial"
+        minimum = ".".join(str(part) for part in JAVA_MIN_VERSION)
+        java_status = "partial" if unsupported or exclusion_only else "complete"
+        limitations: list[str] = []
+        if unsupported:
+            limitations.append(
+                "Kotlin source was inventoried but not analyzed; this is Java support, not JVM support."
+            )
+        if exclusion_only:
+            limitations.append(
+                "The target contained no eligible Java source; excluded files were not analyzed."
+            )
+        analysis["java"] = {
+            "status": java_status,
+            "analyzer": "jdk-compiler-tree-api",
+            "minimum_jdk_version": minimum,
+            "actual_java_version": actual_java_version,
+            "actual_javac_version": actual_javac_version,
+            "files": {
+                "eligible": len(java_files),
+                "analyzed": analyzed,
+                "excluded": len(exclusions),
+                "unsupported": len(unsupported),
+            },
+            "exclusions": sorted(exclusions, key=lambda row: (row["file"], row["reason"])),
+            "unsupported": unsupported,
+            "limitations": limitations,
+        }
+
     records = [normalize_record(record, project_root) for record in _dedupe(records)]
     confidence_rank = {"high": 0, "medium": 1, "low": 2}
     records.sort(
@@ -971,7 +1291,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--language",
         action="append",
-        choices=("go", "javascript", "python", "typescript"),
+        choices=("go", "java", "javascript", "python", "typescript"),
         default=[],
         help="Restrict scanning to one or more supported languages.",
     )
@@ -985,7 +1305,7 @@ def main(argv: list[str] | None = None) -> int:
             max_findings=args.max_findings,
             languages=set(args.language) or None,
         )
-    except (TypeScriptExtractionError, GoExtractionError) as exc:
+    except (TypeScriptExtractionError, GoExtractionError, JavaExtractionError) as exc:
         print(f"[find-complexity-hotspots] ERROR: {exc}", file=sys.stderr)
         return 2
     args.output.parent.mkdir(parents=True, exist_ok=True)

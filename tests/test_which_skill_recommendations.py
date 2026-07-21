@@ -266,6 +266,19 @@ def test_typescript_function_complexity_routes_to_complexity_hotspots():
     assert payload["handoff"]["skills"][0] == "find-complexity-hotspots"
 
 
+def test_java_method_complexity_routes_to_complexity_hotspots():
+    returncode, payload = _run_match(
+        "audit syntactic branch complexity in Java methods and constructors",
+        "--top",
+        "10",
+    )
+
+    assert returncode == 0
+    assert payload["routing_context"]["language"] == "java"
+    assert payload["recommendation"] == "find-complexity-hotspots"
+    assert payload["handoff"]["skills"][0] == "find-complexity-hotspots"
+
+
 def test_typescript_flat_prefix_routes_to_folder_topology():
     returncode, payload = _run_match(
         "audit a TypeScript source root for a flat prefix filename cluster "

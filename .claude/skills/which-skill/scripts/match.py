@@ -100,6 +100,7 @@ WORD_RE = re.compile(r"[a-z][a-z0-9_-]+")
 LANGUAGE_ALIASES = {
     "go": "go",
     "golang": "go",
+    "java": "java",
     "js": "javascript",
     "javascript": "javascript",
     "py": "python",
@@ -114,6 +115,7 @@ LANGUAGE_MARKERS = {
         r"(?:\bGolang\b|\bGo\b(?=\s+(?:project|repo|repository|module|service|"
         r"package|code|source|file|CLI|application|app)\b)|\.go\b)"
     ),
+    "java": re.compile(r"(?i)(?:\bjava\b|\.java\b)"),
     "typescript": re.compile(r"(?i)(?:\btypescript\b|\.tsx?\b)"),
     "javascript": re.compile(r"(?i)(?:\bjavascript\b|(?:\.[cm]?js|\.jsx)\b)"),
     "python": re.compile(r"(?i)(?:\bpython\b|\.py\b)"),

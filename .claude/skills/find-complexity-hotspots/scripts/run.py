@@ -17,6 +17,7 @@ sys.dont_write_bytecode = True
 
 from detect import (  # noqa: E402
     GoExtractionError,
+    JavaExtractionError,
     ScanResult,
     TypeScriptExtractionError,
     detect_scan,
@@ -85,6 +86,25 @@ def _render_simple_report(
             lines.append(f"- **Limitation:** {limitation}")
         for row in go.get("ambiguous", []):
             lines.append(f"- **Ambiguous:** `{row['file']}` — `{row['reason']}`")
+        lines.append("")
+    if analysis and "java" in analysis:
+        java = analysis["java"]
+        lines.extend([
+            "## Java analysis", "",
+            f"- **Analyzer:** `{java['analyzer']}`",
+            f"- **Files:** {java['files']['analyzed']} analyzed, "
+            f"{java['files']['excluded']} excluded, "
+            f"{java['files']['unsupported']} unsupported",
+            f"- **Java toolchain:** `{java['actual_java_version'] or 'not-run'}`",
+            f"- **Javac toolchain:** `{java['actual_javac_version'] or 'not-run'}` "
+            f"(minimum JDK `{java['minimum_jdk_version']}`)",
+        ])
+        for limitation in java.get("limitations", []):
+            lines.append(f"- **Limitation:** {limitation}")
+        for row in java.get("unsupported", []):
+            lines.append(f"- **Unsupported:** `{row['file']}` — `{row['reason']}`")
+        for row in java.get("exclusions", []):
+            lines.append(f"- **Excluded:** `{row['file']}` — `{row['reason']}`")
         lines.append("")
     if buckets:
         lines.extend(["## Buckets", "", "| Bucket | Count |", "|---|---|"])
@@ -156,7 +176,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--language",
         action="append",
-        choices=("go", "javascript", "python", "typescript"),
+        choices=("go", "java", "javascript", "python", "typescript"),
         default=[],
         help="Restrict scanning to one or more supported languages.",
     )
@@ -173,7 +193,7 @@ def main(argv: list[str] | None = None) -> int:
             max_findings=args.max_findings,
             languages=set(args.language) or None,
         )
-    except (TypeScriptExtractionError, GoExtractionError) as exc:
+    except (TypeScriptExtractionError, GoExtractionError, JavaExtractionError) as exc:
         print(f"[find-complexity-hotspots] ERROR: {exc}", file=sys.stderr)
         return 2
     report_dir = _write_scan_outputs(scan, target, project_root)

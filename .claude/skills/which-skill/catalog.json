@@ -323,10 +323,10 @@
     },
     {
       "name": "find-complexity-hotspots",
-      "description": "Detect advisory Python, JavaScript, TypeScript, and Go function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only JS/JSX/MJS/CJS/TS/TSX and Go high-branch findings for named body-bearing functions and methods.",
+      "description": "Detect advisory Python, JavaScript, TypeScript, Go, and Java function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only JS/JSX/MJS/CJS/TS/TSX, Go, and Java high-branch findings for bounded named functions, methods, and constructors.",
       "tier": "maintenance",
       "job": "suspect",
-      "best_for": "Read-only complexity leads. Python retains nested-loop, membership-scan,\nsort/repeated-scan, Django-query, and high-branch bands. TypeScript/TSX\nreports only per-function syntactic branch complexity with exact source spans\nand analyzer provenance.\n",
+      "best_for": "Read-only complexity leads. Python retains nested-loop, membership-scan,\nsort/repeated-scan, Django-query, and high-branch bands. TypeScript/TSX\nreports only per-function syntactic branch complexity with exact source spans\nand analyzer provenance. Go and Java add equally bounded native-parser facts.\n",
       "not_for": "Implementing optimizations, SQL query-plan/index decisions, profiling, or\nbenchmark design. TypeScript React/Node/ORM semantics, receiver or\ntype claims, import resolution, and expression-bodied arrows are out of\nscope. Broad module-level responsibility sprawl belongs to /find-omnibus.\n",
       "language": "any",
       "framework": "any",
@@ -334,7 +334,8 @@
         "python",
         "javascript",
         "typescript",
-        "go"
+        "go",
+        "java"
       ],
       "_path": "skills/find-complexity-hotspots"
     },

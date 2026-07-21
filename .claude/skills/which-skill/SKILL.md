@@ -76,7 +76,8 @@ Write toward these gates from Stage 0.
 The required argument is a free-text task description. Optional repeatable
 `--language` and `--framework` flags establish the host context explicitly.
 Without `--language`, only an exact language name or source suffix in the task
-(`TypeScript`, `.ts`, `.tsx`, `JavaScript`, `.js`, `.jsx`, `Python`, `.py`)
+(`TypeScript`, `.ts`, `.tsx`, `JavaScript`, `.js`, `.jsx`, `Python`, `.py`,
+`Go`, `.go`, `Java`, `.java`)
 may establish one language. Mixed exact markers disable language filtering;
 the matcher never guesses from broad terms such as “frontend.”
 
