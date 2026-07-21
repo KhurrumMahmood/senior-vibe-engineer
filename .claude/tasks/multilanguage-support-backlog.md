@@ -449,7 +449,7 @@ auditable when completeness matters.
 
 ### ML-020 — Compress skill families and batch complementary lenses by default
 
-- State: `queued_after_java_j1_before_broad_language_or_framework_expansion`
+- State: `complete_bounded_code_health_family`
 - User value: one routed family operation can cover the relevant engineering
   lenses with less repeated context and wall time than invoking several large
   skills independently, while the root agent receives one actionable result.
@@ -490,6 +490,28 @@ auditable when completeness matters.
 - Reusable outcome if successful: a small family manifest and launcher pattern,
   not a universal DAG, shared-context cache, autonomous mutation engine, or
   rewrite of every existing skill.
+- Completion evidence: the router now selects the bounded
+  `code-health-readonly` family only for broad read-only JavaScript/TypeScript
+  health requests, retains `/find-complexity-hotspots` as the primary skill,
+  returns per-member capability-backed on-demand closures, and makes missing
+  standards, decision registries, host deactivation, or unsupported capability
+  explicit skips. All five exact natural benchmark prompts now activate the
+  family; invalid standards and excluded-only targets remain incomplete, and a
+  mixed JavaScript/TypeScript request does not enter a one-language launcher.
+  Host-inactive family members remain skipped by both routing and execution.
+  Five paired GPT-5.6 Luna trials compared full-skill serial,
+  compressed-family serial, and compressed-family max-three parallel execution
+  with four real tool/synthesis turns per condition. Every timed condition,
+  the unseen-host replay, and both invalid-standards sentinels preserved the
+  canonical artifact outcome, incomplete states, native checks, and source
+  bytes. Compressed parallel cut controlled context 78.84%, reported aggregate
+  tokens 22.23%, and median wall time 52.68% versus full serial. Compact
+  evidence is `.claude/tasks/ml020-code-health-results.json`; learning packets
+  are `.claude/tasks/multilanguage-learnings/code-health-family-ml020.{json,md}`.
+  The live benchmark directly constructed member commands; future preparation
+  freezes each exact prompt's product route projection before model calls.
+  This validates one family, not a general coordinator; a second family must
+  reduce total maintained code before shared coordination is extracted.
 
 ### ML-021 — Reduce repeated Java launcher/plumbing without sharing semantic facts
 

@@ -32,6 +32,12 @@ SKILL_DIR = SCRIPT_PATH.parents[1]
 DEFAULT_CATALOG = SKILL_DIR / "catalog.json"
 DEFAULT_SOURCE = "https://github.com/KhurrumMahmood/senior-vibe-engineer"  # host-ref-allow: public distribution repository
 DEFAULT_CLI_VERSION = "1.5.19"
+CODE_HEALTH_FAMILY = "code-health-readonly"
+CODE_HEALTH_MEMBERS = (
+    "audit-decisions",
+    "find-complexity-hotspots",
+    "find-standard-gaps",
+)
 
 # Optional task-packet fields surfaced on the winning candidate (PR B-lite).
 TASK_PACKET_FIELDS = (
@@ -150,6 +156,23 @@ COMPLETED_REPRODUCTION_RE = re.compile(
     re.IGNORECASE,
 )
 ORDERED_PHASE_RE = re.compile(r"\b(?:then|after|before|finally|next)\b", re.IGNORECASE)
+CODE_HEALTH_RE = re.compile(
+    r"\b(?:code|codebase|engineering|project|repo(?:sitory)?)\s+health\b|"
+    r"\b(?:broad|overall|whole(?:\s+(?:project|repo(?:sitory)?))?)\b"
+    r"(?:\s+\w+){0,4}\s+(?:code\s+quality|health\s+check)\b|"
+    r"\bhealth\s+check\b(?:\s+\w+){0,6}\s+"
+    r"(?:code|codebase|project|repo(?:sitory)?)\b",
+    re.IGNORECASE,
+)
+READ_ONLY_RE = re.compile(
+    r"\bread[- ]only\b|\bwithout\s+(?:changing|editing|modifying|fixing)\b|"
+    r"\bdo\s+not\s+(?:change|edit|modify|fix)\b",
+    re.IGNORECASE,
+)
+MUTATION_RE = re.compile(
+    r"\b(?:fix|change|edit|modify|refactor|rewrite|apply|implement)\b",
+    re.IGNORECASE,
+)
 
 
 def _read_manifest(root: Path) -> dict:
@@ -271,6 +294,77 @@ def is_ordered_multi_phase_task(task: str, task_tokens: set[str]) -> bool:
         if task_tokens & JOB_HINTS[job]
     }
     return len(phase_jobs) >= 2
+
+
+def is_code_health_family_request(task: str, routing_context: dict) -> bool:
+    """Select the one proven family only for an explicit broad JS/TS health ask."""
+    languages = set(routing_context["languages"])
+    normalized_task = re.sub(r"[-–—,;:/]+", " ", task)
+    return bool(
+        CODE_HEALTH_RE.search(normalized_task)
+        and len(languages) == 1
+        and languages <= {"typescript", "javascript"}
+        and (READ_ONLY_RE.search(task) or not MUTATION_RE.search(task))
+    )
+
+
+def _host_standards_dependency(path: Path | None) -> dict:
+    """Validate only the minimum file-level shape worth scanner dispatch."""
+    if path is None:
+        return {"available": False, "reason": "host_standards_path_not_supplied"}
+    dependency = {"available": False, "path": str(path)}
+    if not path.is_file():
+        return {**dependency, "reason": "host_standards_path_missing"}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return {**dependency, "reason": "host_standards_invalid"}
+    ideas = payload.get("ideas") if isinstance(payload, dict) else None
+    executable = isinstance(ideas, list) and any(
+        _detector_dispatchable(row) for row in ideas
+    )
+    if not executable:
+        return {**dependency, "reason": "host_standards_invalid"}
+    return {"available": True, "path": str(path)}
+
+
+def _detector_dispatchable(idea: object) -> bool:
+    """Check only fields needed to start a scanner detector."""
+    if not isinstance(idea, dict) or not isinstance(idea.get("contract"), dict):
+        return False
+    detector = idea["contract"].get("detector")
+    if not isinstance(detector, dict):
+        return False
+    paths = detector.get("paths")
+    if paths is not None and (
+        not isinstance(paths, list)
+        or not paths
+        or any(
+            not isinstance(path, str) or not path or Path(path).is_absolute()
+            for path in paths
+        )
+    ):
+        return False
+    try:
+        if detector.get("kind") == "grep":
+            re.compile(detector["situation"])
+            satisfied_by = detector.get("satisfied_by")
+            if satisfied_by is not None:
+                re.compile(satisfied_by)
+            window = int(detector.get("window", 20))
+            return detector.get("scope", "window") in {"window", "file"} and window >= 0
+        if detector.get("kind") == "ast":
+            re.compile(detector["call_matches"])
+            enclosed_by = detector.get("enclosed_by")
+            requires_kwarg = detector.get("requires_kwarg")
+            return (
+                bool(enclosed_by) != bool(requires_kwarg)
+                and (not enclosed_by or enclosed_by in {"try", "with", "defer"})
+                and (not requires_kwarg or isinstance(requires_kwarg, str))
+            )
+    except (KeyError, TypeError, ValueError, re.error):
+        return False
+    return False
 
 
 def has_explicit_skill_request(skill: dict, task_tokens: set[str]) -> bool:
@@ -625,6 +719,104 @@ def library_handoff(library_root: Path, skills: list[str]) -> dict:
     }
 
 
+def code_health_family_handoff(
+    *,
+    library_root: Path,
+    project_root: Path,
+    standards: Path | None,
+    routing_context: dict,
+) -> dict:
+    """Return the bounded family closure without ambiently installing members."""
+    root = library_root / ".claude" / "skill-families" / CODE_HEALTH_FAMILY
+    paths = {
+        "root": str(root),
+        "manifest": str(root / "manifest.json"),
+        "core": str(root / "CORE.md"),
+        "launcher": str(root / "scripts" / "run.py"),
+    }
+    standards_path = standards
+    if standards_path is not None and not standards_path.is_absolute():
+        standards_path = project_root / standards_path
+    if standards_path is not None:
+        standards_path = standards_path.resolve()
+    decision_registry = project_root / "ai-docs" / "decisions"
+    dependencies = {
+        "decision_registry": {
+            "available": decision_registry.is_dir(),
+            "path": str(decision_registry),
+        },
+        "host_standards": _host_standards_dependency(standards_path),
+    }
+    dependency_by_skill = {
+        "audit-decisions": "decision_registry",
+        "find-complexity-hotspots": None,
+        "find-standard-gaps": "host_standards",
+    }
+    family_available = all(Path(value).exists() for value in paths.values())
+    members = []
+    runnable = []
+    skips = []
+    for skill in CODE_HEALTH_MEMBERS:
+        skill_root = library_root / ".claude" / "skills" / skill
+        guide = root / "members" / f"{skill}.md"
+        member = {
+            "skill": skill,
+            "guide": str(guide),
+            "skill_root": str(skill_root),
+            "full_skill_guide": str(skill_root / "SKILL.md"),
+            "bundled_tooling": str(skill_root / "scripts"),
+            "dependency": dependency_by_skill[skill],
+            "on_demand_closure": library_handoff(library_root, [skill]),
+        }
+        members.append(member)
+        dependency = dependency_by_skill[skill]
+        capability_reason = capability_language_exclusion(
+            member["on_demand_closure"]["capabilities"], routing_context
+        )
+        if not family_available or not guide.is_file() or not (skill_root / "SKILL.md").is_file():
+            skips.append({"skill": skill, "reason": "family_closure_unavailable"})
+        elif not _is_skill_active(project_root, skill):
+            skips.append(
+                {
+                    "skill": skill,
+                    "reason": _inactive_reason(project_root, skill) or "host_skill_inactive",
+                }
+            )
+        elif not member["on_demand_closure"]["capabilities"]["available"]:
+            skips.append({"skill": skill, "reason": "capability_evidence_unavailable"})
+        elif capability_reason is not None:
+            skips.append({"skill": skill, "reason": capability_reason})
+        elif dependency and not dependencies[dependency]["available"]:
+            if dependency == "host_standards":
+                reason = dependencies[dependency]["reason"]
+            else:
+                reason = "decision_registry_missing"
+            skips.append({"skill": skill, "reason": reason})
+        else:
+            runnable.append(skill)
+    return {
+        "name": CODE_HEALTH_FAMILY,
+        "available": family_available,
+        "primary": "find-complexity-hotspots",
+        "coverage_set": list(CODE_HEALTH_MEMBERS),
+        "runnable": runnable,
+        "skips": skips,
+        "dependencies": dependencies,
+        "execution": {
+            "max_parallel_read_only": 3,
+            "mutation": "forbidden",
+            "synthesis_owner": "family-launcher",
+        },
+        "paths": paths,
+        "members": members,
+        "instruction": (
+            "Give a fresh non-context sub-agent only the task, project root, family core, "
+            "runnable member guides, launcher path, and exact on-demand skill roots. "
+            "Report every skip; do not ambiently install member skills."
+        ),
+    }
+
+
 def optional_install_handoff(
     *,
     skill: str,
@@ -702,6 +894,7 @@ def cmd_match(args, catalog_path: Path) -> int:
         job_hits = sorted(set(job_hits) | {"skill-development"})
     diagnosis_is_complete = is_completed_or_negated_diagnosis(task)
     ordered_multi_phase = is_ordered_multi_phase_task(task, task_tokens)
+    code_health_family_requested = is_code_health_family_request(task, routing_context)
 
     try:
         skills = load_skills(catalog_path)
@@ -743,9 +936,17 @@ def cmd_match(args, catalog_path: Path) -> int:
         has_explicit_skill_request(skill, task_tokens)
         for skill in skills
     )
+    project_root = args.project_root.resolve()
+    if explicit_skill_requested or not _is_skill_active(
+        project_root, "find-complexity-hotspots"
+    ):
+        code_health_family_requested = False
     ranked = []
     for sk in skills:
         score, rationale = score_skill(sk, task_tokens, inferred_tier, inferred_job)
+        if code_health_family_requested and sk.get("name") == "find-complexity-hotspots":
+            score += 200
+            rationale.append("broad JS/TS code-health family primary")
         if (
             ordered_multi_phase
             and not explicit_skill_requested
@@ -757,8 +958,6 @@ def cmd_match(args, catalog_path: Path) -> int:
     ranked.sort(key=lambda t: (-t[0], t[1].get("name", "")))
 
     threshold = args.threshold
-    project_root = args.project_root.resolve()
-
     # Activation gate — a skill the host has opted out of cannot be
     # recommended for this repo, no matter how well it scores. Drop inactive
     # skills from the candidate pool; surface any that *would* have qualified
@@ -920,6 +1119,13 @@ def cmd_match(args, catalog_path: Path) -> int:
         agent=args.agent,
         capabilities=out["handoff"]["capabilities"],
     )
+    if code_health_family_requested:
+        out["coverage_family"] = code_health_family_handoff(
+            library_root=library_root,
+            project_root=project_root,
+            standards=args.standards,
+            routing_context=routing_context,
+        )
     if args.json:
         print(json.dumps(out, indent=2))
     else:
@@ -956,6 +1162,16 @@ def cmd_match(args, catalog_path: Path) -> int:
                 "  Optional ambient install unavailable: "
                 f"{out['optional_install']['reason']}"
             )
+        if "coverage_family" in out:
+            family = out["coverage_family"]
+            print()
+            print(f"Complementary coverage: {family['name']}")
+            print(f"  Core: {family['paths']['core']}")
+            print(f"  Launcher: {family['paths']['launcher']}")
+            print(f"  Runnable: {', '.join('/' + name for name in family['runnable']) or 'none'}")
+            for skip in family["skips"]:
+                print(f"  Skip /{skip['skill']}: {skip['reason']}")
+            print("  Members stay in the on-demand library; do not ambiently install them.")
         if len(above) < len(top):
             print()
             print("Below threshold (shown for context):")
@@ -1022,6 +1238,14 @@ def main(argv: list[str] | None = None) -> int:
         "--framework",
         action="append",
         help="Explicit host framework (repeatable); framework-specific skills require it.",
+    )
+    p.add_argument(
+        "--standards",
+        type=Path,
+        help=(
+            "Host-owned standards JSON for the bounded code-health coverage family; "
+            "without it, find-standard-gaps is returned as an explicit skip."
+        ),
     )
     p.add_argument("--top", type=int, default=3, help="How many candidates to show")
     p.add_argument(

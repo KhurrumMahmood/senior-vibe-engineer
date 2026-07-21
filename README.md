@@ -134,6 +134,15 @@ a pinned `skills@1.5.19` selected-skill command is emitted only when every
 closure member has passed selected-install evidence and the user explicitly
 chooses ambient installation; other closures report that path unavailable.
 
+For an explicit broad, read-only code-health request that resolves to exactly
+one of JavaScript or TypeScript,
+`which-skill` can return one bounded complementary family: decision drift,
+complexity hotspots, and declared-standard gaps. The router reports required
+host inputs and skips, points to concise family/member contracts, and keeps all
+three task skills in the on-demand library. Independent read-only members may
+run concurrently in fresh lanes; fixes and every other mutation remain serial.
+Narrow requests still route to one skill.
+
 To remove all skills installed for the project:
 
 ```bash

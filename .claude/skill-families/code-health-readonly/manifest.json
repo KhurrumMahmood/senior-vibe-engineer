@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "name": "code-health-readonly",
+  "primary": "find-complexity-hotspots",
+  "languages": ["typescript", "javascript"],
+  "max_parallel_read_only": 3,
+  "members": [
+    {
+      "skill": "audit-decisions",
+      "guide": "members/audit-decisions.md",
+      "dependency": "decision_registry"
+    },
+    {
+      "skill": "find-complexity-hotspots",
+      "guide": "members/find-complexity-hotspots.md",
+      "dependency": null
+    },
+    {
+      "skill": "find-standard-gaps",
+      "guide": "members/find-standard-gaps.md",
+      "dependency": "host_standards"
+    }
+  ]
+}

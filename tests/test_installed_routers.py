@@ -657,6 +657,68 @@ def test_default_router_set_is_exactly_three():
     assert DEFAULT_ROUTERS == ("which-shape", "which-skill", "which-cleanup")
 
 
+def test_installed_router_returns_code_health_family_from_on_demand_library(tmp_path):
+    host = tmp_path / "host"
+    installed = {name: _install_router(host, name) for name in DEFAULT_ROUTERS}
+    (host / "src").mkdir(parents=True)
+    (host / "ai-docs" / "decisions").mkdir(parents=True)
+    standards = host / "standards.json"
+    standards.write_text(
+        json.dumps(
+            {
+                "ideas": [
+                    {
+                        "id": "checked-json-parse",
+                        "contract": {
+                            "detector": {
+                                "kind": "ast",
+                                "call_matches": "^JSON\\.parse$",
+                                "enclosed_by": "try",
+                                "paths": ["src/**/*"],
+                            }
+                        },
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "Run a broad read-only TypeScript code health audit across src",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(REPO_ROOT),
+        "--standards",
+        str(standards),
+        "--json",
+        cwd=host,
+    )
+
+    payload = _json_output(result)
+    assert payload["recommendation"] == "find-complexity-hotspots"
+    family = payload["coverage_family"]
+    assert family["available"] is True
+    assert family["runnable"] == family["coverage_set"]
+    assert family["skips"] == []
+    assert family["paths"]["root"] == str(
+        REPO_ROOT / ".claude" / "skill-families" / "code-health-readonly"
+    )
+    assert all(
+        member["on_demand_closure"]["capabilities"]["available"] is True
+        for member in family["members"]
+    )
+    assert "optional_install" not in family
+    assert {
+        path.name
+        for path in (host / ".agents" / "skills").iterdir()
+        if path.is_dir()
+    } == set(DEFAULT_ROUTERS)
+
+
 @pytest.mark.parametrize(
     ("task", "excluded_skill"),
     [

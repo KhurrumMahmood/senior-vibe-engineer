@@ -1,0 +1,62 @@
+{
+  "batch": "ML-020 compressed read-only code-health family",
+  "family": [
+    "audit-decisions",
+    "find-complexity-hotspots",
+    "find-standard-gaps"
+  ],
+  "invariant": {
+    "portable_principle": "One routed read-only family may share execution and synthesis invariants while each member retains its own final-artifact and completeness contract.",
+    "binding_guards": [
+      "source mutation is forbidden",
+      "partial, unsupported, missing, skipped, and error evidence is never clean",
+      "generated, dependency, test, output, and symlink exclusions remain member-owned",
+      "every actionable final-artifact finding reaches the consolidated result"
+    ],
+    "explicit_non_goals": [
+      "universal workflow DAG",
+      "shared context cache",
+      "parallel mutation",
+      "automatic fixes",
+      "compression of every skill"
+    ]
+  },
+  "tooling": {
+    "selected": "one family manifest, shared core, three concise member contracts, a family-local max-three read-only launcher, and fresh non-context execution lanes",
+    "model_evaluation": "GPT-5.6 Luna at medium effort, 72 gate calls, five timed A/B/C trials plus one unseen host and two invalid-standards sentinels",
+    "structured_usage_source": "Codex JSONL turn.completed.usage",
+    "checkpointing": "atomic result.json per lane and synthesis call; partial checkpoint reuse requires the frozen initial host digest",
+    "route_preflight": "future benchmark preparation records the family route projection for every exact timed and validation prompt"
+  },
+  "measured_outcome": {
+    "semantic_and_safety_passed": true,
+    "controlled_context_reduction_percent": 78.83883036768145,
+    "reported_token_change_percent": -22.23164107556261,
+    "median_wall_improvement_percent": 52.67676678449099,
+    "unseen_host_passed": true,
+    "incomplete_evidence_sentinels_passed": true
+  },
+  "generalized": [
+    "compress shared invariants rather than evidence boundaries",
+    "parallelize independent read-only lanes only",
+    "one synthesis owner preserves all findings",
+    "router names dependencies and explicit skips",
+    "benchmark the exact natural prompts only after product routing accepts them",
+    "execution preserves router and host opt-outs",
+    "hidden canonical artifact oracle",
+    "separate failure sentinels from timed trials",
+    "resumable per-call model evaluation"
+  ],
+  "did_not_generalize": [
+    "member-specific analyzers and exclusions",
+    "language capability claims",
+    "mutation ownership",
+    "a common coordinator for unrelated skill families"
+  ],
+  "reuse_decision": {
+    "decision": "adopt-for-one-family",
+    "next_gate": "A second family must demonstrate the same execution invariants and reduce total maintained code before launcher or coordination utilities are shared.",
+    "bloat_signal": "The family launcher is 551 lines and the evaluation harness is 931 lines; neither is a template for blanket replication."
+  },
+  "evidence": ".claude/tasks/ml020-code-health-results.json"
+}

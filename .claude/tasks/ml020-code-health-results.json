@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "benchmark": "ML-020 code-health family compression",
+  "status": "passed",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "timed_trials": 5,
+  "gate_model_calls": 72,
+  "conditions": {
+    "A_full_serial": {
+      "median_wall_ms": 82186.764,
+      "controlled_injected_context_utf8_bytes": 449030,
+      "reported_token_aggregate": 977944,
+      "usage": {
+        "input_tokens": 962112,
+        "cached_input_tokens": 642560,
+        "output_tokens": 12452,
+        "reasoning_output_tokens": 3380
+      }
+    },
+    "B_compressed_serial": {
+      "median_wall_ms": 78189.422,
+      "controlled_injected_context_utf8_bytes": 95057,
+      "reported_token_aggregate": 791794,
+      "context_reduction_percent_vs_full": 78.83059038371601,
+      "token_change_percent_vs_full": -19.034832260333925,
+      "usage": {
+        "input_tokens": 775071,
+        "cached_input_tokens": 541440,
+        "output_tokens": 13017,
+        "reasoning_output_tokens": 3706
+      }
+    },
+    "C_compressed_parallel": {
+      "median_wall_ms": 38893.434,
+      "controlled_injected_context_utf8_bytes": 95020,
+      "reported_token_aggregate": 760531,
+      "context_reduction_percent_vs_full": 78.83883036768145,
+      "token_change_percent_vs_full": -22.23164107556261,
+      "median_wall_improvement_percent_vs_full": 52.67676678449099,
+      "usage": {
+        "input_tokens": 744558,
+        "cached_input_tokens": 464640,
+        "output_tokens": 12656,
+        "reasoning_output_tokens": 3317
+      }
+    }
+  },
+  "gates": {
+    "all_timed_conditions_semantically_equal": true,
+    "all_timed_conditions_source_unchanged": true,
+    "all_native_checks_passed": true,
+    "compressed_context_reduction_gte_30_percent": true,
+    "compressed_token_growth_lte_10_percent": true,
+    "parallel_median_wall_improvement_gte_20_percent": true,
+    "unseen_host_passed": true,
+    "invalid_standards_serial_preserved_incomplete_evidence": true,
+    "invalid_standards_parallel_preserved_incomplete_evidence": true
+  },
+  "validation": {
+    "unseen_host_parallel_wall_ms": 39588.837,
+    "invalid_standards_serial_wall_ms": 91100.825,
+    "invalid_standards_parallel_wall_ms": 42668.523
+  },
+  "all_gate_usage": {
+    "input_tokens": 2942841,
+    "cached_input_tokens": 1984512,
+    "output_tokens": 45769,
+    "reasoning_output_tokens": 12529,
+    "reported_token_aggregate": 3001139
+  },
+  "measurement_scope": {
+    "wall_time": "Codex lane calls through the completed synthesis call; setup, controller digests, and native pre/post checks excluded",
+    "context_bytes": "exact UTF-8 bytes injected by the benchmark prompts; Codex system/tool context and OS filesystem reads are not observable",
+    "reported_token_aggregate": "input_tokens + output_tokens + reasoning_output_tokens; cached_input_tokens reported separately as a subset",
+    "semantic_oracle": "canonical final-artifact projection plus hidden completeness checks, not prose equality"
+  },
+  "product_validation_after_live_benchmark": {
+    "exact_natural_prompts_route_to_family": "5/5",
+    "router_standards_preflight": "missing, invalid, empty, non-executable, and malformed ast/grep detector inputs are explicit skips in both routing and direct launcher execution",
+    "host_inactive_members": "the product launcher preserves router opt-outs and does not execute disabled lanes",
+    "excluded_only_target": "complexity lane is incomplete with no_files_matched",
+    "mixed_javascript_typescript_request": "family not selected because the launcher accepts one language per run",
+    "resume_integrity": "partial checkpoint reuse now requires the current non-report host digest to equal the frozen initial digest",
+    "future_benchmark_preparation": "records a router projection for every timed and validation prompt",
+    "fresh_product_gate": "PASS after 78 focused tests"
+  },
+  "benchmark_routing_scope": "The completed live model run constructed the three lane commands directly. Exact route activation was proved afterward by product regressions; future prepared runs freeze each prompt's route projection before model calls.",
+  "excluded_pre_freeze_calls": [
+    "one synthesis preflight whose ambiguous one-result wording selected one finding",
+    "one intentionally interrupted compressed complexity call with unreported usage"
+  ],
+  "raw_evidence": "reports/ml020-code-health-run/ (gitignored)",
+  "raw_replay_state": "The live run is complete and frozen under its recorded tool hashes. The current harness contains post-run product fixes and intentionally refuses to reopen that directory as if the tools were unchanged; new runs use the corrected resumability and route-preflight contracts.",
+  "harness": "scripts/benchmark_code_health_family.py"
+}

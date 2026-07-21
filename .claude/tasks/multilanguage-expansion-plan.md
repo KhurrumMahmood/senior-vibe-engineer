@@ -1,7 +1,7 @@
 # Multi-language and framework expansion plan
 
-Status: active — P0, P1, P2, U1, P3, the measured batching gate, Go G1, G1D,
-and the bounded G2 pilots complete; the Java pilot is active
+Status: active — P0, P1, P2, U1, P3, Go G1/G1D/G2, the bounded Java pilot,
+and the measured E1/E2 batching and family-compression gates are complete
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
@@ -498,6 +498,37 @@ ML-011. It does not measure model tokens or actual filesystem reads and does
 not justify automatic lens selection, a DAG/context cache, synthesis
 coordination, or parallel mutation.
 
+## Efficiency gate E2 — Compressed code-health family
+
+State: `complete`
+
+ML-020 converted the same three E1 lenses into one bounded routed health
+journey: a 1,996-byte family core, three concise member contracts, per-member
+capability-backed on-demand closures, explicit dependency skips, and a
+family-local max-three read-only launcher. Individual skills remain directly
+invocable; no member is added to the three-router ambient installation.
+
+Five paired GPT-5.6 Luna trials ran four real tool/synthesis turns per
+condition: full-skill serial, compressed-family serial, and compressed-family
+parallel. All 15 timed conditions preserved canonical final-artifact outcomes,
+native checks, incomplete states, and source bytes. The compressed parallel
+condition reduced controlled prompt context by 78.84%, reported aggregate
+tokens by 22.23%, and median model/tool/synthesis wall time by 52.68%. One
+unseen host and separate serial/parallel invalid-standards sentinels passed.
+
+Separate post-run product regressions prove all five exact natural prompts
+activate the family, unusable standards and excluded-only targets remain
+incomplete, mixed-language requests do not enter a one-language launcher, and
+host-inactive members remain skipped during execution. Partial resume checks
+use the frozen host digest. Future benchmark preparation
+also records the route projection before model calls; the completed live run
+constructed member commands directly.
+
+Decision: adopt this one family. Do not infer a universal coordinator. The
+551-line product launcher and 931-line evaluation harness are explicit bloat
+signals; a second family must share the same invariants and reduce total
+maintained code before extracting coordination utilities.
+
 ## Phase P4 — Route/workflow framework pilot
 
 State: `pending`
@@ -679,6 +710,7 @@ are demand-triggered rather than implied by the pilot.
 | P3E Go G1D duplication | complete | `22147a3` plus capability closeout | One native Go module with exact cross-file and same-file clones, clean/generated/test/vendor/build-constrained/malformed/tool failure boundaries | Go/Python/TypeScript/JavaScript family suite: 23 passed; Ruff and gofmt clean | Fresh product-framed review reached PASS after generated-only, same-file labeling, and partial-report repairs | `.claude/tasks/multilanguage-learnings/find-duplication-go.{json,md}`; 12/22 language-level skills now `go-supported` |
 | P3E Go G2 pilots | complete | `94ce0d3`, `2147d5d`, `83d4767`, `0f2d458`, `eeb38da`, plus capability closeout | Independent package-map and dormant-review Go modules with active-build, generated/vendor/test, malformed/tool/symlink, source-safety, and final-artifact cases | Combined focused/preserved suites: 30 passed; final Go-only replay: 12 passed; Ruff, gofmt, and both Go vet checks passed | Map re-review PASS after two correctness and bloat repairs; dormant re-review PASS after last-good, active-build, symlink, malformed-sibling, and generated-evidence repairs | `.claude/tasks/multilanguage-learnings/{map-subsystem-go,find-dormant-go}.{json,md}`; 14/22 language-level skills now `go-supported`; no shared Go runtime extracted |
 | E1 read-only batching | complete | benchmark implementation commit (this revision) | Fresh isolated TypeScript and JavaScript hosts per condition and trial | Focused contract: 2 passed; frozen benchmark: 7 paired trials per language, semantic/native/source gates all passed, zero failures/interventions | Fresh product-framed review found a single-language gate bypass; repaired at CLI and aggregate layers; bounded re-review PASS | `.claude/tasks/ml009-readonly-batch-results.json`; ML-011 is the bounded product follow-up |
+| E2 compressed code-health family | complete | this revision | Five disposable TypeScript A/B/C triplets, one unseen TypeScript host, two invalid-standards sentinels | 15/15 timed conditions and 3/3 validation cases passed; context -78.84%, tokens -22.23%, median wall -52.68%; 78 focused product tests pass | Fresh product review and two bounded re-review turns closed seven user-real defects; final gate PASS. Live run directly constructed lanes; future preparation freezes route projections and partial resume uses the frozen host digest | `.claude/tasks/ml020-code-health-results.json` and `.claude/tasks/multilanguage-learnings/code-health-family-ml020.{json,md}` |
 | P4 route frameworks | pending | — | — | — | — | — |
 | P5 Java next-language pilot | complete (bounded 3/22 core) | `e14274b`, `cfd0e2d`, `cd7a445`, closeout commit | Three standalone Java 17 fixtures cover detector, proposal, and transactional mutation boundaries | Integrated Java/preserved proposal+mover/router+matrix replay: 120 passed, 1 intentional skip; canonical committed-head router replay follows closeout commit | J0 product review passed after four regressions; J1 fresh product-framed review found five user-facing defects, all became regressions, and bounded re-review PASS | Three Java packet pairs under `.claude/tasks/multilanguage-learnings/`; capability manifest records 3 supported and 19 pending; ML-021/ML-022 preserve simplification and evidence-integrity follow-ups |
 

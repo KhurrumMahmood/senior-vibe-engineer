@@ -152,6 +152,13 @@ The matcher returns JSON with:
   availability, and the default fresh non-context-sub-agent execution mode.
   Before the on-demand library is bootstrapped, capability metadata reports a
   stable unavailable reason instead of guessing.
+- `coverage_family` — only for an explicit broad, read-only code-health request
+  that resolves to exactly one of TypeScript or JavaScript. It keeps one
+  primary recommendation and adds the bounded `code-health-readonly` family
+  core, three concise member contracts, per-member on-demand
+  closures/capabilities, dependency status, explicit skips, and the
+  family-local launcher path. It never adds member skills to the ambient
+  install or emits a family install command.
 - `optional_install` — a pinned stock command only when every member of the
   exact closure has passed selected-install evidence; otherwise it is an
   explicit unavailable result. It is used only when the user requests ambient
@@ -174,6 +181,14 @@ inputs, expecting these outputs, gated on this evidence." See
 Exit code 0 = recommendation found; exit code 1 = no skill applies
 (Quick tier or all-below-threshold). Both are valid outcomes — only
 exit code 2 is an error.
+
+For the code-health family, pass `--standards <host-owned.json>` when the host
+has declared at least one minimally valid `ast` or `grep` detector. Missing,
+invalid, empty, or non-executable standards leave `/find-standard-gaps` in the
+coverage set but return it as an explicit skip. A missing decision registry similarly skips
+`/audit-decisions`; neither absence is presented as
+clean evidence. Explicit individual-skill or mutation requests retain normal
+single-skill routing.
 
 ### Stage 2 — Render the recommendation
 
