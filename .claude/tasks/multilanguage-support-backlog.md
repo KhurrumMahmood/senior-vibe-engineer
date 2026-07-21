@@ -550,6 +550,33 @@ auditable when completeness matters.
 - Non-goals: commit signing, content-addressed installation, or reviving the
   discarded transactional-attestation platform.
 
+### ML-023 — Language-idiom and standard-tool profiles
+
+- State: `proposed`
+- User value: compatibility work should help agents produce code that an
+  experienced practitioner of the host language considers idiomatic, rather
+  than merely translating Python/TypeScript-shaped patterns into parseable
+  Go, Java, C#, or other syntax.
+- Trigger: the compatibility matrix is complete enough for one language to
+  compare existing skill outcomes against its expert conventions, or a real
+  host review identifies recurring cross-language carryover mistakes.
+- Smallest experiment: build one concise profile for Go from authoritative
+  language guidance and mature standard/community tools. Apply it to one
+  representative cleanup journey and compare expert review findings with and
+  without the profile.
+- Acceptance: the profile names idioms, common non-idiomatic carryovers,
+  standard native verification commands, and framework-specific extensions;
+  routing loads it only for a relevant language/task; executable checks defer
+  to established tools where possible; an expert-reviewed fixture shows a
+  material improvement without expanding every skill body.
+- Likely delivery shape: metadata plus a small guide/tool manifest in the
+  on-demand library, available to entry routers and fresh execution agents.
+  Keep framework conventions in supplementary profiles rather than treating
+  them as universal language rules.
+- Non-goals: reimplementing `go vet`, Staticcheck, Clippy, Roslyn analyzers,
+  RuboCop, PHPStan, or comparable ecosystems; embedding all profiles in ambient
+  router context; claiming that one style guide captures every project.
+
 ## External release dependency (tracked, not a language feature)
 
 The reviewed branch is still not the public source named by the README. Before

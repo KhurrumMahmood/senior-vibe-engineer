@@ -1,0 +1,48 @@
+{
+  "batch": "Go closed-state G3 family",
+  "status": "implementation_complete_pending_fresh_review",
+  "family": [
+    "find-implicit-state",
+    "extract-enum",
+    "prevent-regression"
+  ],
+  "native_tooling": [
+    "Go >= 1.22",
+    "go list -deps -export -json -e ./...",
+    "go/parser",
+    "go/types",
+    "gofmt",
+    "go vet",
+    "go test ./..."
+  ],
+  "portable_principle": "Compiler-resolved field identity can justify a review candidate, but repeated string literals do not prove that a Go domain is closed.",
+  "final_outcomes": {
+    "detector": "JSONL inventory and classified operations",
+    "proposal": "review-required named-string and typed-constant proposal",
+    "guard": "staged exact package/carrier/field guard with bad/good fixtures"
+  },
+  "shared_fact_decision": {
+    "owner": "find-implicit-state",
+    "consumer": "prevent-regression staged guard",
+    "mechanism": "copy the exact analyzer from the declared sibling closure",
+    "rejected": [
+      "second analyzer implementation",
+      "field-name regex fallback",
+      "universal Go analysis platform"
+    ]
+  },
+  "known_limits": [
+    "direct selector comparisons and plain assignments only",
+    "no alias or general dataflow",
+    "no struct-literal initialization or switch cases",
+    "no proof of domain exhaustiveness",
+    "vendor-like carrier names are review candidates, not ownership proof",
+    "no cgo, build-matrix, reflection, generated-protocol, or framework claims"
+  ],
+  "evidence": [
+    "tests/test_find_implicit_state_go.py",
+    "tests/fixtures/find-implicit-state-go",
+    ".claude/tasks/multilanguage-learnings/go-closed-state-family.md"
+  ],
+  "next_gate": "Fresh product-framed review, accepted repairs, committed revision, then promote the three Go capability rows."
+}

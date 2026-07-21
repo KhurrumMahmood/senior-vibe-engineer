@@ -430,7 +430,7 @@ must not block this phase.
 | G1 structural/standards | complete | `find-omnibus`, `find-standard-gaps` | Batched native syntax facts reach final reports; 51 focused/preserved tests passed; fresh review PASS. |
 | G1D duplication | complete | `find-duplication` | Batched native exact-body evidence reaches final triage from a copied closure; 23 family tests passed and fresh product-framed review reached PASS after three bounded correctness repairs. |
 | G2 semantic/project | complete | `map-subsystem`, `find-dormant` promoted; four candidates deferred | Two independent family-local pilots passed final artifacts, copied closures, preserved-language suites, and bounded re-review; actual overlap did not justify shared extraction. |
-| G3 proposals/guards | pending | Four skills named in the transfer guide | Begin only from accepted upstream Go evidence. |
+| G3 proposals/guards | in_progress | `find-implicit-state` → `extract-enum` → `prevent-regression` implementation and focused preservation evidence complete; capability promotion awaits fresh review and committed closeout | One copied-closure maintenance loop now reaches resolved detector evidence, a review-only typed-constant proposal, and a staged exact-field guard. `propose-folder-reorganization` remains pending. |
 
 G1 promotion is per skill. Shared capability, matrix, router, and plan changes
 remain serial; implementation lanes may not promote their own rows. Every lane
@@ -475,11 +475,11 @@ states, schemas, and copied closures differ. A shared primitive would add a new
 runtime boundary without reducing either user journey, so both remain
 family-local.
 
-G2 raises Go coverage to 14 of 22 language-level skills; eight remain
-`pending-validation`. Stop the Go expansion here for now: the deferred rows
-need stronger actionability or semantic authority, while the current corpus is
-large enough to transfer the native-tooling and fixture lessons to the next
-major language.
+G2 raised Go coverage to 14 of 22 language-level skills. The later G3
+closed-state slice has implementation evidence for three more rows, but they
+remain `pending-validation` until fresh review and committed closeout. The
+remaining five rows need separate actionability or semantic-authority
+decisions; they do not inherit support from this family.
 
 ## Efficiency gate E1 — Measured read-only batching
 

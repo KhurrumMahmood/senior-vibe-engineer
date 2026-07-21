@@ -246,10 +246,10 @@
     },
     {
       "name": "extract-enum",
-      "description": "Turn a confirmed Django string-state field into a TextChoices proposal, or a reviewed TypeScript or checked-JavaScript closed-state detector result into an as-const runtime-value-object proposal. Emits an implementation-ready caller and boundary inventory without editing production code.",
+      "description": "Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or a Go implicit-state review candidate into a named-string typed-constant proposal. Emits a caller and boundary inventory without editing production code.",
       "tier": "maintenance",
       "job": "explain",
-      "best_for": "A confirmed implicit-state finding (or explicit `<file>::<field>`\ntarget) on a Django model field, ready for a TextChoices proposal —\nproduces the enum class, caller migration table, data-migration risks,\nand stop condition. Read-only. Decided in: 0001 (TextChoices for state).\nFor TypeScript or checked JavaScript, consume the closed-state detector JSONL to propose one\nexported as-const runtime value object, its derived union, all caller\nmigrations, and named vendor boundaries.\n",
+      "best_for": "A confirmed implicit-state finding (or explicit `<file>::<field>`\ntarget) on a Django model field, ready for a TextChoices proposal —\nproduces the enum class, caller migration table, data-migration risks,\nand stop condition. Read-only. Decided in: 0001 (TextChoices for state).\nFor TypeScript or checked JavaScript, consume the closed-state detector JSONL to propose one\nexported as-const runtime value object, its derived union, all caller\nmigrations, and named vendor boundaries.\nFor Go, consume go/types-resolved repeated-operation evidence and produce a\nreview-only named string type plus typed constants.\n",
       "not_for": "Detection (use /find-implicit-state first). Tuple-inferred-identity\nsub-shape — a `.filter(status=X, *_at__...).first()` pattern (use\n/introduce-fk). Refactor execution (use /fix-workflow). Non-model\nfirst-party string sentinels (a dataclass attribute, function return,\nmodule constant, or command-internal outcome) — those take a plain\n`str`-valued Enum (`enum.StrEnum` on 3.11+, or `class X(str, Enum)`),\nnot TextChoices, and the collector only walks model fields; apply that\nconversion by hand.\nDo not use the TypeScript or checked-JavaScript branch for untyped/open-ended strings, a\nframework-specific ORM representation, or a project-native string enum\nwithout fixture evidence for that convention.\n",
       "language": "any",
       "framework": "any",
@@ -484,7 +484,7 @@
     },
     {
       "name": "find-implicit-state",
-      "description": "Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript and checked-JavaScript closed-state branches. The compiler branches distinguish first-party bare state operations from typed authorities, vendor wire boundaries, tests/fixtures, unrelated status text, and open-ended strings. Detection-only — never edits production code.",
+      "description": "Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, and Go state branches. Compiler-backed branches distinguish first-party bare state operations from typed authorities, vendor wire boundaries, tests/fixtures, unrelated fields, and insufficient evidence. Detection-only — never edits production code.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Stringly-typed status / phase / state comparisons against bare\nliterals; `.filter(status=..., *_at__...)` tuple-inferred identity.\nTargets the stringly-typed-state smell. Decided in: 0001\n(TextChoices for state).\nIn TypeScript, closed state receivers with repeated bare string\ncomparisons or assignments and a host-owned Compiler API.\n",
@@ -494,7 +494,8 @@
       "scans": [
         "python",
         "typescript",
-        "javascript"
+        "javascript",
+        "go"
       ],
       "_path": "skills/find-implicit-state"
     },
@@ -967,6 +968,9 @@
       "not_for": "Detection of new smells (use a find-* SUSPECT skill). Refactor\nexecution (use /fix-workflow or /refactor-subsystem). One-off\npattern fixes the team has decided NOT to enforce broadly (just\nfix in place).\n",
       "language": "any",
       "framework": "any",
+      "install_with": [
+        "find-implicit-state"
+      ],
       "_path": "skills/prevent-regression"
     },
     {

@@ -1,7 +1,7 @@
 ---
 name: find-implicit-state
-description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript and checked-JavaScript closed-state branches. The compiler branches distinguish first-party bare state operations from typed authorities, vendor wire boundaries, tests/fixtures, unrelated status text, and open-ended strings. Detection-only — never edits production code.
-argument-hint: "--target <directory> [--language typescript|javascript]"
+description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, and Go state branches. Compiler-backed branches distinguish first-party bare state operations from typed authorities, vendor wire boundaries, tests/fixtures, unrelated fields, and insufficient evidence. Detection-only — never edits production code.
+argument-hint: "--target <directory> [--language typescript|javascript|go]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -21,7 +21,7 @@ not_for: |
   generic TypeScript lint generator.
 language: any
 framework: any
-scans: [python, typescript, javascript]
+scans: [python, typescript, javascript, go]
 scout_model: cheap
 ---
 
@@ -137,6 +137,13 @@ node "${SKILL_ROOT}/scripts/detect_typescript_state.mjs" \
 
 This is a standalone host-root command: it resolves the selected skill itself
 under either supported installation layout.
+
+## Go implicit-state review branch
+
+For a Go target, read and follow `knowledge/go-v1.md`. Load that file only for
+Go work. Its result is a review candidate—not compiler proof that the domain is
+closed—and only its `first_party_state_operation` records may proceed to
+`/extract-enum`.
 
 ## Scope
 

@@ -1,6 +1,6 @@
 ---
 name: extract-enum
-description: Turn a confirmed Django string-state field into a TextChoices proposal, or a reviewed TypeScript or checked-JavaScript closed-state detector result into an as-const runtime-value-object proposal. Emits an implementation-ready caller and boundary inventory without editing production code.
+description: Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or a Go implicit-state review candidate into a named-string typed-constant proposal. Emits a caller and boundary inventory without editing production code.
 argument-hint: "<implicit-state:ID or FILE::FIELD>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -14,6 +14,8 @@ best_for: |
   For TypeScript or checked JavaScript, consume the closed-state detector JSONL to propose one
   exported as-const runtime value object, its derived union, all caller
   migrations, and named vendor boundaries.
+  For Go, consume go/types-resolved repeated-operation evidence and produce a
+  review-only named string type plus typed constants.
 not_for: |
   Detection (use /find-implicit-state first). Tuple-inferred-identity
   sub-shape — a `.filter(status=X, *_at__...).first()` pattern (use
@@ -103,6 +105,12 @@ and [collect_typescript_state] stderr: the proposal must enumerate every
 first-party caller, all distinct literals, and the excluded vendor boundary.
 After human review applies the proposal, run the host's npm run typecheck and
 native npm test; this skill remains read-only.
+
+## Go typed-state proposal branch
+
+For a Go detector artifact, read and follow `knowledge/go-v1.md`. Load that
+file only for Go work. The output is always `review_required`; repeated
+literals do not prove a closed domain.
 
 ## Core beliefs
 

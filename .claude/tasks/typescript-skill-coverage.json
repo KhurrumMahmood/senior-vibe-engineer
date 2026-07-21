@@ -511,7 +511,7 @@
       "evidence_path": "tests/test_b2t_typescript_closed_state.py",
       "install_status": "passed",
       "reviewed_revision": "c611723",
-      "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill prevent-regression --agent codex --copy -y"
+      "install_command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill prevent-regression --skill find-implicit-state --agent codex --copy -y"
     },
     {
       "skill": "project-interview",

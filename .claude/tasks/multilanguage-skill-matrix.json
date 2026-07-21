@@ -3,11 +3,11 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "fb0a3d083b5319ced7b5eeef5ec244b2f3c1224aadcec400334199682ed161ac"
+      "sha256": "2c35851cd4dfe2472d4b2154aebce478c6a37959ff8140d60f5ebf82d3c0f625"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
-      "sha256": "586ef54d3a78e12995f906c939429e380da27311c82027b0076659dbae11fa6e"
+      "sha256": "43a9e2988026d8eb80f375d5cff5b53a5e9af3cce38cb81a0ea3ad1c23a00591"
     },
     {
       "path": ".claude/tasks/javascript-language-coverage.json",
@@ -1949,7 +1949,8 @@
         "scans": [
           "python",
           "typescript",
-          "javascript"
+          "javascript",
+          "go"
         ],
         "install_with": []
       },
@@ -3933,12 +3934,15 @@
         "language": "any",
         "framework": "any",
         "scans": [],
-        "install_with": []
+        "install_with": [
+          "find-implicit-state"
+        ]
       },
       "on_demand_closure": {
         "mode": "on-demand-library",
         "closure_skills": [
-          "prevent-regression"
+          "prevent-regression",
+          "find-implicit-state"
         ],
         "guides": [
           {
@@ -3946,6 +3950,12 @@
             "skill_root": ".claude/skills/prevent-regression",
             "guide": ".claude/skills/prevent-regression/SKILL.md",
             "bundled_tooling": ".claude/skills/prevent-regression/scripts"
+          },
+          {
+            "skill": "find-implicit-state",
+            "skill_root": ".claude/skills/find-implicit-state",
+            "guide": ".claude/skills/find-implicit-state/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-implicit-state/scripts"
           }
         ],
         "shared_tooling": "scripts",
@@ -3955,7 +3965,7 @@
       "optional_install": {
         "role": "secondary-explicit-user-choice",
         "status": "passed",
-        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill prevent-regression --agent codex --copy -y",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill prevent-regression --skill find-implicit-state --agent codex --copy -y",
         "evidence_basis": "historical-stock-selected-install"
       },
       "typescript_evidence_path": "tests/test_b2t_typescript_closed_state.py",

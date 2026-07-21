@@ -33,6 +33,7 @@ not_for: |
   fix in place).
 language: any
 framework: any
+install_with: [find-implicit-state]
 ---
 
 # /prevent-regression
@@ -176,6 +177,12 @@ It accepts a reasoned vendor-boundary `noqa` only when Compiler API type
 evidence matches the explicit vendor type names; general dataflow, computed
 properties, aliases, and framework semantics remain out of scope. The serial
 integrator owns applying the staged wiring.
+
+### Go closed-state guard
+
+After a human accepts a Go proposal, read and follow `knowledge/go-state.md`.
+Load that file only for Go work. Never weaken an unavailable semantic closure
+to a field-name regex.
 
 ## Argument parsing
 
