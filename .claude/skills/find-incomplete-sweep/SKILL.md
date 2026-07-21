@@ -6,21 +6,22 @@ description: |
   shape ("updated N-1 of N"). Python retains the keyword-argument omission
   band; TypeScript/TSX and checked JavaScript use the host-pinned TypeScript Compiler API to group
   resolved project function calls by object-option property presence; Go uses host Go `go/types`
-  for one direct top-level function / keyed struct-option shape. Gated on a git-trajectory
+  for one direct top-level function / keyed struct-option shape; Java 17 uses the JDK
+  compiler tree API for one direct record/options-constructor shape. Gated on a git-trajectory
   signal: a divergence counts as a forgotten sweep only when the
   kwarg-present sites were touched more recently than the straggler (the sweep
   landed after the straggler was last edited). A straggler edited just as
   recently is reported separately as likely-deliberate. Distinguishes
   abandoned partial work from legitimate post-completion cleanup via residue
   direction. Detection-only — never edits code; hands off to /fix-workflow.
-argument-hint: "Python: [--band kwarg|placeholder|all] --paths scripts ...; TypeScript/JavaScript: --target src --tsconfig <config>; Go: --target . --report-dir reports/find-incomplete-sweep/<name>"
+argument-hint: "Python: [--band kwarg|placeholder|all] --paths scripts ...; TypeScript/JavaScript: --target src --tsconfig <config>; Go/Java: --target . --report-dir reports/find-incomplete-sweep/<name>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
 language: any
 framework: any
-scans: [python, typescript, javascript, go]
+scans: [python, typescript, javascript, go, java]
 best_for: |
   Reviewing a human- or AI-authored multi-file change where a sweep across
   sibling call sites may have stopped short: a new keyword argument threaded
@@ -52,8 +53,6 @@ delegate_from: |
 ---
 
 # /find-incomplete-sweep
-
-<!-- Legacy copied-install metadata token: scans: [python, typescript] -->
 
 Detects **forgotten call sites** — a change applied to N-1 of N
 structurally-similar sites, leaving one sibling at the old shape. The
@@ -101,14 +100,15 @@ Two detector bands, selected with `--band` (default `kwarg`):
 
 ## Go v1
 
-Load `knowledge/go-v1.md`. The family-local `go list` + `go/parser` +
-`go/types` analyzer admits direct project top-level calls with a keyed struct
-option literal. It needs one omission, identical comparable present values,
-and **every** present line newer than the straggler in Git.
+Load `knowledge/go-v1.md`. The family-local `go list` + `go/parser` + `go/types`
+analyzer admits direct project top-level calls with one keyed struct-option omission,
+identical comparable values, and every present line newer in Git. It defers
+ambiguous/dynamic calls and unavailable evidence. Use manifest
+`present_sites`, the fixed verdict, and `triage.py` as documented in that guide.
+## Java 17 v1
 
-It visibly defers non-direct/non-project/dynamic calls, ambiguous or
-inconsistent literals, inactive builds, and unavailable Git evidence. Findings
-are advisory only. Use manifest `present_sites` with `scout.py` (no `--paths`), then the fixed-vocabulary verdict and `triage.py` flow. Run the copied-install command and outcome boundaries in `knowledge/go-v1.md`.
+Load `knowledge/java-v1.md` for the direct record-construction, three-to-one,
+mandatory-Git, scout → fixed human verdict → `triaged.md` contract.
 
 ## TypeScript / TSX v1
 

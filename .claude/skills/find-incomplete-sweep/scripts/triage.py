@@ -86,12 +86,13 @@ def ensure_compiler_manifest_output_containment(scan_dir: Path, packets: dict) -
     detector and scout have completed.
     """
     language = packets.get("language")
-    if language not in {"typescript", "javascript", "go"}:
+    if language not in {"typescript", "javascript", "go", "java"}:
         return
     language_label = {
         "typescript": "TypeScript",
         "javascript": "checked JavaScript",
         "go": "Go",
+        "java": "Java",
     }[language]
     root_value = packets.get("project_root")
     if not isinstance(root_value, str) or not root_value:
