@@ -14,12 +14,13 @@ Detector kinds:
     comment/string-blind. If `satisfied_by` is omitted, every situation
     match is a gap (a pure-prohibition standard).
   - `ast`  — `call_matches` regex on a call's dotted name, plus one
-    satisfaction condition: `enclosed_by` (`try`|`with`) or
+    satisfaction condition: `enclosed_by` (`try`|`with`|`defer`) or
     `requires_kwarg`. Python uses CPython's AST; TypeScript/TSX supports
     the direct-syntax `enclosed_by: try` form through the host-local
     TypeScript Compiler API. Neither branch matches comments/strings.
     Go supports the direct-syntax `enclosed_by: defer` form through the host's
-    Go 1.22+ standard-library parser.
+    Go 1.22+ standard-library parser. Java supports direct-syntax
+    `enclosed_by: try` through the public JDK 17+ compiler tree API.
   - `skill` — recognised, not implemented in v1.
   - `manual` — skipped; checked by hand.
 
@@ -55,7 +56,8 @@ knowledge/detector-model.md and project_state.py.
 
 The Python runner is stdlib-only. JavaScript/TypeScript scans additionally
 require Node and the host's project-local `typescript` package; Go scans
-require Go 1.22+ on PATH. Read-only against the codebase.
+require Go 1.22+ on PATH; Java scans require a JDK 17+ on PATH. Read-only
+against the codebase.
 
 Usage:
     python3 scan_coverage.py --ideas path/to/standards.json \\
@@ -126,6 +128,16 @@ GO_SKIP_DIRS = {
 }
 GO_SKIP_FILE_GLOBS = ("*_test.go", "*.generated.go", "*_generated.go")
 GO_MIN_VERSION = (1, 22, 0)
+JAVA_SKIP_DIRS = {
+    ".gradle", "build", "coverage", "dist", "fixture", "fixtures",
+    "generated", "integrationtest", "out", "reports", "target", "test",
+    "testdata", "testfixtures", "tests", "vendor",
+}
+JAVA_SKIP_FILE_GLOBS = (
+    "*test.java", "*tests.java", "*it.java", "*generated.java",
+    "*.generated.java", "*_generated.java",
+)
+JAVA_MIN_VERSION = (17, 0, 0)
 
 
 def iter_files(root: Path, globs: list[str]) -> list[Path]:
@@ -207,6 +219,25 @@ def _go_path_is_excluded(path: Path, root: Path) -> bool:
         any(part.lower() in skipped for part in logical_rel.parts[:-1])
         or any(part.lower() in skipped for part in physical_rel.parts[:-1])
         or any(fnmatch.fnmatchcase(path.name.lower(), glob) for glob in GO_SKIP_FILE_GLOBS)
+    )
+
+
+def _java_path_is_excluded(path: Path, root: Path) -> bool:
+    """Whether a Java candidate is outside the first-party production policy."""
+    root = root.resolve()
+    try:
+        logical_rel = path.relative_to(root)
+        physical_rel = path.resolve().relative_to(root)
+    except ValueError:
+        return True
+    skipped = SKIP_DIRS | JAVA_SKIP_DIRS
+    return (
+        any(part.lower() in skipped for part in logical_rel.parts[:-1])
+        or any(part.lower() in skipped for part in physical_rel.parts[:-1])
+        or any(
+            fnmatch.fnmatchcase(path.name.lower(), glob)
+            for glob in JAVA_SKIP_FILE_GLOBS
+        )
     )
 
 
@@ -425,8 +456,116 @@ def _go_calls(paths: list[Path], executable: str) -> tuple[dict[Path, dict] | No
     return by_path, None
 
 
+def _parse_java_version(rendered: str, tool: str) -> tuple[tuple[int, int, int] | None, str | None]:
+    """Parse a JDK tool version while ignoring launcher warnings."""
+    pattern = (
+        re.compile(r'\bversion\s+"(\d+)(?:\.(\d+))?(?:\.(\d+))?')
+        if tool == "java"
+        else re.compile(r"\bjavac\s+(\d+)(?:\.(\d+))?(?:\.(\d+))?\b")
+    )
+    for line in rendered.splitlines():
+        match = pattern.search(line.strip())
+        if match is None:
+            continue
+        major, minor, patch = (int(part or 0) for part in match.groups())
+        if major == 1 and minor:
+            major, minor, patch = minor, patch, 0
+        return (major, minor, patch), None
+    return None, f"cannot parse {tool} version: {rendered.strip() or 'unknown version'}"
+
+
+def _java_toolchain() -> tuple[str | None, str | None, str | None]:
+    """Return a complete JDK 17+ or an honest unavailable reason."""
+    java = shutil.which("java")
+    javac = shutil.which("javac")
+    missing = [name for name, executable in (("java", java), ("javac", javac)) if executable is None]
+    if missing:
+        return None, None, "Java JDK is unavailable on PATH (missing " + ", ".join(missing) + ")"
+    assert java is not None and javac is not None
+    for tool, executable in (("java", java), ("javac", javac)):
+        try:
+            result = subprocess.run(
+                [executable, "-version"], capture_output=True, text=True, check=False
+            )
+        except OSError as exc:
+            return None, None, f"cannot run {tool}: {exc}"
+        rendered = "\n".join(part for part in (result.stdout, result.stderr) if part)
+        version, error = _parse_java_version(rendered, tool)
+        if result.returncode != 0 or version is None:
+            return None, None, error or f"cannot determine {tool} version"
+        if version < JAVA_MIN_VERSION:
+            return (
+                None,
+                None,
+                "Java detector requires JDK >= "
+                + ".".join(map(str, JAVA_MIN_VERSION))
+                + f"; found {tool} "
+                + ".".join(map(str, version)),
+            )
+    return java, javac, None
+
+
+def _java_calls(
+    paths: list[Path], root: Path, executable: str
+) -> tuple[dict[Path, dict] | None, str | None]:
+    """Return direct Java call/try facts through one JDK source-launcher run."""
+    launcher = Path(__file__).resolve().with_name("detect_java_calls.java")
+    command = [executable, str(launcher), "--project-root", str(root)]
+    for path in paths:
+        command.extend(("--file", str(path)))
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=False)
+    except OSError as exc:
+        return None, f"cannot run bundled Java parser: {exc}"
+    if result.returncode != 0:
+        return None, result.stderr.strip() or result.stdout.strip() or "Java parser failed"
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None, "bundled Java parser emitted invalid JSON"
+    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+        return None, "bundled Java parser emitted an invalid payload"
+    if payload.get("analyzer") != "jdk-compiler-tree-api":
+        return None, "bundled Java parser emitted invalid analyzer evidence"
+    if not isinstance(payload.get("java_version"), str) or not payload["java_version"]:
+        return None, "bundled Java parser omitted its Java version"
+    if not isinstance(payload.get("files"), list):
+        return None, "bundled Java parser emitted invalid file evidence"
+    requested = {path.resolve() for path in paths}
+    by_path: dict[Path, dict] = {}
+    allowed_statuses = {"complete", "generated", "read-error", "syntax-error"}
+    for file_payload in payload["files"]:
+        if not isinstance(file_payload, dict):
+            return None, "bundled Java parser emitted invalid file evidence"
+        try:
+            rendered_path = file_payload["file"]
+            status = file_payload["status"]
+            records = file_payload["records"]
+        except (KeyError, TypeError):
+            return None, "bundled Java parser emitted invalid file evidence"
+        if not isinstance(rendered_path, str):
+            return None, "bundled Java parser emitted invalid file evidence"
+        candidate = Path(rendered_path)
+        actual = candidate.resolve() if candidate.is_absolute() else (root / candidate).resolve()
+        if actual not in requested or actual in by_path or status not in allowed_statuses:
+            return None, "bundled Java parser emitted mismatched file evidence"
+        if not isinstance(records, list):
+            return None, "bundled Java parser emitted invalid call records"
+        for record in records:
+            if not isinstance(record, dict):
+                return None, "bundled Java parser emitted an invalid call record"
+            if not isinstance(record.get("name"), str) or not isinstance(record.get("line"), int):
+                return None, "bundled Java parser emitted an invalid call record"
+            if not isinstance(record.get("text"), str) or not isinstance(record.get("in_try"), bool):
+                return None, "bundled Java parser emitted an invalid call record"
+        by_path[actual] = file_payload
+    if set(by_path) != requested:
+        return None, "bundled Java parser omitted requested file evidence"
+    return by_path, None
+
+
 def run_ast_detector(root: Path, detector: dict):
-    """Return ({...}, error_or_None) for Python, script, and Go syntax.
+    """Return ({...}, error_or_None) for Python, script, Go, and Java syntax.
 
     Possible result shapes: `{no_files}`, `{unsupported}`, or
     `{sites, gaps, scanned_files, skipped_files}`. A file that fails to
@@ -437,13 +576,15 @@ def run_ast_detector(root: Path, detector: dict):
 
     Finds Call nodes whose dotted name matches `call_matches`, then checks
     one satisfaction condition — exactly one of `enclosed_by` (`try`,
-    `with`, or Go's `defer`) or `requires_kwarg` (a `**kwargs` spread counts as
+    `with`, Go's `defer`, or Java's `try`) or `requires_kwarg` (a `**kwargs` spread counts as
     satisfied). A gap = a matched call that fails the condition.
     Enclosure resets at a nested-function *body*; decorators and default
     arguments inherit the enclosing scope. TypeScript/TSX supports the direct
     syntactic `enclosed_by: try` form only, using the host's local TypeScript
     Compiler API. Go supports only `enclosed_by: defer` using `go/parser` and
-    `go/ast`. Neither path resolves aliases, types, receivers, or frameworks.
+    `go/ast`; Java supports only `enclosed_by: try` using the public JDK
+    compiler tree API. Neither path resolves aliases, types, receivers, or
+    frameworks.
     """
     try:
         call_re = re.compile(detector["call_matches"])
@@ -470,29 +611,36 @@ def run_ast_detector(root: Path, detector: dict):
     ts_files = [f for f in ts_candidates if not _typescript_path_is_excluded(f, root)]
     go_candidates = [f for f in matched if f.suffix.lower() == ".go"]
     go_files = [f for f in go_candidates if not _go_path_is_excluded(f, root)]
+    java_candidates = [f for f in matched if f.suffix.lower() == ".java"]
+    java_files = [f for f in java_candidates if not _java_path_is_excluded(f, root)]
     unsupported_files = [
         f for f in matched
         if f.suffix != ".py"
         and f.suffix.lower() not in SCRIPT_SUFFIXES
         and f.suffix.lower() != ".go"
+        and f.suffix.lower() != ".java"
     ]
-    if not py_files and not ts_files and not go_files:
+    if not py_files and not ts_files and not go_files and not java_files:
         if unsupported_files:
             exts = sorted({f.suffix.lower() or "<none>" for f in unsupported_files})
             return {"unsupported": True, "matched": len(unsupported_files),
                     "extensions": exts[:8]}, None
-        if ts_candidates or go_candidates:
+        if ts_candidates or go_candidates or java_candidates:
             excluded_languages = []
             if ts_candidates:
                 excluded_languages.append("typescript")
             if go_candidates:
                 excluded_languages.append("go")
+            if java_candidates:
+                excluded_languages.append("java")
             return {"no_files": True, "excluded": excluded_languages}, None
     if enclosed_by == "defer":
         unsupported_files.extend(py_files)
         unsupported_files.extend(ts_files)
+        unsupported_files.extend(java_files)
         py_files = []
         ts_files = []
+        java_files = []
         if not go_files:
             return {
                 "unsupported": True,
@@ -502,8 +650,22 @@ def run_ast_detector(root: Path, detector: dict):
                 ),
                 "reason": "`enclosed_by: defer` is a Go-only syntax contract",
             }, None
+    elif java_files and (requires_kwarg or enclosed_by != "try"):
+        reason = (
+            "the Java `ast` branch supports only `enclosed_by: try`; "
+            "it does not model Python kwargs, with blocks, or Go defer"
+        )
+        if not py_files:
+            return {
+                "unsupported": True,
+                "matched": len(java_files),
+                "extensions": [".java"],
+                "reason": reason,
+            }, None
+        unsupported_files.extend(java_files)
+        java_files = []
     elif go_files:
-        if not py_files and not ts_files:
+        if not py_files and not ts_files and not java_files:
             return {
                 "unsupported": True,
                 "matched": len(go_files),
@@ -529,7 +691,7 @@ def run_ast_detector(root: Path, detector: dict):
     if ts_files:
         unavailable = _typescript_preflight(root)
         if unavailable:
-            if py_files:
+            if py_files or java_files:
                 unsupported_files.extend(ts_files)
                 ts_files = []
             else:
@@ -540,7 +702,7 @@ def run_ast_detector(root: Path, detector: dict):
     if go_files:
         go_executable, unavailable = _go_toolchain()
         if unavailable or go_executable is None:
-            if py_files or ts_files:
+            if py_files or ts_files or java_files:
                 unsupported_files.extend(go_files)
                 go_files = []
             else:
@@ -549,6 +711,20 @@ def run_ast_detector(root: Path, detector: dict):
                     "matched": len(go_files),
                     "extensions": [".go"],
                     "reason": unavailable or "Go toolchain is unavailable",
+                }, None
+    java_executable: str | None = None
+    if java_files:
+        java_executable, _javac, unavailable = _java_toolchain()
+        if unavailable or java_executable is None:
+            if py_files or ts_files:
+                unsupported_files.extend(java_files)
+                java_files = []
+            else:
+                return {
+                    "unsupported": True,
+                    "matched": len(java_files),
+                    "extensions": [".java"],
+                    "reason": unavailable or "Java JDK is unavailable",
                 }, None
 
     sites: list[dict] = []
@@ -642,6 +818,29 @@ def run_ast_detector(root: Path, detector: dict):
             if not record["in_try"]:
                 gaps.append(site)
     generated_files = 0
+    java_payloads, batch_error = (
+        _java_calls(java_files, root, java_executable or "java") if java_files else ({}, None)
+    )
+    if batch_error or java_payloads is None:
+        java_payloads = {}
+    for path in java_files:
+        rel = str(path.relative_to(root))
+        payload = java_payloads.get(path.resolve())
+        if payload is None or payload["status"] in {"read-error", "syntax-error"}:
+            skipped += 1
+            continue
+        if payload["status"] == "generated":
+            generated_files += 1
+            continue
+        analyzed += 1
+        for record in payload["records"]:
+            name = record["name"]
+            if not name or not call_re.search(name):
+                continue
+            site = {"file": rel, "line": record["line"], "text": record["text"][:120]}
+            sites.append(site)
+            if not record["in_try"]:
+                gaps.append(site)
     go_payloads, batch_error = _go_calls(go_files, go_executable or "go") if go_files else ({}, None)
     if batch_error or go_payloads is None:
         go_payloads = {}
@@ -667,7 +866,7 @@ def run_ast_detector(root: Path, detector: dict):
             if not record["in_defer"]:
                 gaps.append(site)
     if not analyzed and generated_files and not skipped and not unsupported_files:
-        return {"no_files": True, "excluded": ["go"]}, None
+        return {"no_files": True, "excluded": ["go" if go_files else "java"]}, None
     sites.sort(key=lambda site: (site["file"], site["line"], site["text"]))
     gaps.sort(key=lambda site: (site["file"], site["line"], site["text"]))
     result = {"sites": sites, "gaps": gaps,
@@ -706,8 +905,10 @@ def analyze_idea(root: Path, idea: dict, state: dict) -> dict:
                 excluded = " All matched TypeScript/TSX files were excluded by the fixed source policy."
             elif excluded_languages == ["go"]:
                 excluded = " All matched Go files were excluded by the fixed source policy."
+            elif excluded_languages == ["java"]:
+                excluded = " All matched Java files were excluded by the fixed source policy."
             elif excluded_languages:
-                excluded = " All matched JavaScript/TypeScript/Go files were excluded by the fixed source policy."
+                excluded = " All matched JavaScript/TypeScript/Go/Java files were excluded by the fixed source policy."
             else:
                 excluded = ""
             return {**base, "status": "no_files_matched",
@@ -716,7 +917,7 @@ def analyze_idea(root: Path, idea: dict, state: dict) -> dict:
                              f"--project-root.{excluded} This is NOT a passing result."}
         if result.get("unsupported"):
             reason = result.get("reason") or (
-                "the `ast` detector supports Python, JavaScript/TypeScript, and narrow Go syntax only; "
+                "the `ast` detector supports Python, JavaScript/TypeScript, narrow Go syntax, and narrow Java syntax only; "
                 f"{result['matched']} file(s) matched `paths` but none are supported "
                 f"source files (found: {', '.join(result['extensions'])})."
             )

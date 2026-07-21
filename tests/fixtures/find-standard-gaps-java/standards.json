@@ -1,0 +1,17 @@
+{
+  "ideas": [
+    {
+      "id": "json-boundary",
+      "label": "JSON decode calls must be inside try",
+      "activation": {"baseline": true},
+      "contract": {
+        "detector": {
+          "kind": "ast",
+          "call_matches": "^Json\\.decode$",
+          "enclosed_by": "try",
+          "paths": ["src/**/*.java"]
+        }
+      }
+    }
+  ]
+}

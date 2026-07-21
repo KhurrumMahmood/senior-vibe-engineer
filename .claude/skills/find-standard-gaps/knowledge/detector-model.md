@@ -48,7 +48,7 @@ matches `call_matches`, then checks **one** satisfaction condition:
 - `enclosed_by`: `try` | `with` | `defer` — the call must be lexically inside
   that block. Enclosure resets at a nested-function boundary (a call in
   a nested `def` is not protected by an outer `try` at runtime). `defer` is
-  the Go-only direct-call contract described below.
+  the Go-only direct-call contract described below; Java supports only `try`.
 - `requires_kwarg`: `<name>` — the call must pass that keyword argument
   (a `**kwargs` spread counts — the detector cannot tell, so it assumes
   satisfied rather than false-flag).
@@ -74,6 +74,15 @@ and remain gaps. The scanner does not resolve aliases, types, receivers, or
 signatures. Generated/test/vendor/testdata sources are excluded, while syntax
 failures and explicit or filename-based build constraints make the result
 partial rather than clean.
+
+For Java, v1 supports only `enclosed_by: "try"` with JDK 17+ (`java` and
+`javac`) on `PATH`. A family-local public Compiler Tree API helper parses
+direct identifier/member-select calls, counts calls in a try resource/body as
+enclosed, and resets enclosure for catch/finally, lambda, local-class, and
+anonymous-class bodies. It runs neither Maven nor Gradle and resolves no
+classpath, imports, aliases, types, overloads, receivers, or framework APIs.
+An unresolved name is syntax evidence only. Generated/test/vendor/build-output
+and external-symlink paths are excluded; syntax/read failures are partial.
 
 ## The `grep` detector — fallback only
 
@@ -134,22 +143,23 @@ not pass, and its gap count must not be read as zero.
 
 ## Language support
 
-- The **`ast` detector supports Python plus narrow TypeScript/TSX and Go syntax**.
+- The **`ast` detector supports Python plus narrow TypeScript/TSX, Go, and Java syntax**.
   Python retains both `enclosed_by` forms and `requires_kwarg` through
   CPython's standard-library `ast`. TS/TSX supports only `enclosed_by: try`
   through the bundled Compiler API launcher, which requires Node and a
   `typescript` package resolvable from the host `package.json`. Go supports
   only direct `enclosed_by: defer` through a bundled stdlib helper and requires
-  Go 1.22+ on `PATH`.
+  Go 1.22+ on `PATH`. Java supports only direct `enclosed_by: try` through a
+  public JDK Compiler Tree API helper and requires JDK 17+ on `PATH`.
 - The **`grep` detector is cross-language** (it operates on text) — but
   comment/string-blind, so trust it for *enumerating* situations, not
   for deciding satisfaction.
-- When an `ast` standard matches both supported Python/TS/TSX/Go files and an
+- When an `ast` standard matches both supported Python/TS/TSX/Go/Java files and an
   unsupported extension, `scan_coverage.py` retains the supported findings but
   reports `partial`, with `unsupported_files` and
   `unsupported_extensions`; it is never a false "0 gaps" pass. When no
   supported files remain, when a language-unsupported condition is used, or
-  when the required TypeScript or Go preflight cannot run, it reports
+  when the required TypeScript, Go, or JDK preflight cannot run, it reports
   `language_unsupported`. The orchestrator
   then applies the **"When the target language or condition isn't supported"**
   rule in `SKILL.md`: small surface → read it directly; large surface → build
@@ -224,6 +234,9 @@ a real host project (2026-05-21):
 - TypeScript v1 does not resolve imports, aliases, overloads, type identity,
   receiver identity, runtime globals, or framework conventions. It is a direct
   syntax detector, not a TypeScript linter or semantic API audit.
+- Java v1 does not resolve imports, aliases, overloads, type identity, receiver
+  identity, or framework conventions. It is a direct syntax detector, not a
+  Java compiler/build or semantic API audit.
 - `scan_coverage.py` reports a per-standard status. **Only `scanned` is
   a clean coverage result.** `partial` means one or more files were not read,
   parsed, or had an unsupported extension; its gaps are triage evidence, not a

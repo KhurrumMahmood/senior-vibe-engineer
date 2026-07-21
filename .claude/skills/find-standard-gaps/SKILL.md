@@ -1,6 +1,6 @@
 ---
 name: find-standard-gaps
-description: Detect places a declared baseline standard should apply but doesn't. A standard is declared once with an executable `ast` detector; `scan_coverage.py` scans Python, narrow syntax-only JavaScript/TypeScript direct-call coverage, and Go 1.22+ direct-call defer coverage and reports every site whose triggering situation holds but the standard is absent. Detection-only; never edits code.
+description: Detect places a declared baseline standard should apply but doesn't. A standard is declared once with an executable `ast` detector; `scan_coverage.py` scans Python, narrow syntax-only JavaScript/TypeScript direct-call coverage, Go 1.22+ direct-call defer coverage, and Java JDK 17+ direct-call try coverage, then reports every site whose triggering situation holds but the standard is absent. Detection-only; never edits code.
 argument-hint: "<host-owned standards JSON — copy standards.example.json, adapt it, and pass its path>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -24,7 +24,7 @@ not_for: |
   when there is no reusable baseline policy (just write the lint).
 language: any
 framework: any
-scans: [python, javascript, typescript, go]
+scans: [python, javascript, typescript, go, java]
 ---
 
 # /find-standard-gaps
@@ -93,6 +93,12 @@ work; there is no scout fan-out. The detector model (how `ast` and
   It resolves no imports, types, aliases, or receivers. Generated, vendored,
   test, and `testdata` files are excluded; malformed or build-constrained
   matched files make the result partial rather than clean.
+- **Java v1:** JDK 17+ (`java` and `javac`) on `PATH`. The bundled public JDK
+  Compiler Tree API helper supports `enclosed_by: "try"` for directly spelled
+  method calls. It invokes neither Maven nor Gradle and resolves no classpath,
+  imports, types, aliases, overloads, receivers, or framework behavior.
+  Generated, vendored, test, build-output, and external-symlink paths are
+  excluded; malformed/read-error matched files make the result partial.
 - **Output:** `reports/standard-gaps/scan-<TS>/` only. Never edits code.
 
 ## Installed command
@@ -288,6 +294,31 @@ syntax failure or build-constrained file makes the result `partial`, never
 clean. Generated, vendored, test, `testdata`, dependency, report, and external
 symlink paths are excluded by the fixed source policy.
 
+## Java support and limits
+
+Java v1 supports `kind: "ast"`, a direct syntactic `call_matches` regular
+expression, and `enclosed_by: "try"`. For example:
+
+```json
+{
+  "kind": "ast",
+  "call_matches": "^Json\\.decode$",
+  "enclosed_by": "try",
+  "paths": ["src/main/java/**/*.java"]
+}
+```
+
+The bundled JDK 17 Compiler Tree API helper validates syntax then records only
+direct identifier/member-select invocation spelling and whether it executes in
+a `try` resource/body. Catch/finally, lambda, local-class, and anonymous-class
+bodies do not inherit that enclosure. It does not resolve aliases, types,
+receivers, imports, or frameworks (or overloads); an unresolved reference is still
+syntax evidence, not proof of symbol identity. `requires_kwarg`,
+`enclosed_by: "with"`, and `enclosed_by: "defer"` are unsupported for Java.
+Missing/old JDK returns `language_unsupported`; a syntax/read failure is
+`partial`, never clean. Kotlin/JVM source is not Java support and remains an
+unsupported extension in a mixed target.
+
 ## When the target language or condition isn't supported
 
 When a standard's `paths` cannot be analyzed,
@@ -341,7 +372,7 @@ deciding satisfaction.
 | 0 standards fully scanned | Check `coverage.json`: entries may be `partial`, `gated_out`, `manual`/`skill`, `no_files_matched`, or `error`. Report the actual statuses |
 | `partial` | Report skipped-file count plus unsupported-file count/extensions when present. Do not call 0 gaps compliant; repair the source, narrow the paths, or extend the scanner and re-run |
 | `no_files_matched` | Treat as a misconfigured glob or wrong project root, not as compliance |
-| `language_unsupported` | Check the reported reason (unsupported language/condition or missing TS prerequisite), then apply the unsupported branch above |
+| `language_unsupported` | Check the reported reason (unsupported language/condition, missing TS prerequisite, or missing/old JDK), then apply the unsupported branch above |
 | A gap is a deliberate exception | Not a tool failure — note it at fix time; a future `--allow` list could record approved exceptions |
 
 ## Replay case
@@ -417,6 +448,7 @@ list[Site]` that returns one `Site` per occurrence with a normalised
 │   ├── engineering_home.py   # bundled state-home resolver
 │   ├── detect_typescript_calls.mjs  # TS/TSX syntax facts
 │   ├── detect_go_calls.go     # Go direct-call/defer syntax facts
+│   ├── detect_java_calls.java # Java direct-call/try facts (JDK 17+)
 │   └── census.py             # census mode — discover before you declare
 ├── knowledge/
 │   └── detector-model.md     # the detector model + how to add a standard
