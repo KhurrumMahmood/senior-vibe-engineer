@@ -293,7 +293,7 @@ auditable when completeness matters.
 
 ### ML-012 — Evaluate ast-grep as an on-demand structural provider
 
-- State: `scheduled`
+- State: `done_rejected_for_complexity_provider`
 - User value: syntax-oriented skills may gain new-language support with less
   bespoke parser code while keeping native semantic verification authoritative.
 - Trigger: the Java pilot created a third language-specific implementation of
@@ -446,6 +446,50 @@ auditable when completeness matters.
   [Agent Skills specification](https://agentskills.io/specification).
 - Non-goals: autonomous prompt rewriting, synthetic-score-driven production
   edits, or making a new evaluation runtime part of the default router install.
+
+### ML-020 — Compress skill families and batch complementary lenses by default
+
+- State: `queued_after_java_j1_before_broad_language_or_framework_expansion`
+- User value: one routed family operation can cover the relevant engineering
+  lenses with less repeated context and wall time than invoking several large
+  skills independently, while the root agent receives one actionable result.
+- Product hypothesis: many current skills are lens implementations rather than
+  distinct user journeys. Keep the three ambient routers; have routing select
+  one primary family outcome plus a small complementary coverage set; load one
+  shared family core and concise member contracts into fresh execution lanes.
+- Default execution boundary: run at most three independent read-only lenses
+  concurrently with one synthesis owner. Keep user-decision stages and every
+  mutation serial. Individual skills remain directly invocable and every
+  skipped lens has an explicit reason.
+- Trigger and sequence: complete the already-bounded Java J1
+  `propose-boundary`/`move-path` pilot first. Run this experiment before
+  starting broad C#, PHP, Rust, or framework-family conversion so a successful
+  family unit can reduce that later work. It does not reopen X1-X4 or delay J1.
+- Smallest experiment: choose one read-only SUSPECT/health coverage set with
+  three already-proven lenses and real supported hosts. Compare (A) current
+  full-skill serial execution, (B) compressed-family serial execution, and
+  (C) compressed-family parallel execution. Use natural requests and hidden
+  outcome checks; reuse the ML-009 launcher evidence but add model execution,
+  synthesis, tokens, and actual context-byte measurements.
+- Acceptance:
+  - compressed serial preserves every required final finding/outcome and never
+    turns incomplete evidence into a clean result;
+  - parallel execution produces one deduplicated synthesis with the same
+    accepted semantic projection and zero source mutations;
+  - shared-family plus member context bytes fall by at least 30% versus the
+    current full-skill condition, total reported model tokens grow by no more
+    than 10%, and median wall time improves by at least 20% across five paired
+    trials rather than merely shifting work to synthesis;
+  - router output names the selected coverage set, dependencies, skips, and
+    exact on-demand closure paths without ambiently installing member skills;
+  - a fresh replay on an unseen host passes before the pattern is reused.
+- Stop conditions: keep direct individual execution if compression removes a
+  binding guard, batching increases total cost without better outcomes, lens
+  findings cannot be reconciled deterministically, or a general coordinator
+  becomes larger than the family-specific product work.
+- Reusable outcome if successful: a small family manifest and launcher pattern,
+  not a universal DAG, shared-context cache, autonomous mutation engine, or
+  rewrite of every existing skill.
 
 ## External release dependency (tracked, not a language feature)
 

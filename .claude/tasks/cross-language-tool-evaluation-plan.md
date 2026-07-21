@@ -1,6 +1,6 @@
 # Cross-language tool and SkillOpt evaluation plan
 
-Status: active — planning frozen; no product dependency adopted
+Status: complete — no product dependency adopted; Java J1 is the next product work
 
 Primary objective: determine whether a small number of existing tools can make
 the next language ports cheaper and more reliable, without delaying the Java
@@ -13,7 +13,9 @@ high-leverage judgment skill.
 1. Start at this repository root on `codex/productization-restart` and run
    `git status --short --branch`.
 2. Read this file and continue the first row whose state is `in_progress`, or
-   the first `pending` row whose dependencies are complete.
+   the first `pending` row whose dependencies are complete. If every row is
+   terminal, follow `next_action` into the expansion plan rather than inventing
+   another tool experiment.
 3. Do not infer completion from installed tools or partial output. Check the
    row's acceptance boxes and its evidence path.
 4. Write partial results to the named evidence JSON before pausing. Set
