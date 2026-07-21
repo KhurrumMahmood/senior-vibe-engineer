@@ -1,6 +1,6 @@
 ---
 name: audit-decisions
-description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, JavaScript-family, and TypeScript comments plus Markdown/HTML references."
+description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, Java JDK 17+ source, JavaScript-family, and TypeScript comments plus Markdown/HTML references."
 argument-hint: "[--target PATH]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -19,7 +19,7 @@ delegate_from: |
   and orphaned inline decision references.
 language: any
 framework: any
-scans: [python, markdown, html, javascript, typescript, go]
+scans: [python, markdown, html, javascript, typescript, go, java]
 ---
 
 # /audit-decisions
@@ -44,6 +44,9 @@ both final artifacts. JavaScript uses the same syntax-only parser for `.js`,
 - Include valid references from authored Go line and block comments in both
   final artifacts; strings, raw strings, tests, generated source, and vendor
   source must not create references.
+- Include valid references from authored Java line and block comments in both
+  final artifacts; strings, chars, text blocks, tests, generated source, and
+  vendor source must not create references.
 - Keep the registry and source files read-only. Exit `0` for clean, `1` when
   drift rows are present, and `2` for invalid paths, unsupported/malformed
   decision frontmatter, unavailable project-local TypeScript tooling, invalid
@@ -55,6 +58,11 @@ The Go v1 path never publishes `partial` evidence: any in-scope Go file must
 parse before artifacts are written. Missing/old Go is `unsupported`; malformed
 Go or a parser execution/data error is `failed`; both exit `2` without a report
 directory. These states are not clean audits.
+
+The Java comments v1 path has the same atomic rule. Missing/old JDK is
+`unsupported`; malformed Java, source-read, or helper execution/data errors are
+`failed`; all exit `2` without a report directory. It never publishes a partial
+Java inventory as a clean audit.
 
 ## Supported reference contract
 
@@ -112,6 +120,22 @@ lists for the registry fields it checks (`supersedes`, `superseded_by`,
 `applies_to`, `embodied_by`, `tags`). It fails clearly instead of silently
 misreading unsupported frontmatter syntax.
 
+### Java comments v1
+
+For `.java`, the supported token is the same lowercase `decision:NNNN` form in
+a real `//` line comment or `/* ... */` block/Javadoc comment. The bundled JDK
+17 Compiler Tree API helper first parses every selected source, then uses its
+family-local lexer for ordinary comment trivia (the public compiler tree API
+does not expose it). Strings, chars, text blocks, and comment-shaped literals
+never count. Java Unicode escapes are translated before lexing so an eligible
+escaped delimiter follows Java tokenization rules.
+
+Java is discovered from `PATH`; both `java` and `javac` must be JDK 17 or
+newer. The helper is copied with the skill, runs neither Maven nor Gradle, and
+does not load a classpath, resolve imports/types/overloads, use compiler
+internals, mutate a build, or access the network. An unresolved Java name is
+still valid syntax evidence, not a symbol-identity claim.
+
 ## Source policy
 
 Exclusions are always evaluated relative to `--project-root`, even when a
@@ -121,6 +145,8 @@ references. The same policy excludes common VCS/venv/cache trees and TypeScript
 declarations, `.test`, `.spec`, and minified files.
 Go additionally excludes `*_test.go`, generated-name files, and files with the
 canonical `// Code generated ... DO NOT EDIT.` header.
+Java additionally excludes conventional `*Test.java`, `*Tests.java`, `*IT.java`,
+and generated-name files; the conventional generated header is excluded too.
 
 `--target` narrows the reference scan only. It still validates the registry and
 links, but intentionally omits the whole-project `unreferenced-decision`
@@ -130,8 +156,8 @@ inverse check because a partial target cannot establish that conclusion.
 
 Stock Codex copies this selected skill to `.agents/skills/audit-decisions`.
 From the host project root, with Python 3.11+, Go 1.22+ when `.go` files are in
-scope, and Node.js plus the host's project-local `typescript` dependency when
-JavaScript-family files are in scope:
+scope, JDK 17+ when `.java` files are in scope, and Node.js plus the host's
+project-local `typescript` dependency when JavaScript-family files are in scope:
 
 ```bash
 AUDIT_PROJECT_ROOT="$PWD"
@@ -162,6 +188,9 @@ or network connection at scan time.
 When Go is in scope, the selected skill instead invokes its bundled `.go`
 helper with the discovered Go 1.22+ executable; it has no host module or
 third-party dependency.
+When Java is in scope, it invokes its bundled `.java` helper with the
+discovered JDK 17+ source launcher; it has no Maven, Gradle, or third-party
+dependency.
 
 ## Read the final artifact before acting
 
@@ -189,6 +218,8 @@ The report can surface these drift classes:
 | Exit 2 | Correct the project/target path or frontmatter; restore Node.js/the host's local `typescript`; or repair TS/TSX syntax. Do not treat a failed parse as a clean audit. |
 | Go reports `status=unsupported` | Put Go 1.22+ on `PATH` and re-run; do not present an audit that omitted selected Go files. |
 | Go reports `status=failed` | Repair the named Go syntax/parser failure and re-run; no partial report is valid. |
+| Java reports `status=unsupported` | Put JDK 17+ (`java` and `javac`) on `PATH` and re-run; do not omit selected Java files. |
+| Java reports `status=failed` | Repair the named Java syntax/read/helper failure and re-run; no partial report is valid. |
 | Report directory is rejected | Use a run directory below `reports/audit-decisions/`, such as `reports/audit-decisions/scan-20260719-120000`. Absolute paths are allowed only when they resolve below that same directory. The report root itself, source/arbitrary project paths, `..` escapes, output/ancestor symlinks that escape it, and a report-root symlink are rejected before any artifact is written. |
 | TS/TSX exists but TypeScript is unavailable | Install the project's locked dependencies so `typescript` resolves from `package.json`, then re-run. Do not present an incomplete TypeScript scan as clean. |
 | A desired reference is in an identifier, string, regex, or JSX text | Do not count it. Add a supported comment at the authoritative location. |
@@ -203,6 +234,7 @@ audit-decisions/
 └── scripts/
     ├── audit.py
     ├── detect_go_comments.go
+    ├── detect_java_comments.java
     └── detect_typescript_comments.mjs
 ```
 
