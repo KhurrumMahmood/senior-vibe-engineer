@@ -175,10 +175,16 @@ active language-compatibility pass reaches its checkpoint:
 1. **Library lifecycle:** define the smallest pinned install/update/repair/
    doctor/uninstall journey that prevents router/library version drift. Do not
    revive content attestation or a custom package manager.
-2. **Shared routing capability:** make `which-shape` and `which-cleanup` honor
-   the same language/framework support and partial/unknown states as
-   `which-skill`; expand the natural-language decision corpus rather than
-   building a learned router.
+2. **Shared support truth, distinct router jobs:** all three routers should
+   honor the same language/framework support and partial/unknown states, but
+   they must not collapse into one generic router:
+   - `which-skill` answers “what skill should I use right now for this task?”;
+   - `which-shape` answers “what overall workflow and set/sequence of skills
+     fits this situation?”; and
+   - `which-cleanup` answers “given the recent work, what proportionate checks,
+     cleanup, and guards are needed to bring it up to standard?”
+   Expand the natural-language decision corpus around those distinct outputs
+   rather than building a learned router.
 3. **First-success audit-to-change journey:** prove one cold host can move from
    project orientation and a prioritized roadmap through an approved bounded
    refactor, native verification, and guard closeout. This may justify a
