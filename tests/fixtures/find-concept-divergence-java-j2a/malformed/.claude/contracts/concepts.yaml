@@ -1,0 +1,5 @@
+concepts:
+  - name: checkout lifecycle
+    avoid:
+      - legacy checkout
+flagged_ambiguities: []

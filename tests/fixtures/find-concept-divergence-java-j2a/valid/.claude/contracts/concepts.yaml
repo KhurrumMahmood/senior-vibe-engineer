@@ -1,0 +1,12 @@
+concepts:
+  - name: checkout lifecycle
+    avoid:
+      - legacy checkout
+  - name: old-cart
+    superseded_by: active-cart
+  - name: active-cart
+flagged_ambiguities:
+  - id: basket-naming
+    competing_terms:
+      - order basket
+      - checkout basket

@@ -24,7 +24,9 @@ if str(SCRIPT_DIR) not in sys.path:
 from support import (  # noqa: E402
     go_scan_payload,
     inventory_go,
+    inventory_java,
     iter_files,
+    java_scan_payload,
     probe_go,
     relpath,
     resolve_project_root,
@@ -91,7 +93,7 @@ STALE_TERM_RE = re.compile(
     r"\b(?:SiteConfig|Site Configuration|site configuration|site config)\b"
 )
 DOC_REF_RE = re.compile(
-    r"\b(?:L\d{2,}|line\s+\d{2,}|[A-Za-z0-9_./-]+\.(?:py|js|jsx|mjs|cjs|ts|tsx|html|go):\d{1,5})\b",
+    r"\b(?:L\d{2,}|line\s+\d{2,}|[A-Za-z0-9_./-]+\.(?:py|js|jsx|mjs|cjs|ts|tsx|html|go|java):\d{1,5})\b",
     re.IGNORECASE,
 )
 NARRATION_RE = re.compile(
@@ -624,6 +626,119 @@ def scan_go(path: Path, project_root: Path) -> tuple[list[Finding], str | None]:
     return findings, lexical_error
 
 
+def extract_java_comments(text: str) -> tuple[list[tuple[int, str, bool]], str | None]:
+    """Extract Java comments while ignoring strings, chars, and text blocks."""
+    comments: list[tuple[int, str, bool]] = []
+    index = 0
+    line = 1
+    line_start = 0
+    length = len(text)
+    while index < length:
+        if text[index] == "\n":
+            line += 1
+            line_start = index + 1
+            index += 1
+            continue
+        if text.startswith('"""', index):
+            start_line = line
+            index += 3
+            while index < length:
+                if text.startswith('"""', index) and (
+                    index == 0 or text[index - 1] != "\\"
+                ):
+                    index += 3
+                    break
+                if text[index] == "\n":
+                    line += 1
+                    line_start = index + 1
+                index += 1
+            else:
+                return comments, f"unterminated text block at line {start_line}"
+            continue
+        if text[index] in {'"', "'"}:
+            quote = text[index]
+            start_line = line
+            index += 1
+            escaped = False
+            while index < length:
+                current = text[index]
+                if current == "\n":
+                    return comments, f"unterminated quoted literal at line {start_line}"
+                if escaped:
+                    escaped = False
+                elif current == "\\":
+                    escaped = True
+                elif current == quote:
+                    index += 1
+                    break
+                index += 1
+            else:
+                return comments, f"unterminated quoted literal at line {start_line}"
+            continue
+        if text[index] != "/" or index + 1 >= length or text[index + 1] not in {"/", "*"}:
+            index += 1
+            continue
+        start_line = line
+        standalone = not text[line_start:index].strip()
+        if text[index + 1] == "/":
+            end = text.find("\n", index + 2)
+            if end < 0:
+                end = length
+            comments.append((start_line, text[index + 2:end].strip(), standalone))
+            index = end
+            continue
+        end = text.find("*/", index + 2)
+        if end < 0:
+            return comments, f"unterminated block comment at line {start_line}"
+        body = text[index + 2:end]
+        comments.append((start_line, body.strip(), standalone))
+        line += body.count("\n")
+        last_newline = body.rfind("\n")
+        if last_newline >= 0:
+            line_start = index + 2 + last_newline + 1
+        index = end + 2
+    return comments, None
+
+
+def scan_java(path: Path, project_root: Path) -> tuple[list[Finding], str | None]:
+    """Scan Java's bounded lexical comment surface without parsing source."""
+    text = path.read_text(encoding="utf-8")
+    comments, lexical_error = extract_java_comments(text)
+    findings: list[Finding] = []
+    for lineno, comment, standalone in comments:
+        before = len(findings)
+        scan_stale_and_refs(path, lineno, comment, findings, project_root)
+        for index in range(before, len(findings)):
+            findings[index] = Finding(**{**asdict(findings[index]), "language": "java"})
+        if not standalone:
+            continue
+        if is_banner_text(comment):
+            findings.append(
+                emit(
+                    "detached_section_banner",
+                    path,
+                    lineno,
+                    comment[:180],
+                    "Delete the banner or replace it with adjacent Java documentation that explains ownership or contract.",
+                    project_root,
+                    "java",
+                )
+            )
+        elif is_comment_noise(comment):
+            findings.append(
+                emit(
+                    "obvious_narration_comment",
+                    path,
+                    lineno,
+                    comment[:180],
+                    "Delete narration comments; keep Java comments that explain intent, constraints, or compatibility.",
+                    project_root,
+                    "java",
+                )
+            )
+    return findings, lexical_error
+
+
 def scan_html(path: Path, project_root: Path) -> list[Finding]:
     findings: list[Finding] = []
     try:
@@ -727,9 +842,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", required=True, type=Path, help="JSONL output path.")
     parser.add_argument(
         "--language",
-        choices=("auto", "go"),
+        choices=("auto", "go", "java"),
         default="auto",
-        help="Use `go` for the bounded Go inventory/comment contract.",
+        help="Use `go` or `java` for a bounded language inventory/comment contract.",
     )
     parser.add_argument("--project-root", type=Path, default=None,
                         help="Target project root anchoring relative paths "
@@ -782,6 +897,41 @@ def main(argv: list[str] | None = None) -> int:
         write_json(scan, scan_path)
         print(
             f"scanned {scan['summary']['eligible']} eligible Go files from "
+            f"{scan['summary']['discovered']} inventoried; wrote {len(findings)} findings "
+            f"to {relpath(args.output, project_root)}"
+        )
+        return 2 if scan["status"] == "unsupported" else 0
+    if args.language == "java":
+        scan_path = args.output.with_name("scan.json")
+        inventory, files, errors = inventory_java(target_paths, project_root)
+        findings = []
+        for path in files:
+            java_findings, lexical_error = scan_java(path, project_root)
+            findings.extend(java_findings)
+            if lexical_error:
+                relative = relpath(path, project_root)
+                errors.append(f"{relative}:{lexical_error}")
+                for row in inventory:
+                    if row["file"] == relative:
+                        row.update(
+                            role="failed", reason="lexical-error", detail=lexical_error
+                        )
+                        break
+        scan = java_scan_payload(inventory, errors)
+        if not inventory:
+            scan["status"] = "unsupported"
+            scan["failure_kind"] = "no-java-files"
+        findings.sort(key=lambda item: (item.file, item.lineno, item.pattern, item.summary))
+        write_jsonl(
+            (
+                {key: value for key, value in asdict(finding).items() if value != ""}
+                for finding in findings
+            ),
+            args.output,
+        )
+        write_json(scan, scan_path)
+        print(
+            f"scanned {scan['summary']['eligible']} eligible Java files from "
             f"{scan['summary']['discovered']} inventoried; wrote {len(findings)} findings "
             f"to {relpath(args.output, project_root)}"
         )

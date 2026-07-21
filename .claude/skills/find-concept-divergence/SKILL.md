@@ -31,7 +31,7 @@ not_for: |
   (deferred — strict canonical-name + avoid-term grep only in v1).
 language: any
 framework: any
-scans: [python, javascript, typescript, go, markdown, templates]
+scans: [python, javascript, typescript, go, java, markdown, templates]
 ---
 
 # /find-concept-divergence
@@ -76,6 +76,14 @@ The automatic non-Go surface remains
 `scans: [python, javascript, typescript, markdown, templates]`; only explicit
 Go mode promotes Go files into the supported inventory/status contract.
 
+Java support is likewise explicit rather than part of the automatic suffix
+walk. Read [`references/java.md`](references/java.md) only for a Java run; it
+defines the source-role inventory, native fixture check, and strict-text
+non-claims.
+This extends the preserved
+`scans: [python, javascript, typescript, go, markdown, templates]` contract
+with one separately selected Java band.
+
 ## How success is judged
 
 - The run is graded only by artifacts: pasted command output plus
@@ -94,6 +102,8 @@ Go mode promotes Go files into the supported inventory/status contract.
 - Go `scan.json` status is exactly one of `complete`, `partial`, `unsupported`,
   or `failed`. The Markdown report repeats it. Missing/old Go, unreadable
   eligible source, and Go tool failures must never become `clean`.
+- Java uses the same status vocabulary in `scan.json`, but strict-text scanning
+  does not depend on a JDK. Unreadable eligible source cannot become `clean`.
 
 ## Glossary source
 
@@ -283,3 +293,4 @@ against the current glossary; it does not prove the full repo is clean.
 | Agent triage omits glossary citations | Reject the dispatch output and read the report/glossary directly. |
 | Go is missing or older than 1.22.0 | Preserve the `unsupported` report/`scan.json`, restore Go >= 1.22.0 on `PATH`, and re-run. |
 | An eligible Go file cannot be decoded | Keep the report `partial` and cite the failed inventory row; never treat the remaining scan as complete. |
+| An eligible Java file cannot be decoded | Keep the report `partial` and cite the failed inventory row; malformed Java syntax remains valid strict-text input. |

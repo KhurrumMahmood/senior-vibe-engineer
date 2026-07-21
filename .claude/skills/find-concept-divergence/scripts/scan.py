@@ -83,6 +83,16 @@ GO_GENERATED_DIRS = frozenset({"generated", "gen"})
 GO_GENERATED_MARKER_RE = re.compile(
     r"^// Code generated .* DO NOT EDIT\.$", re.MULTILINE
 )
+JAVA_TEST_DIRS = frozenset(
+    {"test", "tests", "__tests__", "testdata", "fixtures", "integrationtest", "testfixtures"}
+)
+JAVA_GENERATED_DIRS = frozenset({"generated", "gen", "target", "build", "out", ".gradle"})
+JAVA_GENERATED_MARKER_RE = re.compile(
+    r"^\s*// Code generated .* DO NOT EDIT\.\s*$", re.MULTILINE
+)
+JAVA_GENERATED_ANNOTATION_RE = re.compile(
+    r"^\s*@(?:javax\.annotation\.processing\.)?Generated(?:\s*\(|\s*$)", re.MULTILINE
+)
 
 
 def load_host_excludes() -> tuple[str, ...]:
@@ -286,6 +296,106 @@ def go_scan_payload(
         "language": "go",
         "analyzer": "python-strict-text",
         "syntax_contract": "strict-text; Go parse validity is not inspected",
+        "inventory": inventory,
+        "errors": errors,
+        "summary": {
+            "discovered": len(inventory),
+            "eligible": sum(row["role"] == "eligible" for row in inventory),
+            "excluded": sum(row["role"] == "excluded" for row in inventory),
+            "failed": failed + len(errors),
+        },
+    }
+
+
+def _java_exclusion(path: Path, root: Path, text: str | None) -> str | None:
+    rel = path.relative_to(root)
+    parents = {part.casefold() for part in rel.parts[:-1]}
+    name = path.name.casefold()
+    if "vendor" in parents:
+        return "vendor"
+    if parents & JAVA_TEST_DIRS:
+        return "test-tree"
+    if parents & JAVA_GENERATED_DIRS:
+        return "generated-tree"
+    if text is not None and JAVA_GENERATED_MARKER_RE.search(text[:4096]):
+        return "generated-marker"
+    if text is not None and JAVA_GENERATED_ANNOTATION_RE.search(text[:4096]):
+        return "generated-annotation"
+    if name.endswith(("test.java", "tests.java", "it.java")):
+        return "test-file"
+    if name.startswith("generated") or name.endswith("_generated.java"):
+        return "generated-file"
+    return None
+
+
+def inventory_java(
+    targets: Iterable[str], root: Path
+) -> tuple[list[dict[str, Any]], list[Path], list[str]]:
+    """Inventory selected Java files before applying strict-text eligibility."""
+    root = root.resolve()
+    discovered: dict[str, Path] = {}
+    errors: list[str] = []
+    for raw in targets:
+        logical = Path(raw)
+        logical = logical if logical.is_absolute() else root / logical
+        logical = Path(os.path.abspath(logical))
+        try:
+            logical.relative_to(root)
+        except ValueError:
+            errors.append(f"target-outside-project:{raw}")
+            continue
+        if not logical.exists():
+            errors.append(f"target-missing:{raw}")
+            continue
+        if logical.is_symlink():
+            if logical.suffix.casefold() == ".java":
+                discovered[logical.relative_to(root).as_posix()] = logical
+            continue
+        if logical.is_file():
+            if logical.suffix.casefold() == ".java":
+                discovered[logical.relative_to(root).as_posix()] = logical
+            continue
+        for directory, dirnames, filenames in os.walk(logical, followlinks=False):
+            current = Path(directory)
+            dirnames[:] = sorted(
+                name for name in dirnames if not (current / name).is_symlink()
+            )
+            for name in sorted(filenames):
+                if name.casefold().endswith(".java"):
+                    path = current / name
+                    discovered[path.relative_to(root).as_posix()] = path
+
+    inventory: list[dict[str, Any]] = []
+    eligible: list[Path] = []
+    for rel, path in sorted(discovered.items()):
+        if path.is_symlink():
+            inventory.append({"file": rel, "role": "excluded", "reason": "symlink"})
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            inventory.append(
+                {"file": rel, "role": "failed", "reason": "read-error", "detail": str(exc)}
+            )
+            continue
+        reason = _java_exclusion(path, root, text)
+        if reason:
+            inventory.append({"file": rel, "role": "excluded", "reason": reason})
+            continue
+        inventory.append({"file": rel, "role": "eligible"})
+        eligible.append(path)
+    return inventory, eligible, errors
+
+
+def java_scan_payload(
+    inventory: list[dict[str, Any]], errors: list[str]
+) -> dict[str, Any]:
+    failed = sum(row["role"] == "failed" for row in inventory)
+    return {
+        "status": "partial" if failed or errors else "complete",
+        "language": "java",
+        "analyzer": "python-strict-text",
+        "syntax_contract": "strict-text; Java parse validity is not inspected",
         "inventory": inventory,
         "errors": errors,
         "summary": {
@@ -835,9 +945,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--report", required=True, help="Markdown report path")
     ap.add_argument(
         "--language",
-        choices=("auto", "go"),
+        choices=("auto", "go", "java"),
         default="auto",
-        help="Use `go` for the bounded Go inventory and strict-text contract.",
+        help="Use `go` or `java` for a bounded language inventory and strict-text contract.",
     )
     ap.add_argument("targets", nargs="*", default=list(DEFAULT_TARGETS),
                     help="paths to scan (relative to repo root)")
@@ -877,6 +987,20 @@ def main(argv: list[str] | None = None) -> int:
                 selected_files=files,
                 language="go",
             )
+    elif args.language == "java":
+        inventory, files, errors = inventory_java(targets, project_root)
+        scan_meta = java_scan_payload(inventory, errors)
+        if not inventory:
+            scan_meta["status"] = "unsupported"
+            scan_meta["failure_kind"] = "no-java-files"
+            status_rc = 2
+        findings = scan(
+            glossary,
+            targets,
+            project_root,
+            selected_files=files,
+            language="java",
+        )
     else:
         out_scan = Path(args.output).with_name("scan.json")
         out_scan.unlink(missing_ok=True)

@@ -36,6 +36,16 @@ GO_GENERATED_DIRS = frozenset({"generated", "gen"})
 GO_GENERATED_MARKER_RE = re.compile(
     r"^// Code generated .* DO NOT EDIT\.$", re.MULTILINE
 )
+JAVA_TEST_DIRS = frozenset(
+    {"test", "tests", "__tests__", "testdata", "fixtures", "integrationtest", "testfixtures"}
+)
+JAVA_GENERATED_DIRS = frozenset({"generated", "gen", "target", "build", "out", ".gradle"})
+JAVA_GENERATED_MARKER_RE = re.compile(
+    r"^\s*// Code generated .* DO NOT EDIT\.\s*$", re.MULTILINE
+)
+JAVA_GENERATED_ANNOTATION_RE = re.compile(
+    r"^\s*@(?:javax\.annotation\.processing\.)?Generated(?:\s*\(|\s*$)", re.MULTILINE
+)
 
 
 def resolve_project_root(explicit: Path | None = None) -> Path:
@@ -274,6 +284,107 @@ def go_scan_payload(
     }
 
 
+def _java_exclusion(path: Path, project_root: Path, text: str | None) -> str | None:
+    rel = path.relative_to(project_root)
+    parent_parts = {part.casefold() for part in rel.parts[:-1]}
+    name = path.name.casefold()
+    if "vendor" in parent_parts:
+        return "vendor"
+    if parent_parts & JAVA_TEST_DIRS:
+        return "test-tree"
+    if parent_parts & JAVA_GENERATED_DIRS:
+        return "generated-tree"
+    if text is not None and JAVA_GENERATED_MARKER_RE.search(text[:4096]):
+        return "generated-marker"
+    if text is not None and JAVA_GENERATED_ANNOTATION_RE.search(text[:4096]):
+        return "generated-annotation"
+    if name.endswith(("test.java", "tests.java", "it.java")):
+        return "test-file"
+    if name.startswith("generated") or name.endswith("_generated.java"):
+        return "generated-file"
+    return None
+
+
+def inventory_java(
+    targets: Iterable[str], project_root: Path
+) -> tuple[list[dict[str, Any]], list[Path], list[str]]:
+    """Inventory every selected Java file before comment eligibility."""
+    project_root = project_root.resolve()
+    discovered: dict[str, Path] = {}
+    errors: list[str] = []
+    for raw in targets:
+        logical = Path(raw)
+        logical = logical if logical.is_absolute() else project_root / logical
+        logical = Path(os.path.abspath(logical))
+        try:
+            logical.relative_to(project_root)
+        except ValueError:
+            errors.append(f"target-outside-project:{raw}")
+            continue
+        if not logical.exists():
+            errors.append(f"target-missing:{raw}")
+            continue
+        if logical.is_symlink():
+            if logical.suffix.casefold() == ".java":
+                discovered[logical.relative_to(project_root).as_posix()] = logical
+            continue
+        if logical.is_file():
+            if logical.suffix.casefold() == ".java":
+                discovered[logical.relative_to(project_root).as_posix()] = logical
+            continue
+        for directory, dirnames, filenames in os.walk(logical, followlinks=False):
+            current = Path(directory)
+            dirnames[:] = sorted(
+                name for name in dirnames if not (current / name).is_symlink()
+            )
+            for name in sorted(filenames):
+                if name.casefold().endswith(".java"):
+                    path = current / name
+                    discovered[path.relative_to(project_root).as_posix()] = path
+
+    inventory: list[dict[str, Any]] = []
+    eligible: list[Path] = []
+    for rel, path in sorted(discovered.items()):
+        if path.is_symlink():
+            inventory.append({"file": rel, "role": "excluded", "reason": "symlink"})
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            inventory.append(
+                {"file": rel, "role": "failed", "reason": "read-error", "detail": str(exc)}
+            )
+            continue
+        reason = _java_exclusion(path, project_root, text)
+        if reason:
+            inventory.append({"file": rel, "role": "excluded", "reason": reason})
+            continue
+        inventory.append({"file": rel, "role": "eligible"})
+        eligible.append(path)
+    return inventory, eligible, errors
+
+
+def java_scan_payload(
+    inventory: list[dict[str, Any]], errors: list[str]
+) -> dict[str, Any]:
+    """Build the family-owned Java lexical status and inventory artifact."""
+    failed = sum(row["role"] == "failed" for row in inventory)
+    return {
+        "status": "partial" if failed or errors else "complete",
+        "language": "java",
+        "analyzer": "python-java-comment-lexer",
+        "syntax_contract": "lexical-only; Java parse validity is not inspected",
+        "inventory": inventory,
+        "errors": errors,
+        "summary": {
+            "discovered": len(inventory),
+            "eligible": sum(row["role"] == "eligible" for row in inventory),
+            "excluded": sum(row["role"] == "excluded" for row in inventory),
+            "failed": failed + len(errors),
+        },
+    }
+
+
 def render_simple_report(
     title: str,
     records: list[dict[str, Any]],
@@ -321,5 +432,5 @@ def render_simple_report(
     }
     if scan:
         payload["status"] = scan["status"]
-        payload["analysis"] = {"go": scan}
+        payload["analysis"] = {scan["language"]: scan}
     return "\n".join(lines), payload

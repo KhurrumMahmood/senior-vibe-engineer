@@ -6,7 +6,7 @@ description: |
   Flags detached section banners, narration comments, missing or thin
   public class docstrings, stale terminology, JavaScript and TypeScript
   functions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML
-  comments, fragile doc references, and a bounded Go lexical-comment surface.
+  comments, fragile doc references, and bounded Go and Java lexical-comment surfaces.
 argument-hint: "[paths... - no paths uses the detector's legacy default surface]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -24,7 +24,7 @@ not_for: |
   existing lints for behavior and correctness.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, templates]
+scans: [python, javascript, typescript, go, java, templates]
 ---
 
 # /find-comment-drift
@@ -54,6 +54,12 @@ existing lexical stale-term, brittle-reference, banner, and narration bands;
 it does not parse declarations or claim exported-symbol documentation
 completeness.
 
+Java is also an explicit language mode. Read
+[`references/java.md`](references/java.md) only for a Java run; it defines the
+source-role inventory, lexer boundary, native fixture check, and non-claims.
+This extends the preserved `scans: [python, javascript, typescript, go, templates]`
+contract with one separately selected Java band.
+
 ## How success is judged
 
 - The run is graded only by artifacts: pasted detector/reporter output
@@ -71,6 +77,8 @@ completeness.
   `unsupported`, or `failed` in `scan.json` and `findings.json.analysis.go`.
   Never relabel unreadable eligible source, a missing/old Go tool, or a tool
   failure as a clean scan.
+- A Java run records the same status vocabulary in `scan.json` and
+  `findings.json.analysis.java`, without depending on a JDK at scan time.
 
 ## Default Target
 
@@ -268,3 +276,4 @@ input/output/side-effect contract.
 | A malformed file cannot be parsed | Report the parser failure and the file path, then continue only if the detector produced an explicit artifact for the skipped file. |
 | Go is missing or older than 1.22.0 | Keep the `unsupported` `scan.json`, install/select Go >= 1.22.0 on `PATH`, and re-run; do not present empty JSONL as clean. |
 | A Go file is unreadable or lexically unterminated | Keep the useful findings with `partial` status and cite the failed inventory row; do not silently omit it. |
+| A Java file is unreadable or lexically unterminated | Keep useful findings with `partial` status and cite the failed inventory row; Java syntax errors outside the lexer remain valid lexical input. |
