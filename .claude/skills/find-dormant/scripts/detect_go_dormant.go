@@ -254,6 +254,9 @@ func collectTarget(root, target string) (map[string]*sourceMeta, map[string]int)
 			return nil
 		}
 		if entry.Type()&os.ModeSymlink != 0 {
+			if strings.EqualFold(filepath.Ext(entry.Name()), ".go") {
+				fatal("target contains symbolic-link Go source: %s", relative(root, path))
+			}
 			if entry.IsDir() {
 				return filepath.SkipDir
 			}

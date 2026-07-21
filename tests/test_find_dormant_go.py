@@ -280,6 +280,14 @@ def test_go_failed_scans_preserve_the_last_good_report(tmp_path: Path) -> None:
 def test_go_exclusions_and_report_symlinks_are_safe(tmp_path: Path) -> None:
     host, env = _host(tmp_path)
 
+    linked_source = host / "src" / "linked.go"
+    linked_source.symlink_to(host / "src" / "dormant.go")
+    linked, report = _scan(SKILL, host, env, name="linked-source")
+    assert linked.returncode == 2
+    assert "symbolic-link Go source" in linked.stderr
+    assert not report.exists()
+    linked_source.unlink()
+
     excluded, report = _scan(SKILL, host, env, target="vendor", name="vendor")
     assert excluded.returncode == 2
     assert "no eligible first-party Go source" in excluded.stderr
