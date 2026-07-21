@@ -207,6 +207,23 @@ def test_go_failure_modes_and_inactive_build_are_explicit(tmp_path: Path) -> Non
     assert manifest["project_resolution"]["inactive_files"] == ["inactive.go"]
 
 
+def test_go_target_isolated_from_unrelated_broken_package(tmp_path: Path) -> None:
+    host, env = _host(tmp_path)
+    unrelated = host / "unrelated"
+    unrelated.mkdir()
+    (unrelated / "broken.go").write_text(
+        "package unrelated\nfunc broken( {\n",
+        encoding="utf-8",
+    )
+
+    result, report = _scan(SKILL, host, env, name="isolated", target="requests.go")
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    manifest = json.loads((report / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["status"] == "complete"
+    assert len(manifest["findings"]) == 1
+
+
 def test_go_withholds_candidates_when_git_evidence_is_insufficient_or_failed(tmp_path: Path) -> None:
     host, env = _host(tmp_path)
     shutil.rmtree(host / ".git")
@@ -245,6 +262,13 @@ def test_go_containment_copied_closure_and_source_fingerprint(tmp_path: Path) ->
     linked, report = _scan(SKILL, host, env, name="linked", target="linked.go")
     assert linked.returncode == 2
     assert "symbolic link" in linked.stderr
+    assert not report.exists()
+
+    broken_link = host / "broken-link.go"
+    os.symlink(host / "absent.go", broken_link)
+    broken, report = _scan(SKILL, host, env, name="broken-link", target="broken-link.go")
+    assert broken.returncode == 2
+    assert "symbolic link" in broken.stderr
     assert not report.exists()
 
     reports = host / "reports" / "find-incomplete-sweep"

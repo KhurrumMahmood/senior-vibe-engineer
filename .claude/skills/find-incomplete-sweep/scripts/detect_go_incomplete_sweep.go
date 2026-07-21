@@ -693,6 +693,7 @@ func main() {
 		}
 		files := []string{}
 		filteredLinkedSource := false
+		packageHasSelected := false
 		for _, name := range item.GoFiles {
 			path := filepath.Clean(filepath.Join(item.Dir, name))
 			pathInfo, statErr := os.Lstat(path)
@@ -706,9 +707,10 @@ func main() {
 			files = append(files, path)
 			if selected[path] {
 				active[path] = true
+				packageHasSelected = true
 			}
 		}
-		if len(files) > 0 {
+		if len(files) > 0 && packageHasSelected {
 			packageFiles[item.ImportPath] = files
 			packagePaths[item.ImportPath] = item.ImportPath
 		}

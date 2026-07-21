@@ -38,7 +38,7 @@ def _reject_symlinks(root: Path, candidate: Path, label: str) -> None:
     current = root
     for part in candidate.relative_to(root).parts:
         current /= part
-        if current.exists() and current.is_symlink():
+        if current.is_symlink():
             raise GoSweepError(f"{label} must not traverse a symbolic link: {candidate}")
 
 
