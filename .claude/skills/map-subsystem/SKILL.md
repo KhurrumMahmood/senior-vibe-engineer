@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, or checked-JavaScript subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; compiler branches use the host-pinned Compiler API plus one named config resolver for exported surface and resolved imports. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, or bounded Go package subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; compiler branches use the host-pinned Compiler API plus one named config resolver for exported surface and resolved imports; Go v1 maps one root-module package's active-build source and first-party package edges. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -17,7 +17,7 @@ not_for: |
   execution (use /refactor-subsystem with a spec).
 language: any
 framework: any
-scans: [python, typescript, javascript]
+scans: [python, typescript, javascript, go]
 ---
 
 # /map-subsystem
@@ -39,6 +39,8 @@ Procedural detail lives in one knowledge file:
   `.claude/docs/subsystems/<name>.md` + worked example.
 - `knowledge/typescript-v1.md` — the narrow Compiler API model, resolver,
   exclusions, completeness states, and unavailable TypeScript fields.
+- `knowledge/go-v1.md` — the active-build Go package-map facts, exclusions,
+  partial states, and unavailable Go fields.
 
 ## TypeScript / TSX v1
 
@@ -159,6 +161,91 @@ node "${SKILL_ROOT}/scripts/map_typescript.mjs" \
 This is a standalone host-root command: it resolves the selected skill itself
 and does not inherit `SKILL_ROOT` from the TypeScript command above.
 
+## Go v1
+
+Use this branch only from the root of one Go 1.22+ module, with no active
+workspace or `go.mod` `replace` directive. It maps one package **directory**
+for the current Go build: active non-generated source files, exported
+top-level declarations and methods, parser-recorded import spelling, and
+first-party inbound/outbound package edges established by `go list -e -json -mod=readonly ./...`.
+
+The selected skill ships one family-local standard-library helper. It uses
+`go/parser` and `go/ast` after `go list` has established the active package
+graph. It does not use `go/packages`, `go/types`, a language server, or a
+shared Go platform. It records ignored build files and makes build matrices,
+cgo, runtime dispatch, call identity, responsibility clustering, lint policy,
+and behavioral interpretation explicitly unavailable. Generated, vendor,
+testdata, test, and symlinked sources do not enter the source inventory.
+
+An incomplete target package or unresolved first-party import writes a visible
+`partial` map. A package with active cgo source is also `partial`; it is not a
+claim that cgo source was mapped. A missing/old Go tool, active workspace,
+module replacement, non-root module, excluded/missing target, or package
+directory with no eligible source writes an explicit `unsupported` map.
+Malformed eligible Go source writes a `failed` artifact and exits non-zero.
+The final map is complete only for the active `GOOS`/`GOARCH` selection, never
+for all build-tag or platform variants.
+
+### Installed Go map command
+
+Run this from the root of the target Go module after the selected skill is
+installed. The host's normal native check remains separate evidence: run
+`go test ./...` before and after mapping. The mapper is read-only against Go
+source and writes only the durable Markdown, JSON evidence, and optional
+effectiveness row.
+
+<!-- installed-command:go-map:start -->
+```bash
+MAP_NAME="${MAP_NAME:-go-package}"
+MAP_TARGET="${MAP_TARGET:-internal/package}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/map-subsystem" \
+  ".agents/skills/map-subsystem" \
+  ".claude/skills/map-subsystem"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "map-subsystem is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+if ! command -v go >/dev/null 2>&1; then
+  printf '%s\n' '{"status":"unsupported","failure_kind":"go_tool_missing"}'
+  exit 0
+fi
+GO_VERSION_OUTPUT="$(go version 2>/dev/null || true)"
+GO_VERSION_TOKEN="${GO_VERSION_OUTPUT#* go}"
+GO_VERSION_TOKEN="${GO_VERSION_TOKEN%% *}"
+GO_VERSION_MAJOR="${GO_VERSION_TOKEN%%.*}"
+GO_VERSION_REST="${GO_VERSION_TOKEN#*.}"
+GO_VERSION_MINOR="${GO_VERSION_REST%%.*}"
+case "${GO_VERSION_MAJOR}:${GO_VERSION_MINOR}" in
+  *[!0-9:]*|:*)
+    printf '%s\n' '{"status":"unsupported","failure_kind":"go_version_unreadable","minimum_go":"1.22"}'
+    exit 0
+    ;;
+esac
+if [ -z "${GO_VERSION_MAJOR}" ] || [ -z "${GO_VERSION_MINOR}" ] || \
+   [ "${GO_VERSION_MAJOR}" -lt 1 ] || \
+   { [ "${GO_VERSION_MAJOR}" -eq 1 ] && [ "${GO_VERSION_MINOR}" -lt 22 ]; }
+then
+  printf '%s\n' '{"status":"unsupported","failure_kind":"go_version_too_old","minimum_go":"1.22"}'
+  exit 0
+fi
+go run "${SKILL_ROOT}/scripts/map_go.go" \
+  --name "${MAP_NAME}" \
+  --target "${MAP_TARGET}" \
+  --project-root "$(pwd)" \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/go-map.json" \
+  --effectiveness-log "reports/_meta/effectiveness.jsonl"
+```
+<!-- installed-command:go-map:end -->
+
 ## How success is judged
 
 - Python maps are complete per `knowledge/output-format.md`: file inventory,
@@ -166,7 +253,9 @@ and does not inherit `SKILL_ROOT` from the TypeScript command above.
   convention-compliance score. TypeScript/TSX v1 maps are complete per
   `knowledge/typescript-v1.md`: eligible inventory, exported surface, resolved
   module edges, workflow participation, and applicable compliance; intentionally
-  unavailable fields must remain explicit.
+  unavailable fields must remain explicit. Go v1 maps are complete only for
+  the active package/build facts in `knowledge/go-v1.md`; package-resolution
+  gaps remain visible as `partial`, and unavailable Go facts stay explicit.
 - On `--refresh`, the doc opens with a diff section against the prior
   version — what changed, not just what is.
 - The run cites artifact truth: pasted `render_doc.py` `wrote ...`
@@ -456,7 +545,9 @@ summary.
 .claude/skills/map-subsystem/
 ├── SKILL.md                      # this file — orchestrator
 ├── scripts/
-│   └── render_doc.py             # Stages 6-7 — renders the doc + appends log
+│   ├── map_go.go                 # Go v1 package map + final artifacts
+│   └── render_doc.py             # Python Stages 6-7 — renders the doc + appends log
 └── knowledge/
-    └── output-format.md          # doc structure + worked example
+    ├── go-v1.md                  # bounded active-build Go contract
+    └── output-format.md          # Python doc structure + worked example
 ```

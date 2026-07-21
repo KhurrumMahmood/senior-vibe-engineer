@@ -4,11 +4,14 @@ skill: map-subsystem
 job: map
 problem_class: "subsystem MAP — durable inventory doc"
 intent: >
-  Produce or refresh a durable inventory doc for a Python or TypeScript/TSX
-  subsystem at .claude/docs/subsystems/<name>.md. The TypeScript v1 branch uses
-  the host-pinned Compiler API and named tsconfig to inventory exported surface,
-  resolved inbound/outbound imports, barrel boundaries, workflow participation,
-  and diagnostic completeness without inventing unavailable judgment fields.
+  Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, or
+  bounded Go package subsystem at .claude/docs/subsystems/<name>.md. The
+  TypeScript v1 branch uses the host-pinned Compiler API and named tsconfig to
+  inventory exported surface, resolved inbound/outbound imports, barrel
+  boundaries, workflow participation, and diagnostic completeness without
+  inventing unavailable judgment fields. Go v1 maps one root-module package's
+  active-build source, exported declarations, and first-party package edges
+  with go list plus standard-library parser facts.
 solves: >
   A subsystem nobody can change confidently because its public surface,
   responsibilities, and dependency edges live only in the code — the map makes
@@ -50,9 +53,11 @@ provenance_confidence:
   dogfood: med
 evidence:
   - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
-  - "has scripts/ doc generator + knowledge/ output-format spec; no fixtures/ oracle (has_fixtures false)"
+  - "has Python renderer, TypeScript compiler mapper, and Go v1 family-local helper with local output-contract knowledge"
   - "no .claude/docs/subsystems/ outputs and no reports/map dir on disk in ES2 — nothing mapped here"
   - "tests/test_map_subsystem_typescript.py proves direct and alias resolution, barrel boundaries, exclusions, partial/error states, artifact containment, copied closure, and stock-installed final output."
+  - "tests/test_map_subsystem_go.py proves active-build package inventory, first-party default/alias inbound and outbound edges, generated/build-tag boundaries, partial/failed/unsupported states, artifact containment, copied closure, native Go checks, and source immutability."
 gaps:
   - "TypeScript v1 does not infer responsibility clusters, dynamic/runtime imports, framework semantics, or a lint-policy score; unavailable fields remain explicit."
+  - "Go v1 does not claim a build matrix, cgo source facts, go/types symbol or call identity, runtime dispatch, responsibility clustering, or lint-policy facts; those fields remain explicit unavailable or partial."
   - "embodies_decisions.adr is []: ADR 0017 (staged-boundary) names map-subsystem only as a context/signal source feeding the planning chain, not as the enforcement/realization of the decision, so it is not attributed."

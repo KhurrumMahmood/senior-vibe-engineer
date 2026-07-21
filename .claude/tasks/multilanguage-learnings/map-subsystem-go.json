@@ -1,0 +1,58 @@
+{
+  "batch": "Go G2 map-subsystem pilot",
+  "family": ["map-subsystem"],
+  "invariant": {
+    "portable_principle": "A durable Go subsystem map is useful when it states active package/build facts exactly and keeps unavailable semantic facts visible.",
+    "go_mechanism": "One family-local Go 1.22+ helper uses go list -e -json -mod=readonly ./... plus go/parser/go/ast.",
+    "explicit_non_goals": [
+      "go/packages, go/types, gopls, third-party modules, or a shared Go platform",
+      "symbol/call identity, interface dispatch, reflection, dynamic loading, or full build-matrix analysis",
+      "responsibility clustering, lint-policy inference, refactor advice, or source mutation"
+    ]
+  },
+  "tooling": {
+    "selected": "Family-local map_go.go using host Go and standard library only.",
+    "closure_mode": "Copy only map-subsystem; no toolkit Python, repository helper, sibling skill, external Go module, or network-time dependency.",
+    "native_tool": "go list -e -json -mod=readonly ./... plus go test ./... as host verification",
+    "boundaries": [
+      "one root module, no active workspace, no root replace directive, one package directory",
+      "current active GOOS/GOARCH only; build variants are explicit unavailable scope",
+      "generated, test, testdata, vendor, symlink, cgo, malformed, and unresolved cases receive explicit non-clean outcomes"
+    ]
+  },
+  "outcome_contract": {
+    "final_artifacts": [
+      ".claude/docs/subsystems/<name>.md",
+      "reports/map/<name>/go-map.json",
+      "reports/_meta/effectiveness.jsonl (optional)"
+    ],
+    "must_fire": [
+      "active non-generated source inventory",
+      "exported top-level types/functions/methods/constants/variables",
+      "first-party inbound and outbound package edges with default and alias import spelling",
+      "workflow text reference and active-build ignored-file fact"
+    ],
+    "non_clean": [
+      "unresolved first-party import or incomplete go list fact is partial",
+      "cgo package is partial",
+      "malformed selected source writes failed artifacts and exits nonzero",
+      "missing/old Go, workspace, replacement, non-root module, excluded, missing, or symlink target is unsupported"
+    ]
+  },
+  "reuse_decision": {
+    "shared_candidate": "Go module/package discovery and source-policy helper",
+    "actual_second_consumer": "propose-boundary Go v1 has different caller-impact/proposal and deferral requirements.",
+    "decision": "keep-family-local",
+    "trigger_to_revisit": "A later accepted consumer needs the same package discovery, source-policy, final-artifact, and copied-closure contract and measurable duplication makes a generated copied template smaller than separate implementations."
+  },
+  "verification": {
+    "test": "tests/test_map_subsystem_go.py",
+    "fixture": "tests/fixtures/map-subsystem-go/host",
+    "checks": [
+      "go fmt ./...",
+      "go test ./...",
+      "source fingerprint unchanged",
+      "copied selected-skill command writes final Markdown and JSON"
+    ]
+  }
+}
