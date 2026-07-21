@@ -1,14 +1,14 @@
 ---
 name: find-folder-topology-drift
-description: Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, or Go flat-prefix clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript and TypeScript report direct source siblings sharing a first `_` or `-` token, while Go uses its valid first `_` token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.
-argument-hint: "[--root PATH] [--javascript-root PATH] [--typescript-root PATH] [--go-root PATH] [--min-cluster-size 3 --exclude PATTERN]"
+description: Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, Go, or Java filename clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript and TypeScript use a first `_` or `-` token, Go uses its first `_` token, and Java uses a leading CamelCase token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.
+argument-hint: "[--root PATH] [--javascript-root PATH] [--typescript-root PATH] [--go-root PATH] [--java-root PATH] [--min-cluster-size 3 --exclude PATTERN]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
 job: suspect
 best_for: |
   Auditing a Python package against ADR 0006's bidirectional ≥3-sibling
-  threshold, or inspecting an explicitly named TypeScript or Go source root for a
+  threshold, or inspecting an explicitly named TypeScript, Go, or Java source root for a
   simple same-domain filename cluster such as
   `billing_parser.ts`, `billing-validator.ts`, and `billing-types.ts`.
 not_for: |
@@ -20,7 +20,7 @@ not_for: |
   resolved-import contract.
 language: any
 framework: any
-scans: [python, javascript, typescript, go]
+scans: [python, javascript, typescript, go, java]
 ---
 
 # /find-folder-topology-drift
@@ -42,6 +42,8 @@ candidate, never as authorization to move files.
 - A Go run writes `scan.json` and reports analysis status `complete`, `partial`,
   `unsupported`, or `failed`. `findings.json.analysis.go` must preserve the
   same status and full pre-eligibility inventory.
+- A Java run writes the same inventory/status artifacts under
+  `findings.json.analysis.java` without depending on a JDK at scan time.
 
 ## Supported invariants
 
@@ -114,6 +116,14 @@ it does not parse syntax, load packages, interpret build tags, resolve imports,
 or recommend a move. A malformed Go body can therefore still support this
 filename fact; unreadable UTF-8 is a failed inventory row and makes the result
 `partial`.
+
+### Java v1: explicit source roots only
+
+Read [`references/java.md`](references/java.md) only for a Java scan. It defines
+the `--java-root` source-role inventory, leading-CamelCase cluster rule, native
+fixture check, incomplete states, and non-claims. This extends the preserved
+`scans: [python, javascript, typescript, go]` contract with a separately
+selected Java band.
 
 ## Pipeline
 
@@ -193,6 +203,8 @@ any output that has a pattern other than `flat_prefix_cluster`.
 
 Go mode also writes `scan.json`; grade Go completeness from it and
 `findings.json.analysis.go`, not from a zero-finding JSONL alone.
+Java mode is graded the same way from `scan.json` and
+`findings.json.analysis.java`.
 
 For a Python `flat_prefix_cluster`, `tests_by_prefix`, or
 `sparse_folder_package`, `/propose-folder-reorganization` produces the
@@ -238,6 +250,8 @@ The expected final result is one finding labeled
 | Go is missing or older than 1.22.0 | Keep the `unsupported` `scan.json`, restore Go >= 1.22.0 on `PATH`, and re-run. |
 | A selected Go file is unreadable | Keep useful clusters with `partial` status and cite the failed inventory row; never claim the root was completely inventoried. |
 | A Go cluster needs a safe package move | State that v1 has no package/import/build-tag facts; use a separately proven Go proposal workflow. |
+| A selected Java file is unreadable | Keep useful clusters with `partial` status and cite the failed inventory row; malformed Java bodies remain valid filename evidence. |
+| A Java cluster needs a safe package move | State that v1 has no package/import/build facts; use a separately proven Java proposal workflow. |
 
 ## Installed layout
 

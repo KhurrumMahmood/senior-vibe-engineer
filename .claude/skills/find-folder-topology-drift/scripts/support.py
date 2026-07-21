@@ -33,6 +33,16 @@ GO_GENERATED_DIRS = frozenset({"generated", "gen"})
 GO_GENERATED_MARKER_RE = re.compile(
     r"^// Code generated .* DO NOT EDIT\.$", re.MULTILINE
 )
+JAVA_TEST_DIRS = frozenset(
+    {"test", "tests", "__tests__", "testdata", "fixtures", "integrationtest", "testfixtures"}
+)
+JAVA_GENERATED_DIRS = frozenset({"generated", "gen", "target", "build", "out", ".gradle"})
+JAVA_GENERATED_MARKER_RE = re.compile(
+    r"^\s*// Code generated .* DO NOT EDIT\.\s*$", re.MULTILINE
+)
+JAVA_GENERATED_ANNOTATION_RE = re.compile(
+    r"^\s*@(?:javax\.annotation\.processing\.)?Generated(?:\s*\(|\s*$)", re.MULTILINE
+)
 _IGNORE_HEADINGS = {"ignore", "ignores", "skip", "path skip", "paths to skip"}
 _ROOTS_HEADINGS = {"roots", "root", "scan", "scan roots", "include"}
 
@@ -298,6 +308,93 @@ def go_scan_payload(
     }
 
 
+def _java_exclusion(
+    path: Path, project_root: Path, text: str | None, excludes: list[str]
+) -> str | None:
+    rel = path.relative_to(project_root)
+    rel_text = rel.as_posix()
+    parents = {part.casefold() for part in rel.parts[:-1]}
+    name = path.name
+    if "vendor" in parents:
+        return "vendor"
+    if parents & JAVA_TEST_DIRS:
+        return "test-tree"
+    if parents & JAVA_GENERATED_DIRS:
+        return "generated-tree"
+    if text is not None and JAVA_GENERATED_MARKER_RE.search(text[:4096]):
+        return "generated-marker"
+    if text is not None and JAVA_GENERATED_ANNOTATION_RE.search(text[:4096]):
+        return "generated-annotation"
+    if re.search(r"(?:Test|Tests|IT)\.java$", name):
+        return "test-file"
+    if name.startswith("Generated") or name.endswith("_Generated.java"):
+        return "generated-file"
+    if matches_any(rel_text, excludes):
+        return "declared-exclude"
+    return None
+
+
+def inventory_java(
+    roots: Iterable[Path], project_root: Path, excludes: list[str]
+) -> tuple[list[dict[str, Any]], list[Path], list[str]]:
+    """Inventory every selected Java file before filename eligibility rules."""
+    project_root = project_root.resolve()
+    discovered: dict[str, Path] = {}
+    errors: list[str] = []
+    for root in roots:
+        for directory, dirnames, filenames in os.walk(root, followlinks=False):
+            current = Path(directory)
+            dirnames[:] = sorted(
+                name for name in dirnames if not (current / name).is_symlink()
+            )
+            for name in sorted(filenames):
+                if not name.casefold().endswith(".java"):
+                    continue
+                path = current / name
+                discovered[path.relative_to(project_root).as_posix()] = path
+
+    inventory: list[dict[str, Any]] = []
+    eligible: list[Path] = []
+    for rel, path in sorted(discovered.items()):
+        if path.is_symlink():
+            inventory.append({"file": rel, "role": "excluded", "reason": "symlink"})
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            inventory.append(
+                {"file": rel, "role": "failed", "reason": "read-error", "detail": str(exc)}
+            )
+            continue
+        reason = _java_exclusion(path, project_root, text, excludes)
+        if reason:
+            inventory.append({"file": rel, "role": "excluded", "reason": reason})
+            continue
+        inventory.append({"file": rel, "role": "eligible"})
+        eligible.append(path)
+    return inventory, eligible, errors
+
+
+def java_scan_payload(
+    inventory: list[dict[str, Any]], errors: list[str]
+) -> dict[str, Any]:
+    failed = sum(row["role"] == "failed" for row in inventory)
+    return {
+        "status": "partial" if failed or errors else "complete",
+        "language": "java",
+        "analyzer": "python-filesystem-names",
+        "syntax_contract": "filename-only; Java parse validity is not inspected",
+        "inventory": inventory,
+        "errors": errors,
+        "summary": {
+            "discovered": len(inventory),
+            "eligible": sum(row["role"] == "eligible" for row in inventory),
+            "excluded": sum(row["role"] == "excluded" for row in inventory),
+            "failed": failed + len(errors),
+        },
+    }
+
+
 def render_simple_report(
     title: str,
     records: list[dict[str, Any]],
@@ -346,5 +443,5 @@ def render_simple_report(
     }
     if scan:
         payload["status"] = scan["status"]
-        payload["analysis"] = {"go": scan}
+        payload["analysis"] = {scan["language"]: scan}
     return "\n".join(lines), payload

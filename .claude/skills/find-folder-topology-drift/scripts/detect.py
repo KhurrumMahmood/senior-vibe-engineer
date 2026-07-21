@@ -37,6 +37,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -50,10 +51,12 @@ from support import (  # noqa: E402
     Scope,
     go_scan_payload,
     inventory_go,
+    inventory_java,
     iter_paths,
     load_scope,
     matches_any,
     probe_go,
+    java_scan_payload,
     write_json,
 )
 
@@ -832,6 +835,67 @@ def detect_go(
     return findings
 
 
+JAVA_LEADING_DOMAIN_RE = re.compile(
+    r"^(?:(?P<acronym>[A-Z]+)(?=[A-Z][a-z])|(?P<word>[A-Z][a-z0-9]+))"
+)
+
+
+def _java_prefix_clusters(
+    files: list[Path], min_cluster_size: int
+) -> dict[tuple[Path, str], list[Path]]:
+    """Group Java siblings by the leading CamelCase domain token."""
+    grouped: dict[tuple[Path, str], list[Path]] = defaultdict(list)
+    for path in files:
+        if path.name in {"module-info.java", "package-info.java"}:
+            continue
+        match = JAVA_LEADING_DOMAIN_RE.match(path.stem)
+        if not match or match.end() == len(path.stem):
+            continue
+        prefix = (match.group("acronym") or match.group("word")).casefold()
+        if len(prefix) < 2:
+            continue
+        grouped[(path.parent, prefix)].append(path)
+    return {
+        key: paths
+        for key, paths in grouped.items()
+        if len(paths) >= min_cluster_size
+    }
+
+
+def detect_java(
+    *, project_root: Path, files: list[Path], min_cluster_size: int
+) -> list[dict]:
+    """Detect Java direct-sibling CamelCase clusters from inventory facts."""
+    findings: list[dict] = []
+    for (directory, prefix), paths in sorted(
+        _java_prefix_clusters(files, min_cluster_size).items(),
+        key=lambda item: (item[0][0].as_posix(), item[0][1]),
+    ):
+        rel_files = [path.relative_to(project_root).as_posix() for path in sorted(paths)]
+        location = directory.relative_to(project_root).as_posix()
+        findings.append(
+            {
+                "language": "java",
+                "pattern": "flat_prefix_cluster",
+                "file": location,
+                "lineno": 1,
+                "prefix": prefix,
+                "files": rel_files,
+                "summary": (
+                    f"Java directory `{location}` has {len(rel_files)} direct production "
+                    f"siblings sharing the leading CamelCase domain token `{prefix}`: "
+                    f"{', '.join(path.name for path in sorted(paths))}."
+                ),
+                "recommendation": (
+                    f"Review the `{prefix}` files as a possible package boundary. "
+                    "This Java v1 finding is filename-only: it does not prove package "
+                    "cohesion, import safety, build equivalence, or a safe move."
+                ),
+            }
+        )
+    return findings
+
+
 def _resolve_within_project(
     value: Path, project_root: Path, flag: str
 ) -> Path | None:
@@ -889,6 +953,16 @@ def main() -> int:
             "or JavaScript/TypeScript root, scan Go only."
         ),
     )
+    parser.add_argument(
+        "--java-root",
+        action="append",
+        type=Path,
+        default=[],
+        help=(
+            "Declared Java source root. Repeat for separate roots. With no --root "
+            "or JavaScript/TypeScript/Go root, scan Java only."
+        ),
+    )
     # spec:project-structure-redesign-phase-2::IM-26
     parser.add_argument(
         "--project-root",
@@ -912,7 +986,7 @@ def main() -> int:
     args = parser.parse_args()
 
     project_root = args.project_root.resolve()
-    if not args.go_root:
+    if not (args.go_root or args.java_root):
         args.output.with_name("scan.json").unlink(missing_ok=True)
     scope = load_scope(project_root, SKILL_NAME)
     if args.root is not None:
@@ -950,6 +1024,29 @@ def main() -> int:
             return 2
         go_roots.append(root)
 
+    java_roots: list[Path] = []
+    for raw_root in args.java_root:
+        candidate = raw_root if raw_root.is_absolute() else project_root / raw_root
+        if candidate.is_symlink():
+            print(
+                f"detect: --java-root must not be a symlink: {raw_root}",
+                file=sys.stderr,
+            )
+            return 2
+        root = _resolve_within_project(raw_root, project_root, "--java-root")
+        if root is None or not root.is_dir():
+            if root is not None:
+                print(f"detect: --java-root must name a directory: {raw_root}", file=sys.stderr)
+            return 2
+        java_roots.append(root)
+
+    if go_roots and java_roots:
+        print(
+            "detect: --go-root and --java-root require separate scans so scan.json has one language owner",
+            file=sys.stderr,
+        )
+        return 2
+
     go_scan: dict | None = None
     go_rc = 0
     go_files: list[Path] = []
@@ -975,6 +1072,19 @@ def main() -> int:
                 go_scan["failure_kind"] = "no-go-files"
                 go_rc = 2
 
+    java_scan: dict | None = None
+    java_rc = 0
+    java_files: list[Path] = []
+    if java_roots:
+        inventory, java_files, errors = inventory_java(
+            java_roots, project_root, list(args.exclude)
+        )
+        java_scan = java_scan_payload(inventory, errors)
+        if not inventory:
+            java_scan["status"] = "unsupported"
+            java_scan["failure_kind"] = "no-java-files"
+            java_rc = 2
+
     # A TypeScript-root-only invocation is intentionally TypeScript-only. The
     # preserved Python scan runs when TypeScript was not requested, or when the
     # caller explicitly supplies --root to request a combined scan.
@@ -984,7 +1094,8 @@ def main() -> int:
             scope=scope,
             min_cluster_size=args.min_cluster_size,
         )
-        if not (typescript_roots or javascript_roots or go_roots) or args.root is not None
+        if not (typescript_roots or javascript_roots or go_roots or java_roots)
+        or args.root is not None
         else []
     )
     if typescript_roots:
@@ -1013,6 +1124,14 @@ def main() -> int:
                 min_cluster_size=args.min_cluster_size,
             )
         )
+    if java_roots and java_rc == 0:
+        findings.extend(
+            detect_java(
+                project_root=project_root,
+                files=java_files,
+                min_cluster_size=args.min_cluster_size,
+            )
+        )
     findings.sort(key=lambda finding: (
         str(finding.get("language", "python")),
         str(finding.get("pattern", "")),
@@ -1026,9 +1145,11 @@ def main() -> int:
             f.write(json.dumps(finding) + "\n")
     if go_scan is not None:
         write_json(go_scan, args.output.with_name("scan.json"))
+    if java_scan is not None:
+        write_json(java_scan, args.output.with_name("scan.json"))
 
     print(f"detect: wrote {len(findings)} findings to {args.output}", file=sys.stderr)
-    return go_rc
+    return go_rc or java_rc
 
 
 if __name__ == "__main__":
