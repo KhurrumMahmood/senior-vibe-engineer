@@ -429,7 +429,7 @@ must not block this phase.
 | G1 lexical/topology | complete | `find-comment-drift`, `find-concept-divergence`, `find-folder-topology-drift` | Reports inventory first-party Go source with explicit generated/vendor/test boundaries; fresh review PASS. |
 | G1 structural/standards | complete | `find-omnibus`, `find-standard-gaps` | Batched native syntax facts reach final reports; 51 focused/preserved tests passed; fresh review PASS. |
 | G1D duplication | complete | `find-duplication` | Batched native exact-body evidence reaches final triage from a copied closure; 23 family tests passed and fresh product-framed review reached PASS after three bounded correctness repairs. |
-| G2 semantic/project | pending | Six skills named in the transfer guide | Pilot no more than three before considering shared `go list`/`go/types` facts. |
+| G2 semantic/project | in progress | `map-subsystem`, `find-dormant` selected; four candidates deferred | Complete two independent family-local pilots, then compare their measured `go list`/`go/types` overlap before considering any extraction. |
 | G3 proposals/guards | pending | Four skills named in the transfer guide | Begin only from accepted upstream Go evidence. |
 
 G1 promotion is per skill. Shared capability, matrix, router, and plan changes
@@ -444,6 +444,33 @@ it deliberately keeps analyzers family-local and records only a conditional
 future source-policy template, not a shared parser platform. G1D's
 detector-specific learning is in
 `.claude/tasks/multilanguage-learnings/find-duplication-go.md`.
+
+### G2 pilot decision and acceptance
+
+Two product-framed, non-context assessments selected `map-subsystem` and
+`find-dormant`. `find-incomplete-sweep` and `find-implicit-state` are deferred
+because their smallest honest Go outcomes are narrow and weakly actionable;
+`find-semantic-duplication` and `rename-concept` are deferred until stronger
+type/authority evidence can prevent misleading semantic or completeness
+claims. Deferred means unpromoted, not silently substituted by a weaker skill.
+
+The two pilots run in isolated worktrees and pass only when each:
+
+- [ ] runs from a copied on-demand skill closure using Go 1.22+ discovered
+      from `PATH`, with no network or repository-runtime import;
+- [ ] reaches its final human-readable and structured artifact on a locked Go
+      module while preserving every source byte and passing `go test ./...`;
+- [ ] proves positive, clean-negative, generated/vendor/test, build-constraint,
+      malformed-source, and missing/old-tool outcomes without converting an
+      incomplete analysis into clean;
+- [ ] preserves the existing Python, TypeScript, and JavaScript skill paths;
+- [ ] passes a product-framed fresh review and records transferable and
+      non-transferable learning before per-skill promotion.
+
+After both pilots, compare the actual launcher, package-selection, and typed
+fact code. Extract a shared primitive only if identical behavior has two real
+consumers and a smaller copied closure or measured maintenance benefit; shared
+`go list`/`go/types` infrastructure is not a prerequisite or default outcome.
 
 ## Efficiency gate E1 — Measured read-only batching
 
