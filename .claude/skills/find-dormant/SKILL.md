@@ -1,7 +1,7 @@
 ---
 name: find-dormant
-description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, and Go have narrow static review branches for human review. Never infers safe deletion from static evidence.
-argument-hint: "--target <directory-or-file> [--language python|typescript|javascript|go]"
+description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, and Java have narrow static review branches for human review. Never infers safe deletion from static evidence.
+argument-hint: "--target <directory-or-file> [--language python|typescript|javascript|go|java]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -17,6 +17,7 @@ best_for: |
   static symbol references, and always requires human runtime review.
   Go v1 reports only unexported package-level functions and function-valued
   variables with zero `go/types` uses in the selected active-build package.
+  Java v1 reports only private methods with zero compiler-resolved source uses.
 not_for: |
   Removing findings (use /fix-workflow delete:<id>). Architectural
   smells like omnibus or layer violation (use those /find-* skills).
@@ -26,13 +27,13 @@ not_for: |
   or safe-deletion decisions are outside the static v1 contract.
 language: any
 framework: any
-scans: [python, typescript, javascript, go]
+scans: [python, typescript, javascript, go, java]
 scout_model: cheap
 ---
 
 # /find-dormant
-
 <!-- Legacy copied-install metadata token: scans: [python, typescript] -->
+<!-- Legacy Go metadata token: scans: [python, typescript, javascript, go] -->
 
 You are the **orchestrator** for a dormant-code audit. Your job is to
 drive a pipeline of detectors and sub-agent verifiers; the judgment
@@ -215,6 +216,40 @@ Run the host's `go test ./...` before and after the audit. The detector reports
 active-build package facts only; it does not establish runtime reachability or
 authorize deletion.
 
+## Java v1
+
+Use this branch only with a JDK 17+ `java`/`javac` host. The family-local
+source launcher runs `JavacTask.parse()` plus `analyze()` with `--release 17`
+and `-proc:none`, then uses `Trees.getElement` for source use identity. It
+reports only **private methods** with zero compiler-resolved Java source uses;
+every result is `review_required`, `human_review_only`, and
+`certain_delete: 0`. Reflection, DI, framework callbacks, JNI, generated or
+Kotlin source, external consumers, Maven/Gradle/classpath/module-path
+resolution, annotation processors, and runtime reachability remain explicit
+boundaries. Syntax errors stop; unresolved compilation is a final `partial`
+report. Full details are in `knowledge/java-v1.md`.
+
+<!-- installed-command:java-scan:start -->
+```bash
+: "${TARGET:?Set TARGET to the Java file or directory to audit}"
+REPORT_NAME="${REPORT_NAME:-java-scan}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-dormant" \
+  ".agents/skills/find-dormant" \
+  ".claude/skills/find-dormant"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"; break; fi
+done
+if [ -z "${SKILL_ROOT}" ] || ! command -v java >/dev/null 2>&1; then
+  printf '%s\n' "find-dormant Java v1 requires an installed skill and JDK 17+" >&2; exit 2
+fi
+java "${SKILL_ROOT}/scripts/detect_java_dormant.java" \
+  --target "${TARGET}" --project-root "$(pwd)" \
+  --report-dir "reports/find-dormant/${REPORT_NAME}"
+```
+<!-- installed-command:java-scan:end -->
+
 ## How success is judged
 
 - Every Python deletion candidate in `${REPORT_DIR}/report.md` carries a
@@ -229,6 +264,8 @@ authorize deletion.
 - Every Go final report carries explicit `review_required` and `uncertain`
   counts plus `certain_delete: 0`; no Go static finding crosses into a Python
   scout/deletion bucket or a safe-deletion recommendation.
+- Every Java final report carries the same review-only counts and compiler
+  resolution state; no Java static finding authorizes deletion.
 - Nothing is deleted — recommendations route to `/fix-workflow
   delete:<name>` or `fix:<name>` after user authorization.
 Write toward these gates from Stage 0.
@@ -237,7 +274,7 @@ Write toward these gates from Stage 0.
 
 - **Target path:** the required `--target` argument. Python requires a
   directory; TypeScript v1 accepts a `.ts`/`.tsx` file or directory; Go v1
-  accepts a `.go` file or directory.
+  accepts a `.go` file or directory; Java v1 accepts a `.java` file or directory.
 - **Project root:** this worktree's root.
 - **Python:** `.venv/bin/python` (never bare `python`).
 - **TypeScript v1:** Node plus a project-local `typescript` package and named
@@ -248,15 +285,6 @@ Write toward these gates from Stage 0.
 - **Project-specific defaults** (grep locations, Django false
   positives, dynamic-dispatch patterns, candidate skip list): in
   `knowledge/`.
-
-## Feature Graduation Sweep
-
-Run a focused dormant sweep after a prototype graduates into a real
-workflow or after a page/JS entry point is removed. Dead prototype
-templates, routes, and static JS with no unique product knowledge
-should be deletion candidates, not kept alive with compatibility
-aliases. Git history is the archive; live code should be loaded,
-explicitly quarantined with a reason, or removed.
 
 ## Pipeline stages (each has a contract)
 
@@ -370,53 +398,11 @@ If a scout returns invalid JSON or flags the verification as aborted,
 re-dispatch once with a stricter "respond only with file-write
 confirmation" nudge; skip the candidate if it fails twice.
 
-#### Dispatch mode — Agent tool vs cheap subprocess
+#### Dispatch mode
 
-This skill declares `scout_model: cheap` — the verify step is read-and-
-classify against the four flavors in `verify.md`, no cross-file
-synthesis, no shell. That makes it safe on Haiku-class scouts and the
-right place to dogfood the cheap-fan-out path.
-
-For nesting-safe + low-cost fan-out, dispatch each candidate as a
-host `tools/code_agent.py --read-only` subprocess via
-`.claude/skills/_common/dispatch_scout_cheap.sh`. The `--read-only`
-flag drops bash, spawn_agent, claude_tools, and validate_jsonld — the
-scout has only read_file/write_file/glob/grep, with workdir
-containment enforced (commit `168ca3c1`). Cheap models can't
-hallucinate calls to tools that aren't in the registry.
-
-Caveat: the cheap-dispatch path requires the host `tools.code_agent` backend (`<!-- host-adapter -->`); when it is absent, fall back to inline scouting for Stage 3 and record that fallback.
-
-```bash
-# One subprocess per candidate; parallelize with `&` + wait.
-while read -r line; do
-    cid=$(jq -r '.candidate_id' <<<"$line")
-    out="${REPORT_DIR}/scout/${cid}.json"
-    .claude/skills/_common/dispatch_scout_cheap.sh \
-        .claude/skills/find-dormant/agents/verify.md \
-        "$out" \
-        candidate_id="$cid" \
-        candidate_json="$(jq -c . <<<"$line")" \
-        project_root="$(pwd)" \
-        skill_root=".claude/skills/find-dormant" \
-        url_patterns_path="${REPORT_DIR}/url_patterns.jsonl" \
-        output_path="$out" &
-done < "${REPORT_DIR}/candidates.jsonl"
-wait
-```
-
-**Tradeoffs.** Cheap subprocess dispatch adds ~2-4s spawn per scout
-and runs the host adapter's default Haiku-class model; the optional
-model alias registry (`tools/agent-config.json`) is a
-`<!-- host-adapter -->` file and is not shipped in this toolkit repo.
-Set `DISPATCH_SCOUT_MODEL` only when the host adapter provides that
-alias. The `Agent` tool path is faster (~0s spawn) and uses the
-orchestrator's session model (Sonnet/Opus tier — more judgment,
-billed). Use the cheap subprocess by default when the host backend is
-available; fall back to inline scouting when it is not, or to `Agent`
-when (a) only a handful of candidates need verification interactively
-and the user is watching, or (b) a candidate's flavor is genuinely
-ambiguous and warrants the better model.
+Use the declared cheap, read-only scout path when the host adapter is
+available; otherwise use inline verification and record the fallback. Keep
+the 25-candidate budget and the evidence contract above unchanged.
 
 ### Stage 4 — Report
 
@@ -473,6 +459,8 @@ The report is the source of truth — do not enumerate every candidate.
 - Go method/type analysis, interface/runtime reachability, reflection,
   `//go:linkname`, generated registration, plugin, cgo, assembly, or any
   safe-deletion assessment.
+- Java safe deletion, non-private method analysis, reflection/DI/framework/JNI
+  reachability, Kotlin, generated-source, or build-tool resolution.
 
 ## When things go sideways
 
@@ -487,7 +475,6 @@ The report is the source of truth — do not enumerate every candidate.
 | Report's `recommendation` field disagrees with bucket | Scout error; reconcile using the cheat-sheet in `agents/verify.md` |
 
 ## Repository layout
-
 ```
 .claude/skills/find-dormant/
 ├── SKILL.md                         # this file — orchestrator
@@ -499,14 +486,14 @@ The report is the source of truth — do not enumerate every candidate.
 │   ├── report.py                    # Stage 4
 │   ├── detect_typescript_dormant.mjs # TypeScript v1 final report
 │   ├── detect_go_dormant.py          # Go v1 final report launcher
-│   └── detect_go_dormant.go          # Go v1 batched package/use helper
+│   ├── detect_go_dormant.go          # Go v1 batched package/use helper
+│   └── detect_java_dormant.java      # Java v1 final report launcher
 ├── agents/
 │   └── verify.md                    # Stage 3 scout brief
 └── knowledge/                       # sub-agent context, never loaded by orchestrator
+    ├── java-v1.md
     ├── verification.md
     └── learnings.md
 ```
 
-The orchestrator (you) **never reads files in `knowledge/`**. Those
-are for the scout sub-agents. Keeping them out of your context is the
-whole point of this architecture.
+The orchestrator (you) **never reads files in `knowledge/`**; those are for scout sub-agents.
