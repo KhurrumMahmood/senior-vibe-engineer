@@ -1,0 +1,84 @@
+{
+  "batch": "Java J4A project-graph pilots",
+  "status": "implemented_pending_parent_integration",
+  "family": [
+    "map-subsystem",
+    "find-dormant"
+  ],
+  "portable_principle": "A Java source-root map or dormant-review result may claim only compiler-attributed Java facts from an error-free JDK compiler run; it never proves runtime reachability, safe deletion, build-tool behavior, or whole-JVM completeness.",
+  "native_model": {
+    "minimum_version": "JDK 17",
+    "tools": [
+      "java source-file launcher",
+      "ToolProvider.getSystemJavaCompiler",
+      "JavacTask.parse",
+      "JavacTask.analyze",
+      "Trees.getElement",
+      "javac --release 17 -proc:none"
+    ],
+    "attribution_boundary": "eligible source below one inferred package root, --release 17, -proc:none, empty explicit classpath; no Maven, Gradle, module path, annotation processor, or third-party JAR model"
+  },
+  "family_contracts": {
+    "find-dormant": {
+      "claims": "selected non-generated private Java methods with zero compiler-resolved MethodInvocationTree or MemberReferenceTree uses",
+      "result": "review_required/human_review_only only; certain_delete is always 0",
+      "dynamic_boundary": "matching string literals are uncertain; reflection, DI, framework callbacks, JNI, generated source, Kotlin, external consumers, and runtime dispatch remain explicit uncertainty"
+    },
+    "map-subsystem": {
+      "claims": "one package directory's public declarations plus compiler-resolved first-party import and fully-qualified type edges",
+      "result": "durable Markdown and JSON map with source inventory, public surface, inbound/outbound edges, and unavailable fields",
+      "dynamic_boundary": "Maven/Gradle/classpath/module-path resolution, annotation processors, Kotlin attribution, runtime dispatch, and build variants remain unavailable"
+    }
+  },
+  "outcome_states": {
+    "complete": "all eligible Java source attributes with no compiler errors and no Kotlin coverage gap",
+    "partial": "unresolved Java attribution or Kotlin source prevents a clean project claim",
+    "unsupported": "old/missing JDK compiler, missing/excluded/default-or-mismatched target topology, no eligible source, or symlink boundary",
+    "failed": "syntax error is non-clean and exits 2; map writes failed artifacts while dormant preserves the prior good report"
+  },
+  "closure_and_source_safety": {
+    "mode": "copy only the selected skill; each Java helper is a source-file launcher with no toolkit Python, shared Java runtime, sibling skill, network, or repository checkout dependency",
+    "writes": [
+      "reports/find-dormant/<scan>/findings.json",
+      "reports/find-dormant/<scan>/report.md",
+      ".claude/docs/subsystems/<name>.md",
+      "reports/map/<name>/java-map.json"
+    ],
+    "source_boundary": "fixture Java fingerprints and native javac checks prove analysis does not mutate source"
+  },
+  "measured_cost": {
+    "find_dormant_helper_loc": 711,
+    "map_subsystem_helper_loc": 798,
+    "find_dormant_java_test_loc": 199,
+    "map_subsystem_java_test_loc": 273,
+    "skill_prompt_loc": {
+      "find_dormant": 499,
+      "map_subsystem": 497
+    },
+    "focused_verification": "8 pytest cases passed in 15.24s on host JDK 17.0.12 before final integration regressions"
+  },
+  "reuse_decision": {
+    "shared_candidate": "JDK compiler bootstrap, path safety, source-root inventory, JSON emission, and terminal artifact plumbing",
+    "decision": "keep-family-local",
+    "reason": "The map needs public-surface and bidirectional type-edge artifacts while dormant needs private-method use counts, uncertainty queues, and failed-report preservation. No cross-family repair has yet shown that a shared layer lowers maintenance cost without coupling these safety contracts.",
+    "extraction_gate": "Revisit only after a third accepted Java consumer requires the same copied closure and a concrete maintenance fix must be applied identically in both helpers."
+  },
+  "evidence": {
+    "tests": [
+      "tests/test_find_dormant_java.py",
+      "tests/test_map_subsystem_java.py"
+    ],
+    "fixtures": [
+      "tests/fixtures/find-dormant-java",
+      "tests/fixtures/map-subsystem-java/host"
+    ],
+    "coverage": [
+      "positive final artifacts and source fingerprints",
+      "copied selected-skill closure",
+      "native javac compile before and after",
+      "generated/test/vendor exclusions",
+      "malformed, unresolved, old-JDK, missing, symlink, unsafe artifact, and Kotlin boundaries"
+    ]
+  },
+  "stop_decision": "Do not broaden Java J4A into build-system, Kotlin, framework, or shared-runtime support in this batch; preserve the two bounded source-only pilots until product usage supplies a concrete expansion demand."
+}
