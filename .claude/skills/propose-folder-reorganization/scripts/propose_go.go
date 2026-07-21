@@ -256,6 +256,10 @@ func run(root, parent, prefix, judgment, conventionArg, inspection, proposal, mi
 	if scanErr != nil {
 		return writeTerminal(base, inspection, proposal, "failed", "defer_syntax_error", "syntax_error", scanErr.Error(), 2)
 	}
+	if unresolved := unresolvedProjectPackages(root, packages); len(unresolved) > 0 {
+		base["unresolved_project_packages"] = unresolved
+		return writeTerminal(base, inspection, proposal, "partial", "defer_unresolved_package_graph", "go_list_incomplete", "Incomplete first-party Go packages prevent a complete current-module impact table.", 0)
+	}
 	base["cluster_files"] = cluster
 	base["test_files"] = tests
 	if len(cluster) < 3 {
@@ -755,6 +759,29 @@ func packageFacts(root, goPath string) ([]packageInfo, error) {
 		return nil, errors.New("go list returned no package facts")
 	}
 	return packages, nil
+}
+
+func unresolvedProjectPackages(root string, packages []packageInfo) []string {
+	seen := map[string]bool{}
+	result := []string{}
+	for _, pkg := range packages {
+		if pkg.Dir == "" || !within(root, pkg.Dir) || (!pkg.Incomplete && pkg.Error == nil) {
+			continue
+		}
+		detail := pkg.ImportPath
+		if pkg.ForTest != "" {
+			detail += " (for " + pkg.ForTest + ")"
+		}
+		if pkg.Error != nil && strings.TrimSpace(pkg.Error.Err) != "" {
+			detail += ": " + strings.TrimSpace(pkg.Error.Err)
+		}
+		if !seen[detail] {
+			seen[detail] = true
+			result = append(result, detail)
+		}
+	}
+	sort.Strings(result)
+	return result
 }
 
 func exportImporter(fset *token.FileSet, packages []packageInfo) types.Importer {

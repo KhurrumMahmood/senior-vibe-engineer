@@ -249,6 +249,28 @@ def test_go_impact_scan_ignores_dependency_source_outside_current_module(tmp_pat
     assert _payload(inspection)["status"] == "ready"
 
 
+def test_go_incomplete_first_party_package_prevents_complete_impact_claim(tmp_path: Path) -> None:
+    host = _copy_host(tmp_path, "positive")
+    broken = host / "internal" / "broken"
+    broken.mkdir()
+    (broken / "broken.go").write_text(
+        "package broken\n\n"
+        'import legacy "example.com/folder-reorg/internal/legacy"\n\n'
+        "var _ = legacy.ParseInvoice(missingAmount)\n",
+        encoding="utf-8",
+    )
+
+    result, inspection, proposal = _propose(SKILL, host, name="broken-first-party")
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = _payload(inspection)
+    assert payload["status"] == "partial"
+    assert payload["recommendation"] == "defer_unresolved_package_graph"
+    assert payload["failure_kind"] == "go_list_incomplete"
+    assert any("example.com/folder-reorg/internal/broken" in item for item in payload["unresolved_project_packages"])
+    assert "Incomplete first-party Go packages" in proposal.read_text(encoding="utf-8")
+
+
 def test_copied_skill_closure_replays_documented_go_command(tmp_path: Path) -> None:
     host = _copy_host(tmp_path, "positive")
     installed = host / ".agents" / "skills" / "on-demand" / "propose-folder-reorganization"
