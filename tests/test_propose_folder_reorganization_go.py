@@ -211,9 +211,47 @@ def test_go_paths_reject_escape_and_symlinked_artifacts(tmp_path: Path) -> None:
     assert "symbolic link" in result.stderr
 
 
+def test_go_impact_scan_ignores_dependency_source_outside_current_module(tmp_path: Path) -> None:
+    host = _copy_host(tmp_path, "positive")
+    dependency = tmp_path / "external-dependency"
+    dependency.mkdir()
+    (dependency / "go.mod").write_text("module example.com/external\n\ngo 1.22\n", encoding="utf-8")
+    (dependency / "dependency.go").write_text(
+        "package external\n\nconst Value = 1\n",
+        encoding="utf-8",
+    )
+    (dependency / "inactive_broken.go").write_text(
+        "//go:build never\n\npackage external\n\nfunc broken( {\n",
+        encoding="utf-8",
+    )
+    with (host / "go.mod").open("a", encoding="utf-8") as module_file:
+        module_file.write(
+            f"\nrequire example.com/external v0.0.0\n\n"
+            f"replace example.com/external => {dependency}\n"
+        )
+    app = host / "cmd" / "app" / "main.go"
+    app.write_text(
+        app.read_text(encoding="utf-8").replace(
+            '"fmt"',
+            '"fmt"\n\n\t"example.com/external"',
+        ).replace(
+            "fmt.Println(legacy.Summary(legacy.ParseInvoice(4)))",
+            "fmt.Println(legacy.Summary(legacy.ParseInvoice(4)), external.Value)",
+        ),
+        encoding="utf-8",
+    )
+    native = _run(GO, "test", "./...", cwd=host)
+    assert native.returncode == 0, native.stdout + native.stderr
+
+    result, inspection, _ = _propose(SKILL, host, name="external-dependency")
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert _payload(inspection)["status"] == "ready"
+
+
 def test_copied_skill_closure_replays_documented_go_command(tmp_path: Path) -> None:
     host = _copy_host(tmp_path, "positive")
-    installed = host / ".agents" / "skills" / "propose-folder-reorganization"
+    installed = host / ".agents" / "skills" / "on-demand" / "propose-folder-reorganization"
     shutil.copytree(SKILL, installed)
     before = _fingerprints(host)
     command = _documented_command(installed)

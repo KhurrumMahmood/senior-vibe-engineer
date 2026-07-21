@@ -545,7 +545,7 @@ func importImpacts(root string, packages []packageInfo, target *packageInfo, dec
 	impacts := []importImpact{}
 	ambiguous := []string{}
 	for _, pkg := range packages {
-		if clean(pkg.Dir) == clean(target.Dir) || pkg.Dir == "" || pkg.ForTest != "" || strings.HasSuffix(pkg.ImportPath, ".test") {
+		if pkg.Dir == "" || !within(root, pkg.Dir) || clean(pkg.Dir) == clean(target.Dir) || pkg.ForTest != "" || strings.HasSuffix(pkg.ImportPath, ".test") {
 			continue
 		}
 		names := append([]string{}, pkg.GoFiles...)

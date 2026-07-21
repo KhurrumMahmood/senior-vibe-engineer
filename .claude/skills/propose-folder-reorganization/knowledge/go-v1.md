@@ -64,6 +64,7 @@ PFR_CONVENTIONS="${PFR_CONVENTIONS:-}"
 PFR_MINIMUM_GO="${PFR_MINIMUM_GO:-1.22}"
 SKILL_ROOT=""
 for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/propose-folder-reorganization" \
   ".agents/skills/propose-folder-reorganization" \
   ".claude/skills/propose-folder-reorganization"
 do
