@@ -578,6 +578,9 @@ syntax adapter does not trigger broad parallel conversion.
 
 ### Java J0/J1 pilot
 
+J0 state: `complete` at `e14274b`. J1 proposal/mutation work is next and Java
+remains provisional until all three pilot families pass.
+
 The local tool probe found OpenJDK/Javac 17.0.12. Java begins with one detector
 implemented serially to establish the fixture and JDK invocation pattern:
 
@@ -590,22 +593,22 @@ implemented serially to establish the fixture and JDK invocation pattern:
 
 Java J0 acceptance:
 
-- [ ] A locked standalone Java 17 fixture compiles without Maven, Gradle,
+- [x] A locked standalone Java 17 fixture compiles without Maven, Gradle,
       network access, or third-party JARs.
-- [ ] The copied selected-skill closure discovers `java`/`javac` from `PATH`,
+- [x] The copied selected-skill closure discovers `java`/`javac` from `PATH`,
       records their versions, and does not import repository runtime code.
-- [ ] `find-complexity-hotspots` reaches final Markdown/JSON with positive,
+- [x] `find-complexity-hotspots` reaches final Markdown/JSON with positive,
       clean, generated/test, malformed, symlink, and missing/old-JDK outcomes;
       incomplete evidence is never clean.
-- [ ] Existing Python, TypeScript/JavaScript, and Go paths remain green and
+- [x] Existing Python, TypeScript/JavaScript, and Go paths remain green and
       source fingerprints remain unchanged.
-- [ ] Fresh product-framed review and a Java learning packet pass before J1
+- [x] Fresh product-framed review and a Java learning packet pass before J1
       proposal/mutation lanes start.
 
 Java support is provisional until all three pilot families pass. C# remains
 the next language regardless of whether Java expands beyond the pilot; a Java
 failure changes the implementation approach, not the core queue.
-- [ ] The plan is revised before implementation begins.
+- [x] The plan was revised in `295a862` before Java implementation began.
 
 ## Parallelism and merge policy
 
@@ -651,7 +654,7 @@ failure changes the implementation approach, not the core queue.
 | P3E Go G2 pilots | complete | `94ce0d3`, `2147d5d`, `83d4767`, `0f2d458`, `eeb38da`, plus capability closeout | Independent package-map and dormant-review Go modules with active-build, generated/vendor/test, malformed/tool/symlink, source-safety, and final-artifact cases | Combined focused/preserved suites: 30 passed; final Go-only replay: 12 passed; Ruff, gofmt, and both Go vet checks passed | Map re-review PASS after two correctness and bloat repairs; dormant re-review PASS after last-good, active-build, symlink, malformed-sibling, and generated-evidence repairs | `.claude/tasks/multilanguage-learnings/{map-subsystem-go,find-dormant-go}.{json,md}`; 14/22 language-level skills now `go-supported`; no shared Go runtime extracted |
 | E1 read-only batching | complete | benchmark implementation commit (this revision) | Fresh isolated TypeScript and JavaScript hosts per condition and trial | Focused contract: 2 passed; frozen benchmark: 7 paired trials per language, semantic/native/source gates all passed, zero failures/interventions | Fresh product-framed review found a single-language gate bypass; repaired at CLI and aggregate layers; bounded re-review PASS | `.claude/tasks/ml009-readonly-batch-results.json`; ML-011 is the bounded product follow-up |
 | P4 route frameworks | pending | — | — | — | — | — |
-| P5 Java next-language pilot | in progress | local JDK 17.0.12 probe; implementation pending | Standalone Java fixture required | J0 detector acceptance above | Fresh review required before J1 | Java packet pending |
+| P5 Java next-language pilot | in progress (J0 complete; J1 next) | `e14274b` | Standalone Java 17 detector fixture; proposal/mutation fixtures pending | J0: 8 Java passed; preserved detector/router/contract set: 53 passed; native `javac --release 17`; installed routers: 54 passed plus explicit Java route replay | Product-framed review found four user-facing boundary/report defects; all became regressions; bounded re-review PASS | `.claude/tasks/multilanguage-learnings/find-complexity-hotspots-java.{json,md}`; helper remains family-local and Java-only |
 
 ## Final definition of done for this plan
 

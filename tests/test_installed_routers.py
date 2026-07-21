@@ -211,6 +211,19 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "optional_install_status": "passed",
     }
 
+    java_routed = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "audit syntactic branch complexity in Java methods and constructors",
+        "--project-root",
+        str(host),
+        "--json",
+        cwd=host,
+    )
+    java_payload = _json_output(java_routed)
+    assert java_payload["routing_context"]["language"] == "java"
+    assert java_payload["recommendation"] == "find-complexity-hotspots"
+    assert java_payload["handoff"]["skills"] == ["find-complexity-hotspots"]
+
     for skill, task in (
         ("find-complexity-hotspots", "use find-complexity-hotspots on Go source"),
         (
