@@ -218,6 +218,8 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
             "audit exact normalized duplicate Golang function bodies without "
             "claiming that consolidation is safe",
         ),
+        ("find-dormant", "use find-dormant to review dormant Golang functions"),
+        ("map-subsystem", "use map-subsystem on this Golang package"),
         ("propose-boundary", "use propose-boundary for a Go package boundary"),
         ("move-path", "use move-path to move a Go package directory"),
     ):

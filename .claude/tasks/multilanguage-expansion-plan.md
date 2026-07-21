@@ -1,7 +1,7 @@
 # Multi-language and framework expansion plan
 
-Status: active — P0, P1, P2, U1, P3, the measured batching gate, Go G1, and
-Go G1D complete; the remaining semantic/project cohort is next for reassessment
+Status: active — P0, P1, P2, U1, P3, the measured batching gate, Go G1, G1D,
+and the bounded G2 pilots complete; next-language selection is next
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
@@ -429,7 +429,7 @@ must not block this phase.
 | G1 lexical/topology | complete | `find-comment-drift`, `find-concept-divergence`, `find-folder-topology-drift` | Reports inventory first-party Go source with explicit generated/vendor/test boundaries; fresh review PASS. |
 | G1 structural/standards | complete | `find-omnibus`, `find-standard-gaps` | Batched native syntax facts reach final reports; 51 focused/preserved tests passed; fresh review PASS. |
 | G1D duplication | complete | `find-duplication` | Batched native exact-body evidence reaches final triage from a copied closure; 23 family tests passed and fresh product-framed review reached PASS after three bounded correctness repairs. |
-| G2 semantic/project | in progress | `map-subsystem`, `find-dormant` selected; four candidates deferred | Complete two independent family-local pilots, then compare their measured `go list`/`go/types` overlap before considering any extraction. |
+| G2 semantic/project | complete | `map-subsystem`, `find-dormant` promoted; four candidates deferred | Two independent family-local pilots passed final artifacts, copied closures, preserved-language suites, and bounded re-review; actual overlap did not justify shared extraction. |
 | G3 proposals/guards | pending | Four skills named in the transfer guide | Begin only from accepted upstream Go evidence. |
 
 G1 promotion is per skill. Shared capability, matrix, router, and plan changes
@@ -456,21 +456,30 @@ claims. Deferred means unpromoted, not silently substituted by a weaker skill.
 
 The two pilots run in isolated worktrees and pass only when each:
 
-- [ ] runs from a copied on-demand skill closure using Go 1.22+ discovered
+- [x] runs from a copied on-demand skill closure using Go 1.22+ discovered
       from `PATH`, with no network or repository-runtime import;
-- [ ] reaches its final human-readable and structured artifact on a locked Go
+- [x] reaches its final human-readable and structured artifact on a locked Go
       module while preserving every source byte and passing `go test ./...`;
-- [ ] proves positive, clean-negative, generated/vendor/test, build-constraint,
+- [x] proves positive, clean-negative, generated/vendor/test, build-constraint,
       malformed-source, and missing/old-tool outcomes without converting an
       incomplete analysis into clean;
-- [ ] preserves the existing Python, TypeScript, and JavaScript skill paths;
-- [ ] passes a product-framed fresh review and records transferable and
+- [x] preserves the existing Python, TypeScript, and JavaScript skill paths;
+- [x] passes a product-framed fresh review and records transferable and
       non-transferable learning before per-skill promotion.
 
-After both pilots, compare the actual launcher, package-selection, and typed
-fact code. Extract a shared primitive only if identical behavior has two real
-consumers and a smaller copied closure or measured maintenance benefit; shared
-`go list`/`go/types` infrastructure is not a prerequisite or default outcome.
+The post-pilot comparison found only conceptual overlap: both discover Go and
+read `go list`, but `map-subsystem` owns current-build package/edge inventory
+without type facts, while `find-dormant` owns package-local `go/types` object
+identity, static use counts, and runtime uncertainty. Their inputs, failure
+states, schemas, and copied closures differ. A shared primitive would add a new
+runtime boundary without reducing either user journey, so both remain
+family-local.
+
+G2 raises Go coverage to 14 of 22 language-level skills; eight remain
+`pending-validation`. Stop the Go expansion here for now: the deferred rows
+need stronger actionability or semantic authority, while the current corpus is
+large enough to transfer the native-tooling and fixture lessons to the next
+major language.
 
 ## Efficiency gate E1 — Measured read-only batching
 
@@ -597,6 +606,7 @@ Acceptance:
 | P3 Go pilot | complete | `1b6e2eb`, `6de5762`, `966be1c`, `3492764`, `39115e7`, and this closeout | Three locked standalone modules plus generated/vendor/malformed/tool/topology cases | Go-focused families: 27 passed; preserved cross-language family set: 61 passed, 1 intentional skip; move-path Go/Python preservation after the staging repair: 29 passed, 1 intentional skip; capability/router projection: 71 passed; canonical suite before the final bounded staging repair: 807 passed, 2 intentional skips | Three non-context implementation lanes; each original product-framed reviewer returned PASS after bounded repairs; final closeout review also passed after the advertised staging path was repaired | Three `*-go` packet pairs plus the Go synthesis and measured expansion estimate in `.claude/tasks/multilanguage-typescript-transfer-guide.md` |
 | P3E Go G1 expansion | complete | `e4fa2f4`, `dd37954`, `5298be2`, `bd9fe15`, and capability closeout | Eight skill-family Go fixtures with native modules and negative boundaries | Orientation: 18 Go + 47 preserved-language passed; structural/standards: 10 Go + 41 preserved/family tests passed; lexical/topology: 38 family tests passed | Three product-framed fresh reviews reached PASS after user-relevant source, status, filename-constraint, batching, and artifact-lifecycle findings became regressions | `.claude/tasks/multilanguage-learnings/go-g1-expansion.{json,md}`; 11/22 language-level skills now `go-supported` |
 | P3E Go G1D duplication | complete | `22147a3` plus capability closeout | One native Go module with exact cross-file and same-file clones, clean/generated/test/vendor/build-constrained/malformed/tool failure boundaries | Go/Python/TypeScript/JavaScript family suite: 23 passed; Ruff and gofmt clean | Fresh product-framed review reached PASS after generated-only, same-file labeling, and partial-report repairs | `.claude/tasks/multilanguage-learnings/find-duplication-go.{json,md}`; 12/22 language-level skills now `go-supported` |
+| P3E Go G2 pilots | complete | `94ce0d3`, `2147d5d`, `83d4767`, `0f2d458`, `eeb38da`, plus capability closeout | Independent package-map and dormant-review Go modules with active-build, generated/vendor/test, malformed/tool/symlink, source-safety, and final-artifact cases | Combined focused/preserved suites: 30 passed; final Go-only replay: 12 passed; Ruff, gofmt, and both Go vet checks passed | Map re-review PASS after two correctness and bloat repairs; dormant re-review PASS after last-good, active-build, symlink, malformed-sibling, and generated-evidence repairs | `.claude/tasks/multilanguage-learnings/{map-subsystem-go,find-dormant-go}.{json,md}`; 14/22 language-level skills now `go-supported`; no shared Go runtime extracted |
 | E1 read-only batching | complete | benchmark implementation commit (this revision) | Fresh isolated TypeScript and JavaScript hosts per condition and trial | Focused contract: 2 passed; frozen benchmark: 7 paired trials per language, semantic/native/source gates all passed, zero failures/interventions | Fresh product-framed review found a single-language gate bypass; repaired at CLI and aggregate layers; bounded re-review PASS | `.claude/tasks/ml009-readonly-batch-results.json`; ML-011 is the bounded product follow-up |
 | P4 route frameworks | pending | — | — | — | — | — |
 | P5 next-language selection | pending | — | — | — | — | — |

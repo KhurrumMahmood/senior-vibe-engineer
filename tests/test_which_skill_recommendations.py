@@ -226,6 +226,33 @@ def test_go_exact_function_clones_route_to_duplication():
     assert payload["handoff"]["skills"][0] == "find-duplication"
 
 
+def test_go_package_map_routes_to_map_subsystem():
+    returncode, payload = _run_match(
+        "map this Golang package exported surface and first-party import edges",
+        "--top",
+        "10",
+    )
+
+    assert returncode == 0
+    assert payload["routing_context"]["language"] == "go"
+    assert payload["recommendation"] == "map-subsystem"
+    assert payload["handoff"]["skills"][0] == "map-subsystem"
+
+
+def test_go_zero_use_review_routes_to_find_dormant():
+    returncode, payload = _run_match(
+        "review unexported Golang package functions with zero static uses for "
+        "dormant code",
+        "--top",
+        "10",
+    )
+
+    assert returncode == 0
+    assert payload["routing_context"]["language"] == "go"
+    assert payload["recommendation"] == "find-dormant"
+    assert payload["handoff"]["skills"][0] == "find-dormant"
+
+
 def test_typescript_function_complexity_routes_to_complexity_hotspots():
     returncode, payload = _run_match(
         "audit syntactic branch complexity in TypeScript functions and methods",

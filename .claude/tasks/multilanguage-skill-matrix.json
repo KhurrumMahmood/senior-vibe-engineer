@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "23803b179fbee86e657a9cbc12a1d855e65f7eea6e7f6de8ca2023cbf3e44a49"
+      "sha256": "938c05813ea2185e38b1d2fbdcb8a6cde7abdbb60a3fef9ca30e400c8f6e55e0"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -15,7 +15,7 @@
     },
     {
       "path": ".claude/tasks/go-language-coverage.json",
-      "sha256": "15b9aa99b259133d9423855c6d3c2a03ba442b671fedc4a75d2f0844bd79f665"
+      "sha256": "c0c163715629dfc860abee88d2954cd8c8c079f391edf59d68b2991a79ff2b36"
     }
   ],
   "counts": {
@@ -1484,10 +1484,13 @@
       ],
       "javascript_reviewed_revision": "f06b6c5",
       "javascript_limitation": null,
-      "go_disposition": "pending-validation",
-      "go_evidence_path": null,
-      "go_native_check": null,
-      "go_reviewed_revision": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_dormant_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "source fingerprint and final review artifact assertions"
+      ],
+      "go_reviewed_revision": "eeb38da",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -1498,7 +1501,8 @@
         "scans": [
           "python",
           "typescript",
-          "javascript"
+          "javascript",
+          "go"
         ],
         "install_with": []
       },
@@ -3193,10 +3197,13 @@
       ],
       "javascript_reviewed_revision": "f06b6c5",
       "javascript_limitation": null,
-      "go_disposition": "pending-validation",
-      "go_evidence_path": null,
-      "go_native_check": null,
-      "go_reviewed_revision": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_map_subsystem_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "source fingerprint and final map artifact assertions"
+      ],
+      "go_reviewed_revision": "2147d5d",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -3207,7 +3214,8 @@
         "scans": [
           "python",
           "typescript",
-          "javascript"
+          "javascript",
+          "go"
         ],
         "install_with": []
       },
