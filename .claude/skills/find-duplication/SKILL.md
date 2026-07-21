@@ -1,6 +1,6 @@
 ---
 name: find-duplication
-description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, and exact Go function-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
+description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
 argument-hint: "--target <source-directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
@@ -9,20 +9,20 @@ job: suspect
 best_for: |
   Python/Django copy-paste and canonical-pattern candidates that need the
   established P0/P1/P2 scout triage, JavaScript-family/TypeScript lexical clone
-  candidates that need reliable source spans, or exact normalized Go function-body
+  candidates that need reliable source spans, or exact normalized Go/Java body
   clones that need conservative evidence without a consolidation claim.
 not_for: |
   Semantic duplication where code differs substantially (use
   /find-semantic-duplication), cross-layer workflow drift, or executing a
-  refactor. JavaScript, TypeScript, and Go v1 do not prove semantic equivalence or safe reuse.
+  refactor. JavaScript, TypeScript, Go, and Java v1 do not prove semantic equivalence or safe reuse.
 language: any
 framework: any
-scans: [python, javascript, typescript, go]
+scans: [python, javascript, typescript, go, java]
 ---
 
 # /find-duplication
 
-Run the language branch that matches the target. Python, JavaScript, TypeScript, and Go share a
+Run the language branch that matches the target. Python, JavaScript, TypeScript, Go, and Java share a
 skill name and report vocabulary, but not a detector model or outcome claim.
 
 ## Route before running
@@ -33,6 +33,7 @@ Inspect eligible source suffixes under `--target`:
 - `.ts`/`.tsx` only: run the **TypeScript lexical-evidence branch**.
 - `.js`/`.jsx`/`.mjs`/`.cjs` only: run the **JavaScript lexical-evidence branch**.
 - `.go` only: run the **Go exact-function evidence branch**.
+- `.java` only: run the **Java exact-method evidence branch**.
 - multiple supported families: run each branch into its own language report
   directory and summarize them separately. Do not merge their findings or
   apply one family's outcome contract to another family's evidence.
@@ -296,6 +297,39 @@ mkdir -p "$REPORT_DIR"
 The final Markdown says “Do not consolidate automatically.” Review both bodies
 and their callers before proposing a refactor.
 
+## Java exact-method evidence branch
+
+Java v1 uses `java` and `javac` from JDK 17+ and one batched source-launcher
+invocation of the family-local JDK compiler-tree helper. It fingerprints the
+normalized bodies of direct methods and constructors on named top-level types
+when the complete declaration spans at least five lines. Exact fingerprints at
+two or more symbols become review leads; this is not semantic equivalence,
+caller proof, type resolution, inheritance analysis, or a safe-reuse claim.
+
+Tests, generated source, fixtures, vendor/dependency, report, and build-output
+trees are excluded. The parser does not run annotation processors or infer
+Lombok/framework-generated members. Malformed source, missing/old JDK, or
+invalid helper evidence is `failed`/`unsupported`, never clean.
+
+```bash
+PYTHON="${PYTHON:-python3}"
+SKILL_ROOT="${SKILL_ROOT:-.claude/skills/find-duplication}"
+SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
+REPORT_DIR="reports/duplication/${SCAN_ID}"
+mkdir -p "$REPORT_DIR"
+
+"$PYTHON" "${SKILL_ROOT}/scripts/run_java.py" \
+  --target src --project-root "$PWD" --output "$REPORT_DIR/collapsed.json"
+"$PYTHON" "${SKILL_ROOT}/scripts/rank.py" \
+  --input "$REPORT_DIR/collapsed.json" --output "$REPORT_DIR/ranked.json"
+"$PYTHON" "${SKILL_ROOT}/scripts/report.py" \
+  --input "$REPORT_DIR/ranked.json" --output-md "$REPORT_DIR/triage.md" \
+  --output-json "$REPORT_DIR/findings.json" --scan-id "$SCAN_ID"
+```
+
+The final Markdown retains “Do not consolidate automatically.” Review the
+matched bodies and their callers before proposing any refactor.
+
 ## Mixed targets
 
 For a mixed repository, use one outer scan ID and separate branches:
@@ -304,6 +338,7 @@ For a mixed repository, use one outer scan ID and separate branches:
 reports/duplication/<scan-id>/python/...
 reports/duplication/<scan-id>/typescript/...
 reports/duplication/<scan-id>/javascript/...
+reports/duplication/<scan-id>/java/...
 ```
 
 Run Python with its AST + scout stages and JavaScript/TypeScript with their
@@ -320,6 +355,7 @@ their own claims. Do not concatenate their ranked JSON.
 | Python scout JSON is invalid | Re-dispatch; do not pass an unreviewed finding to the final report. |
 | TypeScript finding looks safe | Keep the human-review boundary; lexical similarity is not refactor safety. |
 | JavaScript runner says `tool-missing`, `syntax-error`, `tool-failed`, or `partial` | Preserve `run.json` and report that outcome; do not synthesize a clean clone result. |
+| Java helper reports malformed source or the JDK is missing/old | Preserve the failure; do not render or claim a clean scan. |
 | A report names tests, generated, migrations, report, or staging source | Treat it as a detector-boundary defect and stop. |
 
 ## Non-goals
@@ -328,4 +364,5 @@ their own claims. Do not concatenate their ranked JSON.
 - Treating dormant code as a primary duplication finding.
 - Turning TypeScript lexical evidence into semantic equivalence.
 - Turning JavaScript lexical evidence into semantic equivalence.
+- Turning exact Java body fingerprints into semantic equivalence or safe reuse.
 - Creating a shared parser, detector service, or cross-family runtime.

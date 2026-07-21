@@ -121,15 +121,18 @@ def render_triage(
     lines.append(f"**Generated:** {meta.get('generated_at', '?')}")
     lines.append("")
 
-    if meta.get("language") in {"typescript", "javascript", "go"}:
+    if meta.get("language") in {"typescript", "javascript", "go", "java"}:
         language_label = {
             "typescript": "TypeScript",
             "javascript": "JavaScript",
             "go": "Go",
+            "java": "Java",
         }[meta["language"]]
         evidence_label = (
             "exact normalized function-body clone evidence"
             if meta.get("language") == "go"
+            else "exact normalized method/constructor-body clone evidence"
+            if meta.get("language") == "java"
             else "lexical/near-lexical clone evidence with source spans and "
             "enclosing symbols"
         )
@@ -227,7 +230,7 @@ def render_triage(
     lines.append("")
     if findings:
         top = findings[0]
-        if meta.get("language") in {"typescript", "javascript", "go"}:
+        if meta.get("language") in {"typescript", "javascript", "go", "java"}:
             lines.append(
                 f"Review the evidence for `{top['finding_id']}` before deciding "
                 "whether any refactor is appropriate; this report makes no "
