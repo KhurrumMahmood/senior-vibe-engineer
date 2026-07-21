@@ -229,7 +229,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         assert go_payload["handoff"]["available"] is True
         assert go_payload["handoff"]["capabilities"]["skills"][0][
             "go_disposition"
-        ] == "go-pilot-supported"
+        ] == "go-supported"
         assert Path(go_payload["handoff"]["guides"][0]["guide"]).is_file()
 
     shape_routed = _run_isolated(
@@ -247,7 +247,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "expansion_disposition": "language-level",
         "typescript_disposition": "typescript-supported",
         "javascript_disposition": "javascript-supported",
-        "go_disposition": "pending-validation",
+        "go_disposition": "go-supported",
         "fact_level": "lexical-filesystem",
         "outcome_class": "configuration-output",
         "framework_family": None,

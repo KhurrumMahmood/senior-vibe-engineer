@@ -43,8 +43,8 @@ EXPECTED_JAVASCRIPT_COHORT_COUNTS = {
     "proposal-mutation-guard": 6,
 }
 EXPECTED_GO_COUNTS = {
-    "pending-validation": 19,
-    "go-pilot-supported": 3,
+    "pending-validation": 11,
+    "go-supported": 11,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -171,7 +171,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
                 assert row["go_native_check"] is None
                 assert row["go_reviewed_revision"] is None
             else:
-                assert row["go_disposition"] == "go-pilot-supported"
+                assert row["go_disposition"] == "go-supported"
                 assert (REPO_ROOT / row["go_evidence_path"]).is_file()
                 assert row["go_native_check"]
                 assert row["go_reviewed_revision"]

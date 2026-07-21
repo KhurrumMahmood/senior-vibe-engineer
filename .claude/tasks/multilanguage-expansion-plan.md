@@ -1,7 +1,7 @@
 # Multi-language and framework expansion plan
 
-Status: active — P0, P1, P2, U1, P3, and the measured batching gate complete;
-ML-011 bounded launcher experiment next, then P4
+Status: active — P0, P1, P2, U1, P3, the measured batching gate, and Go G1
+complete; G1D is the next bounded Go cohort
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
@@ -382,7 +382,7 @@ workstation path. `gofmt` and `go test ./...` are native oracles.
 The shared inventory now recognizes `.go` and `_test.go`; this does not promote
 any skill. After the three lanes integrate, the 76-row capability matrix will
 add one Go disposition per skill: only the three accepted pilots may be
-`go-pilot-supported`, the other language-level skills remain
+`go-supported`, the other language-level skills remain
 `pending-validation`, neutral/runtime rows retain their existing meaning, and
 framework rows remain stack-bound. Routers must refuse a pending Go skill
 rather than substituting a weaker one.
@@ -414,6 +414,35 @@ helpers and no shared execution/parser platform. The measured pilot also found
 nine user-relevant contract gaps during review, so the remaining nineteen
 skills are split into evidence-gated cohorts in the transfer guide rather than
 launched as one campaign.
+
+## Phase P3E — Staged Go expansion
+
+State: `in_progress`
+
+The user chose broader Go coverage as the main product lane before another
+language or framework. ML-011 remains an independent bounded follow-up and
+must not block this phase.
+
+| Cohort | State | Owned skills | Gate |
+|---|---|---|---|
+| G1 orientation | complete | `adapt-project`, `audit-decisions`, `explain-code` | Copied closures reach adapter, drift, and explanation artifacts; 18 Go and 47 preserved-language tests passed; fresh review PASS after artifact-lifecycle repairs. |
+| G1 lexical/topology | complete | `find-comment-drift`, `find-concept-divergence`, `find-folder-topology-drift` | Reports inventory first-party Go source with explicit generated/vendor/test boundaries; fresh review PASS. |
+| G1 structural/standards | complete | `find-omnibus`, `find-standard-gaps` | Batched native syntax facts reach final reports; 51 focused/preserved tests passed; fresh review PASS. |
+| G1D duplication | pending | `find-duplication` | Choose and prove a native/offline detector only after G1 closes. |
+| G2 semantic/project | pending | Six skills named in the transfer guide | Pilot no more than three before considering shared `go list`/`go/types` facts. |
+| G3 proposals/guards | pending | Four skills named in the transfer guide | Begin only from accepted upstream Go evidence. |
+
+G1 promotion is per skill. Shared capability, matrix, router, and plan changes
+remain serial; implementation lanes may not promote their own rows. Every lane
+must preserve its prior language behavior, replay a copied on-demand closure,
+run `go test ./...`, and capture transferable and non-transferable learning.
+
+G1 closeout promotes eight skills and retains the three pilot skills under the
+single `go-supported` disposition: 11 of 22 language-level skills are supported
+and 11 remain `pending-validation`. The accepted learning packet is
+`.claude/tasks/multilanguage-learnings/go-g1-expansion.md`; it deliberately
+keeps analyzers family-local and records only a conditional future
+source-policy template, not a shared parser platform.
 
 ## Efficiency gate E1 — Measured read-only batching
 
@@ -538,6 +567,7 @@ Acceptance:
 | P2 JavaScript coverage | complete | baseline `eedb3ae`; cohort repairs through `e618ef4`; route/artifact repairs `fa26b9f`, `7713dc6`, `fb0c71d`, `23737ce`, `02524a1` | Inventory/matrix/router fixtures, all four cohort outcomes, and three fresh mixed JS/TS hosts | Focused repaired integration passed 115; final canonical root modules passed 681 with 1 intentional skip | Three forward journeys passed without route override; first RED routes and review findings became regressions; final product review PASS | 22/22 language-level skills promoted; accepted transfer guide captures native/family-local reuse, rejected custom lexer, route-first validation, and next-language brief |
 | U1 router journey stabilization | complete | `5bc7618` and this revision | 30-case decision corpus plus copied default-router host | Focused router surface: 201 passed, 1 intentional skip; canonical tests: 770 passed, 2 intentional skips | Installed three-router replay passed; product-framed adversarial findings repaired; bounded re-review PASS | ML-007 retains only broader low-confidence ambiguity refinement; no general evaluator or coordinator added |
 | P3 Go pilot | complete | `1b6e2eb`, `6de5762`, `966be1c`, `3492764`, `39115e7`, and this closeout | Three locked standalone modules plus generated/vendor/malformed/tool/topology cases | Go-focused families: 27 passed; preserved cross-language family set: 61 passed, 1 intentional skip; move-path Go/Python preservation after the staging repair: 29 passed, 1 intentional skip; capability/router projection: 71 passed; canonical suite before the final bounded staging repair: 807 passed, 2 intentional skips | Three non-context implementation lanes; each original product-framed reviewer returned PASS after bounded repairs; final closeout review also passed after the advertised staging path was repaired | Three `*-go` packet pairs plus the Go synthesis and measured expansion estimate in `.claude/tasks/multilanguage-typescript-transfer-guide.md` |
+| P3E Go G1 expansion | complete | `e4fa2f4`, `dd37954`, `5298be2`, `bd9fe15`, and capability closeout | Eight skill-family Go fixtures with native modules and negative boundaries | Orientation: 18 Go + 47 preserved-language passed; structural/standards: 10 Go + 41 preserved/family tests passed; lexical/topology: 38 family tests passed | Three product-framed fresh reviews reached PASS after user-relevant source, status, filename-constraint, batching, and artifact-lifecycle findings became regressions | `.claude/tasks/multilanguage-learnings/go-g1-expansion.{json,md}`; 11/22 language-level skills now `go-supported` |
 | E1 read-only batching | complete | benchmark implementation commit (this revision) | Fresh isolated TypeScript and JavaScript hosts per condition and trial | Focused contract: 2 passed; frozen benchmark: 7 paired trials per language, semantic/native/source gates all passed, zero failures/interventions | Fresh product-framed review found a single-language gate bypass; repaired at CLI and aggregate layers; bounded re-review PASS | `.claude/tasks/ml009-readonly-batch-results.json`; ML-011 is the bounded product follow-up |
 | P4 route frameworks | pending | — | — | — | — | — |
 | P5 next-language selection | pending | — | — | — | — | — |

@@ -129,6 +129,6 @@ def test_supported_go_shape_has_executable_handoff(tmp_path, capsys):
     assert payload["recommendation"]["shape"] == "boundary-proposal"
     assert payload["handoff"]["available"] is True
     assert payload["handoff"]["capabilities"]["skills"][0]["go_disposition"] == (
-        "go-pilot-supported"
+        "go-supported"
     )
     assert payload["optional_install"]["available"] is True

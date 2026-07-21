@@ -566,7 +566,7 @@ def capability_language_exclusion(capabilities: dict, routing_context: dict) -> 
     for language in routing_context["languages"]:
         for row in capabilities["skills"]:
             if language == "go" and row["go_disposition"] not in {
-                "go-pilot-supported",
+                "go-supported",
                 "validated-neutral",
             }:
                 return (

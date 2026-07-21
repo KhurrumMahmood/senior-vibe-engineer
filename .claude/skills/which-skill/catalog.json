@@ -3,7 +3,7 @@
   "skills": [
     {
       "name": "adapt-project",
-      "description": "Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads stack markers, commands, tests, CI, docs, source roots, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.",
+      "description": "Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, and Go stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.",
       "tier": "cross-cutting",
       "job": "meta",
       "best_for": "Adapting the portable engineering-skills ecosystem to a new host\nproject. Use when onboarding a repo, dogfooding against a reference\nproject, or regenerating local adapter facts after stack/CI/test\nchanges. Produces project adapter facts, not human intent.\n",
@@ -46,7 +46,7 @@
     },
     {
       "name": "audit-decisions",
-      "description": "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python comments, Markdown/HTML references, JavaScript/JSX/MJS/CJS comments, and TypeScript/TSX comments.",
+      "description": "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, JavaScript-family, and TypeScript comments plus Markdown/HTML references.",
       "tier": "cross-cutting",
       "job": "guard",
       "best_for": "Periodic (monthly / pre-release) decision-registry hygiene and a precise\ncheck that inline decision references still point at real ADRs.\n",
@@ -58,7 +58,8 @@
         "markdown",
         "html",
         "javascript",
-        "typescript"
+        "typescript",
+        "go"
       ],
       "_path": "skills/audit-decisions"
     },
@@ -217,7 +218,7 @@
     },
     {
       "name": "explain-code",
-      "description": "Read-only EXPLAIN skill that converts a Python, JavaScript-family, or TypeScript/TSX target's direct public exports into an annotated behavior doc at reports/explanations/<target>.md. JavaScript and TypeScript lexical branches visibly leave aliases, stars, defaults, and unresolved exports unexplained rather than claiming module resolution.",
+      "description": "Read-only EXPLAIN skill that converts a Python, Go, JavaScript-family, or TypeScript/TSX target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Go aliases/build-constrained files and JavaScript-family unresolved exports remain visibly unexplained rather than claiming module resolution.",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "Producing an annotated behavior doc for a file, directory package,\nor named subsystem — pre/postconditions, invariants, callers,\nunexplained regions. Read-only. Complements /map-subsystem inventory\nby adding the behavioral annotation that lets a human trust the code\nenough to change it.\n",
@@ -227,7 +228,8 @@
       "scans": [
         "python",
         "javascript",
-        "typescript"
+        "typescript",
+        "go"
       ],
       "_path": "skills/explain-code"
     },
@@ -303,7 +305,7 @@
     },
     {
       "name": "find-comment-drift",
-      "description": "Advisory SUSPECT scan for comments, docstrings, JSDoc, and template\ncomments that have drifted from the code they are meant to clarify.\nFlags detached section banners, narration comments, missing or thin\npublic class docstrings, stale terminology, JavaScript and TypeScript\nfunctions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML\ncomments, and fragile doc references.\n",
+      "description": "Advisory SUSPECT scan for comments, docstrings, JSDoc, and template\ncomments that have drifted from the code they are meant to clarify.\nFlags detached section banners, narration comments, missing or thin\npublic class docstrings, stale terminology, JavaScript and TypeScript\nfunctions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML\ncomments, fragile doc references, and a bounded Go lexical-comment surface.\n",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Auditing explanatory-code hygiene after AI-heavy development: noisy\ncomments that narrate the next line, missing ownership docstrings,\nstale terminology in comments/docstrings, banner comments that should\nbe adjacent JSDoc or deleted, and Django-template comments that repeat\nvisible headings.\n",
@@ -314,6 +316,7 @@
         "python",
         "javascript",
         "typescript",
+        "go",
         "templates"
       ],
       "_path": "skills/find-comment-drift"
@@ -348,6 +351,7 @@
         "python",
         "javascript",
         "typescript",
+        "go",
         "markdown",
         "templates"
       ],
@@ -430,17 +434,18 @@
     },
     {
       "name": "find-folder-topology-drift",
-      "description": "Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family or TypeScript flat-prefix clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript and TypeScript v1 report only three-or-more direct source siblings sharing a first `_` or `-` token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.",
+      "description": "Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, or Go flat-prefix clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript and TypeScript report direct source siblings sharing a first `_` or `-` token, while Go uses its valid first `_` token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.",
       "tier": "maintenance",
       "job": "suspect",
-      "best_for": "Auditing a Python package against ADR 0006's bidirectional ≥3-sibling\nthreshold, or inspecting an explicitly named TypeScript source root for a\nsimple same-domain filename cluster such as\n`billing_parser.ts`, `billing-validator.ts`, and `billing-types.ts`.\n",
-      "not_for": "Moving files, proving import safety, or deciding that a cluster must become\na package. TypeScript v1 does not inspect sparse-package demotion, test-folder\nreorganization, Next.js/pages conventions, barrels, module resolution, or\nframework ownership. Use /propose-folder-reorganization only after a human\nconfirms a Python finding; a TypeScript reorganization proposal needs its own\nresolved-import contract.\n",
+      "best_for": "Auditing a Python package against ADR 0006's bidirectional ≥3-sibling\nthreshold, or inspecting an explicitly named TypeScript or Go source root for a\nsimple same-domain filename cluster such as\n`billing_parser.ts`, `billing-validator.ts`, and `billing-types.ts`.\n",
+      "not_for": "Moving files, proving import safety, or deciding that a cluster must become\na package. TypeScript and Go v1 do not inspect sparse-package demotion, test-folder\nreorganization, Next.js/pages conventions, barrels, module resolution, or\nframework ownership. Use /propose-folder-reorganization only after a human\nconfirms a Python finding; a TypeScript reorganization proposal needs its own\nresolved-import contract.\n",
       "language": "any",
       "framework": "any",
       "scans": [
         "python",
         "javascript",
-        "typescript"
+        "typescript",
+        "go"
       ],
       "_path": "skills/find-folder-topology-drift"
     },
@@ -519,17 +524,18 @@
     },
     {
       "name": "find-omnibus",
-      "description": "Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans and a bundled TypeScript Compiler API syntax parser for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, and `.tsx` top-level functions, arrows, and classes; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.",
+      "description": "Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans, a bundled TypeScript Compiler API parser for JavaScript/TypeScript, and a bundled Go 1.22+ standard-library syntax parser; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.",
       "tier": "maintenance",
       "job": "suspect",
-      "best_for": "Files answering questions from 3+ unrelated domains — the SRP \"and\"\ntest counts 3+ \"and\"s. Ranks by responsibility count, then boosts\nfiles that mix credentials, admin APIs, CSRF/auth, command/network\ndiagnostics, persistence, raw SQL, import/export, task dispatch, or\nfilesystem writes; produces decomposition candidates that hand off\nto /refactor-subsystem. Covers Python (exact AST) and JavaScript/TypeScript\n(Compiler API syntax spans for top-level functions, arrows, and classes).\nFindings carry analyzer provenance. Script-family analysis needs Node and the host's project-local `typescript`\npackage, but no tsconfig or framework.\n",
+      "best_for": "Files answering questions from 3+ unrelated domains — the SRP \"and\"\ntest counts 3+ \"and\"s. Ranks by responsibility count, then boosts\nfiles that mix credentials, admin APIs, CSRF/auth, command/network\ndiagnostics, persistence, raw SQL, import/export, task dispatch, or\nfilesystem writes; produces decomposition candidates that hand off\nto /refactor-subsystem. Covers Python, JavaScript/TypeScript, and Go with\nfamily-local syntax parsers. Findings carry analyzer provenance. The script\npaths resolve no types and assume no framework.\n",
       "not_for": "Single-responsibility files that are merely large (cohesive >500 LOC\nis fine — avoid splitting for size alone). Layer violations\nspecifically in views (use /find-layer-violation). Refactor\nexecution (use /refactor-subsystem in decomposition mode).\nLanguages without an extraction adapter yet — check\n/find-perimeter-gaps for what is and isn't covered.\n",
       "language": "any",
       "framework": "any",
       "scans": [
         "python",
         "javascript",
-        "typescript"
+        "typescript",
+        "go"
       ],
       "_path": "skills/find-omnibus"
     },
@@ -659,7 +665,7 @@
     },
     {
       "name": "find-standard-gaps",
-      "description": "Detect places a declared baseline standard should apply but doesn't. A standard is declared once with an executable `ast` detector; `scan_coverage.py` scans Python and narrow syntax-only JavaScript/TypeScript direct-call coverage and reports every site whose triggering situation holds but the standard is absent. Detection-only; never edits code.",
+      "description": "Detect places a declared baseline standard should apply but doesn't. A standard is declared once with an executable `ast` detector; `scan_coverage.py` scans Python, narrow syntax-only JavaScript/TypeScript direct-call coverage, and Go 1.22+ direct-call defer coverage and reports every site whose triggering situation holds but the standard is absent. Detection-only; never edits code.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Checking that a baseline standard is applied everywhere its situation\noccurs — \"every external DB connection is inside a try\", \"every\noutbound HTTP call sets a timeout\", \"no call to X without guard Y\".\nEach standard is a declarative entry with an `ast` detector; the scan\nis deterministic, cheap, and syntactically precise.\nCensus mode (scripts/census.py) answers the upstream discovery question:\n\"what variants exist, which is the majority, who are the stragglers?\"\nUse census before declaring a standard to understand the current\npopulation; census output feeds /decide and standards declaration.\n",
@@ -669,7 +675,8 @@
       "scans": [
         "python",
         "javascript",
-        "typescript"
+        "typescript",
+        "go"
       ],
       "_path": "skills/find-standard-gaps"
     },

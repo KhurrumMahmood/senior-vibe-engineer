@@ -669,7 +669,7 @@ def _apply_task_capability_gate(handoff: dict[str, Any], task: str) -> None:
                 eligible = disposition in {"javascript-supported", "validated-neutral"}
             elif language == "go":
                 disposition = row["go_disposition"]
-                eligible = disposition in {"go-pilot-supported", "validated-neutral"}
+                eligible = disposition in {"go-supported", "validated-neutral"}
             elif language == "python":
                 continue
             else:
