@@ -93,46 +93,33 @@ type inboundEdge struct {
 	Style         string `json:"style"`
 }
 
-type workflowEntry struct {
-	Name         string   `json:"name"`
-	Path         string   `json:"path"`
-	MatchedPaths []string `json:"matched_paths"`
-}
-
-type workflowParticipation struct {
-	Availability string          `json:"availability"`
-	Reason       string          `json:"reason,omitempty"`
-	Entries      []workflowEntry `json:"entries"`
-}
-
 type unavailableField struct {
 	Field  string `json:"field"`
 	Reason string `json:"reason"`
 }
 
 type mapPayload struct {
-	SchemaVersion         int                    `json:"schema_version"`
-	Skill                 string                 `json:"skill"`
-	Name                  string                 `json:"name"`
-	Language              string                 `json:"language"`
-	Analyzer              string                 `json:"analyzer"`
-	Status                string                 `json:"status"`
-	FailureKind           string                 `json:"failure_kind,omitempty"`
-	Message               string                 `json:"message,omitempty"`
-	Tooling               map[string]string      `json:"tooling"`
-	Module                map[string]string      `json:"module"`
-	ActiveBuild           map[string]interface{} `json:"active_build"`
-	Target                mapTarget              `json:"target"`
-	Completeness          map[string]string      `json:"completeness"`
-	Counts                map[string]int         `json:"counts"`
-	Files                 []sourceFile           `json:"files"`
-	ExportedSurface       []exportedSymbol       `json:"exported_surface"`
-	OutboundImports       []importEdge           `json:"outbound_imports"`
-	InboundImports        []inboundEdge          `json:"inbound_imports"`
-	UnresolvedImports     []importEdge           `json:"unresolved_imports"`
-	GraphIssues           []string               `json:"graph_issues"`
-	WorkflowParticipation workflowParticipation  `json:"workflow_participation"`
-	UnavailableFields     []unavailableField     `json:"unavailable_fields"`
+	SchemaVersion     int                    `json:"schema_version"`
+	Skill             string                 `json:"skill"`
+	Name              string                 `json:"name"`
+	Language          string                 `json:"language"`
+	Analyzer          string                 `json:"analyzer"`
+	Status            string                 `json:"status"`
+	FailureKind       string                 `json:"failure_kind,omitempty"`
+	Message           string                 `json:"message,omitempty"`
+	Tooling           map[string]string      `json:"tooling"`
+	Module            map[string]string      `json:"module"`
+	ActiveBuild       map[string]interface{} `json:"active_build"`
+	Target            mapTarget              `json:"target"`
+	Completeness      map[string]string      `json:"completeness"`
+	Counts            map[string]int         `json:"counts"`
+	Files             []sourceFile           `json:"files"`
+	ExportedSurface   []exportedSymbol       `json:"exported_surface"`
+	OutboundImports   []importEdge           `json:"outbound_imports"`
+	InboundImports    []inboundEdge          `json:"inbound_imports"`
+	UnresolvedImports []importEdge           `json:"unresolved_imports"`
+	GraphIssues       []string               `json:"graph_issues"`
+	UnavailableFields []unavailableField     `json:"unavailable_fields"`
 }
 
 type runnerError struct {
@@ -143,18 +130,17 @@ type runnerError struct {
 func (err *runnerError) Error() string { return err.message }
 
 func main() {
-	var target, projectRoot, output, evidence, effectivenessLog, name, minimumGo string
+	var target, projectRoot, output, evidence, name, minimumGo string
 	flag.StringVar(&target, "target", "", "Go package directory within the project root")
 	flag.StringVar(&projectRoot, "project-root", ".", "host project root")
 	flag.StringVar(&output, "output", "", "durable Markdown map beneath .claude/docs/subsystems/")
 	flag.StringVar(&evidence, "evidence", "", "JSON evidence beneath reports/map/")
-	flag.StringVar(&effectivenessLog, "effectiveness-log", "", "optional JSONL path beneath reports/_meta/")
 	flag.StringVar(&name, "name", "", "durable subsystem map name")
 	flag.StringVar(&minimumGo, "minimum-go", defaultMinimumGo, "minimum required Go version")
 	flag.Parse()
 
 	if target == "" || output == "" || evidence == "" || name == "" {
-		fmt.Fprintln(os.Stderr, "usage: map_go.go --name <name> --target <package-dir> --project-root <root> --output <map.md> --evidence <map.json> [--effectiveness-log <jsonl>]")
+		fmt.Fprintln(os.Stderr, "usage: map_go.go --name <name> --target <package-dir> --project-root <root> --output <map.md> --evidence <map.json>")
 		os.Exit(2)
 	}
 	root, err := filepath.Abs(projectRoot)
@@ -176,33 +162,24 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
-	logPath := ""
-	if effectivenessLog != "" {
-		logPath, err = artifactPath(root, effectivenessLog, filepath.Join("reports", "_meta"), "effectiveness log")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(2)
-		}
-	}
-
-	if runErr := run(name, target, root, outputPath, evidencePath, logPath, minimumGo); runErr != nil {
+	if runErr := run(name, target, root, outputPath, evidencePath, minimumGo); runErr != nil {
 		fmt.Fprintf(os.Stderr, "[map_go] %s\n", runErr.message)
 		os.Exit(runErr.exit)
 	}
 }
 
-func run(name, target, root, output, evidence, effectivenessLog, minimumGo string) *runnerError {
+func run(name, target, root, output, evidence, minimumGo string) *runnerError {
 	goPath, err := exec.LookPath("go")
 	if err != nil {
-		return terminal(name, root, target, output, evidence, "unsupported", "go_tool_missing", "Go was not found on PATH.", 0)
+		return &runnerError{message: "Go was not found on PATH; Go 1.22+ is required before mapping.", exit: 2}
 	}
 	versionText, err := commandOutput(root, goPath, "version")
 	if err != nil {
-		return terminal(name, root, target, output, evidence, "unsupported", "go_version_failed", err.Error(), 0)
+		return &runnerError{message: "cannot determine Go version: " + err.Error(), exit: 2}
 	}
 	version := strings.TrimSpace(versionText)
 	if !atLeastGoVersion(version, minimumGo) {
-		return terminal(name, root, target, output, evidence, "unsupported", "go_version_too_old", fmt.Sprintf("Go %s is below the required Go %s.", version, minimumGo), 0)
+		return &runnerError{message: fmt.Sprintf("Go %s is below the required Go %s; install/select Go %s+ before mapping.", version, minimumGo, minimumGo), exit: 2}
 	}
 	workspace, err := commandOutput(root, goPath, "env", "GOWORK")
 	if err != nil {
@@ -244,6 +221,9 @@ func run(name, target, root, output, evidence, effectivenessLog, minimumGo strin
 	if excludedDirectory(root, targetPath) {
 		return terminal(name, root, target, output, evidence, "unsupported", "excluded_target", "Vendor and testdata directories are outside the Go map v1 source boundary.", 0)
 	}
+	if err := rejectPackageSourceSymlinks(targetPath); err != nil {
+		return terminal(name, root, target, output, evidence, "unsupported", "unsafe_source", err.Error(), 0)
+	}
 
 	goos, goarch := goEnvironment(root, goPath)
 	packages, listErr := packageFacts(root, goPath)
@@ -255,13 +235,12 @@ func run(name, target, root, output, evidence, effectivenessLog, minimumGo strin
 		}
 		return terminal(name, root, target, output, evidence, "unsupported", "target_package_unavailable", message, 0)
 	}
-	if len(selected.CgoFiles) > 0 {
-		return terminal(name, root, target, output, evidence, "partial", "cgo_unavailable", "Go map v1 does not map packages with active cgo files.", 0)
-	}
-
 	files, exported, outbound, excluded, packageName, parseErr := inspectTarget(root, selected)
 	if parseErr != nil {
 		return terminal(name, root, target, output, evidence, "failed", "syntax_error", parseErr.Error(), 2)
+	}
+	if len(selected.CgoFiles) > 0 {
+		return terminal(name, root, target, output, evidence, "partial", "cgo_unavailable", "Go map v1 parsed ordinary active GoFiles but does not map active cgo files.", 0)
 	}
 	if len(files) == 0 {
 		return terminal(name, root, target, output, evidence, "unsupported", "no_eligible_go_source", "The target package contains no non-generated active Go source files.", 0)
@@ -288,8 +267,6 @@ func run(name, target, root, output, evidence, effectivenessLog, minimumGo strin
 	}
 	inbound, inboundIssues := collectInbound(root, packages, selected.ImportPath)
 	issues = append(issues, inboundIssues...)
-	workflows := collectWorkflows(root, files)
-
 	status := "complete"
 	if len(issues) > 0 {
 		status = "partial"
@@ -325,15 +302,14 @@ func run(name, target, root, output, evidence, effectivenessLog, minimumGo strin
 		Counts: map[string]int{
 			"source_files": len(files), "exported_symbols": len(exported),
 			"outbound_imports": len(outbound), "inbound_imports": len(inbound),
-			"unresolved_imports": len(unresolved), "workflow_entries": len(workflows.Entries),
+			"unresolved_imports": len(unresolved),
 		},
-		Files:                 files,
-		ExportedSurface:       exported,
-		OutboundImports:       outbound,
-		InboundImports:        inbound,
-		UnresolvedImports:     unresolved,
-		GraphIssues:           sortedStrings(issues),
-		WorkflowParticipation: workflows,
+		Files:             files,
+		ExportedSurface:   exported,
+		OutboundImports:   outbound,
+		InboundImports:    inbound,
+		UnresolvedImports: unresolved,
+		GraphIssues:       sortedStrings(issues),
 		UnavailableFields: []unavailableField{
 			{Field: "responsibility_clusters", Reason: "Go v1 maps package facts and does not infer responsibility clusters."},
 			{Field: "open_questions", Reason: "Go v1 does not generate judgment-oriented open questions."},
@@ -342,7 +318,7 @@ func run(name, target, root, output, evidence, effectivenessLog, minimumGo strin
 			{Field: "lint_policy", Reason: "Go v1 does not infer or execute host lint policy."},
 		},
 	}
-	return writePayload(payload, output, evidence, effectivenessLog, 0)
+	return writePayload(payload, output, evidence, 0)
 }
 
 func terminal(name, root, target, output, evidence, status, failureKind, message string, exit int) *runnerError {
@@ -355,15 +331,14 @@ func terminal(name, root, target, output, evidence, status, failureKind, message
 		},
 		Target:       mapTarget{Path: target, Kind: "package_directory", ExcludedFiles: []string{}},
 		Completeness: map[string]string{"active_build_inventory": "unavailable", "exported_surface": "unavailable", "first_party_module_edges": "unavailable", "build_matrix": "unavailable", "runtime_dispatch": "unavailable"},
-		Counts:       map[string]int{"source_files": 0, "exported_symbols": 0, "outbound_imports": 0, "inbound_imports": 0, "unresolved_imports": 0, "workflow_entries": 0},
+		Counts:       map[string]int{"source_files": 0, "exported_symbols": 0, "outbound_imports": 0, "inbound_imports": 0, "unresolved_imports": 0},
 		Files:        []sourceFile{}, ExportedSurface: []exportedSymbol{}, OutboundImports: []importEdge{}, InboundImports: []inboundEdge{}, UnresolvedImports: []importEdge{}, GraphIssues: []string{failureKind},
-		WorkflowParticipation: workflowParticipation{Availability: "unavailable", Reason: "Map did not reach package analysis.", Entries: []workflowEntry{}},
-		UnavailableFields:     []unavailableField{},
+		UnavailableFields: []unavailableField{},
 	}
-	return writePayload(payload, output, evidence, "", exit)
+	return writePayload(payload, output, evidence, exit)
 }
 
-func writePayload(payload mapPayload, output, evidence, effectivenessLog string, exit int) *runnerError {
+func writePayload(payload mapPayload, output, evidence string, exit int) *runnerError {
 	encoded, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
 		return &runnerError{message: err.Error(), exit: 2}
@@ -373,18 +348,6 @@ func writePayload(payload mapPayload, output, evidence, effectivenessLog string,
 	}
 	if err := writeAtomic(output, []byte(renderMap(payload))); err != nil {
 		return &runnerError{message: err.Error(), exit: 2}
-	}
-	if effectivenessLog != "" {
-		row, marshalErr := json.Marshal(map[string]interface{}{
-			"skill": "map-subsystem", "language": "go", "target": payload.Target.Path,
-			"findings_total": payload.Counts["exported_symbols"], "buckets": payload.Counts, "status": payload.Status,
-		})
-		if marshalErr != nil {
-			return &runnerError{message: marshalErr.Error(), exit: 2}
-		}
-		if err := appendLine(effectivenessLog, append(row, '\n')); err != nil {
-			return &runnerError{message: err.Error(), exit: 2}
-		}
 	}
 	fmt.Printf("wrote %s and %s (%s)\n", output, evidence, payload.Status)
 	if exit != 0 {
@@ -409,7 +372,7 @@ func renderMap(payload mapPayload) string {
 			lines = append(lines, fmt.Sprintf("- Ignored by current build: `%s`", file))
 		}
 	}
-	lines = append(lines, "", "## Counts", "", "| Source files | Exported symbols | Outbound imports | Inbound imports | Unresolved first-party imports | Workflow entries |", "|--:|--:|--:|--:|--:|--:|", fmt.Sprintf("| %d | %d | %d | %d | %d | %d |", payload.Counts["source_files"], payload.Counts["exported_symbols"], payload.Counts["outbound_imports"], payload.Counts["inbound_imports"], payload.Counts["unresolved_imports"], payload.Counts["workflow_entries"]))
+	lines = append(lines, "", "## Counts", "", "| Source files | Exported symbols | Outbound imports | Inbound imports | Unresolved first-party imports |", "|--:|--:|--:|--:|--:|", fmt.Sprintf("| %d | %d | %d | %d | %d |", payload.Counts["source_files"], payload.Counts["exported_symbols"], payload.Counts["outbound_imports"], payload.Counts["inbound_imports"], payload.Counts["unresolved_imports"]))
 	lines = append(lines, "", "## Files", "")
 	if len(payload.Files) == 0 {
 		lines = append(lines, "None.")
@@ -450,16 +413,6 @@ func renderMap(payload mapPayload) string {
 	}
 	for _, edge := range payload.InboundImports {
 		lines = append(lines, fmt.Sprintf("- `%s:%d` from `%s` (%s)", edge.SourceFile, edge.Line, edge.SourcePackage, edge.Style))
-	}
-	lines = append(lines, "", "## Workflow participation", "")
-	if payload.WorkflowParticipation.Availability == "unavailable" {
-		lines = append(lines, "Unavailable: "+payload.WorkflowParticipation.Reason)
-	} else if len(payload.WorkflowParticipation.Entries) == 0 {
-		lines = append(lines, "No workflow map references the selected source files.")
-	} else {
-		for _, entry := range payload.WorkflowParticipation.Entries {
-			lines = append(lines, fmt.Sprintf("- `%s` — %s", entry.Path, codeList(entry.MatchedPaths)))
-		}
 	}
 	lines = append(lines, "", "## Completeness", "")
 	for _, key := range []string{"active_build_inventory", "exported_surface", "first_party_module_edges", "build_matrix", "runtime_dispatch"} {
@@ -652,40 +605,6 @@ func collectInbound(root string, packages []packageInfo, targetImport string) ([
 	return edges, sortedStrings(issues)
 }
 
-func collectWorkflows(root string, files []sourceFile) workflowParticipation {
-	workflowRoot := filepath.Join(root, ".claude", "docs", "workflows")
-	info, err := os.Stat(workflowRoot)
-	if err != nil || !info.IsDir() {
-		return workflowParticipation{Availability: "unavailable", Reason: "No .claude/docs/workflows directory exists in this host.", Entries: []workflowEntry{}}
-	}
-	targets := []string{}
-	for _, file := range files {
-		targets = append(targets, file.File)
-	}
-	entries := []workflowEntry{}
-	_ = filepath.WalkDir(workflowRoot, func(path string, entry os.DirEntry, walkErr error) error {
-		if walkErr != nil || entry.Type()&os.ModeSymlink != 0 || entry.IsDir() || filepath.Ext(path) != ".md" {
-			return nil
-		}
-		contents, readErr := os.ReadFile(path)
-		if readErr != nil {
-			return nil
-		}
-		matched := []string{}
-		for _, target := range targets {
-			if strings.Contains(string(contents), target) {
-				matched = append(matched, target)
-			}
-		}
-		if len(matched) > 0 {
-			entries = append(entries, workflowEntry{Name: strings.TrimSuffix(filepath.Base(path), ".md"), Path: relative(root, path), MatchedPaths: matched})
-		}
-		return nil
-	})
-	sort.Slice(entries, func(i, j int) bool { return entries[i].Path < entries[j].Path })
-	return workflowParticipation{Availability: "available", Entries: entries}
-}
-
 func moduleFacts(root, goPath string) (moduleInfo, error) {
 	output, err := commandOutput(root, goPath, "list", "-m", "-json", "-mod=readonly")
 	if err != nil {
@@ -862,6 +781,19 @@ func excludedDirectory(root, candidate string) bool {
 	return false
 }
 
+func rejectPackageSourceSymlinks(directory string) error {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if filepath.Ext(entry.Name()) == ".go" && entry.Type()&os.ModeSymlink != 0 {
+			return fmt.Errorf("selected Go source must not be a symbolic link: %s", filepath.Join(directory, entry.Name()))
+		}
+	}
+	return nil
+}
+
 func writeAtomic(path string, contents []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
@@ -871,19 +803,6 @@ func writeAtomic(path string, contents []byte) error {
 		return err
 	}
 	return os.Rename(temporary, path)
-}
-
-func appendLine(path string, line []byte) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return err
-	}
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	_, err = file.Write(line)
-	return err
 }
 
 func relative(root, path string) string {
@@ -955,12 +874,4 @@ func exprText(expression ast.Expr) string {
 	default:
 		return "syntax"
 	}
-}
-
-func codeList(values []string) string {
-	items := []string{}
-	for _, value := range values {
-		items = append(items, "`"+value+"`")
-	}
-	return strings.Join(items, ", ")
 }

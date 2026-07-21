@@ -23,20 +23,20 @@
   "outcome_contract": {
     "final_artifacts": [
       ".claude/docs/subsystems/<name>.md",
-      "reports/map/<name>/go-map.json",
-      "reports/_meta/effectiveness.jsonl (optional)"
+      "reports/map/<name>/go-map.json"
     ],
     "must_fire": [
       "active non-generated source inventory",
       "exported top-level types/functions/methods/constants/variables",
       "first-party inbound and outbound package edges with default and alias import spelling",
-      "workflow text reference and active-build ignored-file fact"
+      "active-build ignored-file fact"
     ],
     "non_clean": [
       "unresolved first-party import or incomplete go list fact is partial",
-      "cgo package is partial",
+      "ordinary GoFiles are parsed before cgo returns partial",
       "malformed selected source writes failed artifacts and exits nonzero",
-      "missing/old Go, workspace, replacement, non-root module, excluded, missing, or symlink target is unsupported"
+      "missing/old Go is a prerequisite failure without artifacts",
+      "workspace, replacement, non-root module, excluded, missing, or symlink target is unsupported"
     ]
   },
   "reuse_decision": {

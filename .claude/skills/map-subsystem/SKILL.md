@@ -175,14 +175,16 @@ graph. It does not use `go/packages`, `go/types`, a language server, or a
 shared Go platform. It records ignored build files and makes build matrices,
 cgo, runtime dispatch, call identity, responsibility clustering, lint policy,
 and behavioral interpretation explicitly unavailable. Generated, vendor,
-testdata, test, and symlinked sources do not enter the source inventory.
+testdata, test, and symlinked sources do not enter the source inventory. Any
+`.go` symlink in the selected package directory is rejected, including a link
+to source outside the project root.
 
 An incomplete target package or unresolved first-party import writes a visible
-`partial` map. A package with active cgo source is also `partial`; it is not a
-claim that cgo source was mapped. A missing/old Go tool, active workspace,
-module replacement, non-root module, excluded/missing target, or package
-directory with no eligible source writes an explicit `unsupported` map.
-Malformed eligible Go source writes a `failed` artifact and exits non-zero.
+`partial` map. Ordinary active Go files are parsed before cgo causes a
+`partial` result, so malformed non-cgo source still writes `failed` and exits
+non-zero. Missing or old Go is a prerequisite failure and writes no map.
+An active workspace, module replacement, non-root module, excluded/missing
+target, or package directory with no eligible source writes `unsupported`.
 The final map is complete only for the active `GOOS`/`GOARCH` selection, never
 for all build-tag or platform variants.
 
@@ -191,8 +193,7 @@ for all build-tag or platform variants.
 Run this from the root of the target Go module after the selected skill is
 installed. The host's normal native check remains separate evidence: run
 `go test ./...` before and after mapping. The mapper is read-only against Go
-source and writes only the durable Markdown, JSON evidence, and optional
-effectiveness row.
+source and writes only the durable Markdown and JSON evidence.
 
 <!-- installed-command:go-map:start -->
 ```bash
@@ -214,35 +215,15 @@ if [ -z "${SKILL_ROOT}" ]; then
   exit 2
 fi
 if ! command -v go >/dev/null 2>&1; then
-  printf '%s\n' '{"status":"unsupported","failure_kind":"go_tool_missing"}'
-  exit 0
-fi
-GO_VERSION_OUTPUT="$(go version 2>/dev/null || true)"
-GO_VERSION_TOKEN="${GO_VERSION_OUTPUT#* go}"
-GO_VERSION_TOKEN="${GO_VERSION_TOKEN%% *}"
-GO_VERSION_MAJOR="${GO_VERSION_TOKEN%%.*}"
-GO_VERSION_REST="${GO_VERSION_TOKEN#*.}"
-GO_VERSION_MINOR="${GO_VERSION_REST%%.*}"
-case "${GO_VERSION_MAJOR}:${GO_VERSION_MINOR}" in
-  *[!0-9:]*|:*)
-    printf '%s\n' '{"status":"unsupported","failure_kind":"go_version_unreadable","minimum_go":"1.22"}'
-    exit 0
-    ;;
-esac
-if [ -z "${GO_VERSION_MAJOR}" ] || [ -z "${GO_VERSION_MINOR}" ] || \
-   [ "${GO_VERSION_MAJOR}" -lt 1 ] || \
-   { [ "${GO_VERSION_MAJOR}" -eq 1 ] && [ "${GO_VERSION_MINOR}" -lt 22 ]; }
-then
-  printf '%s\n' '{"status":"unsupported","failure_kind":"go_version_too_old","minimum_go":"1.22"}'
-  exit 0
+  printf '%s\n' "Go 1.22+ is required before running the Go map" >&2
+  exit 2
 fi
 go run "${SKILL_ROOT}/scripts/map_go.go" \
   --name "${MAP_NAME}" \
   --target "${MAP_TARGET}" \
   --project-root "$(pwd)" \
   --output ".claude/docs/subsystems/${MAP_NAME}.md" \
-  --evidence "reports/map/${MAP_NAME}/go-map.json" \
-  --effectiveness-log "reports/_meta/effectiveness.jsonl"
+  --evidence "reports/map/${MAP_NAME}/go-map.json"
 ```
 <!-- installed-command:go-map:end -->
 

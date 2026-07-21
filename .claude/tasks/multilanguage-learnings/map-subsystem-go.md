@@ -11,8 +11,8 @@ The final artifact is both `.claude/docs/subsystems/<name>.md` and
 `reports/map/<name>/go-map.json`. It records the package import path, current
 `GOOS`/`GOARCH`, active non-generated source inventory, exported types,
 functions, methods, constants and variables, parser-recorded default/alias/
-dot/blank imports, first-party package inbound/outbound edges, workflow-map
-text references, and explicit unavailable fields. Native `go test ./...` is
+dot/blank imports, first-party package inbound/outbound edges, and explicit
+unavailable fields. Native `go test ./...` is
 separate host verification and source fingerprints prove the map itself is
 read-only.
 
@@ -27,11 +27,13 @@ source model.
 
 The locked fixture reaches complete active-build output with two source files,
 six exports, two first-party outbound imports, two inbound imports (default
-and alias forms), one ignored build-tag file, a generated file excluded before
-inventory, and one workflow reference. A missing first-party import produces a
+and alias forms), one ignored build-tag file, and a generated file excluded
+before inventory. A missing first-party import produces a
 visible partial map; malformed selected source produces a failed Markdown/JSON
-pair; vendor and symlink targets are unsupported; artifact-path containment
-protects source. The copied selected-skill command runs outside the checkout
+pair even when cgo is active; package/source symlinks are rejected, including
+an external `.go` link; artifact-path containment protects source. Missing or
+old Go is a prerequisite failure with no promised artifact. The copied
+selected-skill command runs outside the checkout
 and contains no repository runtime or external Go-module dependency.
 
 This is the second accepted use of `go list` package facts after

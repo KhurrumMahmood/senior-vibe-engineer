@@ -69,8 +69,6 @@ def _map(
         str(output),
         "--evidence",
         str(evidence),
-        "--effectiveness-log",
-        str(host / "reports" / "_meta" / "effectiveness.jsonl"),
     ]
     if minimum_go is not None:
         args.extend(["--minimum-go", minimum_go])
@@ -124,7 +122,6 @@ def test_go_map_reaches_final_artifacts_with_active_package_and_first_party_edge
         "outbound_imports": 2,
         "inbound_imports": 2,
         "unresolved_imports": 0,
-        "workflow_entries": 1,
     }
     assert {item["name"] for item in payload["exported_surface"]} == {
         "Widget",
@@ -138,18 +135,9 @@ def test_go_map_reaches_final_artifacts_with_active_package_and_first_party_edge
     assert all(edge["resolution"] == "first_party" for edge in payload["outbound_imports"])
     assert {edge["style"] for edge in payload["inbound_imports"]} == {"default", "alias"}
     assert payload["active_build"]["ignored_go_files"] == ["internal/features/not_selected.go"]
-    assert payload["workflow_participation"] == {
-        "availability": "available",
-        "entries": [{
-            "name": "feature-checkout",
-            "path": ".claude/docs/workflows/feature-checkout.md",
-            "matched_paths": ["internal/features/widget.go"],
-        }],
-    }
     assert payload["completeness"]["build_matrix"] == "unavailable"
     assert "Status: **complete**" in rendered
     assert "Current active Go build only" in rendered
-    assert len((host / "reports" / "_meta" / "effectiveness.jsonl").read_text(encoding="utf-8").splitlines()) == 1
 
 
 def test_go_map_preserves_partial_and_failed_states(tmp_path: Path) -> None:
@@ -171,12 +159,24 @@ def test_go_map_preserves_partial_and_failed_states(tmp_path: Path) -> None:
     }]
     assert partial_payload["completeness"]["first_party_module_edges"] == "partial"
 
-    cgo_host = _copy_host(tmp_path, "cgo")
+    cgo_host = _copy_host(tmp_path, "cgo-malformed")
     (cgo_host / "internal" / "features" / "cgo.go").write_text(
         'package features\n\n/*\n#include <stdlib.h>\n*/\nimport "C"\n\nfunc CgoBoundary() {}\n',
         encoding="utf-8",
     )
-    cgo, _, cgo_evidence = _map(cgo_host, name="cgo")
+    (cgo_host / "internal" / "features" / "broken.go").write_text(
+        "package features\n\nfunc Broken( {\n", encoding="utf-8"
+    )
+    cgo_malformed, _, cgo_malformed_evidence = _map(cgo_host, name="cgo-malformed")
+    assert cgo_malformed.returncode != 0
+    assert _payload(cgo_malformed_evidence)["failure_kind"] == "syntax_error"
+
+    cgo_only_host = _copy_host(tmp_path, "cgo-only")
+    (cgo_only_host / "internal" / "features" / "cgo.go").write_text(
+        'package features\n\n/*\n#include <stdlib.h>\n*/\nimport "C"\n\nfunc CgoBoundary() {}\n',
+        encoding="utf-8",
+    )
+    cgo, _, cgo_evidence = _map(cgo_only_host, name="cgo")
     assert cgo.returncode == 0, cgo.stdout + cgo.stderr
     cgo_payload = _payload(cgo_evidence)
     assert cgo_payload["status"] == "partial"
@@ -207,6 +207,16 @@ def test_go_map_refuses_excluded_symlinked_and_unsafe_artifact_paths(tmp_path: P
     assert linked.returncode == 0, linked.stdout + linked.stderr
     assert _payload(linked_evidence)["failure_kind"] == "unsafe_target"
 
+    external_source = tmp_path / "outside.go"
+    external_source.write_text("package features\n\nfunc Outside() {}\n", encoding="utf-8")
+    os.symlink(external_source, host / "internal" / "features" / "outside_link.go")
+    source_link, _, source_link_evidence = _map(host, name="source-link")
+    assert source_link.returncode == 0, source_link.stdout + source_link.stderr
+    source_link_payload = _payload(source_link_evidence)
+    assert source_link_payload["status"] == "unsupported"
+    assert source_link_payload["failure_kind"] == "unsafe_source"
+    assert "symbolic link" in source_link_payload["message"]
+
     victim = host / "internal" / "features" / "widget.go"
     before = victim.read_bytes()
     unsafe, _, _ = _map(
@@ -229,8 +239,9 @@ def test_go_map_refuses_excluded_symlinked_and_unsafe_artifact_paths(tmp_path: P
 def test_go_map_old_tool_and_documented_copied_closure_are_self_contained(tmp_path: Path) -> None:
     host = _copy_host(tmp_path)
     old, _, old_evidence = _map(host, name="old", minimum_go="99.0")
-    assert old.returncode == 0, old.stdout + old.stderr
-    assert _payload(old_evidence)["failure_kind"] == "go_version_too_old"
+    assert old.returncode != 0
+    assert "required Go 99.0" in old.stderr
+    assert not old_evidence.exists()
 
     before = _fingerprints(host)
     installed = host / ".agents" / "skills" / "map-subsystem"
@@ -252,6 +263,17 @@ def test_go_map_old_tool_and_documented_copied_closure_are_self_contained(tmp_pa
     assert '"go/types"' not in closure
     assert str(REPO_ROOT) not in closure
     assert _run(GO, "test", "./...", cwd=host).returncode == 0
+
+    missing = _run(
+        "/bin/bash",
+        "-c",
+        _documented_command(installed),
+        cwd=host,
+        env={**os.environ, "PATH": "", "MAP_NAME": "missing", "MAP_TARGET": "internal/features"},
+    )
+    assert missing.returncode == 2
+    assert "Go 1.22+ is required" in missing.stderr
+    assert not (host / "reports" / "map" / "missing").exists()
 
 
 def test_go_map_workspace_is_explicitly_unsupported(tmp_path: Path) -> None:
