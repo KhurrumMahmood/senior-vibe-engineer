@@ -1,7 +1,7 @@
 ---
 name: find-semantic-duplication
-description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, and Go function-level leads using host-native semantic facts. Compiler branches report confirmed, uncertain, and rejected candidates with capability matrices; they do not infer workflows, structural duplication, or safe refactors.
-argument-hint: "--target <directory> [--language python|typescript|javascript|go]"
+description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, and Java function-level leads using host-native semantic facts. Compiler branches report bounded static candidates with capability matrices; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.
+argument-hint: "--target <directory> [--language python|typescript|javascript|go|java]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -9,7 +9,7 @@ job: suspect
 best_for: |
   Two independently-written, live functions that plausibly solve the same
   problem with different code shape. Python uses scout confirmation; TypeScript
-  and Go use typed return-shape and direct-call evidence before human review.
+  Go, and Java use typed return-shape and direct-call evidence before human review.
 not_for: |
   Lexical near-clones (use /find-duplication). Unreferenced implementations
   (use /find-dormant). Consolidation execution follows /unify-shadows proposal
@@ -18,7 +18,7 @@ not_for: |
   dynamic dispatch, framework behavior, and automatic consolidation.
 language: any
 framework: any
-scans: [python, typescript, javascript, go]
+scans: [python, typescript, javascript, go, java]
 ---
 
 # /find-semantic-duplication
@@ -37,6 +37,13 @@ For a Go target, read and follow `knowledge/go-v1.md`; load it only for Go
 work. The skill-local analyzer uses Go 1.22+ `go list`, `go/parser`, and
 `go/types` to produce static review leads. Even a `confirmed` Go record is not
 proof of behavioral equivalence and never authorizes a refactor by itself.
+
+## Java 17 v1
+
+For Java, read `knowledge/java-v1.md`. The family-local JDK compiler-tree
+analyzer emits only direct static-method pairs that construct the same project
+record, name the same returned components, and have resolved production callers.
+Even a `confirmed` record is a bounded static lead, never behavioral equivalence.
 
 ## TypeScript / TSX v1
 
@@ -419,6 +426,7 @@ python3 .claude/skills/find-semantic-duplication/scripts/rank.py --help
 python3 .claude/skills/find-semantic-duplication/scripts/report.py --help
 node --check .claude/skills/find-semantic-duplication/scripts/detect_typescript.mjs
 python3 .claude/skills/find-semantic-duplication/scripts/detect_go_semantic.py --help
+python3 -I -S .claude/skills/find-semantic-duplication/scripts/detect_java_semantic.py --help
 ```
 
 For a full pipeline change, keep a tiny `reports/semantic-duplication/scan-*`
@@ -433,9 +441,11 @@ script output. Do not report semantic findings from Compare-only artifacts.
 ├── scripts/
 │   ├── collapse_candidates.py    # Stage 4
 │   ├── rank.py                   # Stage 6
-│   └── report.py                 # Stage 7
+│   ├── report.py                 # Stage 7
 │   ├── semantic_inventory.py     # Python function inventory / prompts
-│   └── detect_typescript.mjs     # TypeScript Compiler API final triage
+│   ├── detect_typescript.mjs     # TypeScript Compiler API final triage
+│   ├── detect_java_semantic.py    # Java launcher / final artifacts
+│   └── detect_java_semantic.java  # JDK compiler-tree fact collector
 ├── agents/
 │   ├── summarize.md              # Stage 2 scout brief
 │   ├── compare.md                # Stage 3 scout brief
