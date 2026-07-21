@@ -683,9 +683,9 @@ detectors.
 | Batch | State | Skills | Dependency |
 |---|---|---|---|
 | J2 lexical/filesystem | 6/6 integrated; review pending | `adapt-project`, `explain-code`, `find-comment-drift`, `find-concept-divergence`, `find-duplication`, `find-folder-topology-drift` | Accepted Java source-role and path boundaries. All six candidate outcomes are integrated through `71ffb81`; promotion still waits for product-framed review and closeout replay. |
-| J3 syntax/reports | 2/3 integrated; omnibus active | `audit-decisions`, `find-omnibus`, `find-standard-gaps` | JDK syntax facts only where text/metadata cannot establish the final report. Decision and standard-gap outcomes are integrated through `ba69cee`; omnibus remains unpromoted. |
-| J4 semantic/project | active | `find-dormant`, `find-implicit-state`, `find-incomplete-sweep`, `find-semantic-duplication`, `map-subsystem`, `rename-concept` | Compiler attribution bounded to each claimed identity/relationship. `map-subsystem` and `find-dormant` are active in one isolated lane; later dependency cohorts have clean worktrees prepared. |
-| J5 proposals/guards | pending | `extract-enum`, `prevent-regression`, `propose-folder-reorganization`, `unify-shadows` | Accepted J4 evidence for the three detector consumers; folder proposal remains independent and read-only. |
+| J3 syntax/reports | 3/3 integrated; review pending | `audit-decisions`, `find-omnibus`, `find-standard-gaps` | JDK syntax facts only where text/metadata cannot establish the final report. All three candidate outcomes are integrated through `29d21cd`; promotion waits for closeout review. |
+| J4 semantic/project | 2/6 integrated; 4 active | `find-dormant`, `find-implicit-state`, `find-incomplete-sweep`, `find-semantic-duplication`, `map-subsystem`, `rename-concept` | Compiler attribution bounded to each claimed identity/relationship. `find-dormant` and `map-subsystem` are integrated through `13bd2b6`; state, relationship, and rename cohorts are active in isolated lanes. |
+| J5 proposals/guards | 0/4 integrated; 4 active behind producers | `extract-enum`, `prevent-regression`, `propose-folder-reorganization`, `unify-shadows` | State and semantic consumers share their producer worktrees; folder proposal is active independently and remains read-only. No J5 row promotes before its accepted producer evidence. |
 
 Execution ownership is deliberately smaller than those reporting batches:
 
