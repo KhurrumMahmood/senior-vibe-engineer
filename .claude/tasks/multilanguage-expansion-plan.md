@@ -1,7 +1,7 @@
 # Multi-language and framework expansion plan
 
 Status: active — P0, P1, P2, U1, P3, the measured batching gate, Go G1, G1D,
-and the bounded G2 pilots complete; next-language selection is next
+and the bounded G2 pilots complete; the Java pilot is active
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
@@ -541,28 +541,70 @@ Acceptance:
 Later framework families—ORM/data model, async jobs, frontend components, and
 test obligations—remain backlog candidates until a real host needs them.
 
-## Phase P5 — Select the next major language
+## Phase P5 — Core language queue and Java pilot
 
-State: `pending`
+State: `in_progress`
 
-Rank Java/JVM, C#/.NET, and Rust using:
+The durable core is the set of ecosystems with broad professional use and a
+credible native/offline analysis path for copied on-demand skills. Current
+GitHub and Stack Overflow evidence keeps the already-earned Python,
+JavaScript/TypeScript, and Go coverage at the front, then orders the remaining
+work as follows:
 
-- user/project demand;
-- availability and stability of native parser/compiler/project tooling;
-- ability to run from the on-demand library without network-time dependency
-  installation;
-- coverage of the 22 language-level skill outcomes;
-- framework leverage; and
-- measured effort and defect rate from JavaScript and Go.
+| Order | Language | State | Reason / revisit boundary |
+|---|---|---|---|
+| 1 | Python | earned reference | Existing native reference paths. |
+| 2 | JavaScript/TypeScript | earned | One closely coupled ecosystem; all 22 language-level outcomes have explicit evidence. |
+| 3 | Go | earned bounded core | 14/22 outcomes supported; eight deliberately deferred rather than weakened. |
+| 4 | Java | active pilot | High professional/GitHub use and JDK 17 compiler-tree APIs are available locally without Maven/Gradle or third-party JARs. Java does not imply Kotlin support. |
+| 5 | C#/.NET | queued | High professional use; start only after a real host proves copied, offline Roslyn/SDK resolution and `dotnet build --no-restore`. |
+| 6 | PHP | queued | Material web/legacy cleanup value; require a representative Composer host and native parser/project boundary before semantic claims. |
+| 7 | Rust | queued | Strong growth and native Cargo verification; require a stable offline syntax/project fact path without adding parser crates or assuming rust-analyzer. |
+| 8 | Kotlin | queued separately | JVM proximity does not transfer Java compiler facts or earn Kotlin syntax/build support. |
+| 9 | Ruby | queued | Rails/legacy cleanup value; require a representative Bundler host and honest native-reference boundary. |
+| 10 | C/C++ | queued last | Large installed base, but compile databases, macros, headers, generated code, and build variance make low-overhead source facts hardest. |
 
-Acceptance:
+Swift, Dart, Scala, Elixir, and other ecosystems are demand-triggered after the
+core queue. This ordering uses the 2025 GitHub Octoverse language ranking and
+the 2025 Stack Overflow professional-developer survey, then adjusts for this
+product's copied/offline tooling constraint:
 
-- [ ] The ranking cites at least one representative host and native-tool probe
-      per candidate.
-- [ ] The chosen language has a three-family pilot with the same detector,
-      proposal, and mutation/guard balance as P3.
-- [ ] Rejected candidates retain a revisit trigger; they are not silently
-      dropped or promised.
+- https://github.blog/news-insights/octoverse/what-the-fastest-growing-tools-reveal-about-how-software-is-being-built/
+- https://survey.stackoverflow.co/2025/technology
+
+Only one language is active at a time. A language enters the earned core only
+after a three-family detector/proposal/mutation-or-guard pilot; passing one
+syntax adapter does not trigger broad parallel conversion.
+
+### Java J0/J1 pilot
+
+The local tool probe found OpenJDK/Javac 17.0.12. Java begins with one detector
+implemented serially to establish the fixture and JDK invocation pattern:
+
+1. `find-complexity-hotspots` — JDK compiler-tree syntax walk of declared
+   methods and constructors; direct-body branch score only.
+2. `propose-boundary` — one declared Java source/package area with resolved
+   internal package/import evidence; proposal only.
+3. `move-path` — one reviewed leaf-package move with exact package/import/FQCN
+   updates and rollback on native failure.
+
+Java J0 acceptance:
+
+- [ ] A locked standalone Java 17 fixture compiles without Maven, Gradle,
+      network access, or third-party JARs.
+- [ ] The copied selected-skill closure discovers `java`/`javac` from `PATH`,
+      records their versions, and does not import repository runtime code.
+- [ ] `find-complexity-hotspots` reaches final Markdown/JSON with positive,
+      clean, generated/test, malformed, symlink, and missing/old-JDK outcomes;
+      incomplete evidence is never clean.
+- [ ] Existing Python, TypeScript/JavaScript, and Go paths remain green and
+      source fingerprints remain unchanged.
+- [ ] Fresh product-framed review and a Java learning packet pass before J1
+      proposal/mutation lanes start.
+
+Java support is provisional until all three pilot families pass. C# remains
+the next language regardless of whether Java expands beyond the pilot; a Java
+failure changes the implementation approach, not the core queue.
 - [ ] The plan is revised before implementation begins.
 
 ## Parallelism and merge policy
@@ -609,7 +651,7 @@ Acceptance:
 | P3E Go G2 pilots | complete | `94ce0d3`, `2147d5d`, `83d4767`, `0f2d458`, `eeb38da`, plus capability closeout | Independent package-map and dormant-review Go modules with active-build, generated/vendor/test, malformed/tool/symlink, source-safety, and final-artifact cases | Combined focused/preserved suites: 30 passed; final Go-only replay: 12 passed; Ruff, gofmt, and both Go vet checks passed | Map re-review PASS after two correctness and bloat repairs; dormant re-review PASS after last-good, active-build, symlink, malformed-sibling, and generated-evidence repairs | `.claude/tasks/multilanguage-learnings/{map-subsystem-go,find-dormant-go}.{json,md}`; 14/22 language-level skills now `go-supported`; no shared Go runtime extracted |
 | E1 read-only batching | complete | benchmark implementation commit (this revision) | Fresh isolated TypeScript and JavaScript hosts per condition and trial | Focused contract: 2 passed; frozen benchmark: 7 paired trials per language, semantic/native/source gates all passed, zero failures/interventions | Fresh product-framed review found a single-language gate bypass; repaired at CLI and aggregate layers; bounded re-review PASS | `.claude/tasks/ml009-readonly-batch-results.json`; ML-011 is the bounded product follow-up |
 | P4 route frameworks | pending | — | — | — | — | — |
-| P5 next-language selection | pending | — | — | — | — | — |
+| P5 Java next-language pilot | in progress | local JDK 17.0.12 probe; implementation pending | Standalone Java fixture required | J0 detector acceptance above | Fresh review required before J1 | Java packet pending |
 
 ## Final definition of done for this plan
 
@@ -621,7 +663,7 @@ Acceptance:
       expansion plan or an explicit stop decision.
 - [ ] Express and FastAPI route/workflow journeys reach consumer artifacts from
       framework-specific native fixtures.
-- [ ] The next major language is selected from evidence rather than assumed.
+- [x] The next major language and ordered core queue are selected from current usage evidence and local native-tool constraints.
 - [x] Shared tooling exists only where at least two consumers prove the same
       primitive; no universal parser or execution platform was introduced by
       default.
