@@ -66,6 +66,21 @@ GO_NON_SOURCE_PARTS = JAVASCRIPT_FAMILY_NON_SOURCE_PARTS | frozenset({
     "deps",
     "dependencies",
 })
+JAVA_NON_SOURCE_PARTS = GO_NON_SOURCE_PARTS | frozenset({
+    ".gradle",
+    "gen",
+    "integrationtest",
+    "out",
+    "target",
+    "testfixtures",
+})
+JAVA_TEST_NAMES = ("*Test.java", "*Tests.java", "*IT.java")
+JAVA_GENERATED_MARKER_RE = re.compile(
+    r"(?m)^\s*// Code generated .* DO NOT EDIT\.\s*$"
+)
+JAVA_GENERATED_ANNOTATION_RE = re.compile(
+    r"(?m)^\s*@(?:javax\.annotation\.processing\.)?Generated(?:\s*\(|\s*$)"
+)
 SENSITIVE_NAME_RE = re.compile(
     r"(secret|credential|token|password|key|auth|ai_runtime|intelligence|sidecar|"
     r"payment|billing|migration|agent_policy)",
@@ -185,6 +200,47 @@ def is_go_source(path: Path, project_root: Path) -> bool:
     return not _is_generated_go(path)
 
 
+def _has_symlink_boundary(path: Path, project_root: Path) -> bool:
+    """Reject a selected file reached through any symlinked path component."""
+    try:
+        relative = path.absolute().relative_to(project_root.absolute())
+    except ValueError:
+        return True
+    cursor = project_root.absolute()
+    for part in relative.parts:
+        cursor /= part
+        if cursor.is_symlink():
+            return True
+    return False
+
+
+def is_java_source(path: Path, project_root: Path) -> bool:
+    """Recognize authored Java source without parsing or invoking the JDK."""
+    if path.suffix.casefold() != ".java" or _has_symlink_boundary(path, project_root):
+        return False
+    try:
+        policy_parts = path.resolve().relative_to(project_root.resolve()).parts
+    except ValueError:
+        return False
+    if any(part in COMMON_SKIP_PARTS for part in policy_parts) or any(
+        part.casefold() in JAVA_NON_SOURCE_PARTS for part in policy_parts
+    ):
+        return False
+    if any(path.match(pattern) for pattern in JAVA_TEST_NAMES):
+        return False
+    name = path.name.casefold()
+    if "generated" in name or name.endswith("_generated.java"):
+        return False
+    try:
+        head = path.read_text(encoding="utf-8")[:4096]
+    except (OSError, UnicodeDecodeError):
+        return False
+    return not (
+        JAVA_GENERATED_MARKER_RE.search(head)
+        or JAVA_GENERATED_ANNOTATION_RE.search(head)
+    )
+
+
 def is_within(path: Path, root: Path) -> bool:
     try:
         path.resolve().relative_to(root.resolve())
@@ -208,18 +264,29 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
         for item in root.glob("*.go")
         if is_within(item, root) and is_go_source(item, root)
     ]
-    if root_go_paths:
-        rows.append(
-            {
-                "path": ".",
-                "python_files": 0,
-                "typescript_files": 0,
-                "typescript_file_kinds": {"ts": 0, "tsx": 0},
-                "markdown_files": sum(1 for item in root.glob("*.md") if item.is_file()),
-                "source_languages": ["go"],
-                "go_files": len(root_go_paths),
-            }
-        )
+    root_java_paths = [
+        item
+        for item in root.glob("*.java")
+        if is_within(item, root) and is_java_source(item, root)
+    ]
+    if root_go_paths or root_java_paths:
+        root_row: dict[str, Any] = {
+            "path": ".",
+            "python_files": 0,
+            "typescript_files": 0,
+            "typescript_file_kinds": {"ts": 0, "tsx": 0},
+            "markdown_files": sum(1 for item in root.glob("*.md") if item.is_file()),
+            "source_languages": [
+                language
+                for language, paths in (("go", root_go_paths), ("java", root_java_paths))
+                if paths
+            ],
+        }
+        if root_go_paths:
+            root_row["go_files"] = len(root_go_paths)
+        if root_java_paths:
+            root_row["java_files"] = len(root_java_paths)
+        rows.append(root_row)
     for name in (*SOURCE_ROOT_CANDIDATES, *GO_SOURCE_ROOT_CANDIDATES):
         path = root / name
         if not path.is_dir() or not is_within(path, root):
@@ -228,6 +295,11 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
             item
             for item in path.rglob("*.go")
             if is_within(item, root) and is_go_source(item, root)
+        ]
+        java_paths = [
+            item
+            for item in path.rglob("*.java")
+            if is_within(item, root) and is_java_source(item, root)
         ]
         if name in GO_SOURCE_ROOT_CANDIDATES and not go_paths:
             continue
@@ -251,6 +323,7 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
         }
         javascript_files = sum(len(paths) for paths in javascript_paths.values())
         go_files = len(go_paths)
+        java_files = len(java_paths)
         source_languages: list[str] = []
         if python_files:
             source_languages.append("python")
@@ -260,6 +333,8 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
             source_languages.append("javascript")
         if go_files:
             source_languages.append("go")
+        if java_files:
+            source_languages.append("java")
         markdown_files = sum(
             1 for item in path.rglob("*.md") if is_within(item, root) and not is_common_ignored(item)
         )
@@ -282,6 +357,8 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
             }
         if go_files:
             row["go_files"] = go_files
+        if java_files:
+            row["java_files"] = java_files
         rows.append(row)
     return rows
 
@@ -305,6 +382,17 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         row.get("go_files", 0) for row in roots
     ):
         languages.append("go")
+    java_markers = (
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts",
+        "settings.gradle",
+        "settings.gradle.kts",
+    )
+    if any((root / marker).is_file() for marker in java_markers) or any(
+        row.get("java_files", 0) for row in roots
+    ):
+        languages.append("java")
 
     package_managers: list[str] = []
     for marker, manager in (("pnpm-lock.yaml", "pnpm"), ("package-lock.json", "npm"), ("yarn.lock", "yarn")):
@@ -316,6 +404,10 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         package_managers.append("pip")
     if (root / "go.mod").is_file():
         package_managers.append("go")
+    if (root / "pom.xml").is_file():
+        package_managers.append("maven")
+    if (root / "build.gradle").is_file() or (root / "build.gradle.kts").is_file():
+        package_managers.append("gradle")
 
     requirements_text = "\n".join(read_text(path) for path in requirements)
     python_config = requirements_text + "\n" + read_text(root / "pyproject.toml")
@@ -323,7 +415,8 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
 
     markers = [name for name in (
         "manage.py", "pyproject.toml", "requirements.txt", "package.json", "pnpm-lock.yaml", "vite.config.ts", "tsconfig.json",
-        "go.mod", "go.work",
+        "go.mod", "go.work", "pom.xml", "mvnw", "build.gradle",
+        "build.gradle.kts", "settings.gradle", "settings.gradle.kts", "gradlew",
     ) if (root / name).exists()]
     return {
         "languages": languages,
@@ -362,6 +455,14 @@ def detect_commands(root: Path, stack: dict[str, Any]) -> dict[str, list[str]]:
                 commands["dev"].append(command)
     if "go" in stack["languages"] and (root / "go.mod").is_file():
         commands["test"].append("go test ./...")
+    if "java" in stack["languages"] and (root / "pom.xml").is_file():
+        commands["test"].append("./mvnw test" if (root / "mvnw").is_file() else "mvn test")
+    if "java" in stack["languages"] and (
+        (root / "build.gradle").is_file() or (root / "build.gradle.kts").is_file()
+    ):
+        commands["test"].append(
+            "./gradlew test" if (root / "gradlew").is_file() else "gradle test"
+        )
     return {kind: sorted(set(values)) for kind, values in commands.items()}
 
 
@@ -419,8 +520,8 @@ def detect_sensitive_surfaces(root: Path) -> list[dict[str, str]]:
         elif path.is_file() and path.name in {".env", ".env.local"}:
             surfaces.append({"path": rel, "kind": "file", "reason": "environment secrets file"})
         elif path.is_file() and SENSITIVE_NAME_RE.search(rel) and path.suffix in {
-            ".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".go", ".md"
-        }:
+            ".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".go", ".java", ".md"
+        } and (path.suffix != ".java" or is_java_source(path, root)):
             surfaces.append({"path": rel, "kind": "file", "reason": "sensitive-looking name"})
     return surfaces
 
@@ -431,6 +532,7 @@ def standardization(source_root_rows: list[dict[str, Any]], guards: dict[str, An
         or row["typescript_files"] > 200
         or row.get("javascript_files", 0) > 200
         or row.get("go_files", 0) > 200
+        or row.get("java_files", 0) > 200
         for row in source_root_rows
     )
     cautions = [
@@ -461,13 +563,13 @@ def discover(project_root: Path) -> dict[str, Any]:
         "schema_version": ADAPTER_SCHEMA_VERSION,
         "status": "complete",
         "analysis": {
-            "go": {
+            language: {
                 "status": "complete",
                 "analyzer": "filesystem-source-inventory",
             }
-        }
-        if "go" in stack["languages"]
-        else {},
+            for language in ("go", "java")
+            if language in stack["languages"]
+        },
         "generated_at": utc_now(),
         "project": {"name": root.name, "root": str(root)},
         "stack": stack,
@@ -519,6 +621,8 @@ def adapter_markdown(adapter: dict[str, Any]) -> str:
                 )
             if row.get("go_files"):
                 line += f"Go: {row['go_files']}; "
+            if row.get("java_files"):
+                line += f"Java: {row['java_files']}; "
             lines.append(line + f"classified: {', '.join(row['source_languages']) or 'none'}")
     else:
         lines.append("- (none inferred)")

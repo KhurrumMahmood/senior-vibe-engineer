@@ -1,6 +1,6 @@
 ---
 name: adapt-project
-description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, and Go stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
+description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, Go, and Java stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
 argument-hint: "[--project-root <path>] [--artifact-root <path>] [--apply|--no-host-write]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -63,6 +63,9 @@ and human review decide what deserves to become doctrine.
   philosophy.
 - A Go module's final adapter and report count only authored `.go` source,
   classify `go.mod`, emit `go test ./...`, and declare `status: complete`.
+- A Java build's final adapter and report count only authored `.java` source,
+  classify Maven or Gradle markers, emit the matching test command, and declare
+  `analysis.java.status: complete`.
 
 Status is atomic. `complete` means every requested filesystem fact and artifact
 was written. This read-only Go inventory has no honest `partial` mode and does
@@ -103,6 +106,12 @@ is filesystem discovery, so the skill does not require Go, parse source, load
 packages, interpret build constraints, infer a framework, or claim that the
 observed module layout is healthy. Native fixture verification runs separately
 from the discovery command.
+
+## Java v1 contract
+
+For Java hosts, read [`references/java.md`](references/java.md) before running
+discovery. That reference defines the authored-source boundary, accepted build
+markers and commands, native fixture check, and explicit non-claims.
 
 ## Forms
 
@@ -226,6 +235,14 @@ mutation:
 ```bash
 (cd tests/fixtures/adapt-project-go-g1 && go test ./...)
 .venv/bin/python -m pytest -q tests/test_adapt_project_go_g1.py
+```
+
+The equivalent Java replay is:
+
+```bash
+javac --release 17 -proc:none -d /tmp/adapt-project-java-j2a-classes \
+  $(find tests/fixtures/adapt-project-java-j2a -name '*.java' -type f)
+.venv/bin/python -m pytest -q tests/test_adapt_project_java_j2a.py
 ```
 
 ## Inspiration
