@@ -14,7 +14,7 @@
     {"skill": "find-complexity-hotspots", "disposition": "go-supported", "evidence_path": "tests/test_find_complexity_hotspots_go.py", "native_check": ["go test ./...", "gofmt -d <locked fixture Go files>"], "reviewed_revision": "3492764"},
     {"skill": "find-concept-divergence", "disposition": "go-supported", "evidence_path": "tests/test_find_concept_divergence_go.py", "native_check": ["go test ./...", "source fingerprint and final report assertions"], "reviewed_revision": "dd37954"},
     {"skill": "find-dormant", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
-    {"skill": "find-duplication", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-duplication", "disposition": "go-supported", "evidence_path": "tests/test_find_duplication_go.py", "native_check": ["go test ./...", "source fingerprint and final triage assertions"], "reviewed_revision": "22147a3"},
     {"skill": "find-folder-topology-drift", "disposition": "go-supported", "evidence_path": "tests/test_find_folder_topology_go.py", "native_check": ["go test ./...", "source fingerprint and final report assertions"], "reviewed_revision": "e4fa2f4"},
     {"skill": "find-implicit-state", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
     {"skill": "find-incomplete-sweep", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},

@@ -213,6 +213,11 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
 
     for skill, task in (
         ("find-complexity-hotspots", "use find-complexity-hotspots on Go source"),
+        (
+            "find-duplication",
+            "audit exact normalized duplicate Golang function bodies without "
+            "claiming that consolidation is safe",
+        ),
         ("propose-boundary", "use propose-boundary for a Go package boundary"),
         ("move-path", "use move-path to move a Go package directory"),
     ):

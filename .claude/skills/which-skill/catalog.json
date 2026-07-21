@@ -418,17 +418,18 @@
     },
     {
       "name": "find-duplication",
-      "description": "Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family and TypeScript/TSX lexical clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.",
+      "description": "Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, and exact Go function-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.",
       "tier": "maintenance",
       "job": "suspect",
-      "best_for": "Python/Django copy-paste and canonical-pattern candidates that need the\nestablished P0/P1/P2 scout triage, or JavaScript-family/TypeScript lexical clone\ncandidates that need reliable source spans without a consolidation claim.\n",
-      "not_for": "Semantic duplication where code differs substantially (use\n/find-semantic-duplication), cross-layer workflow drift, or executing a\nrefactor. JavaScript and TypeScript v1 do not prove semantic equivalence or safe reuse.\n",
+      "best_for": "Python/Django copy-paste and canonical-pattern candidates that need the\nestablished P0/P1/P2 scout triage, JavaScript-family/TypeScript lexical clone\ncandidates that need reliable source spans, or exact normalized Go function-body\nclones that need conservative evidence without a consolidation claim.\n",
+      "not_for": "Semantic duplication where code differs substantially (use\n/find-semantic-duplication), cross-layer workflow drift, or executing a\nrefactor. JavaScript, TypeScript, and Go v1 do not prove semantic equivalence or safe reuse.\n",
       "language": "any",
       "framework": "any",
       "scans": [
         "python",
         "javascript",
-        "typescript"
+        "typescript",
+        "go"
       ],
       "_path": "skills/find-duplication"
     },

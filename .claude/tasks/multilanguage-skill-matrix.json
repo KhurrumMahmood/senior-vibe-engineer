@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "6679cad24d78799879dd51708d837bf409a222ddfdff4ab27de69ffda93259e9"
+      "sha256": "23803b179fbee86e657a9cbc12a1d855e65f7eea6e7f6de8ca2023cbf3e44a49"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -15,7 +15,7 @@
     },
     {
       "path": ".claude/tasks/go-language-coverage.json",
-      "sha256": "85d8b7c4b432df7796fcaec63cf1570b9a41a0e141d2348e502b331bd28b26c3"
+      "sha256": "15b9aa99b259133d9423855c6d3c2a03ba442b671fedc4a75d2f0844bd79f665"
     }
   ],
   "counts": {
@@ -1551,10 +1551,13 @@
       ],
       "javascript_reviewed_revision": "1f1c574",
       "javascript_limitation": null,
-      "go_disposition": "pending-validation",
-      "go_evidence_path": null,
-      "go_native_check": null,
-      "go_reviewed_revision": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_duplication_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "source fingerprint and final triage assertions"
+      ],
+      "go_reviewed_revision": "22147a3",
       "fact_level": "lexical-filesystem",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -1565,7 +1568,8 @@
         "scans": [
           "python",
           "javascript",
-          "typescript"
+          "typescript",
+          "go"
         ],
         "install_with": []
       },

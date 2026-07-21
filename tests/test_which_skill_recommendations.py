@@ -68,7 +68,7 @@ def test_bundled_catalog_matches_source_frontmatter():
     omnibus = next(skill for skill in catalog["skills"] if skill["name"] == "find-omnibus")
     assert omnibus["language"] == "any"
     assert omnibus["framework"] == "any"
-    assert omnibus["scans"] == ["python", "javascript", "typescript"]
+    assert omnibus["scans"] == ["python", "javascript", "typescript", "go"]
 
 
 def test_new_skill_prompt_routes_to_plan_skill():
@@ -208,6 +208,20 @@ def test_typescript_lexical_clones_route_to_duplication():
 
     assert returncode == 0
     assert payload["routing_context"]["language"] == "typescript"
+    assert payload["recommendation"] == "find-duplication"
+    assert payload["handoff"]["skills"][0] == "find-duplication"
+
+
+def test_go_exact_function_clones_route_to_duplication():
+    returncode, payload = _run_match(
+        "audit exact normalized duplicate Golang function bodies without claiming "
+        "that consolidation is safe",
+        "--top",
+        "10",
+    )
+
+    assert returncode == 0
+    assert payload["routing_context"]["language"] == "go"
     assert payload["recommendation"] == "find-duplication"
     assert payload["handoff"]["skills"][0] == "find-duplication"
 

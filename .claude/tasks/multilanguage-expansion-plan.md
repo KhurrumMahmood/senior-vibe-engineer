@@ -1,7 +1,7 @@
 # Multi-language and framework expansion plan
 
-Status: active — P0, P1, P2, U1, P3, the measured batching gate, and Go G1
-complete; G1D is the next bounded Go cohort
+Status: active — P0, P1, P2, U1, P3, the measured batching gate, Go G1, and
+Go G1D complete; the remaining semantic/project cohort is next for reassessment
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework
@@ -428,7 +428,7 @@ must not block this phase.
 | G1 orientation | complete | `adapt-project`, `audit-decisions`, `explain-code` | Copied closures reach adapter, drift, and explanation artifacts; 18 Go and 47 preserved-language tests passed; fresh review PASS after artifact-lifecycle repairs. |
 | G1 lexical/topology | complete | `find-comment-drift`, `find-concept-divergence`, `find-folder-topology-drift` | Reports inventory first-party Go source with explicit generated/vendor/test boundaries; fresh review PASS. |
 | G1 structural/standards | complete | `find-omnibus`, `find-standard-gaps` | Batched native syntax facts reach final reports; 51 focused/preserved tests passed; fresh review PASS. |
-| G1D duplication | pending | `find-duplication` | Choose and prove a native/offline detector only after G1 closes. |
+| G1D duplication | complete | `find-duplication` | Batched native exact-body evidence reaches final triage from a copied closure; 23 family tests passed and fresh product-framed review reached PASS after three bounded correctness repairs. |
 | G2 semantic/project | pending | Six skills named in the transfer guide | Pilot no more than three before considering shared `go list`/`go/types` facts. |
 | G3 proposals/guards | pending | Four skills named in the transfer guide | Begin only from accepted upstream Go evidence. |
 
@@ -437,12 +437,13 @@ remain serial; implementation lanes may not promote their own rows. Every lane
 must preserve its prior language behavior, replay a copied on-demand closure,
 run `go test ./...`, and capture transferable and non-transferable learning.
 
-G1 closeout promotes eight skills and retains the three pilot skills under the
-single `go-supported` disposition: 11 of 22 language-level skills are supported
-and 11 remain `pending-validation`. The accepted learning packet is
-`.claude/tasks/multilanguage-learnings/go-g1-expansion.md`; it deliberately
-keeps analyzers family-local and records only a conditional future
-source-policy template, not a shared parser platform.
+G1D promotes one additional skill after the G1 closeout: 12 of 22
+language-level skills are supported and 10 remain `pending-validation`. The G1
+learning packet is `.claude/tasks/multilanguage-learnings/go-g1-expansion.md`;
+it deliberately keeps analyzers family-local and records only a conditional
+future source-policy template, not a shared parser platform. G1D's
+detector-specific learning is in
+`.claude/tasks/multilanguage-learnings/find-duplication-go.md`.
 
 ## Efficiency gate E1 — Measured read-only batching
 
@@ -568,6 +569,7 @@ Acceptance:
 | U1 router journey stabilization | complete | `5bc7618` and this revision | 30-case decision corpus plus copied default-router host | Focused router surface: 201 passed, 1 intentional skip; canonical tests: 770 passed, 2 intentional skips | Installed three-router replay passed; product-framed adversarial findings repaired; bounded re-review PASS | ML-007 retains only broader low-confidence ambiguity refinement; no general evaluator or coordinator added |
 | P3 Go pilot | complete | `1b6e2eb`, `6de5762`, `966be1c`, `3492764`, `39115e7`, and this closeout | Three locked standalone modules plus generated/vendor/malformed/tool/topology cases | Go-focused families: 27 passed; preserved cross-language family set: 61 passed, 1 intentional skip; move-path Go/Python preservation after the staging repair: 29 passed, 1 intentional skip; capability/router projection: 71 passed; canonical suite before the final bounded staging repair: 807 passed, 2 intentional skips | Three non-context implementation lanes; each original product-framed reviewer returned PASS after bounded repairs; final closeout review also passed after the advertised staging path was repaired | Three `*-go` packet pairs plus the Go synthesis and measured expansion estimate in `.claude/tasks/multilanguage-typescript-transfer-guide.md` |
 | P3E Go G1 expansion | complete | `e4fa2f4`, `dd37954`, `5298be2`, `bd9fe15`, and capability closeout | Eight skill-family Go fixtures with native modules and negative boundaries | Orientation: 18 Go + 47 preserved-language passed; structural/standards: 10 Go + 41 preserved/family tests passed; lexical/topology: 38 family tests passed | Three product-framed fresh reviews reached PASS after user-relevant source, status, filename-constraint, batching, and artifact-lifecycle findings became regressions | `.claude/tasks/multilanguage-learnings/go-g1-expansion.{json,md}`; 11/22 language-level skills now `go-supported` |
+| P3E Go G1D duplication | complete | `22147a3` plus capability closeout | One native Go module with exact cross-file and same-file clones, clean/generated/test/vendor/build-constrained/malformed/tool failure boundaries | Go/Python/TypeScript/JavaScript family suite: 23 passed; Ruff and gofmt clean | Fresh product-framed review reached PASS after generated-only, same-file labeling, and partial-report repairs | `.claude/tasks/multilanguage-learnings/find-duplication-go.{json,md}`; 12/22 language-level skills now `go-supported` |
 | E1 read-only batching | complete | benchmark implementation commit (this revision) | Fresh isolated TypeScript and JavaScript hosts per condition and trial | Focused contract: 2 passed; frozen benchmark: 7 paired trials per language, semantic/native/source gates all passed, zero failures/interventions | Fresh product-framed review found a single-language gate bypass; repaired at CLI and aggregate layers; bounded re-review PASS | `.claude/tasks/ml009-readonly-batch-results.json`; ML-011 is the bounded product follow-up |
 | P4 route frameworks | pending | — | — | — | — | — |
 | P5 next-language selection | pending | — | — | — | — | — |

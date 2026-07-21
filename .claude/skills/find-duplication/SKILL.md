@@ -8,12 +8,13 @@ tier: maintenance
 job: suspect
 best_for: |
   Python/Django copy-paste and canonical-pattern candidates that need the
-  established P0/P1/P2 scout triage, or JavaScript-family/TypeScript lexical clone
-  candidates that need reliable source spans without a consolidation claim.
+  established P0/P1/P2 scout triage, JavaScript-family/TypeScript lexical clone
+  candidates that need reliable source spans, or exact normalized Go function-body
+  clones that need conservative evidence without a consolidation claim.
 not_for: |
   Semantic duplication where code differs substantially (use
   /find-semantic-duplication), cross-layer workflow drift, or executing a
-  refactor. JavaScript and TypeScript v1 do not prove semantic equivalence or safe reuse.
+  refactor. JavaScript, TypeScript, and Go v1 do not prove semantic equivalence or safe reuse.
 language: any
 framework: any
 scans: [python, javascript, typescript, go]
