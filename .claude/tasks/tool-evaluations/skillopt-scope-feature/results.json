@@ -1,0 +1,113 @@
+{
+  "base_revision": "518e1057086e646e3c5726e620da77f99d295012",
+  "baseline": {
+    "conditions": {
+      "current_skill": {
+        "count": 2,
+        "hard_passes": 2,
+        "hard_rate": 1.0,
+        "items": [
+          {
+            "fail_reason": "",
+            "hard": 1,
+            "id": "test-language-program",
+            "soft": 1.0
+          },
+          {
+            "fail_reason": "",
+            "hard": 1,
+            "id": "test-small-fix-broad-review",
+            "soft": 1.0
+          }
+        ],
+        "reported_tokens": 20848,
+        "soft_mean": 1.0
+      },
+      "no_skill": {
+        "count": 2,
+        "hard_passes": 2,
+        "hard_rate": 1.0,
+        "items": [
+          {
+            "fail_reason": "",
+            "hard": 1,
+            "id": "test-language-program",
+            "soft": 1.0
+          },
+          {
+            "fail_reason": "",
+            "hard": 1,
+            "id": "test-small-fix-broad-review",
+            "soft": 1.0
+          }
+        ],
+        "reported_tokens": 20999,
+        "soft_mean": 1.0
+      }
+    },
+    "raw_root": ".claude/tasks/tool-evaluations/local/skillopt-scope-feature/baselines",
+    "reported_tokens_total": 41847,
+    "split": "test",
+    "wall_seconds": 35.73
+  },
+  "corpus": {
+    "test": {
+      "count": 2,
+      "ids": [
+        "test-language-program",
+        "test-small-fix-broad-review"
+      ],
+      "sha256": "d1a559e014fa938503d32a3cd7f1dd2a331a047e48abbf6e8988a484f7a0d619"
+    },
+    "train": {
+      "count": 6,
+      "ids": [
+        "train-system-priority-boundary",
+        "train-feature-downgrade",
+        "train-quick-rejection",
+        "train-ambiguous-intent",
+        "train-measurable-criteria",
+        "train-adversarial-scope-control"
+      ],
+      "sha256": "9b9a26d8c609fe8cc0008e7b8ef4d9562f066a57da6ab25b5544c13f7c93726a"
+    },
+    "val": {
+      "count": 2,
+      "ids": [
+        "val-decision-conflict",
+        "val-empty-boundary"
+      ],
+      "sha256": "526146ed5c1e6b2cc3e5ece1ee8402d015c35fd27c64a8faee1556f85b64b4f3"
+    }
+  },
+  "disposition": "inconclusive_stop_before_optimization",
+  "execution_observations": {
+    "known_tokens_including_isolated_smoke": 63030,
+    "optimizer_calls_started": false,
+    "unscored_timeout_attempts": 2,
+    "why_isolated": "The restart branch has a stale project Codex stop hook; ambient hooks/plugins also contaminate and inflate a skill-effectiveness benchmark."
+  },
+  "experiment": "X3-skillopt-scope-feature",
+  "model_calls_started": true,
+  "next_action": "Redesign the corpus and benchmark prompt so no-skill and current-skill differ; freeze a new corpus revision before making any optimizer calls.",
+  "optimizer": {
+    "backend": "codex_exec",
+    "edit_budget": 2,
+    "epochs": 1,
+    "model": "gpt-5.6-terra"
+  },
+  "production_skill_sha256": "803eae5c631497ec4b3c218e551918072d304a881242faa80851fc7a948657e2",
+  "protected_production_surface": true,
+  "schema_version": 1,
+  "seed_skill_sha256": "803eae5c631497ec4b3c218e551918072d304a881242faa80851fc7a948657e2",
+  "skillopt": {
+    "package_version": "0.2.0",
+    "source_commit": "b860a5cf88ce75e2bd02ca981ac21fb28cffba83"
+  },
+  "status": "baseline_no_discriminating_power",
+  "target": {
+    "backend": "codex_exec",
+    "model": "gpt-5.6-terra",
+    "reasoning_effort": "medium"
+  }
+}

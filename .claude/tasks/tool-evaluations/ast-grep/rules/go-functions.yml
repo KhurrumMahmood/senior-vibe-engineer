@@ -1,0 +1,9 @@
+id: pilot-go-functions
+message: Go function boundary for the structural-tool pilot
+severity: info
+language: Go
+rule:
+  any:
+    - kind: function_declaration
+    - kind: method_declaration
+    - kind: func_literal

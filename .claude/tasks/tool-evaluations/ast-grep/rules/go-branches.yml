@@ -1,0 +1,13 @@
+id: pilot-go-branches
+message: Go direct-body complexity node for the structural-tool pilot
+severity: info
+language: Go
+rule:
+  any:
+    - kind: if_statement
+    - kind: for_statement
+    - kind: expression_switch_statement
+    - kind: type_switch_statement
+    - kind: select_statement
+    - pattern: $LEFT && $RIGHT
+    - pattern: $LEFT || $RIGHT

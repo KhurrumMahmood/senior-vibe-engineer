@@ -1,0 +1,9 @@
+id: pilot-typescript-functions
+message: TypeScript function boundary for the structural-tool pilot
+severity: info
+language: TypeScript
+rule:
+  any:
+    - kind: function_declaration
+    - kind: method_definition
+    - kind: arrow_function

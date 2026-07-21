@@ -126,7 +126,7 @@ auditable when completeness matters.
 
 ### ML-005 — Framework-specific TypeScript lanes
 
-- State: `scheduled`
+- State: `done_rejected_for_complexity_provider`
 - User value: the 22 honestly stack-bound skills can support concrete Node,
   React, ORM, router, or UI ecosystems rather than making vague TypeScript
   claims.
@@ -290,6 +290,162 @@ auditable when completeness matters.
   real proposal needs it; record the detector's resolved Go path in every final
   artifact rather than only its version. None changes the three accepted pilot
   outcomes or justifies a shared Go platform today.
+
+### ML-012 — Evaluate ast-grep as an on-demand structural provider
+
+- State: `scheduled`
+- User value: syntax-oriented skills may gain new-language support with less
+  bespoke parser code while keeping native semantic verification authoritative.
+- Trigger: the Java pilot created a third language-specific implementation of
+  the same bounded complexity fact family.
+- Smallest experiment: X1 in
+  `.claude/tasks/cross-language-tool-evaluation-plan.md` compares a pinned
+  ast-grep CLI with the accepted TypeScript, Go, and Java complexity fixtures.
+- Acceptance: exact parity gaps, false positives/negatives, malformed and
+  exclusion behavior, LOC, latency, footprint, and network/cache requirements
+  are measured; the result makes no semantic-support claim.
+- Non-goals: replacing `rg`, replacing native compiler/project tools, adding
+  ast-grep to the default router install, or blocking Java J1.
+- Evidence: `.claude/tasks/tool-evaluations/ast-grep-results.json`. Exact final
+  record parity was not enough to offset a roughly 268 MB cold cache, retained
+  language-specific policy/identity code, and an invisible Java malformed
+  parse. Revisit for a narrower structural-search outcome, not this family.
+
+### ML-013 — Evaluate Tree-sitter language-pack as a syntax fact source
+
+- State: `done_continue_pilot`
+- User value: a cached grammar portfolio could lower the setup cost for queued
+  languages while keeping capability claims honest.
+- Trigger: C# and PHP are queued after Java and both need a credible syntax
+  path before semantic work is planned.
+- Smallest experiment: X2 in the tool evaluation plan tests pinned Java, C#,
+  and PHP grammars in an isolated environment, including prefetch then offline
+  replay.
+- Acceptance: grammar availability, validated syntax facts, and semantic
+  support are separated; cache/download size, parse-error behavior, query
+  portability, and maintenance risk are measured.
+- Non-goals: claiming hundreds of supported languages, a mandatory whole-repo
+  index, or replacing native build/test/type tools.
+- Evidence: `.claude/tasks/tool-evaluations/tree-sitter-results.json`. Pinned
+  Java/C#/PHP grammars replayed offline with syntax errors visible; one real C#
+  or PHP final-outcome pilot is still required before adoption.
+
+### ML-014 — SkillOpt pilot for standards-backed skill effectiveness
+
+- State: `done_inconclusive_no_headroom`
+- User value: one high-leverage judgment skill is improved from scored evidence
+  rather than prose preference, and the project learns whether optimization is
+  worth its run cost.
+- Trigger: `/scope-feature` has a clear standards contract and directly guards
+  against product-goal drift, but currently lacks a held-out execution corpus.
+- Smallest experiment: X3 in the tool evaluation plan freezes a compact corpus,
+  baselines no-skill/current-skill, and permits SkillOpt to edit only a copied
+  skill body under a one-epoch/two-edit budget.
+- Acceptance: an untouched held-out comparison, hard standards gates, cost and
+  variation evidence, and human review precede any production change.
+- Non-goals: autonomous catalog evolution, session mining, coupled-skill
+  optimization, or treating a training-score increase as product proof.
+- Evidence: `.claude/tasks/tool-evaluations/skillopt-scope-feature/results.json`.
+  The source revision, 6/2/2 corpus, deterministic scorer, production-copy
+  boundary, and restartable runner are frozen. The four-call baseline cost
+  41,847 reported tokens but no-skill and current-skill both passed 2/2, so no
+  optimizer calls were justified. A retry requires natural prompts, hidden
+  standards, harder binding-precedent cases, and measured run variation.
+
+### ML-015 — Optional cross-file semantic index adapters
+
+- State: `proposed`
+- User value: skills needing definitions and references could consume an
+  existing project index instead of reimplementing every language service.
+- Trigger: at least two accepted skill consumers need the same cross-file facts
+  in one language, or a representative host already produces `index.scip`.
+- Smallest experiment: consume one existing SCIP index and compare it with the
+  native provider; separately probe an already-installed LSP server without
+  owning its lifecycle.
+- Acceptance: symbol identity, definitions, references, incomplete-index state,
+  freshness, and build/config provenance are explicit and useful to two final
+  skill outcomes.
+- Non-goals: maintaining an indexer/server fleet, requiring an editor daemon,
+  or silently substituting syntax facts for semantic facts.
+
+### ML-016 — Specialized security, policy, and migration engines
+
+- State: `proposed`
+- User value: mature engines may outperform home-grown rules for narrow deep
+  security or large migration work.
+- Trigger: a real host requests a security/data-flow audit or a Java/Spring
+  migration whose native/manual implementation is materially costly.
+- Smallest experiment: Semgrep for one tested local security/policy rule;
+  CodeQL only through an existing CI database; OpenRewrite for one concrete
+  Java/Spring recipe.
+- Acceptance: final user outcome, licensing, setup/cache/network cost, false
+  positives, and native verification are measured per engine.
+- Non-goals: installing these by default or presenting them as a common
+  cross-language analysis substrate.
+
+### ML-017 — Framework practice adapters and external skill references
+
+- State: `proposed`
+- User value: framework-aware skills can turn official conventions into native
+  checks and bounded facts without loading large best-practice packs ambiently.
+- Trigger: P4 starts or a real host needs a named framework family.
+- Smallest experiment: one route/workflow adapter plus official verification
+  commands; React/Next and Spring are the next research candidates after the
+  already-planned Express/FastAPI pair.
+- Acceptance: version/detection evidence, source-role boundaries, dynamic-case
+  unknowns, native commands, positive/must-not-fire fixtures, official source
+  links, and last-reviewed version are recorded.
+- References to evaluate rather than bulk-install: Vercel agent-skills,
+  Addy Osmani agent-skills, obra/superpowers, GitHub Awesome Copilot, the
+  Agent Skills specification, ast-grep's agent skill, Microsoft Waza, and
+  Semgrep skills. Provenance and license must be recorded before adaptation.
+- Research links: [Agent Skills specification](https://agentskills.io/specification),
+  [Vercel skills installer](https://github.com/vercel-labs/skills),
+  [Vercel framework skills](https://github.com/vercel-labs/agent-skills),
+  [Addy Osmani agent-skills](https://github.com/addyosmani/agent-skills),
+  [Superpowers](https://github.com/obra/superpowers),
+  [GitHub Awesome Copilot](https://github.com/github/awesome-copilot),
+  [ast-grep agent skill](https://github.com/ast-grep/agent-skill),
+  [Microsoft Waza](https://github.com/microsoft/waza), and
+  [Semgrep skills](https://github.com/semgrep/skills).
+- Non-goals: inferring frameworks from dependency names alone, copying huge
+  generated instruction dumps, or making framework packs default routers.
+
+### ML-018 — Interchange and lightweight inventory tools
+
+- State: `proposed`
+- User value: external findings can integrate with host CI and broad declaration
+  inventory may be cheaper than a semantic provider for orientation tasks.
+- Trigger: a consumer requests GitHub/CI finding interchange or two orientation
+  skills need declarations across unsupported languages.
+- Smallest experiment: export one accepted finding set as SARIF 2.1; compare
+  Universal Ctags JSONL with the selected structural provider for declarations.
+- Acceptance: round-trip fidelity, provenance, source spans, limitations, and
+  net implementation reduction are demonstrated.
+- Non-goals: changing internal schemas to SARIF or presenting tags as references,
+  types, or call graphs.
+
+### ML-019 — Skill-effectiveness contract and trigger evaluation
+
+- State: `proposed_after_core_product_outcomes`
+- User value: a skill can be judged against explicit positive triggers,
+  negative triggers, evidence/exit behavior, and context cost instead of prose
+  preference or a benchmark that merely restates the answer.
+- Trigger: a redesigned SkillOpt corpus or the planned router-quality
+  validation begins after installer and core-language work.
+- Smallest experiment: encode those four promises for `/scope-feature` and one
+  deterministic skill, seed one realistic regression per promise, and compare
+  a small local evaluator with Waza's spec-to-eval coverage approach. Do not
+  adopt the Waza Go CLI merely to write the contract.
+- Acceptance: each seeded regression is caught; an unchanged conforming skill
+  passes; target prompts do not disclose hidden standards; repeated no-skill
+  and current-skill baselines establish headroom and variation; token/context
+  cost is reported before any optimizer runs.
+- Sources: [Microsoft Waza](https://github.com/microsoft/waza),
+  [Microsoft SkillOpt](https://github.com/microsoft/SkillOpt), and the
+  [Agent Skills specification](https://agentskills.io/specification).
+- Non-goals: autonomous prompt rewriting, synthetic-score-driven production
+  edits, or making a new evaluation runtime part of the default router install.
 
 ## External release dependency (tracked, not a language feature)
 

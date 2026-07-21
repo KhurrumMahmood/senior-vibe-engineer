@@ -14,6 +14,10 @@ dist/
 .mypy_cache/
 .playwright-mcp/
 
+# Reproducible but machine-local evaluation environments, caches, checkouts,
+# and raw model traces. Compact evidence and harnesses live beside this folder.
+.claude/tasks/tool-evaluations/local/
+
 # macOS
 .DS_Store
 

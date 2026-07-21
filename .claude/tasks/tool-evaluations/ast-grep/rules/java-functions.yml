@@ -1,0 +1,9 @@
+id: pilot-java-functions
+message: Java function boundary for the structural-tool pilot
+severity: info
+language: Java
+rule:
+  any:
+    - kind: method_declaration
+    - kind: constructor_declaration
+    - kind: lambda_expression

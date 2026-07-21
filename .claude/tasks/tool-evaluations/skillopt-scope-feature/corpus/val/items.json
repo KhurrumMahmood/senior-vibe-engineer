@@ -1,0 +1,26 @@
+[
+  {
+    "id": "val-decision-conflict",
+    "task_type": "prior_conflict",
+    "task": "Scope replacing the documented project-scoped cache with a global mutable skill directory shared by every project. The initiative otherwise spans installer, router, and library bootstrap. Existing Decision 0042 explicitly requires project-scoped isolation. The user has not chosen to supersede it, drop the global directory, or take an exception.",
+    "expected": {
+      "outcomes": ["decision_conflict"],
+      "minimum_counts": {"unknowns": 1, "questions": 1},
+      "required_terms": {"rationale": ["0042"], "questions": ["supersede"]},
+      "forbidden_terms": ["global directory is in scope"],
+      "assumptions_must_be_empty": true
+    }
+  },
+  {
+    "id": "val-empty-boundary",
+    "task_type": "clarification",
+    "task": "Scope a new ingestion subsystem crossing API upload, background parsing, persistence, and reporting. The problem and in-scope systems are clear, and success means 100 locked documents produce identical API and worker results. The user says nothing is out of scope and supplies no non-goals.",
+    "expected": {
+      "outcomes": ["needs_clarification"],
+      "minimum_counts": {"questions": 2, "unknowns": 2},
+      "required_terms": {"questions": ["out of scope", "non-goal"]},
+      "forbidden_terms": ["\"out_of_scope\": []", "\"non_goals\": []"],
+      "assumptions_must_be_empty": true
+    }
+  }
+]

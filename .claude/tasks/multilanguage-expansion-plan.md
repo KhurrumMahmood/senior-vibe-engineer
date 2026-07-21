@@ -545,6 +545,13 @@ test obligations—remain backlog candidates until a real host needs them.
 
 State: `in_progress`
 
+The independent structural-tool and SkillOpt experiments are tracked in
+`.claude/tasks/cross-language-tool-evaluation-plan.md`. They may run alongside
+P5 because they touch only experimental artifacts. They do not block Java J1,
+do not change a support row, and may not add a production dependency until
+their adoption gates pass. This keeps parser research and skill optimization
+from displacing the next user-visible language outcome.
+
 The durable core is the set of ecosystems with broad professional use and a
 credible native/offline analysis path for copied on-demand skills. Current
 GitHub and Stack Overflow evidence keeps the already-earned Python,
