@@ -1,6 +1,6 @@
 ---
 name: propose-folder-reorganization
-description: Turn a confirmed Python, TypeScript, or checked-JavaScript folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves direct relative and config `paths` alias import impact, records barrel/subpath compatibility, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
+description: Turn a confirmed Python, Go, TypeScript, or checked-JavaScript folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
 argument-hint: "<folder-topology:ID or parent::prefix>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -25,7 +25,7 @@ not_for: |
   recommends `defer_scratch_code` instead of a refactor.
 language: any
 framework: any
-scans: [python, typescript, javascript]
+scans: [python, go, typescript, javascript]
 ---
 
 # /propose-folder-reorganization
@@ -105,6 +105,10 @@ Write toward these gates from Stage 0.
   Never touches any other file.
 - **Read-only.** No file moves, no edits, no Edit tool. The
   orchestrator's `allowed-tools` list intentionally excludes Edit.
+
+## Go v1
+Read `knowledge/go-v1.md`; its copied-closure command requires an explicit
+project convention, while language-safety blockers override that permission.
 
 ## TypeScript / TSX and checked-JavaScript v1 — one resolved cluster proposal
 
