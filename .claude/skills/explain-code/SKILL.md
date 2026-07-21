@@ -1,6 +1,6 @@
 ---
 name: explain-code
-description: Read-only EXPLAIN skill that converts a Python, Go, JavaScript-family, or TypeScript/TSX target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Go aliases/build-constrained files and JavaScript-family unresolved exports remain visibly unexplained rather than claiming module resolution.
+description: Read-only EXPLAIN skill that converts a Python, Go, Java, JavaScript-family, or TypeScript/TSX target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Unsupported surfaces remain visible instead of being inferred.
 argument-hint: "<file-path-or-directory-or-subsystem-name>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -18,7 +18,7 @@ not_for: |
   Refactor execution (use /fix-workflow or /refactor-subsystem).
 language: any
 framework: any
-scans: [python, javascript, typescript, go]
+scans: [python, javascript, typescript, go, java]
 ---
 
 # /explain-code
@@ -142,14 +142,26 @@ Unexported declarations and promoted methods must not fire. The locked fixture
 must pass `go test ./...` independently; the explanation workflow itself stays
 read-only and records source fingerprints before and after its final document.
 
+## Java v1 contract
+
+For `.java`, the family-local JDK helper inventories public top-level types and
+their directly declared public constructors, methods, and fields. Java's
+implicitly public interface members are included. It uses the JDK compiler tree
+API in parse-only mode with JDK 17+; it does not resolve types, inherited or
+generated/Lombok members, overrides, frameworks, or runtime dispatch. Tests,
+generated source, fixtures, and vendor/dependency paths are excluded. Malformed
+source/helper output is `failed`; a missing/old JDK is `unsupported`. Successful
+inventory and final rendering remain read-only.
+
 ## Scope
 
 - **Project root:** this worktree's root.
 - **Executor:** `${PYTHON:-python3}`. All bundled helpers are stdlib-only and run
   from a copied installed skill with `python3 -I -S`; use the repository's
   `.venv/bin/python` while validating this source checkout.
-- **Go executor:** the Python inventory launches the copied
+- **Go/Java executors:** the Python inventory launches the copied
   `scripts/inventory_go.go` with Go 1.22+ only when selected `.go` source exists.
+  Java similarly launches `scripts/inventory_java.java` with JDK 17+.
 - **Output:** `reports/explanations/<target-slug>.md` and
   `reports/explanations/<target-slug>/annotations/<symbol>.md`. Never
   touches any other file.
@@ -407,6 +419,7 @@ of truth.
   `node_modules` files in a directory inventory.
 - Resolving Go imports/type aliases, selecting build tags, loading packages,
   or inferring promoted methods.
+- Resolving Java inheritance, generated members, types, frameworks, or dispatch.
 - Touching production code.
 - Running tests — the explanation is source-level.
 
@@ -463,9 +476,10 @@ The locked Go replay also proves the native and copied-helper boundaries:
 .claude/skills/explain-code/
 ├── SKILL.md                         # this file — orchestrator
 ├── scripts/
-│   ├── inventory_symbols.py         # Stage 1 Python/JS/TS/Go orchestration
+│   ├── inventory_symbols.py         # Stage 1 Python/JS/TS/Go/Java orchestration
 │   ├── inventory_go.go              # Stage 1 stdlib Go parser helper
-│   └── render_explanation.py        # Stage 3 document + sidecar renderer
+│   ├── inventory_java.java           # Stage 1 JDK parser helper
+│   └── render_explanation.py         # Stage 3 document + sidecar renderer
 ├── agents/
 │   └── annotate.md                  # Stage 2 scout brief
 └── knowledge/                       # orchestrator output-format reference

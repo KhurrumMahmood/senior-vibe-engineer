@@ -32,8 +32,12 @@ PYTHON_SUFFIXES = frozenset({".py"})
 TYPESCRIPT_SUFFIXES = frozenset({".ts", ".tsx"})
 JAVASCRIPT_SUFFIXES = frozenset({".js", ".jsx", ".mjs", ".cjs"})
 GO_SUFFIXES = frozenset({".go"})
-SOURCE_SUFFIXES = PYTHON_SUFFIXES | TYPESCRIPT_SUFFIXES | JAVASCRIPT_SUFFIXES | GO_SUFFIXES
+JAVA_SUFFIXES = frozenset({".java"})
+SOURCE_SUFFIXES = (
+    PYTHON_SUFFIXES | TYPESCRIPT_SUFFIXES | JAVASCRIPT_SUFFIXES | GO_SUFFIXES | JAVA_SUFFIXES
+)
 MINIMUM_GO_VERSION = (1, 22)
+MINIMUM_JDK_VERSION = (17, 0, 0)
 IGNORED_DIRECTORY_NAMES = frozenset(
     {
         "__pycache__",
@@ -129,9 +133,17 @@ JS_COMMONJS_ASSIGNMENT_RE = re.compile(
 JS_COMMONJS_UNRESOLVED_RE = re.compile(r"^\s*module\.exports\s*=")
 JS_BRANCH_RE = TS_BRANCH_RE
 GO_GENERATED_MARKER_RE = re.compile(r"^// Code generated .* DO NOT EDIT\.$")
+JAVA_GENERATED_MARKER_RE = re.compile(r"^// (?:Code )?[Gg]enerated .* DO NOT EDIT\.$")
 
 
 class GoInventoryError(ValueError):
+    def __init__(self, status: str, message: str, *, exit_code: int = 2) -> None:
+        super().__init__(message)
+        self.status = status
+        self.exit_code = exit_code
+
+
+class JavaInventoryError(ValueError):
     def __init__(self, status: str, message: str, *, exit_code: int = 2) -> None:
         super().__init__(message)
         self.status = status
@@ -1094,6 +1106,82 @@ def _inventory_go_file(
     return public, payload["total_symbols"], payload["unexplained"], payload["status"]
 
 
+def _jdk_toolchain() -> tuple[Path, str, str]:
+    java_found = shutil.which("java")
+    javac_found = shutil.which("javac")
+    if java_found is None or javac_found is None:
+        missing = ", ".join(
+            name for name, value in (("java", java_found), ("javac", javac_found)) if value is None
+        )
+        raise JavaInventoryError("unsupported", f"JDK toolchain is unavailable ({missing})")
+    versions: dict[str, str] = {}
+    for name, command in (
+        ("java", [java_found, "--version"]),
+        ("javac", [javac_found, "-version"]),
+    ):
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, check=False)
+        except OSError as exc:
+            raise JavaInventoryError("unsupported", f"cannot run {name}: {exc}") from exc
+        rendered = (result.stdout + result.stderr).strip()
+        match = re.search(r"(?:javac\s+|(?:openjdk|java)\s+)(\d+)(?:\.(\d+))?(?:\.(\d+))?", rendered)
+        if result.returncode or match is None:
+            detail = rendered or f"exit {result.returncode}"
+            raise JavaInventoryError("unsupported", f"cannot determine {name} version: {detail}")
+        version = tuple(int(part or 0) for part in match.groups())
+        if version < MINIMUM_JDK_VERSION:
+            raise JavaInventoryError("unsupported", "Java inventory requires JDK >= 17.0.0")
+        versions[name] = ".".join(str(part) for part in version)
+    return Path(java_found), versions["java"], versions["javac"]
+
+
+def _inventory_java_file(
+    path: Path, file_rel: Path, java: Path
+) -> tuple[list[dict[str, Any]], int]:
+    launcher = Path(__file__).resolve().with_name("inventory_java.java")
+    try:
+        result = subprocess.run(
+            [str(java), str(launcher), "--file", str(path), "--display", str(file_rel)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise JavaInventoryError("unsupported", f"cannot run Java inventory: {exc}") from exc
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise JavaInventoryError("failed", f"Java inventory failed for {file_rel}: {detail}")
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise JavaInventoryError("failed", f"Java inventory emitted invalid JSON for {file_rel}") from exc
+    if (
+        not isinstance(payload, dict)
+        or not isinstance(payload.get("targets"), list)
+        or not isinstance(payload.get("total_symbols"), int)
+    ):
+        raise JavaInventoryError("failed", f"Java inventory emitted an invalid result for {file_rel}")
+    public: list[dict[str, Any]] = []
+    for item in payload["targets"]:
+        if not isinstance(item, dict):
+            raise JavaInventoryError("failed", f"Java inventory emitted an invalid target for {file_rel}")
+        try:
+            public.append(
+                _build_entry(
+                    file_rel=file_rel,
+                    symbol=str(item["symbol"]),
+                    kind=str(item["kind"]),
+                    lineno=int(item["lineno"]),
+                    loc=int(item["loc"]),
+                    branch_count=int(item["branch_count"]),
+                    has_docstring=bool(item["has_docstring"]),
+                )
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise JavaInventoryError("failed", f"Java inventory emitted an invalid target for {file_rel}") from exc
+    return public, payload["total_symbols"]
+
+
 def _is_generated_go(path: Path) -> bool:
     if path.suffix.casefold() != ".go":
         return False
@@ -1126,6 +1214,21 @@ def _is_generated_go(path: Path) -> bool:
     return False
 
 
+def _is_generated_java(path: Path) -> bool:
+    if path.suffix.casefold() != ".java":
+        return False
+    try:
+        with path.open(encoding="utf-8") as source:
+            for index, raw_line in enumerate(source):
+                if index >= 40:
+                    break
+                if JAVA_GENERATED_MARKER_RE.fullmatch(raw_line.strip()):
+                    return True
+    except (OSError, UnicodeDecodeError):
+        return False
+    return False
+
+
 def _is_ignored(path: Path, repo_root: Path) -> bool:
     try:
         repo_relative = path.resolve().relative_to(repo_root.resolve())
@@ -1141,8 +1244,13 @@ def _is_ignored(path: Path, repo_root: Path) -> bool:
         or ".generated." in name
         or name.startswith("generated_")
         or name.endswith((".min.js", ".min.jsx", ".min.mjs", ".min.cjs"))
+        or (path.suffix.casefold() == ".java" and name.endswith(("test.java", "tests.java", "it.java", "generated.java")))
     )
-    if ignored or path.suffix.casefold() not in GO_SUFFIXES:
+    if ignored:
+        return True
+    if path.suffix.casefold() in JAVA_SUFFIXES:
+        return _is_generated_java(path)
+    if path.suffix.casefold() not in GO_SUFFIXES:
         return ignored
     return (
         "generated" in name
@@ -1266,7 +1374,7 @@ def main(argv: list[str] | None = None) -> int:
         "--target",
         required=True,
         type=Path,
-        help="Python, JavaScript-family, TS, or TSX file/directory",
+        help="Python, JavaScript-family, Go, or Java file/directory",
     )
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--max", type=int, default=15, help="Max annotations (default: 15)")
@@ -1319,6 +1427,8 @@ def main(argv: list[str] | None = None) -> int:
     invalid_javascript = False
     go_status = "complete"
     go_tool: Path | None = None
+    java_tool: Path | None = None
+    java_versions: tuple[str, str] | None = None
     for path in files:
         file_rel = _display_path(path, repo_root)
         if path.suffix.casefold() == ".py":
@@ -1344,7 +1454,7 @@ def main(argv: list[str] | None = None) -> int:
             total_symbols += file_total
             all_unexplained.extend(unresolved)
             invalid_javascript = invalid_javascript or not valid
-        else:
+        elif path.suffix.casefold() in GO_SUFFIXES:
             try:
                 if go_tool is None:
                     go_tool = _go_tool()
@@ -1360,6 +1470,18 @@ def main(argv: list[str] | None = None) -> int:
             all_unexplained.extend(unresolved)
             if file_status == "partial":
                 go_status = "partial"
+        else:
+            try:
+                if java_tool is None:
+                    java_tool, java_version, javac_version = _jdk_toolchain()
+                    java_versions = (java_version, javac_version)
+                entries, file_total = _inventory_java_file(path, file_rel, java_tool)
+            except JavaInventoryError as exc:
+                print(f"status={exc.status}: {exc}", file=sys.stderr)
+                return exc.exit_code
+            languages.add("java")
+            all_public.extend(entries)
+            total_symbols += file_total
     if invalid_typescript or invalid_javascript:
         return 1
     if not all_public and not all_unexplained:
@@ -1399,6 +1521,16 @@ def main(argv: list[str] | None = None) -> int:
                 "analyzer": "go-parser-go-ast",
                 "minimum_go_version": "1.22",
             }
+        }
+    if "java" in languages:
+        assert java_versions is not None
+        payload["status"] = "complete"
+        payload.setdefault("analysis", {})["java"] = {
+            "status": "complete",
+            "analyzer": "jdk-compiler-tree-api",
+            "minimum_jdk_version": "17.0.0",
+            "actual_java_version": java_versions[0],
+            "actual_javac_version": java_versions[1],
         }
     try:
         args.output.parent.mkdir(parents=True, exist_ok=True)
