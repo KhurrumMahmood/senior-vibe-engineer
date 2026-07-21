@@ -1,6 +1,6 @@
 ---
 name: extract-enum
-description: Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or a Go implicit-state review candidate into a named-string typed-constant proposal. Emits a caller and boundary inventory without editing production code.
+description: Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or a Go or Java 17 implicit-state review candidate into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.
 argument-hint: "<implicit-state:ID or FILE::FIELD>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -16,6 +16,8 @@ best_for: |
   migrations, and named vendor boundaries.
   For Go, consume go/types-resolved repeated-operation evidence and produce a
   review-only named string type plus typed constants.
+  For Java, consume exactly one complete accepted JDK-resolved direct String
+  field finding and emit a review-only enum migration and impact plan.
 not_for: |
   Detection (use /find-implicit-state first). Tuple-inferred-identity
   sub-shape — a `.filter(status=X, *_at__...).first()` pattern (use
@@ -66,23 +68,12 @@ Write toward these gates from Stage 0.
 
 ## TypeScript and checked-JavaScript closed-state branch
 
-This branch consumes JSONL from
-find-implicit-state/scripts/detect_typescript_state.mjs; it does not infer
-TypeScript or JavaScript candidates with a regex and does not accept a Django finding ID.
-Checked JavaScript accepts only `.js`, `.jsx`, `.mjs`, and `.cjs` records from
-a named checked config; a mixed JS/TS root is allowed, but the proposal's
-authority is the selected JavaScript detector artifact only.
-The supported target is one closed first-party state field/type with repeated
-bare string assignment or comparison operations, including detector-attributed
-direct aliases and chained assignment targets. Its proposal creates one
-exported runtime value object declared as const, derives the union from that
-object, migrates every first-party caller, and preserves vendor wire literals
-only at named, reasoned semantic receiver boundaries.
-
-It explicitly excludes Django TextChoices, migrations, tuple identity,
-Prisma/TypeORM/Sequelize conventions, generic enum preference, and a
-project-native string enum unless the host's reviewed fixture establishes that
-as the existing convention.
+Consume detector JSONL; do not infer TypeScript or JavaScript candidates with
+a regex or accept a Django finding ID. Checked JavaScript accepts only named
+checked-config records. One closed first-party field/type becomes one exported
+`as const` runtime value object and derived union; migrate its callers while
+preserving named vendor-wire literals. This excludes Django migrations, tuple
+identity, ORM conventions, generic enum preference, and unproven native enums.
 
     STATE_LANGUAGE="${STATE_LANGUAGE:-typescript}" # typescript | javascript
     STATE_MANIFEST="${STATE_MANIFEST:-/dev/null}" # JavaScript: detector manifest (required)
@@ -112,6 +103,30 @@ For a Go detector artifact, read and follow `knowledge/go-v1.md`. Load that
 file only for Go work. The output is always `review_required`; repeated
 literals do not prove a closed domain.
 
+## Java 17 accepted-finding branch
+
+Consume one complete, `status: accepted`,
+`bucket: extract_enum_candidate` record from the final Java
+`findings.json`. Never re-scan Java source or accept an
+`unsafe_string_comparison`; `==` is a correctness finding, not enum proof.
+The collector verifies the declaration-file fingerprint before writing only
+`targets.json` and `proposal.md` below `reports/extract-enum/`.
+
+```bash
+REPORT_DIR="reports/extract-enum/java-job-status"
+python3 .claude/skills/extract-enum/scripts/collect_java_state.py \
+  --finding java-implicit-state-0001 \
+  --findings reports/implicit-state/<java-scan>/findings.json \
+  --project-root "$(pwd)" --output "$REPORT_DIR/targets.json" \
+  --proposal "$REPORT_DIR/proposal.md"
+```
+
+Review the proposed enum's persisted/wire values, serializer/ORM/reflection
+boundaries, exact caller table, and native `javac --release 17 -proc:none`
+verification before mutation. Stop if the domain is not intentionally finite.
+After approval, `/prevent-regression` consumes the saved exact authority; this
+skill never installs a guard or edits Java.
+
 ## Core beliefs
 
 1. **For a model field, the endpoint is `models.TextChoices`, not a
@@ -131,32 +146,17 @@ literals do not prove a closed domain.
    proposal wrong.
 4. **The proposal is read-only.** No code edits, no migrations, no
    test edits. `/fix-workflow` owns execution.
-5. **New features should not create this smell, and the endpoint
-   depends on the carrier.** When a new **model field** represents
-   `status`, `phase`, or `state`, prefer a `models.TextChoices` enum
-   from the first commit — that is this skill's job. When the carrier
-   is **not a model** (a `@dataclass` attribute, a function return, a
-   module constant, or a command-internal run outcome), the endpoint is
-   a plain `str`-valued Enum (`enum.StrEnum` on 3.11+, or
-   `class X(str, Enum)`), accessed `CLASS.MEMBER` and defined next to
-   the carrier it serves; this collector only walks model fields, so
-   that conversion is hand-applied. (A project with a house value-enum
-   type binds this generic endpoint in `knowledge/risk-context.md`.) If a feature
-   must touch a legacy tuple-style `STATUS_CHOICES` field, consider a
-   small `/extract-enum` proposal or explicit follow-up before adding
-   more callers that compare bare strings.
+5. **New fields use a named authority from the first commit.** Model fields use
+   `TextChoices`; non-model Python carriers use a nearby str-valued Enum. This
+   collector remains model-only, so convert other carriers by hand and do not
+   add more callers to legacy tuple-style choices without an explicit follow-up.
 
 ## Scope
 
-- **Project root:** this worktree's root.
-- **Python:** `.venv/bin/python` for source-tree use; `scripts/collect.py`
-  is stdlib-only and runs with host `python3` after a stock installation. The
-  skill does not import Django or touch the DB.
-- **Worktree guard:** read-only — no guard required here. The
-  execution skill (`/fix-workflow`) does its own worktree check.
-- **Project-specific defaults** (known stringly-typed hotspots,
-  third-party-bridge recognition rules): `knowledge/risk-context.md`.
-  The scout reads that file; the orchestrator does not.
+- **Project root:** this worktree. Source-tree Python uses `.venv/bin/python`;
+  copied collectors use stock `python3`/`node` and never import Django or touch
+  the DB. This skill is read-only; `/fix-workflow` owns execution. The scout's
+  project-specific defaults remain in `knowledge/risk-context.md`.
 
 ## Argument parsing
 

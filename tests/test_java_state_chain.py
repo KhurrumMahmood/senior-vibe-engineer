@@ -15,6 +15,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "find-implicit-state-java"
 FIND = ROOT / ".claude" / "skills" / "find-implicit-state"
+EXTRACT = ROOT / ".claude" / "skills" / "extract-enum"
 
 
 def _jdk() -> Path:
@@ -76,6 +77,21 @@ def _detect(skill: Path, host: Path, output: Path, *, isolated: bool = False, en
         "--scan-id", "java-state-fixture",
         cwd=host,
         env=env or _env(),
+    )
+
+
+def _collect(skill: Path, host: Path, findings: Path, output: Path, finding: str, *, isolated: bool = False) -> subprocess.CompletedProcess[str]:
+    prefix = (sys.executable, "-I", "-S") if isolated else (sys.executable,)
+    return _run(
+        *prefix,
+        str(skill / "scripts" / "collect_java_state.py"),
+        "--finding", finding,
+        "--findings", str(findings),
+        "--project-root", str(host),
+        "--output", str(output / "targets.json"),
+        "--proposal", str(output / "proposal.md"),
+        cwd=host,
+        env=_env(),
     )
 
 
@@ -161,3 +177,50 @@ def test_java_state_detector_rejects_malformed_and_missing_or_old_jdk_without_ar
     assert old.returncode == 2
     assert "requires jdk >= 17" in old.stderr.lower()
     assert not output.exists()
+
+
+def test_java_enum_proposal_consumes_one_complete_accepted_authority_without_redetection(tmp_path: Path) -> None:
+    host = _host(tmp_path)
+    before = _fingerprints(host)
+    implicit = host / "reports" / "implicit-state" / "java-state"
+    detected = _detect(FIND, host, implicit)
+    assert detected.returncode == 0, detected.stdout + detected.stderr
+    installed = tmp_path / "installed" / "extract-enum"
+    shutil.copytree(EXTRACT, installed)
+    enum_dir = host / "reports" / "extract-enum" / "job-status"
+
+    collected = _collect(
+        installed, host, implicit / "findings.json", enum_dir,
+        "java-implicit-state-0001", isolated=True,
+    )
+
+    assert collected.returncode == 0, collected.stdout + collected.stderr
+    targets = json.loads((enum_dir / "targets.json").read_text(encoding="utf-8"))
+    assert targets["status"] == "review_required"
+    assert targets["detector_finding_id"] == "java-implicit-state-0001"
+    assert targets["accepted_authority"]["qualified_owner"] == "example.Job"
+    assert targets["accepted_authority"]["field"] == "status"
+    assert targets["proposed_enum"] == "JobStatus"
+    assert [(row["value"], row["enum_member"]) for row in targets["literals"]] == [
+        ("done", "DONE"), ("queued", "QUEUED"), ("running", "RUNNING"),
+    ]
+    proposal = (enum_dir / "proposal.md").read_text(encoding="utf-8")
+    assert "public enum JobStatus" in proposal
+    assert 'QUEUED("queued")' in proposal
+    assert "This skill did not\nre-detect or edit source" in proposal
+    assert "javac --release 17 -proc:none" in proposal
+    assert before == _fingerprints(host)
+
+    unsafe_output = host / "reports" / "extract-enum" / "unsafe"
+    unsafe = _collect(installed, host, implicit / "findings.json", unsafe_output, "java-unsafe-string-comparison-0001")
+    assert unsafe.returncode == 2
+    assert "not an accepted enum candidate" in unsafe.stderr
+    assert not unsafe_output.exists()
+
+    job = host / "src" / "main" / "java" / "example" / "Job.java"
+    job.write_text(job.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+    stale_output = host / "reports" / "extract-enum" / "stale"
+    stale = _collect(installed, host, implicit / "findings.json", stale_output, "java-implicit-state-0001")
+    assert stale.returncode == 2
+    assert "authority is stale" in stale.stderr
+    assert not stale_output.exists()
