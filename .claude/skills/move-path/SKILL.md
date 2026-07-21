@@ -144,10 +144,44 @@ standalone Java v1 claim.
 
 ## Commands
 
+The installed/on-demand command resolves either supported agent location and
+therefore does not assume a repository-local `.claude/skills` tree.
+
+<!-- installed-command:java-move:start -->
 ```bash
-python3 .claude/skills/move-path/scripts/move_path.py --plan moves.json --dry-run
-python3 .claude/skills/move-path/scripts/move_path.py --plan moves.json --apply
-python3 .claude/skills/move-path/scripts/move_path.py --plan moves.json --check
+MOVE_PLAN="${MOVE_PLAN:-moves.json}"
+MOVE_MODE="${MOVE_MODE:---dry-run}" # --dry-run | --apply | --check
+MOVE_REPORT_DIR="${MOVE_REPORT_DIR:-reports/move-path}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/move-path" \
+  ".claude/skills/move-path"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "move-path is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+case "${MOVE_MODE}" in
+  --dry-run|--apply|--check) ;;
+  *) printf '%s\n' "MOVE_MODE must be --dry-run, --apply, or --check" >&2; exit 2 ;;
+esac
+python3 "${SKILL_ROOT}/scripts/move_path.py" \
+  --plan "${MOVE_PLAN}" \
+  --project-root "$(pwd)" \
+  --report-dir "${MOVE_REPORT_DIR}" \
+  "${MOVE_MODE}" \
+  --json
+```
+<!-- installed-command:java-move:end -->
+
+For a repository checkout, the residue audit remains:
+
+```bash
 python3 .claude/skills/move-path/scripts/audit_path_residue.py --plan moves.json
 python3 .claude/skills/move-path/scripts/audit_path_residue.py --plan moves.json --exclude 'source-materials/input-bundles/**'
 ```

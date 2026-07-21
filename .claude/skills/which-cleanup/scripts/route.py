@@ -231,6 +231,7 @@ CAPABILITY_FIELDS = (
     "typescript_disposition",
     "javascript_disposition",
     "go_disposition",
+    "java_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",

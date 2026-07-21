@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "phase": "p5-java-pilot",
+  "suffixes": [".java"],
+  "minimum_jdk_version": "17.0.0",
+  "allowed_dispositions": ["pending-validation", "java-supported"],
+  "baseline_revision": "295a862",
+  "skills": [
+    {"skill": "adapt-project", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "audit-decisions", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "explain-code", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "extract-enum", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-comment-drift", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-complexity-hotspots", "disposition": "java-supported", "evidence_path": "tests/test_find_complexity_hotspots_java.py", "native_check": ["javac --release 17", "source fingerprint and final report assertions"], "reviewed_revision": "e14274b"},
+    {"skill": "find-concept-divergence", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-dormant", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-duplication", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-folder-topology-drift", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-implicit-state", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-incomplete-sweep", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-omnibus", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-semantic-duplication", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "find-standard-gaps", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "map-subsystem", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "move-path", "disposition": "java-supported", "evidence_path": "tests/test_java_move_path.py", "native_check": ["javac --release 17 -proc:none before and after", "exact source-diff verification", "rollback on native failure"], "reviewed_revision": "cd7a445"},
+    {"skill": "prevent-regression", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "propose-boundary", "disposition": "java-supported", "evidence_path": "tests/test_propose_boundary_java.py", "native_check": ["JavacTask.parse and analyze", "javac --release 17", "source fingerprint and final proposal assertions"], "reviewed_revision": "cfd0e2d"},
+    {"skill": "propose-folder-reorganization", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "rename-concept", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null},
+    {"skill": "unify-shadows", "disposition": "pending-validation", "evidence_path": null, "native_check": null, "reviewed_revision": null}
+  ]
+}

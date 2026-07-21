@@ -491,6 +491,43 @@ auditable when completeness matters.
   not a universal DAG, shared-context cache, autonomous mutation engine, or
   rewrite of every existing skill.
 
+### ML-021 — Reduce repeated Java launcher/plumbing without sharing semantic facts
+
+- State: `proposed_after_java_j1_measure_before_more_java_mutation_families`
+- User value: copied/on-demand Java skills remain self-contained without making
+  every new family carry another several hundred lines of path, compiler-launch,
+  failure, and JSON plumbing.
+- Trigger: a third Java family is proposed, or maintenance of either existing
+  Java helper requires the same plumbing correction in both closures.
+- Smallest experiment: identify only byte-identical or behavior-identical
+  bootstrap/path/JSON routines in the 677-line proposal runner and 443-line
+  mutation helper; compare a tiny copied utility closure against the current
+  two independent runners.
+- Acceptance: final proposal and transactional mutation outcomes remain equal;
+  copied/on-demand execution still works; total maintained Java source shrinks
+  materially; mutation span/rollback ownership and proposal clustering stay
+  separate; missing utility evidence fails visibly.
+- Stop conditions: reject the extraction if it creates a shared Java fact
+  schema, makes one family import another, complicates selected-skill copying,
+  or saves little code after tests and adapters are counted.
+- Non-goals: a universal JVM platform, Maven/Gradle ownership, Kotlin support,
+  or normalizing all language adapters behind one interface.
+
+### ML-022 — Bind capability evidence to an accepted closeout revision
+
+- State: `proposed_low_priority_integrity`
+- User value: a `*-supported` matrix row can be traced to the revision that
+  includes accepted review fixes, not merely any nonempty historical hash.
+- Trigger: release automation starts consuming capability revisions, or a
+  supported row is found to cite a pre-closeout implementation commit.
+- Smallest experiment: add one optional closeout revision/source-tree digest to
+  the language coverage schema and verify it against the release candidate.
+- Acceptance: stale or nonexistent references fail generation while local
+  uncommitted development remains possible; existing TypeScript/JavaScript/Go
+  evidence can migrate without rewriting historical claims.
+- Non-goals: commit signing, content-addressed installation, or reviving the
+  discarded transactional-attestation platform.
+
 ## External release dependency (tracked, not a language feature)
 
 The reviewed branch is still not the public source named by the README. Before

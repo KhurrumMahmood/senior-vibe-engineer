@@ -72,6 +72,14 @@ def test_java_proposal_reaches_final_artifact_from_resolved_package_evidence(
     tmp_path: Path,
 ) -> None:
     host = _copy_host(tmp_path)
+    integration = host / "src/integrationTest/java/example/api/IntegrationCaller.java"
+    integration.parent.mkdir(parents=True)
+    integration.write_text(
+        "package example.api;\n"
+        "import example.legacy.QuotePlanner;\n"
+        "public final class IntegrationCaller { QuotePlanner planner; }\n",
+        encoding="utf-8",
+    )
     before = _fingerprints(host)
     sources = sorted(str(path.relative_to(host)) for path in host.rglob("*.java"))
     compiled = _run(JAVAC, "--release", "17", "-d", str(host / "classes"), *sources, cwd=host)
@@ -108,6 +116,7 @@ def test_java_proposal_reaches_final_artifact_from_resolved_package_evidence(
         "fully-qualified",
     }
     assert all(row["resolution"] == "compiler-resolved" for row in payload["caller_impact"])
+    assert all("integrationTest" not in row["file"] for row in payload["caller_impact"])
     assert "javac --release 17" in rendered
     assert "human approval" in rendered
     assert "no edits applied" in rendered
@@ -167,6 +176,22 @@ def test_java_cohesive_excluded_malformed_and_old_jdk_outcomes_are_not_clean(
     assert old_payload["status"] == "unsupported"
     assert old_payload["failure_kind"] == "jdk_version_too_old"
 
+    annotated = _copy_host(tmp_path / "annotated")
+    (annotated / "src/main/java/example/legacy/GeneratedQuote.java").write_text(
+        "package example.legacy;\n"
+        "import javax.annotation.processing.Generated;\n"
+        "@Generated(\"fixture\")\n"
+        "public final class GeneratedQuote {}\n",
+        encoding="utf-8",
+    )
+    result, inspection, _ = _propose(
+        annotated, "src/main/java/example/legacy", name="annotated"
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    annotated_payload = json.loads(inspection.read_text())
+    assert annotated_payload["status"] == "unsupported"
+    assert annotated_payload["failure_kind"] == "generated_target_source"
+
 
 def test_java_copied_skill_is_self_contained_and_rejects_symlink_target(
     tmp_path: Path,
@@ -202,3 +227,30 @@ def test_java_copied_skill_is_self_contained_and_rejects_symlink_target(
     result, inspection, _ = _propose(host, "linked", name="linked")
     assert result.returncode == 0, result.stdout + result.stderr
     assert json.loads(inspection.read_text())["status"] == "unsupported"
+
+
+def test_java_proposal_reports_wildcard_and_static_importer_impact(tmp_path: Path) -> None:
+    host = _copy_host(tmp_path)
+    controller = host / "src/main/java/example/api/QuoteController.java"
+    controller.write_text(
+        controller.read_text(encoding="utf-8")
+        .replace(
+            "import example.legacy.QuotePlanner;",
+            "import example.legacy.*;\nimport static example.legacy.QuotePolicy.discount;",
+        )
+        .replace("return planner.preview(subtotal);", "return planner.preview(subtotal) + discount(subtotal);")
+        ,
+        encoding="utf-8",
+    )
+
+    result, inspection, _ = _propose(
+        host, "src/main/java/example/legacy", name="import-styles"
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(inspection.read_text(encoding="utf-8"))
+    assert {row["style"] for row in payload["caller_impact"]} >= {
+        "wildcard",
+        "static",
+        "fully-qualified",
+    }

@@ -22,6 +22,7 @@ JAVASCRIPT_COVERAGE = (
     REPO_ROOT / ".claude" / "tasks" / "javascript-language-coverage.json"
 )
 GO_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "go-language-coverage.json"
+JAVA_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "java-language-coverage.json"
 BUILDER = REPO_ROOT / "scripts" / "build_multilanguage_matrix.py"
 
 EXPECTED_COUNTS = {
@@ -45,6 +46,13 @@ EXPECTED_JAVASCRIPT_COHORT_COUNTS = {
 EXPECTED_GO_COUNTS = {
     "pending-validation": 8,
     "go-supported": 14,
+    "validated-neutral": 19,
+    "stack-bound": 22,
+    "ecosystem-runtime": 13,
+}
+EXPECTED_JAVA_COUNTS = {
+    "pending-validation": 19,
+    "java-supported": 3,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -98,6 +106,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         EXPECTED_JAVASCRIPT_COUNTS
     )
     assert Counter(row["go_disposition"] for row in rows) == EXPECTED_GO_COUNTS
+    assert Counter(row["java_disposition"] for row in rows) == EXPECTED_JAVA_COUNTS
     assert Counter(row["optional_install"]["status"] for row in rows) == {
         "passed": 41,
         "deferred-named-stack": 22,
@@ -105,7 +114,13 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
     }
 
     source_by_path = {row["path"]: row["sha256"] for row in payload["sources"]}
-    for source in (CATALOG, TYPESCRIPT_COVERAGE, JAVASCRIPT_COVERAGE, GO_COVERAGE):
+    for source in (
+        CATALOG,
+        TYPESCRIPT_COVERAGE,
+        JAVASCRIPT_COVERAGE,
+        GO_COVERAGE,
+        JAVA_COVERAGE,
+    ):
         relative = str(source.relative_to(REPO_ROOT))
         assert source_by_path[relative] == _sha256(source)
 
@@ -150,6 +165,15 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["learning_packets"], row
             assert row["framework_family"] is None
             assert optional_install["status"] == "passed"
+            if row["java_disposition"] == "pending-validation":
+                assert row["java_evidence_path"] is None
+                assert row["java_native_check"] is None
+                assert row["java_reviewed_revision"] is None
+            else:
+                assert row["java_disposition"] == "java-supported"
+                assert (REPO_ROOT / row["java_evidence_path"]).is_file()
+                assert row["java_native_check"]
+                assert row["java_reviewed_revision"]
             if row["javascript_disposition"] == "pending-validation":
                 assert row["javascript_evidence_modes"] == ["pending"]
                 assert row["javascript_evidence_path"] is None
@@ -182,21 +206,27 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["framework_family"]
             assert row["javascript_disposition"] == "stack-bound"
             assert row["go_disposition"] == "stack-bound"
+            assert row["java_disposition"] == "stack-bound"
         elif row["expansion_disposition"] == "validated-neutral":
             assert row["fact_level"] == "neutral"
             assert row["outcome_class"] == "not-applicable"
             assert row["javascript_disposition"] == "validated-neutral"
             assert row["go_disposition"] == "validated-neutral"
+            assert row["java_disposition"] == "validated-neutral"
         else:
             assert row["fact_level"] == "ecosystem-runtime"
             assert row["outcome_class"] == "not-applicable"
             assert row["javascript_disposition"] == "ecosystem-runtime"
             assert row["go_disposition"] == "ecosystem-runtime"
+            assert row["java_disposition"] == "ecosystem-runtime"
 
         if row["expansion_disposition"] != "language-level":
             assert row["go_evidence_path"] is None
             assert row["go_native_check"] is None
             assert row["go_reviewed_revision"] is None
+            assert row["java_evidence_path"] is None
+            assert row["java_native_check"] is None
+            assert row["java_reviewed_revision"] is None
 
         if row["expansion_disposition"] != "language-level":
             assert row["javascript_cohort"] is None

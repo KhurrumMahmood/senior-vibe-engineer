@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import re
 import shutil
 import subprocess
 import sys
@@ -58,6 +60,18 @@ def _plan(host: Path) -> Path:
     return plan
 
 
+def _documented_java_command(skill: Path) -> str:
+    text = (skill / "SKILL.md").read_text(encoding="utf-8")
+    match = re.search(
+        r"<!-- installed-command:java-move:start -->\n```bash\n(.*?)\n```\n"
+        r"<!-- installed-command:java-move:end -->",
+        text,
+        re.DOTALL,
+    )
+    assert match is not None
+    return match.group(1)
+
+
 def _run(module, host: Path, plan: Path, mode: str):
     return module.run_plan(
         plan_path=plan,
@@ -108,6 +122,7 @@ def test_java_leaf_package_move_updates_package_import_and_fqcn_then_compiles(
     assert "package example.workflow;" in moved.read_text(encoding="utf-8")
     consumer = (host / "src/main/java/example/app/Consumer.java").read_text(encoding="utf-8")
     assert "import example.workflow.LegacyService;" in consumer
+    assert "import static example.workflow.LegacyPolicy.staticAllowed;" in consumer
     assert "new example.workflow.LegacyPolicy()" in consumer
     assert "example.legacy" not in consumer
     assert _compile(host).returncode == 0
@@ -154,6 +169,15 @@ def test_java_move_refuses_malformed_generated_non_leaf_symlink_and_dynamic_iden
     assert report["java"]["status"] == "unsupported"
     assert any(item["kind"] == "java_symlink_in_package" for item in report["java"]["blocked"])
 
+    ancestor = _host(tmp_path / "ancestor-link")
+    example = ancestor / "src/main/java/example"
+    external = tmp_path / "external-example"
+    example.rename(external)
+    example.symlink_to(external, target_is_directory=True)
+    report = _run(module, ancestor, _plan(ancestor), "dry-run")
+    assert report["java"]["status"] == "unsupported"
+    assert any(item["kind"] == "java_symlink_boundary" for item in report["java"]["blocked"])
+
     dynamic = _host(tmp_path / "dynamic")
     consumer = dynamic / "src/main/java/example/app/Consumer.java"
     consumer.write_text(
@@ -166,6 +190,28 @@ def test_java_move_refuses_malformed_generated_non_leaf_symlink_and_dynamic_iden
     report = _run(module, dynamic, _plan(dynamic), "dry-run")
     assert report["java"]["status"] == "partial"
     assert any(item["kind"] == "java_dynamic_old_package" for item in report["java"]["blocked"])
+
+    resource = _host(tmp_path / "resource")
+    service = resource / "src/main/resources/META-INF/services/example.Service"
+    service.parent.mkdir(parents=True)
+    service.write_text("example.legacy.LegacyService\n", encoding="utf-8")
+    report = _run(module, resource, _plan(resource), "dry-run")
+    assert report["java"]["status"] == "partial"
+    assert any(item["kind"] == "java_runtime_old_package" for item in report["java"]["blocked"])
+
+    generated_consumer = _host(tmp_path / "generated-consumer")
+    consumer = generated_consumer / "src/main/java/example/app/GeneratedConsumer.java"
+    consumer.write_text(
+        "package example.app;\n"
+        "import javax.annotation.processing.Generated;\n"
+        "import example.legacy.LegacyService;\n"
+        "@Generated(\"fixture\")\n"
+        "public final class GeneratedConsumer { LegacyService value; }\n",
+        encoding="utf-8",
+    )
+    report = _run(module, generated_consumer, _plan(generated_consumer), "dry-run")
+    assert report["java"]["status"] == "unsupported"
+    assert any(item["kind"] == "java_generated_consumer" for item in report["java"]["blocked"])
 
 
 def test_java_move_rolls_back_after_native_failure_and_copied_closure_runs(
@@ -221,3 +267,23 @@ def test_java_move_rolls_back_after_native_failure_and_copied_closure_runs(
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert json.loads(result.stdout)["java"]["native"]["javac"]["passed"] is True
+
+
+def test_documented_java_command_runs_from_agents_skill_location(tmp_path: Path) -> None:
+    host = _host(tmp_path)
+    _plan(host)
+    installed = host / ".agents/skills/move-path"
+    shutil.copytree(MOVE.parents[1], installed)
+
+    result = subprocess.run(
+        ["/bin/bash", "-c", _documented_java_command(installed)],
+        cwd=host,
+        env={**os.environ, "MOVE_PLAN": "move.json", "MOVE_MODE": "--apply"},
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = json.loads((host / "reports/move-path/report.json").read_text())
+    assert report["java"]["status"] == "complete"

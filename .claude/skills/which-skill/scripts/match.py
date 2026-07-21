@@ -488,6 +488,7 @@ CAPABILITY_FIELDS = (
     "typescript_disposition",
     "javascript_disposition",
     "go_disposition",
+    "java_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -574,6 +575,14 @@ def capability_language_exclusion(capabilities: dict, routing_context: dict) -> 
                 return (
                     f"/{row['skill']} declares go_disposition="
                     f"{row['go_disposition']}"
+                )
+            if language == "java" and row["java_disposition"] not in {
+                "java-supported",
+                "validated-neutral",
+            }:
+                return (
+                    f"/{row['skill']} declares java_disposition="
+                    f"{row['java_disposition']}"
                 )
     return None
 

@@ -59,7 +59,11 @@ GO_NON_SOURCE_TEXT_SUFFIXES = frozenset({".json", ".md", ".toml", ".txt", ".yaml
 GO_NON_SOURCE_SKIP_PARTS = frozenset({".git", ".move-path", ".venv", "__pycache__", "generated", "node_modules", "vendor"})
 JAVA_PACKAGE_MOVE_MINIMUM = 17
 JAVA_SKIP_PARTS = frozenset({".git", ".move-path", ".venv", "build", "dist", "generated", "gen", "node_modules", "reports", "target", "vendor"})
+JAVA_RUNTIME_SUFFIXES = frozenset({".json", ".properties", ".toml", ".xml", ".yaml", ".yml"})
 GENERATED_TEXT_MARKER_RE = re.compile(r"(?im)^\s*(?:(?://|#|<!--)\s*)?code generated .*do not edit")
+JAVA_GENERATED_ANNOTATION_RE = re.compile(
+    r"(?m)^\s*@(?:javax\.annotation\.processing\.)?Generated(?:\s*\(|\s*$)"
+)
 EMITTED_SPECIFIER_SOURCE_SUFFIXES = {
     ".js": (".ts", ".tsx", ".d.ts"),
     ".mjs": (".mts", ".d.mts"),
@@ -739,6 +743,57 @@ def java_package_symlink_blocks(root: Path, package_path: Path) -> list[dict]:
     ]
 
 
+def traversed_symlink(root: Path, path: Path) -> str | None:
+    """Return the first existing symlink component beneath root."""
+    current = root
+    for part in path.relative_to(root).parts:
+        current /= part
+        if current.is_symlink():
+            return current.relative_to(root).as_posix()
+        if not current.exists():
+            break
+    return None
+
+
+def java_generated_source(path: Path) -> bool:
+    text = _read_text(path)
+    return bool(
+        GENERATED_TEXT_MARKER_RE.search(text[:2048])
+        or JAVA_GENERATED_ANNOTATION_RE.search(text)
+    )
+
+
+def java_runtime_old_package_blocks(root: Path, old_package: str) -> list[dict]:
+    """Find first-party resource identities that a source AST cannot rewrite."""
+    blocked: list[dict] = []
+    for path in sorted(root.rglob("*")):
+        if path.is_symlink() or not path.is_file():
+            continue
+        relative = path.relative_to(root)
+        lower_parts = tuple(part.lower() for part in relative.parts)
+        if any(part in JAVA_SKIP_PARTS for part in lower_parts):
+            continue
+        is_service = "meta-inf" in lower_parts and "services" in lower_parts
+        is_resource = "resources" in lower_parts and path.suffix.lower() in JAVA_RUNTIME_SUFFIXES
+        if not is_service and not is_resource:
+            continue
+        contents = path.read_bytes()
+        if b"\0" in contents:
+            continue
+        try:
+            text = contents.decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+        offset = text.find(old_package)
+        if offset >= 0:
+            blocked.append({
+                "kind": "java_runtime_old_package",
+                "path": relative.as_posix(),
+                "line": line_for_offset(text, offset),
+            })
+    return blocked
+
+
 def java_tooling(root: Path, moves: list[MoveSpec], *, post_apply: bool = False) -> dict:
     """Validate the bounded standalone-JDK leaf-package contract."""
     outcome: dict = {"status": "unsupported", "blocked": []}
@@ -751,6 +806,11 @@ def java_tooling(root: Path, moves: list[MoveSpec], *, post_apply: bool = False)
         return outcome
     package_rel = move.dst if post_apply else move.src
     package_path = root / package_rel
+    source_link = traversed_symlink(root, root / move.src)
+    destination_link = traversed_symlink(root, root / move.dst)
+    if source_link or destination_link:
+        outcome["blocked"].append({"kind": "java_symlink_boundary", "path": source_link or destination_link})
+        return outcome
     if not package_path.is_dir():
         outcome["blocked"].append({
             "kind": "java_destination_package_missing_after_move" if post_apply else "java_package_move_must_be_directory",
@@ -775,7 +835,7 @@ def java_tooling(root: Path, moves: list[MoveSpec], *, post_apply: bool = False)
         return outcome
     generated = []
     for path in sorted(package_path.glob("*.java")):
-        if GENERATED_TEXT_MARKER_RE.search(_read_text(path)[:2048]):
+        if java_generated_source(path):
             generated.append(path.relative_to(root).as_posix())
     if generated:
         outcome["blocked"].append({"kind": "java_generated_source", "paths": generated})
@@ -803,7 +863,13 @@ def java_tooling(root: Path, moves: list[MoveSpec], *, post_apply: bool = False)
     return outcome
 
 
-def checked_java(root: Path, moves: list[MoveSpec], tooling: dict) -> dict:
+def checked_java(
+    root: Path,
+    moves: list[MoveSpec],
+    tooling: dict,
+    *,
+    include_runtime_blocks: bool = True,
+) -> dict:
     """Ask the copied JDK-only helper for attributed package/reference spans."""
     if tooling.get("status") != "complete":
         return tooling
@@ -825,6 +891,26 @@ def checked_java(root: Path, moves: list[MoveSpec], tooling: dict) -> dict:
         outcome = {"status": "failed", "error": "Java helper emitted invalid JSON", "blocked": []}
     outcome["returncode"] = result.returncode
     outcome["tooling"] = tooling
+    if outcome.get("old_package"):
+        generated_consumers = sorted({
+            item["file"]
+            for item in outcome.get("spans", [])
+            if java_generated_source(root / item["file"])
+        })
+        runtime_blocks = (
+            java_runtime_old_package_blocks(root, outcome["old_package"])
+            if include_runtime_blocks
+            else []
+        )
+        if generated_consumers:
+            outcome.setdefault("blocked", []).append({
+                "kind": "java_generated_consumer",
+                "paths": generated_consumers,
+            })
+            outcome["status"] = "unsupported"
+        elif runtime_blocks:
+            outcome.setdefault("blocked", []).extend(runtime_blocks)
+            outcome["status"] = "partial"
     if result.returncode != 0 and outcome.get("status") == "complete":
         outcome["status"] = "failed"
         outcome["error"] = result.stderr.strip() or "Java helper failed"
@@ -1912,7 +1998,9 @@ def run_plan(
             if tooling.get("status") == "complete":
                 move = moves[0]
                 reverse = [MoveSpec(move.move_id, move.dst, move.src, move.mode)]
-                reverse_outcome = checked_java(root, reverse, tooling)
+                reverse_outcome = checked_java(
+                    root, reverse, tooling, include_runtime_blocks=False
+                )
                 if reverse_outcome.get("status") == "complete":
                     old_package = reverse_outcome["new_package"]
                     new_package = reverse_outcome["old_package"]
@@ -1921,6 +2009,7 @@ def run_plan(
                         text = _read_text(root / source)
                         if old_package in text:
                             residues.append({"kind": "java_old_package_remains_after_move", "path": source})
+                    residues.extend(java_runtime_old_package_blocks(root, old_package))
                     native["javac"] = run_java_compile(root, tooling["javac"]["path"], iter_java_source_files(root))
                     outcome = {
                         **reverse_outcome,

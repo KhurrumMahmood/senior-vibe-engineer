@@ -32,6 +32,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.PackageElement;
@@ -45,8 +46,12 @@ import javax.tools.ToolProvider;
 
 class ProposeJava {
     private static final Set<String> EXCLUDED = Set.of(
-        ".git", ".venv", "venv", "build", "dist", "generated", "gen",
-        "vendor", "target", "test", "tests", "fixtures", "fixture", "reports"
+        ".git", ".gradle", ".venv", "venv", "build", "coverage", "dist",
+        "generated", "gen", "integrationtest", "out", "vendor", "target",
+        "test", "tests", "testfixtures", "fixtures", "fixture", "reports"
+    );
+    private static final Pattern GENERATED_ANNOTATION = Pattern.compile(
+        "(?m)^\\s*@(javax\\.annotation\\.processing\\.)?Generated(?:\\s*\\(|\\s*$)"
     );
 
     private record Options(
@@ -189,6 +194,14 @@ class ProposeJava {
             throw new Terminal("unsupported", "defer_excluded_target", "excluded_target", "Generated, vendor, test, and build targets are outside Java proposal v1.", 0);
         }
 
+        for (Path path : directJavaSources(options.target)) {
+            if (generated(path)) {
+                throw new Terminal(
+                    "unsupported", "defer_generated_target", "generated_target_source",
+                    "Generated Java target source is outside proposal v1: " + relative(options.root, path), 0
+                );
+            }
+        }
         List<Path> sources = collectSources(options.root);
         List<Path> targetSources = sources.stream()
             .filter(path -> path.getParent().equals(options.target))
@@ -245,9 +258,21 @@ class ProposeJava {
         return paths;
     }
 
+    private static List<Path> directJavaSources(Path directory) throws IOException {
+        try (var stream = Files.list(directory)) {
+            return stream
+                .filter(path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS))
+                .filter(path -> path.getFileName().toString().endsWith(".java"))
+                .sorted()
+                .toList();
+        }
+    }
+
     private static boolean generated(Path path) throws IOException {
-        return Files.readAllLines(path, StandardCharsets.UTF_8).stream().limit(5)
-            .anyMatch(line -> line.contains("Generated") && line.contains("DO NOT EDIT"));
+        String text = Files.readString(path, StandardCharsets.UTF_8);
+        return text.lines().limit(5)
+            .anyMatch(line -> line.contains("Generated") && line.contains("DO NOT EDIT"))
+            || GENERATED_ANNOTATION.matcher(text).find();
     }
 
     private static boolean excluded(Path root, Path path) {
@@ -361,9 +386,14 @@ class ProposeJava {
                     Element element = trees.getElement(
                         new TreePath(getCurrentPath(), tree.getQualifiedIdentifier())
                     );
+                    String importText = tree.getQualifiedIdentifier().toString();
                     String qualified = element instanceof TypeElement type ? type.getQualifiedName().toString() : "";
                     if (targetTypes.contains(qualified)) add(tree, qualified, "import");
-                    return super.visitImport(tree, unused);
+                    else if (importText.equals(targetPackage + ".*")) add(tree, importText, "wildcard");
+                    else if (tree.isStatic() && importText.startsWith(targetPackage + ".")) {
+                        add(tree, importText, "static");
+                    }
+                    return null;
                 }
 
                 @Override

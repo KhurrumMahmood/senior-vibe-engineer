@@ -277,7 +277,9 @@ class JavaPackageReferenceSpans {
             public Void visitImport(ImportTree tree, Void unused) {
                 String oldText = tree.getQualifiedIdentifier().toString();
                 Element element = trees.getElement(new TreePath(getCurrentPath(), tree.getQualifiedIdentifier()));
-                if (belongsTo(element, oldPackage) || oldText.equals(oldPackage + ".*")) {
+                if (belongsTo(element, oldPackage)
+                    || oldText.equals(oldPackage + ".*")
+                    || (tree.isStatic() && oldText.startsWith(oldPackage + "."))) {
                     long start = trees.getSourcePositions().getStartPosition(unit, tree.getQualifiedIdentifier());
                     long end = trees.getSourcePositions().getEndPosition(unit, tree.getQualifiedIdentifier());
                     spans.add(span(root, unit, file, start, end, oldText, replacePrefix(oldText, oldPackage, newPackage), "java_import"));

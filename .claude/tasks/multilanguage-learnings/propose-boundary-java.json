@@ -1,0 +1,27 @@
+{
+  "batch": "P5 Java J1 proposal pilot",
+  "revision": "cfd0e2d",
+  "family": ["propose-boundary"],
+  "invariant": "Propose, but never execute, a split of one named Java package only after the JDK compiler attributes all eligible source and resolves caller imports/FQCN type references.",
+  "native_model": {
+    "minimum_version": "JDK 17",
+    "tools": ["java source-file launcher", "JavacTask", "Trees", "SourcePositions"],
+    "build_boundary": "standalone source set; no Maven, Gradle, annotation processors, module path, or third-party JARs"
+  },
+  "outcomes": {
+    "complete_refactor": "two or more leading type-name domains each contain at least two top-level types and compiler-resolved caller impact is available",
+    "complete_defer": "one cohesive domain does not justify a boundary",
+    "unsupported": "old/missing JDK, excluded/symlink/default/mixed package, or unsupported target topology",
+    "failed_or_partial": "malformed or unresolved compilation never becomes a clean proposal"
+  },
+  "reused": ["family-local native launcher", "source fingerprints", "final Markdown/JSON artifacts", "cutoff ties", "copied selected-skill replay"],
+  "not_transferred": ["Java framework semantics", "build-system models", "Kotlin/JVM support", "Go or TypeScript clustering implementation"],
+  "reuse_decision": {
+    "shared_candidate": "JDK compiler bootstrap, path safety, and JSON emission",
+    "actual_second_consumer": "move-path has a different transactional and exact-span contract",
+    "decision": "keep the semantic analyzers family-local for J1; revisit only the repeated launcher/plumbing after measuring maintenance cost",
+    "reason": "sharing compiler outputs would couple a read-only proposal to a mutation safety boundary"
+  },
+  "product_cost": "The self-contained Java runner is 677 lines after closeout regressions. This is acceptable for a bounded pilot but is a simplification/backlog signal, not a template to multiply unchanged across 22 skills.",
+  "next_language_guidance": "Use the host-native compiler for only the final facts the skill claims; prove a cohesive defer and resolved-caller positive before broadening to frameworks."
+}

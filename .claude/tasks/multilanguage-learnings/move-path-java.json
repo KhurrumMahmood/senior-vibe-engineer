@@ -1,0 +1,27 @@
+{
+  "batch": "P5 Java J1 mutation pilot",
+  "revision": "cd7a445",
+  "family": ["move-path"],
+  "invariant": "Move exactly one reviewed leaf Java package under the same source root and rewrite only compiler-attributed package, import, and fully-qualified type spans.",
+  "native_model": {
+    "minimum_version": "JDK 17",
+    "tools": ["java source-file launcher", "javac --release 17 -proc:none", "JavacTask", "Trees", "SourcePositions"],
+    "build_boundary": "all eligible standalone Java sources compile without external classpath or build-system evaluation"
+  },
+  "outcomes": {
+    "complete": "preflight compile, exact after-tree edits, post-move compile, and exact source-diff oracle pass",
+    "partial": "an old package identity remains outside attributed rewrite spans",
+    "unsupported": "tool, directory/package/source-root, generated/vendor/symlink/non-leaf, or destination boundary is outside v1",
+    "failed": "malformed/unresolved source, helper failure, native compile failure, or exact-diff mismatch; post-write failure rolls back"
+  },
+  "reused": ["move-path virtual after-tree", "filesystem snapshots", "transaction rollback", "report contract", "copied-skill replay"],
+  "not_transferred": ["Go import literals", "JavaScript module specifiers", "Maven/Gradle classpaths", "reflection or framework registries", "Kotlin/JVM support"],
+  "reuse_decision": {
+    "shared_candidate": "JDK compiler bootstrap, path safety, source inventory, and JSON emission",
+    "actual_second_consumer": "propose-boundary",
+    "decision": "reuse the proven invocation pattern but not a shared semantic fact schema",
+    "reason": "mutation requires exact source spans, dynamic-identity refusal, compile-before/after, and rollback that proposal does not own"
+  },
+  "product_cost": "The Java span helper is 443 lines and the existing mover carries roughly 340 Java-mode/gate lines after closeout. Treat further Java mutation families as demand-triggered until a simplification experiment proves lower maintenance cost without weakening rollback.",
+  "next_language_guidance": "For a new language mutation pilot, require exact identity spans plus native before/after verification and rollback; do not treat parser success as mutation safety."
+}

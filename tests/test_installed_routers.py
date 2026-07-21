@@ -140,6 +140,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
             "typescript_disposition": "validated-neutral",
             "javascript_disposition": "validated-neutral",
             "go_disposition": "validated-neutral",
+            "java_disposition": "validated-neutral",
             "fact_level": "neutral",
             "outcome_class": "not-applicable",
             "framework_family": None,
@@ -176,6 +177,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "typescript_disposition": "stack-bound",
         "javascript_disposition": "stack-bound",
         "go_disposition": "stack-bound",
+        "java_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "architecture-planning",
@@ -204,6 +206,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "typescript_disposition": "typescript-supported",
         "javascript_disposition": "javascript-supported",
         "go_disposition": "pending-validation",
+        "java_disposition": "pending-validation",
         "fact_level": "semantic-project",
         "outcome_class": "read-only-report",
         "framework_family": None,
@@ -223,6 +226,27 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert java_payload["routing_context"]["language"] == "java"
     assert java_payload["recommendation"] == "find-complexity-hotspots"
     assert java_payload["handoff"]["skills"] == ["find-complexity-hotspots"]
+    assert java_payload["handoff"]["capabilities"]["skills"][0][
+        "java_disposition"
+    ] == "java-supported"
+
+    for skill, task in (
+        ("propose-boundary", "use propose-boundary for a Java package boundary"),
+        ("move-path", "use move-path to move a Java package directory"),
+    ):
+        routed = _run_isolated(
+            installed["which-skill"] / "scripts" / "match.py",
+            task,
+            "--project-root",
+            str(host),
+            "--json",
+            cwd=host,
+        )
+        routed_payload = _json_output(routed)
+        assert routed_payload["recommendation"] == skill
+        assert routed_payload["handoff"]["capabilities"]["skills"][0][
+            "java_disposition"
+        ] == "java-supported"
 
     for skill, task in (
         ("find-complexity-hotspots", "use find-complexity-hotspots on Go source"),
@@ -268,6 +292,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "typescript_disposition": "typescript-supported",
         "javascript_disposition": "javascript-supported",
         "go_disposition": "go-supported",
+        "java_disposition": "pending-validation",
         "fact_level": "lexical-filesystem",
         "outcome_class": "configuration-output",
         "framework_family": None,
@@ -296,6 +321,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "typescript_disposition": "stack-bound",
         "javascript_disposition": "stack-bound",
         "go_disposition": "stack-bound",
+        "java_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "framework-quality",

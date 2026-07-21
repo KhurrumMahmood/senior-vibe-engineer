@@ -21,6 +21,7 @@ DEFAULT_JAVASCRIPT_COVERAGE = (
     REPO_ROOT / ".claude" / "tasks" / "javascript-language-coverage.json"
 )
 DEFAULT_GO_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "go-language-coverage.json"
+DEFAULT_JAVA_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "java-language-coverage.json"
 DEFAULT_OUTPUT = REPO_ROOT / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
 
 DISPOSITION_MAP = {
@@ -361,29 +362,37 @@ def _javascript_coverage(payload: dict) -> dict[str, dict]:
     return by_name
 
 
-def _go_coverage(payload: dict) -> dict[str, dict]:
+def _simple_language_coverage(
+    payload: dict,
+    *,
+    language: str,
+    suffixes: list[str],
+    supported_disposition: str,
+) -> dict[str, dict]:
     if payload.get("schema_version") != 1:
-        raise ValueError("Go coverage schema must be 1")
-    if payload.get("suffixes") != [".go"]:
-        raise ValueError("Go coverage must declare .go")
+        raise ValueError(f"{language} coverage schema must be 1")
+    if payload.get("suffixes") != suffixes:
+        raise ValueError(f"{language} coverage must declare {suffixes}")
     allowed = set(payload.get("allowed_dispositions", []))
+    if "pending-validation" not in allowed or supported_disposition not in allowed:
+        raise ValueError(f"{language} coverage dispositions are incomplete")
     rows = payload.get("skills")
     if not isinstance(rows, list):
-        raise ValueError("Go coverage skills must be a list")
+        raise ValueError(f"{language} coverage skills must be a list")
     by_name: dict[str, dict] = {}
     for row in rows:
         if not isinstance(row, dict) or not isinstance(row.get("skill"), str):
-            raise ValueError("Go coverage rows need skill names")
+            raise ValueError(f"{language} coverage rows need skill names")
         skill = row["skill"]
         if not skill or skill in by_name:
-            raise ValueError("Go coverage skill names must be unique")
+            raise ValueError(f"{language} coverage skill names must be unique")
         if row.get("disposition") not in allowed:
-            raise ValueError(f"invalid Go disposition for {skill}")
+            raise ValueError(f"invalid {language} disposition for {skill}")
         disposition = row["disposition"]
         evidence_fields = ("evidence_path", "native_check", "reviewed_revision")
         if disposition == "pending-validation":
             if any(row.get(field) is not None for field in evidence_fields):
-                raise ValueError(f"pending Go row has premature evidence: {skill}")
+                raise ValueError(f"pending {language} row has premature evidence: {skill}")
         else:
             evidence_path = row.get("evidence_path")
             native_check = row.get("native_check")
@@ -396,11 +405,29 @@ def _go_coverage(payload: dict) -> dict[str, dict]:
                 or not isinstance(row.get("reviewed_revision"), str)
                 or not row["reviewed_revision"]
             ):
-                raise ValueError(f"supported Go row lacks evidence: {skill}")
+                raise ValueError(f"supported {language} row lacks evidence: {skill}")
         by_name[skill] = row
     if set(by_name) != set(LANGUAGE_CLASSIFICATION):
-        raise ValueError("Go coverage must contain the 22 language-level skills")
+        raise ValueError(f"{language} coverage must contain the 22 language-level skills")
     return by_name
+
+
+def _go_coverage(payload: dict) -> dict[str, dict]:
+    return _simple_language_coverage(
+        payload,
+        language="Go",
+        suffixes=[".go"],
+        supported_disposition="go-supported",
+    )
+
+
+def _java_coverage(payload: dict) -> dict[str, dict]:
+    return _simple_language_coverage(
+        payload,
+        language="Java",
+        suffixes=[".java"],
+        supported_disposition="java-supported",
+    )
 
 
 def build_matrix(
@@ -408,15 +435,18 @@ def build_matrix(
     coverage_path: Path,
     javascript_coverage_path: Path,
     go_coverage_path: Path,
+    java_coverage_path: Path,
 ) -> dict:
     catalog_payload = _read_json(catalog_path)
     coverage_payload = _read_json(coverage_path)
     javascript_payload = _read_json(javascript_coverage_path)
     go_payload = _read_json(go_coverage_path)
+    java_payload = _read_json(java_coverage_path)
     catalog = {row["name"]: row for row in catalog_payload.get("skills", [])}
     coverage = {row["skill"]: row for row in coverage_payload.get("skills", [])}
     javascript_coverage = _javascript_coverage(javascript_payload)
     go_coverage = _go_coverage(go_payload)
+    java_coverage = _java_coverage(java_payload)
     if not catalog or set(catalog) != set(coverage):
         raise ValueError("catalog and TypeScript coverage must contain the same skills")
 
@@ -512,6 +542,22 @@ def build_matrix(
             go_native_check = None
             go_reviewed_revision = None
 
+        if expansion == "language-level":
+            java = java_coverage[skill]
+            java_disposition = java["disposition"]
+            java_evidence_path = java.get("evidence_path")
+            java_native_check = java.get("native_check")
+            java_reviewed_revision = java.get("reviewed_revision")
+        else:
+            java_disposition = {
+                "validated-neutral": "validated-neutral",
+                "framework-bound": "stack-bound",
+                "ecosystem-runtime": "ecosystem-runtime",
+            }[expansion]
+            java_evidence_path = None
+            java_native_check = None
+            java_reviewed_revision = None
+
         rows.append(
             {
                 "skill": skill,
@@ -528,6 +574,10 @@ def build_matrix(
                 "go_evidence_path": go_evidence_path,
                 "go_native_check": go_native_check,
                 "go_reviewed_revision": go_reviewed_revision,
+                "java_disposition": java_disposition,
+                "java_evidence_path": java_evidence_path,
+                "java_native_check": java_native_check,
+                "java_reviewed_revision": java_reviewed_revision,
                 "fact_level": fact_level,
                 "outcome_class": outcome_class,
                 "framework_family": framework_family,
@@ -572,6 +622,7 @@ def build_matrix(
                 "sha256": _sha256(javascript_coverage_path),
             },
             {"path": _relative(go_coverage_path), "sha256": _sha256(go_coverage_path)},
+            {"path": _relative(java_coverage_path), "sha256": _sha256(java_coverage_path)},
         ],
         "counts": {
             "validated-neutral": counts["validated-neutral"],
@@ -618,6 +669,7 @@ def main(argv: list[str] | None = None) -> int:
         "--javascript-coverage", type=Path, default=DEFAULT_JAVASCRIPT_COVERAGE
     )
     parser.add_argument("--go-coverage", type=Path, default=DEFAULT_GO_COVERAGE)
+    parser.add_argument("--java-coverage", type=Path, default=DEFAULT_JAVA_COVERAGE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
@@ -634,6 +686,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.typescript_coverage,
                 args.javascript_coverage,
                 args.go_coverage,
+                args.java_coverage,
             )
         )
     except ValueError as exc:
