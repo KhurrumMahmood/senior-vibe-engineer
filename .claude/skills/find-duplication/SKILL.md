@@ -1,6 +1,6 @@
 ---
 name: find-duplication
-description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family and TypeScript/TSX lexical clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
+description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, and exact Go function-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
 argument-hint: "--target <source-directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
@@ -16,12 +16,12 @@ not_for: |
   refactor. JavaScript and TypeScript v1 do not prove semantic equivalence or safe reuse.
 language: any
 framework: any
-scans: [python, javascript, typescript]
+scans: [python, javascript, typescript, go]
 ---
 
 # /find-duplication
 
-Run the language branch that matches the target. Python, JavaScript, and TypeScript share a
+Run the language branch that matches the target. Python, JavaScript, TypeScript, and Go share a
 skill name and report vocabulary, but not a detector model or outcome claim.
 
 ## Route before running
@@ -31,9 +31,10 @@ Inspect eligible source suffixes under `--target`:
 - `.py` only: run the **Python legacy triage branch**.
 - `.ts`/`.tsx` only: run the **TypeScript lexical-evidence branch**.
 - `.js`/`.jsx`/`.mjs`/`.cjs` only: run the **JavaScript lexical-evidence branch**.
-- both: run both branches into separate `python/` and `typescript/` report
-  directories and summarize them separately. Do not merge their findings or
-apply the Python scout verdict contract to JavaScript or TypeScript evidence.
+- `.go` only: run the **Go exact-function evidence branch**.
+- multiple supported families: run each branch into its own language report
+  directory and summarize them separately. Do not merge their findings or
+  apply one family's outcome contract to another family's evidence.
 - neither: stop and report that this skill has no eligible source.
 
 Use a host Python 3.11+ interpreter. The selected skill is self-contained: no
@@ -256,6 +257,43 @@ JSCPD_BIN="$PWD/node_modules/.bin/jscpd"
   --output-md "$REPORT_DIR/triage.md" --output-json "$REPORT_DIR/findings.json" \
   --scan-id "$SCAN_ID"
 ```
+
+## Go exact-function evidence branch
+
+Go v1 uses Go 1.22+ from `PATH` and one batched `go run` of the bundled
+`go/parser` standard-library helper. It fingerprints `go/format`-normalized
+bodies of named functions and receiver methods with at least five source lines, then
+retains only fingerprints occurring at two or more symbols. This is exact
+structural evidence, not semantic equivalence, caller proof, or a safe-reuse
+recommendation.
+
+The source inventory is project-root-relative and excludes `_test.go`,
+generated, test/testdata/fixture, vendor, dependency, report, and build-output
+trees even when one is targeted directly or through a symlink. Generated files
+are excluded before build classification. Explicit build tags and implicit
+GOOS/GOARCH filename constraints make an otherwise useful result `partial`;
+malformed source, missing/old Go, or invalid helper evidence is `failed` or
+`unsupported`, never clean.
+
+```bash
+PYTHON="${PYTHON:-python3}"
+SKILL_ROOT="${SKILL_ROOT:-.claude/skills/find-duplication}"
+SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
+REPORT_DIR="reports/duplication/${SCAN_ID}"
+mkdir -p "$REPORT_DIR"
+
+"$PYTHON" "${SKILL_ROOT}/scripts/run_go.py" \
+  --target src --project-root "$PWD" --output "$REPORT_DIR/collapsed.json"
+"$PYTHON" "${SKILL_ROOT}/scripts/rank.py" \
+  --input "$REPORT_DIR/collapsed.json" --output "$REPORT_DIR/ranked.json"
+"$PYTHON" "${SKILL_ROOT}/scripts/report.py" \
+  --input "$REPORT_DIR/ranked.json" \
+  --output-md "$REPORT_DIR/triage.md" \
+  --output-json "$REPORT_DIR/findings.json" --scan-id "$SCAN_ID"
+```
+
+The final Markdown says “Do not consolidate automatically.” Review both bodies
+and their callers before proposing a refactor.
 
 ## Mixed targets
 

@@ -52,7 +52,7 @@ def test_copied_python_pipeline_preserves_legacy_scout_triage(tmp_path: Path) ->
     skill_text = (installed / "SKILL.md").read_text()
     assert "language: any" in skill_text
     assert "framework: any" in skill_text
-    assert "scans: [python, javascript, typescript]" in skill_text
+    assert "scans: [python, javascript, typescript, go]" in skill_text
     assert "Python legacy triage branch" in skill_text
     assert "TypeScript lexical-evidence branch" in skill_text
 

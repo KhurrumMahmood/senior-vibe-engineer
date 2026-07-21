@@ -117,16 +117,40 @@ def render_triage(
     lines.append("")
     lines.append(f"**Target:** `{meta.get('target', '?')}`")
     lines.append(f"**Project root:** `{meta.get('project_root', '?')}`")
+    lines.append(f"**Scan status:** `{meta.get('status', 'unknown')}`")
     lines.append(f"**Generated:** {meta.get('generated_at', '?')}")
     lines.append("")
 
-    if meta.get("language") in {"typescript", "javascript"}:
-        language_label = "TypeScript" if meta.get("language") == "typescript" else "JavaScript"
+    if meta.get("language") in {"typescript", "javascript", "go"}:
+        language_label = {
+            "typescript": "TypeScript",
+            "javascript": "JavaScript",
+            "go": "Go",
+        }[meta["language"]]
+        evidence_label = (
+            "exact normalized function-body clone evidence"
+            if meta.get("language") == "go"
+            else "lexical/near-lexical clone evidence with source spans and "
+            "enclosing symbols"
+        )
         lines.append(
-            f"> **{language_label} v1 boundary:** This is lexical/near-lexical clone "
-            "evidence with source spans and enclosing symbols. Do not consolidate "
+            f"> **{language_label} v1 boundary:** This is {evidence_label}. "
+            "Do not consolidate "
             "automatically; behavior, callers, overload semantics, and ownership "
             "still require human review."
+        )
+        lines.append("")
+
+    analysis = meta.get("analysis")
+    constrained = 0
+    if meta.get("language") == "go" and isinstance(analysis, dict):
+        status_counts = analysis.get("file_status_counts")
+        if isinstance(status_counts, dict):
+            constrained = status_counts.get("build-constraint-ambiguous", 0)
+    if meta.get("language") == "go" and meta.get("status") == "partial" and constrained:
+        lines.append(
+            f"> **Partial Go scan:** {constrained} build-constrained source file(s) "
+            "were not analyzed. Findings do not cover those files."
         )
         lines.append("")
 
@@ -203,7 +227,7 @@ def render_triage(
     lines.append("")
     if findings:
         top = findings[0]
-        if meta.get("language") in {"typescript", "javascript"}:
+        if meta.get("language") in {"typescript", "javascript", "go"}:
             lines.append(
                 f"Review the evidence for `{top['finding_id']}` before deciding "
                 "whether any refactor is appropriate; this report makes no "
