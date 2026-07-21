@@ -14,10 +14,14 @@ this skill so a copied installation has its complete runtime closure:
 * Go uses the host's Go 1.22+ standard-library parser through the bundled
   ``detect_go_symbols.go`` launcher. Build-constrained files are refused rather
   than silently treated as analyzed.
+* Java uses the public JDK 17+ compiler tree API through the bundled
+  ``detect_java_symbols.java`` launcher. It reports direct methods and
+  constructors of named top-level types only.
 
-The script-family path is syntax-only: it needs Node and a ``typescript`` package
-resolvable from ``--project-root`` but does not need a tsconfig, type checker,
-module resolution, framework model, or semantic responsibility claims.
+The script-family path is syntax-only: TypeScript needs Node and a
+``typescript`` package resolvable from ``--project-root``; Java needs JDK 17+
+on ``PATH``. Neither path needs a tsconfig, type checker, module resolution,
+framework model, or semantic responsibility claims.
 """
 from __future__ import annotations
 
@@ -62,9 +66,14 @@ class GoExtractionError(RuntimeError):
     """Raised when the bundled Go parser cannot establish facts honestly."""
 
 
-_LANGUAGES: tuple[str, ...] = ("go", "javascript", "python", "typescript")
+class JavaExtractionError(RuntimeError):
+    """Raised when the bundled Java parser cannot establish facts honestly."""
+
+
+_LANGUAGES: tuple[str, ...] = ("go", "java", "javascript", "python", "typescript")
 _LANGUAGE_EXTENSIONS: dict[str, frozenset[str]] = {
     "go": frozenset({".go"}),
+    "java": frozenset({".java"}),
     "python": frozenset({".py"}),
     "javascript": frozenset({".js", ".jsx", ".mjs", ".cjs"}),
     "typescript": frozenset({".ts", ".tsx"}),
@@ -81,6 +90,16 @@ _GO_SKIP_DIRS: frozenset[str] = frozenset({
 })
 _GO_SKIP_FILE_GLOBS: tuple[str, ...] = ("*_test.go", "*.generated.go", "*_generated.go")
 _GO_MIN_VERSION = (1, 22, 0)
+_JAVA_SKIP_DIRS: frozenset[str] = frozenset({
+    ".gradle", "build", "coverage", "dist", "fixture", "fixtures", "generated",
+    "integrationtest", "out", "reports", "target", "test", "testdata",
+    "testfixtures", "tests", "vendor",
+})
+_JAVA_SKIP_FILE_GLOBS: tuple[str, ...] = (
+    "*test.java", "*tests.java", "*it.java", "*generated.java",
+    "*.generated.java", "*_generated.java",
+)
+_JAVA_MIN_VERSION = (17, 0, 0)
 _DEFAULT_SKIP_FILE_GLOBS: tuple[str, ...] = (
     "tests_*.py", "test_*.py", "tests.py", "conftest.py", "__init__.py",
     "*.min.js", "*.min.jsx", "*.min.mjs", "*.min.cjs", "*.min.css",
@@ -282,6 +301,121 @@ def _go_symbols(filepaths: list[Path]) -> dict[Path, list[Symbol]]:
     return extracted
 
 
+def _parse_java_version(rendered: str, tool: str) -> tuple[int, int, int]:
+    """Parse a tool's own version line while ignoring startup warnings."""
+    pattern = (
+        re.compile(r'\bversion\s+"(\d+)(?:\.(\d+))?(?:\.(\d+))?')
+        if tool == "java"
+        else re.compile(r"\bjavac\s+(\d+)(?:\.(\d+))?(?:\.(\d+))?\b")
+    )
+    for line in rendered.splitlines():
+        match = pattern.search(line.strip())
+        if match is None:
+            continue
+        major, minor, patch = (int(part or 0) for part in match.groups())
+        if major == 1 and minor:
+            major, minor, patch = minor, patch, 0
+        return major, minor, patch
+    raise JavaExtractionError(
+        f"cannot parse {tool} version: {rendered.strip() or 'unknown version'}"
+    )
+
+
+def _java_toolchain() -> tuple[str, str]:
+    """Resolve a complete JDK 17+ without requiring Maven or Gradle."""
+    java = shutil.which("java")
+    javac = shutil.which("javac")
+    missing = [name for name, executable in (("java", java), ("javac", javac)) if executable is None]
+    if missing:
+        raise JavaExtractionError(
+            "Java JDK is unavailable on PATH (missing " + ", ".join(missing) + ")"
+        )
+    assert java is not None and javac is not None
+    for tool, executable in (("java", java), ("javac", javac)):
+        try:
+            result = subprocess.run(
+                [executable, "-version"], capture_output=True, text=True, check=False
+            )
+        except OSError as exc:
+            raise JavaExtractionError(f"cannot run {tool}: {exc}") from exc
+        rendered = "\n".join(part for part in (result.stdout, result.stderr) if part)
+        if result.returncode:
+            raise JavaExtractionError(
+                f"cannot determine {tool} version: {rendered.strip() or f'exit {result.returncode}'}"
+            )
+        version = _parse_java_version(rendered, tool)
+        if version < _JAVA_MIN_VERSION:
+            raise JavaExtractionError(
+                "Java parser requires JDK >= "
+                + ".".join(map(str, _JAVA_MIN_VERSION))
+                + f"; found {tool} "
+                + ".".join(map(str, version))
+            )
+    return java, javac
+
+
+def _java_symbols(filepaths: list[Path], project_root: Path) -> dict[Path, list[Symbol]]:
+    """Extract eligible Java symbols through one JDK source-launcher run."""
+    java, _javac = _java_toolchain()
+    launcher = Path(__file__).resolve().with_name("detect_java_symbols.java")
+    command = [java, str(launcher), "--project-root", str(project_root)]
+    for path in filepaths:
+        command.extend(("--file", str(path)))
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=False)
+    except OSError as exc:
+        raise JavaExtractionError(f"cannot run bundled Java parser: {exc}") from exc
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or "unknown parser failure"
+        raise JavaExtractionError(detail)
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise JavaExtractionError("bundled Java parser emitted invalid JSON") from exc
+    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+        raise JavaExtractionError("bundled Java parser emitted an invalid payload")
+    if payload.get("analyzer") != "jdk-compiler-tree-api" or not isinstance(payload.get("files"), list):
+        raise JavaExtractionError("bundled Java parser emitted invalid symbol evidence")
+    requested = {path.resolve() for path in filepaths}
+    extracted: dict[Path, list[Symbol]] = {}
+    for file_payload in payload["files"]:
+        try:
+            rendered_path = file_payload["file"]
+            status = file_payload["status"]
+            records = file_payload["symbols"]
+        except (KeyError, TypeError) as exc:
+            raise JavaExtractionError("bundled Java parser emitted invalid file evidence") from exc
+        if not isinstance(rendered_path, str):
+            raise JavaExtractionError("bundled Java parser emitted invalid file evidence")
+        candidate = Path(rendered_path)
+        path = candidate.resolve() if candidate.is_absolute() else (project_root / candidate).resolve()
+        if path not in requested or path in extracted or not isinstance(records, list):
+            raise JavaExtractionError("bundled Java parser emitted mismatched file evidence")
+        if status == "syntax-error":
+            raise JavaExtractionError(
+                f"syntax error in {path}: {file_payload.get('error') or 'unknown parse error'}"
+            )
+        if status == "read-error":
+            raise JavaExtractionError(
+                f"cannot read Java source {path}: {file_payload.get('error') or 'unknown read error'}"
+            )
+        if status not in {"complete", "generated"}:
+            raise JavaExtractionError("bundled Java parser emitted an invalid status")
+        try:
+            extracted[path] = [
+                Symbol(
+                    str(record["name"]), str(record["cluster_name"]), str(record["kind"]),
+                    int(record["lineno"]), int(record["end_lineno"]), int(record["loc"]),
+                )
+                for record in records
+            ]
+        except (KeyError, TypeError, ValueError) as exc:
+            raise JavaExtractionError("bundled Java parser emitted an invalid symbol") from exc
+    if set(extracted) != requested:
+        raise JavaExtractionError("bundled Java parser omitted requested file evidence")
+    return extracted
+
+
 def _language_for(path: Path) -> str | None:
     suffix = path.suffix.lower()
     for language, extensions in _LANGUAGE_EXTENSIONS.items():
@@ -311,6 +445,30 @@ def _go_path_is_excluded(path: Path, project_root: Path) -> bool:
     )
 
 
+def _java_path_is_excluded(path: Path, project_root: Path) -> bool:
+    """Apply Java's first-party source policy against logical and physical paths."""
+    try:
+        logical = path.relative_to(project_root).parts
+        physical = path.resolve().relative_to(project_root).parts
+    except ValueError:
+        return True
+    return (
+        any(part.lower() in _JAVA_SKIP_DIRS for part in logical[:-1])
+        or any(part.lower() in _JAVA_SKIP_DIRS for part in physical[:-1])
+        or any(fnmatch.fnmatchcase(path.name.lower(), glob) for glob in _JAVA_SKIP_FILE_GLOBS)
+    )
+
+
+def _first_kotlin_source(target: Path, project_root: Path) -> Path | None:
+    """Surface Kotlin explicitly for an opt-in Java-only scan rather than omitting it."""
+    for path in sorted(target.rglob("*")):
+        if not path.is_file() or path.suffix.lower() not in {".kt", ".kts"}:
+            continue
+        if not _java_path_is_excluded(path, project_root):
+            return path
+    return None
+
+
 def _walk_source_files(
     target: Path,
     skip_file_globs: tuple[str, ...],
@@ -327,6 +485,8 @@ def _walk_source_files(
         if path.suffix.lower() in _LANGUAGE_EXTENSIONS["typescript"] and _typescript_path_is_excluded(path, target):
             continue
         if path.suffix.lower() == ".go" and _go_path_is_excluded(path, project_root):
+            continue
+        if path.suffix.lower() == ".java" and _java_path_is_excluded(path, project_root):
             continue
         if any(fnmatch.fnmatchcase(path.name, glob) for glob in skip_file_globs):
             continue
@@ -367,13 +527,16 @@ def _scan_file(
     rel: str,
     project_root: Path,
     go_symbols: dict[Path, list[Symbol]],
+    java_symbols: dict[Path, list[Symbol]],
 ) -> dict[str, object] | None:
     language = _language_for(filepath)
     if language is None:
         return None
     try:
         source = filepath.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+    except (OSError, UnicodeDecodeError) as exc:
+        if language == "java":
+            raise JavaExtractionError(f"cannot read Java source {filepath}: {exc}") from exc
         return None
     if language == "python":
         extracted = _python_symbols(source)
@@ -381,6 +544,9 @@ def _scan_file(
     elif language == "go":
         extracted = go_symbols[filepath.resolve()]
         analyzer = "go-parser-go-ast"
+    elif language == "java":
+        extracted = java_symbols[filepath.resolve()]
+        analyzer = "jdk-compiler-tree-api"
     else:
         extracted = _typescript_symbols(filepath, project_root)
         analyzer = "typescript-compiler-api"
@@ -442,6 +608,14 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     project_root = args.project_root.resolve()
     wanted = set(args.language) or set(_LANGUAGES)
+    if args.language and wanted == {"java"}:
+        kotlin = _first_kotlin_source(args.target.resolve(), project_root)
+        if kotlin is not None:
+            print(
+                "[detect_omnibus] ERROR: Kotlin source is unsupported by Java v1: " + str(kotlin),
+                file=sys.stderr,
+            )
+            return 2
     extensions = frozenset(extension for language in wanted for extension in _LANGUAGE_EXTENSIONS[language])
     files = _walk_source_files(
         args.target.resolve(),
@@ -451,9 +625,11 @@ def main(argv: list[str] | None = None) -> int:
         extensions,
     )
     go_files = [path for path in files if path.suffix.lower() == ".go"]
+    java_files = [path for path in files if path.suffix.lower() == ".java"]
     try:
         go_symbols = _go_symbols(go_files) if go_files else {}
-    except GoExtractionError as exc:
+        java_symbols = _java_symbols(java_files, project_root) if java_files else {}
+    except (GoExtractionError, JavaExtractionError) as exc:
         print(f"[detect_omnibus] ERROR: {exc}", file=sys.stderr)
         return 2
     records: list[dict[str, object]] = []
@@ -463,8 +639,8 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError:
             rel = str(filepath)
         try:
-            record = _scan_file(filepath, rel, project_root, go_symbols)
-        except (TypeScriptExtractionError, GoExtractionError) as exc:
+            record = _scan_file(filepath, rel, project_root, go_symbols, java_symbols)
+        except (TypeScriptExtractionError, GoExtractionError, JavaExtractionError) as exc:
             print(f"[detect_omnibus] ERROR: {filepath}: {exc}", file=sys.stderr)
             return 2
         if record is not None:

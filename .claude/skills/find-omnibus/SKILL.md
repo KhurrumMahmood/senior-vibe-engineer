@@ -1,7 +1,7 @@
 ---
 name: find-omnibus
-description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans, a bundled TypeScript Compiler API parser for JavaScript/TypeScript, and a bundled Go 1.22+ standard-library syntax parser; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.
-argument-hint: "--target <directory> [--language python|javascript|typescript|go]"
+description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans, a bundled TypeScript Compiler API parser for JavaScript/TypeScript, a bundled Go 1.22+ standard-library syntax parser, and a bundled Java JDK 17+ compiler-tree parser; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.
+argument-hint: "--target <directory> [--language python|javascript|typescript|go|java]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -12,7 +12,7 @@ best_for: |
   files that mix credentials, admin APIs, CSRF/auth, command/network
   diagnostics, persistence, raw SQL, import/export, task dispatch, or
   filesystem writes; produces decomposition candidates that hand off
-  to /refactor-subsystem. Covers Python, JavaScript/TypeScript, and Go with
+  to /refactor-subsystem. Covers Python, JavaScript/TypeScript, Go, and Java with
   family-local syntax parsers. Findings carry analyzer provenance. The script
   paths resolve no types and assume no framework.
 not_for: |
@@ -24,7 +24,7 @@ not_for: |
   /find-perimeter-gaps for what is and isn't covered.
 language: any
 framework: any
-scans: [python, javascript, typescript, go]
+scans: [python, javascript, typescript, go, java]
 ---
 
 # /find-omnibus
@@ -72,6 +72,16 @@ Write toward these gates from Stage 0.
   types. Generated, vendored, test, and `testdata` sources are excluded.
   Build-constrained files stop the scan as unsupported rather than being
   silently omitted.
+- **Java v1:** JDK 17+ (`java` and `javac`) on `PATH`. The bundled public
+  Compiler Tree API helper extracts only direct methods and constructors of
+  named top-level types, with exact source spans. It does not resolve imports,
+  types, aliases, overloads, receivers, or frameworks; nested/local/anonymous
+  types, lambdas, implicit constructors, Kotlin, and build semantics are out
+  of scope. Generated, vendored, test, build-output, and external-symlink
+  sources are excluded. Syntax/read/tool failures stop Stage 1 with exit 2;
+  they never become a zero-candidate result. An explicit `--language java`
+  target containing Kotlin source also stops as unsupported rather than
+  presenting Kotlin as Java coverage.
 - **Project-specific defaults** (generic-verb strip list, skip
   patterns, directory-package precedent, known false-positive
   shapes): in `knowledge/`.
@@ -283,6 +293,8 @@ recommendation and no finding for the cohesive helper.
 |---|---|
 | Stage 1 detector reports 0 candidates | Target has no omnibus files (best outcome) — or scope is too narrow; try a wider target like the source root |
 | Any script exits non-zero | Stop at the failing stage, paste the exact command and stderr, and do not summarize downstream artifacts from a previous run |
+| Java reports JDK unavailable/old | Put JDK 17+ (`java` and `javac`) on `PATH`; do not substitute Maven/Gradle or a global parser |
+| Java reports syntax/read/Kotlin unsupported | Repair or narrow the target, then re-run. The Java adapter never claims a partial scan is clean |
 | Stage 1 reports a clearly-cohesive file | Raise the `and_count >= 3` threshold in `detect.py` OR add the file's shape to `knowledge/` false-positive filter |
 | Stage 2 caps too aggressively | Pass `--top 50` or higher to `collapse.py` |
 | Stage 3 scout buckets everything as `facets_not_domains` | Scout is being too aggressive at collapsing — re-dispatch citing the "3+ confirmed domains" rule from `verification.md` |
@@ -295,9 +307,10 @@ recommendation and no finding for the cohesive helper.
 find-omnibus/
 ├── SKILL.md                  # this file — orchestrator
 ├── scripts/
-│   ├── detect.py             # Stage 1 — Python/JS/TS/Go cluster extraction
+│   ├── detect.py             # Stage 1 — Python/JS/TS/Go/Java cluster extraction
 │   ├── detect_typescript_symbols.mjs  # bundled Compiler API TS/TSX spans
 │   ├── detect_go_symbols.go  # bundled Go standard-library syntax facts
+│   ├── detect_java_symbols.java # bundled JDK 17+ direct top-level symbols
 │   ├── collapse.py           # Stage 2 — cap to top-N, assign ids
 │   └── report.py             # Stage 4 — render report.md + findings.json
 ├── agents/

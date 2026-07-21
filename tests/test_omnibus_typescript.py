@@ -175,7 +175,7 @@ def test_frontmatter_truthfully_declares_all_supported_scanners() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
 
     assert "language: any" in text
-    assert "scans: [python, javascript, typescript, go]" in text
+    assert "scans: [python, javascript, typescript, go, java]" in text
     assert "JavaScript/TypeScript" in text
 
 
