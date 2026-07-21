@@ -1,13 +1,13 @@
 ---
 name: unify-shadows
-description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX and checked-JavaScript v1 consume the accepted structured /find-semantic-duplication finding and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
+description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, and Go consume the accepted structured /find-semantic-duplication finding and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
 argument-hint: "<semantic:SC-N | semantic:TS-SD-NNNN | explicit target spec>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
 job: explain
 best_for: |
-  One confirmed Python, TypeScript, or checked-JavaScript semantic-duplication finding from
+  One confirmed Python, TypeScript, checked-JavaScript, or Go semantic-duplication finding from
   /find-semantic-duplication (shape =
   keep_separate_document_why | share_utilities | complete_migration |
   merge_at_workflow). Produces an implementation-ready proposal at
@@ -19,7 +19,7 @@ not_for: |
   Applying production edits happens downstream after proposal approval.
 language: any
 framework: any
-scans: [python, typescript, javascript]
+scans: [python, typescript, javascript, go]
 ---
 
 # /unify-shadows
@@ -35,6 +35,13 @@ shadows in full, dispatches a scout per member, and consolidates their
 profiles. The TypeScript branch validates and renders the accepted structured
 finding without re-detection. The human reviews either proposal before
 authorizing `/fix-workflow`.
+
+## Go v1
+
+For a Go finding, read and follow `knowledge/go-v1.md`; load it only for Go
+work. The Go branch validates one complete, confirmed upstream artifact and
+renders a proposal without re-detection or source mutation. It preserves the
+upstream warning that a static review lead is not behavioral equivalence.
 
 ## How success is judged
 
@@ -440,3 +447,8 @@ unconfirmed, and wrong-kind records must leave no output directory;
 `keep_separate_document_why` must contain no consolidation/caller-move plan;
 native `npm run typecheck` and `npm test` must pass before and after; source
 hashes must not change; and escape/symlink outputs must fail.
+
+For Go consumer changes, replay the copied skill against the locked Go fixture;
+the accepted finding must reach all three proposal artifacts, `go test ./...`
+must pass before and after, source hashes must not change, and unconfirmed or
+partial input must leave no proposal directory.

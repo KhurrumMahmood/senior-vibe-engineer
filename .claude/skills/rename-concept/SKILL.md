@@ -8,18 +8,20 @@ description: |
   completeness gate, so renames land half-applied. This skill (v0, assess-only)
   reports the scope-gate verdict, blast radius, a per-step lifecycle status
   table, and the completeness gate. It performs strict lexical assessment of
-  Python, JavaScript, TypeScript, and TSX text. For `.ts`, `.tsx`, and checked
+  Python, JavaScript, TypeScript, TSX, and Go text. For `.ts`, `.tsx`, and checked
   `.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,
   declarations, and references; it does not claim whole-project type-checking,
-  JSX runtime behavior, or codemod safety.
+  JSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`
+  classifies project-exported concept declarations and their references while
+  retaining fields, import aliases, locals, inactive source, and diagnostics.
   The old and new names must not co-occur lexically in
   live code (/find-concept-divergence superseded_co_occurrence, band 3) AND no
   retired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)
   — both must be CLEAN for a lexical candidate assessment to pass. A
-  TypeScript/TSX or checked-JavaScript host additionally needs a successful Compiler API evidence
-  run that resolves old/new identifier candidates. Definition of done is the
+  TypeScript/TSX, checked-JavaScript, or Go host additionally needs a successful native semantic
+  evidence run that resolves old/new identifier candidates. Definition of done is the
   two-band gate, every lifecycle step resolved, and that evidence where
-  TypeScript/TSX is in scope — NOT a codemod having run. Drives the two
+  a semantic language is in scope — NOT a codemod having run. Drives the two
   rename-relevant /find-concept-divergence bands through a required coupled
   installation; the assessment logic does not duplicate their matching rules.
   The write half (author + dry-run a codemod plan, scaffold a reintroduction
@@ -31,7 +33,7 @@ user-invocable: true
 tier: maintenance
 job: refactor
 best_for: |
-  A TypeScript, JavaScript, or Python glossary concept rename lifecycle
+  A TypeScript, JavaScript, Go, or Python glossary concept rename lifecycle
   assessment with a persistent completeness gate. Assessing whether a
   glossary-worthy, wide-blast change is COMPLETE —
   the long tail (string-literal references, the guard lint, the cross-tool
@@ -70,7 +72,7 @@ delegate_from: |
   here.
 language: any
 framework: any
-scans: [python, javascript, typescript, markdown, templates]
+scans: [python, javascript, typescript, go, markdown, templates]
 install_with: [find-concept-divergence]
 ---
 
@@ -187,6 +189,10 @@ Reports, read-only:
   detector, reports, migrations — excluded).
 - **completeness gate** — the two-band `/find-concept-divergence` result,
   filtered to this rename. This is the definition of done.
+
+For Go targets, read `knowledge/go-v1.md` only when needed. `assess.py` invokes
+the bundled resolver automatically after the coupled lexical scan; missing,
+old, partial, or diagnostically unresolved Go evidence prevents completion.
 
 `--min-blast` tunes the scope-gate threshold.
 
@@ -312,3 +318,14 @@ none is converted to a lexical clean result. The copied skill retains its
 family-local runner and still requires the declared `find-concept-divergence`
 companion for the lexical gate. It never uses `npx`, a global compiler, or
 mutates source.
+
+## Go boundary
+
+The Go branch combines the companion's bounded strict-text inventory with a
+skill-local Go 1.22+ `go/types` resolver. Only matching exported package-scope
+declarations establish concept authority. Resolved references to those objects
+are concept-symbol evidence; same-named locals, fields, import aliases, and
+external symbols remain classified boundary evidence. Tests, generated source,
+inactive build files, malformed packages, and unavailable tools cannot be
+silently treated as clean. The branch is assessment-only and never performs a
+rename or claims codemod safety.

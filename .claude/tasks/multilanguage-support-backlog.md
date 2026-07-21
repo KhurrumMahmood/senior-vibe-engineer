@@ -105,6 +105,13 @@ auditable when completeness matters.
   API is introduced.
 - Non-goals: a general TypeScript analysis platform or universal language
   adapter before demonstrated consumers exist.
+- Go evidence (2026-07-21): the semantic-maintenance family confirmed repeated
+  Go 1.22+ tool discovery, `go list -deps -export`, export-data importing,
+  active-source selection, and diagnostic plumbing across independent skills.
+  Their semantic result models did not generalize. Keep this item `proposed`;
+  the first experiment should extract a vendorable bootstrap/path component
+  only after one real repair must be made in two consumers. See
+  `multilanguage-learnings/go-semantic-maintenance-family.md`.
 
 ### ML-004 — Normalize and compress cross-language learning packets
 

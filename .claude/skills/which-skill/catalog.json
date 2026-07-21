@@ -603,17 +603,18 @@
     },
     {
       "name": "find-semantic-duplication",
-      "description": "Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX and checked-JavaScript function-level leads using a host-local Compiler API Program/TypeChecker. Compiler branches report confirmed, uncertain, and rejected candidates with capability matrices; they do not infer workflows, structural duplication, or safe refactors.",
+      "description": "Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, and Go function-level leads using host-native semantic facts. Compiler branches report confirmed, uncertain, and rejected candidates with capability matrices; they do not infer workflows, structural duplication, or safe refactors.",
       "tier": "maintenance",
       "job": "suspect",
-      "best_for": "Two independently-written, live functions that plausibly solve the same\nproblem with different code shape. Python uses scout confirmation; TypeScript\nv1 uses typed return-shape and direct-call evidence before human review.\n",
+      "best_for": "Two independently-written, live functions that plausibly solve the same\nproblem with different code shape. Python uses scout confirmation; TypeScript\nand Go use typed return-shape and direct-call evidence before human review.\n",
       "not_for": "Lexical near-clones (use /find-duplication). Unreferenced implementations\n(use /find-dormant). Consolidation execution follows /unify-shadows proposal\napproval. Unsupported v1 modes are\nworkflows, structural/module analysis, protocol/class-method semantics,\ndynamic dispatch, framework behavior, and automatic consolidation.\n",
       "language": "any",
       "framework": "any",
       "scans": [
         "python",
         "typescript",
-        "javascript"
+        "javascript",
+        "go"
       ],
       "_path": "skills/find-semantic-duplication"
     },
@@ -1067,10 +1068,10 @@
     },
     {
       "name": "rename-concept",
-      "description": "Assess a domain-concept rename against its full lifecycle and a mandatory\ntwo-band completeness gate, read-only. Renaming a concept that lives in the\nglossary spans many surfaces — identifiers, docs, the cross-tool agent\nmirrors — and is executed from tribal knowledge with no front door and no\ncompleteness gate, so renames land half-applied. This skill (v0, assess-only)\nreports the scope-gate verdict, blast radius, a per-step lifecycle status\ntable, and the completeness gate. It performs strict lexical assessment of\nPython, JavaScript, TypeScript, and TSX text. For `.ts`, `.tsx`, and checked\n`.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,\ndeclarations, and references; it does not claim whole-project type-checking,\nJSX runtime behavior, or codemod safety.\nThe old and new names must not co-occur lexically in\nlive code (/find-concept-divergence superseded_co_occurrence, band 3) AND no\nretired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)\n— both must be CLEAN for a lexical candidate assessment to pass. A\nTypeScript/TSX or checked-JavaScript host additionally needs a successful Compiler API evidence\nrun that resolves old/new identifier candidates. Definition of done is the\ntwo-band gate, every lifecycle step resolved, and that evidence where\nTypeScript/TSX is in scope — NOT a codemod having run. Drives the two\nrename-relevant /find-concept-divergence bands through a required coupled\ninstallation; the assessment logic does not duplicate their matching rules.\nThe write half (author + dry-run a codemod plan, scaffold a reintroduction\nlint, --apply) is a v1 gap pending a codemod harness in this\necosystem (see Deferred, below).\n",
+      "description": "Assess a domain-concept rename against its full lifecycle and a mandatory\ntwo-band completeness gate, read-only. Renaming a concept that lives in the\nglossary spans many surfaces — identifiers, docs, the cross-tool agent\nmirrors — and is executed from tribal knowledge with no front door and no\ncompleteness gate, so renames land half-applied. This skill (v0, assess-only)\nreports the scope-gate verdict, blast radius, a per-step lifecycle status\ntable, and the completeness gate. It performs strict lexical assessment of\nPython, JavaScript, TypeScript, TSX, and Go text. For `.ts`, `.tsx`, and checked\n`.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,\ndeclarations, and references; it does not claim whole-project type-checking,\nJSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`\nclassifies project-exported concept declarations and their references while\nretaining fields, import aliases, locals, inactive source, and diagnostics.\nThe old and new names must not co-occur lexically in\nlive code (/find-concept-divergence superseded_co_occurrence, band 3) AND no\nretired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)\n— both must be CLEAN for a lexical candidate assessment to pass. A\nTypeScript/TSX, checked-JavaScript, or Go host additionally needs a successful native semantic\nevidence run that resolves old/new identifier candidates. Definition of done is the\ntwo-band gate, every lifecycle step resolved, and that evidence where\na semantic language is in scope — NOT a codemod having run. Drives the two\nrename-relevant /find-concept-divergence bands through a required coupled\ninstallation; the assessment logic does not duplicate their matching rules.\nThe write half (author + dry-run a codemod plan, scaffold a reintroduction\nlint, --apply) is a v1 gap pending a codemod harness in this\necosystem (see Deferred, below).\n",
       "tier": "maintenance",
       "job": "refactor",
-      "best_for": "A TypeScript, JavaScript, or Python glossary concept rename lifecycle\nassessment with a persistent completeness gate. Assessing whether a\nglossary-worthy, wide-blast change is COMPLETE —\nthe long tail (string-literal references, the guard lint, the cross-tool\nagent mirrors, the docs) is exactly what a rushed pass forgets, and the\ntwo-band gate is what catches a rename that is identifier-clean but still\ncarries retired prose. Use when the rename is glossary-tracked and the cost\nof a half-applied result is real. Pairs with /find-concept-divergence (which\nDETECTS the drift): this skill consumes that detector and frames it as a\nper-rename definition of done.\n",
+      "best_for": "A TypeScript, JavaScript, Go, or Python glossary concept rename lifecycle\nassessment with a persistent completeness gate. Assessing whether a\nglossary-worthy, wide-blast change is COMPLETE —\nthe long tail (string-literal references, the guard lint, the cross-tool\nagent mirrors, the docs) is exactly what a rushed pass forgets, and the\ntwo-band gate is what catches a rename that is identifier-clean but still\ncarries retired prose. Use when the rename is glossary-tracked and the cost\nof a half-applied result is real. Pairs with /find-concept-divergence (which\nDETECTS the drift): this skill consumes that detector and frames it as a\nper-rename definition of done.\n",
       "not_for": "A trivial local-symbol change outside canonical terminology with a narrow blast\nradius (use an IDE or a scoped find-and-replace) — the scope-gate bails\nthese. Bulk drift detection across ALL concepts at once (use\n/find-concept-divergence directly — this skill filters it to ONE requested term).\nFilesystem path or file moves and their import/reference updates (use\n/move-path), even when the paths happen to contain generic names such as\n`old` and `new`.\nGeneral module decomposition or service extraction (use /refactor-subsystem).\nAuthoring the DECISION itself — the ADR content is human judgment; this skill\nreports status, it does not decide. Executing the codemod — there\nis no codemod harness in this ecosystem yet, so the write half is deferred\n(see below).\n",
       "language": "any",
       "framework": "any",
@@ -1078,6 +1079,7 @@
         "python",
         "javascript",
         "typescript",
+        "go",
         "markdown",
         "templates"
       ],
@@ -1171,17 +1173,18 @@
     },
     {
       "name": "unify-shadows",
-      "description": "Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX and checked-JavaScript v1 consume the accepted structured /find-semantic-duplication finding and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.",
+      "description": "Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, and Go consume the accepted structured /find-semantic-duplication finding and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.",
       "tier": "maintenance",
       "job": "explain",
-      "best_for": "One confirmed Python, TypeScript, or checked-JavaScript semantic-duplication finding from\n/find-semantic-duplication (shape =\nkeep_separate_document_why | share_utilities | complete_migration |\nmerge_at_workflow). Produces an implementation-ready proposal at\n`reports/unify-shadows/<finding-id>/proposal.md` with migration\nplan, caller impact, test matrix, and stop condition.\n",
+      "best_for": "One confirmed Python, TypeScript, checked-JavaScript, or Go semantic-duplication finding from\n/find-semantic-duplication (shape =\nkeep_separate_document_why | share_utilities | complete_migration |\nmerge_at_workflow). Produces an implementation-ready proposal at\n`reports/unify-shadows/<finding-id>/proposal.md` with migration\nplan, caller impact, test matrix, and stop condition.\n",
       "not_for": "Raw candidate detection (run /find-semantic-duplication first).\nLexical near-clones (use /find-duplication then /fix-workflow).\nApplying production edits happens downstream after proposal approval.\n",
       "language": "any",
       "framework": "any",
       "scans": [
         "python",
         "typescript",
-        "javascript"
+        "javascript",
+        "go"
       ],
       "_path": "skills/unify-shadows"
     },

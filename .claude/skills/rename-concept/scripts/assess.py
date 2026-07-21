@@ -247,6 +247,23 @@ def javascript_source_files(project_root: pathlib.Path) -> list[str]:
     )
 
 
+def go_source_files(project_root: pathlib.Path) -> list[str]:
+    """Return safe first-party Go files for go/types identifier evidence."""
+    detector = detector_module()
+    if detector is None or not hasattr(detector, "inventory_go"):
+        return []
+    _inventory, eligible, _errors = detector.inventory_go((".",), project_root)
+    excluded = {
+        ".agents", ".claude", ".git", ".venv", "build", "dist",
+        "node_modules", "reports", "vendor",
+    }
+    return sorted(
+        path.relative_to(project_root).as_posix()
+        for path in eligible
+        if not ({part.lower() for part in path.relative_to(project_root).parts[:-1]} & excluded)
+    )
+
+
 def concept_terms(concept: str, project_root: pathlib.Path) -> list[str]:
     """Return the glossary name and aliases for one requested concept."""
     try:
@@ -360,6 +377,61 @@ def run_javascript_identifier_evidence(
         return {"status": "unavailable", "reason": str(exc)}
 
 
+def run_go_identifier_evidence(
+    project_root: pathlib.Path,
+    old_terms: list[str],
+    new_terms: list[str],
+    sources: list[str],
+) -> dict:
+    """Invoke the bundled Go 1.22+ identifier resolver without mutation."""
+    go = shutil.which("go")
+    runner = pathlib.Path(__file__).resolve().with_name("go_identifier_evidence.go")
+    if not go:
+        return {"status": "unavailable", "reason": "Go executable is unavailable"}
+    if not runner.exists():
+        return {"status": "unavailable", "reason": "bundled Go evidence runner is missing"}
+    try:
+        version = subprocess.run(
+            [go, "version"], cwd=project_root, capture_output=True, text=True, timeout=30,
+        )
+        rendered = (version.stdout or version.stderr).strip()
+        match = re.search(r"\bgo(\d+)\.(\d+)(?:\.\d+)?\b", rendered)
+        if version.returncode or match is None:
+            return {"status": "unavailable", "reason": "cannot determine Go version"}
+        if (int(match.group(1)), int(match.group(2))) < (1, 22):
+            return {"status": "unsupported", "reason": f"Go >= 1.22 is required; found {rendered}"}
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = pathlib.Path(temp_dir) / "go-identifiers.json"
+            result = subprocess.run(
+                [
+                    go, "run", str(runner),
+                    "--project-root", str(project_root),
+                    "--old-terms", json.dumps(old_terms),
+                    "--new-terms", json.dumps(new_terms),
+                    "--sources", json.dumps(sources),
+                    "--output", str(output),
+                    "--go-executable", go,
+                ],
+                cwd=project_root,
+                env={**os.environ, "GOTOOLCHAIN": "local"},
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            if not output.exists():
+                detail = result.stderr.strip() or result.stdout.strip()
+                return {
+                    "status": "unavailable",
+                    "reason": detail or f"Go evidence runner exited {result.returncode}",
+                }
+            evidence = json.loads(output.read_text(encoding="utf-8"))
+            if result.returncode and evidence.get("status") == "resolved":
+                return {"status": "unavailable", "reason": "Go evidence runner failed"}
+            return evidence
+    except (subprocess.SubprocessError, OSError, json.JSONDecodeError, ValueError) as exc:
+        return {"status": "unavailable", "reason": str(exc)}
+
+
 def classify_lexical_candidates(findings: list[dict] | None, old: str, evidence: dict) -> list[dict]:
     """Classify band-3 hits with compiler identity or text-only evidence."""
     occurrences = evidence.get("occurrences") if isinstance(evidence, dict) else []
@@ -432,19 +504,24 @@ def _run_concept_divergence(project_root: pathlib.Path) -> list[dict] | None:
         return None
     try:
         with tempfile.TemporaryDirectory() as td:
-            out = str(pathlib.Path(td) / "findings.jsonl")
-            rep = str(pathlib.Path(td) / "report.md")
-            result = subprocess.run([sys.executable, str(script),
-                                     "--project-root", str(project_root),
-                                     "--output", out, "--report", rep],
-                                    cwd=project_root, capture_output=True, text=True, timeout=180)
-            if result.returncode != 0:
-                return None
             findings = []
-            for line in pathlib.Path(out).read_text().splitlines():
-                if not line.strip():
-                    continue
-                findings.append(json.loads(line))
+            runs = [("auto", [])]
+            go_sources = go_source_files(project_root)
+            if go_sources:
+                runs.append(("go", ["--language", "go", *go_sources]))
+            for name, extra in runs:
+                out = str(pathlib.Path(td) / f"{name}-findings.jsonl")
+                rep = str(pathlib.Path(td) / f"{name}-report.md")
+                result = subprocess.run(
+                    [sys.executable, str(script), "--project-root", str(project_root),
+                     "--output", out, "--report", rep, *extra],
+                    cwd=project_root, capture_output=True, text=True, timeout=180,
+                )
+                if result.returncode != 0:
+                    return None
+                for line in pathlib.Path(out).read_text().splitlines():
+                    if line.strip():
+                        findings.append(json.loads(line))
             return findings
     except (subprocess.SubprocessError, OSError, json.JSONDecodeError, ValueError):
         return None
@@ -529,6 +606,7 @@ def main():
     lint = guard_lint_exists(old, project_root)
     typescript_files = typescript_source_files(project_root)
     javascript_files = javascript_source_files(project_root)
+    go_files = go_source_files(project_root)
     typescript_evidence = (
         run_typescript_identifier_evidence(
             project_root,
@@ -549,10 +627,21 @@ def main():
         if javascript_files
         else None
     )
+    go_evidence = (
+        run_go_identifier_evidence(
+            project_root,
+            concept_terms(old, project_root),
+            concept_terms(new, project_root),
+            go_files,
+        )
+        if go_files
+        else None
+    )
     combined_evidence = {
         "occurrences": [
             *(typescript_evidence or {}).get("occurrences", []),
             *(javascript_evidence or {}).get("occurrences", []),
+            *(go_evidence or {}).get("occurrences", []),
         ],
     }
     lexical_candidates = classify_lexical_candidates(divergence, old, combined_evidence)
@@ -624,6 +713,25 @@ def main():
         else:
             reason = (javascript_evidence or {}).get("reason", "unknown resolver failure")
             print("  [identifiers] checked JavaScript: " + str((javascript_evidence or {}).get("status", "UNAVAILABLE")).upper() + " — " + str(reason))
+    if go_files:
+        if go_evidence and go_evidence.get("status") == "resolved":
+            declarations = go_evidence.get("declarations", {})
+            occurrences = go_evidence.get("occurrences", [])
+            old_declarations = len(declarations.get("old", [])) if isinstance(declarations, dict) else 0
+            new_declarations = len(declarations.get("new", [])) if isinstance(declarations, dict) else 0
+            resolution_diagnostics = len(go_evidence.get("resolution_diagnostics", []))
+            old_references = sum(
+                item.get("classification") == "old_concept_symbol"
+                for item in occurrences
+                if isinstance(item, dict)
+            )
+            print("  [identifiers] Go: RESOLVED — "
+                  f"{go_evidence.get('go_version', '?')}; old declarations={old_declarations}, "
+                  f"old references={old_references}, new declarations={new_declarations}, "
+                  f"resolution diagnostics={resolution_diagnostics}.")
+        else:
+            reason = (go_evidence or {}).get("reason", "unknown resolver failure")
+            print("  [identifiers] Go: " + str((go_evidence or {}).get("status", "UNAVAILABLE")).upper() + " — " + str(reason))
 
     print("\n## completeness gate (find-concept-divergence)")
     print("  Two bands must BOTH be clean. Band 3 (superseded_co_occurrence) is")
@@ -676,6 +784,24 @@ def main():
         print("\n  ### checked JavaScript identifier evidence (Compiler API)")
         if not javascript_evidence or javascript_evidence.get("status") != "resolved":
             print("    PARTIAL/UNAVAILABLE — cannot certify checked-JavaScript identifier completeness.")
+    if go_files:
+        print("\n  ### Go identifier evidence (go/types)")
+        if not go_evidence or go_evidence.get("status") != "resolved":
+            print("    PARTIAL/UNAVAILABLE — cannot certify Go identifier completeness.")
+        else:
+            occurrences = [
+                item for item in go_evidence.get("occurrences", [])
+                if isinstance(item, dict)
+            ]
+            if not occurrences:
+                print("    RESOLVED — no matching Go identifiers required classification.")
+            else:
+                print("    Identifier classifications:")
+                for item in occurrences[:30]:
+                    print("      - " + f"{item.get('file')}:{item.get('line')} "
+                          f"`{item.get('name')}` → {item.get('classification')}")
+                if len(occurrences) > 30:
+                    print(f"      … (+{len(occurrences)-30} more)")
 
     if (co_occur is not None and not co_occur) and old_files_live:
         print(f"\n  NOTE: {len(old_files_live)} live file(s) still mention '{old}' "
@@ -695,11 +821,14 @@ def main():
     done = gate_green and (supersede_matches_new if is_concept else True) and bool(lint)
     evidence_resolved = bool(typescript_evidence and typescript_evidence.get("status") == "resolved")
     javascript_resolved = bool(javascript_evidence and javascript_evidence.get("status") == "resolved")
+    go_resolved = bool(go_evidence and go_evidence.get("status") == "resolved")
     evidence_declarations = (typescript_evidence or {}).get("declarations", {})
     javascript_declarations = (javascript_evidence or {}).get("declarations", {})
+    go_declarations = (go_evidence or {}).get("declarations", {})
     evidence_occurrences = [
         *(typescript_evidence or {}).get("occurrences", []),
         *(javascript_evidence or {}).get("occurrences", []),
+        *(go_evidence or {}).get("occurrences", []),
     ]
     old_symbol_references = sum(
         item.get("classification") == "old_concept_symbol"
@@ -711,19 +840,34 @@ def main():
         for item in evidence_occurrences
         if isinstance(item, dict)
     )
-    new_symbol_declarations = (
-        (len(evidence_declarations.get("new", [])) if isinstance(evidence_declarations, dict) else 0)
-        + (len(javascript_declarations.get("new", [])) if isinstance(javascript_declarations, dict) else 0)
+    typescript_new_declarations = (
+        len(evidence_declarations.get("new", []))
+        if isinstance(evidence_declarations, dict) else 0
     )
-    resolution_diagnostics = len((typescript_evidence or {}).get("resolution_diagnostics", [])) + len((javascript_evidence or {}).get("resolution_diagnostics", []))
+    javascript_new_declarations = (
+        len(javascript_declarations.get("new", []))
+        if isinstance(javascript_declarations, dict) else 0
+    )
+    go_new_declarations = (
+        len(go_declarations.get("new", []))
+        if isinstance(go_declarations, dict) else 0
+    )
+    new_symbol_declarations = (
+        typescript_new_declarations + javascript_new_declarations + go_new_declarations
+    )
+    resolution_diagnostics = (
+        len((typescript_evidence or {}).get("resolution_diagnostics", []))
+        + len((javascript_evidence or {}).get("resolution_diagnostics", []))
+        + len((go_evidence or {}).get("resolution_diagnostics", []))
+    )
     typescript_complete = (
         not typescript_files
         or (
             evidence_resolved
             and old_symbol_references == 0
             and unresolved_identifiers == 0
-            and new_symbol_declarations > 0
-            and resolution_diagnostics == 0
+            and typescript_new_declarations > 0
+            and not (typescript_evidence or {}).get("resolution_diagnostics")
         )
     )
     javascript_complete = (
@@ -732,25 +876,46 @@ def main():
             javascript_resolved
             and not (javascript_evidence or {}).get("uncovered_files")
             and not (javascript_evidence or {}).get("resolution_diagnostics")
+            and javascript_new_declarations > 0
+        )
+    )
+    go_complete = (
+        not go_files
+        or (
+            go_resolved
+            and not (go_evidence or {}).get("uncovered_files")
+            and not (go_evidence or {}).get("resolution_diagnostics")
+            and go_new_declarations > 0
         )
     )
     open_items: list[str] = []
     if co_occur is None or avoid_hits is None:
         verdict = "INCONCLUSIVE"
+        open_items = ["concept-divergence completeness gate unavailable"]
+        if go_files and not go_resolved:
+            open_items.append("Go semantic evidence unavailable")
         print("  INCONCLUSIVE — completeness gate could not run (see above).")
-    elif not typescript_complete or not javascript_complete:
+    elif not typescript_complete or not javascript_complete or not go_complete:
         missing: list[str] = []
-        if not evidence_resolved:
+        if typescript_files and not evidence_resolved:
             missing.append("TypeScript compiler evidence unavailable")
         if javascript_files and not javascript_resolved:
             missing.append("checked-JavaScript compiler evidence unavailable or partial")
+        if go_files and not go_resolved:
+            missing.append("Go semantic evidence unavailable")
         if old_symbol_references:
             missing.append(f"old concept symbol references ({old_symbol_references})")
         if unresolved_identifiers:
             missing.append(f"unresolved identifier candidates ({unresolved_identifiers})")
         if resolution_diagnostics:
             missing.append(f"compiler diagnostics affecting resolution ({resolution_diagnostics})")
-        if not new_symbol_declarations:
+        if typescript_files and not typescript_new_declarations:
+            missing.append("no resolved new concept declaration (TypeScript)")
+        if javascript_files and not javascript_new_declarations:
+            missing.append("no resolved new concept declaration (checked JavaScript)")
+        if go_files and not go_new_declarations:
+            missing.append("no resolved new concept declaration (Go)")
+        if not new_symbol_declarations and not (typescript_files or javascript_files or go_files):
             missing.append("no resolved new concept declaration")
         if avoid_hits:
             missing.append(f"band 1 retired prose ({len(avoid_hits)} file(s))")
@@ -801,6 +966,7 @@ def main():
             },
             "typescript_identifier_evidence": typescript_evidence,
             "javascript_identifier_evidence": javascript_evidence,
+            "go_identifier_evidence": go_evidence,
             "verdict": verdict,
             "open_items": open_items,
         }

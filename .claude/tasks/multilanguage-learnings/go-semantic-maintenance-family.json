@@ -1,0 +1,53 @@
+{
+  "batch": "Go semantic-maintenance family",
+  "status": "implemented-pending-review",
+  "revision": null,
+  "family": [
+    "find-semantic-duplication",
+    "unify-shadows",
+    "rename-concept"
+  ],
+  "native_tooling": [
+    "Go >= 1.22",
+    "go list -deps -export -json -e ./...",
+    "go/parser",
+    "go/types",
+    "go test ./..."
+  ],
+  "portable_principle": "A language-native compiler can establish narrow static identity and relationship facts, but each skill must preserve the gap between those facts and behavioral or lifecycle conclusions.",
+  "final_outcomes": {
+    "semantic_detector": "confirmed, uncertain, and rejected function-level review leads plus capability matrices",
+    "shadow_consumer": "validated read-only proposal, evidence, and scope artifacts",
+    "rename_assessment": "lexical lifecycle gate plus resolved Go declaration/reference classifications"
+  },
+  "reuse_decision": {
+    "shared": [
+      "minimum native-tool version",
+      "project-root and copied-closure contract",
+      "complete/partial/unsupported/failed distinctions",
+      "go list export-data package bootstrap"
+    ],
+    "kept_family_local": [
+      "return-shape and direct-call pair evidence",
+      "proposal synthesis",
+      "concept declaration/reference authority"
+    ],
+    "next_abstraction_gate": "Extract only bootstrap/path behavior after one real cross-consumer repair demonstrates a maintenance benefit and the on-demand closure can carry it explicitly."
+  },
+  "known_limits": [
+    "top-level functions and direct named-struct composite returns only for semantic duplication",
+    "methods, interface dispatch, reflection, framework behavior, side-effect equivalence, and safe refactoring remain unavailable",
+    "unify-shadows trusts only one complete confirmed upstream record and does no re-detection",
+    "rename authority is limited to matching exported package-scope declarations",
+    "inactive build-constrained sources block downstream certification"
+  ],
+  "evidence": [
+    "tests/test_find_semantic_duplication_go.py",
+    "tests/test_unify_shadows_go.py",
+    "tests/test_rename_concept_go.py",
+    "tests/fixtures/find-semantic-duplication-go",
+    "tests/fixtures/rename-concept-go/host",
+    ".claude/tasks/multilanguage-learnings/go-semantic-maintenance-family.md"
+  ],
+  "next_gate": "Fresh product-framed review, preservation suite, copied-closure replay, then per-skill capability promotion."
+}

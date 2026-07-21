@@ -1,7 +1,7 @@
 ---
 name: find-semantic-duplication
-description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX and checked-JavaScript function-level leads using a host-local Compiler API Program/TypeChecker. Compiler branches report confirmed, uncertain, and rejected candidates with capability matrices; they do not infer workflows, structural duplication, or safe refactors.
-argument-hint: "--target <directory> [--language python|typescript|javascript]"
+description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, and Go function-level leads using host-native semantic facts. Compiler branches report confirmed, uncertain, and rejected candidates with capability matrices; they do not infer workflows, structural duplication, or safe refactors.
+argument-hint: "--target <directory> [--language python|typescript|javascript|go]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -9,7 +9,7 @@ job: suspect
 best_for: |
   Two independently-written, live functions that plausibly solve the same
   problem with different code shape. Python uses scout confirmation; TypeScript
-  v1 uses typed return-shape and direct-call evidence before human review.
+  and Go use typed return-shape and direct-call evidence before human review.
 not_for: |
   Lexical near-clones (use /find-duplication). Unreferenced implementations
   (use /find-dormant). Consolidation execution follows /unify-shadows proposal
@@ -18,7 +18,7 @@ not_for: |
   dynamic dispatch, framework behavior, and automatic consolidation.
 language: any
 framework: any
-scans: [python, typescript, javascript]
+scans: [python, typescript, javascript, go]
 ---
 
 # /find-semantic-duplication
@@ -30,6 +30,13 @@ the scout briefs and `knowledge/` files, not in this prompt.
 Semantic duplication fills a gap between `/find-duplication` (syntactic
 clones) and `/find-dormant` (dead code). Two bodies with 0% token overlap
 can still solve the same problem — this skill finds those.
+
+## Go v1
+
+For a Go target, read and follow `knowledge/go-v1.md`; load it only for Go
+work. The skill-local analyzer uses Go 1.22+ `go list`, `go/parser`, and
+`go/types` to produce static review leads. Even a `confirmed` Go record is not
+proof of behavioral equivalence and never authorizes a refactor by itself.
 
 ## TypeScript / TSX v1
 
@@ -411,6 +418,7 @@ python3 .claude/skills/find-semantic-duplication/scripts/collapse_candidates.py 
 python3 .claude/skills/find-semantic-duplication/scripts/rank.py --help
 python3 .claude/skills/find-semantic-duplication/scripts/report.py --help
 node --check .claude/skills/find-semantic-duplication/scripts/detect_typescript.mjs
+python3 .claude/skills/find-semantic-duplication/scripts/detect_go_semantic.py --help
 ```
 
 For a full pipeline change, keep a tiny `reports/semantic-duplication/scan-*`
