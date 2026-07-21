@@ -98,6 +98,8 @@ def test_go_final_report_is_review_only_and_preserves_source(tmp_path: Path) -> 
         "uncertain": 1,
         "certain_delete": 0,
     }
+    assert payload["source_inventory"]["generated"] == 1
+    assert payload["source_inventory"]["policy_excluded"] == 1
     assert {candidate["name"] for candidate in payload["candidates"]} == {
         "unusedCallback",
         "unusedPrivate",
@@ -108,6 +110,17 @@ def test_go_final_report_is_review_only_and_preserves_source(tmp_path: Path) -> 
     assert unused["verdict"] == "review_required"
     assert unused["recommendation"] == "human_review_only"
     assert any("generated" in item.lower() for item in unused["uncertainty"])
+    assert all("Object" not in candidate for candidate in payload["candidates"])
+    generated_flags = [
+        flag for flag in payload["uncertainty_flags"]
+        if flag["kind"] == "generated_registration"
+    ]
+    assert generated_flags == [{
+        "kind": "generated_registration",
+        "packages": ["src"],
+        "message": "Generated Go source was excluded from use resolution and may register or reference symbols.",
+        "evidence": ["src/zz_generated.go"],
+    }]
     assert payload["uncertain_symbols"] == [{
         "file": "src/dormant.go",
         "line": 24,
@@ -153,7 +166,13 @@ def test_go_failures_and_partial_package_facts_are_explicit(tmp_path: Path) -> N
 
     broken = host / "src" / "broken.go"
     broken.write_text("package dormant\nfunc broken( {\n", encoding="utf-8")
-    malformed, report = _scan(SKILL, host, env, name="malformed")
+    malformed, report = _scan(
+        SKILL,
+        host,
+        env,
+        target="src/dormant.go",
+        name="malformed-sibling",
+    )
     assert malformed.returncode == 2
     assert "syntax-error" in malformed.stderr
     assert not report.exists()
@@ -174,6 +193,26 @@ def test_go_failures_and_partial_package_facts_are_explicit(tmp_path: Path) -> N
     assert "requires Go >= 1.22" in old.stderr
     assert not report.exists()
 
+    active_tagged = host / "src" / "active_tagged.go"
+    active_tagged.write_text(
+        "//go:build !never\n\npackage dormant\nfunc activeTagged() {}\n",
+        encoding="utf-8",
+    )
+    active, report = _scan(
+        SKILL,
+        host,
+        env,
+        target="src/active_tagged.go",
+        name="active-tagged",
+    )
+    assert active.returncode == 0, active.stdout + active.stderr
+    active_payload = json.loads((report / "findings.json").read_text(encoding="utf-8"))
+    assert active_payload["status"] == "complete"
+    assert [candidate["name"] for candidate in active_payload["candidates"]] == [
+        "activeTagged",
+    ]
+    active_tagged.unlink()
+
     constrained = host / "src" / "inactive.go"
     constrained.write_text(
         "//go:build never\n\npackage dormant\nfunc inactiveOnly() {}\n",
@@ -188,6 +227,54 @@ def test_go_failures_and_partial_package_facts_are_explicit(tmp_path: Path) -> N
         "file": "src/inactive.go",
         "reason": "build-constraint-ambiguous",
     }]
+
+
+def test_go_failed_scans_preserve_the_last_good_report(tmp_path: Path) -> None:
+    host, env = _host(tmp_path)
+    good, report = _scan(SKILL, host, env, name="stable")
+    assert good.returncode == 0, good.stdout + good.stderr
+    before = {
+        name: (report / name).read_bytes()
+        for name in ("findings.json", "report.md")
+    }
+
+    broken = host / "src" / "broken.go"
+    broken.write_text("package dormant\nfunc broken( {\n", encoding="utf-8")
+    failed, _ = _scan(
+        SKILL,
+        host,
+        env,
+        target="src/dormant.go",
+        name="stable",
+    )
+    assert failed.returncode == 2
+    assert "syntax-error" in failed.stderr
+    broken.unlink()
+
+    missing, _ = _scan(SKILL, host, _env(tmp_path, path=""), name="stable")
+    assert missing.returncode == 2
+    assert "Go toolchain is unavailable" in missing.stderr
+
+    fake_bin = tmp_path / "fake-stable-bin"
+    fake_bin.mkdir()
+    fake_go = fake_bin / "go"
+    fake_go.write_text("#!/bin/sh\necho 'go version go1.21.13 fixture'\n", encoding="utf-8")
+    fake_go.chmod(0o755)
+    old, _ = _scan(SKILL, host, _env(tmp_path, path=str(fake_bin)), name="stable")
+    assert old.returncode == 2
+    assert "requires Go >= 1.22" in old.stderr
+
+    copied = tmp_path / "broken-helper" / "find-dormant"
+    shutil.copytree(SKILL, copied)
+    (copied / "scripts" / "detect_go_dormant.go").unlink()
+    helper, _ = _scan(copied, host, env, name="stable")
+    assert helper.returncode == 2
+    assert "batched Go detector failed" in helper.stderr
+
+    assert {
+        name: (report / name).read_bytes()
+        for name in ("findings.json", "report.md")
+    } == before
 
 
 def test_go_exclusions_and_report_symlinks_are_safe(tmp_path: Path) -> None:

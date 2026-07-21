@@ -82,11 +82,24 @@ def _go_tool() -> tuple[Path, str]:
     return go, rendered
 
 
-def _write_atomic(path: Path, contents: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f"{path.name}.tmp-{os.getpid()}")
-    temporary.write_text(contents, encoding="utf-8")
-    temporary.replace(path)
+def _write_report(report: Path, payload: dict[str, Any]) -> None:
+    """Stage both artifacts before atomically replacing either final path."""
+    contents = {
+        "findings.json": f"{json.dumps(payload, indent=2)}\n",
+        "report.md": _render_report(payload),
+    }
+    report.mkdir(parents=True, exist_ok=True)
+    staged: dict[str, Path] = {}
+    try:
+        for name, text in contents.items():
+            temporary = report / f".{name}.tmp-{os.getpid()}"
+            temporary.write_text(text, encoding="utf-8")
+            staged[name] = temporary
+        for name in contents:
+            staged[name].replace(report / name)
+    finally:
+        for temporary in staged.values():
+            temporary.unlink(missing_ok=True)
 
 
 def _render_report(payload: dict[str, Any]) -> str:
@@ -183,14 +196,10 @@ def main(argv: list[str] | None = None) -> int:
         if _traverses_symlink(root, target) or target.is_symlink():
             raise DormantGoError(f"target must not traverse a symbolic link: {args.target}")
         report = _safe_report_dir(root, args.report_dir)
-        for artifact in (report / "report.md", report / "findings.json"):
-            if artifact.exists() or artifact.is_symlink():
-                artifact.unlink()
         go, go_version = _go_tool()
         payload = _run_helper(go, Path(__file__).with_name("detect_go_dormant.go"), target, root)
         payload["go_version"] = go_version
-        _write_atomic(report / "findings.json", f"{json.dumps(payload, indent=2)}\n")
-        _write_atomic(report / "report.md", _render_report(payload))
+        _write_report(report, payload)
     except DormantGoError as error:
         print(f"[find-dormant-go] ERROR: {error}", file=sys.stderr)
         return 2

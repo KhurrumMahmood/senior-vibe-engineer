@@ -35,20 +35,6 @@ var skipDirectories = map[string]bool{
 	"tests": true, "third-party": true, "third_party": true, "vendor": true,
 }
 
-var goos = map[string]bool{
-	"aix": true, "android": true, "darwin": true, "dragonfly": true,
-	"freebsd": true, "illumos": true, "ios": true, "js": true,
-	"linux": true, "netbsd": true, "openbsd": true, "plan9": true,
-	"solaris": true, "wasip1": true, "windows": true,
-}
-
-var goarch = map[string]bool{
-	"386": true, "amd64": true, "arm": true, "arm64": true,
-	"loong64": true, "mips": true, "mips64": true, "mips64le": true,
-	"mipsle": true, "ppc64": true, "ppc64le": true, "riscv64": true,
-	"s390x": true, "wasm": true,
-}
-
 type arguments struct {
 	Target       string
 	ProjectRoot  string
@@ -60,22 +46,23 @@ type listedError struct {
 }
 
 type listedPackage struct {
-	Dir        string       `json:"Dir"`
-	ImportPath string       `json:"ImportPath"`
-	GoFiles    []string     `json:"GoFiles"`
-	CgoFiles   []string     `json:"CgoFiles"`
-	SFiles     []string     `json:"SFiles"`
-	Export     string       `json:"Export"`
-	Error      *listedError `json:"Error"`
+	Dir            string       `json:"Dir"`
+	ImportPath     string       `json:"ImportPath"`
+	GoFiles        []string     `json:"GoFiles"`
+	IgnoredGoFiles []string     `json:"IgnoredGoFiles"`
+	InvalidGoFiles []string     `json:"InvalidGoFiles"`
+	CgoFiles       []string     `json:"CgoFiles"`
+	SFiles         []string     `json:"SFiles"`
+	Export         string       `json:"Export"`
+	Error          *listedError `json:"Error"`
 }
 
 type sourceMeta struct {
-	Path        string
-	Relative    string
-	File        *ast.File
-	Generated   bool
-	Constrained bool
-	Target      bool
+	Path      string
+	Relative  string
+	File      *ast.File
+	Generated bool
+	Target    bool
 }
 
 type packageStatus struct {
@@ -86,16 +73,16 @@ type packageStatus struct {
 }
 
 type candidate struct {
-	ID               string   `json:"id"`
-	File             string   `json:"file"`
-	Line             int      `json:"line"`
-	Name             string   `json:"name"`
-	Kind             string   `json:"kind"`
-	StaticReferences int      `json:"static_references"`
-	Verdict          string   `json:"verdict"`
-	Recommendation   string   `json:"recommendation"`
-	Uncertainty      []string `json:"uncertainty"`
-	Object           types.Object
+	ID               string       `json:"id"`
+	File             string       `json:"file"`
+	Line             int          `json:"line"`
+	Name             string       `json:"name"`
+	Kind             string       `json:"kind"`
+	StaticReferences int          `json:"static_references"`
+	Verdict          string       `json:"verdict"`
+	Recommendation   string       `json:"recommendation"`
+	Uncertainty      []string     `json:"uncertainty"`
+	Object           types.Object `json:"-"`
 }
 
 type uncertainSymbol struct {
@@ -111,6 +98,7 @@ type uncertaintyFlag struct {
 	Kind     string   `json:"kind"`
 	Packages []string `json:"packages"`
 	Message  string   `json:"message"`
+	Evidence []string `json:"evidence,omitempty"`
 }
 
 type unavailableFile struct {
@@ -191,33 +179,7 @@ func excluded(root, path string) bool {
 		}
 	}
 	name := strings.ToLower(filepath.Base(path))
-	return strings.HasSuffix(name, "_test.go") || strings.HasSuffix(name, ".generated.go") || strings.HasSuffix(name, "_generated.go")
-}
-
-func constrainedFilename(path string) bool {
-	name := strings.TrimSuffix(filepath.Base(path), ".go")
-	name = strings.TrimSuffix(name, "_test")
-	parts := strings.Split(name, "_")
-	if len(parts) < 2 {
-		return false
-	}
-	last := parts[len(parts)-1]
-	return goos[last] || goarch[last]
-}
-
-func hasBuildConstraint(file *ast.File) bool {
-	for _, group := range file.Comments {
-		if group.End() >= file.Package {
-			continue
-		}
-		for _, comment := range group.List {
-			text := strings.TrimSpace(comment.Text)
-			if strings.HasPrefix(text, "//go:build") || strings.HasPrefix(text, "// +build") {
-				return true
-			}
-		}
-	}
-	return false
+	return strings.HasSuffix(name, "_test.go")
 }
 
 func parseSource(root, path string, target bool) *sourceMeta {
@@ -228,8 +190,24 @@ func parseSource(root, path string, target bool) *sourceMeta {
 	}
 	return &sourceMeta{
 		Path: path, Relative: relative(root, path), File: parsed,
-		Generated: ast.IsGenerated(parsed), Constrained: hasBuildConstraint(parsed) || constrainedFilename(path), Target: target,
+		Generated: ast.IsGenerated(parsed), Target: target,
 	}
+}
+
+func traversesSymlink(root, path string) bool {
+	rel, err := filepath.Rel(root, path)
+	if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+		return true
+	}
+	current := root
+	for _, part := range strings.Split(rel, string(os.PathSeparator)) {
+		current = filepath.Join(current, part)
+		info, err := os.Lstat(current)
+		if err != nil || info.Mode()&os.ModeSymlink != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func collectTarget(root, target string) (map[string]*sourceMeta, map[string]int) {
@@ -254,6 +232,7 @@ func collectTarget(root, target string) (map[string]*sourceMeta, map[string]int)
 		meta := parseSource(root, path, true)
 		if meta.Generated {
 			inventory["generated"]++
+			inventory["policy_excluded"]++
 		}
 		metas[path] = meta
 	}
@@ -328,16 +307,19 @@ func listPackages(goExecutable, root string) ([]listedPackage, string) {
 	return packages, strings.TrimSpace(stderr.String())
 }
 
-func sourceFor(root string, known map[string]*sourceMeta, path string) *sourceMeta {
+func sourceFor(root string, known map[string]*sourceMeta, path string) (*sourceMeta, error) {
 	if meta, found := known[path]; found {
-		return meta
+		return meta, nil
 	}
 	if excluded(root, path) {
-		return nil
+		return nil, nil
+	}
+	if traversesSymlink(root, path) {
+		return nil, fmt.Errorf("active Go source is missing or traverses a symbolic link: %s", relative(root, path))
 	}
 	meta := parseSource(root, path, false)
 	known[path] = meta
-	return meta
+	return meta, nil
 }
 
 func imports(file *ast.File, path string) bool {
@@ -418,14 +400,12 @@ func strconvUnquote(value string) (string, error) {
 	return strconv.Unquote(value)
 }
 
-func riskMessages(files []*sourceMeta, generated bool, hasAssembly bool) ([]string, []uncertaintyFlag) {
+func riskMessages(files []*sourceMeta, packageName string, generatedFiles []*sourceMeta, hasAssembly bool) ([]string, []uncertaintyFlag) {
 	flags := []uncertaintyFlag{}
-	packageNames := []string{}
 	reflectFound := false
 	pluginFound := false
 	linknameFound := false
 	for _, meta := range files {
-		packageNames = append(packageNames, meta.Relative)
 		reflectFound = reflectFound || imports(meta.File, "reflect")
 		pluginFound = pluginFound || imports(meta.File, "plugin")
 		for _, group := range meta.File.Comments {
@@ -434,7 +414,7 @@ func riskMessages(files []*sourceMeta, generated bool, hasAssembly bool) ([]stri
 			}
 		}
 	}
-	sort.Strings(packageNames)
+	packageNames := []string{packageName}
 	messages := []string{"Static analysis cannot establish reflection, //go:linkname, generated registration, plugin, cgo, or assembly reachability."}
 	if reflectFound {
 		flags = append(flags, uncertaintyFlag{Kind: "reflection", Packages: packageNames, Message: "The package imports reflect; runtime reachability may not appear as an identifier use."})
@@ -444,8 +424,13 @@ func riskMessages(files []*sourceMeta, generated bool, hasAssembly bool) ([]stri
 		flags = append(flags, uncertaintyFlag{Kind: "linkname", Packages: packageNames, Message: "The package contains //go:linkname; native linkage may bypass normal identifier references."})
 		messages = append(messages, "The package contains //go:linkname; native linkage may bypass normal identifier references.")
 	}
-	if generated {
-		flags = append(flags, uncertaintyFlag{Kind: "generated_registration", Packages: packageNames, Message: "Generated Go source was excluded from use resolution and may register or reference symbols."})
+	if len(generatedFiles) > 0 {
+		evidence := make([]string, 0, len(generatedFiles))
+		for _, meta := range generatedFiles {
+			evidence = append(evidence, meta.Relative)
+		}
+		sort.Strings(evidence)
+		flags = append(flags, uncertaintyFlag{Kind: "generated_registration", Packages: packageNames, Message: "Generated Go source was excluded from use resolution and may register or reference symbols.", Evidence: evidence})
 		messages = append(messages, "Generated Go source was excluded from use resolution and may register or reference symbols.")
 	}
 	if pluginFound {
@@ -462,6 +447,25 @@ func riskMessages(files []*sourceMeta, generated bool, hasAssembly bool) ([]stri
 func analyzePackage(root string, item listedPackage, targetMetas map[string]*sourceMeta, allMetas map[string]*sourceMeta, exports map[string]string) ([]candidate, []uncertainSymbol, packageStatus, []uncertaintyFlag) {
 	directory := filepath.Clean(item.Dir)
 	status := packageStatus{Directory: packageName(root, directory), ImportPath: item.ImportPath, Status: "complete"}
+	active := []*sourceMeta{}
+	generatedFiles := []*sourceMeta{}
+	selectedNames := append(append([]string{}, item.GoFiles...), item.InvalidGoFiles...)
+	for _, name := range selectedNames {
+		meta, err := sourceFor(root, allMetas, filepath.Join(directory, name))
+		if err != nil {
+			status.Status = "package-facts-unavailable"
+			status.Detail = err.Error()
+			return nil, nil, status, nil
+		}
+		if meta == nil {
+			continue
+		}
+		if meta.Generated {
+			generatedFiles = append(generatedFiles, meta)
+			continue
+		}
+		active = append(active, meta)
+	}
 	if item.Error != nil && item.Error.Err != "" {
 		status.Status = "package-facts-unavailable"
 		status.Detail = item.Error.Err
@@ -471,29 +475,6 @@ func analyzePackage(root string, item listedPackage, targetMetas map[string]*sou
 		status.Status = "cgo-package-unavailable"
 		status.Detail = "cgo files are outside the v1 go/types reachability model"
 		return nil, nil, status, []uncertaintyFlag{{Kind: "cgo", Packages: []string{status.Directory}, Message: "The package contains cgo files; cgo reachability is outside the v1 model."}}
-	}
-	active := []*sourceMeta{}
-	generated := false
-	constrained := false
-	for _, name := range item.GoFiles {
-		meta := sourceFor(root, allMetas, filepath.Join(directory, name))
-		if meta == nil {
-			continue
-		}
-		if meta.Generated {
-			generated = true
-			continue
-		}
-		if meta.Constrained {
-			constrained = true
-			continue
-		}
-		active = append(active, meta)
-	}
-	if constrained {
-		status.Status = "build-constraint-ambiguous"
-		status.Detail = "an active Go file has a build constraint"
-		return nil, nil, status, nil
 	}
 	if len(active) == 0 {
 		status.Status = "package-facts-unavailable"
@@ -518,15 +499,9 @@ func analyzePackage(root string, item listedPackage, targetMetas map[string]*sou
 		status.Detail = err.Error()
 		return nil, nil, status, nil
 	}
-	packageFiles := append([]*sourceMeta{}, active...)
-	for _, meta := range allMetas {
-		if filepath.Dir(meta.Path) == directory && meta.Generated {
-			generated = true
-			packageFiles = append(packageFiles, meta)
-		}
-	}
+	packageFiles := append(append([]*sourceMeta{}, active...), generatedFiles...)
 	stringsSeen, linknames := stringsAndLinknames(packageFiles)
-	messages, flags := riskMessages(active, generated, len(item.SFiles) > 0)
+	messages, flags := riskMessages(active, status.Directory, generatedFiles, len(item.SFiles) > 0)
 	byObject := map[types.Object]*candidate{}
 	for _, meta := range active {
 		targetMeta, selected := targetMetas[meta.Path]
@@ -590,7 +565,6 @@ func analyzePackage(root string, item listedPackage, targetMetas map[string]*sou
 			uncertain = append(uncertain, uncertainSymbol{File: item.File, Line: item.Line, Name: item.Name, Kind: item.Kind, Reason: "A //go:linkname directive may provide or alter native reachability; static analysis cannot resolve it.", Verdict: "uncertain"})
 			continue
 		}
-		item.Object = nil
 		candidates = append(candidates, *item)
 	}
 	sort.Slice(candidates, func(i, j int) bool { return candidates[i].ID < candidates[j].ID })
@@ -605,6 +579,15 @@ func candidateID(file, name string, line int) string {
 	return fmt.Sprintf("%s-%s-%d", normalized, name, line)
 }
 
+func containsName(names []string, wanted string) bool {
+	for _, name := range names {
+		if name == wanted {
+			return true
+		}
+	}
+	return false
+}
+
 func main() {
 	args := parseArguments()
 	root, err := filepath.Abs(args.ProjectRoot)
@@ -617,7 +600,13 @@ func main() {
 	}
 	target := absoluteWithin(root, args.Target, "target")
 	targetMetas, inventory := collectTarget(root, target)
-	if len(targetMetas) == 0 {
+	eligible := 0
+	for _, meta := range targetMetas {
+		if !meta.Generated {
+			eligible++
+		}
+	}
+	if eligible == 0 {
 		fatal("no eligible first-party Go source under target")
 	}
 	allMetas := map[string]*sourceMeta{}
@@ -644,27 +633,32 @@ func main() {
 	}
 	seenDirectories := map[string]bool{}
 	for path, meta := range targetMetas {
-		if !meta.Target || meta.Generated || meta.Constrained {
-			if meta.Constrained {
-				unavailable = append(unavailable, unavailableFile{File: meta.Relative, Reason: "build-constraint-ambiguous"})
-			}
+		if !meta.Target || meta.Generated {
 			continue
 		}
 		directory := filepath.Dir(path)
+		item, found := packageByDir[directory]
+		if !found {
+			if !seenDirectories[directory] {
+				statuses = append(statuses, packageStatus{Directory: relative(root, directory), Status: "package-facts-unavailable", Detail: "go list did not return an active package for this directory"})
+				seenDirectories[directory] = true
+			}
+			unavailable = append(unavailable, unavailableFile{File: meta.Relative, Reason: "package-facts-unavailable"})
+			continue
+		}
+		name := filepath.Base(path)
+		if !containsName(item.GoFiles, name) && !containsName(item.InvalidGoFiles, name) {
+			reason := "package-facts-unavailable"
+			if containsName(item.IgnoredGoFiles, name) {
+				reason = "build-constraint-ambiguous"
+			}
+			unavailable = append(unavailable, unavailableFile{File: meta.Relative, Reason: reason})
+			continue
+		}
 		if seenDirectories[directory] {
 			continue
 		}
 		seenDirectories[directory] = true
-		item, found := packageByDir[directory]
-		if !found {
-			statuses = append(statuses, packageStatus{Directory: relative(root, directory), Status: "package-facts-unavailable", Detail: "go list did not return an active package for this directory"})
-			for _, candidateMeta := range targetMetas {
-				if filepath.Dir(candidateMeta.Path) == directory && !candidateMeta.Generated && !candidateMeta.Constrained {
-					unavailable = append(unavailable, unavailableFile{File: candidateMeta.Relative, Reason: "package-facts-unavailable"})
-				}
-			}
-			continue
-		}
 		packageCandidates, packageUncertain, status, packageFlags := analyzePackage(root, item, targetMetas, allMetas, exports)
 		statuses = append(statuses, status)
 		candidates = append(candidates, packageCandidates...)
@@ -672,21 +666,10 @@ func main() {
 		flags = append(flags, packageFlags...)
 		if status.Status != "complete" {
 			for _, candidateMeta := range targetMetas {
-				if filepath.Dir(candidateMeta.Path) == directory && !candidateMeta.Generated && !candidateMeta.Constrained {
+				if filepath.Dir(candidateMeta.Path) == directory && !candidateMeta.Generated && containsName(item.GoFiles, filepath.Base(candidateMeta.Path)) {
 					unavailable = append(unavailable, unavailableFile{File: candidateMeta.Relative, Reason: status.Status})
 				}
 			}
-		}
-	}
-	for _, meta := range targetMetas {
-		if meta.Constrained {
-			continue
-		}
-		if meta.Generated {
-			continue
-		}
-		if _, found := packageByDir[filepath.Dir(meta.Path)]; !found {
-			continue
 		}
 	}
 	sort.Slice(statuses, func(i, j int) bool { return statuses[i].Directory < statuses[j].Directory })
