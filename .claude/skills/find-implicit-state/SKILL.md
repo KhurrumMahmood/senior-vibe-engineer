@@ -1,7 +1,7 @@
 ---
 name: find-implicit-state
-description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, and Go state branches. Compiler-backed branches distinguish first-party bare state operations from typed authorities, vendor wire boundaries, tests/fixtures, unrelated fields, and insufficient evidence. Detection-only — never edits production code.
-argument-hint: "--target <directory> [--language typescript|javascript|go]"
+description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, and Java 17 state branches. Compiler-backed branches distinguish first-party bare state operations from typed authorities, vendor wire boundaries, tests/fixtures, unrelated fields, insufficient evidence, and unsafe reference equality. Detection-only — never edits production code.
+argument-hint: "--target <directory> [--language typescript|javascript|go|java]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -21,7 +21,7 @@ not_for: |
   generic TypeScript lint generator.
 language: any
 framework: any
-scans: [python, typescript, javascript, go]
+scans: [python, typescript, javascript, go, java]
 scout_model: cheap
 ---
 
@@ -144,6 +144,43 @@ For a Go target, read and follow `knowledge/go-v1.md`. Load that file only for
 Go work. Its result is a review candidate—not compiler proof that the domain is
 closed—and only its `first_party_state_operation` records may proceed to
 `/extract-enum`.
+
+## Java 17 direct-String review branch
+
+Use this branch only for a JDK 17+ host with `java` and `javac` on `PATH`. It
+uses the bundled compiler-tree/type helper, not Maven, Gradle, JARs, a network
+download, or a shared Java platform. It promotes only a compiler-resolved,
+top-level direct `java.lang.String` field named `state`, `status`, or `phase`
+with at least three direct assignments / `String.equals` / `Objects.equals`
+operations and two distinct literals. That is review evidence, not proof that
+the domain is finite. Aliases, getters/setters, switches, dataflow, ORM
+converters, serialization behavior, nested owners, and Kotlin are out of
+scope.
+
+`field == "value"` or `!=` on that String field is an
+`unsafe_string_comparison` correctness finding. It never counts toward an enum
+candidate. Generated, test, vendor-path, semantic vendor-wire, unrelated, and
+low-evidence shapes remain explicit classifications.
+
+<!-- installed-command:java-state:start -->
+```bash
+: "${TARGET:?Set TARGET to the Java directory to inspect}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in ".agents/skills/on-demand/find-implicit-state" ".agents/skills/find-implicit-state" ".claude/skills/find-implicit-state"; do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"; break; fi
+done
+if [ -z "${SKILL_ROOT}" ]; then printf '%s\n' "find-implicit-state is not installed" >&2; exit 2; fi
+REPORT_DIR="reports/implicit-state/java-state-$(date +%Y%m%d-%H%M%S)"
+python3 "${SKILL_ROOT}/scripts/detect_java_state.py" --target "${TARGET}" --project-root "$(pwd)" --output "${REPORT_DIR}/hits.jsonl" --findings "${REPORT_DIR}/findings.json" --report "${REPORT_DIR}/report.md" --scan-id "$(basename "${REPORT_DIR}")"
+ln -sfn "$(basename "${REPORT_DIR}")" reports/implicit-state/latest
+```
+<!-- installed-command:java-state:end -->
+
+Hand exactly one `status: accepted`, `bucket: extract_enum_candidate` finding
+from the complete `findings.json` to `/extract-enum`; do not give the next
+skill the source tree to re-detect. The final `report.md` and `findings.json`
+are the review artifacts. Syntax or missing/old-JDK failures exit 2 without
+publishing them; unresolved or symlink evidence is `partial`, never clean.
 
 ## Scope
 
