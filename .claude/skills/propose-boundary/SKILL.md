@@ -1,6 +1,6 @@
 ---
 name: propose-boundary
-description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX or checked-JavaScript v1 uses a host-resolved symbol/import/call graph; Go v1 uses host `go list` package/import facts plus standard-library AST facts. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
+description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX or checked-JavaScript v1 uses a host-resolved symbol/import/call graph; Go v1 uses host `go list` package/import facts plus standard-library AST facts; Java v1 uses JDK 17 compiler-attributed package, type, import, and fully-qualified-reference facts. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
 argument-hint: "<target-path-or-name> [--candidates N]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -30,7 +30,7 @@ not_for: |
   fit → /plan-spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go]
+scans: [python, typescript, javascript, go, java]
 ---
 
 # /propose-boundary
@@ -289,6 +289,67 @@ go run "${SKILL_ROOT}/scripts/propose_go.go" \
   --proposal "reports/propose-boundary/${PROPOSE_NAME}/proposal.md"
 ```
 <!-- installed-command:go-proposal:end -->
+
+## Java v1
+
+Use this branch for one named Java package directory in a standalone host that
+can compile with JDK 17 without Maven, Gradle, annotation processors, or
+third-party dependencies. The bundled single-file Java runner invokes the JDK
+compiler tree API with parsing and attribution enabled. Only after all eligible
+production sources attribute successfully does it report direct imports or
+fully-qualified type references as `compiler-resolved` caller evidence.
+
+Java v1 proposes a seam only when at least two leading type-name domains each
+contain at least two top-level types. Public top-level types are proposed as
+the compatibility surface; the human still chooses the boundary. A one-domain
+package defers instead of inventing a split. Generated, vendor, build, test,
+malformed, default-package, mixed-package, and symlink targets never produce a
+clean proposal.
+
+This is deliberately a source/package pilot. It does not infer Spring, Jakarta,
+Android, reflection, dependency injection, runtime class loading, module-path,
+annotation-processor, Kotlin, Maven, or Gradle semantics. Hosts requiring those
+facts defer until a framework- or build-aware contract is justified by a real
+project. The runner stays family-local and uses no repository Python runtime,
+language server, or third-party JAR.
+
+### Installed Java proposal command
+
+Run this from the host root after the router exposes the on-demand skill. Both
+`java` and `javac` must resolve from `PATH`; source-file mode executes the copied
+runner directly.
+
+<!-- installed-command:java-proposal:start -->
+```bash
+PROPOSE_TARGET="${PROPOSE_TARGET:-src/main/java/example/legacy}"
+PROPOSE_NAME="${PROPOSE_NAME:-java-legacy}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/propose-boundary" \
+  ".claude/skills/propose-boundary"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "propose-boundary is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+if ! command -v java >/dev/null 2>&1 || ! command -v javac >/dev/null 2>&1; then
+  printf '%s\n' '{"status":"unsupported","failure_kind":"jdk_tool_missing","minimum_jdk":17}'
+  exit 0
+fi
+java "${SKILL_ROOT}/scripts/propose_java.java" \
+  --target "${PROPOSE_TARGET}" \
+  --project-root "$(pwd)" \
+  --minimum-jdk 17 \
+  --candidates 2 \
+  --inspection "reports/propose-boundary/${PROPOSE_NAME}/inspection.json" \
+  --proposal "reports/propose-boundary/${PROPOSE_NAME}/proposal.md"
+```
+<!-- installed-command:java-proposal:end -->
 
 ## Python scope
 
