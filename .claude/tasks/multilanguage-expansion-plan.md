@@ -682,8 +682,8 @@ detectors.
 
 | Batch | State | Skills | Dependency |
 |---|---|---|---|
-| J2 lexical/filesystem | 5/6 integrated; review pending | `adapt-project`, `explain-code`, `find-comment-drift`, `find-concept-divergence`, `find-duplication`, `find-folder-topology-drift` | Accepted Java source-role and path boundaries. Integrated candidates: `ecd564c`, `396e221`, `6a8a70a`, `ac6d1a6`; folder topology remains active in its isolated lane. |
-| J3 syntax/reports | 1/3 integrated; 2 active | `audit-decisions`, `find-omnibus`, `find-standard-gaps` | JDK syntax facts only where text/metadata cannot establish the final report. `find-standard-gaps` is integrated at `29e1272`; decision and omnibus outcomes remain unpromoted. |
+| J2 lexical/filesystem | 6/6 integrated; review pending | `adapt-project`, `explain-code`, `find-comment-drift`, `find-concept-divergence`, `find-duplication`, `find-folder-topology-drift` | Accepted Java source-role and path boundaries. All six candidate outcomes are integrated through `71ffb81`; promotion still waits for product-framed review and closeout replay. |
+| J3 syntax/reports | 2/3 integrated; omnibus active | `audit-decisions`, `find-omnibus`, `find-standard-gaps` | JDK syntax facts only where text/metadata cannot establish the final report. Decision and standard-gap outcomes are integrated through `ba69cee`; omnibus remains unpromoted. |
 | J4 semantic/project | active | `find-dormant`, `find-implicit-state`, `find-incomplete-sweep`, `find-semantic-duplication`, `map-subsystem`, `rename-concept` | Compiler attribution bounded to each claimed identity/relationship. `map-subsystem` and `find-dormant` are active in one isolated lane; later dependency cohorts have clean worktrees prepared. |
 | J5 proposals/guards | pending | `extract-enum`, `prevent-regression`, `propose-folder-reorganization`, `unify-shadows` | Accepted J4 evidence for the three detector consumers; folder proposal remains independent and read-only. |
 
