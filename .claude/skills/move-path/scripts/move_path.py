@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """Deterministic batched path mover with reference rewriting.
 
-V1 supports standalone TypeScript/TSX path moves plus filesystem identity and
-text references that can be resolved safely: Markdown links/images, HTML
-href/src attributes, backtick path tokens, and exact path residues. TypeScript
-source imports are intentionally not rewritten; affected local imports are
-reported as an explicit risk for a resolver-aware follow-up.
+The base path/text contract supports standalone TypeScript/TSX moves without
+rewriting source imports. Opt-in family-local modes add checked JavaScript,
+bounded Go package moves, and bounded Java package moves with native rollback.
 """
 from __future__ import annotations
 
@@ -59,6 +57,8 @@ GO_PACKAGE_MOVE_MINIMUM = (1, 22, 0)
 GO_PACKAGE_MOVE_MINIMUM_TEXT = "1.22"
 GO_NON_SOURCE_TEXT_SUFFIXES = frozenset({".json", ".md", ".toml", ".txt", ".yaml", ".yml"})
 GO_NON_SOURCE_SKIP_PARTS = frozenset({".git", ".move-path", ".venv", "__pycache__", "generated", "node_modules", "vendor"})
+JAVA_PACKAGE_MOVE_MINIMUM = 17
+JAVA_SKIP_PARTS = frozenset({".git", ".move-path", ".venv", "build", "dist", "generated", "gen", "node_modules", "reports", "target", "vendor"})
 GENERATED_TEXT_MARKER_RE = re.compile(r"(?im)^\s*(?:(?://|#|<!--)\s*)?code generated .*do not edit")
 EMITTED_SPECIFIER_SOURCE_SUFFIXES = {
     ".js": (".ts", ".tsx", ".d.ts"),
@@ -476,8 +476,8 @@ def mode_for(plan: dict, key: str, default: str = "ignore") -> str:
 def code_import_mode(plan: dict) -> str:
     """Return the only supported source-import policy without implying safety."""
     value = str((plan.get("rewrite") or {}).get("code_imports", "ignore"))
-    if value not in {"ignore", "update-javascript", "update-go"}:
-        raise SystemExit("rewrite.code_imports only supports ignore, update-javascript, or update-go; TypeScript imports require a resolver-aware move")
+    if value not in {"ignore", "update-javascript", "update-go", "update-java"}:
+        raise SystemExit("rewrite.code_imports only supports ignore, update-javascript, update-go, or update-java; TypeScript imports require a resolver-aware move")
     return value
 
 
@@ -728,6 +728,153 @@ def go_rewrites(root: Path, moves: list[MoveSpec], outcome: dict) -> tuple[list[
             target_after=item["new"],
         ))
     return replacements, blocked
+
+
+def java_package_symlink_blocks(root: Path, package_path: Path) -> list[dict]:
+    """Reject a package tree containing links before any Java move is planned."""
+    return [
+        {"kind": "java_symlink_in_package", "path": path.relative_to(root).as_posix()}
+        for path in sorted(package_path.rglob("*"))
+        if path.is_symlink()
+    ]
+
+
+def java_tooling(root: Path, moves: list[MoveSpec], *, post_apply: bool = False) -> dict:
+    """Validate the bounded standalone-JDK leaf-package contract."""
+    outcome: dict = {"status": "unsupported", "blocked": []}
+    if len(moves) != 1:
+        outcome["blocked"].append({"kind": "java_move_count_unsupported"})
+        return outcome
+    move = moves[0]
+    if move.mode != "directory":
+        outcome["blocked"].append({"kind": "java_package_move_must_be_directory", "path": move.src})
+        return outcome
+    package_rel = move.dst if post_apply else move.src
+    package_path = root / package_rel
+    if not package_path.is_dir():
+        outcome["blocked"].append({
+            "kind": "java_destination_package_missing_after_move" if post_apply else "java_package_move_must_be_directory",
+            "path": package_rel,
+        })
+        return outcome
+    if any(part.lower() in JAVA_SKIP_PARTS for part in (*Path(move.src).parts, *Path(move.dst).parts)):
+        outcome["blocked"].append({"kind": "java_excluded_path_unsupported", "path": package_rel})
+        return outcome
+    if (root / move.src).is_symlink() or (root / move.dst).is_symlink():
+        outcome["blocked"].append({"kind": "java_symlink_boundary", "path": package_rel})
+        return outcome
+    if symlinks := java_package_symlink_blocks(root, package_path):
+        outcome["blocked"].extend(symlinks)
+        return outcome
+    nested = [path for path in package_path.iterdir() if path.is_dir()]
+    if nested:
+        outcome["blocked"].append({
+            "kind": "java_package_not_leaf",
+            "paths": [path.relative_to(root).as_posix() for path in sorted(nested)],
+        })
+        return outcome
+    generated = []
+    for path in sorted(package_path.glob("*.java")):
+        if GENERATED_TEXT_MARKER_RE.search(_read_text(path)[:2048]):
+            generated.append(path.relative_to(root).as_posix())
+    if generated:
+        outcome["blocked"].append({"kind": "java_generated_source", "paths": generated})
+        return outcome
+    java = shutil.which("java")
+    javac = shutil.which("javac")
+    if java is None or javac is None:
+        outcome["blocked"].append({"kind": "java_tool_missing", "tools": [name for name, value in (("java", java), ("javac", javac)) if value is None]})
+        return outcome
+    version = subprocess.run([java, "-version"], cwd=root, text=True, capture_output=True, check=False)
+    javac_version = subprocess.run([javac, "-version"], cwd=root, text=True, capture_output=True, check=False)
+    match = re.search(r'(?i)(?:version\s+"?|javac\s+)(\d+)', version.stdout + version.stderr + "\n" + javac_version.stdout + javac_version.stderr)
+    if version.returncode != 0 or javac_version.returncode != 0 or match is None:
+        outcome["blocked"].append({"kind": "java_version_unreadable"})
+        return outcome
+    feature = int(match.group(1))
+    if feature < JAVA_PACKAGE_MOVE_MINIMUM:
+        outcome["blocked"].append({"kind": "java_version_too_old", "actual": feature, "minimum": JAVA_PACKAGE_MOVE_MINIMUM})
+        return outcome
+    outcome.update({
+        "status": "complete",
+        "java": {"path": java, "version": (version.stderr or version.stdout).splitlines()[0], "minimum": JAVA_PACKAGE_MOVE_MINIMUM},
+        "javac": {"path": javac, "version": (javac_version.stdout or javac_version.stderr).strip()},
+    })
+    return outcome
+
+
+def checked_java(root: Path, moves: list[MoveSpec], tooling: dict) -> dict:
+    """Ask the copied JDK-only helper for attributed package/reference spans."""
+    if tooling.get("status") != "complete":
+        return tooling
+    move = moves[0]
+    command = [
+        tooling["java"]["path"],
+        str(Path(__file__).with_name("java_package_reference_spans.java")),
+        "--project-root",
+        str(root),
+        "--from",
+        move.src,
+        "--to",
+        move.dst,
+    ]
+    result = subprocess.run(command, cwd=root, text=True, capture_output=True, check=False)
+    try:
+        outcome = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        outcome = {"status": "failed", "error": "Java helper emitted invalid JSON", "blocked": []}
+    outcome["returncode"] = result.returncode
+    outcome["tooling"] = tooling
+    if result.returncode != 0 and outcome.get("status") == "complete":
+        outcome["status"] = "failed"
+        outcome["error"] = result.stderr.strip() or "Java helper failed"
+    return outcome
+
+
+def java_rewrites(root: Path, moves: list[MoveSpec], outcome: dict) -> tuple[list[Replacement], list[dict]]:
+    replacements: list[Replacement] = []
+    blocked = list(outcome.get("blocked") or [])
+    if outcome.get("status") != "complete":
+        return replacements, blocked
+    for item in outcome.get("spans", []):
+        source = item["file"]
+        text = _read_text(root / source)
+        start = utf16_offset(text, int(item["start"]))
+        end = utf16_offset(text, int(item["end"]))
+        if text[start:end] != item["old_text"]:
+            blocked.append({"kind": "java_reference_span_mismatch", "path": source, "line": item["line"]})
+            continue
+        replacements.append(Replacement(
+            file_before=source,
+            file_after=after_path_for(source, moves),
+            start=start,
+            end=end,
+            old=item["old_text"],
+            new=item["new_text"],
+            kind=item["kind"],
+            confidence="auto",
+            target_before=outcome["old_package"],
+            target_after=outcome["new_package"],
+        ))
+    return replacements, blocked
+
+
+def iter_java_source_files(root: Path) -> list[str]:
+    return [
+        path.relative_to(root).as_posix()
+        for path in sorted(root.rglob("*.java"))
+        if path.is_file()
+        and not path.is_symlink()
+        and not any(part.lower() in JAVA_SKIP_PARTS for part in path.relative_to(root).parts)
+    ]
+
+
+def run_java_compile(root: Path, javac: str, files: list[str]) -> dict:
+    with tempfile.TemporaryDirectory(prefix="move-path-java-") as classes:
+        return _native_result(
+            [javac, "--release", "17", "-proc:none", "-d", classes, *[str(root / path) for path in files]],
+            root,
+        )
 
 
 def _native_result(
@@ -1538,6 +1685,16 @@ def render_markdown(payload: dict) -> str:
             out.append(f"- Detail: {go['error']}")
         if go.get("rolled_back"):
             out.append("- Source changes were rolled back after the Go native check failed.")
+    if java := payload.get("java"):
+        out.extend(["", "## Checked Java Package Move", ""])
+        out.append(f"- Status: `{java['status']}`")
+        out.append(f"- Updated reference spans: {len(java.get('updates', []))}")
+        if java.get("old_package"):
+            out.append(f"- Package identity: `{java['old_package']}` -> `{java['new_package']}`")
+        if java.get("error"):
+            out.append(f"- Detail: {java['error']}")
+        if java.get("rolled_back"):
+            out.append("- Source changes were rolled back after Java native compilation failed.")
     out.extend(["", "## Post-Apply Broken Links", ""])
     if payload["post_broken_links"]:
         for item in payload["post_broken_links"]:
@@ -1593,6 +1750,35 @@ def add_go_report(
         "rolled_back": rolled_back,
     }
     payload["summary"]["go_status"] = outcome.get("status", "failed")
+
+
+def add_java_report(
+    payload: dict,
+    outcome: dict,
+    replacements: list[Replacement],
+    *,
+    native: dict | None = None,
+    rolled_back: bool = False,
+) -> None:
+    payload["code_imports"] = {
+        "mode": "update-java",
+        "risk": "Only JDK-compiler-attributed package, import, and fully-qualified type spans are updated; strings and framework/runtime identities block apply.",
+        "ignored": [],
+    }
+    payload["java"] = {
+        "mode": "update-java",
+        "status": outcome.get("status", "failed"),
+        "error": outcome.get("error"),
+        "tooling": outcome.get("tooling"),
+        "old_package": outcome.get("old_package"),
+        "new_package": outcome.get("new_package"),
+        "updates": [dataclasses.asdict(item) for item in replacements],
+        "exact_changes": [dataclasses.asdict(item) for item in replacements],
+        "blocked": outcome.get("blocked", []),
+        "native": native or {},
+        "rolled_back": rolled_back,
+    }
+    payload["summary"]["java_status"] = outcome.get("status", "failed")
 
 
 def snapshot_move_inputs(root: Path, moves: list[MoveSpec], touched_before: list[str]) -> dict[str, bytes]:
@@ -1719,6 +1905,33 @@ def run_plan(
                     ),
                 })
             add_go_report(payload, tooling, [], native=native)
+        if import_mode == "update-java":
+            tooling = java_tooling(root, moves, post_apply=True)
+            native: dict = {}
+            outcome = tooling
+            if tooling.get("status") == "complete":
+                move = moves[0]
+                reverse = [MoveSpec(move.move_id, move.dst, move.src, move.mode)]
+                reverse_outcome = checked_java(root, reverse, tooling)
+                if reverse_outcome.get("status") == "complete":
+                    old_package = reverse_outcome["new_package"]
+                    new_package = reverse_outcome["old_package"]
+                    residues = []
+                    for source in iter_java_source_files(root):
+                        text = _read_text(root / source)
+                        if old_package in text:
+                            residues.append({"kind": "java_old_package_remains_after_move", "path": source})
+                    native["javac"] = run_java_compile(root, tooling["javac"]["path"], iter_java_source_files(root))
+                    outcome = {
+                        **reverse_outcome,
+                        "old_package": old_package,
+                        "new_package": new_package,
+                        "blocked": residues,
+                        "status": "failed" if not native["javac"]["passed"] else "partial" if residues else "complete",
+                    }
+                else:
+                    outcome = reverse_outcome
+            add_java_report(payload, outcome, [], native=native)
         write_report(report_dir, payload)
         return payload
 
@@ -1727,6 +1940,7 @@ def run_plan(
     blocked.extend(reference_blocked)
     javascript = checked_javascript(root, config, javascript_files) if import_mode == "update-javascript" else None
     go = checked_go(root, moves, go_tooling(root, moves)) if import_mode == "update-go" else None
+    java = checked_java(root, moves, java_tooling(root, moves)) if import_mode == "update-java" else None
     if go is not None and go.get("status") == "complete":
         non_go_blocks = non_go_old_import_path_blocks(root, go["old_import"], plan_path, report_dir)
         if non_go_blocks:
@@ -1734,6 +1948,7 @@ def run_plan(
             go["status"] = "partial"
     javascript_replacements: list[Replacement] = []
     go_replacements: list[Replacement] = []
+    java_replacements: list[Replacement] = []
     if javascript is not None:
         if javascript["status"] == "complete":
             javascript_replacements, javascript_blocked = javascript_rewrites(root, moves, javascript)
@@ -1752,10 +1967,20 @@ def run_plan(
                 go["status"] = "unsupported"
         else:
             blocked.append({"kind": f"go_{go.get('status', 'failed')}", "detail": go.get("error"), "findings": go.get("blocked", [])})
+    if java is not None:
+        if java.get("status") == "complete":
+            java_replacements, java_blocked = java_rewrites(root, moves, java)
+            blocked.extend(java_blocked)
+            if java_blocked:
+                java["status"] = "unsupported"
+        else:
+            blocked.append({"kind": f"java_{java.get('status', 'failed')}", "detail": java.get("error"), "findings": java.get("blocked", [])})
     replacements.extend(javascript_replacements)
     replacements.extend(go_replacements)
+    replacements.extend(java_replacements)
     go_files = go.get("go_files", []) if go is not None else []
-    after_texts = build_after_texts(root, sorted({*files, *javascript_files, *go_files}), moves, replacements)
+    java_files = java.get("java_files", []) if java is not None else []
+    after_texts = build_after_texts(root, sorted({*files, *javascript_files, *go_files, *java_files}), moves, replacements)
     after_paths = all_repo_paths_after(root, moves)
     post_broken = verify_markdown_links(root, after_texts, after_paths)
 
@@ -1782,6 +2007,8 @@ def run_plan(
         add_javascript_report(payload, javascript, javascript_replacements)
     if go is not None:
         add_go_report(payload, go, go_replacements)
+    if java is not None:
+        add_java_report(payload, java, java_replacements)
     write_report(report_dir, payload)
 
     safety = plan.get("safety") or {}
@@ -1806,7 +2033,17 @@ def run_plan(
             payload["summary"]["blocked"] = len(payload["blocked"])
             write_report(report_dir, payload)
             raise SystemExit(f"gofmt preflight prevents apply; see {report_dir / 'report.md'}")
-    snapshots = snapshot_move_inputs(root, moves, touched_before) if go is not None else {path: (root / path).read_bytes() for path in touched_before}
+    if java is not None:
+        native["javac_preflight"] = run_java_compile(root, java["tooling"]["javac"]["path"], java.get("java_files", []))
+        if not native["javac_preflight"]["passed"]:
+            java["status"] = "failed"
+            java.setdefault("blocked", []).append({"kind": "java_compile_preflight_failed"})
+            add_java_report(payload, java, java_replacements, native=native)
+            payload["blocked"].append({"kind": "java_compile_preflight_failed"})
+            payload["summary"]["blocked"] = len(payload["blocked"])
+            write_report(report_dir, payload)
+            raise SystemExit(f"javac preflight prevents apply; see {report_dir / 'report.md'}")
+    snapshots = snapshot_move_inputs(root, moves, touched_before) if go is not None or java is not None else {path: (root / path).read_bytes() for path in touched_before}
     apply_moves_and_rewrites(root, moves, after_texts, touched_before)
     if javascript is not None:
         checked_after = checked_javascript(root, config, [after_path_for(path, moves) for path in javascript_files])
@@ -1841,6 +2078,24 @@ def run_plan(
             write_report(report_dir, payload)
             raise SystemExit(f"Go native verification failed; source rolled back; see {report_dir / 'report.md'}")
         add_go_report(payload, go, go_replacements, native=native)
+        write_report(report_dir, payload)
+        if stage:
+            stage_applied_paths(root, moves, touched_before)
+        return payload
+    if java is not None:
+        java_files_after = [after_path_for(path, moves) for path in java.get("java_files", [])]
+        native["javac"] = run_java_compile(root, java["tooling"]["javac"]["path"], java_files_after)
+        native["exact_diff"] = {"passed": exact_snapshot_match(root, moves, snapshots, after_texts)}
+        if not all(item["passed"] for item in native.values()):
+            rollback_move_inputs(root, moves, snapshots)
+            java["status"] = "failed"
+            java.setdefault("blocked", []).append({"kind": "java_native_or_exact_check_failed"})
+            add_java_report(payload, java, java_replacements, native=native, rolled_back=True)
+            payload["blocked"].append({"kind": "java_native_or_exact_check_failed"})
+            payload["summary"]["blocked"] = len(payload["blocked"])
+            write_report(report_dir, payload)
+            raise SystemExit(f"Java native verification failed; source rolled back; see {report_dir / 'report.md'}")
+        add_java_report(payload, java, java_replacements, native=native)
         write_report(report_dir, payload)
         if stage:
             stage_applied_paths(root, moves, touched_before)

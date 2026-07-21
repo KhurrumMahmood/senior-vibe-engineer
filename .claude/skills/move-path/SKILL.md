@@ -1,6 +1,6 @@
 ---
 name: move-path
-description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module, updating only AST-confirmed exact import string literals. TypeScript/TSX source imports are never rewritten in v1.
+description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits. TypeScript/TSX source imports are never rewritten in v1.
 argument-hint: "--plan moves.json --dry-run|--apply|--check"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 user-invocable: true
@@ -15,6 +15,8 @@ best_for: |
   Also use the checked-JavaScript mode for explicit `.js`, `.jsx`, `.mjs`, or
   `.cjs` file moves that must update safe relative imports and checked-project
   configuration while leaving unrelated TypeScript source unchanged.
+  Use the checked-Java mode for one reviewed standalone-JDK leaf-package move
+  whose package, import, and fully-qualified type identities must stay exact.
 not_for: |
   Domain-concept terminology renames in prose (use /rename-concept).
   Python/TypeScript import refactors unless a language adapter has been
@@ -23,13 +25,13 @@ not_for: |
   /refactor-subsystem). Blind global find-and-replace.
 language: any
 framework: any
-scans: [go, javascript, typescript]
+scans: [go, java, javascript, typescript]
 ---
 
 # /move-path
 
 You are the orchestrator for safe batched standalone TypeScript/TSX path
-moves, plus an opt-in bounded checked-JavaScript mode. The deterministic
+moves, plus opt-in bounded checked-JavaScript, Go, and Java modes. The deterministic
 script owns filesystem moves, path normalization, reference resolution, patch
 generation, and verification. Your job is to prepare or inspect the plan, run
 dry-run first, review uncertainty buckets and ignored-import risk, then apply
@@ -111,6 +113,35 @@ native or exact check restores moved and rewritten source. It is not a Go
 symbol rename, package-name rename, workspace migration, or general Go
 refactor engine.
 
+## Checked-Java Package Boundary
+
+Enable Java rewriting only with `rewrite.code_imports: "update-java"`. The
+pilot automates exactly one leaf package-directory move under the same inferred
+source root, for example `src/main/java/example/legacy/` to
+`src/main/java/example/workflow/`. Both `java` and `javac` must resolve from
+`PATH` at JDK 17 or newer; the copied closure installs nothing.
+
+The family-local single-file Java helper parses and attributes every eligible
+first-party `.java` source with the JDK compiler tree API and annotation
+processing disabled. It rewrites only exact compiler spans for package
+declarations in moved files, imports resolving into the moved package, and
+fully-qualified type references resolving into that package. A plain string,
+comment, reflection name, service descriptor, framework registry, or other old
+package occurrence is a blocking `partial` finding, never a text replacement.
+
+Before apply, the mover rejects multiple moves, files instead of directories,
+mixed/default or path-mismatched packages, nested package directories,
+generated/vendor/build/symlink shapes, malformed source, unresolved
+compilation, an invalid destination package, or a source-root change. It
+compiles all eligible sources with `javac --release 17 -proc:none` before and
+after mutation and checks the exact source diff. A failed post-move compile or
+diff restores the moved tree and every rewritten file.
+
+This is not Maven/Gradle/module-path discovery, annotation-processor execution,
+Spring/Jakarta/Android reflection analysis, Kotlin support, a type rename, or a
+general JVM refactor engine. Hosts requiring those semantics remain outside the
+standalone Java v1 claim.
+
 ## Commands
 
 ```bash
@@ -189,6 +220,21 @@ For the bounded Go package move, use:
 }
 ```
 
+For the bounded Java package move, use:
+
+```json
+{
+  "moves": [
+    {
+      "from": "src/main/java/example/legacy/",
+      "to": "src/main/java/example/workflow/",
+      "mode": "directory"
+    }
+  ],
+  "rewrite": {"code_imports": "update-java"}
+}
+```
+
 ## Confidence Buckets
 
 - `auto` — resolved identity, safe to update.
@@ -212,6 +258,8 @@ describing the old layout rather than linking to the current identity.
 4. Resolve `blocked` findings. Review `suggest` findings and every ignored
    TypeScript import that resolves to a move target. In checked-JavaScript
    mode, require a `complete` JavaScript status and review each exact change.
+   In checked-Java mode, require a `complete` Java status, review every exact
+   package/import/FQCN change, and resolve every dynamic old-package finding.
 5. Run `--apply` only after the dry-run report matches the intended
    transform.
 6. Run `--check` after manual follow-up edits or before commit.
