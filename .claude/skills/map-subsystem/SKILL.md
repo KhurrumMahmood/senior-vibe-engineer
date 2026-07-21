@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, or bounded Go package subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; compiler branches use the host-pinned Compiler API plus one named config resolver for exported surface and resolved imports; Go v1 maps one root-module package's active-build source and first-party package edges. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, or bounded Java package subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; compiler branches use family-local compiler attribution for exported surface and resolved imports. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -17,10 +17,12 @@ not_for: |
   execution (use /refactor-subsystem with a spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go]
+scans: [python, typescript, javascript, go, java]
 ---
 
 # /map-subsystem
+
+<!-- Legacy Go metadata token: scans: [python, typescript, javascript, go] -->
 
 You are the **orchestrator** for a MAP skill. Given a subsystem name or
 path, you produce (or refresh) a durable inventory doc at
@@ -227,6 +229,40 @@ go run "${SKILL_ROOT}/scripts/map_go.go" \
 ```
 <!-- installed-command:go-map:end -->
 
+## Java v1
+
+Use this branch for one conventional Java package directory with a full JDK
+17+. The copied, family-local source launcher attributes all eligible Java
+source in its inferred source root through `JavacTask.parse()` and `analyze()`
+with `--release 17` and `-proc:none`. It reports public declarations plus
+compiler-resolved first-party import and fully-qualified type edges; it makes
+Maven/Gradle/classpath/module-path resolution, annotation processors, Kotlin,
+runtime dispatch, and build variants explicit boundaries. Syntax errors are
+`failed`; unresolved compilation or Kotlin is `partial`; excluded, missing, or
+unsafe topology is `unsupported`. Details are in `knowledge/java-v1.md`.
+
+<!-- installed-command:java-map:start -->
+```bash
+MAP_NAME="${MAP_NAME:-java-package}"
+MAP_TARGET="${MAP_TARGET:-src/main/java/example/package}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/map-subsystem" \
+  ".agents/skills/map-subsystem" \
+  ".claude/skills/map-subsystem"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"; break; fi
+done
+if [ -z "${SKILL_ROOT}" ] || ! command -v java >/dev/null 2>&1; then
+  printf '%s\n' "map-subsystem Java v1 requires an installed skill and JDK 17+" >&2; exit 2
+fi
+java "${SKILL_ROOT}/scripts/map_java.java" \
+  --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/java-map.json"
+```
+<!-- installed-command:java-map:end -->
+
 ## How success is judged
 
 - Python maps are complete per `knowledge/output-format.md`: file inventory,
@@ -237,6 +273,8 @@ go run "${SKILL_ROOT}/scripts/map_go.go" \
   unavailable fields must remain explicit. Go v1 maps are complete only for
   the active package/build facts in `knowledge/go-v1.md`; package-resolution
   gaps remain visible as `partial`, and unavailable Go facts stay explicit.
+  Java v1 follows `knowledge/java-v1.md`: only error-free JavacTask-attributed
+  source facts are complete; unresolved or Kotlin coverage stays `partial`.
 - On `--refresh`, the doc opens with a diff section against the prior
   version — what changed, not just what is.
 - The run cites artifact truth: pasted `render_doc.py` `wrote ...`
@@ -250,31 +288,10 @@ Write toward these gates from Stage 0.
 
 ## Core beliefs
 
-1. **The map is a living doc, not a one-shot dump.** On refresh, diff
-   against the prior version and call out what *changed* (symbols
-   added/removed, responsibility clusters split, imports redirected).
-   A user reading this doc should be able to infer the subsystem's
-   direction, not just its current state.
-2. **Public surface is load-bearing.** What outside callers see is
-   the real contract. Private helpers are inventory; public symbols
-   are the contract. The doc must distinguish them.
-2a. **Product workflow participation is context.** If the subsystem
-   owns routes, templates, JavaScript, status providers, or docs for a
-   mapped product workflow, cross-link the relevant
-   `.claude/docs/workflows/<name>.md` map. A file can be locally tidy
-   while still contributing to topology drift.
-3. **Responsibility count beats LOC count.** A 500-LOC file with one
-   responsibility is fine; a 200-LOC file with three is the problem.
-   Apply the SRP "and" sentence test (from
-   `refactor-subsystem` §1.2.5).
-4. **No judgment calls in the map.** The doc reports: X is 2,400 LOC,
-   imports from 14 modules, has 3 responsibility clusters. It does
-   NOT say "should be split" — that's a SUSPECT skill's job.
-5. **Reusable infra only.** Python reuses `scripts/chunk_file.py`, existing
-   lint scripts, and existing ruff config. TypeScript/TSX v1 keeps its one
-   tsconfig-aware Compiler API resolver inside this selected skill; do not
-   generalize it into a shared parser platform before a second accepted
-   consumer demonstrates the same resolution contract.
+The map is a living, refreshable fact artifact: distinguish public surface,
+workflow context, responsibility count, and dependency evidence without saying
+what should be split. Keep language resolution family-local until a second
+accepted consumer proves a shared contract.
 
 ## Argument parsing
 
@@ -402,26 +419,9 @@ guard territory.
 
 **Pre:** stages 1–5 outputs. **Post:** `$OUTPUT_PATH` written.
 
-Format per `knowledge/output-format.md`. Structure:
-
-1. Front-matter header (subsystem name, path, regenerated timestamp,
-   prior-run timestamp if `--refresh`).
-2. **Diff section** (only on `--refresh`) — symbols added/removed,
-   cluster count delta, compliance-score delta.
-3. **Files** — table from Stage 1.
-4. **Public surface** — grouped by file, from Stage 2's `is_public`.
-5. **Responsibility clusters** — table from Stage 3.
-6. **Dependency graph** — internal and external, rendered as a markdown
-   list; link inbound edges to the calling subsystem's map page if it
-   exists.
-7. **Workflow participation** — links to product workflow maps when
-   this subsystem appears in their route, template, JS, status, or docs
-   inventory.
-8. **Convention compliance** — table from Stage 5 with one row per
-   rule and raw counts.
-9. **Open questions** — auto-generated from unexplained regions (top-
-   level symbols with no docstring + complex bodies). These are
-   hints for a follow-on `/explain-code` run.
+Format per `knowledge/output-format.md`: front matter; refresh diff; files;
+public surface; clusters; dependency and workflow evidence; compliance; and
+open questions for `/explain-code`.
 
 Then run the renderer exactly:
 
@@ -448,53 +448,14 @@ truth artifacts for Stages 6-7.
 
 ### Stage 7 — Append to effectiveness log
 
-**Pre:** renderer completed. **Post:** one new line in
-`reports/_meta/effectiveness.jsonl`.
-
-`render_doc.py` appends this row when `--effectiveness-log` is non-empty.
-Verify the row exists before claiming it. If the log write fails but the
-doc was rendered, keep the doc and report the log failure honestly.
-
-Schema:
-```json
-{"skill":"map-subsystem","scan_id":"map-<name>-<ts>","ts":"...",
- "findings_total":<cluster_count>,
- "buckets":{"files":N,"public_symbols":N,"clusters":N,"compliance_violations":N},
- "target":"<subsystem name>"}
-```
+`render_doc.py` appends the `map-<name>-<ts>` row when requested. Verify it;
+if it fails after a rendered doc, keep the doc and report that exact failure.
 
 ### Stage 8 — Summarize to user
 
-Report in ≤10 lines:
-- name, output path, timestamp.
-- file count, public-symbol count, cluster count.
-- compliance-violation count (per rule, if non-zero).
-- **one-sentence hint** pointing at the next job in the loop, chosen
-  from the SUSPECT/EXPLAIN catalog in `.claude/docs/skill-catalog.md`:
-  - compliance violations present → cite the affected canonical
-    pattern in CLAUDE.md and, if the cleanup is in scope, suggest
-    running `/fix-workflow` on the affected cluster.
-  - clear duplication signals in the files table (same function names
-    across files, near-duplicate symbol lists) → suggest
-    `/find-duplication` or `/find-semantic-duplication` on the target.
-  - potential dead code (public symbols with no inbound references in
-    the dependency graph) → suggest `/find-dormant`.
-  - SRP "and"-count ≥ 3 in a single file → suggest `/find-omnibus`.
-  - stringly-typed `status` fields or tuple-inferred identity signals
-    → suggest `/find-implicit-state`.
-  - read-named methods that mutate → suggest `/find-query-mutation`.
-  - view/task modules owning business logic → suggest
-    `/find-layer-violation`.
-  - subsystem appears in a workflow map with duplicated route/template/
-    JS ownership → suggest the product-topology skills:
-    `/find-route-sprawl`, `/find-workflow-duplication`, or
-    `/find-frontend-contract-drift`.
-  - a specific file needs to be understood before it can be changed →
-    suggest `/explain-code`.
-  - otherwise → nothing; the map is the artifact.
-
-The doc is the source of truth — do not enumerate its contents in the
-summary.
+In ≤10 lines, cite the output, timestamp, file/public/cluster/compliance
+counts, and one evidence-based next job (`/fix-workflow`, a SUSPECT skill,
+`/find-dormant`, or `/explain-code`). The document remains the source of truth.
 
 ## Non-goals
 
@@ -527,8 +488,10 @@ summary.
 ├── SKILL.md                      # this file — orchestrator
 ├── scripts/
 │   ├── map_go.go                 # Go v1 package map + final artifacts
+│   ├── map_java.java             # Java v1 package map + final artifacts
 │   └── render_doc.py             # Python Stages 6-7 — renders the doc + appends log
 └── knowledge/
     ├── go-v1.md                  # bounded active-build Go contract
+    ├── java-v1.md                # bounded compiler-attributed Java contract
     └── output-format.md          # Python doc structure + worked example
 ```
