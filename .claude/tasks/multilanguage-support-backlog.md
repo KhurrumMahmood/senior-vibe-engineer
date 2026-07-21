@@ -108,10 +108,14 @@ auditable when completeness matters.
 - Go evidence (2026-07-21): the semantic-maintenance family confirmed repeated
   Go 1.22+ tool discovery, `go list -deps -export`, export-data importing,
   active-source selection, and diagnostic plumbing across independent skills.
-  Their semantic result models did not generalize. Keep this item `proposed`;
-  the first experiment should extract a vendorable bootstrap/path component
-  only after one real repair must be made in two consumers. See
-  `multilanguage-learnings/go-semantic-maintenance-family.md`.
+  The final incomplete-sweep and folder-proposal work repeated the bootstrap
+  and path-boundary shape again, while also demonstrating that dependency
+  export data and current-module source impact are different scopes. Their
+  result models still did not generalize. Keep this item `proposed`; the first
+  experiment should extract a vendorable bootstrap/path component only after
+  one real repair must be made in two consumers. See
+  `multilanguage-learnings/go-semantic-maintenance-family.md` and
+  `multilanguage-learnings/go-final-coverage.md`.
 
 ### ML-004 — Normalize and compress cross-language learning packets
 

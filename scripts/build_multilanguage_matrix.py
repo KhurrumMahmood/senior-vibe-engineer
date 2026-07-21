@@ -103,7 +103,7 @@ LEARNING_PACKETS = {
     "find-duplication": ["find-duplication-typescript"],
     "find-folder-topology-drift": ["find-folder-topology-drift-typescript"],
     "find-implicit-state": ["b2p-state-reference", "b2t-typescript-closed-state"],
-    "find-incomplete-sweep": ["find-incomplete-sweep-typescript"],
+    "find-incomplete-sweep": ["find-incomplete-sweep-typescript", "go-final-coverage"],
     "find-omnibus": ["find-omnibus-typescript"],
     "find-semantic-duplication": [
         "find-semantic-duplication-typescript",
@@ -114,7 +114,7 @@ LEARNING_PACKETS = {
     "move-path": ["move-path-typescript"],
     "prevent-regression": ["b2p-state-reference", "b2t-typescript-closed-state"],
     "propose-boundary": ["propose-boundary-typescript"],
-    "propose-folder-reorganization": ["propose-folder-reorganization-typescript"],
+    "propose-folder-reorganization": ["propose-folder-reorganization-typescript", "go-final-coverage"],
     "rename-concept": [
         "b1-portability",
         "rename-concept-typescript",

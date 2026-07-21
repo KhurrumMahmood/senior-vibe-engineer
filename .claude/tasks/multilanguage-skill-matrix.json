@@ -15,7 +15,7 @@
     },
     {
       "path": ".claude/tasks/go-language-coverage.json",
-      "sha256": "a1c619cf18ff4df501d69ffa3f0cf621f14317c30dede7720797cdeb852fad21"
+      "sha256": "ad91343d46867ea4fdac78ca1945c74a3341fc11f0c5b27b302fcaa4d6be628d"
     },
     {
       "path": ".claude/tasks/java-language-coverage.json",
@@ -2012,10 +2012,14 @@
       ],
       "javascript_reviewed_revision": "f06b6c5",
       "javascript_limitation": null,
-      "go_disposition": "pending-validation",
-      "go_evidence_path": null,
-      "go_native_check": null,
-      "go_reviewed_revision": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_incomplete_sweep_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "go vet detect_go_incomplete_sweep.go",
+        "manifest-to-scout-verdict-to-triage and source-preservation assertions"
+      ],
+      "go_reviewed_revision": "2b83ccd",
       "java_disposition": "pending-validation",
       "java_evidence_path": null,
       "java_native_check": null,
@@ -2060,7 +2064,8 @@
       "typescript_evidence_path": "tests/test_find_incomplete_sweep_typescript.py",
       "typescript_reviewed_revision": "c611723",
       "learning_packets": [
-        ".claude/tasks/multilanguage-learnings/find-incomplete-sweep-typescript.json"
+        ".claude/tasks/multilanguage-learnings/find-incomplete-sweep-typescript.json",
+        ".claude/tasks/multilanguage-learnings/go-final-coverage.json"
       ]
     },
     {
@@ -4149,10 +4154,14 @@
       ],
       "javascript_reviewed_revision": "87960c4",
       "javascript_limitation": null,
-      "go_disposition": "pending-validation",
-      "go_evidence_path": null,
-      "go_native_check": null,
-      "go_reviewed_revision": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_propose_folder_reorganization_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "go vet ./...",
+        "read-only move plan, current-module import impact, and copied on-demand closure assertions"
+      ],
+      "go_reviewed_revision": "7f3da12",
       "java_disposition": "pending-validation",
       "java_evidence_path": null,
       "java_native_check": null,
@@ -4197,7 +4206,8 @@
       "typescript_evidence_path": "tests/test_propose_folder_reorganization_typescript.py",
       "typescript_reviewed_revision": "c611723",
       "learning_packets": [
-        ".claude/tasks/multilanguage-learnings/propose-folder-reorganization-typescript.json"
+        ".claude/tasks/multilanguage-learnings/propose-folder-reorganization-typescript.json",
+        ".claude/tasks/multilanguage-learnings/go-final-coverage.json"
       ]
     },
     {
