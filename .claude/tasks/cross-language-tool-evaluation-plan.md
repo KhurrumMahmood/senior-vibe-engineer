@@ -1,6 +1,6 @@
 # Cross-language tool and SkillOpt evaluation plan
 
-Status: complete — no product dependency adopted; Java J1 is the next product work
+Status: complete — no product dependency adopted; staged Java expansion is the next product work
 
 Primary objective: determine whether a small number of existing tools can make
 the next language ports cheaper and more reliable, without delaying the Java
@@ -32,7 +32,7 @@ high-leverage judgment skill.
 - `last_completed_checkpoint`: X1 rejected, X2 continued to a real-language
   pilot, X3 stopped after a nondiscriminating four-call baseline, and X4 made
   no production dependency change
-- `next_action`: return to Java J1. Redesign X3 only as a later bounded task;
+- `next_action`: continue Java J2-J5 expansion. Redesign X3 only as a later bounded task;
   do not run the optimizer against the current corpus
 - `active_experiment`: none
 - `production_changes_allowed`: no

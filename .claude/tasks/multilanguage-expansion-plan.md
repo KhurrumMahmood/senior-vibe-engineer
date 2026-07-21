@@ -665,10 +665,79 @@ Java J1 acceptance:
 - [x] A fresh product-framed review passes and any accepted user-facing defect
       becomes a regression before Java closeout is committed.
 
-Java support is bounded to the three passing pilot families. C# remains the
-next language regardless of whether Java expands later; further Java families
-are demand-triggered rather than implied by the pilot.
-- [x] The plan was revised in `295a862` before Java implementation began.
+The user accepted full staged Java expansion after the three-family pilot.
+Java is now the only active language; C# does not start until every remaining
+Java language-level row has either passed its own final-outcome evidence or an
+explicit product-reviewed stop decision proves that a useful honest outcome is
+unavailable.
+
+### Java J2-J5 staged expansion
+
+State: `in_progress`
+
+The remaining 19 rows are owned in four batches. A batch may share fixtures or
+invocation patterns, but each skill still needs its own final artifact and
+capability evidence. Proposal/guard consumers do not reimplement upstream
+detectors.
+
+| Batch | State | Skills | Dependency |
+|---|---|---|---|
+| J2 lexical/filesystem | in progress | `adapt-project`, `explain-code`, `find-comment-drift`, `find-concept-divergence`, `find-duplication`, `find-folder-topology-drift` | Accepted Java source-role and path boundaries. |
+| J3 syntax/reports | pending | `audit-decisions`, `find-omnibus`, `find-standard-gaps` | JDK syntax facts only where text/metadata cannot establish the final report. |
+| J4 semantic/project | pending | `find-dormant`, `find-implicit-state`, `find-incomplete-sweep`, `find-semantic-duplication`, `map-subsystem`, `rename-concept` | Compiler attribution bounded to each claimed identity/relationship. |
+| J5 proposals/guards | pending | `extract-enum`, `prevent-regression`, `propose-folder-reorganization`, `unify-shadows` | Accepted J4 evidence for the three detector consumers; folder proposal remains independent and read-only. |
+
+Execution ownership is deliberately smaller than those reporting batches:
+
+| Cohort | Owned skills | Merge dependency |
+|---|---|---|
+| J2A source/text facts | `adapt-project`, `find-comment-drift`, `find-concept-divergence`, `find-folder-topology-drift` | none |
+| J2B declared symbols/clones | `explain-code`, `find-duplication` | locked Java source-role fixture only |
+| J3 report facts | `audit-decisions`, `find-standard-gaps`, then `find-omnibus` | none; omnibus keeps its existing human scout seam |
+| J4A project graph | `map-subsystem`, `find-dormant` | none |
+| J4B relationship leads | `find-incomplete-sweep`, `find-semantic-duplication` | none; Git evidence remains mandatory for incomplete-sweep |
+| J4C state chain | `find-implicit-state` | lands before J5 state consumers |
+| J4D rename authority | `rename-concept` | requires accepted J2A `find-concept-divergence` strict-text coverage |
+| J5 consumers | `extract-enum`, `prevent-regression`, `unify-shadows` | accepted J4C/J4B evidence; no re-detection |
+| J5 folder proposal | `propose-folder-reorganization` | explicit human cluster judgment; J2 topology evidence is optional input, not authority |
+
+Per-skill acceptance:
+
+- [ ] A locked Java 17 host reaches the skill's existing final human and
+      structured artifact, not merely parser facts.
+- [ ] The selected task skill runs from a copied on-demand closure with no
+      network or repository runtime import. Skills claiming compiler facts
+      discover host `java`/`javac`; lexical skills still name a native fixture
+      check. No skill assumes Maven/Gradle unless it explicitly reports that
+      build boundary as unsupported.
+- [ ] Positive, clean-negative, generated/test/vendor, malformed or unresolved,
+      symlink/path, and missing/old-tool behavior is explicit where applicable;
+      partial evidence never becomes clean.
+- [ ] Read-only skills preserve source fingerprints. Mutating or guard skills
+      prove exact output plus native `javac --release 17 -proc:none` behavior
+      and rollback/non-application on failure.
+- [ ] Existing Python, TypeScript/JavaScript, and Go paths remain green for the
+      touched skill family.
+- [ ] A product-framed independent review separates user-facing fixes from
+      backlog ideas and disproportionate hardening before the row is promoted.
+- [ ] The batch records what transferred, what remained family-local, measured
+      implementation cost, and whether any repeated Java bootstrap/path repair
+      now satisfies ML-021's extraction gate.
+
+Expansion completion:
+
+- [ ] `java-language-coverage.json` contains 22 `java-supported` rows, or a
+      smaller explicitly accepted maximum with named unsupported outcomes and
+      user-approved stop decisions.
+- [ ] The generated 76-skill matrix is current; installed router journeys
+      select every accepted Java capability and reject any stopped row.
+- [ ] Copied-closure, native fixture, preserved-language, strict metadata, and
+      product-review gates pass at the accepted closeout revision.
+
+Pilot planning history: the original J0/J1 plan was revised in `295a862`
+before pilot implementation began. This J2-J5 expansion contract supersedes
+the earlier demand-triggered stop after the user explicitly chose full Java
+completion.
 
 ## Parallelism and merge policy
 
