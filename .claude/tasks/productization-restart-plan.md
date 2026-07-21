@@ -163,3 +163,36 @@ it is necessary.
 3. Begin the user-journey milestone only after the next language scope is
    explicitly chosen; keep routing quality and measured efficiency separate
    from speculative execution-platform work.
+
+## Deferred product-review queue after language compatibility
+
+Two fresh product-framed reviews on 2026-07-21 (GPT-5.6 Luna max and
+GPT-5.6 Sol xhigh) agreed that the router-only/on-demand architecture and
+support-honesty boundaries are valuable, but the overall product journey is
+not finished. These items are recorded now and remain unscheduled until the
+active language-compatibility pass reaches its checkpoint:
+
+1. **Library lifecycle:** define the smallest pinned install/update/repair/
+   doctor/uninstall journey that prevents router/library version drift. Do not
+   revive content attestation or a custom package manager.
+2. **Shared routing capability:** make `which-shape` and `which-cleanup` honor
+   the same language/framework support and partial/unknown states as
+   `which-skill`; expand the natural-language decision corpus rather than
+   building a learned router.
+3. **First-success audit-to-change journey:** prove one cold host can move from
+   project orientation and a prioritized roadmap through an approved bounded
+   refactor, native verification, and guard closeout. This may justify a
+   portable `execute-approved-refactor` contract; it does not justify an
+   autonomous mutation coordinator.
+4. **Project orientation/profile:** evaluate one concise project profile that
+   supplies language/framework evidence, topology, native commands, risks, and
+   open questions to routers and execution agents without ambiently loading the
+   whole skill catalog.
+5. **Outcome telemetry:** prefer resolved/adopted/deferred/regression-held
+   outcomes over additional activity dashboards.
+
+Both reviews explicitly rejected a universal DAG/context cache, autonomous
+mutation platform, blanket skill compression, more attestation hardening, and
+new micro-skills as substitutes for these user journeys. Reassess this queue
+after the language pass with real host evidence; do not promote every item
+merely because two reviewers mentioned it.
