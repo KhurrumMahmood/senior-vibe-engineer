@@ -1,7 +1,7 @@
 ---
 name: find-dormant
-description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX and checked JavaScript use a host-pinned Compiler API Program/TypeChecker to report non-exported, statically unreferenced top-level implementation candidates for human review. Never infers safe deletion from static evidence.
-argument-hint: "--target <directory-or-file> [--language python|typescript|javascript]"
+description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, and Go have narrow static review branches for human review. Never infers safe deletion from static evidence.
+argument-hint: "--target <directory-or-file> [--language python|typescript|javascript|go]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -15,6 +15,8 @@ best_for: |
   deletes — surfaces evidence for /fix-workflow delete:<id>. TypeScript/TSX
   v1 reports only non-exported top-level implementations with zero resolved
   static symbol references, and always requires human runtime review.
+  Go v1 reports only unexported package-level functions and function-valued
+  variables with zero `go/types` uses in the selected active-build package.
 not_for: |
   Removing findings (use /fix-workflow delete:<id>). Architectural
   smells like omnibus or layer violation (use those /find-* skills).
@@ -24,7 +26,7 @@ not_for: |
   or safe-deletion decisions are outside the static v1 contract.
 language: any
 framework: any
-scans: [python, typescript, javascript]
+scans: [python, typescript, javascript, go]
 scout_model: cheap
 ---
 
@@ -159,6 +161,60 @@ CommonJS exports and matching string/dynamic-registration evidence are
 conservative boundaries, not dormant candidates. The result remains
 human-review-only and never authorizes deletion.
 
+## Go v1
+
+Use this separate branch only with Go 1.22+ on `PATH`. One family-local,
+batched helper uses the host toolchain's `go list` package/build facts plus
+stdlib `go/parser`, `go/types`, and `go/importer`. It reports only
+**unexported package-level functions and function-valued variables** with zero
+resolved uses in their selected active-build package. Methods and types are
+intentionally out of scope.
+
+Every result is `review_required` with `human_review_only`; `certain_delete`
+is always zero, and the Go branch must never infer safe deletion from static
+evidence. An exact matching string name and a `//go:linkname` reference
+are emitted as `uncertain`, rather than candidates. Reflection, generated
+registration, plugin loading, cgo, and assembly stay explicit uncertainty
+boundaries. Cgo/type/package facts that cannot be established, and
+build-constrained files, produce a final `partial` report; they are never
+silently clean. Malformed Go, missing/old Go, unsafe report paths, or symlink
+targets exit 2.
+
+The Go detector accepts a `.go` file or directory target, never follows a
+symlink, applies project-root-relative exclusions to broad and direct targets,
+and writes only `reports/find-dormant/<scan>/report.md` and `findings.json`.
+It has no `go/packages`, toolkit venv, repository helper, sibling skill, or
+network dependency after installation.
+
+<!-- installed-command:go-scan:start -->
+```bash
+: "${TARGET:?Set TARGET to the Go file or directory to audit}"
+REPORT_NAME="${REPORT_NAME:-go-scan}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-dormant" \
+  ".agents/skills/find-dormant" \
+  ".claude/skills/find-dormant"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-dormant is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+python3 "${SKILL_ROOT}/scripts/detect_go_dormant.py" \
+  --target "${TARGET}" --project-root "$(pwd)" \
+  --report-dir "reports/find-dormant/${REPORT_NAME}"
+```
+<!-- installed-command:go-scan:end -->
+
+Run the host's `go test ./...` before and after the audit. The detector reports
+active-build package facts only; it does not establish runtime reachability or
+authorize deletion.
+
 ## How success is judged
 
 - Every Python deletion candidate in `${REPORT_DIR}/report.md` carries a
@@ -170,6 +226,9 @@ human-review-only and never authorizes deletion.
 - Every TypeScript final report carries explicit `review_required` and
   `uncertain` counts plus `certain_delete: 0`; no static finding crosses into a
   Python scout/deletion bucket.
+- Every Go final report carries explicit `review_required` and `uncertain`
+  counts plus `certain_delete: 0`; no Go static finding crosses into a Python
+  scout/deletion bucket or a safe-deletion recommendation.
 - Nothing is deleted — recommendations route to `/fix-workflow
   delete:<name>` or `fix:<name>` after user authorization.
 Write toward these gates from Stage 0.
@@ -177,12 +236,15 @@ Write toward these gates from Stage 0.
 ## Scope
 
 - **Target path:** the required `--target` argument. Python requires a
-  directory; TypeScript v1 accepts a `.ts`/`.tsx` file or directory.
+  directory; TypeScript v1 accepts a `.ts`/`.tsx` file or directory; Go v1
+  accepts a `.go` file or directory.
 - **Project root:** this worktree's root.
 - **Python:** `.venv/bin/python` (never bare `python`).
 - **TypeScript v1:** Node plus a project-local `typescript` package and named
   tsconfig. Its static program/type-checker model is intentionally separate
   from the Python/Django detector and scout pipeline.
+- **Go v1:** Go 1.22+ from `PATH`. Its active-build package/use model is
+  intentionally separate from Python/Django and TypeScript branches.
 - **Project-specific defaults** (grep locations, Django false
   positives, dynamic-dispatch patterns, candidate skip list): in
   `knowledge/`.
@@ -408,6 +470,9 @@ The report is the source of truth — do not enumerate every candidate.
 - CI gates — periodic audit, not a per-commit check.
 - TypeScript safe deletion, framework/API ownership, dynamic dispatch, or any
   route/endpoint/error-swallowing assessment.
+- Go method/type analysis, interface/runtime reachability, reflection,
+  `//go:linkname`, generated registration, plugin, cgo, assembly, or any
+  safe-deletion assessment.
 
 ## When things go sideways
 
@@ -432,7 +497,9 @@ The report is the source of truth — do not enumerate every candidate.
 │   ├── detect_silent_catches.py     # Stage 1
 │   ├── collapse.py                  # Stage 2
 │   ├── report.py                    # Stage 4
-│   └── detect_typescript_dormant.mjs # TypeScript v1 final report
+│   ├── detect_typescript_dormant.mjs # TypeScript v1 final report
+│   ├── detect_go_dormant.py          # Go v1 final report launcher
+│   └── detect_go_dormant.go          # Go v1 batched package/use helper
 ├── agents/
 │   └── verify.md                    # Stage 3 scout brief
 └── knowledge/                       # sub-agent context, never loaded by orchestrator
