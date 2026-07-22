@@ -46,6 +46,7 @@ LANGUAGE_MARKERS = {
     "csharp": re.compile(r"(?i)(?:\bc#\b|\bcsharp\b|\.cs\b)"),
     "ruby": re.compile(r"(?i)(?:\bruby\b|\.rb\b)"),
     "php": re.compile(r"(?i)(?:\bphp\b|\.php\b)"),
+    "swift": re.compile(r"(?i)(?:\bswift(?:pm)?\b|\.swift\b|Package\.swift\b)"),
 }
 STOPWORDS = {
     "a", "an", "and", "are", "as", "at", "be", "by", "do", "for", "from",
@@ -681,6 +682,9 @@ def _apply_task_capability_gate(handoff: dict[str, Any], task: str) -> None:
             elif language == "php":
                 disposition = row["php_disposition"]
                 eligible = disposition in {"php-supported", "validated-neutral"}
+            elif language == "swift":
+                disposition = row["swift_disposition"]
+                eligible = disposition in {"swift-supported", "validated-neutral"}
             elif language == "python":
                 continue
             else:
@@ -717,6 +721,7 @@ CAPABILITY_FIELDS = (
     "go_disposition",
     "java_disposition",
     "php_disposition",
+    "swift_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",

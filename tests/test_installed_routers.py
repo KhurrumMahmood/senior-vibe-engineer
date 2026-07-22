@@ -155,6 +155,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
             "go_disposition": "validated-neutral",
             "java_disposition": "validated-neutral",
             "php_disposition": "validated-neutral",
+            "swift_disposition": "validated-neutral",
             "fact_level": "neutral",
             "outcome_class": "not-applicable",
             "framework_family": None,
@@ -193,6 +194,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "go_disposition": "stack-bound",
         "java_disposition": "stack-bound",
         "php_disposition": "stack-bound",
+        "swift_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "architecture-planning",
@@ -223,6 +225,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "go_disposition": "go-supported",
         "java_disposition": "java-supported",
         "php_disposition": "php-unsupported",
+        "swift_disposition": "swift-unsupported",
         "fact_level": "semantic-project",
         "outcome_class": "read-only-report",
         "framework_family": None,
@@ -330,6 +333,44 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "/adapt-project declares php_disposition=php-unsupported"
     )
 
+    swift_routed = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use find-omnibus on Swift source",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "swift",
+        "--json",
+        cwd=host,
+    )
+    swift_payload = _json_output(swift_routed)
+    assert swift_payload["recommendation"] == "find-omnibus"
+    assert swift_payload["handoff"]["available"] is True
+    assert swift_payload["handoff"]["capabilities"]["skills"][0][
+        "swift_disposition"
+    ] == "swift-supported"
+
+    unsupported_swift = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use adapt-project on this Swift repository",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "swift",
+        "--json",
+        cwd=host,
+    )
+    assert unsupported_swift.returncode == 1
+    unsupported_swift_payload = json.loads(unsupported_swift.stdout)
+    assert unsupported_swift_payload["recommendation"] == "unsupported"
+    assert unsupported_swift_payload["unsupported"]["reason"] == (
+        "/adapt-project declares swift_disposition=swift-unsupported"
+    )
+
     shape_routed = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",
         "onboard an unknown inherited repo and figure out what loop to run",
@@ -348,6 +389,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "go_disposition": "go-supported",
         "java_disposition": "java-supported",
         "php_disposition": "php-unsupported",
+        "swift_disposition": "swift-unsupported",
         "fact_level": "lexical-filesystem",
         "outcome_class": "configuration-output",
         "framework_family": None,
@@ -380,6 +422,31 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         }
     ]
 
+    swift_shape = _run_isolated(
+        installed["which-shape"] / "scripts" / "route.py",
+        "onboard an unknown inherited Swift repository and figure out what loop to run",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--json",
+        "--skip-log",
+        cwd=host,
+    )
+    swift_shape_payload = _json_output(swift_shape)
+    assert swift_shape_payload["recommendation"]["first_next"] == "/adapt-project"
+    assert swift_shape_payload["handoff"]["available"] is False
+    assert swift_shape_payload["handoff"]["reason"] == (
+        "selected_skill_not_validated_for_language"
+    )
+    assert swift_shape_payload["handoff"]["blocked"] == [
+        {
+            "skill": "adapt-project",
+            "language": "swift",
+            "disposition": "swift-unsupported",
+        }
+    ]
+
     cleanup_routed = _run_isolated(
         installed["which-cleanup"] / "scripts" / "route.py",
         "src/app.py",
@@ -403,6 +470,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "go_disposition": "stack-bound",
         "java_disposition": "stack-bound",
         "php_disposition": "stack-bound",
+        "swift_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "framework-quality",

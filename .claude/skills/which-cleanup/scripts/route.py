@@ -281,6 +281,7 @@ CAPABILITY_FIELDS = (
     "go_disposition",
     "java_disposition",
     "php_disposition",
+    "swift_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",

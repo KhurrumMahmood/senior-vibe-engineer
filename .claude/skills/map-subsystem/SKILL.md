@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, or Composer PSR-4 PHP subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, or dependency-free SwiftPM subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -17,7 +17,7 @@ not_for: |
   execution (use /refactor-subsystem with a spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php]
+scans: [python, typescript, javascript, go, java, php, swift]
 ---
 
 # /map-subsystem
@@ -45,6 +45,22 @@ Procedural detail lives in one knowledge file:
   partial states, and unavailable Go fields.
 - `knowledge/php-v1.md` — the native PHP lint + Composer PSR-4 static-map
   facts, exclusions, terminal states, and deliberate non-semantic boundary.
+
+## SwiftPM v1
+
+Use `scripts/map_swift.py` only for a dependency-free SwiftPM regular target
+under `Sources/` with Swift 6+, `sourcekit-lsp`, and a clean restrictive build.
+It writes the durable subsystem Markdown plus JSON evidence from the SwiftPM
+target graph, fresh build/index results, symbol graph, SourceKit facts, source
+roles, public surface, and cross-target edges. A process exit alone is never a
+success claim: every selected target must have explicit fresh index evidence,
+and missing, stale, limited, malformed, or mixed-target evidence becomes
+`partial`, `unsupported`, or `failed` in both final artifacts.
+
+The boundary excludes dependencies, Xcode projects/workspaces/schemes, Apple
+framework semantics, conditional-compilation completeness, macros/plugins,
+reflection/dynamic dispatch, and mixed-language targets. The adapter installs
+nothing and never mutates host source.
 
 ## TypeScript / TSX v1
 

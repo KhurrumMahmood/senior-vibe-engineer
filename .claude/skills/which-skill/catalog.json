@@ -539,10 +539,10 @@
     },
     {
       "name": "find-omnibus",
-      "description": "Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans, a bundled TypeScript Compiler API parser for JavaScript/TypeScript, a bundled Go 1.22+ standard-library syntax parser, and a bundled Java JDK 17+ compiler-tree parser; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.",
+      "description": "Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans, a bundled TypeScript Compiler API parser for JavaScript/TypeScript, a bundled Go 1.22+ standard-library syntax parser, a bundled Java JDK 17+ compiler-tree parser, and bounded Swift compiler-AST facts; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.",
       "tier": "maintenance",
       "job": "suspect",
-      "best_for": "Files answering questions from 3+ unrelated domains — the SRP \"and\"\ntest counts 3+ \"and\"s. Ranks by responsibility count, then boosts\nfiles that mix credentials, admin APIs, CSRF/auth, command/network\ndiagnostics, persistence, raw SQL, import/export, task dispatch, or\nfilesystem writes; produces decomposition candidates that hand off\nto /refactor-subsystem. Covers Python, JavaScript/TypeScript, Go, and Java with\nfamily-local syntax parsers. Findings carry analyzer provenance. The script\npaths resolve no types and assume no framework.\n",
+      "best_for": "Files answering questions from 3+ unrelated domains — the SRP \"and\"\ntest counts 3+ \"and\"s. Ranks by responsibility count, then boosts\nfiles that mix credentials, admin APIs, CSRF/auth, command/network\ndiagnostics, persistence, raw SQL, import/export, task dispatch, or\nfilesystem writes; produces decomposition candidates that hand off\nto /refactor-subsystem. Covers Python, JavaScript/TypeScript, Go, Java, and\nbounded Swift with family-local syntax parsers. Findings carry analyzer provenance. The script\npaths resolve no types and assume no framework.\n",
       "not_for": "Cohesive modules remain outside this audit regardless of size. View-layer\narchitecture violations belong to /find-layer-violation, source mutation\nbelongs to /refactor-subsystem, and unimplemented language families belong\nto /find-perimeter-gaps.\n",
       "language": "any",
       "framework": "any",
@@ -551,7 +551,8 @@
         "javascript",
         "typescript",
         "go",
-        "java"
+        "java",
+        "swift"
       ],
       "_path": "skills/find-omnibus"
     },
@@ -839,7 +840,7 @@
     },
     {
       "name": "map-subsystem",
-      "description": "Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, or Composer PSR-4 PHP subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.",
+      "description": "Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, or dependency-free SwiftPM subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.",
       "tier": "maintenance",
       "job": "map",
       "best_for": "Producing or refreshing a durable inventory doc for a subsystem at\n`.claude/docs/subsystems/<name>.md` — file list, public surface,\nresponsibility table, dependency graph, convention-compliance\nscore. MAP skill in the maintenance nervous system.\n",
@@ -852,7 +853,8 @@
         "javascript",
         "go",
         "java",
-        "php"
+        "php",
+        "swift"
       ],
       "_path": "skills/map-subsystem"
     },
@@ -869,10 +871,10 @@
     },
     {
       "name": "move-path",
-      "description": "Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked PHP supports one Composer PSR-4 leaf namespace-directory move with token-exact namespace and require/include edits. TypeScript/TSX source imports are never rewritten in v1.",
+      "description": "Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked PHP supports one Composer PSR-4 leaf namespace-directory move; checked Swift supports one dependency-free SwiftPM target-directory move while retaining module identity. TypeScript/TSX source imports are never rewritten in v1.",
       "tier": "maintenance",
       "job": "refactor",
-      "best_for": "Everyday but high-blast path moves: moving or renaming Markdown docs,\ndirectories, fixtures, scripts, or mixed repo surfaces where references\nshould update in one batch. Best when a move map can be reviewed first\nand the desired behavior is \"compute a virtual after-tree, rewrite safe\nreferences once, apply with git-aware moves, then verify.\"\nAlso use the checked-JavaScript mode for explicit `.js`, `.jsx`, `.mjs`, or\n`.cjs` file moves that must update safe relative imports and checked-project\nconfiguration while leaving unrelated TypeScript source unchanged.\nUse the checked-Java mode for one reviewed standalone-JDK leaf-package move\nwhose package, import, and fully-qualified type identities must stay exact.\n",
+      "best_for": "Everyday but high-blast path moves: moving or renaming Markdown docs,\ndirectories, fixtures, scripts, or mixed repo surfaces where references\nshould update in one batch. Best when a move map can be reviewed first\nand the desired behavior is \"compute a virtual after-tree, rewrite safe\nreferences once, apply with git-aware moves, then verify.\"\nAlso use the checked-JavaScript mode for explicit `.js`, `.jsx`, `.mjs`, or\n`.cjs` file moves that must update safe relative imports and checked-project\nconfiguration while leaving unrelated TypeScript source unchanged.\nUse the checked-Java mode for one reviewed standalone-JDK leaf-package move\nwhose package, import, and fully-qualified type identities must stay exact.\nUse the checked-Swift mode only for one reviewed dependency-free SwiftPM\ntarget-directory move that retains module identity and has an executable smoke product.\n",
       "not_for": "Domain-concept terminology renames in prose (use /rename-concept).\nPython/TypeScript import refactors unless a language adapter has been\nexplicitly added and enabled. Large behavior-changing subsystem splits\nthat need characterization tests and human Phase 4 sign-off (use\n/refactor-subsystem). Blind global find-and-replace.\n",
       "language": "any",
       "framework": "any",
@@ -881,6 +883,7 @@
         "java",
         "javascript",
         "php",
+        "swift",
         "typescript"
       ],
       "_path": "skills/move-path"

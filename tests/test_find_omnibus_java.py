@@ -413,7 +413,7 @@ def test_java_no_eligible_target_is_unsupported_and_final_output_is_honest(
 
 def test_java_frontmatter_declares_narrow_support() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
-    assert "scans: [python, javascript, typescript, go, java]" in text
+    assert "scans: [python, javascript, typescript, go, java, swift]" in text
     assert "--language python|javascript|typescript|go|java" in text
     assert "JDK 17" in text
     assert "does not resolve imports, types, aliases, overloads, receivers, or frameworks" in " ".join(text.split())

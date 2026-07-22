@@ -1,7 +1,7 @@
 ---
 name: find-omnibus
-description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans, a bundled TypeScript Compiler API parser for JavaScript/TypeScript, a bundled Go 1.22+ standard-library syntax parser, and a bundled Java JDK 17+ compiler-tree parser; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.
-argument-hint: "--target <directory> [--language python|javascript|typescript|go|java]"
+description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans, a bundled TypeScript Compiler API parser for JavaScript/TypeScript, a bundled Go 1.22+ standard-library syntax parser, a bundled Java JDK 17+ compiler-tree parser, and bounded Swift compiler-AST facts; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.
+argument-hint: "--target <directory> [--language python|javascript|typescript|go|java|swift]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -12,8 +12,8 @@ best_for: |
   files that mix credentials, admin APIs, CSRF/auth, command/network
   diagnostics, persistence, raw SQL, import/export, task dispatch, or
   filesystem writes; produces decomposition candidates that hand off
-  to /refactor-subsystem. Covers Python, JavaScript/TypeScript, Go, and Java with
-  family-local syntax parsers. Findings carry analyzer provenance. The script
+  to /refactor-subsystem. Covers Python, JavaScript/TypeScript, Go, Java, and
+  bounded Swift with family-local syntax parsers. Findings carry analyzer provenance. The script
   paths resolve no types and assume no framework.
 not_for: |
   Cohesive modules remain outside this audit regardless of size. View-layer
@@ -22,7 +22,7 @@ not_for: |
   to /find-perimeter-gaps.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java]
+scans: [python, javascript, typescript, go, java, swift]
 ---
 
 # /find-omnibus
@@ -84,6 +84,13 @@ Write toward these gates from Stage 0.
   Kotlin source also stops as unsupported rather than presenting Kotlin as
   Java coverage. An empty or excluded-only selection in a Java-only project is
   `unsupported` (exit 2), not a clean zero-candidate scan.
+- **Swift v1:** Swift 6+ (`swiftc`) on `PATH`, bounded to dependency-free
+  SwiftPM source. The family-local adapter requires successful compiler
+  syntax/typecheck evidence, parses only an explicit fail-closed subset of
+  `swiftc -dump-ast`, and carries `complete`, `partial`, `unsupported`, or
+  `failed` through the final report. It does not claim SwiftSyntax, resolved
+  references, complete project semantics, Xcode/framework behavior, macros,
+  reflection, conditional-compilation completeness, or mixed-language support.
 - **Project-specific defaults** (generic-verb strip list, skip
   patterns, directory-package precedent, known false-positive
   shapes): in `knowledge/`.

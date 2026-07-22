@@ -108,6 +108,7 @@ LANGUAGE_ALIASES = {
     "golang": "go",
     "java": "java",
     "php": "php",
+    "swift": "swift",
     "js": "javascript",
     "javascript": "javascript",
     "py": "python",
@@ -125,6 +126,7 @@ LANGUAGE_MARKERS = {
     ),
     "java": re.compile(r"(?i)(?:\bjava\b|\.java\b)"),
     "php": re.compile(r"(?i)(?:\bphp\b|\.php\b)"),
+    "swift": re.compile(r"(?i)(?:\bswift(?:pm)?\b|\.swift\b|Package\.swift\b)"),
     "typescript": re.compile(r"(?i)(?:\btypescript\b|\.tsx?\b)"),
     "javascript": re.compile(r"(?i)(?:\bjavascript\b|(?:\.[cm]?js|\.jsx)\b)"),
     "python": re.compile(r"(?i)(?:\bpython\b|\.py\b)"),
@@ -594,6 +596,7 @@ CAPABILITY_FIELDS = (
     "go_disposition",
     "java_disposition",
     "php_disposition",
+    "swift_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -696,6 +699,14 @@ def capability_language_exclusion(capabilities: dict, routing_context: dict) -> 
                 return (
                     f"/{row['skill']} declares php_disposition="
                     f"{row['php_disposition']}"
+                )
+            if language == "swift" and row["swift_disposition"] not in {
+                "swift-supported",
+                "validated-neutral",
+            }:
+                return (
+                    f"/{row['skill']} declares swift_disposition="
+                    f"{row['swift_disposition']}"
                 )
     return None
 
