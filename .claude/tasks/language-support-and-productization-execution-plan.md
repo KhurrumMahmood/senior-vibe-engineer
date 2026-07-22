@@ -145,7 +145,7 @@ and remove the ambient installation without relying on this checkout.
 
 Acceptance:
 
-- [ ] This file is the sole active execution ledger; both durable contributor
+- [x] This file is the sole active execution ledger; both durable contributor
   guides point here and the former productization/language plans identify
   themselves as historical evidence rather than resumable status authorities.
 - [x] The candidate revision is available from the public source named by
@@ -187,6 +187,7 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
+| Execution authority | Header/pointers in this file, both durable contributor guides, and both superseded plans | Pass: one current ledger; historical evidence retained without competing status authority | `7637fcf` |
 | Public source state | `gh repo view KhurrumMahmood/senior-vibe-engineer --json visibility,defaultBranchRef`; `git ls-remote ... refs/heads/main` | Pass: repository is public; `main`/HEAD is `8dc37d7` | `8dc37d7` |
 | Public catalog | `DO_NOT_TRACK=1 npx --yes skills@1.5.19 add https://github.com/KhurrumMahmood/senior-vibe-engineer --list` | Pass: 76 skills | `8dc37d7` |
 | Local installed-router suite | `.venv/bin/python -m pytest -q tests/test_installed_routers.py` | Pass: 55 | `96eb9f5` |
@@ -631,4 +632,4 @@ Evidence:
 | 2026-07-21 | P2 | Started | Audit the documented public source and compare its remote revision with `cc2a4fc`; prepare the clean replay and stop for owner authorization before any publication action. |
 | 2026-07-21 | P2 | Local replay repaired | Installed smoke is stdlib-only; cleanup handoffs and optional commands now use the exact manifest closure. Focused suite and clean local stock-CLI replay pass. Public visibility/publication and the fresh useful-outcome replay remain open. |
 | 2026-07-21 | P2 | Public replay passed provisionally | Owner made the repository public; `main` is `8dc37d7`; stock list reports 76; clean public install/bootstrap/routes/`adapt-project` evidence/removal pass. Repair stale README Go/Java counts and Java inventory classification, add consistency sentinels, publish, then rerun the same journey at the final candidate. |
-| 2026-07-21 | Planning | Non-context plan review completed | Three independent lanes reviewed the P3 substrate, language/worktree execution, and adversarial product alignment. Accepted bounded reuse, exact ownership, economics, release-truth, and measure-before-optimization findings; rejected stale private-repo assumptions and blanket prohibition on user-requested Swift/Dart planning. |
+| 2026-07-21 | Planning | Non-context plan review completed | `7637fcf`; three independent lanes reviewed the P3 substrate, language/worktree execution, and adversarial product alignment. Accepted bounded reuse, exact ownership, economics, release-truth, and measure-before-optimization findings; rejected stale private-repo assumptions and blanket prohibition on user-requested Swift/Dart planning. |
