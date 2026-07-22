@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P2 — align release truth and replay the final public candidate
-Last updated: 2026-07-21 (runtime-bootstrap and routing-provenance update)
+Current phase: P3 — freeze the baseline before the minimal language-support kit
+Last updated: 2026-07-21 (P2 complete; P3.0 starting)
 
 ## Objective
 
@@ -100,8 +100,8 @@ execution authorities.
 | Phase | Outcome | Status | Completion revision |
 |---|---|---|---|
 | P1 | Durable docs and execution ledger committed | `done` | `cc2a4fc` |
-| P2 | Release truth aligned; public install/library journey replayed | `in_progress` | — |
-| P3 | Minimal reusable language-support kit scaffold proven | `not_started` | — |
+| P2 | Release truth aligned; public install/library journey replayed | `done` | `60898a7` |
+| P3 | Minimal reusable language-support kit scaffold proven | `in_progress` | — |
 | P4 | PHP pilot proves real outcomes and kit economics | `not_started` | — |
 | P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `not_started` | — |
 | P6 | Shared components promoted or rejected on evidence | `not_started` | — |
@@ -170,15 +170,15 @@ Acceptance:
 - [x] The documented removal path removes the three routers, preserves an
   out-of-scope sentinel byte-for-byte, and does not claim to remove the external
   library unless separately requested.
-- [ ] The installed router source revision or recorded router-tree digest and
+- [x] The installed router source revision or recorded router-tree digest and
   `git -C <library-root> rev-parse HEAD` both match the final public candidate
   SHA; replay does not infer revision coherence merely because two clones
   succeeded.
-- [ ] `README.md`, per-language coverage files, generated capability matrix,
+- [x] `README.md`, per-language coverage files, generated capability matrix,
   router output, and shared source inventory agree on all earned Python,
   TypeScript/JavaScript, Go, and Java claims. A freshness/consistency check plus
   Go and Java inventory/routing sentinels prevent recurrence.
-- [ ] `tests/test_installed_routers.py` and the clean public-source replay pass
+- [x] `tests/test_installed_routers.py` and the clean public-source replay pass
   again at the final truth-aligned committed/public revision.
 - [x] No additional installer platform, attestation system, or custom package
   manager is introduced.
@@ -188,27 +188,29 @@ Evidence:
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
 | Execution authority | Header/pointers in this file, both durable contributor guides, and both superseded plans | Pass: one current ledger; historical evidence retained without competing status authority | `7637fcf` |
-| Public source state | `gh repo view <distribution-named-by-README> --json visibility,defaultBranchRef`; `git ls-remote <distribution-named-by-README> refs/heads/main` | Pass: repository is public; `main`/HEAD is `8dc37d7` | `8dc37d7` |
-| Public catalog | `DO_NOT_TRACK=1 npx --yes skills@1.5.19 add <public-source> --list` | Pass: 76 skills | `8dc37d7` |
-| Local installed-router suite | `.venv/bin/python -m pytest -q tests/test_installed_routers.py` | Pass: 55 | `96eb9f5` |
+| Public source state | `git ls-remote <distribution-named-by-README> refs/heads/main` | Pass: public `main`/HEAD is `60898a705115bc4eeb12d0eca55e82c6a7d217ea` | `60898a7` |
+| Public catalog | `DO_NOT_TRACK=1 npx --yes skills@1.5.19 add <public-source> --list` | Pass: 76 skills at the final candidate | `60898a7` |
+| Local installed-router suite | `.venv/bin/python -m pytest -q tests/test_installed_routers.py` | Pass: 58, including default runtime creation, check-only replay, explicit-old-Python rejection, and moved-venv rebuild | `60898a7` |
 | Related router/portability suites | `.venv/bin/python -m pytest -q tests/test_which_cleanup_portable_routing.py tests/scripts/test_which_cleanup.py tests/scripts/test_which_cleanup_roots.py tests/test_portability_on_demand_journeys.py tests/test_router_decision_quality.py` | Pass: 76, 1 intentional skip | `96eb9f5` |
 | Clean stock-CLI local replay | `skills@1.5.19` install from local source; isolated router entrypoints/smoke; sibling bootstrap; closure assertions; `remove --all` | Pass: exactly three routers, `organize-project-structure` task route, `adapt-project` shape route, exact `prevent-regression` + `find-implicit-state` cleanup closure, sentinel preserved | `96eb9f5` |
-| Clean public-source replay | clean temporary Git host; public stock install; `/usr/bin/python3 -I -S` routers/smoke; public bootstrap; routes; `adapt-project` final artifact + evidence gate; stock removal | Provisional pass at `8dc37d7`: exactly three routers, complete external library, valid exact closures, final adapter artifacts, Git-config sentinel preserved, library retained; rerun after truth repair | `8dc37d7` |
-| Release-truth consistency | README vs coverage/matrix/inventory | Fail at `8dc37d7`: README still says Go 14/22 and Java 3/22 while coverage/matrix say 22/22; inventory still labels Java unsupported | pending repair |
+| Final candidate focused gate | `.venv/bin/python -m pytest -q tests/test_release_language_consistency.py tests/test_source_inventory.py tests/test_multilanguage_expansion_matrix.py tests/test_java_j1_closeout.py tests/test_installed_routers.py tests/test_which_cleanup_portable_routing.py tests/scripts/test_which_cleanup.py tests/scripts/test_which_cleanup_roots.py tests/test_portability_on_demand_journeys.py tests/test_router_decision_quality.py` | Pass: 141, 1 intentional skip; release claims, inventory, matrix, routers, cleanup, and on-demand portability agree | `60898a7` |
+| Router/library revision coherence | Public bootstrap; `git -C <library-root> rev-parse HEAD`; `git rev-parse HEAD:.claude/skills/<router>`; `diff -qr` against installed router directories | Pass: library HEAD `60898a7`; installed bytes equal tree ids `which-skill=187935096c2ff939ee40ab06fcb7491a98a395d7`, `which-shape=91d504ab8eb1984c5ff620da547e5638c2f22267`, `which-cleanup=a75170d0bd7afbf698c4ea74b47bb45e468443d0` | `60898a7` |
+| Clean public-source replay | `/private/tmp/engineering-skills-p2-60898a7.xgSJLL`; clean Git host; public stock install; `/usr/bin/python3 -I -S` routers/smoke; default public bootstrap; routes; final `adapt-project` artifacts + evidence gate; cleanup; stock removal | Pass: exactly three routers; Python 3.11.10 library runtime created and verified; exact useful closures; `adapter.json`, `adapter.yml`, `report.md`, and `evidence.json` validated; host source unchanged; `preserve-me` Git-config sentinel preserved; routers removed; library retained and healthy | `60898a7` |
+| Release-truth consistency | `tests/test_release_language_consistency.py`; `tests/test_source_inventory.py`; matrix freshness | Pass: README, Go/Java 22-row coverage, generated matrix, representative routes, and shared `.go`/`.java` inventory agree | `60898a7` |
 
-Immediate serial closeout packet:
+Completed serial closeout packet (`60898a7`):
 
-1. Add a failing release-consistency check covering README counts, per-language
+1. [x] Add a failing release-consistency check covering README counts, per-language
    coverage, generated matrix/router projection, and Java source inventory.
-2. Correct README Go/Java claims and make `.java` profile/inventory-supported
+2. [x] Correct README Go/Java claims and make `.java` profile/inventory-supported
    without implying Kotlin or framework-level Java support.
-3. Run the focused consistency, source-inventory, matrix/router, and installed-
+3. [x] Run the focused consistency, source-inventory, matrix/router, and installed-
    router suites; record the local Framework-Python anomaly only if it remains
    reproducible with a healthy interpreter control.
-4. Commit and publish the truth-aligned candidate, then repeat the exact public
+4. [x] Commit and publish the truth-aligned candidate, then repeat the exact public
    list/install/bootstrap/three-router/final-outcome/remove journey at that SHA,
    including router-tree/source and external-library revision equality.
-5. Only after every P2 checkbox has committed evidence, mark P2 done and freeze
+5. [x] Only after every P2 checkbox has committed evidence, mark P2 done and freeze
    the P3.0 baseline. Do not open P3 worktrees early.
 
 ## P3 — Prove the minimal language-support kit scaffold
@@ -634,4 +636,6 @@ Evidence:
 | 2026-07-21 | P2 | Public replay passed provisionally | Owner made the repository public; `main` is `8dc37d7`; stock list reports 76; clean public install/bootstrap/routes/`adapt-project` evidence/removal pass. Repair stale README Go/Java counts and Java inventory classification, add consistency sentinels, publish, then rerun the same journey at the final candidate. |
 | 2026-07-21 | P2 | Runtime bootstrap integrated | `9208fca`; normal external-library bootstrap now health-checks Python >=3.11, creates/verifies the library venv, installs declared requirements, and exposes the exact runtime path through all three routers. The final P2 candidate and public replay must include this revision plus the pending release-truth repair. |
 | 2026-07-21 | P8 | Router corpus seed captured | Resuming this explicit ledger produced `Project context: missing (adapter=False, profile=False, approved=False)` and a score-zero lexical `bug-fix` fallback. The explicit sole active plan correctly overrode it. Preserve this as an authoritative-plan/low-context routing case for the frozen P8 corpus; do not create project context or block P2 merely to raise router confidence. |
+| 2026-07-21 | P2 | Completed | `60898a7`; public Go/Java claims, accepted coverage, generated matrix, router capability output, and shared inventory agree. The final public list/install/bootstrap/route/`adapt-project`/cleanup/remove replay passed with exact router-tree/library revision coherence, runtime setup, host-source preservation, sentinel preservation, and library retention. Begin P3.0 baseline/worktree inventory; do not revise P2 further unless a reproduced installer regression appears. |
+| 2026-07-21 | P3 | Started | Freeze the exact `60898a7` TypeScript+Java `find-omnibus` baseline and review the 87 registered/59 previously prunable worktree registrations before opening any P3 worker lane. |
 | 2026-07-21 | Planning | Non-context plan review completed | `7637fcf`; three independent lanes reviewed the P3 substrate, language/worktree execution, and adversarial product alignment. Accepted bounded reuse, exact ownership, economics, release-truth, and measure-before-optimization findings; rejected stale private-repo assumptions and blanket prohibition on user-requested Swift/Dart planning. |
