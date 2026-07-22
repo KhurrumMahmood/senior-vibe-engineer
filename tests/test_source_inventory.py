@@ -13,6 +13,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = REPO_ROOT / "scripts" / "source_inventory.py"
+PROFILES = REPO_ROOT / "scripts" / "language_profiles"
 
 
 def _write(path: Path, content: str = "") -> None:
@@ -52,6 +53,7 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     _write(host / "tests" / "test_app.py", "def test_app(): pass\n")
     _write(host / "fixtures" / "ambiguous.ts", "export const maybeData = 1;\n")
     _write(host / "tools" / "release.py", "print('release')\n")
+    _write(host / "migrations" / "0001_initial.py", "MIGRATION = True\n")
     _write(host / "vite.config.ts", "export default {};\n")
     _write(host / "src" / "main.go", "package main\n")
     _write(host / "src" / "main_test.go", "package main\n")
@@ -80,6 +82,7 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
         "typescript",
     ]
     assert payload["capabilities"]["analysis"] == "none"
+    assert payload["capabilities"]["profile_schema_version"] == 1
 
     files = {row["path"]: row for row in payload["files"]}
     assert len(files) == len(payload["files"])
@@ -96,6 +99,7 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
         "tests/test_app.py",
         "fixtures/ambiguous.ts",
         "tools/release.py",
+        "migrations/0001_initial.py",
         "vite.config.ts",
         "src/main.go",
         "src/main_test.go",
@@ -123,6 +127,7 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert files["src/client.generated.ts"]["role"] == "generated"
     assert files["tests/test_app.py"]["role"] == "test"
     assert files["tools/release.py"]["role"] == "tooling"
+    assert files["migrations/0001_initial.py"]["role"] == "migration"
     assert files["vite.config.ts"]["role"] == "configuration"
     assert files["fixtures/ambiguous.ts"]["classification"] == "ambiguous"
     assert files["fixtures/ambiguous.ts"]["reason"] == "fixture_or_product_data"
@@ -133,16 +138,63 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert files["src/Main.java"]["classification"] == "classified"
     assert files["tests/MainTest.java"]["role"] == "test"
 
-    excluded = {row["path"]: row["reason"] for row in payload["excluded_roots"]}
-    assert excluded["node_modules"] == "external_dependency"
-    assert excluded["dist"] == "build_output"
-    assert excluded["linked"] == "symlink_boundary"
+    excluded = {row["path"]: row for row in payload["excluded_roots"]}
+    assert excluded["node_modules"] == {
+        "path": "node_modules", "role": "vendor", "reason": "external_dependency"
+    }
+    assert excluded["dist"] == {
+        "path": "dist", "role": "build", "reason": "build_output"
+    }
+    assert excluded["linked"] == {
+        "path": "linked", "role": "symlink", "reason": "symlink_boundary"
+    }
     assert "node_modules/pkg/vendor.ts" not in files
     assert "dist/bundle.ts" not in files
     assert "linked/escaped.ts" not in files
 
     assert payload["counts"]["files"] == len(files)
     assert payload["counts"]["classification"]["ambiguous"] == 1
+    assert payload["counts"]["excluded_roles"] == {
+        "build": 1,
+        "vendor": 1,
+        "symlink": 1,
+    }
+
+
+def test_inventory_uses_profile_suffix_and_role_rules(tmp_path: Path) -> None:
+    profiles = tmp_path / "profiles"
+    shutil.copytree(PROFILES, profiles)
+    python_profile = profiles / "python.json"
+    payload = json.loads(python_profile.read_text(encoding="utf-8"))
+    payload["suffixes"].append(".pyx")
+    payload["source_roles"]["test_file_globs"].append("*_check.pyx")
+    python_profile.write_text(json.dumps(payload), encoding="utf-8")
+
+    host = tmp_path / "host"
+    _write(host / "src" / "module.pyx", "VALUE = 1\n")
+    _write(host / "src" / "module_check.pyx", "assert True\n")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-S",
+            str(SCRIPT),
+            "--project-root",
+            str(host),
+            "--profiles-root",
+            str(profiles),
+        ],
+        cwd=tmp_path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    files = {row["path"]: row for row in json.loads(completed.stdout)["files"]}
+    assert files["src/module.pyx"]["language"] == "python"
+    assert files["src/module.pyx"]["role"] == "source"
+    assert files["src/module_check.pyx"]["role"] == "test"
 
 
 def test_inventory_rejects_outside_roots_and_output(tmp_path: Path) -> None:

@@ -4,7 +4,7 @@
   "suffixes": [".go"],
   "project_markers": ["go.mod", "go.work"],
   "source_roles": {
-    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "symlink"],
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "migration", "symlink"],
     "test_file_globs": ["*_test.go"],
     "declaration_file_globs": [],
     "configuration_files": []

@@ -4,7 +4,7 @@
   "suffixes": [".py", ".pyi"],
   "project_markers": ["pyproject.toml", "requirements.txt", "setup.py", "manage.py"],
   "source_roles": {
-    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "symlink"],
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "migration", "symlink"],
     "test_file_globs": ["test_*.py", "*_test.py"],
     "declaration_file_globs": ["*.pyi"],
     "configuration_files": ["conftest.py", "manage.py", "settings.py"]

@@ -22,6 +22,7 @@ ALLOWED_ROLES = frozenset(
         "declaration",
         "configuration",
         "tooling",
+        "migration",
         "symlink",
     }
 )

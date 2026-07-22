@@ -52,12 +52,19 @@ def journey_roots(tmp_path: Path) -> tuple[Path, Path, dict]:
         library / ".claude" / "skills" / "demo" / "scripts" / "inspect.py",
         "print('inspect')\n",
     )
+    source_scripts = Path(__file__).resolve().parents[1] / "scripts"
     inventory_tool = library / "scripts" / "source_inventory.py"
     inventory_tool.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(
-        Path(__file__).resolve().parents[1] / "scripts" / "source_inventory.py",
-        inventory_tool,
+    shutil.copy2(source_scripts / "source_inventory.py", inventory_tool)
+    shutil.copytree(
+        source_scripts / "language_profiles",
+        library / "scripts" / "language_profiles",
     )
+    _write(library / "scripts" / "_lib" / "__init__.py", "")
+    for name in ("__init__.py", "profile.py", "lifecycle.py"):
+        destination = library / "scripts" / "_lib" / "language_support" / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_scripts / "_lib" / "language_support" / name, destination)
     return host, library, _handoff(library)
 
 
@@ -97,6 +104,15 @@ def test_records_declared_observation_outcomes_and_evidence(
     assert set(result.guide_hashes) == {".claude/skills/demo/SKILL.md"}
     assert set(result.tool_hashes) == {
         ".claude/skills/demo/scripts/inspect.py",
+        "scripts/_lib/__init__.py",
+        "scripts/_lib/language_support/__init__.py",
+        "scripts/_lib/language_support/lifecycle.py",
+        "scripts/_lib/language_support/profile.py",
+        "scripts/language_profiles/go.json",
+        "scripts/language_profiles/java.json",
+        "scripts/language_profiles/javascript.json",
+        "scripts/language_profiles/python.json",
+        "scripts/language_profiles/typescript.json",
         "scripts/source_inventory.py",
     }
     assert set(result.source_digests["before"]) == {

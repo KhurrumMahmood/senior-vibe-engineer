@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P3 — extend shared inventory from the P3.1 profile spine
-Last updated: 2026-07-21 (P2, P3.0, and P3.1 complete; P3.2 next)
+Current phase: P3 — parallel doctor and conformance lanes from the P3.2 spine
+Last updated: 2026-07-21 (P2 and P3.0-P3.2 complete; P3.3-P3.4 next)
 
 ## Objective
 
@@ -232,7 +232,7 @@ Acceptance:
 - [ ] A read-only doctor resolves project-local before system tools and reports
   available, too-old, unavailable, and limited capabilities without installing
   dependencies.
-- [ ] Shared source inventory covers source/test/generated/vendor/build/
+- [x] Shared source inventory covers source/test/generated/vendor/build/
   declaration/configuration/tooling/symlink roles from profile data.
 - [ ] A small lifecycle/conformance interface defines terminal status, atomic
   artifacts, stale-output clearing, source manifests, exact documented-command
@@ -297,7 +297,8 @@ Evidence:
 | Worktree review | `.claude/tasks/p3-baseline/worktree-inventory.json` | Reviewed 87 registrations; pruned only 59 missing-path registrations after proving all 21 detached heads remained reachable; preserved 28 present worktrees including both dirty worktrees; post-prune dry-run reports zero prunable registrations | `f56a5f3` spine |
 | Existing-substrate/interface-depth gate | `.claude/tasks/p3-baseline/existing-substrate-inventory.md` | Extends source inventory, capability publication, portability journey, and only proven skill-local lifecycle mechanics; rejects competing/broader abstractions | `f56a5f3` spine |
 | Frozen `find-omnibus` baseline | `.claude/tasks/p3-baseline/find-omnibus-baseline.json` | Exact `60898a7` skill tree/fixtures/toolchain/projections/negative boundaries/closure bytes/LOC frozen; TypeScript+Java suite `18 passed`; cold plus seven alternating warm trials recorded | `f56a5f3` spine |
-| Strict profile/lifecycle contract | `scripts/language_profiles/*.json`; `scripts/_lib/language_support/{profile,lifecycle}.py`; `tests/test_language_support_{profile,lifecycle}.py` | Five current inventory languages load under isolated/no-site Python; duplicate suffixes, schema drift, unknown roles/outcomes, unsafe argv, and symlinks fail closed; lifecycle is limited to terminal vocabulary, atomic text/JSON, bounded stale clearing, and source manifests; `20 passed` | P3.1 spine (this commit) |
+| Strict profile/lifecycle contract | `scripts/language_profiles/*.json`; `scripts/_lib/language_support/{profile,lifecycle}.py`; `tests/test_language_support_{profile,lifecycle}.py` | Five current inventory languages load under isolated/no-site Python; duplicate suffixes, schema drift, unknown roles/outcomes, unsafe argv, and symlinks fail closed; lifecycle is limited to terminal vocabulary, atomic text/JSON, bounded stale clearing, and source manifests; `20 passed` | `7236d4e` P3.1 spine |
+| Profile-driven shared inventory | `scripts/source_inventory.py`; `tests/test_source_inventory.py`; `tests/test_portability_journey_harness.py` | Existing Python/JavaScript/TypeScript/Go/Java projections and reasons preserved; source/test/generated/vendor/build/declaration/configuration/tooling/migration/symlink roles pass; isolated profile override changes suffix and role behavior; external-library fixture hashes the expanded exact closure; widened consumer suite `96 passed` | P3.2 spine (this commit) |
 
 ## P4 — PHP final-outcome and economics pilot
 
@@ -643,4 +644,5 @@ Evidence:
 | 2026-07-21 | P3 | Started | Freeze the exact `60898a7` TypeScript+Java `find-omnibus` baseline and review the 87 registered/59 previously prunable worktree registrations before opening any P3 worker lane. |
 | 2026-07-21 | P3.0 | Completed | Committed evidence freezes the existing-substrate decisions, exact TypeScript/Java projections and exclusions, copied closure bytes, fixture manifests, maintained LOC, OpenJDK 17.0.20/TypeScript 5.9.3 toolchain, full `18 passed` correctness run, and cold plus seven alternating warm trials. Registration-only pruning reduced 87 worktree records to 28 without deleting a path, branch, commit, or dirty worktree. P3.1 may now start from this spine. |
 | 2026-07-21 | P3.1 | Completed | Added strict stdlib-only profiles for the five currently inventoried languages and a narrow lifecycle module. The deletion/caller-knowledge test is satisfied by two immediate consumers (TypeScript and Java omnibus); profiles remove duplicated suffix/tool/role/command/limit declarations, while lifecycle removes only atomic-write, stale-clear, source-hash, and terminal-vocabulary policy. No semantic result schema, adapter layer, installer, cache, mutation executor, or framework profile was added. P3.2 may extend the existing inventory from this spine. |
+| 2026-07-21 | P3.2 | Completed | The existing `source_inventory.py` now reads the strict profiles under isolated/no-site Python, preserves all five current language projections, publishes profile schema/version capability, and emits explicit roles for excluded vendor/build/symlink roots without changing their established reasons. The portability fixture now copies and hashes the exact expanded inventory closure instead of passing through a checkout import. Widened installed-router/journey/release suite: `96 passed`. P3.3 and P3.4 may branch in parallel from this spine. |
 | 2026-07-21 | Planning | Non-context plan review completed | `7637fcf`; three independent lanes reviewed the P3 substrate, language/worktree execution, and adversarial product alignment. Accepted bounded reuse, exact ownership, economics, release-truth, and measure-before-optimization findings; rejected stale private-repo assumptions and blanket prohibition on user-requested Swift/Dart planning. |

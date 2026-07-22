@@ -4,7 +4,7 @@
   "suffixes": [".ts", ".tsx"],
   "project_markers": ["package.json", "tsconfig.json"],
   "source_roles": {
-    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "symlink"],
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "migration", "symlink"],
     "test_file_globs": ["*.test.ts", "*.test.tsx", "*.spec.ts", "*.spec.tsx"],
     "declaration_file_globs": ["*.d.ts"],
     "configuration_files": ["vite.config.ts", "webpack.config.ts"]

@@ -27,6 +27,7 @@ def _profile(language: str = "typescript", suffix: str = ".ts") -> dict:
             "supported": [
                 "source", "test", "generated", "vendor", "build", "declaration",
                 "configuration", "tooling", "symlink",
+                "migration",
             ],
             "test_file_globs": ["*.test.ts"],
             "declaration_file_globs": ["*.d.ts"],

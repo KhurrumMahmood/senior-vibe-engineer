@@ -4,7 +4,7 @@
   "suffixes": [".js", ".jsx", ".mjs", ".cjs"],
   "project_markers": ["package.json", "jsconfig.json"],
   "source_roles": {
-    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "symlink"],
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "migration", "symlink"],
     "test_file_globs": ["*.test.js", "*.test.jsx", "*.test.mjs", "*.test.cjs", "*.spec.js", "*.spec.jsx", "*.spec.mjs", "*.spec.cjs"],
     "declaration_file_globs": [],
     "configuration_files": ["eslint.config.js", "vite.config.js", "webpack.config.js"]
