@@ -543,8 +543,8 @@ def _remove_output_artifact(path: Path) -> None:
         path.unlink()
 
 
-def _invalidate_java_artifacts(output: Path) -> None:
-    """Remove every generated artifact that could make a failed Java rerun look clean."""
+def _invalidate_pipeline_artifacts(output: Path) -> None:
+    """Remove every generated artifact that could make a failed rerun look clean."""
     for artifact in (
         output,
         output.with_name("scan.json"),
@@ -714,10 +714,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--skip-path-glob", action="append", default=[], help="Extra relative-path globs to skip")
     parser.add_argument("--language", action="append", default=[], choices=list(_LANGUAGES), help="Restrict to these languages")
     args = parser.parse_args(argv)
+    _invalidate_pipeline_artifacts(args.output)
     wanted = set(args.language) or set(_LANGUAGES)
     java_mode = bool(args.language) and wanted == {"java"}
-    if java_mode:
-        _invalidate_java_artifacts(args.output)
     if not args.target.is_dir():
         print(f"[detect_omnibus] ERROR: {args.target} is not a directory", file=sys.stderr)
         return 2
@@ -760,8 +759,6 @@ def main(argv: list[str] | None = None) -> int:
                     if (language := _language_for(path)) is not None
                 }
                 java_mode = project_languages == {"java"}
-        if java_mode:
-            _invalidate_java_artifacts(args.output)
     if java_mode:
         kotlin = _first_kotlin_source(target, project_root)
         if kotlin is not None:
