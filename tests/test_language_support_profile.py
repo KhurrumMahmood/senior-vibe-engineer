@@ -66,7 +66,7 @@ def test_repository_profiles_cover_current_inventory_languages() -> None:
 
     assert set(profiles) == {
         "python", "javascript", "typescript", "go", "java", "php", "swift", "c",
-        "cpp", "ruby",
+        "cpp", "ruby", "rust",
     }
     suffixes = {
         suffix: language
@@ -81,7 +81,7 @@ def test_repository_profiles_cover_current_inventory_languages() -> None:
         ".c": "c", ".i": "c", ".cc": "cpp", ".cpp": "cpp",
         ".cxx": "cpp", ".c++": "cpp", ".ii": "cpp", ".hpp": "cpp",
         ".hh": "cpp", ".hxx": "cpp", ".h++": "cpp", ".ipp": "cpp",
-        ".inl": "cpp", ".tpp": "cpp", ".rb": "ruby",
+        ".inl": "cpp", ".tpp": "cpp", ".rb": "ruby", ".rs": "rust",
     }
     assert profiles["typescript"].native_tools[1].id == "tsc"
     assert profiles["java"].native_tools[1].minimum_version == "17.0.0"
@@ -90,6 +90,10 @@ def test_repository_profiles_cover_current_inventory_languages() -> None:
     assert [tool.id for tool in profiles["swift"].native_tools] == ["swift", "swiftc"]
     assert profiles["swift"].project_markers == ("Package.swift",)
     assert profiles["swift"].source_roles.configuration_files == ("Package.swift",)
+    assert [tool.id for tool in profiles["rust"].native_tools] == [
+        "rustc", "cargo", "rust-analyzer", "cargo-clippy", "rustfmt",
+    ]
+    assert profiles["rust"].project_markers == ("Cargo.toml", "Cargo.lock")
 
 
 def test_loader_runs_under_isolated_no_site_python() -> None:

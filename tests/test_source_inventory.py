@@ -92,6 +92,7 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
         "php",
         "python",
         "ruby",
+        "rust",
         "swift",
         "typescript",
     ]
