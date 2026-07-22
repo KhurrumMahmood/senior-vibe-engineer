@@ -140,8 +140,9 @@ Evidence:
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
 | Public source state | `gh repo view <distribution-named-by-README> --json visibility,defaultBranchRef`; `git ls-remote <distribution-named-by-README> ...` | Blocked: repository is `PRIVATE`; `main`/HEAD is `ce257f57`, 286 commits behind the local candidate at audit time | local `2bcddd6` |
-| Local installed-router suite | `.venv/bin/python -m pytest -q tests/test_installed_routers.py` | Pass: 55 | pending repair commit |
-| Clean stock-CLI local replay | `skills@1.5.19` install from local source; isolated router entrypoints/smoke; sibling bootstrap; closure assertions; `remove --all` | Pass: exactly three routers, `organize-project-structure` task route, `adapt-project` shape route, exact `prevent-regression` + `find-implicit-state` cleanup closure, sentinel preserved | pending repair commit |
+| Local installed-router suite | `.venv/bin/python -m pytest -q tests/test_installed_routers.py` | Pass: 55 | `96eb9f5` |
+| Related router/portability suites | `.venv/bin/python -m pytest -q tests/test_which_cleanup_portable_routing.py tests/scripts/test_which_cleanup.py tests/scripts/test_which_cleanup_roots.py tests/test_portability_on_demand_journeys.py tests/test_router_decision_quality.py` | Pass: 76, 1 intentional skip | `96eb9f5` |
+| Clean stock-CLI local replay | `skills@1.5.19` install from local source; isolated router entrypoints/smoke; sibling bootstrap; closure assertions; `remove --all` | Pass: exactly three routers, `organize-project-structure` task route, `adapt-project` shape route, exact `prevent-regression` + `find-implicit-state` cleanup closure, sentinel preserved | `96eb9f5` |
 
 ## P3 — Prove the minimal language-support kit scaffold
 
