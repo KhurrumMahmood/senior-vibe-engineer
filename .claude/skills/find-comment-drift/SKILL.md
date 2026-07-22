@@ -6,7 +6,7 @@ description: |
   Flags detached section banners, narration comments, missing or thin
   public class docstrings, stale terminology, JavaScript and TypeScript
   functions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML
-  comments, fragile doc references, and bounded Go, Java, PHP, C, and C++
+  comments, fragile doc references, and bounded Go, Java, PHP, Ruby, C, and C++
   lexical-comment surfaces.
 argument-hint: "[paths... - no paths uses the detector's legacy default surface]"
 allowed-tools: Bash, Read, Grep, Glob, Write
@@ -25,7 +25,7 @@ not_for: |
   existing lints for behavior and correctness.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, c, cpp, templates]
+scans: [python, javascript, typescript, go, java, php, ruby, c, cpp, templates]
 ---
 
 # /find-comment-drift
@@ -65,6 +65,13 @@ PHP is an explicit native lexical/syntax mode. The copied helper uses
 `token_get_all(..., TOKEN_PARSE)` from PHP >= 8.1.0, inventories excluded roles,
 and distinguishes a clean complete scan from incomplete or unavailable
 evidence without loading Composer packages.
+
+Ruby uses the copied `scripts/analyze_comments_ruby.py` entry point. Ruby 3.3+
+Prism supplies exact comment locations and `ruby -c` gates syntax for every
+eligible `.rb` or Ruby-shebang source. The bounded behavior-drift rule reports
+only an adjacent percentage-calculation comment contradicted by a fixed numeric
+method body; it does not infer runtime behavior through reopening,
+metaprogramming, reflection, dynamic loading, Rails, or Zeitwerk.
 
 C is a separate copied-helper mode rather than a branch of the legacy
 detector. `scripts/analyze_comments_c.py` uses Clang 21+ raw tokens and exact
@@ -108,6 +115,10 @@ remain explicit non-claims.
   `clean-within-complete`, `incomplete`, `unsupported`, or `failed` outcome in
   `scan.json` and the explicitly selected JSON report. Missing/old PHP and
   native provider failures are never relabeled clean.
+- A Ruby run records `complete`, `partial`, `unsupported`, or `failed` in
+  `scan.json` and `findings.json`. Missing/old Ruby, Prism/provider failures,
+  syntax-invalid eligible inputs, and unreadable sources are never relabeled
+  clean. Exact source, artifact, and finding hashes make stale output visible.
 - A C run records `complete`, `partial`, `unsupported`, or `failed` plus a
   final `findings.json`. Missing/old Clang, ambiguous headers, stale/incomplete
   compile commands, syntax failures, and provider failures remain visible.
@@ -253,8 +264,9 @@ required artifacts are:
 - `detections.jsonl` - one finding per line.
 - `report.md` - grouped human-readable report.
 - `findings.json` - machine-readable report summary.
-- `scan.json` - Go tool evidence, complete inventory, eligibility reasons, and
-  `complete`/`partial`/`unsupported`/`failed` analysis status (Go mode only).
+- `scan.json` - selected-language tool evidence, complete inventory,
+  eligibility reasons, and `complete`/`partial`/`unsupported`/`failed` status
+  for copied-helper modes that publish it.
 
 PHP uses the same artifact lifecycle but writes the machine-readable final
 artifact to the path passed with `report.py --output-json`; the documented PHP
@@ -308,6 +320,22 @@ The analyzer removes all four old destination artifacts before a run and
 rewrites terminal evidence atomically. The verifier recomputes every inventoried
 source hash, the inventory manifest hash, and each finding's source spelling
 hash before accepting the report as current.
+
+For a Ruby 3.3+ host, run the copied Ruby helper directly. The host owns Ruby;
+the skill installs no gem and requires no application dependency.
+
+```bash
+COMMENT_SKILL=".agents/skills/on-demand/find-comment-drift"
+COMMENT_REPORT="reports/find-comment-drift/ruby"
+mkdir -p "${COMMENT_REPORT}"
+python3 "${COMMENT_SKILL}/scripts/analyze_comments_ruby.py" \
+  --project-root "$PWD" --ruby "$(command -v ruby)" \
+  --output "${COMMENT_REPORT}/detections.jsonl" .
+ruby -c path/to/representative.rb
+```
+
+The helper atomically writes `detections.jsonl`, `scan.json`, `findings.json`,
+and `report.md`; selected source bytes remain unchanged.
 
 ## Detector Bands
 
@@ -370,6 +398,7 @@ input/output/side-effect contract.
 | PHP is missing or older than 8.1.0 | Keep the `unsupported` scan/report evidence, select PHP >= 8.1.0, and re-run; the detector never installs PHP or Composer dependencies. |
 | PHP syntax or source decoding fails | Keep useful findings with `partial`/`incomplete` evidence and cite the failed inventory row; do not call an empty JSONL clean. |
 | The PHP provider process or payload fails | Keep the concrete `failed` evidence, correct the selected runtime/closure, and re-run at the same destination so stale reports cannot survive. |
+| Ruby is missing/older than 3.3, Prism fails, or an eligible file is syntax-invalid | Keep the explicit `unsupported`, `failed`, or `partial` artifacts, correct the host runtime/source, and re-run at the same destination; do not present empty findings as clean. |
 | Clang is missing or older than 21.0.0 for C/C++ | Keep the `unsupported` final artifacts, select a supported host-owned Clang, and re-run; do not present empty detections as clean. |
 | C/C++ compile commands are missing, malformed, incomplete, or stale | Source translation units may still have bounded lexical evidence, but keep unowned headers `ambiguous-header`; do not infer ownership from directory names. |
 | C/C++ syntax fails or Clang raw-token output is malformed/incomplete | Keep the explicit `partial`/`failed` evidence and failed inventory rows. Fix the source/tool invocation and re-run the same destination; never reuse the prior report. |

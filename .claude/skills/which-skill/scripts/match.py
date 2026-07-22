@@ -116,6 +116,8 @@ LANGUAGE_ALIASES = {
     "javascript": "javascript",
     "py": "python",
     "python": "python",
+    "rb": "ruby",
+    "ruby": "ruby",
     "rs": "rust",
     "rust": "rust",
     "ts": "typescript",
@@ -139,6 +141,7 @@ LANGUAGE_MARKERS = {
     "typescript": re.compile(r"(?i)(?:\btypescript\b|\.tsx?\b)"),
     "javascript": re.compile(r"(?i)(?:\bjavascript\b|(?:\.[cm]?js|\.jsx)\b)"),
     "python": re.compile(r"(?i)(?:\bpython\b|\.py\b)"),
+    "ruby": re.compile(r"(?i)(?:\bruby\b|\.rb\b)"),
     "rust": re.compile(r"(?i)(?:\brust\b|\.rs\b)"),
 }
 
@@ -619,6 +622,7 @@ CAPABILITY_FIELDS = (
     "swift_disposition",
     "c_disposition",
     "cpp_disposition",
+    "ruby_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -636,7 +640,7 @@ def capability_handoff(library_root: Path, skills: list[str]) -> dict:
         return {**unavailable, "reason": "manifest_missing"}
     try:
         payload = json.loads(manifest.read_text(encoding="utf-8"))
-        if not isinstance(payload, dict) or payload.get("schema_version") != 3:
+        if not isinstance(payload, dict) or payload.get("schema_version") != 4:
             raise TypeError("unsupported capability manifest schema")
         rows = payload["skills"]
         if not isinstance(rows, list):
@@ -761,6 +765,14 @@ def capability_language_exclusion(
                 return _capability_exclusion(
                     row["cpp_disposition"],
                     f"/{row['skill']} declares cpp_disposition={row['cpp_disposition']}",
+                )
+            if language == "ruby" and row["ruby_disposition"] not in {
+                "ruby-supported",
+                "validated-neutral",
+            }:
+                return _capability_exclusion(
+                    row["ruby_disposition"],
+                    f"/{row['skill']} declares ruby_disposition={row['ruby_disposition']}",
                 )
     return None
 

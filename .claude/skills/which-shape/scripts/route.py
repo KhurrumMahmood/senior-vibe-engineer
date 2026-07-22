@@ -697,6 +697,9 @@ def _apply_task_capability_gate(handoff: dict[str, Any], task: str) -> None:
             elif language == "cpp":
                 disposition = row["cpp_disposition"]
                 eligible = disposition in {"cpp-supported", "validated-neutral"}
+            elif language == "ruby":
+                disposition = row["ruby_disposition"]
+                eligible = disposition in {"ruby-supported", "validated-neutral"}
             elif language == "python":
                 continue
             else:
@@ -741,6 +744,7 @@ CAPABILITY_FIELDS = (
     "swift_disposition",
     "c_disposition",
     "cpp_disposition",
+    "ruby_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -758,7 +762,7 @@ def _capability_handoff(library_root: Path, skills: list[str]) -> dict[str, Any]
         return {**unavailable, "reason": "manifest_missing"}
     try:
         payload = json.loads(manifest.read_text(encoding="utf-8"))
-        if not isinstance(payload, dict) or payload.get("schema_version") != 3:
+        if not isinstance(payload, dict) or payload.get("schema_version") != 4:
             raise TypeError("unsupported capability manifest schema")
         rows = payload["skills"]
         if not isinstance(rows, list):

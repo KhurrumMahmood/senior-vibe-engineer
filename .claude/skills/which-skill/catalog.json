@@ -307,7 +307,7 @@
     },
     {
       "name": "find-comment-drift",
-      "description": "Advisory SUSPECT scan for comments, docstrings, JSDoc, and template\ncomments that have drifted from the code they are meant to clarify.\nFlags detached section banners, narration comments, missing or thin\npublic class docstrings, stale terminology, JavaScript and TypeScript\nfunctions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML\ncomments, fragile doc references, and bounded Go, Java, PHP, and C lexical-comment surfaces.\n",
+      "description": "Advisory SUSPECT scan for comments, docstrings, JSDoc, and template\ncomments that have drifted from the code they are meant to clarify.\nFlags detached section banners, narration comments, missing or thin\npublic class docstrings, stale terminology, JavaScript and TypeScript\nfunctions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML\ncomments, fragile doc references, and bounded Go, Java, PHP, Ruby, C, and C++\nlexical-comment surfaces.\n",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Auditing explanatory-code hygiene after AI-heavy development: noisy\ncomments that narrate the next line, missing ownership docstrings,\nstale terminology in comments/docstrings, banner comments that should\nbe adjacent JSDoc or deleted, and Django-template comments that repeat\nvisible headings.\n",
@@ -321,7 +321,9 @@
         "go",
         "java",
         "php",
+        "ruby",
         "c",
+        "cpp",
         "templates"
       ],
       "_path": "skills/find-comment-drift"

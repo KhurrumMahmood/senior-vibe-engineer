@@ -27,6 +27,7 @@ PHP_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "php-language-coverage.json"
 SWIFT_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "swift-language-coverage.json"
 C_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "c-language-coverage.json"
 CPP_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "cpp-language-coverage.json"
+RUBY_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "ruby-language-coverage.json"
 BUILDER = REPO_ROOT / "scripts" / "build_multilanguage_matrix.py"
 
 EXPECTED_COUNTS = {
@@ -82,6 +83,13 @@ EXPECTED_C_COUNTS = {
 }
 EXPECTED_CPP_COUNTS = {
     "cpp-pending-implementation": 22,
+    "validated-neutral": 19,
+    "stack-bound": 22,
+    "ecosystem-runtime": 13,
+}
+EXPECTED_RUBY_COUNTS = {
+    "ruby-supported": 1,
+    "ruby-pending-implementation": 21,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -171,7 +179,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))["skills"]
     catalog_names = {row["name"] for row in catalog}
 
-    assert payload["schema_version"] == 3
+    assert payload["schema_version"] == 4
     assert len(rows) == 76
     assert len(names) == len(set(names))
     assert set(names) == catalog_names
@@ -186,6 +194,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
     assert Counter(row["swift_disposition"] for row in rows) == EXPECTED_SWIFT_COUNTS
     assert Counter(row["c_disposition"] for row in rows) == EXPECTED_C_COUNTS
     assert Counter(row["cpp_disposition"] for row in rows) == EXPECTED_CPP_COUNTS
+    assert Counter(row["ruby_disposition"] for row in rows) == EXPECTED_RUBY_COUNTS
     assert Counter(row["optional_install"]["status"] for row in rows) == {
         "passed": 41,
         "deferred-named-stack": 22,
@@ -203,6 +212,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         SWIFT_COVERAGE,
         C_COVERAGE,
         CPP_COVERAGE,
+        RUBY_COVERAGE,
     ):
         relative = str(source.relative_to(REPO_ROOT))
         assert source_by_path[relative] == _sha256(source)
@@ -345,6 +355,24 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
                 "cpp-pending-implementation",
             }:
                 assert row["cpp_limitation"]
+            if row["ruby_disposition"] == "pending-validation":
+                assert row["ruby_evidence_path"] is None
+                assert row["ruby_native_check"] is None
+                assert row["ruby_reviewed_revision"] is None
+            else:
+                assert row["ruby_disposition"] in {
+                    "ruby-supported",
+                    "ruby-partial",
+                    "ruby-pending-implementation",
+                }
+                assert (REPO_ROOT / row["ruby_evidence_path"]).is_file()
+                assert row["ruby_native_check"]
+                assert row["ruby_reviewed_revision"]
+            if row["ruby_disposition"] in {
+                "ruby-partial",
+                "ruby-pending-implementation",
+            }:
+                assert row["ruby_limitation"]
         elif row["expansion_disposition"] == "framework-bound":
             framework_rows.append(row)
             assert row["fact_level"] == "framework"
@@ -357,6 +385,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["swift_disposition"] == "stack-bound"
             assert row["c_disposition"] == "stack-bound"
             assert row["cpp_disposition"] == "stack-bound"
+            assert row["ruby_disposition"] == "stack-bound"
         elif row["expansion_disposition"] == "validated-neutral":
             assert row["fact_level"] == "neutral"
             assert row["outcome_class"] == "not-applicable"
@@ -367,6 +396,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["swift_disposition"] == "validated-neutral"
             assert row["c_disposition"] == "validated-neutral"
             assert row["cpp_disposition"] == "validated-neutral"
+            assert row["ruby_disposition"] == "validated-neutral"
         else:
             assert row["fact_level"] == "ecosystem-runtime"
             assert row["outcome_class"] == "not-applicable"
@@ -377,6 +407,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["swift_disposition"] == "ecosystem-runtime"
             assert row["c_disposition"] == "ecosystem-runtime"
             assert row["cpp_disposition"] == "ecosystem-runtime"
+            assert row["ruby_disposition"] == "ecosystem-runtime"
 
         if row["expansion_disposition"] != "language-level":
             assert row["go_evidence_path"] is None
@@ -401,6 +432,10 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["cpp_native_check"] is None
             assert row["cpp_reviewed_revision"] is None
             assert row["cpp_limitation"] is None
+            assert row["ruby_evidence_path"] is None
+            assert row["ruby_native_check"] is None
+            assert row["ruby_reviewed_revision"] is None
+            assert row["ruby_limitation"] is None
 
         if row["expansion_disposition"] != "language-level":
             assert row["javascript_cohort"] is None
@@ -426,6 +461,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         for row in language_rows
         if row["c_disposition"] == "c-supported"
     } == {"find-comment-drift", "map-subsystem"}
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row["ruby_disposition"] == "ruby-supported"
+    } == {"find-comment-drift"}
     assert Counter(row["javascript_cohort"] for row in language_rows) == (
         EXPECTED_JAVASCRIPT_COHORT_COUNTS
     )
