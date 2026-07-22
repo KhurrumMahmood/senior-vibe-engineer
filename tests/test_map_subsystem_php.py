@@ -15,11 +15,13 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / ".claude" / "skills" / "map-subsystem"
 FIXTURE = ROOT / "tests" / "fixtures" / "php-pilot" / "host"
-PHP = Path("/opt/homebrew/bin/php")
-COMPOSER = Path("/usr/local/bin/composer")
+PHP_PATH = shutil.which("php")
+COMPOSER_PATH = shutil.which("composer")
+PHP = Path(PHP_PATH) if PHP_PATH else Path("php-unavailable")
+COMPOSER = Path(COMPOSER_PATH) if COMPOSER_PATH else Path("composer-unavailable")
 pytestmark = pytest.mark.skipif(
-    not PHP.is_file() or not COMPOSER.is_file(),
-    reason="the pinned PHP and Composer pilot tools are required",
+    PHP_PATH is None or COMPOSER_PATH is None,
+    reason="PHP and Composer pilot tools are required",
 )
 
 
