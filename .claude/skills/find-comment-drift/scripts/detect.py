@@ -903,6 +903,13 @@ def main(argv: list[str] | None = None) -> int:
         return 2 if scan["status"] == "unsupported" else 0
     if args.language == "java":
         scan_path = args.output.with_name("scan.json")
+        for artifact in (
+            args.output,
+            scan_path,
+            args.output.with_name("report.md"),
+            args.output.with_name("findings.json"),
+        ):
+            artifact.unlink(missing_ok=True)
         inventory, files, errors = inventory_java(target_paths, project_root)
         findings = []
         for path in files:

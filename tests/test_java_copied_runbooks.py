@@ -147,6 +147,31 @@ def test_java_multi_command_runbooks_preserve_unsupported_detector_exit(
     assert not (scan / "findings.json").exists()
 
 
+def test_java_comment_runbook_invalidates_prior_complete_artifacts_on_unsupported_rerun(
+    tmp_path: Path,
+) -> None:
+    host = tmp_path / "find-comment-drift"
+    source = host / "src/main/java/example/Checkout.java"
+    source.parent.mkdir(parents=True)
+    source.write_text("package example; class Checkout {}\n", encoding="utf-8")
+    installed = _copy_skill(host, ".claude/skills", "find-comment-drift")
+    command = _documented_block(installed / "references/java.md", "java-comment-scan")
+    scan = host / "reports/find-comment-drift/scan-java"
+
+    complete = _run("/bin/bash", "-c", command, cwd=host, env=os.environ.copy())
+
+    assert complete.returncode == 0, complete.stdout + complete.stderr
+    assert all((scan / name).is_file() for name in ("detections.jsonl", "scan.json", "report.md", "findings.json"))
+
+    shutil.rmtree(host / "src")
+    unsupported = _run("/bin/bash", "-c", command, cwd=host, env=os.environ.copy())
+
+    assert unsupported.returncode == 2, unsupported.stdout + unsupported.stderr
+    assert json.loads((scan / "scan.json").read_text(encoding="utf-8"))["status"] == "unsupported"
+    assert not (scan / "report.md").exists()
+    assert not (scan / "findings.json").exists()
+
+
 def _require_jdk17() -> None:
     javac = shutil.which("javac")
     if javac is None:
