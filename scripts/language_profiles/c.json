@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "language": "c",
+  "suffixes": [".c", ".i"],
+  "project_markers": ["Makefile", "compile_commands.json"],
+  "source_roles": {
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "migration", "symlink"],
+    "test_file_globs": ["test_*.c", "*_test.c"],
+    "declaration_file_globs": [],
+    "configuration_files": []
+  },
+  "native_tools": [
+    {
+      "id": "clang",
+      "project_paths": [".tools/clang", "tools/clang"],
+      "system_commands": ["clang"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "21.0.0",
+      "required": true
+    },
+    {
+      "id": "clangd",
+      "project_paths": [".tools/clangd", "tools/clangd"],
+      "system_commands": ["clangd"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "21.0.0",
+      "required": true
+    },
+    {
+      "id": "make",
+      "project_paths": [".tools/make", "tools/make"],
+      "system_commands": ["make"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "3.81.0",
+      "required": true
+    }
+  ],
+  "fact_tiers": ["lexical-filesystem", "syntax", "semantic-project"],
+  "verification_commands": [
+    {
+      "id": "native-test",
+      "argv": ["{tool:make}", "-C", "{project_root}", "clean", "test"],
+      "requires": ["clang", "make"]
+    },
+    {
+      "id": "compile-database",
+      "argv": ["{tool:make}", "-C", "{project_root}", "compile-db"],
+      "requires": ["clang", "make"]
+    },
+    {
+      "id": "syntax",
+      "argv": ["{tool:clang}", "-x", "c", "-std=c17", "-Wall", "-Wextra", "-Werror", "-pedantic", "-fsyntax-only", "{source_files}"],
+      "requires": ["clang"]
+    }
+  ],
+  "terminal_outcomes": ["complete", "partial", "unsupported", "tool-missing", "syntax-error", "native-check-failure", "unexpected-source-mutation"],
+  "explicit_limits": [
+    "This profile is ISO C17 plus a fixture-owned Make build; it does not imply C++, Objective-C, Objective-C++, CUDA, OpenCL, assembly, CMake, Xcode, Bazel, Meson, embedded, kernel, or framework support.",
+    "Only .c and .i are profile-owned. A .h or .inc file is C only when a trustworthy C compile command and its dependency closure own it; otherwise it remains ambiguous and shared inventory must not infer C from the suffix.",
+    "Makefile presence proves a build marker, not semantic readiness. Cross-translation-unit facts require a valid, current, complete compile_commands.json whose effective commands use C mode; missing, malformed, stale, incomplete, or fallback commands cannot produce a complete semantic outcome.",
+    "Clang AST JSON and raw-token output are version-gated feasibility inputs, not stable cross-version APIs or skill final outcomes.",
+    "Macro expansion, inactive conditional branches, function pointers, file-local linkage, ABI/layout, generated headers, target/sysroot/defines/include order, freestanding mode, and non-default build variants remain explicit semantic limits."
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-07-22T05:30:00-07:00",
+  "base_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
+  "platform": "macOS 26.5.2 arm64; active developer directory /Library/Developer/CommandLineTools",
+  "python_runtime": {
+    "required_path": "/Users/<user>/Projects/engineering-skills-product/.venv/bin/python",
+    "version": "3.11.10"
+  },
+  "toolchain": {
+    "clang": {"path": "/usr/bin/clang", "version": "21.0.0", "minimum_profile_version": "21.0.0", "required": true},
+    "clangd": {"path": "/usr/bin/clangd", "version": "21.0.0", "minimum_profile_version": "21.0.0", "required": true},
+    "make": {"path": "/usr/bin/make", "version": "3.81", "minimum_profile_version": "3.81.0", "required": true},
+    "optional_absent": ["cmake", "bear", "intercept-build", "clang-tidy", "clang-format", "clang-query", "clang-check", "clang-refactor", "cppcheck", "include-what-you-use"],
+    "installation_performed": false,
+    "network_used": false
+  },
+  "fixture": {
+    "root": "tests/fixtures/c-pilot",
+    "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), sorted regular-file paths",
+    "manifest_sha256": "8c675c97ac8fdd1d76cb8b2151a60c4ef75f134dcc6e59df92420006cfb1d340",
+    "total_bytes": 3616,
+    "files": [
+      "host/Makefile",
+      "host/build/BuildSentinel.c",
+      "host/foreign/Foreign.S",
+      "host/foreign/Foreign.cl",
+      "host/foreign/Foreign.cpp",
+      "host/foreign/Foreign.cu",
+      "host/foreign/Foreign.m",
+      "host/foreign/Foreign.mm",
+      "host/generated/GeneratedInvoice.c",
+      "host/include/cpilot/invoice.h",
+      "host/include/orphan.h",
+      "host/include/orphan.inc",
+      "host/src/invoice.c",
+      "host/src/invoice_internal.h",
+      "host/src/main.c",
+      "host/src/pilot_mode.inc",
+      "host/tests/invoice_test.c",
+      "host/vendor/VendorInvoice.c",
+      "malformed/Broken.c",
+      "symlink-target/External.c"
+    ],
+    "translation_units": ["host/src/invoice.c", "host/src/main.c"],
+    "compile_owned_headers": ["host/include/cpilot/invoice.h", "host/src/invoice_internal.h", "host/src/pilot_mode.inc"],
+    "ambiguous_headers": ["host/include/orphan.h", "host/include/orphan.inc"],
+    "runtime_symlink": "tests create host/linked-external -> ../symlink-target and require role=symlink without traversal",
+    "native_result": "restrictive C17 warnings-as-errors build/test and smoke pass offline; syntax, parseable AST JSON, raw comment tokens, malformed rejection, two-entry copied-host compile database, and source preservation pass"
+  },
+  "compile_database": {
+    "materialization": "make -C <copied-host> clean compile-db CC=/usr/bin/clang",
+    "portable_property": "Make expands the copied host CURDIR into absolute directory, file, include, source, and output paths; no checkout path is committed",
+    "trusted_entry_requirements": ["JSON array", "exact directory/file/arguments keys", "absolute copied-host paths", "two expected first-party translation units", "-std=c17", "-c", "current versus Makefile and compile-owned inputs"],
+    "proven_states": ["valid", "missing", "malformed", "mismatched-directory", "stale", "incomplete"],
+    "generic_doctor_boundary": "The existing doctor reports marker presence and tools only; it does not validate compile-database contents. Semantic consumers must apply the stricter gate and reject clangd fallback commands."
+  },
+  "runtime_closure": {
+    "definition": "existing stdlib-only profile/doctor/inventory runtime exercised by the spine; it is not a copied skill/provider closure and earns no support claim",
+    "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), listed path order",
+    "manifest_sha256": "82e09630b66710dc479d254f32bd6949140f9a67e2f69bfc8a6503d24d768edb",
+    "total_bytes": 43204,
+    "files": [
+      "scripts/language_profiles/c.json",
+      "scripts/language_doctor.py",
+      "scripts/source_inventory.py",
+      "scripts/_lib/language_support/__init__.py",
+      "scripts/_lib/language_support/profile.py",
+      "scripts/_lib/language_support/lifecycle.py"
+    ]
+  },
+  "pilot_contracts": {
+    "lexical": {
+      "skill": "find-comment-drift",
+      "disposition": "c-unsupported",
+      "producer_candidate": "version-gated clang raw tokens plus exact source spans",
+      "final_outcome": "durable findings and clean result with source-role exclusions and complete/partial/unsupported/failed lifecycle",
+      "required_boundaries": ["valid", "clean", "malformed", "generated", "vendor", "ambiguous-header", "tool-missing", "tool-too-old", "source-preserving", "copied closure"],
+      "forbidden_claims": ["macro-expanded semantic association", "inactive-branch meaning", "supported before the skill final artifact passes"]
+    },
+    "semantic": {
+      "skill": "map-subsystem",
+      "disposition": "c-unsupported",
+      "producer_candidate": "version-gated Clang/clangd facts from effective fixture compile commands",
+      "compile_database_gate": ["valid", "current", "complete", "C-mode", "no-fallback"],
+      "final_outcome": "durable map with declarations, references, public/private headers, and cross-translation-unit edges plus explicit non-complete states",
+      "required_boundaries": ["missing", "malformed", "mismatched-directory", "stale", "incomplete", "non-C-command", "clangd-fallback", "copied closure"]
+    },
+    "mutation": {
+      "skill": "move-path",
+      "disposition": "c-unsupported",
+      "state": "deferred-until-semantic-lineage",
+      "scope_if_authorized_later": "one source/header move in a disposable copy with include and Makefile updates",
+      "required_proofs": ["accepted semantic lineage", "preview", "source fingerprint", "bounded diff", "symlink/generated/vendor refusal", "rollback", "native build/test", "same-destination terminal state"]
+    }
+  },
+  "coverage": {
+    "artifact": ".claude/tasks/c-language-coverage.json",
+    "rows": 22,
+    "disposition_counts": {"c-unsupported": 22},
+    "reason": "Profile, native fixture, and feasibility evidence do not reach any skill-owned final artifact or mutation boundary."
+  },
+  "mutation_performed": false,
+  "root_integration_needs": [
+    "Preserve .h/.inc as unclassified or ambiguous until a C-mode compile-command dependency closure owns them; do not add them as unconditional C suffixes.",
+    "Keep generic doctor marker presence distinct from compile-database validity and expose the strict semantic gate before any map-subsystem claim.",
+    "Publish shared router/matrix/catalog truth only after focused cohort final outcomes earn it."
+  ]
+}
