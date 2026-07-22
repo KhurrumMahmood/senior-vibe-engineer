@@ -150,6 +150,10 @@ def _assert_outcome(records: list[dict], findings: dict) -> None:
     clusters = {cluster["name"]: cluster["symbols"] for cluster in record["clusters"]}
     assert set(clusters) == {"invoice", "shipment", "customer", "inventory"}
     assert "OmnibusService.saveInvoiceRecord" in clusters["invoice"]
+    assert findings["status"] == "complete"
+    assert findings["analysis"]["java"]["status"] == "complete"
+    assert findings["analysis"]["java"]["analyzer"] == "jdk-compiler-tree-api"
+    assert findings["analysis"]["java"]["minimum_jdk_version"] == "17.0.0"
     assert findings["summary"]["bucket_counts"]["confirmed_omnibus"] == 1
 
 
@@ -160,6 +164,9 @@ def test_java_pipeline_reaches_final_report_without_source_changes(tmp_path: Pat
     records, findings = _pipeline(SKILL, host, env, host / "reports" / "java")
 
     _assert_outcome(records, findings)
+    report = (host / "reports" / "java" / "report.md").read_text(encoding="utf-8")
+    assert "**Status:** `complete`" in report
+    assert "jdk-compiler-tree-api" in report
     assert _fingerprints(host) == before
 
 
@@ -227,12 +234,92 @@ def test_java_boundaries_and_tool_failures_are_explicit(tmp_path: Path) -> None:
     assert not old_output.exists()
 
 
-def test_narrow_vendor_and_kotlin_targets_do_not_claim_java_coverage(tmp_path: Path) -> None:
+def test_java_failure_rerun_invalidates_prior_pipeline_output(tmp_path: Path) -> None:
     host, env = _host(tmp_path)
-    vendor_output = host / "vendor.jsonl"
-    vendor = _detect(SKILL, host, vendor_output, env, host / "vendor")
-    assert vendor.returncode == 0, vendor.stdout + vendor.stderr
-    assert _records(vendor_output) == []
+    report_dir = host / "reports" / "lifecycle"
+    output = report_dir / "omnibus.jsonl"
+    _pipeline(SKILL, host, env, report_dir)
+    artifacts = (
+        output,
+        report_dir / "scan.json",
+        report_dir / "candidates.jsonl",
+        report_dir / "report.md",
+        report_dir / "findings.json",
+        report_dir / "scout",
+    )
+    assert all(path.exists() for path in artifacts)
+
+    broken = host / "src" / "main" / "java" / "example" / "Broken.java"
+    broken.write_text("package example; class Broken { void bad( { } }\n", encoding="utf-8")
+    syntax = _detect(SKILL, host, output, env, host / "src")
+    assert syntax.returncode == 2
+    assert "syntax error" in syntax.stderr.lower()
+    assert all(not path.exists() for path in artifacts)
+
+    broken.unlink()
+    _pipeline(SKILL, host, env, report_dir)
+    missing = _detect(SKILL, host, output, _env(path=""), host / "src")
+    assert missing.returncode == 2
+    assert "JDK is unavailable" in missing.stderr
+    assert all(not path.exists() for path in artifacts)
+
+
+@pytest.mark.parametrize("target_name", ("vendor", "src/test", "empty"))
+def test_java_no_eligible_target_is_unsupported_and_final_output_is_honest(
+    tmp_path: Path, target_name: str
+) -> None:
+    host, env = _host(tmp_path)
+    target = host / target_name
+    if target_name == "empty":
+        target.mkdir()
+    report_dir = host / "reports" / target_name.replace("/", "-")
+    output = report_dir / "omnibus.jsonl"
+
+    unsupported = _detect(SKILL, host, output, env, target)
+
+    assert unsupported.returncode == 2
+    assert _records(output) == []
+    scan = json.loads((report_dir / "scan.json").read_text(encoding="utf-8"))
+    assert scan["status"] == "unsupported"
+    assert scan["analyzer"] == "jdk-compiler-tree-api"
+    assert scan["summary"]["eligible"] == 0
+
+    candidates = report_dir / "candidates.jsonl"
+    collapsed = _run(
+        sys.executable,
+        str(SKILL / "scripts" / "collapse.py"),
+        "--detections",
+        str(output),
+        "--output",
+        str(candidates),
+        cwd=host,
+        env=env,
+    )
+    assert collapsed.returncode == 0, collapsed.stdout + collapsed.stderr
+    report = _run(
+        sys.executable,
+        str(SKILL / "scripts" / "report.py"),
+        "--candidates",
+        str(candidates),
+        "--scout-dir",
+        str(report_dir / "scout"),
+        "--output-md",
+        str(report_dir / "report.md"),
+        "--output-json",
+        str(report_dir / "findings.json"),
+        "--scan-id",
+        "no-eligible-java",
+        "--target",
+        target_name,
+        cwd=host,
+        env=env,
+    )
+    assert report.returncode == 0, report.stdout + report.stderr
+    findings = json.loads((report_dir / "findings.json").read_text(encoding="utf-8"))
+    rendered = (report_dir / "report.md").read_text(encoding="utf-8")
+    assert findings["status"] == "unsupported"
+    assert findings["analysis"]["java"] == scan
+    assert "not a clean omnibus result" in rendered
 
     kotlin = host / "kotlin"
     kotlin.mkdir()

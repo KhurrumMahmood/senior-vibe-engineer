@@ -18,6 +18,9 @@ python3 scripts/report.py \
 
 Grade the final outcome from `detections.jsonl`, `scan.json`, `report.md`, and
 `findings.json`. The analyzer is `python-filesystem-names`.
+A Java rerun clears these same-run artifacts before validating its selected
+roots, so a failed or partial rerun cannot leave a prior complete report as the
+apparent outcome.
 
 ## Accepted boundary
 

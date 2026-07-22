@@ -101,6 +101,18 @@ def _load_scouts(scout_dir: Path) -> dict[str, dict[str, Any]]:
     return out
 
 
+def _load_scan(path: Path) -> dict[str, Any] | None:
+    """Read optional Java detector state emitted beside candidates.jsonl."""
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        print(f"[report] WARN: invalid scan state in {path}", file=sys.stderr)
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
 def _render_candidate(
     candidate: dict[str, Any],
     scout: dict[str, Any] | None,
@@ -201,6 +213,7 @@ def render_report(
     scouts: dict[str, dict[str, Any]],
     scan_id: str | None,
     target: str | None,
+    scan: dict[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     by_bucket: dict[str, list[tuple[dict[str, Any], dict[str, Any] | None]]] = {
         b: [] for b in BUCKET_ORDER
@@ -226,6 +239,16 @@ def render_report(
     lines.append("")
     if target:
         lines.append(f"**Target:** `{target}`")
+    if scan is not None:
+        lines.append(f"**Status:** `{scan.get('status', 'unknown')}`")
+        lines.append(f"**Analyzer:** `{scan.get('analyzer', 'unknown')}`")
+        lines.append(
+            "**Java toolchain:** `"
+            + str(scan.get("actual_java_version") or "not-run")
+            + "` (minimum JDK `"
+            + str(scan.get("minimum_jdk_version") or "unknown")
+            + "`)"
+        )
     lines.append(f"**Raw candidates:** {len(candidates)}")
     lines.append(f"**Scout verifications:** {len(scouts)}")
     lines.append("")
@@ -257,7 +280,12 @@ def render_report(
     lines.append("## Next action")
     lines.append("")
     confirmed = by_bucket.get("confirmed_omnibus", [])
-    if confirmed:
+    if scan is not None and scan.get("status") != "complete":
+        lines.append(
+            "This Java selection is not a clean omnibus result; repair or widen "
+            "the source selection before interpreting zero candidates."
+        )
+    elif confirmed:
         top_file = confirmed[0][0].get("file", "?")
         lines.append(
             f"1. Decompose `{top_file}` — run "
@@ -296,6 +324,9 @@ def render_report(
             for cand in candidates
         ],
     }
+    if scan is not None:
+        findings_json["status"] = scan.get("status", "unknown")
+        findings_json["analysis"] = {"java": scan}
 
     return "\n".join(lines), findings_json
 
@@ -314,8 +345,9 @@ def main(argv: list[str] | None = None) -> int:
 
     candidates = _read_jsonl(args.candidates)
     scouts = _load_scouts(args.scout_dir)
+    scan = _load_scan(args.candidates.with_name("scan.json"))
     report_md, findings_json = render_report(
-        candidates, scouts, args.scan_id, args.target
+        candidates, scouts, args.scan_id, args.target, scan
     )
 
     args.output_md.parent.mkdir(parents=True, exist_ok=True)

@@ -321,7 +321,7 @@ def _parse_java_version(rendered: str, tool: str) -> tuple[int, int, int]:
     )
 
 
-def _java_toolchain() -> tuple[str, str]:
+def _java_toolchain() -> tuple[str, str, tuple[int, int, int], tuple[int, int, int]]:
     """Resolve a complete JDK 17+ without requiring Maven or Gradle."""
     java = shutil.which("java")
     javac = shutil.which("javac")
@@ -331,6 +331,7 @@ def _java_toolchain() -> tuple[str, str]:
             "Java JDK is unavailable on PATH (missing " + ", ".join(missing) + ")"
         )
     assert java is not None and javac is not None
+    versions: dict[str, tuple[int, int, int]] = {}
     for tool, executable in (("java", java), ("javac", javac)):
         try:
             result = subprocess.run(
@@ -351,12 +352,15 @@ def _java_toolchain() -> tuple[str, str]:
                 + f"; found {tool} "
                 + ".".join(map(str, version))
             )
-    return java, javac
+        versions[tool] = version
+    return java, javac, versions["java"], versions["javac"]
 
 
-def _java_symbols(filepaths: list[Path], project_root: Path) -> dict[Path, list[Symbol]]:
+def _java_symbols(
+    filepaths: list[Path], project_root: Path
+) -> tuple[dict[Path, list[Symbol]], dict[str, object], set[Path]]:
     """Extract eligible Java symbols through one JDK source-launcher run."""
-    java, _javac = _java_toolchain()
+    java, _javac, java_version, javac_version = _java_toolchain()
     launcher = Path(__file__).resolve().with_name("detect_java_symbols.java")
     command = [java, str(launcher), "--project-root", str(project_root)]
     for path in filepaths:
@@ -378,6 +382,7 @@ def _java_symbols(filepaths: list[Path], project_root: Path) -> dict[Path, list[
         raise JavaExtractionError("bundled Java parser emitted invalid symbol evidence")
     requested = {path.resolve() for path in filepaths}
     extracted: dict[Path, list[Symbol]] = {}
+    generated: set[Path] = set()
     for file_payload in payload["files"]:
         try:
             rendered_path = file_payload["file"]
@@ -401,6 +406,8 @@ def _java_symbols(filepaths: list[Path], project_root: Path) -> dict[Path, list[
             )
         if status not in {"complete", "generated"}:
             raise JavaExtractionError("bundled Java parser emitted an invalid status")
+        if status == "generated":
+            generated.add(path)
         try:
             extracted[path] = [
                 Symbol(
@@ -413,7 +420,12 @@ def _java_symbols(filepaths: list[Path], project_root: Path) -> dict[Path, list[
             raise JavaExtractionError("bundled Java parser emitted an invalid symbol") from exc
     if set(extracted) != requested:
         raise JavaExtractionError("bundled Java parser omitted requested file evidence")
-    return extracted
+    return extracted, {
+        "analyzer": "jdk-compiler-tree-api",
+        "minimum_jdk_version": ".".join(map(str, _JAVA_MIN_VERSION)),
+        "actual_java_version": ".".join(map(str, java_version)),
+        "actual_javac_version": ".".join(map(str, javac_version)),
+    }, generated
 
 
 def _language_for(path: Path) -> str | None:
@@ -445,17 +457,116 @@ def _go_path_is_excluded(path: Path, project_root: Path) -> bool:
     )
 
 
-def _java_path_is_excluded(path: Path, project_root: Path) -> bool:
-    """Apply Java's first-party source policy against logical and physical paths."""
+def _java_exclusion_reason(path: Path, project_root: Path) -> str | None:
+    """Name why a Java path is outside the first-party source boundary."""
     try:
         logical = path.relative_to(project_root).parts
         physical = path.resolve().relative_to(project_root).parts
     except ValueError:
-        return True
-    return (
-        any(part.lower() in _JAVA_SKIP_DIRS for part in logical[:-1])
-        or any(part.lower() in _JAVA_SKIP_DIRS for part in physical[:-1])
-        or any(fnmatch.fnmatchcase(path.name.lower(), glob) for glob in _JAVA_SKIP_FILE_GLOBS)
+        return "outside-project-root"
+    if any(part.lower() in _DEFAULT_SKIP_DIRS for part in logical[:-1]):
+        return "default-skip-tree"
+    if any(part.lower() in _JAVA_SKIP_DIRS for part in logical[:-1]):
+        return "java-skip-tree"
+    if any(part.lower() in _JAVA_SKIP_DIRS for part in physical[:-1]):
+        return "java-skip-tree"
+    if any(fnmatch.fnmatchcase(path.name.lower(), glob) for glob in _JAVA_SKIP_FILE_GLOBS):
+        return "java-skip-file"
+    return None
+
+
+def _java_path_is_excluded(path: Path, project_root: Path) -> bool:
+    """Apply Java's first-party source policy against logical and physical paths."""
+    return _java_exclusion_reason(path, project_root) is not None
+
+
+def _java_inventory(
+    target: Path,
+    project_root: Path,
+    skip_file_globs: tuple[str, ...],
+    skip_path_globs: tuple[str, ...],
+) -> tuple[list[dict[str, str]], list[Path]]:
+    """Inventory every Java file before deciding whether zero candidates are clean."""
+    inventory: list[dict[str, str]] = []
+    eligible: list[Path] = []
+    for path in sorted(target.rglob("*")):
+        if path.suffix.lower() != ".java" or not path.is_file():
+            continue
+        try:
+            rel = path.relative_to(project_root).as_posix()
+        except ValueError:
+            rel = path.as_posix()
+        reason = _java_exclusion_reason(path, project_root)
+        if reason is None and any(fnmatch.fnmatchcase(path.name, glob) for glob in skip_file_globs):
+            reason = "declared-skip-file"
+        if reason is None and any(fnmatch.fnmatchcase(rel, glob) for glob in skip_path_globs):
+            reason = "declared-skip-path"
+        if reason is not None:
+            inventory.append({"file": rel, "role": "excluded", "reason": reason})
+            continue
+        inventory.append({"file": rel, "role": "eligible"})
+        eligible.append(path)
+    return inventory, eligible
+
+
+def _java_scan_payload(
+    inventory: list[dict[str, str]], provenance: dict[str, object] | None
+) -> dict[str, object]:
+    """Carry Java detector completeness and parser provenance to the final report."""
+    summary = {
+        "discovered": len(inventory),
+        "eligible": sum(row["role"] == "eligible" for row in inventory),
+        "excluded": sum(row["role"] == "excluded" for row in inventory),
+    }
+    return {
+        "status": "complete",
+        "language": "java",
+        "analyzer": "jdk-compiler-tree-api",
+        "minimum_jdk_version": ".".join(map(str, _JAVA_MIN_VERSION)),
+        "actual_java_version": (
+            provenance["actual_java_version"] if provenance is not None else None
+        ),
+        "actual_javac_version": (
+            provenance["actual_javac_version"] if provenance is not None else None
+        ),
+        "inventory": inventory,
+        "summary": summary,
+    }
+
+
+def _remove_output_artifact(path: Path) -> None:
+    if not (path.exists() or path.is_symlink()):
+        return
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path)
+    else:
+        path.unlink()
+
+
+def _invalidate_java_artifacts(output: Path) -> None:
+    """Remove every generated artifact that could make a failed Java rerun look clean."""
+    for artifact in (
+        output,
+        output.with_name("scan.json"),
+        output.with_name("candidates.jsonl"),
+        output.with_name("report.md"),
+        output.with_name("findings.json"),
+        output.with_name("scout"),
+    ):
+        _remove_output_artifact(artifact)
+
+
+def _write_jsonl(records: list[dict[str, object]], output: Path) -> None:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("w", encoding="utf-8") as handle:
+        for record in records:
+            handle.write(json.dumps(record) + "\n")
+
+
+def _write_java_scan(scan: dict[str, object], output: Path) -> None:
+    output.with_name("scan.json").write_text(
+        json.dumps(scan, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
 
 
@@ -603,35 +714,90 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--skip-path-glob", action="append", default=[], help="Extra relative-path globs to skip")
     parser.add_argument("--language", action="append", default=[], choices=list(_LANGUAGES), help="Restrict to these languages")
     args = parser.parse_args(argv)
+    wanted = set(args.language) or set(_LANGUAGES)
+    java_mode = bool(args.language) and wanted == {"java"}
+    if java_mode:
+        _invalidate_java_artifacts(args.output)
     if not args.target.is_dir():
         print(f"[detect_omnibus] ERROR: {args.target} is not a directory", file=sys.stderr)
         return 2
     project_root = args.project_root.resolve()
-    wanted = set(args.language) or set(_LANGUAGES)
-    if args.language and wanted == {"java"}:
-        kotlin = _first_kotlin_source(args.target.resolve(), project_root)
+    target = args.target.resolve()
+    if java_mode:
+        kotlin = _first_kotlin_source(target, project_root)
         if kotlin is not None:
             print(
                 "[detect_omnibus] ERROR: Kotlin source is unsupported by Java v1: " + str(kotlin),
                 file=sys.stderr,
             )
             return 2
-    extensions = frozenset(extension for language in wanted for extension in _LANGUAGE_EXTENSIONS[language])
-    files = _walk_source_files(
-        args.target.resolve(),
-        _DEFAULT_SKIP_FILE_GLOBS + tuple(args.skip_file_glob),
-        _DEFAULT_SKIP_PATH_GLOBS + tuple(args.skip_path_glob),
-        project_root,
-        extensions,
-    )
+    skip_file_globs = _DEFAULT_SKIP_FILE_GLOBS + tuple(args.skip_file_glob)
+    skip_path_globs = _DEFAULT_SKIP_PATH_GLOBS + tuple(args.skip_path_glob)
+    java_inventory: list[dict[str, str]] = []
+    java_scan: dict[str, object] | None = None
+    if java_mode:
+        java_inventory, java_files = _java_inventory(
+            target, project_root, skip_file_globs, skip_path_globs
+        )
+        if not java_files:
+            java_scan = _java_scan_payload(java_inventory, None)
+            java_scan["status"] = "unsupported"
+            java_scan["failure_kind"] = (
+                "no-java-files" if not java_inventory else "no-eligible-java-source"
+            )
+            _write_jsonl([], args.output)
+            _write_java_scan(java_scan, args.output)
+            print(
+                "[detect_omnibus] ERROR: no eligible Java source under target; "
+                "zero candidates are not a clean result",
+                file=sys.stderr,
+            )
+            return 2
+        files = list(java_files)
+    else:
+        extensions = frozenset(
+            extension for language in wanted for extension in _LANGUAGE_EXTENSIONS[language]
+        )
+        files = _walk_source_files(
+            target,
+            skip_file_globs,
+            skip_path_globs,
+            project_root,
+            extensions,
+        )
+        java_files = [path for path in files if path.suffix.lower() == ".java"]
     go_files = [path for path in files if path.suffix.lower() == ".go"]
-    java_files = [path for path in files if path.suffix.lower() == ".java"]
+    java_symbols: dict[Path, list[Symbol]] = {}
+    generated_java: set[Path] = set()
     try:
         go_symbols = _go_symbols(go_files) if go_files else {}
-        java_symbols = _java_symbols(java_files, project_root) if java_files else {}
+        if java_files:
+            java_symbols, java_provenance, generated_java = _java_symbols(java_files, project_root)
+        else:
+            java_provenance = None
     except (GoExtractionError, JavaExtractionError) as exc:
         print(f"[detect_omnibus] ERROR: {exc}", file=sys.stderr)
         return 2
+    if java_mode:
+        for row in java_inventory:
+            path = (project_root / row["file"]).resolve()
+            if row["role"] == "eligible" and path in generated_java:
+                row["role"] = "excluded"
+                row["reason"] = "generated"
+        java_files = [path for path in java_files if path.resolve() not in generated_java]
+        files = list(java_files)
+        java_scan = _java_scan_payload(java_inventory, java_provenance)
+        if not java_files:
+            java_scan["status"] = "unsupported"
+            java_scan["failure_kind"] = "no-eligible-java-source"
+            _write_jsonl([], args.output)
+            _write_java_scan(java_scan, args.output)
+            print(
+                "[detect_omnibus] ERROR: no eligible Java source under target; "
+                "zero candidates are not a clean result",
+                file=sys.stderr,
+            )
+            return 2
     records: list[dict[str, object]] = []
     for filepath in files:
         try:
@@ -646,10 +812,9 @@ def main(argv: list[str] | None = None) -> int:
         if record is not None:
             records.append(record)
     records.sort(key=lambda record: (-int(record["score"]), str(record["file"])))
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    with args.output.open("w", encoding="utf-8") as output:
-        for record in records:
-            output.write(json.dumps(record) + "\n")
+    _write_jsonl(records, args.output)
+    if java_scan is not None:
+        _write_java_scan(java_scan, args.output)
     print(
         f"[detect_omnibus] wrote {args.output} ({len(records)} omnibus candidates across {len(files)} files)",
         file=sys.stderr,

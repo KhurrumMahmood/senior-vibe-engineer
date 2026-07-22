@@ -124,6 +124,35 @@ def test_java_discovery_is_filesystem_only_and_excludes_non_source_roles(tmp_pat
     assert "VendorBilling.java" not in rendered
 
 
+@pytest.mark.parametrize(
+    ("marker", "package_manager"),
+    (("pom.xml", "maven"), ("build.gradle", "gradle")),
+)
+def test_java_discovery_finds_nested_module_source_roots(
+    tmp_path: Path, marker: str, package_manager: str
+) -> None:
+    host = tmp_path / "multi-module"
+    (host / marker).parent.mkdir(parents=True)
+    (host / marker).write_text("// build marker\n", encoding="utf-8")
+    for module, class_name in (("service", "BillingService"), ("worker", "BillingWorker")):
+        source = host / module / "src" / "main" / "java" / "example" / f"{class_name}.java"
+        source.parent.mkdir(parents=True)
+        source.write_text(
+            f"package example; public class {class_name} {{}}\n",
+            encoding="utf-8",
+        )
+
+    adapter, _scan = _discover(SKILL, host, tmp_path / "artifacts", os.environ.copy())
+
+    roots = {row["path"]: row for row in adapter["source_roots"]}
+    assert adapter["status"] == "complete"
+    assert adapter["stack"]["package_managers"] == [package_manager]
+    assert set(roots) == {"service/src/main/java", "worker/src/main/java"}
+    assert roots["service/src/main/java"]["java_files"] == 1
+    assert roots["worker/src/main/java"]["java_files"] == 1
+    assert all(row["source_languages"] == ["java"] for row in roots.values())
+
+
 def test_copied_java_adapter_closure_is_self_contained(tmp_path: Path) -> None:
     host, env = _host(tmp_path)
     installed = tmp_path / "installed" / "adapt-project"

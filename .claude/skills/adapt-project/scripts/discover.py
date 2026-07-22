@@ -360,6 +360,39 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
         if java_files:
             row["java_files"] = java_files
         rows.append(row)
+
+    # Maven and Gradle multi-module repositories commonly put Java sources at
+    # <module>/src/main/java.  Keep the established flat candidate rows (for
+    # example root/src) intact, then add only nested Java source roots not
+    # already represented by one of those rows.
+    existing_candidates = [
+        root / name
+        for name in (*SOURCE_ROOT_CANDIDATES, *GO_SOURCE_ROOT_CANDIDATES)
+        if (root / name).is_dir() and is_within(root / name, root)
+    ]
+    for path in sorted(root.rglob("src/main/java")):
+        if (
+            not path.is_dir()
+            or not is_within(path, root)
+            or any(is_within(path, candidate) for candidate in existing_candidates)
+        ):
+            continue
+        java_paths = [
+            item
+            for item in path.rglob("*.java")
+            if is_within(item, root) and is_java_source(item, root)
+        ]
+        if not java_paths:
+            continue
+        rows.append({
+            "path": relative(path, root),
+            "python_files": 0,
+            "typescript_files": 0,
+            "typescript_file_kinds": {"ts": 0, "tsx": 0},
+            "markdown_files": 0,
+            "source_languages": ["java"],
+            "java_files": len(java_paths),
+        })
     return rows
 
 

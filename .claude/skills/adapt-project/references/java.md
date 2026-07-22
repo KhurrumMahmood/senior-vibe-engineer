@@ -6,6 +6,9 @@ Read this reference only when `/adapt-project` scans a Java host.
 
 - Count authored `.java` files by filesystem role using the
   `filesystem-source-inventory` analyzer.
+- Recognize conventional root `src` source trees and nested Maven/Gradle
+  module roots such as `service/src/main/java` without double-counting a
+  broader existing source-root row.
 - Exclude dependency, vendor, build, generated, test, fixture, symlinked, and
   generated-marker source.
 - Recognize Maven (`pom.xml`, optional `mvnw`) and Gradle

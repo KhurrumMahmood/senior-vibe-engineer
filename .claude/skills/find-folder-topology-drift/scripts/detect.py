@@ -909,6 +909,17 @@ def _resolve_within_project(
     return resolved
 
 
+def _invalidate_java_artifacts(output: Path) -> None:
+    """Remove same-run artifacts before a Java rerun can fail."""
+    for path in (
+        output,
+        output.with_name("scan.json"),
+        output.with_name("report.md"),
+        output.with_name("findings.json"),
+    ):
+        path.unlink(missing_ok=True)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -986,6 +997,8 @@ def main() -> int:
     args = parser.parse_args()
 
     project_root = args.project_root.resolve()
+    if args.java_root:
+        _invalidate_java_artifacts(args.output)
     if not (args.go_root or args.java_root):
         args.output.with_name("scan.json").unlink(missing_ok=True)
     scope = load_scope(project_root, SKILL_NAME)

@@ -183,6 +183,68 @@ def test_java_folder_statuses_paths_and_copied_skill_are_honest(tmp_path: Path) 
     assert str(REPO_ROOT) not in closure
 
 
+def test_java_rerun_invalidates_prior_complete_artifacts(tmp_path: Path) -> None:
+    host = _host(tmp_path)
+    output = host / "reports" / "lifecycle" / "detections.jsonl"
+    report = output.with_name("report.md")
+    findings = output.with_name("findings.json")
+
+    initial = _detect(SKILL, host, output)
+    assert initial.returncode == 0, initial.stdout + initial.stderr
+    rendered = _run(
+        sys.executable,
+        "-I",
+        "-S",
+        str(SKILL / "scripts" / "report.py"),
+        "--detections",
+        str(output),
+        "--output-md",
+        str(report),
+        "--output-json",
+        str(findings),
+        "--target",
+        ".",
+        "--language",
+        "java",
+        cwd=host,
+    )
+    assert rendered.returncode == 0, rendered.stdout + rendered.stderr
+    assert all(path.is_file() for path in (output, output.with_name("scan.json"), report, findings))
+
+    missing = _detect(SKILL, host, output, "missing")
+    assert missing.returncode == 2
+    assert all(not path.exists() for path in (output, output.with_name("scan.json"), report, findings))
+
+    restored = _detect(SKILL, host, output)
+    assert restored.returncode == 0, restored.stdout + restored.stderr
+    rerendered = _run(
+        sys.executable,
+        "-I",
+        "-S",
+        str(SKILL / "scripts" / "report.py"),
+        "--detections",
+        str(output),
+        "--output-md",
+        str(report),
+        "--output-json",
+        str(findings),
+        "--target",
+        ".",
+        "--language",
+        "java",
+        cwd=host,
+    )
+    assert rerendered.returncode == 0, rerendered.stdout + rerendered.stderr
+
+    unreadable = host / "src/main/java/example/billing/BillingUnreadable.java"
+    unreadable.write_bytes(b"class BillingUnreadable { // \xff\n}")
+    partial = _detect(SKILL, host, output)
+    assert partial.returncode == 0, partial.stdout + partial.stderr
+    assert json.loads(output.with_name("scan.json").read_text(encoding="utf-8"))["status"] == "partial"
+    assert not report.exists()
+    assert not findings.exists()
+
+
 def test_java_folder_docs_are_lazy_and_name_native_boundary() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
     java = (SKILL / "references" / "java.md").read_text(encoding="utf-8")
