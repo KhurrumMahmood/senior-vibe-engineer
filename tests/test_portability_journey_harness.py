@@ -1,13 +1,16 @@
 """Contract tests for the bounded read-only portability journey harness."""
 from __future__ import annotations
 
-import sys
+import json
 import shutil
+import sys
 from pathlib import Path
+from typing import get_args
 
 import pytest
 
 from tests.support.portability_journey import (
+    FinalOutcome,
     JourneyObservation,
     NativeCheck,
     SyntaxFailure,
@@ -19,6 +22,18 @@ from tests.support.portability_journey import (
 def _write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+def test_final_outcome_vocabulary_is_explicit_and_small() -> None:
+    assert set(get_args(FinalOutcome)) == {
+        "complete",
+        "partial",
+        "unsupported",
+        "tool-missing",
+        "syntax-error",
+        "native-check-failure",
+        "unexpected-source-mutation",
+    }
 
 
 def _handoff(library: Path) -> dict:
@@ -253,3 +268,31 @@ def test_rejects_a_guide_order_that_does_not_match_the_handoff_closure(
             handoff=handoff,
             closure=lambda _context: JourneyObservation("complete"),
         )
+
+
+def test_source_snapshots_use_the_copied_inventory_not_a_cached_checkout_import(
+    journey_roots: tuple[Path, Path, dict],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host, library, handoff = journey_roots
+    profile_path = library / "scripts" / "language_profiles" / "typescript.json"
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
+    profile["suffixes"].append(".journey")
+    profile_path.write_text(json.dumps(profile), encoding="utf-8")
+    _write(host / "src" / "copied.journey", "export const copied = true;\n")
+
+    from scripts._lib.language_support import profile as checkout_profile
+
+    assert Path(checkout_profile.__file__).is_relative_to(Path(__file__).resolve().parents[1])
+
+    def fail_if_checkout_loader_is_used(_root: Path) -> dict:
+        raise AssertionError("journey imported the checkout profile loader")
+
+    monkeypatch.setattr(checkout_profile, "load_profiles", fail_if_checkout_loader_is_used)
+    result = run_read_only_journey(
+        project_root=host,
+        handoff=handoff,
+        closure=lambda _context: JourneyObservation("complete"),
+    )
+
+    assert "src/copied.journey" in result.source_digests["before"]

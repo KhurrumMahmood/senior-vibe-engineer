@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import hashlib
-import runpy
+import json
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Literal, Mapping, Sequence
@@ -181,19 +182,47 @@ def _hash_closure(context: JourneyContext) -> tuple[dict[str, str], dict[str, st
     return guide_hashes, tool_hashes
 
 
-def _inventory_builder(path: Path) -> Callable[[Path, list[Path]], dict]:
-    namespace = runpy.run_path(str(path), run_name="portability_source_inventory")
-    builder = namespace.get("build_inventory")
-    if not callable(builder):
-        raise ValueError(f"on-demand source inventory tool has no build_inventory: {path}")
-    return builder
-
-
 def _source_snapshot(
-    project: Path, inventory_builder: Callable[[Path, list[Path]], dict]
+    project: Path, inventory_tool: Path
 ) -> dict[str, str]:
-    inventory = inventory_builder(project, [project])
-    return {row["path"]: _digest(project / row["path"]) for row in inventory["files"]}
+    """Run the copied inventory in isolation so checkout imports cannot leak in."""
+    completed = subprocess.run(
+        (
+            sys.executable,
+            "-I",
+            "-S",
+            str(inventory_tool),
+            "--project-root",
+            str(project),
+        ),
+        cwd=project,
+        check=False,
+        capture_output=True,
+        text=True,
+        shell=False,
+    )
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        raise ValueError(f"on-demand source inventory failed: {detail or completed.returncode}")
+    try:
+        inventory = json.loads(completed.stdout)
+        files = inventory["files"]
+        if not isinstance(files, list):
+            raise TypeError("files is not a list")
+        paths = [row["path"] for row in files]
+    except (KeyError, TypeError, json.JSONDecodeError) as exc:
+        raise ValueError("on-demand source inventory emitted an invalid payload") from exc
+    if any(not isinstance(path, str) for path in paths):
+        raise ValueError("on-demand source inventory emitted an invalid file path")
+    snapshot: dict[str, str] = {}
+    for path in paths:
+        candidate = (project / path).resolve(strict=False)
+        try:
+            candidate.relative_to(project)
+        except ValueError as exc:
+            raise ValueError(f"on-demand source inventory escaped project root: {path}") from exc
+        snapshot[path] = _digest(candidate)
+    return snapshot
 
 
 def _changes(
@@ -256,9 +285,8 @@ def run_read_only_journey(
         project, base_context.library_root, base_context.guides, base_context.tool_roots,
         base_context.source_inventory_tool,
     )
-    inventory_builder = _inventory_builder(context.source_inventory_tool)
     guide_hashes, tool_hashes = _hash_closure(context)
-    source_digests = {"before": _source_snapshot(project, inventory_builder)}
+    source_digests = {"before": _source_snapshot(project, context.source_inventory_tool)}
     artifact_hashes = {"before": _artifact_snapshot(project, artifact_paths)}
     observation: JourneyObservation | None = None
     failure: str | None = None
@@ -275,7 +303,7 @@ def run_read_only_journey(
         outcome, failure = "tool-missing", str(exc)
     except SyntaxFailure as exc:
         outcome, failure = "syntax-error", str(exc)
-    source_digests["after_closure"] = _source_snapshot(project, inventory_builder)
+    source_digests["after_closure"] = _source_snapshot(project, context.source_inventory_tool)
     artifact_hashes["after_closure"] = _artifact_snapshot(project, artifact_paths)
 
     native_results: list[NativeResult] = []
@@ -312,7 +340,7 @@ def run_read_only_journey(
                 outcome, failure = "native-check-failure", f"native check failed: {check.name}"
                 break
 
-    source_digests["after_native"] = _source_snapshot(project, inventory_builder)
+    source_digests["after_native"] = _source_snapshot(project, context.source_inventory_tool)
     artifact_hashes["after_native"] = _artifact_snapshot(project, artifact_paths)
     source_changes = (
         *_changes(source_digests["before"], source_digests["after_closure"],
