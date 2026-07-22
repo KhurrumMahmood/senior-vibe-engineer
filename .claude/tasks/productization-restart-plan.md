@@ -1,6 +1,10 @@
 # Engineering-skills productization restart
 
-Status: router-only on-demand local candidate and TypeScript milestone passed — public publication pending
+Status: historical evidence — superseded by
+`.claude/tasks/language-support-and-productization-execution-plan.md`
+
+Do not resume unfinished work from this file. The active ledger imports the
+accepted outcomes and owns all current sequencing, criteria, and status.
 
 This is the small progress tracker for the restart. Update checkboxes only
 after the named command or journey passes at a committed revision. Tests,

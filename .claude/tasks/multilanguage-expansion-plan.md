@@ -1,7 +1,11 @@
 # Multi-language and framework expansion plan
 
-Status: active — P0, P1, P2, U1, P3, Go G1/G1D/G2/G3, the bounded Java pilot,
-and the measured E1/E2 batching and family-compression gates are complete
+Status: historical evidence — superseded by
+`.claude/tasks/language-support-and-productization-execution-plan.md`
+
+Do not resume pending work from this file. Its completed TypeScript,
+JavaScript, Go, Java, routing, and batching evidence remains authoritative;
+the active ledger owns all unfinished sequencing, criteria, and status.
 
 Primary objective: make the generally applicable engineering skills useful on
 major-language projects while preserving honest limits, then add framework

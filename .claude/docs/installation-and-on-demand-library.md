@@ -10,8 +10,10 @@ host-instruction integration follow-up
 - This file explains how to preserve that topology while changing installer,
   host-instruction, task-packet, or model/effort behavior. Sections explicitly
   labeled proposed are not current product claims.
-- `.claude/tasks/productization-restart-plan.md` owns sequencing, status,
-  release evidence, and the deferred implementation queue.
+- `.claude/tasks/language-support-and-productization-execution-plan.md` is the
+  sole active ledger for sequencing, status, release evidence, and the deferred
+  implementation queue. `productization-restart-plan.md` is retained only as
+  historical restart evidence.
 - `tests/test_installed_routers.py` owns the runnable installed-boundary
   contract.
 - `.claude/docs/cross-tool-agent-governance.md` owns instruction-surface and
