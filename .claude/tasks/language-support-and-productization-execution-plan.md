@@ -383,7 +383,7 @@ Acceptance:
 - [x] Read-only readiness runs during P4 and records that `dotnet` is currently
   unavailable. No sub-agent installs it. Before P5 product work, the owner
   authorizes a supported .NET SDK or provides a reproducible development path.
-- [ ] A supported .NET SDK is installed or otherwise made reproducibly
+- [x] A supported .NET SDK is installed or otherwise made reproducibly
   available for development; exact version, resolution, cache/offline behavior,
   and uninstall/cleanup instructions are recorded.
 - [ ] The doctor distinguishes SDK absence, old SDK, invalid solution/project,
@@ -420,7 +420,7 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| .NET readiness | `command -v dotnet`; `dotnet --info` | `dotnet` is unavailable on 2026-07-22. No install was attempted; P5 product work awaits an owner-authorized supported SDK or reproducible development path | `268c3ac` |
+| .NET readiness | `command -v dotnet`; `dotnet --info`; generated console `dotnet run` | Owner authorized installation on 2026-07-22. Microsoft `dotnet-install.sh` installed SDK 10.0.302 and runtime 10.0.10 at `~/.dotnet`; `~/.local/bin/dotnet` exposes it on `PATH`; no workloads are installed; generated console builds/runs. Download was 226,536,510 bytes and installed tree is about 637 MiB. Remove the symlink and `~/.dotnet`; run `dotnet dev-certs https --clean` if the first-run development certificate should also be removed. NuGet caches are host-owned and must not be deleted blindly. | local machine state after `c5b3d46` |
 
 ## P6 — Promote or reject shared kit components
 
@@ -523,12 +523,12 @@ Per-language status:
 | Language | Status | Profile/doctor | Final outcomes | Matrix/router | Learning packet | Revision |
 |---|---|---|---|---|---|---|
 | PHP expansion | `stopped_after_pilot` | PHP 8.4.2/Composer 2.4.0 proven | 3 supported, 19 unsupported | Published | `.claude/tasks/multilanguage-learnings/php-pilot.md` | `268c3ac` |
-| Typed-pilot expansion | `awaiting_p5_decision` | P5-owned | — | — | — | — |
-| Ruby | `deferred_unhealthy_toolchain` | System Ruby 2.6.10 is too old for representative syntax; private Ruby 3.3/rbenv paths time out | — | — | `.claude/tasks/p7-preflight/ruby.md` | — |
-| Rust | `toolchain_missing` | `cargo`/`rustc` absent | — | — | — | — |
+| Typed-pilot expansion | `toolchain_ready_deferred_to_final` | .NET 10.0.302 installed user-locally; P5 remains last by owner decision | — | — | — | — |
+| Ruby | `toolchain_ready_queued` | Homebrew Ruby 3.4.1, RubyGems 3.6.2, and Bundler 2.6.2 pass direct execution smoke | — | — | `.claude/tasks/p7-preflight/ruby.md` | — |
+| Rust | `toolchain_ready_queued` | rustc/Cargo 1.97.1 plus rust-analyzer, Clippy, and rustfmt installed through rustup | — | — | — | — |
 | Swift | `stopped_after_pilot` | SwiftPM-only profile/doctor/inventory and restrictive native fixture proven; SwiftSyntax and native test modules remain unavailable under CLT-only setup | 3 supported (`find-omnibus`, `map-subsystem`, `move-path`), 19 unsupported | Published and installed-router tested | `.claude/tasks/multilanguage-learnings/swift-pilot.md` plus three cohort packets | spine `09248d4`; cohorts `84bd160`, `7fb2f4f`, `c5a2792`; publication `661e1b1` |
-| Dart | `toolchain_missing` | `dart`/Flutter absent | — | — | — | — |
-| Kotlin | `toolchain_missing` | `kotlin`/`kotlinc` absent | — | — | — | — |
+| Dart | `toolchain_ready_queued` | Dart SDK 3.12.2 passes generated-console execution smoke; Flutter remains a separate optional profile | — | — | — | — |
+| Kotlin | `toolchain_ready_queued` | Kotlin 2.4.10 passes JVM expression smoke; project build tooling remains fixture-owned | — | — | — | — |
 | C | `stopped_after_pilot` | Apple Clang/clangd 21 plus Make 3.81 proven; `.c`/`.i` only; trustworthy C-mode compile DB required for semantic facts | 2 supported (`find-comment-drift`, `map-subsystem`), 20 unsupported; mutation remains deferred | Published and installed-router tested | `.claude/tasks/multilanguage-learnings/c-pilot.md` plus spine and cohort packets | spine `56707fe`; lexical `b5a63e9`; semantic `5d6def3`; publication `79d8a27` |
 | C++ | `spine_in_progress` | Separate C++ profile required; Apple Clang/clangd 21 available, CMake absent, trustworthy C++ compile DB required | Frozen C++-only lexical, semantic, and mutation/proposal contracts pending | Not published | `.claude/tasks/p7-preflight/c-cpp.md`; worktree `engineering-skills-wt-p7-cpp-spine` | branch `codex/p7-cpp-spine` from `87aa135` |
 
@@ -546,11 +546,11 @@ execution dependent on host-owned or exact on-demand-closure tools.
 | Swift | None for the SwiftPM spine or compiler-AST pilot | SwiftSyntax, SwiftLint, Periphery, SourceKitten; full Xcode for XCTest/Testing and Xcode projects | Current CLT Swift 6.3.3 is enough for the selected build, executable-smoke, AST, index, and SourceKit boundaries. Optional tools do not block the spine and are not installed. |
 | C | Trustworthy host or fixture `compile_commands.json`; no new compiler required | CMake, clang-tidy, clang-format, IWYU, cppcheck, capture tools such as Bear | Apple Clang/clangd 21 and Make are available. CMake is absent but not required for a bounded Make fixture. |
 | C++ | Separate C++ profile plus trustworthy compile commands; no new compiler required | Same Clang ecosystem as C, selected standard library/build-system tools | Apple Clang/clangd 21 and Make are available. Do not combine C and C++ capability truth. |
-| Ruby | Healthy modern Ruby (preflight floor 3.3+) and matching Bundler | Prism, RuboCop, RBS/Steep or Sorbet, Rails/Zeitwerk for explicit framework profiles | System Ruby 2.6 is too old; private Ruby 3.3/rbenv paths hang. Installation or repair is pending owner authorization when Ruby reaches the front of the queue. |
-| Rust | Rust compiler and Cargo | rust-analyzer, Clippy/rustfmt components | `rustc`/`cargo` absent. Track an owner-approved pinned rustup or package-manager path before the Rust slice. |
-| Dart | Dart SDK; Flutter only for an explicit Flutter profile | Analysis Server/analyzer and formatter bundled with the selected SDK | `dart`/Flutter absent. Install only when Dart reaches the front of the queue. |
-| Kotlin | Kotlin compiler plus a reproducible project build path; existing JDK may be reused if compatible | Gradle wrapper, Detekt, ktlint, Analysis API for bounded needs | `kotlin`/`kotlinc` absent. Prefer a fixture-owned Gradle wrapper or pinned compiler; do not install a global Gradle merely for discovery. |
-| C# | Supported .NET SDK with Roslyn | Project-owned analyzers and formatters | Deferred until all earlier selected languages are processed. Current .NET 10.0.302 macOS Arm64 package is about 211 MiB to download; `dotnet` is absent and no install is authorized yet. |
+| Ruby | Healthy modern Ruby (preflight floor 3.3+) and matching Bundler | Prism, RuboCop, RBS/Steep or Sorbet, Rails/Zeitwerk for explicit framework profiles | Homebrew Ruby 3.4.1, RubyGems 3.6.2, and Bundler 2.6.2 are healthy at `/opt/homebrew/opt/ruby/bin`; `~/.local/bin/{ruby,gem,bundle,bundler}` makes them win over system Ruby 2.6. The Homebrew Ruby predated this task, so cleanup removes only those four symlinks unless the owner separately chooses to uninstall Ruby. Optional analyzers remain language-slice decisions. |
+| Rust | Rust compiler and Cargo | rust-analyzer, Clippy/rustfmt components | Homebrew `rustup` 1.29.0_2 manages stable rustc/Cargo 1.97.1 under `~/.rustup`; rust-analyzer, Clippy, and rustfmt are installed. Proxies in `~/.local/bin` make the keg-only installation usable. Cleanup: uninstall the stable toolchain, remove the eight task-created proxy symlinks, then `brew uninstall rustup`; remove `~/.rustup` only after confirming it has no unrelated toolchains. |
+| Dart | Dart SDK; Flutter only for an explicit Flutter profile | Analysis Server/analyzer and formatter bundled with the selected SDK | Official `dart-lang/dart` formula 3.12.2 is installed at `/opt/homebrew/opt/dart` and a generated console runs. Only `dart` and `dart-beta` formulas were trusted. Cleanup: `brew uninstall dart`, remove those formula trusts, and untap `dart-lang/dart` if unused. Flutter remains optional and separate. |
+| Kotlin | Kotlin compiler plus a reproducible project build path; existing JDK may be reused if compatible | Gradle wrapper, Detekt, ktlint, Analysis API for bounded needs | Homebrew Kotlin 2.4.10 is installed and passes JVM expression smoke. Homebrew also installed OpenJDK 26.0.1 (about 380 MiB); current `kotlinc` resolves the host JRE 17.0.12. Cleanup: `brew uninstall kotlin`, then uninstall OpenJDK 26 only if no other formula uses it. Gradle remains project/fixture-owned. |
+| C# | Supported .NET SDK with Roslyn | Project-owned analyzers and formatters | Microsoft user-local SDK 10.0.302 and runtime 10.0.10 are installed under `~/.dotnet`, exposed by `~/.local/bin/dotnet`, and pass generated-console execution. No workloads are installed. C# product work remains last by owner sequencing, not by toolchain availability. Cleanup is recorded in P5 readiness above. |
 
 For every new preflight, add any newly discovered required or optional tool to
 this register before opening implementation worktrees. Missing optional tools
@@ -682,6 +682,7 @@ Evidence:
 | 2026-07-21 | P8-P9 | Measure baseline/update/help before optional host-instruction infrastructure | Adversarial review showed the prior order could make an unmeasured optional platform mandatory | Preserve installer -> languages -> measured journey order |
 | 2026-07-22 | P5-P7 | Permit one bounded SwiftPM P7 slice while P5 awaits an owner-authorized .NET SDK; forbid early shared-component promotion | Owner explicitly asked to start other languages meanwhile. Parallel preflights found Swift ready, Ruby unhealthy, and C/C++ feasible only as two compile-database-gated profiles | Approved by user request |
 | 2026-07-22 | P5-P7 | Move C#/.NET to the end and add an explicit language-toolchain dependency register | Owner asked to return to .NET at the end and track every other language dependency needing installation | Approved by user request |
+| 2026-07-22 | P5-P7 | Install queued language toolchains while retaining .NET as the final product slice | Owner authorized temporary installation. Ruby 3.4.1/Bundler 2.6.2, Rust 1.97.1 with analyzer/Clippy/rustfmt, Dart 3.12.2, Kotlin 2.4.10, and .NET SDK 10.0.302 all resolve on `PATH` and pass execution smoke. Exact paths, transitive OpenJDK, trust scope, caches, and cleanup behavior are recorded in the dependency register and P5 readiness evidence | Approved by user request |
 
 ## Execution log
 
