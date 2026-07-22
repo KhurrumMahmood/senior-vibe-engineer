@@ -1,0 +1,24 @@
+[package]
+name = "semantic-core"
+version = "0.1.0"
+edition = "2024"
+build = "build.rs"
+
+[features]
+experimental = []
+
+[lib]
+path = "src/lib.rs"
+
+[[test]]
+name = "semantic_test"
+path = "tests/semantic_test.rs"
+
+[[example]]
+name = "semantic_example"
+path = "examples/semantic_example.rs"
+
+[[bench]]
+name = "semantic_bench"
+path = "benches/semantic_bench.rs"
+harness = false

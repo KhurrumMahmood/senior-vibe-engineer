@@ -270,6 +270,59 @@ def go_source_files(project_root: pathlib.Path) -> list[str]:
     )
 
 
+def rust_source_files(project_root: pathlib.Path) -> list[str]:
+    """Return lexical Rust candidates; Cargo roles narrow authority later."""
+    rows: list[str] = []
+    excluded = {
+        ".agents", ".claude", ".git", ".venv", "generated", "reports",
+        "target", "tests", "vendor",
+    }
+    for directory, directories, files in os.walk(project_root, followlinks=False):
+        parent = pathlib.Path(directory)
+        directories[:] = [
+            name for name in directories
+            if name not in excluded and not (parent / name).is_symlink()
+        ]
+        for name in files:
+            path = parent / name
+            if name.endswith(".rs") and path.is_file() and not path.is_symlink():
+                rows.append(path.relative_to(project_root).as_posix())
+    return sorted(rows)
+
+
+def run_rust_identifier_evidence(
+    project_root: pathlib.Path,
+    old_terms: list[str],
+    new_terms: list[str],
+    sources: list[str],
+) -> dict:
+    """Invoke the bundled Cargo/compiler/stable-LSP evidence producer."""
+    runner = pathlib.Path(__file__).resolve().with_name("rust_identifier_evidence.py")
+    if not runner.exists():
+        return {"status": "partial", "reason": "bundled Rust evidence runner is missing"}
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = pathlib.Path(temp_dir) / "rust-identifiers.json"
+            result = subprocess.run(
+                [
+                    sys.executable, str(runner), "--project-root", str(project_root),
+                    "--old-terms", json.dumps(old_terms), "--new-terms",
+                    json.dumps(new_terms), "--sources", json.dumps(sources),
+                    "--output", str(output),
+                ],
+                cwd=project_root, capture_output=True, text=True, timeout=240,
+            )
+            if not output.exists():
+                detail = result.stderr.strip() or result.stdout.strip()
+                return {
+                    "status": "partial",
+                    "reason": detail or f"Rust evidence runner exited {result.returncode}",
+                }
+            return json.loads(output.read_text(encoding="utf-8"))
+    except (subprocess.SubprocessError, OSError, json.JSONDecodeError, ValueError) as exc:
+        return {"status": "partial", "reason": str(exc)}
+
+
 JAVA_PRUNE_SEGMENTS = frozenset({
     ".agents", ".claude", ".git", ".gradle", ".idea", ".venv", "node_modules",
     "reports", "venv",
@@ -842,6 +895,7 @@ def render_assessment_report(payload: dict) -> str:
     lifecycle = payload["lifecycle"]
     lexical = payload["lexical_gate"]
     java = payload.get("java_identifier_evidence") or {}
+    rust = payload.get("rust_identifier_evidence") or {}
     lines = [
         f"# Rename impact assessment — {old} → {new}",
         "",
@@ -899,6 +953,20 @@ def render_assessment_report(payload: dict) -> str:
             "## Native verification obligation",
             "",
             "Compile the same first-party source set with `javac --release 17 -proc:none`, then run the project's existing native tests before and after any separately approved rename. No build framework is inferred.",
+            "",
+        ])
+    if rust:
+        declarations = rust.get("declarations") or {"old": [], "new": []}
+        lines.extend([
+            "## Compiler-resolved Rust impact",
+            "",
+            "Only Cargo-selected, compiler-clean source plus stable LSP definitions establishes bounded identifier authority.",
+            "",
+            f"- Evidence status: `{rust.get('status', 'partial')}`",
+            f"- Authority status: `{rust.get('authority_status', 'unavailable')}`",
+            f"- Old declarations: `{len(declarations.get('old', []))}`",
+            f"- New declarations: `{len(declarations.get('new', []))}`",
+            f"- Deferred lexical/runtime references: `{len(rust.get('deferred_references', []))}`",
             "",
         ])
     lines.extend(["## Open items", ""])
@@ -967,6 +1035,7 @@ def main():
     typescript_files = typescript_source_files(project_root)
     javascript_files = javascript_source_files(project_root)
     go_files = go_source_files(project_root)
+    rust_files = rust_source_files(project_root)
     typescript_evidence = (
         run_typescript_identifier_evidence(
             project_root,
@@ -997,6 +1066,11 @@ def main():
         if go_files
         else None
     )
+    rust_evidence = (
+        run_rust_identifier_evidence(project_root, old_terms, new_terms, rust_files)
+        if rust_files
+        else None
+    )
     java_evidence = (
         run_java_identifier_evidence(
             project_root,
@@ -1023,6 +1097,7 @@ def main():
             *(javascript_evidence or {}).get("occurrences", []),
             *(go_evidence or {}).get("occurrences", []),
             *(java_evidence or {}).get("occurrences", []),
+            *(rust_evidence or {}).get("occurrences", []),
         ],
     }
     lexical_candidates = classify_lexical_candidates(divergence, old, combined_evidence)
@@ -1238,15 +1313,18 @@ def main():
     javascript_resolved = bool(javascript_evidence and javascript_evidence.get("status") == "resolved")
     go_resolved = bool(go_evidence and go_evidence.get("status") == "resolved")
     java_resolved = bool(java_evidence and java_evidence.get("status") == "resolved")
+    rust_resolved = bool(rust_evidence and rust_evidence.get("status") == "resolved")
     evidence_declarations = (typescript_evidence or {}).get("declarations", {})
     javascript_declarations = (javascript_evidence or {}).get("declarations", {})
     go_declarations = (go_evidence or {}).get("declarations", {})
     java_declarations = (java_evidence or {}).get("declarations", {})
+    rust_declarations = (rust_evidence or {}).get("declarations", {})
     evidence_occurrences = [
         *(typescript_evidence or {}).get("occurrences", []),
         *(javascript_evidence or {}).get("occurrences", []),
         *(go_evidence or {}).get("occurrences", []),
         *(java_evidence or {}).get("occurrences", []),
+        *(rust_evidence or {}).get("occurrences", []),
     ]
     old_symbol_references = sum(
         item.get("classification") == "old_concept_symbol"
@@ -1274,15 +1352,20 @@ def main():
         len(java_declarations.get("new", []))
         if isinstance(java_declarations, dict) else 0
     )
+    rust_new_declarations = (
+        len(rust_declarations.get("new", []))
+        if isinstance(rust_declarations, dict) else 0
+    )
     new_symbol_declarations = (
         typescript_new_declarations + javascript_new_declarations
-        + go_new_declarations + java_new_declarations
+        + go_new_declarations + java_new_declarations + rust_new_declarations
     )
     resolution_diagnostics = (
         len((typescript_evidence or {}).get("resolution_diagnostics", []))
         + len((javascript_evidence or {}).get("resolution_diagnostics", []))
         + len((go_evidence or {}).get("resolution_diagnostics", []))
         + len((java_evidence or {}).get("resolution_diagnostics", []))
+        + len((rust_evidence or {}).get("resolution_diagnostics", []))
     )
     typescript_complete = (
         not typescript_files
@@ -1334,6 +1417,24 @@ def main():
             and not (java_evidence or {}).get("inventory_ambiguities")
         )
     )
+    rust_occurrences = (rust_evidence or {}).get("occurrences", [])
+    rust_old_references = sum(
+        item.get("classification") == "old_concept_symbol"
+        for item in rust_occurrences if isinstance(item, dict)
+    )
+    rust_complete = (
+        not rust_files
+        or (
+            rust_resolved
+            and (rust_evidence or {}).get("authority_status") == "resolved"
+            and rust_new_declarations == 1
+            and rust_old_references == 0
+            and not (rust_evidence or {}).get("resolution_diagnostics")
+            and not (rust_evidence or {}).get("deferred_references")
+            and not (rust_evidence or {}).get("inventory_ambiguities")
+            and not (rust_evidence or {}).get("uncovered_files")
+        )
+    )
     open_items: list[str] = []
     if co_occur is None or avoid_hits is None:
         verdict = "INCONCLUSIVE"
@@ -1342,12 +1443,18 @@ def main():
             open_items.append("Go semantic evidence unavailable")
         if java_files and not java_resolved:
             open_items.append("Java compiler evidence unavailable")
+        if rust_files and not rust_resolved:
+            open_items.append("Rust compiler/LSP evidence unavailable")
         print("  INCONCLUSIVE — completeness gate could not run (see above).")
     elif java_files and (java_evidence or {}).get("status") in {"unavailable", "unsupported"}:
         verdict = "INCONCLUSIVE"
         open_items = ["Java compiler evidence unavailable"]
         print("  INCONCLUSIVE — Java compiler evidence is unavailable; no clean rename claim is possible.")
-    elif not typescript_complete or not javascript_complete or not go_complete or not java_complete:
+    elif rust_files and not rust_resolved:
+        verdict = "INCONCLUSIVE"
+        open_items = ["Rust compiler/LSP evidence unavailable or partial"]
+        print("  INCONCLUSIVE — Rust compiler/LSP evidence is incomplete; no clean rename claim is possible.")
+    elif not typescript_complete or not javascript_complete or not go_complete or not java_complete or not rust_complete:
         missing: list[str] = []
         if typescript_files and not evidence_resolved:
             missing.append("TypeScript compiler evidence unavailable")
@@ -1357,6 +1464,8 @@ def main():
             missing.append("Go semantic evidence unavailable")
         if java_files and not java_resolved:
             missing.append("Java compiler evidence unavailable or failed")
+        if rust_files and not rust_resolved:
+            missing.append("Rust compiler/LSP evidence unavailable or partial")
         if old_symbol_references:
             missing.append(f"old concept symbol references ({old_symbol_references})")
         if unresolved_identifiers:
@@ -1371,6 +1480,15 @@ def main():
             missing.append("no resolved new concept declaration (Go)")
         if java_files and java_new_declarations != 1:
             missing.append("Java requires exactly one public top-level new TypeElement authority")
+        if rust_files and rust_new_declarations != 1:
+            missing.append("Rust requires exactly one public new type authority")
+        if rust_old_references:
+            missing.append(f"Rust old concept symbol references ({rust_old_references})")
+        if (rust_evidence or {}).get("deferred_references"):
+            missing.append(
+                "Rust macro/string/dynamic references deferred "
+                f"({len((rust_evidence or {}).get('deferred_references', []))})"
+            )
         if java_files and (java_evidence or {}).get("authority_status") != "resolved":
             missing.append("Java rename authority is " + str((java_evidence or {}).get("authority_status", "unavailable")))
         if java_old_references:
@@ -1385,7 +1503,7 @@ def main():
                 f"Java source inventory ambiguities ({len((java_evidence or {}).get('inventory_ambiguities', []))})"
             )
         if not new_symbol_declarations and not (
-            typescript_files or javascript_files or go_files or java_files
+            typescript_files or javascript_files or go_files or java_files or rust_files
         ):
             missing.append("no resolved new concept declaration")
         if avoid_hits:
@@ -1441,6 +1559,7 @@ def main():
             "javascript_identifier_evidence": javascript_evidence,
             "go_identifier_evidence": go_evidence,
             "java_identifier_evidence": java_evidence,
+            "rust_identifier_evidence": rust_evidence,
             "verdict": verdict,
             "open_items": open_items,
         }
