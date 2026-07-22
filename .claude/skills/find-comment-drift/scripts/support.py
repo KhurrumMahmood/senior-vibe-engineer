@@ -46,6 +46,16 @@ JAVA_GENERATED_MARKER_RE = re.compile(
 JAVA_GENERATED_ANNOTATION_RE = re.compile(
     r"^\s*@(?:javax\.annotation\.processing\.)?Generated(?:\s*\(|\s*$)", re.MULTILINE
 )
+PHP_MINIMUM_VERSION = (8, 1, 0)
+PHP_MINIMUM_VERSION_TEXT = "8.1.0"
+PHP_TEST_DIRS = frozenset(
+    {"test", "tests", "__tests__", "testdata", "fixtures", "spec", "specs"}
+)
+PHP_GENERATED_DIRS = frozenset({"generated", "gen", "cache"})
+PHP_BUILD_DIRS = frozenset({"build", "dist", "target", "out"})
+PHP_GENERATED_MARKER_RE = re.compile(
+    r"(?:Code generated .* DO NOT EDIT\.|@generated\b)", re.IGNORECASE
+)
 
 
 def resolve_project_root(explicit: Path | None = None) -> Path:
@@ -385,6 +395,170 @@ def java_scan_payload(
     }
 
 
+def probe_php(explicit: Path | None = None) -> tuple[dict[str, Any], int]:
+    """Return PHP CLI evidence and the detector exit code for that evidence."""
+    php_path = str(explicit) if explicit is not None else shutil.which("php")
+    minimum = {"minimum_php_version": PHP_MINIMUM_VERSION_TEXT}
+    if not php_path or not Path(php_path).is_file():
+        return {**minimum, "status": "unsupported", "failure_kind": "php-tool-missing"}, 2
+    evidence = {**minimum, "php_path": php_path}
+    try:
+        result = subprocess.run(
+            [php_path, "--version"], capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        return {**evidence, "status": "failed", "failure_kind": "php-version-failed", "detail": str(exc)}, 1
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        return {**evidence, "status": "failed", "failure_kind": "php-version-failed", "detail": detail}, 1
+    match = re.search(r"\bPHP\s+(\d+)\.(\d+)\.(\d+)", result.stdout)
+    if not match:
+        return {**evidence, "status": "failed", "failure_kind": "php-version-unrecognized", "detail": result.stdout.strip()}, 1
+    version = tuple(int(value) for value in match.groups())
+    evidence["php_version"] = ".".join(match.groups())
+    if version < PHP_MINIMUM_VERSION:
+        return {**evidence, "status": "unsupported", "failure_kind": "php-version-too-old"}, 2
+    return {**evidence, "status": "complete"}, 0
+
+
+def _php_exclusion(path: Path, project_root: Path, text: str) -> str | None:
+    relative = path.relative_to(project_root)
+    parent_parts = {part.casefold() for part in relative.parts[:-1]}
+    name = path.name.casefold()
+    if any(part.startswith(".") for part in relative.parts[:-1]):
+        return "tooling-tree"
+    if "vendor" in parent_parts:
+        return "vendor"
+    if parent_parts & PHP_TEST_DIRS:
+        return "test-tree"
+    if parent_parts & PHP_BUILD_DIRS:
+        return "build-tree"
+    if parent_parts & PHP_GENERATED_DIRS:
+        return "generated-tree"
+    if name.endswith(("test.php", "tests.php")):
+        return "test-file"
+    if name.startswith("generated") or name.endswith(("_generated.php", ".generated.php")):
+        return "generated-file"
+    if PHP_GENERATED_MARKER_RE.search(text[:4096]):
+        return "generated-marker"
+    return None
+
+
+def inventory_php(
+    targets: Iterable[str], project_root: Path
+) -> tuple[list[dict[str, Any]], list[Path], list[str]]:
+    """Inventory selected PHP files before applying syntax/comment analysis."""
+    project_root = project_root.resolve()
+    discovered: dict[str, Path] = {}
+    errors: list[str] = []
+    for raw in targets:
+        logical = Path(raw)
+        logical = logical if logical.is_absolute() else project_root / logical
+        logical = Path(os.path.abspath(logical))
+        try:
+            logical.relative_to(project_root)
+        except ValueError:
+            errors.append(f"target-outside-project:{raw}")
+            continue
+        if not logical.exists() and not logical.is_symlink():
+            errors.append(f"target-missing:{raw}")
+            continue
+        candidates = [logical] if logical.is_file() or logical.is_symlink() else logical.rglob("*")
+        for path in candidates:
+            if path.suffix.casefold() == ".php" and (path.is_file() or path.is_symlink()):
+                discovered[path.relative_to(project_root).as_posix()] = path
+
+    inventory: list[dict[str, Any]] = []
+    eligible: list[Path] = []
+    for relative, path in sorted(discovered.items()):
+        if path.is_symlink():
+            inventory.append(
+                {"file": relative, "role": "excluded", "reason": "symlink"}
+            )
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            inventory.append(
+                {
+                    "file": relative,
+                    "role": "failed",
+                    "reason": "read-error",
+                    "detail": str(exc),
+                }
+            )
+            continue
+        reason = _php_exclusion(path, project_root, text)
+        if reason:
+            inventory.append({"file": relative, "role": "excluded", "reason": reason})
+            continue
+        inventory.append({"file": relative, "role": "eligible"})
+        eligible.append(path)
+    return inventory, eligible, errors
+
+
+def php_scan_payload(
+    tool: dict[str, Any],
+    inventory: list[dict[str, Any]],
+    errors: list[str],
+) -> dict[str, Any]:
+    """Build the family-owned PHP syntax/comment status artifact."""
+    failed = sum(row["role"] == "failed" for row in inventory)
+    status = tool["status"]
+    if status == "complete" and (failed or errors):
+        status = "partial"
+    return {
+        **tool,
+        "status": status,
+        "language": "php",
+        "analyzer": "php-token-get-all",
+        "syntax_contract": "token_get_all with TOKEN_PARSE; no project-semantic claims",
+        "inventory": inventory,
+        "errors": errors,
+        "summary": {
+            "discovered": len(inventory),
+            "eligible": sum(row["role"] == "eligible" for row in inventory),
+            "excluded": sum(row["role"] == "excluded" for row in inventory),
+            "failed": failed + len(errors),
+        },
+    }
+
+
+def run_php_comment_provider(
+    php_path: str, helper: Path, files: list[Path]
+) -> tuple[dict[str, dict[str, Any]] | None, str | None]:
+    """Run the copied native tokenizer once for all eligible PHP files."""
+    try:
+        result = subprocess.run(
+            [php_path, str(helper), *(str(path) for path in files)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        return None, str(exc)
+    if result.returncode != 0:
+        return None, (result.stderr or result.stdout or f"exit {result.returncode}").strip()
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        return None, f"invalid provider JSON: {exc}"
+    if not isinstance(payload, dict) or not isinstance(payload.get("files"), list):
+        return None, "invalid provider payload: expected a files array"
+    rows = {
+        str(row.get("path")): row for row in payload["files"] if isinstance(row, dict)
+    }
+    for path in files:
+        row = rows.get(str(path))
+        if row is None:
+            return None, f"provider omitted selected file: {path}"
+        if row.get("status") not in {"ok", "syntax-error", "read-error"}:
+            return None, f"provider returned invalid status for {path}"
+        if row["status"] == "ok" and not isinstance(row.get("comments"), list):
+            return None, f"provider returned invalid comments for {path}"
+    return rows, None
+
+
 def render_simple_report(
     title: str,
     records: list[dict[str, Any]],
@@ -405,6 +579,8 @@ def render_simple_report(
                 f"**Analyzer:** `{scan['analyzer']}`",
             ]
         )
+        if scan.get("outcome"):
+            lines.append(f"**Outcome:** `{scan['outcome']}`")
     lines.extend([f"**Target:** `{target}`", f"**Findings:** {len(records)}", ""])
     if buckets:
         lines.extend(["## Buckets", "", "| Bucket | Count |", "|---|---|"])

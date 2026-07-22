@@ -6,7 +6,7 @@ description: |
   Flags detached section banners, narration comments, missing or thin
   public class docstrings, stale terminology, JavaScript and TypeScript
   functions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML
-  comments, fragile doc references, and bounded Go and Java lexical-comment surfaces.
+  comments, fragile doc references, and bounded Go, Java, and PHP lexical-comment surfaces.
 argument-hint: "[paths... - no paths uses the detector's legacy default surface]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -24,7 +24,7 @@ not_for: |
   existing lints for behavior and correctness.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, templates]
+scans: [python, javascript, typescript, go, java, php, templates]
 ---
 
 # /find-comment-drift
@@ -60,6 +60,11 @@ source-role inventory, lexer boundary, native fixture check, and non-claims.
 This extends the preserved `scans: [python, javascript, typescript, go, templates]`
 contract with one separately selected Java band.
 
+PHP is an explicit native lexical/syntax mode. The copied helper uses
+`token_get_all(..., TOKEN_PARSE)` from PHP >= 8.1.0, inventories excluded roles,
+and distinguishes a clean complete scan from incomplete or unavailable
+evidence without loading Composer packages.
+
 ## How success is judged
 
 - The run is graded only by artifacts: pasted detector/reporter output
@@ -79,6 +84,10 @@ contract with one separately selected Java band.
   failure as a clean scan.
 - A Java run records the same status vocabulary in `scan.json` and
   `findings.json.analysis.java`, without depending on a JDK at scan time.
+- A PHP run records status plus `advisory-findings`,
+  `clean-within-complete`, `incomplete`, `unsupported`, or `failed` outcome in
+  `scan.json` and the explicitly selected JSON report. Missing/old PHP and
+  native provider failures are never relabeled clean.
 
 ## Default Target
 
@@ -219,6 +228,22 @@ required artifacts are:
 - `scan.json` - Go tool evidence, complete inventory, eligibility reasons, and
   `complete`/`partial`/`unsupported`/`failed` analysis status (Go mode only).
 
+PHP uses the same artifact lifecycle but writes the machine-readable final
+artifact to the path passed with `report.py --output-json`; the documented PHP
+command uses `reports/find-comment-drift/php-pilot/report.json`.
+
+```bash
+COMMENT_SKILL=".agents/skills/on-demand/find-comment-drift"
+python3 "${COMMENT_SKILL}/scripts/detect.py" \
+  --project-root "$PWD" --language php \
+  --output reports/find-comment-drift/php-pilot/detections.jsonl .
+python3 "${COMMENT_SKILL}/scripts/report.py" \
+  reports/find-comment-drift/php-pilot/detections.jsonl \
+  --output reports/find-comment-drift/php-pilot/report.md \
+  --output-json reports/find-comment-drift/php-pilot/report.json --target .
+php -l path/to/representative.php
+```
+
 ## Detector Bands
 
 - `detached_section_banner`: banner comments separated from the symbol or
@@ -277,3 +302,6 @@ input/output/side-effect contract.
 | Go is missing or older than 1.22.0 | Keep the `unsupported` `scan.json`, install/select Go >= 1.22.0 on `PATH`, and re-run; do not present empty JSONL as clean. |
 | A Go file is unreadable or lexically unterminated | Keep the useful findings with `partial` status and cite the failed inventory row; do not silently omit it. |
 | A Java file is unreadable or lexically unterminated | Keep useful findings with `partial` status and cite the failed inventory row; Java syntax errors outside the lexer remain valid lexical input. |
+| PHP is missing or older than 8.1.0 | Keep the `unsupported` scan/report evidence, select PHP >= 8.1.0, and re-run; the detector never installs PHP or Composer dependencies. |
+| PHP syntax or source decoding fails | Keep useful findings with `partial`/`incomplete` evidence and cite the failed inventory row; do not call an empty JSONL clean. |
+| The PHP provider process or payload fails | Keep the concrete `failed` evidence, correct the selected runtime/closure, and re-run at the same destination so stale reports cannot survive. |

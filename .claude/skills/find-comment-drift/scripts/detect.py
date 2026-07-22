@@ -25,11 +25,15 @@ from support import (  # noqa: E402
     go_scan_payload,
     inventory_go,
     inventory_java,
+    inventory_php,
     iter_files,
     java_scan_payload,
+    php_scan_payload,
     probe_go,
+    probe_php,
     relpath,
     resolve_project_root,
+    run_php_comment_provider,
     write_json,
     write_jsonl,
 )
@@ -739,6 +743,66 @@ def scan_java(path: Path, project_root: Path) -> tuple[list[Finding], str | None
     return findings, lexical_error
 
 
+def normalize_php_comment(text: str) -> str:
+    """Remove PHP comment delimiters while preserving human-readable content."""
+    stripped = text.strip()
+    if stripped.startswith("//"):
+        return stripped[2:].strip()
+    if stripped.startswith("#"):
+        return stripped[1:].strip()
+    if stripped.startswith("/*"):
+        body = stripped[2:-2] if stripped.endswith("*/") else stripped[2:]
+        return " ".join(
+            re.sub(r"^\s*\*\s?", "", line).strip()
+            for line in body.splitlines()
+            if re.sub(r"^\s*\*\s?", "", line).strip()
+        )
+    return stripped
+
+
+def scan_php_comments(
+    path: Path, comments: list[dict], project_root: Path
+) -> list[Finding]:
+    """Apply existing lexical comment bands to native PHP token evidence."""
+    findings: list[Finding] = []
+    for comment in comments:
+        lineno = int(comment["line"])
+        text = normalize_php_comment(str(comment["text"]))
+        before = len(findings)
+        scan_stale_and_refs(path, lineno, text, findings, project_root)
+        for index in range(before, len(findings)):
+            findings[index] = Finding(
+                **{**asdict(findings[index]), "language": "php"}
+            )
+        if not comment.get("standalone"):
+            continue
+        if is_banner_text(text):
+            findings.append(
+                emit(
+                    "detached_section_banner",
+                    path,
+                    lineno,
+                    text[:180],
+                    "Delete the banner or replace it with adjacent PHP documentation that explains ownership or contract.",
+                    project_root,
+                    "php",
+                )
+            )
+        elif is_comment_noise(text):
+            findings.append(
+                emit(
+                    "obvious_narration_comment",
+                    path,
+                    lineno,
+                    text[:180],
+                    "Delete narration comments; keep PHP comments that explain intent, constraints, or compatibility.",
+                    project_root,
+                    "php",
+                )
+            )
+    return findings
+
+
 def scan_html(path: Path, project_root: Path) -> list[Finding]:
     findings: list[Finding] = []
     try:
@@ -842,9 +906,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", required=True, type=Path, help="JSONL output path.")
     parser.add_argument(
         "--language",
-        choices=("auto", "go", "java"),
+        choices=("auto", "go", "java", "php"),
         default="auto",
-        help="Use `go` or `java` for a bounded language inventory/comment contract.",
+        help="Use `go`, `java`, or `php` for a bounded language inventory/comment contract.",
+    )
+    parser.add_argument(
+        "--php-bin",
+        type=Path,
+        default=None,
+        help="PHP CLI for --language php (default: php discovered on PATH).",
     )
     parser.add_argument("--project-root", type=Path, default=None,
                         help="Target project root anchoring relative paths "
@@ -943,6 +1013,107 @@ def main(argv: list[str] | None = None) -> int:
             f"to {relpath(args.output, project_root)}"
         )
         return 2 if scan["status"] == "unsupported" else 0
+    if args.language == "php":
+        scan_path = args.output.with_name("scan.json")
+        for artifact in (
+            args.output,
+            scan_path,
+            args.output.with_name("report.md"),
+            args.output.with_name("findings.json"),
+            args.output.with_name("report.json"),
+        ):
+            artifact.unlink(missing_ok=True)
+
+        inventory, files, errors = inventory_php(target_paths, project_root)
+        target_error_count = len(errors)
+        tool, tool_rc = probe_php(args.php_bin)
+        scan = php_scan_payload(tool, inventory, errors)
+        if tool_rc:
+            scan["outcome"] = scan["status"]
+            write_jsonl([], args.output)
+            write_json(scan, scan_path)
+            return tool_rc
+        if not inventory:
+            scan["status"] = "unsupported"
+            scan["outcome"] = "unsupported"
+            scan["failure_kind"] = "no-php-files"
+            write_jsonl([], args.output)
+            write_json(scan, scan_path)
+            return 2
+        if not files and scan["status"] == "complete":
+            scan["status"] = "unsupported"
+            scan["outcome"] = "unsupported"
+            scan["failure_kind"] = "no-eligible-php-files"
+            write_jsonl([], args.output)
+            write_json(scan, scan_path)
+            return 2
+
+        provider_files, provider_error = run_php_comment_provider(
+            str(tool["php_path"]), SCRIPT_DIR / "php_comments.php", files
+        )
+        if provider_error or provider_files is None:
+            scan["status"] = "failed"
+            scan["outcome"] = "failed"
+            scan["failure_kind"] = "php-provider-failed"
+            scan["errors"].append(provider_error or "PHP provider failed")
+            scan["summary"]["failed"] += 1
+            write_jsonl([], args.output)
+            write_json(scan, scan_path)
+            return 1
+
+        findings: list[Finding] = []
+        for path in files:
+            result = provider_files[str(path)]
+            if result["status"] == "ok":
+                findings.extend(
+                    scan_php_comments(path, result["comments"], project_root)
+                )
+                continue
+            relative = relpath(path, project_root)
+            detail = str(result.get("detail") or result["status"])
+            scan["errors"].append(f"{relative}:{detail}")
+            for row in inventory:
+                if row["file"] == relative:
+                    row.update(
+                        role="failed", reason=result["status"], detail=detail
+                    )
+                    break
+
+        failed = sum(row["role"] == "failed" for row in inventory)
+        scan["summary"].update(
+            eligible=sum(row["role"] == "eligible" for row in inventory),
+            failed=failed + target_error_count,
+        )
+        if failed or scan["errors"]:
+            scan["status"] = "partial"
+        findings.sort(
+            key=lambda item: (item.file, item.lineno, item.pattern, item.summary)
+        )
+        scan["outcome"] = (
+            "clean-within-complete"
+            if scan["status"] == "complete" and not findings
+            else "advisory-findings"
+            if scan["status"] == "complete"
+            else "incomplete"
+        )
+        write_jsonl(
+            (
+                {
+                    key: value
+                    for key, value in asdict(finding).items()
+                    if value != ""
+                }
+                for finding in findings
+            ),
+            args.output,
+        )
+        write_json(scan, scan_path)
+        print(
+            f"scanned {scan['summary']['eligible']} eligible PHP files from "
+            f"{scan['summary']['discovered']} inventoried; wrote {len(findings)} findings "
+            f"to {relpath(args.output, project_root)}"
+        )
+        return 0
     args.output.with_name("scan.json").unlink(missing_ok=True)
     files = collect_files(target_paths, project_root)
     findings = scan_files(files, project_root)

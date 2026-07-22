@@ -17,6 +17,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Render comment-drift findings.")
     parser.add_argument("detections", type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument(
+        "--output-json",
+        type=Path,
+        default=None,
+        help="JSON report path (default: findings.json beside the Markdown report).",
+    )
     parser.add_argument("--target", default="legacy default surface")
     args = parser.parse_args(argv)
 
@@ -32,7 +38,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(markdown + "\n", encoding="utf-8")
-    write_json(findings, args.output.with_name("findings.json"))
+    if scan and "outcome" in scan:
+        findings["outcome"] = scan["outcome"]
+    write_json(findings, args.output_json or args.output.with_name("findings.json"))
     print(f"wrote {args.output}")
     return 0
 
