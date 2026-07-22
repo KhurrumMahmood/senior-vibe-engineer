@@ -2,8 +2,8 @@
 """Deterministic batched path mover with reference rewriting.
 
 The base path/text contract supports standalone TypeScript/TSX moves without
-rewriting source imports. Opt-in family-local modes add checked JavaScript,
-bounded Go package moves, and bounded Java package moves with native rollback.
+rewriting source imports. Opt-in family-local modes add checked JavaScript and
+bounded Go, Java, PHP, and SwiftPM moves with native rollback.
 """
 from __future__ import annotations
 
@@ -487,8 +487,8 @@ def mode_for(plan: dict, key: str, default: str = "ignore") -> str:
 def code_import_mode(plan: dict) -> str:
     """Return the only supported source-import policy without implying safety."""
     value = str((plan.get("rewrite") or {}).get("code_imports", "ignore"))
-    if value not in {"ignore", "update-javascript", "update-go", "update-java", "update-php"}:
-        raise SystemExit("rewrite.code_imports only supports ignore, update-javascript, update-go, update-java, or update-php; TypeScript imports require a resolver-aware move")
+    if value not in {"ignore", "update-javascript", "update-go", "update-java", "update-php", "update-swift"}:
+        raise SystemExit("rewrite.code_imports only supports ignore, update-javascript, update-go, update-java, update-php, or update-swift; TypeScript imports require a resolver-aware move")
     return value
 
 
@@ -2415,6 +2415,24 @@ def run_plan(
     plan = load_plan(plan_path, root)
     import_mode = code_import_mode(plan)
     moves: list[MoveSpec] = plan["_moves"]
+    if import_mode == "update-swift":
+        import importlib.util
+
+        helper_path = Path(__file__).with_name("swiftpm_move.py")
+        spec = importlib.util.spec_from_file_location("move_path_swiftpm", helper_path)
+        if spec is None or spec.loader is None:
+            raise SystemExit(f"cannot load SwiftPM move helper: {helper_path}")
+        helper = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(helper)
+        return helper.run_swift_plan(
+            root=root,
+            plan_path=plan_path,
+            plan=plan,
+            moves=moves,
+            mode=mode,
+            report_dir=report_dir,
+            stage=stage,
+        )
     includes, excludes = plan_patterns(plan)
     files = exclude_authority_file(iter_scope_files(root, includes, excludes), plan_path, root)
     ignored_code_imports = ignored_typescript_imports(root, iter_typescript_source_files(root, excludes), moves)
