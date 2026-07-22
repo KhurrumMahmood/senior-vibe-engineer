@@ -17,6 +17,9 @@ this skill so a copied installation has its complete runtime closure:
 * Java uses the public JDK 17+ compiler tree API through the bundled
   ``detect_java_symbols.java`` launcher. It reports direct methods and
   constructors of named top-level types only.
+* Swift uses successful Swift 6+ compiler typechecking and the compiler's
+  textual ``-dump-ast`` output through ``detect_swift_symbols.py``. It does
+  not claim SwiftSyntax, resolved references, or complete project semantics.
 
 The script-family path is syntax-only: TypeScript needs Node and a
 ``typescript`` package resolvable from ``--project-root``; Java needs JDK 17+
@@ -70,11 +73,16 @@ class JavaExtractionError(RuntimeError):
     """Raised when the bundled Java parser cannot establish facts honestly."""
 
 
-_LANGUAGES: tuple[str, ...] = ("go", "java", "javascript", "python", "typescript")
+class SwiftExtractionError(RuntimeError):
+    """Raised when the bundled Swift compiler helper emits invalid evidence."""
+
+
+_LANGUAGES: tuple[str, ...] = ("go", "java", "javascript", "python", "swift", "typescript")
 _LANGUAGE_EXTENSIONS: dict[str, frozenset[str]] = {
     "go": frozenset({".go"}),
     "java": frozenset({".java"}),
     "python": frozenset({".py"}),
+    "swift": frozenset({".swift"}),
     "javascript": frozenset({".js", ".jsx", ".mjs", ".cjs"}),
     "typescript": frozenset({".ts", ".tsx"}),
 }
@@ -100,6 +108,15 @@ _JAVA_SKIP_FILE_GLOBS: tuple[str, ...] = (
     "*.generated.java", "*_generated.java",
 )
 _JAVA_MIN_VERSION = (17, 0, 0)
+_SWIFT_SKIP_DIRS: frozenset[str] = frozenset({
+    ".build", "deriveddata", "fixture", "fixtures", "generated", "reports",
+    "test", "tests", "vendor",
+})
+_SWIFT_SKIP_FILE_GLOBS: tuple[str, ...] = (
+    "*test.swift", "*tests.swift", "*generated.swift", "*.generated.swift",
+    "*_generated.swift",
+)
+_SWIFT_MIN_VERSION = (6, 0, 0)
 _DEFAULT_SKIP_FILE_GLOBS: tuple[str, ...] = (
     "tests_*.py", "test_*.py", "tests.py", "conftest.py", "__init__.py",
     "*.min.js", "*.min.jsx", "*.min.mjs", "*.min.cjs", "*.min.css",
@@ -428,6 +445,69 @@ def _java_symbols(
     }, generated
 
 
+def _swift_symbols(
+    filepaths: list[Path], project_root: Path
+) -> tuple[dict[Path, list[Symbol]], dict[str, object]]:
+    """Extract bounded declarations through the copied Swift compiler helper."""
+    launcher = Path(__file__).resolve().with_name("detect_swift_symbols.py")
+    command = [sys.executable, "-I", "-S", str(launcher)]
+    for path in filepaths:
+        command.extend(("--file", str(path)))
+    try:
+        result = subprocess.run(
+            command, capture_output=True, text=True, check=False, timeout=120
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise SwiftExtractionError(f"cannot run bundled Swift compiler helper: {exc}") from exc
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        detail = result.stderr.strip() or result.stdout.strip() or "invalid JSON"
+        raise SwiftExtractionError(f"bundled Swift compiler helper failed: {detail}") from exc
+    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+        raise SwiftExtractionError("bundled Swift compiler helper emitted an invalid payload")
+    if payload.get("analyzer") != "swiftc-typecheck-dump-ast":
+        raise SwiftExtractionError("bundled Swift compiler helper emitted invalid provenance")
+    status = payload.get("status")
+    if status not in {"complete", "partial", "unsupported", "failed"}:
+        raise SwiftExtractionError("bundled Swift compiler helper emitted an invalid status")
+    if status in {"unsupported", "failed"}:
+        return {}, payload
+    rows = payload.get("files")
+    if not isinstance(rows, list):
+        raise SwiftExtractionError("bundled Swift compiler helper omitted file evidence")
+    requested = {path.resolve() for path in filepaths}
+    extracted: dict[Path, list[Symbol]] = {}
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get("file"), str):
+            raise SwiftExtractionError("bundled Swift compiler helper emitted invalid file evidence")
+        path = Path(row["file"]).resolve()
+        if path not in requested or path in extracted:
+            raise SwiftExtractionError("bundled Swift compiler helper emitted mismatched file evidence")
+        row_status = row.get("status")
+        records = row.get("symbols")
+        if row_status == "partial":
+            if records != []:
+                raise SwiftExtractionError("partial Swift evidence may not contain symbols")
+            extracted[path] = []
+            continue
+        if row_status != "complete" or not isinstance(records, list):
+            raise SwiftExtractionError("bundled Swift compiler helper emitted invalid symbol evidence")
+        try:
+            extracted[path] = [
+                Symbol(
+                    str(record["name"]), str(record["cluster_name"]), str(record["kind"]),
+                    int(record["lineno"]), int(record["end_lineno"]), int(record["loc"]),
+                )
+                for record in records
+            ]
+        except (KeyError, TypeError, ValueError) as exc:
+            raise SwiftExtractionError("bundled Swift compiler helper emitted an invalid symbol") from exc
+    if set(extracted) != requested:
+        raise SwiftExtractionError("bundled Swift compiler helper omitted requested file evidence")
+    return extracted, payload
+
+
 def _language_for(path: Path) -> str | None:
     suffix = path.suffix.lower()
     for language, extensions in _LANGUAGE_EXTENSIONS.items():
@@ -480,6 +560,30 @@ def _java_path_is_excluded(path: Path, project_root: Path) -> bool:
     return _java_exclusion_reason(path, project_root) is not None
 
 
+def _swift_exclusion_reason(path: Path, project_root: Path) -> str | None:
+    """Name Swift files outside the bounded first-party SwiftPM source set."""
+    if path.is_symlink():
+        return "symlink"
+    try:
+        logical = path.relative_to(project_root).parts
+        physical = path.resolve().relative_to(project_root).parts
+    except ValueError:
+        return "outside-project-root"
+    if any(part.lower() in _DEFAULT_SKIP_DIRS for part in logical[:-1]):
+        return "default-skip-tree"
+    if any(part.lower() in _SWIFT_SKIP_DIRS for part in logical[:-1]):
+        return "swift-skip-tree"
+    if any(part.lower() in _SWIFT_SKIP_DIRS for part in physical[:-1]):
+        return "swift-skip-tree"
+    if any(fnmatch.fnmatchcase(path.name.lower(), glob) for glob in _SWIFT_SKIP_FILE_GLOBS):
+        return "swift-skip-file"
+    return None
+
+
+def _swift_path_is_excluded(path: Path, project_root: Path) -> bool:
+    return _swift_exclusion_reason(path, project_root) is not None
+
+
 def _java_inventory(
     target: Path,
     project_root: Path,
@@ -497,6 +601,35 @@ def _java_inventory(
         except ValueError:
             rel = path.as_posix()
         reason = _java_exclusion_reason(path, project_root)
+        if reason is None and any(fnmatch.fnmatchcase(path.name, glob) for glob in skip_file_globs):
+            reason = "declared-skip-file"
+        if reason is None and any(fnmatch.fnmatchcase(rel, glob) for glob in skip_path_globs):
+            reason = "declared-skip-path"
+        if reason is not None:
+            inventory.append({"file": rel, "role": "excluded", "reason": reason})
+            continue
+        inventory.append({"file": rel, "role": "eligible"})
+        eligible.append(path)
+    return inventory, eligible
+
+
+def _swift_inventory(
+    target: Path,
+    project_root: Path,
+    skip_file_globs: tuple[str, ...],
+    skip_path_globs: tuple[str, ...],
+) -> tuple[list[dict[str, str]], list[Path]]:
+    """Inventory Swift source roles before deciding completeness or cleanliness."""
+    inventory: list[dict[str, str]] = []
+    eligible: list[Path] = []
+    for path in sorted(target.rglob("*")):
+        if path.suffix.lower() != ".swift" or not path.is_file():
+            continue
+        try:
+            rel = path.relative_to(project_root).as_posix()
+        except ValueError:
+            rel = path.as_posix()
+        reason = _swift_exclusion_reason(path, project_root)
         if reason is None and any(fnmatch.fnmatchcase(path.name, glob) for glob in skip_file_globs):
             reason = "declared-skip-file"
         if reason is None and any(fnmatch.fnmatchcase(rel, glob) for glob in skip_path_globs):
@@ -532,6 +665,66 @@ def _java_scan_payload(
         "inventory": inventory,
         "summary": summary,
     }
+
+
+def _swift_scan_payload(
+    inventory: list[dict[str, str]],
+    provenance: dict[str, object] | None,
+    project_root: Path,
+) -> dict[str, object]:
+    """Carry Swift completeness, compiler provenance, and bounded fact claims."""
+    summary = {
+        "discovered": len(inventory),
+        "eligible": sum(row["role"] == "eligible" for row in inventory),
+        "excluded": sum(row["role"] == "excluded" for row in inventory),
+        "analyzed": 0,
+        "incomplete": 0,
+    }
+    payload: dict[str, object] = {
+        "status": "complete",
+        "language": "swift",
+        "analyzer": "swiftc-typecheck-dump-ast",
+        "minimum_swift_version": ".".join(map(str, _SWIFT_MIN_VERSION)),
+        "actual_swift_version": None,
+        "claim_boundary": {
+            "swift_syntax": False,
+            "resolved_references": False,
+            "complete_project_semantics": False,
+        },
+        "inventory": inventory,
+        "source_fingerprints": {},
+        "declarations": [],
+        "summary": summary,
+    }
+    if provenance is None:
+        return payload
+    for key in ("status", "failure_kind", "message", "actual_swift_version", "claim_boundary"):
+        if key in provenance and provenance[key] is not None:
+            payload[key] = provenance[key]
+    files = provenance.get("files")
+    if isinstance(files, list):
+        fingerprints: dict[str, str] = {}
+        declarations: list[dict[str, object]] = []
+        for row in files:
+            if not isinstance(row, dict) or not isinstance(row.get("file"), str):
+                continue
+            path = Path(row["file"])
+            try:
+                rel = path.resolve().relative_to(project_root).as_posix()
+            except ValueError:
+                rel = str(path)
+            if isinstance(row.get("source_sha256"), str):
+                fingerprints[rel] = row["source_sha256"]
+            if row.get("status") == "complete":
+                summary["analyzed"] += 1
+            else:
+                summary["incomplete"] += 1
+            raw_declarations = row.get("declarations")
+            if isinstance(raw_declarations, list):
+                declarations.extend({"file": rel, **record} for record in raw_declarations if isinstance(record, dict))
+        payload["source_fingerprints"] = dict(sorted(fingerprints.items()))
+        payload["declarations"] = declarations
+    return payload
 
 
 def _remove_output_artifact(path: Path) -> None:
@@ -570,6 +763,13 @@ def _write_java_scan(scan: dict[str, object], output: Path) -> None:
     )
 
 
+def _write_scan(scan: dict[str, object], output: Path) -> None:
+    output.with_name("scan.json").write_text(
+        json.dumps(scan, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
 def _first_kotlin_source(target: Path, project_root: Path) -> Path | None:
     """Surface Kotlin explicitly for a Java-only scan rather than omitting it."""
     for path in sorted(target.rglob("*")):
@@ -598,6 +798,8 @@ def _walk_source_files(
         if path.suffix.lower() == ".go" and _go_path_is_excluded(path, project_root):
             continue
         if path.suffix.lower() == ".java" and _java_path_is_excluded(path, project_root):
+            continue
+        if path.suffix.lower() == ".swift" and _swift_path_is_excluded(path, project_root):
             continue
         if any(fnmatch.fnmatchcase(path.name, glob) for glob in skip_file_globs):
             continue
@@ -639,6 +841,7 @@ def _scan_file(
     project_root: Path,
     go_symbols: dict[Path, list[Symbol]],
     java_symbols: dict[Path, list[Symbol]],
+    swift_symbols: dict[Path, list[Symbol]],
 ) -> dict[str, object] | None:
     language = _language_for(filepath)
     if language is None:
@@ -658,6 +861,9 @@ def _scan_file(
     elif language == "java":
         extracted = java_symbols[filepath.resolve()]
         analyzer = "jdk-compiler-tree-api"
+    elif language == "swift":
+        extracted = swift_symbols[filepath.resolve()]
+        analyzer = "swiftc-typecheck-dump-ast"
     else:
         extracted = _typescript_symbols(filepath, project_root)
         analyzer = "typescript-compiler-api"
@@ -717,6 +923,13 @@ def main(argv: list[str] | None = None) -> int:
     _invalidate_pipeline_artifacts(args.output)
     wanted = set(args.language) or set(_LANGUAGES)
     java_mode = bool(args.language) and wanted == {"java"}
+    swift_mode = bool(args.language) and wanted == {"swift"}
+    if "swift" in wanted and len(wanted) > 1 and args.language:
+        print(
+            "[detect_omnibus] ERROR: Swift compiler analysis must be selected alone in v1",
+            file=sys.stderr,
+        )
+        return 2
     if not args.target.is_dir():
         print(f"[detect_omnibus] ERROR: {args.target} is not a directory", file=sys.stderr)
         return 2
@@ -726,6 +939,10 @@ def main(argv: list[str] | None = None) -> int:
     skip_path_globs = _DEFAULT_SKIP_PATH_GLOBS + tuple(args.skip_path_glob)
     java_inventory: list[dict[str, str]] = []
     java_scan: dict[str, object] | None = None
+    swift_inventory: list[dict[str, str]] = []
+    swift_scan: dict[str, object] | None = None
+    java_files: list[Path] = []
+    swift_files: list[Path] = []
     selected_files: list[Path] | None = None
     if not args.language:
         all_extensions = frozenset(
@@ -739,6 +956,9 @@ def main(argv: list[str] | None = None) -> int:
         }
         if selected_languages:
             java_mode = selected_languages == {"java"}
+            swift_mode = selected_languages == {"swift"}
+            if "swift" in selected_languages and len(selected_languages) > 1:
+                selected_files = [path for path in selected_files if path.suffix.lower() != ".swift"]
         else:
             java_inventory, _java_files = _java_inventory(
                 target, project_root, skip_file_globs, skip_path_globs
@@ -746,6 +966,11 @@ def main(argv: list[str] | None = None) -> int:
             if java_inventory:
                 java_mode = True
             else:
+                swift_inventory, _swift_files = _swift_inventory(
+                    target, project_root, skip_file_globs, skip_path_globs
+                )
+                if swift_inventory:
+                    swift_mode = True
                 project_files = _walk_source_files(
                     project_root,
                     skip_file_globs,
@@ -759,6 +984,32 @@ def main(argv: list[str] | None = None) -> int:
                     if (language := _language_for(path)) is not None
                 }
                 java_mode = project_languages == {"java"}
+                swift_mode = swift_mode or project_languages == {"swift"}
+    if swift_mode:
+        try:
+            target.relative_to(project_root)
+        except ValueError:
+            swift_scan = _swift_scan_payload([], None, project_root)
+            swift_scan.update({
+                "status": "unsupported",
+                "failure_kind": "unsafe-target",
+                "message": "Swift target must stay within the project root",
+            })
+            _write_jsonl([], args.output)
+            _write_scan(swift_scan, args.output)
+            print("[detect_omnibus] ERROR: Swift target escapes project root", file=sys.stderr)
+            return 2
+        if not (project_root / "Package.swift").is_file():
+            swift_scan = _swift_scan_payload([], None, project_root)
+            swift_scan.update({
+                "status": "unsupported",
+                "failure_kind": "swiftpm-project-marker-missing",
+                "message": "bounded Swift v1 requires Package.swift at the project root",
+            })
+            _write_jsonl([], args.output)
+            _write_scan(swift_scan, args.output)
+            print("[detect_omnibus] ERROR: SwiftPM Package.swift is required", file=sys.stderr)
+            return 2
     if java_mode:
         kotlin = _first_kotlin_source(target, project_root)
         if kotlin is not None:
@@ -793,6 +1044,35 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 2
         files = list(java_files)
+    elif swift_mode:
+        if not swift_inventory:
+            swift_inventory, swift_files = _swift_inventory(
+                target, project_root, skip_file_globs, skip_path_globs
+            )
+        else:
+            swift_files = [
+                project_root / row["file"]
+                for row in swift_inventory
+                if row["role"] == "eligible"
+            ]
+        if not swift_files:
+            swift_scan = _swift_scan_payload(swift_inventory, None, project_root)
+            swift_scan.update({
+                "status": "unsupported",
+                "failure_kind": (
+                    "no-swift-files" if not swift_inventory else "no-eligible-swift-source"
+                ),
+                "message": "no eligible first-party Swift source under target",
+            })
+            _write_jsonl([], args.output)
+            _write_scan(swift_scan, args.output)
+            print(
+                "[detect_omnibus] ERROR: no eligible Swift source under target; "
+                "zero candidates are not a clean result",
+                file=sys.stderr,
+            )
+            return 2
+        files = list(swift_files)
     else:
         if selected_files is not None:
             files = selected_files
@@ -808,8 +1088,10 @@ def main(argv: list[str] | None = None) -> int:
                 extensions,
             )
         java_files = [path for path in files if path.suffix.lower() == ".java"]
+        swift_files = [path for path in files if path.suffix.lower() == ".swift"]
     go_files = [path for path in files if path.suffix.lower() == ".go"]
     java_symbols: dict[Path, list[Symbol]] = {}
+    swift_symbols: dict[Path, list[Symbol]] = {}
     generated_java: set[Path] = set()
     try:
         go_symbols = _go_symbols(go_files) if go_files else {}
@@ -817,7 +1099,11 @@ def main(argv: list[str] | None = None) -> int:
             java_symbols, java_provenance, generated_java = _java_symbols(java_files, project_root)
         else:
             java_provenance = None
-    except (GoExtractionError, JavaExtractionError) as exc:
+        if swift_files:
+            swift_symbols, swift_provenance = _swift_symbols(swift_files, project_root)
+        else:
+            swift_provenance = None
+    except (GoExtractionError, JavaExtractionError, SwiftExtractionError) as exc:
         print(f"[detect_omnibus] ERROR: {exc}", file=sys.stderr)
         return 2
     if java_mode:
@@ -840,6 +1126,19 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 2
+    if swift_mode:
+        assert swift_provenance is not None
+        swift_scan = _swift_scan_payload(swift_inventory, swift_provenance, project_root)
+        swift_status = swift_scan["status"]
+        if swift_status in {"unsupported", "failed"}:
+            _write_jsonl([], args.output)
+            _write_scan(swift_scan, args.output)
+            print(
+                "[detect_omnibus] ERROR: "
+                + str(swift_scan.get("message") or swift_scan.get("failure_kind")),
+                file=sys.stderr,
+            )
+            return 2
     records: list[dict[str, object]] = []
     for filepath in files:
         try:
@@ -847,8 +1146,10 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError:
             rel = str(filepath)
         try:
-            record = _scan_file(filepath, rel, project_root, go_symbols, java_symbols)
-        except (TypeScriptExtractionError, GoExtractionError, JavaExtractionError) as exc:
+            record = _scan_file(
+                filepath, rel, project_root, go_symbols, java_symbols, swift_symbols
+            )
+        except (TypeScriptExtractionError, GoExtractionError, JavaExtractionError, SwiftExtractionError) as exc:
             print(f"[detect_omnibus] ERROR: {filepath}: {exc}", file=sys.stderr)
             return 2
         if record is not None:
@@ -857,6 +1158,8 @@ def main(argv: list[str] | None = None) -> int:
     _write_jsonl(records, args.output)
     if java_scan is not None:
         _write_java_scan(java_scan, args.output)
+    if swift_scan is not None:
+        _write_scan(swift_scan, args.output)
     print(
         f"[detect_omnibus] wrote {args.output} ({len(records)} omnibus candidates across {len(files)} files)",
         file=sys.stderr,

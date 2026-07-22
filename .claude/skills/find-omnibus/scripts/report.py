@@ -102,7 +102,7 @@ def _load_scouts(scout_dir: Path) -> dict[str, dict[str, Any]]:
 
 
 def _load_scan(path: Path) -> dict[str, Any] | None:
-    """Read optional Java detector state emitted beside candidates.jsonl."""
+    """Read optional language detector state emitted beside candidates.jsonl."""
     if not path.is_file():
         return None
     try:
@@ -242,13 +242,38 @@ def render_report(
     if scan is not None:
         lines.append(f"**Status:** `{scan.get('status', 'unknown')}`")
         lines.append(f"**Analyzer:** `{scan.get('analyzer', 'unknown')}`")
-        lines.append(
-            "**Java toolchain:** `"
-            + str(scan.get("actual_java_version") or "not-run")
-            + "` (minimum JDK `"
-            + str(scan.get("minimum_jdk_version") or "unknown")
-            + "`)"
+        language = str(scan.get("language") or "unknown")
+        if language == "java":
+            lines.append(
+                "**Java toolchain:** `"
+                + str(scan.get("actual_java_version") or "not-run")
+                + "` (minimum JDK `"
+                + str(scan.get("minimum_jdk_version") or "unknown")
+                + "`)"
+            )
+        elif language == "swift":
+            lines.append(
+                "**Swift compiler:** `"
+                + str(scan.get("actual_swift_version") or "not-run")
+                + "` (minimum Swift `"
+                + str(scan.get("minimum_swift_version") or "unknown")
+                + "`)"
+            )
+            lines.append(
+                "**Fact boundary:** compiler typecheck/AST declarations only; "
+                "no SwiftSyntax, resolved references, or complete project semantics"
+            )
+        status = scan.get("status")
+        outcome = (
+            "clean-within-complete"
+            if status == "complete" and not candidates
+            else "findings-within-complete"
+            if status == "complete"
+            else "incomplete"
+            if status == "partial"
+            else str(status or "unknown")
         )
+        lines.append(f"**Outcome:** `{outcome}`")
     lines.append(f"**Raw candidates:** {len(candidates)}")
     lines.append(f"**Scout verifications:** {len(scouts)}")
     lines.append("")
@@ -281,8 +306,9 @@ def render_report(
     lines.append("")
     confirmed = by_bucket.get("confirmed_omnibus", [])
     if scan is not None and scan.get("status") != "complete":
+        language = str(scan.get("language") or "selected language").capitalize()
         lines.append(
-            "This Java selection is not a clean omnibus result; repair or widen "
+            f"This {language} selection is not a clean omnibus result; repair or widen "
             "the source selection before interpreting zero candidates."
         )
     elif confirmed:
@@ -325,8 +351,18 @@ def render_report(
         ],
     }
     if scan is not None:
-        findings_json["status"] = scan.get("status", "unknown")
-        findings_json["analysis"] = {"java": scan}
+        status = scan.get("status", "unknown")
+        findings_json["status"] = status
+        findings_json["outcome"] = (
+            "clean-within-complete"
+            if status == "complete" and not candidates
+            else "findings-within-complete"
+            if status == "complete"
+            else "incomplete"
+            if status == "partial"
+            else status
+        )
+        findings_json["analysis"] = {str(scan.get("language") or "unknown"): scan}
 
     return "\n".join(lines), findings_json
 
