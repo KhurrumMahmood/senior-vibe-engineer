@@ -1,12 +1,11 @@
 # Skill intent + provenance contract — schema v2 (engineering-skills-2).
-# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 skill: find-omnibus
 job: suspect
 problem_class: omnibus-module detection (SUSPECT)
 intent: Detect omnibus modules — files answering questions from 3+ independently-understandable domains.
-  Walks the target through per-language symbol-extraction adapters (Python AST; JavaScript/TypeScript
-  heuristic regex — ADR 0032), groups top-level symbols by head-noun cluster, counts SRP 'and's, ranks
+  Walks the target through per-language symbol extraction (Python AST, a legacy JavaScript declaration
+  heuristic, and a project-local TypeScript Compiler API parser), groups top-level symbols by head-noun cluster, counts SRP 'and's, ranks
   by responsibility count plus security/side-effect sensitivity and LOC, fans out scouts applying the
   refactor-subsystem §1.2.5 facet-vs-domain rule. Produces decomposition candidates; hands off to
   /refactor-subsystem <spec-id> in decomposition mode, or — when the target layer lacks substrate

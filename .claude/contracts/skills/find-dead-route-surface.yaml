@@ -1,14 +1,13 @@
-# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 
 skill: find-dead-route-surface
 job: suspect
 problem_class: "route-surface reachability detection / product-topology (SUSPECT)"
 intent: >
-  Advisory scan for configured product route-surface reachability — legacy prototype routes,
+  Advisory scan for `/sites` route-surface reachability — legacy prototype routes,
   views referencing missing templates, templates no route renders, template script tags
-  pointing at missing JS, and static JS no template loads. Reuses `/find-dormant`
-  URL extraction while scoping to declared route/template/static wiring. Emits five detector
+  pointing at missing JS, and site static JS no template loads. Reuses `/find-dormant`
+  URL extraction but scopes to `/sites` route/template/static wiring. Emits five detector
   bands (legacy_prototype_route, route_template_missing, unreferenced_template_surface,
   missing_static_js, unloaded_site_static_js) as a triage candidate list; deletion still
   needs human authorization.

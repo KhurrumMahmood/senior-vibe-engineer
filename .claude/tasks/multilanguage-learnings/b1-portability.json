@@ -1,0 +1,131 @@
+{
+  "batch": "B1",
+  "revision": {
+    "accepted_parent": "28671a38afb476d970c6242e0782f7d07cbb8de8",
+    "first_review_repair": "d456e7e049cddc6ce3f2c7434eb049ae87b427ec",
+    "second_review_evidence": "verified on codex/ts-b1-portability before commit; final commit reported at handoff"
+  },
+  "family": [
+    "find-concept-divergence",
+    "find-rule-surface-drift",
+    "find-skill-artifact-drift",
+    "find-skill-intent-drift",
+    "find-stale-artifacts"
+  ],
+  "invariant": {
+    "portable_principle": "Text, documentation, frontmatter, and working-artifact checks are host-language-neutral unless their accepted outcome interprets application-language semantics.",
+    "python_or_framework_mechanism": "Python scripts provide the current installed implementation; find-skill-artifact-drift uses Python AST only to inspect skill scripts, not host application code.",
+    "typescript_mechanism": "find-concept-divergence performs strict suffix-aware lexical matching in .ts and .tsx files.",
+    "explicit_non_goals": [
+      "TypeScript parsing, type checking, JSX semantics, import resolution, or symbol analysis",
+      "Artificial TypeScript variants for the four neutral artifact/documentation skills",
+      "Router catalog generation or matcher changes",
+      "A shared TypeScript parser or platform"
+    ]
+  },
+  "reference_repairs": [
+    "Added .tsx to find-concept-divergence source suffixes.",
+    "Moved copied-skill target resolution and glossary-profile parsing into find-concept-divergence.",
+    "Made the glossary flow-list profile preserve quoted comma-containing scalar values; nested flow collections fail clearly instead of being mis-split.",
+    "Made commented concept collection keys parse as block collections and made empty or silently unparsed concepts fail before report generation.",
+    "Removed repository _common report dependencies from the rule-surface, skill-artifact, and stale-artifact reporters.",
+    "Removed repository frontmatter/root dependencies from find-skill-artifact-drift's owned evidence path.",
+    "Made find-skill-artifact-drift's stdlib frontmatter reader preserve block lists after inline-commented keys such as allowed-tools.",
+    "Added JSON-as-YAML fallback for isolated find-skill-intent-drift contract paths while retaining PyYAML rich-YAML behavior."
+  ],
+  "language_model": {
+    "syntax": [".ts source", ".tsx source", "strict word-boundary text matching"],
+    "type_system": ["No type facts are inferred."],
+    "module_resolution": ["None"],
+    "runtime": ["Python 3.11+ stdlib for copied report paths", "PyYAML only for rich non-JSON intent-contract YAML"],
+    "framework": ["None required"]
+  },
+  "tooling": {
+    "selected": "Family-local Python lexical scanner and stdlib JSONL/report code",
+    "rejected_alternatives": {
+      "typescript_compiler_api": "No semantic fact is required for the accepted glossary report.",
+      "tree_sitter": "Adds installation cost without improving strict phrase matching.",
+      "ts_morph": "Disproportionate for suffix-aware advisory text scanning.",
+      "shared_platform": "No demonstrated second consumer has the same contract."
+    },
+    "version_and_resolution": "Python 3.11+; copied tests use python -I -S. Rich YAML intent contracts retain an explicit host-PyYAML prerequisite.",
+    "closure_mode": "Each selected skill owns its exercised resolver/report implementation; no repository _common, root scripts, or toolkit venv is imported.",
+    "preflight_and_failure_codes": [
+      "find-skill-intent-drift reports a clear PyYAML requirement for rich non-JSON YAML when unavailable.",
+      "Existing detector exit-code contracts remain unchanged."
+    ]
+  },
+  "outcome_contract": {
+    "inputs": [
+      "Glossary YAML plus .ts/.tsx source roots",
+      "Agent-rule docs, installed skills, intent contracts, and working-artifact directories"
+    ],
+    "structured_outputs": ["findings.jsonl", "report.md", "findings.json", "intent scan stdout/index"],
+    "must_fire": ["deprecated status in deprecated.ts", "deprecated status in deprecated.tsx"],
+    "must_not_fire": ["canonical-only TSX", "deprecatedStatus homonym", "legacy status adapter compatibility alias", "node_modules vendor source", "dist generated source"],
+    "native_test_command": ".venv/bin/python -m pytest -q tests/test_b1_portability.py tests/test_skill_detector_reads.py tests/test_skill_meta_jobs.py tests/test_ecosystem_consistency.py tests/test_skill_comply.py",
+    "native_guard_command": ".venv/bin/python .claude/skills/find-skill-artifact-drift/scripts/detect.py --gate find-concept-divergence find-rule-surface-drift find-skill-artifact-drift find-skill-intent-drift find-stale-artifacts"
+  },
+  "evidence": {
+    "python_reference": [
+      "find-skill-artifact-drift smoke: six bad patterns fire; good fixture and gate behavior remain clean.",
+      "find-skill-intent-drift test_scan: eight existing stale/fingerprint tests pass.",
+      "Rule-surface fixture report rendered three expected bands; stale-artifacts zero-findings report rendered."
+    ],
+    "typescript": [
+      "tests/fixtures/b1-portability/concept-host/src/deprecated.ts",
+      "tests/fixtures/b1-portability/concept-host/src/deprecated.tsx",
+      "tests/fixtures/b1-portability/concept-host/src/canonical.tsx",
+      "tests/fixtures/b1-portability/concept-host/src/homonym.ts",
+      "tests/fixtures/b1-portability/concept-host/src/compatibility-alias.ts"
+    ],
+    "commands_and_artifact_paths": [
+      "tests/test_b1_portability.py: 5 passed, including copied skills under python -I -S outside the checkout. The copied concept scan found exactly two actionable avoid_term_hit records in deprecated.ts and deprecated.tsx and no records for the compatibility alias, identifier homonym, generated dist path, or vendored node_modules path.",
+      "The copied quoted-comma alias regression drives a backtick TypeScript transition through findings.jsonl and report.md, producing one superseded_co_occurrence record for legacy, status instead of a false clean.",
+      "The copied commented concepts key preserves its block list; empty concepts and nested YAML flow collections fail before final artifacts are written.",
+      "The copied artifact scan accepts allowed-tools followed by an inline comment and a Bash/Read block list, keeping the final report clean.",
+      "The copied strict intent scan covers five installed B1 skills and five matching JSON-as-YAML host contracts, reports zero findings, and verifies the generated five-row _index.yaml without --no-index.",
+      "python -I -S .claude/skills/find-concept-divergence/scripts/scan.py --project-root tests/fixtures/b1-portability/concept-host ...: two findings and final report from ordinary YAML.",
+      "scripts/skill_meta.py lint: OK — 76 skills, 76 declaring new contract.",
+      "targeted pytest: 16 passed; scripts/skill_comply/validate.py: OVERALL PASS; targeted Ruff: all checks passed."
+    ]
+  },
+  "false_positive_boundary": {
+    "known_false_positives": ["Intentional deprecated phrases in first-party comments/source remain lexical hits."],
+    "known_false_negatives": ["Renamed identifiers or semantically equivalent terms not listed in the glossary are not detected."],
+    "legitimate_similar_shapes": ["canonical-only TSX", "deprecatedStatus identifier homonym", "documented compatibility alias", "node_modules and dist sources"]
+  },
+  "generalized": ["frontmatter host-language claims", "suffix coverage", "JSONL/report output contracts", "copied-install tests", "path-level generated/vendor exclusions"],
+  "did_not_generalize": ["TypeScript semantic facts", "JSX behavior", "Python AST analysis of skill scripts", "git-history freshness", "generic YAML parsing", "the independent report domains"],
+  "reuse_decision": {
+    "shared_candidate": "Outcome-first TypeScript fixture plus isolated copied-install test pattern",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": ["B1 needed lexical suffix support and small local report closure only; no accepted second semantic consumer exists."],
+    "owner": "B1 family"
+  },
+  "translation_prerequisites": {
+    "rust": {"native_tool": "rust-analyzer or compiler for semantic claims", "idiomatic_representation": ".rs textual glossary use", "required_fixtures": ["positive .rs", "generated target/", "identifier homonym"], "semantic_gaps": ["macro expansion", "symbol identity"]},
+    "go": {"native_tool": "go/packages for semantic claims", "idiomatic_representation": ".go textual glossary use", "required_fixtures": ["positive .go", "vendor/", "generated file"], "semantic_gaps": ["package identity", "generated conventions"]},
+    "java_or_kotlin": {"native_tool": "compiler or language server", "idiomatic_representation": ".java/.kt textual glossary use", "required_fixtures": ["positive source", "generated source", "identifier homonym"], "semantic_gaps": ["overloads", "visibility"]},
+    "csharp": {"native_tool": "Roslyn", "idiomatic_representation": ".cs textual glossary use", "required_fixtures": ["positive source", "generated source", "identifier homonym"], "semantic_gaps": ["partial types", "symbol identity"]},
+    "ruby": {"native_tool": "Ruby parser or language server", "idiomatic_representation": ".rb textual glossary use", "required_fixtures": ["positive source", "vendored gem", "metaprogrammed-like homonym"], "semantic_gaps": ["metaprogramming", "runtime naming"]}
+  },
+  "user_experience": {
+    "install_steps": ["Copy one selected skill directory", "Run its script with host Python 3.11+"],
+    "wall_time_seconds": null,
+    "agent_confusions": ["Repository helper imports made source-tree success appear installed.", "The generic quick validator rejects this repository's valid extended frontmatter."],
+    "repeated_work": ["Three reporters independently needed small report closure, but no shared abstraction was justified."],
+    "smallest_later_improvement": "Completed by the later serial router/catalog integration; collect real-user friction before changing this family again."
+  },
+  "residual_risks": [
+    "Rich non-JSON YAML intent contracts require PyYAML in the host environment; the stdlib copied path supports JSON-form YAML.",
+    "The original B1 lane did not test router integration; later serial integration and regression coverage closed that boundary.",
+    "The second adversarial review findings and repository-wide contract/index integration are repaired."
+  ],
+  "next_decision": {
+    "recommendation": "Keep the accepted B1 copied evidence and completed router/catalog integration; avoid broader shared infrastructure without another consumer.",
+    "rationale": "The batch delivers genuine TS/TSX glossary coverage and truthful host-neutral claims without speculative shared infrastructure.",
+    "blockers": []
+  }
+}

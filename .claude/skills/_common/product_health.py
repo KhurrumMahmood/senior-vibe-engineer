@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib.util
-import fnmatch
 import json
 import subprocess
 import sys
@@ -17,7 +16,6 @@ from typing import Any, Iterable, Sequence
 # in — a repo with no descriptor scans nothing rather than another host's flow.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from product_topology import render_simple_report, relpath, utc_scan_id, write_json, write_jsonl  # noqa: E402
-from engineering_home import surface_labels  # noqa: E402
 from workflows import workflow_targets  # noqa: E402
 
 
@@ -85,59 +83,22 @@ def expand_paths(
     return sorted(dict.fromkeys(path.resolve() for path in found))
 
 
-def _normalized_relative(file: str, project_root: Path | None) -> str:
-    path = Path(file)
-    if path.is_absolute() and project_root is not None:
-        try:
-            path = path.resolve().relative_to(project_root.resolve())
-        except ValueError:
-            pass
-    normalized = path.as_posix()
-    while normalized.startswith("./"):
-        normalized = normalized[2:]
-    return normalized.rstrip("/")
-
-
-def _selector_matches(file: str, selector: str) -> bool:
-    normalized = selector.replace("\\", "/").rstrip("/")
-    if not normalized:
-        return False
-    if any(char in normalized for char in "*?["):
-        if normalized.endswith("/**") and file == normalized[:-3].rstrip("/"):
-            return True
-        return fnmatch.fnmatchcase(file, normalized)
-    return file == normalized or file.startswith(f"{normalized}/")
-
-
-def infer_surface(file: str, project_root: Path | None = None) -> str:
-    """Infer a neutral product surface, preferring host-profile declarations."""
-    normalized = _normalized_relative(file, project_root)
-    if project_root is not None:
-        labels = surface_labels(project_root)
-        matches = [
-            (selector, label)
-            for selector, label in labels.items()
-            if _selector_matches(normalized, selector)
-        ]
-        if matches:
-            return sorted(matches, key=lambda item: (-len(item[0]), item[0]))[0][1]
-    if normalized == ".claude/skills" or normalized.startswith(".claude/skills/"):
+def infer_surface(file: str) -> str:
+    if file.startswith("app/pages/sites") or file.startswith("templates/core/site_config"):
+        return "sites_template_or_view"
+    if file.startswith("app/site_management") or file.startswith("app/api/"):
+        return "sites_backend"
+    if file.startswith("app/services/sites"):
+        return "sites_service"
+    if file.startswith("static/js/"):
+        return "sites_frontend"
+    if file.startswith(".claude/skills"):
         return "skill"
-    if (
-        normalized == ".claude/docs"
-        or normalized.startswith(".claude/docs/")
-        or normalized == "docs"
-        or normalized.startswith("docs/")
-    ):
+    if file.startswith(".claude/docs") or file.startswith("docs/"):
         return "docs"
-    if (
-        normalized == "tests"
-        or normalized.startswith("tests/")
-        or normalized == "testing"
-        or normalized.startswith("testing/")
-    ):
+    if file.startswith("tests/") or file.startswith("testing/"):
         return "tests"
-    return "product_surface"
+    return "sites_surface"
 
 
 def finding(
@@ -162,7 +123,7 @@ def finding(
         "summary": summary.strip(),
         "recommendation": recommendation.strip(),
         "confidence": confidence,
-        "surface": surface or infer_surface(file, project_root),
+        "surface": surface or infer_surface(file),
         "next_skill": next_skill,
         "guard_candidate": guard_candidate,
     }
@@ -185,7 +146,7 @@ def normalize_record(
         "summary": str(record.get("summary") or record.get("evidence") or "").strip(),
         "recommendation": str(record.get("recommendation") or "Review this advisory finding.").strip(),
         "confidence": str(record.get("confidence") or default_confidence),
-        "surface": str(record.get("surface") or infer_surface(file, project_root)),
+        "surface": str(record.get("surface") or infer_surface(file)),
         "next_skill": str(record.get("next_skill") or next_skill),
         "guard_candidate": bool(record.get("guard_candidate", guard_candidate)),
     }

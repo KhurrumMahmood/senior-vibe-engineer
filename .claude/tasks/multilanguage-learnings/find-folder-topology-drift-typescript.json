@@ -1,0 +1,212 @@
+{
+  "batch": "find-folder-topology-drift-typescript",
+  "revision": "0df40a5",
+  "family": [
+    "find-folder-topology-drift",
+    "typescript lexical folder topology"
+  ],
+  "invariant": {
+    "portable_principle": "Three or more direct source siblings sharing a declared first domain token are a navigational cluster worth human triage.",
+    "python_or_framework_mechanism": "Preserve the Python ADR 0006 promotion, test-prefix, sparse-package, and pages-route-mirror bands.",
+    "typescript_mechanism": "A --typescript-root-only invocation walks only declared TypeScript directories; direct .ts/.tsx siblings group on their first _ or - token. Supplying --root as well explicitly enables the additive Python scan.",
+    "explicit_non_goals": [
+      "TypeScript sparse-package demotion",
+      "TypeScript test-folder reorganization",
+      "Next.js/pages conventions",
+      "barrel analysis",
+      "module resolution or import safety",
+      "framework ownership",
+      "file moves or package recommendations"
+    ]
+  },
+  "reference_repairs": [
+    {
+      "issue": "The selected Python skill imported repository-level _common scope and report helpers, so a copied selected skill failed under python -I -S.",
+      "repair": "Bundled minimal family-local scope traversal and report rendering in scripts/support.py without changing Python detection bands."
+    },
+    {
+      "issue": "An out-of-project --root silently widened to a whole-project scan despite the documented invalid-target behavior.",
+      "repair": "Both root forms now fail clearly with exit 2 when invalid or outside --project-root."
+    },
+    {
+      "issue": "Built-in TypeScript skip trees were target-relative, so explicitly naming an excluded tree as --typescript-root bypassed the exclusion; test and specs were also absent.",
+      "repair": "Revision 0df40a5 anchors built-in exclusions to every project-relative root ancestor, adds test/specs, and parameterizes all eleven excluded categories as explicit roots."
+    }
+  ],
+  "language_model": {
+    "syntax": [
+      "Filename extension and first _ or - delimiter only",
+      "No TypeScript parser or AST"
+    ],
+    "type_system": [],
+    "module_resolution": [],
+    "runtime": [
+      "Python 3.11+ standard library",
+      "Runs under python -I -S from a copied selected-skill directory"
+    ],
+    "framework": []
+  },
+  "tooling": {
+    "selected": "Family-local Python standard-library pathlib/os walk and JSON renderer.",
+    "rejected_alternatives": {
+      "TypeScript Compiler API": "No AST, import, or type claim needs it for this filename-only invariant.",
+      "shared _common adapter": "One accepted consumer does not justify shared infrastructure and breaks selected-skill closure.",
+      "jscpd or generic detector platform": "Clone detection and platform orchestration are unrelated to direct filename clustering."
+    },
+    "version_and_resolution": "No external runtime dependency.",
+    "closure_mode": "scripts/detect.py, scripts/report.py, and scripts/support.py are copied together with the selected skill.",
+    "preflight_and_failure_codes": [
+      "Invalid or outside --root exits 2.",
+      "Invalid, outside, or non-directory --typescript-root exits 2."
+    ]
+  },
+  "outcome_contract": {
+    "inputs": [
+      "--project-root PATH",
+      "repeatable --typescript-root PATH",
+      "optional --root PATH for Python-only or explicit combined mode",
+      "repeatable additive --exclude PATTERN"
+    ],
+    "structured_outputs": [
+      "detections.jsonl",
+      "report.md",
+      "findings.json with scan_meta.language and supported_patterns"
+    ],
+    "must_fire": [
+      "billing_parser.ts, billing-validator.ts, and billing-types.ts produce one TypeScript flat_prefix_cluster"
+    ],
+    "must_not_fire": [
+      "two siblings and mixed prefixes",
+      "tests/test/__tests__/specs trees, index, declarations, spec/test files",
+      "generated/vendor/node_modules/dist/build/coverage/reports",
+      "declared additive excluded path",
+      "Python files elsewhere in a host when only --typescript-root is supplied"
+    ],
+    "native_test_command": ".venv/bin/python -m pytest tests/test_find_folder_topology_typescript.py -q",
+    "native_guard_command": null
+  },
+  "evidence": {
+    "python_reference": [
+      "tests/fixtures/find-folder-topology-typescript/python-reference/positive",
+      "tests/fixtures/find-folder-topology-typescript/python-reference/clean",
+      "Dedicated test asserts all four preserved Python patterns and a clean/must-not-fire fixture."
+    ],
+    "typescript": [
+      "tests/fixtures/find-folder-topology-typescript/typescript-host",
+      "20 passed in tests/test_find_folder_topology_typescript.py after the adversarial exclusion repair",
+      "Copied selected-skill detector and reporter passed under python -I -S from an unrelated cwd.",
+      "/private/tmp/folder-topology-forward-20260719-023928/evidence/final-artifacts/detections.jsonl contains exactly one TypeScript flat_prefix_cluster.",
+      "/private/tmp/folder-topology-forward-20260719-023928/evidence/final-artifact-validation.txt records PASS and source-integrity-final.txt records unchanged source bytes."
+    ],
+    "commands_and_artifact_paths": [
+      ".venv/bin/python -m pytest tests/test_find_folder_topology_typescript.py -q (20 passed)",
+      ".venv/bin/python -m ruff check .claude/skills/find-folder-topology-drift/scripts tests/test_find_folder_topology_typescript.py (clean)",
+      ".venv/bin/python scripts/skill_meta.py lint (76/76 OK)",
+      ".venv/bin/python .claude/skills/_common/scripts/run_skill_smokes.py --skills-dir .claude/skills --timeout 10 (passed)",
+      ".venv/bin/python -m pytest tests/test_find_folder_topology_typescript.py tests/test_yaml_frontmatter.py tests/test_skill_meta_jobs.py tests/test_skill_taxonomy.py tests/test_scope.py tests/test_run_skill_smokes.py -q (66 passed)",
+      "/tmp/folder-topology-python-regression.jsonl, /tmp/folder-topology-python-regression.md, /tmp/folder-topology-python-regression.json",
+      "/private/tmp/folder-topology-forward-20260719-023928/evidence/task.md and journey.md",
+      "/private/tmp/folder-topology-forward-20260719-023928/evidence/initial-unfiltered-artifacts/detections.jsonl (rejected five-record run)",
+      "/private/tmp/folder-topology-forward-20260719-023928/evidence/final-artifacts/{detections.jsonl,report.md,findings.json} (accepted one-record run)",
+      "/private/tmp/folder-topology-forward-20260719-023928/evidence/transcripts/03-stock-install.typescript (skills@1.5.19 stock Codex install)"
+    ]
+  },
+  "false_positive_boundary": {
+    "known_false_positives": [],
+    "known_false_negatives": [
+      "Domains expressed without a shared first filename token are intentionally not reported.",
+      "A three-file token cluster may be a legitimate framework convention; the report remains advisory."
+    ],
+    "legitimate_similar_shapes": [
+      "Two-file pairs",
+      "Mixed-prefix cohesive folders",
+      "Tests and __tests__ trees",
+      "Barrel index files and declarations",
+      "Generated, vendor, dependency, build, coverage, and reports trees"
+    ]
+  },
+  "generalized": [
+    "Explicit source-root contract",
+    "Direct-sibling lexical cluster schema",
+    "Additive excludes",
+    "Deterministic JSONL and final artifact labels",
+    "Self-contained standard-library runtime closure"
+  ],
+  "did_not_generalize": [
+    "Python sparse-package demotion and page-route-mirror policy",
+    "Django framework exemptions",
+    "TypeScript import resolution, package layout, and safety",
+    "Any shared parser or adapter"
+  ],
+  "reuse_decision": {
+    "shared_candidate": "Minimal scope traversal and report rendering in scripts/support.py",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": [
+      "Only find-folder-topology-drift has accepted this exact Python-plus-explicit-TypeScript scope/report contract.",
+      "Copied selected-skill closure requires no repository _common import."
+    ],
+    "owner": "find-folder-topology-drift"
+  },
+  "translation_prerequisites": {
+    "rust": {
+      "native_tool": "stdlib path walk; cargo only if a later move claim needs compilation evidence",
+      "idiomatic_representation": "direct .rs siblings and mod.rs module declarations",
+      "required_fixtures": ["three common-token .rs files", "mod.rs", "tests", "generated/vendor equivalents"],
+      "semantic_gaps": ["module ownership and mod.rs implications"]
+    },
+    "go": {
+      "native_tool": "stdlib path walk; go test only for a later mutation claim",
+      "idiomatic_representation": "direct production .go siblings in one package",
+      "required_fixtures": ["three production files", "_test.go", "generated", "vendor", "build-tag case"],
+      "semantic_gaps": ["package/import behavior and build tags"]
+    },
+    "java_or_kotlin": {
+      "native_tool": "stdlib path walk; Gradle or Maven only for a later source move",
+      "idiomatic_representation": "direct .java or .kt source siblings with package declarations",
+      "required_fixtures": ["three naming-cluster files", "test", "generated", "class/file convention case"],
+      "semantic_gaps": ["class/file identity and package/import impact"]
+    },
+    "csharp": {
+      "native_tool": "stdlib path walk; dotnet test only for a later mutation claim",
+      "idiomatic_representation": "direct .cs siblings and namespace/project membership",
+      "required_fixtures": ["three direct siblings", ".g.cs generated case", "test", "obj/bin exclusions"],
+      "semantic_gaps": ["partial classes, namespaces, and project membership"]
+    },
+    "ruby": {
+      "native_tool": "stdlib path walk; Bundler/RSpec only for a later move claim",
+      "idiomatic_representation": "direct .rb siblings and conventional _spec.rb tests",
+      "required_fixtures": ["three common-token files", "_spec.rb", "generated", "vendor"],
+      "semantic_gaps": ["load-path, autoload, and constant resolution"]
+    }
+  },
+  "user_experience": {
+    "install_steps": [
+      "Run skills@1.5.19 to copy the selected skill into the stock Codex .agents/skills location.",
+      "Run detector with the host Python and an explicit --typescript-root.",
+      "Run reporter over detections.jsonl."
+    ],
+    "wall_time_seconds": null,
+    "agent_confusions": [
+      "The former shared-helper import was invisible in a source checkout but failed in a stock copied install.",
+      "The TypeScript source root must be explicit so a repository-wide scan cannot silently imply support.",
+      "The original installed example hard-coded .claude/skills even though stock Codex installed under .agents/skills.",
+      "The original --typescript-root-only command also emitted four Python reference findings and required a manual exclude before its reporter label was honest.",
+      "The first adversarial review showed that target-relative exclusions could be bypassed by naming an excluded tree itself as --typescript-root."
+    ],
+    "repeated_work": [
+      "The fresh agent had to reject the initial five-record artifact, add an exclusion for the Python reference tree, and rerun detector and reporter."
+    ],
+    "smallest_later_improvement": "Completed in revision 75002248977c2631c2458ac064bc4f659ecedb3e: document .agents/skills and make --typescript-root-only scans intrinsically TypeScript-only."
+  },
+  "residual_risks": [
+    "The fresh installed evidence predates both repair rounds; committed regressions replay the discovered defects and independent re-review passed.",
+    "Filename clustering can over-report a legitimate framework convention, so all findings remain advisory.",
+    "The detector intentionally misses mixed-token domain clusters and does not resolve TypeScript imports."
+  ],
+  "next_decision": {
+    "recommendation": "Keep the TypeScript detector lexical and advisory; do not expand it until a separate TypeScript proposal family proves import impact.",
+    "rationale": "The accepted fixture only demonstrates a direct filename cluster. Package moves, barrels, test placement, and module resolution require stronger evidence and distinct contracts.",
+    "blockers": []
+  }
+}

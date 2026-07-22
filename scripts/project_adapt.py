@@ -30,16 +30,9 @@ REPO_ROOT = SCRIPT_PATH.parent.parent
 # convention (ADR 0021). Stdlib + PyYAML script; engineering_home is stdlib.
 sys.path.insert(0, str(REPO_ROOT / ".claude" / "skills" / "_common"))
 import engineering_home as _eh  # noqa: E402
-from _lib.capability_registry import load_registry  # noqa: E402
-from _lib.host_profile import profile_host, validate_host_profile  # noqa: E402
-from _lib.perimeter_audit import (  # noqa: E402
-    run_perimeter_audit,
-    validate_perimeter_artifacts,
-)
 
-CAPABILITY_REGISTRY = load_registry()
-ADAPTER_SCHEMA_VERSION = 3
-PROFILE_SCHEMA_VERSION = 2
+ADAPTER_SCHEMA_VERSION = 1
+PROFILE_SCHEMA_VERSION = 1
 TIMESTAMP_RE = re.compile(r"^scan-\d{8}-\d{6}$")
 
 DOC_NAMES = (
@@ -162,66 +155,35 @@ def detect_stack(root: Path) -> dict[str, Any]:
     package_paths = [p for p in package_paths if not _is_ignored_path(p)]
     package_text = "\n".join(_read_text(p) for p in package_paths[:8])
 
-    corpus = (requirements + "\n" + pyproject + "\n" + package_text).lower()
-    registry = CAPABILITY_REGISTRY.data
     languages: list[str] = []
     frameworks: list[str] = []
-    tools: list[str] = []
+    package_managers: list[str] = []
 
-    for identifier, entry in registry["languages"].items():
-        if not entry.get("subject"):
-            continue
-        markers = entry.get("project_markers", [])
-        marker_hit = any((root / marker).exists() for marker in markers)
-        extension_hit = any(
-            next(
-                (path for path in root.rglob(f"*{extension}") if not _is_ignored_path(path)),
-                None,
-            )
-            is not None
-            for extension in entry.get("extensions", [])
-        )
-        if marker_hit or extension_hit:
-            languages.append(identifier)
-
-    for identifier, entry in registry["frameworks"].items():
-        if identifier in {"any", "none"}:
-            continue
-        marker_hit = any((root / marker).exists() for marker in entry.get("file_markers", []))
-        token_hit = _contains_any(corpus, tuple(str(token).lower() for token in entry.get("package_tokens", [])))
-        if marker_hit or token_hit:
-            frameworks.append(identifier)
-
-    for identifier, entry in registry["tools"].items():
-        marker_hit = any((root / marker).exists() for marker in entry.get("file_markers", []))
-        token_hit = _contains_any(corpus, tuple(str(token).lower() for token in entry.get("package_tokens", [])))
-        if marker_hit or token_hit:
-            tools.append(identifier)
-
-    package_managers = [
-        identifier
-        for identifier in tools
-        if "package-manager" in registry["tools"][identifier].get("roles", [])
-    ]
-    if package_paths and not package_managers:
-        fallback = next(
-            (
-                identifier
-                for identifier, entry in registry["tools"].items()
-                if entry.get("fallback_for") == "package.json"
-            ),
-            None,
-        )
-        if fallback:
-            tools.append(fallback)
-            package_managers.append(fallback)
+    if (root / "manage.py").exists() or (root / "pyproject.toml").exists() or requirements:
+        languages.append("python")
+    if package_paths:
+        languages.append("javascript/typescript")
+    if (root / "manage.py").exists() or _contains_any(requirements + pyproject, ("django",)):
+        frameworks.append("django")
+    if _contains_any(package_text, ('"react"', '"@types/react"', "react-router")):
+        frameworks.append("react")
+    if _contains_any(package_text, ("vite", "vitest")):
+        frameworks.append("vite/vitest")
+    if (root / "pnpm-lock.yaml").exists():
+        package_managers.append("pnpm")
+    if (root / "package-lock.json").exists():
+        package_managers.append("npm")
+    if (root / "yarn.lock").exists():
+        package_managers.append("yarn")
+    if (root / "requirements.txt").exists() or (root / "pyproject.toml").exists():
+        package_managers.append("pip")
+    if package_paths and not any(manager in package_managers for manager in ("pnpm", "npm", "yarn")):
+        package_managers.append("npm")
 
     return {
         "languages": sorted(set(languages)),
         "frameworks": sorted(set(frameworks)),
-        "tools": sorted(set(tools)),
         "package_managers": sorted(set(package_managers)),
-        "project_roots": [{"path": ".", "kind": "repository"}],
         "markers": _list_existing(
             root,
             (
@@ -253,58 +215,18 @@ def detect_commands(root: Path, stack: dict[str, Any]) -> dict[str, Any]:
     elif (root / "pyproject.toml").exists():
         commands["lint"].append("ruff check <path>")
     package_paths = [root / "package.json", *sorted(root.glob("*/package.json"))]
-    manager_commands = {
-        identifier: CAPABILITY_REGISTRY.data["tools"][identifier].get("run_script_command")
-        for identifier in stack.get("package_managers", [])
-        if identifier in CAPABILITY_REGISTRY.data["tools"]
-    }
-    script_prefix = next((value for value in manager_commands.values() if value), "npm run")
     for path in package_paths:
         pkg = _load_package_json(path)
         scripts = pkg.get("scripts") if isinstance(pkg.get("scripts"), dict) else {}
+        prefix = "pnpm" if (path.parent / "pnpm-lock.yaml").exists() or (root / "pnpm-lock.yaml").exists() else "npm run"
         for name in scripts:
             if "test" in name:
-                commands["test"].append(f"cd {_rel(path.parent, root)} && {script_prefix} {name}")
+                commands["test"].append(f"cd {_rel(path.parent, root)} && {prefix} {name}")
             if "lint" in name or "typecheck" in name:
-                commands["lint"].append(f"cd {_rel(path.parent, root)} && {script_prefix} {name}")
+                commands["lint"].append(f"cd {_rel(path.parent, root)} && {prefix} {name}")
             if name in {"dev", "start"}:
-                commands["dev"].append(f"cd {_rel(path.parent, root)} && {script_prefix} {name}")
+                commands["dev"].append(f"cd {_rel(path.parent, root)} && {prefix} {name}")
     return {k: sorted(set(v)) for k, v in commands.items()}
-
-
-def _adapter_stack(profile: dict[str, Any]) -> dict[str, Any]:
-    stack = {key: list(value) for key, value in profile["stack"].items()}
-    stack["package_managers"] = sorted(
-        tool
-        for tool in stack["tools"]
-        if "package-manager" in CAPABILITY_REGISTRY.data["tools"][tool].get("roles", [])
-    )
-    stack["markers"] = sorted(
-        {
-            Path(item["path"]).name
-            for root in profile["roots"]
-            for item in root["evidence"]
-            if item["kind"] in {"marker", "fallback-marker"}
-        }
-    )
-    stack["package_json_paths"] = sorted(
-        {
-            item["path"]
-            for root in profile["roots"]
-            for item in root["evidence"]
-            if Path(item["path"]).name == "package.json"
-        }
-    )
-    return stack
-
-
-def _adapter_commands(profile: dict[str, Any]) -> dict[str, list[str]]:
-    commands: dict[str, list[str]] = {}
-    for root in profile["roots"]:
-        prefix = "" if root["path"] == "." else f"cd {root['path']} && "
-        for kind, values in root["commands"].items():
-            commands.setdefault(kind, []).extend(f"{prefix}{value}" for value in values)
-    return {kind: sorted(set(values)) for kind, values in sorted(commands.items())}
 
 
 def detect_docs(root: Path) -> dict[str, Any]:
@@ -418,25 +340,15 @@ def build_standardization_cautions(adapter: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-# spec:portable-host-profile-routing::IM-3
-def discover_project(
-    project_root: Path,
-    host_profile: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+def discover_project(project_root: Path) -> dict[str, Any]:
     root = project_root.resolve()
-    selected_profile = host_profile or profile_host(root)
-    profile_errors = validate_host_profile(selected_profile)
-    if profile_errors:
-        raise ValueError(f"invalid host profile: {'; '.join(profile_errors)}")
-    stack = _adapter_stack(selected_profile)
+    stack = detect_stack(root)
     adapter: dict[str, Any] = {
         "schema_version": ADAPTER_SCHEMA_VERSION,
-        "capability_registry_version": CAPABILITY_REGISTRY.schema_version,
-        "capability_contract_version": CAPABILITY_REGISTRY.contract_version,
-        "project": {"name": root.name},
-        "host_profile": selected_profile,
+        "generated_at": utc_now(),
+        "project": {"name": root.name, "root": str(root)},
         "stack": stack,
-        "commands": _adapter_commands(selected_profile),
+        "commands": detect_commands(root, stack),
         "source_roots": detect_source_roots(root),
         "ci": detect_ci(root),
         "docs": detect_docs(root),
@@ -474,8 +386,6 @@ def build_profile_from_discovery(adapter: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "schema_version": PROFILE_SCHEMA_VERSION,
-        "capability_registry_version": CAPABILITY_REGISTRY.schema_version,
-        "capability_contract_version": CAPABILITY_REGISTRY.contract_version,
         "generated_at": utc_now(),
         "user_approved": False,
         "project": {
@@ -606,28 +516,9 @@ def write_discovery(
 ) -> Path:
     _validate_write_mode(project_root, artifact_root, apply=apply, no_host_write=no_host_write)
     sid = scan_id(timestamp)
-    host_profile = profile_host(project_root)
-    profile_errors = validate_host_profile(host_profile)
-    if profile_errors:
-        raise ValueError(f"invalid host profile: {'; '.join(profile_errors)}")
-    adapter = discover_project(project_root, host_profile)
+    adapter = discover_project(project_root)
     scan_dir = _scan_dir(artifact_root, "adapt-project", sid)
     scan_dir.mkdir(parents=True, exist_ok=True)
-    _safe_yaml_dump(scan_dir / "host-profile.yml", host_profile)
-    _write_json(scan_dir / "host-profile.json", host_profile)
-    returned_perimeter = run_perimeter_audit(
-        project_root,
-        scan_dir / "host-profile.json",
-        scan_dir,
-    )
-    perimeter = validate_perimeter_artifacts(scan_dir, host_profile, returned_perimeter)
-    gaps = perimeter["gaps"]
-    adapter["adoption"] = {
-        "status": "ready" if not gaps else "incomplete_coverage",
-        "perimeter_gaps": len(gaps),
-        "accepted_exclusions": perimeter.get("accepted_exclusions", []),
-        "profile_sha256": host_profile["profile_sha256"],
-    }
     _safe_yaml_dump(scan_dir / "adapter.yml", adapter)
     _write_json(scan_dir / "adapter.json", adapter)
     (scan_dir / "report.md").write_text(adapter_markdown(adapter), encoding="utf-8")
@@ -637,18 +528,8 @@ def write_discovery(
                 "skill": "adapt-project",
                 "scan_id": sid,
                 "produced_at": utc_now(),
-                "evidence": {
-                    "adapter": "adapter.yml",
-                    "report": "report.md",
-                    "host_profile": "host-profile.json",
-                    "perimeter": "perimeter.json",
-                    "perimeter_report": "perimeter.md",
-                },
-                "notes": (
-                    "incomplete coverage; adoption success withheld"
-                    if gaps
-                    else ("no host writes" if no_host_write else "")
-                ),
+                "evidence": {"adapter": "adapter.yml", "report": "report.md"},
+                "notes": "no host writes" if no_host_write else "",
             },
             indent=2,
             sort_keys=True,
@@ -658,15 +539,8 @@ def write_discovery(
     )
     _update_latest(scan_dir)
     if apply:
-        dest_dir = _eh.project_dir(project_root)
-        dest = dest_dir / "adapter.yml"
-        try:
-            existing = _load_yaml(dest) if dest.is_file() else {}
-        except ValueError:
-            existing = {}
-        merged = {**existing, **adapter}
-        _safe_yaml_dump(dest, merged)
-        _write_json(dest_dir / "host-profile.json", host_profile)
+        dest = _eh.project_dir(project_root) / "adapter.yml"
+        _safe_yaml_dump(dest, adapter)
     return scan_dir
 
 
@@ -713,15 +587,9 @@ def write_profile_draft(
     _update_latest(scan_dir)
     if apply:
         dest_dir = _eh.project_dir(project_root)
-        durable_files = {
-            dest_dir / "profile.yml": yaml.safe_dump(profile, sort_keys=False, default_flow_style=False),
-            dest_dir / "profile.md": profile_markdown(profile),
-            dest_dir / "open-questions.md": open_questions_markdown(profile),
-        }
-        for path, text in durable_files.items():
-            if not path.exists():
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(text, encoding="utf-8")
+        _safe_yaml_dump(dest_dir / "profile.yml", profile)
+        (dest_dir / "profile.md").write_text(profile_markdown(profile), encoding="utf-8")
+        (dest_dir / "open-questions.md").write_text(open_questions_markdown(profile), encoding="utf-8")
     return scan_dir
 
 
@@ -746,20 +614,6 @@ def validate_adapter_payload(payload: dict[str, Any]) -> list[str]:
         errors.append("adapter.project must be a mapping")
     if not isinstance(payload.get("standardization"), dict):
         errors.append("adapter.standardization must be a mapping")
-    stack = payload.get("stack")
-    if isinstance(stack, dict):
-        errors.extend(CAPABILITY_REGISTRY.validate_stack(stack, prefix="adapter.stack"))
-    else:
-        errors.append("adapter.stack must be a mapping")
-    if payload.get("capability_registry_version") != CAPABILITY_REGISTRY.schema_version:
-        errors.append("adapter capability_registry_version does not match registry")
-    if payload.get("capability_contract_version") != CAPABILITY_REGISTRY.contract_version:
-        errors.append("adapter capability_contract_version does not match registry")
-    host_profile = payload.get("host_profile")
-    if isinstance(host_profile, dict):
-        errors.extend(validate_host_profile(host_profile))
-    else:
-        errors.append("adapter.host_profile must be a mapping")
     return errors
 
 
@@ -772,13 +626,6 @@ def validate_profile_payload(payload: dict[str, Any]) -> list[str]:
         errors.append("unsupported profile schema_version")
     if not isinstance(payload.get("needs_user_input"), dict):
         errors.append("profile.needs_user_input must be a mapping")
-    if payload.get("capability_registry_version") != CAPABILITY_REGISTRY.schema_version:
-        errors.append("profile capability_registry_version does not match registry")
-    if payload.get("capability_contract_version") != CAPABILITY_REGISTRY.contract_version:
-        errors.append("profile capability_contract_version does not match registry")
-    stack = payload.get("known_from_repo", {}).get("stack") if isinstance(payload.get("known_from_repo"), dict) else None
-    if isinstance(stack, dict):
-        errors.extend(CAPABILITY_REGISTRY.validate_stack(stack, prefix="profile.known_from_repo.stack"))
     return errors
 
 
@@ -847,17 +694,10 @@ def cmd_discover(args: argparse.Namespace) -> int:
             apply=args.apply,
             no_host_write=args.no_host_write,
         )
-    except (RuntimeError, ValueError) as exc:
+    except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     _print_scan(path)
-    adapter = _load_yaml(path / "adapter.yml")
-    if adapter.get("adoption", {}).get("status") != "ready":
-        print(
-            "adaptation incomplete: perimeter gaps remain; see perimeter.md",
-            file=sys.stderr,
-        )
-        return 1
     return 0
 
 

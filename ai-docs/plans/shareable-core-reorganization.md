@@ -1,7 +1,7 @@
 ---
 name: shareable-core-reorganization
 title: "Shareable-core reorganization: layering, generalization, distribution"
-status: abandoned
+status: scoped
 date: 2026-06-11
 authors: [khurrum, claude-code]
 motivating_decision: "0034"
@@ -11,13 +11,6 @@ workflows: []
 ---
 
 # Shareable-core reorganization: layering, generalization, distribution
-
-> Abandoned 2026-07-16 after fresh-context verifier
-> `/root/wp0_zero_unmapped` certified `ZERO UNMAPPED — READY TO RETIRE` at
-> revision `25fab54`. Every W1–W6 deliverable and Success 1–6 criterion is owned
-> by the detailed inheritance ledger in
-> `portable-skill-ecosystem-completion.md`; implementation and verification
-> continue only there. This file remains historical scope/decision provenance.
 
 Make the ecosystem easily shareable: a host project (Django today,
 TypeScript/other tomorrow) installs only what applies to it, gets honest

@@ -1,7 +1,7 @@
 ---
 name: find-standard-gaps
-description: Detect places a declared baseline standard should apply but doesn't. A standard (a security check, a resilience rule, an input-validation or observability requirement) is declared once as an idea with an executable `ast` detector; `scan_coverage.py` then scans the tree and reports every site whose triggering situation holds but the standard is absent. Generalizes hand-written AST lints — declare a standard instead of authoring a bespoke lint. Detection-only; never edits code.
-argument-hint: "[standards-file — defaults to standards/standards.json; ships as standards.example.json to copy + adapt]"
+description: Detect places a declared baseline standard should apply but doesn't. A standard is declared once with an executable `ast` detector; `scan_coverage.py` scans Python, narrow syntax-only JavaScript/TypeScript direct-call coverage, Go 1.22+ direct-call defer coverage, and Java JDK 17+ direct-call try coverage, then reports every site whose triggering situation holds but the standard is absent. Detection-only; never edits code.
+argument-hint: "<host-owned standards JSON — copy standards.example.json, adapt it, and pass its path>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -10,6 +10,8 @@ best_for: |
   Checking that a baseline standard is applied everywhere its situation
   occurs — "every external DB connection is inside a try", "every
   outbound HTTP call sets a timeout", "no call to X without guard Y".
+  This includes coverage gaps for a declared standard governing direct calls,
+  required arguments, or an enclosing try guard.
   Each standard is a declarative entry with an `ast` detector; the scan
   is deterministic, cheap, and syntactically precise.
   Census mode (scripts/census.py) answers the upstream discovery question:
@@ -17,13 +19,14 @@ best_for: |
   Use census before declaring a standard to understand the current
   population; census output feeds /decide and standards declaration.
 not_for: |
-  Judgment-heavy ideas that do not reduce to a call/argument/block
-  pattern (keep those as code review). Structural smells — omnibus,
-  duplication, dormant code (use the find-* family). Executing the
-  fixes (hand off to /fix-workflow). Authoring a bespoke one-off lint
-  when no standard will be reused (just write the lint).
-language: python
+  Policies requiring human judgment rather than a machine-executable
+  call/argument/block detector remain review work. Responsibility, clone, and
+  reachability smells belong to their dedicated find-* detectors. Production
+  remediation belongs to /fix-workflow, while a bespoke rule with no reusable
+  baseline belongs in host lint tooling.
+language: any
 framework: any
+scans: [python, javascript, typescript, go, java]
 ---
 
 # /find-standard-gaps
@@ -53,7 +56,7 @@ work; there is no scout fan-out. The detector model (how `ast` and
   situation-site count, gap count, coverage % — with no standard silently
   dropped (`manual`/`skill` standards reported as skipped).
 - Each standard carries an explicit analyzability verdict:
-  `gated_out`, `language_unsupported`, `no_files_matched`, and `error`
+  `gated_out`, `language_unsupported`, `no_files_matched`, `partial`, and `error`
   are surfaced as non-passing statuses, never passed off as 0 gaps /
   compliant.
 - Clean standards are named as positive results only when their status is
@@ -72,21 +75,85 @@ work; there is no scout fan-out. The detector model (how `ast` and
 3. **A gap is not a verdict.** A flagged gap is high-confidence "the
    standard is not applied here" — not "this is a bug." Some gaps are
    deliberate exceptions. Triage is a fix-time decision.
-4. **A clean standard is a result.** A standard with 0 gaps is a
-   passing standard — it confirms the codebase upholds the rule, and
-   the scan becomes a regression guard if re-run.
+4. **A clean standard is a result.** A standard with 0 gaps, 0 skipped files,
+   and 0 unsupported matched files is a passing standard — it confirms the
+   codebase upholds the rule, and the scan becomes a regression guard if
+   re-run.
 
 ## Scope
 
 - **Project root:** the repository root.
-- **Python:** `python3` — `scan_coverage.py`, `project_state.py`, and
-  `census.py` are stdlib-only.
+- **Python:** `scan_coverage.py`, `project_state.py`, and `census.py` are
+  stdlib-only; use the host `.venv/bin/python` when it exists, otherwise
+  `python3`.
+- **TypeScript/TSX v1:** Node plus a `typescript` package resolvable from
+  the host project's `package.json`. The bundled Compiler API launcher uses
+  `createSourceFile`; it does not read a tsconfig, construct a Program, or
+  infer framework behavior.
+- **Go v1:** Go 1.22+ on `PATH`. The bundled standard-library parser supports
+  one syntax-only contract: `enclosed_by: "defer"` for directly spelled calls.
+  It resolves no imports, types, aliases, or receivers. Generated, vendored,
+  test, and `testdata` files are excluded; malformed or build-constrained
+  matched files make the result partial rather than clean.
+- **Java v1:** JDK 17+ (`java` and `javac`) on `PATH`. The bundled public JDK
+  Compiler Tree API helper supports `enclosed_by: "try"` for directly spelled
+  method calls. It invokes neither Maven nor Gradle and resolves no classpath,
+  imports, types, aliases, overloads, receivers, or framework behavior.
+  Generated, vendored, test, build-output, and external-symlink paths are
+  excluded; malformed/read-error matched files make the result partial.
 - **Output:** `reports/standard-gaps/scan-<TS>/` only. Never edits code.
+
+## Installed command
+
+Copy `standards/standards.example.json` to a host-owned `standards.json`,
+adapt its `paths` and standards, then set `STANDARDS=standards.json`. Run the
+following two blocks verbatim from the host root. They support both the stock
+`.agents` projection and this source checkout.
+
+<!-- installed-command:resolve:start -->
+```bash
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/find-standard-gaps" \
+  ".claude/skills/find-standard-gaps"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-standard-gaps is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+if [ -x ".venv/bin/python" ]; then
+  HOST_PYTHON="$(pwd)/.venv/bin/python"
+else
+  HOST_PYTHON="python3"
+fi
+```
+<!-- installed-command:resolve:end -->
+
+<!-- installed-command:run:start -->
+```bash
+: "${STANDARDS:?Set STANDARDS to the host-owned standards JSON file}"
+TS=$(date +%Y%m%d-%H%M%S)
+REPORT_DIR="reports/standard-gaps/scan-${TS}"
+mkdir -p "${REPORT_DIR}"
+"${HOST_PYTHON}" "${SKILL_ROOT}/scripts/scan_coverage.py" \
+  --ideas "${STANDARDS}" \
+  --project-root "$(pwd)" \
+  --output-dir "${REPORT_DIR}"
+```
+<!-- installed-command:run:end -->
 
 ## Argument
 
-The argument is an optional path to a standards file. Default:
-`.claude/skills/find-standard-gaps/standards/standards.json`.
+The argument is an optional path to a host-owned standards file. In a source
+checkout the historical default is
+`.claude/skills/find-standard-gaps/standards/standards.json`; a stock install
+must not write into `.agents`, so use `standards.json` at the host root (or
+another explicit host path) through `STANDARDS`.
 
 This skill ships **`standards/standards.example.json`** — a template
 with two universal example standards. On first use, copy it to
@@ -111,16 +178,13 @@ surface, pass `--project-state <path>` explicitly.
 ### Stage 0 — Setup
 
 ```bash
-TS=$(date +%Y%m%d-%H%M%S)
-REPORT_DIR="reports/standard-gaps/scan-${TS}"
-mkdir -p "$REPORT_DIR"
-STANDARDS="<argument, or .claude/skills/find-standard-gaps/standards/standards.json>"
+STANDARDS="<host-owned standards file, commonly standards.json>"
 ```
 
 ### Stage 1 — Scan
 
 ```bash
-python3 .claude/skills/find-standard-gaps/scripts/scan_coverage.py \
+"${HOST_PYTHON}" "${SKILL_ROOT}/scripts/scan_coverage.py" \
   --ideas "$STANDARDS" \
   --project-root "$(pwd)" \
   --output-dir "$REPORT_DIR"
@@ -139,7 +203,7 @@ count, and non-passing status counts such as `gated out`,
 Optional explicit-state form, for replaying a project-state fork:
 
 ```bash
-python3 .claude/skills/find-standard-gaps/scripts/scan_coverage.py \
+"${HOST_PYTHON}" "${SKILL_ROOT}/scripts/scan_coverage.py" \
   --ideas "$STANDARDS" \
   --project-root "$(pwd)" \
   --project-state ".engineering/project-state.json" \
@@ -156,6 +220,9 @@ record in `coverage.json`. Report to the user in ≤10 lines:
   outranks a style one);
 - standards that came back **clean** (`status: scanned`, 0 gaps) — name
   them, that is a positive result;
+- standards that were `partial` — name their skipped-file count and any
+  unsupported-file count/extensions separately; their gaps are triage evidence,
+  but the standard is not clean/compliant;
 - standards that were `gated_out`, `language_unsupported`,
   `no_files_matched`, `skipped`, or `error` — name them separately and
   do not count them as compliant;
@@ -169,14 +236,98 @@ record in `coverage.json`. Report to the user in ≤10 lines:
 - A standard you keep wanting → add it to the standards file so every
   future run checks it. The standards file is the durable artifact.
 
-## When the target language isn't supported
+## TypeScript/TSX support and limits
 
-The `ast` detector is **Python-only** (it is CPython's `ast` module).
-When a standard's `paths` match files but none are `.py`,
-`scan_coverage.py` reports that standard as **`language_unsupported`** —
-*not* as "0 gaps". **Treat `language_unsupported` as "could not
-analyze", never as "compliant".** A silent "0 gaps" on an unanalyzable
-language is the one genuinely dangerous failure mode of this skill.
+TypeScript v1 supports one intentionally narrow structural contract:
+`kind: "ast"`, `enclosed_by: "try"`, and a `call_matches` regular expression
+against a direct syntactic identifier/property chain. For example, this scans
+both `.ts` and `.tsx` source without assuming React or another framework:
+
+```json
+{
+  "kind": "ast",
+  "call_matches": "^JSON\\.parse$",
+  "enclosed_by": "try",
+  "paths": ["src/**/*.ts", "src/**/*.tsx"]
+}
+```
+
+The bundled TypeScript Compiler API parser establishes syntax only. It does not resolve aliases, types, receivers, or frameworks beyond that direct spelling.
+`JSON.parse` means that literal call spelling, not a proof that it is the global API. A nested
+function/callback body resets `try` enclosure because the scanner does not
+infer when that callback runs. It ignores `.d.ts`, generated/minified/bundle,
+test/spec, fixture, build, dependency, report, and vendor paths even when the
+detector directly names them; paths are project-root-relative, and symlinks
+escaping the project root are excluded.
+
+`requires_kwarg` and `enclosed_by: "with"` remain Python-only contracts.
+TypeScript/TSX standards using either return `language_unsupported`; split a
+mixed-language standard into language-specific entries rather than treating an
+unsupported condition as a clean scan. Missing Node, missing host-local
+`typescript`, or a TypeScript parser preflight failure also returns
+`language_unsupported`, never 0 gaps. Mixed Python plus TypeScript/TSX paths
+are scanned together only for the shared `enclosed_by: "try"` contract.
+A per-file TS syntax/read failure produces `status: partial` with
+`skipped_files`; that is never clean/compliant even when its gap count is 0.
+When an `ast` path also matches an unsupported extension (for example `.js`),
+the scanner still reports findings from supported `.py`/`.ts`/`.tsx` files but
+returns `partial` with `unsupported_files` and `unsupported_extensions`.
+If no supported files remain, it returns `language_unsupported` instead.
+
+## Go support and limits
+
+Go v1 supports `kind: "ast"`, a direct syntactic `call_matches` regular
+expression, and `enclosed_by: "defer"`. For example:
+
+```json
+{
+  "kind": "ast",
+  "call_matches": "^cleanup$",
+  "enclosed_by": "defer",
+  "paths": ["**/*.go"]
+}
+```
+
+The bundled `go/parser`/`go/ast` helper establishes only the direct call
+spelling and whether it executes beneath a `defer` statement. It does not
+prove symbol identity or function signatures. Other conditions return
+`language_unsupported`; missing or Go <1.22 tooling does the same. A matched
+syntax failure or build-constrained file makes the result `partial`, never
+clean. Generated, vendored, test, `testdata`, dependency, report, and external
+symlink paths are excluded by the fixed source policy.
+
+## Java support and limits
+
+Java v1 supports `kind: "ast"`, a direct syntactic `call_matches` regular
+expression, and `enclosed_by: "try"`. For example:
+
+```json
+{
+  "kind": "ast",
+  "call_matches": "^Json\\.decode$",
+  "enclosed_by": "try",
+  "paths": ["src/main/java/**/*.java"]
+}
+```
+
+The bundled JDK 17 Compiler Tree API helper validates syntax then records only
+direct identifier/member-select invocation spelling and whether it executes in
+a `try` resource/body. Catch/finally, lambda, local-class, and anonymous-class
+bodies do not inherit that enclosure. It does not resolve aliases, types,
+receivers, imports, or frameworks (or overloads); an unresolved reference is still
+syntax evidence, not proof of symbol identity. `requires_kwarg`,
+`enclosed_by: "with"`, and `enclosed_by: "defer"` are unsupported for Java.
+Missing/old JDK returns `language_unsupported`; a syntax/read failure is
+`partial`, never clean. Kotlin/JVM source is not Java support and remains an
+unsupported extension in a mixed target.
+
+## When the target language or condition isn't supported
+
+When a standard's `paths` cannot be analyzed,
+`scan_coverage.py` reports **`language_unsupported`** — *not* as "0 gaps".
+**Treat `language_unsupported` as "could not analyze", never as
+"compliant".** A silent "0 gaps" on an unanalyzable language is the one
+genuinely dangerous failure mode of this skill.
 
 When a standard comes back `language_unsupported`, apply this rule:
 
@@ -220,9 +371,10 @@ deciding satisfaction.
 | A standard is `gated_out` | Report it as out of scope for the declared project state. It was not scanned and is not a 0-gap pass |
 | A standard reports a huge gap count | The detector is too broad, or the situation regex matches non-code — tighten `call_matches`, or switch a `grep` standard to `ast` |
 | A `grep` standard flags comments/strings | Expected — `grep` is comment/string-blind. Convert it to an `ast` detector |
-| 0 standards scanned | Check `coverage.json`: all entries are likely `gated_out`, `manual`/`skill`, `no_files_matched`, or `error`. Report the actual statuses |
+| 0 standards fully scanned | Check `coverage.json`: entries may be `partial`, `gated_out`, `manual`/`skill`, `no_files_matched`, or `error`. Report the actual statuses |
+| `partial` | Report skipped-file count plus unsupported-file count/extensions when present. Do not call 0 gaps compliant; repair the source, narrow the paths, or extend the scanner and re-run |
 | `no_files_matched` | Treat as a misconfigured glob or wrong project root, not as compliance |
-| `language_unsupported` | Apply the "When the target language isn't supported" branch above |
+| `language_unsupported` | Check the reported reason (unsupported language/condition, missing TS prerequisite, or missing/old JDK), then apply the unsupported branch above |
 | A gap is a deliberate exception | Not a tool failure — note it at fix time; a future `--allow` list could record approved exceptions |
 
 ## Replay case
@@ -230,9 +382,9 @@ deciding satisfaction.
 For future repairs to this skill, replay a tiny standard against a
 temporary project and paste the real stdout plus the first status row from
 `coverage.json`. The expected shape is: absent project state prints the
-assumed-MAX warning; a Python `ast` standard with one unsatisfied call
-prints `state production/public-adversarial: scanned 1/1 standard(s): 1
-coverage gap(s)`; `coverage.json` records `status: scanned`.
+assumed-MAX warning; a Python or supported TypeScript `ast` standard with one
+unsatisfied call prints `state production/public-adversarial: scanned 1/1
+standard(s): 1 coverage gap(s)`; `coverage.json` records `status: scanned`.
 
 ## Census mode — discover before you declare
 
@@ -265,7 +417,7 @@ TS=$(date +%Y%m%d-%H%M%S)
 REPORT_DIR="reports/standard-gaps/census-${TS}"
 mkdir -p "$REPORT_DIR"
 
-python3 .claude/skills/find-standard-gaps/scripts/census.py \
+"${HOST_PYTHON}" "${SKILL_ROOT}/scripts/census.py" \
   --concern json_response_envelope \
   --project-root "$(pwd)" \
   app/api \
@@ -295,6 +447,10 @@ list[Site]` that returns one `Site` per occurrence with a normalised
 ├── scripts/
 │   ├── scan_coverage.py      # gap scan — deterministic, stdlib-only
 │   ├── project_state.py      # ADR-0020 activation gate helper
+│   ├── engineering_home.py   # bundled state-home resolver
+│   ├── detect_typescript_calls.mjs  # TS/TSX syntax facts
+│   ├── detect_go_calls.go     # Go direct-call/defer syntax facts
+│   ├── detect_java_calls.java # Java direct-call/try facts (JDK 17+)
 │   └── census.py             # census mode — discover before you declare
 ├── knowledge/
 │   └── detector-model.md     # the detector model + how to add a standard

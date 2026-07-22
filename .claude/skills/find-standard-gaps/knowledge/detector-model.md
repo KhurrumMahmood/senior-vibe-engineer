@@ -45,9 +45,10 @@ the gap list directly — no second step.
 Finds `Call` nodes whose dotted name (e.g. `mysql.connector.connect`)
 matches `call_matches`, then checks **one** satisfaction condition:
 
-- `enclosed_by`: `try` | `with` — the call must be lexically inside
+- `enclosed_by`: `try` | `with` | `defer` — the call must be lexically inside
   that block. Enclosure resets at a nested-function boundary (a call in
-  a nested `def` is not protected by an outer `try` at runtime).
+  a nested `def` is not protected by an outer `try` at runtime). `defer` is
+  the Go-only direct-call contract described below; Java supports only `try`.
 - `requires_kwarg`: `<name>` — the call must pass that keyword argument
   (a `**kwargs` spread counts — the detector cannot tell, so it assumes
   satisfied rather than false-flag).
@@ -55,6 +56,33 @@ matches `call_matches`, then checks **one** satisfaction condition:
 A gap = a matched call that fails the condition. `ast` is **preferred**
 for every standard about code structure: it is syntactically precise —
 it never matches inside a comment or a string literal.
+
+For TypeScript/TSX, v1 supports only `enclosed_by: "try"`. It parses direct
+identifier/property-access calls through the host's local TypeScript Compiler
+API, so a direct `JSON.parse(value)` can be checked without treating comments
+or strings as calls. `requires_kwarg` and `enclosed_by: "with"` are
+Python-only and report `language_unsupported` for TS/TSX rather than a false
+clean result. The TS scanner does not resolve aliases, types, receivers, or
+framework APIs; call-name matching is syntactic. A nested function/callback
+resets `try` enclosure because its invocation timing is not established.
+
+For Go, v1 supports only `enclosed_by: "defer"`. A bundled Go 1.22+
+standard-library parser records directly spelled identifier, selector,
+parenthesized, and generic calls. Only the direct call governed by `defer` is
+satisfied; calls used to evaluate its receiver or arguments run immediately
+and remain gaps. The scanner does not resolve aliases, types, receivers, or
+signatures. Generated/test/vendor/testdata sources are excluded, while syntax
+failures and explicit or filename-based build constraints make the result
+partial rather than clean.
+
+For Java, v1 supports only `enclosed_by: "try"` with JDK 17+ (`java` and
+`javac`) on `PATH`. A family-local public Compiler Tree API helper parses
+direct identifier/member-select calls, counts calls in a try resource/body as
+enclosed, and resets enclosure for catch/finally, lambda, local-class, and
+anonymous-class bodies. It runs neither Maven nor Gradle and resolves no
+classpath, imports, aliases, types, overloads, receivers, or framework APIs.
+An unresolved name is syntax evidence only. Generated/test/vendor/build-output
+and external-symlink paths are excluded; syntax/read failures are partial.
 
 ## The `grep` detector — fallback only
 
@@ -115,25 +143,32 @@ not pass, and its gap count must not be read as zero.
 
 ## Language support
 
-- The **`ast` detector is Python-only** — it is CPython's standard-
-  library `ast` module. It parses `.py` files; it cannot analyze
-  JavaScript, Go, Java, etc.
+- The **`ast` detector supports Python plus narrow TypeScript/TSX, Go, and Java syntax**.
+  Python retains both `enclosed_by` forms and `requires_kwarg` through
+  CPython's standard-library `ast`. TS/TSX supports only `enclosed_by: try`
+  through the bundled Compiler API launcher, which requires Node and a
+  `typescript` package resolvable from the host `package.json`. Go supports
+  only direct `enclosed_by: defer` through a bundled stdlib helper and requires
+  Go 1.22+ on `PATH`. Java supports only direct `enclosed_by: try` through a
+  public JDK Compiler Tree API helper and requires JDK 17+ on `PATH`.
 - The **`grep` detector is cross-language** (it operates on text) — but
   comment/string-blind, so trust it for *enumerating* situations, not
   for deciding satisfaction.
-- When an `ast` standard's `paths` match files but none are `.py`,
-  `scan_coverage.py` reports it `language_unsupported` — never a false
-  "0 gaps". The orchestrator then applies the **"When the target
-  language isn't supported"** rule in `SKILL.md`: small surface → read
-  it directly; large surface → build the detector tooling first.
-- The cross-language path is **tree-sitter** — one parsing library with
-  grammars for most languages and a uniform query API. It is a genuine
-  rebuild, not a free generalization: it adds a third-party dependency
-  (the skill is currently stdlib-only), node-type names differ per
-  grammar, and the satisfaction vocabulary is partly language-specific
-  (`requires_kwarg` is meaningless in Go/Java; `enclosed_by: try` is
-  meaningless in Go/Rust). Treat cross-language coverage as a scoped
-  project, not an incremental tweak.
+- When an `ast` standard matches both supported Python/TS/TSX/Go/Java files and an
+  unsupported extension, `scan_coverage.py` retains the supported findings but
+  reports `partial`, with `unsupported_files` and
+  `unsupported_extensions`; it is never a false "0 gaps" pass. When no
+  supported files remain, when a language-unsupported condition is used, or
+  when the required TypeScript, Go, or JDK preflight cannot run, it reports
+  `language_unsupported`. The orchestrator
+  then applies the **"When the target language or condition isn't supported"**
+  rule in `SKILL.md`: small surface → read it directly; large surface → build
+  the detector tooling first.
+- Further language support remains a scoped adapter decision. Do not assume a
+  universal parser or node schema: satisfaction vocabulary is language-
+  specific (`requires_kwarg` is meaningless in Go/Java and `enclosed_by: try`
+  is meaningless in Go/Rust). Prefer the smallest native fact that proves one
+  useful standard contract.
 
 ## Scoping `paths`, and reading the count honestly
 
@@ -150,6 +185,14 @@ a real host project (2026-05-21):
   the repo root, so a source-rooted glob like `app/**/*.py` never matches
   `<anything>/app/...` copies. **Narrow `paths` per project**; the shipped
   example is a starting point, not a finished config.
+- **Paths are project-root-relative and exclusions cannot be bypassed by a
+  direct target.** The scanner excludes generic test/dependency/worktree trees
+  for every language. Its TS/TSX branch additionally excludes declaration,
+  generated, minified/bundle, test/spec, fixture, build, report, and vendor
+  source. A `paths` entry can be a root-relative file, directory, or glob; an
+  external symlink is never first-party source. If a standard names only
+  excluded paths, it returns `no_files_matched` rather than scanning an
+  out-of-policy copy.
 - **A pure-prohibition count is presence, not severity.** The floor
   reported 21 `eval`/`exec` sites; a hand audit of the same project found
   **8** that were the actual remote-code-execution risk (LLM-generated code
@@ -188,8 +231,18 @@ a real host project (2026-05-21):
   lives in a skipped directory — e.g. "tests that open a DB connection
   guard it" — cannot be checked by this skill today; that needs a
   configurable include-list.
+- TypeScript v1 does not resolve imports, aliases, overloads, type identity,
+  receiver identity, runtime globals, or framework conventions. It is a direct
+  syntax detector, not a TypeScript linter or semantic API audit.
+- Java v1 does not resolve imports, aliases, overloads, type identity, receiver
+  identity, or framework conventions. It is a direct syntax detector, not a
+  Java compiler/build or semantic API audit.
 - `scan_coverage.py` reports a per-standard status. **Only `scanned` is
-  a real coverage result.** `gated_out` (activation thresholds not met),
-  `no_files_matched` (a misconfigured glob), `language_unsupported`, and
-  a `scanned` result with `skipped_files > 0` all mean part or all of the
-  surface went unexamined — never read them as "0 gaps = compliant".
+  a clean coverage result.** `partial` means one or more files were not read,
+  parsed, or had an unsupported extension; its gaps are triage evidence, not a
+  compliance verdict. `unsupported_files` and `unsupported_extensions` make
+  that unexamined surface explicit when supported findings are still reported.
+  `gated_out` (activation thresholds not met), `no_files_matched` (a
+  misconfigured glob), `language_unsupported`, and `error` all mean
+  part or all of the surface went unexamined — never read them as "0 gaps =
+  compliant". A clean result needs `status: scanned` and 0 gaps.

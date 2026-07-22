@@ -1,0 +1,12 @@
+{
+  "name": "delivery-operations-host",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/host.test.mjs && node scripts/lint/no-inline-delivery-metric.mjs"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

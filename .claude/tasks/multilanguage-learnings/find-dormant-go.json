@@ -1,0 +1,102 @@
+{
+  "batch": "Go G2 find-dormant",
+  "family": ["find-dormant"],
+  "invariant": {
+    "portable_principle": "A static Go dormant report establishes only that an unexported package-level function or function-valued variable has no go/types-resolved use in the selected active-build package; it never establishes safe deletion or runtime unreachability.",
+    "go_mechanism": "One family-local batched helper combines go list active-package facts with go/parser, go/types, and go/importer use resolution.",
+    "explicit_non_goals": [
+      "Safe deletion or source mutation",
+      "Methods or types",
+      "Interface, reflection, //go:linkname, generated-registration, plugin, cgo, assembly, external, or runtime reachability",
+      "A shared go list/go types platform",
+      "Framework or API ownership"
+    ]
+  },
+  "language_model": {
+    "syntax": [
+      "Unexported package-level function declarations",
+      "Unexported package-level variables whose Go type has a function signature",
+      "Exact string-literal and //go:linkname uncertainty signals"
+    ],
+    "semantic_project": [
+      "go list -deps -export selects active package files and export data",
+      "go/types resolves same-package object uses across active source files",
+      "go/importer consumes host-generated export data for imports"
+    ],
+    "runtime": [
+      "Host Go 1.22+ from PATH",
+      "Reflection, linker directives, generated registration, plugins, cgo, and assembly remain explicit uncertainty"
+    ]
+  },
+  "tooling": {
+    "selected": "Family-local detect_go_dormant.py plus one batched detect_go_dormant.go helper using only Go stdlib/toolchain facts.",
+    "rejected_alternatives": {
+      "lexical_grep": "Cannot distinguish same-name strings, shadows, or resolved package uses.",
+      "go_packages": "Adds a non-stdlib dependency without a required v1 fact.",
+      "shared_project_platform": "No accepted second consumer has an identical result schema, closure, or review-only contract."
+    },
+    "closure_mode": "Copied selected find-dormant root; no toolkit venv, repository helper, sibling skill, network, or shared Go runtime dependency.",
+    "preflight_and_failure_codes": [
+      "Exit 2 for missing/old Go, malformed Go, invalid/symlink target, or unsafe report path.",
+      "Final partial report for build-constrained, cgo, package, or type facts unavailable from the active package model."
+    ]
+  },
+  "outcome_contract": {
+    "structured_outputs": [
+      "reports/find-dormant/<scan>/report.md",
+      "reports/find-dormant/<scan>/findings.json"
+    ],
+    "must_fire": [
+      "Unreferenced unexported package-level function",
+      "Unreferenced unexported function-valued variable",
+      "Exact matching string name as uncertain",
+      "Build-constrained active-package gap as partial"
+    ],
+    "must_not_fire": [
+      "Directly used private function and function-valued variable",
+      "Exported API",
+      "Direct identifier handler registration",
+      "Methods and types",
+      "Generated/vendor/test/testdata sources",
+      "Any certain_delete result"
+    ],
+    "native_test_command": "go test ./...",
+    "source_boundary": "Read-only; fixture source hashes are unchanged before and after the final artifact run."
+  },
+  "false_positive_boundary": {
+    "known_false_positives": [
+      "A zero-use private symbol may remain reachable by reflection, linker directives, generated registration, plugin loading, cgo, assembly, or external/runtime behavior."
+    ],
+    "known_false_negatives": [
+      "Methods, types, excluded/generated/vendor/test sources, constrained files, cgo packages, and unavailable type/package facts intentionally produce no candidate."
+    ],
+    "legitimate_similar_shapes": [
+      "Direct handler registration is a resolved identifier use and remains clean.",
+      "A string-addressed name stays uncertain, not review_required.",
+      "Generated references create an explicit runtime uncertainty, not candidate proof."
+    ]
+  },
+  "reuse_decision": {
+    "shared_candidate": "go list active-package selection plus go/types object-use facts",
+    "decision": "keep-family-local",
+    "evidence": [
+      "find-dormant needs a no-deletion review queue, dynamic uncertainty, and final Markdown/JSON report.",
+      "No second G2 consumer has demonstrated an identical installed closure and result contract."
+    ]
+  },
+  "evidence": {
+    "fixture": "tests/fixtures/find-dormant-go",
+    "test": "tests/test_find_dormant_go.py",
+    "checks": [
+      "Focused final-artifact/source-immutability proof",
+      "Copied isolated selected-skill closure",
+      "Host go test ./... before and after scan",
+      "Malformed/missing/old Go and partial build-package boundaries",
+      "Vendor and report-symlink containment"
+    ]
+  },
+  "next_decision": {
+    "recommendation": "Retain Go v1 as a bounded human-review aid and keep its Go helper family-local.",
+    "blockers": []
+  }
+}

@@ -10,7 +10,6 @@ deciders: [khurrum]
 supersedes: []
 superseded_by: null
 applies_to: [reports/_meta/, scripts/log_effectiveness.py, .claude/skills/]
-embodied_by: ["pending:portable-skill-ecosystem-completion AC-8.9 formal disposition"]
 tags: [skill-ecosystem, ledger, batching, observability]
 related_smell: null
 related_pattern: null

@@ -7,7 +7,6 @@ date: 2026-06-08
 deciders: [khurrum]
 supersedes: []
 superseded_by: null
-revisit_when: ["a second closeout consumer needs diff-scoped cleanup routing or dogfooding shows registry-optional fallback changes the intended recommendations"]
 applies_to: [".claude/skills/which-cleanup/", "scripts/query_planner.py"]
 embodied_by: ["skill:which-cleanup"]
 tags: [skills, routing, cleanup, closeout, coverage, registry-optional]

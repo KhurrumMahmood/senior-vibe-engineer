@@ -104,8 +104,8 @@ RULES: tuple[RuleSpec, ...] = (
     RuleSpec(
         name="comment-drift",
         script="scripts/lint/no_comment_drift.py",
-        include=re.compile(r"^(?:app|src)/.*\.(py|js|html)$"),
-        suffixes=(".py", ".js", ".html"),
+        include=re.compile(r"^(?:app|src)/.*\.(py|js|jsx|ts|tsx|html)$"),
+        suffixes=(".py", ".js", ".jsx", ".ts", ".tsx", ".html"),
     ),
     RuleSpec(
         name="codegen-emits-new-paths",
@@ -246,16 +246,31 @@ def collect_candidate_paths(
                 expand_python_paths([
                     str(repo_root / "core"),
                     str(repo_root / "app"),
+                    str(repo_root / "src"),
                 ])
             )
-        if ".js" in suffixes:
+        script_suffixes = tuple(
+            suffix for suffix in (".js", ".jsx", ".ts", ".tsx") if suffix in suffixes
+        )
+        if script_suffixes:
             candidates.extend(
-                _expand_paths_by_suffix([str(repo_root / "static" / "js")], (".js",))
+                _expand_paths_by_suffix(
+                    [
+                        str(repo_root / "app"),
+                        str(repo_root / "src"),
+                        str(repo_root / "static" / "js"),
+                    ],
+                    script_suffixes,
+                )
             )
         if ".html" in suffixes:
             candidates.extend(
                 _expand_paths_by_suffix(
-                    [str(repo_root / "templates"), str(repo_root / "app")],
+                    [
+                        str(repo_root / "templates"),
+                        str(repo_root / "app"),
+                        str(repo_root / "src"),
+                    ],
                     (".html",),
                 )
             )

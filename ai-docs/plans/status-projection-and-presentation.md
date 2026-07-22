@@ -70,10 +70,9 @@ the routers in actual project state).
 - Full `/which-shape` v2 interactivity (consent-to-invoke, button
   forks; ledger: `which-shape-v2-grounded-router`).
 - Skill-catalog reorganization and naming — owned by the
-  `portable-skill-ecosystem-completion` plan (WP3/WP8, ADR 0034).
+  `shareable-core-reorganization` plan (W1, ADR 0034).
 - The ADR 0003 findings-ledger schema itself — owned by
-  `portable-skill-ecosystem-completion` AC-8.9 in WP8; this plan ships one
-  reader seam
+  `shareable-core-reorganization` W5; this plan ships one reader seam
   so the projection adopts whatever 0003 lands.
 - Track B composition machinery (operator/lens/pattern cards,
   composition ledger, TOC goal router — ledger:
@@ -110,8 +109,7 @@ the routers in actual project state).
 - Decision 0013 — the idea ledger (projection rules in
   `idea-ledger.md`) is the in-flight-ideas source.
 - Decision 0003 (proposed) — coordination point, not conflict: single
-  reader seam so the findings-ledger schema slots in when
-  portable-skill-ecosystem-completion AC-8.9 lands in WP8.
+  reader seam so the findings-ledger schema slots in when W5 lands.
 - Pattern "Parallel writers route through a shared producer"
   (Decided in 0004) — `status.py` is the canonical producer; the lens
   renderer consumes `status.json` and never recomputes state.
@@ -268,7 +266,7 @@ collect scripts, ci.yml, example settings).
   (revisit when that proves false → the deferred localhost server).
 - ADR 0003 (findings ledger, proposed) — coordination, not conflict:
   one reader seam so `findings.jsonl` slots in as a projection source
-  when portable-skill-ecosystem-completion AC-8.9 lands; the projection does not pre-build
+  when shareable-core W5 lands; the projection does not pre-build
   against the unaccepted schema.
 - ADR 0013 (idea ledger) — in-flight-ideas section reads through
   `ideas_lib.project_all` only.

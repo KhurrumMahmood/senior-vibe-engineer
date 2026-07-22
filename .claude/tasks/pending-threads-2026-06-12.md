@@ -28,7 +28,7 @@ PARKED (deliberate).
 | Dreaming / simulation-gated promotion (3–5 variation dream pack incl. must-not-fire case) | design after memory pilot baseline exists; ledger: simulation-gated-promotion |
 | Abstraction-lens experiments (abstract-up / common / different) | designed experiment; baseline = reports/summary-pyramid + host-a audit pair |
 | role-agents pilot: one veto/curation role over real repair residuals | pilot protocol exists in host-a research dir; needs adaptation + memory-injection v1 |
-| Ecosystem-review actions: 2,700-LOC clone dedup, detect:guard 27:1, 02c package shape | big — route through /scope-feature or fold into the active portable-skill-ecosystem-completion plan or one of its dependency-sized successor specs |
+| Ecosystem-review actions: 2,700-LOC clone dedup, detect:guard 27:1, 02c package shape | big — route through /scope-feature or fold into shareable-core-reorganization plan |
 
 ## Operator (your call)
 

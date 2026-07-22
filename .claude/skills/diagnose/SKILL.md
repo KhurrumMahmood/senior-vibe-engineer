@@ -44,6 +44,21 @@ runtime (`.venv/bin/python` when this ecosystem is running its own
 scripts). Read `CONTEXT.md` and relevant ADRs when domain terms or
 architectural choices affect the symptom.
 
+### Installed evidence check
+
+The evidence gate for this skill is carried in this selected skill directory
+at `scripts/evidence_gate.py`. It intentionally validates only this sibling
+`SKILL.md` plus the current scan manifest; it does not import the toolkit's
+repository-level `scripts/evidence_gate.py` or `_lib`. From a copied install,
+set `SKILL_DIR` to the installed `/diagnose` directory and use a host Python
+runtime (for example `python3`):
+
+```bash
+python3 "$SKILL_DIR"/scripts/evidence_gate.py check \
+  --skill-file "$SKILL_DIR/SKILL.md" \
+  --scan-dir "reports/diagnose/scan-<TS>"
+```
+
 ## How success is judged
 
 - A trusted reproduction loop is demonstrated before any fix - or
@@ -53,7 +68,7 @@ architectural choices affect the symptom.
   (root_cause, with the confirming probe's exact command and output),
   `verification.md` (fix_verification, the passing rerun),
   `cleanup-check.md` (cleanup_check, the `[DIAG-...]` grep).
-- `scripts/evidence_gate.py check` exits 0; its summary line is pasted
+- the installed evidence check exits 0; its summary line is pasted
   in the final reply.
 
 ## Phase 0 - Frame
@@ -225,7 +240,9 @@ reports/diagnose/scan-<TS>/
 Then run:
 
 ```bash
-.venv/bin/python scripts/evidence_gate.py check --skill diagnose --scan-dir reports/diagnose/scan-<TS>
+python3 "$SKILL_DIR"/scripts/evidence_gate.py check \
+  --skill-file "$SKILL_DIR/SKILL.md" \
+  --scan-dir reports/diagnose/scan-<TS>
 ```
 
 The gate must exit 0 before the diagnosis is reportable. On exit 1, fix

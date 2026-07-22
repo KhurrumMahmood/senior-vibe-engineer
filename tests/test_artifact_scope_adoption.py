@@ -50,18 +50,3 @@ def test_extract_enum_sidecar_helper_writes(tmp_path):
     mod._write_scope_sidecar(tmp_path / "artifact", ["app/models/x.py", "app/views/y.py"])
     sidecar = json.loads((tmp_path / "artifact" / "scope.json").read_text())
     assert sidecar["paths"] == ["app/models/x.py", "app/views/y.py"]
-
-
-def test_extract_enum_sidecar_accepts_a_deterministic_clock(tmp_path):
-    spec = importlib.util.spec_from_file_location("collect_enum_clock_mod", COLLECT_ENUM)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    clock = "2000-01-01T00:00:00+00:00"
-
-    first = tmp_path / "first"
-    second = tmp_path / "second"
-    mod._write_scope_sidecar(first, ["app/models/x.py"], written_at=clock)
-    mod._write_scope_sidecar(second, ["app/models/x.py"], written_at=clock)
-
-    assert (first / "scope.json").read_bytes() == (second / "scope.json").read_bytes()
-    assert json.loads((first / "scope.json").read_text())["written_at"] == clock

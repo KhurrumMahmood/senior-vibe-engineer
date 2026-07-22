@@ -1,0 +1,91 @@
+{
+  "batch": "P5 Java J0 detector pilot",
+  "revision": "e14274b",
+  "family": ["find-complexity-hotspots"],
+  "invariant": {
+    "portable_principle": "A high branch score is a read-only structural lead, never a performance or safe-refactor verdict.",
+    "existing_mechanisms": [
+      "Python stdlib AST heuristic bands",
+      "JavaScript/TypeScript Compiler API syntax facts",
+      "Go standard-library parser syntax facts"
+    ],
+    "explicit_non_goals": [
+      "type or symbol resolution",
+      "call-graph or framework inference",
+      "Maven or Gradle model evaluation",
+      "runtime cost",
+      "Kotlin or JVM-wide support"
+    ]
+  },
+  "language_model": {
+    "syntax": [
+      "declared methods",
+      "constructors",
+      "direct control-flow body walk",
+      "nested lambdas and class bodies excluded"
+    ],
+    "type_system": [],
+    "module_resolution": [],
+    "runtime": ["host java and javac on PATH from JDK >= 17.0.0"],
+    "framework": []
+  },
+  "tooling": {
+    "selected": "one batched Java source-launcher invocation using JavacTask, Trees, SourcePositions, and TreeScanner",
+    "rejected_alternatives": {
+      "maven_or_gradle": "The syntax-only outcome does not need a build-system model or dependency resolution.",
+      "third_party_parser": "The JDK already provides the bounded parse tree facts.",
+      "shared_fact_runtime": "No second Java consumer yet proves the same contract."
+    },
+    "version_and_resolution": "Discover java and javac from PATH and require both to report JDK >= 17.0.0; local verification used OpenJDK/Javac 17.0.12.",
+    "closure_mode": "The Java launcher stays in the selected skill scripts directory and uses only JDK APIs.",
+    "preflight_and_failure_codes": [
+      "missing or older JDK: rc 2",
+      "malformed eligible Java: rc 2",
+      "generated/vendor/test direct target: excluded with no finding",
+      "exclusion-only target: partial artifact with visible paths",
+      "eligible Kotlin source: partial artifact"
+    ]
+  },
+  "outcome_contract": {
+    "inputs": ["explicit file, directory, or glob", "--project-root", "--language java"],
+    "structured_outputs": ["detections.jsonl", "report.md", "findings.json with status and Java analysis metadata"],
+    "must_fire": ["score-18 declared method", "score-18 constructor"],
+    "must_not_fire": ["clean method", "nested lambda body", "test/integrationTest/testFixtures source", "generated marker", "vendor source", "symlinked leaf or ancestor"],
+    "native_test_command": "javac --release 17 -d <temporary classes> <fixture sources>",
+    "native_guard_command": "source SHA-256 fingerprints before and after the final reporting path"
+  },
+  "false_positive_boundary": {
+    "known_false_positives": ["Dense validation or policy code can legitimately score highly."],
+    "known_false_negatives": ["Calls, local/anonymous class methods, type dispatch, framework conventions, and nested lambdas are intentionally not scored."],
+    "legitimate_similar_shapes": ["Kotlin source produces partial unsupported evidence rather than a Java or JVM claim."]
+  },
+  "generalized": [
+    "family-local native parser",
+    "batched native-tool invocation",
+    "explicit analyzer provenance",
+    "source fingerprint oracle",
+    "positive/negative/must-not-fire/malformed/tool-missing fixture design"
+  ],
+  "did_not_generalize": [
+    "TypeScript or Go AST walkers",
+    "a universal parser or shared fact platform",
+    "Java facts to Kotlin",
+    "build-system or classpath semantics"
+  ],
+  "reuse_decision": {
+    "shared_candidate": "JDK toolchain bootstrap and compiler-tree batch",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": ["Only this detector needs the exact syntax-only direct-body score today."],
+    "owner": "find-complexity-hotspots"
+  },
+  "residual_risks": [
+    "Preview/newer Java syntax is limited by the discovered host JDK.",
+    "The pilot does not interpret source sets, modules, annotation processing, or generated build inputs."
+  ],
+  "next_decision": {
+    "recommendation": "Use this fixture and JDK preflight pattern for the Java proposal pilot, but derive only the richer facts that proposal-boundary actually needs.",
+    "rationale": "The final detector outcome is useful without creating a shared Java platform or overstating JVM coverage.",
+    "blockers": []
+  }
+}

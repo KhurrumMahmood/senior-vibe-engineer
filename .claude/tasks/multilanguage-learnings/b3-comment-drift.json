@@ -1,0 +1,94 @@
+{
+  "batch": "B3",
+  "revision": "working-tree-2026-07-19T05:43Z",
+  "family": ["find-comment-drift"],
+  "invariant": {
+    "portable_principle": "Surface lexical comment and documentation hygiene leads while keeping advisory and blocking bands explicit.",
+    "python_or_framework_mechanism": "Python tokenize/AST plus JavaScript and HTML lexical scans, originally coupled to repository helpers.",
+    "typescript_mechanism": "Suffix-aware lexical scanning of TS/TSX comments and typed function-like declarations.",
+    "explicit_non_goals": [
+      "Type or module resolution",
+      "Proof that a callable is public API",
+      "Mandatory JSDoc for ordinary TSX components",
+      "Automatic comment rewriting"
+    ]
+  },
+  "reference_repairs": [
+    "Moved filesystem/report closure into the selected skill.",
+    "Made the repository lint a thin wrapper around the bundled guard.",
+    "Added typed-arrow return-annotation recognition.",
+    "Fixed hidden-ancestor filtering to be relative to the requested scan root.",
+    "Extended the normal pre-commit and lint-runner --all invocation path to JSX/TS/TSX and added a copied-host end-to-end regression.",
+    "Corrected the contract to name implemented detector bands."
+  ],
+  "language_model": {
+    "syntax": ["line comments", "JSDoc blocks", "typed function declarations", "typed arrow return annotations", "TSX files"],
+    "type_system": ["Type annotations are stripped only for parameter-name heuristics; no type facts are inferred."],
+    "module_resolution": ["None"],
+    "runtime": ["Python 3.11+ stdlib"],
+    "framework": ["None required"]
+  },
+  "tooling": {
+    "selected": "Existing family-local Python stdlib lexical detector",
+    "rejected_alternatives": {
+      "typescript_compiler_api": "No semantic fact is required for an advisory lexical lead.",
+      "tree_sitter": "Adds dependency and installation work without improving the accepted outcome.",
+      "ts_morph": "A semantic wrapper is disproportionate for this pilot.",
+      "shared_fact_platform": "There is no proven second consumer."
+    },
+    "version_and_resolution": "Python >=3.11; no Node or network resolution",
+    "closure_mode": "Skill-local support.py, detector, reporter, guard, smoke, and fixtures",
+    "preflight_and_failure_codes": ["guard: 0 clean, 1 findings, 2 unreadable input"]
+  },
+  "outcome_contract": {
+    "inputs": ["Explicit .py/.js/.jsx/.ts/.tsx/.html files or directories"],
+    "structured_outputs": ["detections.jsonl", "report.md", "findings.json"],
+    "must_fire": ["typed exported async function", "typed async arrow with thin JSDoc", "TS/TSX narration", "brittle .ts line reference"],
+    "must_not_fire": ["useful typed JSDoc", "ordinary TSX component", "reasoned guard allow-list"],
+    "native_test_command": "../engineering-skills/.venv/bin/python -m pytest -q tests/test_comment_drift_typescript.py",
+    "native_guard_command": "python3 /path/to/find-comment-drift/scripts/guard.py --project-root HOST HOST/src"
+  },
+  "evidence": {
+    "python_reference": ["skill smoke preserves existing Python/JS/HTML bands"],
+    "typescript": ["bad.ts", "bad.tsx", "good.ts", "good.tsx"],
+    "commands_and_artifact_paths": [
+      "tests/test_comment_drift_typescript.py: 6 passed, including copied-host lint runner --all and pre-commit scope",
+      ".claude/skills/find-comment-drift/scripts/smoke.py: 23 bad findings; good fixtures clean",
+      "/tmp/es-b3-forward.yiYjNe/host/reports/find-comment-drift/scan-20260719-053911: fresh non-context agent produced all required artifacts, four useful TypeScript leads, and a clean ordinary TSX component"
+    ]
+  },
+  "false_positive_boundary": {
+    "known_false_positives": ["A locally named handler can look public to the lexical heuristic."],
+    "known_false_negatives": ["Re-exports, aliases, unusual multiline callables, and names outside the existing candidate heuristic."],
+    "legitimate_similar_shapes": ["Ordinary TSX components without an independent handler/initializer signal."]
+  },
+  "generalized": ["file discovery", "report schema", "advisory/blocking split", "reasoned allow-list", "installed closure test shape"],
+  "did_not_generalize": ["Python class docstrings", "TypeScript symbol visibility", "module identity", "framework semantics"],
+  "reuse_decision": {
+    "shared_candidate": "Outcome-first fixture and copied-install validation pattern",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": ["The pilot required no semantic parser and exposed closure bugs before any shared tool was needed."],
+    "owner": "B3 find-comment-drift"
+  },
+  "translation_prerequisites": {
+    "rust": {"native_tool": "rustdoc or rust-analyzer for API claims", "idiomatic_representation": "/// rustdoc", "required_fixtures": ["pub function", "private helper", "macro-adjacent comment"], "semantic_gaps": ["macros", "visibility"]},
+    "go": {"native_tool": "go/doc or go/packages", "idiomatic_representation": "exported declaration comments", "required_fixtures": ["exported identifier", "private helper", "generated file"], "semantic_gaps": ["package API identity"]},
+    "java_or_kotlin": {"native_tool": "compiler or language-server facts", "idiomatic_representation": "Javadoc or KDoc", "required_fixtures": ["public method", "override", "generated source"], "semantic_gaps": ["overloads", "visibility"]},
+    "csharp": {"native_tool": "Roslyn", "idiomatic_representation": "XML documentation comments", "required_fixtures": ["public member", "partial type", "generated source"], "semantic_gaps": ["partial declarations", "symbol visibility"]},
+    "ruby": {"native_tool": "parser or language server", "idiomatic_representation": "YARD comments", "required_fixtures": ["public method", "private method", "metaprogrammed method"], "semantic_gaps": ["metaprogramming", "runtime visibility"]}
+  },
+  "user_experience": {
+    "install_steps": ["Copy selected skill directory", "Run its scripts with host Python 3.11+"],
+    "wall_time_seconds": null,
+    "agent_confusions": ["Repository helpers made a source-tree pass look installable.", "The enforcement owner was outside the skill."],
+    "repeated_work": ["Detector and root guard previously had separate orchestration."],
+    "smallest_later_improvement": "Have the router expose the copied skill's exact detector and guard commands."
+  },
+  "residual_risks": ["Lexical publicness is imprecise.", "The unrelated full-suite triage-audit CLI test uses real time against a fixed June 2026 fixture and now fails outside its original grace window."],
+  "next_decision": {
+    "recommendation": "Complete B3 validation, then use its outcome-first/closure-first procedure for independent batches.",
+    "rationale": "The pilot delivered TS support without a shared parser and identified reusable process evidence rather than speculative infrastructure.",
+    "blockers": []
+  }
+}

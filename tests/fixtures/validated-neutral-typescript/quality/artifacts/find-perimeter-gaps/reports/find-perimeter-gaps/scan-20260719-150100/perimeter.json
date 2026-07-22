@@ -1,0 +1,31 @@
+{
+  "detectors": [
+    {
+      "name": "find-perimeter-gaps",
+      "covers": [],
+      "declared_scans": false
+    }
+  ],
+  "cells": [
+    {
+      "root": "src",
+      "language": "typescript",
+      "loc": 31,
+      "files": 3,
+      "covered_by": [],
+      "significant": true,
+      "accepted_blind_spot": false
+    }
+  ],
+  "gaps": [
+    {
+      "root": "src",
+      "language": "typescript",
+      "loc": 31,
+      "files": 3,
+      "covered_by": [],
+      "significant": true,
+      "accepted_blind_spot": false
+    }
+  ]
+}

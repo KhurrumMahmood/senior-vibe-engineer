@@ -1,7 +1,6 @@
 # Skill intent + provenance contract — schema v2.
 # ES2-only skill; authored fresh from SKILL.md + es2_skill_facts.yaml.
 
-# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 
 skill: which-shape

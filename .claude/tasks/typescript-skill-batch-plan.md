@@ -1,0 +1,878 @@
+# TypeScript-first skill batch plan
+
+Status: B0, B1, B2P, B2T, B3, B4, move-path, explain-code, duplication,
+complexity, folder-topology, and adapt-project complete; audit-decisions is
+complete; find-standard-gaps and map-subsystem are complete; rename-concept is
+complete; propose-boundary and propose-folder-reorganization are complete;
+find-dormant and find-incomplete-sweep are complete;
+find-semantic-duplication and unify-shadows are complete; all 19 neutral skills
+are accepted; final matrix and integrated completion review passed
+
+This tracker turns the second product goal—genuine multi-language support,
+beginning with TypeScript—into agent-sized units. It does not reopen installer
+design or begin the later routing/performance milestone.
+
+## How to use this file
+
+1. Work top to bottom unless a batch explicitly names a parallel wave.
+2. Give one batch to one fresh, non-context sub-agent in an isolated worktree.
+   Give the agent the ordered product goals, the batch contract below, the
+   exact paths it owns, and the learning-report requirement.
+3. Set only one state for each batch: `proposed`, `ready`, `in_progress`,
+   `review`, `complete`, or `deferred`. Record the worktree/branch beside the
+   state when work starts.
+4. Check an acceptance box only after its named artifact or command has been
+   inspected. Commits, changed-line counts, parser helpers, and passing unit
+   tests do not count by themselves.
+5. Before merge, a fresh reviewer receives raw fixtures and the ordered product
+   goals. The reviewer must reject work that merely flips metadata, tests a
+   parser in isolation, or adds infrastructure without improving the batch's
+   installed user journey.
+6. The implementing agent writes both
+   `.claude/tasks/multilanguage-learnings/<batch-id>.md` and
+   `.claude/tasks/multilanguage-learnings/<batch-id>.json` from the required
+   schema in this file. The Markdown holds the reasoning and experience; the
+   JSON makes cross-batch comparison mechanical. The integrator records both
+   paths and the validation evidence in the evidence log.
+7. Only the serial integrator edits shared adapters, global metadata, routers,
+   README files, this tracker, or the idea ledger. Batch agents propose shared
+   changes in their learning report instead of racing on those files.
+
+## Product and review boundary
+
+The ordered product goals remain:
+
+1. Make the skill collection easy to install.
+2. Make applicable skills genuinely multi-language, beginning with
+   TypeScript.
+3. Improve the installed user journey and execution efficiency.
+
+Milestone 1 already proved the local three-router stock-install journey. This
+plan may require a selected TypeScript skill to be self-contained when
+installed, but it must not build a custom package manager, trust platform,
+generic executor, evaluator platform, or workflow coordinator.
+
+A review finding may add work only when it materially affects the current
+TypeScript batch, the next required installed journey, or prevents concrete
+critical user harm.
+
+## Full TypeScript coverage target
+
+“Full TypeScript coverage” means complete, honest coverage of the ecosystem's
+language-level product—not a claim that Django workflows have become React or
+Node workflows by changing metadata.
+
+At completion, every one of the 76 skills must have exactly one mechanically
+checkable disposition:
+
+- `validated-neutral`: the skill's outcome is independent of host language and
+  a representative installed TypeScript-host task proves that no language
+  variant is needed;
+- `typescript-supported`: the skill's declared TypeScript invariant passes
+  D1–D8 through its final installed outcome;
+- `stack-bound`: the skill encodes a named framework/ORM/router/UI contract and
+  is truthfully excluded from framework-neutral TypeScript routing; or
+- `ecosystem-runtime`: the skill operates on this toolkit rather than host
+  source language.
+
+No skill may remain `candidate`, claim TypeScript from suffix handling alone,
+or silently under-detect TypeScript at this milestone. `stack-bound` is a
+complete and honest language-coverage result, but it is not cross-framework
+support. A later Node/React/Express/ORM packet must be separately named and
+validated before any of the 22 framework-specific skills changes disposition.
+
+The milestone is complete only when:
+
+- [x] A committed 76-row coverage matrix contains one unique disposition,
+  evidence path, installed command, and latest reviewed revision per skill.
+- [x] Every generally applicable language-level skill is either
+  `typescript-supported` or has evidence that it is genuinely
+  `validated-neutral`; metadata-only relabeling does not count.
+- [x] Every `typescript-supported` skill passes its final report/proposal or
+  mutation/guard outcome, copied-install closure, native TypeScript
+  verification where applicable, fresh forward task, and adversarial review.
+- [x] Copied stock routers carry `language`, `framework`, and `scans`, select
+  only eligible skills for exact TypeScript tasks, and return explicit
+  unsupported/no-match for stack-bound or not-yet-earned claims.
+- [x] No installed selected skill imports repository-level `scripts/`, sibling
+  `_common`, another uninstalled skill, a toolkit venv, or an undeclared
+  network dependency.
+- [x] One clean-host matrix replays a read-only detector, proposal-only skill,
+  safe path mutation, state mutation/guard, and semantic-analysis skill using
+  TypeScript fixtures; all native tests and the Python regression paths pass.
+- [x] The completion review finds no remaining ambiguous language claim and no
+  shared TypeScript infrastructure without at least two accepted consumers.
+
+### Full-coverage execution sequence
+
+Each numbered wave is a dependency gate. Within a wave, at most three
+path-disjoint skill lanes run concurrently; shared router/catalog/dependency
+changes remain serial-integrator work.
+
+1. **Accept the current foundation.** Independently review and integrate B1,
+   B3, the narrow `move-path` TypeScript contract, and B2P. Complete the B1
+   router-language integration and establish the first coverage-matrix rows.
+2. **Complete the state family (B2T).** Implement the family-local Compiler API
+   path for `find-implicit-state`, `extract-enum`, and `prevent-regression`;
+   prove detection → proposal → applied fixture mutation → `tsc`/native tests
+   → guard red/green → installed replay.
+3. **Prove syntax facts without a platform.** Port `find-omnibus` first for
+   trustworthy top-level TypeScript symbol spans. Use its accepted evidence to
+   scope, not assume, the separate `find-complexity-hotspots` function-body
+   syntax contract.
+4. **Run independent lexical/outcome pilots.** In separate worktrees, port
+   `explain-code`, `find-duplication`, and `find-folder-topology-drift`; then
+   `find-standard-gaps` and `rename-concept` after their concrete standards and
+   B1 concept inputs are frozen. These lanes may reuse validation procedure,
+   not a speculative common parser.
+5. **Prove module resolution with real consumers.** Port `map-subsystem` first
+   with one project-local `tsconfig` resolver. Only after acceptance may
+   `propose-boundary` and `propose-folder-reorganization` reuse the exact
+   demonstrated resolution contract. The completed narrow `move-path` v1
+   remains honest about ignored imports; import-safe mutation is an optional
+   later extension, not a hidden prerequisite.
+6. **Complete semantic families separately.** Port `find-dormant`,
+   `find-incomplete-sweep`, and `find-semantic-duplication` as independent
+   Compiler API consumers with their already-frozen judgment boundaries. Port
+   `unify-shadows` only after the semantic report schema and TypeScript handoff
+   are accepted.
+7. **Close routing, installation, and evidence.** Regenerate the catalog,
+   finish the 76-row matrix, run the five clean-host journeys, replay Python
+   regressions, and adversarially audit every remaining `validated-neutral`,
+   `typescript-supported`, `stack-bound`, and `ecosystem-runtime` claim.
+
+### Parallel queue after the current reviews
+
+- Critical path: B2P acceptance → B2T.
+- Parallel syntax lane: `find-omnibus`.
+- Parallel lexical lane: `explain-code`.
+- Next queue: `find-duplication`, then folder-topology policy/pilot.
+- Serial integration after each wave: contracts, frontmatter, router catalog,
+  coverage rows, installed forward tests, and learning review.
+
+## What counts as a batch
+
+A batch is a cohesive invariant family. Its skills share at least two of:
+
+- one developer outcome or maintenance-loop handoff;
+- one syntax/semantic model;
+- one fixture corpus and false-positive boundary;
+- one report schema or change/guard contract;
+- one installed runtime closure.
+
+Similar names and shared use of Python are not sufficient. Framework-specific
+behavior is not silently treated as language behavior.
+
+## Standard sub-agent handoff
+
+Every batch prompt must be self-contained and include:
+
+- the repository/worktree path and explicit owned paths;
+- the three ordered product goals and review relevance rule;
+- the batch's invariant, exclusions, prerequisites, D1–D8 criteria, and
+  batch-specific acceptance checks copied from this tracker;
+- instructions to use the worktree's `.venv/bin/python` explicitly, preserve
+  unrelated changes, and avoid shared/global files reserved for the
+  integrator;
+- a project-root-relative path-policy requirement: every built-in and declared
+  exclusion must still apply when an excluded directory, its descendant, or a
+  contained file is passed as the invocation target; broad-root-only tests do
+  not prove this boundary;
+- the exact native TypeScript fixture setup and test command once the batch is
+  frozen;
+- a requirement to produce both learning files before asking for review;
+- a stop rule: if the accepted outcome requires an excluded framework choice,
+  unavailable host prerequisite, or shared-platform expansion, document the
+  evidence and return the batch for rescoping instead of guessing.
+
+The final handoff asks the agent to report acceptance criterion by criterion,
+with commands, artifact paths, and unresolved failures. A conversational
+summary without repository artifacts does not complete a batch.
+
+## Catalog inventory
+
+The current 76-skill frontmatter divides into:
+
+| Declared support | Count | Meaning for this plan |
+|---|---:|---|
+| `any / any` | 33 | No language variant is presumed necessary. Validate representative real use; do not create artificial TypeScript copies. |
+| `any / django` | 5 | Language coverage and framework portability are separate. Keep deferred until a TypeScript web stack is named. |
+| `python / any` | 15 | Audit whether the encoded invariant is Python-specific or the Python program is merely an implementation detail. |
+| `python / django` | 23 | Port only a framework-neutral sub-invariant, or defer until an explicit TypeScript framework/ORM packet exists. |
+
+The declaration is a routing claim, not proof. A skill is “TypeScript-ready”
+only after the batch definition of done passes.
+
+## Definition of done for every implementation batch
+
+- [ ] **D1 — Scope honesty.** The batch names the supported TypeScript
+  invariant and explicitly lists excluded Python modes and deferred framework
+  behavior. Frontmatter and router metadata make no broader claim.
+- [ ] **D2 — Python oracle.** The affected Python path has positive, negative,
+  and must-not-fire fixtures plus stable structured output. Any discovered
+  reference-path defect is fixed before its behavior is copied.
+- [ ] **D3 — TypeScript outcome.** A committed, locked TypeScript fixture
+  proves the same invariant-level outcome through the final skill report or
+  proposal, not merely through a parser/helper test.
+- [ ] **D4 — Change or guard semantics.** If the family proposes a change or
+  guard, the proposed result type-checks and its native tests pass; the guard
+  fires on the pre-fix fixture and stays quiet on the fixed and must-not-fire
+  fixtures.
+- [ ] **D5 — Installed closure.** The pinned stock installer installs only the
+  selected batch skills. From outside the source checkout, each executable
+  path runs without repository-level `scripts/`, `_common`, a toolkit venv,
+  undeclared network access, or another uninstalled skill.
+- [ ] **D6 — Fresh forward test.** A fresh non-context agent receives the
+  installed skill, raw fixture, and natural user task—not the expected answer
+  or prior diagnosis—and produces the expected useful artifact.
+- [ ] **D7 — Regression and conformance.** Targeted native tests, skill
+  metadata/conformance checks, and the Python regression path pass at one
+  revision. Unsupported combinations fail clearly instead of silently
+  under-detecting. Any scanner with exclusions tests both normal broad-root
+  traversal and direct excluded-directory/file targets project-root-relative.
+- [ ] **D8 — Learning handoff.** The batch learning report is complete,
+  evidence-linked, and reviewed before another language or dependent batch is
+  planned.
+
+## Required learning handoff
+
+Every implementing agent must record all of the following, including “none”
+where appropriate:
+
+1. **Invariant:** the language-independent behavior the batch protects.
+2. **Reference repair:** defects or missing evidence found in the Python path.
+3. **TypeScript model:** syntax, type-system, module-resolution, runtime, and
+   framework assumptions actually used.
+4. **Tool decision:** parser/linter/compiler/library selected, rejected
+   alternatives, dependency and install consequences, and why the chosen
+   degree of precision was necessary.
+5. **Fixture results:** exact commands and positive, negative, must-not-fire,
+   structured-output, native-test, installed, and forward-test evidence.
+6. **False-positive boundary:** legitimate TypeScript shapes that resemble the
+   smell and how they were kept clean.
+7. **What generalized:** shared concepts, schemas, orchestration, and tests
+   demonstrated by both Python and TypeScript.
+8. **What did not generalize:** framework idioms, language semantics, output
+   forms, and tooling that must remain variant-specific.
+9. **Next-language translation:** for Rust, Go, Java/Kotlin, C#, and Ruby,
+   state the syntax/semantic capability and fixture needed before claiming
+   support. Do not claim support based on analogy.
+10. **Reuse proposal:** exact code or knowledge another batch could reuse,
+    with evidence; also list abstractions that should not yet be extracted.
+11. **User experience:** observed install steps, wall time, agent confusion,
+    repeated work, and the smallest later improvement worth measuring.
+12. **Residual risks and next decision:** known gaps, deferred modes, and a
+    recommendation to expand, revise, split, or stop the family.
+
+The companion JSON uses these required top-level keys:
+`batch`, `revision`, `family`, `invariant`, `reference_repairs`,
+`language_model`, `tooling`, `outcome_contract`, `evidence`,
+`false_positive_boundary`, `generalized`, `did_not_generalize`,
+`reuse_decision`, `translation_prerequisites`, `user_experience`,
+`residual_risks`, and `next_decision`. `translation_prerequisites` must contain
+`rust`, `go`, `java_or_kotlin`, `csharp`, and `ruby`; each records a native
+analysis tool, idiomatic representation, required fixtures, and semantic gaps.
+Unknown values are explicit `null` or empty arrays. In particular, no shared
+abstraction is extracted when `reuse_decision.actual_second_consumer` is
+`null`. Copy `.claude/tasks/multilanguage-learning-template.json` rather than
+inventing a new per-batch shape.
+
+## Pilot-derived implementation guidance
+
+B3 is the reference procedure for parallel TypeScript conversions. It is a
+process template, not a shared parser design. Give each implementing agent the
+following ordered loop and require evidence at every boundary:
+
+1. **Freeze the outcome before choosing a tool.** Name the final report,
+   proposal, change, or guard a user will receive; distinguish deterministic
+   facts from agent judgment; list Python/framework modes excluded from TS v1.
+2. **Prove the reference path.** Add or lock Python positive, clean, and
+   must-not-fire fixtures. Repair discovered reference defects before copying
+   behavior. B3's stale contract and source-tree-only imports would otherwise
+   have been reproduced as “TypeScript support.”
+3. **Write the TypeScript outcome test red.** Include a positive, negative,
+   must-not-fire, and final-artifact assertion. A parser/symbol unit test alone
+   is not the acceptance test. Capture the red transcript before production
+   edits.
+4. **Prove selected-skill closure immediately.** Copy only the owned skill to
+   a directory outside the checkout and run it with isolated host tools. Do
+   this before polishing shared infrastructure. B3 exposed repository
+   `_common` imports and an external guard owner at this step.
+5. **Use the least semantic tool that can prove the accepted outcome.** B3's
+   lexical invariant needed suffix and typed-signature handling, not a TS
+   compiler. State/dormancy/resolved-import work must use compiler facts rather
+   than stretching this regex approach.
+6. **Keep detection and enforcement consistent without conflating them.** A
+   guard may block a reasoned subset of advisory detector records. Put reusable
+   enforcement inside the installed closure and make repository wiring thin.
+7. **Exercise real repository shapes.** Include hidden ancestors, generated
+   and test exclusions, TSX, typed arrows/functions, and host invocation from a
+   different cwd. Apply skip rules relative to the requested target, not the
+   toolkit's absolute parent path.
+8. **Run a fresh forward test.** Give a non-context agent only the installed
+   skill, raw fixture, and natural task. It must produce and interpret the
+   final user artifact without being told the expected diagnosis.
+9. **Extract evidence, not speculative abstractions.** Write both learning
+   files, name exact code that could be reused, and keep it family-local until
+   an actual second consumer demonstrates the same contract.
+10. **Review against the ordered product goals.** Reject metadata-only ports,
+    source-checkout-only success, platform expansion without a batch outcome,
+    and any review request that does not materially improve installability,
+    TypeScript usefulness, or later measurable UX.
+
+Parallel lanes own only their skill directories, namespaced fixtures/tests,
+and learning files. If two candidates need a shared adapter, catalog, root
+dependency, installer behavior, or global lint wiring, they are not safe
+parallel edits: each lane records its proposed interface and the serial
+integrator resolves it after both evidence packets are reviewed.
+
+## Ordered batch map
+
+### B0 — Catalog claim audit and batch freeze
+
+State: `complete`
+
+Scope: all 76 skills, frontmatter, scripts, tests, router catalog fields,
+current JavaScript adapter, and installed-closure dependencies. This is
+analysis only.
+
+Acceptance:
+
+- [x] Every skill is assigned to exactly one disposition in the catalog map
+  below.
+- [x] Every ready implementation batch has exact members, exclusions,
+  prerequisites, owned paths, and a measurable end-to-end outcome.
+- [x] A fresh goal-anchored review finds no unowned language-sensitive skill,
+  unjustified grouping, or scope expansion unrelated to goals 1–3.
+
+### B1 — Portability truth and TypeScript routing metadata
+
+State: `complete` — accepted on `codex/productization-restart` at `e6f6a5d`
+
+Skills: `find-concept-divergence`, `find-rule-surface-drift`,
+`find-skill-artifact-drift`, `find-skill-intent-drift`, and
+`find-stale-artifacts`.
+
+Invariant: these skills inspect text, docs, frontmatter, or artifact graphs;
+their Python executable is an implementation detail rather than a Python host
+assumption. `find-concept-divergence` already scans `.ts` but omits `.tsx`.
+
+Owned paths: the five skill directories and B1-namespaced tests/fixtures and
+learning files. The serial integrator owns router-catalog generation and the
+smallest patch needed to carry `language`, `framework`, and `scans` into
+`which-skill`; the current generated catalog omits those fields, so its matcher
+cannot honestly filter a TypeScript host.
+
+Installed matcher language-source contract:
+
+1. Explicit repeatable `--language` and optional `--framework` arguments are
+   authoritative.
+2. Without `--language`, exact task markers (`TypeScript`, `.ts`, `.tsx`,
+   `JavaScript`, `.js`, `Python`, `.py`) may establish one language. Ambiguous
+   or mixed markers establish no language; the matcher must not guess from a
+   broad word such as “frontend.”
+3. With a known language, a skill is eligible only when its declared
+   `language` is `any` or matches. A framework-specific skill is eligible only
+   when its declared framework is `any` or the framework was explicitly named
+   and matches. Thus `--language typescript` without a framework excludes
+   Django-only skills.
+4. For a `suspect`/scanner skill that declares `scans`, a known task language
+   must appear in that list; TypeScript and JavaScript are not interchangeable.
+   `scans` never expands a conflicting `language` or `framework` claim. It is
+   not a filter for non-scanning jobs.
+5. JSON output records the resolved language/framework and whether each came
+   from an explicit argument or exact task marker. With no resolved language,
+   current general ranking remains available but the output says filtering was
+   not applied.
+
+Acceptance:
+
+- [x] A glossary `avoid_term` in `.ts` and `.tsx` fires; canonical-only TSX,
+  unrelated homonyms, generated/vendor paths, and a justified compatibility
+  alias stay clean.
+- [x] The four ecosystem/artifact skills preserve their existing behavior and
+  declare host-language neutrality without artificial TypeScript variants.
+- [x] Regenerated router data retains the three portability fields and a
+  TypeScript fixture cannot select a known Django-only skill. The exact
+  regression task `find repeated bare status literals in a TypeScript source
+  file` must not select the current Python/Django `find-implicit-state` until
+  B2T earns TypeScript support.
+- [x] Before the copied-router test, the serial integrator removes the current
+  unearned TypeScript scan claim from `find-omnibus`; B4 restores it only after
+  D1–D7 pass. The task `find an omnibus TypeScript module with too many
+  unrelated responsibilities` returns unsupported/no-match until then.
+- [x] The serial integrator corrects `find-workflow-state-gaps` from
+  `framework:any` to its current Django binding. A TypeScript workflow-state
+  task cannot select it until a later concrete framework packet earns support.
+- [x] A copy containing only the installed `which-skill` directory exercises
+  explicit, exact-marker, ambiguous/mixed, and no-language cases outside the
+  source checkout; the final recommendation and routing-context JSON are
+  asserted, not just the regenerated catalog bytes.
+- [x] D1, D3, D5–D8 pass. D2/D4 are not applicable because this batch corrects
+  text-scan coverage and routing truth, not a Python→TypeScript mutation.
+
+### B2P — Python closed-state reference proof
+
+State: `complete` — accepted at `33e96a6` after independent adversarial
+re-review; B2T is active at `/private/tmp/engineering-skills-ts-b2t`
+
+Skills: `find-implicit-state` (string-state branch), `extract-enum`, a reviewed
+representative fixture mutation, and the state-specific path of
+`prevent-regression` plus the existing `stringly-status` guard.
+
+Invariant: a first-party state carrier has one named symbolic value authority;
+callers do not compare or assign bare state strings. Vendor-bound literals are
+explicit, reasoned exceptions.
+
+Current gap: these skills describe replay cases but have no checked-in
+positive/negative oracle chain, and the detector/collector import repository
+`scripts/_lib` or `_common`, so a stock-installed copy is not self-contained.
+
+Explicit exclusions: tuple-inferred identity, `introduce-fk`, and unrelated
+general guard-generator modes.
+
+Owned paths: the three skill directories, the state lint/fixtures, B2P tests,
+and B2P learning files. No concurrent work may touch `prevent-regression`.
+
+Acceptance:
+
+- [x] A disposable Django-shaped fixture produces real detector JSONL,
+  collapsed/reviewed findings, extractor targets/proposal, a reviewed enum
+  before/after change, and lint red-before/green-after evidence.
+- [x] Positive, negative, must-not-fire, vendor-boundary, structured-output,
+  and native Python tests are checked in.
+- [x] Copied installed skills execute outside the toolkit checkout with no
+  repository-level imports or toolkit venv.
+- [x] D1–D8 pass, with the TypeScript clauses of D3/D4 deferred specifically
+  to B2T.
+
+### B2T — TypeScript closed-state outcome
+
+State: `complete` — accepted after independent adversarial re-review at
+`54a9db3`; integrated on `codex/productization-restart`
+
+Skills: `find-implicit-state` (new TypeScript state-only branch),
+`extract-enum` (TypeScript proposal branch), a reviewed fixture mutation, and
+`prevent-regression` (narrow TypeScript state guard branch).
+
+Reference TypeScript outcome: replace repeated bare state literals with one
+exported runtime value object declared `as const` and a derived union type;
+migrate all first-party callers; retain vendor wire literals at a named
+boundary; then prevent new first-party bare state operations. A project-native
+string enum is allowed only when the fixture establishes that convention.
+
+Tool boundary: use one family-local Node launcher with the host project's
+pinned `typescript` Compiler API when semantic resolution is needed. Fail
+clearly if the compatible project-local package or `tsconfig` is absent. Do not
+add ts-morph, tree-sitter, ast-grep, a root fact platform, or a shared adapter
+until an accepted second consumer demonstrates the same contract.
+
+Explicit exclusions: tuple identity/FK, Django migrations,
+Prisma/TypeORM/Sequelize model semantics, and general TypeScript lint
+generation.
+
+Owned paths: the same three skill directories, B2T fixture/package lock/tests,
+and B2T learning files. Shared adapters and global lint wiring remain serial
+integrator owned.
+
+Guard artifact contract: the batch adds a family-local generator and verifier
+under `prevent-regression/scripts/`. A completed run stages
+`reports/prevent-regression/<id>/scripts/lint/no_stringly_state.mjs` plus
+paired `.ts`/`.tsx` bad/good fixtures and a host-wiring diff. The serial
+integrator owns the copied-install invocation test and any repository-global
+lint-runner wiring; the family agent does not edit global wiring.
+
+Acceptance:
+
+- [x] Detection distinguishes first-party state from a typed union/enum,
+  vendor payload literals, unrelated `status` text, tests/fixtures, and
+  open-ended strings.
+- [x] `extract-enum` consumes the detector result, inventories all callers and
+  boundaries, and emits an implementation-ready TypeScript proposal.
+- [x] The reviewed fixture change passes `tsc --noEmit` and its native tests.
+- [x] A narrow TypeScript-AST guard uses the same 0/1/2 CLI contract, fires on
+  all pre-fix variants, and stays quiet on fixed/must-not-fire fixtures and a
+  reasoned `// noqa` vendor boundary.
+- [x] From a stock-installed `prevent-regression` directory outside the
+  checkout, the family-local generator stages the named guard artifact and
+  the verifier executes that staged artifact against the standalone fixture.
+- [x] Stock-installed copies run outside this repository using only declared
+  host prerequisites; a fresh-context agent completes the useful proposal.
+- [x] D1–D8 pass.
+
+### B3 — TypeScript comment hygiene
+
+State: `complete` on `codex/productization-restart`
+
+Skill and guard: `find-comment-drift` plus its shared enforcement consumer
+`scripts/lint/no_comment_drift.py`.
+
+Invariant: the advisory scan and diff guard agree about useful comments,
+docstrings, JSDoc, and template comments. The pre-pilot baseline covered
+`.py/.js/.html`; B3 adds `.jsx/.ts/.tsx` through the final lint runner and
+pre-commit invocation path as well as the detector.
+
+Owned paths: the skill directory, comment lint, B3 fixtures/tests and learning
+files. Router-catalog regeneration remains integrator owned.
+
+Installed closure contract: the reusable guard entry point lives at
+`find-comment-drift/scripts/guard.py`; the repository-level
+`scripts/lint/no_comment_drift.py` is a thin source-tree wrapper. A copied
+selected skill can invoke `scripts/guard.py` directly without repository
+`_common` or `scripts/lint` paths.
+
+Acceptance:
+
+- [x] Must-fire fixtures include a typed exported/async function and typed
+  arrow handler with narration or thin JSDoc.
+- [x] Useful typed JSDoc stays clean; an ordinary TSX component does not become
+  a JSDoc candidate merely because it contains JSX.
+- [x] The lint's blocking subset is derived from the same detector records for
+  TS/TSX, while advisory-only records stay non-blocking and the existing
+  Python/JS/HTML good/bad smoke behavior is preserved.
+- [x] A copy containing only the installed `find-comment-drift` directory runs
+  both its detector and `scripts/guard.py` against TS/TSX fixtures outside the
+  source checkout.
+- [x] D1–D8 pass; D4 uses detector/guard red-green evidence rather than a code
+  mutation.
+
+### B4 — First-class TypeScript omnibus detection
+
+State: `complete` — accepted at `df716f12` after an independent stock-install
+closure re-review
+
+Skill: `find-omnibus`.
+
+Invariant: responsibility clustering consumes trustworthy TypeScript symbol
+spans. The current column-zero heuristic is only a candidate generator: it
+misses normal ESM `export` declarations and reports `.ts` as JavaScript.
+
+Owned paths: the skill directory, language-adapter files if the serial
+integrator approves, B4 fixtures/tests and learning files. This batch has sole
+ownership of the shared adapter while active.
+
+Acceptance:
+
+- [x] An ESM `.ts` module with exported functions/typed arrows/classes across
+  four domains fires; a cohesive ESM module stays clean.
+- [x] Legacy `.js`, Python, minified, generated, and `*.spec.ts` behavior stays
+  correct; output identifies TypeScript as `typescript`.
+- [x] The installed skill contains or declares its complete runtime closure
+  and does not reach into repository-level `scripts/_lib`.
+- [x] D1–D8 pass; D4 is satisfied by detection/report semantics.
+
+### B5 — Deep control-flow candidates
+
+State: `complete-split` — both skills completed as independent families; no
+shared control-flow platform was introduced
+
+Skills: `find-complexity-hotspots` and `find-incomplete-sweep`.
+
+The initial shared-invariant hypothesis was rejected. Complexity consumes
+syntactic nesting/branch facts; incomplete-sweep consumes resolved calls,
+option-property presence, Git trajectory, and explicit verdicts.
+
+Promotion gate:
+
+- [x] B4 evidence showed different top-level-symbol and function-body
+  contracts, so the two skills were split instead of sharing a platform.
+- [x] Framework-specific ORM/React/Node signals are excluded from the
+  complexity fixture and final report.
+- [x] Complexity positive/negative/must-not-fire and installed final-report
+  evidence passed independently.
+- [x] Framework-specific ORM/React/Node signals are excluded from the first
+  language-level fixture.
+- [x] Exact positive/negative/must-not-fire and final-report acceptance is
+  frozen before dispatch of `find-incomplete-sweep`.
+
+## Catalog disposition map
+
+This map assigns every skill to one present disposition. A later accepted
+learning report may move a skill, but no agent should infer an unlisted port.
+
+### Shared, validated-neutral (19 accepted; 0 pending)
+
+Accepted in the TypeScript planning-host batch: `architecture-fit`, `decide`,
+`design-it-twice`, `plan-spec`, and `scope-feature`.
+
+The B1 artifact-hygiene skills `find-rule-surface-drift`,
+`find-skill-artifact-drift`, `find-skill-intent-drift`, and
+`find-stale-artifacts` are also validated-neutral: their scan surfaces are
+rules, skill artifacts, intent contracts, and repository artifacts rather
+than host application syntax.
+
+Accepted in the quality and orchestration batches: `converge`, `diagnose`,
+`find-perimeter-gaps`, `gut-check`, `harvest-learnings`,
+`organize-project-structure`, `orient`, `teach-pattern`, and `triage-debt`.
+
+`project-interview` is accepted after its first fresh replay exposed two
+missing required helpers. The repaired selected skill now bundles a stdlib
+draft/discovery helper and evidence gate, refuses premature apply, preserves
+unanswered facts as open questions, and passes `OK: 3/3` from a fresh install.
+
+The accepted planning skills produced their final scoped/architected/decision/
+comparative-design/spec artifacts from an installed TypeScript host without a
+language-specific implementation or source mutation. Fresh forward use also
+completed all five artifacts. Missing optional repository helpers and doctrine
+docs were disclosed and bypassed by following the installed artifact contracts
+directly; they remain TypeScript-cleanup/user-experience work, not evidence of a
+language variant. No neutral skill remains blocked on TypeScript closure.
+
+### Ecosystem/runtime implementation, not a host-language variant (13)
+
+`brainstorm-ideas`, `check-ecosystem-consistency`, `engineer-init`,
+`extract-existing-ideas`, `find-orphaned-ideas`, `mature-existing-ideas`,
+`plan-skill`, `query-patterns`, `repair-skill`, `track-idea`, `which-cleanup`,
+`which-shape`, and `which-skill`.
+
+These operate on the toolkit's own ledgers, catalogs, routers, rules, or
+bootstrap runtime. A TypeScript host does not require a language variant, but
+the final matrix still records a runtime review revision.
+
+### TypeScript-supported batches (22 unique skills)
+
+- B1 source scan: `find-concept-divergence`.
+- B2P/B2T: `find-implicit-state`, `extract-enum`, `prevent-regression`.
+- B3: `find-comment-drift`.
+- B4: `find-omnibus`.
+- Independent syntax/layout pilots: `find-complexity-hotspots`,
+  `find-folder-topology-drift`.
+- Independent outcome pilots: `move-path`, `explain-code`,
+  `find-duplication`.
+- Host adaptation: `adapt-project`.
+- Declared-standard coverage: `find-standard-gaps`.
+- Portable decision references: `audit-decisions`.
+- Resolved subsystem inventory: `map-subsystem`.
+- Coupled rename assessment: `rename-concept`.
+- Resolved boundary proposal: `propose-boundary`.
+- Resolved folder proposal: `propose-folder-reorganization`.
+- Conservative dormant review: `find-dormant`.
+- Resolved incomplete-sweep review: `find-incomplete-sweep`.
+- Typed semantic-duplication triage: `find-semantic-duplication`.
+- Structured semantic-resolution proposal: `unify-shadows`.
+
+### Candidate language-level families and repairs (0)
+
+None. Every generally applicable language-level candidate has an accepted
+TypeScript outcome.
+
+The clarified contracts below are retained as implementation history: they
+prevented verb-adjacent skills from being bundled before each outcome and
+handoff had independent evidence.
+
+#### Clarified candidate contracts
+
+Three fresh non-context review lanes inspected the 14 skills against their
+actual scripts, fixtures, contracts, installed closure, and downstream
+consumer. The result is intentionally not a new mega-batch. Each row below is
+the minimum honest TypeScript v1 and the evidence required before its state may
+move from `candidate` to `ready`.
+
+| Candidate | Minimum honest TypeScript v1 | Tooling / prerequisite gate | Promotion oracle and definition of done |
+|---|---|---|---|
+| `adapt-project` | Count and classify TypeScript/TSX source roots in every caution and adapter outcome that currently uses Python file counts. | Preserve objective host-fact discovery; do not infer a Node framework from `package.json`. | A large TypeScript-only root triggers the same size/caution outcome as the Python reference, while generated/vendor trees stay excluded; final adapter/report and copied closure pass. |
+| `audit-decisions` | Include valid `decision:NNNN` references from TypeScript/TSX comments in the final drift artifact. | Freeze supported comment forms and keep strings/generated/vendor/test false positives clean. | TS line/block comment references resolve; string literals and unrelated numbers do not; existing Python/Markdown/HTML paths and installed final audit remain green. |
+| `explain-code` | Produce the complete explanation document and sidecars for direct explicit top-level exports; unresolved aliases/re-exports remain visibly unexplained. | Freeze a Python `targets.json` reference oracle. A lexical export collector is allowed; no resolver claim. | Positive exported branchy symbols, private/test must-not-fire cases, final explanation with honest unexplained region, copied-install run, and fresh-agent outcome. |
+| `find-complexity-hotspots` | Advisory syntactic TS function-body complexity only: nesting and branch score. Exclude ORM, React/Node, and receiver-type claims. | A proven family-local TypeScript body AST; type checker only if a later contract claims container/API identity. | Existing six-band Python oracle stays green; locked TS positive/clean/must-not-fire fixture produces the final report; copied closure and forward test pass. Keep separate from incomplete-sweep. |
+| `find-dormant` | Report statically unreferenced, non-exported TS implementation candidates for human review; never infer safe deletion. Exclude routes/endpoints/error swallowing. | Project-local Compiler API `Program`/`TypeChecker` and resolvable `tsconfig`; dynamic/external reachability stays a judgment boundary. | Unreferenced private must fire; direct references and exported APIs stay clean; registry/event/framework shapes are must-not-fire; no result is `certain_delete` from static evidence alone. |
+| `find-duplication` | Report lexical/near-lexical TS clone clusters with reliable source spans and enclosing symbols; never claim consolidation is safe. | Family-local jscpd invocation plus a TS span-to-symbol mapper and deterministic/offline dependency resolution. | One real typed clone cluster, behaviorally different negative pair, generated/test/declaration/overload must-not-fire corpus, final `triage.md`/JSON, and copied-install replay. |
+| `find-folder-topology-drift` | A narrow lexical TS flat-prefix cluster under declared source roots only. No package-demotion, Next/pages, or barrel claim. | First freeze a repository-neutral TS folder policy: prefixes, source roots, test colocation, generated/vendor exclusions, and barrel treatment. | Exactly one three-sibling positive cluster; two siblings, tests, `index.ts`, generated/vendor stay clean; final report only claims `flat_prefix_cluster`; copied closure passes. |
+| `find-incomplete-sweep` | Do not promote a lexical approximation. A TS sweep groups resolved call sites and options/property presence, then produces scout packets and explicit human verdicts. | Compiler program/resolution for callees, aliases, spreads, overloads, defaults, and Git trajectory; first freeze the final `triaged.md` writer/oracle. | Full candidate→packet→verdict→triage journey on a locked fixture, framework APIs explicitly excluded, installed closure, and fresh forward result. Keep separate from complexity. |
+| `find-semantic-duplication` | Function-level, typed TS candidates only; output confirmed/uncertain/rejected triage plus capability matrix. No workflow/structural claim. | Compiler `Program`/`TypeChecker` and direct-call resolution. First repair missing `end_line`, unused workflow/artifact inventories, and `uncertain` filtering in the Python reference path. | Same-outcome/different-code positive, caller→callee and lexical-clone negatives, protocol/test-double/divergent-policy must-not-fire cases, final triage, copied closure, and forward scout. |
+| `find-standard-gaps` | One concrete TS standard with explicit unsupported and mixed-language behavior; the declared standards file remains the durable user artifact. | Choose the host standard first. Lexical grep can enumerate candidates only; structural/API standards need TS AST and often type resolution. | Add the actual config plus positive/negative/must-not-fire fixtures, final `coverage.md`/JSON, honest unsupported states, copied closure, and forward test. Do not build a generic detector platform first. |
+| `map-subsystem` | Complete TS subsystem map only: exported surface, resolved inbound/outbound imports, workflow participation, and applicable compliance. A partial lexical inventory must not masquerade as the artifact. | Named `tsconfig`/project-reference/alias resolver and TS lint policy. | Multi-file direct+alias import fixture, test/generated/vendor exclusions, accurate final map counts and unavailable fields, copied closure, and forward outcome. |
+| `move-path` | Deterministic TS/TSX path/text move with Markdown/HTML/config/reference rewrites; explicitly ignore source imports and expose that risk. | Decide self-contained JSON plan versus bundled PyYAML. No parser is needed until import-safe moves are claimed. | Extend the strong existing move oracle with standalone TS file, docs/config references, external/prose/import must-not-fire cases, explicit ignored-import report, `tsc --noEmit`, and copied-install replay. First near-term candidate. |
+| `propose-boundary` | Proposal from a resolved TS symbol/import/call graph, including public API, compatibility/barrel plan, caller impact, and characterization tests. | `tsconfig` resolver plus ES-module/barrel compatibility decision. First reconcile documented versus implemented graph/scoring schema. | Two-domain cross-private fixture must fire; cohesive/unresolved cases defer; final proposal cites resolved evidence and native test/typecheck command; copied closure and forward test pass. |
+| `propose-folder-reorganization` | One TS cluster proposal with complete resolved import-impact table, tree/move/test plan, and compatibility decision. | TS module-specifier resolver plus `index.ts`/subpath/test convention. It is not automatically batched with detector or mover. | Direct relative+alias importer positive; below-threshold/scratch/unresolved cases stay clean or explicitly block; final proposal and native verification plus copied closure. |
+| `rename-concept` | Assessment-only TS/TSX lifecycle report: lexical retired prose plus resolved identifier completeness; no codemod claim. | B1 must first make `find-concept-divergence` TS/TSX-correct and self-contained. Identifier completeness later needs language-service references and `tsc --noEmit`. | Genuine old→new TS/TSX fixture, positive/clean/prose/identifier must-not-fire cases, TS guard-recognition contract, persistent structured assessment, copied closure, and forward test. |
+| `unify-shadows` | Consume one confirmed structured TS semantic finding and produce an evidence-cited proposal; `keep_separate_document_why` is a valid success. | Proven semantic report schema and explicit TS handoff. First add templates for all upstream result shapes and repair unknown-caller parsing/scope fallback. | Missing/unconfirmed/wrong-kind inputs fail before synthesis; keep-separate never emits a merge plan; final proposal includes caller impact, native test matrix, stop condition, human approval, and copied closure. |
+
+Cross-cutting decisions from this clarification:
+
+- `move-path` is the next plausible standalone candidate after B3 because its
+  narrow path/text contract needs no TypeScript parser. `explain-code` is the
+  next plausible lexical analysis pilot, but only after its Python oracle.
+- `map-subsystem`, `propose-boundary`, `propose-folder-reorganization`, and
+  import-safe `move-path` require a named `tsconfig`-aware module resolver.
+- `find-dormant`, `find-incomplete-sweep`, and `find-semantic-duplication`
+  require semantic compiler facts. The B3 lexical pilot does not justify that
+  platform.
+- `find-duplication`, `find-standard-gaps`, folder topology, and rename each
+  need independent outcome contracts; name adjacency does not establish a
+  shared batch.
+- All 14 currently fail the selected-skill installed-closure criterion. None
+  may claim TypeScript readiness merely because the source checkout can reach
+  repository helpers.
+
+Active candidate promotion:
+
+- `audit-decisions` is `complete` at `4313c73..6dfd060` plus serial
+  router/catalog closeout. Parser-owned TypeScript/TSX comment trivia preserves
+  Python/Markdown/HTML references, rejects malformed or unavailable compiler
+  paths, confines final artifacts to a canonical report subtree, and passed
+  stock-installed forward evidence and independent containment re-review.
+- `find-standard-gaps` is `complete` at `b6e627c..cd1e903` plus serial
+  router/catalog closeout. Its frozen v1 standard is direct
+  `JSON.parse(...)` syntax enclosed by `try`; parse failures and mixed
+  unsupported file surfaces are explicitly partial/non-clean. The final
+  review found and closed a mixed Python/JavaScript false-clean path, a
+  case-sensitive test-file exclusion, and stale routing metadata. Final
+  focused/installed/router integration: 61 passed; independent runtime
+  re-review PASS.
+- `rename-concept` is `complete` at `d802fb1..10ccc22` plus serial
+  router/catalog closeout. Its read-only lifecycle combines the exact coupled
+  lexical detector with host-pinned Compiler API identifier evidence and
+  persistent assessment artifacts. Exact-two stock install passed; final
+  adversarial review reproduced and then verified repair of internal report
+  symlinks that could otherwise overwrite source.
+
+- `map-subsystem` is `complete` at `fc52e10..cd41674` plus serial
+  router/catalog closeout. The host-pinned Compiler API and named tsconfig
+  resolve direct and alias imports, preserve barrel boundaries, expose partial
+  unresolved state, reject unsafe targets/artifacts, and passed native,
+  stock-installed, and fresh forward evidence. This accepted resolver contract
+  now permits independent `propose-boundary` and
+  `propose-folder-reorganization` implementation lanes.
+
+- `propose-boundary` is `complete` at `f7e7f01..3ba2f2d` plus serial
+  router/catalog closeout. Its family-local Compiler API graph resolves direct,
+  alias, barrel, and symbol-call evidence; cohesive, unresolved, and ambiguous
+  inputs defer. A fresh installed task produced a useful two-seam proposal,
+  native verification plan, caller blocker, and unchanged source hashes.
+
+- `propose-folder-reorganization` is `complete` at `5a0fec2` plus serial
+  router/catalog closeout. Its family-local Compiler API graph produced a
+  three-file move plan, seven resolved import/re-export rewrites, barrel
+  compatibility decision, and native verification plan. A fresh installed task
+  passed typecheck and preserved every source hash.
+
+- `find-dormant` is `complete` at `3c4e556..2453674` plus serial
+  router/catalog closeout. Its family-local Program/TypeChecker reports only
+  non-exported top-level implementations with zero resolved static references,
+  keeps dynamic string reachability uncertain, and fixes `certain_delete` at
+  zero. Fresh installed use found one review-required and one uncertain case,
+  passed native checks, and preserved every source hash.
+
+- `find-incomplete-sweep` is `complete` at `67c13af..7e3ea4f` plus serial
+  router/catalog closeout. Its host-pinned Compiler API groups resolved project
+  calls by object-option property presence while overload/default/spread and
+  framework boundaries remain explicit. Fresh installed use resolved two raw
+  divergences but correctly emitted zero scout packets without Git trajectory
+  evidence; native checks passed and source hashes were unchanged.
+
+- `find-semantic-duplication` is `complete` at `a9a68eb` plus serial
+  router/catalog closeout. Its family-local Program/TypeChecker path produces
+  typed function-level confirmed, uncertain, and rejected triage plus a
+  capability matrix without implying safe consolidation. Fresh installed use
+  found one confirmation, one dynamic/unresolved uncertainty, and three
+  explicit rejections; native checks and source immutability passed.
+
+- `unify-shadows` is `complete` at `b7cb4b6..03c6638` plus serial
+  router/catalog closeout. It validates one confirmed structured TypeScript
+  finding before writes, preserves all four upstream shapes, and emits cited
+  proposal/evidence/scope artifacts. Fresh installed use produced an honest
+  `share_utilities` proposal with caller limits, native tests, stop conditions,
+  human approval, invalid-input abstention, and unchanged source hashes.
+
+- `move-path` is `complete` on `codex/productization-restart` at `6e65140` plus
+  its generated-index/catalog closeout. Its v1 contract guarantees a
+  self-contained JSON plan path, keeps YAML optional when PyYAML is available,
+  rewrites only identity-resolved text/path references, explicitly ignores
+  TypeScript source imports, and exposes that residual risk in the final
+  report. Its locked TS fixture, TypeScript 5.9.3 typecheck, copied-install
+  replay, learning packet, and independent adversarial review pass.
+- `explain-code` is `complete` at `5d225b2` plus serial contract/router
+  integration. Its installed lexical TypeScript branch renders direct exports,
+  keeps re-exports visibly unexplained, rejects invalid syntax, preserves the
+  Python path, and passed independent final re-review.
+- `find-duplication` is `complete` at `ff79274` plus serial contract/router
+  integration. The accepted additive port preserves the self-contained Python
+  scout/triage journey and adds conservative TypeScript clone evidence; rerun
+  contamination and language-substitution regressions are pinned by tests.
+- `find-complexity-hotspots` is `complete` at `9b309f4..a6aaf5c` plus serial
+  contract/router integration. Its TypeScript branch reports only syntactic
+  per-function branch scores, preserves the Python six-band oracle, and passed
+  stock-install/fresh-forward evidence. Adversarial review found and repaired
+  target-relative exclusion bypasses before final PASS.
+- `find-folder-topology-drift` is `complete` at `82859c7..d1f1e39` plus serial
+  contract/router integration. Its explicit-root TypeScript mode reports only
+  direct flat-prefix clusters, preserves explicit combined Python+TS mode, and
+  passed installed forward evidence. Two adversarial rounds repaired TS-only
+  leakage, install-path docs, and explicit excluded-root bypasses before PASS.
+- `adapt-project` is `complete` at `3651ccf..2d34690` plus serial
+  contract/router integration. TypeScript/TSX source counts now drive the same
+  large-root caution as Python without inferring Node frameworks. The stock
+  installed journey produced a useful adapter; adversarial review then found
+  and closed timestamp traversal, Django regression, relative-command CWD,
+  external-symlink counting, and foreign-evidence certification defects before
+  final PASS.
+
+### Framework-specific; do not dispatch without a named stack (22)
+
+`extract-cotton-primitive`, `extract-state-type`,
+`extract-workflow-registry`, `find-async-lifecycle-drift`,
+`find-contract-drift`, `find-dead-route-surface`, `find-doc-route-drift`,
+`find-frontend-contract-drift`, `find-frontend-duplication`,
+`find-layer-violation`, `find-query-mutation`, `find-route-sprawl`,
+`find-test-obligation-drift`, `find-transaction-overreach`,
+`find-workflow-duplication`, `find-workflow-state-gaps`, `fix-workflow`,
+`impact-feature`, `plan-feature`,
+`introduce-fk`, `map-product-workflow`, and `refactor-subsystem`.
+
+Choose and freeze a concrete router/server/UI/ORM/migration stack before moving
+one of these. `find-workflow-state-gaps`, `impact-feature`, and `plan-feature`
+now declare their actual Django/Python boundary instead of advertising false
+framework-neutral TypeScript eligibility.
+
+## Parallel worktree schedule
+
+1. Finish B0 and freeze the review findings.
+2. Run B1 and B2P concurrently; their owned paths are disjoint. The serial
+   integrator alone handles router catalog changes and merges one branch at a
+   time.
+3. Run B2T only after B2P's accepted evidence. B3 may run concurrently because
+   it neither touches the state family nor needs a TypeScript parser.
+4. Review B2T's tooling/closure learnings before B4. Do not build a shared
+   TypeScript fact layer between them.
+5. Promote or split B5 only after B4. Select the next candidate family using
+   saved evidence and an actual host need, not catalog coverage percentage.
+6. Keep at most two implementation worktrees active. No concurrent edits to
+   `scripts/_lib/lang_adapter/`, router catalogs, frontmatter schemas, root
+   dependency files, or global lint wiring.
+
+## Evidence log
+
+| Date | Revision | Batch / criterion | Evidence |
+|---|---|---|---|
+| 2026-07-18 | this planning commit | B0 inventory | Frontmatter census: 33 `any/any`, 5 `any/django`, 15 `python/any`, 23 `python/django`; 76 total. A mechanical disposition check found 31 + 1 + 10 + 14 + 20 = 76, with no omission or duplicate. Existing shared JS/TS adapter exposes only top-level-symbol capability and is explicitly a column-zero heuristic. |
+| 2026-07-18 | this planning commit | B0 independent lanes | Three fresh non-context Terra xhigh lanes independently reviewed detector families, mutation/guard chains, and tooling/installed closure. Their disagreement split the state work into B2P/B2T, kept the first TypeScript wrapper family-local, added the small B1/B3 batches, and moved unproven or framework-bound chains out of the dispatch queue. |
+| 2026-07-18 | this planning commit | B0 verification | Targeted baseline: 38 adapter, omnibus, perimeter, metadata, and router tests passed. The learning template parsed as JSON; `git diff --check` passed. A fresh goal-anchored adversarial review first found two real router-honesty defects; after adding explicit language-source/filtering rules, copied-router regressions, and withholding unearned omnibus/workflow claims, the reviewer returned PASS and reconfirmed exact 76-skill coverage. |
+| 2026-07-19 UTC | working tree on `codex/productization-restart` | B3 TypeScript comment hygiene | Red-green implementation added TS/TSX positive/clean fixtures, a skill-local stdlib closure, shared detector/guard ownership, root lint wrapper, pre-commit and `--all` invocation coverage, and final report assertions. Fresh installed forward test produced four useful TS findings and kept an ordinary TSX component clean. Targeted suite: 30 passed; smoke: 23 bad findings and good fixtures clean; metadata/catalog/Ruff/JSON/diff checks passed. Full suite: 415 passed, 1 skipped, with one unrelated pre-existing calendar-sensitive `test_triage_audit.py` failure (its fixed 2026-06-11 fixture is compared by the CLI to real current time; neither test nor implementation is in this diff). Adversarial re-review: PASS after it exposed and verified the pre-commit/runner repair. |
+| 2026-07-19 UTC | `33e96a6` | B2P Python closed-state reference | Detector→review→enum proposal→guard reference accepted after adversarial repairs for parse-error rc 2, chained assignments, repo-ignore fallback, and whole-tree immutability. Targeted suite: 8 passed; copied `python3 -I -S` forward artifacts at `/tmp/es-forward-state.xDtbxT` preserved vendor/open-ended boundaries; independent re-review returned PASS. |
+| 2026-07-19 UTC | `eb4d498` | B1 router-language integration foundation | Bundled catalog now retains `language`, `framework`, and `scans`; copied matcher resolves explicit/exact language context, excludes unsupported language/framework/scanner claims, and returns `unsupported` instead of substituting a weaker skill. Unearned `find-omnibus` TypeScript and Django-bound workflow-state claims are withheld. Router suite: 19 passed; metadata/conformance/Ruff clean. B1 skill-local acceptance remains pending. |
+| 2026-07-19 UTC | `e6f6a5d` | B1 complete | TS/TSX concept findings plus four host-neutral artifact/rules skills pass copied `python -I -S` final-outcome tests. Two adversarial rounds found and repaired quoted/commented YAML false-clean/false-positive paths. The five real contracts are acknowledged and index `stale: ok`; catalog/routing integrated. Final integrated suite: 35 passed; independent re-review PASS. |
+| 2026-07-19 UTC | `6e65140` + generated closeout | TypeScript move-path complete | Standalone TS/TSX path/text moves use self-contained JSON plans, preserve plan authority bytes, rewrite identity-resolved docs/config, and report rather than rewrite source imports. Adversarial repairs covered invalid invented specifiers, multiline imports, NodeNext emitted-file substitutions, declaration variants, and residue self-reporting. TypeScript 5.9.3 native suite plus routers/shape: 70 passed; copied closure and independent final review PASS. |
+| 2026-07-19 UTC | `54a9db3` + integrated contracts | B2T TypeScript closed-state outcome | The self-contained TypeScript Compiler API family now detects first-party closed state, proposes the `as const` authority and caller migration, stages and verifies a 0/1/2 guard, and preserves typed/open-ended/vendor/test boundaries. Adversarial repairs covered semantic receiver attribution, forged suppressions, direct and parenthesized aliases, `??=`, chained assignments, and syntax failures. A stock exact-three-skill `skills@1.5.19` install and fresh forward proposal at `/private/tmp/b2t-forward.lb5LzK` passed; final focused integration suite: 29 passed; independent re-review PASS. |
+| 2026-07-19 UTC | `5d225b2` + integrated contract/router | TypeScript explain-code complete | Stock-installed direct-export inventory and final rendering preserve Python behavior, disclose re-exports, reject invalid syntax, and avoid annotation collisions. Focused suite: 26 passed; copied isolated replay and independent re-review PASS. |
+| 2026-07-19 UTC | `ff79274` + integrated contract/router | Additive TypeScript duplication complete | TypeScript lexical clone triage keeps reliable spans and conservative judgment; Python detection/scout/triage remains a first-class self-contained path. Repairs covered cross-symbol spans, false transitive clustering, malformed jscpd output, rerun report ingestion, and an initially destructive TypeScript-only substitution. Combined suite: 12 passed; fresh installed journeys for both languages and independent re-review PASS. |
+| 2026-07-19 UTC | `df716f12` + integrated contract/router | B4 TypeScript omnibus complete | Compiler API symbol spans find ESM typed functions/arrows/classes across four domains while cohesive/generated/vendor/minified/spec paths stay clean and legacy Python/JS remain green. The stock `.agents` install now follows documented commands verbatim with bundled scout knowledge and no sibling tooling. Focused suite: 14 passed; fresh forward report found two confirmed candidates with unchanged source; independent closure re-review PASS. |
+| 2026-07-19 UTC | `9b309f4..a6aaf5c` + integrated contract/router | TypeScript complexity complete | Family-local Compiler API syntax scoring reports exactly three branch-heavy declarations/methods/block arrows and preserves the Python six-band oracle. Stock installed forward task produced final artifacts with a measure-first verdict. Direct directory/file exclusion bypasses found adversarially were repaired project-root-relative; focused suite: 7 passed; final re-review PASS. |
+| 2026-07-19 UTC | `82859c7..d1f1e39` + integrated contract/router | TypeScript folder topology complete | Explicit-root lexical flat-prefix detection reports one three-sibling billing cluster, preserves Python-only and explicit combined mode, copied closure, and final report labels. Forward and adversarial defects in `.agents` docs, TS-only isolation, and explicit excluded roots were repaired; focused suite: 20 passed; final re-review PASS. |
+| 2026-07-19 UTC | `3651ccf..2d34690` + integrated contract/router | TypeScript project adaptation complete | TypeScript/TSX source-root counts trigger the same >200 caution as Python, keep excluded trees out, preserve Django detection, and never infer a Node framework from package.json. Fresh stock-installed D6 produced final adapter/report/evidence with unchanged source. Five adversarial path/compatibility/evidence defects were reproduced and repaired; focused re-review: 37 passed; final PASS. |
+| 2026-07-19 UTC | `b6e627c..cd1e903` + generated closeout | TypeScript standard-gap coverage complete | Host-pinned Compiler API syntax facts implement one framework-neutral `JSON.parse`-inside-`try` standard while Python remains green. Parse/read failures and mixed unsupported extensions are partial/non-clean, unsupported-only surfaces remain explicit, and stock-installed final artifacts report 4 sites/3 gaps. Adversarial review found and closed mixed-language false-clean behavior; integration corrected case-insensitive test exclusions, the host-owned standards hint, and exact TypeScript routing. Final focused/router suite: 61 passed; runtime re-review PASS. |
+| 2026-07-19 UTC | `4313c73..6dfd060` + serial closeout | TypeScript decision audit complete | Project-local Compiler API comment trivia recognizes valid TS/TSX decision references while strings, regex, template text, and JSX text stay clean. Final drift artifacts, Python/Markdown/HTML regressions, malformed/missing-tool failures, copied closure, exact stock install, and canonical report containment passed. Integrated focused suite with map and registry regressions: 74 passed; independent containment re-review PASS. |
+| 2026-07-19 UTC | `fc52e10..cd41674` + serial closeout | TypeScript subsystem map complete | Named tsconfig resolution produces exported surface, direct/alias inbound and outbound edges, barrel boundaries, workflow participation, diagnostics, and honest partial state. Unsafe targets and artifact paths reject; stock-installed fresh forward output mapped 3 files/5 exports/2 import edges with native typecheck green and source unchanged. Integrated focused suite with audit and taxonomy regressions: 74 passed; independent re-review PASS. |
+| 2026-07-19 UTC | `d802fb1..10ccc22` + serial closeout | TypeScript rename assessment complete | Exact-two coupled stock install preserves lexical detector authority while project-local Compiler API evidence resolves glossary identifier declarations/references. Persistent lifecycle artifacts, positive/clean/prose/identifier boundaries, native verification, Python smoke, and path exclusions passed. Adversarial review reproduced an internal report-symlink source overwrite; the accepted repair rejects every final/ancestor symlink component and preserves source hashes. Focused/regression suite: 37 passed; final containment re-review PASS. |
+| 2026-07-19 UTC | `f7e7f01..3ba2f2d` + serial closeout | TypeScript boundary proposal complete | Host-resolved static import/symbol/call evidence supports direct, alias, and barrel caller impact while cohesive, unresolved, and ambiguous graphs defer. Stock selected-skill install and focused suite passed. Fresh installed forward use produced two scored seams, a private-import blocker, public API and barrel compatibility plan, native verification commands, and byte-identical source; D6 PASS. |
+| 2026-07-19 UTC | `5a0fec2` + serial closeout | TypeScript folder proposal complete | Host-resolved direct-relative and paths-alias impact produces a complete move/import/barrel/test plan while threshold, scratch, excluded, unresolved, and unsafe targets defer or reject. Focused suite and stock selected install passed. Fresh installed forward use proposed 3 moves and 7 resolved rewrites, passed typecheck, and preserved every source hash; D6 PASS. |
+| 2026-07-19 UTC | `3c4e556..2453674` + serial closeout | TypeScript dormant review complete | Project-local Program/TypeChecker reports statically unreferenced non-exported top-level implementations for human review only; dynamic string reachability remains uncertain and `certain_delete` is always zero. Exact stock selected install, focused/native suite, partial/error states, path containment, and source immutability passed. Fresh installed forward use reported 1 review-required/1 uncertain/0 certain-delete with native checks green; D6 PASS. |
+| 2026-07-19 UTC | `67c13af..7e3ea4f` + serial closeout | TypeScript incomplete-sweep review complete | Host-pinned Compiler API facts group resolved direct/alias calls by object-option property presence and preserve overload/default/spread/framework boundaries. Fresh installed use found two raw divergences and correctly promoted none without Git blame trajectory; packet/verdict/triage artifacts, native checks, stock closure, and source immutability passed; D6 PASS. |
+| 2026-07-19 UTC | `a9a68eb` + serial closeout | TypeScript semantic-duplication triage complete | Family-local Program/TypeChecker facts produced one typed same-outcome/different-code confirmation, one dynamic/unresolved uncertainty, and three caller/lexical/policy rejections with a capability matrix. Exact stock install, Python reference repairs, native checks, source immutability, and fresh forward use passed; D6 PASS. |
+| 2026-07-19 UTC | `b7cb4b6..03c6638` + serial closeout | TypeScript unify-shadows complete | One confirmed structured finding produced cited proposal/evidence/scope artifacts for `share_utilities`; all four shapes and invalid-input pre-write gates are locked. Exact stock install, native checks/tests, source immutability, containment, and fresh forward use passed; D6 PASS. |
+| 2026-07-19 UTC | `9f4fbdc..e800856` + fresh forward use | Five planning skills validated neutral | One locked TypeScript 5.9.3 host and exact combined stock copy install proved final artifacts for scope-feature, architecture-fit, decide, design-it-twice, and plan-spec with source fingerprints unchanged. A fresh agent independently produced all five without reference artifacts or language-specific implementation. Missing optional repo helpers/doctrine were disclosed; the core installed artifact contracts remained usable. Focused automated evidence: 4 tests / 75 parametrized checks; D6 PASS with residual UX cleanup recorded. |
+| 2026-07-19 UTC | `e7b413b..5143bf6` + fresh forward use | Five quality skills validated neutral | Diagnose, perimeter gaps, gut-check, teach-pattern, and triage-debt produced useful installed TypeScript-host evidence without language variants. The fresh replay passed all five, including the local diagnosis evidence gate and cached-input debt contract; native checks and source hashes were unchanged. |
+| 2026-07-19 UTC | `eec276d..3352392` + fresh forward use | Orchestration neutrality review | Converge, harvest-learnings, organize-project-structure, and orient produced useful installed outcomes with native checks and unchanged source. Project-interview remained pending because its required installed evidence helpers were absent; the failure was retained as a closure repair rather than accepted. |
+| 2026-07-19 UTC | `6058f45..3494290` + repaired fresh forward use | Project-interview neutral closure complete | Skill-local stdlib draft/discovery and evidence-gate helpers close the exact selected-install failure. A fresh TypeScript host recorded only supplied declarations and objective facts, retained unresolved questions, kept `user_approved:false`, passed `OK: 3/3`, passed native checks/tests, and preserved source hashes. |
+| 2026-07-19 UTC | final matrix closeout | Five clean-host TypeScript journeys | Read-only incomplete-sweep detection, boundary proposal, safe path mutation, state mutation/guard, and semantic analysis replayed from their locked installed fixtures: 39 passed, 1 named environment skip (`tests/test_move_path.py:855`, because standalone/global `tsc` was absent from `PATH`; the pinned installed/native TypeScript checks passed). The 76-row matrix test also passed with exact counts 22 supported + 19 neutral + 22 stack-bound + 13 runtime. |
+| 2026-07-19 UTC | `caa19cf..ae4080e` | Final adversarial closure | The first fresh completion review found one real install-closure defect: `rename-concept` required but did not route its `find-concept-divergence` companion. The accepted repair added one narrow validated `install_with` field, regenerated the catalog, made router/matrix commands agree, and proved the router-emitted stock command installs exactly both skills and reaches `COMPLETE`. The second fresh non-context review returned PASS with no P0/P1/P2 findings; its targeted catalog/install/outcome set passed 22 tests. |
+| 2026-07-19 UTC | `ae4080e` | Final integrated verification | Canonical suite: 660 passed, 2 named environment skips in 251.14s. Skips: `tests/test_move_path.py:855` because standalone/global `tsc` was absent from `PATH`, and `tests/scripts/test_which_cleanup.py:169` because `HEAD~1` was not large enough for that checkout-shape branch. Focused companion/router/catalog/matrix/metadata set: 77 passed; metadata, catalog-current, Ruff, JSON, and diff checks passed. |

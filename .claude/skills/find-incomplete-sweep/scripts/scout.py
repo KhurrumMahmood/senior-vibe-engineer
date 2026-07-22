@@ -34,21 +34,30 @@ import argparse
 import importlib.util
 import json
 import pathlib
+import subprocess
 import sys
 from collections import defaultdict
 
 SKILL_SCRIPTS = pathlib.Path(__file__).resolve().parent
-# KIT_ROOT anchors kit-relative imports ONLY (_common; scan.py is loaded from
-# SKILL_SCRIPTS directly). Manifest paths are relative to the TARGET project
-# root the scan recorded (manifest "project_root", or --project-root /
-# git-toplevel-of-cwd as fallback) — the kit may live in a different repo
-# (de-baking convention, ADR 0024). parents[3] of scripts/ is the kit root.
-KIT_ROOT = SKILL_SCRIPTS.parents[3]
-_COMMON = str(KIT_ROOT / ".claude" / "skills" / "_common")
-if _COMMON not in sys.path:
-    sys.path.insert(0, _COMMON)
 
-from diff_resolution import resolve_project_root  # noqa: E402
+
+def resolve_project_root(explicit: pathlib.Path | None) -> pathlib.Path:
+    """Resolve a target root without depending on uninstalled sibling skills."""
+    if explicit is not None:
+        return explicit.resolve()
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return pathlib.Path(result.stdout.strip()).resolve()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return pathlib.Path.cwd().resolve()
 
 
 def load_scan_module():
@@ -110,6 +119,47 @@ def parse_straggler(ref: str) -> tuple[str, int] | None:
         return None
 
 
+def ensure_compiler_manifest_output_containment(scan_dir: pathlib.Path, manifest: dict,
+                                                project_root: pathlib.Path) -> None:
+    """Preserve every compiler-manifest run's report-root and no-symlink promise."""
+    language = manifest.get("language")
+    if language not in {"typescript", "javascript", "go", "java"}:
+        return
+    language_label = {
+        "typescript": "TypeScript",
+        "javascript": "checked JavaScript",
+        "go": "Go",
+        "java": "Java",
+    }[language]
+    allowed_root = project_root / "reports" / "find-incomplete-sweep"
+    if ".." in scan_dir.parts:
+        raise ValueError(f"{language_label} scout packet path must not contain parent traversal")
+    try:
+        scan_dir.relative_to(allowed_root)
+    except ValueError as exc:
+        raise ValueError(
+            f"{language_label} scout packets must stay beneath reports/find-incomplete-sweep/"
+        ) from exc
+    current = project_root
+    try:
+        parts = scan_dir.relative_to(project_root).parts
+    except ValueError as exc:
+        raise ValueError(f"{language_label} scout packets must stay inside the project root") from exc
+    try:
+        scan_dir.resolve().relative_to(allowed_root.resolve())
+    except ValueError as exc:
+        raise ValueError(
+            f"{language_label} scout packets must stay beneath reports/find-incomplete-sweep/"
+        ) from exc
+    for part in parts:
+        current /= part
+        if current.is_symlink():
+            raise ValueError(f"{language_label} scout packets must not traverse a symbolic link")
+    output = scan_dir / "scout_packets.json"
+    if output.is_symlink():
+        raise ValueError(f"{language_label} scout packet output must not be a symbolic link")
+
+
 def build_present_index(scan_mod, paths: list[str], project_root: pathlib.Path):
     """Map (callee_key, kwarg) -> [(file, line), ...] for sites passing kwarg.
 
@@ -152,9 +202,10 @@ def main():
                     help="lines of context above/below each call line")
     ap.add_argument("--max-present", type=int, default=2,
                     help="present-site windows to include per finding")
-    ap.add_argument("--paths", nargs="+", required=True,
+    ap.add_argument("--paths", nargs="+", default=None,
                     help="paths to re-scan for present-site locations "
-                         "(must match the original scan, e.g. scripts)")
+                         "(required for Python manifests; compiler manifests "
+                         "carry compiler-resolved present-site locations)")
     ap.add_argument("--project-root", type=pathlib.Path, default=None,
                     help="Target project root the manifest paths are relative to "
                          "(default: the scan manifest's recorded project_root, "
@@ -162,6 +213,7 @@ def main():
     args = ap.parse_args()
 
     scan_dir = pathlib.Path(args.scan_dir)
+    raw_scan_dir = scan_dir if scan_dir.is_absolute() else pathlib.Path.cwd() / scan_dir
     manifest_path = scan_dir / "manifest.json"
     if not manifest_path.exists():
         print(f"ERROR: no manifest.json under {scan_dir}", file=sys.stderr)
@@ -180,17 +232,27 @@ def main():
         project_root = pathlib.Path(manifest["project_root"]).resolve()
     else:
         project_root = resolve_project_root(None)
+    try:
+        ensure_compiler_manifest_output_containment(raw_scan_dir, manifest, project_root)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(2)
 
     gated = [f for f in manifest.get("findings", []) if f.get("gated_in")]
     if not gated:
         print("no gated-in findings — nothing to scout", file=sys.stderr)
         (scan_dir / "scout_packets.json").write_text(json.dumps(
-            {"band": manifest.get("band"), "scan_dir": str(scan_dir),
+            {"band": manifest.get("band"), "language": manifest.get("language", "python"),
+             "project_root": str(project_root), "scan_dir": str(scan_dir),
              "packet_count": 0, "packets": []}, indent=2))
         return
 
-    scan_mod = load_scan_module()
-    by_kwarg, by_callee = build_present_index(scan_mod, args.paths, project_root)
+    is_compiler_manifest = manifest.get("language") in {"typescript", "javascript", "go", "java"}
+    if not is_compiler_manifest and not args.paths:
+        ap.error("--paths is required for a Python manifest")
+    if not is_compiler_manifest:
+        scan_mod = load_scan_module()
+        by_kwarg, _by_callee = build_present_index(scan_mod, args.paths, project_root)
 
     packets = []
     for idx, f in enumerate(gated, start=1):
@@ -201,8 +263,21 @@ def main():
             continue
         straggler_file, straggler_line = ref
 
-        present_locs, present_total = pick_present_sites(
-            by_kwarg, callee, kwarg, ref, args.max_present)
+        if is_compiler_manifest:
+            declared_present = f.get("present_sites", [])
+            present_locs = []
+            for item in declared_present:
+                if not isinstance(item, dict):
+                    continue
+                file = item.get("file")
+                line = item.get("line")
+                if isinstance(file, str) and isinstance(line, int) and (file, line) != ref:
+                    present_locs.append((file, line))
+            present_total = len(present_locs)
+            present_locs = present_locs[:args.max_present]
+        else:
+            present_locs, present_total = pick_present_sites(
+                by_kwarg, callee, kwarg, ref, args.max_present)
 
         packet = {
             "id": f"SW-{idx:02d}",
@@ -229,6 +304,8 @@ def main():
 
     out = {
         "band": manifest.get("band"),
+        "language": manifest.get("language", "python"),
+        "project_root": str(project_root),
         "scan_dir": str(scan_dir),
         "context_lines": args.context,
         "packet_count": len(packets),

@@ -112,8 +112,11 @@ allow-list marker. See `linting.md` for the install/escape-valve mechanics and
 - **`comment-drift` / `scripts/lint/no_comment_drift.py`** — bad
   comments must not enter the live code surface. This blocks stale
   terminology, detached section banners, obvious narration comments,
-  noisy template section comments, and brittle line-number doc references.
-  It deliberately does **not** block thin-public-docstring or
+  noisy template section comments, and brittle line-number doc references in
+  Python, JavaScript/JSX, TypeScript/TSX, and HTML/template files. The
+  repository entry point is a thin wrapper around the detector and guard
+  bundled with `/find-comment-drift`. It deliberately does **not** block
+  thin-public-docstring or
   `jsdoc_candidate` findings; those stay advisory in `/find-comment-drift`
   so the skill can guide broader taste passes without making every commit
   a prose rewrite. Allow-list via `# noqa: comment-drift: <reason>` /
@@ -132,20 +135,6 @@ allow-list marker. See `linting.md` for the install/escape-valve mechanics and
   scopes in `scripts/lint/run.py` to point at their own codegen output
   surfaces. Allow-list via `# noqa: codegen-emits-new-paths: <reason>`
   (reason required, narrow scope: legacy fixture round-trips only).
-
-- **`core-framework-leakage` /
-  `scripts/lint/no_core_framework_leakage.py`** — migrated core skill
-  procedures and active prose frontmatter may not name registry-owned
-  framework vocabulary; selected one-level `bindings/<binding-id>.md`
-  overlays may carry the idiom. The guard also rejects framework-bearing
-  core metadata, undeclared binding files, and normalized core procedure
-  paragraphs copied into a binding. It is source-aware rather than a normal
-  filename-only `RuleSpec`: staged and CI diffs scan both before and after
-  blobs for renames/copies. Temporary exceptions live only in
-  `_common/core-framework-leakage-allowlist.yml` with exactly `path`, `term`,
-  `owner`, `reason`, and `expires_on`; expiry is mandatory, cannot exceed 90
-  days, and no exception may apply to a `verified` capability claim. Inline
-  compatibility prose and `noqa` markers are not exceptions.
 
 Host projects extend this catalogue by:
 

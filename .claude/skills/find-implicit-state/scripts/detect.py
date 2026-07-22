@@ -52,16 +52,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# Route Python parsing through the shared per-language adapter registry so
-# this detector capability-gates on Python and gracefully skips other
-# languages instead of crashing on them. The analysis below stays exact
-# Python-AST / Django-specific (labels python/django are unchanged).
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
-_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
-if _SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPTS_DIR)
-from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
-
 STATE_FIELD_NAMES = frozenset({"status", "phase", "state"})
 STATE_FIELD_CALLS = frozenset({"CharField", "TextField"})
 # Assignment targets that hint at "find the active thing" usage.
@@ -94,7 +84,7 @@ def _walk_python_files(
         if any(fnmatch.fnmatchcase(path.name, g) for g in skip_globs):
             continue
         files.append(path)
-    return files
+    return sorted(files)
 
 
 def _state_attr_name(node: ast.AST) -> str | None:
@@ -334,15 +324,13 @@ def _dict_literal_has_state_key(node: ast.AST) -> bool:
 
 
 def _scan_file(filepath: Path, rel: str) -> list[dict[str, Any]]:
-    adapter = get_adapter(filepath)
-    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
-        return []
     try:
         src = filepath.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return []
-    tree = adapter.parse(src)
-    if tree is None:
+    try:
+        tree = ast.parse(src, filename=str(filepath))
+    except SyntaxError:
         return []
     src_lines = src.splitlines()
     out: list[dict[str, Any]] = []

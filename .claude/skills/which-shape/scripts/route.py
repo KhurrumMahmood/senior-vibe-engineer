@@ -7,43 +7,46 @@ invokes the skills in that loop.
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import re
-import subprocess
+import shlex
 import sys
-import tempfile
 import time
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 SCRIPT_PATH = Path(__file__).resolve()
 SKILL_DIR = SCRIPT_PATH.parents[1]
-REPO_ROOT = SCRIPT_PATH.parents[4]
-SKILLS_DIR = SCRIPT_PATH.parents[2]  # .claude/skills — to resolve /skill steps
-DEFAULT_SHAPES = SKILL_DIR / "shapes.yml"
+SKILLS_DIR = SKILL_DIR.parent
+DEFAULT_SHAPES = SKILL_DIR / "shapes.json"
+DEFAULT_SOURCE = "https://github.com/KhurrumMahmood/senior-vibe-engineer"  # host-ref-allow: public distribution repository
+DEFAULT_CLI_VERSION = "1.5.19"
 
 # A `/skill-name` reference inside a shape's first_next / sequence text.
 SKILL_TOKEN_RE = re.compile(r"/([a-z][a-z0-9]+(?:-[a-z0-9]+)*)")
 
-COMMON_DIR = REPO_ROOT / ".claude" / "skills" / "_common"
-if str(COMMON_DIR) not in sys.path:
-    sys.path.insert(0, str(COMMON_DIR))
-SCRIPTS_DIR = REPO_ROOT / "scripts"
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
-
-import engineering_home as _eh  # noqa: E402
-from _lib.skill_activation import (  # noqa: E402
-    ActivationError,
-    decide_catalog_activation,
-    load_skill_metadata,
-)
-from skill_use import log_event  # noqa: E402
-
 SCHEMA_VERSION = 1
 WORD_RE = re.compile(r"[a-z][a-z0-9_-]+")
+ORDERED_FIRST_PHASE_RE = re.compile(
+    r"(?is)^\s*first\b(?P<first>.+?)"
+    r"(?:[,;.]?\s+(?:and\s+)?then\b|[,;.]?\s+before\b|[,;.]?\s+and\s+after\b|"
+    r"[,;.]?\s+after\s+(?:approval|that|this)\b)"
+)
+LANGUAGE_MARKERS = {
+    "python": re.compile(r"(?i)(?:\bpython\b|\.py\b)"),
+    "typescript": re.compile(r"(?i)(?:\btypescript\b|\.tsx?\b)"),
+    "javascript": re.compile(r"(?i)(?:\bjavascript\b|(?:\.[cm]?js|\.jsx)\b)"),
+    "rust": re.compile(r"(?i)(?:\brust\b|\.rs\b)"),
+    "go": re.compile(
+        r"(?:\bGolang\b|\bGo\b(?=\s+(?:project|repo|repository|module|service|"
+        r"package|code|source|file|CLI|application|app)\b)|\.go\b)"
+    ),
+    "java": re.compile(r"(?i)(?:\bjava\b|\.java\b)"),
+    "csharp": re.compile(r"(?i)(?:\bc#\b|\bcsharp\b|\.cs\b)"),
+    "ruby": re.compile(r"(?i)(?:\bruby\b|\.rb\b)"),
+    "php": re.compile(r"(?i)(?:\bphp\b|\.php\b)"),
+}
 STOPWORDS = {
     "a", "an", "and", "are", "as", "at", "be", "by", "do", "for", "from",
     "has", "have", "i", "if", "in", "into", "is", "it", "of", "on", "or",
@@ -52,7 +55,7 @@ STOPWORDS = {
     "could", "would", "may", "might", "just", "really", "right", "what",
 }
 
-# Boost weights live in shapes.yml as data (frame review F4b / Path A);
+# Boost weights live in shapes.json as data (frame review F4b / Path A);
 # there is no in-code per-shape table left. A shape's `boost:` block is
 # either the simple form {cues, weight, rationale} or the rules form
 # {mode, rules}, where each rule = {conditions, weight, rationale} and
@@ -69,14 +72,85 @@ def tokenize(text: str) -> set[str]:
     return {word for word in WORD_RE.findall(text.lower()) if word not in STOPWORDS and len(word) > 1}
 
 
-def _load_yaml(path: Path) -> dict[str, Any]:
+def _first_ordered_phase(task: str) -> str | None:
+    """Return an explicitly ordered first phase, if the user supplied one.
+
+    A multi-phase request should be routed from its first stated phase and
+    reassessed at that phase's stop condition. Scoring the entire request can
+    otherwise jump to a lexically louder final guard or refactor phase.
+    """
+    match = ORDERED_FIRST_PHASE_RE.search(task)
+    if match is None:
+        return None
+    first = match.group("first").strip(" ,;:.-")
+    return first if len(tokenize(first)) >= 2 else None
+
+
+def _named_languages(task: str) -> list[str]:
+    return [name for name, pattern in LANGUAGE_MARKERS.items() if pattern.search(task)]
+
+
+def _load_registry(path: Path) -> dict[str, Any]:
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError) as exc:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"cannot read {path}: {exc}") from exc
     if not isinstance(data, dict):
-        raise ValueError(f"{path} must contain a YAML mapping")
+        raise ValueError(f"{path} must contain a JSON object")
     return data
+
+
+def _read_manifest(root: Path) -> dict[str, Any]:
+    path = root / ".engineering" / "manifest.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _skill_activation(root: Path) -> dict[str, Any]:
+    block = _read_manifest(root).get("skills")
+    if not isinstance(block, dict):
+        block = {}
+    default = block.get("default")
+    if default not in {"active", "inactive"}:
+        default = "active"
+
+    def reasons(value: Any) -> dict[str, str]:
+        if isinstance(value, dict):
+            return {str(key): str(reason) for key, reason in value.items()}
+        if isinstance(value, list):
+            return {str(item): "" for item in value}
+        return {}
+
+    return {
+        "default": default,
+        "active": reasons(block.get("active")),
+        "inactive": reasons(block.get("inactive")),
+    }
+
+
+def _is_skill_active(root: Path, name: str) -> bool:
+    activation = _skill_activation(root)
+    if activation["default"] == "inactive":
+        return name in activation["active"]
+    return name not in activation["inactive"]
+
+
+def _inactive_reason(root: Path, name: str) -> str | None:
+    if _is_skill_active(root, name):
+        return None
+    return _skill_activation(root)["inactive"].get(name) or None
+
+
+def _append_event(path: Path, event: dict[str, Any]) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(event, sort_keys=True) + "\n")
+    except (OSError, TypeError, ValueError):
+        return
 
 
 def _is_cue_list(value: Any) -> bool:
@@ -202,6 +276,15 @@ def validate_shapes_payload(payload: dict[str, Any]) -> list[str]:
             _validate_boost(str(sid or index), shape["boost"], simple_ids, errors)
         if "context_exempt" in shape and not isinstance(shape["context_exempt"], bool):
             errors.append(f"{sid or index}: context_exempt must be a boolean")
+        install_with = shape.get("install_with", [])
+        if (
+            not isinstance(install_with, list)
+            or any(not isinstance(item, str) or not item for item in install_with)
+            or len(install_with) != len(set(install_with))
+        ):
+            errors.append(
+                f"{sid or index}: install_with must be a unique list of non-empty skill names"
+            )
         cues = shape.get("cues")
         if not isinstance(cues, dict):
             errors.append(f"{sid or index}: cues must be a mapping")
@@ -214,7 +297,7 @@ def validate_shapes_payload(payload: dict[str, Any]) -> list[str]:
 
 
 def load_shapes(path: Path = DEFAULT_SHAPES) -> list[dict[str, Any]]:
-    payload = _load_yaml(path)
+    payload = _load_registry(path)
     errors = validate_shapes_payload(payload)
     if errors:
         raise ValueError("; ".join(errors))
@@ -222,20 +305,22 @@ def load_shapes(path: Path = DEFAULT_SHAPES) -> list[dict[str, Any]]:
 
 
 def project_context_state(project_root: Path) -> dict[str, Any]:
-    project_dir = _eh.project_dir(project_root)
+    project_dir = project_root / ".engineering" / "project"
     adapter = project_dir / "adapter.yml"
     profile = project_dir / "profile.yml"
     open_questions = project_dir / "open-questions.md"
-    profile_payload: dict[str, Any] = {}
+    user_approved = False
     if profile.is_file():
         try:
-            data = yaml.safe_load(profile.read_text(encoding="utf-8"))
-            if isinstance(data, dict):
-                profile_payload = data
-        except (OSError, UnicodeDecodeError, yaml.YAMLError):
-            profile_payload = {}
-
-    user_approved = bool(profile_payload.get("user_approved"))
+            profile_text = profile.read_text(encoding="utf-8")
+            user_approved = bool(
+                re.search(
+                    r"(?im)^\s*user_approved\s*:\s*(true|yes|on)\s*(?:#.*)?$",
+                    profile_text,
+                )
+            )
+        except (OSError, UnicodeDecodeError):
+            user_approved = False
     if adapter.is_file() and profile.is_file() and user_approved:
         state = "complete"
     elif adapter.is_file() or profile.is_file() or open_questions.is_file():
@@ -357,114 +442,26 @@ def _score_shape(
     return score, rationale or ["fallback shape candidate"]
 
 
-def _activation_steps(
+def _inactive_steps(
     first_next: str, sequence: list[str], project_root: Path, skills_dir: Path
-) -> list[dict[str, Any]]:
-    """Canonical decisions for every concrete skill step in a shape.
+) -> list[dict[str, str]]:
+    """Concrete skill steps in a shape that the host has opted out of.
 
     Scans the recommended loop's text for `/skill-name` references, keeps only
-    those that name a real skill, and projects the shared profile-derived
-    activation decision. Generic placeholders like `/find-*` are ignored.
+    those that name a real skill (a `<skills_dir>/<name>/SKILL.md` exists) and
+    are inactive for this repo, and returns each with its recorded reason.
+    Generic placeholders like `/find-*` resolve to no skill and are ignored.
     """
-    decisions = decide_catalog_activation(
-        load_skill_metadata(skills_dir),
-        project_root=project_root,
-    )
-    out: list[dict[str, Any]] = []
-    seen: set[str] = set()
+    out: dict[str, str] = {}
     for part in [first_next, *sequence]:
         for name in SKILL_TOKEN_RE.findall(part):
-            if name in seen:
+            if name in out:
                 continue
-            decision = decisions.get(name)
-            if decision is None:
+            if not (skills_dir / name / "SKILL.md").is_file():
                 continue
-            seen.add(name)
-            out.append(decision.as_dict())
-    return out
-
-
-def _inactive_steps(steps: list[dict[str, Any]]) -> list[dict[str, str]]:
-    """Backward-compatible inactive projection with a concise display reason."""
-    out: list[dict[str, str]] = []
-    prefix = "host activation manifest opt-out: "
-    for step in steps:
-        if step["active"]:
-            continue
-        reasons = list(step["exclusion_reasons"])
-        reason = "; ".join(reasons)
-        if len(reasons) == 1 and reason.startswith(prefix):
-            reason = reason.removeprefix(prefix)
-        out.append({"skill": str(step["skill"]), "reason": reason})
-    return out
-
-
-def _whole_codebase_perimeter(
-    shape_id: str,
-    project_root: Path,
-    skills_dir: Path,
-) -> dict[str, Any] | None:
-    """Run the mandatory perimeter preflight for the whole-codebase route."""
-    if shape_id != "health-audit":
-        return None
-    profile_path = _eh.project_dir(project_root) / "host-profile.json"
-    if not profile_path.is_file():
-        return {
-            "status": "incomplete_coverage",
-            "invoked": False,
-            "reason": "canonical host profile is missing; whole-codebase coverage cannot be concluded",
-            "gaps": [],
-            "accepted_exclusions": [],
-        }
-    scanner = (
-        REPO_ROOT
-        / ".claude"
-        / "skills"
-        / "find-perimeter-gaps"
-        / "scripts"
-        / "scan.py"
-    )
-    with tempfile.TemporaryDirectory(prefix="which-shape-perimeter-") as directory:
-        output = Path(directory) / "perimeter.json"
-        result = subprocess.run(
-            [
-                sys.executable,
-                str(scanner),
-                "--project-root",
-                str(project_root),
-                "--skills-root",
-                str(skills_dir),
-                "--host-profile",
-                str(profile_path),
-                "--output",
-                str(output),
-                "--fail-on-gap",
-            ],
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        try:
-            payload = json.loads(output.read_text(encoding="utf-8"))
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-            return {
-                "status": "error",
-                "invoked": True,
-                "exit_code": result.returncode,
-                "reason": result.stderr.strip() or "perimeter audit produced no valid report",
-                "gaps": [],
-                "accepted_exclusions": [],
-            }
-    gaps = payload.get("gaps", [])
-    return {
-        "status": "covered" if result.returncode == 0 and not gaps else "incomplete_coverage",
-        "invoked": True,
-        "exit_code": result.returncode,
-        "coverage_mode": payload.get("coverage_mode"),
-        "host_profile_sha256": payload.get("host_profile_sha256"),
-        "gaps": gaps,
-        "accepted_exclusions": payload.get("accepted_exclusions", []),
-    }
+            if not _is_skill_active(project_root, name):
+                out[name] = _inactive_reason(project_root, name) or ""
+    return [{"skill": name, "reason": reason} for name, reason in out.items()]
 
 
 # spec:status-projection-and-presentation::IM-9
@@ -486,10 +483,11 @@ def load_status_signals(project_root: Path, status_path: Path | None = None) -> 
         generated_at = datetime.fromisoformat(doc["generated_at"])
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
         return []  # noqa: silent-catch: malformed projection = no grounding, never an error (degrade-silently contract)
+    project_dir = project_root / ".engineering" / "project"
     live_sources = [
-        _eh.project_dir(project_root) / "adapter.yml",
-        _eh.project_dir(project_root) / "profile.yml",
-        _eh.project_dir(project_root) / "open-questions.md",
+        project_dir / "adapter.yml",
+        project_dir / "profile.yml",
+        project_dir / "open-questions.md",
         project_root / ".engineering" / "project-state.json",
     ]
     for source in live_sources:
@@ -534,7 +532,9 @@ def route(
         raise ValueError("empty situation description")
     shapes = load_shapes(shapes_path)
     context = project_context_state(project_root)
-    task_tokens = tokenize(task)
+    first_phase = _first_ordered_phase(task)
+    scoring_task = first_phase or task
+    task_tokens = tokenize(scoring_task)
     shapes_by_id = {str(shape["id"]): shape for shape in shapes}
     narrow_cues = narrow_cue_union(shapes)
     ranked: list[tuple[int, dict[str, Any], list[str]]] = []
@@ -545,24 +545,9 @@ def route(
 
     score, winner, rationale = ranked[0]
     confidence = "high" if score >= 40 else "medium" if score >= 24 else "low"
-    activation_error: str | None = None
-    try:
-        activation_steps = _activation_steps(
-            winner["first_next"], winner["sequence"], project_root, skills_dir
-        )
-    except ActivationError as exc:
-        activation_steps = []
-        activation_error = str(exc)
+    if first_phase is not None:
         rationale = [
-            "skill activation is incomplete because the host profile is invalid",
-            *rationale,
-        ]
-    perimeter = _whole_codebase_perimeter(
-        str(winner["id"]), project_root, skills_dir
-    )
-    if perimeter and perimeter["status"] != "covered":
-        rationale = [
-            "whole-codebase perimeter is incomplete; no complete health conclusion is available",
+            f"explicit first phase routed before later phases: {first_phase}",
             *rationale,
         ]
     recommendation = {
@@ -575,12 +560,12 @@ def route(
         "sequence": winner["sequence"],
         "stop": winner["stop"],
         "rationale": rationale + load_status_signals(project_root, status_path),
-        "activation_steps": activation_steps,
-        "inactive_steps": _inactive_steps(activation_steps),
-        "perimeter_audit": perimeter,
+        "inactive_steps": _inactive_steps(
+            winner["first_next"], winner["sequence"], project_root, skills_dir
+        ),
     }
-    if activation_error is not None:
-        recommendation["activation_error"] = activation_error
+    if winner.get("install_with"):
+        recommendation["install_with"] = list(winner["install_with"])
     alternatives = [
         {
             "shape": shape["id"],
@@ -590,11 +575,234 @@ def route(
         }
         for alt_score, shape, _ in ranked[1:4]
     ]
-    return {
+    result = {
         "task": task,
         "project_context": context,
         "recommendation": recommendation,
         "alternatives": alternatives,
+    }
+    if first_phase is not None:
+        result["routing_scope"] = {
+            "mode": "first_ordered_phase",
+            "text": first_phase,
+        }
+    return result
+
+
+def _skill_handoff(result: dict[str, Any], *, source: str, version: str, agent: str) -> dict | None:
+    rec = result["recommendation"]
+    match = SKILL_TOKEN_RE.search(rec["first_next"])
+    if match is None:
+        return None
+    if match.end() < len(rec["first_next"]) and rec["first_next"][match.end()] in "-*":
+        return None
+    skill = match.group(1)
+    skills = [skill, *rec.get("install_with", [])]
+    command = [
+        "npx", "--yes", f"skills@{version}", "add", source,
+    ]
+    for selected_skill in skills:
+        command.extend(["--skill", selected_skill])
+    command.extend(["--agent", agent, "--copy", "-y"])
+    return {
+        "skill": skill,
+        "skills": skills,
+        "source": source,
+        "skills_cli_version": version,
+        "agent": agent,
+        "command": "DO_NOT_TRACK=1 " + shlex.join(command),
+    }
+
+
+def _library_handoff(library_root: Path, skills: list[str]) -> dict[str, Any]:
+    guides = []
+    for skill in skills:
+        guide = library_root / ".claude" / "skills" / skill / "SKILL.md"
+        bundled_tooling = guide.parent / "scripts"
+        guides.append(
+            {
+                "skill": skill,
+                "skill_root": str(guide.parent),
+                "guide": str(guide),
+                "bundled_tooling": str(bundled_tooling) if bundled_tooling.is_dir() else None,
+            }
+        )
+    shared_tooling = library_root / "scripts"
+    source_inventory = shared_tooling / "source_inventory.py"
+    common_guidance = library_root / ".claude" / "skills" / "_common"
+    shared_guidance = library_root / ".claude" / "docs"
+    return {
+        "mode": "on_demand_library",
+        "available": all(Path(item["guide"]).is_file() for item in guides),
+        "default_execution": "fresh_non_context_subagent",
+        "library_root": str(library_root),
+        "skills": skills,
+        "guides": guides,
+        "shared_tooling": str(shared_tooling) if shared_tooling.is_dir() else None,
+        "source_inventory_tool": str(source_inventory) if source_inventory.is_file() else None,
+        "common_guidance": str(common_guidance) if common_guidance.is_dir() else None,
+        "shared_guidance": str(shared_guidance) if shared_guidance.is_dir() else None,
+        "capabilities": _capability_handoff(library_root, skills),
+        "instruction": (
+            "For non-trivial work, give a fresh non-context sub-agent the task, project root, "
+            "selected skill roots, and shared guidance/tool paths. For small work, read from "
+            "the same bounded roots directly. Do not install the skills unless the user "
+            "explicitly asks."
+        ),
+    }
+
+
+def _apply_task_capability_gate(handoff: dict[str, Any], task: str) -> None:
+    """Make filesystem presence subordinate to declared task eligibility."""
+    capabilities = handoff["capabilities"]
+    if not capabilities.get("available"):
+        return
+    languages = _named_languages(task)
+    blocked: list[dict[str, str]] = []
+    for row in capabilities["skills"]:
+        for language in languages:
+            if language == "typescript":
+                disposition = row["typescript_disposition"]
+                eligible = disposition in {"typescript-supported", "validated-neutral"}
+            elif language == "javascript":
+                disposition = row["javascript_disposition"]
+                eligible = disposition in {"javascript-supported", "validated-neutral"}
+            elif language == "go":
+                disposition = row["go_disposition"]
+                eligible = disposition in {"go-supported", "validated-neutral"}
+            elif language == "java":
+                disposition = row["java_disposition"]
+                eligible = disposition in {"java-supported", "validated-neutral"}
+            elif language == "python":
+                continue
+            else:
+                disposition = row["expansion_disposition"]
+                eligible = disposition != "framework-bound"
+            if not eligible:
+                blocked.append({
+                    "skill": row["skill"],
+                    "language": language,
+                    "disposition": disposition,
+                })
+    if not blocked:
+        return
+    handoff["available"] = False
+    if all(
+        item["disposition"] in {"framework-bound", "stack-bound"}
+        for item in blocked
+    ):
+        handoff["reason"] = "selected_skill_stack_bound_for_language"
+    else:
+        handoff["reason"] = "selected_skill_not_validated_for_language"
+    handoff["blocked"] = blocked
+    handoff["instruction"] = (
+        "Do not execute the selected skill for the named language. Choose a "
+        "supported tactical path or generalize and validate the skill first."
+    )
+
+
+CAPABILITY_FIELDS = (
+    "skill",
+    "expansion_disposition",
+    "typescript_disposition",
+    "javascript_disposition",
+    "go_disposition",
+    "java_disposition",
+    "fact_level",
+    "outcome_class",
+    "framework_family",
+)
+
+
+def _capability_handoff(library_root: Path, skills: list[str]) -> dict[str, Any]:
+    manifest = library_root / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
+    unavailable: dict[str, Any] = {
+        "available": False,
+        "manifest": str(manifest),
+        "skills": [],
+    }
+    if not manifest.is_file():
+        return {**unavailable, "reason": "manifest_missing"}
+    try:
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict) or payload.get("schema_version") != 2:
+            raise TypeError("unsupported capability manifest schema")
+        rows = payload["skills"]
+        if not isinstance(rows, list):
+            raise TypeError("skills must be a list")
+        by_name = {}
+        for row in rows:
+            if not isinstance(row, dict) or not isinstance(row.get("skill"), str):
+                raise TypeError("capability row must have a skill name")
+            name = row["skill"]
+            if not name or name in by_name:
+                raise TypeError("capability skill names must be unique and non-empty")
+            by_name[name] = row
+        selected = []
+        for skill in skills:
+            row = by_name[skill]
+            if any(field not in row for field in CAPABILITY_FIELDS):
+                raise KeyError("selected capability row is incomplete")
+            if any(
+                not isinstance(row[field], str) or not row[field]
+                for field in CAPABILITY_FIELDS
+                if field != "framework_family"
+            ) or not (
+                row["framework_family"] is None
+                or isinstance(row["framework_family"], str)
+            ):
+                raise TypeError("selected capability fields are invalid")
+            closure = row["on_demand_closure"]["closure_skills"]
+            install_status = row["optional_install"]["status"]
+            if (
+                not isinstance(closure, list)
+                or not closure
+                or closure[0] != skill
+                or len(closure) != len(set(closure))
+                or any(not isinstance(member, str) or not member for member in closure)
+                or any(member not in by_name for member in closure)
+                or not isinstance(install_status, str)
+            ):
+                raise TypeError("selected capability closure is invalid")
+            selected.append(
+                {
+                    **{field: row[field] for field in CAPABILITY_FIELDS},
+                    "closure_skills": closure,
+                    "optional_install_status": install_status,
+                }
+            )
+        if selected and selected[0]["closure_skills"] != skills:
+            raise TypeError("router handoff does not match the declared closure")
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError):
+        return {**unavailable, "reason": "manifest_invalid_or_incomplete"}
+    return {"available": True, "manifest": str(manifest), "skills": selected}
+
+
+def _validated_optional_install(handoff: dict, capabilities: dict) -> dict:
+    result = {key: value for key, value in handoff.items() if key != "command"}
+    if not capabilities["available"]:
+        return {
+            **result,
+            "available": False,
+            "reason": capabilities["reason"],
+            "evidence": [],
+        }
+    evidence = [
+        {"skill": row["skill"], "status": row["optional_install_status"]}
+        for row in capabilities["skills"]
+    ]
+    if any(row["status"] != "passed" for row in evidence):
+        return {
+            **result,
+            "available": False,
+            "reason": "selected_skill_install_not_validated",
+            "evidence": evidence,
+        }
+    return {
+        **result,
+        "available": True,
+        "evidence": evidence,
+        "command": handoff["command"],
     }
 
 
@@ -609,23 +817,49 @@ def render_markdown(result: dict[str, Any]) -> str:
         "",
         f"Recommended shape: {rec['title']} (`{rec['shape']}`)",
         f"Confidence: {rec['confidence']} (score={rec['score']})",
+        "",
+        "Why:",
     ]
-    perimeter = rec.get("perimeter_audit")
-    if perimeter is not None:
-        lines.extend(
-            [
-                "",
-                f"Perimeter preflight: {perimeter['status']} "
-                f"(invoked={perimeter['invoked']}, gaps={len(perimeter['gaps'])})",
-            ]
-        )
-        if perimeter.get("reason"):
-            lines.append(f"Perimeter reason: {perimeter['reason']}")
-    lines.extend(["", "Why:"])
     lines.extend(f"- {line}" for line in rec["rationale"])
     lines.extend(["", f"First next: {rec['first_next']}", "", "Loop:"])
     lines.extend(f"- {step}" for step in rec["sequence"])
     lines.extend(["", f"Stop/reassess: {rec['stop']}"])
+    if result.get("handoff"):
+        lines.extend(["", "Use this closure on demand:"])
+        for item in result["handoff"]["guides"]:
+            lines.append(f"  Guide /{item['skill']}: {item['guide']}")
+            lines.append(f"  Skill root /{item['skill']}: {item['skill_root']}")
+            if item["bundled_tooling"]:
+                lines.append(f"  Bundled tooling /{item['skill']}: {item['bundled_tooling']}")
+        lines.append(f"  Default: {result['handoff']['default_execution']}")
+        if result["handoff"]["common_guidance"]:
+            lines.append(f"  Shared skill guidance: {result['handoff']['common_guidance']}")
+        if result["handoff"]["shared_tooling"]:
+            lines.append(f"  Shared tooling: {result['handoff']['shared_tooling']}")
+        if not result["handoff"]["available"]:
+            if result["handoff"].get("reason") in {
+                "selected_skill_stack_bound_for_language",
+                "selected_skill_not_validated_for_language",
+            }:
+                blocked = ", ".join(
+                    f"/{item['skill']} for {item['language']} ({item['disposition']})"
+                    for item in result["handoff"]["blocked"]
+                )
+                lines.append(f"  Handoff blocked by declared capability: {blocked}.")
+            else:
+                lines.append("  Library unavailable: run the which-skill library bootstrap first.")
+        if result["optional_install"]["available"]:
+            lines.extend(
+                [
+                    "  Optional ambient install (only when explicitly requested):",
+                    f"    {result['optional_install']['command']}",
+                ]
+            )
+        else:
+            lines.append(
+                "  Optional ambient install unavailable: "
+                f"{result['optional_install']['reason']}"
+            )
     if rec.get("inactive_steps"):
         lines.extend(["", "Inactive here (skipped for this repo):"])
         for step in rec["inactive_steps"]:
@@ -647,20 +881,23 @@ def log_recommendation(
     human_override: str | None,
 ) -> None:
     rec = result["recommendation"]
-    log_event(
-        skill="which-shape",
-        target=result["task"],
-        artifact=None,
-        elapsed_s=elapsed_s,
-        outcome=outcome,
-        human_override=human_override,
-        event_kind="recommendation",
-        log_path=log_path,
-        shape=rec["shape"],
-        confidence=rec["confidence"],
-        project_context_state=result["project_context"]["state"],
-        recommended_first_skill=rec["first_next"],
-    )
+    if log_path is None:
+        return
+    _append_event(log_path, {
+        "ts": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "skill": "which-shape",
+        "event_kind": "recommendation",
+        "target": result["task"],
+        "artifact": None,
+        "outcome": outcome,
+        "human_override": human_override,
+        "duration_s": round(elapsed_s, 3),
+        "follow_up_skill": None,
+        "shape": rec["shape"],
+        "confidence": rec["confidence"],
+        "project_context_state": result["project_context"]["state"],
+        "recommended_first_skill": rec["first_next"],
+    })
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -670,12 +907,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
     parser.add_argument("--shapes", type=Path, default=DEFAULT_SHAPES)
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--source", default=DEFAULT_SOURCE)
+    parser.add_argument(
+        "--library-root", type=Path,
+        help="On-demand library root (default: <project-parent>/.engineering-skills/<project-name>)",
+    )
+    parser.add_argument("--skills-cli-version", default=DEFAULT_CLI_VERSION)
+    parser.add_argument("--agent", default="codex")
     parser.add_argument(
         "--status", type=Path, default=None,
         help="status.json override (default: <project-root>/.engineering/local/status.json; "
              "absent file = ungrounded run, byte-identical output).",
     )
-    parser.add_argument("--validate", action="store_true", help="Validate shapes.yml and exit.")
+    parser.add_argument("--validate", action="store_true", help="Validate shapes.json and exit.")
     parser.add_argument("--skip-log", action="store_true")
     parser.add_argument("--log", type=Path, default=None, help="Override skill-use log path.")
     parser.add_argument(
@@ -694,6 +938,33 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         task = " ".join(args.task).strip()
         result = route(task, args.project_root.resolve(), args.shapes, status_path=args.status)
+        handoff = _skill_handoff(
+            result,
+            source=args.source,
+            version=args.skills_cli_version,
+            agent=args.agent,
+        )
+        if handoff is not None:
+            project_root = args.project_root.resolve()
+            library_root = (
+                args.library_root
+                or project_root.parent / ".engineering-skills" / project_root.name
+            )
+            if not library_root.is_absolute():
+                library_root = project_root / library_root
+            result["handoff"] = _library_handoff(library_root.resolve(), handoff["skills"])
+            capability_task = result.get("routing_scope", {}).get("text", task)
+            _apply_task_capability_gate(result["handoff"], capability_task)
+            result["optional_install"] = _validated_optional_install(
+                handoff, result["handoff"]["capabilities"]
+            )
+            if result["handoff"].get("reason") in {
+                "selected_skill_stack_bound_for_language",
+                "selected_skill_not_validated_for_language",
+            }:
+                result["optional_install"].pop("command", None)
+                result["optional_install"]["available"] = False
+                result["optional_install"]["reason"] = result["handoff"]["reason"]
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -702,7 +973,7 @@ def main(argv: list[str] | None = None) -> int:
         log_recommendation(
             result,
             elapsed_s=time.monotonic() - start,
-            log_path=args.log,
+            log_path=args.log or args.project_root / ".claude" / "skill-use" / "log.jsonl",
             outcome=args.outcome,
             human_override=args.human_override,
         )
@@ -710,8 +981,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, indent=2, sort_keys=True))
     else:
         print(render_markdown(result), end="")
-    perimeter = result["recommendation"].get("perimeter_audit")
-    return 1 if perimeter is not None and perimeter["status"] != "covered" else 0
+    return 0
 
 
 if __name__ == "__main__":

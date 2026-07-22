@@ -3,13 +3,14 @@ schema_version: 2
 skill: unify-shadows
 job: explain
 problem_class: semantic-duplication resolution proposal (EXPLAIN/bridge)
-intent: Turn a confirmed /find-semantic-duplication finding into an implementation-ready proposal. Consumes
-  a finding shaped as keep_separate_document_why | share_utilities | complete_migration | merge_at_workflow
-  and emits a proposal with migration plan, caller impact, test matrix, and stop condition. Hands off
-  to /fix-workflow semantic:<id>.
-solves: A detected semantic duplicate (two independently-written, both-live workflows solving the same
-  problem) is not directly actionable — someone has to decide the merge shape and map caller impact before
-  any code moves. This skill is the EXPLAIN-to-REFACTOR bridge for that decision.
+intent: Turn one confirmed /find-semantic-duplication finding into an evidence-cited, read-only proposal.
+  Python retains its profile-scout path. TypeScript consumes the accepted structured function finding,
+  validates it before synthesis, applies one honest template for keep_separate_document_why | share_utilities
+  | complete_migration | merge_at_workflow, and emits proposal/evidence/scope artifacts with source/caller
+  impact, native test matrix, stop condition, human approval, and /fix-workflow semantic:<id> handoff.
+solves: A confirmed semantic duplicate is still only advisory evidence. Before source changes, a human needs
+  one bounded proposal that respects the upstream shape, cites current members and capability facts, exposes
+  incomplete caller evidence, and states exactly what verification and approval gate the downstream change.
 born:
   commit: 90f8567
   date: '2026-05-15'
@@ -71,13 +72,16 @@ born:
 dogfood_kind: host-attested
 dogfooded_on:
 - "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 2 effectiveness records, 0 scan dirs, learnings_file=false, 2026-04-19..2026-04-19."
-- none-found (extracted big-bang in 90f8567). Has scanner/agent machinery but no fixtures and no reports/unify-shadows
-  run dir on disk in ES2 — the host-a SC-3/SC-7 dogfood proposals are host-a history, not ES2's.
+- "2026-07-19 locked TypeScript structured finding: all four shape templates, exact selected-skill copy,
+  native typecheck/test, containment, source immutability, and invalid-input abstentions passed."
+- "2026-07-19 fresh installed TypeScript forward proposal: share_utilities proposal cited both source spans
+  and four capability rows, preserved entry points, required human approval, passed native checks, rejected
+  a missing finding before writes, and left source hashes unchanged."
 reports_dir: none
 run_evidence:
-  count: 0
-  first: null
-  latest: null
+  count: 2
+  first: 2026-07-19-typescript-locked-replay
+  latest: 2026-07-19-typescript-forward
 embodies_decisions:
   adr: []
   precedent:
@@ -93,8 +97,8 @@ related_skills:
 duplication_risk:
 - with: find-semantic-duplication
   relation: sequential
-  disambiguator: 'unify-shadows `not_for`: ''Detection of semantic duplication (use /find-semantic-duplication)''
-    — find-* detects, unify-shadows proposes the resolution, fix-workflow executes. No overlap.'
+  disambiguator: 'Raw candidate detection belongs to /find-semantic-duplication; unify-shadows consumes one
+    confirmed structured finding and proposes the resolution; fix-workflow executes. No overlap.'
 - with: find-duplication
   relation: sibling-different-layer
   disambiguator: 'unify-shadows `not_for`: ''Lexical near-clones (use /find-duplication then /fix-workflow)''.
@@ -115,11 +119,15 @@ evidence:
   the big-bang subject does not name this skill, textual weak)
 - precedents.yml entry explain-job-is-read-only-proposal.v1 names unify-shadows as a transform-named,
   correctly job=explain proposer (proposes the resolution, REFACTOR executes it)
-- has scanner/agent machinery (shadow profiler) but no fixtures pair and no reports/unify-shadows dir
-  on disk in ES2 (structural med, run_evidence 0)
+- has scanner/agent machinery for Python and a locked structured TypeScript fixture plus final-artifact
+  acceptance suite; ES2 still commits no generated reports/unify-shadows run directory.
+- tests/test_unify_shadows_typescript.py proves the accepted structured TypeScript handoff, all four honest
+  proposal shapes, unknown-caller handling, copied scope fallback, stock selected-skill closure, native
+  typecheck/test, source immutability, safe output containment, and pre-synthesis failure for invalid inputs.
 gaps:
-- The host-a contract recorded dogfood_kind subsystem-refactor (SC-3 and SC-7 dogfood proposals shipped
-  in the birth commit); that is host-a history. ES2 has no on-disk reports/unify-shadows run, so ES2's honest
-  dogfood_kind is none-found.
+- The host-a SC-3 and SC-7 proposals are host history rather than ES2 artifacts. ES2's first local replay is
+  the locked TypeScript fixture/test journey; generated reports remain uncommitted by design.
 - No ADR in ai-docs/decisions/ names unify-shadows; embodies_decisions.adr [], corroboration via architectural-smells.md
   + the precedents.yml proposer-job entry.
+- TypeScript v1 consumes static function-level evidence only. It cannot supply full project caller locations,
+  runtime/framework semantics, a canonical survivor, or workflow authority; each remains an explicit human gate.

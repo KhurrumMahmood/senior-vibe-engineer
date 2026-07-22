@@ -1,13 +1,8 @@
 from __future__ import annotations
 
-import hashlib
 import importlib.util
 import json
 from pathlib import Path
-
-import yaml
-
-from _lib.host_profile import profile_host
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ROUTE_PATH = REPO_ROOT / ".claude" / "skills" / "which-shape" / "scripts" / "route.py"
@@ -32,13 +27,6 @@ def _shape_for(task: str, project_root: Path) -> str:
     return route.route(task, project_root)["recommendation"]["shape"]
 
 
-def _rehash_profile(profile: dict) -> None:
-    unhashed = dict(profile)
-    unhashed.pop("profile_sha256", None)
-    encoded = json.dumps(unhashed, sort_keys=True, separators=(",", ":")).encode()
-    profile["profile_sha256"] = hashlib.sha256(encoded).hexdigest()
-
-
 def test_unknown_inherited_repo_routes_to_project_intake(tmp_path):
     assert _shape_for("onboard an unknown inherited repo and figure out what loop to run", tmp_path) == "project-intake"
 
@@ -53,66 +41,6 @@ def test_messy_slow_cleanup_routes_to_legacy_stabilization(tmp_path):
 
 def test_broad_audit_routes_to_health_audit(tmp_path):
     assert _shape_for("what should we audit for a broad health sweep", tmp_path) == "health-audit"
-
-
-def test_whole_codebase_route_reports_incomplete_before_profile_exists(tmp_path):
-    result = route.route("audit the whole codebase with a broad health sweep", tmp_path)
-
-    perimeter = result["recommendation"]["perimeter_audit"]
-    assert perimeter["status"] == "incomplete_coverage"
-    assert perimeter["invoked"] is False
-    assert result["recommendation"]["rationale"][0].startswith(
-        "whole-codebase perimeter is incomplete"
-    )
-
-
-def test_whole_codebase_route_invokes_perimeter_and_withholds_clean_conclusion(tmp_path):
-    (tmp_path / "package.json").write_text('{"devDependencies":{"typescript":"5.9.3"}}')
-    (tmp_path / "tsconfig.json").write_text("{}\n")
-    (tmp_path / "src").mkdir()
-    (tmp_path / "src" / "large.ts").write_text("export const value = 1;\n" * 3200)
-    profile_path = tmp_path / ".engineering" / "project" / "host-profile.json"
-    profile_path.parent.mkdir(parents=True)
-    profile_path.write_text(json.dumps(profile_host(tmp_path)), encoding="utf-8")
-    empty_skills = tmp_path / "empty-skills"
-    empty_skills.mkdir()
-
-    result = route.route(
-        "audit the whole codebase with a broad health sweep",
-        tmp_path,
-        skills_dir=empty_skills,
-    )
-
-    perimeter = result["recommendation"]["perimeter_audit"]
-    assert perimeter["invoked"] is True
-    assert perimeter["exit_code"] == 1
-    assert perimeter["status"] == "incomplete_coverage"
-    assert perimeter["coverage_mode"] == "executable-evidence"
-    assert perimeter["gaps"][0]["language"] == "typescript"
-
-
-def test_whole_codebase_route_rejects_rehashed_malformed_profile(tmp_path):
-    (tmp_path / "package.json").write_text('{"devDependencies":{"typescript":"5.9.3"}}')
-    (tmp_path / "tsconfig.json").write_text("{}\n")
-    (tmp_path / "src").mkdir()
-    (tmp_path / "src" / "large.ts").write_text("export const value = 1;\n" * 3200)
-    profile = profile_host(tmp_path)
-    profile["roots"][0]["commands"]["test"] = "npm test"
-    _rehash_profile(profile)
-    profile_path = tmp_path / ".engineering" / "project" / "host-profile.json"
-    profile_path.parent.mkdir(parents=True)
-    profile_path.write_text(json.dumps(profile), encoding="utf-8")
-
-    result = route.route("audit the whole codebase with a broad health sweep", tmp_path)
-
-    perimeter = result["recommendation"]["perimeter_audit"]
-    assert perimeter["invoked"] is True
-    assert perimeter["exit_code"] == 2
-    assert perimeter["status"] == "error"
-    assert "invalid host profile" in result["recommendation"]["activation_error"]
-    assert result["recommendation"]["rationale"][0].startswith(
-        "whole-codebase perimeter is incomplete"
-    )
 
 
 def test_repeated_failure_routes_to_regression_prevention(tmp_path):
@@ -135,6 +63,48 @@ def test_project_structure_routes_to_project_structure_not_path_move(tmp_path):
     assert _shape_for("make the repo top-level folder structure more intuitive", tmp_path) == "project-structure"
 
 
+def test_path_move_routes_to_stdlib_json_plan(tmp_path):
+    result = route.route("move src/old.ts to src/new.ts and update path references", tmp_path)
+
+    assert result["recommendation"]["shape"] == "path-move"
+    assert all("moves.json" in step for step in result["recommendation"]["sequence"] if "/move-path" in step)
+    assert all("moves.yml" not in step for step in result["recommendation"]["sequence"])
+
+
+def test_checked_javascript_move_beats_missing_project_intake(tmp_path):
+    task = (
+        "Move src/old.js to lib/new.js, update every safe affected JavaScript "
+        "import and the checked-project configuration, and verify the project "
+        "still works. Keep unrelated TypeScript source unchanged."
+    )
+
+    assert _shape_for(task, tmp_path) == "path-move"
+
+
+def test_boundary_proposal_beats_inherited_project_intake(tmp_path):
+    task = (
+        "This inherited mixed JavaScript/TypeScript project has several concerns "
+        "under src/boundary. Propose a maintainable module boundary for that target, "
+        "including public API, caller impact, compatibility plan, and verification "
+        "plan. Do not modify source."
+    )
+
+    result = route.route(task, tmp_path)
+
+    assert result["recommendation"]["shape"] == "boundary-proposal"
+    assert result["recommendation"]["first_next"] == "/propose-boundary"
+
+
+def test_non_boundary_plans_do_not_route_to_boundary_proposal(tmp_path):
+    tasks = (
+        "propose a database migration plan for the users table",
+        "write a compatibility plan for upgrading the API",
+    )
+
+    for task in tasks:
+        assert _shape_for(task, tmp_path) != "boundary-proposal"
+
+
 def test_task_closeout_strong_cues_route_to_task_closeout(tmp_path):
     assert _shape_for("the work is finished; run a closeout cleanup over the changed files", tmp_path) == "task-closeout"
 
@@ -145,13 +115,13 @@ def test_which_skill_failure_examples_route_to_shapes(tmp_path):
 
 
 def test_shapes_registry_schema_is_valid():
-    payload = yaml.safe_load((ROUTE_PATH.parents[1] / "shapes.yml").read_text(encoding="utf-8"))
+    payload = json.loads((ROUTE_PATH.parents[1] / "shapes.json").read_text(encoding="utf-8"))
     assert route.validate_shapes_payload(payload) == []
     assert len({shape["id"] for shape in payload["shapes"]}) == len(payload["shapes"])
 
 
 def _registry_payload() -> dict:
-    return yaml.safe_load((ROUTE_PATH.parents[1] / "shapes.yml").read_text(encoding="utf-8"))
+    return json.loads((ROUTE_PATH.parents[1] / "shapes.json").read_text(encoding="utf-8"))
 
 
 def test_validate_passes_on_real_registry(capsys):
@@ -177,8 +147,8 @@ def _mystery_shape(**overrides) -> dict:
 def _validate_registry_with(tmp_path, shape: dict) -> tuple[int, str]:
     payload = _registry_payload()
     payload["shapes"].append(shape)
-    shapes_path = tmp_path / "shapes.yml"
-    shapes_path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+    shapes_path = tmp_path / "shapes.json"
+    shapes_path.write_text(json.dumps(payload), encoding="utf-8")
     return route.main(["--validate", "--shapes", str(shapes_path)]), str(shapes_path)
 
 
@@ -266,7 +236,7 @@ def test_parity_battery_against_recorded_scores(tmp_path):
 
 def test_restored_boost_tokens_come_from_data(tmp_path):
     # The curated re-added tokens must trigger their shapes' boosts via
-    # shapes.yml, at boosted (>= medium) confidence — the routing-quality
+    # shapes.json, at boosted (>= medium) confidence — the routing-quality
     # regression the constant-sync narrowing introduced.
     rec = route.route("the app shows a crash on startup", tmp_path)["recommendation"]
     assert rec["shape"] == "bug-fix"
@@ -390,6 +360,22 @@ def test_render_markdown_surfaces_inactive_steps(tmp_path):
     assert "Inactive here" in md
     assert "/project-interview" in md
     assert "no interview step here" in md
+
+
+def test_default_text_handoff_lists_every_concept_rename_guide(tmp_path, capsys):
+    assert route.main([
+        "rename the domain concept across the glossary and all surfaces",
+        "--project-root", str(tmp_path),
+        "--library-root", str(REPO_ROOT),
+        "--skip-log",
+    ]) == 0
+
+    output = capsys.readouterr().out
+    assert f"Guide /rename-concept: {REPO_ROOT}/.claude/skills/rename-concept/SKILL.md" in output
+    assert (
+        f"Guide /find-concept-divergence: "
+        f"{REPO_ROOT}/.claude/skills/find-concept-divergence/SKILL.md"
+    ) in output
 
 
 # --- status.json grounding (spec IM-9, AR-5) ---------------------------------

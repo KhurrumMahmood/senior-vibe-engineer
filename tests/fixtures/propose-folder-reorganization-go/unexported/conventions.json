@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "rules": [
+    {
+      "parent": "internal/legacy",
+      "prefix": "billing",
+      "action": "allow_package_split",
+      "destination": "internal/legacy/billing",
+      "rationale": "Requested package boundary."
+    }
+  ]
+}

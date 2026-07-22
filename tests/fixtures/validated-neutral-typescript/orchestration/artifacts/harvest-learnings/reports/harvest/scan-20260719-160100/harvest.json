@@ -1,0 +1,99 @@
+{
+  "counts": {
+    "generative_only": 1,
+    "ported": 3,
+    "stayed_home": 1
+  },
+  "items": [
+    {
+      "activation": {
+        "baseline": true
+      },
+      "detector_hint": "manual",
+      "exemplar": {
+        "back_link": "adr:0001-entry-validation",
+        "host_stack": "TypeScript/webhook delivery",
+        "what_bit": "A retry worker accepted a payload after its transport signature had been discarded, so the failure could no longer be attributed at ingress."
+      },
+      "id": "harvest-validate-at-entry-boundary",
+      "origin_handle": "adr:0001-entry-validation",
+      "portability": {
+        "confidence": "single-constraint-set",
+        "translation_test": "Removing TypeScript, HTTP library details, and webhook vocabulary leaves the rule that externally supplied work must be authenticated and structurally validated before it crosses an internal trust boundary.",
+        "verdict": "ports"
+      },
+      "source": "extractive",
+      "statement": "Authenticate and structurally validate externally supplied work at the entry boundary before scheduling internal side effects."
+    },
+    {
+      "activation": {
+        "baseline": true
+      },
+      "detector_hint": "ast",
+      "exemplar": {
+        "back_link": "lint:no-inline-delivery-metric",
+        "host_stack": "TypeScript/Node operational metrics",
+        "what_bit": "Inline delivery metric strings drifted until the host routed naming through one exported owner and guarded callers with a Node lint."
+      },
+      "id": "harvest-centralize-contract-vocabulary",
+      "origin_handle": "lint:no-inline-delivery-metric",
+      "portability": {
+        "confidence": "single-constraint-set",
+        "translation_test": "The one-owner contract survives language and domain removal, while this regular expression, TypeScript path exclusion, and delivery namespace stay in the host.",
+        "verdict": "principle-ports-mechanism-stays"
+      },
+      "source": "extractive",
+      "statement": "Route shared operational vocabulary through one owned interface and guard callers against parallel literal definitions."
+    },
+    {
+      "exemplar": {
+        "back_link": "adr:0002-delivery-outcome-vocabulary",
+        "host_stack": "TypeScript/pilot partner reconciliation",
+        "what_bit": "Pilot reconciliation consumes exactly accepted, rejected, and retried under the delivery namespace."
+      },
+      "id": "harvest-pilot-delivery-vocabulary",
+      "origin_handle": "adr:0002-delivery-outcome-vocabulary",
+      "portability": {
+        "confidence": "single-constraint-set",
+        "translation_test": "The exact words and namespace lose meaning when the delivery domain and pilot partner contract are removed; only the already-separate general idea of owning vocabulary survives.",
+        "verdict": "stays-home"
+      },
+      "source": "extractive",
+      "statement": "Use accepted, rejected, and retried as the delivery outcome vocabulary."
+    },
+    {
+      "activation": {
+        "rungs": [
+          {
+            "cost": "cheap",
+            "min_maturity": "first-users",
+            "min_stakes": "internal",
+            "name": "bounded-retry"
+          },
+          {
+            "cost": "medium",
+            "min_maturity": "production",
+            "min_stakes": "external",
+            "name": "bounded-retry-with-alerting"
+          }
+        ]
+      },
+      "detector_hint": "manual",
+      "exemplar": {
+        "back_link": "known-issue:retry-attempt-cap",
+        "host_stack": "TypeScript/delivery worker",
+        "what_bit": "The nextAttempt function increments without a ceiling, so one poison delivery can consume unbounded worker attempts once dispatch is connected."
+      },
+      "id": "harvest-bound-retried-work",
+      "origin_handle": "known-issue:retry-attempt-cap",
+      "portability": {
+        "confidence": "single-constraint-set",
+        "translation_test": "Removing TypeScript, the worker implementation, and webhook delivery leaves a general resource-safety rule: automatically retried work needs an observable attempt or cost bound.",
+        "verdict": "ports"
+      },
+      "source": "generative",
+      "statement": "Put an observable attempt or cost bound on automatically retried work before it can consume unbounded resources."
+    }
+  ],
+  "scan_id": "scan-20260719-160100"
+}

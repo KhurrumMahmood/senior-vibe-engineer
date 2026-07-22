@@ -73,7 +73,6 @@ def test_cli_roundtrip(tmp_path, fixture_doc):
     assert (tmp_path / "status.html").is_file()
 
 
-# spec:status-projection-and-presentation::IM-10
 def test_browser_smoke_zero_console_errors_zero_network(tmp_path, fixture_doc):
     """Plan §2 criterion 4 — file://, headless Chromium, every section rendered."""
     sync_api = pytest.importorskip("playwright.sync_api")

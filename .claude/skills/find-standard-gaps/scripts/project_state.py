@@ -33,11 +33,12 @@ import json
 import sys
 from pathlib import Path
 
-# engineering_home lives in _common (.claude/skills/<skill>/scripts/ ->
-# .claude/skills/_common). It is the single resolver for the .engineering/
-# state home + its transitional legacy fallbacks (ADR 0021).
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
-import engineering_home as _home  # noqa: E402
+# The scanner bundles its narrow state-home resolver so an installed skill has
+# no dependency on the toolkit's sibling `_common` directory.
+_SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
+import engineering_home as _home
 
 # Ordinal ladders for >= comparison. Index = severity; a higher index
 # means "more mature" / "higher stakes". These are the canonical orders

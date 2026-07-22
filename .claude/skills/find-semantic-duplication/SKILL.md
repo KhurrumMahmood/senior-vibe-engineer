@@ -1,22 +1,24 @@
 ---
 name: find-semantic-duplication
-description: Detect semantic duplication — independently-written, both-live workflows or functions that solve the same problem with different code. Builds an inventory + call graph via semantic_inventory.py, fans out summarizing/comparing/confirming scouts, collapses multi-way clusters, and produces a ranked triage report with capability matrices. Hands off to `/fix-workflow` for execution.
-argument-hint: "--target <directory>"
+description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, and Java function-level leads using host-native semantic facts. Compiler branches report bounded static candidates with capability matrices; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.
+argument-hint: "--target <directory> [--language python|typescript|javascript|go|java]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
 best_for: |
-  Two independently-written functions or workflows that solve the same
-  problem with different code shape — both live, both maintained.
-  Builds a call graph + fan-out scout comparators; ranks clusters with
-  capability matrices.
+  Two independently-written, live functions that plausibly solve the same
+  problem with different code shape. Python uses scout confirmation; TypeScript
+  Go, and Java use typed return-shape and direct-call evidence before human review.
 not_for: |
-  Lexical near-clones (use /find-duplication). Dead code (use
-  /find-dormant). Refactor execution (use /unify-shadows for the
-  proposal then /fix-workflow semantic:<id>).
-language: python
-framework: django
+  Lexical near-clones (use /find-duplication). Unreferenced implementations
+  (use /find-dormant). Consolidation execution follows /unify-shadows proposal
+  approval. Unsupported v1 modes are
+  workflows, structural/module analysis, protocol/class-method semantics,
+  dynamic dispatch, framework behavior, and automatic consolidation.
+language: any
+framework: any
+scans: [python, typescript, javascript, go, java]
 ---
 
 # /find-semantic-duplication
@@ -29,14 +31,157 @@ Semantic duplication fills a gap between `/find-duplication` (syntactic
 clones) and `/find-dormant` (dead code). Two bodies with 0% token overlap
 can still solve the same problem — this skill finds those.
 
+## Go v1
+
+For a Go target, read and follow `knowledge/go-v1.md`; load it only for Go
+work. The skill-local analyzer uses Go 1.22+ `go list`, `go/parser`, and
+`go/types` to produce static review leads. Even a `confirmed` Go record is not
+proof of behavioral equivalence and never authorizes a refactor by itself.
+
+## Java 17 v1
+
+For Java, read `knowledge/java-v1.md`. The family-local JDK compiler-tree
+analyzer emits only direct static-method pairs that construct the same project
+record, name the same returned components, and have resolved production callers.
+Even a `confirmed` record is a bounded static lead, never behavioral equivalence.
+
+## TypeScript / TSX v1
+
+Run this separate branch only when the host provides a named project-local
+`tsconfig.json` and a `typescript` package installed under that host. The
+family-local `detect_typescript.mjs` creates a Compiler API `Program` and
+`TypeChecker`, then considers only **typed, top-level function declarations or
+block-bodied arrows** that have an explicit return type and at least two
+returned object fields.
+
+The confirmed result is intentionally narrow: two functions have the same
+TypeChecker return type and returned object shape, different enough token sets
+to stay out of `/find-duplication`, no compiler-resolved direct caller→callee
+relationship, and compatible throw/try/await policy. A dynamic element call or
+a declaration-only/unresolved direct call is an explicit `uncertain` result;
+it is never silently clean. Near-lexical pairs, caller→callee wrappers, and
+load-bearing policy divergence are `rejected`. Class methods, protocol
+implementations, tests, doubles, generated/vendor/declaration files, workflow
+claims, structural claims, framework/runtime dispatch, and safe refactoring
+are unavailable, not inferred.
+
+Every TypeScript run writes only beneath
+`reports/semantic-duplication/<scan>/`: `analysis.json`, `findings.json`,
+`triage.md`, and one capability matrix per confirmed finding. The target and
+report directory are project-root relative; direct excluded targets yield an
+empty report; internal/external symlink targets and unsafe or symlinked report
+paths fail before writing. Invalid syntax, a missing/invalid `tsconfig`, or a
+missing project-local Compiler API exits 2.
+
+### Installed TypeScript command
+
+Set `SEMANTIC_DUPLICATION_SOURCE` to the pinned skill source/ref, then install
+exactly this selected skill from the target host root.
+
+<!-- installed-command:stock-install:start -->
+```bash
+: "${SEMANTIC_DUPLICATION_SOURCE:?Set this to the pinned skill source/ref}"
+npx --yes skills@1.5.19 add "${SEMANTIC_DUPLICATION_SOURCE}" \
+  --skill find-semantic-duplication --agent codex --copy -y
+```
+<!-- installed-command:stock-install:end -->
+
+Run the next block from that host root. It uses the host's installed
+TypeScript, not a toolkit venv, root script, sibling skill, or network call.
+
+<!-- installed-command:typescript-scan:start -->
+```bash
+: "${TARGET:?Set TARGET to the TypeScript/TSX file or directory to audit}"
+TSCONFIG="${TSCONFIG:-tsconfig.json}"
+REPORT_NAME="${REPORT_NAME:-typescript-scan}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-semantic-duplication" \
+  ".agents/skills/find-semantic-duplication" \
+  ".claude/skills/find-semantic-duplication"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-semantic-duplication is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+node "${SKILL_ROOT}/scripts/detect_typescript.mjs" \
+  --target "${TARGET}" \
+  --project-root "$(pwd)" \
+  --tsconfig "${TSCONFIG}" \
+  --report-dir "reports/semantic-duplication/${REPORT_NAME}"
+```
+<!-- installed-command:typescript-scan:end -->
+
+Run the host's native typecheck before and after the audit. A TypeScript
+confirmed lead still requires source/caller/runtime review before any
+`/fix-workflow semantic:<id>` action.
+
+## Checked JavaScript v1
+
+Use `detect_typescript.mjs --language javascript` only with a host-local
+Compiler API and named `jsconfig.json` or `tsconfig.json` that explicitly sets
+`allowJs` and `checkJs`. It accepts `.js`, `.jsx`, `.mjs`, and `.cjs`; it can
+confirm only pairs with compatible JSDoc or TypeChecker-inferred return shapes
+whose direct calls resolve through the program. Dynamic calls, methods,
+framework behavior, workflow semantics, and lexical clones remain deferred or
+rejected. The final artifact records config, diagnostics, unresolved/uncovered
+sources, plus distinct checked-JS, JSDoc, and inferred evidence. Missing
+tools/configs are unsupported, malformed JS is syntax-error, and unresolved
+or excluded sources are partial. Never use `npx`, a global compiler, or a
+generic language platform.
+
+<!-- installed-command:javascript-scan:start -->
+```bash
+: "${TARGET:?Set TARGET to the checked-JavaScript file or directory to audit}"
+JSCONFIG="${JSCONFIG:-jsconfig.json}"
+REPORT_NAME="${REPORT_NAME:-javascript-scan}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-semantic-duplication" \
+  ".agents/skills/find-semantic-duplication" \
+  ".claude/skills/find-semantic-duplication"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-semantic-duplication is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+node "${SKILL_ROOT}/scripts/detect_typescript.mjs" \
+  --target "${TARGET}" --project-root "$(pwd)" --tsconfig "${JSCONFIG}" \
+  --report-dir "reports/semantic-duplication/${REPORT_NAME}" --language javascript
+```
+<!-- installed-command:javascript-scan:end -->
+
+This is a standalone host-root command: it resolves the selected skill itself
+and does not inherit `SKILL_ROOT` from the TypeScript command above.
+
+## Python function-triage branch
+
+The Python branch retains the scout-confirmation journey. Its inventory is now
+bundled inside this selected skill and requires `end_line` through every
+summary, prompt, candidate, and confirmation record. The prior workflow and
+artifact inventory commands are deliberately retired from this branch: they
+were generated but never consumed by a confirmation, rank, or report stage, so
+claiming them as evidence was misleading. Python remains function-level until a
+separately tested workflow/structural consumer exists.
+
 ## How success is judged
 
 - No finding reaches `triage.md` without a Stage 5 Confirm scout
   verdict at `scout/<finding_id>.json` — Compare nominations alone
   are never reported.
 - Every confirmed cluster has its capability matrix at
-  `capability_matrices/<finding_id>.md`; `uncertain` and
-  `false_positive` verdicts flow through honestly, not forced.
+  `capability_matrices/<finding_id>.md`; `uncertain` and rejected verdicts
+  have separate triage sections, never a shared rejection bucket.
 - Finding IDs resolve as `/fix-workflow semantic:<id>` arguments.
 - Zero edits to production files — this is a read-only audit.
 - The closeout pastes artifact truth: validation `PASS: N/N` lines,
@@ -48,11 +193,11 @@ Write toward these gates from Stage 0.
 
 - **Target path:** the required `--target` argument. Must be a directory.
 - **Project root:** this worktree's root.
-- **Python:** `.venv/bin/python` for Django-touching scripts; `python3` is
-  fine for `semantic_inventory.py` (stdlib-only).
+- **Python:** `.venv/bin/python` for the owned ranking/report scripts;
+  `python3` is fine for the bundled stdlib-only `semantic_inventory.py`.
 - **Project-specific defaults** (domain taxonomy, framework-mandated skips,
   split-by-design exclusions, known suspects): `knowledge/`.
-- **Rejection classes** (seven for function-level, three for structural):
+- **Rejection classes:** the function-level entries in
   `knowledge/false-positives.md` — scouts apply these, not you.
 
 ## Scout dispatch contract
@@ -61,7 +206,7 @@ Every Agent dispatch must declare its judged artifact:
 
 | Stage | Prompt | Judged output |
 |---|---|---|
-| Summarize | `agents/summarize.md` | JSONL at the substituted `{{output_path}}`, validated with `semantic_inventory.py validate --schema summary` |
+| Summarize | `agents/summarize.md` | JSONL at the substituted `{{output_path}}`, validated with the bundled `semantic_inventory.py validate --schema summary` |
 | Compare | `agents/compare.md` | JSON object at `candidates_<domain>.json`; empty `{"candidates": []}` is valid |
 | Confirm | `agents/confirm.md` | `scout/<finding_id>.json`; confirmed findings also write `capability_matrices/<finding_id>.md` |
 
@@ -82,6 +227,9 @@ they're for the scout sub-agents.
 ```bash
 TS=$(date +%Y%m%d-%H%M%S)
 REPORT_DIR="reports/semantic-duplication/scan-${TS}"
+SKILL_ROOT="${SKILL_ROOT:-.claude/skills/find-semantic-duplication}"
+INVENTORY="${SKILL_ROOT}/scripts/semantic_inventory.py"
+PYTHON="${PYTHON:-python3}"
 mkdir -p "${REPORT_DIR}/prompts" "${REPORT_DIR}/summary_batches" \
          "${REPORT_DIR}/scout" "${REPORT_DIR}/capability_matrices"
 ln -sfn "scan-${TS}" reports/semantic-duplication/latest
@@ -89,44 +237,27 @@ ln -sfn "scan-${TS}" reports/semantic-duplication/latest
 
 ### Stage 1 — Inventory
 
-**Pre:** target directory exists. **Post:** `inventory.jsonl`,
-`workflows.jsonl`, `callers.jsonl`, `artifacts.jsonl` all present and valid.
+**Pre:** target directory exists. **Post:** `inventory.jsonl` and optional
+`callers.jsonl` are present and valid. This function-level branch does not
+create unused workflow or artifact inventories.
 
-Run `collect` first (later subcommands need its output), then `graph`,
-`callers`, and `artifacts` in parallel:
+Run the self-contained `collect` command first. Caller counts are optional
+ranking context and may run after inventory collection:
 
 ```bash
-python3 scripts/semantic_inventory.py collect <target> \
+python3 "${INVENTORY}" collect --target <target> --project-root "$(pwd)" \
   -o "${REPORT_DIR}/inventory.jsonl"
 ```
 
-For a focused scan that needs broader caller/context visibility, scan the
-context root and tag the subsystem as focus:
-
 ```bash
-python3 scripts/semantic_inventory.py collect \
-  --focus <target> --context-root <context-root> \
-  -o "${REPORT_DIR}/inventory.jsonl"
-```
-
-Then in one Bash message:
-
-```bash
-python3 scripts/semantic_inventory.py graph "${REPORT_DIR}/inventory.jsonl" \
-  -o "${REPORT_DIR}/workflows.jsonl"
-python3 scripts/semantic_inventory.py callers "${REPORT_DIR}/inventory.jsonl" \
-  --repo-root "$(pwd)" -o "${REPORT_DIR}/callers.jsonl"
-python3 scripts/semantic_inventory.py artifacts --repo-root "$(pwd)" \
-  -o "${REPORT_DIR}/artifacts.jsonl"
+python3 "${INVENTORY}" callers "${REPORT_DIR}/inventory.jsonl" \
+  --project-root "$(pwd)" -o "${REPORT_DIR}/callers.jsonl"
 ```
 
 Validate every output before proceeding (the script emits `PASS: N/N records valid`):
 
 ```bash
-python3 scripts/semantic_inventory.py validate "${REPORT_DIR}/inventory.jsonl" --schema auto
-python3 scripts/semantic_inventory.py validate "${REPORT_DIR}/workflows.jsonl" --schema workflow
-python3 scripts/semantic_inventory.py validate "${REPORT_DIR}/callers.jsonl" --schema caller_info
-python3 scripts/semantic_inventory.py validate "${REPORT_DIR}/artifacts.jsonl" --schema artifact
+python3 "${INVENTORY}" validate "${REPORT_DIR}/inventory.jsonl" --schema definition
 ```
 
 ### Stage 2 — Summarize (parallel fan-out)
@@ -144,7 +275,7 @@ After all scouts return, concatenate and validate:
 
 ```bash
 cat "${REPORT_DIR}/summary_batches/out_"*.jsonl > "${REPORT_DIR}/summaries.jsonl"
-python3 scripts/semantic_inventory.py validate "${REPORT_DIR}/summaries.jsonl" --schema summary
+python3 "${INVENTORY}" validate "${REPORT_DIR}/summaries.jsonl" --schema summary
 ```
 
 If validation fails, re-dispatch the offending batch with a note on which
@@ -158,15 +289,9 @@ fields were wrong. Do not hand-fix records — the scout should do it.
 Generate per-domain prompt files:
 
 ```bash
-python3 scripts/semantic_inventory.py prompts \
+python3 "${INVENTORY}" prompts \
   "${REPORT_DIR}/summaries.jsonl" --output-dir "${REPORT_DIR}/prompts"
 ```
-
-If the focus cuts across package/domain names and the prompt size remains
-reasonable, add `--include-cross-domain`; the script writes one bounded
-`prompt_cross_domain.json` in addition to per-domain prompts. If the focus is
-single-domain or the cross-domain prompt would be too large, skip this pass
-honestly and record the reason in the Stage 8 summary.
 
 For each `prompt_<domain>.json` the script wrote, expand `agents/compare.md`
 (substitute `{{prompt_path}}`, `{{output_path}}` → `candidates_<domain>.json`
@@ -180,11 +305,11 @@ will filter.
 ### Stage 4 — Collapse
 
 **Pre:** `prompts/candidates_*.json`. **Post:**
-`${REPORT_DIR}/candidates.json` — per-domain pairs merged into multi-way
+`${REPORT_DIR}/candidates.json` — per-domain function pairs merged into multi-way
 clusters via union-find on shared `(file, qualified_name)` sites.
 
 ```bash
-.venv/bin/python .claude/skills/find-semantic-duplication/scripts/collapse_candidates.py \
+"${PYTHON}" "${SKILL_ROOT}/scripts/collapse_candidates.py" \
   --prompts-dir "${REPORT_DIR}/prompts" \
   --output "${REPORT_DIR}/candidates.json"
 ```
@@ -201,9 +326,9 @@ here at the semantic level.
 its capability matrix at
 `${REPORT_DIR}/capability_matrices/<finding_id>.md`.
 
-This is the **deep-read stage**. Scouts read full bodies and apply **all ten
-rejection classes** from `knowledge/false-positives.md` (Compare only
-applied the cheap ones).
+This is the **deep-read stage**. Scouts read full function bodies and apply the
+function-level rejection classes from `knowledge/false-positives.md` (Compare
+only applied the cheap ones).
 
 Budget: investigate the **top 20 findings** from `candidates.json`
 (pre-sorted by `similarity_max` then `multiplicity`). Raise the budget if
@@ -227,7 +352,7 @@ apply the direct token-overlap rejection class.
 block (priority, tier, shared_lines, migration_cost); findings sorted P0 → P2.
 
 ```bash
-.venv/bin/python .claude/skills/find-semantic-duplication/scripts/rank.py \
+"${PYTHON}" "${SKILL_ROOT}/scripts/rank.py" \
   --confirmed "${REPORT_DIR}/scout" \
   --callers "${REPORT_DIR}/callers.jsonl" \
   --output "${REPORT_DIR}/ranked.json"
@@ -235,8 +360,8 @@ block (priority, tier, shared_lines, migration_cost); findings sorted P0 → P2.
 
 Ranking formula:
 `ROI = (shared_lines × maintenance_risk × level_multiplier) / max(migration_cost, 1)`.
-Level multiplier weights workflow (1.5) over structural (1.3) over function
-(1.0). See `rank.py` header for the tier cutoffs.
+The current Python reference path ranks function findings at multiplier 1.0.
+See `rank.py` for the tier cutoffs.
 
 ### Stage 7 — Report
 
@@ -244,27 +369,19 @@ Level multiplier weights workflow (1.5) over structural (1.3) over function
 `${REPORT_DIR}/findings.json`.
 
 ```bash
-.venv/bin/python .claude/skills/find-semantic-duplication/scripts/report.py \
+"${PYTHON}" "${SKILL_ROOT}/scripts/report.py" \
   --input "${REPORT_DIR}/ranked.json" \
   --output-md "${REPORT_DIR}/triage.md" \
   --output-json "${REPORT_DIR}/findings.json" \
   --scan-id "scan-${TS}"
 
-# Effectiveness log — one line per run, feeds reports/_meta/dashboard.md.
-# Buckets = P0/P1/P2 counts by priority tier. See `.claude/skills/_common/skill-conventions.md`.
-python3 scripts/log_effectiveness.py \
-  --skill find-semantic-duplication \
-  --scan-id "scan-${TS}" \
-  --target <target> \
-  --findings-total "$(.venv/bin/python -c 'import json,sys; print(len(json.load(open(sys.argv[1])).get("findings", [])))' "${REPORT_DIR}/findings.json")" \
-  --buckets "$(.venv/bin/python -c 'import json,sys,collections; f=json.load(open(sys.argv[1])).get("findings", []); c=collections.Counter(x.get("priority","unknown") for x in f); print(json.dumps(dict(c)))' "${REPORT_DIR}/findings.json")"
 ```
 
 ### Stage 8 — Summarize
 
 Report to the user in ≤10 lines:
 
-- Counts by tier (P0 / P1 / P2) and by level (workflow / structural / function),
+- Counts by tier (P0 / P1 / P2) plus confirmed / uncertain / rejected function candidates,
 - Top 3 findings by priority (one line each),
 - Path to `${REPORT_DIR}/triage.md` and the `latest` symlink,
 - Recommended next slash command (typically `/fix-workflow semantic:<id>`).
@@ -291,7 +408,7 @@ The triage report is the source of truth — do not enumerate every finding.
 | Stage 2 validation fails on a batch | Re-dispatch that batch with the failing field names in the prompt; don't hand-edit |
 | Stage 3 emits 0 candidates for a domain | Expected for small domains; skip and continue. If it happens for a big domain, lower the scoring threshold in `compare.md` to ≥2 and re-dispatch that domain |
 | Stage 4 `candidates.json` empty | Compare found nothing worth confirming — report that honestly, don't force findings |
-| Stage 5 scout returns `uncertain` | Valid outcome; it flows through to `ranked.json` as a low-priority tier. Don't re-dispatch just to force a verdict |
+| Stage 5 scout returns `uncertain` | Valid outcome; `ranked.json` and `triage.md` retain it in a separate Uncertain section. Don't re-dispatch just to force a verdict |
 | Stage 5 scout returns `false_positive` with reason_code | Counts toward rejection stats; Rank filters it out |
 | `reports/duplication/latest/triage.md` is absent during Confirm | Continue; the Confirm brief requires a direct token-overlap check and an explicit note that the sibling report was absent |
 | Stage 6 ranks a Light-tier finding above a Priority-tier one | Check `rank_meta.migration_cost`: cheap migration can dominate. Inspect by hand before escalating |
@@ -303,9 +420,13 @@ When changing this skill's owned scripts, replay the smallest script-level
 contracts:
 
 ```bash
-.venv/bin/python .claude/skills/find-semantic-duplication/scripts/collapse_candidates.py --help
-.venv/bin/python .claude/skills/find-semantic-duplication/scripts/rank.py --help
-.venv/bin/python .claude/skills/find-semantic-duplication/scripts/report.py --help
+python3 .claude/skills/find-semantic-duplication/scripts/semantic_inventory.py --help
+python3 .claude/skills/find-semantic-duplication/scripts/collapse_candidates.py --help
+python3 .claude/skills/find-semantic-duplication/scripts/rank.py --help
+python3 .claude/skills/find-semantic-duplication/scripts/report.py --help
+node --check .claude/skills/find-semantic-duplication/scripts/detect_typescript.mjs
+python3 .claude/skills/find-semantic-duplication/scripts/detect_go_semantic.py --help
+python3 -I -S .claude/skills/find-semantic-duplication/scripts/detect_java_semantic.py --help
 ```
 
 For a full pipeline change, keep a tiny `reports/semantic-duplication/scan-*`
@@ -320,7 +441,11 @@ script output. Do not report semantic findings from Compare-only artifacts.
 ├── scripts/
 │   ├── collapse_candidates.py    # Stage 4
 │   ├── rank.py                   # Stage 6
-│   └── report.py                 # Stage 7
+│   ├── report.py                 # Stage 7
+│   ├── semantic_inventory.py     # Python function inventory / prompts
+│   ├── detect_typescript.mjs     # TypeScript Compiler API final triage
+│   ├── detect_java_semantic.py    # Java launcher / final artifacts
+│   └── detect_java_semantic.java  # JDK compiler-tree fact collector
 ├── agents/
 │   ├── summarize.md              # Stage 2 scout brief
 │   ├── compare.md                # Stage 3 scout brief
@@ -330,9 +455,10 @@ script output. Do not report semantic findings from Compare-only artifacts.
     └── learnings.md
 ```
 
-`scripts/semantic_inventory.py` (at project root, outside this skill
-directory) provides the `collect` / `graph` / `callers` / `artifacts` /
-`prompts` / `validate` subcommands used by Stages 1 and 3. It is stdlib-only.
+`scripts/semantic_inventory.py` is bundled in this skill and provides the
+`collect` / `callers` / `prompts` / `validate` subcommands used by the Python
+function path. It is stdlib-only and remains available after a selected-skill
+copy install.
 
 The orchestrator (you) **never reads files in `knowledge/`**. Those are for
 the scout sub-agents. Keeping them out of your context is the whole point

@@ -1,8 +1,0 @@
-{
-  "adapter": "go-syntax",
-  "fact_count": 15,
-  "fact_shape": "full-location-v1",
-  "facts_sha256": "d91c621f76d33a20a965bd8e7dbda3ad90c83d255dbff62915d7074adc8a5201",
-  "interface_version": 1,
-  "schema_version": 1
-}

@@ -1,0 +1,47 @@
+{
+  "batch": "P3E Go G1D duplication",
+  "revision": "22147a3",
+  "family": ["find-duplication"],
+  "invariant": {
+    "portable_principle": "Exact normalized source resemblance is investigation evidence, never proof of semantic equivalence or safe consolidation.",
+    "go_mechanism": "One batched Go 1.22+ go/parser helper fingerprints go/format-normalized named function and receiver-method bodies.",
+    "explicit_non_goals": ["type or caller resolution", "semantic equivalence", "safe-refactor verdict", "cross-skill parser platform"]
+  },
+  "tooling": {
+    "selected": "family-local Python orchestrator plus bundled stdlib-only detect_go.go",
+    "version_and_resolution": "Discover Go from PATH, require Go >= 1.22, disable module/workspace/toolchain downloads; local verification used go1.26.5.",
+    "closure_mode": "Copy only the selected find-duplication skill; no repository Python imports, npm packages, network access, or shared runtime.",
+    "batching": "Pass all eligible files through one go run so process startup is paid once per scan."
+  },
+  "outcome_contract": {
+    "must_fire": ["one exact cross-file function-body pair", "one exact same-file pair with a distinct shape label"],
+    "must_not_fire": ["different body", "_test.go", "testdata", "vendor", "generated source"],
+    "non_clean": ["generated-only target is unsupported", "build-constrained files make the final report partial", "malformed source and invalid helper evidence fail atomically", "missing or old Go is unsupported"],
+    "final_boundary": ["collapsed.json", "ranked.json", "triage.md", "findings.json", "source fingerprint unchanged"]
+  },
+  "generalized": [
+    "Batch native syntax files through one compiler-driver process.",
+    "Classify generated and build-constrained source explicitly before interpreting an empty result.",
+    "Carry partial coverage into both structured and human-readable final artifacts.",
+    "Replay the copied on-demand closure and all previously supported language branches."
+  ],
+  "did_not_generalize": [
+    "Go AST nodes and receiver rendering.",
+    "A universal clone schema or shared parser service.",
+    "Type-aware or behavior-aware duplication analysis."
+  ],
+  "review_learnings": [
+    "An all-excluded target must not become a false-clean complete report.",
+    "Evidence labels and ranking inputs must distinguish same-file from cross-file clones.",
+    "A partial JSON status is insufficient when the agent acts from the Markdown report."
+  ],
+  "reuse_decision": {
+    "shared_candidate": "generated Go source-policy template for tool preflight, project-relative exclusions, and build classification",
+    "decision": "keep-family-local",
+    "trigger_to_revisit": "A later accepted Go skill needs the same behavior and measured duplication makes maintenance worse."
+  },
+  "next_decision": {
+    "recommendation": "Reassess the remaining semantic/project Go cohort and select at most three bounded pilots before extracting shared go list or go/types facts.",
+    "blockers": []
+  }
+}

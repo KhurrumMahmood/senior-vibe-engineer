@@ -1,0 +1,21 @@
+{
+  "phase_status": "repair",
+  "strongest_nodes": [
+    "correct — phase record quotes `npm run typecheck: PASS (0 diagnostics)` and `npm test: PASS`.",
+    "wired-in — phase record quotes `src/api/webhook.ts imports deliveryMetricName from the metric owner and calls it for accepted deliveries.`",
+    "no-parallel-path — phase record quotes `1 definition, 1 call site, 0 inline duplicates outside the owner.`"
+  ],
+  "weakest_nodes": [
+    "guarded — phase record quotes `No behavior test asserts the string returned by deliveryMetricName.`",
+    "demonstrated — phase record quotes `No runtime example demonstrates the emitted metric at the output boundary.`"
+  ],
+  "next_step": "Add one native behavior test that executes deliveryMetricName at the output boundary.",
+  "why_this_step": "The guarded node is the weakest durable value node, and the same focused assertion can supply the missing demonstrated evidence without opening another workstream.",
+  "success_gate": "The native suite passes with an assertion observing delivery.accepted from deliveryMetricName(\"accepted\").",
+  "stop_condition": "Stop this thread when that output-boundary assertion and the existing typecheck and lint all pass.",
+  "do_not_do_next": [
+    "Do not restructure the metrics folder.",
+    "Do not add a metrics framework or exporter.",
+    "Do not broaden the repair into retry-policy work."
+  ]
+}

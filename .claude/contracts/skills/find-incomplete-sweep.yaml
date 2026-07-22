@@ -6,14 +6,17 @@ problem_class: "incomplete-execution-residue detection (SUSPECT) — forgotten s
 intent: >
   Advisory scan for incomplete sweeps — a multi-site change applied to N-1 of N
   structurally-similar sites, leaving one sibling frozen at the old shape, fully
-  referenced and fully live so nothing else flags it. v0 band is kwarg-omission:
+  referenced and fully live so nothing else flags it. Python v0 is kwarg-omission:
   among a callee's call sites, a keyword the strong majority pass but one
   straggler does not, gated on a git-trajectory signal (the kwarg-present sites
   were touched AFTER the straggler — a sweep that landed after the straggler was
   last edited). Deterministic pre-filters (query-lookup callees, optional-by-
   nature kwargs, arg-count-illegal kwargs, dataclass-/signature-default fields)
   keep the scout's residual real-straggler-dense; the forgotten-vs-deliberate
-  call is an irreducible scout fan-out. A second, experimental placeholder-residue
+  call is an irreducible scout fan-out. TypeScript/TSX v1 groups resolved project
+  calls by object-option property presence with the host-pinned Compiler API and
+  preserves the same trajectory and explicit-verdict boundary. A second,
+  experimental Python placeholder-residue
   band (--band placeholder) catches concrete scaffolded-but-unfilled functions
   gated by recency + reference-asymmetry. Hands off to /fix-workflow.
 solves: >
@@ -36,11 +39,12 @@ dogfooded_on:
   - "scripts/ kwarg-omission scan (2026-06-08): 37 files scanned, 15 raw divergence candidates, 1 down-ranked (declared-default field), 0 gated-in — ES2's scripts/ has no recently-swept kwarg divergence, so the trajectory gate correctly reports clean (precision over coverage)."
   - "scripts/ + .claude/skills/ broad kwarg scan (2026-06-08): 185 files scanned, 57 raw, 2 down-ranked, 5 gated-in — all five are `path.read_text(..., encoding=)` stragglers where the sibling majority pass encoding= but these omit it and were touched before the sweep (a genuine forgotten-sweep shape, and consistent with the read-decode-safety precedent the repo already tracks). Proves the git-trajectory gate fires end-to-end on real ES2 code."
   - "placeholder-residue band (2026-06-08, --band placeholder): 0 raw / 0 gated-in on both scripts/ and the broad set — ES2 source carries no placeholder bodies in scope. Band proven to fire via test_ph5_recency_reference_gate; kept experimental behind --band pending a real recent-stub hit."
+  - "2026-07-19 fresh installed TypeScript forward audit: two resolved option-property divergences were conservatively gated out without blame trajectory evidence; framework/external signatures deferred; native typecheck/tests and source immutability passed."
 reports_dir: reports/find-incomplete-sweep
 run_evidence:
-  count: 2
+  count: 3
   first: scan-dogfood-kwarg
-  latest: scan-dogfood-broad
+  latest: "2026-07-19-typescript-forward"
 embodies_decisions:
   adr: []        # no ES2 ADR in ai-docs/decisions/ names this skill (bidirectional signal absent)
   precedent: []  # no precedents.yml entry yet
@@ -79,9 +83,11 @@ evidence:
   - "scripts/test_scan.py — 13 regression tests (DataclassDefaultFilterTests DC1-DC5 + value-awareness + filter-drop; PlaceholderBandTests PH1-PH5 incl. a real-git-repo recency/reference-asymmetry gate proof); all pass on ES2 (structural:high)"
   - "reference/scout-rubric.md — the irreducible-judgment brief the scout fan-out reads (forgotten / deliberate / optional / not-applicable vocabulary + the dominant result-shape/optional-field trap)"
   - "reports/find-incomplete-sweep/{scan-dogfood-kwarg,scan-dogfood-broad} — two on-disk self-scan runs; the 37-file/15-raw/0-gated-in (scripts/) and 185-file/57-raw/5-gated-in (broad) deltas come from those manifests (dogfood:high)"
+  - "tests/test_find_incomplete_sweep_typescript.py and tests/fixtures/find-incomplete-sweep-typescript prove resolved direct/alias calls, option-property presence, overload/default/spread boundaries, framework deferral, full packet→verdict→triage artifacts, exact stock install, native verification, path containment, and source immutability."
 gaps:
   - "Ported mechanism: the scripts/SKILL.md/tests/contract SHAPE were copied from a host project's /find-incomplete-sweep, but per _schema.yaml ALL provenance is re-derived ES2-native — no host born SHA, dogfood run, or report count was carried over. born.commit is 'uncommitted' because the ES2 birth commit is formed later by the orchestrator."
   - "born.sibling_births is [] only because the birth commit does not exist yet; another skill (rename-concept) was in flight in the same working tree at port time, so the eventual birth cohort may differ — do NOT assert it until the commit is formed and verified by parent-absence."
   - "No ADR in ai-docs/decisions/ and no precedents.yml entry names this skill, so embodies_decisions is empty by fact, not omission — intent rests on SKILL.md + the regression suite + the self-scan runs."
   - "Report outputs route to reports/find-incomplete-sweep/ which is gitignored (/reports/* except /reports/_meta/), so once committed the git history will carry the code deltas + commit subject, not the scan outputs; the raw/gated-in counts here are reproduced from the on-disk run manifests."
   - "The 5 gated-in broad-scan findings are detector candidates, not confirmed forgotten sweeps — the forgotten-vs-deliberate call is the scout fan-out's job (Step B); they are recorded as a real end-to-end gate-firing proof, not asserted as bugs."
+  - "TypeScript v1 intentionally requires Git blame trajectory before promotion. A source-only installed host can therefore report resolved raw divergence while producing zero scout packets rather than inventing a forgotten-sweep verdict."

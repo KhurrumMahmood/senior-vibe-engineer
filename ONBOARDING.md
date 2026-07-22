@@ -65,7 +65,7 @@ important rule in the ecosystem.
 git clone <this-repo>
 cd engineering-skills
 python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/pip install -r requirements.txt
 .venv/bin/pre-commit install
 ```
 
@@ -189,7 +189,7 @@ tier 1 — root (human entry surface)
 tier 2 — agent operating manual + reference
   .claude/CLAUDE.md            lean operating manual + trigger table
   .claude/docs/*.md            reference docs, demand-loaded by trigger
-  .claude/skills/              the 76 skills
+  .claude/skills/              the 75 skills
 
 tier 3 — formal artifacts
   ai-docs/decisions/           ADRs (case law)

@@ -66,7 +66,12 @@ def _render_finding(
         )
     lines.append("")
 
-    if info.get("fix_shape"):
+    if f.get("consolidation_safety") == "unknown_human_review_required":
+        lines.append(
+            "**Assessment:** Lexical evidence only — semantic equivalence and "
+            "refactor safety are unknown."
+        )
+    elif info.get("fix_shape"):
         lines.append(f"**Recommended fix shape:** {info['fix_shape']}")
     else:
         lines.append("**Recommended fix shape:** *scout investigation pending*")
@@ -76,7 +81,13 @@ def _render_finding(
         lines.append("")
         lines.append(info["notes"])
     lines.append("")
-    lines.append(f"**Next step:** `/fix-workflow cluster:{f['finding_id']}`")
+    if f.get("consolidation_safety") == "unknown_human_review_required":
+        lines.append(
+            "**Next step:** Review both bodies and callers before proposing any "
+            "refactor; this lexical match does not establish safe consolidation."
+        )
+    else:
+        lines.append(f"**Next step:** `/fix-workflow cluster:{f['finding_id']}`")
     lines.append("")
     return "\n".join(lines)
 
@@ -106,8 +117,45 @@ def render_triage(
     lines.append("")
     lines.append(f"**Target:** `{meta.get('target', '?')}`")
     lines.append(f"**Project root:** `{meta.get('project_root', '?')}`")
+    lines.append(f"**Scan status:** `{meta.get('status', 'unknown')}`")
     lines.append(f"**Generated:** {meta.get('generated_at', '?')}")
     lines.append("")
+
+    if meta.get("language") in {"typescript", "javascript", "go", "java"}:
+        language_label = {
+            "typescript": "TypeScript",
+            "javascript": "JavaScript",
+            "go": "Go",
+            "java": "Java",
+        }[meta["language"]]
+        evidence_label = (
+            "exact normalized function-body clone evidence"
+            if meta.get("language") == "go"
+            else "exact normalized method/constructor-body clone evidence"
+            if meta.get("language") == "java"
+            else "lexical/near-lexical clone evidence with source spans and "
+            "enclosing symbols"
+        )
+        lines.append(
+            f"> **{language_label} v1 boundary:** This is {evidence_label}. "
+            "Do not consolidate "
+            "automatically; behavior, callers, overload semantics, and ownership "
+            "still require human review."
+        )
+        lines.append("")
+
+    analysis = meta.get("analysis")
+    constrained = 0
+    if meta.get("language") == "go" and isinstance(analysis, dict):
+        status_counts = analysis.get("file_status_counts")
+        if isinstance(status_counts, dict):
+            constrained = status_counts.get("build-constraint-ambiguous", 0)
+    if meta.get("language") == "go" and meta.get("status") == "partial" and constrained:
+        lines.append(
+            f"> **Partial Go scan:** {constrained} build-constrained source file(s) "
+            "were not analyzed. Findings do not cover those files."
+        )
+        lines.append("")
 
     lines.append("## Headline numbers")
     lines.append("")
@@ -182,10 +230,17 @@ def render_triage(
     lines.append("")
     if findings:
         top = findings[0]
-        lines.append(
-            f"Run `/fix-workflow {top['finding_id']}` to execute the "
-            f"top-ranked cluster,"
-        )
+        if meta.get("language") in {"typescript", "javascript", "go", "java"}:
+            lines.append(
+                f"Review the evidence for `{top['finding_id']}` before deciding "
+                "whether any refactor is appropriate; this report makes no "
+                "consolidation recommendation."
+            )
+        else:
+            lines.append(
+                f"Run `/fix-workflow {top['finding_id']}` to execute the "
+                f"top-ranked cluster,"
+            )
         if dormant:
             lines.append(
                 "or `/find-dormant` to process the side-channel findings "

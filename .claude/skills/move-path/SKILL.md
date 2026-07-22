@@ -1,7 +1,7 @@
 ---
 name: move-path
-description: Deterministically plan, dry-run, apply, and verify batched file or directory moves while updating identity-resolved references such as Markdown links and exact path tokens. Use when paths need to be renamed or moved safely across a repo with relative links, root-relative links, Windows-style path spellings, case-only renames, Git-tracked files, dry-run review, and ambiguous-reference reporting. Keeps the core deterministic; AI review is for judging the move map and uncertain residues, not performing rewrites.
-argument-hint: "--plan moves.yml --dry-run|--apply|--check"
+description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits. TypeScript/TSX source imports are never rewritten in v1.
+argument-hint: "--plan moves.json --dry-run|--apply|--check"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 user-invocable: true
 tier: maintenance
@@ -12,23 +12,30 @@ best_for: |
   should update in one batch. Best when a move map can be reviewed first
   and the desired behavior is "compute a virtual after-tree, rewrite safe
   references once, apply with git-aware moves, then verify."
+  Also use the checked-JavaScript mode for explicit `.js`, `.jsx`, `.mjs`, or
+  `.cjs` file moves that must update safe relative imports and checked-project
+  configuration while leaving unrelated TypeScript source unchanged.
+  Use the checked-Java mode for one reviewed standalone-JDK leaf-package move
+  whose package, import, and fully-qualified type identities must stay exact.
 not_for: |
   Domain-concept terminology renames in prose (use /rename-concept).
   Python/TypeScript import refactors unless a language adapter has been
   explicitly added and enabled. Large behavior-changing subsystem splits
   that need characterization tests and human Phase 4 sign-off (use
   /refactor-subsystem). Blind global find-and-replace.
-language: python
+language: any
 framework: any
+scans: [go, java, javascript, typescript]
 ---
 
 # /move-path
 
-You are the orchestrator for safe batched path moves. The deterministic
-script owns filesystem moves, path normalization, reference resolution,
-patch generation, and verification. Your job is to prepare or inspect the
-plan, run dry-run first, review uncertainty buckets, then apply only when
-the report is clean enough for the intended change.
+You are the orchestrator for safe batched standalone TypeScript/TSX path
+moves, plus opt-in bounded checked-JavaScript, Go, and Java modes. The deterministic
+script owns filesystem moves, path normalization, reference resolution, patch
+generation, and verification. Your job is to prepare or inspect the plan, run
+dry-run first, review uncertainty buckets and ignored-import risk, then apply
+only when the report is clean enough for the intended change.
 
 ## Core Contract
 
@@ -38,19 +45,145 @@ The script computes a **virtual after-tree** before touching disk:
 plan -> virtual after-tree -> rewrite refs against after-tree -> apply moves + patches -> verify
 ```
 
-It updates references by resolved identity, not by hopeful text
-replacement. A Markdown link is auto-updated only when its target resolves
-to a file or directory being moved. Ambiguous prose and unsupported import
-forms are reported, not rewritten.
+It updates references by resolved identity, not by hopeful text replacement.
+A Markdown link is auto-updated only when its target resolves to a file or
+directory being moved. Ambiguous prose is reported, not rewritten.
+
+## TypeScript v1 Boundary
+
+Support standalone `.ts` and `.tsx` file or directory moves and rewrite
+identity-resolved Markdown/HTML/config/backtick/exact text references. Use a
+stdlib JSON plan as the guaranteed installed format. The script never rewrites
+TypeScript or TSX source imports, including relative imports whose target or
+referrer is moved; it emits those as `code_imports.ignored` risk records in
+the JSON report and under **Ignored TypeScript Imports** in the Markdown report.
+Treat remediation as unknown until a TypeScript module resolver proves the
+correct spelling. The advisory scanner covers common single-line and multiline
+static `import`/`export ... from` forms. For risk identity only, it follows
+TypeScript's emitted-file substitution precedence: `.js` probes `.ts`, `.tsx`,
+then `.d.ts`; `.mjs` probes `.mts`, then `.d.mts`; `.cjs` probes `.cts`, then
+`.d.cts`; the emitted runtime file follows those substitutions. It is not an
+exhaustive import inventory.
+
+Do not claim an import-safe module move. Python import rewrites, TypeScript
+path aliases, package exports, project references, barrel compatibility,
+dynamic imports, and framework-specific routing are out of scope. They need a
+named `tsconfig`-aware resolver and separate acceptance evidence.
+
+## Checked-JavaScript Boundary
+
+Enable JavaScript rewriting only with both
+`rewrite.code_imports: "update-javascript"` and a named
+`javascript.config`. The family-local Node helper loads the host's pinned
+TypeScript Compiler API and requires that config to enable `allowJs` and
+`checkJs`. It gathers literal AST spans for static `import`/`export`, literal
+`import()`, and literal `require()` in `.js`, `.jsx`, `.mjs`, and `.cjs`.
+
+The mover rewrites only explicit relative JavaScript filenames. Bare packages,
+aliases, extension inference, framework conventions, and nonliteral dynamic
+imports are unsupported; a moved referrer with one of those forms blocks
+apply. Preflight and post-apply native checks must be `complete`; a failed
+post-apply check reverses the moves and restores source snapshots. Review the
+`javascript.status`, `javascript.exact_changes`, and any blocked records in
+the JSON report before accepting the move.
+
+## Checked-Go Package Boundary
+
+Enable Go rewriting only with `rewrite.code_imports: "update-go"`. The pilot
+automates exactly one non-`main`, leaf package-directory move inside the root
+`go.mod` module, for example `pkg/legacy/` to `pkg/workflow/`. It discovers
+`go`, `gofmt`, the root module path, and the declared minimum Go version from
+`go.mod`; the actual toolchain must be Go 1.22 or newer (and meet a higher
+declared minimum). It does not install tools or dependencies.
+
+The bundled Go helper parses source with `go/parser` and rewrites only exact
+`ImportSpec.Path` literals equal to the moved package's module import path.
+Aliases, blank/dot imports, package names, and comments remain unchanged.
+Before applying, the tool rejects workspaces, nested modules, package trees,
+`main`, generated/vendor/symlink/cgo/build-tag/go-generate shapes, malformed
+source, cgo importers, and any symlinked file or subdirectory within the moved
+package. It also reports, without rewriting, an exact old module import path
+in first-party `.json`, `.yaml`, `.yml`, `.toml`, `.md`, or `.txt` text; vendor,
+generated, symlinked, and binary files are excluded from that bounded scan.
+These are unsupported or partial findings, never guessed rewrites.
+
+The transaction runs targeted `gofmt -d` before changing disk, then `gofmt
+-w`, an exact source-diff oracle, and `go test ./...` after the move. A failed
+native or exact check restores moved and rewritten source. It is not a Go
+symbol rename, package-name rename, workspace migration, or general Go
+refactor engine.
+
+## Checked-Java Package Boundary
+
+Enable Java rewriting only with `rewrite.code_imports: "update-java"`. The
+pilot automates exactly one leaf package-directory move under the same inferred
+source root, for example `src/main/java/example/legacy/` to
+`src/main/java/example/workflow/`. Both `java` and `javac` must resolve from
+`PATH` at JDK 17 or newer; the copied closure installs nothing.
+
+The family-local single-file Java helper parses and attributes every eligible
+first-party `.java` source with the JDK compiler tree API and annotation
+processing disabled. It rewrites only exact compiler spans for package
+declarations in moved files, imports resolving into the moved package, and
+fully-qualified type references resolving into that package. A plain string,
+comment, reflection name, service descriptor, framework registry, or other old
+package occurrence is a blocking `partial` finding, never a text replacement.
+
+Before apply, the mover rejects multiple moves, files instead of directories,
+mixed/default or path-mismatched packages, nested package directories,
+generated/vendor/build/symlink shapes, malformed source, unresolved
+compilation, an invalid destination package, or a source-root change. It
+compiles all eligible sources with `javac --release 17 -proc:none` before and
+after mutation and checks the exact source diff. A failed post-move compile or
+diff restores the moved tree and every rewritten file.
+
+This is not Maven/Gradle/module-path discovery, annotation-processor execution,
+Spring/Jakarta/Android reflection analysis, Kotlin support, a type rename, or a
+general JVM refactor engine. Hosts requiring those semantics remain outside the
+standalone Java v1 claim.
 
 ## Commands
 
+The installed/on-demand command resolves either supported agent location and
+therefore does not assume a repository-local `.claude/skills` tree.
+
+<!-- installed-command:java-move:start -->
 ```bash
-python3 .claude/skills/move-path/scripts/move_path.py --plan moves.yml --dry-run
-python3 .claude/skills/move-path/scripts/move_path.py --plan moves.yml --apply
-python3 .claude/skills/move-path/scripts/move_path.py --plan moves.yml --check
-python3 .claude/skills/move-path/scripts/audit_path_residue.py --plan moves.yml
-python3 .claude/skills/move-path/scripts/audit_path_residue.py --plan moves.yml --exclude 'source-materials/input-bundles/**'
+MOVE_PLAN="${MOVE_PLAN:-moves.json}"
+MOVE_MODE="${MOVE_MODE:---dry-run}" # --dry-run | --apply | --check
+MOVE_REPORT_DIR="${MOVE_REPORT_DIR:-reports/move-path}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/move-path" \
+  ".claude/skills/move-path"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "move-path is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+case "${MOVE_MODE}" in
+  --dry-run|--apply|--check) ;;
+  *) printf '%s\n' "MOVE_MODE must be --dry-run, --apply, or --check" >&2; exit 2 ;;
+esac
+python3 "${SKILL_ROOT}/scripts/move_path.py" \
+  --plan "${MOVE_PLAN}" \
+  --project-root "$(pwd)" \
+  --report-dir "${MOVE_REPORT_DIR}" \
+  "${MOVE_MODE}" \
+  --json
+```
+<!-- installed-command:java-move:end -->
+
+For a repository checkout, the residue audit remains:
+
+```bash
+python3 .claude/skills/move-path/scripts/audit_path_residue.py --plan moves.json
+python3 .claude/skills/move-path/scripts/audit_path_residue.py --plan moves.json --exclude 'source-materials/input-bundles/**'
 ```
 
 Useful options:
@@ -63,44 +196,77 @@ Useful options:
 
 ## Plan Shape
 
-```yaml
-version: 1
+```json
+{
+  "version": 1,
+  "moves": [
+    {
+      "id": "rename-source",
+      "from": "src/legacy/report.ts",
+      "to": "src/reports/current.ts"
+    }
+  ],
+  "reference_scope": {
+    "include": ["**/*.md", "**/*.html", "**/*.json", "**/*.yml", "**/*.yaml"],
+    "exclude": [".git/**", ".engineering/local/**", "node_modules/**"]
+  },
+  "rewrite": {
+    "markdown_links": "update",
+    "markdown_images": "update",
+    "html_href_src": "update",
+    "backtick_paths": "update",
+    "exact_text_paths": "suggest",
+    "code_imports": "ignore"
+  },
+  "safety": {
+    "require_clean_touched_files": true,
+    "fail_on_broken_links": true,
+    "fail_on_blocked": true
+  }
+}
+```
 
-moves:
-  - id: eval-contracts
-    from: kb/evals/eval-contracts.md
-    to: specs/contracts/reliability/eval-contracts.md
+`.yml` and `.yaml` plans remain compatible only when PyYAML is installed.
+They are not part of the guaranteed copied-skill path; choose `.json` for a
+stdlib-only installation.
 
-  - id: schemas-dir
-    from: kb/schemas/
-    to: specs/contracts/schemas/
-    mode: directory
+For checked JavaScript, add this opt-in branch to the plan:
 
-reference_scope:
-  include:
-    - "**/*.md"
-    - "**/*.yml"
-    - "**/*.yaml"
-    - "**/*.json"
-  exclude:
-    - ".git/**"
-    - ".engineering/local/**"
-    - "datasets/**"
-    - "inputs-*/**"
-    - "claude-logs/**"
+```json
+{
+  "rewrite": {
+    "code_imports": "update-javascript"
+  },
+  "javascript": {
+    "config": "jsconfig.json"
+  }
+}
+```
 
-rewrite:
-  markdown_links: update
-  markdown_images: update
-  html_href_src: update
-  backtick_paths: update
-  exact_text_paths: suggest
-  code_imports: ignore
+For the bounded Go package move, use:
 
-safety:
-  require_clean_touched_files: true
-  fail_on_broken_links: true
-  fail_on_blocked: true
+```json
+{
+  "moves": [
+    {"from": "pkg/legacy/", "to": "pkg/workflow/", "mode": "directory"}
+  ],
+  "rewrite": {"code_imports": "update-go"}
+}
+```
+
+For the bounded Java package move, use:
+
+```json
+{
+  "moves": [
+    {
+      "from": "src/main/java/example/legacy/",
+      "to": "src/main/java/example/workflow/",
+      "mode": "directory"
+    }
+  ],
+  "rewrite": {"code_imports": "update-java"}
+}
 ```
 
 ## Confidence Buckets
@@ -123,7 +289,11 @@ describing the old layout rather than linking to the current identity.
 2. Run `--dry-run`.
 3. Read `.engineering/local/move-path/report.md` and
    `.engineering/local/move-path/report.json`.
-4. Resolve `blocked` findings. Review `suggest` findings.
+4. Resolve `blocked` findings. Review `suggest` findings and every ignored
+   TypeScript import that resolves to a move target. In checked-JavaScript
+   mode, require a `complete` JavaScript status and review each exact change.
+   In checked-Java mode, require a `complete` Java status, review every exact
+   package/import/FQCN change, and resolve every dynamic old-package finding.
 5. Run `--apply` only after the dry-run report matches the intended
    transform.
 6. Run `--check` after manual follow-up edits or before commit.
@@ -159,6 +329,10 @@ scripts, notebooks, generated reports, command examples, or copied absolute
 paths. The helper scans the move plan's reference scope for old relative,
 root-relative, absolute POSIX, and Windows-style path spellings, then writes:
 
+The selected move plan is an authority input. Both the mover and residue audit
+exclude its exact resolved path even when `reference_scope` matches it; never
+rewrite or report the plan's required `from` values as stale residue.
+
 - assumptions that define what the scan can and cannot prove;
 - machine-readable findings in
   `.engineering/local/move-path/path-residue-audit.json`;
@@ -179,6 +353,8 @@ Keep the core deterministic. Use AI review only around the report:
 
 - Are any moves conceptually wrong?
 - Are skipped or suggested references likely real breakages?
+- Does an ignored TypeScript import require a resolver-aware refactor rather
+  than this standalone path/text move?
 - Is the scope too broad for one commit?
 - Are source snapshots or historical records intentionally excluded?
 

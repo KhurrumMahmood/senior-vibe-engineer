@@ -136,108 +136,10 @@ language: python
 framework: django
 ```
 
-Allowed values come from `capability-registry.yml`; validators must not
-duplicate the list. `any` means that the procedure itself is portable. It does
-not mean the skill scans or changes every language. Under the strict contract,
-an `any` claim names and proves each `portable_subjects` entry.
-
-Codex's native trigger mechanism uses `name` and `description`; the additional
-fields are this multi-agent toolkit's routing, installation, and conformance
-contract. Surface projections must preserve the trigger fields even when a
-surface does not consume the additional metadata directly.
-
-### Versioned capability contract
-
-New portability claims opt into the strict schema. Legacy frontmatter remains
-readable until the WP8 catalog migration, but it cannot be used as verified
-support evidence.
-
-```yaml
-capability_contract: 1
-layer: framework
-binding: react
-bindings: [javascript-typescript, react]
-support: experimental
-capabilities: [analysis.symbols, analysis.imports]
-portable_subjects: [typescript]
-capability_evidence:
-  typescript:
-    - kind: test
-      path: tests/typescript-routing.py
-      sha256: <64-lowercase-hex>
-support_evidence:
-  claim: {kind: skill, id: <skill-directory-name>}
-  fixtures:
-    - subject: typescript
-      command: [<absolute-current-python>, tests/typescript-routing.py]
-      cwd: .
-      expected_observation:
-        claim: {kind: skill, id: <skill-directory-name>}
-        result: pass
-        subject: typescript
-      expected_stdout_sha256: <canonical-observation-sha256>
-  artifacts:
-    - kind: test
-      path: tests/typescript-routing.py
-      sha256: <64-lowercase-hex>
-    - kind: script
-      path: scripts/scan.py
-      sha256: <64-lowercase-hex>
-  tools:
-    - name: python-runtime
-      command: [<absolute-current-python>, --version]
-  platforms:
-    - {system: Darwin, machine: arm64}
-  evidence_hash: <canonical-envelope-sha256>
-scans: [typescript]
-scan_implementations:
-  typescript:
-    mechanism: typescript-syntax
-    path: scripts/scan.py
-    sha256: <same-script-sha256-as-support-artifact>
-```
-
-- `layer`, `binding`, and optional `bindings` use registry identifiers.
-- `capabilities` uses qualified `analysis.*`, `refactor.*`, or `guard.*`
-  identifiers from the registry.
-- `capability_evidence` maps each claimed subject or scan target to hashed,
-  skill-relative file attestations and must include a test witness. Every
-  subject must have a distinct single attested integration test directly
-  executed by its own fixture, so multi-subject `any` and `scans:` coverage is
-  actually executed rather than sharing a generic witness. Use one wrapper per
-  subject when a suite has multiple underlying files. Every scan target also
-  needs an exact mechanism/path/hash entry in `scan_implementations`, repeated
-  identically as a `kind: script` support artifact under the skill's `scripts/`
-  directory. That same path is the target's `kind: test` capability evidence
-  and is directly executed by its subject fixture; an unrelated nonempty script
-  cannot satisfy a scan claim.
-- `support_evidence` is evaluated mechanically: the validator checks artifact
-  and envelope hashes, claim identity, command shape, registry-owned executable
-  and tool-version policies, platform names, and scan support ceilings. The
-  fixtures must emit canonical JSON observations naming the exact claim and
-  subject. Promotion reruns them and tool probes resolved against the immutable
-  process-start discovery path (not a claim-time `PATH` or claimant path) on the
-  current platform. Completion-floor cells additionally
-  require unique capability-specific test digests; bare booleans, relabeled
-  generic evidence, or support labels cannot promote a claim. `verified`
-  promotion also requires the registry-pinned cross-stack conformance issuer;
-  that issuer is deliberately `unavailable` until WP8 implements and hashes the
-  harness, so WP1 cannot self-certify the future completion floor.
-- Frameworks and tools are separate categories: React is a framework; Vite and
-  Vitest are tools.
-
-Keep the core `SKILL.md` concise. Put language/framework-specific idioms and
-commands in one-level `bindings/<binding-id>.md` overlays so only the selected
-variant is loaded. Do not copy the core procedure into a binding.
-
-For inventory rows marked `foundation-ready`, core framework vocabulary is
-registry-owned and mechanically blocked from every active prose/code field in
-`SKILL.md`, including description fields, links, and code fences. Structural
-selection fields such as `framework`, `binding`, and evidence envelopes are
-validated as metadata rather than prose. A temporary exception must use the
-strict external `_common/core-framework-leakage-allowlist.yml` contract; inline
-compatibility notes are never waivers, and verified claims cannot be
-allowlisted.
+Allowed values today: `language: python | typescript | rust | any` and
+`framework: django | none | any`. Use `any` only for skills that are
+genuinely framework-agnostic (e.g. `/which-skill`, which only reads
+frontmatter).
 
 ### `scout_model`
 
@@ -264,6 +166,20 @@ automatically.
 Skills that don't fan out to scouts should omit this field. Skills that
 do fan out and stay on `careful` semantically declare "default
 routing" — explicit is better than implicit.
+
+### `install_with`
+
+Optional list of companion skills required for the selected skill's proven
+installed outcome. Omit it unless a copied skill deliberately reuses another
+skill's runtime authority rather than bundling or duplicating it.
+
+```yaml
+install_with: [find-concept-divergence]
+```
+
+`/which-skill` installs the selected skill first, then these named companions
+in one pinned stock-CLI command. This is installation closure metadata, not a
+workflow or execution-order DAG.
 
 ## Optional task-packet fields (PR B-lite)
 

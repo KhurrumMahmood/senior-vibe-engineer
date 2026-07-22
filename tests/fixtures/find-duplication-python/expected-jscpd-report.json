@@ -1,0 +1,26 @@
+{
+  "statistics": {
+    "formats": {},
+    "total": {}
+  },
+  "duplicates": [
+    {
+      "format": "python",
+      "lines": 9,
+      "firstFile": {"name": "app/first.py", "start": 1, "end": 9},
+      "secondFile": {"name": "app/second.py", "start": 1, "end": 9}
+    },
+    {
+      "format": "python",
+      "lines": 9,
+      "firstFile": {"name": "app/first.py", "start": 1, "end": 9},
+      "secondFile": {"name": "tests/test_clone.py", "start": 1, "end": 9}
+    },
+    {
+      "format": "python",
+      "lines": 9,
+      "firstFile": {"name": "app/second.py", "start": 1, "end": 9},
+      "secondFile": {"name": "migrations/0001_clone.py", "start": 1, "end": 9}
+    }
+  ]
+}

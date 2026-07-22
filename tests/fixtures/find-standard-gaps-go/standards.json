@@ -1,0 +1,17 @@
+{
+  "ideas": [
+    {
+      "id": "defer-cleanup",
+      "label": "cleanup calls must be deferred",
+      "activation": {"baseline": true},
+      "contract": {
+        "detector": {
+          "kind": "ast",
+          "call_matches": "^(cleanup|singleCleanup|pairCleanup)$",
+          "enclosed_by": "defer",
+          "paths": ["src/**/*.go"]
+        }
+      }
+    }
+  ]
+}

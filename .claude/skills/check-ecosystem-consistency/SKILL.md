@@ -9,7 +9,7 @@ job: suspect
 best_for: |
   Running after significant changes to the skill ecosystem: adding or
   removing skills, changing skill contracts, editing /which-shape
-  shapes.yml, or updating the README/ONBOARDING/catalog surfaces that
+  shapes.json, or updating the README/ONBOARDING/catalog surfaces that
   describe the ecosystem. Especially useful before handoff or commit.
 not_for: |
   Choosing the next operating loop for product work (use /which-shape).
@@ -81,7 +81,7 @@ Execution contract:
 
 - skill inventory and frontmatter snapshot;
 - added, removed, or changed skills since the last reviewed state;
-- `/which-shape/shapes.yml` schema and referenced skill slugs;
+- `/which-shape/shapes.json` schema and referenced skill slugs;
 - new skills that should be reviewed for shape-router impact;
 - README/ONBOARDING skill-count claims;
 - new skills missing obvious `.claude/docs/skill-catalog.md` coverage.
@@ -113,14 +113,14 @@ updates have landed.
 | Symptom | Action |
 |---|---|
 | `--changed-from REF` names a bad git ref and `Changed Paths` is empty unexpectedly | Re-run `git diff --name-only REF` to verify the ref, then rerun with a valid `REF`; do not treat an empty changed-path list as proof nothing changed |
-| Shape registry schema error appears in `findings.json` as `shape_registry_schema_error` | Honor the script's nonzero exit, fix `.claude/skills/which-shape/shapes.yml`, and rerun before updating state |
+| Shape registry schema error appears in `findings.json` as `shape_registry_schema_error` | Honor the script's nonzero exit, fix `.claude/skills/which-shape/shapes.json`, and rerun before updating state |
 | Report or state write fails | State which artifact failed to write; do not claim `report.md`, `state.json`, `findings.json`, `evidence.json`, or `.claude/ecosystem/last-state.json` landed |
 | Baseline is missing and `baseline_missing` appears in `findings.json` | Review the first report as the baseline, then rerun with `--update-state` only after accepting that snapshot |
 
 ## Relationship To `/which-shape`
 
 When a skill is added or materially repurposed, review
-`.claude/skills/which-shape/shapes.yml`. Add the skill to a shape only
+`.claude/skills/which-shape/shapes.json`. Add the skill to a shape only
 when it changes a durable problem-solving loop. If the skill is purely
 tactical, leaving it out is fine; updating the ecosystem state records
 that the omission was reviewed.

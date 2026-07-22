@@ -74,11 +74,11 @@ def _fmt_finding(f: dict[str, Any], matrices_dir: str) -> str:
     return "\n".join(lines)
 
 
-def _fmt_rejected(rejected: list[dict[str, Any]]) -> str:
-    if not rejected:
+def _fmt_nonconfirmed(title: str, findings: list[dict[str, Any]]) -> str:
+    if not findings:
         return ""
-    out = ["## Rejected candidates\n"]
-    for r in rejected:
+    out = [f"## {title}\n"]
+    for r in findings:
         fid = r.get("finding_id", "?")
         status = r.get("investigation_status", "?")
         reason = r.get("reason_code", "?")
@@ -92,6 +92,7 @@ def render(
     ranked: dict[str, Any], scan_id: str, matrices_dir: str
 ) -> tuple[str, dict[str, Any]]:
     findings = ranked.get("findings") or []
+    uncertain = ranked.get("uncertain") or []
     rejected = ranked.get("rejected") or []
     tier_counts = ranked.get("tier_counts") or {"P0": 0, "P1": 0, "P2": 0}
 
@@ -104,7 +105,7 @@ def render(
         "",
         f"**Confirmed findings:** {len(findings)}   "
         f"**P0:** {tier_counts['P0']}   **P1:** {tier_counts['P1']}   **P2:** {tier_counts['P2']}   "
-        f"**Rejected:** {len(rejected)}",
+        f"**Uncertain:** {len(uncertain)}   **Rejected:** {len(rejected)}",
         "",
     ]
 
@@ -116,7 +117,8 @@ def render(
         for f in bucket:
             md_parts.append(_fmt_finding(f, matrices_dir))
 
-    md_parts.append(_fmt_rejected(rejected))
+    md_parts.append(_fmt_nonconfirmed("Uncertain candidates", uncertain))
+    md_parts.append(_fmt_nonconfirmed("Rejected candidates", rejected))
 
     md = "\n".join(md_parts)
 

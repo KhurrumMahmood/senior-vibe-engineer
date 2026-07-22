@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Enumerate literals and callers for one Python string-valued carrier.
+"""Enumerate literals + callers for one stringly-typed state field.
 
-Stage-1 collector for `/extract-enum`. Given a target `Carrier.<field>`,
+Stage-1 collector for `/extract-enum`. Given a target `Model.<field>`,
 walks the repository and produces ``targets.json`` with:
 
 - Field declaration metadata (file path, current CharField/TextField
@@ -84,59 +84,75 @@ from __future__ import annotations
 
 import argparse
 import ast
-from datetime import datetime
+from datetime import datetime, timezone
 import fnmatch
 import json
-import re
 import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
-import scope as _scope  # noqa: E402
-
-# Route Python parsing through the shared per-language adapter registry
-# (ADR 0032) so this collector capability-gates on Python and gracefully
-# skips non-Python / unparseable inputs instead of crashing.
-_SCRIPTS_DIR = str(Path(__file__).resolve().parents[4] / "scripts")
-if _SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPTS_DIR)
-from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
-
 STATE_FIELD_CALLS = frozenset({"CharField", "TextField"})
-BRIDGE_HINT = re.compile(r"vendor|bridge|webhook|external|import", re.IGNORECASE)
 
 _DEFAULT_SKIP_DIRS: frozenset[str] = frozenset({
     "migrations", "__pycache__", "staticfiles", "node_modules",
     ".git", ".venv", "venv", "dist", "build",
     "reference_code",
 })
-
-
-def _validate_scope_written_at(value: str | None) -> None:
-    if value is None:
-        return
-    try:
-        parsed = datetime.fromisoformat(value)
-    except ValueError as exc:
-        raise ValueError("--scope-written-at must be an ISO-8601 timestamp") from exc
-    if parsed.tzinfo is None or parsed.utcoffset() is None:
-        raise ValueError("--scope-written-at must include a UTC offset")
 _DEFAULT_SKIP_FILE_GLOBS: tuple[str, ...] = (
     "tests_*.py", "test_*.py", "tests.py", "conftest.py",
 )
 
 
 def _walk_python_files(root: Path) -> list[Path]:
+    repo_ignores = _load_repo_ignores(root)
     out: list[Path] = []
     for path in root.rglob("*.py"):
-        if any(part in _DEFAULT_SKIP_DIRS for part in path.parts):
+        rel = path.relative_to(root).as_posix()
+        if any(part in _DEFAULT_SKIP_DIRS for part in path.relative_to(root).parts):
             continue
         if any(fnmatch.fnmatchcase(path.name, g) for g in _DEFAULT_SKIP_FILE_GLOBS):
             continue
+        if any(_matches_ignore(rel, pattern) for pattern in repo_ignores):
+            continue
         out.append(path)
-    return out
+    return sorted(out)
+
+
+def _load_repo_ignores(root: Path) -> list[str]:
+    """Read the host-wide ignore list without toolkit `_common` imports."""
+    path = root / ".engineering" / "docs" / "ignore.md"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
+    ignores: list[str] = []
+    in_ignore = False
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("## "):
+            in_ignore = line[3:].strip().lower() in {
+                "ignore", "ignores", "skip", "path skip", "paths to skip",
+            }
+            continue
+        if not in_ignore or not line.startswith(("-", "*", "+")):
+            continue
+        token = line[1:].strip().split(" — ", 1)[0].strip().strip("`")
+        if token:
+            ignores.append(token)
+    return ignores
+
+
+def _matches_ignore(rel: str, pattern: str) -> bool:
+    normalized = pattern.strip().lstrip("./")
+    if not normalized:
+        return False
+    if normalized.endswith("/"):
+        prefix = normalized.rstrip("/")
+        return rel == prefix or rel.startswith(prefix + "/")
+    return fnmatch.fnmatchcase(rel, normalized) or fnmatch.fnmatchcase(
+        rel, normalized.rstrip("/") + "/**"
+    )
 
 
 def _enclosing_symbol(path: list[ast.AST]) -> str:
@@ -214,13 +230,23 @@ def _build_local_model_map(
         if not isinstance(func_node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         locals_of_target: set[str] = set()
-        for argument in (
+        for arg in (
             *func_node.args.posonlyargs,
             *func_node.args.args,
             *func_node.args.kwonlyargs,
         ):
-            if _annotation_name(argument.annotation) == target_model:
-                locals_of_target.add(argument.arg)
+            if _annotation_name(arg.annotation) == target_model:
+                locals_of_target.add(arg.arg)
+        if (
+            func_node.args.vararg is not None
+            and _annotation_name(func_node.args.vararg.annotation) == target_model
+        ):
+            locals_of_target.add(func_node.args.vararg.arg)
+        if (
+            func_node.args.kwarg is not None
+            and _annotation_name(func_node.args.kwarg.annotation) == target_model
+        ):
+            locals_of_target.add(func_node.args.kwarg.arg)
         for stmt in ast.walk(func_node):
             if isinstance(stmt, ast.AnnAssign):
                 ann = _annotation_name(stmt.annotation)
@@ -297,10 +323,6 @@ def _is_models_field_call(call: ast.Call) -> bool:
     return False
 
 
-def _models_field_name(call: ast.Call) -> str:
-    return call.func.attr if isinstance(call.func, ast.Attribute) else call.func.id
-
-
 def _inside_model_class(path: list[ast.AST]) -> tuple[bool, str | None]:
     """Return (is_inside, class_name) walking outward from the node."""
     for node in reversed(path):
@@ -325,20 +347,22 @@ def _segment_source(src_lines: list[str], node: ast.AST, limit: int = 240) -> st
 
 
 def _extract_field_kwargs(call: ast.Call) -> dict[str, Any]:
-    """Extract every literal-safe field kwarg or fail before proposing."""
-    if call.args:
-        raise ValueError("positional model field arguments are unsupported; use explicit keywords")
+    """Best-effort extraction of interesting CharField kwargs."""
     out: dict[str, Any] = {}
     for kw in call.keywords:
         if kw.arg is None:
-            raise ValueError("unpacked model field keyword arguments are unsupported")
+            continue
         value = kw.value
+        if kw.arg == "max_length" and isinstance(value, ast.Constant):
+            out["max_length"] = value.value
+            continue
         if kw.arg == "default":
             lit = _string_literal_value(value)
             if lit is not None:
                 out["default"] = lit
-            else:
-                raise ValueError("unsupported or dynamic field keyword 'default'")
+            elif isinstance(value, ast.Attribute):
+                # e.g. default=JobStatus.PENDING (already migrated)
+                out["default"] = ast.unparse(value)
             continue
         if kw.arg == "choices":
             # Tuple-style: choices=STATUS_CHOICES (a Name) or choices=[(...)].
@@ -347,61 +371,16 @@ def _extract_field_kwargs(call: ast.Call) -> dict[str, Any]:
             elif isinstance(value, (ast.List, ast.Tuple)):
                 pairs: list[list[str]] = []
                 for elt in value.elts:
-                    if not isinstance(elt, (ast.Tuple, ast.List)) or len(elt.elts) != 2:
-                        raise ValueError("inline choices must contain literal two-column rows")
-                    a = _string_literal_value(elt.elts[0])
-                    b = _string_literal_value(elt.elts[1])
-                    if a is None or b is None:
-                        raise ValueError("inline choices must contain literal string pairs")
-                    pairs.append([a, b])
-                if not pairs:
-                    raise ValueError("inline choices must not be empty")
-                out["tuple_choices"] = pairs
+                    if isinstance(elt, (ast.Tuple, ast.List)) and len(elt.elts) == 2:
+                        a = _string_literal_value(elt.elts[0])
+                        b = _string_literal_value(elt.elts[1])
+                        if a is not None and b is not None:
+                            pairs.append([a, b])
+                if pairs:
+                    out["tuple_choices"] = pairs
             elif isinstance(value, ast.Attribute):
                 out["choices_ref"] = ast.unparse(value)
-            else:
-                raise ValueError("unsupported or dynamic field keyword 'choices'")
-            continue
-        try:
-            literal = ast.literal_eval(value)
-        except (ValueError, TypeError):
-            raise ValueError(
-                f"unsupported or dynamic field keyword {kw.arg!r}"
-            ) from None
-        if not isinstance(literal, (str, int, float, bool, type(None), list, tuple, dict)):
-            raise ValueError(f"unsupported field keyword value for {kw.arg!r}")
-        out[kw.arg] = literal
     return out
-
-
-def _resolve_declared_choices(file_path: Path, choices_ref: object) -> list[dict[str, str]]:
-    """Resolve a module-level two-column choice constant without importing it."""
-    if not isinstance(choices_ref, str) or not choices_ref.isidentifier():
-        return []
-    try:
-        tree = ast.parse(file_path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, SyntaxError):
-        return []
-    for node in tree.body:
-        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
-            continue
-        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-        if not any(isinstance(target, ast.Name) and target.id == choices_ref for target in targets):
-            continue
-        value = node.value
-        if not isinstance(value, (ast.List, ast.Tuple)):
-            return []
-        choices: list[dict[str, str]] = []
-        for item in value.elts:
-            if not isinstance(item, (ast.List, ast.Tuple)) or len(item.elts) != 2:
-                return []
-            wire_value = _string_literal_value(item.elts[0])
-            label = _string_literal_value(item.elts[1])
-            if wire_value is None or label is None:
-                return []
-            choices.append({"wire_value": wire_value, "label": label})
-        return choices
-    return []
 
 
 def _find_field_declaration(
@@ -420,11 +399,9 @@ def _find_field_declaration(
         src = file_path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
-    adapter = get_adapter(file_path)
-    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
-        return None
-    tree = adapter.parse(src)
-    if tree is None:
+    try:
+        tree = ast.parse(src, filename=str(file_path))
+    except SyntaxError:
         return None
 
     found: dict[str, Any] | None = None
@@ -443,8 +420,6 @@ def _find_field_declaration(
                     else:
                         if isinstance(node.value, ast.Call) and _is_models_field_call(node.value):
                             found = {
-                                "carrier_kind": "django-model-field",
-                                "field_constructor": _models_field_name(node.value),
                                 "field_file": rel,
                                 "field_symbol": f"{cls}.{field_name}",
                                 "model_class": cls or "<unknown>",
@@ -457,134 +432,6 @@ def _find_field_declaration(
 
     visit(tree, [])
     return found
-
-
-def _find_python_attribute_declaration(
-    file_path: Path,
-    rel: str,
-    field_name: str,
-    carrier_class: str | None,
-) -> dict[str, Any] | None:
-    """Locate a plain-Python string attribute without importing host code."""
-    try:
-        src = file_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        return None
-    adapter = get_adapter(file_path)
-    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
-        return None
-    tree = adapter.parse(src)
-    if tree is None:
-        return None
-
-    for node in tree.body:
-        if not isinstance(node, ast.ClassDef):
-            continue
-        if carrier_class is not None and node.name != carrier_class:
-            continue
-        for statement in node.body:
-            annotation: str | None = None
-            default: str | None = None
-            if isinstance(statement, ast.AnnAssign):
-                if not isinstance(statement.target, ast.Name) or statement.target.id != field_name:
-                    continue
-                annotation = ast.unparse(statement.annotation)
-                if statement.value is not None:
-                    default = _string_literal_value(statement.value)
-            elif isinstance(statement, ast.Assign):
-                if (
-                    len(statement.targets) != 1
-                    or not isinstance(statement.targets[0], ast.Name)
-                    or statement.targets[0].id != field_name
-                ):
-                    continue
-                default = _string_literal_value(statement.value)
-            else:
-                continue
-            if annotation not in {None, "str", "builtins.str"} and default is None:
-                continue
-            if annotation is None and default is None:
-                continue
-            current: dict[str, Any] = {}
-            if annotation is not None:
-                current["annotation"] = annotation
-            if default is not None:
-                current["default"] = default
-            values_name = f"{field_name.upper()}_VALUES"
-            declared_choices: list[dict[str, str]] = []
-            for candidate in node.body:
-                if not isinstance(candidate, (ast.Assign, ast.AnnAssign)):
-                    continue
-                targets = candidate.targets if isinstance(candidate, ast.Assign) else [candidate.target]
-                if not any(
-                    isinstance(target, ast.Name) and target.id == values_name
-                    for target in targets
-                ):
-                    continue
-                raw_values = candidate.value
-                if not isinstance(raw_values, (ast.List, ast.Tuple)):
-                    raise ValueError(
-                        f"{node.name}.{values_name} must be a literal string sequence"
-                    )
-                for item in raw_values.elts:
-                    wire_value = _string_literal_value(item)
-                    if wire_value is None:
-                        raise ValueError(
-                            f"{node.name}.{values_name} must contain only string literals"
-                        )
-                    declared_choices.append(
-                        {"wire_value": wire_value, "label": wire_value}
-                    )
-            return {
-                "carrier_kind": "python-attribute",
-                "declared_choices": declared_choices,
-                "field_file": rel,
-                "field_symbol": f"{node.name}.{field_name}",
-                "model_class": node.name,
-                "field_name": field_name,
-                "current_kwargs": current,
-            }
-    return None
-
-
-def _classify_python_sites(
-    comparisons: list[dict[str, Any]],
-    assignments: list[dict[str, Any]],
-    declared_choices: list[dict[str, str]],
-) -> list[dict[str, Any]]:
-    wire_values = {choice["wire_value"] for choice in declared_choices}
-    folded = {value.casefold() for value in wire_values}
-    classified: list[dict[str, Any]] = []
-    for site_type, sites in (("comparison", comparisons), ("assignment", assignments)):
-        for site in sites:
-            literal = str(site["literal"])
-            evidence = " ".join(
-                (str(site["file"]), str(site["symbol"]), str(site.get("evidence", "")))
-            )
-            if literal in wire_values:
-                kind = "confirmed" if site_type == "comparison" else "assignment"
-            elif literal.casefold() in folded:
-                kind = "case_risk"
-            elif BRIDGE_HINT.search(evidence):
-                kind = "bridge"
-            else:
-                kind = "dynamic"
-            classified.append(
-                {
-                    "file": str(site["file"]),
-                    "kind": kind,
-                    "lineno": int(site["lineno"]),
-                    "literal": literal,
-                    "site_type": site_type,
-                    "symbol": str(site["symbol"]),
-                }
-            )
-    return sorted(
-        classified,
-        key=lambda item: (
-            item["site_type"], item["file"], item["lineno"], item["symbol"], item["literal"]
-        ),
-    )
 
 
 def _scan_comparisons_and_assignments(
@@ -690,43 +537,40 @@ def _scan_comparisons_and_assignments(
         # detected separately. The declaration happens inside a Model
         # ClassDef via a Name target, not an Attribute target.
         if isinstance(node, ast.AnnAssign):
-            target = node.target
+            targets = [node.target]
             value = node.value
         else:
-            if len(node.targets) != 1:
-                return
-            target = node.targets[0]
+            targets = node.targets
             value = node.value
         if value is None:
-            return
-        if not isinstance(target, ast.Attribute) or target.attr != field_name:
             return
         lit = _string_literal_value(value)
         if lit is None:
             return
-        if model_class and not _attributed_to_model(
-            target, path, model_class, local_map, rel, decl_file,
-        ):
-            dropped += 1
-            return
-        assignments.append({
-            "file": rel,
-            "symbol": _enclosing_symbol(path),
-            "literal": lit,
-            "lineno": node.lineno,
-            "evidence": _segment_source(src_lines, node),
-        })
+        for target in targets:
+            if not isinstance(target, ast.Attribute) or target.attr != field_name:
+                continue
+            if model_class and not _attributed_to_model(
+                target, path, model_class, local_map, rel, decl_file,
+            ):
+                dropped += 1
+                continue
+            assignments.append({
+                "file": rel,
+                "symbol": _enclosing_symbol(path),
+                "literal": lit,
+                "lineno": node.lineno,
+                "evidence": _segment_source(src_lines, node),
+            })
 
     for file_path in files:
         try:
             src = file_path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
-        adapter = get_adapter(file_path)
-        if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
-            continue
-        tree = adapter.parse(src)
-        if tree is None:
+        try:
+            tree = ast.parse(src, filename=str(file_path))
+        except SyntaxError:
             continue
         try:
             rel = str(file_path.relative_to(project_root))
@@ -941,16 +785,13 @@ def _find_model_declaration_file(
 ) -> Path | None:
     """Locate the file declaring ``class <model_class>(`` anywhere in scope.
 
-    Walks the host-authored ignore-first scope (whole repo minus the builtin
-    noise floor minus the host's `## Ignore`, or the optional `## Roots`
-    narrowing) rather than assuming any one app-root layout. Returns the first
-    file (the iterator is already sorted) whose text contains
+    Walks the collector's portable Python-file scope rather than assuming any
+    one app-root layout. Returns the first file (the iterator is sorted) whose
+    text contains
     ``class <model_class>(``, else ``None``.
     """
     needle = f"class {model_class}("
-    for path in _scope.iter_paths(
-        project_root, _scope.Scope(), extensions=frozenset({".py"})
-    ):
+    for path in _walk_python_files(project_root):
         try:
             src = path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
@@ -961,25 +802,20 @@ def _find_model_declaration_file(
 
 
 # spec:status-projection-and-presentation::IM-5
-def _write_scope_sidecar(
-    artifact_dir: Path,
-    paths: list[str],
-    *,
-    written_at: str | None = None,
-) -> None:
+def _write_scope_sidecar(artifact_dir: Path, paths: list[str]) -> None:
     """scope.json sidecar (ADR 0037) — declares which repo paths this
     artifact's conclusions depend on, so the status projection can flag
-    input drift. Strictly additive; silently skipped when the toolkit
-    helper is absent (skill vendored without scripts/_lib)."""
-    helper = Path(__file__).resolve().parents[4] / "scripts" / "_lib" / "artifact_scope.py"
-    if not helper.is_file():
-        return
-    import importlib.util
-
-    spec = importlib.util.spec_from_file_location("artifact_scope", helper)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    mod.write_scope(artifact_dir, paths, written_at=written_at)
+    input drift. This small schema is bundled rather than imported from the
+    toolkit so a selected installed skill remains executable."""
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "version": 1,
+        "paths": sorted({str(path) for path in paths}),
+        "written_at": datetime.now(timezone.utc).isoformat(),
+    }
+    (artifact_dir / "scope.json").write_text(
+        json.dumps(payload, indent=1) + "\n", encoding="utf-8"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -997,17 +833,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model-class", default=None,
                         help="Optional: narrow to a specific Model subclass "
                              "when the field name is reused across models")
-    parser.add_argument(
-        "--scope-written-at",
-        help="Explicit ISO-8601 clock for deterministic scope.json replay",
-    )
     args = parser.parse_args(argv)
-
-    try:
-        _validate_scope_written_at(args.scope_written_at)
-    except ValueError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 2
 
     project_root = args.project_root.resolve()
 
@@ -1039,15 +865,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: field file not found: {field_path}", file=sys.stderr)
         return 2
 
-    try:
-        decl = _find_field_declaration(field_path, rel_file, field_name, model_class)
-        if decl is None:
-            decl = _find_python_attribute_declaration(
-                field_path, rel_file, field_name, model_class
-            )
-    except ValueError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 2
+    decl = _find_field_declaration(
+        field_path, rel_file, field_name, model_class
+    )
     if decl is None and model_class:
         # The finding's file may be a caller site, not the model declaration.
         # Fall back to searching the in-scope tree for `class <model_class>(`.
@@ -1057,15 +877,9 @@ def main(argv: list[str] | None = None) -> int:
                 alt_rel = str(alt_path.relative_to(project_root))
             except ValueError:
                 alt_rel = str(alt_path)
-            try:
-                alt_decl = _find_field_declaration(alt_path, alt_rel, field_name, model_class)
-                if alt_decl is None:
-                    alt_decl = _find_python_attribute_declaration(
-                        alt_path, alt_rel, field_name, model_class
-                    )
-            except ValueError as exc:
-                print(f"error: {exc}", file=sys.stderr)
-                return 2
+            alt_decl = _find_field_declaration(
+                alt_path, alt_rel, field_name, model_class
+            )
             if alt_decl is not None:
                 print(
                     f"[collect_extract_enum] note: {rel_file!r} is a caller "
@@ -1078,15 +892,18 @@ def main(argv: list[str] | None = None) -> int:
                 decl = alt_decl
     if decl is None:
         print(
-            f"error: no supported Python carrier in {rel_file} declares "
-            f"string attribute `{field_name}`"
-            + (f" (carrier={model_class})" if model_class else ""),
+            f"error: no Model subclass in {rel_file} declares "
+            f"`{field_name}` as CharField/TextField"
+            + (f" (model={model_class})" if model_class else ""),
             file=sys.stderr,
         )
         print(
-            "hint: supported declarations are a model CharField/TextField or "
-            "a class attribute with a str annotation/string default; module "
-            "constants and function return values require an explicit carrier first.",
+            "hint: if the carrier is NOT a Django model field (a dataclass "
+            "attribute, function return, module constant, or command-internal "
+            "sentinel), the endpoint is a plain str-valued Enum (enum.StrEnum "
+            "on 3.11+, or class X(str, Enum)), not TextChoices — this collector "
+            "only walks model fields. Apply it by hand; do not # noqa a "
+            "first-party sentinel.",
             file=sys.stderr,
         )
         return 2
@@ -1113,7 +930,6 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     target = {
-        "carrier_kind": decl["carrier_kind"],
         "target_slug": _target_slug(
             decl["model_class"], field_name, field_path
         ),
@@ -1121,31 +937,12 @@ def main(argv: list[str] | None = None) -> int:
         "field_name": field_name,
         "field_file": decl["field_file"],
         "field_symbol": decl["field_symbol"],
-        **(
-            {"field_constructor": decl["field_constructor"]}
-            if "field_constructor" in decl
-            else {}
-        ),
         "current_kwargs": decl["current_kwargs"],
-        "declared_choices": (
-            decl.get("declared_choices")
-            or [
-                {"wire_value": row[0], "label": row[1]}
-                for row in decl["current_kwargs"].get("tuple_choices", [])
-            ]
-            or _resolve_declared_choices(
-                field_path, decl["current_kwargs"].get("choices_ref")
-            )
-        ),
         "literals": literals,
         "comparison_sites": comparisons,
         "assignment_sites": assignments,
         "callers_by_file": _callers_by_file(comparisons, assignments),
     }
-    if decl["carrier_kind"] == "python-attribute":
-        target["site_classifications"] = _classify_python_sites(
-            comparisons, assignments, target["declared_choices"]
-        )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
@@ -1155,7 +952,6 @@ def main(argv: list[str] | None = None) -> int:
     _write_scope_sidecar(
         args.output.parent,
         sorted({decl["field_file"], *target["callers_by_file"]}),
-        written_at=args.scope_written_at,
     )
 
     # Stderr summary.

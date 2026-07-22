@@ -1,0 +1,5036 @@
+{
+  "schema_version": 2,
+  "sources": [
+    {
+      "path": ".claude/skills/which-skill/catalog.json",
+      "sha256": "77b485d58544b6aa4154a668590872e9ecd75b3bf3bd925810a68795c23a5eb5"
+    },
+    {
+      "path": ".claude/tasks/typescript-skill-coverage.json",
+      "sha256": "43a9e2988026d8eb80f375d5cff5b53a5e9af3cce38cb81a0ea3ad1c23a00591"
+    },
+    {
+      "path": ".claude/tasks/javascript-language-coverage.json",
+      "sha256": "06f72e16ee71e772dc462a4042496d9952c134933f8e7fb6c1284a5b9e1422a7"
+    },
+    {
+      "path": ".claude/tasks/go-language-coverage.json",
+      "sha256": "ad91343d46867ea4fdac78ca1945c74a3341fc11f0c5b27b302fcaa4d6be628d"
+    },
+    {
+      "path": ".claude/tasks/java-language-coverage.json",
+      "sha256": "a49f42b86037a76c83901c32dd8824992cbb31d7854982c41fd955091310fa5c"
+    }
+  ],
+  "counts": {
+    "validated-neutral": 19,
+    "ecosystem-runtime": 13,
+    "language-level": 22,
+    "framework-bound": 22
+  },
+  "typescript_shared_primitives": [
+    {
+      "primitive": "project-local-typescript-resolution",
+      "p1_decision": "deferred-until-real-repair",
+      "consumers": [
+        "audit-decisions",
+        "find-complexity-hotspots",
+        "find-dormant",
+        "find-implicit-state",
+        "find-incomplete-sweep",
+        "find-omnibus",
+        "find-semantic-duplication",
+        "find-standard-gaps",
+        "map-subsystem",
+        "prevent-regression",
+        "propose-boundary",
+        "propose-folder-reorganization",
+        "rename-concept"
+      ],
+      "boundary": "Resolve TypeScript from the audited host and reject packages outside its project root."
+    },
+    {
+      "primitive": "tsconfig-project-loading",
+      "p1_decision": "deferred-until-real-repair",
+      "consumers": [
+        "find-dormant",
+        "find-implicit-state",
+        "find-incomplete-sweep",
+        "find-semantic-duplication",
+        "map-subsystem",
+        "prevent-regression",
+        "propose-boundary",
+        "propose-folder-reorganization",
+        "rename-concept"
+      ],
+      "boundary": "Load one explicit host tsconfig, preserve diagnostics, and never invent a project graph."
+    },
+    {
+      "primitive": "project-path-containment",
+      "p1_decision": "deferred-until-real-repair",
+      "consumers": [
+        "find-dormant",
+        "find-incomplete-sweep",
+        "find-semantic-duplication",
+        "map-subsystem",
+        "propose-boundary",
+        "propose-folder-reorganization",
+        "rename-concept",
+        "unify-shadows"
+      ],
+      "boundary": "Normalize real paths, reject boundary escapes and unsafe symlink traversal, and render project-relative paths."
+    },
+    {
+      "primitive": "first-party-typescript-inventory",
+      "p1_decision": "shared-contract",
+      "consumers": [
+        "adapt-project",
+        "find-concept-divergence",
+        "find-dormant",
+        "find-folder-topology-drift",
+        "map-subsystem",
+        "rename-concept"
+      ],
+      "boundary": "Inventory every first-party .ts/.tsx file before skill-specific eligibility and record exclusions."
+    },
+    {
+      "primitive": "typed-failure-status",
+      "p1_decision": "contract-only",
+      "consumers": [
+        "find-dormant",
+        "find-incomplete-sweep",
+        "find-semantic-duplication",
+        "find-standard-gaps",
+        "map-subsystem",
+        "propose-boundary",
+        "propose-folder-reorganization",
+        "rename-concept"
+      ],
+      "boundary": "Distinguish complete, partial, unsupported, and failed without sharing analysis-specific result schemas."
+    }
+  ],
+  "skills": [
+    {
+      "skill": "adapt-project",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "lexical-filesystem",
+      "javascript_evidence_modes": [
+        "lexical"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_lexical_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_lexical_cohort.py"
+      ],
+      "javascript_reviewed_revision": "1f1c574",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_adapt_project_go_g1.py",
+      "go_native_check": [
+        "go test ./...",
+        "source fingerprint and final adapter assertions"
+      ],
+      "go_reviewed_revision": "bd9fe15",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_adapt_project_java_j2a.py",
+      "java_native_check": [
+        "standalone Maven/Gradle-style fixture inventory",
+        "final adapter artifacts and source-fingerprint assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "lexical-filesystem",
+      "outcome_class": "configuration-output",
+      "framework_family": null,
+      "catalog": {
+        "job": "meta",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "adapt-project"
+        ],
+        "guides": [
+          {
+            "skill": "adapt-project",
+            "skill_root": ".claude/skills/adapt-project",
+            "guide": ".claude/skills/adapt-project/SKILL.md",
+            "bundled_tooling": ".claude/skills/adapt-project/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill adapt-project --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_adapt_project_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/adapt-project-typescript.json"
+      ]
+    },
+    {
+      "skill": "architecture-fit",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "plan",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "architecture-fit"
+        ],
+        "guides": [
+          {
+            "skill": "architecture-fit",
+            "skill_root": ".claude/skills/architecture-fit",
+            "guide": ".claude/skills/architecture-fit/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill architecture-fit --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_planning.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "audit-decisions",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "syntax",
+      "javascript_evidence_modes": [
+        "syntax"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_syntax_cohort.py",
+      "javascript_native_check": [
+        "npm",
+        "run",
+        "check-js"
+      ],
+      "javascript_reviewed_revision": "a5337cb",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_audit_decisions_go_g1.py",
+      "go_native_check": [
+        "go test ./...",
+        "source fingerprint and final drift-report assertions"
+      ],
+      "go_reviewed_revision": "bd9fe15",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_audit_decisions_java.py",
+      "java_native_check": [
+        "batched JDK 17 comment parser",
+        "final audit artifacts and source-fingerprint assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "syntax",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "guard",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "markdown",
+          "html",
+          "javascript",
+          "typescript",
+          "go",
+          "java"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "audit-decisions"
+        ],
+        "guides": [
+          {
+            "skill": "audit-decisions",
+            "skill_root": ".claude/skills/audit-decisions",
+            "guide": ".claude/skills/audit-decisions/SKILL.md",
+            "bundled_tooling": ".claude/skills/audit-decisions/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill audit-decisions --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_audit_decisions_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/audit-decisions-typescript.json"
+      ]
+    },
+    {
+      "skill": "brainstorm-ideas",
+      "expansion_disposition": "ecosystem-runtime",
+      "typescript_disposition": "ecosystem-runtime",
+      "javascript_disposition": "ecosystem-runtime",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "ecosystem-runtime",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "ecosystem-runtime",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "ecosystem-runtime",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "meta",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "brainstorm-ideas"
+        ],
+        "guides": [
+          {
+            "skill": "brainstorm-ideas",
+            "skill_root": ".claude/skills/brainstorm-ideas",
+            "guide": ".claude/skills/brainstorm-ideas/SKILL.md",
+            "bundled_tooling": ".claude/skills/brainstorm-ideas/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "not-host-language-variant",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill brainstorm-ideas --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "check-ecosystem-consistency",
+      "expansion_disposition": "ecosystem-runtime",
+      "typescript_disposition": "ecosystem-runtime",
+      "javascript_disposition": "ecosystem-runtime",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "ecosystem-runtime",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "ecosystem-runtime",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "ecosystem-runtime",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "check-ecosystem-consistency"
+        ],
+        "guides": [
+          {
+            "skill": "check-ecosystem-consistency",
+            "skill_root": ".claude/skills/check-ecosystem-consistency",
+            "guide": ".claude/skills/check-ecosystem-consistency/SKILL.md",
+            "bundled_tooling": ".claude/skills/check-ecosystem-consistency/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "not-host-language-variant",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill check-ecosystem-consistency --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "converge",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "triage",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "converge"
+        ],
+        "guides": [
+          {
+            "skill": "converge",
+            "skill_root": ".claude/skills/converge",
+            "guide": ".claude/skills/converge/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill converge --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_orchestration.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "decide",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "decide",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "decide"
+        ],
+        "guides": [
+          {
+            "skill": "decide",
+            "skill_root": ".claude/skills/decide",
+            "guide": ".claude/skills/decide/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill decide --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_planning.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "design-it-twice",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "decide",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "design-it-twice"
+        ],
+        "guides": [
+          {
+            "skill": "design-it-twice",
+            "skill_root": ".claude/skills/design-it-twice",
+            "guide": ".claude/skills/design-it-twice/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill design-it-twice --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_planning.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "diagnose",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "diagnose",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "diagnose"
+        ],
+        "guides": [
+          {
+            "skill": "diagnose",
+            "skill_root": ".claude/skills/diagnose",
+            "guide": ".claude/skills/diagnose/SKILL.md",
+            "bundled_tooling": ".claude/skills/diagnose/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill diagnose --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_quality.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "engineer-init",
+      "expansion_disposition": "ecosystem-runtime",
+      "typescript_disposition": "ecosystem-runtime",
+      "javascript_disposition": "ecosystem-runtime",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "ecosystem-runtime",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "ecosystem-runtime",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "ecosystem-runtime",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "meta",
+        "language": "python",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "engineer-init"
+        ],
+        "guides": [
+          {
+            "skill": "engineer-init",
+            "skill_root": ".claude/skills/engineer-init",
+            "guide": ".claude/skills/engineer-init/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "not-host-language-variant",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill engineer-init --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "explain-code",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "lexical-filesystem",
+      "javascript_evidence_modes": [
+        "lexical",
+        "partial-fallback"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_lexical_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_lexical_cohort.py"
+      ],
+      "javascript_reviewed_revision": "1f1c574",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_explain_code_go_g1.py",
+      "go_native_check": [
+        "go test ./...",
+        "source fingerprint and final explanation assertions"
+      ],
+      "go_reviewed_revision": "bd9fe15",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_explain_code_java.py",
+      "java_native_check": [
+        "JDK 17 symbol inventory",
+        "final report, mixed-status, and source-once assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "lexical-filesystem",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "explain",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "javascript",
+          "typescript",
+          "go",
+          "java"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "explain-code"
+        ],
+        "guides": [
+          {
+            "skill": "explain-code",
+            "skill_root": ".claude/skills/explain-code",
+            "guide": ".claude/skills/explain-code/SKILL.md",
+            "bundled_tooling": ".claude/skills/explain-code/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill explain-code --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_explain_code_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/explain-code-typescript.json"
+      ]
+    },
+    {
+      "skill": "extract-cotton-primitive",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "frontend-ui",
+      "catalog": {
+        "job": "explain",
+        "language": "python",
+        "framework": "django",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "extract-cotton-primitive"
+        ],
+        "guides": [
+          {
+            "skill": "extract-cotton-primitive",
+            "skill_root": ".claude/skills/extract-cotton-primitive",
+            "guide": ".claude/skills/extract-cotton-primitive/SKILL.md",
+            "bundled_tooling": ".claude/skills/extract-cotton-primitive/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill extract-cotton-primitive --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "extract-enum",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "proposal-mutation-guard",
+      "javascript_evidence_modes": [
+        "checked-javascript",
+        "jsdoc",
+        "compiler-inferred"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_proposal_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_proposal_cohort.py"
+      ],
+      "javascript_reviewed_revision": "87960c4",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_implicit_state_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "review-only proposal artifact and source fingerprint assertions"
+      ],
+      "go_reviewed_revision": "4d295de",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_java_state_chain.py",
+      "java_native_check": [
+        "JDK 17 producer source manifest",
+        "final proposal and stale-evidence rejection assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "semantic-project",
+      "outcome_class": "proposal-only",
+      "framework_family": null,
+      "catalog": {
+        "job": "explain",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "extract-enum"
+        ],
+        "guides": [
+          {
+            "skill": "extract-enum",
+            "skill_root": ".claude/skills/extract-enum",
+            "guide": ".claude/skills/extract-enum/SKILL.md",
+            "bundled_tooling": ".claude/skills/extract-enum/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill extract-enum --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_b2t_typescript_closed_state.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/b2p-state-reference.json",
+        ".claude/tasks/multilanguage-learnings/b2t-typescript-closed-state.json"
+      ]
+    },
+    {
+      "skill": "extract-existing-ideas",
+      "expansion_disposition": "ecosystem-runtime",
+      "typescript_disposition": "ecosystem-runtime",
+      "javascript_disposition": "ecosystem-runtime",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "ecosystem-runtime",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "ecosystem-runtime",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "ecosystem-runtime",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "meta",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "extract-existing-ideas"
+        ],
+        "guides": [
+          {
+            "skill": "extract-existing-ideas",
+            "skill_root": ".claude/skills/extract-existing-ideas",
+            "guide": ".claude/skills/extract-existing-ideas/SKILL.md",
+            "bundled_tooling": ".claude/skills/extract-existing-ideas/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "not-host-language-variant",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill extract-existing-ideas --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "extract-state-type",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "data-model",
+      "catalog": {
+        "job": "explain",
+        "language": "python",
+        "framework": "django",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "extract-state-type"
+        ],
+        "guides": [
+          {
+            "skill": "extract-state-type",
+            "skill_root": ".claude/skills/extract-state-type",
+            "guide": ".claude/skills/extract-state-type/SKILL.md",
+            "bundled_tooling": ".claude/skills/extract-state-type/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill extract-state-type --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "extract-workflow-registry",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "route-workflow",
+      "catalog": {
+        "job": "explain",
+        "language": "python",
+        "framework": "django",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "extract-workflow-registry"
+        ],
+        "guides": [
+          {
+            "skill": "extract-workflow-registry",
+            "skill_root": ".claude/skills/extract-workflow-registry",
+            "guide": ".claude/skills/extract-workflow-registry/SKILL.md",
+            "bundled_tooling": ".claude/skills/extract-workflow-registry/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill extract-workflow-registry --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-async-lifecycle-drift",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "framework-quality",
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "django",
+        "scans": [
+          "python",
+          "javascript"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-async-lifecycle-drift"
+        ],
+        "guides": [
+          {
+            "skill": "find-async-lifecycle-drift",
+            "skill_root": ".claude/skills/find-async-lifecycle-drift",
+            "guide": ".claude/skills/find-async-lifecycle-drift/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-async-lifecycle-drift/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-async-lifecycle-drift --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-comment-drift",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "lexical-filesystem",
+      "javascript_evidence_modes": [
+        "lexical"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_lexical_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_lexical_cohort.py"
+      ],
+      "javascript_reviewed_revision": "1f1c574",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_comment_drift_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "source fingerprint and final report assertions"
+      ],
+      "go_reviewed_revision": "e4fa2f4",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_comment_drift_java_j2a.py",
+      "java_native_check": [
+        "JDK 17 lexical comment fixture",
+        "copied runbook and terminal lifecycle assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "lexical-filesystem",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "javascript",
+          "typescript",
+          "go",
+          "java",
+          "templates"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-comment-drift"
+        ],
+        "guides": [
+          {
+            "skill": "find-comment-drift",
+            "skill_root": ".claude/skills/find-comment-drift",
+            "guide": ".claude/skills/find-comment-drift/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-comment-drift/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-comment-drift --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_comment_drift_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/b3-comment-drift.json"
+      ]
+    },
+    {
+      "skill": "find-complexity-hotspots",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "syntax",
+      "javascript_evidence_modes": [
+        "syntax"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_syntax_cohort.py",
+      "javascript_native_check": [
+        "npm",
+        "run",
+        "check-js"
+      ],
+      "javascript_reviewed_revision": "a5337cb",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_complexity_hotspots_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "gofmt -d <locked fixture Go files>"
+      ],
+      "go_reviewed_revision": "3492764",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_complexity_hotspots_java.py",
+      "java_native_check": [
+        "javac --release 17",
+        "source fingerprint and final report assertions"
+      ],
+      "java_reviewed_revision": "e14274b",
+      "fact_level": "syntax",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "javascript",
+          "typescript",
+          "go",
+          "java"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-complexity-hotspots"
+        ],
+        "guides": [
+          {
+            "skill": "find-complexity-hotspots",
+            "skill_root": ".claude/skills/find-complexity-hotspots",
+            "guide": ".claude/skills/find-complexity-hotspots/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-complexity-hotspots/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-complexity-hotspots --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_find_complexity_hotspots_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/find-complexity-hotspots-typescript.json"
+      ]
+    },
+    {
+      "skill": "find-concept-divergence",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "lexical-filesystem",
+      "javascript_evidence_modes": [
+        "lexical"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_lexical_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_lexical_cohort.py"
+      ],
+      "javascript_reviewed_revision": "1f1c574",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_concept_divergence_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "source fingerprint and final report assertions"
+      ],
+      "go_reviewed_revision": "dd37954",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_concept_divergence_java_j2a.py",
+      "java_native_check": [
+        "standalone Java source fixture",
+        "final findings and copied-runbook assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "lexical-filesystem",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "javascript",
+          "typescript",
+          "go",
+          "java",
+          "markdown",
+          "templates"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-concept-divergence"
+        ],
+        "guides": [
+          {
+            "skill": "find-concept-divergence",
+            "skill_root": ".claude/skills/find-concept-divergence",
+            "guide": ".claude/skills/find-concept-divergence/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-concept-divergence/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-concept-divergence --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_b1_portability.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/b1-portability.json"
+      ]
+    },
+    {
+      "skill": "find-contract-drift",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "framework-quality",
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "django",
+        "scans": [
+          "python",
+          "javascript",
+          "templates"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-contract-drift"
+        ],
+        "guides": [
+          {
+            "skill": "find-contract-drift",
+            "skill_root": ".claude/skills/find-contract-drift",
+            "guide": ".claude/skills/find-contract-drift/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-contract-drift/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-contract-drift --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-dead-route-surface",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "route-workflow",
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "django",
+        "scans": [
+          "python",
+          "javascript",
+          "templates"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-dead-route-surface"
+        ],
+        "guides": [
+          {
+            "skill": "find-dead-route-surface",
+            "skill_root": ".claude/skills/find-dead-route-surface",
+            "guide": ".claude/skills/find-dead-route-surface/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-dead-route-surface/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-dead-route-surface --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-doc-route-drift",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "route-workflow",
+      "catalog": {
+        "job": "suspect",
+        "language": "python",
+        "framework": "django",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-doc-route-drift"
+        ],
+        "guides": [
+          {
+            "skill": "find-doc-route-drift",
+            "skill_root": ".claude/skills/find-doc-route-drift",
+            "guide": ".claude/skills/find-doc-route-drift/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-doc-route-drift/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-doc-route-drift --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-dormant",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "semantic-read-only",
+      "javascript_evidence_modes": [
+        "checked-javascript",
+        "jsdoc",
+        "compiler-inferred"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_semantic_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_semantic_cohort.py"
+      ],
+      "javascript_reviewed_revision": "f06b6c5",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_dormant_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "source fingerprint and final review artifact assertions"
+      ],
+      "go_reviewed_revision": "eeb38da",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_dormant_java.py",
+      "java_native_check": [
+        "JDK 17 compiler attribution",
+        "final report and source-fingerprint assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "semantic-project",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "typescript",
+          "javascript",
+          "go",
+          "java"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-dormant"
+        ],
+        "guides": [
+          {
+            "skill": "find-dormant",
+            "skill_root": ".claude/skills/find-dormant",
+            "guide": ".claude/skills/find-dormant/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-dormant/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-dormant --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_find_dormant_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/find-dormant-typescript.json"
+      ]
+    },
+    {
+      "skill": "find-duplication",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "lexical-filesystem",
+      "javascript_evidence_modes": [
+        "lexical",
+        "partial-fallback"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_lexical_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_lexical_cohort.py"
+      ],
+      "javascript_reviewed_revision": "1f1c574",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_duplication_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "source fingerprint and final triage assertions"
+      ],
+      "go_reviewed_revision": "22147a3",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_duplication_java.py",
+      "java_native_check": [
+        "JDK 17 source fixture",
+        "clone report and source-once assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "lexical-filesystem",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "javascript",
+          "typescript",
+          "go",
+          "java"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-duplication"
+        ],
+        "guides": [
+          {
+            "skill": "find-duplication",
+            "skill_root": ".claude/skills/find-duplication",
+            "guide": ".claude/skills/find-duplication/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-duplication/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-duplication --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_find_duplication_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/find-duplication-typescript.json"
+      ]
+    },
+    {
+      "skill": "find-folder-topology-drift",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "lexical-filesystem",
+      "javascript_evidence_modes": [
+        "lexical"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_lexical_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_lexical_cohort.py"
+      ],
+      "javascript_reviewed_revision": "1f1c574",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_folder_topology_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "source fingerprint and final report assertions"
+      ],
+      "go_reviewed_revision": "e4fa2f4",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_folder_topology_java_j2a.py",
+      "java_native_check": [
+        "standalone Java package fixture",
+        "copied runbook and terminal lifecycle assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "lexical-filesystem",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "javascript",
+          "typescript",
+          "go",
+          "java"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-folder-topology-drift"
+        ],
+        "guides": [
+          {
+            "skill": "find-folder-topology-drift",
+            "skill_root": ".claude/skills/find-folder-topology-drift",
+            "guide": ".claude/skills/find-folder-topology-drift/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-folder-topology-drift/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-folder-topology-drift --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_find_folder_topology_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/find-folder-topology-drift-typescript.json"
+      ]
+    },
+    {
+      "skill": "find-frontend-contract-drift",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "frontend-ui",
+      "catalog": {
+        "job": "suspect",
+        "language": "python",
+        "framework": "django",
+        "scans": [
+          "javascript",
+          "templates"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-frontend-contract-drift"
+        ],
+        "guides": [
+          {
+            "skill": "find-frontend-contract-drift",
+            "skill_root": ".claude/skills/find-frontend-contract-drift",
+            "guide": ".claude/skills/find-frontend-contract-drift/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-frontend-contract-drift/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-frontend-contract-drift --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-frontend-duplication",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "frontend-ui",
+      "catalog": {
+        "job": "suspect",
+        "language": "python",
+        "framework": "django",
+        "scans": [
+          "javascript",
+          "templates"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-frontend-duplication"
+        ],
+        "guides": [
+          {
+            "skill": "find-frontend-duplication",
+            "skill_root": ".claude/skills/find-frontend-duplication",
+            "guide": ".claude/skills/find-frontend-duplication/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-frontend-duplication/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-frontend-duplication --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-implicit-state",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "semantic-read-only",
+      "javascript_evidence_modes": [
+        "checked-javascript",
+        "jsdoc",
+        "compiler-inferred"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_semantic_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_semantic_cohort.py"
+      ],
+      "javascript_reviewed_revision": "f06b6c5",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_implicit_state_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "go vet detect_go_state.go",
+        "source fingerprint and final JSONL assertions"
+      ],
+      "go_reviewed_revision": "4d295de",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_java_state_chain.py",
+      "java_native_check": [
+        "JDK 17 compiler attribution",
+        "final findings, source manifest, and build-boundary assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "semantic-project",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "typescript",
+          "javascript",
+          "go",
+          "java"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-implicit-state"
+        ],
+        "guides": [
+          {
+            "skill": "find-implicit-state",
+            "skill_root": ".claude/skills/find-implicit-state",
+            "guide": ".claude/skills/find-implicit-state/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-implicit-state/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-implicit-state --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_b2t_typescript_closed_state.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/b2p-state-reference.json",
+        ".claude/tasks/multilanguage-learnings/b2t-typescript-closed-state.json"
+      ]
+    },
+    {
+      "skill": "find-incomplete-sweep",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "semantic-read-only",
+      "javascript_evidence_modes": [
+        "checked-javascript",
+        "jsdoc",
+        "compiler-inferred"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_semantic_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_semantic_cohort.py"
+      ],
+      "javascript_reviewed_revision": "f06b6c5",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_incomplete_sweep_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "go vet detect_go_incomplete_sweep.go",
+        "manifest-to-scout-verdict-to-triage and source-preservation assertions"
+      ],
+      "go_reviewed_revision": "2b83ccd",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_incomplete_sweep_java.py",
+      "java_native_check": [
+        "JDK 17 resolved calls plus Git history",
+        "final human-verdict artifact assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "semantic-project",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "typescript",
+          "javascript",
+          "go",
+          "java"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-incomplete-sweep"
+        ],
+        "guides": [
+          {
+            "skill": "find-incomplete-sweep",
+            "skill_root": ".claude/skills/find-incomplete-sweep",
+            "guide": ".claude/skills/find-incomplete-sweep/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-incomplete-sweep/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-incomplete-sweep --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_find_incomplete_sweep_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/find-incomplete-sweep-typescript.json",
+        ".claude/tasks/multilanguage-learnings/go-final-coverage.json"
+      ]
+    },
+    {
+      "skill": "find-layer-violation",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "architecture-planning",
+      "catalog": {
+        "job": "suspect",
+        "language": "python",
+        "framework": "django",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-layer-violation"
+        ],
+        "guides": [
+          {
+            "skill": "find-layer-violation",
+            "skill_root": ".claude/skills/find-layer-violation",
+            "guide": ".claude/skills/find-layer-violation/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-layer-violation/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-layer-violation --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-omnibus",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "syntax",
+      "javascript_evidence_modes": [
+        "syntax"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_syntax_cohort.py",
+      "javascript_native_check": [
+        "npm",
+        "run",
+        "check-js"
+      ],
+      "javascript_reviewed_revision": "a5337cb",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_omnibus_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "source fingerprint and final report assertions"
+      ],
+      "go_reviewed_revision": "5298be2",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_omnibus_java.py",
+      "java_native_check": [
+        "JDK 17 syntax fixture",
+        "generic and explicit terminal lifecycle assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "syntax",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "javascript",
+          "typescript",
+          "go",
+          "java"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-omnibus"
+        ],
+        "guides": [
+          {
+            "skill": "find-omnibus",
+            "skill_root": ".claude/skills/find-omnibus",
+            "guide": ".claude/skills/find-omnibus/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-omnibus/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-omnibus --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_omnibus_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/find-omnibus-typescript.json"
+      ]
+    },
+    {
+      "skill": "find-orphaned-ideas",
+      "expansion_disposition": "ecosystem-runtime",
+      "typescript_disposition": "ecosystem-runtime",
+      "javascript_disposition": "ecosystem-runtime",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "ecosystem-runtime",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "ecosystem-runtime",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "ecosystem-runtime",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-orphaned-ideas"
+        ],
+        "guides": [
+          {
+            "skill": "find-orphaned-ideas",
+            "skill_root": ".claude/skills/find-orphaned-ideas",
+            "guide": ".claude/skills/find-orphaned-ideas/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-orphaned-ideas/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "not-host-language-variant",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-orphaned-ideas --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-perimeter-gaps",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-perimeter-gaps"
+        ],
+        "guides": [
+          {
+            "skill": "find-perimeter-gaps",
+            "skill_root": ".claude/skills/find-perimeter-gaps",
+            "guide": ".claude/skills/find-perimeter-gaps/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-perimeter-gaps/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-perimeter-gaps --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_quality.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-query-mutation",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "data-model",
+      "catalog": {
+        "job": "suspect",
+        "language": "python",
+        "framework": "django",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-query-mutation"
+        ],
+        "guides": [
+          {
+            "skill": "find-query-mutation",
+            "skill_root": ".claude/skills/find-query-mutation",
+            "guide": ".claude/skills/find-query-mutation/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-query-mutation/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-query-mutation --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-route-sprawl",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "route-workflow",
+      "catalog": {
+        "job": "suspect",
+        "language": "python",
+        "framework": "django",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-route-sprawl"
+        ],
+        "guides": [
+          {
+            "skill": "find-route-sprawl",
+            "skill_root": ".claude/skills/find-route-sprawl",
+            "guide": ".claude/skills/find-route-sprawl/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-route-sprawl/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-route-sprawl --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-rule-surface-drift",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "markdown"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-rule-surface-drift"
+        ],
+        "guides": [
+          {
+            "skill": "find-rule-surface-drift",
+            "skill_root": ".claude/skills/find-rule-surface-drift",
+            "guide": ".claude/skills/find-rule-surface-drift/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-rule-surface-drift/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-rule-surface-drift --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_b1_portability.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-semantic-duplication",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "semantic-read-only",
+      "javascript_evidence_modes": [
+        "checked-javascript",
+        "jsdoc",
+        "compiler-inferred"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_semantic_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_semantic_cohort.py"
+      ],
+      "javascript_reviewed_revision": "f06b6c5",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_semantic_duplication_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "go vet detect_go_semantic.go",
+        "source fingerprint and final triage assertions"
+      ],
+      "go_reviewed_revision": "bb4e5fa",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_semantic_duplication_java.py",
+      "java_native_check": [
+        "JDK 17 compiler attribution",
+        "final findings and source-manifest assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "semantic-project",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "typescript",
+          "javascript",
+          "go",
+          "java"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-semantic-duplication"
+        ],
+        "guides": [
+          {
+            "skill": "find-semantic-duplication",
+            "skill_root": ".claude/skills/find-semantic-duplication",
+            "guide": ".claude/skills/find-semantic-duplication/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-semantic-duplication/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-semantic-duplication --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_find_semantic_duplication_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/find-semantic-duplication-typescript.json",
+        ".claude/tasks/multilanguage-learnings/go-semantic-maintenance-family.json"
+      ]
+    },
+    {
+      "skill": "find-skill-artifact-drift",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "markdown"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-skill-artifact-drift"
+        ],
+        "guides": [
+          {
+            "skill": "find-skill-artifact-drift",
+            "skill_root": ".claude/skills/find-skill-artifact-drift",
+            "guide": ".claude/skills/find-skill-artifact-drift/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-skill-artifact-drift/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-skill-artifact-drift --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_b1_portability.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-skill-intent-drift",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-skill-intent-drift"
+        ],
+        "guides": [
+          {
+            "skill": "find-skill-intent-drift",
+            "skill_root": ".claude/skills/find-skill-intent-drift",
+            "guide": ".claude/skills/find-skill-intent-drift/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-skill-intent-drift/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-skill-intent-drift --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_b1_portability.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-stale-artifacts",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "markdown"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-stale-artifacts"
+        ],
+        "guides": [
+          {
+            "skill": "find-stale-artifacts",
+            "skill_root": ".claude/skills/find-stale-artifacts",
+            "guide": ".claude/skills/find-stale-artifacts/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-stale-artifacts/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-stale-artifacts --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_b1_portability.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-standard-gaps",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "syntax",
+      "javascript_evidence_modes": [
+        "syntax"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_syntax_cohort.py",
+      "javascript_native_check": [
+        "npm",
+        "run",
+        "check-js"
+      ],
+      "javascript_reviewed_revision": "a5337cb",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_standard_gaps_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "source fingerprint and final coverage assertions"
+      ],
+      "go_reviewed_revision": "5298be2",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_standard_gaps_java.py",
+      "java_native_check": [
+        "JDK 17 syntax fixture",
+        "final report and copied-closure assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "syntax",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "javascript",
+          "typescript",
+          "go",
+          "java"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-standard-gaps"
+        ],
+        "guides": [
+          {
+            "skill": "find-standard-gaps",
+            "skill_root": ".claude/skills/find-standard-gaps",
+            "guide": ".claude/skills/find-standard-gaps/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-standard-gaps/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-standard-gaps --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_find_standard_gaps_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/find-standard-gaps-typescript.json"
+      ]
+    },
+    {
+      "skill": "find-test-obligation-drift",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "framework-quality",
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "django",
+        "scans": [
+          "python",
+          "javascript",
+          "templates"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-test-obligation-drift"
+        ],
+        "guides": [
+          {
+            "skill": "find-test-obligation-drift",
+            "skill_root": ".claude/skills/find-test-obligation-drift",
+            "guide": ".claude/skills/find-test-obligation-drift/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-test-obligation-drift/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-test-obligation-drift --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-transaction-overreach",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "data-model",
+      "catalog": {
+        "job": "suspect",
+        "language": "python",
+        "framework": "django",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-transaction-overreach"
+        ],
+        "guides": [
+          {
+            "skill": "find-transaction-overreach",
+            "skill_root": ".claude/skills/find-transaction-overreach",
+            "guide": ".claude/skills/find-transaction-overreach/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-transaction-overreach/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-transaction-overreach --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-workflow-duplication",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "route-workflow",
+      "catalog": {
+        "job": "suspect",
+        "language": "python",
+        "framework": "django",
+        "scans": [
+          "python",
+          "javascript",
+          "templates",
+          "markdown"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-workflow-duplication"
+        ],
+        "guides": [
+          {
+            "skill": "find-workflow-duplication",
+            "skill_root": ".claude/skills/find-workflow-duplication",
+            "guide": ".claude/skills/find-workflow-duplication/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-workflow-duplication/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-workflow-duplication --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "find-workflow-state-gaps",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "route-workflow",
+      "catalog": {
+        "job": "suspect",
+        "language": "any",
+        "framework": "django",
+        "scans": [
+          "javascript",
+          "templates"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "find-workflow-state-gaps"
+        ],
+        "guides": [
+          {
+            "skill": "find-workflow-state-gaps",
+            "skill_root": ".claude/skills/find-workflow-state-gaps",
+            "guide": ".claude/skills/find-workflow-state-gaps/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-workflow-state-gaps/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill find-workflow-state-gaps --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "fix-workflow",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "route-workflow",
+      "catalog": {
+        "job": "refactor",
+        "language": "python",
+        "framework": "django",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "fix-workflow"
+        ],
+        "guides": [
+          {
+            "skill": "fix-workflow",
+            "skill_root": ".claude/skills/fix-workflow",
+            "guide": ".claude/skills/fix-workflow/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill fix-workflow --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "gut-check",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "teach",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "gut-check"
+        ],
+        "guides": [
+          {
+            "skill": "gut-check",
+            "skill_root": ".claude/skills/gut-check",
+            "guide": ".claude/skills/gut-check/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill gut-check --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_quality.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "harvest-learnings",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "construct",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "harvest-learnings"
+        ],
+        "guides": [
+          {
+            "skill": "harvest-learnings",
+            "skill_root": ".claude/skills/harvest-learnings",
+            "guide": ".claude/skills/harvest-learnings/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill harvest-learnings --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_orchestration.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "impact-feature",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "architecture-planning",
+      "catalog": {
+        "job": "plan",
+        "language": "python",
+        "framework": "django",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "impact-feature"
+        ],
+        "guides": [
+          {
+            "skill": "impact-feature",
+            "skill_root": ".claude/skills/impact-feature",
+            "guide": ".claude/skills/impact-feature/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill impact-feature --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "introduce-fk",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "data-model",
+      "catalog": {
+        "job": "explain",
+        "language": "python",
+        "framework": "django",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "introduce-fk"
+        ],
+        "guides": [
+          {
+            "skill": "introduce-fk",
+            "skill_root": ".claude/skills/introduce-fk",
+            "guide": ".claude/skills/introduce-fk/SKILL.md",
+            "bundled_tooling": ".claude/skills/introduce-fk/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill introduce-fk --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "map-product-workflow",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "route-workflow",
+      "catalog": {
+        "job": "map",
+        "language": "python",
+        "framework": "django",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "map-product-workflow"
+        ],
+        "guides": [
+          {
+            "skill": "map-product-workflow",
+            "skill_root": ".claude/skills/map-product-workflow",
+            "guide": ".claude/skills/map-product-workflow/SKILL.md",
+            "bundled_tooling": ".claude/skills/map-product-workflow/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill map-product-workflow --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "map-subsystem",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "semantic-read-only",
+      "javascript_evidence_modes": [
+        "checked-javascript",
+        "jsdoc",
+        "compiler-inferred"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_semantic_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_semantic_cohort.py"
+      ],
+      "javascript_reviewed_revision": "f06b6c5",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_map_subsystem_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "source fingerprint and final map artifact assertions"
+      ],
+      "go_reviewed_revision": "2147d5d",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_map_subsystem_java.py",
+      "java_native_check": [
+        "JDK 17 compiler attribution",
+        "final subsystem artifacts and nested-type assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "semantic-project",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "map",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "typescript",
+          "javascript",
+          "go",
+          "java"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "map-subsystem"
+        ],
+        "guides": [
+          {
+            "skill": "map-subsystem",
+            "skill_root": ".claude/skills/map-subsystem",
+            "guide": ".claude/skills/map-subsystem/SKILL.md",
+            "bundled_tooling": ".claude/skills/map-subsystem/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill map-subsystem --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_map_subsystem_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/map-subsystem-typescript.json"
+      ]
+    },
+    {
+      "skill": "mature-existing-ideas",
+      "expansion_disposition": "ecosystem-runtime",
+      "typescript_disposition": "ecosystem-runtime",
+      "javascript_disposition": "ecosystem-runtime",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "ecosystem-runtime",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "ecosystem-runtime",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "ecosystem-runtime",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "meta",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "mature-existing-ideas"
+        ],
+        "guides": [
+          {
+            "skill": "mature-existing-ideas",
+            "skill_root": ".claude/skills/mature-existing-ideas",
+            "guide": ".claude/skills/mature-existing-ideas/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "not-host-language-variant",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill mature-existing-ideas --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "move-path",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "proposal-mutation-guard",
+      "javascript_evidence_modes": [
+        "checked-javascript",
+        "compiler-inferred"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_mutation_guard_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_mutation_guard_cohort.py"
+      ],
+      "javascript_reviewed_revision": "59aa031",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_go_move_path.py",
+      "go_native_check": [
+        "go test ./...",
+        "gofmt -d <changed Go files>",
+        "exact source-diff verification"
+      ],
+      "go_reviewed_revision": "3492764",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_java_move_path.py",
+      "java_native_check": [
+        "javac --release 17 -proc:none before and after",
+        "exact source-diff verification",
+        "rollback on native failure"
+      ],
+      "java_reviewed_revision": "cd7a445",
+      "fact_level": "lexical-filesystem",
+      "outcome_class": "source-mutation",
+      "framework_family": null,
+      "catalog": {
+        "job": "refactor",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "go",
+          "java",
+          "javascript",
+          "typescript"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "move-path"
+        ],
+        "guides": [
+          {
+            "skill": "move-path",
+            "skill_root": ".claude/skills/move-path",
+            "guide": ".claude/skills/move-path/SKILL.md",
+            "bundled_tooling": ".claude/skills/move-path/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill move-path --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_move_path.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/move-path-typescript.json"
+      ]
+    },
+    {
+      "skill": "organize-project-structure",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "plan",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "organize-project-structure"
+        ],
+        "guides": [
+          {
+            "skill": "organize-project-structure",
+            "skill_root": ".claude/skills/organize-project-structure",
+            "guide": ".claude/skills/organize-project-structure/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill organize-project-structure --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_orchestration.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "orient",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "meta",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "orient"
+        ],
+        "guides": [
+          {
+            "skill": "orient",
+            "skill_root": ".claude/skills/orient",
+            "guide": ".claude/skills/orient/SKILL.md",
+            "bundled_tooling": ".claude/skills/orient/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill orient --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_orchestration.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "plan-feature",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "architecture-planning",
+      "catalog": {
+        "job": "plan",
+        "language": "python",
+        "framework": "django",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "plan-feature"
+        ],
+        "guides": [
+          {
+            "skill": "plan-feature",
+            "skill_root": ".claude/skills/plan-feature",
+            "guide": ".claude/skills/plan-feature/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill plan-feature --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "plan-skill",
+      "expansion_disposition": "ecosystem-runtime",
+      "typescript_disposition": "ecosystem-runtime",
+      "javascript_disposition": "ecosystem-runtime",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "ecosystem-runtime",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "ecosystem-runtime",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "ecosystem-runtime",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "plan",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "plan-skill"
+        ],
+        "guides": [
+          {
+            "skill": "plan-skill",
+            "skill_root": ".claude/skills/plan-skill",
+            "guide": ".claude/skills/plan-skill/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "not-host-language-variant",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill plan-skill --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "plan-spec",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "plan",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "plan-spec"
+        ],
+        "guides": [
+          {
+            "skill": "plan-spec",
+            "skill_root": ".claude/skills/plan-spec",
+            "guide": ".claude/skills/plan-spec/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill plan-spec --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_planning.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "prevent-regression",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "proposal-mutation-guard",
+      "javascript_evidence_modes": [
+        "checked-javascript",
+        "jsdoc",
+        "compiler-inferred"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_mutation_guard_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_mutation_guard_cohort.py"
+      ],
+      "javascript_reviewed_revision": "59aa031",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_find_implicit_state_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "BAD_RC=1, GOOD_RC=0 staged-guard verification"
+      ],
+      "go_reviewed_revision": "4d295de",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_java_state_chain.py",
+      "java_native_check": [
+        "JDK 17 accepted producer evidence",
+        "staged guard and native verification assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "semantic-project",
+      "outcome_class": "guard-generation",
+      "framework_family": null,
+      "catalog": {
+        "job": "guard",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": [
+          "find-implicit-state"
+        ]
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "prevent-regression",
+          "find-implicit-state"
+        ],
+        "guides": [
+          {
+            "skill": "prevent-regression",
+            "skill_root": ".claude/skills/prevent-regression",
+            "guide": ".claude/skills/prevent-regression/SKILL.md",
+            "bundled_tooling": ".claude/skills/prevent-regression/scripts"
+          },
+          {
+            "skill": "find-implicit-state",
+            "skill_root": ".claude/skills/find-implicit-state",
+            "guide": ".claude/skills/find-implicit-state/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-implicit-state/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill prevent-regression --skill find-implicit-state --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_b2t_typescript_closed_state.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/b2p-state-reference.json",
+        ".claude/tasks/multilanguage-learnings/b2t-typescript-closed-state.json"
+      ]
+    },
+    {
+      "skill": "project-interview",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "meta",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "project-interview"
+        ],
+        "guides": [
+          {
+            "skill": "project-interview",
+            "skill_root": ".claude/skills/project-interview",
+            "guide": ".claude/skills/project-interview/SKILL.md",
+            "bundled_tooling": ".claude/skills/project-interview/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill project-interview --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_orchestration.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "propose-boundary",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "proposal-mutation-guard",
+      "javascript_evidence_modes": [
+        "checked-javascript",
+        "compiler-inferred"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_proposal_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_proposal_cohort.py"
+      ],
+      "javascript_reviewed_revision": "87960c4",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_propose_boundary_go.py",
+      "go_native_check": [
+        "go fmt ./...",
+        "go test ./..."
+      ],
+      "go_reviewed_revision": "3492764",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_propose_boundary_java.py",
+      "java_native_check": [
+        "JavacTask.parse and analyze",
+        "javac --release 17",
+        "source fingerprint and final proposal assertions"
+      ],
+      "java_reviewed_revision": "cfd0e2d",
+      "fact_level": "semantic-project",
+      "outcome_class": "proposal-only",
+      "framework_family": null,
+      "catalog": {
+        "job": "explain",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "typescript",
+          "javascript",
+          "go",
+          "java"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "propose-boundary"
+        ],
+        "guides": [
+          {
+            "skill": "propose-boundary",
+            "skill_root": ".claude/skills/propose-boundary",
+            "guide": ".claude/skills/propose-boundary/SKILL.md",
+            "bundled_tooling": ".claude/skills/propose-boundary/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill propose-boundary --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_propose_boundary_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/propose-boundary-typescript.json"
+      ]
+    },
+    {
+      "skill": "propose-folder-reorganization",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "proposal-mutation-guard",
+      "javascript_evidence_modes": [
+        "checked-javascript",
+        "compiler-inferred"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_proposal_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_proposal_cohort.py"
+      ],
+      "javascript_reviewed_revision": "87960c4",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_propose_folder_reorganization_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "go vet ./...",
+        "read-only move plan, current-module import impact, and copied on-demand closure assertions"
+      ],
+      "go_reviewed_revision": "7f3da12",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_propose_folder_reorganization_java.py",
+      "java_native_check": [
+        "JDK 17 compiler attribution",
+        "read-only move plan and wildcard-safety assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "semantic-project",
+      "outcome_class": "proposal-only",
+      "framework_family": null,
+      "catalog": {
+        "job": "explain",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "go",
+          "java",
+          "typescript",
+          "javascript"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "propose-folder-reorganization"
+        ],
+        "guides": [
+          {
+            "skill": "propose-folder-reorganization",
+            "skill_root": ".claude/skills/propose-folder-reorganization",
+            "guide": ".claude/skills/propose-folder-reorganization/SKILL.md",
+            "bundled_tooling": ".claude/skills/propose-folder-reorganization/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill propose-folder-reorganization --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_propose_folder_reorganization_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/propose-folder-reorganization-typescript.json",
+        ".claude/tasks/multilanguage-learnings/go-final-coverage.json"
+      ]
+    },
+    {
+      "skill": "query-patterns",
+      "expansion_disposition": "ecosystem-runtime",
+      "typescript_disposition": "ecosystem-runtime",
+      "javascript_disposition": "ecosystem-runtime",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "ecosystem-runtime",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "ecosystem-runtime",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "ecosystem-runtime",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "meta",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "query-patterns"
+        ],
+        "guides": [
+          {
+            "skill": "query-patterns",
+            "skill_root": ".claude/skills/query-patterns",
+            "guide": ".claude/skills/query-patterns/SKILL.md",
+            "bundled_tooling": ".claude/skills/query-patterns/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "not-host-language-variant",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill query-patterns --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "refactor-subsystem",
+      "expansion_disposition": "framework-bound",
+      "typescript_disposition": "stack-bound",
+      "javascript_disposition": "stack-bound",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "stack-bound",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "stack-bound",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "framework",
+      "outcome_class": "framework-specific",
+      "framework_family": "architecture-planning",
+      "catalog": {
+        "job": "refactor",
+        "language": "python",
+        "framework": "django",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "refactor-subsystem"
+        ],
+        "guides": [
+          {
+            "skill": "refactor-subsystem",
+            "skill_root": ".claude/skills/refactor-subsystem",
+            "guide": ".claude/skills/refactor-subsystem/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "deferred-named-stack",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill refactor-subsystem --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "rename-concept",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "semantic-read-only",
+      "javascript_evidence_modes": [
+        "checked-javascript",
+        "jsdoc",
+        "compiler-inferred"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_semantic_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_semantic_cohort.py"
+      ],
+      "javascript_reviewed_revision": "f06b6c5",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_rename_concept_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "go vet go_identifier_evidence.go",
+        "copied closure and source fingerprint assertions"
+      ],
+      "go_reviewed_revision": "bb4e5fa",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_rename_concept_java.py",
+      "java_native_check": [
+        "JDK 17 compiler attribution",
+        "final assessment and copied-closure assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "semantic-project",
+      "outcome_class": "read-only-report",
+      "framework_family": null,
+      "catalog": {
+        "job": "refactor",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "javascript",
+          "typescript",
+          "go",
+          "java",
+          "markdown",
+          "templates"
+        ],
+        "install_with": [
+          "find-concept-divergence"
+        ]
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "rename-concept",
+          "find-concept-divergence"
+        ],
+        "guides": [
+          {
+            "skill": "rename-concept",
+            "skill_root": ".claude/skills/rename-concept",
+            "guide": ".claude/skills/rename-concept/SKILL.md",
+            "bundled_tooling": ".claude/skills/rename-concept/scripts"
+          },
+          {
+            "skill": "find-concept-divergence",
+            "skill_root": ".claude/skills/find-concept-divergence",
+            "guide": ".claude/skills/find-concept-divergence/SKILL.md",
+            "bundled_tooling": ".claude/skills/find-concept-divergence/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill rename-concept --skill find-concept-divergence --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_rename_concept_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/b1-portability.json",
+        ".claude/tasks/multilanguage-learnings/rename-concept-typescript.json",
+        ".claude/tasks/multilanguage-learnings/go-semantic-maintenance-family.json"
+      ]
+    },
+    {
+      "skill": "repair-skill",
+      "expansion_disposition": "ecosystem-runtime",
+      "typescript_disposition": "ecosystem-runtime",
+      "javascript_disposition": "ecosystem-runtime",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "ecosystem-runtime",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "ecosystem-runtime",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "ecosystem-runtime",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "meta",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "repair-skill"
+        ],
+        "guides": [
+          {
+            "skill": "repair-skill",
+            "skill_root": ".claude/skills/repair-skill",
+            "guide": ".claude/skills/repair-skill/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "not-host-language-variant",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill repair-skill --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "scope-feature",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "plan",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "scope-feature"
+        ],
+        "guides": [
+          {
+            "skill": "scope-feature",
+            "skill_root": ".claude/skills/scope-feature",
+            "guide": ".claude/skills/scope-feature/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill scope-feature --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_planning.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "teach-pattern",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "teach",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "teach-pattern"
+        ],
+        "guides": [
+          {
+            "skill": "teach-pattern",
+            "skill_root": ".claude/skills/teach-pattern",
+            "guide": ".claude/skills/teach-pattern/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill teach-pattern --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_quality.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "track-idea",
+      "expansion_disposition": "ecosystem-runtime",
+      "typescript_disposition": "ecosystem-runtime",
+      "javascript_disposition": "ecosystem-runtime",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "ecosystem-runtime",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "ecosystem-runtime",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "ecosystem-runtime",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "meta",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "track-idea"
+        ],
+        "guides": [
+          {
+            "skill": "track-idea",
+            "skill_root": ".claude/skills/track-idea",
+            "guide": ".claude/skills/track-idea/SKILL.md",
+            "bundled_tooling": ".claude/skills/track-idea/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "not-host-language-variant",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill track-idea --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "triage-debt",
+      "expansion_disposition": "validated-neutral",
+      "typescript_disposition": "validated-neutral",
+      "javascript_disposition": "validated-neutral",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "validated-neutral",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "validated-neutral",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "neutral",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "triage",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "triage-debt"
+        ],
+        "guides": [
+          {
+            "skill": "triage-debt",
+            "skill_root": ".claude/skills/triage-debt",
+            "guide": ".claude/skills/triage-debt/SKILL.md",
+            "bundled_tooling": null
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill triage-debt --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_validated_neutral_typescript_quality.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "unify-shadows",
+      "expansion_disposition": "language-level",
+      "typescript_disposition": "typescript-supported",
+      "javascript_disposition": "javascript-supported",
+      "javascript_cohort": "proposal-mutation-guard",
+      "javascript_evidence_modes": [
+        "checked-javascript",
+        "jsdoc",
+        "compiler-inferred"
+      ],
+      "javascript_evidence_path": "tests/test_javascript_proposal_cohort.py",
+      "javascript_native_check": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_javascript_proposal_cohort.py"
+      ],
+      "javascript_reviewed_revision": "87960c4",
+      "javascript_limitation": null,
+      "go_disposition": "go-supported",
+      "go_evidence_path": "tests/test_unify_shadows_go.py",
+      "go_native_check": [
+        "go test ./...",
+        "read-only proposal artifacts and source fingerprint assertions"
+      ],
+      "go_reviewed_revision": "bb4e5fa",
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_unify_shadows_java.py",
+      "java_native_check": [
+        "JDK 17 producer source manifest",
+        "final proposal and stale-evidence rejection assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+      "fact_level": "semantic-project",
+      "outcome_class": "proposal-only",
+      "framework_family": null,
+      "catalog": {
+        "job": "explain",
+        "language": "any",
+        "framework": "any",
+        "scans": [
+          "python",
+          "typescript",
+          "javascript",
+          "go",
+          "java"
+        ],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "unify-shadows"
+        ],
+        "guides": [
+          {
+            "skill": "unify-shadows",
+            "skill_root": ".claude/skills/unify-shadows",
+            "guide": ".claude/skills/unify-shadows/SKILL.md",
+            "bundled_tooling": ".claude/skills/unify-shadows/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "passed",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill unify-shadows --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": "tests/test_unify_shadows_typescript.py",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": [
+        ".claude/tasks/multilanguage-learnings/unify-shadows-typescript.json",
+        ".claude/tasks/multilanguage-learnings/go-semantic-maintenance-family.json"
+      ]
+    },
+    {
+      "skill": "which-cleanup",
+      "expansion_disposition": "ecosystem-runtime",
+      "typescript_disposition": "ecosystem-runtime",
+      "javascript_disposition": "ecosystem-runtime",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "ecosystem-runtime",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "ecosystem-runtime",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "ecosystem-runtime",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "meta",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "which-cleanup"
+        ],
+        "guides": [
+          {
+            "skill": "which-cleanup",
+            "skill_root": ".claude/skills/which-cleanup",
+            "guide": ".claude/skills/which-cleanup/SKILL.md",
+            "bundled_tooling": ".claude/skills/which-cleanup/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "not-host-language-variant",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill which-cleanup --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "which-shape",
+      "expansion_disposition": "ecosystem-runtime",
+      "typescript_disposition": "ecosystem-runtime",
+      "javascript_disposition": "ecosystem-runtime",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "ecosystem-runtime",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "ecosystem-runtime",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "ecosystem-runtime",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "meta",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "which-shape"
+        ],
+        "guides": [
+          {
+            "skill": "which-shape",
+            "skill_root": ".claude/skills/which-shape",
+            "guide": ".claude/skills/which-shape/SKILL.md",
+            "bundled_tooling": ".claude/skills/which-shape/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "not-host-language-variant",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill which-shape --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    },
+    {
+      "skill": "which-skill",
+      "expansion_disposition": "ecosystem-runtime",
+      "typescript_disposition": "ecosystem-runtime",
+      "javascript_disposition": "ecosystem-runtime",
+      "javascript_cohort": null,
+      "javascript_evidence_modes": [
+        "not-applicable"
+      ],
+      "javascript_evidence_path": null,
+      "javascript_native_check": null,
+      "javascript_reviewed_revision": null,
+      "javascript_limitation": null,
+      "go_disposition": "ecosystem-runtime",
+      "go_evidence_path": null,
+      "go_native_check": null,
+      "go_reviewed_revision": null,
+      "java_disposition": "ecosystem-runtime",
+      "java_evidence_path": null,
+      "java_native_check": null,
+      "java_reviewed_revision": null,
+      "fact_level": "ecosystem-runtime",
+      "outcome_class": "not-applicable",
+      "framework_family": null,
+      "catalog": {
+        "job": "meta",
+        "language": "any",
+        "framework": "any",
+        "scans": [],
+        "install_with": []
+      },
+      "on_demand_closure": {
+        "mode": "on-demand-library",
+        "closure_skills": [
+          "which-skill"
+        ],
+        "guides": [
+          {
+            "skill": "which-skill",
+            "skill_root": ".claude/skills/which-skill",
+            "guide": ".claude/skills/which-skill/SKILL.md",
+            "bundled_tooling": ".claude/skills/which-skill/scripts"
+          }
+        ],
+        "shared_tooling": "scripts",
+        "common_guidance": ".claude/skills/_common",
+        "shared_guidance": ".claude/docs"
+      },
+      "optional_install": {
+        "role": "secondary-explicit-user-choice",
+        "status": "not-host-language-variant",
+        "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \"${ENGINEERING_SKILLS_SOURCE}\" --skill which-skill --agent codex --copy -y",
+        "evidence_basis": "historical-stock-selected-install"
+      },
+      "typescript_evidence_path": ".claude/tasks/typescript-skill-batch-plan.md",
+      "typescript_reviewed_revision": "c611723",
+      "learning_packets": []
+    }
+  ]
+}

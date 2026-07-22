@@ -1,0 +1,13 @@
+{
+  "bucket": "extract_enum_candidate",
+  "candidate_id": "implicit-state-0003",
+  "confidence": "medium",
+  "false_positive_reason": null,
+  "fields_touched": ["status"],
+  "file": "app/models/jobs.py",
+  "hit_count": 1,
+  "notes": "Job.status is a Django CharField without TextChoices and is the carrier for the reviewed caller finding.",
+  "pattern": "stringly_field",
+  "recommendation_hint_symbol": "Job",
+  "symbols": ["Job"]
+}

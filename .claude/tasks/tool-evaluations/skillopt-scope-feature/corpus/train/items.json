@@ -1,0 +1,81 @@
+[
+  {
+    "id": "train-system-priority-boundary",
+    "task_type": "system_scope",
+    "task": "Scope a multi-phase initiative. Problem: our engineering skill collection is hard to adopt and mostly Python-specific, costing repeated setup and weak results outside Python. In scope: a simple router-only installer, TypeScript and major-language support for generally applicable skills, and installed user-journey verification. Out of scope: a cryptographic supply-chain platform, automatic workflow DAGs, and framework support beyond one later pilot. Non-goals: perfect security against a compromised source repository and simultaneous support for every language. Success: a fresh project installs exactly three routers with one documented command; 22 language-level skills have honest TypeScript outcomes; one installed route loads only the selected closure and reaches its final artifact. The current priorities are installation, multi-language support, then user journey; review complaints that do not materially affect them stay deferred.",
+    "expected": {
+      "outcomes": ["scoped"],
+      "minimum_counts": {"in_scope": 3, "out_of_scope": 3, "non_goals": 2, "success_criteria": 3},
+      "required_terms": {
+        "in_scope": ["router", "typescript", "journey"],
+        "out_of_scope": ["cryptographic", "dag"],
+        "success_criteria": ["three routers", "22", "selected closure"]
+      },
+      "forbidden_terms": ["implement a transactional platform"],
+      "assumptions_must_be_empty": true
+    }
+  },
+  {
+    "id": "train-feature-downgrade",
+    "task_type": "tier_check",
+    "task": "Scope an initiative to add a --json flag to the existing find-comment-drift command. It touches one CLI parser and its focused tests, should take one day, and does not change other workflows. The output schema and fixtures are already specified.",
+    "expected": {
+      "outcomes": ["downgrade_feature"],
+      "minimum_counts": {"success_criteria": 1},
+      "required_terms": {"rationale": ["one", "workflow"]},
+      "forbidden_terms": ["system-tier plan"],
+      "assumptions_must_be_empty": true
+    }
+  },
+  {
+    "id": "train-quick-rejection",
+    "task_type": "tier_check",
+    "task": "Scope an initiative to fix the misspelling 'avaiable' in one error message and its exact assertion.",
+    "expected": {
+      "outcomes": ["proceed_directly"],
+      "minimum_counts": {},
+      "required_terms": {"rationale": ["quick"]},
+      "forbidden_terms": ["scaffold a plan"],
+      "assumptions_must_be_empty": true
+    }
+  },
+  {
+    "id": "train-ambiguous-intent",
+    "task_type": "clarification",
+    "task": "Scope 'make the platform better'. No affected workflow, user problem, boundary, non-goal, or measurable outcome has been supplied.",
+    "expected": {
+      "outcomes": ["needs_clarification"],
+      "minimum_counts": {"questions": 3, "unknowns": 3},
+      "required_terms": {"questions": ["problem", "scope", "success"]},
+      "forbidden_terms": ["the initiative will"],
+      "assumptions_must_be_empty": true
+    }
+  },
+  {
+    "id": "train-measurable-criteria",
+    "task_type": "system_scope",
+    "task": "Scope a cross-subsystem export reliability initiative. Problem: exports from API, background jobs, and admin UI disagree, causing 8% fixture mismatches. In scope: one canonical serializer, all three callers, and regression fixtures. Out of scope: redesigning the admin UI and changing storage. Non-goal: a general event platform. Success: the same 50-record fixture is byte-identical across all three paths; malformed records fail with the same typed error; existing API latency p95 stays below 250ms. These answers are confirmed.",
+    "expected": {
+      "outcomes": ["scoped"],
+      "minimum_counts": {"in_scope": 3, "out_of_scope": 2, "non_goals": 1, "success_criteria": 3},
+      "required_terms": {"success_criteria": ["50", "typed error", "250"]},
+      "forbidden_terms": ["faster", "cleaner"],
+      "assumptions_must_be_empty": true
+    }
+  },
+  {
+    "id": "train-adversarial-scope-control",
+    "task_type": "priority_control",
+    "task": "Scope adding TypeScript support to one read-only complexity detector after Python and Go versions already work. In scope: .ts/.tsx syntax facts, the existing final report, copied-closure execution, and native typecheck/test. Out of scope: package signing, a universal AST, LSP lifecycle management, and automatic multi-skill orchestration. Non-goal: semantic call resolution. Success: the locked positive and must-not-fire fixtures pass, source hashes remain unchanged, and the copied closure reaches final Markdown/JSON. An adversarial reviewer recommends SHA-verified transactional installation and a cross-language semantic index. The product owner says those do not materially affect this task and must remain deferred.",
+    "expected": {
+      "outcomes": ["scoped"],
+      "minimum_counts": {"in_scope": 3, "out_of_scope": 4, "non_goals": 1, "success_criteria": 3, "refused_expansions": 2},
+      "required_terms": {
+        "out_of_scope": ["signing", "universal ast", "lsp", "orchestration"],
+        "refused_expansions": ["transactional", "semantic index"]
+      },
+      "forbidden_terms": ["add sha verification"],
+      "assumptions_must_be_empty": true
+    }
+  }
+]

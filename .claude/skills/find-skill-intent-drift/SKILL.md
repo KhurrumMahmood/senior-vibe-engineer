@@ -40,11 +40,17 @@ not_for: |
   never blocks a commit; it is advisory unless run `--strict` in CI. By
   default it does refresh the generated contract roll-up
   `_index.yaml`; pass `--no-index` for a no-write audit.
-language: python
+language: any
 framework: any
 ---
 
 # /find-skill-intent-drift
+
+This skill is host-language-neutral: it compares skill contracts and
+frontmatter rather than application source syntax. Its Python executable is
+an installed implementation detail, not a claim that the host project is
+Python. It accepts standard YAML with PyYAML available in the host runtime;
+JSON-form YAML remains usable for an isolated stdlib-only installation.
 
 You are running an advisory audit that keeps the **skill intent +
 provenance contracts** in sync with the skills they describe. Each skill

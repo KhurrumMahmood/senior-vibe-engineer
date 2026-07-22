@@ -114,20 +114,6 @@ Then define the artifact contract:
 - what downstream skill consumes the output;
 - stop conditions.
 
-Answer the placement decision at this stage, before body prose:
-
-Which shipping layer owns the concept, and if the content is
-language/framework-flavored, why is this concept+binding rather than native?
-If domain is proposed, name at least three cohesive members.
-
-Use a registered layer and primary binding from
-`_common/capability-registry.yml`. A language, framework, or host shipping
-contract may be a valid singleton; a domain cohesion folder requires at least
-three members. Record catalog readiness separately from capability support:
-`deferred-to-wp8` and `inventory-only` describe migration state and never imply
-`capability_contract`, `experimental`, or `verified` support. Do not promote a
-row merely to make the new skill appear portable.
-
 Two contract rules, both learned from execution failures:
 
 - **Declared verdict.** The skill body opens with a compact "How

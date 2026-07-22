@@ -26,19 +26,20 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-# Route Python parsing through the shared per-language adapter registry
-# (ADR 0032) so enclosing-symbol resolution capability-gates on Python
-# and gracefully skips non-Python / unparseable clone sites.
-_SCRIPTS_DIR = str(Path(__file__).resolve().parents[4] / "scripts")
-if _SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPTS_DIR)
-from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
-
 
 DEFAULT_IGNORES: list[str] = [
+    "test_*.py",
+    "tests.py",
+    "tests/**",
     "**/tests_*.py",
+    "**/test_*.py",
     "**/tests/**",
+    "migrations/**",
     "**/migrations/**",
+    "reports/**",
+    "**/reports/**",
+    ".jscpd-input/**",
+    "**/.jscpd-input/**",
     "sites/*/scrape.py",
     "**/vendor_*.py",
     "**/staticfiles/**",
@@ -120,16 +121,16 @@ def normalize_path(name: str, project_root: str) -> str:
 def find_enclosing_function(
     source_file: str, start_line: int, end_line: int
 ) -> str | None:
-    """Return the innermost qualified name of the class/func spanning the range."""
+    """Return the innermost Python symbol spanning the lexical clone range.
+
+    This preserves the reference oracle without importing the toolkit's shared
+    adapter registry.  A copied find-duplication skill must be able to replay
+    the Python reference case with the standard library alone.
+    """
     try:
         src = Path(source_file).read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return None
-    adapter = get_adapter(source_file)
-    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
-        return None
-    tree = adapter.parse(src)
-    if tree is None:
+        tree = ast.parse(src, filename=source_file)
+    except (OSError, SyntaxError):
         return None
 
     best: tuple[int, str, bool] | None = None
@@ -557,6 +558,7 @@ def main(argv: list[str] | None = None) -> int:
         "scan_meta": {
             "target": args.target,
             "project_root": args.project_root,
+            "language": "python",
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "ignore_patterns": ignore_patterns,
             "jscpd_raw_pair_count": jscpd_stats["raw_pair_count"],

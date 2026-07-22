@@ -1,0 +1,92 @@
+{
+  "skill": "find-semantic-duplication",
+  "language": "typescript",
+  "capability_matrix": {
+    "function_level_typed_candidates": "available",
+    "direct_call_resolution": "available_for_direct_static_identifiers",
+    "dynamic_or_declaration_only_calls": "uncertain",
+    "workflow_or_structural_analysis": "unavailable",
+    "protocol_or_class_method_semantics": "unavailable"
+  },
+  "counts": {
+    "confirmed": 1,
+    "uncertain": 0,
+    "rejected": 0
+  },
+  "findings": [
+    {
+      "level": "function",
+      "members": [
+        {
+          "file": "src/semantic.ts",
+          "qualified_name": "summarizeByReduction",
+          "line": 5,
+          "end_line": 9,
+          "size": 5,
+          "caller_count": 0
+        },
+        {
+          "file": "src/semantic.ts",
+          "qualified_name": "summarizeByLoop",
+          "line": 11,
+          "end_line": 19,
+          "size": 9,
+          "caller_count": 0
+        }
+      ],
+      "static_return_type": "SemanticSummary",
+      "return_fields": ["labels", "total"],
+      "similarity": 0.444,
+      "finding_id": "TS-SD-0001",
+      "id": "TS-SD-0001",
+      "investigation_status": "confirmed",
+      "reason_code": null,
+      "shared_core_description": "Both typed functions return SemanticSummary with labels, total through different implementation shapes.",
+      "divergence": {"accidental": [], "load_bearing": []},
+      "consolidation_shape": "share_utilities",
+      "maintenance_risk_domain": "unknown",
+      "matrix_path": "capability_matrices/TS-SD-0001.md",
+      "tests_that_guard_this_area": [],
+      "notes": "Function-level static lead only. Review runtime behavior and caller contracts before any refactor."
+    }
+  ],
+  "confirmed": [
+    {
+      "level": "function",
+      "members": [
+        {
+          "file": "src/semantic.ts",
+          "qualified_name": "summarizeByReduction",
+          "line": 5,
+          "end_line": 9,
+          "size": 5,
+          "caller_count": 0
+        },
+        {
+          "file": "src/semantic.ts",
+          "qualified_name": "summarizeByLoop",
+          "line": 11,
+          "end_line": 19,
+          "size": 9,
+          "caller_count": 0
+        }
+      ],
+      "static_return_type": "SemanticSummary",
+      "return_fields": ["labels", "total"],
+      "similarity": 0.444,
+      "finding_id": "TS-SD-0001",
+      "id": "TS-SD-0001",
+      "investigation_status": "confirmed",
+      "reason_code": null,
+      "shared_core_description": "Both typed functions return SemanticSummary with labels, total through different implementation shapes.",
+      "divergence": {"accidental": [], "load_bearing": []},
+      "consolidation_shape": "share_utilities",
+      "maintenance_risk_domain": "unknown",
+      "matrix_path": "capability_matrices/TS-SD-0001.md",
+      "tests_that_guard_this_area": [],
+      "notes": "Function-level static lead only. Review runtime behavior and caller contracts before any refactor."
+    }
+  ],
+  "uncertain": [],
+  "rejected": []
+}

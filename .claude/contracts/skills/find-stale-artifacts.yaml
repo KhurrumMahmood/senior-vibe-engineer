@@ -6,7 +6,8 @@ problem_class: working-artifact hygiene detection (SUSPECT)
 intent: Detect stale working artifacts — abandoned plans, proposed plans untouched past a soft staleness
   budget, aged scan-* report directories not pointed at by `latest`, and orphan top-level reports/*.md
   files. Enforces a status-frontmatter + age + reference-graph discipline across a small fixed list of
-  artifact dirs (ai-docs/plans, ai-docs/specs, reports/). Sibling to /find-dormant for non-code surfaces.
+  artifact dirs (ai-docs/plans, ai-docs/specs, reports/). The artifact lifecycle is independent of the
+  host project's source language. Sibling to /find-dormant for non-code surfaces.
 solves: Working artifacts that outlive the work and accumulate as a silent attention tax — months-old
   abandoned/proposed plans, dead scan dirs nobody will reread, and stray top-level report notes — with
   no periodic forcing function to clear them.
@@ -108,6 +109,7 @@ provenance_confidence:
   temporal: low
   dogfood: med
 evidence:
+- 5400770 B1 portability proof — copied installed execution preserves the artifact-lifecycle report in a TypeScript host without source-language assumptions.
 - 'scan-surface declared via scans: frontmatter [markdown] (2026-06-11 perimeter sweep, ADR 0032) — the scan surface is now part of the intent surface and audited by /find-perimeter-gaps'
 - 90f8567 — born in the big-bang ecosystem-extraction commit alongside 54 sibling skills (temporal weak;
   textual weak — no commit names this skill in ES2's big-bang birth)

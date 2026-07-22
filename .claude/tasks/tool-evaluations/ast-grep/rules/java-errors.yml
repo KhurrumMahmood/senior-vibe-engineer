@@ -1,0 +1,6 @@
+id: pilot-java-errors
+message: Java parse error for the structural-tool pilot
+severity: error
+language: Java
+rule:
+  kind: ERROR

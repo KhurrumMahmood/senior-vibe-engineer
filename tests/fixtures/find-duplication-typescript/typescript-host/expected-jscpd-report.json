@@ -1,0 +1,44 @@
+{
+  "statistics": {
+    "formats": {},
+    "total": {}
+  },
+  "duplicates": [
+    {
+      "format": "typescript",
+      "lines": 13,
+      "firstFile": {"name": "src/queue_one.ts", "start": 7, "end": 19},
+      "secondFile": {"name": "src/queue_two.ts", "start": 7, "end": 19}
+    },
+    {
+      "format": "typescript",
+      "lines": 13,
+      "firstFile": {"name": "src/queue_one.ts", "start": 7, "end": 19},
+      "secondFile": {"name": "src/tests/queue_clone.test.ts", "start": 7, "end": 19}
+    },
+    {
+      "format": "typescript",
+      "lines": 13,
+      "firstFile": {"name": "src/queue_two.ts", "start": 7, "end": 19},
+      "secondFile": {"name": "src/generated/generated_clone.ts", "start": 7, "end": 19}
+    },
+    {
+      "format": "typescript",
+      "lines": 2,
+      "firstFile": {"name": "types/api.d.ts", "start": 1, "end": 2},
+      "secondFile": {"name": "types/api.d.ts", "start": 3, "end": 4}
+    },
+    {
+      "format": "typescript",
+      "lines": 1,
+      "firstFile": {"name": "src/overloads.ts", "start": 1, "end": 1},
+      "secondFile": {"name": "src/overloads.ts", "start": 5, "end": 5}
+    }
+  ],
+  "run": {
+    "status": "completed",
+    "tool": "jscpd",
+    "version": "4.0.5",
+    "offline": true
+  }
+}

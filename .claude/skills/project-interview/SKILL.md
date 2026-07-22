@@ -57,6 +57,9 @@ The deliverable is a draft or applied profile:
 - `profile.yml`, `profile.md`, `open-questions.md`, and `evidence.json`
   exist in the same scan directory, and the final reply pastes the exact
   `evidence_gate.py check` output for that scan.
+- The stock-selected skill resolves both helpers from its own `scripts/`
+  directory and runs under isolated stdlib Python; no repository-level
+  `scripts/`, toolkit venv, or sibling skill is required.
 - `--no-host-write` runs never write inside `${PROJECT_ROOT}`. The
   command must use an `${ARTIFACT_ROOT}` outside the host project, and
   every later read/check uses that same artifact root.
@@ -80,11 +83,23 @@ requires `--artifact-root` outside the host project.
 
 ## Pipeline
 
-0. Establish the artifact root for this run:
+0. Resolve the installed skill and artifact roots for this run:
 
    ```bash
-   PROJECT_ROOT="${PROJECT_ROOT:-$(git rev-parse --show-toplevel)}"
+   PROJECT_ROOT="${PROJECT_ROOT:-$(pwd)}"
    ARTIFACT_ROOT="${ARTIFACT_ROOT:-${PROJECT_ROOT}}"
+   PYTHON_BIN="${PYTHON_BIN:-python3}"
+
+   if [ -n "${PROJECT_INTERVIEW_SKILL_DIR:-}" ]; then
+     SKILL_DIR="${PROJECT_INTERVIEW_SKILL_DIR}"
+   elif [ -f ".agents/skills/project-interview/SKILL.md" ]; then
+     SKILL_DIR="$(cd .agents/skills/project-interview && pwd)"
+   elif [ -f ".claude/skills/project-interview/SKILL.md" ]; then
+     SKILL_DIR="$(cd .claude/skills/project-interview && pwd)"
+   else
+     echo "error: cannot find installed project-interview skill" >&2
+     exit 2
+   fi
    ```
 
    If the user invoked `--no-host-write`, set `ARTIFACT_ROOT` to a
@@ -94,18 +109,21 @@ requires `--artifact-root` outside the host project.
 1. Run repo-fact discovery to seed the interview:
 
    ```bash
-   .venv/bin/python scripts/project_adapt.py interview \
+   SCAN_DIR="$("${PYTHON_BIN}" -I -S \
+     "${SKILL_DIR}/scripts/project_interview.py" draft \
      --project-root "${PROJECT_ROOT}" \
-     --artifact-root "${ARTIFACT_ROOT}"
+     --artifact-root "${ARTIFACT_ROOT}")"
    ```
 
-   Add `--no-host-write` for dogfood or `--apply` only when the user
-   wants durable project state written.
+   Add `--no-host-write` when the user requested it. The helper performs
+   objective, lightweight discovery only and always writes an unapproved
+   draft. Do not pass `--apply` here; durable apply happens only after
+   visible human answers are captured and confirmed.
 
-2. Set and read the scan directory:
+2. Read the printed scan directory:
 
    ```bash
-   SCAN_DIR="${ARTIFACT_ROOT}/reports/project-interview/latest"
+   test -d "${SCAN_DIR}" || { echo "missing scan: ${SCAN_DIR}" >&2; exit 2; }
    ```
 
    Read `${SCAN_DIR}/profile.yml`, `${SCAN_DIR}/profile.md`, and
@@ -121,18 +139,35 @@ requires `--artifact-root` outside the host project.
      standardized?
    - What should the project become next?
 4. Update the profile draft with the user's answers if the run is
-   interactive. If the user is unavailable, leave the answers as open
-   questions.
+   interactive. Set `user_approved: true` only after visible answers and
+   confirmation; repository facts never count as human approval. If the user
+   is unavailable, keep `user_approved: false` and leave the answers as open
+   questions. Update `profile.yml`, `profile.md`, and `open-questions.md`
+   together so the evidence shapes describe the same state.
 5. Run the evidence gate:
 
    ```bash
-   .venv/bin/python scripts/evidence_gate.py check \
+   "${PYTHON_BIN}" -I -S "${SKILL_DIR}/scripts/evidence_gate.py" check \
      --skill project-interview \
      --scan-dir "${SCAN_DIR}"
    ```
 
    Paste the gate output in the final reply. A claim that the artifacts
    exist is not enough.
+6. If and only if the user invoked `--apply`, the evidence gate passed, and
+   the visible answers support `user_approved: true`, apply the three profile
+   artifacts:
+
+   ```bash
+   "${PYTHON_BIN}" -I -S \
+     "${SKILL_DIR}/scripts/project_interview.py" apply \
+     --project-root "${PROJECT_ROOT}" \
+     --scan-dir "${SCAN_DIR}"
+   ```
+
+   `--apply` and `--no-host-write` are mutually exclusive intents. The helper
+   refuses apply while `user_approved` is not true and rejects a symlinked
+   `.engineering/project` destination.
 
 ## How Future Skills Use The Profile
 
@@ -157,10 +192,11 @@ so future agents do not turn accidental consistency into doctrine.
 | Symptom | Action |
 |---|---|
 | `--no-host-write` fails because the artifact root is inside the project | Stop, choose an artifact root outside `${PROJECT_ROOT}`, and rerun; do not retry without `--no-host-write` |
-| The helper exits 2 | Paste stderr, fix the invocation or write-mode conflict, and do not claim a profile was produced |
-| `reports/project-interview/latest` is missing under `${ARTIFACT_ROOT}` | Use the timestamped scan directory printed by `project_adapt.py interview`; do not fall back to the repo-local reports path |
+| The draft helper exits 2 | Paste stderr, fix the invocation or write-mode conflict, and do not claim a profile was produced |
+| The printed scan directory is missing | Stop and report the printed path; do not fall back to a repo-local reports directory |
 | Evidence gate reports missing tokens | Leave the run incomplete; name the missing token and scan directory in the user reply |
 | User is unavailable for interview answers | Keep the generated draft and move unanswered items to `open-questions.md`; do not mark the profile approved |
+| Apply reports `user_approved is not true` | Keep the draft, ask for the missing human answers or confirmation, and never flip approval from repository inference |
 | `--apply` was requested but durable `.engineering/project/` writes fail | Keep the draft scan as evidence, paste the write failure, and do not claim durable profile files were written |
 
 ## Replay case
@@ -170,13 +206,16 @@ temporary artifact root:
 
 ```bash
 ARTIFACT_ROOT="$(mktemp -d)"
-.venv/bin/python scripts/project_adapt.py interview \
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+SKILL_DIR="${PROJECT_INTERVIEW_SKILL_DIR:-${PROJECT_ROOT}/.claude/skills/project-interview}"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+SCAN_DIR="$("${PYTHON_BIN}" -I -S \
+  "${SKILL_DIR}/scripts/project_interview.py" draft \
   --project-root "$(git rev-parse --show-toplevel)" \
   --artifact-root "${ARTIFACT_ROOT}" \
   --timestamp project-interview-smoke \
-  --no-host-write
-SCAN_DIR="${ARTIFACT_ROOT}/reports/project-interview/latest"
-.venv/bin/python scripts/evidence_gate.py check \
+  --no-host-write)"
+"${PYTHON_BIN}" -I -S "${SKILL_DIR}/scripts/evidence_gate.py" check \
   --skill project-interview \
   --scan-dir "${SCAN_DIR}"
 ```

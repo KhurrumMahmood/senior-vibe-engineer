@@ -1,0 +1,66 @@
+{
+  "batch": "P5 Java J2/J3 expansion",
+  "status": "integrated-candidates-review-pending",
+  "skills": [
+    "adapt-project",
+    "audit-decisions",
+    "explain-code",
+    "find-comment-drift",
+    "find-concept-divergence",
+    "find-duplication",
+    "find-folder-topology-drift",
+    "find-omnibus",
+    "find-standard-gaps"
+  ],
+  "revisions": [
+    "ecd564c",
+    "396e221",
+    "6a8a70a",
+    "ac6d1a6",
+    "71ffb81",
+    "29e1272",
+    "ba69cee",
+    "29d21cd"
+  ],
+  "evidence": {
+    "integrated_java_suite": "80 passed in 152.46s",
+    "native_oracle": "JDK 17 javac compilation of locked standalone fixtures",
+    "closure": "family-local copied skills with no Maven, Gradle, JAR, network, or repository-runtime dependency",
+    "promotion": "deferred until fresh product-framed review and closeout replay"
+  },
+  "transferred": [
+    "Inventory first-party Java source and classify tests, generated source, fixtures, vendor/dependencies, build output, and symlinks before analysis.",
+    "Use JDK source-file launch for a self-contained copied helper when syntax facts are necessary.",
+    "Verify each skill at its final human-readable and structured artifact, not at parser output.",
+    "Keep complete, partial, unsupported, and failed outcomes honest without forcing one failure policy across skills."
+  ],
+  "did_not_transfer": [
+    "One universal Java AST or fact schema.",
+    "TypeScript Compiler API loaders or Go parser helpers.",
+    "Inheritance, annotation processor or Lombok output, framework behavior, runtime dispatch, or Kotlin support.",
+    "Automatic refactor safety from public declarations, exact body fingerprints, or direct-call syntax facts."
+  ],
+  "language_specific": [
+    "Java Unicode escapes may create comment delimiters before tokenization; decision-comment auditing validates through the JDK before lexical extraction.",
+    "Interface members may be implicitly public.",
+    "JDK-tree body fingerprints are exact clone evidence only.",
+    "Source-root conventions are project evidence, not a framework inference."
+  ],
+  "reuse_decision": {
+    "decision": "keep-family-local",
+    "candidate": "generated and tested Java source-policy/preflight template",
+    "promotion_trigger": "adopt only when measured reuse reduces total maintained code and preserves each on-demand skill's explicit copied closure",
+    "rejected_now": [
+      "shared Java runtime",
+      "universal analyzer service",
+      "Maven or Gradle dependency",
+      "cross-language result schema"
+    ]
+  },
+  "next_cohort_guidance": [
+    "Use compiler attribution only where a claimed identity or relationship requires it.",
+    "Make detector consumers reuse accepted producer artifacts instead of re-detecting.",
+    "Keep mutations serial and proposals read-only until explicit human approval.",
+    "Run one fresh product review across the integrated Java user journeys before matrix promotion."
+  ]
+}

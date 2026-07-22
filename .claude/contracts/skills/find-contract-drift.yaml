@@ -1,12 +1,10 @@
-# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 
 skill: find-contract-drift
 job: suspect
 problem_class: "cross-layer contract drift detection / product-topology (SUSPECT)"
 intent: >
-  Advisory SUSPECT scan for cross-layer contract drift on configured product-workflow
-  targets or explicit paths —
+  Advisory SUSPECT scan for `/sites` cross-layer contract drift beyond boot globals —
   endpoint keys, DOM IDs, `data-*` selectors, template-called JS exports, and JSON/boot
   payload fields. Imports the `/find-frontend-contract-drift` boot-global detector and
   adds route-surface contract bands.

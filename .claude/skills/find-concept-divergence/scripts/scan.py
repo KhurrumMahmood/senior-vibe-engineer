@@ -24,24 +24,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import shutil
+import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable
-
-import yaml
-
-# KIT_ROOT anchors kit-relative imports ONLY (_common). Scan targets, the
-# glossary default, and finding labels are target-project surfaces and anchor
-# on --project-root instead — the kit may live in a different repo than the
-# target project (de-baking convention, ADR 0024).
-KIT_ROOT = Path(__file__).resolve().parents[4]
-_COMMON = str(KIT_ROOT / ".claude" / "skills" / "_common")
-if _COMMON not in sys.path:
-    sys.path.insert(0, _COMMON)
-
-from diff_resolution import resolve_project_root  # noqa: E402
 
 # Common project roots. iter_files auto-skips paths that don't exist,
 # so listing all of them is safe across language/framework shapes. Host
@@ -74,7 +64,7 @@ DEFAULT_TARGETS = (
 EXCLUDE_SEGMENTS = frozenset({
     ".venv", "node_modules", ".git", "__pycache__", "dist", "build",
     ".pytest_cache", ".mypy_cache", ".ruff_cache",
-    "migrations",
+    "generated", "migrations", "test", "tests", "__tests__", "vendor",
 })
 # Portable defaults. Host projects extend via host_excludes.txt (see
 # load_host_excludes) — that's where project-specific rename tooling,
@@ -84,7 +74,25 @@ EXCLUDE_PREFIXES_DEFAULT = (
     ".claude/worktrees/",
     "reports/",
 )
-EXCLUDE_SUFFIXES = (".worktree",)
+EXCLUDE_SUFFIXES = (".worktree", ".min.js", ".min.jsx", ".min.mjs", ".min.cjs")
+
+GO_MINIMUM_VERSION = (1, 22, 0)
+GO_MINIMUM_VERSION_TEXT = "1.22.0"
+GO_TEST_DIRS = frozenset({"test", "tests", "__tests__", "testdata", "fixtures"})
+GO_GENERATED_DIRS = frozenset({"generated", "gen"})
+GO_GENERATED_MARKER_RE = re.compile(
+    r"^// Code generated .* DO NOT EDIT\.$", re.MULTILINE
+)
+JAVA_TEST_DIRS = frozenset(
+    {"test", "tests", "__tests__", "testdata", "fixtures", "integrationtest", "testfixtures"}
+)
+JAVA_GENERATED_DIRS = frozenset({"generated", "gen", "target", "build", "out", ".gradle"})
+JAVA_GENERATED_MARKER_RE = re.compile(
+    r"^\s*// Code generated .* DO NOT EDIT\.\s*$", re.MULTILINE
+)
+JAVA_GENERATED_ANNOTATION_RE = re.compile(
+    r"^\s*@(?:javax\.annotation\.processing\.)?Generated(?:\s*\(|\s*$)", re.MULTILINE
+)
 
 
 def load_host_excludes() -> tuple[str, ...]:
@@ -114,7 +122,7 @@ EXCLUDE_PREFIXES = EXCLUDE_PREFIXES_DEFAULT + load_host_excludes()
 
 # Files we scan: source + prose. Binary / build artifacts are skipped.
 INCLUDE_SUFFIXES = frozenset({
-    ".py", ".pyi", ".md", ".html", ".js", ".ts", ".yaml", ".yml",
+    ".py", ".pyi", ".md", ".html", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".yaml", ".yml",
     ".txt", ".rst",
 })
 
@@ -125,15 +133,493 @@ SELF_EXCLUDE = (
 )
 
 
+def resolve_project_root(explicit: Path | None = None) -> Path:
+    """Use the explicit target root, the cwd's git root, or the cwd itself.
+
+    Keep this small resolver inside the installed skill.  The target project,
+    not this skill's source checkout, owns scan labels and the glossary path.
+    """
+    if explicit is not None:
+        return explicit.resolve()
+    cwd = Path.cwd()
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(cwd), "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            check=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return cwd.resolve()
+    root = result.stdout.strip()
+    return Path(root).resolve() if root else cwd.resolve()
+
+
+def probe_go() -> tuple[dict[str, Any], int]:
+    """Discover Go from PATH and preserve unsupported/failed distinctions."""
+    go_path = shutil.which("go")
+    if not go_path:
+        return {
+            "status": "unsupported",
+            "failure_kind": "go-tool-missing",
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 2
+    try:
+        result = subprocess.run(
+            [go_path, "version"], capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        return {
+            "status": "failed",
+            "failure_kind": "go-version-failed",
+            "detail": str(exc),
+            "go_path": go_path,
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 1
+    if result.returncode != 0:
+        return {
+            "status": "failed",
+            "failure_kind": "go-version-failed",
+            "detail": (result.stderr or result.stdout).strip(),
+            "go_path": go_path,
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 1
+    match = re.search(r"\bgo(\d+)\.(\d+)(?:\.(\d+))?\b", result.stdout)
+    if not match:
+        return {
+            "status": "failed",
+            "failure_kind": "go-version-unrecognized",
+            "detail": result.stdout.strip(),
+            "go_path": go_path,
+            "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+        }, 1
+    version = tuple(int(value or 0) for value in match.groups())
+    evidence = {
+        "go_path": go_path,
+        "go_version": match.group(0),
+        "minimum_go_version": GO_MINIMUM_VERSION_TEXT,
+    }
+    if version < GO_MINIMUM_VERSION:
+        return {
+            **evidence,
+            "status": "unsupported",
+            "failure_kind": "go-version-too-old",
+        }, 2
+    return {**evidence, "status": "complete"}, 0
+
+
+def _go_exclusion(path: Path, root: Path, text: str | None) -> str | None:
+    rel = path.relative_to(root)
+    parents = {part.lower() for part in rel.parts[:-1]}
+    name = path.name.lower()
+    if "vendor" in parents:
+        return "vendor"
+    if parents & GO_TEST_DIRS:
+        return "test-tree"
+    if name.endswith("_test.go"):
+        return "test-file"
+    if parents & GO_GENERATED_DIRS:
+        return "generated-tree"
+    if name.endswith(("_generated.go", ".generated.go")) or name.startswith("zz_generated"):
+        return "generated-file"
+    if text is not None and GO_GENERATED_MARKER_RE.search(text[:2048]):
+        return "generated-marker"
+    return None
+
+
+def inventory_go(
+    targets: Iterable[str], root: Path
+) -> tuple[list[dict[str, Any]], list[Path], list[str]]:
+    """Inventory selected Go files before applying strict-text eligibility."""
+    root = root.resolve()
+    discovered: dict[str, Path] = {}
+    errors: list[str] = []
+    for raw in targets:
+        logical = Path(raw)
+        logical = logical if logical.is_absolute() else root / logical
+        logical = Path(os.path.abspath(logical))
+        try:
+            logical.relative_to(root)
+        except ValueError:
+            errors.append(f"target-outside-project:{raw}")
+            continue
+        if not logical.exists():
+            errors.append(f"target-missing:{raw}")
+            continue
+        if logical.is_symlink():
+            if logical.suffix.lower() == ".go":
+                discovered[logical.relative_to(root).as_posix()] = logical
+            continue
+        if logical.is_file():
+            if logical.suffix.lower() == ".go":
+                discovered[logical.relative_to(root).as_posix()] = logical
+            continue
+        for directory, dirnames, filenames in os.walk(logical, followlinks=False):
+            current = Path(directory)
+            dirnames[:] = sorted(
+                name for name in dirnames if not (current / name).is_symlink()
+            )
+            for name in sorted(filenames):
+                if name.lower().endswith(".go"):
+                    path = current / name
+                    discovered[path.relative_to(root).as_posix()] = path
+
+    inventory: list[dict[str, Any]] = []
+    eligible: list[Path] = []
+    for rel, path in sorted(discovered.items()):
+        if path.is_symlink():
+            inventory.append({"file": rel, "role": "excluded", "reason": "symlink"})
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            inventory.append(
+                {"file": rel, "role": "failed", "reason": "read-error", "detail": str(exc)}
+            )
+            continue
+        reason = _go_exclusion(path, root, text)
+        if reason:
+            inventory.append({"file": rel, "role": "excluded", "reason": reason})
+            continue
+        inventory.append({"file": rel, "role": "eligible"})
+        eligible.append(path)
+    return inventory, eligible, errors
+
+
+def go_scan_payload(
+    tool: dict[str, Any], inventory: list[dict[str, Any]], errors: list[str]
+) -> dict[str, Any]:
+    failed = sum(row["role"] == "failed" for row in inventory)
+    return {
+        **tool,
+        "status": "partial" if failed or errors else "complete",
+        "language": "go",
+        "analyzer": "python-strict-text",
+        "syntax_contract": "strict-text; Go parse validity is not inspected",
+        "inventory": inventory,
+        "errors": errors,
+        "summary": {
+            "discovered": len(inventory),
+            "eligible": sum(row["role"] == "eligible" for row in inventory),
+            "excluded": sum(row["role"] == "excluded" for row in inventory),
+            "failed": failed + len(errors),
+        },
+    }
+
+
+def _java_exclusion(path: Path, root: Path, text: str | None) -> str | None:
+    rel = path.relative_to(root)
+    parents = {part.casefold() for part in rel.parts[:-1]}
+    name = path.name.casefold()
+    if "vendor" in parents:
+        return "vendor"
+    if parents & JAVA_TEST_DIRS:
+        return "test-tree"
+    if parents & JAVA_GENERATED_DIRS:
+        return "generated-tree"
+    if text is not None and JAVA_GENERATED_MARKER_RE.search(text[:4096]):
+        return "generated-marker"
+    if text is not None and JAVA_GENERATED_ANNOTATION_RE.search(text[:4096]):
+        return "generated-annotation"
+    if name.endswith(("test.java", "tests.java", "it.java")):
+        return "test-file"
+    if name.startswith("generated") or name.endswith("_generated.java"):
+        return "generated-file"
+    return None
+
+
+def inventory_java(
+    targets: Iterable[str], root: Path
+) -> tuple[list[dict[str, Any]], list[Path], list[str]]:
+    """Inventory selected Java files before applying strict-text eligibility."""
+    root = root.resolve()
+    discovered: dict[str, Path] = {}
+    errors: list[str] = []
+    for raw in targets:
+        logical = Path(raw)
+        logical = logical if logical.is_absolute() else root / logical
+        logical = Path(os.path.abspath(logical))
+        try:
+            logical.relative_to(root)
+        except ValueError:
+            errors.append(f"target-outside-project:{raw}")
+            continue
+        if not logical.exists():
+            errors.append(f"target-missing:{raw}")
+            continue
+        if logical.is_symlink():
+            if logical.suffix.casefold() == ".java":
+                discovered[logical.relative_to(root).as_posix()] = logical
+            continue
+        if logical.is_file():
+            if logical.suffix.casefold() == ".java":
+                discovered[logical.relative_to(root).as_posix()] = logical
+            continue
+        for directory, dirnames, filenames in os.walk(logical, followlinks=False):
+            current = Path(directory)
+            dirnames[:] = sorted(
+                name for name in dirnames if not (current / name).is_symlink()
+            )
+            for name in sorted(filenames):
+                if name.casefold().endswith(".java"):
+                    path = current / name
+                    discovered[path.relative_to(root).as_posix()] = path
+
+    inventory: list[dict[str, Any]] = []
+    eligible: list[Path] = []
+    for rel, path in sorted(discovered.items()):
+        if path.is_symlink():
+            inventory.append({"file": rel, "role": "excluded", "reason": "symlink"})
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            inventory.append(
+                {"file": rel, "role": "failed", "reason": "read-error", "detail": str(exc)}
+            )
+            continue
+        reason = _java_exclusion(path, root, text)
+        if reason:
+            inventory.append({"file": rel, "role": "excluded", "reason": reason})
+            continue
+        inventory.append({"file": rel, "role": "eligible"})
+        eligible.append(path)
+    return inventory, eligible, errors
+
+
+def java_scan_payload(
+    inventory: list[dict[str, Any]], errors: list[str]
+) -> dict[str, Any]:
+    failed = sum(row["role"] == "failed" for row in inventory)
+    return {
+        "status": "partial" if failed or errors else "complete",
+        "language": "java",
+        "analyzer": "python-strict-text",
+        "syntax_contract": "strict-text; Java parse validity is not inspected",
+        "inventory": inventory,
+        "errors": errors,
+        "summary": {
+            "discovered": len(inventory),
+            "eligible": sum(row["role"] == "eligible" for row in inventory),
+            "excluded": sum(row["role"] == "excluded" for row in inventory),
+            "failed": failed + len(errors),
+        },
+    }
+
+
+def _parse_quoted_scalar(value: str, start: int) -> tuple[str, int]:
+    """Return one YAML-profile quoted scalar and the first unread index."""
+    quote = value[start]
+    if quote == '"':
+        try:
+            parsed, consumed = json.JSONDecoder().raw_decode(value[start:])
+        except json.JSONDecodeError as exc:
+            raise ValueError("unsupported double-quoted YAML scalar") from exc
+        if not isinstance(parsed, str):
+            raise ValueError("YAML flow lists must contain scalar values")
+        return parsed, start + consumed
+
+    cursor = start + 1
+    chars: list[str] = []
+    while cursor < len(value):
+        char = value[cursor]
+        if char != "'":
+            chars.append(char)
+            cursor += 1
+            continue
+        if cursor + 1 < len(value) and value[cursor + 1] == "'":
+            chars.append("'")
+            cursor += 2
+            continue
+        return "".join(chars), cursor + 1
+    raise ValueError("unterminated single-quoted YAML scalar")
+
+
+def _parse_plain_scalar(value: str) -> Any:
+    if value in {"true", "True"}:
+        return True
+    if value in {"false", "False"}:
+        return False
+    return value
+
+
+def _strip_yaml_comment(value: str) -> str:
+    """Drop a YAML comment marker that occurs outside a quoted scalar."""
+    quote: str | None = None
+    escaped = False
+    cursor = 0
+    while cursor < len(value):
+        char = value[cursor]
+        if quote == '"':
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                quote = None
+        elif quote == "'":
+            if char == "'" and cursor + 1 < len(value) and value[cursor + 1] == "'":
+                cursor += 1
+            elif char == "'":
+                quote = None
+        elif char in {'"', "'"}:
+            quote = char
+        elif char == "#" and (cursor == 0 or value[cursor - 1].isspace()):
+            return value[:cursor].rstrip()
+        cursor += 1
+    return value.rstrip()
+
+
+def _parse_flow_sequence(value: str) -> list[Any]:
+    """Parse a scalar-only YAML flow sequence without losing quoted commas.
+
+    This is deliberately narrower than YAML: the glossary profile accepts
+    scalar list entries, including single-quoted and JSON-style double-quoted
+    strings. Nested collections and malformed entries fail rather than being
+    split into different scan terms.
+    """
+    end = len(value) - 1
+    cursor = 1
+    items: list[Any] = []
+
+    while True:
+        while cursor < end and value[cursor].isspace():
+            cursor += 1
+        if cursor == end:
+            return items
+        if cursor > end:
+            raise ValueError("unterminated YAML flow sequence")
+
+        if value[cursor] in {'"', "'"}:
+            item, cursor = _parse_quoted_scalar(value, cursor)
+        else:
+            start = cursor
+            while cursor < end and value[cursor] not in {",", "]"}:
+                if value[cursor] in {"[", "{"}:
+                    raise ValueError("nested YAML flow collections are unsupported")
+                cursor += 1
+            token = value[start:cursor].strip()
+            if not token:
+                raise ValueError("empty YAML flow-list entry")
+            item = _parse_plain_scalar(token)
+        items.append(item)
+
+        while cursor < end and value[cursor].isspace():
+            cursor += 1
+        if cursor == end:
+            return items
+        if cursor > end or value[cursor] != ",":
+            raise ValueError("unsupported YAML flow-list entry")
+        cursor += 1
+
+
+def _yaml_scalar(raw: str) -> Any:
+    """Parse the scalar/list profile used by the glossary schema.
+
+    The scanner needs only the schema fields it consumes. Keeping this profile
+    local lets a copied skill read normal glossary YAML without a toolkit venv
+    or repository-level YAML helper; it is intentionally not a general YAML
+    implementation.
+    """
+    value = raw.strip()
+    if not value:
+        return ""
+    if value.startswith("["):
+        if not value.endswith("]"):
+            raise ValueError("unterminated YAML flow sequence")
+        return _parse_flow_sequence(value)
+    if value.startswith(('"', "'")):
+        parsed, end = _parse_quoted_scalar(value, 0)
+        if value[end:].strip():
+            raise ValueError("unsupported content after YAML scalar")
+        return parsed
+    return _parse_plain_scalar(value)
+
+
+def _load_glossary_yaml(text: str) -> dict[str, Any]:
+    """Read the documented concepts/ambiguities YAML profile without PyYAML.
+
+    Definitions and resolution prose are deliberately skipped: the strict
+    scanner consumes only names, aliases, avoid terms, source paths, and
+    coverage ownership.  Unsupported shapes leave the relevant list empty so
+    ``load_glossary`` can fail clearly instead of guessing.
+    """
+    data: dict[str, list[dict[str, Any]]] = {
+        "concepts": [],
+        "flagged_ambiguities": [],
+    }
+    collection: str | None = None
+    current: dict[str, Any] | None = None
+    list_key: str | None = None
+
+    def finish_current() -> None:
+        nonlocal current
+        if current is not None and collection is not None:
+            data[collection].append(current)
+        current = None
+
+    for raw in text.splitlines():
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        indent = len(raw) - len(raw.lstrip(" "))
+        line = _strip_yaml_comment(raw.strip())
+        if not line:
+            continue
+        if indent == 0 and line in {"concepts:", "flagged_ambiguities:"}:
+            finish_current()
+            collection = line[:-1]
+            list_key = None
+            continue
+        if collection is None:
+            continue
+        if indent == 2 and line.startswith("- "):
+            finish_current()
+            current = {}
+            list_key = None
+            line = line[2:].strip()
+            if ":" in line:
+                key, value = line.split(":", 1)
+                current[key.strip()] = _yaml_scalar(value)
+            continue
+        if current is None:
+            continue
+        if indent == 4 and ":" in line:
+            key, value = line.split(":", 1)
+            key = key.strip()
+            value = value.strip()
+            if value in {"", "|", ">", "|-", ">-"}:
+                current[key] = [] if value == "" else ""
+                list_key = key if value == "" else None
+            else:
+                current[key] = _yaml_scalar(value)
+                list_key = None
+            continue
+        if indent >= 6 and list_key is not None and line.startswith("- "):
+            current[list_key].append(_yaml_scalar(line[2:]))
+
+    finish_current()
+    return data
+
+
 def load_glossary(path: Path) -> dict[str, Any]:
     if not path.exists():
         sys.exit(f"glossary not found: {path}")
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
         sys.exit(f"glossary read/parse error: {exc}")
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        try:
+            data = _load_glossary_yaml(text)
+        except ValueError as exc:
+            sys.exit(f"glossary read/parse error: {exc}")
     if not isinstance(data, dict) or "concepts" not in data:
         sys.exit("glossary missing top-level `concepts:` block")
+    concepts = data["concepts"]
+    if not isinstance(concepts, list) or not concepts:
+        sys.exit("glossary `concepts:` block must contain at least one concept")
     return data
 
 
@@ -150,34 +636,101 @@ def is_excluded(rel: str) -> bool:
     return False
 
 
-def _rel(path: Path, root: Path) -> str:
-    """Root-relative label; absolute path for files outside the root (never raises)."""
+def _within(path: Path, root: Path) -> bool:
     try:
-        return str(path.relative_to(root))
+        path.relative_to(root)
     except ValueError:
-        return str(path)
+        return False
+    return True
+
+
+def _rel(path: Path, root: Path) -> str:
+    """Return the root-relative label for an accepted, contained path."""
+    return path.relative_to(root).as_posix()
+
+
+def _candidate(raw: str, root: Path) -> Path | None:
+    """Validate one target/file without losing its root-relative label."""
+    path = Path(raw)
+    candidate = path if path.is_absolute() else root / path
+    # Normalize ``.``/``..`` without dereferencing symlinks: exclusions apply
+    # to the caller's logical project-relative path, not an alias target.
+    candidate = Path(os.path.abspath(candidate))
+    try:
+        resolved = candidate.resolve()
+    except (OSError, RuntimeError):
+        return None
+    if not candidate.exists() or not _within(resolved, root):
+        return None
+    return candidate
+
+
+def _has_directory_symlink_ancestor(path: Path, root: Path) -> bool:
+    """Return whether ``path`` is reached through a directory symlink."""
+    try:
+        parts = path.relative_to(root).parts
+    except ValueError:
+        return True
+    current = root
+    for part in parts:
+        current /= part
+        if not current.is_symlink():
+            continue
+        try:
+            if current.resolve().is_dir():
+                return True
+        except (OSError, RuntimeError):
+            return True
+    return False
 
 
 def iter_files(targets: Iterable[str], root: Path) -> Iterable[Path]:
+    """Yield root-contained, non-excluded files without following escapes.
+
+    Exclusions use project-relative labels so a valid project whose ancestor is
+    named ``node_modules`` still scans normally. Direct target files and
+    directories get the same exclusion check as recursive children. Directory
+    symlinks are never traversed, including when named directly, and a
+    symlink resolving outside the project is never read.
+    """
+    root = root.resolve()
+    seen: set[Path] = set()
     for raw in targets:
-        p = Path(raw)
-        p = (p if p.is_absolute() else root / raw).resolve()
-        if not p.exists():
+        p = _candidate(str(raw), root)
+        if p is None:
+            continue
+        if is_excluded(_rel(p, root)):
+            continue
+        if _has_directory_symlink_ancestor(p, root):
+            continue
+        if p.is_symlink():
             continue
         if p.is_file():
-            rel = _rel(p, root)
-            if not is_excluded(rel) and p.suffix in INCLUDE_SUFFIXES:
+            if p.suffix in INCLUDE_SUFFIXES and p not in seen:
+                seen.add(p)
                 yield p
             continue
-        for f in p.rglob("*"):
-            if not f.is_file():
-                continue
-            if f.suffix not in INCLUDE_SUFFIXES:
-                continue
-            rel = _rel(f, root)
-            if is_excluded(rel):
-                continue
-            yield f
+        if p.is_symlink():
+            continue
+        for directory, directories, filenames in os.walk(p, followlinks=False):
+            current = Path(directory)
+            directories[:] = [
+                name
+                for name in directories
+                if not (current / name).is_symlink()
+                and (child := _candidate(str(current / name), root)) is not None
+                and not is_excluded(_rel(child, root))
+            ]
+            for name in filenames:
+                f = _candidate(str(current / name), root)
+                if f is None or f.suffix not in INCLUDE_SUFFIXES:
+                    continue
+                if f.is_symlink():
+                    continue
+                if is_excluded(_rel(f, root)) or f in seen:
+                    continue
+                seen.add(f)
+                yield f
 
 
 def compile_term(term: str) -> re.Pattern[str]:
@@ -226,9 +779,19 @@ def _source_files(entry: dict[str, Any]) -> set[str]:
     return out
 
 
-def scan(glossary: dict[str, Any], targets: Iterable[str], root: Path) -> list[dict[str, Any]]:
+def scan(
+    glossary: dict[str, Any],
+    targets: Iterable[str],
+    root: Path,
+    *,
+    selected_files: list[Path] | None = None,
+    language: str | None = None,
+) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
-    files = list(iter_files(targets, root))
+    files = selected_files if selected_files is not None else list(iter_files(targets, root))
+
+    def record(values: dict[str, Any]) -> dict[str, Any]:
+        return {**values, **({"language": language} if language else {})}
 
     # Band 1: avoid-term hits.
     for concept in glossary.get("concepts", []):
@@ -251,12 +814,12 @@ def scan(glossary: dict[str, Any], targets: Iterable[str], root: Path) -> list[d
             if rel in source_files:
                 continue
             for hit in scan_file_for_terms(f, terms):
-                findings.append({
+                findings.append(record({
                     "band": "avoid_term_hit",
                     "concept": concept["name"],
                     "file": rel,
                     **hit,
-                })
+                }))
 
     # Band 2: competing-term coexistence (per ambiguity, per file).
     for amb in glossary.get("flagged_ambiguities", []):
@@ -278,13 +841,13 @@ def scan(glossary: dict[str, Any], targets: Iterable[str], root: Path) -> list[d
                 continue
             for _term, hits in file_hits.items():
                 for h in hits:
-                    findings.append({
+                    findings.append(record({
                         "band": "competing_term_coexistence",
                         "ambiguity_id": amb.get("id", "?"),
                         "competing_terms": list(file_hits.keys()),
                         "file": rel,
                         **h,
-                    })
+                    }))
 
     # Band 3: superseded co-occurrence. A concept may set `coverage_lint:`
     # to declare the rename is already enforced by a dedicated lint;
@@ -310,25 +873,44 @@ def scan(glossary: dict[str, Any], targets: Iterable[str], root: Path) -> list[d
             if not new_hits:
                 continue
             for h in old_hits:
-                findings.append({
+                findings.append(record({
                     "band": "superseded_co_occurrence",
                     "concept": concept["name"],
                     "superseded_by": replacement,
                     "file": _rel(f, root),
                     "side": "old",
                     **h,
-                })
+                }))
 
     return findings
 
 
-def write_report(findings: list[dict[str, Any]], path: Path) -> None:
+def write_report(
+    findings: list[dict[str, Any]],
+    path: Path,
+    scan_meta: dict[str, Any] | None = None,
+) -> None:
     by_band: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for f in findings:
         by_band[f["band"]].append(f)
     lines = ["# Concept-divergence scan", ""]
+    if scan_meta:
+        lines.extend(
+            [
+                f"**Status:** `{scan_meta['status']}`",
+                f"**Language:** `{scan_meta['language']}`",
+                f"**Analyzer:** `{scan_meta['analyzer']}`",
+                "",
+            ]
+        )
     if not findings:
-        lines.append("No drift detected against the current glossary.")
+        if not scan_meta or scan_meta.get("status") == "complete":
+            lines.append("No drift detected against the current glossary.")
+        else:
+            lines.append(
+                "Analysis did not complete cleanly; no absence-of-drift conclusion "
+                "is available. Resolve the status above and rerun."
+            )
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         return
     lines.append(f"Total findings: **{len(findings)}** across **{len(by_band)}** band(s).")
@@ -361,6 +943,12 @@ def main(argv: list[str] | None = None) -> int:
                          "the glossary default (default: git toplevel of cwd, else cwd)")
     ap.add_argument("--output", required=True, help="JSONL findings path")
     ap.add_argument("--report", required=True, help="Markdown report path")
+    ap.add_argument(
+        "--language",
+        choices=("auto", "go", "java"),
+        default="auto",
+        help="Use `go` or `java` for a bounded language inventory and strict-text contract.",
+    )
     ap.add_argument("targets", nargs="*", default=list(DEFAULT_TARGETS),
                     help="paths to scan (relative to repo root)")
     args = ap.parse_args(argv)
@@ -370,7 +958,53 @@ def main(argv: list[str] | None = None) -> int:
                      else project_root / ".claude/contracts/concepts.yaml")
     glossary = load_glossary(glossary_path)
     targets = args.targets or list(DEFAULT_TARGETS)
-    findings = scan(glossary, targets, project_root)
+    scan_meta: dict[str, Any] | None = None
+    status_rc = 0
+    if args.language == "go":
+        tool, status_rc = probe_go()
+        if status_rc:
+            scan_meta = {
+                **tool,
+                "language": "go",
+                "analyzer": "python-strict-text",
+                "syntax_contract": "strict-text; Go parse validity is not inspected",
+                "inventory": [],
+                "errors": [],
+                "summary": {"discovered": 0, "eligible": 0, "excluded": 0, "failed": 0},
+            }
+            findings: list[dict[str, Any]] = []
+        else:
+            inventory, files, errors = inventory_go(targets, project_root)
+            scan_meta = go_scan_payload(tool, inventory, errors)
+            if not inventory:
+                scan_meta["status"] = "unsupported"
+                scan_meta["failure_kind"] = "no-go-files"
+                status_rc = 2
+            findings = scan(
+                glossary,
+                targets,
+                project_root,
+                selected_files=files,
+                language="go",
+            )
+    elif args.language == "java":
+        inventory, files, errors = inventory_java(targets, project_root)
+        scan_meta = java_scan_payload(inventory, errors)
+        if not inventory:
+            scan_meta["status"] = "unsupported"
+            scan_meta["failure_kind"] = "no-java-files"
+            status_rc = 2
+        findings = scan(
+            glossary,
+            targets,
+            project_root,
+            selected_files=files,
+            language="java",
+        )
+    else:
+        out_scan = Path(args.output).with_name("scan.json")
+        out_scan.unlink(missing_ok=True)
+        findings = scan(glossary, targets, project_root)
 
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -380,11 +1014,16 @@ def main(argv: list[str] | None = None) -> int:
 
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    write_report(findings, report_path)
+    write_report(findings, report_path, scan_meta)
+    if scan_meta is not None:
+        scan_path = out_path.with_name("scan.json")
+        scan_path.write_text(
+            json.dumps(scan_meta, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
 
     print(f"wrote {len(findings)} findings → {out_path}")
     print(f"report → {report_path}")
-    return 0
+    return status_rc
 
 
 if __name__ == "__main__":

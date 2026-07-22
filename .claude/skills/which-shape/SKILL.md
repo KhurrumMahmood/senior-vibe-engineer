@@ -1,6 +1,6 @@
 ---
 name: which-shape
-description: Recommend the right problem-solving loop before choosing individual skills. Reads the explicit shape registry plus project adapter/profile state, then returns an advisory route such as project-intake, bug-fix, concept-rename, or task-closeout (illustrative — shapes.yml is the sole shape inventory). Use when the user describes a messy situation and should not need to understand the skill catalog.
+description: Recommend the right problem-solving loop before choosing individual skills. Reads the explicit shape registry plus project adapter/profile state, then returns an advisory route such as project-intake, bug-fix, concept-rename, or task-closeout (illustrative — shapes.json is the sole shape inventory). Use when the user describes a messy situation and should not need to understand the skill catalog.
 argument-hint: "<situation or task description>"
 allowed-tools: Bash, Read
 user-invocable: true
@@ -34,12 +34,7 @@ Recommend an operating loop, not a single tool. `/which-skill` answers
 "which skill?" after the work shape is clear. `/which-shape` answers
 "what kind of work are we doing?"
 
-This is advisory-only in v1. It never invokes the recommended loop skills.
-The `health-audit` whole-codebase entry is the one mandatory preflight: it
-executes `/find-perimeter-gaps` against the canonical host profile before it
-can present a coverage conclusion. Missing profiles, gaps, or audit failures
-are reported as `incomplete_coverage`; they are not converted into a clean
-whole-codebase claim.
+This is advisory-only in v1. It never invokes the recommended skills.
 
 ## Forms
 
@@ -61,8 +56,13 @@ real run, never composed from this file. Paste the script's
 your reply.
 
 ```bash
-.venv/bin/python .claude/skills/which-shape/scripts/route.py \
-  "this inherited repo feels slow and chaotic"
+PROJECT_ROOT="$PWD"
+(
+  cd "$PROJECT_ROOT/.agents/skills/which-shape"
+  python3 scripts/route.py \
+    "this inherited repo feels slow and chaotic" \
+    --project-root "$PROJECT_ROOT"
+)
 ```
 
 Use `--json` for machine-readable output and `--skip-log` for tests.
@@ -91,12 +91,13 @@ The recommendation includes:
 - short loop sequence;
 - stop/reassess condition;
 - alternatives.
-- `activation_steps` for every concrete skill named by the winning loop, with
-  shared profile-derived inclusion/exclusion reasons;
-- `inactive_steps`, a concise projection of the excluded concrete steps.
-- `perimeter_audit` on the whole-codebase `health-audit` shape, including
-  whether the preflight ran, its gaps/exclusions, and whether coverage is
-  complete. The CLI exits 1 when this preflight is incomplete.
+- an on-demand handoff for the first skill plus any companions declared by the
+  shape, with exact local guide/tool paths, shared source inventory, validated
+  language/fact/outcome capability rows for that closure, and a fresh
+  non-context-sub-agent default;
+- a pinned ambient-install command only as an explicit optional alternative
+  when every selected closure member has passed install evidence; otherwise
+  the output reports why that optional path is unavailable.
 
 If the script reports `confidence: low` — or any rationale line reads
 "fallback shape candidate" — do not present a single shape. Present the
@@ -105,22 +106,22 @@ top 2-3 alternatives by score and ask one discriminating question
 
 ## Registry
 
-The explicit shape registry lives in `shapes.yml` — the sole shape
+The explicit shape registry lives in `shapes.json` — the sole shape
 inventory; this file deliberately does not mirror the list. Keep it
 small and loop-level. Do not mirror the whole skill catalog.
 
 When adding or materially repurposing skills, run
-`/check-ecosystem-consistency` and review whether `shapes.yml` needs an
+`/check-ecosystem-consistency` and review whether `shapes.json` needs an
 update. Add a skill to a shape only when it changes the operating loop;
 purely tactical skills can stay out after that review is captured in the
 ecosystem state.
 
 Boost weights are registry data too: every shape declares a `boost:`
-block in `shapes.yml` (simple `cues`/`weight`/`rationale`, or a small
+block in `shapes.json` (simple `cues`/`weight`/`rationale`, or a small
 schema-validated rules form for conditional boosts; `boost: {}` is an
 explicit opt-out), plus the `narrow_signal` and `context_exempt` flags.
 The scorer holds no per-shape table — adding a shape never requires
-editing `scripts/route.py`. After editing `shapes.yml`, run
+editing `scripts/route.py`. After editing `shapes.json`, run
 `route.py --validate` — it checks the schema, including every boost
 block.
 
@@ -128,13 +129,7 @@ block.
 
 The router reads `.engineering/project/adapter.yml`,
 `.engineering/project/profile.yml`, and
-`.engineering/project/open-questions.md` when present. Skill applicability is
-resolved separately from the canonical
-`.engineering/project/host-profile.json` through
-`scripts/_lib/skill_activation.py`, the same API used by `/which-skill`,
-`/which-cleanup`, and the activation manifest CLI. The loop stays advisory,
-but every concrete incompatible step is surfaced rather than silently treated
-as runnable.
+`.engineering/project/open-questions.md` when present.
 
 Missing project context is a routing signal, not a universal blocker.
 Broad unknown-project prompts should route to `project-intake`; narrow
@@ -154,7 +149,8 @@ same route with an explicit outcome (the rerun appends a second
 recommendation event; it does not amend the first):
 
 ```bash
-.venv/bin/python .claude/skills/which-shape/scripts/route.py \
+cd .agents/skills/which-shape
+python3 scripts/route.py \
   "this inherited repo feels slow and chaotic" \
   --outcome overridden \
   --human-override "wrong-shape: should have started with project-intake"

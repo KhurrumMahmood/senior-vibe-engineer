@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Staged-work queue — surface legacy items and validated sweep packets.
+"""Staged-work queue — stage, list, and surface packet-compatible work items.
 
 The queue is the first executable implementation of ADR 0036's packet
 concept (ADR 0037 §4). Items are plain agent-neutral JSON files, one per
@@ -7,9 +7,11 @@ staged work item, under `.engineering/local/queue/`. Any agent (or a
 human) can read them; nothing here is Claude-specific except the `hook`
 subcommand's output convention.
 
-Contract (full prose: .claude/docs/queue-contract.md): legacy items retain their
-flat shape. New sweep items wrap one validated `sweep.packet` plus separate
-queue metadata; loose hand-authored sweep fields are not accepted.
+Contract (full prose: .claude/docs/queue-contract.md):
+  packet fields (ADR 0036): scope (file list), recipe, verification
+  (command), expected_delta, token_budget
+  queue metadata: staged_at (UTC ISO), status (staged|picked|done),
+  origin (chain/proposal/plan ref)
 
 Manual-pickup floor for any agent:
   python3 scripts/queue_status.py list
@@ -25,47 +27,16 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import sys
-import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-
-SCRIPT_PATH = Path(__file__).resolve()
-if str(SCRIPT_PATH.parent) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_PATH.parent))
 
 QUEUE_STATUSES = ("staged", "picked", "done")
 
 
 def queue_dir(root: Path) -> Path:
     return root / ".engineering" / "local" / "queue"
-
-
-def _canonical_bytes(document: object) -> bytes:
-    return (
-        json.dumps(document, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n"
-    ).encode("utf-8")
-
-
-def _atomic_write(path: Path, content: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(
-        dir=path.parent, prefix=f".{path.name}.", suffix=".tmp"
-    )
-    try:
-        with os.fdopen(descriptor, "wb") as temporary:
-            temporary.write(content)
-            temporary.flush()
-            os.fsync(temporary.fileno())
-        os.replace(temporary_name, path)
-    except BaseException:
-        try:
-            os.unlink(temporary_name)
-        except FileNotFoundError:
-            pass
-        raise
 
 
 def read_items(root: Path) -> list[dict]:
@@ -110,41 +81,8 @@ def stage_item(
         "staged_at": datetime.now(timezone.utc).isoformat(),
     }
     path = qdir / f"{safe_id}.json"
-    _atomic_write(path, _canonical_bytes(payload))
+    path.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     return path
-
-
-def stage_sweep_packet(
-    root: Path,
-    item_id: str,
-    *,
-    packet: object,
-    origin: str | None = None,
-) -> Path:
-    """Stage a schema-valid sweep packet without weakening its closed shape."""
-    from sweep.schemas import validate_packet
-
-    validated = validate_packet(packet, root=root)
-    safe_id = re.sub(r"[^A-Za-z0-9_-]+", "-", item_id).strip("-")
-    if not safe_id:
-        raise ValueError(f"item id {item_id!r} reduces to an empty slug")
-    payload = {
-        "queue_schema_version": 1,
-        "kind": "sweep_packet",
-        "packet": dict(validated),
-        "origin": origin,
-        "status": "staged",
-        "staged_at": datetime.now(timezone.utc).isoformat(),
-    }
-    path = queue_dir(root) / f"{safe_id}.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    _atomic_write(path, _canonical_bytes(payload))
-    return path
-
-
-def _packet_view(item: dict) -> dict:
-    packet = item.get("packet")
-    return packet if item.get("kind") == "sweep_packet" and isinstance(packet, dict) else item
 
 
 def cmd_list(root: Path) -> int:
@@ -153,11 +91,10 @@ def cmd_list(root: Path) -> int:
         print("queue empty")
         return 0
     for item in items:
-        packet = _packet_view(item)
-        scope_n = len(packet.get("scope") or [])
+        scope_n = len(item.get("scope") or [])
         print(
             f"{item['id']}  [{item.get('status', '?')}]  "
-            f"{packet.get('recipe', '(no recipe)')}  "
+            f"{item.get('recipe', '(no recipe)')}  "
             f"({scope_n} file(s); staged {item.get('staged_at', '?')})"
         )
     pending = [i for i in items if i.get("status") == "staged"]
@@ -222,7 +159,7 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("list", help="List queue items (the manual-pickup floor).")
     sub.add_parser("hook", help="Session-start hook: report pending count.")
-    stage = sub.add_parser("stage", help="Stage a legacy flat work item.")
+    stage = sub.add_parser("stage", help="Stage a packet-compatible work item.")
     stage.add_argument("item_id")
     stage.add_argument("--recipe", required=True)
     stage.add_argument("--scope", action="append", default=[], metavar="PATH")
@@ -230,12 +167,6 @@ def main(argv: list[str] | None = None) -> int:
     stage.add_argument("--expected-delta", default=None)
     stage.add_argument("--token-budget", type=int, default=None)
     stage.add_argument("--origin", default=None)
-    stage_sweep = sub.add_parser(
-        "stage-sweep", help="Stage a validated judgment-bound sweep packet."
-    )
-    stage_sweep.add_argument("item_id")
-    stage_sweep.add_argument("--packet", type=Path, required=True)
-    stage_sweep.add_argument("--origin", default=None)
     args = parser.parse_args(argv)
 
     root = args.root.resolve()
@@ -244,20 +175,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "hook":
         return cmd_hook(root)
     try:
-        if args.cmd == "stage-sweep":
-            try:
-                packet = json.loads(args.packet.read_text(encoding="utf-8"))
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-                raise ValueError(f"cannot read packet JSON: {exc}") from exc
-            path = stage_sweep_packet(
-                root, args.item_id, packet=packet, origin=args.origin
-            )
-        else:
-            path = stage_item(
-                root, args.item_id, recipe=args.recipe, scope=args.scope,
-                verification=args.verification, expected_delta=args.expected_delta,
-                token_budget=args.token_budget, origin=args.origin,
-            )
+        path = stage_item(
+            root, args.item_id, recipe=args.recipe, scope=args.scope,
+            verification=args.verification, expected_delta=args.expected_delta,
+            token_budget=args.token_budget, origin=args.origin,
+        )
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

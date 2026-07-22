@@ -4,6 +4,16 @@ Every `reports/explanations/<target-slug>.md` follows the same shape so
 a reader can absorb it without the skill loaded. This doc is the
 canonical reference for what Stage 3 emits.
 
+For TypeScript v1, this format is intentionally honest about lexical limits:
+the `Unexplained regions` section includes any `export { ... }`, `export *`,
+or unresolved default export reported by `targets.json`. These entries are not
+annotation failures; they are evidence that module resolution was not claimed.
+Likewise, a TypeScript signature is a declared source fact, not an enforced or
+type-checked contract unless a future accepted outcome actually runs a compiler.
+For Go v1, exported aliases and build-constrained files follow the same visible
+abstention rule: they appear under `Unexplained regions`; the renderer must not
+turn them into resolved package behavior or imply that package loading ran.
+
 ## Structure
 
 1. Target metadata (front-matter-ish, one code block).

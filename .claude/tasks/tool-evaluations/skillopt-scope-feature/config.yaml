@@ -1,0 +1,56 @@
+model:
+  backend: codex_exec
+  optimizer_backend: codex_exec
+  target_backend: codex_exec
+  optimizer: gpt-5.6-terra
+  target: gpt-5.6-terra
+  reasoning_effort: medium
+  codex_exec_path: .claude/tasks/tool-evaluations/skillopt-scope-feature/codex_isolated.py
+  codex_exec_sandbox: read-only
+  codex_exec_full_auto: false
+  codex_exec_reasoning_effort: medium
+  codex_exec_use_sdk: auto
+  codex_exec_network_access: false
+  codex_exec_web_search: false
+  codex_exec_approval_policy: never
+  codex_trace_to_optimizer: false
+
+train:
+  num_epochs: 1
+  train_size: 6
+  batch_size: 6
+  accumulation: 1
+  seed: 20260720
+
+gradient:
+  minibatch_size: 6
+  merge_batch_size: 6
+  analyst_workers: 1
+  max_analyst_rounds: 1
+  failure_only: false
+
+optimizer:
+  learning_rate: 2
+  min_learning_rate: 2
+  lr_scheduler: constant
+  lr_control_mode: fixed
+  skill_update_mode: patch
+  use_slow_update: false
+  use_meta_skill: false
+  use_skill_aware_reflection: false
+
+evaluation:
+  use_gate: true
+  sel_env_num: 2
+  test_env_num: 2
+  eval_test: true
+
+env:
+  name: scope_feature_pilot
+  skill_init: .claude/tasks/tool-evaluations/local/skillopt-scope-feature/seed-skill.md
+  split_mode: split_dir
+  split_dir: .claude/tasks/tool-evaluations/skillopt-scope-feature/corpus
+  exec_timeout: 180
+  workers: 1
+  max_completion_tokens: 5000
+  out_root: .claude/tasks/tool-evaluations/local/skillopt-scope-feature/run

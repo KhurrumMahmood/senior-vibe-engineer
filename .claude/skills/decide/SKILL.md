@@ -93,7 +93,7 @@ Four forms — pick exactly one.
 
 `<slug>` is a short kebab-case topic identifier (e.g.
 `textchoices-for-state`, `spec-first-refactor`,
-`broker-safe-dispatch`). The orchestrator picks the next available
+`celery-safe-dispatch`). The orchestrator picks the next available
 4-digit `id` (the lowest unused integer, zero-padded), stems the title
 from the slug, and scaffolds a `proposed`-status ADR.
 

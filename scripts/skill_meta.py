@@ -15,7 +15,7 @@ Two enforcement modes:
    skills to enforced.
 
 Subcommands:
-  lint              Validate every SKILL.md and its catalog inventory
+  lint              Validate every SKILL.md under .claude/skills/
   show <name>       Print parsed frontmatter for one skill (debug)
 
 Frontmatter parsing comes from scripts/_lib/yaml_frontmatter.py (PyYAML).
@@ -37,12 +37,6 @@ _lib_parent = str(SCRIPT_PATH.parent)
 if _lib_parent not in sys.path:
     sys.path.insert(0, _lib_parent)
 from _lib.yaml_frontmatter import FrontmatterError, parse  # noqa: E402
-from _lib.capability_registry import load_registry  # noqa: E402
-from _lib.skill_catalog import (  # noqa: E402
-    CatalogError,
-    DEFAULT_INVENTORY_PATH,
-    load_catalog,
-)
 
 EXISTING_REQUIRED = {"name", "description", "argument-hint", "allowed-tools", "user-invocable"}
 NEW_CONTRACT_REQUIRED = {"tier", "job", "best_for", "not_for", "language", "framework"}
@@ -62,9 +56,9 @@ VALID_JOBS = {
     "diagnose",
     "meta",
 }
+VALID_LANGUAGES = {"python", "typescript", "rust", "any"}
+VALID_FRAMEWORKS = {"django", "none", "any"}
 VALID_SCOUT_MODELS = {"cheap", "careful"}
-
-CAPABILITY_REGISTRY = load_registry()
 
 # PR B-lite: optional task-packet fields. Type-only validation for now —
 # values stay free-form so the taxonomy can stabilize from real usage
@@ -79,6 +73,7 @@ TASK_PACKET_OPTIONAL: dict[str, type] = {
     "risk_triggers": list,
     "max_overhead": str,
 }
+INSTALL_OPTIONAL: dict[str, type] = {"install_with": list}
 
 
 def lint_skill(skill_md: Path, strict: bool) -> tuple[list[str], list[str], bool]:
@@ -131,12 +126,10 @@ def lint_skill(skill_md: Path, strict: bool) -> tuple[list[str], list[str], bool
             errors.append(f"{rel}: invalid tier {fm['tier']!r}; allowed: {sorted(VALID_TIERS)}")
         if "job" in fm and fm["job"] not in VALID_JOBS:
             errors.append(f"{rel}: invalid job {fm['job']!r}; allowed: {sorted(VALID_JOBS)}")
-        valid_languages = CAPABILITY_REGISTRY.identifiers("languages")
-        valid_frameworks = CAPABILITY_REGISTRY.identifiers("frameworks")
-        if "language" in fm and fm["language"] not in valid_languages:
-            errors.append(f"{rel}: invalid language {fm['language']!r}; allowed: {sorted(valid_languages)}")
-        if "framework" in fm and fm["framework"] not in valid_frameworks:
-            errors.append(f"{rel}: invalid framework {fm['framework']!r}; allowed: {sorted(valid_frameworks)}")
+        if "language" in fm and fm["language"] not in VALID_LANGUAGES:
+            errors.append(f"{rel}: invalid language {fm['language']!r}; allowed: {sorted(VALID_LANGUAGES)}")
+        if "framework" in fm and fm["framework"] not in VALID_FRAMEWORKS:
+            errors.append(f"{rel}: invalid framework {fm['framework']!r}; allowed: {sorted(VALID_FRAMEWORKS)}")
         if "best_for" in fm and not str(fm["best_for"] or "").strip():
             errors.append(f"{rel}: best_for is empty")
         if "not_for" in fm and not str(fm["not_for"] or "").strip():
@@ -145,12 +138,6 @@ def lint_skill(skill_md: Path, strict: bool) -> tuple[list[str], list[str], bool
         # Legacy skill in non-strict mode — flag missing not_for as the
         # PR2 audit target, but only as a warning.
         warnings.append(f"{rel}: legacy skill — does not declare new contract (PR2 will backfill)")
-
-    for message in CAPABILITY_REGISTRY.validate_skill_contract(
-        fm,
-        skill_dir=skill_md.parent,
-    ):
-        errors.append(f"{rel}: {message}")
 
     # Optional scout_model — hint to the orchestrator about model class for
     # parallel scout fan-out spawned by this skill. Default is `careful`
@@ -184,6 +171,24 @@ def lint_skill(skill_md: Path, strict: bool) -> tuple[list[str], list[str], bool
         elif expected_type is str and not value.strip():
             errors.append(f"{rel}: {field} is empty")
 
+    for field, expected_type in INSTALL_OPTIONAL.items():
+        if field not in fm:
+            continue
+        value = fm[field]
+        if not isinstance(value, expected_type):
+            errors.append(f"{rel}: {field} must be a list, got {type(value).__name__}")
+            continue
+        if not value:
+            errors.append(f"{rel}: {field} must name at least one companion skill")
+            continue
+        invalid = [item for item in value if not isinstance(item, str) or not item.strip()]
+        if invalid:
+            errors.append(f"{rel}: {field} entries must be non-empty strings, got {invalid!r}")
+        if len(value) != len(set(value)):
+            errors.append(f"{rel}: {field} contains duplicate companion skills")
+        if fm.get("name") in value:
+            errors.append(f"{rel}: {field} must not contain the skill itself")
+
     # Cross-check: name field must equal directory name.
     expected = skill_md.parent.name
     if fm.get("name") and fm["name"] != expected:
@@ -200,31 +205,12 @@ def cmd_lint(args, skills_dir: Path) -> int:
     all_errors: list[str] = []
     all_warnings: list[str] = []
     new_contract_skills: list[str] = []
-    catalog_rows: int | None = None
     for sm in skill_files:
         errs, warns, declares_new_contract = lint_skill(sm, strict=args.strict)
         if declares_new_contract:
             new_contract_skills.append(sm.parent.name)
         all_errors.extend(errs)
         all_warnings.extend(warns)
-    # spec:portable-skill-layer-distribution::IM-2
-    inventory_path = args.catalog_inventory
-    if inventory_path is None and skills_dir.resolve() == DEFAULT_SKILLS_DIR.resolve():
-        inventory_path = DEFAULT_INVENTORY_PATH
-    if inventory_path is not None:
-        project_root = REPO_ROOT if skills_dir.resolve() == DEFAULT_SKILLS_DIR.resolve() else skills_dir.parent.parent
-        try:
-            catalog = load_catalog(
-                inventory_path,
-                skills_dir=skills_dir,
-                project_root=project_root,
-                registry=CAPABILITY_REGISTRY,
-            )
-            catalog_rows = len(catalog.entries)
-        except CatalogError as exc:
-            all_errors.extend(
-                f"{inventory_path}: {line}" for line in str(exc).splitlines()
-            )
     if args.json:
         print(json.dumps({
             "skills_total": len(skill_files),
@@ -232,7 +218,6 @@ def cmd_lint(args, skills_dir: Path) -> int:
             "strict": args.strict,
             "errors_total": len(all_errors),
             "warnings_total": len(all_warnings),
-            "catalog_rows": catalog_rows,
             "errors": all_errors,
             "warnings": all_warnings,
         }, indent=2))
@@ -269,14 +254,6 @@ def cmd_show(args, skills_dir: Path) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Skill frontmatter linter.")
     parser.add_argument("--skills-dir", type=Path, default=DEFAULT_SKILLS_DIR)
-    parser.add_argument(
-        "--catalog-inventory",
-        type=Path,
-        help=(
-            "Validate this authoritative placement inventory; the repository "
-            "inventory is automatic for the default skills directory"
-        ),
-    )
     sub = parser.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("lint", help="Validate every SKILL.md")
     p.add_argument("--json", action="store_true")

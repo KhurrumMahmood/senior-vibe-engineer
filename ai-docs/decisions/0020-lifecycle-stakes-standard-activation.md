@@ -7,7 +7,6 @@ date: 2026-05-21
 deciders: []
 supersedes: []
 superseded_by: null
-revisit_when: ["a second host or a lifecycle transition requires the standards activation matrix to make a promotion or demotion decision"]
 applies_to: [".claude/skills/find-standard-gaps/"]
 embodied_by: ["skill:orient", "skill:find-standard-gaps"]
 tags: [standards, lifecycle, project-stage, stakes, activation, baseline, orientation, north-star]

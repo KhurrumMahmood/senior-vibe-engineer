@@ -12,7 +12,6 @@ extend-exclude = [
     "dist/",
     "*.egg-info/",
     "fixtures",    # skill test inputs — deliberately contain smells / bad code
-    "tests/fixtures/sweep/hosts/",  # live native-tool projects contain intentional diagnostics
 ]
 
 [tool.ruff.lint]
@@ -39,5 +38,4 @@ ignore = [
 testpaths = ["tests"]
 markers = [
     "slow: multi-subprocess end-to-end runs; deselect with `-m 'not slow'`",
-    "sweep_live: invokes installed native sweep providers against minimal projects",
 ]

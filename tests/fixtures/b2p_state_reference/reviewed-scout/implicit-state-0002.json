@@ -1,0 +1,13 @@
+{
+  "bucket": "extract_enum_candidate",
+  "candidate_id": "implicit-state-0002",
+  "confidence": "high",
+  "false_positive_reason": null,
+  "fields_touched": ["status"],
+  "file": "app/services/jobs.py",
+  "hit_count": 3,
+  "notes": "The Job-annotated callers assign and compare first-party state with bare literals; extract one JobStatus authority.",
+  "pattern": "stringly_compare",
+  "recommendation_hint_symbol": "Job",
+  "symbols": ["can_finish", "is_done", "start"]
+}

@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a subsystem at .claude/docs/subsystems/<name>.md. Covers file list, public surface, responsibility table, dependency graph, convention-compliance score. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, or bounded Java package subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; compiler branches use family-local compiler attribution for exported surface and resolved imports. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -15,11 +15,14 @@ not_for: |
   Cross-subsystem product workflows (use /map-product-workflow).
   Per-symbol behavior annotation (use /explain-code). Refactor
   execution (use /refactor-subsystem with a spec).
-language: python
+language: any
 framework: any
+scans: [python, typescript, javascript, go, java]
 ---
 
 # /map-subsystem
+
+<!-- Legacy Go metadata token: scans: [python, typescript, javascript, go] -->
 
 You are the **orchestrator** for a MAP skill. Given a subsystem name or
 path, you produce (or refresh) a durable inventory doc at
@@ -36,13 +39,242 @@ Procedural detail lives in one knowledge file:
 
 - `knowledge/output-format.md` — the exact shape of
   `.claude/docs/subsystems/<name>.md` + worked example.
+- `knowledge/typescript-v1.md` — the narrow Compiler API model, resolver,
+  exclusions, completeness states, and unavailable TypeScript fields.
+- `knowledge/go-v1.md` — the active-build Go package-map facts, exclusions,
+  partial states, and unavailable Go fields.
+
+## TypeScript / TSX v1
+
+Use this branch only for a TypeScript/TSX subsystem when the host supplies a
+named, project-local `tsconfig.json` and a `typescript` package installed under
+that host. It produces a complete module-fact map: eligible source inventory,
+exported surface, resolved inbound/outbound static imports (direct relative and
+`paths` alias), barrel re-export boundaries, workflow-map participation, and
+TypeScript diagnostic counts. It does not infer responsibility clusters or
+write judgment-oriented open questions; those fields are explicit
+`unavailable`, never silently omitted.
+
+Do not use a lexical import inventory as a substitute. An unresolved specifier
+is rendered in the final Markdown and JSON evidence as `partial`; malformed
+TypeScript, missing `tsconfig`, missing Node, or missing project-local
+TypeScript stops with exit code 2. The mapper accepts a file or directory
+target, applies exclusions project-root-relatively even for a direct excluded
+target, and never follows an external or internal directory symlink.
+
+The TypeScript command is self-contained in this selected skill. It does not
+call the repository renderer, sibling skills, shared adapters, repository
+scripts, or a toolkit Python environment. Keep the current Python stages below
+unchanged; this is a parallel v1 output contract, not a replacement Python
+parser.
+
+### Installed TypeScript map command
+
+Run this verbatim from the target host root after the selected skill is present
+at `.agents/skills/map-subsystem` (or from this source checkout at
+`.claude/skills/map-subsystem`). It writes only the durable map, its JSON
+evidence, and the optional effectiveness row; it never mutates host source.
+
+To make the stock Codex location from a released source, set
+`MAP_SUBSYSTEM_SOURCE` to that pinned source/ref and run:
+
+<!-- installed-command:stock-install:start -->
+```bash
+: "${MAP_SUBSYSTEM_SOURCE:?Set this to the pinned skill source/ref}"
+npx --yes skills@1.5.19 add "${MAP_SUBSYSTEM_SOURCE}" \
+  --skill map-subsystem --agent codex --copy -y
+```
+<!-- installed-command:stock-install:end -->
+
+<!-- installed-command:typescript-map:start -->
+```bash
+MAP_NAME="${MAP_NAME:-typescript-features}"
+MAP_TARGET="${MAP_TARGET:-src/features}"
+MAP_TSCONFIG="${MAP_TSCONFIG:-tsconfig.json}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/map-subsystem" \
+  ".agents/skills/map-subsystem" \
+  ".claude/skills/map-subsystem"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "map-subsystem is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+node "${SKILL_ROOT}/scripts/map_typescript.mjs" \
+  --target "${MAP_TARGET}" \
+  --project-root "$(pwd)" \
+  --tsconfig "${MAP_TSCONFIG}" \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/typescript-map.json" \
+  --effectiveness-log "reports/_meta/effectiveness.jsonl"
+```
+<!-- installed-command:typescript-map:end -->
+
+The host's normal native check remains separate evidence. For example, run
+`npm run typecheck` (or that host's documented `tsc --noEmit` command) before
+and after mapping; the mapper records diagnostics but does not repair them.
+
+## Checked JavaScript v1
+
+Use `map_typescript.mjs --language javascript` only with a host-local
+`typescript` package and an explicit `jsconfig.json` or `tsconfig.json` that
+sets `allowJs` and `checkJs`. It accepts `.js`, `.jsx`, `.mjs`, and `.cjs`,
+maps explicit ESM edges plus bounded literal `require(...)` edges, and leaves
+unresolved edges visible. It records config, compiler diagnostics, uncovered
+files, compiler-parsed JSDoc, and inferred edge counts. Missing tools/configs
+are unsupported, malformed selected JS is syntax-error, and unresolved or
+excluded relevant sources are partial. It never falls back to `npx`, a global
+compiler, framework inference, or a shared language platform.
+
+<!-- installed-command:javascript-map:start -->
+```bash
+: "${MAP_TARGET:?Set MAP_TARGET to the checked-JavaScript file or directory to map}"
+JSCONFIG="${JSCONFIG:-jsconfig.json}"
+MAP_NAME="${MAP_NAME:-javascript-subsystem}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/map-subsystem" \
+  ".agents/skills/map-subsystem" \
+  ".claude/skills/map-subsystem"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "map-subsystem is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+node "${SKILL_ROOT}/scripts/map_typescript.mjs" \
+  --target "${MAP_TARGET}" --project-root "$(pwd)" \
+  --tsconfig "${JSCONFIG}" --language javascript \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/javascript-map.json"
+```
+<!-- installed-command:javascript-map:end -->
+
+This is a standalone host-root command: it resolves the selected skill itself
+and does not inherit `SKILL_ROOT` from the TypeScript command above.
+
+## Go v1
+
+Use this branch only from the root of one Go 1.22+ module, with no active
+workspace or `go.mod` `replace` directive. It maps one package **directory**
+for the current Go build: active non-generated source files, exported
+top-level declarations and methods, parser-recorded import spelling, and
+first-party inbound/outbound package edges established by `go list -e -json -mod=readonly ./...`.
+
+The selected skill ships one family-local standard-library helper. It uses
+`go/parser` and `go/ast` after `go list` has established the active package
+graph. It does not use `go/packages`, `go/types`, a language server, or a
+shared Go platform. It records ignored build files and makes build matrices,
+cgo, runtime dispatch, call identity, responsibility clustering, lint policy,
+and behavioral interpretation explicitly unavailable. Generated, vendor,
+testdata, test, and symlinked sources do not enter the source inventory. Any
+`.go` symlink in the selected package directory is rejected, including a link
+to source outside the project root.
+
+An incomplete target package or unresolved first-party import writes a visible
+`partial` map. Ordinary active Go files are parsed before cgo causes a
+`partial` result, so malformed non-cgo source still writes `failed` and exits
+non-zero. Missing or old Go is a prerequisite failure and writes no map.
+An active workspace, module replacement, non-root module, excluded/missing
+target, or package directory with no eligible source writes `unsupported`.
+The final map is complete only for the active `GOOS`/`GOARCH` selection, never
+for all build-tag or platform variants.
+
+### Installed Go map command
+
+Run this from the root of the target Go module after the selected skill is
+installed. The host's normal native check remains separate evidence: run
+`go test ./...` before and after mapping. The mapper is read-only against Go
+source and writes only the durable Markdown and JSON evidence.
+
+<!-- installed-command:go-map:start -->
+```bash
+MAP_NAME="${MAP_NAME:-go-package}"
+MAP_TARGET="${MAP_TARGET:-internal/package}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/map-subsystem" \
+  ".agents/skills/map-subsystem" \
+  ".claude/skills/map-subsystem"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "map-subsystem is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+if ! command -v go >/dev/null 2>&1; then
+  printf '%s\n' "Go 1.22+ is required before running the Go map" >&2
+  exit 2
+fi
+go run "${SKILL_ROOT}/scripts/map_go.go" \
+  --name "${MAP_NAME}" \
+  --target "${MAP_TARGET}" \
+  --project-root "$(pwd)" \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/go-map.json"
+```
+<!-- installed-command:go-map:end -->
+
+## Java v1
+
+Use this branch for one conventional Java package directory with a full JDK
+17+. The copied, family-local source launcher attributes all eligible Java
+source in its inferred source root through `JavacTask.parse()` and `analyze()`
+with `--release 17` and `-proc:none`. It reports public declarations plus
+compiler-resolved first-party import and fully-qualified type edges; it makes
+Maven/Gradle/classpath/module-path resolution, annotation processors, Kotlin,
+runtime dispatch, and build variants explicit boundaries. Syntax errors are
+`failed`; unresolved compilation or Kotlin is `partial`; excluded, missing, or
+unsafe topology is `unsupported`. Details are in `knowledge/java-v1.md`.
+
+<!-- installed-command:java-map:start -->
+```bash
+MAP_NAME="${MAP_NAME:-java-package}"
+MAP_TARGET="${MAP_TARGET:-src/main/java/example/package}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/map-subsystem" \
+  ".agents/skills/map-subsystem" \
+  ".claude/skills/map-subsystem"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"; break; fi
+done
+if [ -z "${SKILL_ROOT}" ] || ! command -v java >/dev/null 2>&1; then
+  printf '%s\n' "map-subsystem Java v1 requires an installed skill and JDK 17+" >&2; exit 2
+fi
+java "${SKILL_ROOT}/scripts/map_java.java" \
+  --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/java-map.json"
+```
+<!-- installed-command:java-map:end -->
 
 ## How success is judged
 
-- `.claude/docs/subsystems/<name>.md` is complete per
-  `knowledge/output-format.md`: file inventory, public-vs-private
-  surface, responsibility clusters, dependency graph, and the
-  convention-compliance score.
+- Python maps are complete per `knowledge/output-format.md`: file inventory,
+  public-vs-private surface, responsibility clusters, dependency graph, and
+  convention-compliance score. TypeScript/TSX v1 maps are complete per
+  `knowledge/typescript-v1.md`: eligible inventory, exported surface, resolved
+  module edges, workflow participation, and applicable compliance; intentionally
+  unavailable fields must remain explicit. Go v1 maps are complete only for
+  the active package/build facts in `knowledge/go-v1.md`; package-resolution
+  gaps remain visible as `partial`, and unavailable Go facts stay explicit.
+  Java v1 follows `knowledge/java-v1.md`: only error-free JavacTask-attributed
+  source facts are complete; unresolved or Kotlin coverage stays `partial`.
 - On `--refresh`, the doc opens with a diff section against the prior
   version — what changed, not just what is.
 - The run cites artifact truth: pasted `render_doc.py` `wrote ...`
@@ -56,29 +288,10 @@ Write toward these gates from Stage 0.
 
 ## Core beliefs
 
-1. **The map is a living doc, not a one-shot dump.** On refresh, diff
-   against the prior version and call out what *changed* (symbols
-   added/removed, responsibility clusters split, imports redirected).
-   A user reading this doc should be able to infer the subsystem's
-   direction, not just its current state.
-2. **Public surface is load-bearing.** What outside callers see is
-   the real contract. Private helpers are inventory; public symbols
-   are the contract. The doc must distinguish them.
-2a. **Product workflow participation is context.** If the subsystem
-   owns routes, templates, JavaScript, status providers, or docs for a
-   mapped product workflow, cross-link the relevant
-   `.claude/docs/workflows/<name>.md` map. A file can be locally tidy
-   while still contributing to topology drift.
-3. **Responsibility count beats LOC count.** A 500-LOC file with one
-   responsibility is fine; a 200-LOC file with three is the problem.
-   Apply the SRP "and" sentence test (from
-   `refactor-subsystem` §1.2.5).
-4. **No judgment calls in the map.** The doc reports: X is 2,400 LOC,
-   imports from 14 modules, has 3 responsibility clusters. It does
-   NOT say "should be split" — that's a SUSPECT skill's job.
-5. **Reusable infra only.** Reuse `scripts/chunk_file.py`, existing
-   lint scripts, and existing ruff config. Do not introduce new
-   scanners here — the MAP job is aggregation, not detection.
+The map is a living, refreshable fact artifact: distinguish public surface,
+workflow context, responsibility count, and dependency evidence without saying
+what should be split. Keep language resolution family-local until a second
+accepted consumer proves a shared contract.
 
 ## Argument parsing
 
@@ -107,7 +320,7 @@ The skill MUST produce a diff section at the top of the new doc
 summarizing what changed since the previous version's "Regenerated"
 timestamp.
 
-## Scope
+## Python scope
 
 - **Target:** a single subsystem (one file or one directory package).
 - **Worktree:** current working directory.
@@ -116,7 +329,7 @@ timestamp.
   under `reports/map/<name>/`, and one effectiveness row under
   `reports/_meta/`. Never touches production code.
 
-## Pipeline stages
+## Python pipeline stages
 
 Each stage has a contract — what it reads, what it writes. Scripts run
 with `.venv/bin/python` and capture stderr.
@@ -206,26 +419,9 @@ guard territory.
 
 **Pre:** stages 1–5 outputs. **Post:** `$OUTPUT_PATH` written.
 
-Format per `knowledge/output-format.md`. Structure:
-
-1. Front-matter header (subsystem name, path, regenerated timestamp,
-   prior-run timestamp if `--refresh`).
-2. **Diff section** (only on `--refresh`) — symbols added/removed,
-   cluster count delta, compliance-score delta.
-3. **Files** — table from Stage 1.
-4. **Public surface** — grouped by file, from Stage 2's `is_public`.
-5. **Responsibility clusters** — table from Stage 3.
-6. **Dependency graph** — internal and external, rendered as a markdown
-   list; link inbound edges to the calling subsystem's map page if it
-   exists.
-7. **Workflow participation** — links to product workflow maps when
-   this subsystem appears in their route, template, JS, status, or docs
-   inventory.
-8. **Convention compliance** — table from Stage 5 with one row per
-   rule and raw counts.
-9. **Open questions** — auto-generated from unexplained regions (top-
-   level symbols with no docstring + complex bodies). These are
-   hints for a follow-on `/explain-code` run.
+Format per `knowledge/output-format.md`: front matter; refresh diff; files;
+public surface; clusters; dependency and workflow evidence; compliance; and
+open questions for `/explain-code`.
 
 Then run the renderer exactly:
 
@@ -252,53 +448,14 @@ truth artifacts for Stages 6-7.
 
 ### Stage 7 — Append to effectiveness log
 
-**Pre:** renderer completed. **Post:** one new line in
-`reports/_meta/effectiveness.jsonl`.
-
-`render_doc.py` appends this row when `--effectiveness-log` is non-empty.
-Verify the row exists before claiming it. If the log write fails but the
-doc was rendered, keep the doc and report the log failure honestly.
-
-Schema:
-```json
-{"skill":"map-subsystem","scan_id":"map-<name>-<ts>","ts":"...",
- "findings_total":<cluster_count>,
- "buckets":{"files":N,"public_symbols":N,"clusters":N,"compliance_violations":N},
- "target":"<subsystem name>"}
-```
+`render_doc.py` appends the `map-<name>-<ts>` row when requested. Verify it;
+if it fails after a rendered doc, keep the doc and report that exact failure.
 
 ### Stage 8 — Summarize to user
 
-Report in ≤10 lines:
-- name, output path, timestamp.
-- file count, public-symbol count, cluster count.
-- compliance-violation count (per rule, if non-zero).
-- **one-sentence hint** pointing at the next job in the loop, chosen
-  from the SUSPECT/EXPLAIN catalog in `.claude/docs/skill-catalog.md`:
-  - compliance violations present → cite the affected canonical
-    pattern in CLAUDE.md and, if the cleanup is in scope, suggest
-    running `/fix-workflow` on the affected cluster.
-  - clear duplication signals in the files table (same function names
-    across files, near-duplicate symbol lists) → suggest
-    `/find-duplication` or `/find-semantic-duplication` on the target.
-  - potential dead code (public symbols with no inbound references in
-    the dependency graph) → suggest `/find-dormant`.
-  - SRP "and"-count ≥ 3 in a single file → suggest `/find-omnibus`.
-  - stringly-typed `status` fields or tuple-inferred identity signals
-    → suggest `/find-implicit-state`.
-  - read-named methods that mutate → suggest `/find-query-mutation`.
-  - view/task modules owning business logic → suggest
-    `/find-layer-violation`.
-  - subsystem appears in a workflow map with duplicated route/template/
-    JS ownership → suggest the product-topology skills:
-    `/find-route-sprawl`, `/find-workflow-duplication`, or
-    `/find-frontend-contract-drift`.
-  - a specific file needs to be understood before it can be changed →
-    suggest `/explain-code`.
-  - otherwise → nothing; the map is the artifact.
-
-The doc is the source of truth — do not enumerate its contents in the
-summary.
+In ≤10 lines, cite the output, timestamp, file/public/cluster/compliance
+counts, and one evidence-based next job (`/fix-workflow`, a SUSPECT skill,
+`/find-dormant`, or `/explain-code`). The document remains the source of truth.
 
 ## Non-goals
 
@@ -330,7 +487,11 @@ summary.
 .claude/skills/map-subsystem/
 ├── SKILL.md                      # this file — orchestrator
 ├── scripts/
-│   └── render_doc.py             # Stages 6-7 — renders the doc + appends log
+│   ├── map_go.go                 # Go v1 package map + final artifacts
+│   ├── map_java.java             # Java v1 package map + final artifacts
+│   └── render_doc.py             # Python Stages 6-7 — renders the doc + appends log
 └── knowledge/
-    └── output-format.md          # doc structure + worked example
+    ├── go-v1.md                  # bounded active-build Go contract
+    ├── java-v1.md                # bounded compiler-attributed Java contract
+    └── output-format.md          # Python doc structure + worked example
 ```

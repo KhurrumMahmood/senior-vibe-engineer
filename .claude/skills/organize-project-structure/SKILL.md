@@ -143,9 +143,9 @@ target topology explainable instead of vibes-based.
 After proposing the ideal logical topology, apply constraints before
 solidifying the target topology:
 
-- Framework/runtime conventions: application entrypoint layout, language
-  package/import roots, build config discovery, test runner discovery, and
-  static asset discovery. Use the selected binding for native layout rules.
+- Framework/runtime conventions: Next.js `app/` or `pages/`, Python
+  package/import roots, Django app layout, build config discovery, test
+  runner discovery, static asset discovery.
 - Tooling contracts: CI paths, deployment manifests, codegen outputs,
   docs/link checkers, package metadata, `.gitignore`, data loader paths,
   notebook/report expectations.

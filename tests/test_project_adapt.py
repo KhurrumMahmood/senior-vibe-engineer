@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
-import subprocess
-import sys
 
 import pytest
 import yaml
@@ -54,10 +51,6 @@ def test_discover_django_repo_detects_stack_and_guardrails(tmp_path):
     assert adapter["domain_terms"][0]["term"] == "Site"
     assert any("site_intelligence" in row["path"] for row in adapter["sensitive_surfaces"])
     assert adapter["standardization"]["observed_patterns_are_not_canonical"] is True
-    assert adapter == project_adapt.discover_project(tmp_path)
-    assert "generated_at" not in adapter
-    assert str(tmp_path) not in json.dumps(adapter)
-    assert project_adapt.validate_adapter_payload(adapter) == []
 
 
 def test_discover_react_repo_detects_node_stack(tmp_path):
@@ -65,11 +58,8 @@ def test_discover_react_repo_detects_node_stack(tmp_path):
 
     adapter = project_adapt.discover_project(tmp_path)
 
-    assert {"javascript", "typescript"} <= set(adapter["stack"]["languages"])
+    assert "javascript/typescript" in adapter["stack"]["languages"]
     assert "react" in adapter["stack"]["frameworks"]
-    assert "vite" in adapter["stack"]["tools"]
-    assert "vitest" in adapter["stack"]["tools"]
-    assert "vite" not in adapter["stack"]["frameworks"]
     assert "pnpm" in adapter["stack"]["package_managers"]
     assert any("pnpm test" in command for command in adapter["commands"]["test"])
 
@@ -100,24 +90,6 @@ def test_no_host_write_stores_artifacts_outside_target(tmp_path):
 
     assert scan_dir == artifacts / "reports" / "adapt-project" / "scan-20260517-120000"
     assert (scan_dir / "adapter.yml").is_file()
-    assert (scan_dir / "host-profile.json").is_file()
-    assert (scan_dir / "perimeter.json").is_file()
-    assert (scan_dir / "perimeter.md").is_file()
-    gate = subprocess.run(
-        [
-            sys.executable,
-            str(project_adapt.REPO_ROOT / "scripts" / "evidence_gate.py"),
-            "check",
-            "--skill",
-            "adapt-project",
-            "--scan-dir",
-            str(scan_dir),
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    assert gate.returncode == 0, gate.stdout + gate.stderr
     assert not (project / ".engineering" / "project" / "adapter.yml").exists()
 
 
@@ -150,127 +122,6 @@ def test_apply_writes_project_adapter(tmp_path):
     )
 
     assert (tmp_path / ".engineering" / "project" / "adapter.yml").is_file()
-    assert (tmp_path / ".engineering" / "project" / "host-profile.json").is_file()
-
-
-def test_apply_is_idempotent_and_preserves_host_owned_files(tmp_path):
-    seed_django_repo(tmp_path)
-    agents = tmp_path / "AGENTS.md"
-    agents.write_text("# Host identity\n", encoding="utf-8")
-    durable = tmp_path / ".engineering" / "project"
-    durable.mkdir(parents=True)
-    (durable / "adapter.yml").write_text("host_notes:\n  owner: team-a\n", encoding="utf-8")
-    (durable / "profile.yml").write_text(
-        "schema_version: 2\nuser_approved: true\nproject:\n  purpose: host-owned\n",
-        encoding="utf-8",
-    )
-
-    project_adapt.write_discovery(
-        tmp_path,
-        tmp_path,
-        timestamp="20260517-120000",
-        apply=True,
-        no_host_write=False,
-    )
-    first_adapter = (durable / "adapter.yml").read_bytes()
-    first_profile = (durable / "host-profile.json").read_bytes()
-    project_adapt.write_discovery(
-        tmp_path,
-        tmp_path,
-        timestamp="20260517-120001",
-        apply=True,
-        no_host_write=False,
-    )
-
-    assert (durable / "adapter.yml").read_bytes() == first_adapter
-    assert (durable / "host-profile.json").read_bytes() == first_profile
-    assert yaml.safe_load(first_adapter)["host_notes"] == {"owner": "team-a"}
-    assert (durable / "profile.yml").read_text(encoding="utf-8").endswith(
-        "purpose: host-owned\n"
-    )
-    assert agents.read_text(encoding="utf-8") == "# Host identity\n"
-
-
-def test_adaptation_surfaces_profile_coverage_gaps_before_success(tmp_path):
-    project = tmp_path / "project"
-    artifacts = tmp_path / "artifacts"
-    seed_react_repo(project)
-    (project / "src" / "large.ts").write_text("export const value = 1;\n" * 3200)
-
-    scan_dir = project_adapt.write_discovery(
-        project,
-        artifacts,
-        timestamp="20260517-120000",
-        apply=False,
-        no_host_write=True,
-    )
-
-    adapter = yaml.safe_load((scan_dir / "adapter.yml").read_text(encoding="utf-8"))
-    perimeter = json.loads((scan_dir / "perimeter.json").read_text(encoding="utf-8"))
-    evidence = json.loads((scan_dir / "evidence.json").read_text(encoding="utf-8"))
-    assert adapter["adoption"]["status"] == "incomplete_coverage"
-    assert adapter["adoption"]["perimeter_gaps"] == len(perimeter["gaps"])
-    assert perimeter["coverage_mode"] == "executable-evidence"
-    assert any(item["language"] == "typescript" for item in perimeter["gaps"])
-    assert {"host_profile", "perimeter", "perimeter_report"} <= set(evidence["evidence"])
-
-
-def test_adaptation_cannot_bypass_perimeter_artifact(monkeypatch, tmp_path):
-    project = tmp_path / "project"
-    artifacts = tmp_path / "artifacts"
-    seed_django_repo(project)
-    monkeypatch.setattr(
-        project_adapt,
-        "run_perimeter_audit",
-        lambda *args, **kwargs: {"gaps": []},
-    )
-
-    with pytest.raises(RuntimeError, match="mandatory perimeter audit"):
-        project_adapt.write_discovery(
-            project,
-            artifacts,
-            timestamp="20260517-120000",
-            apply=False,
-            no_host_write=True,
-        )
-
-    scan_dir = artifacts / "reports" / "adapt-project" / "scan-20260517-120000"
-    assert not (scan_dir / "perimeter.json").exists()
-    assert not (scan_dir / "perimeter.md").exists()
-
-
-def test_adaptation_rejects_perimeter_artifacts_bound_to_another_profile(
-    monkeypatch, tmp_path
-):
-    project = tmp_path / "project"
-    artifacts = tmp_path / "artifacts"
-    seed_django_repo(project)
-
-    def forged_audit(_project, _profile_path, scan_dir):
-        payload = {
-            "schema_version": 2,
-            "coverage_mode": "executable-evidence",
-            "host_profile_sha256": "not-this-profile",
-            "profile_exclusions": [],
-            "accepted_exclusions": [],
-            "detectors": [],
-            "cells": [],
-            "gaps": [],
-        }
-        (scan_dir / "perimeter.json").write_text(json.dumps(payload), encoding="utf-8")
-        (scan_dir / "perimeter.md").write_text("# forged\n", encoding="utf-8")
-        return payload
-
-    monkeypatch.setattr(project_adapt, "run_perimeter_audit", forged_audit)
-
-    with pytest.raises(RuntimeError, match="host profile"):
-        project_adapt.write_discovery(
-            project,
-            artifacts,
-            timestamp="20260517-120000",
-            apply=False,
-            no_host_write=True,
-        )
 
 
 def test_schema_validators_accept_generated_artifacts(tmp_path):

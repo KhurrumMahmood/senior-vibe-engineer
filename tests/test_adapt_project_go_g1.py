@@ -1,0 +1,239 @@
+"""Go final-artifact, exclusion, source-safety, and copied-closure proof."""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SKILL = REPO_ROOT / ".claude" / "skills" / "adapt-project"
+FIXTURE = REPO_ROOT / "tests" / "fixtures" / "adapt-project-go-g1"
+
+
+def _go_bin() -> str:
+    go = shutil.which("go")
+    if go is None:
+        pytest.skip("Go toolchain is unavailable")
+    version = subprocess.run(
+        [go, "version"], capture_output=True, text=True, check=False
+    )
+    if version.returncode != 0 or "go1." not in version.stdout:
+        pytest.skip("Go toolchain version is unavailable")
+    minor = int(version.stdout.split("go1.", 1)[1].split(".", 1)[0])
+    if minor < 22:
+        pytest.skip("Go 1.22+ is required")
+    return go
+
+
+def _go_env(tmp_path: Path) -> dict[str, str]:
+    go = Path(_go_bin())
+    return {
+        **os.environ,
+        "PATH": f"{go.parent}{os.pathsep}{os.environ.get('PATH', '')}",
+        "GOCACHE": str(tmp_path / "go-cache"),
+    }
+
+
+def _run(
+    script: Path,
+    *args: str,
+    cwd: Path,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, "-I", "-S", str(script), *args],
+        cwd=cwd,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def _fingerprints(root: Path) -> dict[str, str]:
+    return {
+        path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in sorted(root.rglob("*"))
+        if path.is_file() and "reports" not in path.relative_to(root).parts
+    }
+
+
+def _host(tmp_path: Path) -> tuple[Path, dict[str, str]]:
+    host = tmp_path / "host"
+    shutil.copytree(FIXTURE, host)
+    env = _go_env(tmp_path)
+    native = subprocess.run(
+        ["go", "test", "./..."],
+        cwd=host,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert native.returncode == 0, native.stdout + native.stderr
+    return host, env
+
+
+def _discover(skill: Path, host: Path, artifacts: Path, env: dict[str, str]) -> tuple[dict, Path]:
+    result = _run(
+        skill / "scripts" / "discover.py",
+        "--project-root",
+        str(host),
+        "--artifact-root",
+        str(artifacts),
+        "--no-host-write",
+        "--timestamp",
+        "20260720-120000",
+        cwd=host,
+        env=env,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    scan = Path(result.stdout.strip())
+    return json.loads((scan / "adapter.json").read_text(encoding="utf-8")), scan
+
+
+def test_go_discovery_reaches_adapter_report_and_preserves_source(tmp_path: Path) -> None:
+    host, env = _host(tmp_path)
+    before = _fingerprints(host)
+
+    adapter, scan = _discover(SKILL, host, tmp_path / "artifacts", env)
+
+    source = next(row for row in adapter["source_roots"] if row["path"] == "src")
+    root_source = next(row for row in adapter["source_roots"] if row["path"] == ".")
+    internal = next(row for row in adapter["source_roots"] if row["path"] == "internal")
+    assert adapter["status"] == "complete"
+    assert adapter["analysis"]["go"] == {
+        "status": "complete",
+        "analyzer": "filesystem-source-inventory",
+    }
+    assert source["go_files"] == 1
+    assert source["source_languages"] == ["go"]
+    assert root_source["go_files"] == 1
+    assert internal["go_files"] == 1
+    assert adapter["stack"]["languages"] == ["go"]
+    assert adapter["stack"]["frameworks"] == []
+    assert adapter["stack"]["package_managers"] == ["go"]
+    assert "go.mod" in adapter["stack"]["markers"]
+    assert adapter["commands"]["test"] == ["go test ./..."]
+    assert "Go: 1" in (scan / "report.md").read_text(encoding="utf-8")
+    assert _fingerprints(host) == before
+
+
+def test_go_large_root_caution_and_must_not_fire_boundaries(tmp_path: Path) -> None:
+    host, env = _host(tmp_path)
+    for index in range(200):
+        (host / "src" / f"extra_{index:03d}.go").write_text(
+            f"package service\n\nconst Extra{index:03d} = {index}\n",
+            encoding="utf-8",
+        )
+    for directory in (
+        "testdata",
+        "fixture",
+        "fixtures",
+        "third_party",
+        "third-party",
+        "deps",
+        "dependencies",
+    ):
+        excluded = host / "src" / directory / "excluded.go"
+        excluded.parent.mkdir(parents=True, exist_ok=True)
+        excluded.write_text(
+            "package excluded\n\nconst Value = \"excluded\"\n", encoding="utf-8"
+        )
+    (host / "src" / "late_marker.go").write_text(
+        "\n".join(
+            ["/*", "package documentation", "*/"]
+            + ["// leading fixture comment" for _ in range(400)]
+            + [
+                "// Code generated by locked fixture. DO NOT EDIT.",
+                "",
+                "package service",
+                "",
+                "const GeneratedLate = \"excluded\"",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    adapter, _ = _discover(SKILL, host, tmp_path / "artifacts", env)
+
+    source = next(row for row in adapter["source_roots"] if row["path"] == "src")
+    assert source["go_files"] == 201
+    assert "Large source roots may contain mixed-quality legacy code; extract exemplars selectively." in (
+        adapter["standardization"]["cautions"]
+    )
+    assert all(
+        excluded not in json.dumps(adapter)
+        for excluded in ("zz_generated.go", "service_test.go", "dependency.go")
+    )
+
+
+def test_go_nonreplaceable_latest_fails_before_writing_a_scan(tmp_path: Path) -> None:
+    host, env = _host(tmp_path)
+    artifacts = tmp_path / "artifacts"
+    latest = artifacts / "reports" / "adapt-project" / "latest"
+    latest.mkdir(parents=True)
+    (latest / "keep.txt").write_text("preserve me\n", encoding="utf-8")
+
+    result = _run(
+        SKILL / "scripts" / "discover.py",
+        "--project-root",
+        str(host),
+        "--artifact-root",
+        str(artifacts),
+        "--no-host-write",
+        "--timestamp",
+        "20260720-120000",
+        cwd=host,
+        env=env,
+    )
+
+    assert result.returncode == 2
+    assert "status=failed" in result.stderr
+    assert "latest scan link must be replaceable" in result.stderr
+    assert (latest / "keep.txt").read_text(encoding="utf-8") == "preserve me\n"
+    assert not list((artifacts / "reports" / "adapt-project").glob("scan-*"))
+
+
+def test_copied_go_closure_runs_outside_source_checkout(tmp_path: Path) -> None:
+    host, env = _host(tmp_path)
+    installed = tmp_path / "installed" / "adapt-project"
+    shutil.copytree(SKILL, installed)
+
+    adapter, scan = _discover(installed, host, tmp_path / "outside-artifacts", env)
+    evidence = _run(
+        installed / "scripts" / "check_evidence.py",
+        "--scan-dir",
+        str(scan),
+        cwd=tmp_path,
+        env=env,
+    )
+
+    assert evidence.returncode == 0, evidence.stdout + evidence.stderr
+    assert adapter["analysis"]["go"]["status"] == "complete"
+    assert not installed.resolve().is_relative_to(REPO_ROOT.resolve())
+    closure = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (installed / "scripts").iterdir()
+        if path.is_file()
+    )
+    assert "scripts/_lib" not in closure
+
+
+def test_go_contract_is_declared() -> None:
+    text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+
+    assert "Go v1 contract" in text
+    assert "go test ./..." in text
+    assert "complete" in text
+    assert "partial" in text
+    assert "unsupported" in text
+    assert "failed" in text

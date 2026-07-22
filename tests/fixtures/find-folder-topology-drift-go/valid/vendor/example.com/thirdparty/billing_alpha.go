@@ -1,0 +1,3 @@
+package thirdparty
+
+func alpha() {}

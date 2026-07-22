@@ -1,0 +1,269 @@
+{
+  "batch": "B4",
+  "revision": "e7da0b117ade8c58da73a86936d90f718669ae0f",
+  "family": [
+    "find-omnibus"
+  ],
+  "invariant": {
+    "portable_principle": "Report an omnibus candidate only when trustworthy top-level symbols form at least four independently named responsibility clusters, then preserve human facet-versus-domain judgment in the scout-backed final report.",
+    "python_or_framework_mechanism": "Python stdlib AST top-level declarations with existing god-class method expansion; no framework assumption.",
+    "typescript_mechanism": "A family-local TypeScript Compiler API createSourceFile pass extracts exact spans for top-level named functions, function-valued variables including typed arrows, and named classes from .ts and .tsx files.",
+    "explicit_non_goals": [
+      "TypeScript module resolution or re-export identity",
+      "TypeChecker or semantic responsibility inference",
+      "React, Node, ORM, or framework semantics",
+      "Nested declarations and anonymous default exports",
+      "Automatic decomposition without scout judgment",
+      "Shared TypeScript parser or fact platform"
+    ]
+  },
+  "reference_repairs": [
+    "Removed the detector's repository scripts/_lib runtime dependency by restoring Python and legacy JavaScript extraction inside the selected skill.",
+    "Stopped routing .ts and .tsx through the JavaScript column-zero heuristic, which missed ESM exports and labeled TypeScript as JavaScript.",
+    "Removed report.py's sibling _common telemetry import so the complete report pipeline runs from a copied selected skill.",
+    "Added explicit TypeScript generated, vendor, minified, declaration, spec, test, and fixture exclusions plus clear parser-prerequisite failures.",
+    "Corrected the false first-closeout claim that script-level self-containment also closed the installed workflow: D5 found hard-coded .claude commands plus Stage 3 dependencies on an uninstalled _common dispatcher, tools/code_agent, host adapter, another skill, and toolkit venv.",
+    "Repair e7da0b117ade8c58da73a86936d90f718669ae0f adds an installation-root resolver for stock .agents and source-tree .claude, bundles the full scout/deletion-test context, uses the host standard sub-agent capability directly, and documents serial capacity fallback.",
+    "Restored truthful cross-language metadata: language any and scans python, javascript, and typescript preserve the legacy JavaScript contract alongside Python and TypeScript."
+  ],
+  "language_model": {
+    "syntax": [
+      "ESM .ts and .tsx top-level function declarations",
+      "typed arrow and function-expression variable declarations",
+      "named class declarations",
+      "exact Compiler API source spans",
+      "TypeScript parse diagnostics"
+    ],
+    "type_system": [
+      "No TypeChecker facts are used; annotations are parsed as syntax only."
+    ],
+    "module_resolution": [
+      "None; imports, aliases, barrels, and re-exports are out of scope.",
+      "The runtime resolves the host-pinned typescript package from the target project's package.json."
+    ],
+    "runtime": [
+      "Python 3.11+ stdlib for detector orchestration, collapse, and reporting.",
+      "Node and host project-local TypeScript; locked fixture version 5.9.3."
+    ],
+    "framework": [
+      "No framework assumption."
+    ]
+  },
+  "tooling": {
+    "selected": "Family-local Node launcher using the host TypeScript Compiler API createSourceFile, called by a self-contained Python detector pipeline.",
+    "rejected_alternatives": {
+      "legacy_javascript_regex": "Misses normal ESM export declarations, typed arrows, and trustworthy spans and mislabels TypeScript as JavaScript.",
+      "b2t_state_detector_reuse": "Its semantic closed-state contract does not fit top-level symbol extraction and would couple this selected skill to another installation.",
+      "ts_morph": "Adds an unnecessary dependency for syntax-only spans.",
+      "tree_sitter_or_ast_grep": "Adds dependency and installation surface without improving the accepted Compiler API outcome.",
+      "shared_fact_platform": "No accepted second consumer demonstrates this exact contract."
+    },
+    "version_and_resolution": "Fixture package-lock pins TypeScript 5.9.3; installed execution resolves typescript from the host package.json. Fresh D6 used Node v26.3.1, npm/npx 11.16.0, and Python 3.13.2 for the host journey.",
+    "closure_mode": "Pinned stock CLI installs only find-omnibus. Installed files contain installation-relative commands, the complete verification prompt/rules/deletion test, detect/collapse/report Python scripts, and the bundled TypeScript launcher. Runtime uses the host Python and standard sub-agent capability directly; no toolkit scripts/_lib, sibling _common, external dispatcher, tools/code_agent, host adapter, toolkit venv, or other skill is required.",
+    "preflight_and_failure_codes": [
+      "detect: 0 successful JSONL output",
+      "detect: 2 invalid target, missing Node, missing host package/typescript, invalid parser JSON, or TypeScript syntax error",
+      "collapse/report: 0 successful artifact generation"
+    ]
+  },
+  "outcome_contract": {
+    "inputs": [
+      "Locked TypeScript 5.9.3 host fixture",
+      "ESM .ts and .tsx positive modules",
+      "cohesive and explicit must-not-fire files",
+      "scout verdict JSON"
+    ],
+    "structured_outputs": [
+      "omnibus.jsonl",
+      "candidates.jsonl",
+      "scout/<candidate_id>.json",
+      "report.md",
+      "findings.json"
+    ],
+    "must_fire": [
+      "ESM .ts module with typed exported functions, typed arrows, and classes across invoice, shipment, customer, and inventory",
+      "ESM .tsx module with the same four independent domains",
+      "language=typescript and analyzer=typescript-compiler-api",
+      "final scout-backed confirmed_omnibus report with four domain clusters"
+    ],
+    "must_not_fire": [
+      "cohesive InvoicePanel.tsx",
+      "generated directory and *.generated.ts",
+      "vendor directory",
+      "minified and bundle filenames",
+      "*.spec.ts, *.test.tsx, and tests/ paths",
+      "TypeScript declaration files"
+    ],
+    "native_test_command": "npm ci --offline --ignore-scripts && npm run typecheck && npm test",
+    "native_guard_command": null
+  },
+  "evidence": {
+    "python_reference": [
+      "tests/test_omnibus_language_adapters.py preserves Python positive/cohesive behavior and legacy JavaScript positive/cohesive/minified/spec behavior.",
+      "Combined targeted suite at repair e7da0b1: 14 passed across omnibus language adapters, TypeScript outcome, installed-command closure, and skill taxonomy.",
+      "Frontmatter regression asserts language any and scans python, javascript, and typescript so the legacy JavaScript truth is not erased by TypeScript support."
+    ],
+    "typescript": [
+      "tests/fixtures/b4_typescript_omnibus locks positive .ts/.tsx, cohesive TSX, generated/vendor/minified/spec/test exclusions, TypeScript 5.9.3, and native test behavior.",
+      "tests/test_omnibus_typescript.py proves final report semantics, copied python -I -S execution, syntax-error rc 2, and pinned stock selected-skill installation.",
+      "The pinned stock-install regression extracts the documented resolver/setup/detect/collapse/report blocks verbatim from .agents/skills/find-omnibus and runs them through report.md and findings.json with scout artifacts.",
+      "The selected scout prompt/knowledge regression rejects _common, dispatch_scout_cheap, tools/code_agent, hard-coded source script paths, and subagent_type host-adapter syntax.",
+      "Fresh D6 report contains 2 confirmed_omnibus, 0 unverified, language=typescript, analyzer=typescript-compiler-api, and four domains per candidate.",
+      "Fresh D6 before and after source manifests are byte-identical."
+    ],
+    "commands_and_artifact_paths": [
+      ".venv/bin/python -m pytest -q tests/test_omnibus_language_adapters.py tests/test_omnibus_typescript.py tests/test_skill_taxonomy.py: 14 passed",
+      ".venv/bin/ruff check .claude/skills/find-omnibus/scripts/detect.py .claude/skills/find-omnibus/scripts/report.py tests/test_omnibus_typescript.py: All checks passed",
+      "node --check .claude/skills/find-omnibus/scripts/detect_typescript_symbols.mjs: passed",
+      "DO_NOT_TRACK=1 npx --yes skills@1.5.19 add <checkout> --skill find-omnibus --agent codex --copy -y",
+      "/private/tmp/find-omnibus-ts-user-journey/evidence/commands-and-output.md sha256=dd43e393d234bd057dc7dddbbf107df0938baf2aff87f66044eb5d1baaade83b",
+      "/private/tmp/find-omnibus-ts-user-journey/host/reports/omnibus/scan-20260719-014247/report.md sha256=27dd23e51cd01b8ed9fbed846000489d1fdb35245ac795194cdea96efc2a6db4",
+      "/private/tmp/find-omnibus-ts-user-journey/host/reports/omnibus/scan-20260719-014247/findings.json sha256=a11d96c2bb26af22a9fed712968dc5d6811967e1c2c484326e9c3275c43e956f",
+      "/private/tmp/find-omnibus-ts-user-journey/evidence/source-manifest-before.sha256 and source-manifest-after.sha256 are identical; each evidence file sha256=4cd52d4ba33ea79e828025f5c2d7ef7fca49261ddad934a5896af7d825553462"
+    ]
+  },
+  "false_positive_boundary": {
+    "known_false_positives": [
+      "Head-noun clustering can group lexical naming conventions that a scout later determines are facets of one job; therefore detection remains advisory and every final finding requires a scout verdict."
+    ],
+    "known_false_negatives": [
+      "Anonymous default exports and export aliases/re-exports are not collected.",
+      "Nested declarations and function bodies are not collected.",
+      "Responsibility domains that do not share stable symbol-name nouns can under-cluster."
+    ],
+    "legitimate_similar_shapes": [
+      "A cohesive TSX module with several function/class shapes in one invoice domain stays clean.",
+      "Generated, vendor, minified, declaration, spec, test, and fixture sources are excluded by policy.",
+      "Four singleton clusters stay below the two-symbol-per-domain threshold."
+    ]
+  },
+  "generalized": [
+    "Head-noun responsibility clustering and SRP and-count",
+    "Detector JSONL to candidates to scout verdict to final report schema",
+    "Positive, cohesive, must-not-fire, native-test, copied-install, and fresh-forward validation sequence",
+    "Explicit analyzer/language provenance"
+  ],
+  "did_not_generalize": [
+    "Python god-class method expansion",
+    "Legacy JavaScript column-zero extraction",
+    "TypeScript Compiler API syntax and runtime resolution",
+    "Module resolution and re-export semantics",
+    "Framework-specific decomposition judgments"
+  ],
+  "reuse_decision": {
+    "shared_candidate": "Family-local TypeScript top-level symbol-span extraction and copied-install validation pattern",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": [
+      "Only find-omnibus consumes this exact createSourceFile top-level span schema.",
+      "B2T uses Compiler API semantic state facts, not this syntax-only contract.",
+      "The fresh journey produced the expected artifact but exposed installed-path and dispatcher closure defects; repair e7da0b1 fixes them without shared adapter infrastructure and adds a literal stock-command replay."
+    ],
+    "owner": "B4 find-omnibus"
+  },
+  "translation_prerequisites": {
+    "rust": {
+      "native_tool": "rust-analyzer syntax tree, rustc parser, or syn",
+      "idiomatic_representation": "crate/module-level functions, structs, enums, traits, and impl blocks",
+      "required_fixtures": [
+        "four-domain public module",
+        "cohesive module",
+        "generated/vendor/test modules",
+        "macro-adjacent declarations"
+      ],
+      "semantic_gaps": [
+        "macro expansion",
+        "impl ownership and trait methods",
+        "module visibility"
+      ]
+    },
+    "go": {
+      "native_tool": "go/parser and go/ast",
+      "idiomatic_representation": "package-level functions, methods, types, and exported identifiers",
+      "required_fixtures": [
+        "four-domain package file",
+        "cohesive package file",
+        "generated code marker",
+        "vendor and _test.go files"
+      ],
+      "semantic_gaps": [
+        "receiver method attribution",
+        "build tags",
+        "generated-file conventions"
+      ]
+    },
+    "java_or_kotlin": {
+      "native_tool": "javac/Kotlin compiler parser or language-server syntax facts",
+      "idiomatic_representation": "top-level Kotlin declarations and Java classes, methods, and nested types",
+      "required_fixtures": [
+        "four-domain Java and Kotlin sources",
+        "cohesive class/file",
+        "generated/test sources",
+        "overloaded declarations"
+      ],
+      "semantic_gaps": [
+        "overloads",
+        "nested and companion declarations",
+        "annotation processing"
+      ]
+    },
+    "csharp": {
+      "native_tool": "Roslyn",
+      "idiomatic_representation": "namespace-level classes, records, methods, and partial types",
+      "required_fixtures": [
+        "four-domain source",
+        "cohesive type",
+        "generated/test source",
+        "partial declarations"
+      ],
+      "semantic_gaps": [
+        "partial type aggregation",
+        "source generators",
+        "extension methods"
+      ]
+    },
+    "ruby": {
+      "native_tool": "Prism or Ripper",
+      "idiomatic_representation": "top-level methods, modules, classes, and singleton methods",
+      "required_fixtures": [
+        "four-domain Ruby file",
+        "cohesive module",
+        "vendor/test/generated files",
+        "metaprogrammed declarations"
+      ],
+      "semantic_gaps": [
+        "metaprogramming",
+        "reopened classes/modules",
+        "runtime visibility"
+      ]
+    }
+  },
+  "user_experience": {
+    "install_steps": [
+      "Create a clean disposable host and copy only raw fixture source/package files.",
+      "Run pinned stock skills@1.5.19 add with only --skill find-omnibus and --copy.",
+      "Install the host's locked TypeScript dependency; use its Python venv when present or host python3.",
+      "Run the documented resolver and stage commands verbatim, dispatch standard scouts, and produce the final report from the installed selected skill."
+    ],
+    "wall_time_seconds": null,
+    "agent_confusions": [
+      "D6 revealed that the installer placed the skill under .agents/skills while the first SKILL.md examples hard-coded .claude/skills; repair e7da0b1 replaced that assumption with a tested resolver.",
+      "The original handoff described the raw fixture with a wrong path/name; the fresh agent found the committed B4 fixture by filename without reading expected-output artifacts."
+    ],
+    "repeated_work": [
+      "Shared agent-thread capacity blocked parallel Stage 3 dispatch during D6; repair e7da0b1 now documents serial standard-sub-agent dispatch as the capacity fallback.",
+      "The first closeout repeated an installation-root assumption at each stage; the repair centralizes resolution and its installed-copy test executes each documented block."
+    ],
+    "smallest_later_improvement": "No remaining closure repair is identified; retain the stock-installed verbatim-command replay as the regression guard."
+  },
+  "residual_risks": [
+    "Anonymous/default/re-export surfaces and nested declarations remain out of scope.",
+    "The detector uses symbol names rather than semantic domain identity, so scout verification remains required.",
+    "Shared agent capacity can increase latency because the documented serial fallback may replace concurrent scout dispatch."
+  ],
+  "next_decision": {
+    "recommendation": "Accept B4 as complete through D1-D8 at implementation c0349ab and closure repair e7da0b1, keep the parser family-local, and let the serial integrator update shared routing/catalog claims.",
+    "rationale": "The committed implementation, native fixtures, copied/stock install tests, fresh non-context final report, and stock-installed verbatim-command replay prove useful TypeScript omnibus detection without a shared parser platform or hidden runtime dependency.",
+    "blockers": []
+  }
+}

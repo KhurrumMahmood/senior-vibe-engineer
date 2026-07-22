@@ -1,7 +1,7 @@
 ---
 name: find-implicit-state
-description: Detect stringly-typed state comparisons and tuple-inferred identity patterns. Runs an AST scan for bare string literals compared to `.status`/`.phase`/`.state`, model fields declared without a `TextChoices` enum, and `.filter(status=..., *_at__...).first()` identity-inference shapes; collapses hits by file, fans out scout sub-agents to bucket each candidate, and produces a report that hands off to `/extract-enum` or `/introduce-fk`. Detection-only — never edits production code.
-argument-hint: "--target <directory>"
+description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, and Java 17 state branches. Compiler-backed branches distinguish first-party bare state operations from typed authorities, vendor wire boundaries, tests/fixtures, unrelated fields, insufficient evidence, and unsafe reference equality. Detection-only — never edits production code.
+argument-hint: "--target <directory> [--language typescript|javascript|go|java]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -11,12 +11,17 @@ best_for: |
   literals; `.filter(status=..., *_at__...)` tuple-inferred identity.
   Targets the stringly-typed-state smell. Decided in: 0001
   (TextChoices for state).
+  In TypeScript, closed state receivers with repeated bare string
+  comparisons or assignments and a host-owned Compiler API.
 not_for: |
   Refactor execution — hands off to /extract-enum or /introduce-fk
   for the proposal, then /fix-workflow for execution. Lexical
   duplication on jscpd-only matches (use /find-duplication).
-language: python
-framework: django
+  Untyped/open-ended TypeScript strings, TypeScript ORM semantics, and a
+  generic TypeScript lint generator.
+language: any
+framework: any
+scans: [python, typescript, javascript, go, java]
 scout_model: cheap
 ---
 
@@ -49,13 +54,144 @@ don't.
 - Zero edits to production code — detection-only audit.
 Write toward these gates from Stage 0.
 
+## TypeScript closed-state branch
+
+Use this branch only for .ts / .tsx code whose first-party
+state/status/phase receiver resolves to a closed string-literal union or
+project-native enum. Its supported outcome is evidence for replacing repeated
+first-party bare literals with an exported as const runtime value object and a
+derived union type. It does not claim a TypeScript ORM, migration,
+tuple-identity, or general text-literal detector.
+
+The bounded syntax contract covers direct property comparisons, reversed
+comparisons, one-hop local `const` aliases initialized directly from the
+property, plain and `??=` assignments, and every property target in a chained
+assignment. Vendor attribution comes from an explicit semantic receiver type
+named `Vendor*Payload|Request|Response|Event|Message|Wire`; filenames and
+nearby text never establish a vendor boundary. Parentheses are transparent
+around state operands, direct alias initializers, literals, and chained
+assignment expressions. Computed properties, other assertion wrappers, and
+general dataflow remain out of scope. Invalid TypeScript exits 2.
+
+**Host prerequisites:** the target project owns a compatible typescript package
+and a readable tsconfig.json. The launcher resolves typescript from that
+project's package.json; it never uses a toolkit, global, or downloaded
+compiler. A missing package or tsconfig is a clear exit 2, not a lexical
+fallback.
+
+Run this branch instead of Python Stages 1–4:
+
+    REPORT_DIR="reports/implicit-state/scan-typescript-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$REPORT_DIR"
+    node .claude/skills/find-implicit-state/scripts/detect_typescript_state.mjs \
+      --target "$(pwd)" \
+      --project-root "$(pwd)" \
+      --tsconfig "$(pwd)/tsconfig.json" \
+      --output "$REPORT_DIR/findings.jsonl"
+
+Grade the run from the emitted JSONL and stderr line
+[detect_typescript_state]: it must contain first-party operations only for the
+migration candidate, while retaining classification records for typed
+authorities, vendor wire boundaries, tests/fixtures, unrelated status text,
+and open-ended strings. Hand that exact JSONL to the TypeScript branch of
+/extract-enum; do not run the Django collapse/scout/report stages on it.
+
+## Checked JavaScript closed-state branch
+
+Use this branch only with a host-local `typescript` Compiler API and an
+explicit `jsconfig.json` or `tsconfig.json` that enables both `allowJs` and
+`checkJs`. It accepts `.js`, `.jsx`, `.mjs`, and `.cjs`, but promotes an
+operation only when the receiver has a demonstrated finite JSDoc authority;
+untyped/open strings remain classification evidence, never a migration lead.
+The manifest records the config, diagnostics, unresolved modules, uncovered
+sources, compiler-parsed JSDoc, and TypeChecker inference. A missing tool or
+config is unsupported, malformed selected JS is syntax-error, and any
+unresolved/excluded source is partial. Do not use `npx`, a global compiler,
+or framework inference.
+
+<!-- installed-command:javascript-state:start -->
+```bash
+: "${TARGET:?Set TARGET to the checked-JavaScript directory to inspect}"
+JSCONFIG="${JSCONFIG:-jsconfig.json}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-implicit-state" \
+  ".agents/skills/find-implicit-state" \
+  ".claude/skills/find-implicit-state"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-implicit-state is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+node "${SKILL_ROOT}/scripts/detect_typescript_state.mjs" \
+  --target "${TARGET}" --project-root "$(pwd)" --tsconfig "${JSCONFIG}" \
+  --output reports/implicit-state/javascript.jsonl \
+  --manifest reports/implicit-state/javascript.manifest.json --language javascript
+```
+<!-- installed-command:javascript-state:end -->
+
+This is a standalone host-root command: it resolves the selected skill itself
+under either supported installation layout.
+
+## Go implicit-state review branch
+
+For a Go target, read and follow `knowledge/go-v1.md`. Load that file only for
+Go work. Its result is a review candidate—not compiler proof that the domain is
+closed—and only its `first_party_state_operation` records may proceed to
+`/extract-enum`.
+
+## Java 17 direct-String review branch
+
+Use this branch only for a JDK 17+ host with `java` and `javac` on `PATH`. It
+uses the bundled compiler-tree/type helper, not Maven, Gradle, JARs, a network
+download, or a shared Java platform. It promotes only a compiler-resolved,
+top-level direct `java.lang.String` field named `state`, `status`, or `phase`
+with at least three direct assignments / `String.equals` / `Objects.equals`
+operations and two distinct literals. That is review evidence, not proof that
+the domain is finite. Aliases, getters/setters, switches, dataflow, ORM
+converters, serialization behavior, nested owners, and Kotlin are out of
+scope.
+
+`field == "value"` or `!=` on that String field is an
+`unsafe_string_comparison` correctness finding. It never counts toward an enum
+candidate. Generated, test, vendor-path, semantic vendor-wire, unrelated, and
+low-evidence shapes remain explicit classifications.
+
+<!-- installed-command:java-state:start -->
+```bash
+: "${TARGET:?Set TARGET to the Java directory to inspect}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in ".agents/skills/on-demand/find-implicit-state" ".agents/skills/find-implicit-state" ".claude/skills/find-implicit-state"; do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"; break; fi
+done
+if [ -z "${SKILL_ROOT}" ]; then printf '%s\n' "find-implicit-state is not installed" >&2; exit 2; fi
+REPORT_DIR="reports/implicit-state/java-state-$(date +%Y%m%d-%H%M%S)"
+python3 "${SKILL_ROOT}/scripts/detect_java_state.py" --target "${TARGET}" --project-root "$(pwd)" --output "${REPORT_DIR}/hits.jsonl" --findings "${REPORT_DIR}/findings.json" --report "${REPORT_DIR}/report.md" --scan-id "$(basename "${REPORT_DIR}")" || exit $?
+ln -sfn "$(basename "${REPORT_DIR}")" reports/implicit-state/latest
+```
+<!-- installed-command:java-state:end -->
+
+Hand exactly one `status: accepted`, `bucket: extract_enum_candidate` finding
+from the complete `findings.json` to `/extract-enum`; do not give the next
+skill the source tree to re-detect. The final `report.md` and `findings.json`
+are the review artifacts. `findings.json` fingerprints every selected Java
+source so the proposal consumer can reject stale field or caller evidence.
+Syntax or missing/old-JDK failures exit 2 without publishing them; unresolved
+or symlink evidence is `partial`, never clean.
+
 ## Scope
 
 - **Target path:** the required `--target` argument. Must be a
   directory.
 - **Project root:** this worktree's root.
-- **Python:** `.venv/bin/python` (the detectors are stdlib-only, but
-  this repo runs them through the venv for consistent tooling).
+- **Python:** `.venv/bin/python` in this repository; the bundled detector,
+  collapse, and reporter are stdlib-only and run with host `python3` after a
+  stock installation.
 - **Project-specific defaults** (known enums, tuple-identity hot
   spots, noqa conventions, detection gaps): in
   `knowledge/`.

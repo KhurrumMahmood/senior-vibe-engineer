@@ -1,4 +1,3 @@
-# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 
 skill: find-async-lifecycle-drift
@@ -6,9 +5,9 @@ job: suspect
 problem_class: "async-lifecycle drift detection (product-health SUSPECT)"
 intent: >
   Advisory SUSPECT scan for polling, job, cancel/resume, and export lifecycle drift on the
-  host's configured product-workflow targets or explicit paths: unguarded polling, missing
-  terminal-status handling, stale response hazards, duplicate job starts, and missing
-  retry/cancel/resume controls. A baseline sensor, explicitly not a commit-time blocker.
+  `/sites` route surface: unguarded polling, missing terminal-status handling, stale fetch
+  response hazards, duplicate job starts, and missing retry/cancel controls. A baseline
+  before/after sensor, explicitly not a commit-time blocker in v1.
 solves: >
   AI-grown async UI/backend flows that forget cleanup — progress polling that never stops
   on terminal status, no stale-response guard, no duplicate-job protection, missing

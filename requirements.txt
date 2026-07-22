@@ -10,11 +10,6 @@
 # module instead of hand-rolled YAML parsers — see ADR 0003.
 PyYAML==6.0.3
 
-# Portable syntax-fact substrate selected by ADR 0039. Wheels are pinned so
-# parser availability and grammar behavior are deterministic across installs.
-tree-sitter==0.26.0
-tree-sitter-language-pack==1.12.5
-
 # Dev tooling (CI + local pre-commit). ruff stays in lockstep with the
 # hook version pinned in .pre-commit-config.yaml.
 ruff==0.6.9

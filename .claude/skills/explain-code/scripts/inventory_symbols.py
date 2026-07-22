@@ -1,248 +1,187 @@
 #!/usr/bin/env python3
-"""Enumerate public symbols for /explain-code Stage 1.
+"""Enumerate /explain-code targets without a repository runtime dependency.
 
-Walks the AST of a target file (or every `*.py` under a target directory),
-emits one entry per public symbol, and ranks them by
-`(no_docstring, branch_count, LOC > 50)` descending. The `/explain-code`
-orchestrator consumes the output to dispatch per-symbol annotation scouts.
+The Python path is the frozen reference oracle: it preserves the existing AST
+public-surface and ranking rules. TypeScript v1 is intentionally narrower. It
+collects *named, direct, top-level* ``export`` declarations from ``.ts`` and
+``.tsx`` files using a lexical scanner. It does not resolve imports, aliases,
+barrels, or default expressions; those exports are emitted in ``unexplained``
+so an explanation cannot quietly claim coverage it did not earn.
 
-Usage:
-
-    .venv/bin/python .claude/skills/explain-code/scripts/inventory_symbols.py \\
-      --target core/services/agentic_discovery_service.py \\
-      --output reports/explanations/services-agentic-discovery-service/targets.json \\
-      --max 15
-
-Public-symbol rule (matches `/map-subsystem` Stage 2):
-
-- Top-level function / class / assignment with a non-leading-underscore name.
-- Public methods on a class (non-leading-underscore names).
-- If the module defines a module-level `__all__`, only names in `__all__`
-  count as public.
-
-Branch count is an approximation: count of AST nodes of type `If`, `For`,
-`While`, `Try`, `With`, `BoolOp`, and `IfExp` within the symbol body.
-Good-enough proxy for cyclomatic complexity; we don't need exact.
-
-Exit status:
-
-    0  targets.json written (≥ 1 symbol)
-    1  target path invalid or no public symbols found
-    2  invocation error
-
-Output schema:
-
-    {
-      "target": "core/services/agentic_discovery_service.py",
-      "files": ["core/services/agentic_discovery_service.py"],
-      "symbol_count_total": 34,
-      "public_symbol_count": 22,
-      "max": 15,
-      "targets": [
-        {
-          "symbol_key": "agentic_discovery_service__discover",
-          "file": "core/services/agentic_discovery_service.py",
-          "symbol": "AgenticDiscoveryService.discover",
-          "kind": "method",
-          "lineno": 156,
-          "loc": 78,
-          "branch_count": 14,
-          "has_docstring": true,
-          "rank_score": 14
-        },
-        ...
-      ],
-      "overflow": [
-        {"symbol_key": "...", "file": "...", "symbol": "...", "reason": "budget-cap"}
-      ]
-    }
-
-Stdlib-only; use `.venv/bin/python` in this repo.
+The result is a stable JSON artifact consumed by the /explain-code scouts and
+the family-local renderer. This script is stdlib-only so a copied skill can run
+with isolated host Python tools.
 """
 
 from __future__ import annotations
 
 import argparse
 import ast
+import hashlib
 import json
+import os
+import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
-# Route Python parsing through the shared per-language adapter registry
-# (ADR 0032). This skill's ranking is Python-AST-specific (branch counts,
-# docstrings, `__all__`, module-level constants, `__init__` handling) —
-# detail the language-neutral Symbol record cannot carry — so it stays a
-# Python-only consumer: it asks the registry for the file's adapter and
-# only proceeds when that adapter exposes the raw `ast.Module`
-# (CAP_PYTHON_AST), keeping the existing AST walk. Wire the repo
-# `scripts/` dir onto sys.path so the package imports when this skill
-# script runs standalone.
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
-_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
-if _SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPTS_DIR)
 
-from _lib.lang_adapter import CAP_PYTHON_AST, get_adapter  # noqa: E402
-
-
-BRANCH_NODE_TYPES: tuple[type[ast.AST], ...] = (
-    ast.If,
-    ast.For,
-    ast.AsyncFor,
-    ast.While,
-    ast.Try,
-    ast.With,
-    ast.AsyncWith,
-    ast.BoolOp,
-    ast.IfExp,
+PYTHON_SUFFIXES = frozenset({".py"})
+TYPESCRIPT_SUFFIXES = frozenset({".ts", ".tsx"})
+JAVASCRIPT_SUFFIXES = frozenset({".js", ".jsx", ".mjs", ".cjs"})
+GO_SUFFIXES = frozenset({".go"})
+JAVA_SUFFIXES = frozenset({".java"})
+SOURCE_SUFFIXES = (
+    PYTHON_SUFFIXES | TYPESCRIPT_SUFFIXES | JAVASCRIPT_SUFFIXES | GO_SUFFIXES | JAVA_SUFFIXES
 )
+MINIMUM_GO_VERSION = (1, 22)
+MINIMUM_JDK_VERSION = (17, 0, 0)
+IGNORED_DIRECTORY_NAMES = frozenset(
+    {
+        "__pycache__",
+        "__tests__",
+        ".next",
+        "build",
+        "coverage",
+        "dist",
+        "generated",
+        "migrations",
+        "node_modules",
+        "testdata",
+        "test",
+        "tests",
+        "fixture",
+        "fixtures",
+        "third_party",
+        "third-party",
+        "deps",
+        "dependencies",
+        "vendor",
+    }
+)
+TEST_FILE_RE = re.compile(
+    r"(?:^test_|^tests_|^spec_|_test\.|\.test\.|\.spec\.)", re.IGNORECASE
+)
+TS_IDENTIFIER = r"[$A-Za-z_][\w$]*"
+TS_DIRECT_EXPORTS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "function",
+        re.compile(
+            rf"^\s*export\s+(?:default\s+)?(?:declare\s+)?(?:async\s+)?function\s*\*?\s+(?P<name>{TS_IDENTIFIER})\b"
+        ),
+    ),
+    (
+        "class",
+        re.compile(
+            rf"^\s*export\s+(?:default\s+)?(?:declare\s+)?(?:abstract\s+)?class\s+(?P<name>{TS_IDENTIFIER})\b"
+        ),
+    ),
+    (
+        "enum",
+        re.compile(
+            rf"^\s*export\s+(?:declare\s+)?(?:const\s+)?enum\s+(?P<name>{TS_IDENTIFIER})\b"
+        ),
+    ),
+    (
+        "interface",
+        re.compile(
+            rf"^\s*export\s+(?:declare\s+)?interface\s+(?P<name>{TS_IDENTIFIER})\b"
+        ),
+    ),
+    (
+        "type",
+        re.compile(rf"^\s*export\s+type\s+(?P<name>{TS_IDENTIFIER})\b"),
+    ),
+    (
+        "namespace",
+        re.compile(
+            rf"^\s*export\s+(?:declare\s+)?(?:namespace|module)\s+(?P<name>{TS_IDENTIFIER})\b"
+        ),
+    ),
+)
+TS_VARIABLE_EXPORT_RE = re.compile(
+    r"^\s*export\s+(?:declare\s+)?(?:const|let|var)\s+(?P<bindings>.*)",
+    re.DOTALL,
+)
+TS_UNRESOLVED_EXPORT_RE = re.compile(
+    r"^\s*export\s+(?:(?:type\s+)?(?:\{|\*)|default\b|=\s*)"
+)
+TS_BRANCH_RE = re.compile(r"\b(?:if|for|while|catch|case)\b|&&|\|\||\?")
+JS_DIRECT_EXPORTS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "function",
+        re.compile(
+            rf"^\s*export\s+(?:async\s+)?function\s*\*?\s+(?P<name>{TS_IDENTIFIER})\b"
+        ),
+    ),
+    (
+        "class",
+        re.compile(rf"^\s*export\s+class\s+(?P<name>{TS_IDENTIFIER})\b"),
+    ),
+)
+JS_VARIABLE_EXPORT_RE = re.compile(
+    r"^\s*export\s+(?:const|let|var)\s+(?P<bindings>.*)", re.DOTALL
+)
+JS_UNRESOLVED_EXPORT_RE = re.compile(
+    r"^\s*export\s+(?:(?:\{|\*)|default\b|=\s*)"
+)
+JS_COMMONJS_ASSIGNMENT_RE = re.compile(
+    rf"^\s*(?:module\.)?exports\.(?P<name>{TS_IDENTIFIER})\s*="
+)
+JS_COMMONJS_UNRESOLVED_RE = re.compile(r"^\s*module\.exports\s*=")
+JS_BRANCH_RE = TS_BRANCH_RE
+GO_GENERATED_MARKER_RE = re.compile(r"^// Code generated .* DO NOT EDIT\.$")
+JAVA_GENERATED_MARKER_RE = re.compile(r"^// (?:Code )?[Gg]enerated .* DO NOT EDIT\.$")
+
+
+class GoInventoryError(ValueError):
+    def __init__(self, status: str, message: str, *, exit_code: int = 2) -> None:
+        super().__init__(message)
+        self.status = status
+        self.exit_code = exit_code
+
+
+class JavaInventoryError(ValueError):
+    def __init__(self, status: str, message: str, *, exit_code: int = 2) -> None:
+        super().__init__(message)
+        self.status = status
+        self.exit_code = exit_code
 
 
 def _is_public(name: str, dunder_all: set[str] | None) -> bool:
-    """A name is public iff it doesn't start with `_` AND (if `__all__`
-    is defined) appears in `__all__`."""
-    if name.startswith("_"):
-        return False
-    if dunder_all is not None and name not in dunder_all:
-        return False
-    return True
+    """A Python name is public iff it is non-private and allowed by __all__."""
+    return not name.startswith("_") and (dunder_all is None or name in dunder_all)
 
 
 def _loc(node: ast.AST) -> int:
-    """Rough LOC for an AST node — last line minus start line plus one.
-    Blank lines and comments count; we don't want clever."""
     end = getattr(node, "end_lineno", None)
-    if end is None:
-        return 1
-    return max(1, end - node.lineno + 1)
+    return max(1, end - node.lineno + 1) if end is not None else 1
 
 
-def _branch_count(node: ast.AST) -> int:
-    """Count branch-like AST nodes in the subtree rooted at `node`.
-    Does NOT subtract `node` itself if it happens to be a branch — the
-    caller is a function/class body, not a branch."""
-    return sum(1 for child in ast.walk(node) if isinstance(child, BRANCH_NODE_TYPES))
+def _python_branch_count(node: ast.AST) -> int:
+    branch_nodes: tuple[type[ast.AST], ...] = (
+        ast.If,
+        ast.For,
+        ast.AsyncFor,
+        ast.While,
+        ast.Try,
+        ast.With,
+        ast.AsyncWith,
+        ast.BoolOp,
+        ast.IfExp,
+    )
+    return sum(1 for child in ast.walk(node) if isinstance(child, branch_nodes))
 
 
 def _symbol_key(file_rel: Path, symbol: str) -> str:
-    """Stable key: `<basename>__<bare-name>`. Uses the module stem (not
-    the full relative path) so keys stay short; collisions get the full
-    qualified name appended by the caller."""
-    base = file_rel.stem
-    tail = symbol.rsplit(".", 1)[-1]
-    return f"{base}__{tail}"
+    return f"{file_rel.stem}__{symbol.rsplit('.', 1)[-1]}"
 
 
-def _dunder_all(tree: ast.Module) -> set[str] | None:
-    """Return the set of names in a module-level `__all__`, or None if
-    no such assignment exists. Only handles `__all__ = [...]` or
-    `__all__ = (...)`. Dynamic `__all__` = ignored (None)."""
-    for node in tree.body:
-        if not isinstance(node, ast.Assign):
-            continue
-        for target in node.targets:
-            if isinstance(target, ast.Name) and target.id == "__all__":
-                if isinstance(node.value, (ast.List, ast.Tuple)):
-                    names: set[str] = set()
-                    for elt in node.value.elts:
-                        if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
-                            names.add(elt.value)
-                    return names
-    return None
-
-
-def _inventory_file(path: Path, repo_root: Path) -> tuple[list[dict[str, Any]], int]:
-    """Return (public_symbols, total_symbol_count) for one Python file.
-
-    `total_symbol_count` counts every top-level declaration (private + public)
-    for the summary stats. Public methods on public classes also count.
-    """
-    # Route through the shared adapter registry; this analysis needs the
-    # raw Python AST, so skip any file whose adapter can't supply it
-    # (non-Python suffix, or no adapter) rather than crash.
-    adapter = get_adapter(path)
-    if adapter is None or CAP_PYTHON_AST not in adapter.capabilities:
-        return [], 0
-
-    try:
-        source = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError) as exc:
-        print(f"warn: cannot read {path}: {exc}", file=sys.stderr)
-        return [], 0
-
-    tree = adapter.parse(source)
-    if tree is None:
-        print(f"warn: cannot parse {path}", file=sys.stderr)
-        return [], 0
-
-    dunder_all = _dunder_all(tree)
-    file_rel = path.relative_to(repo_root) if path.is_absolute() else path
-    public: list[dict[str, Any]] = []
-    total = 0
-
-    for node in tree.body:
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            total += 1
-            name = node.name
-            if not _is_public(name, dunder_all):
-                continue
-            public.append(
-                _build_entry(
-                    file_rel=file_rel,
-                    symbol=name,
-                    kind="function",
-                    node=node,
-                )
-            )
-        elif isinstance(node, ast.ClassDef):
-            total += 1
-            class_name = node.name
-            class_public = _is_public(class_name, dunder_all)
-            if class_public:
-                public.append(
-                    _build_entry(
-                        file_rel=file_rel,
-                        symbol=class_name,
-                        kind="class",
-                        node=node,
-                    )
-                )
-            # Methods on a public class — enumerate regardless of class
-            # visibility? Only enumerate on public classes; private
-            # classes' methods aren't part of the public surface.
-            if class_public:
-                for sub in node.body:
-                    if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                        method_name = sub.name
-                        # Special-case: `__init__` is a public constructor,
-                        # everything else starting with `_` is private.
-                        if method_name.startswith("_") and method_name != "__init__":
-                            continue
-                        public.append(
-                            _build_entry(
-                                file_rel=file_rel,
-                                symbol=f"{class_name}.{method_name}",
-                                kind="method",
-                                node=sub,
-                            )
-                        )
-        elif isinstance(node, ast.Assign):
-            total += 1
-            # Module-level public constants — rare target for /explain-code
-            # but surface them for completeness.
-            for target in node.targets:
-                if isinstance(target, ast.Name) and _is_public(target.id, dunder_all):
-                    public.append(
-                        _build_entry(
-                            file_rel=file_rel,
-                            symbol=target.id,
-                            kind="module-var",
-                            node=node,
-                        )
-                    )
-
-    return public, total
+def _rank_score(*, loc: int, branches: int, has_doc: bool, kind: str) -> int:
+    score = branches + (0 if has_doc else 10) + (5 if loc > 50 else 0)
+    return min(score, 20) if kind == "class" else score
 
 
 def _build_entry(
@@ -250,158 +189,1377 @@ def _build_entry(
     file_rel: Path,
     symbol: str,
     kind: str,
-    node: ast.AST,
+    lineno: int,
+    loc: int,
+    branch_count: int,
+    has_docstring: bool,
 ) -> dict[str, Any]:
-    loc = _loc(node)
-    branches = _branch_count(node)
-    has_doc = False
-    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-        has_doc = bool(ast.get_docstring(node))
     return {
         "symbol_key": _symbol_key(file_rel, symbol),
         "file": str(file_rel),
         "symbol": symbol,
         "kind": kind,
-        "lineno": node.lineno,
+        "lineno": lineno,
         "loc": loc,
-        "branch_count": branches,
-        "has_docstring": has_doc,
+        "branch_count": branch_count,
+        "has_docstring": has_docstring,
         "rank_score": _rank_score(
-            loc=loc, branches=branches, has_doc=has_doc, kind=kind
+            loc=loc,
+            branches=branch_count,
+            has_doc=has_docstring,
+            kind=kind,
         ),
     }
 
 
-def _rank_score(*, loc: int, branches: int, has_doc: bool, kind: str = "function") -> int:
-    """Higher = more worth annotating. Rule:
-       - missing docstring: +10
-       - branch count: direct contribution
-       - LOC > 50: +5
-       - classes are capped at the raw score of their heaviest method
-         when that method is also in the list (handled post-pass in
-         `_demote_shadowed_classes`) — here we just apply a flat cap
-         so very large class bodies don't dominate.
-    Deliberately coarse — ranking is a hint, not a verdict."""
-    score = branches
-    if not has_doc:
-        score += 10
-    if loc > 50:
-        score += 5
-    # Classes frequently inherit their branch count from every method;
-    # cap them so an omnibus class doesn't push every method off the
-    # annotation budget. Methods and functions are the meaningful unit.
-    if kind == "class":
-        score = min(score, 20)
-    return score
+def _dunder_all(tree: ast.Module) -> set[str] | None:
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(isinstance(target, ast.Name) and target.id == "__all__" for target in node.targets):
+            continue
+        if not isinstance(node.value, (ast.List, ast.Tuple)):
+            return None
+        names = {
+            element.value
+            for element in node.value.elts
+            if isinstance(element, ast.Constant) and isinstance(element.value, str)
+        }
+        return names
+    return None
 
 
-def _resolve_collisions(entries: list[dict[str, Any]]) -> None:
-    """If two entries share the same `symbol_key`, append the full symbol
-    to disambiguate. Mutates in place."""
-    counts: dict[str, int] = {}
-    for e in entries:
-        counts[e["symbol_key"]] = counts.get(e["symbol_key"], 0) + 1
-    for e in entries:
-        if counts[e["symbol_key"]] > 1:
-            # Append the qualified symbol (dot-replaced) so the key stays
-            # filesystem-safe.
-            suffix = e["symbol"].replace(".", "_")
-            e["symbol_key"] = f"{e['symbol_key']}__{suffix}"
+def _read_source(path: Path) -> str | None:
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        print(f"warn: cannot read {path}: {exc}", file=sys.stderr)
+        return None
+
+
+def _inventory_python_file(path: Path, file_rel: Path) -> tuple[list[dict[str, Any]], int]:
+    source = _read_source(path)
+    if source is None:
+        return [], 0
+    try:
+        tree = ast.parse(source, filename=str(path))
+    except SyntaxError as exc:
+        print(f"warn: cannot parse {path}: {exc.msg}", file=sys.stderr)
+        return [], 0
+
+    dunder_all = _dunder_all(tree)
+    public: list[dict[str, Any]] = []
+    total = 0
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            total += 1
+            if _is_public(node.name, dunder_all):
+                public.append(
+                    _build_entry(
+                        file_rel=file_rel,
+                        symbol=node.name,
+                        kind="function",
+                        lineno=node.lineno,
+                        loc=_loc(node),
+                        branch_count=_python_branch_count(node),
+                        has_docstring=bool(ast.get_docstring(node)),
+                    )
+                )
+        elif isinstance(node, ast.ClassDef):
+            total += 1
+            class_public = _is_public(node.name, dunder_all)
+            if class_public:
+                public.append(
+                    _build_entry(
+                        file_rel=file_rel,
+                        symbol=node.name,
+                        kind="class",
+                        lineno=node.lineno,
+                        loc=_loc(node),
+                        branch_count=_python_branch_count(node),
+                        has_docstring=bool(ast.get_docstring(node)),
+                    )
+                )
+                for method in node.body:
+                    if not isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        continue
+                    if method.name.startswith("_") and method.name != "__init__":
+                        continue
+                    public.append(
+                        _build_entry(
+                            file_rel=file_rel,
+                            symbol=f"{node.name}.{method.name}",
+                            kind="method",
+                            lineno=method.lineno,
+                            loc=_loc(method),
+                            branch_count=_python_branch_count(method),
+                            has_docstring=bool(ast.get_docstring(method)),
+                        )
+                    )
+        elif isinstance(node, ast.Assign):
+            total += 1
+            for target in node.targets:
+                if isinstance(target, ast.Name) and _is_public(target.id, dunder_all):
+                    public.append(
+                        _build_entry(
+                            file_rel=file_rel,
+                            symbol=target.id,
+                            kind="module-var",
+                            lineno=node.lineno,
+                            loc=_loc(node),
+                            branch_count=_python_branch_count(node),
+                            has_docstring=False,
+                        )
+                    )
+    return public, total
+
+
+def _mask_typescript_noncode(source: str) -> str:
+    """Replace comments, strings, and regex literals while retaining lines.
+
+    This is deliberately a collector, not a TypeScript parser. Masking is only
+    enough to prevent words such as ``export`` in non-code from becoming public
+    symbols, and to keep brace counting useful for top-level declarations.
+    """
+    out: list[str] = []
+    index = 0
+    state = "code"
+    while index < len(source):
+        char = source[index]
+        following = source[index + 1] if index + 1 < len(source) else ""
+        if state == "code":
+            if char == "/" and following == "/":
+                out.extend((" ", " "))
+                index += 2
+                state = "line-comment"
+                continue
+            if char == "/" and following == "*":
+                out.extend((" ", " "))
+                index += 2
+                state = "block-comment"
+                continue
+            if char in {"'", '"', "`"}:
+                out.append(" ")
+                index += 1
+                state = {"'": "single", '"': "double", "`": "template"}[char]
+                continue
+            if char == "/" and _looks_like_regex_start(source, index):
+                out.append(" ")
+                index += 1
+                state = "regex"
+                continue
+            out.append(char)
+            index += 1
+            continue
+        if state == "line-comment":
+            out.append("\n" if char == "\n" else " ")
+            index += 1
+            if char == "\n":
+                state = "code"
+            continue
+        if state == "block-comment":
+            if char == "*" and following == "/":
+                out.extend((" ", " "))
+                index += 2
+                state = "code"
+            else:
+                out.append("\n" if char == "\n" else " ")
+                index += 1
+            continue
+        if state in {"regex", "regex-class"}:
+            if char == "\\":
+                out.append(" ")
+                index += 1
+                if index < len(source):
+                    escaped = source[index]
+                    out.append("\n" if escaped == "\n" else " ")
+                    index += 1
+                continue
+            if char == "\n":
+                out.append("\n")
+                index += 1
+                state = "code"
+                continue
+            out.append(" ")
+            index += 1
+            if state == "regex" and char == "[":
+                state = "regex-class"
+            elif state == "regex-class" and char == "]":
+                state = "regex"
+            elif state == "regex" and char == "/":
+                state = "code"
+            continue
+        quote = {"single": "'", "double": '"', "template": "`"}[state]
+        if char == "\\":
+            out.append(" ")
+            index += 1
+            if index < len(source):
+                escaped = source[index]
+                out.append("\n" if escaped == "\n" else " ")
+                index += 1
+            continue
+        out.append("\n" if char == "\n" else " ")
+        index += 1
+        if char == quote:
+            state = "code"
+    if state not in {"code", "line-comment"}:
+        label = {
+            "block-comment": "block comment",
+            "single": "single-quoted string",
+            "double": "double-quoted string",
+            "template": "template literal",
+            "regex": "regex literal",
+            "regex-class": "regex character class",
+        }.get(state, state)
+        raise ValueError(f"unterminated {label}")
+    masked = "".join(out)
+    _validate_typescript_delimiters(masked)
+    return masked
+
+
+def _validate_typescript_delimiters(masked: str) -> None:
+    """Block truncated/mismatched lexical shapes without claiming a parser."""
+    expected_close = {"(": ")", "[": "]", "{": "}"}
+    opening_for = {value: key for key, value in expected_close.items()}
+    stack: list[tuple[str, int]] = []
+    line = 1
+    for char in masked:
+        if char == "\n":
+            line += 1
+        elif char in expected_close:
+            stack.append((char, line))
+        elif char in opening_for:
+            if not stack or stack[-1][0] != opening_for[char]:
+                raise ValueError(f"unexpected {char!r} on line {line}")
+            stack.pop()
+    if stack:
+        opening, opening_line = stack[-1]
+        raise ValueError(
+            f"unclosed {opening!r} from line {opening_line}; expected {expected_close[opening]!r}"
+        )
+
+
+def _looks_like_regex_start(source: str, slash_index: int) -> bool:
+    """Recognize expression-position regex starts without parsing TypeScript.
+
+    The accepted v1 only needs enough lexical awareness to avoid counting
+    braces inside ordinary regex literals. Division remains code when the
+    preceding token can end an expression.
+    """
+    before = source[:slash_index].rstrip()
+    if not before:
+        return True
+    if before.endswith(("=", "(", "[", "{", ",", ":", ";", "!", "?", "=>", "&&", "||")):
+        return True
+    word_match = re.search(r"([A-Za-z_$][\w$]*)$", before)
+    return bool(
+        word_match
+        and word_match.group(1)
+        in {"case", "delete", "in", "instanceof", "new", "return", "throw", "typeof", "void", "yield"}
+    )
+
+
+def _top_level_line_indexes(masked_lines: list[str]) -> set[int]:
+    depth = 0
+    top_level: set[int] = set()
+    for index, line in enumerate(masked_lines):
+        if depth == 0:
+            top_level.add(index)
+        depth += line.count("{") - line.count("}")
+        depth = max(depth, 0)
+    return top_level
+
+
+def _typescript_has_docstring(source_lines: list[str], declaration_line: int) -> bool:
+    index = declaration_line - 1
+    while index >= 0 and not source_lines[index].strip():
+        index -= 1
+    if index < 0 or "*/" not in source_lines[index]:
+        return False
+    while index >= 0:
+        if "/**" in source_lines[index]:
+            return True
+        if "/*" in source_lines[index]:
+            return False
+        index -= 1
+    return False
+
+
+def _typescript_declaration_end(masked_lines: list[str], start: int, kind: str) -> int:
+    """Return a conservative, line-based lexical span end for ranking only."""
+    block_kinds = {"class", "enum", "function", "interface", "namespace"}
+    depth = 0
+    opened = False
+    for index in range(start, len(masked_lines)):
+        line = masked_lines[index]
+        if kind in block_kinds:
+            for char in line:
+                if char == "{":
+                    depth += 1
+                    opened = True
+                elif char == "}" and opened:
+                    depth -= 1
+            if opened and depth <= 0:
+                return index
+        elif ";" in line:
+            return index
+        elif index > start and not line.strip():
+            return index - 1
+    return start if not opened and kind in block_kinds else len(masked_lines) - 1
+
+
+def _typescript_direct_export(line: str) -> tuple[str, str] | None:
+    for kind, pattern in TS_DIRECT_EXPORTS:
+        match = pattern.match(line)
+        if match:
+            return kind, match.group("name")
+    return None
+
+
+def _typescript_statement_end(masked_lines: list[str], start: int) -> int:
+    """Find the first top-level semicolon for one lexical declaration."""
+    round_depth = 0
+    square_depth = 0
+    brace_depth = 0
+    for index in range(start, len(masked_lines)):
+        for char in masked_lines[index]:
+            if char == "(":
+                round_depth += 1
+            elif char == ")":
+                round_depth = max(0, round_depth - 1)
+            elif char == "[":
+                square_depth += 1
+            elif char == "]":
+                square_depth = max(0, square_depth - 1)
+            elif char == "{":
+                brace_depth += 1
+            elif char == "}":
+                brace_depth = max(0, brace_depth - 1)
+            elif char == ";" and round_depth == square_depth == brace_depth == 0:
+                return index
+    return start
+
+
+def _split_top_level_commas(text: str) -> list[str]:
+    parts: list[str] = []
+    start = 0
+    round_depth = 0
+    square_depth = 0
+    brace_depth = 0
+    for index, char in enumerate(text):
+        if char == "(":
+            round_depth += 1
+        elif char == ")":
+            round_depth = max(0, round_depth - 1)
+        elif char == "[":
+            square_depth += 1
+        elif char == "]":
+            square_depth = max(0, square_depth - 1)
+        elif char == "{":
+            brace_depth += 1
+        elif char == "}":
+            brace_depth = max(0, brace_depth - 1)
+        elif char == "," and round_depth == square_depth == brace_depth == 0:
+            parts.append(text[start:index])
+            start = index + 1
+    parts.append(text[start:])
+    return parts
+
+
+def _typescript_variable_exports(statement: str) -> tuple[list[str], bool]:
+    """Return simple identifier bindings and whether any binding was unknown."""
+    match = TS_VARIABLE_EXPORT_RE.match(statement)
+    if not match:
+        return [], False
+    names: list[str] = []
+    unknown = False
+    for binding in _split_top_level_commas(match.group("bindings").rstrip(";")):
+        name_match = re.match(rf"\s*(?P<name>{TS_IDENTIFIER})\b", binding)
+        if name_match:
+            names.append(name_match.group("name"))
+        elif binding.strip():
+            unknown = True
+    return names, unknown
+
+
+def _typescript_export_statement(source_lines: list[str], start: int) -> str:
+    pieces: list[str] = []
+    for line in source_lines[start:]:
+        pieces.append(line.strip())
+        if ";" in line:
+            break
+    return " ".join(pieces).rstrip(";").strip()
+
+
+def _inventory_typescript_file(
+    path: Path, file_rel: Path
+) -> tuple[list[dict[str, Any]], int, list[dict[str, Any]], bool]:
+    source = _read_source(path)
+    if source is None:
+        return [], 0, [], False
+    source_lines = source.splitlines()
+    try:
+        masked_lines = _mask_typescript_noncode(source).splitlines()
+    except ValueError as exc:
+        print(f"error: {file_rel}: lexical syntax check failed: {exc}", file=sys.stderr)
+        return [], 0, [], False
+    public: list[dict[str, Any]] = []
+    unexplained: list[dict[str, Any]] = []
+    total = 0
+    for index in sorted(_top_level_line_indexes(masked_lines)):
+        masked_line = masked_lines[index]
+        variable_export = re.match(
+            r"^\s*export\s+(?:declare\s+)?(?:const|let|var)\b", masked_line
+        )
+        const_enum = re.match(
+            r"^\s*export\s+(?:declare\s+)?const\s+enum\b", masked_line
+        )
+        if variable_export and not const_enum:
+            end = _typescript_statement_end(masked_lines, index)
+            statement = "\n".join(masked_lines[index : end + 1])
+            names, unknown_binding = _typescript_variable_exports(statement)
+            segment = statement
+            for name in names:
+                public.append(
+                    _build_entry(
+                        file_rel=file_rel,
+                        symbol=name,
+                        kind="module-var",
+                        lineno=index + 1,
+                        loc=max(1, end - index + 1),
+                        branch_count=len(TS_BRANCH_RE.findall(segment)),
+                        has_docstring=_typescript_has_docstring(source_lines, index),
+                    )
+                )
+            total += len(names) + (1 if unknown_binding else 0)
+            if unknown_binding:
+                unexplained.append(
+                    {
+                        "file": str(file_rel),
+                        "symbol": _typescript_export_statement(source_lines, index),
+                        "kind": "unresolved-export-binding",
+                        "lineno": index + 1,
+                        "reason": "TypeScript v1 cannot enumerate this exported binding pattern lexically.",
+                    }
+                )
+            continue
+        direct = _typescript_direct_export(masked_line)
+        if direct is not None:
+            kind, name = direct
+            total += 1
+            end = _typescript_declaration_end(masked_lines, index, kind)
+            segment = "\n".join(masked_lines[index : end + 1])
+            public.append(
+                _build_entry(
+                    file_rel=file_rel,
+                    symbol=name,
+                    kind=kind,
+                    lineno=index + 1,
+                    loc=max(1, end - index + 1),
+                    branch_count=len(TS_BRANCH_RE.findall(segment)),
+                    has_docstring=_typescript_has_docstring(source_lines, index),
+                )
+            )
+            continue
+        if TS_UNRESOLVED_EXPORT_RE.match(masked_line):
+            total += 1
+            statement = _typescript_export_statement(source_lines, index)
+            unexplained.append(
+                {
+                    "file": str(file_rel),
+                    "symbol": statement,
+                    "kind": "unresolved-export",
+                    "lineno": index + 1,
+                    "reason": "TypeScript v1 does not resolve export aliases or re-exports.",
+                }
+            )
+            continue
+        if re.match(
+            rf"^\s*(?:declare\s+)?(?:async\s+)?function\s+{TS_IDENTIFIER}\b|^\s*(?:abstract\s+)?class\s+{TS_IDENTIFIER}\b|^\s*(?:const|let|var)\s+{TS_IDENTIFIER}\b",
+            masked_line,
+        ):
+            total += 1
+    return public, total, unexplained, True
+
+
+def _mask_javascript_noncode(source: str) -> str:
+    """Mask JavaScript comments, literals, and regexes without changing lines.
+
+    This intentionally stays a JavaScript-local lexical guard. It is not a
+    JavaScript parser and only establishes enough syntax integrity for direct
+    export collection to fail rather than silently omit malformed input.
+    """
+    out: list[str] = []
+    index = 0
+    state = "code"
+    while index < len(source):
+        char = source[index]
+        following = source[index + 1] if index + 1 < len(source) else ""
+        if state == "code":
+            if char == "/" and following == "/":
+                out.extend((" ", " "))
+                index += 2
+                state = "line-comment"
+                continue
+            if char == "/" and following == "*":
+                out.extend((" ", " "))
+                index += 2
+                state = "block-comment"
+                continue
+            if char in {"'", '"', "`"}:
+                out.append(" ")
+                index += 1
+                state = {"'": "single", '"': "double", "`": "template"}[char]
+                continue
+            if char == "/" and _javascript_looks_like_regex_start(source, index):
+                out.append(" ")
+                index += 1
+                state = "regex"
+                continue
+            out.append(char)
+            index += 1
+            continue
+        if state == "line-comment":
+            out.append("\n" if char == "\n" else " ")
+            index += 1
+            if char == "\n":
+                state = "code"
+            continue
+        if state == "block-comment":
+            if char == "*" and following == "/":
+                out.extend((" ", " "))
+                index += 2
+                state = "code"
+            else:
+                out.append("\n" if char == "\n" else " ")
+                index += 1
+            continue
+        if state in {"regex", "regex-class"}:
+            if char == "\\":
+                out.append(" ")
+                index += 1
+                if index < len(source):
+                    escaped = source[index]
+                    out.append("\n" if escaped == "\n" else " ")
+                    index += 1
+                continue
+            if char == "\n":
+                out.append("\n")
+                index += 1
+                state = "code"
+                continue
+            out.append(" ")
+            index += 1
+            if state == "regex" and char == "[":
+                state = "regex-class"
+            elif state == "regex-class" and char == "]":
+                state = "regex"
+            elif state == "regex" and char == "/":
+                state = "code"
+            continue
+        quote = {"single": "'", "double": '"', "template": "`"}[state]
+        if char == "\\":
+            out.append(" ")
+            index += 1
+            if index < len(source):
+                escaped = source[index]
+                out.append("\n" if escaped == "\n" else " ")
+                index += 1
+            continue
+        out.append("\n" if char == "\n" else " ")
+        index += 1
+        if char == quote:
+            state = "code"
+    if state not in {"code", "line-comment"}:
+        label = {
+            "block-comment": "block comment",
+            "single": "single-quoted string",
+            "double": "double-quoted string",
+            "template": "template literal",
+            "regex": "regex literal",
+            "regex-class": "regex character class",
+        }.get(state, state)
+        raise ValueError(f"unterminated {label}")
+    masked = "".join(out)
+    _validate_javascript_delimiters(masked)
+    return masked
+
+
+def _validate_javascript_delimiters(masked: str) -> None:
+    """Reject unbalanced JavaScript lexical delimiters before reporting."""
+    expected_close = {"(": ")", "[": "]", "{": "}"}
+    opening_for = {value: key for key, value in expected_close.items()}
+    stack: list[tuple[str, int]] = []
+    line = 1
+    for char in masked:
+        if char == "\n":
+            line += 1
+        elif char in expected_close:
+            stack.append((char, line))
+        elif char in opening_for:
+            if not stack or stack[-1][0] != opening_for[char]:
+                raise ValueError(f"unexpected {char!r} on line {line}")
+            stack.pop()
+    if stack:
+        opening, opening_line = stack[-1]
+        raise ValueError(
+            f"unclosed {opening!r} from line {opening_line}; expected {expected_close[opening]!r}"
+        )
+
+
+def _javascript_looks_like_regex_start(source: str, slash_index: int) -> bool:
+    """Recognize expression-position JavaScript regexes without parsing."""
+    before = source[:slash_index].rstrip()
+    if not before:
+        return True
+    if before.endswith(("=", "(", "[", "{", ",", ":", ";", "!", "?", "=>", "&&", "||")):
+        return True
+    word_match = re.search(r"([A-Za-z_$][\w$]*)$", before)
+    return bool(
+        word_match
+        and word_match.group(1)
+        in {"case", "delete", "in", "instanceof", "new", "return", "throw", "typeof", "void", "yield"}
+    )
+
+
+def _javascript_has_docstring(source_lines: list[str], declaration_line: int) -> bool:
+    index = declaration_line - 1
+    while index >= 0 and not source_lines[index].strip():
+        index -= 1
+    if index < 0 or "*/" not in source_lines[index]:
+        return False
+    while index >= 0:
+        if "/**" in source_lines[index]:
+            return True
+        if "/*" in source_lines[index]:
+            return False
+        index -= 1
+    return False
+
+
+def _javascript_declaration_end(masked_lines: list[str], start: int, kind: str) -> int:
+    depth = 0
+    opened = False
+    for index in range(start, len(masked_lines)):
+        line = masked_lines[index]
+        if kind in {"class", "function"}:
+            for char in line:
+                if char == "{":
+                    depth += 1
+                    opened = True
+                elif char == "}" and opened:
+                    depth -= 1
+            if opened and depth <= 0:
+                return index
+        elif ";" in line:
+            return index
+        elif index > start and not line.strip():
+            return index - 1
+    return start if not opened and kind in {"class", "function"} else len(masked_lines) - 1
+
+
+def _javascript_direct_export(line: str) -> tuple[str, str] | None:
+    for kind, pattern in JS_DIRECT_EXPORTS:
+        match = pattern.match(line)
+        if match:
+            return kind, match.group("name")
+    return None
+
+
+def _javascript_statement_end(masked_lines: list[str], start: int) -> int:
+    round_depth = square_depth = brace_depth = 0
+    for index in range(start, len(masked_lines)):
+        for char in masked_lines[index]:
+            if char == "(":
+                round_depth += 1
+            elif char == ")":
+                round_depth = max(0, round_depth - 1)
+            elif char == "[":
+                square_depth += 1
+            elif char == "]":
+                square_depth = max(0, square_depth - 1)
+            elif char == "{":
+                brace_depth += 1
+            elif char == "}":
+                brace_depth = max(0, brace_depth - 1)
+            elif char == ";" and round_depth == square_depth == brace_depth == 0:
+                return index
+    return start
+
+
+def _javascript_variable_exports(statement: str) -> tuple[list[str], bool]:
+    match = JS_VARIABLE_EXPORT_RE.match(statement)
+    if not match:
+        return [], False
+    names: list[str] = []
+    unknown = False
+    for binding in _split_top_level_commas(match.group("bindings").rstrip(";")):
+        name_match = re.match(rf"\s*(?P<name>{TS_IDENTIFIER})\b", binding)
+        if name_match:
+            names.append(name_match.group("name"))
+        elif binding.strip():
+            unknown = True
+    return names, unknown
+
+
+def _javascript_export_statement(source_lines: list[str], start: int) -> str:
+    pieces: list[str] = []
+    for line in source_lines[start:]:
+        pieces.append(line.strip())
+        if ";" in line:
+            break
+    return " ".join(pieces).rstrip(";").strip()
+
+
+def _inventory_javascript_file(
+    path: Path, file_rel: Path
+) -> tuple[list[dict[str, Any]], int, list[dict[str, Any]], bool]:
+    """Collect only direct ESM and property-form CommonJS exports."""
+    source = _read_source(path)
+    if source is None:
+        return [], 0, [], False
+    source_lines = source.splitlines()
+    try:
+        masked_lines = _mask_javascript_noncode(source).splitlines()
+    except ValueError as exc:
+        print(f"syntax-error: {file_rel}: JavaScript lexical check failed: {exc}", file=sys.stderr)
+        return [], 0, [], False
+    public: list[dict[str, Any]] = []
+    unexplained: list[dict[str, Any]] = []
+    total = 0
+    for index in sorted(_top_level_line_indexes(masked_lines)):
+        masked_line = masked_lines[index]
+        if JS_VARIABLE_EXPORT_RE.match(masked_line):
+            end = _javascript_statement_end(masked_lines, index)
+            statement = "\n".join(masked_lines[index : end + 1])
+            names, unknown_binding = _javascript_variable_exports(statement)
+            for name in names:
+                public.append(
+                    _build_entry(
+                        file_rel=file_rel,
+                        symbol=name,
+                        kind="module-var",
+                        lineno=index + 1,
+                        loc=max(1, end - index + 1),
+                        branch_count=len(JS_BRANCH_RE.findall(statement)),
+                        has_docstring=_javascript_has_docstring(source_lines, index),
+                    )
+                )
+            total += len(names) + (1 if unknown_binding else 0)
+            if unknown_binding:
+                unexplained.append({
+                    "file": str(file_rel),
+                    "symbol": _javascript_export_statement(source_lines, index),
+                    "kind": "unresolved-export-binding",
+                    "lineno": index + 1,
+                    "reason": "JavaScript v1 cannot enumerate this exported binding pattern lexically.",
+                })
+            continue
+        direct = _javascript_direct_export(masked_line)
+        if direct is not None:
+            kind, name = direct
+            total += 1
+            end = _javascript_declaration_end(masked_lines, index, kind)
+            segment = "\n".join(masked_lines[index : end + 1])
+            public.append(
+                _build_entry(
+                    file_rel=file_rel,
+                    symbol=name,
+                    kind=kind,
+                    lineno=index + 1,
+                    loc=max(1, end - index + 1),
+                    branch_count=len(JS_BRANCH_RE.findall(segment)),
+                    has_docstring=_javascript_has_docstring(source_lines, index),
+                )
+            )
+            continue
+        commonjs = JS_COMMONJS_ASSIGNMENT_RE.match(masked_line)
+        if commonjs:
+            total += 1
+            public.append(
+                _build_entry(
+                    file_rel=file_rel,
+                    symbol=commonjs.group("name"),
+                    kind="module-var",
+                    lineno=index + 1,
+                    loc=1,
+                    branch_count=0,
+                    has_docstring=_javascript_has_docstring(source_lines, index),
+                )
+            )
+            continue
+        if JS_UNRESOLVED_EXPORT_RE.match(masked_line) or JS_COMMONJS_UNRESOLVED_RE.match(masked_line):
+            total += 1
+            is_commonjs = JS_COMMONJS_UNRESOLVED_RE.match(masked_line) is not None
+            unexplained.append({
+                "file": str(file_rel),
+                "symbol": _javascript_export_statement(source_lines, index),
+                "kind": "unresolved-commonjs-export" if is_commonjs else "unresolved-export",
+                "lineno": index + 1,
+                "reason": (
+                    "JavaScript v1 cannot enumerate CommonJS object or dynamic exports lexically."
+                    if is_commonjs
+                    else "JavaScript v1 does not resolve export aliases, star exports, or default exports."
+                ),
+            })
+            continue
+        if re.match(
+            rf"^\s*(?:async\s+)?function\s+{TS_IDENTIFIER}\b|^\s*class\s+{TS_IDENTIFIER}\b|^\s*(?:const|let|var)\s+{TS_IDENTIFIER}\b",
+            masked_line,
+        ):
+            total += 1
+    return public, total, unexplained, True
+
+
+def _go_tool() -> Path:
+    discovered = shutil.which("go")
+    if discovered is None:
+        raise GoInventoryError("unsupported", "Go toolchain is unavailable")
+    go = Path(discovered)
+    try:
+        result = subprocess.run(
+            [str(go), "version"], capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        raise GoInventoryError("unsupported", f"cannot run Go toolchain: {exc}") from exc
+    match = re.search(r"\bgo(\d+)\.(\d+)(?:\.\d+)?\b", result.stdout)
+    if result.returncode or match is None:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise GoInventoryError(
+            "unsupported", f"cannot determine Go toolchain version: {detail}"
+        )
+    if (int(match.group(1)), int(match.group(2))) < MINIMUM_GO_VERSION:
+        raise GoInventoryError("unsupported", "Go inventory requires Go >= 1.22")
+    return go
+
+
+def _inventory_go_file(
+    path: Path, file_rel: Path, go: Path
+) -> tuple[list[dict[str, Any]], int, list[dict[str, Any]], str]:
+    launcher = Path(__file__).resolve().with_name("inventory_go.go")
+    try:
+        result = subprocess.run(
+            [
+                str(go),
+                "run",
+                str(launcher),
+                "--file",
+                str(path),
+                "--display",
+                str(file_rel),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            env={
+                **os.environ,
+                "GO111MODULE": "off",
+                "GOTOOLCHAIN": "local",
+                "GOWORK": "off",
+            },
+        )
+    except OSError as exc:
+        raise GoInventoryError("unsupported", f"cannot run Go inventory: {exc}") from exc
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise GoInventoryError(
+            "failed", f"Go inventory failed for {file_rel}: {detail}"
+        )
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise GoInventoryError(
+            "failed", f"Go inventory emitted invalid JSON for {file_rel}"
+        ) from exc
+    if (
+        not isinstance(payload, dict)
+        or payload.get("status") not in {"complete", "partial"}
+        or not isinstance(payload.get("targets"), list)
+        or not isinstance(payload.get("unexplained"), list)
+        or not isinstance(payload.get("total_symbols"), int)
+    ):
+        raise GoInventoryError("failed", f"Go inventory emitted an invalid result for {file_rel}")
+    public: list[dict[str, Any]] = []
+    for item in payload["targets"]:
+        if not isinstance(item, dict):
+            raise GoInventoryError("failed", f"Go inventory emitted an invalid target for {file_rel}")
+        try:
+            public.append(
+                _build_entry(
+                    file_rel=file_rel,
+                    symbol=str(item["symbol"]),
+                    kind=str(item["kind"]),
+                    lineno=int(item["lineno"]),
+                    loc=int(item["loc"]),
+                    branch_count=int(item["branch_count"]),
+                    has_docstring=bool(item["has_docstring"]),
+                )
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise GoInventoryError(
+                "failed", f"Go inventory emitted an invalid target for {file_rel}"
+            ) from exc
+    if not all(isinstance(item, dict) for item in payload["unexplained"]):
+        raise GoInventoryError(
+            "failed", f"Go inventory emitted an invalid unexplained record for {file_rel}"
+        )
+    return public, payload["total_symbols"], payload["unexplained"], payload["status"]
+
+
+def _jdk_toolchain() -> tuple[Path, str, str]:
+    java_found = shutil.which("java")
+    javac_found = shutil.which("javac")
+    if java_found is None or javac_found is None:
+        missing = ", ".join(
+            name for name, value in (("java", java_found), ("javac", javac_found)) if value is None
+        )
+        raise JavaInventoryError("unsupported", f"JDK toolchain is unavailable ({missing})")
+    versions: dict[str, str] = {}
+    for name, command in (
+        ("java", [java_found, "--version"]),
+        ("javac", [javac_found, "-version"]),
+    ):
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, check=False)
+        except OSError as exc:
+            raise JavaInventoryError("unsupported", f"cannot run {name}: {exc}") from exc
+        rendered = (result.stdout + result.stderr).strip()
+        match = re.search(r"(?:javac\s+|(?:openjdk|java)\s+)(\d+)(?:\.(\d+))?(?:\.(\d+))?", rendered)
+        if result.returncode or match is None:
+            detail = rendered or f"exit {result.returncode}"
+            raise JavaInventoryError("unsupported", f"cannot determine {name} version: {detail}")
+        version = tuple(int(part or 0) for part in match.groups())
+        if version < MINIMUM_JDK_VERSION:
+            raise JavaInventoryError("unsupported", "Java inventory requires JDK >= 17.0.0")
+        versions[name] = ".".join(str(part) for part in version)
+    return Path(java_found), versions["java"], versions["javac"]
+
+
+def _inventory_java_file(
+    path: Path, file_rel: Path, java: Path
+) -> tuple[list[dict[str, Any]], int]:
+    launcher = Path(__file__).resolve().with_name("inventory_java.java")
+    try:
+        result = subprocess.run(
+            [str(java), str(launcher), "--file", str(path), "--display", str(file_rel)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise JavaInventoryError("unsupported", f"cannot run Java inventory: {exc}") from exc
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise JavaInventoryError("failed", f"Java inventory failed for {file_rel}: {detail}")
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise JavaInventoryError("failed", f"Java inventory emitted invalid JSON for {file_rel}") from exc
+    if (
+        not isinstance(payload, dict)
+        or not isinstance(payload.get("targets"), list)
+        or not isinstance(payload.get("total_symbols"), int)
+    ):
+        raise JavaInventoryError("failed", f"Java inventory emitted an invalid result for {file_rel}")
+    public: list[dict[str, Any]] = []
+    for item in payload["targets"]:
+        if not isinstance(item, dict):
+            raise JavaInventoryError("failed", f"Java inventory emitted an invalid target for {file_rel}")
+        try:
+            public.append(
+                _build_entry(
+                    file_rel=file_rel,
+                    symbol=str(item["symbol"]),
+                    kind=str(item["kind"]),
+                    lineno=int(item["lineno"]),
+                    loc=int(item["loc"]),
+                    branch_count=int(item["branch_count"]),
+                    has_docstring=bool(item["has_docstring"]),
+                )
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise JavaInventoryError("failed", f"Java inventory emitted an invalid target for {file_rel}") from exc
+    return public, payload["total_symbols"]
+
+
+def _is_generated_go(path: Path) -> bool:
+    if path.suffix.casefold() != ".go":
+        return False
+    in_block_comment = False
+    try:
+        with path.open(encoding="utf-8") as source:
+            for raw_line in source:
+                remaining = raw_line.lstrip("\ufeff \t")
+                while True:
+                    if in_block_comment:
+                        end = remaining.find("*/")
+                        if end < 0:
+                            break
+                        in_block_comment = False
+                        remaining = remaining[end + 2 :].lstrip()
+                        continue
+                    if not remaining.strip():
+                        break
+                    if remaining.startswith("//"):
+                        if GO_GENERATED_MARKER_RE.fullmatch(remaining.rstrip("\r\n")):
+                            return True
+                        break
+                    if remaining.startswith("/*"):
+                        in_block_comment = True
+                        remaining = remaining[2:]
+                        continue
+                    return False
+    except (OSError, UnicodeDecodeError):
+        return False
+    return False
+
+
+def _is_generated_java(path: Path) -> bool:
+    if path.suffix.casefold() != ".java":
+        return False
+    try:
+        with path.open(encoding="utf-8") as source:
+            for index, raw_line in enumerate(source):
+                if index >= 40:
+                    break
+                if JAVA_GENERATED_MARKER_RE.fullmatch(raw_line.strip()):
+                    return True
+    except (OSError, UnicodeDecodeError):
+        return False
+    return False
+
+
+def _is_ignored(path: Path, repo_root: Path) -> bool:
+    try:
+        repo_relative = path.resolve().relative_to(repo_root.resolve())
+    except ValueError:
+        return True
+    parts = repo_relative.parts
+    if any(part.casefold() in IGNORED_DIRECTORY_NAMES for part in parts[:-1]):
+        return True
+    name = path.name.casefold()
+    ignored = (
+        TEST_FILE_RE.search(name) is not None
+        or name.endswith(".d.ts")
+        or ".generated." in name
+        or name.startswith("generated_")
+        or name.endswith((".min.js", ".min.jsx", ".min.mjs", ".min.cjs"))
+        or (path.suffix.casefold() == ".java" and name.endswith(("test.java", "tests.java", "it.java", "generated.java")))
+    )
+    if ignored:
+        return True
+    if path.suffix.casefold() in JAVA_SUFFIXES:
+        return _is_generated_java(path)
+    if path.suffix.casefold() not in GO_SUFFIXES:
+        return ignored
+    return (
+        "generated" in name
+        or _is_generated_go(path)
+    )
+
+
+def _traverses_symlink(path: Path, root: Path) -> bool:
+    current = root
+    for part in path.relative_to(root).parts:
+        current /= part
+        if current.is_symlink():
+            return True
+    return False
 
 
 def _collect_files(target: Path, repo_root: Path) -> list[Path]:
-    """Return a list of `*.py` files to inventory.
-
-    - Single file: [target]
-    - Directory: every `*.py` under target excluding `__pycache__/`,
-      `migrations/`, and tests.
-    """
     if target.is_file():
-        if target.suffix != ".py":
-            return []
-        return [target]
-    if target.is_dir():
-        files: list[Path] = []
-        for p in sorted(target.rglob("*.py")):
-            parts = set(p.relative_to(target).parts)
-            if "__pycache__" in parts or "migrations" in parts:
+        return [target] if (
+            target.suffix.casefold() in SOURCE_SUFFIXES
+            and not _is_ignored(target, repo_root)
+        ) else []
+    if not target.is_dir():
+        return []
+    files: list[Path] = []
+    physical_java: set[Path] = set()
+    for path in sorted(target.rglob("*")):
+        if (
+            not path.is_file()
+            or path.suffix.casefold() not in SOURCE_SUFFIXES
+            or _is_ignored(path, repo_root)
+        ):
+            continue
+        if path.suffix.casefold() == ".java":
+            resolved = path.resolve()
+            if _traverses_symlink(path, target) or resolved in physical_java:
                 continue
-            # Skip test files — they're not public surface.
-            if p.name.startswith("tests_") or p.name.startswith("test_"):
-                continue
-            files.append(p)
-        return files
-    return []
+            physical_java.add(resolved)
+        files.append(path)
+    return files
 
 
-def main() -> int:
+def _display_path(path: Path, repo_root: Path) -> Path:
+    try:
+        return path.relative_to(repo_root)
+    except ValueError:
+        return path
+
+
+def _resolve_collisions(entries: list[dict[str, Any]]) -> None:
+    counts: dict[str, int] = {}
+    for entry in entries:
+        key = entry["symbol_key"]
+        counts[key] = counts.get(key, 0) + 1
+    candidates: dict[str, int] = {}
+    for entry in entries:
+        if counts[entry["symbol_key"]] <= 1:
+            continue
+        file_stem = str(Path(entry["file"]).with_suffix(""))
+        safe_path = re.sub(r"[^A-Za-z0-9]+", "_", file_stem).strip("_")
+        safe_symbol = re.sub(r"[^A-Za-z0-9]+", "_", entry["symbol"]).strip("_")
+        path_digest = hashlib.sha256(str(entry["file"]).encode("utf-8")).hexdigest()[:10]
+        candidate = f"{safe_path}__{safe_symbol}__{path_digest}"
+        candidates[candidate] = candidates.get(candidate, 0) + 1
+        entry["symbol_key"] = candidate
+    for entry in entries:
+        if candidates.get(entry["symbol_key"], 0) > 1:
+            entry["symbol_key"] = f"{entry['symbol_key']}__line_{entry['lineno']}"
+
+
+def _remove_artifact(path: Path) -> None:
+    if not (path.exists() or path.is_symlink()):
+        return
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path)
+    else:
+        path.unlink()
+
+
+def _canonical_explanation_artifacts(
+    output: Path, repo_root: Path
+) -> tuple[Path, list[Path]] | None:
+    """Return latest plus the target-keyed artifact set for the documented layout."""
+    explanations_root = repo_root / "reports" / "explanations"
+    if (
+        output.name != "targets.json"
+        or output.parent.parent.resolve() != explanations_root.resolve()
+        or output.parent.is_symlink()
+        or output.parent.resolve().parent != explanations_root.resolve()
+    ):
+        return None
+    report_dir = output.parent
+    return explanations_root / "latest", [
+        output,
+        explanations_root / f"{report_dir.name}.md",
+        report_dir / "annotations",
+        report_dir / "unexplained.txt",
+        report_dir / "surprises.txt",
+    ]
+
+
+def _validate_output_destination(output: Path, repo_root: Path) -> None:
+    """Refuse a documented report path whose target directory escapes by symlink."""
+    explanations_root = repo_root / "reports" / "explanations"
+    if (
+        output.name == "targets.json"
+        and output.parent.parent.resolve() == explanations_root.resolve()
+        and (
+            output.parent.is_symlink()
+            or output.parent.resolve().parent != explanations_root.resolve()
+        )
+    ):
+        raise ValueError(
+            f"target report directory must stay directly under {explanations_root}"
+        )
+
+
+def _invalidate_artifacts(output: Path, repo_root: Path) -> None:
+    """Remove every prior artifact that could make a failed rerun look complete."""
+    canonical = _canonical_explanation_artifacts(output, repo_root)
+    if canonical is None:
+        _remove_artifact(output)
+        return
+    latest, artifacts = canonical
+    if latest.is_symlink():
+        try:
+            points_to_target = latest.resolve(strict=False) == output.parent.resolve()
+        except OSError:
+            points_to_target = latest.readlink() == Path(output.parent.name)
+        if points_to_target:
+            latest.unlink()
+    for artifact in artifacts:
+        _remove_artifact(artifact)
+
+
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--target", required=True, type=Path, help="File or directory")
-    parser.add_argument("--output", required=True, type=Path)
     parser.add_argument(
-        "--max",
-        type=int,
-        default=15,
-        help="Max annotated symbols (budget cap; default 15)",
+        "--target",
+        required=True,
+        type=Path,
+        help="Python, JavaScript-family, Go, or Java file/directory",
     )
+    parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--max", type=int, default=15, help="Max annotations (default: 15)")
     parser.add_argument(
         "--repo-root",
         type=Path,
         default=Path.cwd(),
-        help="Repo root for computing file paths (default: cwd)",
+        help="Root used for stable relative file names (default: cwd)",
     )
-    args = parser.parse_args()
-
-    if not args.target.exists():
+    args = parser.parse_args(argv)
+    target_arg = str(args.target)
+    target = args.target.resolve()
+    repo_root = args.repo_root.resolve()
+    output_resolved = args.output.resolve()
+    if args.output.is_dir():
+        print(f"error: output path must be a file: {args.output}", file=sys.stderr)
+        return 2
+    if output_resolved.suffix.casefold() in SOURCE_SUFFIXES:
+        print(
+            f"error: output overlaps a supported source path: {args.output}",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        _validate_output_destination(args.output, repo_root)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    try:
+        _invalidate_artifacts(args.output, repo_root)
+    except OSError as exc:
+        print(f"error: cannot invalidate {args.output}: {exc}", file=sys.stderr)
+        return 2
+    if not target.exists():
         print(f"error: target not found: {args.target}", file=sys.stderr)
         return 1
-
-    files = _collect_files(args.target, args.repo_root)
+    files = _collect_files(target, repo_root)
     if not files:
-        print(f"error: no Python files under {args.target}", file=sys.stderr)
+        print(
+            f"status=unsupported: no supported source files under {args.target}",
+            file=sys.stderr,
+        )
         return 1
 
     all_public: list[dict[str, Any]] = []
+    all_unexplained: list[dict[str, Any]] = []
     total_symbols = 0
-    for f in files:
-        entries, file_total = _inventory_file(f, args.repo_root)
-        all_public.extend(entries)
-        total_symbols += file_total
-
-    if not all_public:
+    languages: set[str] = set()
+    invalid_typescript = False
+    invalid_javascript = False
+    go_status = "complete"
+    go_tool: Path | None = None
+    java_tool: Path | None = None
+    java_versions: tuple[str, str] | None = None
+    for path in files:
+        file_rel = _display_path(path, repo_root)
+        if path.suffix.casefold() == ".py":
+            entries, file_total = _inventory_python_file(path, file_rel)
+            languages.add("python")
+            all_public.extend(entries)
+            total_symbols += file_total
+        elif path.suffix.casefold() in TYPESCRIPT_SUFFIXES:
+            entries, file_total, unresolved, valid = _inventory_typescript_file(
+                path, file_rel
+            )
+            languages.add("typescript")
+            all_public.extend(entries)
+            total_symbols += file_total
+            all_unexplained.extend(unresolved)
+            invalid_typescript = invalid_typescript or not valid
+        elif path.suffix.casefold() in JAVASCRIPT_SUFFIXES:
+            entries, file_total, unresolved, valid = _inventory_javascript_file(
+                path, file_rel
+            )
+            languages.add("javascript")
+            all_public.extend(entries)
+            total_symbols += file_total
+            all_unexplained.extend(unresolved)
+            invalid_javascript = invalid_javascript or not valid
+        elif path.suffix.casefold() in GO_SUFFIXES:
+            try:
+                if go_tool is None:
+                    go_tool = _go_tool()
+                entries, file_total, unresolved, file_status = _inventory_go_file(
+                    path, file_rel, go_tool
+                )
+            except GoInventoryError as exc:
+                print(f"status={exc.status}: {exc}", file=sys.stderr)
+                return exc.exit_code
+            languages.add("go")
+            all_public.extend(entries)
+            total_symbols += file_total
+            all_unexplained.extend(unresolved)
+            if file_status == "partial":
+                go_status = "partial"
+        else:
+            try:
+                if java_tool is None:
+                    java_tool, java_version, javac_version = _jdk_toolchain()
+                    java_versions = (java_version, javac_version)
+                entries, file_total = _inventory_java_file(path, file_rel, java_tool)
+            except JavaInventoryError as exc:
+                print(f"status={exc.status}: {exc}", file=sys.stderr)
+                return exc.exit_code
+            languages.add("java")
+            all_public.extend(entries)
+            total_symbols += file_total
+    if invalid_typescript or invalid_javascript:
+        return 1
+    if not all_public and not all_unexplained:
         print(f"error: no public symbols in {args.target}", file=sys.stderr)
         return 1
 
     _resolve_collisions(all_public)
-    all_public.sort(key=lambda e: e["rank_score"], reverse=True)
-
+    all_public.sort(key=lambda entry: (-entry["rank_score"], entry["file"], entry["lineno"], entry["symbol"]))
+    all_unexplained.sort(key=lambda entry: (entry["file"], entry["lineno"], entry["symbol"]))
     budget = max(1, args.max)
     selected = all_public[:budget]
-    overflow = [
-        {
-            "symbol_key": e["symbol_key"],
-            "file": e["file"],
-            "symbol": e["symbol"],
-            "reason": "budget-cap",
-        }
-        for e in all_public[budget:]
-    ]
-
     payload = {
-        "target": str(args.target),
-        "files": [str(f.relative_to(args.repo_root)) if f.is_absolute() else str(f) for f in files],
+        "schema_version": 1,
+        "language": next(iter(languages)) if len(languages) == 1 else "mixed",
+        "target": target_arg,
+        "files": [str(_display_path(path, repo_root)) for path in files],
         "symbol_count_total": total_symbols,
         "public_symbol_count": len(all_public),
         "max": budget,
         "targets": selected,
-        "overflow": overflow,
+        "overflow": [
+            {
+                "symbol_key": entry["symbol_key"],
+                "file": entry["file"],
+                "symbol": entry["symbol"],
+                "reason": "budget-cap",
+            }
+            for entry in all_public[budget:]
+        ],
+        "unexplained": all_unexplained,
     }
-
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    if "go" in languages:
+        payload["status"] = go_status
+        payload["analysis"] = {
+            "go": {
+                "status": go_status,
+                "analyzer": "go-parser-go-ast",
+                "minimum_go_version": "1.22",
+            }
+        }
+    if "java" in languages:
+        assert java_versions is not None
+        payload.setdefault("analysis", {})["java"] = {
+            "status": "complete",
+            "analyzer": "jdk-compiler-tree-api",
+            "minimum_jdk_version": "17.0.0",
+            "actual_java_version": java_versions[0],
+            "actual_javac_version": java_versions[1],
+        }
+    if languages & {"go", "java"}:
+        payload["status"] = "partial" if go_status == "partial" else "complete"
+    try:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    except OSError as exc:
+        print(f"error: cannot write {args.output}: {exc}", file=sys.stderr)
+        return 2
     print(
-        f"wrote {args.output}: {len(selected)} annotated / "
-        f"{len(all_public)} public / {total_symbols} total"
+        f"wrote {args.output}: {len(selected)} annotated / {len(all_public)} public / "
+        f"{total_symbols} total / {len(all_unexplained)} unresolved exports"
     )
     return 0
 

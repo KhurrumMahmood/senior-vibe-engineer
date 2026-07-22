@@ -7,7 +7,6 @@ date: 2026-05-21
 deciders: []
 supersedes: []
 superseded_by: null
-revisit_when: ["an outward-facing quality audit is promoted into a repeatable skill, lint, or release gate and needs an accepted dimension taxonomy"]
 applies_to: []
 tags: [security, resilience, observability, data-privacy, cost, standards, review-avatars, posture]
 related_smell: null

@@ -1,0 +1,98 @@
+{
+  "batch": "TypeScript map-subsystem candidate",
+  "revision": "d3d2af1ce03534f60cb81d59717fb3477172c348",
+  "family": ["map-subsystem"],
+  "invariant": {
+    "portable_principle": "A durable TypeScript subsystem map may claim complete module facts only when a host-pinned compiler and named tsconfig establish eligible inventory, exports, and static import resolution; unavailable and unresolved facts stay visible.",
+    "python_or_framework_mechanism": "Preserve the existing Python AST inventory, clustering, renderer, ruff, and silent-catch workflow unchanged.",
+    "typescript_mechanism": "One family-local Node Compiler API command parses a named project-local tsconfig, creates a Program, resolves direct and paths-alias imports, enumerates exports, and writes matching Markdown and JSON artifacts.",
+    "explicit_non_goals": [
+      "TypeScript responsibility clusters or judgment-oriented open questions",
+      "Dynamic import, runtime-loading, call-graph, reference, or deletion analysis",
+      "Framework, React, Node, ORM, receiver, or API identity inference",
+      "Complete cross-project package/reference analysis",
+      "Inferred or executed ESLint policy",
+      "A global TypeScript parser or fact platform",
+      "Source mutation or refactoring"
+    ]
+  },
+  "reference_repairs": [
+    "Kept the Python map stages and render_doc.py behavior intact; no Python reference defect was found.",
+    "Made Python-only clusters/open questions and unconfigured ESLint explicit unavailable fields rather than false zero-count fields.",
+    "Made direct excluded targets, symlink paths, unresolved imports, syntax failure, missing tsconfig, and missing TypeScript explicit outcomes."
+  ],
+  "language_model": {
+    "syntax": ["TypeScript and TSX source", "Static import/export/import-equals module specifiers", "Exported module symbols including alias status"],
+    "type_system": ["A Compiler Program and TypeChecker enumerate module export symbols.", "Target pre-emit diagnostics are compliance evidence; syntax diagnostics block the map."],
+    "module_resolution": ["The named tsconfig supplies compiler options including baseUrl and paths aliases.", "resolveModuleName establishes direct relative and alias destinations.", "Parsed project references are passed to createProgram, but cross-project package/reference completeness is not claimed."],
+    "runtime": ["Host Node plus TypeScript resolved from host package.json.", "Fixture package-lock pins TypeScript 5.9.3."],
+    "framework": ["No framework assumption; TSX is a source extension only."]
+  },
+  "tooling": {
+    "selected": "Family-local TypeScript Compiler API Program/TypeChecker plus one named tsconfig resolver in map_typescript.mjs.",
+    "rejected_alternatives": {
+      "lexical_import_inventory": "Cannot establish alias destinations or distinguish unresolved edges from a complete graph.",
+      "ts_morph_or_tree_sitter": "Adds another dependency without improving the accepted Compiler API module-fact outcome.",
+      "shared_parser_platform": "No actual second consumer proves an identical resolver, output, failure, and installed-closure contract.",
+      "inferred_eslint": "Inventing a lint policy or reporting zero violations would be less honest than an unavailable field."
+    },
+    "version_and_resolution": "The fixture lock pins TypeScript 5.9.3. Installed execution requires package.json and resolves TypeScript from that host only; it rejects a package outside project root.",
+    "closure_mode": "The selected map-subsystem directory bundles the Node mapper and TypeScript v1 knowledge. Its documented command finds .agents or .claude and never invokes repository scripts, sibling skills, or a toolkit venv.",
+    "preflight_and_failure_codes": ["Exit 2 for missing target, symbolic-link target, missing/invalid tsconfig, missing host TypeScript, or TypeScript syntax error.", "Emit partial with unresolved_imports for unresolved or symlink-blocked selected static imports.", "Emit explicit unavailable records for TypeScript v1 fields outside the contract."]
+  },
+  "outcome_contract": {
+    "inputs": ["Locked TypeScript 5.9.3 host fixture", "Named tsconfig with @app/* alias", "Selected TS/TSX feature package with direct and alias consumers, barrel, workflow doc, and exclusion corpus"],
+    "structured_outputs": [".claude/docs/subsystems/<name>.md", "reports/map/<name>/typescript-map.json", "reports/_meta/effectiveness.jsonl when requested"],
+    "must_fire": ["Three selected source files and five exported symbols", "Resolved alias outbound import @app/shared/math", "Resolved direct inbound importer", "Resolved alias inbound barrel importer", "One explicit barrel boundary and one workflow-map entry", "One unresolved alias produces partial rather than complete"],
+    "must_not_fire": ["Generated, vendor, test/spec, declaration, bundle, minified, dependency, build, and fixture source", "Direct excluded directory and file targets", "Internal or external directory symlink traversal", "Artifact output or evidence path overwriting source or traversing an ancestor symlink", "A missing TypeScript package, tsconfig, or syntax error represented as a clean map", "Python-only clusters/open questions or invented ESLint counts"],
+    "native_test_command": "npm ci --offline --ignore-scripts && npm run typecheck",
+    "native_guard_command": null
+  },
+  "evidence": {
+    "python_reference": ["Existing Python renderer remains unchanged.", "tests/test_skill_taxonomy.py passed with the updated frontmatter."],
+    "typescript": ["tests/test_map_subsystem_typescript.py asserts final Markdown/JSON artifacts, resolved direct/alias edges, barrel/workflow evidence, partial/error states, root-relative exclusions, symlink containment, copied stock install, and no checkout runtime.", "A clean external host ran the installed documented commands and wrote complete map artifacts without source mutation."],
+    "commands_and_artifact_paths": [".venv/bin/python -m pytest tests/test_map_subsystem_typescript.py tests/test_skill_taxonomy.py -q: 10 passed", "node --check .claude/skills/map-subsystem/scripts/map_typescript.mjs: passed", ".venv/bin/python -m ruff check tests/test_map_subsystem_typescript.py: All checks passed", ".venv/bin/python scripts/skill_meta.py lint: OK — 76 skills, 76 declaring new contract", "git diff --check: clean", "Fresh installed artifacts: /private/tmp/map-subsystem-typescript-stock.tNLR4Q/.claude/docs/subsystems/typescript-features.md and /private/tmp/map-subsystem-typescript-stock.tNLR4Q/reports/map/typescript-features/typescript-map.json"],
+    "fresh_forward": {
+      "task": "Install only map-subsystem into a clean TypeScript host, run the installed documented command for src/features, and inspect the final map without editing source.",
+      "installed_skill": "/private/tmp/map-subsystem-typescript-stock.tNLR4Q/.agents/skills/map-subsystem",
+      "report_dir": "/private/tmp/map-subsystem-typescript-stock.tNLR4Q/reports/map/typescript-features",
+      "result": "Complete compiler-backed map: 3 source files, 5 exported symbols, 2 resolved outbound imports, 2 resolved inbound imports, 0 unresolved imports, 1 workflow entry, and no source edits.",
+      "artifact_sha256": {"typescript-features.md": "bfc0574c6b551f71477e44763729ea222e28405abcaca9adb143d70b78a0b247", "typescript-map.json": "aa2590931effd92cc5e839c9e3839c3abdf6d766bbb2e7a555225fdecd31c3fa"},
+      "independent_agent": true
+    }
+  },
+  "false_positive_boundary": {
+    "known_false_positives": ["Static compiler resolution cannot prove dynamic runtime reachability or external consumers.", "A TypeScript diagnostic count is not an ESLint policy or architectural verdict."],
+    "known_false_negatives": ["Dynamic import, runtime loader, string-based module name, and framework registry edges are intentionally absent.", "Cross-project package/reference resolution is not yet an accepted complete scope.", "Excluded and symlinked paths are intentionally not analyzed."],
+    "legitimate_similar_shapes": ["An index barrel re-export is reported explicitly rather than mistaken for a direct implementation import.", "A generated/vendor/test source or directly targeted excluded file produces an empty eligible inventory, not an inclusion bypass.", "Unresolved source is partial evidence, never a zero-edge complete map."]
+  },
+  "generalized": ["Host-pinned Compiler API resolution", "Final-artifact rather than parser-only assertions", "Project-root-relative direct-target exclusion checks", "Explicit partial and unavailable output states", "Stock selected-skill copied-install replay"],
+  "did_not_generalize": ["Python AST clustering and open-question logic", "TypeScript dynamic/runtime/semantic reference analysis", "Framework or lint-policy behavior", "A shared Compiler API service or parser platform", "Complete cross-project package/reference resolution"],
+  "reuse_decision": {
+    "shared_candidate": "Named project-local tsconfig Compiler API module resolver",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": ["The map needs inventory, exports, inbound/outbound resolution, barrel evidence, and partial-map reporting as one installed artifact.", "No accepted boundary/folder proposal demonstrates the same output, failure, direct-target exclusion, and stock-closure contract."],
+    "owner": "map-subsystem TypeScript v1"
+  },
+  "translation_prerequisites": {
+    "rust": {"native_tool": "rust-analyzer or a compiler-backed crate graph plus syn", "idiomatic_representation": "pub items, use/re-export edges, mod.rs/lib.rs boundaries, Cargo workspace members", "required_fixtures": ["direct and crate-alias imports", "re-export barrel", "generated/test/vendor exclusions", "cargo check/test and installed replay"], "semantic_gaps": ["macro expansion", "conditional compilation", "workspace dependency resolution"]},
+    "go": {"native_tool": "go/packages and go/types", "idiomatic_representation": "exported identifiers, package imports, module replace directives", "required_fixtures": ["direct/module alias imports", "internal/test/vendor exclusions", "go test and installed replay"], "semantic_gaps": ["build tags", "generated package code", "replace/workspace semantics"]},
+    "java_or_kotlin": {"native_tool": "compiler model or language server", "idiomatic_representation": "public declarations, package imports, Gradle/Maven source sets", "required_fixtures": ["multi-module direct/alias dependency", "generated/test exclusions", "native build/test and installed replay"], "semantic_gaps": ["annotation processing", "overloads", "multi-module build resolution"]},
+    "csharp": {"native_tool": "Roslyn workspace", "idiomatic_representation": "public symbols, using/project references, solution boundaries", "required_fixtures": ["project reference and namespace import", "generated/test exclusions", "dotnet build/test and installed replay"], "semantic_gaps": ["partial/source-generated types", "conditional compilation", "NuGet resolution"]},
+    "ruby": {"native_tool": "Prism/Ripper plus explicit loader convention", "idiomatic_representation": "public constants, require/re-export convention, gem boundaries", "required_fixtures": ["direct require and autoload-style boundary", "test/vendor/generated exclusions", "native test and installed replay"], "semantic_gaps": ["dynamic requires", "monkey patching", "constant lookup"]}
+  },
+  "user_experience": {
+    "install_steps": ["Set MAP_SUBSYSTEM_SOURCE to a pinned source/ref and run the documented stock add command.", "From the host root, run the documented TypeScript map command with MAP_NAME, MAP_TARGET, and MAP_TSCONFIG when defaults do not fit.", "Read durable Markdown and JSON evidence; inspect partial/unavailable fields before planning follow-up work."],
+    "wall_time_seconds": null,
+    "agent_confusions": ["A lexical import list cannot claim alias resolution or complete module facts.", "A TypeScript Program does not establish framework/runtime reachability.", "A direct excluded target and symlink path must obey the same root-relative policy as a broad root."],
+    "repeated_work": ["Existing TypeScript pilots supplied stock-install and host-pinned package-resolution patterns, but no reusable resolver runtime was imported."],
+    "smallest_later_improvement": "After an independently accepted second module-resolution consumer, decide whether an identical resolver contract merits a shared utility."
+  },
+  "residual_risks": ["Dynamic/runtime imports and cross-project package/reference analysis remain deliberately unavailable.", "The host must provide Node, package.json, a project-local TypeScript package, and a valid named tsconfig.", "ESLint remains explicit unavailable rather than a host-policy result.", "The advisory ecosystem consistency baseline is stale for many unrelated branch changes; serial integration owns catalog/router/tracker review."],
+  "next_decision": {
+    "recommendation": "Accept the narrow TypeScript module-fact map and keep the resolver family-local.",
+    "rationale": "The final map, direct/alias and barrel evidence, project-root exclusions, explicit partial/unavailable states, native tsc, and stock copied-install replay prove a useful outcome without a parser-platform or framework claim.",
+    "blockers": ["Serial integrator must decide shared router/catalog/tracker updates outside this lane."]
+  }
+}

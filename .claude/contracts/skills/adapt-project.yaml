@@ -1,22 +1,22 @@
 # Skill intent + provenance contract — schema v2.
 # ES2-only skill; authored fresh from SKILL.md + es2_skill_facts.yaml.
 
-# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 
 skill: adapt-project
 job: meta
 problem_class: "host-project discovery / adapter scaffolding (META)"
-intent: "Build a deterministic canonical host profile and project adapter from objective repository facts, then require an evidence-backed quality-perimeter audit before reporting adoption readiness. Supports Python/Django, TypeScript/Node/React, Rust, Go, and mixed repositories; durable host writes require --apply and --no-host-write keeps dogfood artifacts outside the host."
+intent: "Discover objective host-project facts and scaffold a project adapter for engineering-skills — stack markers, commands, tests, CI, docs, Python and TypeScript/TSX source roots, domain terms, sensitive surfaces, and guardrails. TypeScript counts participate in the same large-root caution as Python while generated/vendor/dependency/build/test trees stay excluded; package.json never proves a Node framework. Writes timestamped evidence by default, requires --apply for the durable host adapter, and keeps --no-host-write artifacts outside the host."
 solves: "Localizing the portable engineering-skills ecosystem to a new repo needs the operational facts (stack/commands/tests/CI/source roots) gathered objectively. There was no read-only discovery pass that produces a machine-readable adapter while explicitly refusing to confuse observed frequency with health — a messy repo's repeated patterns are flagged 'do not standardize yet', not canonized."
 born:
   commit: "a582cbf"
   date: "2026-05-16"
   sibling_births: [find-complexity-hotspots, project-interview]   # small, sharp 3-skill cohort — temporal signal is meaningful
-dogfood_kind: none-found
+dogfood_kind: fixture-pair
 dogfooded_on:
-  - "none-found (no timestamped self-run on the ES2 tree; reports_dir is null). The SKILL.md documents a host-a-style --no-host-write dogfood mode, but the facts show no ES2 run artifact, so the dogfood is documented intent, not observed evidence."
-reports_dir: null
+  - "Committed Python/TypeScript positive, boundary, exclusion, copied-install, and hostile-path fixtures exercise final adapter/report/evidence artifacts."
+  - "Fresh stock-installed TypeScript-host journey at /private/tmp/adapt-project-typescript-forward.qABrrP produced a useful read-only adapter and exposed the documented-command defect later pinned by regression."
+reports_dir: reports/adapt-project
 run_evidence:
   count: 0
   first: null
@@ -42,13 +42,14 @@ duplication_risk:
     disambiguator: "adapt-project routes common-but-suspect patterns to /triage-debt rather than standardizing them. adapt-project not_for: 'Cleaning up a messy codebase (use /triage-debt then the maintenance loop).'"
 provenance_confidence:
   textual: med      # born in the small named 3-skill cohort a582cbf (with find-complexity-hotspots, project-interview), not the big-bang set
-  structural: low   # has_scripts=false / has_fixtures=false in facts — the documented project_adapt.py is the shared adapter script but is not counted as this skill's own scanner+fixtures pair
+  structural: high  # selected skill now contains a self-contained discovery/evidence runtime plus committed language fixtures
   temporal: high     # small 3-skill birth cohort — birth proximity is informative (unlike the big-bang 90f8567 set)
-  dogfood: low      # no fixtures oracle; no self-run on disk (documented --no-host-write mode is intent, not evidence)
+  dogfood: med      # fixture oracle plus a fresh stock-installed external-host journey; no committed self-scan
 evidence:
   - "a582cbf — born 2026-05-16 in a 3-skill cohort with find-complexity-hotspots and project-interview (facts)"
   - "reports_dir null, run count 0 (facts) — no ES2 timestamped run despite a documented dogfood pipeline"
   - "has_scripts=false / has_fixtures=false (facts) — the project_adapt.py helper is shared/repo-level, not flagged as this skill's own scripts/ + fixtures signature"
+  - "Additive Python/TypeScript final-artifact, stock-install, path-containment, and fresh-forward evidence is indexed by .claude/tasks/multilanguage-learnings/adapt-project-typescript.{md,json}."
 gaps:
   - "No precedents.yml entry and no ADR in ai-docs/decisions/ names adapt-project; intent rests on the SKILL.md and the a582cbf cohort framing."
-  - "The facts report has_scripts=false yet SKILL.md drives scripts/project_adapt.py; the boolean keys off the skill's own scripts/ dir (the helper lives at repo scripts/), so structural confidence stays low — could not reconcile further without re-running disk archaeology, which the brief forbids."
+  - "Node framework inference remains deliberately unsupported; package dependency names alone are not objective framework proof."

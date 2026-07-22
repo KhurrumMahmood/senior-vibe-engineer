@@ -1,0 +1,15 @@
+{
+  "duplicates": [
+    {
+      "format": "python",
+      "lines": 8,
+      "firstFile": {"name": "first.py", "start": 1, "end": 8},
+      "secondFile": {"name": "second.py", "start": 1, "end": 8}
+    }
+  ],
+  "run": {
+    "status": "completed",
+    "tool": "jscpd",
+    "version": "4.0.5"
+  }
+}

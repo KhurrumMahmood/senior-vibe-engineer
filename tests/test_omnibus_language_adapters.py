@@ -5,9 +5,9 @@ extraction adapters feed it. Pins:
 
 1. Python adapter (exact ast) still flags a multi-domain module and
    stays silent on a cohesive one — pre-ADR behavior preserved.
-2. JavaScript adapter (column-0 heuristic) flags a multi-domain JS file,
-   stays silent on a cohesive one, and records ``analyzer`` /
-   ``language`` so reviewers can calibrate trust in heuristic findings.
+2. JavaScript adapter (host-pinned TypeScript Compiler API) flags a
+   multi-domain JS file, stays silent on a cohesive one, and records
+   ``analyzer`` / ``language`` so reviewers can calibrate evidence.
 3. Minified/test JS files are skipped by default.
 
 Plain ``unittest`` so the same file runs under Django's test runner
@@ -18,12 +18,15 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 _DETECT = REPO_ROOT / ".claude/skills/find-omnibus/scripts/detect.py"
+_TOOLING_SEED = REPO_ROOT / "tests/fixtures/audit-decisions-typescript/host"
 
 
 def _load_detect():
@@ -56,6 +59,20 @@ def _js_cohesive_source() -> str:
         "function saveInvoiceRecord() { return 1; }\n"
         "const formatInvoiceTotal = (x) => x;\n"
     )
+
+
+def _prepare_javascript_tooling(root: Path) -> None:
+    for name in ("package.json", "package-lock.json"):
+        shutil.copy2(_TOOLING_SEED / name, root / name)
+    install = subprocess.run(
+        ["npm", "ci", "--offline", "--ignore-scripts"],
+        cwd=root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    if install.returncode != 0:
+        raise AssertionError(install.stdout + install.stderr)
 
 
 class OmnibusLanguageAdapterTests(unittest.TestCase):
@@ -93,6 +110,7 @@ class OmnibusLanguageAdapterTests(unittest.TestCase):
         detect = _load_detect()
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
+            _prepare_javascript_tooling(root)
             src = root / "static"
             src.mkdir()
             (src / "omnibus.js").write_text(_js_omnibus_source())
@@ -102,7 +120,7 @@ class OmnibusLanguageAdapterTests(unittest.TestCase):
             self.assertIn("static/omnibus.js", files)
             self.assertNotIn("static/cohesive.js", files)
             rec = next(r for r in records if r["file"] == "static/omnibus.js")
-            self.assertEqual(rec["analyzer"], "javascript-syntax")
+            self.assertEqual(rec["analyzer"], "typescript-compiler-api")
             self.assertEqual(rec["language"], "javascript")
             self.assertGreaterEqual(rec["and_count"], 3)
             cluster_names = {c["name"] for c in rec["clusters"]}
@@ -126,6 +144,7 @@ class OmnibusLanguageAdapterTests(unittest.TestCase):
         detect = _load_detect()
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
+            _prepare_javascript_tooling(root)
             src = root / "mixed"
             src.mkdir()
             (src / "omnibus.py").write_text(_py_omnibus_source())

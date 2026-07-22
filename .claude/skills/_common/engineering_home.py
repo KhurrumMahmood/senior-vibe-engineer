@@ -24,7 +24,6 @@ place. Stdlib-only — the whole skill toolchain stays dependency-free.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import sys
 from pathlib import Path
@@ -34,7 +33,6 @@ MANIFEST_FILENAME = "manifest.json"
 DOCS_SUBDIR = "docs"
 LOCAL_SUBDIR = "local"  # the only gitignored path inside .engineering/
 PROJECT_SUBDIR = "project"  # durable per-project adaptation state (adapter/profile)
-HOST_PROFILE_FILENAME = "host-profile.json"
 
 # Schema version of the .engineering/ layout. Readers check it; a mismatch is
 # the signal to run a documented migration, never a crash (ADR 0021).
@@ -67,45 +65,6 @@ def project_dir(root: Path | str) -> Path:
     return engineering_dir(root) / PROJECT_SUBDIR
 
 
-def host_profile_path(root: Path | str) -> Path:
-    """Canonical durable host-profile path."""
-    return project_dir(root) / HOST_PROFILE_FILENAME
-
-
-def read_host_profile(root: Path | str) -> dict | None:
-    """Read a content-authenticated durable host profile.
-
-    A present profile with malformed JSON, a non-object payload, or a stale
-    ``profile_sha256`` is rejected. Consumers must not silently revive
-    manifest defaults when durable adaptation state exists but is invalid.
-    """
-    path = host_profile_path(root)
-    if not path.is_file():
-        return None
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-        return None
-    if not isinstance(data, dict):
-        return None
-    claimed_hash = data.get("profile_sha256")
-    unhashed = dict(data)
-    unhashed.pop("profile_sha256", None)
-    encoded = json.dumps(unhashed, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    if claimed_hash != hashlib.sha256(encoded).hexdigest():
-        return None
-    return data
-
-
-def _profile_block(root: Path | str, key: str) -> object:
-    """Return a durable profile block, with manifest fallback before adoption."""
-    durable_path = host_profile_path(root)
-    if durable_path.is_file():
-        durable = read_host_profile(root)
-        return durable.get(key) if durable is not None else None
-    return (read_manifest(root) or {}).get(key)
-
-
 def read_manifest(root: Path | str) -> dict | None:
     """Parsed manifest dict, or None when absent/unreadable/not-an-object."""
     path = manifest_path(root)
@@ -133,12 +92,9 @@ def check_version(root: Path | str) -> tuple[bool, int | None]:
     return (found == MANIFEST_VERSION), found
 
 
-# --- Manual skill overrides (legacy/raw accessors) --------------------------
-# These accessors normalize only the manifest's name-level override block.
-# Canonical profile/layer/binding applicability lives in
-# scripts/_lib/skill_activation.py; routers and scripts/manifest.py resolve
-# through that shared API. The raw accessors remain for compatibility and for
-# mutation UIs that need to inspect only the host's explicit choices. The
+# --- Skill activation (which skills apply to this project) ------------------
+# Activation answers "does this skill apply to THIS repo at all?" — pure
+# applicability, declared per project in the manifest's `skills` block. The
 # normal case is "most skills apply": `default: active` with a short opt-out
 # list (`inactive`), each entry carrying a human reason ("no frontend", "no
 # route surface", ...). This is orthogonal to ADR 0020 maturity x stakes
@@ -199,27 +155,27 @@ def inactive_reason(root: Path | str, skill_name: str) -> str | None:
     return skill_activation(root)["inactive"].get(skill_name) or None
 
 
-# --- Profile-selected host inventories and labels ----------------------------
+# --- Component profile (what the host's UI component system looks like) ------
 # A component-aware skill (e.g. find-frontend-duplication) must not bake in one
 # project's component layout, tag syntax, or file extensions. The host declares
-# them once, per project, in the durable profile's `component_profile` block,
-# and the skill reads them through this resolver. `kind == "none"` (the default
-# for an un-adapted repo) is the graceful no-op: no declared component system,
-# so a component inventory is simply empty rather than a crash. Per-kind syntax
-# defaults belong in the consuming skill, not here — this resolver stays
-# framework-blind.
+# them once, per project, in the manifest's `component_profile` block, and the
+# skill reads them through this resolver. `kind == "none"` (the default for an
+# un-adapted repo) is the graceful no-op: no declared component system, so a
+# component inventory is simply empty rather than a crash. Per-kind syntax
+# defaults (Cotton's `<c-*>` tag, `.html`, React's `<Pascal>` in `.jsx/.tsx`)
+# belong in the consuming skill, not here — this resolver stays framework-blind.
 
 
 def component_profile(root: Path | str) -> dict:
-    """Normalized ``component_profile`` from durable adaptation state.
+    """Normalized `component_profile` block from the manifest.
 
     Always returns ``{"kind": str, "definitions_root": str,
     "reference_pattern": str, "extensions": [str, ...]}``. ``kind`` defaults to
-    ``"none"`` when the profile, the block, or the field is missing or
-    malformed. Before a host has durable adaptation state, the legacy manifest
-    block remains a migration fallback.
+    ``"none"`` when the manifest, the block, or the field is missing or
+    malformed; the other fields default to empty so the consuming skill can
+    apply its own per-kind defaults.
     """
-    block = _profile_block(root, "component_profile")
+    block = (read_manifest(root) or {}).get("component_profile")
     if not isinstance(block, dict):
         block = {}
     kind = block.get("kind")
@@ -242,27 +198,6 @@ def component_profile(root: Path | str) -> dict:
         "definitions_root": definitions_root,
         "reference_pattern": reference_pattern,
         "extensions": extensions,
-    }
-
-
-# spec:portable-host-profile-routing::IM-7
-def surface_labels(root: Path | str) -> dict[str, str]:
-    """Return host-declared path/glob-to-surface labels.
-
-    The durable host profile is authoritative. An invalid durable profile
-    yields no labels; the manifest is consulted only before durable adaptation
-    state exists.
-    """
-    block = _profile_block(root, "surface_labels")
-    if not isinstance(block, dict):
-        return {}
-    return {
-        str(selector): str(label)
-        for selector, label in sorted(block.items())
-        if isinstance(selector, str)
-        and selector.strip()
-        and isinstance(label, str)
-        and label.strip()
     }
 
 

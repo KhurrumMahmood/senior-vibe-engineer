@@ -1,0 +1,13 @@
+{
+  "bucket": "legacy_allow_list",
+  "candidate_id": "implicit-state-0001",
+  "confidence": "medium",
+  "false_positive_reason": "noqa_marked",
+  "fields_touched": ["status"],
+  "file": "app/integrations/vendor.py",
+  "hit_count": 1,
+  "notes": "The literal mirrors a vendor-owned wire value and has the required reasoned stringly-status allow-list.",
+  "pattern": "stringly_compare",
+  "recommendation_hint_symbol": "mirrors_vendor_wire_state",
+  "symbols": ["mirrors_vendor_wire_state"]
+}

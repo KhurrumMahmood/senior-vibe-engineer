@@ -1,0 +1,215 @@
+{
+  "batch": "validated-neutral-planning-typescript",
+  "revision": "08953b9 validation through e800856 fresh D6 closeout",
+  "family": [
+    "architecture-fit",
+    "decide",
+    "design-it-twice",
+    "plan-spec",
+    "scope-feature"
+  ],
+  "invariant": {
+    "portable_principle": "Planning, decision, comparative-design, and plan-to-spec outcomes are independent of the host application language when they produce complete durable project artifacts without changing application source.",
+    "python_or_framework_mechanism": "None. The existing host planning scripts and docs are project facilities, not a Python-language conclusion or a framework binding of these prompt-led skills.",
+    "typescript_mechanism": "A locked TypeScript 5.9.3 host supplies ordinary .ts code roots and five distinct natural planning tasks; copied SKILL/knowledge closure plus final-artifact oracles prove the outcomes without parsing or changing TypeScript.",
+    "explicit_non_goals": [
+      "TypeScript parser, type-checker, import-resolution, or framework facts",
+      "Node, React, Express, ORM, queue, or package-manager support claims",
+      "Implementation, code generation, source mutation, or guard generation",
+      "A copied planning-runtime, generic launcher, or shared validation infrastructure",
+      "Stock-installed structural-redesign support beyond the non-structural replay"
+    ]
+  },
+  "reference_repairs": [
+    {
+      "issue": "No selected skill had an executable source-checkout import to repair; all five are prose-only prompt workflows.",
+      "repair": "None. The test freezes copied SKILL/knowledge closure and validates final artifacts rather than inventing a launcher.",
+      "evidence": "tests/test_validated_neutral_typescript_planning.py asserts exact copied skill names, local knowledge closure, final artifact contracts, and stable TypeScript source fingerprints."
+    },
+    {
+      "issue": "scope-feature's optional structure-redesign lesson names a shared structural-design reference that is not installed with the selected skill.",
+      "repair": "None for this batch: the natural task is not a topology redesign, so the conditional branch is excluded rather than copied speculatively.",
+      "evidence": "The raw task and scope output concern webhook replay protection across HTTP, worker, and metrics boundaries; they never invoke the structural-redesign branch."
+    }
+  ],
+  "language_model": {
+    "syntax": [
+      "Raw host contains .ts modules only as realistic code-root references.",
+      "No planning skill parses source syntax."
+    ],
+    "type_system": [
+      "npm run typecheck confirms the locked host is valid before replay.",
+      "No outcome relies on TypeScript type facts."
+    ],
+    "module_resolution": [
+      "None."
+    ],
+    "runtime": [
+      "Prompt-only copied skill/knowledge closure.",
+      "Python test artifact oracle and host-owned planning artifacts; no installed executable path imports checkout scripts, _common, a toolkit venv, or sibling runtime."
+    ],
+    "framework": [
+      "None. The fixture does not infer a Node or web framework from package metadata."
+    ]
+  },
+  "tooling": {
+    "selected": "Pinned skills@1.5.19 stock copy install plus a single pytest final-artifact oracle on a locked TypeScript host.",
+    "rejected_alternatives": {
+      "typescript_variant_per_skill": "The accepted invariants concern planning artifacts, not TypeScript semantics; variants would be artificial.",
+      "copied_planning_runtime": "The user explicitly permits prompt-only copied closure plus an artifact oracle; copying repository scripts into each skill would create unnecessary infrastructure.",
+      "shared_launcher": "No executable selected-skill behavior needs a launcher, and there is no demonstrated second consumer.",
+      "structural_redesign_fixture": "It would exercise the conditional shared-reference branch rather than the selected neutral planning outcome."
+    },
+    "version_and_resolution": "Fixture package-lock.json pins TypeScript 5.9.3; npm ci runs offline before stock installation. The exact installer is npx --yes skills@1.5.19.",
+    "closure_mode": "One exact combined stock install from a temporary TypeScript host copies only architecture-fit, decide, design-it-twice, plan-spec, and scope-feature to .agents/skills. The combination is justified by their real System-tier handoffs.",
+    "preflight_and_failure_codes": [
+      "npm ci --offline --ignore-scripts and npm run typecheck must exit 0 before artifact replay.",
+      "skills@1.5.19 add must exit 0 and install exactly the five selected copied directories.",
+      "Artifact oracle fails if a required final section, status/link, three-design divergence, or source fingerprint condition is absent."
+    ]
+  },
+  "outcome_contract": {
+    "inputs": [
+      "tests/fixtures/validated-neutral-typescript/planning/host/ locked TypeScript host",
+      "Five raw natural task files under tests/fixtures/validated-neutral-typescript/planning/tasks/",
+      "Copied selected skills under the temporary host .agents/skills/ directory"
+    ],
+    "structured_outputs": [
+      "ai-docs/plans/webhook-replay-protection.md (scoped)",
+      "ai-docs/plans/delivery-retry-boundary.md (architected)",
+      "ai-docs/decisions/0001-webhook-signature-boundary.md (proposed)",
+      "reports/design-it-twice/scan-20260719-140000/ with three designs and comparative analysis",
+      "ai-docs/plans/webhook-delivery-contract.md (promoted) and ai-docs/specs/webhook-delivery-contract.md (draft)"
+    ],
+    "must_fire": [
+      "scope-feature records bounded in/out/non-goal content and observable criteria",
+      "architecture-fit records decision/pattern/smell analysis and a visible P0 fork",
+      "decide records a single proposed ADR with alternatives and verification",
+      "design-it-twice produces three distinct design files plus synthesis and decision handoff",
+      "plan-spec preserves the plan-to-spec provenance and promotion linkage"
+    ],
+    "must_not_fire": [
+      "Any mutation of host src/ bytes",
+      "An artificial TypeScript analysis/implementation claim",
+      "An ADR created by design-it-twice",
+      "A plan-spec promotion with an unresolved P0 fork",
+      "An install that includes any skill beyond the selected five"
+    ],
+    "native_test_command": "npm ci --offline --ignore-scripts && npm run typecheck",
+    "native_guard_command": null
+  },
+  "evidence": {
+    "python_reference": [
+      "tests/test_plans.py, tests/test_decisions.py, and tests/test_specs.py remain green (74 existing checks in the focused 75-pass run).",
+      "There is no Python language/reference outcome to port; D2 is inapplicable to this validated-neutral batch."
+    ],
+    "typescript": [
+      "tests/test_validated_neutral_typescript_planning.py copies the raw locked host, typechecks it, runs the exact stock combined install outside the checkout, validates all final artifacts, and checks src SHA-256 after every replay.",
+      "The five task files contain no expected answer; the separate captured artifacts are validated by skill-specific final-output contracts.",
+      "No source file changes across installation or any artifact replay."
+    ],
+    "commands_and_artifact_paths": [
+      "$REPO_ROOT/.venv/bin/python -m pytest -q tests/test_validated_neutral_typescript_planning.py tests/test_plans.py tests/test_decisions.py tests/test_specs.py (75 passed)",
+      "$REPO_ROOT/.venv/bin/ruff check tests/test_validated_neutral_typescript_planning.py (All checks passed)",
+      "$REPO_ROOT/.venv/bin/python scripts/skill_meta.py lint --quiet (OK — 76 skills, 76 declaring new contract)",
+      "$REPO_ROOT/.venv/bin/python .claude/skills/_common/scripts/run_skill_smokes.py --quiet (55 eligible, 21 prose-only; 11 explicit smokes and 44 import-floor checks pass)",
+      "npx --yes skills@1.5.19 add <checkout> --skill architecture-fit --skill decide --skill design-it-twice --skill plan-spec --skill scope-feature --agent codex --copy -y",
+      "tests/fixtures/validated-neutral-typescript/planning/artifacts/**"
+    ]
+  },
+  "false_positive_boundary": {
+    "known_false_positives": [
+      "None: the test does not infer framework or language support from a package name, extension, or clean command."
+    ],
+    "known_false_negatives": [
+      "The fixture intentionally does not validate the optional structure-redesign branch of scope-feature.",
+      "A prompt-led replay remains judgment-dependent even though the fresh D6 task passed."
+    ],
+    "legitimate_similar_shapes": [
+      "P0 refusal is a correct plan-spec outcome, but this fixture uses a P0-clean plan to prove successful promotion.",
+      "An architected plan may retain a P0 fork; the architecture-fit fixture does so explicitly rather than guessing an ADR.",
+      "A design-it-twice result can recommend no option, but this fixture proves the useful recommendation path."
+    ]
+  },
+  "generalized": [
+    "Prompt-only selected-skill copy closure can be validated through exact stock installation and final-artifact oracles.",
+    "A locked TypeScript application host can exercise planning outcomes without a TypeScript-specific skill branch.",
+    "Source fingerprinting is a meaningful no-mutation proof for advisory/planning workflows."
+  ],
+  "did_not_generalize": [
+    "Host-owned planning-script availability as part of a bare selected-skill install",
+    "The optional structural-redesign knowledge branch",
+    "Framework architecture, queue selection, or compiler/type semantics",
+    "Framework or compiler semantics beyond the accepted planning artifacts"
+  ],
+  "reuse_decision": {
+    "shared_candidate": "Generic prompt-only planning launcher or copied planning-runtime closure.",
+    "actual_second_consumer": null,
+    "decision": "keep-family-local",
+    "evidence": [
+      "All selected skills are prose-only and their core proof is an artifact contract, so a launcher would duplicate rather than execute skill logic.",
+      "The user expressly allowed copied SKILL/knowledge closure plus an executable artifact oracle."
+    ],
+    "owner": "serial integrator only if a future accepted prompt-only family has a genuinely shared executable contract"
+  },
+  "translation_prerequisites": {
+    "rust": {
+      "native_tool": "cargo check",
+      "idiomatic_representation": "Rust host source roots named in planning artifacts",
+      "required_fixtures": ["locked Cargo host", "five artifact contracts", "source fingerprint"],
+      "semantic_gaps": ["fresh-agent D6", "structural-redesign closure"]
+    },
+    "go": {
+      "native_tool": "go test ./...",
+      "idiomatic_representation": "Go module source roots named in planning artifacts",
+      "required_fixtures": ["locked Go module", "planning artifact oracle", "source fingerprint"],
+      "semantic_gaps": ["fresh-agent D6", "structural-redesign closure"]
+    },
+    "java_or_kotlin": {
+      "native_tool": "Gradle or Maven test/compile command",
+      "idiomatic_representation": "source-set roots named in planning artifacts",
+      "required_fixtures": ["locked project", "planning artifact oracle", "source fingerprint"],
+      "semantic_gaps": ["fresh-agent D6", "structural-redesign closure"]
+    },
+    "csharp": {
+      "native_tool": "dotnet test",
+      "idiomatic_representation": "project compile roots named in planning artifacts",
+      "required_fixtures": ["locked project", "planning artifact oracle", "source fingerprint"],
+      "semantic_gaps": ["fresh-agent D6", "structural-redesign closure"]
+    },
+    "ruby": {
+      "native_tool": "bundle exec rake test",
+      "idiomatic_representation": "application/library roots named in planning artifacts",
+      "required_fixtures": ["locked Bundler host", "planning artifact oracle", "source fingerprint"],
+      "semantic_gaps": ["fresh-agent D6", "structural-redesign closure"]
+    }
+  },
+  "user_experience": {
+    "install_steps": [
+      "Run the pinned stock combined copy command for the five System-tier-chain skills.",
+      "Give one selected installed skill a raw task and inspect its durable planning artifact; do not expect a TypeScript-specific command."
+    ],
+    "wall_time_seconds": 2.46,
+    "agent_confusions": [
+      "Prompt instructions mention host-owned planning scripts, but those are not installed skill executables; validate their final artifact contract rather than adding a launcher.",
+      "The optional scope-feature structural-redesign lesson has a separate shared-reference dependency and must not be silently claimed as copied closure."
+    ],
+    "repeated_work": [
+      "One locked host is reused while each natural task and final artifact remains distinct."
+    ],
+    "smallest_later_improvement": "Review the optional scope-feature structural-redesign closure only if a real task needs it."
+  },
+  "residual_risks": [
+    "Fresh D6 validates usefulness on one locked TypeScript host, not every future planning context.",
+    "The captured final artifacts are an executable contract, not a substitute for an agent independently interpreting the natural task.",
+    "scope-feature structural-redesign mode has not earned selected-skill copied-closure evidence.",
+    "Host planning scripts remain a host-project prerequisite when a user runs these prompt workflows outside this artifact oracle."
+  ],
+  "next_decision": {
+    "recommendation": "Keep the five skills validated-neutral for the tested planning artifacts; do not create TypeScript variants or shared runtime.",
+    "rationale": "The tested invariants are durable planning artifacts, exact stock copied closure is proven, TypeScript source is untouched, and no language-specific mechanism was added or required.",
+    "blockers": [
+      "Any broader claim covering scope-feature structural-redesign mode would need its own closure decision"
+    ]
+  }
+}

@@ -1,12 +1,14 @@
 ---
 name: propose-boundary
-description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Consumes a target (file path, directory, or skill directory) and emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, proposed public API, backward-compat shim shape, caller-impact summary, and characterization-test matrix. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
+description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX or checked-JavaScript v1 uses a host-resolved symbol/import/call graph; Go v1 uses host `go list` package/import facts plus standard-library AST facts; Java v1 uses JDK 17 compiler-attributed package, type, import, and fully-qualified-reference facts. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
 argument-hint: "<target-path-or-name> [--candidates N]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
 job: explain
 best_for: |
+  A TypeScript or checked-JavaScript target needing resolved symbol, import, and call-graph evidence
+  for a stable public interface, backward-compatible barrel, and caller-impact proposal.
   A file or directory where distinct domain concerns live side-by-side
   with no defined public contract — sibling modules reach into each
   other's private helpers, change-amplification touches the same N
@@ -22,12 +24,13 @@ not_for: |
   three domains (use /find-omnibus then /refactor-subsystem). Folder-
   topology promotion / demotion (use /find-folder-topology-drift +
   /propose-folder-reorganization). Refactor execution (use
-  /refactor-subsystem in decomposition mode). Cross-subsystem boundary
-  proposals — v1 is intra-subsystem only; cross-subsystem stays in the
+  /refactor-subsystem in decomposition mode). Proposals spanning multiple
+  subsystems are outside v1 and stay in the
   System-tier chain (/scope-feature → /impact-feature → /architecture-
   fit → /plan-spec).
-language: python
+language: any
 framework: any
+scans: [python, typescript, javascript, go, java]
 ---
 
 # /propose-boundary
@@ -83,7 +86,272 @@ supporting `inspection.json`.
    the proposal includes an "Orchestration shim shape" section
    sketching how the original skill name keeps working after split.
 
-## Scope
+## TypeScript / TSX and checked-JavaScript v1
+
+The inherited TypeScript subset was `scans: [python, typescript]`; the
+frontmatter declaration adds JavaScript only for the checked-JavaScript path
+described here.
+
+Use this branch only when the target host supplies one named, project-local `tsconfig.json`
+and its own installed `typescript` package. The bundled runner
+uses that host's Compiler API to resolve eligible static module specifiers,
+top-level target symbols, and target-local call targets. The final artifact is
+an `inspection.json` plus `proposal.md`, not a lexical suggestion: it cites
+the resolved direct, alias, and barrel import evidence it used.
+
+This is the minimum framework-neutral typed-source contract. Checked JavaScript
+uses `--language javascript`, a named `jsconfig.json` or `tsconfig.json`, and
+`compilerOptions.allowJs` plus `checkJs` set to true. It accepts `.js`, `.jsx`,
+`.mjs`, and `.cjs` (including a mixed JS/TS host) and records selected files
+outside that named config as `partial`, never a clean proposal:
+
+- Propose a boundary only when two or more coherent top-level symbol domains
+  form a partition within the target. Public API candidates are exported,
+  non-underscore symbols; underscore-prefixed reaches are explicit Phase 1
+  blockers rather than compatibility coverage.
+- Record resolved inbound and outbound static imports, target-local resolved
+  calls, direct/alias/barrel caller impact, and a compatibility plan that keeps
+  the existing TypeScript `index.ts`/`index.tsx` or JavaScript
+  `index.js`/`index.jsx`/`index.mjs`/`index.cjs` barrel as a temporary re-export
+  surface.
+- In checked JavaScript, treat only same-name, top-level declaration references
+  assigned through literal `exports.name`, `module.exports.name`, or
+  `module.exports = { name }` forms as resolved CommonJS public API evidence.
+  Computed, spread, aliased, or expression-backed CommonJS exports make the
+  proposal `partial` until source/runtime confirmation establishes the public
+  contract.
+- Give a characterization matrix and cite the host's native typecheck/test
+  commands for the human-approved move. The proposal never edits source or
+  runs a codemod.
+- Defer explicitly when the target has unresolved or ambiguous module/symbol
+  facts. A cohesive one-domain target also defers rather than inventing a
+  split. Excluded generated/vendor/test/declaration/minified/build trees stay
+  excluded even when named directly.
+
+This v1 does not infer framework semantics: React, Node, ORM, route,
+dependency-injection, runtime loading, dynamic import, reflection, decorator,
+or other framework behavior. It does not follow directory symlinks and rejects a direct symlink
+target. A missing or invalid `tsconfig`, missing project-local TypeScript, or
+syntax error stops clearly with exit code 2. Type errors outside the selected
+proposal graph are not converted into framework facts.
+
+The resolver lives in this skill because its output contract is specific to
+boundary proposals. Do not extract it into a shared TypeScript platform until
+another accepted consumer proves the same resolution and deferral contract.
+
+### Installed TypeScript proposal command
+
+Run this from the target host root after installing only this selected skill.
+It writes only under `reports/propose-boundary/` and has no repository-level
+Python, `_common`, or sibling-skill import.
+
+To make the stock Codex location from a released source, set
+`PROPOSE_BOUNDARY_SOURCE` to that pinned source/ref and run:
+
+<!-- installed-command:stock-install:start -->
+```bash
+: "${PROPOSE_BOUNDARY_SOURCE:?Set this to the pinned skill source/ref}"
+npx --yes skills@1.5.19 add "${PROPOSE_BOUNDARY_SOURCE}" \
+  --skill propose-boundary --agent codex --copy -y
+```
+<!-- installed-command:stock-install:end -->
+
+<!-- installed-command:typescript-proposal:start -->
+```bash
+PROPOSE_TARGET="${PROPOSE_TARGET:-src/legacy}"
+PROPOSE_LANGUAGE="${PROPOSE_LANGUAGE:-typescript}" # typescript | javascript
+PROPOSE_TSCONFIG="${PROPOSE_TSCONFIG:-tsconfig.json}"
+PROPOSE_NAME="${PROPOSE_NAME:-${PROPOSE_LANGUAGE}-legacy}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/propose-boundary" \
+  ".claude/skills/propose-boundary"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "propose-boundary is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+node "${SKILL_ROOT}/scripts/propose_typescript.mjs" \
+  --target "${PROPOSE_TARGET}" \
+  --project-root "$(pwd)" \
+  --language "${PROPOSE_LANGUAGE}" \
+  --tsconfig "${PROPOSE_TSCONFIG}" \
+  --candidates 2 \
+  --inspection "reports/propose-boundary/${PROPOSE_NAME}/inspection.json" \
+  --proposal "reports/propose-boundary/${PROPOSE_NAME}/proposal.md"
+```
+<!-- installed-command:typescript-proposal:end -->
+
+## Go v1
+
+The former `scans: [python, typescript, javascript]` declaration is superseded
+by the frontmatter Go entry; existing Python and TypeScript/checked-JavaScript
+contracts are unchanged.
+
+Use this branch for one package directory in one Go module. It is a deliberately
+narrow, read-only proposal: host `go list -e -json -mod=readonly ./...`
+establishes the module's active package/import facts, while the bundled
+standard-library Go program uses `go/parser`/`go/ast` for top-level declarations
+and syntax-level local-call candidates. It never downloads or imports
+`go/packages`, `go/types`, a language server, or any third-party module.
+
+Go v1 may recommend an extraction only when all of these facts are available:
+
+- a PATH-discovered Go tool is at least Go 1.22 and the target host is one
+  root `go.mod` module with no active `go.work` workspace and no `replace`
+  directive (preflighted with `go env GOWORK` and `go mod edit -json`);
+- `go list` establishes the target package import path and every first-party
+  direct or alias importer;
+- the target has two or more named top-level symbol domains, each with at
+  least two declarations; and
+- no build-tag/cgo source, unresolved package graph, dot/blank importer, or
+  generated/vendor/test target makes the evidence incomplete.
+
+Uppercase identifiers are the only public API candidates. Go cannot import an
+unexported identifier from another package, so package-private cross-domain
+calls are listed as migration blockers rather than a TypeScript-style external
+private-import claim. Those calls are AST syntax candidates, not `go/types`
+call identities. For each selected exported function, the proposal also lists
+same-package exported named types found in its syntax-level signature so the
+human can explicitly preserve their identity with a temporary type alias. The
+proposal preserves the old package import path only as a human-approved
+temporary forwarding/type-alias facade; it never writes one.
+
+This v1 explicitly defers active `go.work` workspaces, modules using
+`replace`, build-tagged or cgo target source, dot/blank importers, unresolved
+packages, generated/vendor/test targets, and cohesive one-domain packages.
+The bundled runner avoids Go 1.18-only syntax so an older toolchain reaches
+the explicit Go-version deferral rather than failing to compile the runner.
+Dynamic loading, reflection,
+interfaces, build matrices, workspaces, external consumers, and runtime
+reachability remain outside the claim. A missing or old Go tool emits an
+`unsupported` inspection outcome rather than a clean proposal. Malformed Go
+source emits a failed syntax outcome.
+
+### Installed Go proposal command
+
+Run this from the Go module root after the router has exposed the on-demand
+library. It uses only the selected skill's bundled Go source and the host Go
+toolchain; it does not require the toolkit Python environment, sibling skills,
+or a network dependency.
+
+<!-- installed-command:go-proposal:start -->
+```bash
+PROPOSE_TARGET="${PROPOSE_TARGET:-internal/legacy}"
+PROPOSE_NAME="${PROPOSE_NAME:-go-legacy}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/propose-boundary" \
+  ".claude/skills/propose-boundary"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "propose-boundary is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+if ! command -v go >/dev/null 2>&1; then
+  printf '%s\n' '{"status":"unsupported","failure_kind":"go_tool_missing"}'
+  exit 0
+fi
+GO_VERSION_OUTPUT="$(go version 2>/dev/null || true)"
+GO_VERSION_TOKEN="${GO_VERSION_OUTPUT#* go}"
+GO_VERSION_TOKEN="${GO_VERSION_TOKEN%% *}"
+GO_VERSION_MAJOR="${GO_VERSION_TOKEN%%.*}"
+GO_VERSION_REST="${GO_VERSION_TOKEN#*.}"
+GO_VERSION_MINOR="${GO_VERSION_REST%%.*}"
+case "${GO_VERSION_MAJOR}:${GO_VERSION_MINOR}" in
+  *[!0-9:]*|:*)
+    printf '%s\n' '{"status":"unsupported","failure_kind":"go_version_unreadable","minimum_go":"1.22"}'
+    exit 0
+    ;;
+esac
+if [ -z "${GO_VERSION_MAJOR}" ] || [ -z "${GO_VERSION_MINOR}" ] || \
+   [ "${GO_VERSION_MAJOR}" -lt 1 ] || \
+   { [ "${GO_VERSION_MAJOR}" -eq 1 ] && [ "${GO_VERSION_MINOR}" -lt 22 ]; }
+then
+  printf '%s\n' '{"status":"unsupported","failure_kind":"go_version_too_old","minimum_go":"1.22"}'
+  exit 0
+fi
+go run "${SKILL_ROOT}/scripts/propose_go.go" \
+  --target "${PROPOSE_TARGET}" \
+  --project-root "$(pwd)" \
+  --candidates 2 \
+  --inspection "reports/propose-boundary/${PROPOSE_NAME}/inspection.json" \
+  --proposal "reports/propose-boundary/${PROPOSE_NAME}/proposal.md"
+```
+<!-- installed-command:go-proposal:end -->
+
+## Java v1
+
+Use this branch for one named Java package directory in a standalone host that
+can compile with JDK 17 without Maven, Gradle, annotation processors, or
+third-party dependencies. The bundled single-file Java runner invokes the JDK
+compiler tree API with parsing and attribution enabled. Only after all eligible
+production sources attribute successfully does it report direct imports or
+fully-qualified type references as `compiler-resolved` caller evidence.
+
+Java v1 proposes a seam only when at least two leading type-name domains each
+contain at least two top-level types. Public top-level types are proposed as
+the compatibility surface; the human still chooses the boundary. A one-domain
+package defers instead of inventing a split. Generated, vendor, build, test,
+malformed, default-package, mixed-package, and symlink targets never produce a
+clean proposal.
+
+This is deliberately a source/package pilot. It does not infer Spring, Jakarta,
+Android, reflection, dependency injection, runtime class loading, module-path,
+annotation-processor, Kotlin, Maven, or Gradle semantics. Hosts requiring those
+facts defer until a framework- or build-aware contract is justified by a real
+project. The runner stays family-local and uses no repository Python runtime,
+language server, or third-party JAR.
+
+### Installed Java proposal command
+
+Run this from the host root after the router exposes the on-demand skill. Both
+`java` and `javac` must resolve from `PATH`; source-file mode executes the copied
+runner directly.
+
+<!-- installed-command:java-proposal:start -->
+```bash
+PROPOSE_TARGET="${PROPOSE_TARGET:-src/main/java/example/legacy}"
+PROPOSE_NAME="${PROPOSE_NAME:-java-legacy}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/propose-boundary" \
+  ".claude/skills/propose-boundary"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "propose-boundary is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+if ! command -v java >/dev/null 2>&1 || ! command -v javac >/dev/null 2>&1; then
+  printf '%s\n' '{"status":"unsupported","failure_kind":"jdk_tool_missing","minimum_jdk":17}'
+  exit 0
+fi
+java "${SKILL_ROOT}/scripts/propose_java.java" \
+  --target "${PROPOSE_TARGET}" \
+  --project-root "$(pwd)" \
+  --minimum-jdk 17 \
+  --candidates 2 \
+  --inspection "reports/propose-boundary/${PROPOSE_NAME}/inspection.json" \
+  --proposal "reports/propose-boundary/${PROPOSE_NAME}/proposal.md"
+```
+<!-- installed-command:java-proposal:end -->
+
+## Python scope
 
 - **Project root:** the working directory.
 - **Python:** the host project's venv python (`.venv/bin/python` or
@@ -128,8 +396,12 @@ orchestrator treats the argument as a path and falls through to Form A.
 ```
 
 Requests N alternative boundary cuts (default: 1). The helper scores
-every candidate seam against the full criterion set and the proposal
-ranks the top N. The human picks one (or none) before hand-off.
+every candidate seam against the full criterion set and returns the top N plus
+every candidate tied at the cutoff. `candidate_selection` records the requested,
+eligible, and returned counts, cutoff score, whether ties expanded the result,
+and every lower-scored omitted candidate. Returned tie identities and scores
+remain in `candidate_seams`, so a limit never silently hides a cutoff-equivalent
+seam. The human picks one (or none) before hand-off.
 
 If the target doesn't exist, has fewer than 2 Python files AND fewer
 than 6 public symbols total, the orchestrator stops, logs
@@ -169,12 +441,15 @@ The helper writes `inspection.json` with:
   resolved within the target.
 - `candidate_seams` — list of `{cluster_id, members, rationale,
   proposed_public_api, callers_into_private_helpers, scores}` for the
-  top N candidate boundary cuts.
+  top N candidate boundary cuts plus every seam tied at the cutoff.
+- `candidate_selection` — `{requested, eligible, returned, cutoff_score,
+  ties_included, omitted_count, omitted}`. Each omitted row names its
+  `cluster_id` and score.
 - `defer_signals` — guardrail trips (`target_below_threshold`,
   `single_cluster_no_seam`, `scratch_code`).
 
 Stage 2 — **scout callers (optional).** For each `proposed_public_api`
-symbol in the top candidate seam, the orchestrator dispatches a cheap
+symbol in every returned candidate seam, the orchestrator dispatches a cheap
 read-only scout via `.claude/skills/_common/dispatch_scout_cheap.sh`
 (Bash + grep — no Agent tool; the allowed-tools list stays
 read-only-tight) to confirm the call sites in
@@ -206,7 +481,8 @@ The proposal markdown has these sections, in order:
 **Target kind:** file | directory | skill_directory
 **Total LOC:** <N>
 **Public symbols:** <K>
-**Candidate seams scored:** <C> (top <N> presented)
+**Candidate seams:** requested <N>; returned <R> of <C> eligible;
+cutoff <S>; ties included: yes | no; omitted <O>
 
 ## Current shape
 
@@ -242,7 +518,8 @@ working after extraction.)
 
 ## Candidate seam 2 — <cluster_id> (score: <S>)
 
-(Same structure, included only when `--candidates N` with N ≥ 2.)
+(Repeat this section for every row in `candidate_seams`, including ties that
+expanded the result beyond requested N.)
 
 ## Orchestration shim shape (skill-directory targets only)
 

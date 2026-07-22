@@ -1,14 +1,13 @@
-# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 
 skill: audit-decisions
 job: guard
 problem_class: "decision-registry hygiene audit (GUARD)"
 intent: >
-  Audit the decision registry for hygiene drift by wrapping decisions.py audit
-  and link-check, then checking code decision references, implementation
-  coverage, precedent consistency, and proposed-entry revisit signals. Read-only
-  — surfaces drifted entries and leaves resolution to /decide.
+  Audit decision-registry hygiene and validate inline decision references in
+  Python comments, Markdown/HTML references, and TypeScript/TSX comments.
+  Preserve registry/link diagnostics in a final read-only report and fail
+  explicitly when a supported source language cannot be parsed reliably.
 solves: >
   Decisions rot silently — a proposed ADR that nobody accepted/deprecated, a
   superseded-by pointer to a missing entry, an applies_to glob whose target was
@@ -22,11 +21,12 @@ dogfood_kind: host-attested
 dogfooded_on:
   - "host-attested (ADR 0035): attestations.yaml host-a row — 0 invocations, 1 effectiveness records, 0 scan dirs, learnings_file=false, 2026-05-02..2026-05-02."
   - "none-found (extracted in the 90f8567 big-bang; ES2 has no docs/decisions/ tree to audit, no on-disk reports run, and no fixtures pair)"
-reports_dir: none
+  - "2026-07-19 TypeScript/TSX fixture and stock-installed forward audit: project-local TypeScript Compiler API distinguished real comments from strings, regex, templates, and JSX text while preserving Python/Markdown/HTML behavior."
+reports_dir: reports/audit-decisions
 run_evidence:
-  count: 0
-  first: null
-  latest: null
+  count: 1
+  first: "2026-07-19"
+  latest: "2026-07-19"
 embodies_decisions:
   adr: []
   precedent: []
@@ -49,6 +49,7 @@ evidence:
   - "90f8567 — born in the 55-skill big-bang extraction; commit subject does not name this skill (textual low)"
   - "has_scripts: true / has_fixtures: false per es2_skill_facts.yaml — scanner present, no good/bad oracle (structural med)"
   - "reports_dir null, run count 0 — no on-disk audit run in this ES2 tree"
+  - "tests/test_audit_decisions_typescript.py proves final artifacts, positive/negative/must-not-fire TypeScript and TSX comments, malformed/missing-tool failures, report containment, copied closure, and stock-installed execution."
 gaps:
-  - "ES2 now has a real ai-docs/decisions/ tree (14 ADRs) for this skill to audit, but no timestamped self-run is on disk, so dogfood_kind is still none-found (the dogfooded_on line above predates the tree and is out of scope for this edit pass)."
+  - "Identifier and import semantics remain outside the decision-reference contract; only parser-owned comment trivia is supported for TypeScript/TSX."
   - "embodies_decisions.adr is []: audit-decisions is the AUDITOR of the decision registry, not a skill any ADR names as its enforcement/realization; no precedents.yml entry names it either."

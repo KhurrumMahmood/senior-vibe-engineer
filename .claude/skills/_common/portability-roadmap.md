@@ -1,31 +1,33 @@
 # Portability roadmap for `_common/`
 
 The skill ecosystem was originally Django-flavored because that's what
-the seed host project needed. The design always anticipated cross-language
-adapters (TypeScript, Rust) and cross-framework reuse (Django, FastAPI,
-Express). This document pins the planned reorganization so future PRs
+the seed host project needed. Selected skill families now have validated
+TypeScript support; Rust and other host languages remain unproven. The design
+still anticipates cross-language adapters and cross-framework reuse (Django,
+FastAPI, Express). This document pins the planned reorganization so future PRs
 don't accidentally cement Django assumptions into shared files.
 
-**Status:** roadmap, not a plan-of-record. The reorg lands when the
-first non-Django host project starts adopting these skills, or when a
-skill is being written that's genuinely portable and needs a clean
-`_lib/core/` import path.
+**Status:** roadmap, not a plan-of-record. The full reorg is reconsidered when
+a non-Django host project starts adopting these skills, or when a genuinely
+portable skill needs a clean `_lib/core/` import path.
 
 ---
 
 ## Why this matters
 
 A senior engineer crossing into a new project should not have to re-derive
-the skill ecosystem's affordances. The skills are a body of knowledge;
-the language and framework are an execution detail. Today, that
-distinction is muddled — shared content can mix "every skill follows
-this report layout" (project-agnostic) with "use `.venv/bin/python`"
-(Python-specific) with host-project-specific test commands.
+the skill ecosystem's affordances. For validated-neutral skills, language and
+framework should be execution details; deliberately stack-bound skills must
+keep their coupling explicit. Today, that distinction is muddled — shared
+content can mix "every skill follows this report layout" (project-agnostic)
+with "use `.venv/bin/python`" (Python-specific) with host-project-specific test
+commands.
 
-A new TypeScript host project would need to re-explain the same report
-layout to its skills. A new Django-but-different-domain project would
-need to re-explain the same Python conventions. That's friction we can
-avoid by splitting the shared content along the seams it already has.
+Current TypeScript-supported skills solve this selectively with self-contained
+packages, but a new cross-family implementation can still need to re-explain
+the same report layout. A new Django-but-different-domain project would need to
+re-explain the same Python conventions. That's friction we can avoid by
+splitting the shared content along the seams it already has.
 
 ## The four-layer split
 
@@ -34,7 +36,7 @@ _lib/
 ├── core/           # Project-agnostic, language-agnostic
 ├── language/
 │   ├── python/     # Python-specific, project/framework-agnostic
-│   ├── typescript/ # (future)
+│   ├── typescript/ # shared layer future; current support is skill-local
 │   └── rust/       # (future)
 ├── framework/
 │   ├── django/     # Django-specific, project-agnostic
@@ -94,19 +96,22 @@ host overlay.
 
 ## Frontmatter as the portability seam (today)
 
-Even before the directory reorg, `language` and `framework` frontmatter
-fields make per-skill portability explicit:
+Even before the directory reorg, `language` and `framework` frontmatter fields
+make each skill's encoded assumptions explicit for routing:
 
 ```yaml
 language: python      # python | typescript | rust | any
 framework: django     # django | none | any
 ```
 
-A skill declaring `language: any, framework: any` is portable today and
-does not need a port when the reorg lands — it already reads only from
-the future `_lib/core/` content. A skill declaring `language: python,
-framework: django` is bound to the host stack and will need adapters
-when ported.
+A skill declaring `language: any, framework: any` encodes no language or
+framework assumption for routing purposes. That declaration alone is not proof
+of host-language support; validation is recorded separately in
+`.claude/tasks/typescript-skill-coverage.json`. Its current snapshot classifies
+22 skills as TypeScript-supported, 19 as validated-neutral, 22 as deliberately
+stack-bound, and 13 as ecosystem-runtime; it proves no other host language. A
+skill declaring `language: python, framework: django` is bound to the host stack
+and will need adapters when ported.
 
 `/which-skill` uses these fields to filter recommendations: a TypeScript
 project asking for a "split this fat module" skill should not be offered
@@ -122,12 +127,15 @@ helper scripts are written in. So:
 
 - Pure-judgment / planning / decision skills that only read ADRs, plans,
   patterns, or reason about scope (`architecture-fit`, `audit-decisions`,
-  `impact-feature`, `plan-feature`, `plan-spec`, `scope-feature`,
-  `triage-debt`, `teach-pattern`) → `language: any, framework: any`.
-- `prevent-regression` → `framework: any` but kept `language: python`
-  (its guard-generation path emits Python lint rules).
-- `find-omnibus` → `language: any` because it now genuinely processes
-  JS/TS through the shared language-adapter seam (see below).
+  `plan-spec`, `scope-feature`, `triage-debt`, `teach-pattern`) use the
+  `language: any, framework: any` routing declaration. `impact-feature` and
+  `plan-feature` are Python/Django stack-bound.
+- `prevent-regression` → `language: any, framework: any`; alongside its
+  Python paths, it has an accepted TypeScript closed-state guard path.
+- `find-omnibus` → `language: any, framework: any` because it processes
+  Python, JavaScript, and TypeScript. Its TypeScript Compiler API analysis is
+  bundled inside the skill and is self-contained, not implemented through the
+  shared language adapter.
 - Detectors whose analysis is genuinely Python-AST-bound (the ORM /
   layer / state / FK detectors) **kept** `language: python` even after
   migrating onto the adapter — routing through the seam standardizes
@@ -140,11 +148,12 @@ helper scripts are written in. So:
 ## The language-adapter seam (landed 2026-06-17)
 
 Roadmap trigger #2 ("a skill needs a clean `_lib/` import path to express
-genuine portability") effectively fired: the analyzer-adapter pattern of
-ADR 0032 was extracted from inside `find-omnibus` into the first
-cross-cutting shared `_lib` module, `scripts/_lib/lang_adapter/`, and ~21
-AST consumers were migrated onto it. See ADR 0032 → *Implementation
-status* for the full inventory and the deliberate non-migration boundary.
+genuine portability") led to the first cross-cutting shared `_lib` module,
+`scripts/_lib/lang_adapter/`, which serves a subset of Python and legacy
+JavaScript analyzer paths. `find-omnibus` is outside that shared TypeScript
+path: its Compiler API launcher is bundled with the skill so copied installs
+remain self-contained. See ADR 0032 → *Implementation status* for the shared
+adapter's inventory and deliberate non-migration boundary.
 
 This is a partial, opportunistic landing — not the full directory reorg.
 One wart it introduces, to be cleaned up when the reorg proper happens:
@@ -153,9 +162,9 @@ skill scripts reach `scripts/_lib/lang_adapter` by inserting the repo
 `_lib/{core,language,framework,repo}` layout will replace with a clean
 import path.
 
-## When the reorg actually happens
+## When to revisit the full reorg
 
-Trigger conditions, any of which is enough:
+Reconsideration triggers, any of which is enough to evaluate the full split:
 
 1. A second host project starts adopting these skills (Django or not).
 2. A skill is being written that's genuinely portable and needs a clean
@@ -163,10 +172,12 @@ Trigger conditions, any of which is enough:
 3. The host-overlay content has grown enough that readers can no longer
    tell which layer a given rule belongs to.
 
-Until one of those triggers fires, the reorg stays parked. Premature
-portability splits are themselves a form of speculative abstraction;
-the discipline this roadmap enforces is "know where it would go" rather
-than "split it now."
+A trigger justifies evaluation rather than automatically committing the full
+reorg. Trigger #2 produced the partial shared adapter described above; the full
+split remains parked until its additional benefit outweighs the migration cost.
+Premature portability splits are themselves a form of speculative abstraction;
+the discipline this roadmap enforces is "know where it would go" rather than
+"split it now."
 
 ## Cross-references
 

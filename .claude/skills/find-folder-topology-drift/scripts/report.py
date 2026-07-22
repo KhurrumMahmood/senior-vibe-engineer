@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
-from product_topology import read_jsonl, render_simple_report, write_json  # noqa: E402
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from support import read_jsonl, render_simple_report, write_json  # noqa: E402
 
 
 def main() -> int:
@@ -16,10 +20,22 @@ def main() -> int:
     parser.add_argument("--output-md", type=Path, required=True)
     parser.add_argument("--output-json", type=Path, required=True)
     parser.add_argument("--target", required=True)
+    parser.add_argument(
+        "--language",
+        choices=("python", "javascript", "typescript", "go", "java", "mixed"),
+        default=None,
+        help="Language label for the final artifact; infer from detections when omitted.",
+    )
     args = parser.parse_args()
 
     records = read_jsonl(args.detections)
-    markdown, findings = render_simple_report("Folder-topology drift audit", records, args.target)
+    record_languages = {str(record.get("language", "python")) for record in records}
+    language = args.language or (next(iter(record_languages)) if len(record_languages) == 1 else "mixed")
+    scan_path = args.detections.with_name("scan.json")
+    scan = json.loads(scan_path.read_text(encoding="utf-8")) if scan_path.is_file() else None
+    markdown, findings = render_simple_report(
+        "Folder-topology drift audit", records, args.target, language, scan
+    )
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.write_text(markdown, encoding="utf-8")
     write_json(findings, args.output_json)

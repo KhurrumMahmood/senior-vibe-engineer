@@ -1,0 +1,53 @@
+{
+  "batch": "Go final language-level coverage",
+  "status": "accepted",
+  "revisions": {
+    "find_incomplete_sweep": "2b83ccd",
+    "propose_folder_reorganization": "7f3da12"
+  },
+  "family": [
+    "find-incomplete-sweep",
+    "propose-folder-reorganization"
+  ],
+  "native_tooling": [
+    "Go >= 1.22",
+    "go list -deps -export -json",
+    "go/parser",
+    "go/types",
+    "git blame --porcelain",
+    "go test ./...",
+    "go vet ./..."
+  ],
+  "portable_principle": "Compiler-resolved facts can make narrow leads and move plans honest, but human intent and project conventions remain explicit inputs rather than inferred authority.",
+  "final_outcomes": {
+    "incomplete_sweep": "one-straggler option-field leads flow from resolved calls and Git trajectory into the existing human-verdict and triage workflow",
+    "folder_reorganization": "an explicit project convention can authorize a read-only internal-package move plan with current-module import impact and native verification obligations"
+  },
+  "reuse_decision": {
+    "shared_concepts": [
+      "host Go discovery and minimum version",
+      "go list export-data package bootstrap",
+      "project-root and symlink boundaries",
+      "complete, partial, unsupported, and failed outcomes"
+    ],
+    "kept_family_local": [
+      "option-struct call grouping and Git trajectory",
+      "human-verdict packet contract",
+      "project convention schema",
+      "package-split impact and blocker model"
+    ],
+    "next_abstraction_gate": "Extract only a vendorable bootstrap/path primitive after one real repair must be applied to at least two installed consumers."
+  },
+  "known_limits": [
+    "incomplete-sweep is a human-review lead limited to direct project top-level functions and keyed struct literals",
+    "Git timestamps are trajectory evidence, not proof of intent",
+    "folder proposals require an explicit project convention and are restricted to internal packages in one module",
+    "framework convention inference, workspaces, cgo, external tests, nested modules, and execution of the move remain deferred"
+  ],
+  "evidence": [
+    "tests/test_find_incomplete_sweep_go.py",
+    "tests/test_propose_folder_reorganization_go.py",
+    ".claude/skills/find-incomplete-sweep/knowledge/go-v1.md",
+    ".claude/skills/propose-folder-reorganization/knowledge/go-v1.md"
+  ]
+}

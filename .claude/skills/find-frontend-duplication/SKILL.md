@@ -56,7 +56,7 @@ Write toward these gates from Stage 0.
   `.engineering/docs/find-frontend-duplication-scope.md`, not through
   stale `--templates` / `--js` flags.
 - **Component primitive root:** declared by the project's `component_profile`
-  (`.engineering/project/host-profile.json`, `definitions_root` field), read by
+  (`.engineering/manifest.json`, `definitions_root` field), read by
   `cotton_inventory.py`. No baked-in path — when no `component_profile` is
   declared (`kind: none`) the inventory is simply empty.
 - **Project root:** this worktree's root.
@@ -257,7 +257,7 @@ with the same candidate count shown in `classified.json`.
 
 | Symptom | Action |
 |---|---|
-| Stage 1 cotton-inventory empty | No `component_profile` declared (`kind: none`), or its `definitions_root` is unset/missing on disk; check `.engineering/project/host-profile.json` |
+| Stage 1 cotton-inventory empty | No `component_profile` declared (`kind: none`), or its `definitions_root` is unset/missing on disk; check `.engineering/manifest.json` |
 | Any script exits non-zero | Stop at the failing stage, paste the exact command and stderr/stdout, and do not summarize downstream artifacts from a previous run |
 | Stage 2 reports 0 candidates | min-tokens / min-count thresholds may be too high — re-run scanners with `--min-count 2 --min-tokens 2` |
 | Stage 4 sub-agent recommends "extract" for a single-callsite chain | Re-dispatch citing `knowledge/extraction-thresholds.md` (3+ callsites across 2+ templates) |

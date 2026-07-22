@@ -14,7 +14,8 @@ verifier exactly how to classify an omnibus-module candidate.
 
 ## The facet-vs-domain rule (refactor-subsystem §1.2.5)
 
-Copied from `.claude/skills/refactor-subsystem/knowledge/solid-gate-tests.md`:
+The complete evaluation rule is bundled here so an installed scout needs no
+other skill:
 
 > **Evaluation rule:** "and"s that connect facets of a single domain
 > (different execution paths, sequential pipeline steps, object
@@ -97,7 +98,7 @@ Even with high cluster counts, these shapes are NOT omnibus:
 | Custom-site scraper at `sites/*/scrape.py` | `custom_scraper` |
 | Already-decomposed directory package (check for sibling `.py` files) | `already_decomposed` |
 
-See `knowledge/` for the full list.
+This is the complete bundled false-positive list for the installed skill.
 
 ### V5. Sketch a decomposition (confirmed_omnibus only)
 
@@ -114,11 +115,12 @@ symbols move to each. Follow the directory-package precedent:
 This is a sketch — the human running `/refactor-subsystem` will
 refine it during Phase 3 planning.
 
-Apply the deletion test from `.claude/skills/_common/interface-depth.md`
-to the sketch: each proposed file should improve locality for a domain
-cluster. If deleting a proposed file would mostly remove ceremony rather
-than push domain complexity back into callers, collapse it into a
-neighboring file in the sketch.
+Apply the deletion test to every proposed file: if deleting that file would
+push non-trivial domain logic back into callers or a sibling module, the file
+earns its boundary. If deleting it would mostly remove imports, forwarding, or
+other ceremony, collapse it into a neighboring file. Each retained file must
+improve locality for one domain cluster without requiring routine private
+cross-sibling calls.
 
 For `coordination_omnibus`, sketch the missing workflow owner instead
 of a file split: which registry/context/status modules would absorb the

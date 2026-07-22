@@ -3,9 +3,15 @@
 A **senior-engineer skill ecosystem** for AI coding agents: skills that find
 architectural debt, refactor systematically, author ADRs, and turn one-off
 discoveries into durable guardrails. Extracted from a real production codebase.
-**Today it is Python/Django-flavored** — the lint substrate and most worked
-examples are Django — with a *roadmap* toward language-neutral reuse, not yet a
-proven-portable core (see [Tech assumptions](#tech-assumptions)).
+**Its origin and shared runtime remain Python/Django-flavored** — the lint
+substrate and most worked examples are Django. TypeScript has complete coverage
+across the 22 language-level skills. Go has a bounded 14/22 core, and Java has
+a bounded 3/22 standalone-JDK pilot covering complexity detection, boundary
+proposal, and transactional package moves; unsupported families remain
+explicitly pending rather than inheriting a language-wide claim. Other host
+languages, including Rust, are not yet proven (see
+[Tech assumptions](#tech-assumptions) and the tracked
+[coverage matrix](./.claude/tasks/multilanguage-skill-matrix.json)).
 
 **Where it's headed:** [`VISION.md`](./VISION.md) states the end-state this
 ecosystem converges a project toward — the success criterion the skills serve.
@@ -14,9 +20,11 @@ This README is the **human entrypoint**. AI agents (Claude Code, Codex,
 Augment, Cursor, Gemini) should start at
 [`AGENTS.md`](./AGENTS.md) → [`.claude/CLAUDE.md`](./.claude/CLAUDE.md).
 
-**Where to start:** `/engineer-init` for first-time setup (venv, deps,
-hooks); `/which-shape` for routing whenever you're unsure what kind of
-work to run.
+**Where to start:** install the three lightweight routers, materialize the full
+guide/tool library outside agent discovery, then let the routers expose only
+the selected closure on demand. For non-trivial work, pass that bounded closure
+to a fresh non-context sub-agent. Repository contributors use `/engineer-init`
+for the development venv and hooks.
 
 ## What's in the box
 
@@ -71,9 +79,9 @@ work to run.
   `no_fat_view`, `no_bare_delay`, `no_comment_drift`,
   `codegen_emits_new_paths`, `run_jscpd`).
 - **`ai-docs/`** — the ADR / plan / spec workflow that pairs with the
-  skills. Nine starter ADRs are highlighted below; the full live registry is
-  under `ai-docs/decisions/`. Entries marked *(proposed)* are calibrated
-  starting points an adopting project confirms or supersedes:
+  skills. Nine ADRs ship as the foundation; the ones marked *(proposed)*
+  are calibrated starting points an adopting project confirms or
+  supersedes:
   - `0001-textchoices-for-state` — string state fields → typed enums.
   - `0002-spec-first-refactor` — refactors author a spec before code.
   - `0003-canonical-findings-ledger` *(proposed)* — findings get an ID
@@ -101,53 +109,85 @@ work to run.
 ## Quick start
 
 ```bash
-# Install deps and pre-commit hooks — or run /engineer-init to do all this
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-.venv/bin/pre-commit install   # requires a git repo; skip if unversioned
+# From the host project. The command installs only the three routers.
+ENGINEERING_SKILLS_SOURCE=https://github.com/KhurrumMahmood/senior-vibe-engineer # host-ref-allow: public distribution repository
+DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \
+  "$ENGINEERING_SKILLS_SOURCE" \
+  --skill which-shape --skill which-skill --skill which-cleanup \
+  --agent codex --copy -y
 
-# Try a skill (under Claude Code; Codex/Augment vary)
-/which-shape "this inherited project feels messy and slow"
-/which-skill "I need to clean up duplicated workflow modules"
-/find-duplication app/services
-/triage-debt
+# Materialize all non-router guides and tooling outside agent discovery.
+python3 .agents/skills/which-skill/scripts/bootstrap_library.py \
+  --project-root "$PWD" --source "$ENGINEERING_SKILLS_SOURCE"
 ```
 
-To run the complete repository suite, including the Playwright renderer smoke,
-install the optional browser prerequisite explicitly:
+Ask the agent to use `which-shape` when the operating mode is unclear,
+`which-skill` for the tactical choice, and `which-cleanup` after changes are
+made. The three routers run with system Python and do not load the other 73
+skill bodies or metadata into ambient context. The library lives in the
+project-scoped sibling cache
+`<project-parent>/.engineering-skills/<project-name>` by default, outside both
+the target repository and standard skill-discovery roots. Router results point
+to only the selected guide/tool closure and
+recommend a fresh non-context sub-agent for non-trivial work. After bootstrap,
+a pinned `skills@1.5.19` selected-skill command is emitted only when every
+closure member has passed selected-install evidence and the user explicitly
+chooses ambient installation; other closures report that path unavailable.
+
+For an explicit broad, read-only code-health request that resolves to exactly
+one of JavaScript or TypeScript,
+`which-skill` can return one bounded complementary family: decision drift,
+complexity hotspots, and declared-standard gaps. The router reports required
+host inputs and skips, points to concise family/member contracts, and keeps all
+three task skills in the on-demand library. Independent read-only members may
+run concurrently in fresh lanes; fixes and every other mutation remain serial.
+Narrow requests still route to one skill.
+
+To remove all skills installed for the project:
 
 ```bash
-.venv/bin/python -m pip install -r requirements-dev.txt
-.venv/bin/python -m playwright install chromium --only-shell
-.venv/bin/python -m pytest
+DO_NOT_TRACK=1 npx --yes skills@1.5.19 remove --all
 ```
 
-Skills are designed to be invoked by AI coding agents inside a host
-project's repo. The host project drops `.claude/`, `scripts/`, and
-`ai-docs/` into its root (or symlinks them) and the skills become
-available to the agent.
+The stock CLI owns the installed skill directories and `skills-lock.json`.
+Move local edits out of an installed skill directory before replacing or
+removing it. Files elsewhere in the host project are outside that boundary.
+The on-demand library is separate from that boundary and may be retained as a
+shared project resource or removed independently.
 
-## Before the skills work — two gotchas
+For repository development, clone this repo and run `/engineer-init`, or:
 
-Claude Code auto-discovers `.claude/skills/` and lists every skill as a
-slash command, so the skills *look* ready before they actually are. Two
-things commonly block them:
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/pre-commit install
+```
 
-1. **The runtime isn't installed.** Most skills shell out to helper
+## Runtime-backed guides
+
+The routers and prompt-only guides are self-contained. Many older
+script-backed skills still depend on repository-level helpers and PyYAML; they
+are not yet claimed as independently installable. TypeScript support is tracked
+per skill, and further cross-language work proceeds one cohesive family at a
+time.
+
+1. **The development runtime isn't installed.** Most skills shell out to helper
    scripts under `scripts/` (`decisions.py`, `ledger.py`, the lint
    runner, …) that need `PyYAML` from `requirements.txt`. Until the venv
    exists the slash command is listed but errors on its first script
-   call. Run the Quick start install block — or `/engineer-init` —
-   first. Prompt-only skills (`/gut-check`, `/which-skill`) work without
-   it; the script-backed majority do not.
+   call. Run the repository-development block above — or `/engineer-init` —
+   when developing the full checkout. Prompt-only guides and the three routers
+   do not require it.
 
-2. **The skills must run from a host project root.** Skill scripts use
+2. **Older script-backed guides may still require runtime generalization.** Their scripts use
    paths relative to the repo root — `scripts/decisions.py`,
    `ai-docs/decisions/`, `reports/`. Run from a parent or staging
    directory, those paths don't resolve and there is no codebase to act
-   on. Set the working directory to a project root that has `.claude/`,
-   `scripts/`, and `ai-docs/` — either this repo itself, or a host
-   project those folders were copied or symlinked into.
+   on. Use the router's exact guide/tool paths under
+   the router-reported sibling cache, but treat those paths as location rather
+   than proof that the guide can already operate on an external host. Do not
+   copy the guide into an ambient skill directory merely to mask an undeclared
+   runtime dependency.
 
 ## Layout
 
@@ -179,15 +219,16 @@ reports/
 - **stdlib-first** in `_common/` so skills can run before a project venv
   exists; PyYAML is the only required external dep (for shared
   frontmatter parsing, pinned in `requirements.txt`).
-- **The lint substrate and worked examples are Django/Python — not just
-  illustration.** The AST lint rules (`no_query_mutation`, `no_bare_delay`, …)
-  are Django/Celery detectors, and the patterns' only proven instances are
-  Django. `.claude/skills/_common/portability-roadmap.md` holds the cross-language
-  porting contract. A shared JavaScript/TypeScript heuristic adapter now extracts
-  top-level symbols and powers `/find-omnibus`, but it misses common ESM exports
-  and the deeper semantic detectors remain Python-specific. No non-Django host
-  portfolio has passed end-to-end installation and conformance yet, so
-  "portable" is a partially embodied roadmap, not a verified product claim.
+- **The legacy lint substrate and most worked examples are Django/Python — not
+  just illustration.** Rules such as `no_query_mutation` and `no_bare_delay`
+  remain Django/Celery-specific. TypeScript coverage is separately proven and
+  tracked in `.claude/tasks/typescript-skill-coverage.json`: 22 skills are
+  TypeScript-supported, 19 are validated-neutral, 22 are deliberately
+  stack-bound, and 13 are ecosystem-runtime. Go separately earns 14/22
+  language-level outcomes. Java earns only the three standalone-JDK families
+  recorded in `.claude/tasks/java-language-coverage.json`; the other 19 remain
+  pending. None of that evidence establishes Rust, Kotlin, or framework-level
+  Java support.
 
 ## Where to read next
 

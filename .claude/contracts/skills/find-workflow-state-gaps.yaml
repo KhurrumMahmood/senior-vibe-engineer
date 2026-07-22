@@ -1,12 +1,12 @@
-# Intent reviewed against the current SKILL.md frontmatter on 2026-07-16.
 schema_version: 2
 
 skill: find-workflow-state-gaps
 job: suspect
 problem_class: "UI state-coverage drift detection (SUSPECT, advisory)"
 intent: >
-  Advisory scan for workflow state-coverage gaps in JavaScript and templates —
-  loading, empty, failure, retry/cancel, disabled, and mobile states. Bands: missing_loading_state, missing_empty_state,
+  Advisory scan for /sites workflow state-coverage gaps — loading, empty,
+  success, partial, failed, retry/cancel, disabled, stale-job, permission, and
+  mobile/responsive states. Bands: missing_loading_state, missing_empty_state,
   missing_failure_state, missing_recovery_state, missing_disabled_state,
   missing_mobile_state. Also imports /find-workflow-duplication findings as
   state-authority context. Text-surface advisory — findings need judgment

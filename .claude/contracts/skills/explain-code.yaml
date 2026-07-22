@@ -4,11 +4,10 @@ skill: explain-code
 job: explain
 problem_class: "behavioral annotation (maintenance EXPLAIN)"
 intent: >
-  Read-only EXPLAIN skill that converts a file, directory package, or named subsystem
-  into an annotated behavior doc at reports/explanations/<target>.md. Fans out scout
-  sub-agents per public symbol to capture intent, pre/postconditions, invariants,
-  callers, and unexplained regions. Complements /map-subsystem (inventory) by adding the
-  behavioral annotation that lets a human trust the code enough to change it.
+  Read-only EXPLAIN skill that converts a Python target or a TypeScript/TSX
+  target's direct public exports into an annotated behavior document at
+  reports/explanations/<target>.md. TypeScript v1 keeps aliases and re-exports
+  visibly unexplained instead of claiming module resolution.
 solves: >
   Not being able to safely change a region because its behavior, invariants, and callers
   are undocumented — inventory alone (what's there) doesn't confer the trust needed to
@@ -51,6 +50,7 @@ evidence:
   - "90f8567 — born in the big-bang ES2 extraction (54 sibling skills share this commit); temporal signal is weak"
   - "has scripts/ helper and fans out scout sub-agents (allowed-tools include Agent); no fixtures/ oracle"
   - "reports_dir reports/explanations declared by SKILL.md but empty on disk — no ES2 annotation run captured"
+  - "TypeScript v1 has committed direct-export, re-export, invalid-syntax, annotation-key-collision, Python-reference, copied-install, and final-render fixtures; the fresh installed forward evidence is indexed by .claude/tasks/multilanguage-learnings/explain-code-typescript.{md,json}."
 gaps:
   - "No ADR in ai-docs/decisions/ names explain-code and no precedents.yml entry cites it, so embodies_decisions.adr is []; intent rests on SKILL.md + skill-catalog.md / architectural-smells.md."
-  - "No on-disk annotation run in ES2; the dogfood axis cannot be raised from run artifacts (reports/explanations is gitignored and empty)."
+  - "TypeScript v1 is deliberately lexical: aliases and re-exports remain visibly unexplained, and no module-resolution or type-checking claim is made."

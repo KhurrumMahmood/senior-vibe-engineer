@@ -1,0 +1,30 @@
+[
+  {
+    "id": "test-language-program",
+    "task_type": "system_scope",
+    "task": "Scope a language-expansion program. Problem: generally applicable skills work on Python/TypeScript but provide no honest outcomes for common .NET and PHP hosts, forcing users back to ad-hoc cleanup. In scope: a three-family C# pilot, a gated PHP pilot, native build/test verification, on-demand closures, and learning packets. Out of scope: framework claims, a universal AST, automatic LSP installation, and changing the three-router installer. Non-goals: full coverage from filename recognition and simultaneous rollout to every queued language. Success: each pilot detector/proposal/guard reaches a final artifact or mutation on a locked host; unsupported rows remain explicit; native checks pass; a fresh agent can reuse the learning packet. These answers are confirmed.",
+    "expected": {
+      "outcomes": ["scoped"],
+      "minimum_counts": {"in_scope": 4, "out_of_scope": 4, "non_goals": 2, "success_criteria": 3},
+      "required_terms": {
+        "in_scope": ["c#", "php", "native", "learning"],
+        "out_of_scope": ["framework", "universal ast", "lsp", "installer"],
+        "success_criteria": ["final", "unsupported", "native"]
+      },
+      "forbidden_terms": ["all parsable languages are supported"],
+      "assumptions_must_be_empty": true
+    }
+  },
+  {
+    "id": "test-small-fix-broad-review",
+    "task_type": "tier_check",
+    "task": "Scope changing which-skill's Java marker list to recognize '.java'. It is one constant, one routing fixture, and less than a day. A reviewer also suggests replacing the matcher, adding learned routing, and building a semantic index, but none is needed for the marker regression.",
+    "expected": {
+      "outcomes": ["downgrade_feature", "proceed_directly"],
+      "minimum_counts": {"refused_expansions": 2},
+      "required_terms": {"refused_expansions": ["learned routing", "semantic index"]},
+      "forbidden_terms": ["new routing subsystem"],
+      "assumptions_must_be_empty": true
+    }
+  }
+]

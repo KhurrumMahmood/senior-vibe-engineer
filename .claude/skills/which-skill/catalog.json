@@ -1,0 +1,1282 @@
+{
+  "schema_version": 1,
+  "skills": [
+    {
+      "name": "adapt-project",
+      "description": "Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, Go, and Java stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.",
+      "tier": "cross-cutting",
+      "job": "meta",
+      "best_for": "Adapting the portable engineering-skills ecosystem to a new host\nproject. Use when onboarding a repo, dogfooding against a reference\nproject, or regenerating local adapter facts after stack/CI/test\nchanges. Produces project adapter facts, not human intent.\n",
+      "not_for": "Capturing project purpose, risk posture, desired direction, or\nintentional tradeoffs (use /project-interview). Cleaning up a messy\ncodebase (use /triage-debt then the maintenance loop). Installing the\nruntime itself (use /engineer-init). Treating common legacy patterns\nas canonical without review.\n",
+      "lanes": [
+        "project-adaptation"
+      ],
+      "stage": "discover",
+      "entrypoint": true,
+      "produces": [
+        "adapter",
+        "adaptation_report",
+        "standardization_cautions"
+      ],
+      "evidence_required": [
+        "adapter",
+        "report"
+      ],
+      "risk_triggers": [
+        "legacy",
+        "high-churn",
+        "missing-tests",
+        "sensitive-surface"
+      ],
+      "max_overhead": "Stop after discovery and write unresolved questions; do not infer project philosophy.",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/adapt-project"
+    },
+    {
+      "name": "architecture-fit",
+      "description": "Third skill in the System-tier chain. Reads an `impacted`-status plan, walks the impact map against the decision registry, canonical-patterns, and architectural-smells; surfaces every material fork that needs an ADR (suggests `/decide` candidates inline); fills §5 (Architecture Fit) and §6 (Open Decisions) of the plan. Advances plan status to `architected`. The last judgment pause before promotion to spec.",
+      "tier": "system",
+      "job": "plan",
+      "best_for": "Third stage of System-tier planning — an `impacted`-status plan that\nneeds architectural judgment before promotion to spec. Surfaces\nmaterial forks (build vs buy, sync vs async, FK vs enum, new model\nvs extend, new subsystem vs absorb), decision conformance, and\nsmells avoided / created.\n",
+      "not_for": "Plan with status != impacted (use the matching next-stage skill).\nAuthoring an ADR — this skill *recommends* /decide candidates but\ndoes not write ADRs itself. Implementation (use /refactor-subsystem\nafter promotion).\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/architecture-fit"
+    },
+    {
+      "name": "audit-decisions",
+      "description": "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, Java JDK 17+ source, JavaScript-family, and TypeScript comments plus Markdown/HTML references.",
+      "tier": "cross-cutting",
+      "job": "guard",
+      "best_for": "Periodic (monthly / pre-release) decision-registry hygiene and a precise\ncheck that inline decision references still point at real ADRs.\n",
+      "not_for": "Authoring or amending ADRs, acting on a reported row, identifier/import\nresolution, or inferring runtime/framework semantics.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "markdown",
+        "html",
+        "javascript",
+        "typescript",
+        "go",
+        "java"
+      ],
+      "_path": "skills/audit-decisions"
+    },
+    {
+      "name": "brainstorm-ideas",
+      "description": "Generate a batch of candidate ledger intakes for a topic or context file, deduplicate against the existing ledger, and bulk-write the survivors as proposed-state intakes with origin AI-suggestion. The orchestrator does the creative work (reading the topic, current ledger state, project docs, and producing N candidates with title / summary / hypothesis / subsystem_kind / markers); the helper script validates against duplicates and writes. Read .claude/docs/idea-ledger.md when authoring or debugging this skill.",
+      "tier": "cross-cutting",
+      "job": "meta",
+      "best_for": "Generating a batch of candidate ideas at the start of an exploratory\nsession, around a vague topic, or after reading a plan/spec that\nsurfaces several adjacent thoughts worth capturing. Useful when the\nalternative is to lose 5 of 7 surfaced thoughts because only 2 made\nit into the next /track-idea intake.\n",
+      "not_for": "Capturing a single idea (use /track-idea intake — one record).\nMaturing an existing idea (use /mature-existing-ideas).\nPromoting to the pattern library (future/manual Tier 2 promotion;\nfollow `.claude/docs/pattern-library.md` after adoption evidence exists).\nBrainstorming code structure / architecture forks (use /design-it-twice).\nSourcing decision alternatives (use /decide — alternatives are part of\nthe ADR template).\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/brainstorm-ideas"
+    },
+    {
+      "name": "check-ecosystem-consistency",
+      "description": "Diff-aware ecosystem consistency audit for engineering-skills. Snapshots skills, shape routing references, docs skill-count claims, and catalog coverage; compares with the last reviewed state so significant skill changes surface follow-up obligations such as updating /which-shape.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Running after significant changes to the skill ecosystem: adding or\nremoving skills, changing skill contracts, editing /which-shape\nshapes.json, or updating the README/ONBOARDING/catalog surfaces that\ndescribe the ecosystem. Especially useful before handoff or commit.\n",
+      "not_for": "Choosing the next operating loop for product work (use /which-shape).\nTactical skill lookup (use /which-skill). Proving a specific scanner\nis correct (run that scanner's focused tests). Blocking every tiny\ndocs-only edit; this is an advisory consistency check.\n",
+      "lanes": [
+        "ecosystem-governance"
+      ],
+      "stage": "verify",
+      "entrypoint": false,
+      "consumes": [
+        "skill_registry",
+        "shape_registry",
+        "docs",
+        "previous_ecosystem_state"
+      ],
+      "produces": [
+        "ecosystem_consistency_report",
+        "ecosystem_state"
+      ],
+      "evidence_required": [
+        "report",
+        "state_snapshot",
+        "findings"
+      ],
+      "risk_triggers": [
+        "new-skill",
+        "removed-skill",
+        "shape-registry-drift",
+        "stale-catalog",
+        "stale-count"
+      ],
+      "max_overhead": "Run one snapshot/diff pass; update the stored state only after the findings have been reviewed.",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/check-ecosystem-consistency"
+    },
+    {
+      "name": "converge",
+      "description": "After-phase convergence gate. Models the work-in-progress as a small value graph (every dimension must hold at once for \"done\"), then emits a fixed verdict — phase_status (advance/repair/branch/park/discard), strongest/weakest nodes, the single next necessary step, why that step, the success gate, the stop condition, and an explicit do-not-do-next list. Routes effort toward the next NECESSARY move instead of the next available one; refuses fan-out. Advisory and read-only against production code.",
+      "tier": "cross-cutting",
+      "job": "triage",
+      "best_for": "The moment AFTER a meaningful phase — a refactor executed, a cleanup sweep\nfinished, a design pass produced, a feature milestone reached — when the\nnext move is about to be chosen by momentum. Answers: is this thread done,\nwhat is the single next necessary action, when do we stop, and what do we\nrefuse to do next. Also the periodic \"are we converging or just active?\"\ncheck on a long-running body of work.\n",
+      "not_for": "Forward routing before work starts (/which-shape then /which-skill).\nDiff-driven cleanup selection at closeout (/which-cleanup — complementary:\nit picks WHICH quality skills to run on what changed; /converge decides\nwhether and where the work itself continues). Global, periodic debt\ntriage over cached reports (/triage-debt). Trivial single-edit tasks —\na one-line fix does not need a convergence gate. Executing anything:\nthis skill emits a verdict and stops.\n",
+      "lanes": [
+        "routing"
+      ],
+      "stage": "verify",
+      "entrypoint": true,
+      "consumes": [
+        "phase_artifacts",
+        "latest_verdicts"
+      ],
+      "produces": [
+        "convergence_verdict"
+      ],
+      "risk_triggers": [
+        "post-change",
+        "long-running-thread",
+        "fan-out",
+        "decided-but-unbuilt"
+      ],
+      "max_overhead": "One verdict per phase. Small phases: inline verdict only, no scan dir, no sub-agents.",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/converge"
+    },
+    {
+      "name": "decide",
+      "description": "Author or amend an Architectural Decision Record under ai-docs/decisions/. Smallest first-class artifact in the senior-engineer skill ecosystem; used at any tier (Quick / Feature / System / Maintenance) when a real choice is being made. Reads canonical-patterns.md and architectural-smells.md to suggest related-pattern / related-smell backrefs and avoid duplicating an existing decision. Read-only against the rest of the codebase — only writes under ai-docs/decisions/. Hands off to /plan-feature, /scope-feature, or implementation work.",
+      "tier": "cross-cutting",
+      "job": "decide",
+      "best_for": "A choice is being made that (a) constrains future work, (b) excludes\nan alternative explicitly, or (c) sets an expiration. Used at any\ntier whenever a meaningful design fork happens — at planning time,\nduring a refactor, or when a maintenance pass surfaces a convention.\n",
+      "not_for": "Lessons learned (use .claude/tasks/lessons.md — informal diary).\nProject status / activity logs (use commit messages / PR descriptions).\nPure documentation of how the code currently works (use the relevant\ndocs/<area>.md). Trivial preferences with no future-binding effect.\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/decide"
+    },
+    {
+      "name": "design-it-twice",
+      "description": "Resolve a material design fork by parallel-divergent fan-out — spawn 3 designer sub-agents with deliberately different binding constraints, then synthesize a comparative analysis with a recommendation. Use when a P0 fork from /architecture-fit (or any planning skill) has 2+ defensible answers and the cost of being wrong is high relative to the cost of fanning out. Writes one comparative-design document under reports/design-it-twice/scan-<TS>/; does NOT author the ADR — /decide is the downstream step.",
+      "tier": "cross-cutting",
+      "job": "decide",
+      "best_for": "A material design fork (architecture, interface shape, data model,\nbuild vs buy, sync vs async, FK vs enum) where (a) 2+ alternatives\nare defensible, (b) you can't write the ADR Decision sentence yet\nwithout speculation, and (c) being wrong means rewriting later.\nThe classic surfacing path is a P0 fork in §6 of an `architected`-\nstatus plan from `/architecture-fit`.\n",
+      "not_for": "Forks with an obvious answer (just commit; don't pay the fan-out\ncost). Implementation strategy questions inside an already-resolved\nchoice (use /plan-spec). Forks already covered by an existing decision\nrecord (read it; if it's wrong-for-this-case, use /decide --supersede).\nTrivial preferences with no future-binding effect.\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/design-it-twice"
+    },
+    {
+      "name": "diagnose",
+      "description": "Build a trustworthy debugging loop for hard bugs, regressions, and intermittent failures before changing code. Use when a symptom is unclear, a bug has not been reproduced, a performance regression needs measurement, or a fix would otherwise be based on guesswork.",
+      "tier": "maintenance",
+      "job": "diagnose",
+      "best_for": "Hard bug, failing command, performance regression, intermittent\nfailure, missing reproduction, and \"something is broken but we do not\nknow why\" work. Best when the first valuable output is a fast feedback\nloop and a root-cause explanation, not a refactor plan.\n",
+      "not_for": "Obvious one-line fixes with an already reproduced test - fix directly.\nKnown cleanup clusters from a find-* report (use /fix-workflow or\n/refactor-subsystem). Broad architecture improvement without a live\nsymptom (use /gut-check, /architecture-fit, or a matching find-* skill).\n",
+      "lanes": [
+        "incident",
+        "maintenance"
+      ],
+      "stage": "execute",
+      "entrypoint": true,
+      "consumes": [
+        "symptom",
+        "logs_or_report",
+        "repo_context"
+      ],
+      "produces": [
+        "diagnosis_report",
+        "reproduction_loop",
+        "regression_test_or_seam_gap_finding"
+      ],
+      "evidence_required": [
+        "reproduction_or_reason",
+        "root_cause",
+        "fix_verification",
+        "cleanup_check"
+      ],
+      "risk_triggers": [
+        "production",
+        "customer",
+        "performance_regression",
+        "intermittent"
+      ],
+      "max_overhead": "Stop after 30 minutes without a credible loop; write what was tried and what artifact/access is missing.",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/diagnose"
+    },
+    {
+      "name": "engineer-init",
+      "description": "Bootstrap the engineering-skills runtime so the script-backed skills can actually run. Checks for Python >= 3.11, creates the .venv, installs requirements.txt (PyYAML, ruff, pre-commit), wires pre-commit hooks when the repo is git-tracked, and verifies the install by running a script-backed skill end to end. Idempotent — safe to re-run; each stage skips work already done. Run once per clone, or whenever a skill fails with a missing-module / dependency error. Does not edit production code, does not git-init, and does not scaffold a new project (that is /init-project).",
+      "tier": "cross-cutting",
+      "job": "meta",
+      "best_for": "Getting a fresh clone of the engineering-skills ecosystem (or a host\nproject that vendored it) to the point where the script-backed skills\nactually run. The common trigger: Claude Code lists a skill as a slash\ncommand, you invoke it, and it fails on its first scripts/*.py call\nbecause the venv / PyYAML isn't installed. Also the fix when ruff or\npre-commit is missing. Idempotent status check via --check.\n",
+      "not_for": "Greenfield project scaffolding — conventions, lint/CI, baseline ADRs\nand subsystem maps (use /init-project when it ships; until then seed\nthem by hand). Installing the ecosystem INTO a host project — copying\nor symlinking .claude/, scripts/, ai-docs/ is a manual step this skill\ndoes not perform. Upgrading or re-pinning dependencies — edit\nrequirements.txt directly. Running git init — this skill detects a git\nrepo but never creates one; that is the repo owner's call.\n",
+      "language": "python",
+      "framework": "any",
+      "_path": "skills/engineer-init"
+    },
+    {
+      "name": "explain-code",
+      "description": "Read-only EXPLAIN skill that converts a Python, Go, Java, JavaScript-family, or TypeScript/TSX target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Unsupported surfaces remain visible instead of being inferred.",
+      "tier": "maintenance",
+      "job": "explain",
+      "best_for": "Producing an annotated behavior doc for a file, directory package,\nor named subsystem — pre/postconditions, invariants, callers,\nunexplained regions. Read-only. Complements /map-subsystem inventory\nby adding the behavioral annotation that lets a human trust the code\nenough to change it.\n",
+      "not_for": "Pure inventory without behavioral annotation (use /map-subsystem).\nCross-workflow product topology (use /map-product-workflow).\nRefactor execution (use /fix-workflow or /refactor-subsystem).\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "javascript",
+        "typescript",
+        "go",
+        "java"
+      ],
+      "_path": "skills/explain-code"
+    },
+    {
+      "name": "extract-cotton-primitive",
+      "description": "Turn a confirmed frontend duplication candidate into a cotton primitive proposal. Consumes a finding from /find-frontend-duplication (or an explicit category target like `modal-shell`) and emits reports/extract-cotton-primitive/<target>/proposal.md with the `<c-vars>` declaration, primitive body, callsite migration table, JS-partner notes, and stop condition. Read-only — no template/JS edits. Hands off to /refactor-subsystem or manual extraction.",
+      "tier": "maintenance",
+      "job": "explain",
+      "best_for": "A confirmed frontend-duplication candidate ready for a cotton\nprimitive proposal — produces the `<c-vars>`/body/slot shape, the\ncallsite migration table, and the JS-init contract (idempotent guard,\ndata-attr binding). Read-only. Decided in: cotton-components\ndoctrine.\n",
+      "not_for": "Detection (use /find-frontend-duplication first). JS-only helper\nforks like `escapeHtml` / `siteEndpoint` (those need a manual\nconsolidation in `static/js/site-config-core.js`, not a cotton\nprimitive). CSRF wrapper extraction (also a JS-side fix, not\ncotton). Refactor execution (use /refactor-subsystem).\n",
+      "language": "python",
+      "framework": "django",
+      "_path": "skills/extract-cotton-primitive"
+    },
+    {
+      "name": "extract-enum",
+      "description": "Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or a Go or Java 17 implicit-state review candidate into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.",
+      "tier": "maintenance",
+      "job": "explain",
+      "best_for": "A confirmed Django model implicit-state target ready for a TextChoices class,\ncaller table, data-migration risk review, and stop condition. Decided in:\n0001 (TextChoices for state).\nFor TypeScript or checked JavaScript, consume a closed-state detector JSONL\nrecord and design its exported as-const runtime value object, derived union,\ncaller changes, and named vendor boundaries.\nFor Go, consume go/types-resolved repeated-operation evidence for a named\nstring type plus typed constants.\nFor Java, consume exactly one complete JDK-resolved direct String field\nfinding for an enum migration with caller-impact review.\n",
+      "not_for": "Fresh candidate discovery belongs to /find-implicit-state. Tuple-inferred\nidentity expressed through `.filter(..., *_at__...).first()` belongs to\n/introduce-fk, while production refactoring belongs to /fix-workflow.\nPlain first-party sentinels outside a Django model require a separately\nreviewed Python typed-value conversion because the Django collector walks\nmodel fields. The TypeScript and checked-JavaScript branch excludes\nopen-ended values, ORM-specific representations, and existing project-native\nenumerations whose convention lacks fixture evidence.\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/extract-enum"
+    },
+    {
+      "name": "extract-existing-ideas",
+      "description": "Walk existing prose surfaces (BACKLOG.md, lessons.md, plan files) and propose candidate ledger intakes for the items already named there. Read-only by default — emits a candidates JSON and a report. Hands off to /brainstorm-ideas (via its helper script) for the actual write, so the dedup, validation, and origin discipline stay in one place. Read .claude/docs/idea-ledger.md when authoring or debugging this skill.",
+      "tier": "cross-cutting",
+      "job": "meta",
+      "best_for": "Bootstrapping the ledger on an existing project where the working\nbacklog and lessons file already capture work-in-flight, but nothing\nhas been promoted to the ledger yet. Also useful for catching items\nthat were added to BACKLOG.md but never made it through /track-idea.\n",
+      "not_for": "Generating new ideas from scratch (use /brainstorm-ideas).\nMaturing an existing ledger entry (use /mature-existing-ideas).\nWalking the *running* codebase for stringly state / duplication\n(those are SUSPECT skills like /find-implicit-state, not idea-tracking\nsurfaces).\nValidating skill spec conformance (open gap — manual surrogate via\n/mature-existing-ideas).\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/extract-existing-ideas"
+    },
+    {
+      "name": "extract-state-type",
+      "description": "Read-only EXPLAIN skill that converts a function operating on an implicit mutable dict (or ad-hoc kwargs/namespace) into a typed @dataclass or TypedDict migration plan. Produces reports/extract-state-type/<target>/proposal.md with the current-shape table, proposed type definition, caller-by-caller migration plan, characterization-test matrix, and stop condition. Hands off to /fix-workflow or manual migration.",
+      "tier": "maintenance",
+      "job": "explain",
+      "best_for": "A function operating on an implicit mutable dict / ad-hoc kwargs /\nnamespace that should become a typed @dataclass or TypedDict.\nProduces current-shape table, proposed type, caller-by-caller\nmigration plan, characterization-test matrix.\n",
+      "not_for": "Stringly-typed status fields on a Django model (use /extract-enum).\nTuple-inferred FK identity (use /introduce-fk). Refactor execution\n(use /fix-workflow).\n",
+      "language": "python",
+      "framework": "django",
+      "_path": "skills/extract-state-type"
+    },
+    {
+      "name": "extract-workflow-registry",
+      "description": "Propose a canonical registry for a mapped product workflow: step id, label, route, visibility, status provider, active tab, template owner, frontend boot keys, and registry-owned endpoint payloads. EXPLAIN skill; no code edits.",
+      "tier": "maintenance",
+      "job": "explain",
+      "best_for": "A mapped product workflow ready for a canonical registry proposal —\nstep id, label, route, visibility, status provider, active tab,\ntemplate owner, frontend boot keys, registry-owned endpoint\npayloads. EXPLAIN; no code edits.\n",
+      "not_for": "Workflow detection (use /map-product-workflow first, then\n/find-workflow-duplication to surface drift). Refactor execution\n(use /fix-workflow or /refactor-subsystem). Drafting a brand-new\nworkflow that has not been mapped yet.\n",
+      "language": "python",
+      "framework": "django",
+      "_path": "skills/extract-workflow-registry"
+    },
+    {
+      "name": "find-async-lifecycle-drift",
+      "description": "Advisory SUSPECT scan for polling, job, cancel/resume, and export\nlifecycle drift on configured product-workflow targets or explicit\npaths: unguarded polling, missing terminal handling, stale response\nhazards, duplicate job starts, and missing retry/cancel controls.\n",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Auditing async UI and backend lifecycle flows where AI-grown code often\nforgets cleanup: progress polling, start/cancel/resume/export paths,\nstale fetch response guards, duplicate-job protection, and terminal\nstatus handling.\n",
+      "not_for": "Proving Celery behavior, replacing integration tests, or blocking\ncommits in v1. Use this as a baseline scanner before promoting a\nnarrow lifecycle rule to `/prevent-regression`.\n",
+      "language": "any",
+      "framework": "django",
+      "scans": [
+        "python",
+        "javascript"
+      ],
+      "_path": "skills/find-async-lifecycle-drift"
+    },
+    {
+      "name": "find-comment-drift",
+      "description": "Advisory SUSPECT scan for comments, docstrings, JSDoc, and template\ncomments that have drifted from the code they are meant to clarify.\nFlags detached section banners, narration comments, missing or thin\npublic class docstrings, stale terminology, JavaScript and TypeScript\nfunctions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML\ncomments, fragile doc references, and bounded Go and Java lexical-comment surfaces.\n",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Auditing explanatory-code hygiene after AI-heavy development: noisy\ncomments that narrate the next line, missing ownership docstrings,\nstale terminology in comments/docstrings, banner comments that should\nbe adjacent JSDoc or deleted, and Django-template comments that repeat\nvisible headings.\n",
+      "not_for": "Generating external product documentation, blocking commits, enforcing\nexact prose style, or proving runtime behavior. Use targeted tests and\nexisting lints for behavior and correctness.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "javascript",
+        "typescript",
+        "go",
+        "java",
+        "templates"
+      ],
+      "_path": "skills/find-comment-drift"
+    },
+    {
+      "name": "find-complexity-hotspots",
+      "description": "Detect advisory Python, JavaScript, TypeScript, Go, and Java function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only JS/JSX/MJS/CJS/TS/TSX, Go, and Java high-branch findings for bounded named functions, methods, and constructors.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Read-only complexity leads. Python retains nested-loop, membership-scan,\nsort/repeated-scan, Django-query, and high-branch bands. TypeScript/TSX\nreports only per-function syntactic branch complexity with exact source spans\nand analyzer provenance. Go and Java add equally bounded native-parser facts.\n",
+      "not_for": "Implementing optimizations, SQL query-plan/index decisions, profiling, or\nbenchmark design. TypeScript React/Node/ORM semantics, receiver or\ntype claims, import resolution, and expression-bodied arrows are out of\nscope. Broad module-level responsibility sprawl belongs to /find-omnibus.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "javascript",
+        "typescript",
+        "go",
+        "java"
+      ],
+      "_path": "skills/find-complexity-hotspots"
+    },
+    {
+      "name": "find-concept-divergence",
+      "description": "Advisory SUSPECT scan that surfaces concept-name drift between the\ncanonical glossary at `.claude/contracts/concepts.yaml` and the\ncodebase / docs. Detects three drift bands: `avoid_term_hit` (code\nuses a phrasing the glossary explicitly says is wrong),\n`competing_term_coexistence` (a `flagged_ambiguities` entry has\nmultiple `competing_terms` present in the same file — drift the\nglossary author has not yet resolved), and\n`superseded_co_occurrence` (both a deprecated name and its\n`superseded_by:` replacement appear in the same file — rename\ntransition drift). Detection only — never edits code or docs.\n",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Catching cross-subsystem concept-drift cases (a function/module name\nin one subsystem that conceptually duplicates a canonical name in\nanother). Pairs with the canonical glossary at\n`.claude/contracts/concepts.yaml`: if a divergence exists for a\nconcept that isn't yet glossary-tracked, the strict scan will miss\nit — add the concept first, then re-run.\n",
+      "not_for": "Refactor execution (this is detection only); enforcing renames that\nalready have a dedicated lint — set `coverage_lint:` on the\nsuperseded concept and the scanner will skip co-occurrence noise so\nthe lint owns the rename; fuzzy/similarity-based identifier matching\n(deferred — strict canonical-name + avoid-term grep only in v1).\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "javascript",
+        "typescript",
+        "go",
+        "java",
+        "markdown",
+        "templates"
+      ],
+      "_path": "skills/find-concept-divergence"
+    },
+    {
+      "name": "find-contract-drift",
+      "description": "Advisory SUSPECT scan for cross-layer contract drift on configured\nproduct-workflow targets or explicit paths: endpoint keys, DOM IDs,\n`data-*` selectors, template-called JS exports, and JSON/boot payload\nfields. Imports the existing `/find-frontend-contract-drift`\nboot-global detector and adds route-surface contract bands.\n",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Contract drift in configured product-workflow targets where templates,\nstatic JavaScript, workflow registries, and API payloads disagree:\nendpoint keys, DOM IDs, `data-*` selectors, template JS contracts,\ntemplate-called JS exports, JSON payload fields, missing\n`SiteConfigCore.siteEndpoint` keys, stale\n`window.Namespace.method()` calls, and scattered boot globals.\n",
+      "not_for": "Repeated workflow labels or route literals owned by multiple layers\n(use `/find-workflow-duplication`), type-checking a compiled frontend,\nproving runtime HTTP behavior, or blocking commits in v1. Use targeted\ntests and `/prevent-regression` only after a detector band proves\nlow-noise on real route work.\n",
+      "language": "any",
+      "framework": "django",
+      "scans": [
+        "python",
+        "javascript",
+        "templates"
+      ],
+      "_path": "skills/find-contract-drift"
+    },
+    {
+      "name": "find-dead-route-surface",
+      "description": "Advisory SUSPECT scan for configured product route-surface\nreachability: routes, templates, static JS, inline handlers,\nprototype pages, and orphaned page/API surfaces. Reuses\n`/find-dormant` URL extraction where useful, but focuses on the\nroute/template/static wiring in configured targets or explicit paths.\n",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Finding old prototype routes, templates that no route/view renders,\ntemplate script tags pointing at missing JS, loaded/unloaded static JS\nmismatches, and route views that reference missing templates.\n",
+      "not_for": "Whole-repo Python dead-code audits, deletion decisions, or blocking\ncommits in v1. Use `/find-dormant` for broad dead-code archaeology and\nverify before deleting any route/template/static file.\n",
+      "language": "any",
+      "framework": "django",
+      "scans": [
+        "python",
+        "javascript",
+        "templates"
+      ],
+      "_path": "skills/find-dead-route-surface"
+    },
+    {
+      "name": "find-doc-route-drift",
+      "description": "Compare documented product routes and redirect claims against Django URL patterns and simple redirect calls. SUSPECT skill for stale docs and route contract drift.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Documented routes and redirect claims drifting from Django URL\npatterns — docs claiming `/x/y/` redirects exist when the route\nmodule no longer registers them. SUSPECT for product-topology drift.\n",
+      "not_for": "Code-side dead routes (use /find-dormant). Live route deduplication\nor include-boundary problems (use /find-route-sprawl). Frontend\ntemplate-to-JS boot contracts (use /find-frontend-contract-drift).\n",
+      "language": "python",
+      "framework": "django",
+      "_path": "skills/find-doc-route-drift"
+    },
+    {
+      "name": "find-dormant",
+      "description": "Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, and Java have narrow static review branches for human review. Never infers safe deletion from static evidence.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "TypeScript private implementations that appear statically unreferenced and\nneed a conservative dormant-code review with no safe-deletion claim.\nDetecting dead and quasi-dead Python code, unused URL patterns,\ndefined-but-unreferenced symbols. Validates against real call sites\nand template URL-name usage; cross-checks git-log recency. Never\ndeletes — surfaces evidence for /fix-workflow delete:<id>. TypeScript/TSX\nv1 reports only non-exported top-level implementations with zero resolved\nstatic symbol references, and always requires human runtime review.\nGo v1 reports only unexported package-level functions and function-valued\nvariables with zero `go/types` uses in the selected active-build package.\nJava v1 reports only private methods with zero compiler-resolved source uses.\n",
+      "not_for": "Removing findings (use /fix-workflow delete:<id>). Architectural\nsmells like omnibus or layer violation (use those /find-* skills).\nSemantic duplication where two live behaviors coexist (use\n/find-semantic-duplication). Routes/endpoints, error swallowing,\ndynamic imports, external consumers, registry/event/framework reachability,\nor safe-deletion decisions are outside the static v1 contract.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "typescript",
+        "javascript",
+        "go",
+        "java"
+      ],
+      "_path": "skills/find-dormant"
+    },
+    {
+      "name": "find-duplication",
+      "description": "Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Python/Django copy-paste and canonical-pattern candidates that need the\nestablished P0/P1/P2 scout triage, JavaScript-family/TypeScript lexical clone\ncandidates that need reliable source spans, exact normalized Go function-body\nclones, or duplicated Java method bodies represented as exact normalized\nmethod-body clone candidates for conservative human review.\n",
+      "not_for": "Behavior-level matches whose implementations differ structurally belong to\n/find-semantic-duplication. Cross-layer workflow drift and refactor execution\nare outside this detector. Family-local v1 evidence establishes structural\nclone leads and stops short of safety or reuse conclusions.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "javascript",
+        "typescript",
+        "go",
+        "java"
+      ],
+      "_path": "skills/find-duplication"
+    },
+    {
+      "name": "find-folder-topology-drift",
+      "description": "Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, Go, or Java filename clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript and TypeScript use a first `_` or `-` token, Go uses its first `_` token, and Java uses a leading CamelCase token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Auditing a Python package against ADR 0006's bidirectional ≥3-sibling\nthreshold, or inspecting an explicitly named TypeScript, Go, or Java source root for a\nsimple same-domain filename cluster such as\n`billing_parser.ts`, `billing-validator.ts`, and `billing-types.ts`.\n",
+      "not_for": "Moving files, proving import safety, or deciding that a cluster must become\na package. TypeScript and Go v1 do not inspect sparse-package demotion, test-folder\nreorganization, Next.js/pages conventions, barrels, module resolution, or\nframework ownership. Use /propose-folder-reorganization only after a human\nconfirms a Python finding; a TypeScript reorganization proposal needs its own\nresolved-import contract.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "javascript",
+        "typescript",
+        "go",
+        "java"
+      ],
+      "_path": "skills/find-folder-topology-drift"
+    },
+    {
+      "name": "find-frontend-contract-drift",
+      "description": "Detect implicit template-to-JS boot contracts: scattered `window.*` globals, undeclared JS reads, repeated reads that should be accessed through a canonical payload, and globally-loaded JS auto-init that fetches or mutates DOM without a page marker.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Implicit template-to-JS boot contracts — scattered `window.*`\nglobals, undeclared JS reads of template-set globals, repeated reads\nthat should funnel through a canonical boot payload, or global JS\nauto-init that starts fetch/DOM work without checking a page marker.\n",
+      "not_for": "Dead JS bundles (use bundler analysis). Duplicated workflow step\ndefinitions across template/JS/Python (use\n/find-workflow-duplication). Documented routes drifting from URL\nregistrations (use /find-doc-route-drift).\n",
+      "language": "python",
+      "framework": "django",
+      "scans": [
+        "javascript",
+        "templates"
+      ],
+      "_path": "skills/find-frontend-contract-drift"
+    },
+    {
+      "name": "find-frontend-duplication",
+      "description": "Detect duplicated UX shells, hand-rolled primitives, and JS helper forks across templates/ and static/js/. Compares Tailwind class chains and JS function definitions against the existing cotton primitive inventory to surface \"should be a c-primitive but isn't\" candidates. Hands off to /extract-cotton-primitive for proposals.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Hand-rolled UX shells (modal frames, badge styles, alert frames,\ndropdowns, button variants) repeated across templates instead of\nusing a cotton primitive. JS helper forks (showToast / escapeHtml /\nsiteEndpoint defined in multiple files). Inline CSRF / fetch\npatterns that should funnel through one wrapper. Use after a\nconsolidation work-period or before adding a new UI surface.\n",
+      "not_for": "Python code duplication (use /find-duplication or\n/find-semantic-duplication). Implicit JS<->template global contracts\n(use /find-frontend-contract-drift). Cross-layer workflow drift\n(use /find-workflow-duplication). UI extraction execution itself\n(use /extract-cotton-primitive).\n",
+      "language": "python",
+      "framework": "django",
+      "scans": [
+        "javascript",
+        "templates"
+      ],
+      "_path": "skills/find-frontend-duplication"
+    },
+    {
+      "name": "find-implicit-state",
+      "description": "Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, and Java 17 state branches. Compiler-backed branches distinguish first-party bare state operations from typed authorities, vendor wire boundaries, tests/fixtures, unrelated fields, insufficient evidence, and unsafe reference equality. Detection-only — never edits production code.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Stringly-typed status / phase / state comparisons against bare\nliterals; `.filter(status=..., *_at__...)` tuple-inferred identity.\nTargets the stringly-typed-state smell. Decided in: 0001\n(TextChoices for state).\nIn TypeScript, closed state receivers with repeated bare string\ncomparisons or assignments and a host-owned Compiler API.\n",
+      "not_for": "Refactor execution — hands off to /extract-enum or /introduce-fk\nfor the proposal, then /fix-workflow for execution. Lexical\nduplication on jscpd-only matches (use /find-duplication).\nUntyped/open-ended TypeScript strings, TypeScript ORM semantics, and a\ngeneric TypeScript lint generator.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "typescript",
+        "javascript",
+        "go",
+        "java"
+      ],
+      "_path": "skills/find-implicit-state"
+    },
+    {
+      "name": "find-incomplete-sweep",
+      "description": "Advisory SUSPECT scan for incomplete sweeps — multi-site changes that were\nstarted but never finished, leaving a forgotten sibling call site at the old\nshape (\"updated N-1 of N\"). Python retains the keyword-argument omission\nband; TypeScript/TSX and checked JavaScript use the host-pinned TypeScript Compiler API to group\nresolved project function calls by object-option property presence; Go uses host Go `go/types`\nfor one direct top-level function / keyed struct-option shape; Java 17 uses the JDK\ncompiler tree API for one direct record/options-constructor shape. Gated on a git-trajectory\nsignal: a divergence counts as a forgotten sweep only when the\nkwarg-present sites were touched more recently than the straggler (the sweep\nlanded after the straggler was last edited). A straggler edited just as\nrecently is reported separately as likely-deliberate. Distinguishes\nabandoned partial work from legitimate post-completion cleanup via residue\ndirection. Detection-only — never edits code; hands off to /fix-workflow.\n",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Reviewing a human- or AI-authored multi-file change where a sweep across\nsibling call sites may have stopped short: a new keyword argument threaded\nthrough some callers, a proxy/config param added to some call sites, an\noption passed at most but not all of a callee's call sites. The straggler is\nfully live (old shape still referenced and executing), so /find-dormant\ncannot see it. The git-trajectory gate keeps the signal to recently-swept\ndivergences rather than long-stable intentional asymmetry.\n",
+      "not_for": "Single-site / one-line changes (no cluster, no sweep) — proceed directly.\nDeclared-intent vs realized-state drift at the plan / idea / ADR / contract\ngranularity (use /find-orphaned-ideas, /find-stale-artifacts,\n/audit-decisions).\nImplemented-but-unwired dead code (use /find-dormant) — that is the\nunreferenced half; this is the over-referenced-at-old-shape half.\nSameness-based duplication to unify (use /find-semantic-duplication or\n/unify-shadows) — this is divergence-within-cluster, not both-live sameness.\nMissing enum TYPE declaration (use /find-implicit-state).\nRefactor execution (this is detection only; hand off to /fix-workflow).\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "typescript",
+        "javascript",
+        "go",
+        "java"
+      ],
+      "_path": "skills/find-incomplete-sweep"
+    },
+    {
+      "name": "find-layer-violation",
+      "description": "Detect views, tasks, or other entry points that own business logic.\nAST-walks the target for core signals (fat body, domain loop over\nqueryset, direct LLM/agent call, dispatch bypass via bare `.delay()`,\nmulti-model write in one function), then asks scouts to judge remaining\nauthority in the entry point: raw SQL/cursors, direct external API\nclients, import/export construction, direct model/file writes, task\ndispatch, and transaction/resource policy. Produces an extract-service\ncandidates report. Never edits code — hands off to\n`/fix-workflow layer:<candidate_id>`.\n",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Views, tasks, or other entry points owning business logic — domain\nloops over querysets, direct LLM calls, dispatch bypass via bare\n`.delay()`, multi-model writes inside one function, raw SQL/cursors,\ndirect external API clients, import/export construction, and direct\nmodel/file writes. Targets the layer-violation smell.\n",
+      "not_for": "Service-layer omnibus modules (use /find-omnibus). Stringly-typed\nstate inside a view (use /find-implicit-state). Refactor execution\n(use /fix-workflow layer:<id>).\n",
+      "language": "python",
+      "framework": "django",
+      "_path": "skills/find-layer-violation"
+    },
+    {
+      "name": "find-omnibus",
+      "description": "Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans, a bundled TypeScript Compiler API parser for JavaScript/TypeScript, a bundled Go 1.22+ standard-library syntax parser, and a bundled Java JDK 17+ compiler-tree parser; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Files answering questions from 3+ unrelated domains — the SRP \"and\"\ntest counts 3+ \"and\"s. Ranks by responsibility count, then boosts\nfiles that mix credentials, admin APIs, CSRF/auth, command/network\ndiagnostics, persistence, raw SQL, import/export, task dispatch, or\nfilesystem writes; produces decomposition candidates that hand off\nto /refactor-subsystem. Covers Python, JavaScript/TypeScript, Go, and Java with\nfamily-local syntax parsers. Findings carry analyzer provenance. The script\npaths resolve no types and assume no framework.\n",
+      "not_for": "Cohesive modules remain outside this audit regardless of size. View-layer\narchitecture violations belong to /find-layer-violation, source mutation\nbelongs to /refactor-subsystem, and unimplemented language families belong\nto /find-perimeter-gaps.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "javascript",
+        "typescript",
+        "go",
+        "java"
+      ],
+      "_path": "skills/find-omnibus"
+    },
+    {
+      "name": "find-orphaned-ideas",
+      "description": "Detect ideas that need attention but are not getting it. Seven modes — stale (in-flight, no event in N days), harvest (has-more-potential, not in-flight), plan-dropouts (in a plan file but missing from ledger), todo (TODO/FIXME orphans in source files), stale-plans (non-terminal plans > N days silent without active ledger tracking), dead-prototype (orphan routes/templates from a /find-dormant report), attention-gap (importance-weighted audit per ADR 0016, reads `.engineering/docs/importance-map.md`). Read-only audit by default; can optionally write `stalled` transition events when --apply-stale is set. Read .claude/docs/idea-ledger.md when authoring or debugging this skill, `.engineering/docs/todo-tuning.md` when calibrating --todo, and `.engineering/docs/importance-map.md` (plus ADR 0016) when calibrating --attention-gap.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Weekly / on-demand audit of the idea ledger to catch:\n- in-flight ideas that have gone silent (stale detection)\n- harvested ideas with explicit remaining capacity that nobody picked\n  back up (harvest opportunities)\n- plan or backlog items that should have a ledger entry but don't\n  (plan-ledger drift)\nPair with `/track-idea event` to act on findings.\n",
+      "not_for": "Capturing new ideas (use /track-idea intake).\nAdding lessons or transitions (use /track-idea event).\nPromoting to the pattern library (use /promote-idea-to-pattern).\nBulk import from history (use /extract-existing-ideas).\nDetecting drift in the pattern library (that's audit-pattern-library;\na future skill).\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/find-orphaned-ideas"
+    },
+    {
+      "name": "find-perimeter-gaps",
+      "description": "Audit the quality perimeter — report every (code root × language) cell with significant LOC and the SUSPECT detectors covering it; flag cells no detector covers. The detector fleet scans what it scans; this skill reports the inverse, so blind spots are a visible decision instead of an accident. Detection-only; never edits code. Born from a real incident — 34.6K lines of JavaScript invisible to an ecosystem whose omnibus detector was Python-only (ADR 0032).",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Adopting the ecosystem into a new host project (run alongside\n/adapt-project); starting any \"audit the whole codebase\" request;\nafter adding or rescoping a detector skill, to confirm the coverage\nmatrix changed the way you think it did. The output is a coverage\nmatrix plus an explicit PERIMETER GAPS list.\n",
+      "not_for": "Finding smells inside covered code (use the find-* detector for that\nlanguage). Auditing the ecosystem's internal consistency\n(/check-ecosystem-consistency). Judging whether a gap is worth\nclosing — that's a human/ADR decision; this skill only makes the gap\nvisible. Per-file size policing (that is a lint, not a perimeter\nquestion).\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/find-perimeter-gaps"
+    },
+    {
+      "name": "find-query-mutation",
+      "description": "Detect read-named methods that mutate persisted state. Runs an AST scan for functions named `get_*` / `fetch_*` / `load_*` / `list_*` / `find_*` / `check_*` whose body calls `.save()` / `.delete()` / `.update()` / `.create()` / `.bulk_create()` / `.bulk_update()` / `.update_or_create()` / `.get_or_create()`; collapses hits per function, fans out scout sub-agents to bucket each candidate (rename / split / legitimate warming / stdlib false positive), and produces a report that hands off to `/fix-workflow cluster:<symbol>`. Detection-only — never edits production code.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Read-named methods (`get_*`, `fetch_*`, `load_*`, `list_*`, `find_*`,\n`check_*`) that mutate persisted state via `.save()` / `.delete()` /\n`.update_or_create()`. Targets the query-mutation smell.\n",
+      "not_for": "Mutator-named methods that don't actually mutate (use /find-dormant\nfor the unused side). Refactor execution (use /fix-workflow\ncluster:<symbol>). Stringly-typed status comparisons (use\n/find-implicit-state).\n",
+      "language": "python",
+      "framework": "django",
+      "_path": "skills/find-query-mutation"
+    },
+    {
+      "name": "find-route-sprawl",
+      "description": "Detect route prefixes for a product workflow that are scattered through flat URL modules, missing include ownership boundaries, or duplicated as ambiguous API aliases. SUSPECT skill for product topology.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Flat route ownership where one workflow's URL prefixes are scattered\nthrough the root URL module without `path('', include())` boundaries;\nduplicate alias routes registered for the same view.\n",
+      "not_for": "Doc/route drift (use /find-doc-route-drift). Workflow-step\nduplication across templates+JS+Python (use\n/find-workflow-duplication). Dead URL patterns (use /find-dormant).\n",
+      "language": "python",
+      "framework": "django",
+      "_path": "skills/find-route-sprawl"
+    },
+    {
+      "name": "find-rule-surface-drift",
+      "description": "Detect drift on the agent-rules surface — oversized always-loaded files, dormant load-on-demand docs, missing-but-referenced docs, unreferenced docs, and broken links from the human onboarding entry point. SUSPECT skill governing the placement convention defined in ADR 0005 (agent-rules-design).",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Auditing the agent-rules surface (CLAUDE.md + .claude/docs/) against\nADR 0005's tiered-storage convention. Catches: always-loaded surface\nbloat, dormant docs that no longer earn their place,\ntable-vs-filesystem drift, and docs registered but never referenced\nby any other artifact. Also scans /ONBOARDING.md (the human entry\npoint) for broken links and registered docs the human path never\nmentions.\n",
+      "not_for": "Code-side drift (use /find-doc-route-drift for documented route\ndrift, /find-frontend-contract-drift for template-to-JS drift).\nDecision-registry drift (use /audit-decisions). Authoring or amending\nthe agent-rules ADR itself (use /decide). Acting on findings — that\ngoes to /fix-workflow with the cluster id.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "markdown"
+      ],
+      "_path": "skills/find-rule-surface-drift"
+    },
+    {
+      "name": "find-semantic-duplication",
+      "description": "Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, and Java function-level leads using host-native semantic facts. Compiler branches report bounded static candidates with capability matrices; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Two independently-written, live functions that plausibly solve the same\nproblem with different code shape. Python uses scout confirmation; TypeScript\nGo, and Java use typed return-shape and direct-call evidence before human review.\n",
+      "not_for": "Lexical near-clones (use /find-duplication). Unreferenced implementations\n(use /find-dormant). Consolidation execution follows /unify-shadows proposal\napproval. Unsupported v1 modes are\nworkflows, structural/module analysis, protocol/class-method semantics,\ndynamic dispatch, framework behavior, and automatic consolidation.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "typescript",
+        "javascript",
+        "go",
+        "java"
+      ],
+      "_path": "skills/find-semantic-duplication"
+    },
+    {
+      "name": "find-skill-artifact-drift",
+      "description": "SUSPECT scan for instruction-artifact coherence: a SKILL.md that\npromises scripts, flags, tools, or evidence its files no longer\nprovide. Band A is deterministic reference integrity (a documented\nscript that exists nowhere, a documented --flag the script's argparse\nnever defines, a bash block with no Bash in allowed-tools) and is safe\nto gate a commit on; Band B is heuristic structural proxies (orphan\nscripts, declared produces/evidence_required the body never wires in,\na read-only not_for contradicted by editing tools) and stays advisory.\n",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Catching SKILL.md ↔ artifact drift after a skill is refactored:\nrenamed or deleted scripts the prose still names, documented command\nflags the script dropped, a shell block whose Bash grant was never\nadded, scripts that exist but the pipeline forgot, and evidence\ncontracts the procedure never actually produces.\n",
+      "not_for": "Proving a skill's procedure is semantically correct, blocking commits\non Band-B heuristics, or re-checking the frontmatter contract\n(required fields, enum values, name==dir) that scripts/skill_meta.py\nlint already owns. Band C semantic judgment belongs to /plan-skill.\n",
+      "produces": [
+        "detections",
+        "report",
+        "findings"
+      ],
+      "evidence_required": [
+        "report",
+        "findings"
+      ],
+      "max_overhead": "Run one detect+report pass; treat Band B as a review queue, never an auto-patch list.",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "markdown"
+      ],
+      "_path": "skills/find-skill-artifact-drift"
+    },
+    {
+      "name": "find-skill-intent-drift",
+      "description": "Advisory SUSPECT scan that compares each skill under `.claude/skills/`\nagainst its machine-checkable intent + provenance contract under\n`.claude/contracts/skills/<name>.yaml` (schema v2). Flags four drift\nbands — missing (skill has no contract), orphaned (contract for a\ndeleted skill), malformed (contract missing required schema keys), and\nstale (SKILL.md committed after the contract's last commit, so captured\nintent may have silently drifted). This is the \"no easy reversion of\nintent\" guard: it cannot block an edit, but it makes intent erosion\nvisible. It is the intent/provenance layer of the skill-meta trio,\ndistinct from frontmatter-contract lint and artifact-coherence drift.\n",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Keeping the skill ecosystem's recorded \"why each skill exists / what it\nsolves / what it was dogfooded on\" honest as skills are added, edited,\nrenamed, or deleted. The canonical case is catching a skill whose\nSKILL.md was reworked (new problem class, narrowed scope, merged\nresponsibility) without its intent contract being updated to match — the\nsilent reversion the contracts exist to prevent. Also surfaces the\nduplication picture: each contract's `duplication_risk[]` block records\nsibling skills that touch the same surface and the `not_for` line that\ndisambiguates them, rolled up into `_index.yaml` and\n`_duplication-watchlist.yaml`.\n",
+      "not_for": "The other two layers of the skill-meta trio. Frontmatter *contract*\nvalidation (required fields, enum values, name==dir) — that is\n`scripts/skill_meta.py lint`. SKILL.md prose ↔ on-disk artifact\ncoherence (a documented script/flag/tool the files no longer provide) —\nthat is `/find-skill-artifact-drift`. Authoring or revising a skill\nitself, which should also write or refresh its intent contract — that is\n`/plan-skill`. Agent-rules doc-surface drift (oversized always-loaded\nfiles, dormant docs, broken onboarding links) — `/find-rule-surface-drift`.\nThis skill never edits skill directories or per-skill intent contracts and\nnever blocks a commit; it is advisory unless run `--strict` in CI. By\ndefault it does refresh the generated contract roll-up\n`_index.yaml`; pass `--no-index` for a no-write audit.\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/find-skill-intent-drift"
+    },
+    {
+      "name": "find-stale-artifacts",
+      "description": "Detect stale working artifacts — abandoned plans, proposed plans untouched past a soft staleness budget, aged `scan-*` report directories, and orphan top-level report files. Defends attention against the accumulation of working artifacts that outlive the work. SUSPECT skill, sibling to /find-dormant for non-code surfaces.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Periodic (monthly / quarterly) hygiene of working-artifact directories\nthat accumulate cruft as side effects of active work — `ai-docs/plans/`,\n`ai-docs/specs/`, and `reports/`. Surfaces deletion candidates with\nevidence: abandoned plans, plans untouched past a soft staleness budget,\naged `reports/<skill>/scan-<TS>/` directories not pointed at by\n`latest`, and orphan top-level `reports/*.md` files. Pairs with manual\ndelete or a thin executor; never deletes unilaterally.\n",
+      "not_for": "Code-side dead-code detection (use /find-dormant).\nAgent-rules surface drift in `.claude/CLAUDE.md` or `.claude/docs/`\n(use /find-rule-surface-drift) — that one defends ADR 0005's tiered\nstorage convention.\nDecision-registry drift in `ai-docs/decisions/` (use /audit-decisions).\nActing on findings — manual delete or a thin executor; the skill is\nread-only.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "markdown"
+      ],
+      "_path": "skills/find-stale-artifacts"
+    },
+    {
+      "name": "find-standard-gaps",
+      "description": "Detect places a declared baseline standard should apply but doesn't. A standard is declared once with an executable `ast` detector; `scan_coverage.py` scans Python, narrow syntax-only JavaScript/TypeScript direct-call coverage, Go 1.22+ direct-call defer coverage, and Java JDK 17+ direct-call try coverage, then reports every site whose triggering situation holds but the standard is absent. Detection-only; never edits code.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Checking that a baseline standard is applied everywhere its situation\noccurs — \"every external DB connection is inside a try\", \"every\noutbound HTTP call sets a timeout\", \"no call to X without guard Y\".\nThis includes coverage gaps for a declared standard governing direct calls,\nrequired arguments, or an enclosing try guard.\nEach standard is a declarative entry with an `ast` detector; the scan\nis deterministic, cheap, and syntactically precise.\nCensus mode (scripts/census.py) answers the upstream discovery question:\n\"what variants exist, which is the majority, who are the stragglers?\"\nUse census before declaring a standard to understand the current\npopulation; census output feeds /decide and standards declaration.\n",
+      "not_for": "Policies requiring human judgment rather than a machine-executable\ncall/argument/block detector remain review work. Responsibility, clone, and\nreachability smells belong to their dedicated find-* detectors. Production\nremediation belongs to /fix-workflow, while a bespoke rule with no reusable\nbaseline belongs in host lint tooling.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "javascript",
+        "typescript",
+        "go",
+        "java"
+      ],
+      "_path": "skills/find-standard-gaps"
+    },
+    {
+      "name": "find-test-obligation-drift",
+      "description": "Advisory SUSPECT diff analyzer that maps touched files to expected\nverification tiers from `.claude/docs/testing.md` and\n`development-workflow.md`, then flags missing nearby test/smoke\nobligations.\n",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Mapping touched files or a git diff to expected tests and verification\ntiers before handoff: host-declared product workflow backend code\nwithout tests, workflow UI/template/JS without Playwright or DOM\ncontract coverage, new skill/script work without smoke tests,\nlint/tooling changes without quality-tool tests, and verification\nobligation drift on changed surfaces.\n",
+      "not_for": "Product workflow inventory (use `/map-product-workflow`), proving\ncommands actually ran, choosing the final command for a risky bug, or\nblocking commits in v1. It is an advisory obligation check that\ncomplements the human final verification note.\n",
+      "language": "any",
+      "framework": "django",
+      "scans": [
+        "python",
+        "javascript",
+        "templates"
+      ],
+      "_path": "skills/find-test-obligation-drift"
+    },
+    {
+      "name": "find-transaction-overreach",
+      "description": "Detect Django `transaction.atomic()` blocks (and `@transaction.atomic` functions) that hold a DB connection while doing slow / external work. Runs an AST scan for HTTP calls, AI/SDK calls, cloud uploads, `time.sleep`, subprocess, and Celery dispatch inside atomic regions; collapses hits per block, fans out scout sub-agents to bucket each candidate (narrow / split / defer / legitimate / false positive), and produces a report that hands off to `/fix-workflow cluster:<symbol>`. Detection-only — never edits production code.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "`with transaction.atomic():` blocks or `@transaction.atomic` functions\nwhose body issues an HTTP request, AI/SDK call, cloud upload, sleep,\nsubprocess, or Celery dispatch — anything that holds a database\nconnection during external work. Targets a runtime-failure-mode\nsmell that passes structural review but starves the connection\npool under load.\n",
+      "not_for": "Long DB-only transactions (many `update_or_create` calls in a loop\nare usually fine — that's a different smell). Read-named methods\nthat mutate persisted state (use /find-query-mutation). Bare Celery\ndispatches outside transactions (the `safe-dispatch` lint covers\nthose at commit time). Refactor execution (use /fix-workflow\ncluster:<symbol>).\n",
+      "language": "python",
+      "framework": "django",
+      "_path": "skills/find-transaction-overreach"
+    },
+    {
+      "name": "find-workflow-duplication",
+      "description": "Detect duplicated product-step authority for the host-declared workflow labels, tab IDs, and route literals listed in `.engineering/docs/product-workflows.md`. The deterministic scanner reads the descriptor's `## Text-file globs`, classifies active executable owners versus docs/tests/routes/legacy surfaces, and reports repeated values that can drift across backend, templates, loaded JS, and docs. Detection-only; never edits production code.",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Repeated host-declared workflow labels, tab IDs, and route literals\nduplicated across backend, templates, JS, and docs for one product\nworkflow. SUSPECT skill for product topology.\n",
+      "not_for": "Generic code duplication across functions (use /find-duplication or\n/find-semantic-duplication). Route prefix sprawl (use\n/find-route-sprawl). Doc/route drift (use /find-doc-route-drift).\n",
+      "language": "python",
+      "framework": "django",
+      "scans": [
+        "python",
+        "javascript",
+        "templates",
+        "markdown"
+      ],
+      "_path": "skills/find-workflow-duplication"
+    },
+    {
+      "name": "find-workflow-state-gaps",
+      "description": "Advisory SUSPECT scan for workflow state coverage gaps in JavaScript\nand templates: loading, empty, failure, retry/cancel, disabled, and\nmobile states. Also imports workflow-duplication findings as\nstate-authority context.\n",
+      "tier": "maintenance",
+      "job": "suspect",
+      "best_for": "Checking whether async product workflow surfaces have the states a\nsenior engineer would expect before UI polish or after a cleanup that\nmoves route/template/JS ownership: loading, empty, failure, recovery,\ndisabled, and mobile/responsive states.\n",
+      "not_for": "Visual QA, accessibility audits, or replacing Playwright. This is a\ntext-surface advisory scanner whose findings need judgment before\nbecoming guardrails.\n",
+      "language": "any",
+      "framework": "django",
+      "scans": [
+        "javascript",
+        "templates"
+      ],
+      "_path": "skills/find-workflow-state-gaps"
+    },
+    {
+      "name": "fix-workflow",
+      "description": "Execute a cleanup surfaced by /find-duplication, /find-dormant, or /find-semantic-duplication. Accepts a cluster ID from a triage report (e.g. `cluster:P0-1`, `delete:foo`, `semantic:SC-1`), a file path, or a raw natural-language description. Loads context, writes a regression test first, refactors in a behavior-preserving commit, adds a separate bug-fix commit if latent bugs surface, runs the verification test matrix, writes a cluster learnings entry, and recommends the next cluster. Runs in the current worktree with full commit discipline.",
+      "tier": "maintenance",
+      "job": "refactor",
+      "best_for": "Executing a cleanup cluster surfaced by a SUSPECT skill — accepts\ncluster IDs (`cluster:P0-1`, `delete:foo`, `semantic:SC-1`,\n`layer:LV-2`), file paths, or free-form descriptions. Writes\nregression test first, refactors behavior-preservingly, then\nseparately commits any latent bug fixes.\n",
+      "not_for": "Detection (use /find-duplication / /find-dormant /\n/find-semantic-duplication / /find-layer-violation / etc.).\nMulti-file subsystem refactors with multiple commits (use\n/refactor-subsystem). Authoring decisions (use /decide).\n",
+      "language": "python",
+      "framework": "django",
+      "_path": "skills/fix-workflow"
+    },
+    {
+      "name": "gut-check",
+      "description": "Instinctive senior-engineer \"does this look dumb?\" reaction pass over a plan markdown, a commit diff, or a free-form architecture summary. Emits 3-5 cited smell reactions split into un-decided smells (no precedent / ADR covers them — raw signal) and decided-but-still-smell (an ADR or precedent explains why the project did it this way, but the smell still surfaces — surface both so the human can decide whether to re-litigate). Confidence-banded (strong-smell / weak-smell / style-preference). Prompt-only, no helper script.",
+      "tier": "cross-cutting",
+      "job": "teach",
+      "best_for": "Quick instinct check on a plan markdown, a commit diff, or an\narchitecture summary right before the work goes from \"designed\" to\n\"built\" — the moment when a senior engineer skimming it cold would\nflinch at a wrong shape, over-engineering, or hidden coupling. Highest-\nleverage use is decision-conflict flagging: surfaces smells that\nalready conflict with the host project's decision registry or\nprecedent registry so the human knows BOTH that the smell exists AND\nthat a deliberate decision contradicts it. Lean instinct, not\nchecklist review.\n",
+      "not_for": "Mechanical lint enforcement (use the host project's linter). Detection\nof named architectural smells across a codebase (use the matching\n/find-* SUSPECT skill). Authoring an ADR (use /decide). Pattern-rule\nbriefing — \"explain why we do X\" (use /teach-pattern). Code review of\na PR (use the host project's review skill). Plan validation against\ndecisions (use /architecture-fit). Anything that needs ground truth —\ngut-check produces SIGNAL, not VERDICT.\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/gut-check"
+    },
+    {
+      "name": "harvest-learnings",
+      "description": "Distill a host project's forged learnings (lint suite, precedents, ADRs, idea ledger, known-issues) AND latent production-grade standards the project skips into PORTABLE standards — each carrying an attributed exemplar + durable host back-link, a portability verdict (ports / stays-home via a translation test), and a lifecycle×stakes activation tag (ADR 0020). Recurring; two-source (extractive + generative); proposal-only — never edits code or auto-adopts. Use to mine a project for cross-project standards, refresh the portable corpus, or convert one-off discoveries into reusable guardrails.",
+      "tier": "cross-cutting",
+      "job": "construct",
+      "best_for": "Mining a forged host project for portable standards: every lint rule,\nprecedent, ADR, and known-issue is a learning that cost something to\nfind — harvest distills each to its portable core with an attributed\nexemplar, then runs a translation test to decide if it ports off this\nstack. Also surfaces production-grade standards the project SHOULD hold\nbut a \"hit-the-goal\" pass skipped (idempotency, fail-closed, cost\nbounds, default-closed authz, races). Recurring — re-run as the project\nforges more.\n",
+      "not_for": "Capturing a single project-local idea mid-task (use /track-idea or\n/extract-existing-ideas). Documenting one already-known pattern (use\n/teach-pattern). Coverage-checking a standard that already exists (use\n/find-standard-gaps). Running reactively inside an unrelated feature or\nbug task. A greenfield project with no forged surfaces (no lints /\nprecedents / ADRs) — only the generative source would fire, which alone\nis just \"list good practices,\" low value.\n",
+      "lanes": [
+        "quality-kernel",
+        "knowledge-harvest"
+      ],
+      "consumes": [
+        "host_project_forged_surfaces",
+        "latent_production_standards"
+      ],
+      "produces": [
+        "portable_standard_candidates",
+        "portability_verdicts"
+      ],
+      "max_overhead": "Stop if nothing forged exists to extract and the generative source is the only input — that is a checklist, not a harvest.",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/harvest-learnings"
+    },
+    {
+      "name": "impact-feature",
+      "description": "Second skill in the System-tier chain. Reads a `scoped`-status plan, fans out one scout per touched subsystem to map call sites + behaviors-to-preserve, synthesizes the cross-subsystem impact + blast radius, and fills §3-4 of the plan. Advances plan status to `impacted`. Heavier than /scope-feature (scout fan-out) but lighter than /plan-feature (no spec scaffold; that's /plan-spec).",
+      "tier": "system",
+      "job": "plan",
+      "best_for": "Second stage of System-tier planning — a `scoped`-status plan that\nneeds full reachability + blast radius mapped before architecture-\nfit analysis can run. Fans out scouts per subsystem because the\nimpact map is the most parallelizable part of the chain.\n",
+      "not_for": "Plan with status != scoped (use the matching next-stage skill).\nFeature-tier impact mapping — /plan-feature already bundles its own\nscout fan-out (use it instead). Authoring decisions (use /decide).\n",
+      "language": "python",
+      "framework": "django",
+      "_path": "skills/impact-feature"
+    },
+    {
+      "name": "introduce-fk",
+      "description": "Turn a tuple-inferred-identity pattern (`.filter(status=X, created_at__gt=Y).first()`) into an explicit ForeignKey + two-step data migration proposal. Consumes an introduce-fk candidate from /find-implicit-state (or an explicit `OWNER_FILE::OwnerModel -> TARGET_FILE::TargetModel [via fk_name]` target) and emits reports/introduce-fk/<target>/proposal.md with the FK field shape, backfill migration sketch, caller migration table, tie-break strategy, and risks. Read-only — no code edits. Hands off to /fix-workflow or /refactor-subsystem.",
+      "tier": "maintenance",
+      "job": "explain",
+      "best_for": "Tuple-inferred-identity patterns surfaced by /find-implicit-state\n(e.g. `.filter(status=X, created_at__gt=Y).first()`) where an\nexplicit ForeignKey would replace the tuple. Produces a two-step\ndata migration proposal with FK shape, backfill plan, caller\nmigration table, and tie-break strategy. Read-only — proposal only.\n",
+      "not_for": "Stringly-typed status enums (use /extract-enum). Detection of the\npattern itself (use /find-implicit-state). Refactor execution (use\n/fix-workflow or /refactor-subsystem after the proposal).\n",
+      "language": "python",
+      "framework": "django",
+      "_path": "skills/introduce-fk"
+    },
+    {
+      "name": "map-product-workflow",
+      "description": "Map a user-visible product workflow across routes, views, templates, JavaScript, docs, status providers, and compatibility redirects. Produces `.claude/docs/workflows/<name>.md`. MAP skill for topology-level quality.",
+      "tier": "maintenance",
+      "job": "map",
+      "best_for": "A user-visible product workflow that is easy to understand in the\nUI but hard to locate in code — spans routes, views, templates,\nJavaScript, docs, status providers, and compatibility redirects.\nProduces `.claude/docs/workflows/<name>.md` as the topology map.\n",
+      "not_for": "Single-subsystem inventory (use /map-subsystem). Behavioral\nannotation of a known file (use /explain-code). Detection of\nworkflow-step duplication (use /find-workflow-duplication).\n",
+      "language": "python",
+      "framework": "django",
+      "_path": "skills/map-product-workflow"
+    },
+    {
+      "name": "map-subsystem",
+      "description": "Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, or bounded Java package subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; compiler branches use family-local compiler attribution for exported surface and resolved imports. No refactor intent — MAP skill in the maintenance nervous system.",
+      "tier": "maintenance",
+      "job": "map",
+      "best_for": "Producing or refreshing a durable inventory doc for a subsystem at\n`.claude/docs/subsystems/<name>.md` — file list, public surface,\nresponsibility table, dependency graph, convention-compliance\nscore. MAP skill in the maintenance nervous system.\n",
+      "not_for": "Cross-subsystem product workflows (use /map-product-workflow).\nPer-symbol behavior annotation (use /explain-code). Refactor\nexecution (use /refactor-subsystem with a spec).\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "typescript",
+        "javascript",
+        "go",
+        "java"
+      ],
+      "_path": "skills/map-subsystem"
+    },
+    {
+      "name": "mature-existing-ideas",
+      "description": "Research an existing ledger entry (or a batch of entries carrying the needs-research marker), append research-log notes to the ledger through /track-idea, and optionally clear markers as evidence accumulates. The orchestrator does the research (project doc grep, optional external Web/Context7 lookups, prior-art surveys) and uses track-idea/scripts/track.py for every ledger write. Read .claude/docs/idea-ledger.md when authoring or debugging this skill.",
+      "tier": "cross-cutting",
+      "job": "meta",
+      "best_for": "An idea carries the needs-research marker (or you remember one that\nought to). You want to do the research now, write findings down, and\ndecide whether to clear the marker. Also useful for periodic\nfreshness review on ideas that have not been touched for a while.\n",
+      "not_for": "Generating new ideas (use /brainstorm-ideas).\nCapturing a single new idea (use /track-idea intake).\nValidating a deterministic library (use the harness at\n.claude/tests/ideas/run_harness.py).\nValidating agentic skill spec conformance (open gap — captured as\nledger entry `skill-spec-conformance-validation`; this skill is the\nbest manual surrogate until that gap is filled).\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/mature-existing-ideas"
+    },
+    {
+      "name": "move-path",
+      "description": "Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits. TypeScript/TSX source imports are never rewritten in v1.",
+      "tier": "maintenance",
+      "job": "refactor",
+      "best_for": "Everyday but high-blast path moves: moving or renaming Markdown docs,\ndirectories, fixtures, scripts, or mixed repo surfaces where references\nshould update in one batch. Best when a move map can be reviewed first\nand the desired behavior is \"compute a virtual after-tree, rewrite safe\nreferences once, apply with git-aware moves, then verify.\"\nAlso use the checked-JavaScript mode for explicit `.js`, `.jsx`, `.mjs`, or\n`.cjs` file moves that must update safe relative imports and checked-project\nconfiguration while leaving unrelated TypeScript source unchanged.\nUse the checked-Java mode for one reviewed standalone-JDK leaf-package move\nwhose package, import, and fully-qualified type identities must stay exact.\n",
+      "not_for": "Domain-concept terminology renames in prose (use /rename-concept).\nPython/TypeScript import refactors unless a language adapter has been\nexplicitly added and enabled. Large behavior-changing subsystem splits\nthat need characterization tests and human Phase 4 sign-off (use\n/refactor-subsystem). Blind global find-and-replace.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "go",
+        "java",
+        "javascript",
+        "typescript"
+      ],
+      "_path": "skills/move-path"
+    },
+    {
+      "name": "organize-project-structure",
+      "description": "Arrive at an ideal or near-ideal repo folder structure and organization approach under framework/tool/human constraints. Use when a project has historical top-level folders, source/input/output dumps, KB/spec/eval/runtime boundaries, or a proposed directory map that needs recursive folder summaries, ideal-vs-constrained topology review, boundary discovery, folder-worth judgment, deterministic move-plan options, dry-run validation, and a safe implementation approach. Not for one-off file moves or Python package prefix clusters.",
+      "tier": "system",
+      "job": "plan",
+      "best_for": "Whole-project information architecture: making a repo root easier to\nskim, demoting historical inputs/outputs from the top level, summarizing\nfolder purpose/value at multiple abstraction levels, separating source\nmaterial from doctrine, splitting idea lifecycle from specs, adapting an\nideal topology to framework constraints, deciding where\nevals/runtime/apps/scripts/tests belong, and producing an\nimplementation approach. When safe, this may include a batched\n/move-path plan with dry-run review; when not safe, the output is a\nhuman/LLM decision brief with deterministic and judgment-based parts\nseparated.\n",
+      "not_for": "Single file or folder rename/move with known destination (use\n/move-path directly). Python package topology drift such as prefix\nclusters or sparse packages (use /find-folder-topology-drift and\n/propose-folder-reorganization). Glossary/domain terminology renames\n(use /rename-concept). Behavior-changing subsystem extraction (use\n/refactor-subsystem).\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/organize-project-structure"
+    },
+    {
+      "name": "orient",
+      "description": "Establish (or re-confirm) a project's lifecycle state on two independent axes — maturity (prototype → first-users → production) and stakes/exposure (internal → external → public-adversarial) — by asking orientation questions, showing the resulting classification and which standard rungs it activates, then writing the declared state to `.engineering/project-state.json` (the cross-agent state home, ADR 0021). This is the human-in-the-loop \"pull\" mechanism of ADR 0020 — automatic inference proposes a transition, /orient lets the human dispose. Stakes/exposure are NOT reliably inferable from code, which is why the questions matter. Idempotent — re-running re-confirms and overwrites.",
+      "tier": "cross-cutting",
+      "job": "meta",
+      "best_for": "Declaring or re-confirming where a project sits on the maturity ×\nstakes grid so standard-activation skills (find-standard-gaps and the\nreview lanes) enforce the right rungs — not too few, not gold-plated.\nThe trigger: starting work in a project with no .engineering/project-state.json,\nor being prompted by inference that the project \"looks past its\ndeclared state\" (a new unauthenticated write endpoint, first real-user\ndata, a public deploy). Stakes/exposure can only be set by a human, so\nthis is the surface that does it.\n",
+      "not_for": "Capturing project purpose, critical workflows, intentional tradeoffs,\nor known-bad legacy patterns (use /project-interview — the broad\nhuman-intent profile). Discovering objective repo facts like stack,\nCI, source roots (use /adapt-project). Authoring an architectural\ndecision (use /decide). Running the coverage scan that consumes this\nstate (use /find-standard-gaps). Editing the activation thresholds on\nindividual standards — those live in the standards file, not here.\n",
+      "lanes": [
+        "project-adaptation"
+      ],
+      "stage": "frame",
+      "entrypoint": true,
+      "produces": [
+        "project_state"
+      ],
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/orient"
+    },
+    {
+      "name": "plan-feature",
+      "description": "Plan a Feature-tier change (1-3 day scope, touches one workflow, needs impact analysis but not new subsystem). Reads subsystem/workflow docs, canonical patterns, architectural smells, and the decision registry; fans out scouts per touched subsystem to map call sites, model touchpoints, and behaviors-to-preserve; surfaces decision stubs for material forks; and scaffolds a proposed-lifecycle spec under `ai-docs/specs/<feature-name>.md` so implementation work can resume from the spec.",
+      "tier": "feature",
+      "job": "plan",
+      "best_for": "Cross-cutting feature, 1-3 day scope, touches one workflow, needs\nimpact assessment but not a new subsystem. Examples: \"expose a new\nfield on the export\", \"add a per-site override for the X behavior\",\n\"wire up the Y pipeline to the existing Z trigger\".\n",
+      "not_for": "Bug fixes (use /fix-workflow). New subsystems or 2+ workflows (use\nthe System-tier chain when it ships: /scope-feature → /impact-feature\n→ /architecture-fit → /plan-spec). Trivial changes — one-line fixes,\nfield renames, expose-existing-data — proceed directly and use\n/decide if a real choice is being made. If you're not sure of scope,\nask /which-skill first.\n",
+      "language": "python",
+      "framework": "django",
+      "_path": "skills/plan-feature"
+    },
+    {
+      "name": "plan-skill",
+      "description": "Plan and harden a new or revised skill before implementation, including adversarial requirements pushback, trigger design, evidence contracts, dogfood cases, and review gates. Use when creating a new .claude/skills skill or materially changing an existing skill.",
+      "tier": "cross-cutting",
+      "job": "plan",
+      "best_for": "Creating or materially revising a skill. Best when the risk is a skill\nthat triggers too broadly, produces no durable artifact, lacks\nvalidation, duplicates an existing skill, or cannot be dogfooded before\nhumans rely on it.\n",
+      "not_for": "Installing third-party bundles (use the platform skill-installer).\nTiny wording fixes to an existing command doc - edit directly and run\nskill_meta.py lint. General feature planning (use /plan-feature or the\nSystem-tier chain). Code-quality detection work (use find-*).\n",
+      "lanes": [
+        "skill-development",
+        "quality-kernel"
+      ],
+      "stage": "frame",
+      "entrypoint": true,
+      "consumes": [
+        "skill_idea",
+        "existing_skill_context",
+        "repo_context"
+      ],
+      "produces": [
+        "skill_brief",
+        "adversarial_pushback",
+        "validation_plan"
+      ],
+      "evidence_required": [
+        "skill_problem",
+        "trigger_contract",
+        "validation_plan",
+        "adversarial_review"
+      ],
+      "risk_triggers": [
+        "new_skill",
+        "existing_skill_rewrite",
+        "broad_trigger",
+        "no_validation"
+      ],
+      "max_overhead": "Stop if the skill cannot name a durable artifact and at least one dogfood case.",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/plan-skill"
+    },
+    {
+      "name": "plan-spec",
+      "description": "Final skill in the System-tier chain. Reads an `architected`-status plan, validates that §6 has no unresolved P0 forks, then calls `scripts/plans.py promote` to scaffold a successor spec under `ai-docs/specs/<spec-id>.md` and mark the plan `promoted`. The plan's §3-5 inform the spec's Architecture / Implementation / Exceptions sections. Hands off to `/refactor-subsystem` for execution.",
+      "tier": "system",
+      "job": "plan",
+      "best_for": "Fourth and final stage of System-tier planning — an `architected`-\nstatus plan with §6 clean (no unresolved P0 forks) ready to become\na behavior-preserving spec that `/refactor-subsystem` can execute.\nValidates the promotion gate, scaffolds the spec, links plan ↔ spec\nbidirectionally.\n",
+      "not_for": "Plan with status != architected (use the matching earlier-stage\nskill). Plan with unresolved P0 forks in §6 (use /decide for each,\nthen come back). Authoring decisions (use /decide).\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/plan-spec"
+    },
+    {
+      "name": "prevent-regression",
+      "description": "Turn a closed cleanup cluster into a permanent guardrail: diff-scoped\nlint when the invariant is lexical/AST-shaped, or focused regression\ntests when the invariant is behavioral/contract-shaped. Accepts a\ncluster ID from a recent scan (`cluster:<id>`, `delete:<id>`,\n`semantic:<id>`, `dormant:<id>`), a free-form pattern description with\noptional `path:<glob>` qualifier, a product-topology template\n(`topology:<route-ownership|workflow-registry|frontend-boot|site-endpoints|doc-route-drift>`),\nor `--dogfood <rule-name>` to rewire an existing rule. Emits a proposal\nat `reports/prevent-regression/<id>/` containing the guard artifacts,\ncanonical-pattern/testing guidance when needed, and a verification\nrecipe. Read-only against production code — never installs the guard\nunilaterally; the human reviews and executes.\n",
+      "tier": "maintenance",
+      "job": "guard",
+      "best_for": "Turning a one-off cleanup cluster (just closed by /fix-workflow,\n/unify-shadows, /extract-enum, /introduce-fk, or a topology\nrefactor) into a guardrail: either a diff-scoped lint rule + fixture\n+ CLAUDE.md canonical-pattern entry, or a focused regression test\nthat pins a route/import/auth/CSRF/failure-cleanup contract. Skipping\nGUARD turns every cleanup into a recurring tax — this is the closing\nstep of the maintenance loop.\n",
+      "not_for": "Detection of new smells (use a find-* SUSPECT skill). Refactor\nexecution (use /fix-workflow or /refactor-subsystem). One-off\npattern fixes the team has decided NOT to enforce broadly (just\nfix in place).\n",
+      "language": "any",
+      "framework": "any",
+      "install_with": [
+        "find-implicit-state"
+      ],
+      "_path": "skills/prevent-regression"
+    },
+    {
+      "name": "project-interview",
+      "description": "Build the human-approved project profile that complements /adapt-project discovery. Reads repository facts first, then interviews the user about purpose, maturity, critical workflows, risk posture, desired direction, intentional tradeoffs, known-bad legacy patterns, and do-not-break surfaces. Writes draft artifacts under reports/project-interview/scan-<TS>/ by default; durable .engineering/project/profile.yml, profile.md, and open-questions.md require --apply.",
+      "tier": "cross-cutting",
+      "job": "meta",
+      "best_for": "Capturing the human side of adapting engineering-skills to a host\nproject: project purpose, target users, important workflows,\nmaturity, risk tolerance, desired future path, intentional tradeoffs,\nand known-bad patterns that should not become doctrine.\n",
+      "not_for": "Objective repo discovery (use /adapt-project). Feature planning\ninside an already-profiled project (use /plan-feature or the System\ntier). ADR authoring (use /decide). Cleanup execution (use\n/triage-debt, /fix-workflow, /refactor-subsystem).\n",
+      "lanes": [
+        "project-adaptation"
+      ],
+      "stage": "frame",
+      "entrypoint": true,
+      "consumes": [
+        "repo_context",
+        "adapter"
+      ],
+      "produces": [
+        "project_profile",
+        "open_questions"
+      ],
+      "evidence_required": [
+        "profile",
+        "profile_summary",
+        "open_questions"
+      ],
+      "risk_triggers": [
+        "vibe-coded",
+        "legacy",
+        "unclear-goals",
+        "critical-workflow"
+      ],
+      "max_overhead": "Ask only questions that change the profile; park unresolved topics in open-questions.md.",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/project-interview"
+    },
+    {
+      "name": "propose-boundary",
+      "description": "Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX or checked-JavaScript v1 uses a host-resolved symbol/import/call graph; Go v1 uses host `go list` package/import facts plus standard-library AST facts; Java v1 uses JDK 17 compiler-attributed package, type, import, and fully-qualified-reference facts. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).",
+      "tier": "maintenance",
+      "job": "explain",
+      "best_for": "A TypeScript or checked-JavaScript target needing resolved symbol, import, and call-graph evidence\nfor a stable public interface, backward-compatible barrel, and caller-impact proposal.\nA file or directory where distinct domain concerns live side-by-side\nwith no defined public contract — sibling modules reach into each\nother's private helpers, change-amplification touches the same N\nfiles for every feature, test setup explodes because exercising one\ncluster requires fixturing the others. Produces candidate seams +\nproposed public API + shim shape + characterization-test matrix.\nRead-only. Works on `.claude/skills/<name>/` directories too —\nsub-phases (parsed from SKILL.md `## Phase N` headings) are treated\nas symbols, naming-prefix alignment as the cluster signal.\n",
+      "not_for": "Detection of which subsystems exist (use /map-subsystem first).\nIntra-file responsibility split where the smell is one file with\nthree domains (use /find-omnibus then /refactor-subsystem). Folder-\ntopology promotion / demotion (use /find-folder-topology-drift +\n/propose-folder-reorganization). Refactor execution (use\n/refactor-subsystem in decomposition mode). Proposals spanning multiple\nsubsystems are outside v1 and stay in the\nSystem-tier chain (/scope-feature → /impact-feature → /architecture-\nfit → /plan-spec).\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "typescript",
+        "javascript",
+        "go",
+        "java"
+      ],
+      "_path": "skills/propose-boundary"
+    },
+    {
+      "name": "propose-folder-reorganization",
+      "description": "Turn a confirmed Python, Go, Java 17, TypeScript, or checked-JavaScript folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.",
+      "tier": "maintenance",
+      "job": "explain",
+      "best_for": "A Java 17 flat-prefix cluster needing a compiler-resolved subpackage move plan.\nA TypeScript or checked-JavaScript flat-prefix folder cluster needing resolved import impact,\na target tree, barrel/subpath compatibility, and native verification plan.\nA confirmed folder-topology drift finding ready for a per-cluster\nreorganization proposal — produces the current → proposed tree,\nfile-move table, import-impact summary, characterization-test\nmatrix, and the rule-of-thumb call (`tests_by_prefix` opportunistic\nvs `flat_prefix_cluster` per-PR). Read-only. Decided in: ADR 0006\n(folder-organization).\n",
+      "not_for": "Detection (use /find-folder-topology-drift first). File-level\ndecomposition where the smell is intra-file, not intra-folder\n(use /find-omnibus). Refactor execution (use /refactor-subsystem in\ndecomposition mode). Authoring or amending the folder-organization\nADR itself (use /decide). Collapsing scratch / custom-job code (project memory:\nproject_core_vs_scratch_code.md) — the proposal still runs but\nrecommends `defer_scratch_code` instead of a refactor.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "go",
+        "java",
+        "typescript",
+        "javascript"
+      ],
+      "_path": "skills/propose-folder-reorganization"
+    },
+    {
+      "name": "query-patterns",
+      "description": "Search the Tier 2 pattern library at .claude/patterns/ for prior art that matches a problem description. Reads every pattern file's frontmatter (problem_class, pros, cons, domain, status, generalizability) plus the body's \"Problem fit\" / \"Use this when X\" headline, scores by token overlap, and returns ranked matches. Read-only. Read .claude/docs/pattern-library.md when authoring or debugging this skill.",
+      "tier": "cross-cutting",
+      "job": "meta",
+      "best_for": "An agent or human is about to start work on a problem and wants to\ncheck whether the project already has a recommended shape for it.\nUsed at planning time (`/plan-feature`, `/scope-feature`,\n`/architecture-fit`) and during exploratory work. Cheap, fast, no\nside effects.\n",
+      "not_for": "Capturing a new idea (use /track-idea intake).\nRecording a decision (use /decide).\nFinding orphaned ledger entries (use /find-orphaned-ideas).\nDetailed pattern authoring or editing (open the .md file directly).\nGeneral code search (use grep / Glob / map-subsystem).\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/query-patterns"
+    },
+    {
+      "name": "refactor-subsystem",
+      "description": "Execute a large-subsystem refactor (split a bloated module, extract a service, reorganize a domain) using an orchestrator/scout pattern driven by a spec file in `ai-docs/specs/`. Operates in seven phases — Inventory, Characterize+Extract, Plan, Approve, Execute, Verify, Crystallize — with mandatory three-output scouts (primary brief + findings.md + extracted-behaviors.md), spec-first enforcement via `scripts/specs.py`, ledger updates via `scripts/ledger.py`, and a conservative default that unknown code STAYS until explicit human approval. Refactors are behavior-preserving; bug fixes surfaced along the way become separate commits.",
+      "tier": "maintenance",
+      "job": "refactor",
+      "best_for": "Large-subsystem refactors driven by a spec at `ai-docs/specs/<id>.md`\n— split a bloated module, extract a service, reorganize a domain.\nSeven phases (Inventory → Characterize+Extract → Plan → Approve →\nExecute → Verify → Crystallize) with three-output scout discipline.\nBehavior-preserving; bug fixes split into separate commits.\n",
+      "not_for": "Single-cluster cleanups (use /fix-workflow). Detection (use the\nfind-* SUSPECT skills). Authoring the spec from scratch when\nthere's no prior plan (start with /scope-feature → /impact-feature\n→ /architecture-fit → /plan-spec to produce one).\n",
+      "language": "python",
+      "framework": "django",
+      "_path": "skills/refactor-subsystem"
+    },
+    {
+      "name": "rename-concept",
+      "description": "Assess a domain-concept rename against its full lifecycle and a mandatory\ntwo-band completeness gate, read-only. Renaming a concept that lives in the\nglossary spans many surfaces — identifiers, docs, the cross-tool agent\nmirrors — and is executed from tribal knowledge with no front door and no\ncompleteness gate, so renames land half-applied. This skill (v0, assess-only)\nreports the scope-gate verdict, blast radius, a per-step lifecycle status\ntable, and the completeness gate. It performs strict lexical assessment of\nPython, JavaScript, TypeScript, TSX, Go, and Java text. For `.ts`, `.tsx`, and checked\n`.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,\ndeclarations, and references; it does not claim whole-project type-checking,\nJSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`\nclassifies project-exported concept declarations and their references while\nretaining fields, import aliases, locals, inactive source, and diagnostics.\nThe old and new names must not co-occur lexically in\nlive code (/find-concept-divergence superseded_co_occurrence, band 3) AND no\nretired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)\n— both must be CLEAN for a lexical candidate assessment to pass. A\nTypeScript/TSX, checked-JavaScript, or Go host additionally needs a successful native semantic\nevidence run that resolves old/new identifier candidates. Definition of done is the\ntwo-band gate, every lifecycle step resolved, and that evidence where\na semantic language is in scope — NOT a codemod having run. Drives the two\nrename-relevant /find-concept-divergence bands through a required coupled\ninstallation; the assessment logic does not duplicate their matching rules.\nThe write half (author + dry-run a codemod plan, scaffold a reintroduction\nlint, --apply) is a v1 gap pending a codemod harness in this\necosystem (see Deferred, below).\n",
+      "tier": "maintenance",
+      "job": "refactor",
+      "best_for": "A TypeScript, JavaScript, Go, or Python glossary concept rename lifecycle\nassessment with a persistent completeness gate. Assessing whether a\nglossary-worthy, wide-blast change is COMPLETE —\nthe long tail (string-literal references, the guard lint, the cross-tool\nagent mirrors, the docs) is exactly what a rushed pass forgets, and the\ntwo-band gate is what catches a rename that is identifier-clean but still\ncarries retired prose. Use when the rename is glossary-tracked and the cost\nof a half-applied result is real. Pairs with /find-concept-divergence (which\nDETECTS the drift): this skill consumes that detector and frames it as a\nper-rename definition of done.\n",
+      "not_for": "A trivial local-symbol change outside canonical terminology with a narrow blast\nradius (use an IDE or a scoped find-and-replace) — the scope-gate bails\nthese. Bulk drift detection across ALL concepts at once (use\n/find-concept-divergence directly — this skill filters it to ONE requested term).\nFilesystem path or file moves and their import/reference updates (use\n/move-path), even when the paths happen to contain generic names such as\n`old` and `new`.\nGeneral module decomposition or service extraction (use /refactor-subsystem).\nAuthoring the DECISION itself — the ADR content is human judgment; this skill\nreports status, it does not decide. Executing the codemod — there\nis no codemod harness in this ecosystem yet, so the write half is deferred\n(see below).\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "javascript",
+        "typescript",
+        "go",
+        "java",
+        "markdown",
+        "templates"
+      ],
+      "install_with": [
+        "find-concept-divergence"
+      ],
+      "_path": "skills/rename-concept"
+    },
+    {
+      "name": "repair-skill",
+      "description": "Repair an existing skill whose text cannot be blind-trusted at execution time. Runs the validated five-role loop — frame review, claim-verifying scout, change spec with declared verdict, no-invention implementer, independent verifier — plus scaled A/B lift probes and (for execution-heavy skills) a real-host dogfood. Use when a frame review, dogfood, or production incident shows a skill producing wrong execution despite plausible text.",
+      "tier": "cross-cutting",
+      "job": "meta",
+      "best_for": "Repairing, fixing, or materially revising an existing skill — a\nSKILL.md whose text misleads or under-constrains real executors,\nshown by a frame review, dogfood log, incident, or adherence\ntelemetry. The standard repair gate for skill revisions arriving\nfrom any source, including skills imported from other projects.\n",
+      "not_for": "Authoring a new skill (use /plan-skill). Tiny wording fixes — edit\ndirectly and run skill_meta.py lint. Cross-skill invariant audits\n(use /check-ecosystem-consistency). Repairing scripts with no skill\nattached (normal bug-fix loop).\n",
+      "lanes": [
+        "skill-development",
+        "quality-kernel"
+      ],
+      "stage": "refactor",
+      "entrypoint": true,
+      "consumes": [
+        "frame_review",
+        "dogfood_log",
+        "skill_context"
+      ],
+      "produces": [
+        "repaired_skill",
+        "campaign_record",
+        "lift_report"
+      ],
+      "evidence_required": [
+        "scout_verification",
+        "change_spec",
+        "independent_verification",
+        "lift_result"
+      ],
+      "risk_triggers": [
+        "skill_rewrite",
+        "doctrine_surface",
+        "weak_tier_executors"
+      ],
+      "max_overhead": "Stop if no evidence exists — review first, repair second. Evidence is an execution-time failure OR missing activation-standard elements (knowledge/skill-standard.md).",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/repair-skill"
+    },
+    {
+      "name": "scope-feature",
+      "description": "First skill in the System-tier chain. Scaffolds an `ai-docs/plans/<name>.md` plan if needed, reads decisions / canonical-patterns / smells, then drives clarifying questions to fill §1 (Scope & Bounds) and §2 (Success Criteria) of the plan. Advances plan status to `scoped`. Designed for System-tier work — new subsystems, cross-subsystem features, multi-week initiatives — where the judgment pause between scoping and impact analysis is the whole point.",
+      "tier": "system",
+      "job": "plan",
+      "best_for": "System-tier work — a new subsystem, a feature crossing 2+ workflows,\nor a multi-week initiative where the scoping pause must happen\nBEFORE any impact analysis. Examples: \"build a new ingestion\npipeline for X\", \"merge the A and B workflows into one\", \"extract\nthe Y subsystem from the omnibus module\".\n",
+      "not_for": "Feature-tier work that touches one workflow / 1-3 day scope (use\n/plan-feature). Bug fixes (use /fix-workflow). Trivial changes\n(proceed directly; use /decide if a real choice is being made).\nAuthoring an ADR (use /decide).\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/scope-feature"
+    },
+    {
+      "name": "teach-pattern",
+      "description": "Cross-cutting teach skill — converts a topic (smell name, decision id, subsystem name, canonical-pattern anchor, or free-form rule) into a layered briefing at `reports/teach-pattern/scan-<TS>/<topic>.md`. Five-section structure — rule (one line), why (smell + decision link), exemplar (real spec/decision/code reference), counter-example (real find-* finding), enforcement (lint or \"none yet — file a /decide\"). The `--for-agent` flag re-frames the briefing as \"given THIS PR context, here's why X is right and Y is wrong\" so an agent can use the output directly mid-task.",
+      "tier": "cross-cutting",
+      "job": "teach",
+      "best_for": "Onboarding a new agent / team member to a project convention; mid-PR\nagent reasoning (\"why is the linter telling me to do X?\"); converting\na one-line rule from CLAUDE.md into the full backstory (why it\nexists, where it's enforced, what breaks without it). The\n`--for-agent` mode is the primary use; human-readable mode is\nsecondary.\n",
+      "not_for": "Authoring a new pattern (the pattern must already exist in\ncanonical-patterns.md, architectural-smells.md, or as an ADR).\nAuthoring a new ADR (use /decide). Detecting violations (use a\nfind-* SUSPECT skill).\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/teach-pattern"
+    },
+    {
+      "name": "track-idea",
+      "description": "Append an intake, event, or lesson record to the Tier 1 idea ledger at .claude/ideas/log.jsonl. The capture surface for everything that could be reused or forgotten — features, refactors, prompts, harnesses, research probes, workflow tweaks. Validates the record against the schema in .claude/docs/idea-ledger.md before writing, then projects the idea's current state. Read .claude/docs/idea-ledger.md when authoring or debugging this skill.",
+      "tier": "cross-cutting",
+      "job": "meta",
+      "best_for": "Capturing an idea, transition, marker change, edge addition, adoption,\ndevelopment note, or distilled lesson against the project's idea\nledger. Used at any tier whenever the conversation surfaces something\nreusable: a prompt template that worked, a research probe to remember,\na harness shape, a UI idea, a workflow tweak, a friction observation\nfrom building a skill. Also the projection surface — `list` / `show`\nread the current state.\n",
+      "not_for": "Decisions that constrain future work (use /decide → ADR).\nBug fixes with no design content (commit message is enough).\nWork-item tracking (use reports/BACKLOG.md; the ledger is upstream).\nProject status / activity logs (use commit messages).\nConversation transcripts (link the artifact, don't copy it in).\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/track-idea"
+    },
+    {
+      "name": "triage-debt",
+      "description": "Cross-cutting aggregator that scores accumulated debt across the maintenance loop's outputs (find-* report stacks, spec drift, decision drift, hard-size-overflow specs, recurring same-target hits) and produces a ranked queue at `reports/triage-debt/scan-<TS>/queue.md`. Each entry names the recommended next skill to invoke (refactor-subsystem / fix-workflow / extract-* / decide). Top-5 highlighted. Pure read — never edits production code, never runs find-*; reads the cached evidence those skills already produced.",
+      "tier": "cross-cutting",
+      "job": "triage",
+      "best_for": "Periodic (weekly / pre-cleanup-sprint) view of \"what's accumulating\".\nSurfaces three signals a single find-* skill cannot: (a) recurrence\nacross runs (same skill+target hit repeatedly), (b) spec drift (IM-N\nunchecked > 60d), (c) decision drift (proposed > 30d, broken chains).\nUse when you have a maintenance window and want to know where it's\nbest spent, not which one cleanup to do next.\n",
+      "not_for": "Detection of new smells (use a find-* SUSPECT skill — triage-debt only\nreads existing reports). Single-cluster execution (use /fix-workflow,\n/refactor-subsystem). One-off \"is this file healthy\" reads (use\n/map-subsystem). Decision-registry hygiene specifically (use\n/audit-decisions, which is narrower and more authoritative for that\naxis).\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/triage-debt"
+    },
+    {
+      "name": "unify-shadows",
+      "description": "Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, and Java consume the accepted structured /find-semantic-duplication finding and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.",
+      "tier": "maintenance",
+      "job": "explain",
+      "best_for": "One confirmed Python, TypeScript, checked-JavaScript, Go, or Java semantic-duplication finding from\n/find-semantic-duplication (shape =\nkeep_separate_document_why | share_utilities | complete_migration |\nmerge_at_workflow). Produces an implementation-ready proposal at\n`reports/unify-shadows/<finding-id>/proposal.md` with migration\nplan, caller impact, test matrix, and stop condition.\n",
+      "not_for": "Fresh candidate discovery belongs to /find-semantic-duplication. Lexical\nnear-clones belong to /find-duplication and their downstream fix workflow.\nSource mutation begins only after human acceptance of this artifact.\n",
+      "language": "any",
+      "framework": "any",
+      "scans": [
+        "python",
+        "typescript",
+        "javascript",
+        "go",
+        "java"
+      ],
+      "_path": "skills/unify-shadows"
+    },
+    {
+      "name": "which-cleanup",
+      "description": "Route a completed change to proportionate cleanup and guard skills. Use after editing or committing code to inspect only the changed scope, choose warranted closeout guides, and return on-demand guide/tool paths for direct or fresh-sub-agent execution. Ambient installation is explicit and optional.",
+      "tier": "cross-cutting",
+      "job": "meta",
+      "best_for": "End-of-task closeout: identify cleanup and GUARD work warranted by changed\nfiles or a bounded Git diff. Use when the question is “I changed this; what\nengineering checks should happen before I call it done?”\n",
+      "not_for": "Forward routing before work starts (use /which-shape then /which-skill).\nA global debt sweep (use /triage-debt). Running every recommended scanner,\nediting production code, or scanning the whole repository without a scope.\n",
+      "lanes": [
+        "routing"
+      ],
+      "stage": "verify",
+      "entrypoint": true,
+      "consumes": [
+        "changed_paths",
+        "commit_range"
+      ],
+      "produces": [
+        "closeout_recommendation",
+        "selected_skill_handoffs"
+      ],
+      "risk_triggers": [
+        "post-change",
+        "multi-file",
+        "missing-guard"
+      ],
+      "max_overhead": "Return the bounded roster and stop; do not run recommended skills automatically.",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/which-cleanup"
+    },
+    {
+      "name": "which-shape",
+      "description": "Recommend the right problem-solving loop before choosing individual skills. Reads the explicit shape registry plus project adapter/profile state, then returns an advisory route such as project-intake, bug-fix, concept-rename, or task-closeout (illustrative — shapes.json is the sole shape inventory). Use when the user describes a messy situation and should not need to understand the skill catalog.",
+      "tier": "cross-cutting",
+      "job": "meta",
+      "best_for": "Strategic routing when the user or agent is unsure what kind of\nproblem-solving loop to run. Especially useful for unknown projects,\nmessy inherited code, broad health questions, recurring failures,\nor ambiguous prompts where a single skill recommendation is too\ntactical.\n",
+      "not_for": "Picking between two already-known skills (use /which-skill). Running\na skill automatically. Tiny obvious edits where direct implementation\nis cheaper than any routing. Replacing human judgment about project\ngoals; missing intent should route to /project-interview.\n",
+      "lanes": [
+        "routing"
+      ],
+      "stage": "frame",
+      "entrypoint": true,
+      "consumes": [
+        "situation",
+        "project_profile",
+        "adapter"
+      ],
+      "produces": [
+        "shape_recommendation"
+      ],
+      "risk_triggers": [
+        "unknown-project",
+        "legacy",
+        "missing-profile",
+        "recurring-failure"
+      ],
+      "max_overhead": "Return one shape, a first next step, and a stop/reassess condition; do not invoke the skills.",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/which-shape"
+    },
+    {
+      "name": "which-skill",
+      "description": "Recommend a skill (or \"no planning skill applies — proceed directly\") for a free-text task description. Reads a bundled metadata-only catalog without loading skill bodies, then emits on-demand guide/tool paths and a bounded fresh-sub-agent handoff. Ambient installation is explicit and optional.",
+      "tier": "cross-cutting",
+      "job": "meta",
+      "best_for": "An agent (or human) is unsure which skill to invoke for a task.\nEspecially valuable at the start of a non-trivial task — the cost of\nwrong tool selection (Quick task funneled into a System-tier\nplanning chain) is much higher than the 5 seconds of running\n/which-skill.\n",
+      "not_for": "Tasks where the right skill is obvious (single-finding cleanup → use\n/fix-workflow directly; dead-code audit → use /find-dormant). Don't\npre-invoke /which-skill out of ritual — the matcher costs context\nand adds latency. Skip it when the next move is unambiguous.\n",
+      "language": "any",
+      "framework": "any",
+      "_path": "skills/which-skill"
+    }
+  ]
+}

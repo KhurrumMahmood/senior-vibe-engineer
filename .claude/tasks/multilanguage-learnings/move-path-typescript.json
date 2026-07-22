@@ -1,0 +1,133 @@
+{
+  "batch": "move-path-typescript-v1",
+  "revision": "5d44b3e",
+  "family": ["move-path"],
+  "invariant": {
+    "portable_principle": "Move standalone paths deterministically and rewrite only identity-resolved non-source references while surfacing unsupported source-import risk.",
+    "python_or_framework_mechanism": "Existing Python filesystem virtual-after-tree mover, reference resolver, report writer, and YAML compatibility path.",
+    "typescript_mechanism": "Move .ts/.tsx paths; resolve Markdown/HTML/config/backtick/exact-text identities; record local static imports whose target or referrer is moved without changing source text.",
+    "explicit_non_goals": [
+      "TypeScript or Python import rewriting",
+      "tsconfig aliases, project references, package exports, and barrel resolution",
+      "Dynamic imports and framework routing",
+      "Claiming an import-safe module move"
+    ]
+  },
+  "reference_repairs": [
+    "Added a stdlib JSON plan path because requiring PyYAML for JSON plans broke copied-skill closure.",
+    "Excluded the exact resolved plan file from reference_scope because an in-root JSON plan matched by **/*.json could rewrite its own from field and invalidate post-apply verification.",
+    "Threaded the exact plan-authority exclusion into audit_path_residue so the required from value is not reported as stale residue.",
+    "Removed invented import replacement spellings; ignored-import remediation is unknown without TypeScript module resolution.",
+    "Added TypeScript 5.9.3 emitted-file substitution precedence, including declaration sources, for ignored-risk reporting without rewriting imports."
+  ],
+  "language_model": {
+    "syntax": [".ts, .tsx, .mts, .cts, .d.ts, .d.mts, and .d.cts source paths", "common single-line and multiline static import/export-from specifiers for risk records", "NodeNext-style relative .js/.mjs/.cjs emitted specifiers", "Markdown/HTML/config/backtick/exact text reference forms"],
+    "type_system": ["No TypeScript type facts are used; the type-only import fixture remains unchanged."],
+    "module_resolution": ["Filesystem probing only to identify ignored local relative-import risk.", "TypeScript 5.9.3 substitution precedence is .js to .ts/.tsx/.d.ts before .js, .mjs to .mts/.d.mts before .mjs, and .cjs to .cts/.d.cts before .cjs.", "Aliases, packages, compiler configuration, and replacement spelling remain unsupported."],
+    "runtime": ["Python 3.11+ stdlib for JSON-plan execution", "Optional PyYAML only for .yml/.yaml compatibility", "Pinned preinstalled TypeScript 5.9.3 for native acceptance evidence"],
+    "framework": ["None"]
+  },
+  "tooling": {
+    "selected": "Family-local Python filesystem/reference resolver with stdlib JSON loading and narrow ignored-import reporting",
+    "rejected_alternatives": {
+      "typescript_compiler_api": "Not needed for the accepted non-import-rewriting outcome; required before import-safe moves are claimed.",
+      "ts_morph_or_tree_sitter": "Adds installation and parser surface without improving this path/text contract.",
+      "mandatory_pyyaml": "Breaks the selected-skill copied-install closure for JSON plans.",
+      "shared_resolver_platform": "No second family has proven the same resolver contract."
+    },
+    "version_and_resolution": "Python 3.11+ stdlib JSON is guaranteed; YAML is optional PyYAML; native evidence uses preinstalled TypeScript 5.9.3 from the pinned npx cache path.",
+    "closure_mode": "Copied move-path directory, invoked with python -I -S from outside the checkout; both move_path.py and audit_path_residue.py use a JSON plan.",
+    "preflight_and_failure_codes": [
+      "YAML without PyYAML exits with an explicit optional-mode message.",
+      "rewrite.code_imports other than ignore exits before a misleading move result.",
+      "Missing tsc makes the native acceptance test fail explicitly."
+    ]
+  },
+  "outcome_contract": {
+    "inputs": ["JSON move plan", "standalone .ts/.tsx/.mts/.cts path", "scoped Markdown/HTML/config/backtick/exact-text references"],
+    "structured_outputs": ["report.json code_imports.ignored with expected_specifier null", "report.md advisory Ignored TypeScript Imports", "path-residue-audit JSON/Markdown"],
+    "must_fire": ["Moved TS source reference in Markdown, HTML, JSON config, and a backtick token", "Single-line or standard multiline relative TS import resolving to a moved .ts file appears as ignored risk", "NodeNext .js/.mjs/.cjs specifier resolving by native substitution precedence to moved source or declaration files appears as ignored risk", "A moved .ts source wins risk identity over a coexisting .js runtime file", "Second dry-run after apply reports missing_source from the preserved plan"],
+    "must_not_fire": ["External URL and prose", "TypeScript source import rewrite", "Invented import replacement spelling", "Move-plan self-rewrite or residue finding", "Cross-kind .mjs to .cts guess", "Unrelated local type-only import"],
+    "native_test_command": ".venv/bin/python -m pytest tests/test_move_path.py -q",
+    "native_guard_command": "tsc --noEmit --project tsconfig.json after the import-safe standalone move"
+  },
+  "evidence": {
+    "python_reference": ["Existing 11 move-path tests remain green in the 20-pass targeted suite.", "move-path smoke returned ok."],
+    "typescript": ["JSON-plan report test moves both .ts and .tsx paths, covers positive rewrites, external/prose/import must-not-rewrite, and final report risk output.", "Copied-skill test runs both executables under python -I -S outside checkout.", "In-root JSON plan remains byte-identical through dry-run/apply and supports a meaningful post-check plus second dry-run.", "Residue audit excludes that same plan authority path.", "Standard multiline import-from syntax is reported without inventing a replacement specifier.", "TypeScript 5.9.3 substitution precedence identifies moved .ts/.tsx/.d.ts, .mts/.d.mts, and .cts/.d.cts sources before coexisting emitted runtime files while cross-kind guesses stay clean.", "Safe standalone fixture applies the move and passes tsc --noEmit under pinned TypeScript 5.9.3."],
+    "commands_and_artifact_paths": [
+      "Red before production edits: pytest tests/test_move_path.py -q -k 'typescript_move_json_plan or stdlib_only or yaml_plans or standalone_typescript' -> 4 failed (missing report field and PyYAML-only copied path).",
+      "Repair red: .venv/bin/python -m pytest tests/test_move_path.py -q -k 'in_root_json_plan or does_not_invent or multiline_static_import' -> 3 failed before production edits.",
+      "Second-review red: .venv/bin/python -m pytest tests/test_move_path.py -q -k 'nodenext_emitted or residue_audit_excludes' -> 2 failed before production edits.",
+      "Final-review red: .venv/bin/python -m pytest tests/test_move_path.py -q -k nodenext_emitted -> 1 failed because coexisting shadow.js hid moved shadow.ts before production edits.",
+      "PATH=<pinned-tsc-bin>:$PATH tsc --version -> Version 5.9.3.",
+      "PATH=<pinned-tsc-bin>:$PATH .venv/bin/python -m pytest tests/test_move_path.py -q -> 20 passed.",
+      ".venv/bin/ruff check .claude/skills/move-path/scripts/move_path.py .claude/skills/move-path/scripts/audit_path_residue.py tests/test_move_path.py -> All checks passed!",
+      ".venv/bin/python scripts/skill_meta.py lint --quiet -> OK — 76 skills, 76 declaring new contract.",
+      ".venv/bin/python .claude/skills/move-path/scripts/smoke.py -> ok.",
+      "/tmp/es-forward-move.3U1DIN: installed commit a4e73fe under system python3 moved src/legacy.ts to src/workflow.ts, updated docs/guide.md and config.json, preserved consumer import ./legacy, reported ignored risk, and recorded tsc unavailable."
+    ]
+  },
+  "false_positive_boundary": {
+    "known_false_positives": ["A static relative import or conventional NodeNext emitted/source pair may be recorded even when host compiler configuration resolves it differently; it remains an advisory risk, not a rewrite."],
+    "known_false_negatives": ["Unusual import syntax, nonstandard emitted/source mappings, package imports, dynamic imports, aliases, package exports, project references, and compiler-specific resolution are not recorded."],
+    "legitimate_similar_shapes": ["External URLs and prose containing old path-looking text stay unchanged.", "Unrelated local TypeScript imports stay unchanged and do not appear as moved-import risks."]
+  },
+  "generalized": ["Virtual-after-tree path identity", "report schema", "JSON plan schema", "copied-install replay", "explicit unsupported-operation reporting"],
+  "did_not_generalize": ["TypeScript module resolution", "Python import semantics", "framework routing", "TypeScript type checking"],
+  "reuse_decision": {
+    "shared_candidate": "JSON plan loading and move identity helpers",
+    "actual_second_consumer": "move-path/scripts/audit_path_residue.py",
+    "decision": "keep-family-local",
+    "evidence": ["The copied-install test runs both family executables against the same JSON plan.", "No other skill has demonstrated this exact path/text resolver contract."],
+    "owner": "move-path"
+  },
+  "translation_prerequisites": {
+    "rust": {
+      "native_tool": "cargo check",
+      "idiomatic_representation": "mod/use paths",
+      "required_fixtures": ["relative module move", "crate import", "macro-adjacent path"],
+      "semantic_gaps": ["macro expansion", "crate features"]
+    },
+    "go": {
+      "native_tool": "go test or go list",
+      "idiomatic_representation": "package imports and go.mod modules",
+      "required_fixtures": ["local package move", "module replacement", "generated file"],
+      "semantic_gaps": ["workspace/module resolution"]
+    },
+    "java_or_kotlin": {
+      "native_tool": "compiler or language server",
+      "idiomatic_representation": "package and import declarations",
+      "required_fixtures": ["package move", "multi-module import", "generated source"],
+      "semantic_gaps": ["overloads", "package visibility"]
+    },
+    "csharp": {
+      "native_tool": "Roslyn or dotnet build",
+      "idiomatic_representation": "namespace and using declarations",
+      "required_fixtures": ["namespace move", "project reference", "partial type"],
+      "semantic_gaps": ["assemblies", "partial declarations"]
+    },
+    "ruby": {
+      "native_tool": "Ruby parser or language server",
+      "idiomatic_representation": "require_relative and autoload paths",
+      "required_fixtures": ["relative require", "autoload", "dynamic load"],
+      "semantic_gaps": ["runtime load paths", "metaprogramming"]
+    }
+  },
+  "user_experience": {
+    "install_steps": ["Copy only move-path", "Use a .json plan", "Run the selected script with host Python 3.11+"],
+    "wall_time_seconds": null,
+    "agent_confusions": ["A JSON-looking plan still required PyYAML before this change.", "A successful path move could be mistaken for an import-safe module move without an explicit report section.", "The first report's expected_specifier looked authoritative even though no module resolver justified it."],
+    "repeated_work": ["The move and residue-audit commands share family-local plan/path helpers."],
+    "smallest_later_improvement": "Expose a JSON plan template and ignored-import warning through the installer/router after serial review."
+  },
+  "residual_risks": [
+    "The fresh installed forward run used committed revision a4e73fe and exposed an invalid expected_specifier that the repair regression now removes.",
+    "NodeNext emitted/source identity reporting is conservative and does not establish project module resolution.",
+    "Ignored-import records are advisory and intentionally incomplete without tsconfig-aware resolution."
+  ],
+  "next_decision": {
+    "recommendation": "Preserve the pinned preinstalled tsc acceptance lane, then decide separately whether an import-safe tsconfig-aware resolver has enough product value.",
+    "rationale": "The standalone path/text contract now works in an installed stdlib-only closure; broader module behavior needs compiler facts rather than lexical extension probing.",
+    "blockers": ["Shared catalog regeneration is an integrator-owned serial change.", "Shared shapes.yml versus guaranteed JSON-plan user-journey reconciliation is an integrator-owned serial change."]
+  }
+}

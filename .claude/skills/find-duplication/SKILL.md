@@ -1,245 +1,370 @@
 ---
 name: find-duplication
-description: Detect structural and lexical code duplication. Runs jscpd and the AST visitor in parallel, collapses overlapping clone pairs into method-identity findings, fans out sub-agent investigators, and produces a triage report with a dormant-code side-channel. Hands off to `/fix-workflow` for execution.
-argument-hint: "--target <directory>"
+description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
+argument-hint: "--target <source-directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
 best_for: |
-  Lexical / structural copy-paste — two methods with identical or
-  near-identical bodies. Runs jscpd + AST visitor in parallel,
-  collapses overlapping clone pairs into method-identity findings,
-  produces a P0/P1/P2 triage report.
+  Python/Django copy-paste and canonical-pattern candidates that need the
+  established P0/P1/P2 scout triage, JavaScript-family/TypeScript lexical clone
+  candidates that need reliable source spans, exact normalized Go function-body
+  clones, or duplicated Java method bodies represented as exact normalized
+  method-body clone candidates for conservative human review.
 not_for: |
-  Semantic duplication where the code differs but the workflow
-  overlaps (use /find-semantic-duplication). Refactor execution (use
-  /fix-workflow cluster:<id>). Cross-layer drift (template/JS/Python
-  for one workflow — use /find-workflow-duplication).
-language: python
-framework: django
+  Behavior-level matches whose implementations differ structurally belong to
+  /find-semantic-duplication. Cross-layer workflow drift and refactor execution
+  are outside this detector. Family-local v1 evidence establishes structural
+  clone leads and stops short of safety or reuse conclusions.
+language: any
+framework: any
+scans: [python, javascript, typescript, go, java]
 ---
 
 # /find-duplication
 
-You are the **orchestrator** for a duplication audit. Your job is to drive a
-pipeline of scripts and sub-agent investigators; the judgment calls live in
-the scout brief and the knowledge files, not in this prompt.
+Run the language branch that matches the target. Python, JavaScript, TypeScript, Go, and Java share a
+skill name and report vocabulary, but not a detector model or outcome claim.
 
-## How success is judged
+## Route before running
 
-- `${REPORT_DIR}/triage.md` + `findings.json` exist, and every
-  investigated finding carries a Stage 4 scout verdict at
-  `scout/<finding_id>.json` — nothing dropped silently between
-  `ranked.json` and `classified.json`.
-- The closeout pastes the real Stage 2/3/5 stderr lines (`[collapse]`,
-  `[rank]`, `[report]`) plus the scout JSON count; claims without those
-  artifacts do not satisfy the audit.
-- Cluster IDs in the triage report resolve as `/fix-workflow
-  cluster:<id>` arguments; dormant candidates flow to the
-  side-channel, never get acted on here.
-- Zero edits to production files — this is a read-only audit.
-Write toward these gates from Stage 0.
+Inspect eligible source suffixes under `--target`:
 
-## Scope
+- `.py` only: run the **Python legacy triage branch**.
+- `.ts`/`.tsx` only: run the **TypeScript lexical-evidence branch**.
+- `.js`/`.jsx`/`.mjs`/`.cjs` only: run the **JavaScript lexical-evidence branch**.
+- `.go` only: run the **Go exact-function evidence branch**.
+- `.java` only: run the **Java exact-method evidence branch**.
+- multiple supported families: run each branch into its own language report
+  directory and summarize them separately. Do not merge their findings or
+  apply one family's outcome contract to another family's evidence.
+- neither: stop and report that this skill has no eligible source.
 
-- **Target path:** the required `--target` argument. Must be a directory.
-- **Project root:** this worktree's root.
-- **Python:** `.venv/bin/python` (never bare `python`).
-- **Project-specific defaults** (ignore paths, dispatch registries, shadow
-  helper names, test suites): in `knowledge/`.
+Use a host Python 3.11+ interpreter. The selected skill is self-contained: no
+repository-level `scripts/`, `_common`, toolkit virtualenv, or shared language
+adapter is part of either installed path.
 
-## Pipeline stages (each one has a contract)
+## Python legacy triage branch
 
-Each stage reads files the previous stage wrote and writes files the next
-stage reads. Run scripts with `.venv/bin/python` and capture stderr so
-failures surface.
+The Python branch preserves the original user journey: pinned lexical
+detection plus Python AST pattern detection, method-identity collapse, ranking,
+per-finding scout investigation, a dormant-code side-channel, and final
+`triage.md`/`findings.json` suitable for `/fix-workflow` handoff.
 
-### Stage 0 — Setup
+### Python success contract
 
-**Pre:** none. **Post:** `${REPORT_DIR}` exists, `latest` symlink points to it.
+- Every final finding was present in `ranked.json` and has a valid scout JSON
+  in `scout/<finding_id>.json` before it becomes actionable.
+- `classified.json` preserves all scout verdicts and dormant candidates.
+- `triage.md` and `findings.json` include the same `fix_shape`, notes, latent
+  bug risk, and side-channel evidence.
+- Production source is unchanged.
 
-```bash
-TS=$(date +%Y%m%d-%H%M%S)
-REPORT_DIR="reports/duplication/scan-${TS}"
-mkdir -p "${REPORT_DIR}/jscpd" "${REPORT_DIR}/scout"
-ln -sfn "scan-${TS}" reports/duplication/latest
-```
-
-### Stage 1 — Detect (parallel)
-
-**Pre:** target directory exists. **Post:** `jscpd/jscpd-report.json` and
-`ast_findings.json` both present and non-empty.
-
-Run both commands concurrently in one Bash message:
+### Python setup
 
 ```bash
-# lexical clones (Type 1 + near-Type 2). The wrapper pins jscpd and uses
-# a deterministic npm cache; --offline-ok writes a skipped-lexical report
-# so the AST side can still run when npm/network is unavailable.
-.venv/bin/python scripts/lint/run_jscpd.py <target> \
-  --output "${REPORT_DIR}/jscpd" --offline-ok
-
-# AST patterns (shadow helpers, bare_int_request, cross-module clones, ...)
-.venv/bin/python scripts/duplication_audit.py <target> \
-  > "${REPORT_DIR}/ast_findings.json"
+PYTHON="${PYTHON:-python3}"
+SKILL_ROOT="${SKILL_ROOT:-.claude/skills/find-duplication}"
+SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
+REPORT_DIR="reports/duplication/${SCAN_ID}"
+TARGET="src"
+NPM_CACHE="${NPM_CACHE:-/tmp/engineering-skills-jscpd-cache}"
+RUN_PY_JSCPD="$SKILL_ROOT"/scripts/run_jscpd_python.py
+DETECT_PY="$SKILL_ROOT"/scripts/detect_python.py
+COLLAPSE_PY="$SKILL_ROOT"/scripts/collapse.py
+RANK="$SKILL_ROOT"/scripts/rank.py
+REPORT="$SKILL_ROOT"/scripts/report.py
+mkdir -p "$REPORT_DIR/jscpd" "$REPORT_DIR/scout"
 ```
 
-### Stage 2 — Collapse
+### Python Stage 1 — detect
 
-**Pre:** Stage 1 outputs exist. **Post:** `${REPORT_DIR}/collapsed.json` —
-jscpd pairs grouped by method identity, AST categories normalized to the
-common finding shape, intentional-repeat names filtered.
+Run the two family-local commands. They are independent and may run in
+parallel. `--offline-ok` preserves the legacy AST-only degraded mode when the
+exact jscpd cache is absent; the resulting report says `skipped_lexical` and
+must never be described as a clean lexical scan.
 
 ```bash
-.venv/bin/python .claude/skills/find-duplication/scripts/collapse.py \
-  --jscpd-report "${REPORT_DIR}/jscpd/jscpd-report.json" \
-  --ast-findings "${REPORT_DIR}/ast_findings.json" \
-  --target <target> \
-  --project-root "$(pwd)" \
-  --output "${REPORT_DIR}/collapsed.json"
+"$PYTHON" "$RUN_PY_JSCPD" \
+  --target "$TARGET" \
+  --output "$REPORT_DIR/jscpd" \
+  --npm-cache "$NPM_CACHE" \
+  --offline-ok
+
+"$PYTHON" "$DETECT_PY" "$TARGET" \
+  --project-root "$PWD" \
+  --output "$REPORT_DIR/ast-findings.json"
 ```
 
-### Stage 3 — Rank
+The lexical wrapper pins `jscpd@4.0.5`, runs `npx --offline`, stages only
+eligible production `.py` files, and excludes tests, migrations, vendor,
+generated, report, output, and prior `.jscpd-input` trees. The AST detector is
+stdlib-only and retains the legacy categories: unsafe request integer parsing,
+shadow safe-conversion helpers, repeated LLM-call helpers, inline request-body
+JSON parsing, and same-name/same-arity cross-module candidates.
 
-**Pre:** `collapsed.json`. **Post:** `${REPORT_DIR}/ranked.json` — each
-finding has a `rank_meta` block (priority, tier, effort hint); findings are
-sorted P0 → P2, highest priority first.
+### Python Stage 2 — collapse
 
 ```bash
-.venv/bin/python .claude/skills/find-duplication/scripts/rank.py \
-  --input "${REPORT_DIR}/collapsed.json" \
-  --output "${REPORT_DIR}/ranked.json"
+"$PYTHON" "$COLLAPSE_PY" \
+  --jscpd-report "$REPORT_DIR/jscpd/jscpd-report.json" \
+  --ast-findings "$REPORT_DIR/ast-findings.json" \
+  --target "$TARGET" \
+  --project-root "$PWD" \
+  --output "$REPORT_DIR/collapsed.json"
 ```
 
-### Stage 4 — Investigate (parallel fan-out)
+Expected stderr begins with `[collapse]`. Default filters remove tests,
+migrations, vendor/framework boilerplate, reports, and staging input. Python
+enclosing-symbol mapping uses stdlib `ast` inside the copied skill.
 
-**Pre:** `ranked.json`. **Post:** `${REPORT_DIR}/scout/<finding_id>.json` for
-every investigated finding; a single `${REPORT_DIR}/classified.json`
-aggregating them.
-
-This is the **only stage where LLM judgment runs**. You (the orchestrator)
-do **not** read the clone bodies — you dispatch one sub-agent per finding
-(or batch if there are many). Each sub-agent receives:
-
-- the finding JSON,
-- the prompt template from `agents/investigate.md`,
-- paths to `knowledge/*` files,
-- an output path it must write to.
-
-Budget: investigate **top 10 by priority** by default. If there are fewer
-than 10 findings, investigate them all. If the user asked for a deeper
-scan, raise the limit.
-
-For each finding, expand the `agents/investigate.md` template (substitute
-`{{finding_id}}`, `{{finding_json}}`, `{{project_root}}`, `{{skill_root}}`,
-`{{output_path}}`) and dispatch with `subagent_type=general-purpose`. Send
-all Agent calls in a **single message** so they run concurrently.
-
-Declare the verdict to every scout: its output is accepted only if it
-writes valid JSON at `{{output_path}}`, uses one `fix_shape` from the
-brief, accounts for dormant candidates separately, and cites the files it
-read in `notes`. When merging, reject or re-dispatch malformed scout
-files; do not let `report.py` turn an unjudged finding into an actionable
-cluster.
-
-After the sub-agents return, combine their JSON files:
+### Python Stage 3 — rank
 
 ```bash
-.venv/bin/python -c "
-import json, glob, pathlib
-out = {'findings': [], 'dormant_candidates': []}
-for p in sorted(glob.glob('${REPORT_DIR}/scout/*.json')):
-    d = json.loads(pathlib.Path(p).read_text())
-    out['findings'].append(d)
-    out['dormant_candidates'].extend(d.get('dormant_candidates') or [])
-pathlib.Path('${REPORT_DIR}/classified.json').write_text(json.dumps(out, indent=2))
-"
+"$PYTHON" "$RANK" \
+  --input "$REPORT_DIR/collapsed.json" \
+  --output "$REPORT_DIR/ranked.json"
 ```
 
-### Stage 5 — Report
+This preserves the original multiplicity × divergence × blast-radius ranking
+and P0/P1/P2 tiers.
 
-**Pre:** `ranked.json`, `classified.json`. **Post:** `${REPORT_DIR}/triage.md`
-and `${REPORT_DIR}/findings.json`.
+### Python Stage 4 — investigate
+
+This is the only Python stage where LLM judgment runs. Investigate the top 10
+ranked findings by default (or all when fewer exist). For each finding:
+
+1. Expand `agents/investigate.md` with `finding_id`, the finding JSON,
+   `project_root`, `skill_root`, and `output_path`.
+2. Dispatch a fresh general-purpose sub-agent. Dispatch independent scouts in
+   parallel when the host supports it.
+3. Require the scout to read `knowledge/false-positives.md`, any host overlay,
+   and `knowledge/learnings.md` when ambiguity matches a precedent.
+4. Accept only schema-valid JSON using one documented `fix_shape`. Re-dispatch
+   malformed output; never silently promote an unreviewed finding.
+
+Merge the accepted scout files:
 
 ```bash
-.venv/bin/python .claude/skills/find-duplication/scripts/report.py \
-  --input "${REPORT_DIR}/ranked.json" \
-  --classified "${REPORT_DIR}/classified.json" \
-  --output-md "${REPORT_DIR}/triage.md" \
-  --output-json "${REPORT_DIR}/findings.json" \
-  --scan-id "scan-${TS}"
-
-# Effectiveness log — one line per run, feeds reports/_meta/dashboard.md.
-# Derive counts from findings.json; shape is {duplication, shadow,
-# dormant, pattern-violation, other}. See `.claude/skills/_common/skill-conventions.md`.
-.venv/bin/python scripts/log_effectiveness.py \
-  --skill find-duplication \
-  --scan-id "scan-${TS}" \
-  --target <target> \
-  --findings-total "$(.venv/bin/python -c 'import json,sys; print(len(json.load(open(sys.argv[1])).get("findings", [])))' "${REPORT_DIR}/findings.json")" \
-  --buckets "$(.venv/bin/python -c 'import json,sys,collections; f=json.load(open(sys.argv[1])).get("findings", []); c=collections.Counter(x.get("shape","other") for x in f); print(json.dumps(dict(c)))' "${REPORT_DIR}/findings.json")"
+"$PYTHON" -c '
+import glob, json, pathlib, sys
+report = pathlib.Path(sys.argv[1])
+out = {"findings": [], "dormant_candidates": []}
+for name in sorted(glob.glob(str(report / "scout" / "*.json"))):
+    data = json.loads(pathlib.Path(name).read_text())
+    out["findings"].append(data)
+    out["dormant_candidates"].extend(data.get("dormant_candidates") or [])
+(report / "classified.json").write_text(json.dumps(out, indent=2) + "\n")
+' "$REPORT_DIR"
 ```
 
-### Stage 6 — Summarize
+### Python Stage 5 — final report
 
-Report to the user in ≤10 lines:
+```bash
+"$PYTHON" "$REPORT" \
+  --input "$REPORT_DIR/ranked.json" \
+  --classified "$REPORT_DIR/classified.json" \
+  --output-md "$REPORT_DIR/triage.md" \
+  --output-json "$REPORT_DIR/findings.json" \
+  --scan-id "$SCAN_ID"
+ln -sfn "$SCAN_ID" reports/duplication/latest
+```
 
-- counts by shape (duplication, dormant, shadow, pattern-violation),
-- top 3 clusters by priority (one line each),
-- any latent-bug risks flagged,
-- path to `${REPORT_DIR}/triage.md` and the `latest` symlink,
-- recommended next slash command.
+The final report preserves the original scout `fix_shape`, notes, latent bug
+risk, `/fix-workflow cluster:<finding_id>` handoff, and dormant-code
+side-channel. Summarize counts by shape, the top three clusters, latent risks,
+the final artifact path, and the recommended next command in at most 10 lines.
 
-The triage report is the source of truth — do not enumerate every finding.
+## TypeScript lexical-evidence branch
 
-## Replay case
+TypeScript v1 reports only lexical or near-lexical clone clusters where each
+complete site range fits one proven function declaration or block-bodied arrow
+symbol. It excludes generated, tests, declarations, vendor, dependencies,
+build, report, output, and staging paths. Distinct occurrences remain distinct;
+raw pairs cluster only through overlapping occurrences.
 
-When `scripts/collapse.py`, `scripts/rank.py`, `scripts/report.py`, or
-the scout JSON schema changes, replay a disposable target containing two
-30-line Python functions with identical bodies plus one unrelated
-function. Expected evidence: Stage 1 writes a lexical report (or the
-documented skipped-lexical artifact when `--offline-ok` is needed) and
-`ast_findings.json`; Stage 2 collapses the duplicate pair into exactly
-one finding; Stage 3 preserves one ranked finding; after one hand-written
-scout JSON for that finding, Stage 5 writes `triage.md` and
-`findings.json` with one actionable finding and zero dormant candidates.
+This branch has no TypeScript type checker, module resolution, React/Node
+framework model, caller proof, or refactor-safety claim. It does not run Python
+scouts or hand findings directly to `/fix-workflow`.
 
-## Non-goals
+### TypeScript setup and pipeline
 
-- Executing fixes (that's `/fix-workflow`).
-- Dead-code detection as a primary task (that's `/find-dormant`; dormant
-  findings here are a side-channel).
-- Editing files or running tests (this is a read-only audit).
-- Per-commit CI gates — this is a periodic audit.
+Provision the exact cache deliberately outside the audit when needed:
 
-## When things go sideways
+```bash
+NPM_CONFIG_CACHE="/path/to/jscpd-cache" npx --yes jscpd@4.0.5 --version
+```
+
+Then run all four installed stages:
+
+```bash
+PYTHON="${PYTHON:-python3}"
+SKILL_ROOT="${SKILL_ROOT:-.claude/skills/find-duplication}"
+SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
+REPORT_DIR="reports/duplication/${SCAN_ID}"
+TARGET="src"
+NPM_CACHE="${NPM_CACHE:-/tmp/engineering-skills-jscpd-cache}"
+RUN_TS_JSCPD="$SKILL_ROOT"/scripts/run_jscpd.py
+COLLAPSE_TS="$SKILL_ROOT"/scripts/collapse_typescript.py
+RANK="$SKILL_ROOT"/scripts/rank.py
+REPORT="$SKILL_ROOT"/scripts/report.py
+mkdir -p "$REPORT_DIR/jscpd"
+
+"$PYTHON" "$RUN_TS_JSCPD" \
+  --target "$TARGET" --output "$REPORT_DIR/jscpd" --npm-cache "$NPM_CACHE"
+"$PYTHON" "$COLLAPSE_TS" \
+  --jscpd-report "$REPORT_DIR/jscpd/jscpd-report.json" \
+  --target "$TARGET" --project-root "$PWD" \
+  --output "$REPORT_DIR/collapsed.json"
+"$PYTHON" "$RANK" \
+  --input "$REPORT_DIR/collapsed.json" --output "$REPORT_DIR/ranked.json"
+"$PYTHON" "$REPORT" \
+  --input "$REPORT_DIR/ranked.json" \
+  --output-md "$REPORT_DIR/triage.md" \
+  --output-json "$REPORT_DIR/findings.json" \
+  --scan-id "$SCAN_ID"
+ln -sfn "$SCAN_ID" reports/duplication/latest
+```
+
+Required artifacts are `jscpd/jscpd-report.json`, `collapsed.json`,
+`ranked.json`, `triage.md`, and `findings.json`. The final Markdown repeats
+“Do not consolidate automatically.” A nonempty cluster is an investigation
+lead only. `unmapped_symbol`, `span_crosses_symbol_boundary`, overload, and
+excluded-path omissions are deliberate false-negative boundaries.
+
+## JavaScript lexical-evidence branch
+
+JavaScript v1 accepts `.js`, `.jsx`, `.mjs`, and `.cjs` only through an
+explicit project-local `jscpd` binary. It never runs npm or npx and never
+installs a tool. The runner emits `run.json` with `tool-missing`,
+`syntax-error`, `tool-failed`, or `partial` when an established final clone
+report cannot be produced; none of those outcomes is clean.
+
+The collapse pass retains a reported pair only when both spans fit a named
+function or block-bodied arrow. It excludes generated, minified, test, vendor,
+dependency, report, staging, and symlink paths and maps source lines from the
+original host files. The final `triage.md` says “Do not consolidate automatically”; it is lexical evidence, not a behavior, caller, or semantic equivalence conclusion.
+
+```bash
+PYTHON="${PYTHON:-python3}"
+RUN_JS_JSCPD="$SKILL_ROOT"/scripts/run_jscpd_javascript.py
+COLLAPSE_JS="$SKILL_ROOT"/scripts/collapse_javascript.py
+JSCPD_BIN="$PWD/node_modules/.bin/jscpd"
+
+"$PYTHON" "$RUN_JS_JSCPD" --target "$TARGET" --project-root "$PWD" --output "$REPORT_DIR/jscpd" \
+  --jscpd-bin "$JSCPD_BIN" || exit $?
+"$PYTHON" "$COLLAPSE_JS" --jscpd-report "$REPORT_DIR/jscpd/jscpd-report.json" \
+  --target "$TARGET" --project-root "$PWD" --output "$REPORT_DIR/collapsed.json" || exit $?
+"$PYTHON" "$RANK" --input "$REPORT_DIR/collapsed.json" --output "$REPORT_DIR/ranked.json" || exit $?
+"$PYTHON" "$REPORT" --input "$REPORT_DIR/ranked.json" \
+  --output-md "$REPORT_DIR/triage.md" --output-json "$REPORT_DIR/findings.json" \
+  --scan-id "$SCAN_ID"
+```
+
+## Go exact-function evidence branch
+
+Go v1 uses Go 1.22+ from `PATH` and one batched `go run` of the bundled
+`go/parser` standard-library helper. It fingerprints `go/format`-normalized
+bodies of named functions and receiver methods with at least five source lines, then
+retains only fingerprints occurring at two or more symbols. This is exact
+structural evidence, not semantic equivalence, caller proof, or a safe-reuse
+recommendation.
+
+The source inventory is project-root-relative and excludes `_test.go`,
+generated, test/testdata/fixture, vendor, dependency, report, and build-output
+trees even when one is targeted directly or through a symlink. Generated files
+are excluded before build classification. Explicit build tags and implicit
+GOOS/GOARCH filename constraints make an otherwise useful result `partial`;
+malformed source, missing/old Go, or invalid helper evidence is `failed` or
+`unsupported`, never clean.
+
+```bash
+PYTHON="${PYTHON:-python3}"
+SKILL_ROOT="${SKILL_ROOT:-.claude/skills/find-duplication}"
+SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
+REPORT_DIR="reports/duplication/${SCAN_ID}"
+mkdir -p "$REPORT_DIR"
+
+"$PYTHON" "${SKILL_ROOT}/scripts/run_go.py" \
+  --target src --project-root "$PWD" --output "$REPORT_DIR/collapsed.json"
+"$PYTHON" "${SKILL_ROOT}/scripts/rank.py" \
+  --input "$REPORT_DIR/collapsed.json" --output "$REPORT_DIR/ranked.json"
+"$PYTHON" "${SKILL_ROOT}/scripts/report.py" \
+  --input "$REPORT_DIR/ranked.json" \
+  --output-md "$REPORT_DIR/triage.md" \
+  --output-json "$REPORT_DIR/findings.json" --scan-id "$SCAN_ID"
+```
+
+The final Markdown says “Do not consolidate automatically.” Review both bodies
+and their callers before proposing a refactor.
+
+## Java exact-method evidence branch
+
+Java v1 uses `java` and `javac` from JDK 17+ and one batched source-launcher
+invocation of the family-local JDK compiler-tree helper. It fingerprints the
+normalized bodies of direct methods and constructors on named top-level types
+when the complete declaration spans at least five lines. Exact fingerprints at
+two or more symbols become review leads; this is not semantic equivalence,
+caller proof, type resolution, inheritance analysis, or a safe-reuse claim.
+
+Tests, generated source, fixtures, vendor/dependency, report, and build-output
+trees are excluded. The parser does not run annotation processors or infer
+Lombok/framework-generated members. Malformed source, missing/old JDK, or
+invalid helper evidence is `failed`/`unsupported`, never clean.
+
+```bash
+PYTHON="${PYTHON:-python3}"
+SKILL_ROOT="${SKILL_ROOT:-.claude/skills/find-duplication}"
+SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
+REPORT_DIR="reports/duplication/${SCAN_ID}"
+mkdir -p "$REPORT_DIR"
+
+"$PYTHON" "${SKILL_ROOT}/scripts/run_java.py" \
+  --target src --project-root "$PWD" --output "$REPORT_DIR/collapsed.json"
+"$PYTHON" "${SKILL_ROOT}/scripts/rank.py" \
+  --input "$REPORT_DIR/collapsed.json" --output "$REPORT_DIR/ranked.json"
+"$PYTHON" "${SKILL_ROOT}/scripts/report.py" \
+  --input "$REPORT_DIR/ranked.json" --output-md "$REPORT_DIR/triage.md" \
+  --output-json "$REPORT_DIR/findings.json" --scan-id "$SCAN_ID"
+```
+
+The final Markdown retains “Do not consolidate automatically.” Review the
+matched bodies and their callers before proposing any refactor.
+
+## Mixed targets
+
+For a mixed repository, use one outer scan ID and separate branches:
+
+```text
+reports/duplication/<scan-id>/python/...
+reports/duplication/<scan-id>/typescript/...
+reports/duplication/<scan-id>/javascript/...
+reports/duplication/<scan-id>/java/...
+```
+
+Run Python with its AST + scout stages and JavaScript/TypeScript with their
+conservative evidence paths. Produce separate final reports and summarize them under
+their own claims. Do not concatenate their ranked JSON.
+
+## Failure handling
 
 | Symptom | Action |
 |---|---|
-| Stage 1 jscpd is skipped | Check `${REPORT_DIR}/jscpd/skipped-lexical.json`; lexical evidence is unavailable but AST findings can still proceed |
-| Any script exits non-zero | Stop at the failing stage, paste the exact command and stderr, and do not summarize downstream artifacts from a previous run |
-| Stage 2 reports 0 findings | Target probably excluded — check `ignore_patterns` in `collapsed.json`, verify target has non-test Python files |
-| Stage 4 sub-agent returns invalid JSON | Re-dispatch with a stricter "respond with only the file write confirmation" nudge; skip finding if it fails twice |
-| Scout says "dormant" on a registered class | It skipped the registry-dispatch check — re-dispatch citing `knowledge/false-positives.md` explicitly |
-| Priority ranking puts a sprawl pattern above a genuine clone | Expected — the multiplicity cap (`MULT_CAP` in rank.py) bounds sprawl influence; inspect by hand if it still dominates |
+| Either wrapper exits 2 | Correct the target; it must contain eligible source for that language. |
+| Either wrapper exits 3 | Populate the exact offline cache, or for Python only rerun with `--offline-ok` and label the result AST-only/degraded. |
+| Invalid/empty or schema-invalid jscpd JSON | Stop. The wrapper removes the unusable report and never marks the scan complete or clean. |
+| Python scout JSON is invalid | Re-dispatch; do not pass an unreviewed finding to the final report. |
+| TypeScript finding looks safe | Keep the human-review boundary; lexical similarity is not refactor safety. |
+| JavaScript runner says `tool-missing`, `syntax-error`, `tool-failed`, or `partial` | Preserve `run.json` and report that outcome; do not synthesize a clean clone result. |
+| Java helper reports malformed source or the JDK is missing/old | Preserve the failure; do not render or claim a clean scan. |
+| A report names tests, generated, migrations, report, or staging source | Treat it as a detector-boundary defect and stop. |
 
-## Repository layout
+## Non-goals
 
-```
-.claude/skills/find-duplication/
-├── SKILL.md                      # this file — orchestrator
-├── scripts/
-│   ├── collapse.py               # Stage 2
-│   ├── rank.py                   # Stage 3
-│   └── report.py                 # Stage 5
-├── agents/
-│   └── investigate.md            # Stage 4 scout brief
-└── knowledge/                    # sub-agent context, never loaded by orchestrator
-    ├── false-positives.md
-    └── learnings.md
-```
-
-The orchestrator (you) **never reads files in `knowledge/`**. Those are for
-the scout sub-agents. Keeping them out of your context is the whole point
-of this architecture.
+- Editing source or executing a refactor.
+- Treating dormant code as a primary duplication finding.
+- Turning TypeScript lexical evidence into semantic equivalence.
+- Turning JavaScript lexical evidence into semantic equivalence.
+- Turning exact Java body fingerprints into semantic equivalence or safe reuse.
+- Creating a shared parser, detector service, or cross-family runtime.

@@ -20,12 +20,16 @@ not_for: |
   Decision-registry drift (use /audit-decisions). Authoring or amending
   the agent-rules ADR itself (use /decide). Acting on findings — that
   goes to /fix-workflow with the cluster id.
-language: python
+language: any
 framework: any
 scans: [markdown]
 ---
 
 # /find-rule-surface-drift
+
+This skill is host-language-neutral: it audits the agent-rules and
+documentation surface, not application source syntax. Its Python scripts are
+the installed implementation, not a claim that the host project is Python.
 
 You are the orchestrator for a SUSPECT skill that audits the agent-rules
 surface against ADR 0005's tiered-storage convention.

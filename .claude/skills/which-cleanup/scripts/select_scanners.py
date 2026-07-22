@@ -16,14 +16,11 @@ from pathlib import Path
 from typing import Any
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
-_SCRIPTS = _REPO_ROOT / "scripts"
 _LIB = _REPO_ROOT / "scripts" / "_lib"
-for _path in (str(_SCRIPTS), str(_LIB)):
-    if _path not in sys.path:
-        sys.path.insert(0, _path)
+if str(_LIB) not in sys.path:
+    sys.path.insert(0, str(_LIB))
 
 import yaml_frontmatter
-from _lib.skill_activation import decide_catalog_activation, load_skill_metadata
 
 SKILLS_DIR = _REPO_ROOT / ".claude" / "skills"
 
@@ -127,39 +124,3 @@ def select(report: dict[str, Any], *, band: str, has_doc_change: bool = False,
         target = JOB_BAND.get(job) if job else None
         (buckets[target] if target else dropped).append(item)
     return {"buckets": buckets, "dropped": dropped}
-
-
-def apply_activation(roster: dict[str, Any], project_root: Path) -> dict[str, Any]:
-    """Filter a roster through the shared profile-derived activation API."""
-    decisions = decide_catalog_activation(
-        load_skill_metadata(SKILLS_DIR),
-        project_root=project_root,
-    )
-    buckets: dict[str, list[dict[str, Any]]] = {}
-    inactive: list[dict[str, Any]] = []
-    for band, items in roster["buckets"].items():
-        buckets[band] = []
-        for item in items:
-            decision = decisions.get(item["skill"])
-            if decision is None:
-                inactive.append(
-                    {
-                        **item,
-                        "activation_reasons": ["skill has no canonical activation decision"],
-                    }
-                )
-            elif decision.active:
-                buckets[band].append({**item, "activation": decision.as_dict()})
-            else:
-                inactive.append(
-                    {
-                        **item,
-                        "activation_reasons": list(decision.exclusion_reasons),
-                        "activation": decision.as_dict(),
-                    }
-                )
-    return {
-        "buckets": buckets,
-        "dropped": list(roster["dropped"]),
-        "inactive": inactive,
-    }

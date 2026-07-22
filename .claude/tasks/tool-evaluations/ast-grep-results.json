@@ -1,0 +1,408 @@
+{
+  "ast_grep": {
+    "go": {
+      "parse_errors": [],
+      "policy_exclusions": [
+        {
+          "file": "src/fixture_test.go",
+          "reason": "excluded_filename"
+        },
+        {
+          "file": "src/generated/complexity_generated.go",
+          "reason": "excluded_directory"
+        },
+        {
+          "file": "src/tagged_ambiguous.go",
+          "reason": "build_constraint_ambiguous"
+        },
+        {
+          "file": "src/wire.go",
+          "reason": "generated_marker"
+        },
+        {
+          "file": "src/zz_generated.go",
+          "reason": "excluded_filename"
+        },
+        {
+          "file": "vendor/example.com/thirdparty/complexity.go",
+          "reason": "excluded_directory"
+        }
+      ],
+      "raw_matches": 178,
+      "records": [
+        {
+          "branch_score": 18,
+          "end_lineno": 61,
+          "file": "src/complexity.go",
+          "kind": "function",
+          "lineno": 5,
+          "loc": 57,
+          "symbol": "declaredHotspot"
+        },
+        {
+          "branch_score": 18,
+          "end_lineno": 119,
+          "file": "src/complexity.go",
+          "kind": "method",
+          "lineno": 63,
+          "loc": 57,
+          "symbol": "(*ComplexityService).methodHotspot"
+        }
+      ]
+    },
+    "java": {
+      "parse_errors": [],
+      "policy_exclusions": [
+        {
+          "file": "src/main/java/example/GeneratedService.java",
+          "reason": "generated_marker"
+        },
+        {
+          "file": "src/test/java/example/ComplexityServiceTest.java",
+          "reason": "excluded_directory"
+        },
+        {
+          "file": "vendor/example/thirdparty/VendorHotspot.java",
+          "reason": "excluded_directory"
+        }
+      ],
+      "raw_matches": 122,
+      "records": [
+        {
+          "branch_score": 18,
+          "end_lineno": 25,
+          "file": "src/main/java/example/ComplexityService.java",
+          "kind": "constructor",
+          "lineno": 6,
+          "loc": 20,
+          "symbol": "ComplexityService.ComplexityService"
+        },
+        {
+          "branch_score": 18,
+          "end_lineno": 48,
+          "file": "src/main/java/example/ComplexityService.java",
+          "kind": "method",
+          "lineno": 27,
+          "loc": 22,
+          "symbol": "ComplexityService.declaredHotspot"
+        }
+      ]
+    },
+    "typescript": {
+      "parse_errors": [],
+      "policy_exclusions": [
+        {
+          "file": "src/complexity.spec.ts",
+          "reason": "excluded_filename"
+        },
+        {
+          "file": "src/generated/complexity.generated.ts",
+          "reason": "excluded_directory"
+        },
+        {
+          "file": "src/legacy.min.ts",
+          "reason": "excluded_filename"
+        },
+        {
+          "file": "src/vendor/complexity.ts",
+          "reason": "excluded_directory"
+        },
+        {
+          "file": "tests/complexity.test.ts",
+          "reason": "excluded_directory"
+        }
+      ],
+      "raw_matches": 154,
+      "records": [
+        {
+          "branch_score": 18,
+          "end_lineno": 23,
+          "file": "src/complexity.ts",
+          "kind": "function",
+          "lineno": 1,
+          "loc": 23,
+          "symbol": "declaredHotspot"
+        },
+        {
+          "branch_score": 18,
+          "end_lineno": 48,
+          "file": "src/complexity.ts",
+          "kind": "method",
+          "lineno": 26,
+          "loc": 23,
+          "symbol": "ComplexityService.methodHotspot"
+        },
+        {
+          "branch_score": 18,
+          "end_lineno": 73,
+          "file": "src/complexity.ts",
+          "kind": "arrow",
+          "lineno": 51,
+          "loc": 23,
+          "symbol": "arrowHotspot"
+        }
+      ]
+    }
+  },
+  "ast_grep_execution": {
+    "go": {
+      "argv": [
+        "npx",
+        "--yes",
+        "--package",
+        "@ast-grep/cli@0.44.1",
+        "ast-grep",
+        "scan",
+        "--config",
+        "./.claude/tasks/tool-evaluations/ast-grep/sgconfig.yml",
+        "--json=compact",
+        "./tests/fixtures/find-complexity-hotspots-go"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "wall_ms": 322.303
+    },
+    "java": {
+      "argv": [
+        "npx",
+        "--yes",
+        "--package",
+        "@ast-grep/cli@0.44.1",
+        "ast-grep",
+        "scan",
+        "--config",
+        "./.claude/tasks/tool-evaluations/ast-grep/sgconfig.yml",
+        "--json=compact",
+        "./tests/fixtures/find-complexity-hotspots-java"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "wall_ms": 327.05
+    },
+    "typescript": {
+      "argv": [
+        "npx",
+        "--yes",
+        "--package",
+        "@ast-grep/cli@0.44.1",
+        "ast-grep",
+        "scan",
+        "--config",
+        "./.claude/tasks/tool-evaluations/ast-grep/sgconfig.yml",
+        "--json=compact",
+        "./tests/fixtures/find-complexity-hotspots-typescript"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "wall_ms": 1059.184
+    }
+  },
+  "base_revision": "518e1057086e646e3c5726e620da77f99d295012",
+  "capability_claim": {
+    "not_provided": [
+      "symbol resolution",
+      "types",
+      "project graph",
+      "framework semantics"
+    ],
+    "provided": "syntax facts from tested grammars/rules"
+  },
+  "disposition": "reject",
+  "disposition_reason": "The pinned structural provider did not preserve the accepted complexity facts and failure boundary across all three languages.",
+  "example_tests": {
+    "go": {
+      "ast_grep_findings": 2,
+      "exact_record_parity": true,
+      "native_findings": 2
+    },
+    "java": {
+      "ast_grep_findings": 2,
+      "exact_record_parity": true,
+      "native_findings": 2
+    },
+    "typescript": {
+      "ast_grep_findings": 3,
+      "exact_record_parity": true,
+      "native_findings": 3
+    }
+  },
+  "experiment": "X1-ast-grep-structural-facts",
+  "malformed": {
+    "go": {
+      "error_nodes": 1,
+      "non_error_matches_also_returned": 1,
+      "returncode": 1,
+      "stderr": "Error: 1 error(s) found in code.\nHelp: Scan succeeded and found error level diagnostics in the codebase.\n\n"
+    },
+    "java": {
+      "error_nodes": 0,
+      "non_error_matches_also_returned": 3,
+      "returncode": 0,
+      "stderr": ""
+    },
+    "typescript": {
+      "error_nodes": 2,
+      "non_error_matches_also_returned": 1,
+      "returncode": 1,
+      "stderr": "Error: 2 error(s) found in code.\nHelp: Scan succeeded and found error level diagnostics in the codebase.\n\n"
+    }
+  },
+  "measurements": {
+    "cold_cache_bytes": 267826663,
+    "cold_java_scan_ms": 4357.288,
+    "cold_matches": 122,
+    "cold_npx_runtime_bytes": 257262102,
+    "native_helper_nonblank_loc": 580,
+    "pilot_harness_nonblank_loc": 396,
+    "pilot_rule_nonblank_loc": 104,
+    "warm_java_scan_ms": 384.9,
+    "warm_matches": 122
+  },
+  "native": {
+    "go": [
+      {
+        "branch_score": 18,
+        "end_lineno": 61,
+        "file": "src/complexity.go",
+        "kind": "function",
+        "lineno": 5,
+        "loc": 57,
+        "symbol": "declaredHotspot"
+      },
+      {
+        "branch_score": 18,
+        "end_lineno": 119,
+        "file": "src/complexity.go",
+        "kind": "method",
+        "lineno": 63,
+        "loc": 57,
+        "symbol": "(*ComplexityService).methodHotspot"
+      }
+    ],
+    "java": [
+      {
+        "branch_score": 18,
+        "end_lineno": 25,
+        "file": "src/main/java/example/ComplexityService.java",
+        "kind": "constructor",
+        "lineno": 6,
+        "loc": 20,
+        "symbol": "ComplexityService.ComplexityService"
+      },
+      {
+        "branch_score": 18,
+        "end_lineno": 48,
+        "file": "src/main/java/example/ComplexityService.java",
+        "kind": "method",
+        "lineno": 27,
+        "loc": 22,
+        "symbol": "ComplexityService.declaredHotspot"
+      }
+    ],
+    "typescript": [
+      {
+        "branch_score": 18,
+        "end_lineno": 23,
+        "file": "src/complexity.ts",
+        "kind": "function",
+        "lineno": 1,
+        "loc": 23,
+        "symbol": "declaredHotspot"
+      },
+      {
+        "branch_score": 18,
+        "end_lineno": 48,
+        "file": "src/complexity.ts",
+        "kind": "method",
+        "lineno": 26,
+        "loc": 23,
+        "symbol": "ComplexityService.methodHotspot"
+      },
+      {
+        "branch_score": 18,
+        "end_lineno": 73,
+        "file": "src/complexity.ts",
+        "kind": "arrow",
+        "lineno": 51,
+        "loc": 23,
+        "symbol": "arrowHotspot"
+      }
+    ]
+  },
+  "native_execution": {
+    "go": {
+      "argv": [
+        "<python>",
+        "./.claude/skills/find-complexity-hotspots/scripts/detect.py",
+        "--project-root",
+        "./tests/fixtures/find-complexity-hotspots-go",
+        "--output",
+        "<temporary>/native-go.jsonl",
+        "--language",
+        "go",
+        "src"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "wall_ms": 585.663
+    },
+    "java": {
+      "argv": [
+        "<python>",
+        "./.claude/skills/find-complexity-hotspots/scripts/detect.py",
+        "--project-root",
+        "./tests/fixtures/find-complexity-hotspots-java",
+        "--output",
+        "<temporary>/native-java.jsonl",
+        "--language",
+        "java",
+        "src"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "wall_ms": 2088.127
+    },
+    "typescript": {
+      "argv": [
+        "<python>",
+        "./.claude/skills/find-complexity-hotspots/scripts/detect.py",
+        "--project-root",
+        "<temporary>/typescript-host",
+        "--output",
+        "<temporary>/native-typescript.jsonl",
+        "--language",
+        "typescript",
+        "src"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "wall_ms": 634.498
+    },
+    "typescript_npm_ci": {
+      "argv": [
+        "npm",
+        "ci",
+        "--offline",
+        "--ignore-scripts"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "wall_ms": 781.811
+    }
+  },
+  "next_revisit": "Use one queued-language declaration/standard-gap outcome; do not replace the native complexity helpers now.",
+  "schema_version": 1,
+  "source_hashes_unchanged": true,
+  "tool": {
+    "default_product_dependency": false,
+    "invocation": [
+      "npx",
+      "--yes",
+      "--package",
+      "@ast-grep/cli@0.44.1",
+      "ast-grep"
+    ],
+    "package": "@ast-grep/cli",
+    "version": "0.44.1"
+  }
+}

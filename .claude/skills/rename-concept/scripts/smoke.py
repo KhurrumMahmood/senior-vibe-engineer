@@ -9,13 +9,14 @@ and gates correctly:
      band 1 avoid_term_hit each print a status line);
   2. the gate goes RED when a band-1 retired-prose hit exists (inject a probe
      file using a glossary `avoid:` phrase verbatim, assert band 1 flips RED
-     and the verdict is HALF-APPLIED — then REMOVE the probe);
+     and the verdict remains non-complete — then REMOVE the probe);
   3. gate logic requires BOTH bands clean (a band-1 hit alone, with band 3
      green, is sufficient to turn the verdict away from COMPLETE).
 
 Self-contained: manages its own probe lifecycle via tempfile + os.remove, and
 reads assess.py's rendered stdout rather than depending on the live tree's
-findings. Exit 0 = pass (the ecosystem skill-smoke gate requires this).
+findings. The coupled find-concept-divergence sibling remains the detector
+authority. Exit 0 = pass (the ecosystem skill-smoke gate requires this).
 """
 from __future__ import annotations
 
@@ -24,9 +25,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-import yaml
-
 SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+from assess import detector_module
+
 ASSESS = SCRIPT_DIR / "assess.py"
 # .claude/skills/rename-concept/scripts/smoke.py -> repo root.
 #   parents[0]=scripts [1]=rename-concept [2]=skills [3]=.claude [4]=repo root
@@ -73,12 +76,18 @@ def pick_avoid_phrase() -> tuple[str, str]:
     concept. Mirrors find-concept-divergence's own phrase extraction (text
     before the first '(' clarifier, stripped of surrounding quotes)."""
     try:
-        raw = GLOSSARY.read_text(encoding="utf-8")
+        GLOSSARY.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
         # Required artifact for this smoke: fail cleanly, never let the decode
         # error escape as a traceback (read-decode-safety.v1).
         raise SystemExit(f"cannot read glossary {GLOSSARY}: {exc}") from exc
-    data = yaml.safe_load(raw)
+    try:
+        detector = detector_module()
+        if detector is None:
+            raise ValueError("coupled find-concept-divergence skill is unavailable")
+        data = detector.load_glossary(GLOSSARY)
+    except (ValueError, SystemExit) as exc:
+        raise SystemExit(f"cannot parse glossary {GLOSSARY}: {exc}") from exc
     for concept in data.get("concepts", []):
         for entry in concept.get("avoid", []) or []:
             if not isinstance(entry, str):
@@ -150,15 +159,15 @@ def main() -> int:
         print("a band-1 hit alone must not yield a COMPLETE verdict", file=sys.stderr)
         print(red, file=sys.stderr)
         return 1
-    if "band 1 RED" not in verdict_block:
-        print("verdict should cite 'band 1 RED' as an open item", file=sys.stderr)
+    if "band 1 retired prose" not in verdict_block:
+        print("verdict should cite retired prose as an open item", file=sys.stderr)
         print(red, file=sys.stderr)
         return 1
 
     print(
         f"OK — both bands render (clean: band3={b3}, band1={b1}); "
         f"band-1 probe ('{phrase[:40]}…' on '{concept_slug}') flips band 1 RED "
-        f"while band 3 stays GREEN; verdict HALF-APPLIED; probe removed."
+        f"while band 3 stays GREEN; verdict remains non-complete; probe removed."
     )
     return 0
 

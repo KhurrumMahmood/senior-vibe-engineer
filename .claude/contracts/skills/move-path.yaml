@@ -4,10 +4,12 @@ skill: move-path
 job: refactor
 problem_class: "deterministic filesystem path move / reference rewrite (REFACTOR)"
 intent: >
-  Plan, dry-run, apply, and verify batched file or directory moves with a
-  virtual after-tree, identity-resolved Markdown/HTML/backtick/exact-path
-  reference rewrites, Git-aware moves, explicit uncertainty buckets, and
-  operational residue audits for embedded path data.
+  Plan, dry-run, apply, and verify standalone TypeScript/TSX file or directory
+  moves with a virtual after-tree, identity-resolved
+  Markdown/HTML/config/backtick/exact-path reference rewrites, Git-aware moves,
+  explicit uncertainty buckets, and operational residue audits. The installed
+  v1 guarantees stdlib JSON plans and reports source imports as unresolved
+  risk; it never claims import-safe rewriting.
 solves: >
   Everyday path moves are deceptively high blast: ad-hoc mv plus search/replace
   misses relative links, absolute spellings, Windows spellings, Git rename
@@ -50,10 +52,11 @@ provenance_confidence:
   temporal: high
   dogfood: med
 evidence:
+  - "4f5cf60–9ab90a3 — TypeScript move-path pilot and adversarial repairs establish JSON copied-install closure, plan authority stability, multiline/NodeNext/declaration import-risk reporting, and TypeScript 5.9.3 native verification."
   - "57f69a5 — skill born with script, smoke, and tests."
   - "tests/test_move_path.py — deterministic behavior coverage."
   - "Fable reorg used the skill in dry-run/apply/check mode, exposing useful follow-up fixes for noisy residue and report placement."
   - "Fable claude-log manifest miss became a fixture-backed audit_path_residue micro-tool."
 gaps:
-  - "Language import adapters remain intentionally deferred; code_imports defaults to ignore."
+  - "Import-safe module moves remain intentionally deferred; code_imports defaults to ignore and reports risk using conservative TypeScript emitted-file substitution identity only."
   - "Plain prose still requires review; embedded path data is scanned by the residue auditor but not auto-rewritten unless a safer adapter is added."

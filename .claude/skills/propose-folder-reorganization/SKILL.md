@@ -1,12 +1,15 @@
 ---
 name: propose-folder-reorganization
-description: Turn a confirmed folder-topology drift finding into a per-cluster reorganization proposal. Consumes a finding from /find-folder-topology-drift (or an explicit target like `core/views::site_config`) and emits reports/propose-folder-reorganization/<target>/proposal.md with the current → proposed tree, file-move table, import-impact summary, characterization-test matrix, and stop condition. Read-only — no file moves, no edits. Hands off to /refactor-subsystem (decomposition mode).
+description: Turn a confirmed Python, Go, Java 17, TypeScript, or checked-JavaScript folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
 argument-hint: "<folder-topology:ID or parent::prefix>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
 job: explain
 best_for: |
+  A Java 17 flat-prefix cluster needing a compiler-resolved subpackage move plan.
+  A TypeScript or checked-JavaScript flat-prefix folder cluster needing resolved import impact,
+  a target tree, barrel/subpath compatibility, and native verification plan.
   A confirmed folder-topology drift finding ready for a per-cluster
   reorganization proposal — produces the current → proposed tree,
   file-move table, import-impact summary, characterization-test
@@ -18,12 +21,12 @@ not_for: |
   decomposition where the smell is intra-file, not intra-folder
   (use /find-omnibus). Refactor execution (use /refactor-subsystem in
   decomposition mode). Authoring or amending the folder-organization
-  ADR itself (use /decide). Cluster collapse where the cluster is
-  scratch / custom-job code (project memory:
+  ADR itself (use /decide). Collapsing scratch / custom-job code (project memory:
   project_core_vs_scratch_code.md) — the proposal still runs but
   recommends `defer_scratch_code` instead of a refactor.
-language: python
+language: any
 framework: any
+scans: [python, go, java, typescript, javascript]
 ---
 
 # /propose-folder-reorganization
@@ -57,7 +60,7 @@ Write toward these gates from Stage 0.
 0. **Framework norms are a floor; intuitiveness is the goal above it.**
    Read `_common/structural-design-principles.md` before sizing a
    proposal. Every proposal evaluates the cluster against both layers:
-   what framework norms constrain (application boundary, language package
+   what framework norms constrain (Django app boundary, Python package
    semantics, test-runner discovery — the floor), and what
    intuitiveness gain motivates the reorganization (skim test, find
    test, cluster test — above the floor). Frame the proposal's
@@ -98,11 +101,142 @@ Write toward these gates from Stage 0.
 - **Python:** `.venv/bin/python` for the helper script (it routes
   Python parsing through the shared per-language adapter registry
   (ADR 0032; Python-only here) and walks the project to build the
-  import graph; stdlib-only — no host framework imports needed).
+  import graph; stdlib-only — no Django imports needed).
 - **Output:** `reports/propose-folder-reorganization/<target-slug>/`.
   Never touches any other file.
 - **Read-only.** No file moves, no edits, no Edit tool. The
   orchestrator's `allowed-tools` list intentionally excludes Edit.
+
+## Go v1
+Read `knowledge/go-v1.md`; its copied-closure command requires an explicit project convention, while language-safety blockers override that permission.
+
+## Java 17 v1
+Read `knowledge/java-v1.md`; its copied-closure command requires explicit
+cluster and subpackage-convention judgments, then emits a compiler-resolved,
+current-source-root-only plan. It never loads Maven, Gradle, or JARs.
+
+## TypeScript / TSX and checked-JavaScript v1 — one resolved cluster proposal
+
+The Python workflow below remains unchanged. This additive typed-source branch
+is for one human-confirmed flat file cluster only; it does not infer a Node,
+React, Next, ORM, or test-framework convention.
+
+### Supported invariant
+
+Given a direct parent directory, a prefix, a named project-local `tsconfig`,
+and the host's own installed `typescript` package, produce a read-only
+proposal for three or more eligible `prefix-*.ts[x]` / `prefix_*.ts[x]` or
+`prefix-*.js[x]` / `prefix_*.js[x]` (including `.mjs` and `.cjs`)
+siblings. The final proposal and its JSON inspection contain:
+
+- every selected source file and its destination beneath
+  `<parent>/<prefix>/`;
+- every resolved static `import`, `export … from`, and `import = require`
+  line that points at a selected file — including cluster-internal imports,
+  direct relative consumers, `paths` alias consumers, and existing barrel
+  re-exports — with the exact after-move specifier;
+- an explicit compatibility decision: preserve existing `index.ts[x]`
+  barrels, add a new domain barrel, and migrate every resolved direct subpath
+  importer rather than retain legacy file shims;
+- a characterization-test matrix and the host-native `npm run typecheck`
+  proof required before and after the behavior-preserving move.
+
+The user must pass `--cluster-judgment split` after confirming that this
+specific cluster harms navigation. Pass `--cluster-judgment cohesive` when
+the files are deliberately cohesive; it writes an explicit
+`defer_cohesive_cluster` proposal rather than pretending lexical naming is a
+refactor verdict.
+
+This v1 does not execute the move, discover test ownership, resolve dynamic
+or runtime module loading, infer framework conventions, preserve unlisted
+external package subpaths, or claim a TypeScript or JavaScript framework migration.
+
+Checked JavaScript passes `--language javascript` with a named `jsconfig.json`
+or `tsconfig.json` that sets `allowJs` and `checkJs`. It accepts `.js`, `.jsx`,
+`.mjs`, and `.cjs`, including a JS cluster in a mixed JS/TS root. A selected
+file omitted from that config is an explicit `partial`/`defer_partial_config`
+artifact, not a move authority.
+
+### TypeScript guardrails and statuses
+
+All exclusions are project-root-relative, including direct invocation of an
+excluded directory. Test/spec/fixture, generated, vendor, dependency, build,
+coverage, report, declaration, minified, bundle, and existing `index.ts[x]`
+source are excluded from the candidate cluster. Existing index files remain
+eligible **importers** so their re-export rewrites appear in the impact table.
+
+- Fewer than three selected files writes `defer_below_threshold`.
+- A `scratch`, `sandbox`, `experiments`, or equivalent path writes
+  `defer_scratch_code`.
+- An explicitly cohesive cluster writes `defer_cohesive_cluster`.
+- An excluded direct parent writes `defer_excluded_target`.
+- An unresolved or symlink-blocked static import **inside a selected cluster
+  file** writes a `blocked` `defer_unresolved_imports` proposal. Resolve it
+  and re-run; do not treat a partial table as move authority.
+- A missing parent, a logical path outside the host, any target/tsconfig or
+  artifact path traversing a symlink, invalid syntax/configuration, or a
+  missing project-local TypeScript Compiler API exits 2 with no false-clean
+  proposal.
+
+Artifact paths must be under
+`reports/propose-folder-reorganization/`; existing or ancestor symlinks are
+rejected before anything is written. Directory symlinks are never followed.
+
+### Installed TypeScript commands
+
+Run these from the target TypeScript host root. The stock Codex installer
+copies only this selected skill to `.agents/skills/`; the runtime command uses
+the host's Node and project-local `typescript`, never this repository's
+scripts, `_common`, virtual environment, or another installed skill.
+
+<!-- installed-command:stock-install:start -->
+```bash
+: "${PROPOSE_FOLDER_REORGANIZATION_SOURCE:?Set this to the pinned skill source/ref}"
+npx --yes skills@1.5.19 add "${PROPOSE_FOLDER_REORGANIZATION_SOURCE}" \
+  --skill propose-folder-reorganization --agent codex --copy -y
+```
+<!-- installed-command:stock-install:end -->
+
+<!-- installed-command:typescript-proposal:start -->
+```bash
+PFR_PARENT="${PFR_PARENT:-src}"
+PFR_PREFIX="${PFR_PREFIX:-billing}"
+PFR_CLUSTER_JUDGMENT="${PFR_CLUSTER_JUDGMENT:-split}"
+PFR_LANGUAGE="${PFR_LANGUAGE:-typescript}" # typescript | javascript
+PFR_TSCONFIG="${PFR_TSCONFIG:-tsconfig.json}"
+PFR_NAME="${PFR_NAME:-${PFR_PARENT//\//-}__${PFR_PREFIX}}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/propose-folder-reorganization" \
+  ".claude/skills/propose-folder-reorganization"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "propose-folder-reorganization is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+node "${SKILL_ROOT}/scripts/propose_typescript.mjs" \
+  --parent "${PFR_PARENT}" \
+  --prefix "${PFR_PREFIX}" \
+  --cluster-judgment "${PFR_CLUSTER_JUDGMENT}" \
+  --project-root "$(pwd)" \
+  --language "${PFR_LANGUAGE}" \
+  --tsconfig "${PFR_TSCONFIG}" \
+  --proposal "reports/propose-folder-reorganization/${PFR_NAME}/proposal.md" \
+  --inspection "reports/propose-folder-reorganization/${PFR_NAME}/inspection.json"
+```
+<!-- installed-command:typescript-proposal:end -->
+
+Read both final artifacts before planning the refactor. `inspection.json` is
+the machine-checkable truth; `proposal.md` is the human handoff. For a ready
+proposal, run `npm run typecheck` before the move, apply the exact move and
+impact rows in a disposable branch, then run it again with the
+characterization tests. A normal TypeScript type error is native verification
+evidence, not something this read-only proposer repairs.
 
 ## Argument parsing
 
@@ -320,11 +454,11 @@ orchestrator translates them to `recommendation: defer_<reason>`:
   or files known to be one-off jobs. Proposal recommends
   `defer_scratch_code`.
 - `framework_convention` — the parent is `core/management/commands/`
-  and the selected framework runner discovers commands by file name.
-  Re-grouping into subfolders may break its public command convention.
-  Proposal recommends `defer_framework_convention` and points at ADR
-  0006's open question on this; the selected binding names the exact
-  runner contract.
+  and Django's runner discovers commands by file name. Re-grouping
+  into subfolders is possible but breaks the
+  `manage.py <command_name>` convention. Proposal recommends
+  `defer_framework_convention` and points at ADR 0006's open
+  question on this.
 
 ## Calibration
 
@@ -353,17 +487,13 @@ sections that changed.
 .claude/skills/propose-folder-reorganization/
 ├── SKILL.md          # this file — orchestrator
 └── scripts/
-    └── inspect.py    # gathers cluster + import-impact data (stdlib only)
+    ├── inspect.py                # Python cluster + import-impact data
+    ├── propose_java.py           # JDK gate + artifact-safe launcher
+    ├── propose_java.java         # JDK compiler/tree/type proposal
+    └── propose_typescript.mjs     # TS/TSX resolved proposal (host Compiler API)
 ```
 
 ## Next skills
 
-- **`/refactor-subsystem`** in decomposition mode — executes the
-  proposal under ADR 0002's two-commit discipline. One cluster per
-  PR.
-- **`/decide`** if the proposal surfaces a tradeoff ADR 0006
-  doesn't yet cover (e.g. the `framework_convention` deferral
-  becomes a real question that needs a ruling on
-  `core/management/commands/`).
-- **`/find-folder-topology-drift`** to re-scan after the migration
-  lands — the cluster should drop off the next report.
+Use `/refactor-subsystem` for an approved one-cluster move, `/decide` for an
+unsettled convention, and `/find-folder-topology-drift` to verify it afterward.

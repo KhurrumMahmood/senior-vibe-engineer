@@ -22,12 +22,16 @@ not_for: |
   Decision-registry drift in `ai-docs/decisions/` (use /audit-decisions).
   Acting on findings — manual delete or a thin executor; the skill is
   read-only.
-language: python
+language: any
 framework: any
 scans: [markdown]
 ---
 
 # /find-stale-artifacts
+
+This skill is host-language-neutral: it inspects plans, specs, and report
+artifacts rather than application source syntax. Its Python scripts are the
+installed implementation, not a claim that the host project is Python.
 
 You are the orchestrator for a SUSPECT skill that audits working-artifact
 directories for accumulated cruft. Sibling to `/find-dormant` (which

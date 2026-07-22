@@ -28,20 +28,37 @@ Stage 2 bands (deferred — see SKILL.md):
   - route_folder_misalignment
   - same_domain_helper_sprawl
 
-Output: JSONL with one finding per line. Each record has the keys
-`pattern`, `file`, `lineno`, `summary`, `recommendation` so the shared
-render_simple_report helper can render it.
+Output: JSONL with one finding per line. Python records preserve their
+existing Stage 1 bands. TypeScript records add ``language: typescript`` and
+are only the narrow ``flat_prefix_cluster`` invariant.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_common"))
-import scope as _scope  # noqa: E402
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from support import (  # noqa: E402
+    BUILTIN_SKIP_DIRS,
+    Scope,
+    go_scan_payload,
+    inventory_go,
+    inventory_java,
+    iter_paths,
+    load_scope,
+    matches_any,
+    probe_go,
+    java_scan_payload,
+    write_json,
+)
 
 SKILL_NAME = "find-folder-topology-drift"
 
@@ -309,7 +326,7 @@ def _scan_pages_route_mirror(
     for parent in sorted(pages_root.iterdir()):
         if not parent.is_dir():
             continue
-        if parent.name in _scope.BUILTIN_SKIP_DIRS:
+        if parent.name in BUILTIN_SKIP_DIRS:
             continue
         token = _PAGES_PARENT_TO_TOKEN.get(parent.name)
         if token is None:
@@ -352,7 +369,7 @@ def _scan_pages_route_mirror(
 def detect(
     *,
     project_root: Path,
-    scope: _scope.Scope,
+    scope: Scope,
     min_cluster_size: int,
 ) -> list[dict]:
     findings: list[dict] = []
@@ -369,7 +386,7 @@ def detect(
     # exclude list — narrowing is entirely host-authored (ADR 0021). The
     # bands below re-read each directory from disk, so the scan only needs
     # to supply the directory list.
-    files = _scope.iter_paths(project_root, scope)
+    files = iter_paths(project_root, scope)
     directories = sorted({f.parent for f in files} | {project_root})
 
     seen_dirs: set[Path] = set()
@@ -507,6 +524,402 @@ def detect(
     return findings
 
 
+TYPESCRIPT_SUFFIXES = {".ts", ".tsx"}
+TYPESCRIPT_SKIP_DIRS = {
+    "tests",
+    "test",
+    "__tests__",
+    "specs",
+    "generated",
+    "vendor",
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "reports",
+}
+
+
+def _typescript_source_files_in(directory: Path) -> list[Path]:
+    """Return direct TypeScript siblings eligible for the v1 lexical band."""
+    if not directory.is_dir():
+        return []
+    files: list[Path] = []
+    for path in sorted(directory.iterdir()):
+        if not (path.is_file() and path.suffix.lower() in TYPESCRIPT_SUFFIXES):
+            continue
+        name = path.name.lower()
+        stem = path.stem
+        if name in {"index.ts", "index.tsx"} or name.endswith(".d.ts"):
+            continue
+        if stem.endswith(".spec") or stem.endswith(".test"):
+            continue
+        files.append(path)
+    return files
+
+
+def _typescript_prefix_clusters(
+    modules: list[Path], min_cluster_size: int
+) -> dict[str, list[Path]]:
+    """Group direct `.ts`/`.tsx` siblings by their first `_` or `-` token."""
+    by_prefix: dict[str, list[Path]] = defaultdict(list)
+    for module in modules:
+        stem = module.stem
+        positions = [position for position in (stem.find("_"), stem.find("-")) if position > 0]
+        if not positions:
+            continue
+        prefix = stem[: min(positions)]
+        if len(prefix) < 2:
+            continue
+        by_prefix[prefix].append(module)
+    return {
+        prefix: paths
+        for prefix, paths in by_prefix.items()
+        if len(paths) >= min_cluster_size
+    }
+
+
+def _typescript_directories(
+    source_root: Path,
+    project_root: Path,
+    excludes: list[str],
+) -> list[Path]:
+    """Walk one declared TypeScript source root without crossing v1 boundaries."""
+    root_parts = {
+        part.lower()
+        for part in source_root.relative_to(project_root).parts
+    }
+    if root_parts & TYPESCRIPT_SKIP_DIRS:
+        return []
+    directories: list[Path] = []
+    for directory, child_dirs, _files in os.walk(source_root):
+        current = Path(directory)
+        relative = current.relative_to(project_root).as_posix()
+        if matches_any(relative, excludes):
+            child_dirs[:] = []
+            continue
+        directories.append(current)
+        kept: list[str] = []
+        for child in child_dirs:
+            candidate = current / child
+            child_relative = candidate.relative_to(project_root).as_posix()
+            if child in TYPESCRIPT_SKIP_DIRS or matches_any(child_relative, excludes):
+                continue
+            kept.append(child)
+        child_dirs[:] = kept
+    return sorted(directories)
+
+
+def detect_typescript(
+    *,
+    project_root: Path,
+    source_roots: list[Path],
+    excludes: list[str],
+    min_cluster_size: int,
+) -> list[dict]:
+    """Detect only explicit-root TypeScript flat-prefix clusters.
+
+    This is deliberately additive to the Python bands above.  It does not
+    inspect package density, test-folder placement, Next/pages topology,
+    barrels, module resolution, or imports.
+    """
+    findings: list[dict] = []
+    seen: set[Path] = set()
+    for source_root in source_roots:
+        for directory in _typescript_directories(source_root, project_root, excludes):
+            resolved = directory.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            for prefix, paths in sorted(
+                _typescript_prefix_clusters(
+                    _typescript_source_files_in(directory), min_cluster_size
+                ).items()
+            ):
+                files = [path.relative_to(project_root).as_posix() for path in paths]
+                location = directory.relative_to(project_root).as_posix()
+                findings.append({
+                    "language": "typescript",
+                    "pattern": "flat_prefix_cluster",
+                    "file": location,
+                    "lineno": 1,
+                    "prefix": prefix,
+                    "files": files,
+                    "summary": (
+                        f"TypeScript directory `{location}` has {len(files)} direct "
+                        f"siblings sharing the first domain token `{prefix}`: "
+                        f"{', '.join(path.name for path in paths)}."
+                    ),
+                    "recommendation": (
+                        f"Review the `{prefix}` files as a possible folder boundary. "
+                        "This TypeScript v1 finding is lexical only: it does not prove "
+                        "a move, import safety, or a framework-specific package layout."
+                    ),
+                })
+    return findings
+
+
+JAVASCRIPT_SUFFIXES = {".js", ".jsx", ".mjs", ".cjs"}
+JAVASCRIPT_SKIP_DIRS = TYPESCRIPT_SKIP_DIRS
+
+
+def _javascript_source_files_in(directory: Path) -> list[Path]:
+    """Return direct first-party JavaScript siblings for the lexical band."""
+    if not directory.is_dir():
+        return []
+    files: list[Path] = []
+    for path in sorted(directory.iterdir()):
+        if not (path.is_file() and not path.is_symlink() and path.suffix.lower() in JAVASCRIPT_SUFFIXES):
+            continue
+        name = path.name.lower()
+        stem = path.stem
+        if name in {"index.js", "index.jsx", "index.mjs", "index.cjs"}:
+            continue
+        if stem.endswith((".spec", ".test", ".generated", ".min")):
+            continue
+        files.append(path)
+    return files
+
+
+def _javascript_prefix_clusters(
+    modules: list[Path], min_cluster_size: int
+) -> dict[str, list[Path]]:
+    """Group direct JavaScript siblings by their first `_` or `-` token."""
+    by_prefix: dict[str, list[Path]] = defaultdict(list)
+    for module in modules:
+        stem = module.stem
+        positions = [position for position in (stem.find("_"), stem.find("-")) if position > 0]
+        if not positions:
+            continue
+        prefix = stem[: min(positions)]
+        if len(prefix) < 2:
+            continue
+        by_prefix[prefix].append(module)
+    return {
+        prefix: paths
+        for prefix, paths in by_prefix.items()
+        if len(paths) >= min_cluster_size
+    }
+
+
+def _javascript_directories(
+    source_root: Path,
+    project_root: Path,
+    excludes: list[str],
+) -> list[Path]:
+    """Walk an explicit JavaScript root without following generated trees."""
+    root_parts = {
+        part.lower()
+        for part in source_root.relative_to(project_root).parts
+    }
+    if root_parts & JAVASCRIPT_SKIP_DIRS:
+        return []
+    directories: list[Path] = []
+    for directory, child_dirs, _files in os.walk(source_root, followlinks=False):
+        current = Path(directory)
+        relative = current.relative_to(project_root).as_posix()
+        if matches_any(relative, excludes):
+            child_dirs[:] = []
+            continue
+        directories.append(current)
+        kept: list[str] = []
+        for child in child_dirs:
+            candidate = current / child
+            child_relative = candidate.relative_to(project_root).as_posix()
+            if (
+                candidate.is_symlink()
+                or child.lower() in JAVASCRIPT_SKIP_DIRS
+                or matches_any(child_relative, excludes)
+            ):
+                continue
+            kept.append(child)
+        child_dirs[:] = kept
+    return sorted(directories)
+
+
+def detect_javascript(
+    *,
+    project_root: Path,
+    source_roots: list[Path],
+    excludes: list[str],
+    min_cluster_size: int,
+) -> list[dict]:
+    """Detect explicit-root JavaScript lexical flat-prefix clusters only."""
+    findings: list[dict] = []
+    seen: set[Path] = set()
+    for source_root in source_roots:
+        for directory in _javascript_directories(source_root, project_root, excludes):
+            resolved = directory.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            for prefix, paths in sorted(
+                _javascript_prefix_clusters(
+                    _javascript_source_files_in(directory), min_cluster_size
+                ).items()
+            ):
+                files = [path.relative_to(project_root).as_posix() for path in paths]
+                location = directory.relative_to(project_root).as_posix()
+                findings.append({
+                    "language": "javascript",
+                    "pattern": "flat_prefix_cluster",
+                    "file": location,
+                    "lineno": 1,
+                    "prefix": prefix,
+                    "files": files,
+                    "summary": (
+                        f"JavaScript directory `{location}` has {len(files)} direct "
+                        f"siblings sharing the first domain token `{prefix}`: "
+                        f"{', '.join(path.name for path in paths)}."
+                    ),
+                    "recommendation": (
+                        f"Review the `{prefix}` files as a possible folder boundary. "
+                        "This JavaScript v1 finding is lexical only: it does not prove "
+                        "a move, import safety, or a framework-specific package layout."
+                    ),
+                })
+    return findings
+
+
+def _go_prefix_clusters(
+    files: list[Path], min_cluster_size: int
+) -> dict[tuple[Path, str], list[Path]]:
+    """Group eligible direct Go siblings by the first underscore token."""
+    grouped: dict[tuple[Path, str], list[Path]] = defaultdict(list)
+    for path in files:
+        stem = path.name[:-3]
+        if "_" not in stem:
+            continue
+        prefix = stem.split("_", 1)[0]
+        if len(prefix) < 2:
+            continue
+        grouped[(path.parent, prefix)].append(path)
+    return {
+        key: paths
+        for key, paths in grouped.items()
+        if len(paths) >= min_cluster_size
+    }
+
+
+def detect_go(
+    *, project_root: Path, files: list[Path], min_cluster_size: int
+) -> list[dict]:
+    """Detect Go direct-sibling prefix clusters from inventoried eligible files."""
+    findings: list[dict] = []
+    for (directory, prefix), paths in sorted(
+        _go_prefix_clusters(files, min_cluster_size).items(),
+        key=lambda item: (item[0][0].as_posix(), item[0][1]),
+    ):
+        rel_files = [path.relative_to(project_root).as_posix() for path in sorted(paths)]
+        location = directory.relative_to(project_root).as_posix()
+        findings.append(
+            {
+                "language": "go",
+                "pattern": "flat_prefix_cluster",
+                "file": location,
+                "lineno": 1,
+                "prefix": prefix,
+                "files": rel_files,
+                "summary": (
+                    f"Go directory `{location}` has {len(rel_files)} direct production "
+                    f"siblings sharing the first underscore token `{prefix}`: "
+                    f"{', '.join(path.name for path in sorted(paths))}."
+                ),
+                "recommendation": (
+                    f"Review the `{prefix}` files as a possible folder boundary. "
+                    "This Go v1 finding is filename-only: it does not prove package "
+                    "cohesion, import safety, build-tag equivalence, or a safe move."
+                ),
+            }
+        )
+    return findings
+
+
+JAVA_LEADING_DOMAIN_RE = re.compile(
+    r"^(?:(?P<acronym>[A-Z]+)(?=[A-Z][a-z])|(?P<word>[A-Z][a-z0-9]+))"
+)
+
+
+def _java_prefix_clusters(
+    files: list[Path], min_cluster_size: int
+) -> dict[tuple[Path, str], list[Path]]:
+    """Group Java siblings by the leading CamelCase domain token."""
+    grouped: dict[tuple[Path, str], list[Path]] = defaultdict(list)
+    for path in files:
+        if path.name in {"module-info.java", "package-info.java"}:
+            continue
+        match = JAVA_LEADING_DOMAIN_RE.match(path.stem)
+        if not match or match.end() == len(path.stem):
+            continue
+        prefix = (match.group("acronym") or match.group("word")).casefold()
+        if len(prefix) < 2:
+            continue
+        grouped[(path.parent, prefix)].append(path)
+    return {
+        key: paths
+        for key, paths in grouped.items()
+        if len(paths) >= min_cluster_size
+    }
+
+
+def detect_java(
+    *, project_root: Path, files: list[Path], min_cluster_size: int
+) -> list[dict]:
+    """Detect Java direct-sibling CamelCase clusters from inventory facts."""
+    findings: list[dict] = []
+    for (directory, prefix), paths in sorted(
+        _java_prefix_clusters(files, min_cluster_size).items(),
+        key=lambda item: (item[0][0].as_posix(), item[0][1]),
+    ):
+        rel_files = [path.relative_to(project_root).as_posix() for path in sorted(paths)]
+        location = directory.relative_to(project_root).as_posix()
+        findings.append(
+            {
+                "language": "java",
+                "pattern": "flat_prefix_cluster",
+                "file": location,
+                "lineno": 1,
+                "prefix": prefix,
+                "files": rel_files,
+                "summary": (
+                    f"Java directory `{location}` has {len(rel_files)} direct production "
+                    f"siblings sharing the leading CamelCase domain token `{prefix}`: "
+                    f"{', '.join(path.name for path in sorted(paths))}."
+                ),
+                "recommendation": (
+                    f"Review the `{prefix}` files as a possible package boundary. "
+                    "This Java v1 finding is filename-only: it does not prove package "
+                    "cohesion, import safety, build equivalence, or a safe move."
+                ),
+            }
+        )
+    return findings
+
+
+def _resolve_within_project(
+    value: Path, project_root: Path, flag: str
+) -> Path | None:
+    path = value if value.is_absolute() else project_root / value
+    try:
+        resolved = path.resolve(strict=True)
+        resolved.relative_to(project_root)
+    except (OSError, ValueError):
+        print(f"detect: {flag} must name an existing path within --project-root: {value}", file=sys.stderr)
+        return None
+    return resolved
+
+
+def _invalidate_java_artifacts(output: Path) -> None:
+    """Remove same-run artifacts before a Java rerun can fail."""
+    for path in (
+        output,
+        output.with_name("scan.json"),
+        output.with_name("report.md"),
+        output.with_name("findings.json"),
+    ):
+        path.unlink(missing_ok=True)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -517,6 +930,48 @@ def main() -> int:
             "Optional subtree to narrow the scan to (per-invocation override). "
             "Default: the whole repo, narrowed only by the host's scope/ignore "
             "descriptors (.engineering/docs/<skill>-scope.md and ignore.md)."
+        ),
+    )
+    parser.add_argument(
+        "--typescript-root",
+        action="append",
+        type=Path,
+        default=[],
+        help=(
+            "Declared TypeScript/TSX source root. Repeat for separate roots. "
+            "With no --root, scan TypeScript only; pass both root forms for "
+            "an additive Python and TypeScript scan."
+        ),
+    )
+    parser.add_argument(
+        "--javascript-root",
+        action="append",
+        type=Path,
+        default=[],
+        help=(
+            "Declared JavaScript/JSX/MJS/CJS source root. Repeat for separate roots. "
+            "With no --root, scan JavaScript only; pass both root forms for "
+            "an additive Python and JavaScript scan."
+        ),
+    )
+    parser.add_argument(
+        "--go-root",
+        action="append",
+        type=Path,
+        default=[],
+        help=(
+            "Declared Go source root. Repeat for separate roots. With no --root "
+            "or JavaScript/TypeScript root, scan Go only."
+        ),
+    )
+    parser.add_argument(
+        "--java-root",
+        action="append",
+        type=Path,
+        default=[],
+        help=(
+            "Declared Java source root. Repeat for separate roots. With no --root "
+            "or JavaScript/TypeScript/Go root, scan Java only."
         ),
     )
     # spec:project-structure-redesign-phase-2::IM-26
@@ -542,29 +997,172 @@ def main() -> int:
     args = parser.parse_args()
 
     project_root = args.project_root.resolve()
-    scope = _scope.load_scope(project_root, SKILL_NAME)
+    if args.java_root:
+        _invalidate_java_artifacts(args.output)
+    if not (args.go_root or args.java_root):
+        args.output.with_name("scan.json").unlink(missing_ok=True)
+    scope = load_scope(project_root, SKILL_NAME)
     if args.root is not None:
-        root = args.root if args.root.is_absolute() else (project_root / args.root)
-        try:
-            scope.roots = [root.resolve().relative_to(project_root).as_posix()]
-        except ValueError:
-            pass  # --root outside project_root: ignore, scan whole repo
+        root = _resolve_within_project(args.root, project_root, "--root")
+        if root is None:
+            return 2
+        scope.roots = [root.relative_to(project_root).as_posix()]
     if args.exclude:
         scope.ignore = list(scope.ignore) + list(args.exclude)
 
-    findings = detect(
-        project_root=project_root,
-        scope=scope,
-        min_cluster_size=args.min_cluster_size,
+    typescript_roots: list[Path] = []
+    for raw_root in args.typescript_root:
+        root = _resolve_within_project(raw_root, project_root, "--typescript-root")
+        if root is None or not root.is_dir():
+            if root is not None:
+                print(f"detect: --typescript-root must name a directory: {raw_root}", file=sys.stderr)
+            return 2
+        typescript_roots.append(root)
+
+    javascript_roots: list[Path] = []
+    for raw_root in args.javascript_root:
+        root = _resolve_within_project(raw_root, project_root, "--javascript-root")
+        if root is None or not root.is_dir():
+            if root is not None:
+                print(f"detect: --javascript-root must name a directory: {raw_root}", file=sys.stderr)
+            return 2
+        javascript_roots.append(root)
+
+    go_roots: list[Path] = []
+    for raw_root in args.go_root:
+        root = _resolve_within_project(raw_root, project_root, "--go-root")
+        if root is None or not root.is_dir():
+            if root is not None:
+                print(f"detect: --go-root must name a directory: {raw_root}", file=sys.stderr)
+            return 2
+        go_roots.append(root)
+
+    java_roots: list[Path] = []
+    for raw_root in args.java_root:
+        candidate = raw_root if raw_root.is_absolute() else project_root / raw_root
+        if candidate.is_symlink():
+            print(
+                f"detect: --java-root must not be a symlink: {raw_root}",
+                file=sys.stderr,
+            )
+            return 2
+        root = _resolve_within_project(raw_root, project_root, "--java-root")
+        if root is None or not root.is_dir():
+            if root is not None:
+                print(f"detect: --java-root must name a directory: {raw_root}", file=sys.stderr)
+            return 2
+        java_roots.append(root)
+
+    if go_roots and java_roots:
+        print(
+            "detect: --go-root and --java-root require separate scans so scan.json has one language owner",
+            file=sys.stderr,
+        )
+        return 2
+
+    go_scan: dict | None = None
+    go_rc = 0
+    go_files: list[Path] = []
+    if go_roots:
+        tool, go_rc = probe_go()
+        if go_rc:
+            go_scan = {
+                **tool,
+                "language": "go",
+                "analyzer": "python-filesystem-names",
+                "syntax_contract": "filename-only; Go parse validity is not inspected",
+                "inventory": [],
+                "errors": [],
+                "summary": {"discovered": 0, "eligible": 0, "excluded": 0, "failed": 0},
+            }
+        else:
+            inventory, go_files, errors = inventory_go(
+                go_roots, project_root, list(args.exclude)
+            )
+            go_scan = go_scan_payload(tool, inventory, errors)
+            if not inventory:
+                go_scan["status"] = "unsupported"
+                go_scan["failure_kind"] = "no-go-files"
+                go_rc = 2
+
+    java_scan: dict | None = None
+    java_rc = 0
+    java_files: list[Path] = []
+    if java_roots:
+        inventory, java_files, errors = inventory_java(
+            java_roots, project_root, list(args.exclude)
+        )
+        java_scan = java_scan_payload(inventory, errors)
+        if not inventory:
+            java_scan["status"] = "unsupported"
+            java_scan["failure_kind"] = "no-java-files"
+            java_rc = 2
+
+    # A TypeScript-root-only invocation is intentionally TypeScript-only. The
+    # preserved Python scan runs when TypeScript was not requested, or when the
+    # caller explicitly supplies --root to request a combined scan.
+    findings = (
+        detect(
+            project_root=project_root,
+            scope=scope,
+            min_cluster_size=args.min_cluster_size,
+        )
+        if not (typescript_roots or javascript_roots or go_roots or java_roots)
+        or args.root is not None
+        else []
     )
+    if typescript_roots:
+        findings.extend(
+            detect_typescript(
+                project_root=project_root,
+                source_roots=typescript_roots,
+                excludes=list(args.exclude),
+                min_cluster_size=args.min_cluster_size,
+            )
+        )
+    if javascript_roots:
+        findings.extend(
+            detect_javascript(
+                project_root=project_root,
+                source_roots=javascript_roots,
+                excludes=list(args.exclude),
+                min_cluster_size=args.min_cluster_size,
+            )
+        )
+    if go_roots and go_rc == 0:
+        findings.extend(
+            detect_go(
+                project_root=project_root,
+                files=go_files,
+                min_cluster_size=args.min_cluster_size,
+            )
+        )
+    if java_roots and java_rc == 0:
+        findings.extend(
+            detect_java(
+                project_root=project_root,
+                files=java_files,
+                min_cluster_size=args.min_cluster_size,
+            )
+        )
+    findings.sort(key=lambda finding: (
+        str(finding.get("language", "python")),
+        str(finding.get("pattern", "")),
+        str(finding.get("file", "")),
+        str(finding.get("prefix", "")),
+    ))
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8") as f:
         for finding in findings:
             f.write(json.dumps(finding) + "\n")
+    if go_scan is not None:
+        write_json(go_scan, args.output.with_name("scan.json"))
+    if java_scan is not None:
+        write_json(java_scan, args.output.with_name("scan.json"))
 
     print(f"detect: wrote {len(findings)} findings to {args.output}", file=sys.stderr)
-    return 0
+    return go_rc or java_rc
 
 
 if __name__ == "__main__":

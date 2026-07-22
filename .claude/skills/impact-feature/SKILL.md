@@ -23,8 +23,8 @@ escalate_to: |
 delegate_from: |
   /scope-feature recommends /impact-feature once §1-2 are filled and
   status is scoped.
-language: any
-framework: any
+language: python
+framework: django
 ---
 
 # /impact-feature

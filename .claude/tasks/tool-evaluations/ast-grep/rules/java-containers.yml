@@ -1,0 +1,6 @@
+id: pilot-java-containers
+message: Java class boundary for the structural-tool pilot
+severity: info
+language: Java
+rule:
+  kind: class_declaration

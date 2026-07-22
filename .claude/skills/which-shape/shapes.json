@@ -1,0 +1,909 @@
+{
+  "schema_version": 1,
+  "shapes": [
+    {
+      "id": "project-intake",
+      "title": "Project Intake",
+      "summary": "Discover repo facts, capture human intent, then reroute with context.",
+      "first_next": "/adapt-project",
+      "sequence": [
+        "/adapt-project",
+        "/project-interview",
+        "/which-shape"
+      ],
+      "stop": "Stop after adapter/profile drafts exist; rerun /which-shape with the new context.",
+      "cues": {
+        "strong": [
+          "adapt",
+          "adapter",
+          "onboard",
+          "onboarding",
+          "unknown",
+          "inherited"
+        ],
+        "normal": [
+          "repo",
+          "project",
+          "codebase",
+          "context",
+          "profile",
+          "start",
+          "localize"
+        ],
+        "negative": [
+          "typo",
+          "one-line",
+          "trivial",
+          "traceback"
+        ]
+      },
+      "alternatives": [
+        "legacy-stabilization",
+        "health-audit"
+      ],
+      "context_exempt": true,
+      "boost": {
+        "mode": "first-match",
+        "rules": [
+          {
+            "conditions": [
+              {
+                "type": "context-missing"
+              },
+              {
+                "type": "cue-hit",
+                "cues": [
+                  "adapt",
+                  "adapter",
+                  "onboard",
+                  "onboarding",
+                  "unknown",
+                  "repo",
+                  "project",
+                  "codebase"
+                ]
+              },
+              {
+                "type": "cue-hit",
+                "cues": [
+                  "adapt",
+                  "adapter",
+                  "onboard",
+                  "onboarding",
+                  "unknown",
+                  "inherited"
+                ]
+              },
+              {
+                "type": "not-narrow"
+              }
+            ],
+            "weight": 36,
+            "rationale": "project context is missing and the task asks for repo/project orientation"
+          },
+          {
+            "conditions": [
+              {
+                "type": "context-missing"
+              },
+              {
+                "type": "cue-hit",
+                "cues": [
+                  "adapt",
+                  "adapter",
+                  "onboard",
+                  "onboarding",
+                  "unknown",
+                  "repo",
+                  "project",
+                  "codebase"
+                ]
+              },
+              {
+                "type": "not-narrow"
+              }
+            ],
+            "weight": 36,
+            "rationale": "project context is missing and the task asks for repo/project orientation"
+          },
+          {
+            "conditions": [
+              {
+                "type": "context-missing"
+              },
+              {
+                "type": "cue-hit",
+                "cues": [
+                  "adapt",
+                  "adapter",
+                  "onboard",
+                  "onboarding",
+                  "unknown",
+                  "inherited"
+                ]
+              },
+              {
+                "type": "not-narrow"
+              }
+            ],
+            "weight": 18,
+            "rationale": "project context is missing"
+          },
+          {
+            "conditions": [],
+            "weight": -30,
+            "rationale": "project intake is not the immediate blocker"
+          }
+        ]
+      }
+    },
+    {
+      "id": "direct-change",
+      "title": "Direct Change",
+      "summary": "Make the narrow edit directly; avoid routing overhead.",
+      "first_next": "proceed directly",
+      "sequence": [
+        "edit the obvious target",
+        "run the narrowest meaningful verification",
+        "/decide only if a durable choice appears"
+      ],
+      "stop": "Stop if the edit touches multiple surfaces or reveals a recurring pattern.",
+      "cues": {
+        "strong": [
+          "typo",
+          "one-line",
+          "oneline",
+          "trivial",
+          "tiny",
+          "narrow",
+          "obvious"
+        ],
+        "normal": [
+          "rename",
+          "small",
+          "simple",
+          "docs",
+          "copy",
+          "text"
+        ],
+        "negative": [
+          "architecture",
+          "subsystem",
+          "unknown",
+          "inherited",
+          "repeated",
+          "concept",
+          "domain",
+          "glossary",
+          "wide",
+          "terminology"
+        ]
+      },
+      "alternatives": [
+        "bug-fix",
+        "decision-capture"
+      ],
+      "context_exempt": true,
+      "boost": {
+        "narrow_signal": true,
+        "cues": [
+          "typo",
+          "one-line",
+          "oneline",
+          "trivial",
+          "tiny",
+          "narrow",
+          "obvious"
+        ],
+        "weight": 34,
+        "rationale": "task looks narrow enough to skip routing overhead"
+      }
+    },
+    {
+      "id": "concept-rename",
+      "title": "Concept Rename",
+      "summary": "Drive a glossary-worthy domain-concept rename to completion across every surface.",
+      "first_next": "/rename-concept",
+      "install_with": [
+        "find-concept-divergence"
+      ],
+      "sequence": [
+        "/rename-concept <old> <new> \u2014 assess the scope-gate + two-band completeness gate",
+        "record the rename in the glossary (concepts.yaml superseded_by + the canonical concept's avoid: block)",
+        "correct old prose + cross-tool mirrors; the gate is clean only when identifiers AND prose are"
+      ],
+      "stop": "Stop if it's a single local symbol with narrow blast \u2014 that's Direct Change.",
+      "cues": {
+        "strong": [
+          "concept",
+          "glossary",
+          "supersede",
+          "terminology",
+          "deprecate"
+        ],
+        "normal": [
+          "domain",
+          "rename",
+          "identifier",
+          "sweep",
+          "wide"
+        ],
+        "negative": [
+          "local",
+          "variable",
+          "one-line",
+          "oneline",
+          "single",
+          "trivial",
+          "typo"
+        ]
+      },
+      "alternatives": [
+        "decision-capture",
+        "task-closeout"
+      ],
+      "boost": {
+        "cues": [
+          "concept",
+          "glossary",
+          "supersede",
+          "terminology",
+          "deprecate"
+        ],
+        "weight": 30,
+        "rationale": "task names a glossary-level concept or terminology change"
+      }
+    },
+    {
+      "id": "project-structure",
+      "title": "Project Structure",
+      "summary": "Design a near-ideal repo folder topology under framework/tool/human constraints.",
+      "first_next": "/organize-project-structure",
+      "sequence": [
+        "/organize-project-structure \u2014 summarize folder purpose/value, abstract boundaries, and propose ideal then constrained topology",
+        "separate deterministic moves from judgment/manual follow-up",
+        "optionally write a /move-path plan and dry-run it; apply/check only after the report is accepted"
+      ],
+      "stop": "Stop if the request already names a single source/destination path \u2014 use Path Move directly.",
+      "cues": {
+        "strong": [
+          "project-structure",
+          "repo-structure",
+          "repository-structure",
+          "top-level",
+          "information-architecture"
+        ],
+        "normal": [
+          "folder",
+          "folders",
+          "directories",
+          "layout",
+          "organize",
+          "organization",
+          "intuitive",
+          "intuitiveness",
+          "inputs",
+          "outputs",
+          "archive"
+        ],
+        "negative": [
+          "single",
+          "one-file",
+          "typo",
+          "glossary",
+          "terminology",
+          "identifier",
+          "bug",
+          "behavior"
+        ]
+      },
+      "alternatives": [
+        "path-move",
+        "concept-rename",
+        "decision-capture"
+      ],
+      "boost": {
+        "cues": [
+          "project-structure",
+          "repo-structure",
+          "repository-structure",
+          "top-level",
+          "information-architecture",
+          "intuitive",
+          "intuitiveness"
+        ],
+        "weight": 34,
+        "rationale": "task asks for repo-wide folder mental model rather than one path identity"
+      }
+    },
+    {
+      "id": "path-move",
+      "title": "Path Move",
+      "summary": "Rename or move files/directories as a deterministic batch, updating resolvable references safely.",
+      "first_next": "/move-path",
+      "sequence": [
+        "/move-path --plan moves.json --dry-run \u2014 compute virtual after-tree, safe rewrites, suggestions, and blocked findings",
+        "review the move map, blocked/suggested references, and Git impact",
+        "/move-path --plan moves.json --apply, then /move-path --plan moves.json --check"
+      ],
+      "stop": "Stop if the rename is glossary terminology rather than filesystem identity \u2014 use Concept Rename.",
+      "cues": {
+        "strong": [
+          "move",
+          "moved",
+          "moving",
+          "relocate",
+          "reorganize",
+          "paths",
+          "references",
+          "relink"
+        ],
+        "normal": [
+          "rename",
+          "files",
+          "folders",
+          "directories",
+          "markdown",
+          "links",
+          "batch"
+        ],
+        "negative": [
+          "concept",
+          "glossary",
+          "terminology",
+          "identifier",
+          "behavior",
+          "subsystem",
+          "service"
+        ]
+      },
+      "alternatives": [
+        "concept-rename",
+        "task-closeout"
+      ],
+      "boost": {
+        "narrow_signal": true,
+        "cues": [
+          "move",
+          "moving",
+          "relocate",
+          "reorganize",
+          "references",
+          "relink",
+          "paths"
+        ],
+        "weight": 30,
+        "rationale": "task names filesystem path identity and reference updates"
+      }
+    },
+    {
+      "id": "bug-fix",
+      "title": "Bug Fix",
+      "summary": "Reproduce, trace, patch the root cause, verify, then consider a guard.",
+      "first_next": "reproduce the failure",
+      "sequence": [
+        "reproduce with a test, log, or traceback",
+        "trace call sites and patch the root cause",
+        "verify the failure no longer occurs",
+        "/prevent-regression if the bug shape can recur"
+      ],
+      "stop": "Stop and reframe if the bug cannot be reproduced or spans a subsystem boundary.",
+      "cues": {
+        "strong": [
+          "bug",
+          "broken",
+          "failing",
+          "failure",
+          "traceback",
+          "exception",
+          "error"
+        ],
+        "normal": [
+          "fix",
+          "reproduce",
+          "root",
+          "regression",
+          "crash"
+        ],
+        "negative": [
+          "new",
+          "feature",
+          "scaffold",
+          "onboard"
+        ]
+      },
+      "alternatives": [
+        "regression-prevention",
+        "legacy-stabilization"
+      ],
+      "context_exempt": true,
+      "boost": {
+        "narrow_signal": true,
+        "cues": [
+          "bug",
+          "broken",
+          "failing",
+          "failure",
+          "traceback",
+          "exception",
+          "error",
+          "crash"
+        ],
+        "weight": 30,
+        "rationale": "task starts from a failure symptom"
+      }
+    },
+    {
+      "id": "feature-shaping",
+      "title": "Feature Shaping",
+      "summary": "Shape new behavior before implementation.",
+      "first_next": "/plan-feature",
+      "sequence": [
+        "/plan-feature for one-workflow features",
+        "/scope-feature -> /impact-feature -> /architecture-fit -> /plan-spec for system work",
+        "implement from the resulting plan/spec"
+      ],
+      "stop": "Stop when scope or architecture fit changes the feature boundary.",
+      "cues": {
+        "strong": [
+          "feature",
+          "add",
+          "endpoint",
+          "capability",
+          "workflow"
+        ],
+        "normal": [
+          "new",
+          "expose",
+          "build",
+          "plan",
+          "scope",
+          "design",
+          "system"
+        ],
+        "negative": [
+          "typo",
+          "dead",
+          "duplicate",
+          "repeated"
+        ]
+      },
+      "alternatives": [
+        "decision-capture",
+        "direct-change"
+      ],
+      "boost": {
+        "cues": [
+          "feature",
+          "add",
+          "endpoint",
+          "capability",
+          "workflow",
+          "new"
+        ],
+        "weight": 26,
+        "rationale": "task asks for new behavior"
+      }
+    },
+    {
+      "id": "legacy-stabilization",
+      "title": "Legacy Stabilization",
+      "summary": "Map and stabilize messy inherited code before standardizing patterns.",
+      "first_next": "/map-subsystem",
+      "sequence": [
+        "/map-subsystem or /map-product-workflow",
+        "run selected SUSPECT skills",
+        "/triage-debt",
+        "promote only human-approved healthy patterns"
+      ],
+      "stop": "Stop before treating common legacy patterns as doctrine.",
+      "cues": {
+        "strong": [
+          "legacy",
+          "messy",
+          "chaotic",
+          "stabilize",
+          "stabilization",
+          "vibe-coded"
+        ],
+        "normal": [
+          "cleanup",
+          "slow",
+          "branchy",
+          "inherited",
+          "standardize",
+          "canonize",
+          "debt"
+        ],
+        "negative": [
+          "typo",
+          "one-line",
+          "accepted",
+          "proposal"
+        ]
+      },
+      "alternatives": [
+        "health-audit",
+        "project-intake"
+      ],
+      "boost": {
+        "cues": [
+          "legacy",
+          "messy",
+          "chaotic",
+          "stabilize",
+          "stabilization",
+          "vibe-coded"
+        ],
+        "weight": 30,
+        "rationale": "task describes messy or inherited structure"
+      }
+    },
+    {
+      "id": "health-audit",
+      "title": "Health Audit",
+      "summary": "Run an advisory sweep and turn findings into a prioritized queue.",
+      "first_next": "selected /find-* skill",
+      "sequence": [
+        "choose focused SUSPECT scans",
+        "/triage-debt",
+        "pick the highest-value follow-up"
+      ],
+      "stop": "Stop when the scan is broad enough to prioritize; do not fix everything in one pass.",
+      "cues": {
+        "strong": [
+          "audit",
+          "scan",
+          "health",
+          "sweep"
+        ],
+        "normal": [
+          "find",
+          "inspect",
+          "periodic",
+          "review",
+          "hotspots",
+          "complexity",
+          "duplication"
+        ],
+        "negative": [
+          "typo",
+          "approved",
+          "implement"
+        ]
+      },
+      "alternatives": [
+        "legacy-stabilization",
+        "regression-prevention"
+      ],
+      "boost": {
+        "cues": [
+          "audit",
+          "scan",
+          "health",
+          "sweep"
+        ],
+        "weight": 30,
+        "rationale": "task asks for an advisory scan"
+      }
+    },
+    {
+      "id": "boundary-proposal",
+      "title": "Boundary Proposal",
+      "summary": "Propose a maintainable module boundary without applying source changes.",
+      "first_next": "/propose-boundary",
+      "sequence": [
+        "inspect the named target, callers, and current public surface",
+        "/propose-boundary",
+        "review the proposed API, compatibility path, and verification obligations"
+      ],
+      "stop": "Stop before source mutation; execution requires a separately approved refactor task.",
+      "cues": {
+        "strong": [
+          "boundary",
+          "boundaries"
+        ],
+        "normal": [
+          "propose",
+          "compatibility",
+          "module",
+          "public",
+          "caller",
+          "impact",
+          "api",
+          "target"
+        ],
+        "negative": [
+          "approved",
+          "apply",
+          "execute",
+          "move"
+        ]
+      },
+      "alternatives": [
+        "refactor-execution",
+        "project-structure"
+      ],
+      "boost": {
+        "mode": "first-match",
+        "narrow_signal": true,
+        "rules": [
+          {
+            "conditions": [
+              {
+                "type": "cue-hit",
+                "cues": [
+                  "boundary",
+                  "boundaries"
+                ]
+              },
+              {
+                "type": "cue-hit",
+                "cues": [
+                  "propose",
+                  "compatibility"
+                ]
+              }
+            ],
+            "weight": 30,
+            "rationale": "task asks for a bounded module-boundary proposal without execution"
+          },
+          {
+            "conditions": [],
+            "weight": -30,
+            "rationale": "task does not name both a boundary and proposal intent"
+          }
+        ]
+      }
+    },
+    {
+      "id": "refactor-execution",
+      "title": "Refactor Execution",
+      "summary": "Execute an approved cleanup/refactor proposal with characterization tests.",
+      "first_next": "/fix-workflow",
+      "sequence": [
+        "confirm the approved proposal or cluster",
+        "/fix-workflow for one cluster or /refactor-subsystem for larger restructuring",
+        "run characterization and targeted tests",
+        "/prevent-regression"
+      ],
+      "stop": "Stop if the target lacks an approved proposal or enough characterization.",
+      "cues": {
+        "strong": [
+          "approved",
+          "proposal",
+          "execute",
+          "refactor"
+        ],
+        "normal": [
+          "extract",
+          "split",
+          "move",
+          "cluster",
+          "spec",
+          "planned"
+        ],
+        "negative": [
+          "unknown",
+          "brainstorm",
+          "audit",
+          "scan"
+        ]
+      },
+      "alternatives": [
+        "legacy-stabilization",
+        "regression-prevention"
+      ],
+      "boost": {
+        "cues": [
+          "approved",
+          "proposal",
+          "execute",
+          "refactor",
+          "extract",
+          "split"
+        ],
+        "weight": 24,
+        "rationale": "task names an approved refactor/proposal shape"
+      }
+    },
+    {
+      "id": "regression-prevention",
+      "title": "Regression Prevention",
+      "summary": "Convert repeated failures or completed cleanup lessons into guards.",
+      "first_next": "/prevent-regression",
+      "sequence": [
+        "name the recurring failure shape",
+        "/prevent-regression",
+        "add the narrow lint/test/policy guard",
+        "document the canonical pattern"
+      ],
+      "stop": "Stop if the pattern has not repeated or the replacement shape is not known.",
+      "cues": {
+        "strong": [
+          "prevent",
+          "guard",
+          "recurring",
+          "repeated",
+          "again",
+          "keeps"
+        ],
+        "normal": [
+          "regression",
+          "enforce",
+          "lint",
+          "rule",
+          "policy",
+          "back",
+          "recurring-bug",
+          "should-have-guarded"
+        ],
+        "negative": [
+          "new",
+          "unknown",
+          "brainstorm"
+        ]
+      },
+      "alternatives": [
+        "bug-fix",
+        "decision-capture"
+      ],
+      "boost": {
+        "mode": "additive",
+        "narrow_signal": true,
+        "rules": [
+          {
+            "conditions": [
+              {
+                "type": "cue-hit",
+                "cues": [
+                  "prevent",
+                  "guard",
+                  "recurring",
+                  "repeated",
+                  "again",
+                  "keeps",
+                  "regression",
+                  "back"
+                ]
+              }
+            ],
+            "weight": 30,
+            "rationale": "task is about recurrence or guardrails"
+          },
+          {
+            "conditions": [
+              {
+                "type": "cue-hit",
+                "cues": [
+                  "prevent",
+                  "guard",
+                  "recurring",
+                  "repeated",
+                  "again",
+                  "keeps",
+                  "regression",
+                  "back"
+                ]
+              },
+              {
+                "type": "cue-hit",
+                "cues_from": "bug-fix"
+              }
+            ],
+            "weight": 8,
+            "rationale": "failure symptom is paired with recurrence language"
+          }
+        ]
+      }
+    },
+    {
+      "id": "decision-capture",
+      "title": "Decision Capture",
+      "summary": "Pause to record or compare a durable tradeoff before implementation.",
+      "first_next": "/decide",
+      "sequence": [
+        "/design-it-twice if the fork is material and unsettled",
+        "/decide once the choice is clear",
+        "resume the underlying work shape"
+      ],
+      "stop": "Stop when the choice is merely local preference, not durable project case law.",
+      "cues": {
+        "strong": [
+          "decision",
+          "decide",
+          "adr",
+          "tradeoff",
+          "choose"
+        ],
+        "normal": [
+          "architecture",
+          "option",
+          "fork",
+          "durable",
+          "policy",
+          "convention"
+        ],
+        "negative": [
+          "typo",
+          "trivial",
+          "scan"
+        ]
+      },
+      "alternatives": [
+        "feature-shaping",
+        "direct-change"
+      ],
+      "context_exempt": true,
+      "boost": {
+        "narrow_signal": true,
+        "cues": [
+          "decision",
+          "decide",
+          "adr",
+          "tradeoff",
+          "choose"
+        ],
+        "weight": 34,
+        "rationale": "task names a durable choice"
+      }
+    },
+    {
+      "id": "task-closeout",
+      "title": "Task Closeout",
+      "summary": "After a body of work, size the change from the diff and run scope-matched cleanup.",
+      "first_next": "/which-cleanup",
+      "sequence": [
+        "/which-cleanup <files | --staged | --changed-from REF | --commit SHA | --range A..B | --area NAME | --since SPEC>",
+        "run the band-appropriate cleanup (checklist / scoped scout fan-out / closeout plan)",
+        "/prevent-regression for any cluster that closes",
+        "/converge \u2014 after-phase gate: weakest value node, single next step, stop condition, do-not-do-next"
+      ],
+      "stop": "Stop once the changed surface is swept, any closed cluster is guarded, and /converge has named the thread's stop condition; hand off to /triage-debt for the global picture.",
+      "cues": {
+        "strong": [
+          "closeout",
+          "cleanup",
+          "stabilize",
+          "finished",
+          "wrap-up",
+          "post-commit"
+        ],
+        "normal": [
+          "changed",
+          "touched",
+          "diff",
+          "staged",
+          "after",
+          "done",
+          "sweep",
+          "tidy",
+          "harden"
+        ],
+        "negative": [
+          "start",
+          "new",
+          "feature",
+          "onboard",
+          "unknown"
+        ]
+      },
+      "alternatives": [
+        "health-audit",
+        "regression-prevention"
+      ],
+      "boost": {
+        "cues": [
+          "closeout",
+          "cleanup",
+          "stabilize",
+          "finished",
+          "wrap-up",
+          "post-commit"
+        ],
+        "weight": 30,
+        "rationale": "task asks for post-work cleanup or closeout"
+      }
+    }
+  ]
+}

@@ -1,4 +1,0 @@
-schema_version: 2
-skill: clean-skill
-evidence:
-  - "scripts/detect.py present and executable"

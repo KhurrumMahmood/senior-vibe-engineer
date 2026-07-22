@@ -1,0 +1,95 @@
+{
+  "batch": "rename-concept-typescript-compiler-v1",
+  "revision": "implementation repairs 5c96af6, 139c369, and the final in-tree output-symlink guard",
+  "family": ["rename-concept"],
+  "invariant": {
+    "portable_principle": "A lexical concept scan surfaces retired prose and identifier candidates; TypeScript completion additionally requires host-pinned Compiler API evidence with explicit symbol authority and blocking diagnostics.",
+    "python_or_framework_mechanism": "Read-only glossary lifecycle report plus two coupled detector bands.",
+    "typescript_mechanism": "Host-pinned TypeScript Compiler API resolves exact glossary identifiers and emits persistent structured evidence.",
+    "explicit_non_goals": [
+      "Source mutation, codemod planning, or --apply",
+      "Whole-project type-check success as the rename condition",
+      "Dynamic behavior, JSX runtime, or IDE-codemod safety proof",
+      "A shared TypeScript platform without a second accepted consumer"
+    ]
+  },
+  "authority_contract": {
+    "accepted_declarations": "Matching top-level exported variable, function, class, interface, type alias, or enum declarations only.",
+    "completion": [
+      "resolved compiler evidence",
+      "zero old_concept_symbol references",
+      "zero unresolved_identifier candidates",
+      "at least one new exported declaration",
+      "zero config, parse, or candidate/name/module/member resolution diagnostics"
+    ],
+    "rejected_as_authority": ["internal or unexported declarations", "shadowed locals", "import aliases", "property keys", "strings", "comments"]
+  },
+  "tooling": {
+    "selected": "Host-installed TypeScript Compiler API",
+    "fixture_version": "typescript 5.9.3 pinned in package.json and package-lock.json",
+    "preflight": "npm ci --offline --ignore-scripts",
+    "missing_tool_behavior": "Structured status=unavailable plus incomplete verdict when TypeScript is missing or resolves outside the project root; no source write",
+    "diagnostic_behavior": "Invalid tsconfig, all parse diagnostics, and semantic errors affecting a candidate or codes 2304/2305/2307/2552 block certification.",
+    "closure_mode": "One stock skills@1.5.19 --copy command projects the exact coupled pair to .agents/skills/{rename-concept,find-concept-divergence}; the installed sibling scanner is the lexical authority."
+  },
+  "evidence_model": {
+    "lexical": [
+      "avoid_term_hit=lexical_prose",
+      "superseded_co_occurrence=lexical_candidate"
+    ],
+    "compiler_classifications": [
+      "old_concept_symbol",
+      "new_concept_symbol",
+      "shadowed_local",
+      "import_alias",
+      "property_key",
+      "internal_or_unexported_identifier",
+      "unresolved_identifier",
+      "string_literal",
+      "comment_text",
+      "non_identifier_text"
+    ],
+    "persistent_output": "--output reports/rename-concept/assessment.json contains lifecycle, lexical candidate, compiler, diagnostic, verdict, and open-item evidence; its logical path must stay inside that report subtree and every existing final or ancestor symlink component is rejected before mkdir/write, including in-tree aliases such as reports -> src."
+  },
+  "tree_safety": {
+    "principles": ["contained assessment output writes with no final or ancestor symlink components", "root-relative logical direct-target exclusions", "external-symlink containment", "no directory symlink traversal, including direct targets and descendants"],
+    "must_not_scan": ["host node_modules", "dist", "migrations", "reports", "external symlink targets"],
+    "must_scan": ["a host nested under an ancestor named node_modules", "root-contained .ts and .tsx sources in the coupled scanner default surface"]
+  },
+  "tests": {
+    "fixture": "tests/fixtures/rename-concept-typescript/host/",
+    "focused_cases": [
+      "Copied python -I -S dirty TS/TSX assessment and source immutability",
+      "Absolute and relative contained assessment output plus report-root, source/source-symlink, external/traversal, and every final/ancestor symlink rejection without writes, including reports -> src source-overwrite prevention",
+      "Direct ignored targets, direct internal directory symlink or descendant, excluded logical symlink alias, and escaped symlink exclusion; ordinary contained target still scans",
+      "Stock documented one-command exact-two skill install/preflight/assess journey with COMPLETE clean host report",
+      "Missing host TypeScript compiler blocks with structured evidence",
+      "Ancestor-resolved TypeScript is rejected as non-host evidence",
+      "Missing copied detector stays inconclusive without source-tree fallback",
+      "Invalid syntax produces blocking parse diagnostics",
+      "Internal-only names cannot establish authority"
+    ],
+    "native_test_command": ".venv/bin/python -m pytest -q tests/test_rename_concept_typescript.py",
+    "regression_result": "29 passed: TypeScript suite plus B1 portability, skill metadata, perimeter, and skill smoke tests."
+  },
+  "reuse_decision": {
+    "shared_candidate": "find-concept-divergence lexical scanner",
+    "actual_second_consumer": "rename-concept",
+    "decision": "couple rather than copy",
+    "rationale": "The accepted detector already owns the exact two lexical bands; copying it would create a drifting second authority. The Compiler API remains family-local."
+  },
+  "future_translation_prerequisites": {
+    "required": ["host-pinned native resolver", "declared authority surface", "persistent read-only output", "missing-tool and invalid-syntax blocks", "shadowing/alias/property/string/comment fixtures", "direct-exclusion and symlink tests"],
+    "examples": {
+      "rust": "rust-analyzer or compiler item resolution",
+      "go": "go/packages identifier resolution",
+      "java_or_kotlin": "compiler or language service symbols",
+      "csharp": "Roslyn symbols"
+    }
+  },
+  "residual_risks": [
+    "Only exact glossary names and aliases are evaluated.",
+    "Unrelated semantic diagnostics do not block completion by design.",
+    "Codemod mutation remains intentionally out of scope."
+  ]
+}

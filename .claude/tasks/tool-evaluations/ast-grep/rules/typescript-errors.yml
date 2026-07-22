@@ -1,0 +1,6 @@
+id: pilot-typescript-errors
+message: TypeScript parse error for the structural-tool pilot
+severity: error
+language: TypeScript
+rule:
+  kind: ERROR

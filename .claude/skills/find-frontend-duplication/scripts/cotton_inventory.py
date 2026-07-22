@@ -2,7 +2,7 @@
 """
 Component primitive inventory (profile-driven, framework-neutral).
 
-Reads the host's component system from the durable host profile's
+Reads the host's component system from the `.engineering/manifest.json`
 `component_profile` block (`engineering_home.component_profile`) and emits a
 JSON catalogue of every UI primitive it declares. Nothing is baked in: the
 profile's `kind` (e.g. `cotton`, `jsx`, `vue`) selects per-kind defaults
@@ -60,9 +60,7 @@ SKILL_NAME = "find-frontend-duplication"
 
 # Files searched for primitive callsites, regardless of kind. The definition
 # files themselves live under definitions_root and are scanned separately.
-CALLSITE_EXTENSIONS = {
-    ".cjs", ".html", ".js", ".jsx", ".mjs", ".py", ".ts", ".tsx", ".vue",
-}
+CALLSITE_EXTENSIONS = {".html", ".js", ".py"}
 
 
 def _stem_dashed(path):
@@ -216,9 +214,9 @@ def _scan_callsites(primitives, reference_template, project_root):
 
 def _resolve_profile(project_root, kind, definitions_root, reference_pattern,
                      extensions):
-    """Resolve effective component config from CLI overrides + host profile.
+    """Resolve effective component config from CLI overrides + manifest profile.
 
-    Precedence per field: CLI override (non-None) > host profile (non-empty)
+    Precedence per field: CLI override (non-None) > manifest profile (non-empty)
     > per-kind default. Returns a dict with resolved ``kind``,
     ``definitions_root`` (str or ""), ``reference`` (template or ""),
     ``extensions`` (list), and ``name_from`` (callable) — or ``None`` when the
@@ -226,7 +224,7 @@ def _resolve_profile(project_root, kind, definitions_root, reference_pattern,
     """
     profile = _eh.component_profile(project_root)
 
-    # kind: CLI > host profile. component_profile() defaults to "none".
+    # kind: CLI > manifest. component_profile() already defaults to "none".
     eff_kind = kind if kind else profile["kind"]
     if not eff_kind or eff_kind == "none":
         return None
@@ -295,7 +293,7 @@ def build_inventory(project_root, *, kind=None, definitions_root=None,
 
     ``project_root`` is the only required (positional) argument, preserving the
     existing call contract. The keyword overrides each default to ``None`` so
-    the durable host ``component_profile`` is used when absent:
+    the manifest ``component_profile`` is used when absent:
 
       - ``kind`` — component system (``cotton`` / ``jsx`` / ``vue`` / ...).
       - ``definitions_root`` — directory holding primitive definition files,
@@ -412,7 +410,7 @@ def main():
                         help="Print human-readable summary to stdout")
     parser.add_argument("--kind", default=None,
                         help="Override component system (cotton/jsx/vue/...). "
-                             "Default: read from durable component_profile.")
+                             "Default: read from manifest component_profile.")
     parser.add_argument("--definitions-root", default=None,
                         help="Override the primitive definitions directory "
                              "(relative to --root unless absolute).")

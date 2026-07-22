@@ -10,7 +10,6 @@ deciders: [khurrum]
 supersedes: []
 superseded_by: null
 applies_to: [host:app/, .claude/skills/refactor-subsystem/]
-embodied_by: ["pending:portable-skill-ecosystem-completion AC-7.7 formal disposition"]
 tags: [refactor, wire-identity, stability]
 related_smell: null
 related_pattern: null

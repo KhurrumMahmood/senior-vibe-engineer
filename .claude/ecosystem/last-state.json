@@ -7,7 +7,6 @@
         "audit-decisions",
         "brainstorm-ideas",
         "check-ecosystem-consistency",
-        "converge",
         "decide",
         "diagnose",
         "engineer-init",
@@ -29,11 +28,9 @@
         "find-frontend-contract-drift",
         "find-frontend-duplication",
         "find-implicit-state",
-        "find-incomplete-sweep",
         "find-layer-violation",
         "find-omnibus",
         "find-orphaned-ideas",
-        "find-perimeter-gaps",
         "find-query-mutation",
         "find-route-sprawl",
         "find-semantic-duplication",
@@ -49,8 +46,6 @@
         "map-product-workflow",
         "map-subsystem",
         "mature-existing-ideas",
-        "move-path",
-        "organize-project-structure",
         "plan-feature",
         "plan-skill",
         "plan-spec",
@@ -60,8 +55,6 @@
         "propose-folder-reorganization",
         "query-patterns",
         "refactor-subsystem",
-        "rename-concept",
-        "repair-skill",
         "scope-feature",
         "teach-pattern",
         "track-idea",
@@ -72,7 +65,7 @@
         "which-skill"
       ],
       "present": true,
-      "sha256": "c5882a9af1fd5be4cb567344be0ec30a77855eb76ed21bd14b665ea4fc8b4626",
+      "sha256": "8368bdbec4de8d4c7e0e2130f016823a92199bffc8e292d809ee6b9b81caff5f",
       "skill_count_mentions": []
     },
     "ONBOARDING.md": {
@@ -80,9 +73,9 @@
         "find-rule-surface-drift"
       ],
       "present": true,
-      "sha256": "14d71203a5349097b889a195a256e983d9f726017073f9101aadffb6eb63efa8",
+      "sha256": "282ecdc7e29385695ed62197a4927d662f1a52d6421dcfc578c0b343f701bfec",
       "skill_count_mentions": [
-        76
+        63
       ]
     },
     "README.md": {
@@ -120,8 +113,6 @@
         "introduce-fk",
         "map-product-workflow",
         "map-subsystem",
-        "move-path",
-        "organize-project-structure",
         "plan-skill",
         "plan-spec",
         "prevent-regression",
@@ -136,15 +127,15 @@
         "which-skill"
       ],
       "present": true,
-      "sha256": "be190af4d17e6c5c4fa3a5c95d435523a78580d34856465ba9194663fe9e68cf",
+      "sha256": "414571e08e06286fc738ea3caa8ddbe6bb7b205e753740914941902a59fa694f",
       "skill_count_mentions": [
-        76,
-        76
+        63,
+        63
       ]
     }
   },
-  "generated_at": "2026-07-16T10:02:14.267068Z",
-  "project_root_name": "engineering-skills",
+  "generated_at": "2026-06-08T12:52:55.802991Z",
+  "project_root_name": "engineering-skills-2",
   "schema_version": 1,
   "shape_registry": {
     "path": ".claude/skills/which-shape/shapes.yml",
@@ -152,52 +143,45 @@
     "referenced_skills": [
       "adapt-project",
       "architecture-fit",
-      "converge",
       "decide",
       "design-it-twice",
       "fix-workflow",
       "impact-feature",
       "map-product-workflow",
       "map-subsystem",
-      "move-path",
-      "organize-project-structure",
       "plan-feature",
       "plan-spec",
       "prevent-regression",
       "project-interview",
       "refactor-subsystem",
-      "rename-concept",
       "scope-feature",
       "triage-debt",
       "which-cleanup",
       "which-shape"
     ],
     "schema_errors": [],
-    "sha256": "de5c1e1674033a3d0ae7efddae6c78283554b6818aaa89e068bf680d1a2c9682",
+    "sha256": "689bc9ea6bb7cafa584f60cafcbc89e2fc18c09d8375839e5c2a96729f17c673",
     "shape_ids": [
       "bug-fix",
-      "concept-rename",
       "decision-capture",
       "direct-change",
       "feature-shaping",
       "health-audit",
       "legacy-stabilization",
-      "path-move",
       "project-intake",
-      "project-structure",
       "refactor-execution",
       "regression-prevention",
       "task-closeout"
     ]
   },
-  "skill_count": 76,
+  "skill_count": 69,
   "skills": {
     "adapt-project": {
       "description_sha256": "ab72b583a96c58387f6a61d3e15ce7067feab5ea0a04a88f538dfc2a8ee522c6",
       "job": "meta",
       "name": "adapt-project",
       "path": ".claude/skills/adapt-project/SKILL.md",
-      "sha256": "477ed33e388300fbddde619c74407050c14e2916e88e9bb28db808bc2effb255",
+      "sha256": "819b77c60d778dd6b4d9126ada3d4b2cecb441d9897ad257f5028ba7d12aa8a9",
       "tier": "cross-cutting"
     },
     "architecture-fit": {
@@ -205,7 +189,7 @@
       "job": "plan",
       "name": "architecture-fit",
       "path": ".claude/skills/architecture-fit/SKILL.md",
-      "sha256": "777804ac0308b9f4e555b98a943702886dc1936855da647eed9c6564d055332f",
+      "sha256": "7347d1367505bed2fd4fb16fe0861de02cb8549299223c081e53211344b0a033",
       "tier": "system"
     },
     "audit-decisions": {
@@ -213,7 +197,7 @@
       "job": "guard",
       "name": "audit-decisions",
       "path": ".claude/skills/audit-decisions/SKILL.md",
-      "sha256": "896fd515a3f3cdfd15de850adf26d3446d98bba29bea9d26936e368f08108d17",
+      "sha256": "788e3ac238e5242004d30f6319c764041cbc7543a0295ff57faabf12e031f183",
       "tier": "cross-cutting"
     },
     "brainstorm-ideas": {
@@ -221,7 +205,7 @@
       "job": "meta",
       "name": "brainstorm-ideas",
       "path": ".claude/skills/brainstorm-ideas/SKILL.md",
-      "sha256": "c97f2137460fd946d83d4f5807271e8917053ea1fa04776c466587a5a9e5fa7c",
+      "sha256": "8b5aae6784651549af2f2702d11ca73f385d5120fca955e8609819f339d986c2",
       "tier": "cross-cutting"
     },
     "check-ecosystem-consistency": {
@@ -229,23 +213,15 @@
       "job": "suspect",
       "name": "check-ecosystem-consistency",
       "path": ".claude/skills/check-ecosystem-consistency/SKILL.md",
-      "sha256": "89627dc6949daa4a4299b8c3ece349c9bf1d0cc2b47cc856a235dd096f702aa9",
+      "sha256": "80c21e0e86c6b4cb7bb26b9785d965bb905b6c78ceb0775ee883db585fba22a9",
       "tier": "maintenance"
-    },
-    "converge": {
-      "description_sha256": "d70e54f85ca49210be28fa99418b6f18d522c11bb7d370c0203ed6edc16a844a",
-      "job": "triage",
-      "name": "converge",
-      "path": ".claude/skills/converge/SKILL.md",
-      "sha256": "de97808687db4c8de9eaae89f6c5e994a8089591c6bbff295a474385e8562000",
-      "tier": "cross-cutting"
     },
     "decide": {
       "description_sha256": "182d1a046c84492514400e17b64a8ac8f52fcd5f924922cc705cecc39c0a11e8",
       "job": "decide",
       "name": "decide",
       "path": ".claude/skills/decide/SKILL.md",
-      "sha256": "1f4eb366600a44247eab89c5b1f2fbd576682199929d1efc3f456ae7f47b619f",
+      "sha256": "49ea0d0a0b782e0cb3d111fef1f71505e45917982cc8d2336d7b7726c05e5db8",
       "tier": "cross-cutting"
     },
     "design-it-twice": {
@@ -253,7 +229,7 @@
       "job": "decide",
       "name": "design-it-twice",
       "path": ".claude/skills/design-it-twice/SKILL.md",
-      "sha256": "67ce26eb47033d70d4ce5fc3e432a72d09cfde6b512af9615ef36a3990aecf96",
+      "sha256": "7ccb5f9280fb6747beb2bd551f3ba0e346d49e6fa62c0e90863d5c28effbcc3e",
       "tier": "cross-cutting"
     },
     "diagnose": {
@@ -261,7 +237,7 @@
       "job": "diagnose",
       "name": "diagnose",
       "path": ".claude/skills/diagnose/SKILL.md",
-      "sha256": "fe9fbe3624d21c24129cd0df7044d34ef46400d6171615e02d1920a3e0137a73",
+      "sha256": "dd61cf8b66ad26b7d0a03cd8312860d8b3576f6b1d2b6eeae97e3a2627ea3846",
       "tier": "maintenance"
     },
     "engineer-init": {
@@ -269,7 +245,7 @@
       "job": "meta",
       "name": "engineer-init",
       "path": ".claude/skills/engineer-init/SKILL.md",
-      "sha256": "90bc4e47fc815b3dd7d785299e47b0abf2ed5e44e3ca4438fc55cfef0bc19e2b",
+      "sha256": "9ecdefcd871dfc7677801f2eaa31dc02edca20226c5f928ca360b627a689df31",
       "tier": "cross-cutting"
     },
     "explain-code": {
@@ -277,7 +253,7 @@
       "job": "explain",
       "name": "explain-code",
       "path": ".claude/skills/explain-code/SKILL.md",
-      "sha256": "fe0a82c34881a5c7feb9d3dac0e597732215bf66225d877f9dfe8a9337112b40",
+      "sha256": "26c9dfb40a3b37ecc2853f9b04215d72cac5012d73bcabf60259ed9cf97bab15",
       "tier": "maintenance"
     },
     "extract-cotton-primitive": {
@@ -285,7 +261,7 @@
       "job": "explain",
       "name": "extract-cotton-primitive",
       "path": ".claude/skills/extract-cotton-primitive/SKILL.md",
-      "sha256": "94964813bab7c7e1f90cdf0f0ebdad99a3b80432185ae4eabb74afd2a7668f6a",
+      "sha256": "7dc72c6e69970d81e5a78f048229fbab2641446cef317554433f1868f1a0a549",
       "tier": "maintenance"
     },
     "extract-enum": {
@@ -293,7 +269,7 @@
       "job": "explain",
       "name": "extract-enum",
       "path": ".claude/skills/extract-enum/SKILL.md",
-      "sha256": "ad6d1b5f5170e5dfa9489cb626d634e3eac57bea99203ce2450797fc40d76532",
+      "sha256": "307f702f025ce519906c0c09a6343e4b06a2e0956e35e4c9c152276070123c94",
       "tier": "maintenance"
     },
     "extract-existing-ideas": {
@@ -301,7 +277,7 @@
       "job": "meta",
       "name": "extract-existing-ideas",
       "path": ".claude/skills/extract-existing-ideas/SKILL.md",
-      "sha256": "081966129fa44bde9160f6339408599d1fd58377b7a5c4cbd602dab11fb527b8",
+      "sha256": "d6513891f0c7bf5f74c5d18f04ec438b0203c42617a41fcd27a6cbde41fab4ca",
       "tier": "cross-cutting"
     },
     "extract-state-type": {
@@ -309,7 +285,7 @@
       "job": "explain",
       "name": "extract-state-type",
       "path": ".claude/skills/extract-state-type/SKILL.md",
-      "sha256": "e0e567d245f15396f30321a0a65ba229dda8993a3141b332dbc78c4aec98aff9",
+      "sha256": "84ee05f1af8c0f8862e1600dce53738ce94a6036aad321e996968e7cc20b8b57",
       "tier": "maintenance"
     },
     "extract-workflow-registry": {
@@ -317,15 +293,15 @@
       "job": "explain",
       "name": "extract-workflow-registry",
       "path": ".claude/skills/extract-workflow-registry/SKILL.md",
-      "sha256": "3c61200d926152c0eb04535a14332283ad3662081e867d6004af4507ee469399",
+      "sha256": "03b99cf598dc4e1f9a41670d7b2652bd4c3dd81e6cf492063078e1fc24629bf1",
       "tier": "maintenance"
     },
     "find-async-lifecycle-drift": {
-      "description_sha256": "816d7f10228a0bbe99fd27a4d64c0e6cc58a021fa21467ebd67023c6e766362d",
+      "description_sha256": "5151de1ebb88d0a73db4bf88ab07f588b430a50ef96e80f711e65ab43c573841",
       "job": "suspect",
       "name": "find-async-lifecycle-drift",
       "path": ".claude/skills/find-async-lifecycle-drift/SKILL.md",
-      "sha256": "9461bca67682cd42ce1e49adcf6625e6fbe6949cf78bc1a8ea13d1a3c3c31236",
+      "sha256": "7465487abc36153373f4c69dfb7e6c83cab99b412b5cff84db915457217581b3",
       "tier": "maintenance"
     },
     "find-comment-drift": {
@@ -333,7 +309,7 @@
       "job": "suspect",
       "name": "find-comment-drift",
       "path": ".claude/skills/find-comment-drift/SKILL.md",
-      "sha256": "bc8beb7ae1783639e53878acd54b5a6a38a24d3a6ad082e68e7d281f439e339a",
+      "sha256": "9afee8b4072730480510f64a0e31398ad0469b5433075698d5126ab695401b7c",
       "tier": "maintenance"
     },
     "find-complexity-hotspots": {
@@ -341,7 +317,7 @@
       "job": "suspect",
       "name": "find-complexity-hotspots",
       "path": ".claude/skills/find-complexity-hotspots/SKILL.md",
-      "sha256": "f00e944878ff7db65e4f5d8a069fdc6b13401fdb1ff9f7a61a12dc0ee27c5a4e",
+      "sha256": "ef9ee6a094625944bbaf1af2cda47f6e7fe86387bea12e86a3792e8f6319d826",
       "tier": "maintenance"
     },
     "find-concept-divergence": {
@@ -349,23 +325,23 @@
       "job": "suspect",
       "name": "find-concept-divergence",
       "path": ".claude/skills/find-concept-divergence/SKILL.md",
-      "sha256": "724947c1f6266a43e6c89415b6418fc3b6825bea26d293a9044ff08541d37a40",
+      "sha256": "09a2bf72eba61bcdb1e0d49aa3bb95f0f6151fd9c7108c2ab81e348048037e3d",
       "tier": "maintenance"
     },
     "find-contract-drift": {
-      "description_sha256": "c8924f1da85c76b4fe90875bb140a1a298009a296428dfe3d7a2523860f16903",
+      "description_sha256": "ac3fa38c2f0a73d1145819af1775275aca6bc3c5f4d779ae4e53c70a44d6cd8e",
       "job": "suspect",
       "name": "find-contract-drift",
       "path": ".claude/skills/find-contract-drift/SKILL.md",
-      "sha256": "ffd8de20db36217ac91686dd5c0cfa3e5aa5291cf6488d986fa35b00a8e70ac1",
+      "sha256": "c8763a133b4e59a5f4b0fd2e3770ae79ef6ebc3ea07c3c0db4fdf453e331add1",
       "tier": "maintenance"
     },
     "find-dead-route-surface": {
-      "description_sha256": "d829919b4337c8475be2842c31492a0b1f8bf6ebbb2be052909db0a76f36e10f",
+      "description_sha256": "5e99470a8ea3b26f1afe47e7780e7848e4540f3b1ee38bcf3908a8672e82193f",
       "job": "suspect",
       "name": "find-dead-route-surface",
       "path": ".claude/skills/find-dead-route-surface/SKILL.md",
-      "sha256": "ba3ba0697affc41c57440ffef1624b75509f8f20902326cd477adc50b9e41970",
+      "sha256": "49dd1330926e98fb4f8ad8f3858955362ba77ea2e49077b13771e013617ddb8e",
       "tier": "maintenance"
     },
     "find-doc-route-drift": {
@@ -373,7 +349,7 @@
       "job": "suspect",
       "name": "find-doc-route-drift",
       "path": ".claude/skills/find-doc-route-drift/SKILL.md",
-      "sha256": "2f3b18f3452951f9b9cd2ca61fd05c6f09212a2eea3d1f3dedc6fc2823498ad6",
+      "sha256": "3a001c3c2984aea1eba9ee154231dad26a46138ca0894c678a6e3b947f78167b",
       "tier": "maintenance"
     },
     "find-dormant": {
@@ -381,7 +357,7 @@
       "job": "suspect",
       "name": "find-dormant",
       "path": ".claude/skills/find-dormant/SKILL.md",
-      "sha256": "456fc6cdc7523f94b6b82ff467b536b13c6f7201d41b3421693de9ef2dd081a7",
+      "sha256": "885b1c845ed87959da8005c45a74e5acc7868a2f20dd4201ac05c18f44266bc2",
       "tier": "maintenance"
     },
     "find-duplication": {
@@ -389,7 +365,7 @@
       "job": "suspect",
       "name": "find-duplication",
       "path": ".claude/skills/find-duplication/SKILL.md",
-      "sha256": "445fad00d2a82170259b52cd42939bdb65a19d3d4f02c11f5a8c40baf3aff884",
+      "sha256": "3a8d3948bfcfb23b1bc0297133d0c7206363c7099c5251ab5b22d0a570a3815e",
       "tier": "maintenance"
     },
     "find-folder-topology-drift": {
@@ -397,7 +373,7 @@
       "job": "suspect",
       "name": "find-folder-topology-drift",
       "path": ".claude/skills/find-folder-topology-drift/SKILL.md",
-      "sha256": "f49a35c3e3d128f7aa9384d8c95eebe6780fa9f1bf3bb049d39ecba60c4c8f93",
+      "sha256": "53c3ce96ea69779161fe0757e24d066f138438af4eca287288cf49fa9a0de74d",
       "tier": "maintenance"
     },
     "find-frontend-contract-drift": {
@@ -405,7 +381,7 @@
       "job": "suspect",
       "name": "find-frontend-contract-drift",
       "path": ".claude/skills/find-frontend-contract-drift/SKILL.md",
-      "sha256": "962b3da78e89a0c7edcda6481054be127e4f7024198a1b7a7a51af9f635d667c",
+      "sha256": "99d7383ab7ba3f4582da6bec1c19fd90b86e8a7722ee7d65095f4fc1bd800a64",
       "tier": "maintenance"
     },
     "find-frontend-duplication": {
@@ -413,7 +389,7 @@
       "job": "suspect",
       "name": "find-frontend-duplication",
       "path": ".claude/skills/find-frontend-duplication/SKILL.md",
-      "sha256": "578a8bc78fef50992857dd3ec74f732b291167d0967f48ddc218b147b3e6eda2",
+      "sha256": "7dc6d44174f5ea58cf45c0c6be996846ea18c5d2c0f27a72ad6402e441929296",
       "tier": "maintenance"
     },
     "find-implicit-state": {
@@ -421,15 +397,7 @@
       "job": "suspect",
       "name": "find-implicit-state",
       "path": ".claude/skills/find-implicit-state/SKILL.md",
-      "sha256": "415bcb1cbd4817a62e72da0e0202ddcb3ee67cab654373a9268546570f2f7a66",
-      "tier": "maintenance"
-    },
-    "find-incomplete-sweep": {
-      "description_sha256": "2b7efd06e016267b3aae998c52b0d1116e2059106f7ec91c95d53c57c7c81ee5",
-      "job": "suspect",
-      "name": "find-incomplete-sweep",
-      "path": ".claude/skills/find-incomplete-sweep/SKILL.md",
-      "sha256": "88e379813435dd307d3d67e75ae5bed71ce885c4664fd0084b555ce9ce780548",
+      "sha256": "d5fcb1b072886305f181c2f0b987d6e9ea10dcb364b8d17fa675aed2bc0150e5",
       "tier": "maintenance"
     },
     "find-layer-violation": {
@@ -437,31 +405,23 @@
       "job": "suspect",
       "name": "find-layer-violation",
       "path": ".claude/skills/find-layer-violation/SKILL.md",
-      "sha256": "ce8cc7f128e317f32d1a17cfa4daf86e5b89d6bb756374de38a1ac3eb8f08270",
+      "sha256": "9ee5ea7311c88a8108ae41ecbe05a7afbcb1b9465ad26f2acbbda221fcd706a7",
       "tier": "maintenance"
     },
     "find-omnibus": {
-      "description_sha256": "443f4c972dc128b40d19b02d5a6e98019331023ebc33c8915ddfd5f7b74c7b47",
+      "description_sha256": "f026b9e724aa60f1d354d9a7a6eeb03d7530737c46646392d6224e366be95b9f",
       "job": "suspect",
       "name": "find-omnibus",
       "path": ".claude/skills/find-omnibus/SKILL.md",
-      "sha256": "c912f616882a3dbbc146029bb547e577bc197577025eb95ebd77a0b76f34e40c",
+      "sha256": "6265b31de229110d69e6f07d45623b9256a138175b8f02f6ea723071ee5a15cd",
       "tier": "maintenance"
     },
     "find-orphaned-ideas": {
-      "description_sha256": "3d907915f47b301ee04c9dc6b171f4bdbbb55695eb2690a94802303ea084ebe5",
+      "description_sha256": "59022d4817ff778a824f774d163f9a985e249b2982d94f560b22f1faff11fee5",
       "job": "suspect",
       "name": "find-orphaned-ideas",
       "path": ".claude/skills/find-orphaned-ideas/SKILL.md",
-      "sha256": "e2fe4df74533a6afd18d716140eaef9b7b64305581128c4204d972237bd8fe64",
-      "tier": "maintenance"
-    },
-    "find-perimeter-gaps": {
-      "description_sha256": "ec8cc423414c23dde690204d2e68e43b6b3e6395f94e4ae0979ba7e753cec532",
-      "job": "suspect",
-      "name": "find-perimeter-gaps",
-      "path": ".claude/skills/find-perimeter-gaps/SKILL.md",
-      "sha256": "63d1aaefe4854c2d954ab05da3c9c4e2f8cf869055e1828258693abd05825109",
+      "sha256": "62f001e6926b184c5946cf1572cdbae9ed1ed4225b2d9589bdb7bce7cd61fbc5",
       "tier": "maintenance"
     },
     "find-query-mutation": {
@@ -469,7 +429,7 @@
       "job": "suspect",
       "name": "find-query-mutation",
       "path": ".claude/skills/find-query-mutation/SKILL.md",
-      "sha256": "47a5f42f0ad977fe8d4dc7bfcc271b32f07e3796beff29f211a28b530f8dded0",
+      "sha256": "f54d92b2313bbe22db38e8d9da8f881c82d1db8a8c3f21bcfb030d5fc250ac3c",
       "tier": "maintenance"
     },
     "find-route-sprawl": {
@@ -477,7 +437,7 @@
       "job": "suspect",
       "name": "find-route-sprawl",
       "path": ".claude/skills/find-route-sprawl/SKILL.md",
-      "sha256": "a05a78446be72c9f4ac4c987d7e46ecccf5a996c0a8a1adc0d3d1e5053066421",
+      "sha256": "47ccac9a29d1d8c2258a2b291b918fc6921bcb74a7c1935b16e2c77e40fc3f37",
       "tier": "maintenance"
     },
     "find-rule-surface-drift": {
@@ -485,7 +445,7 @@
       "job": "suspect",
       "name": "find-rule-surface-drift",
       "path": ".claude/skills/find-rule-surface-drift/SKILL.md",
-      "sha256": "a51dcb21dcb741043234e4501ba93e1a7a34f29a9a9402c15a2fb9bbb194462e",
+      "sha256": "dd55fd49075758b7ca7893f0857a3175c7aa705c07363aa85a3cfbaf86f40c0c",
       "tier": "maintenance"
     },
     "find-semantic-duplication": {
@@ -493,15 +453,15 @@
       "job": "suspect",
       "name": "find-semantic-duplication",
       "path": ".claude/skills/find-semantic-duplication/SKILL.md",
-      "sha256": "ae7e7450241640faf66e634219a210e613a0e270fb0a3714bfc257a4fb0eb4ab",
+      "sha256": "12d2d6141b6893e4896136d5d740edd00d9e018e52d264ccec17c082fa7186d5",
       "tier": "maintenance"
     },
     "find-skill-artifact-drift": {
-      "description_sha256": "b1f4b7ef90db26dc84468bde8171481b963c344a44dcc3f2268b568e04535a37",
+      "description_sha256": "7641c4521346d5fb632213b39f7bda159192783553ef5c6aff1f1ac4388aae1c",
       "job": "suspect",
       "name": "find-skill-artifact-drift",
       "path": ".claude/skills/find-skill-artifact-drift/SKILL.md",
-      "sha256": "6c26b0fae80269dd5a3a32fb217329c08e2f6a6a7668368186603e2f35aea8b0",
+      "sha256": "9a1eeee028b8e98e07ce255ba4858a740ef52cbc61e219e1fd931524a0473c8c",
       "tier": "maintenance"
     },
     "find-skill-intent-drift": {
@@ -509,7 +469,7 @@
       "job": "suspect",
       "name": "find-skill-intent-drift",
       "path": ".claude/skills/find-skill-intent-drift/SKILL.md",
-      "sha256": "878ff7d012948ca300131d3fc15f40f858f56f2073b0fd724fb4cebb71da99e8",
+      "sha256": "f4b344fe522f686ea5d37e786fbee9c11b81bf2fbc2b5c91ce383c46c13c0a5e",
       "tier": "maintenance"
     },
     "find-stale-artifacts": {
@@ -517,7 +477,7 @@
       "job": "suspect",
       "name": "find-stale-artifacts",
       "path": ".claude/skills/find-stale-artifacts/SKILL.md",
-      "sha256": "ade0e9e491c91d067672171abd3a05b7ed6633d4311fff948da326d43b1be41b",
+      "sha256": "a6e64f3957ed48e2c696fece6b3641e97dad595b4d122fafbad340aad4bb8fda",
       "tier": "maintenance"
     },
     "find-standard-gaps": {
@@ -525,7 +485,7 @@
       "job": "suspect",
       "name": "find-standard-gaps",
       "path": ".claude/skills/find-standard-gaps/SKILL.md",
-      "sha256": "4829f0dece3dc6d1713321abbca2497950942bd2d53baffafcc68bb3d79c4b51",
+      "sha256": "61f2d6224663d4839ef1a1de4b653273b9697f7295d98584554aecc3a1a33775",
       "tier": "maintenance"
     },
     "find-test-obligation-drift": {
@@ -533,7 +493,7 @@
       "job": "suspect",
       "name": "find-test-obligation-drift",
       "path": ".claude/skills/find-test-obligation-drift/SKILL.md",
-      "sha256": "9cdc705e2758995c4360d087d165a056eaaef9df3d38c9876d2f2dddaf3f0ab9",
+      "sha256": "971a6fe1355be184550dcdd31966377e25f27b7bb7858cee3af17690b05f1885",
       "tier": "maintenance"
     },
     "find-transaction-overreach": {
@@ -541,31 +501,31 @@
       "job": "suspect",
       "name": "find-transaction-overreach",
       "path": ".claude/skills/find-transaction-overreach/SKILL.md",
-      "sha256": "e057d19bade704849c3ee664fbfca550d8d7247a800ea29d50e4df719207376f",
+      "sha256": "1ec128945eb180d213f886f4666913b531ca3313fcfb0cb73a7b3ddd51c22816",
       "tier": "maintenance"
     },
     "find-workflow-duplication": {
-      "description_sha256": "836e1fc5b6d56da1f445c034dbfbdae91ea5970b9afefce3b0a3a8502a210251",
+      "description_sha256": "7f0828ac0c1c435a5ca04af6bca375066f966fc66a3dd8f5f507c280d8fbe7b4",
       "job": "suspect",
       "name": "find-workflow-duplication",
       "path": ".claude/skills/find-workflow-duplication/SKILL.md",
-      "sha256": "a6128de93a2d68dc8c8dd02562e425d629da80bbe315b9a994136855b452bd51",
+      "sha256": "52eb618d7a72e92be70a9fcd44f741829d1d57aa796bc2fa95d4fac66cdd2500",
       "tier": "maintenance"
     },
     "find-workflow-state-gaps": {
-      "description_sha256": "8aeb14463fafcf86568c2710ec91db1ac13db5e78af555dab830584d0e62897b",
+      "description_sha256": "8947955051b792289869fe876f7261e5d180771be8e48ec0fe67bf16a27834a5",
       "job": "suspect",
       "name": "find-workflow-state-gaps",
       "path": ".claude/skills/find-workflow-state-gaps/SKILL.md",
-      "sha256": "b078ff3f2cefab050a01c9ebad3f69156b8e76bf98042e543068bd8aa4f9a5ef",
+      "sha256": "a5133ec5f1d26ed3eab127e3f0105499161517c8e6297e994bcaa0a7d9618a25",
       "tier": "maintenance"
     },
     "fix-workflow": {
-      "description_sha256": "edacaeb37115a2225bfa61bd95a87c1ae2e58be89d67e84e5346d46853a598fc",
+      "description_sha256": "392f2f2477b376f259c23e8baf46f89213ff37b6245efcbddaab8a890233199e",
       "job": "refactor",
       "name": "fix-workflow",
       "path": ".claude/skills/fix-workflow/SKILL.md",
-      "sha256": "73aa6ed8c0d636cee8c59c133a261c3953e8a6d42f3496c5ecd34b9e9ab6c723",
+      "sha256": "c5f07643e5addc91cb8367095a4a9670d637164bd5c88b731c558118f4d7c4fc",
       "tier": "maintenance"
     },
     "gut-check": {
@@ -573,7 +533,7 @@
       "job": "teach",
       "name": "gut-check",
       "path": ".claude/skills/gut-check/SKILL.md",
-      "sha256": "aba13fdf604938084d891ea9d421b39c04f9e5d7e153a4c681ceb5dcba015337",
+      "sha256": "c9210ff96bde3b2afa935541e5ab207362b35b36bd24f65086345c653ef936fe",
       "tier": "cross-cutting"
     },
     "harvest-learnings": {
@@ -581,7 +541,7 @@
       "job": "construct",
       "name": "harvest-learnings",
       "path": ".claude/skills/harvest-learnings/SKILL.md",
-      "sha256": "61368c68696e5698cb5ee4beb23e8d70a722752f65937b1316621a3a4f7c5d40",
+      "sha256": "688f19afd3b14bc15d693733b76799a96d81a8b2539478a7e8bb465e66978511",
       "tier": "cross-cutting"
     },
     "impact-feature": {
@@ -589,7 +549,7 @@
       "job": "plan",
       "name": "impact-feature",
       "path": ".claude/skills/impact-feature/SKILL.md",
-      "sha256": "db40dd2443fac7efad68c203be3ee47b3180ab305c34090e522e0226bd2ec887",
+      "sha256": "f05a493fcfd37afbddd7461d190aa6a6d1264f0501c9e1559b5e8627e4d4b8d7",
       "tier": "system"
     },
     "introduce-fk": {
@@ -597,7 +557,7 @@
       "job": "explain",
       "name": "introduce-fk",
       "path": ".claude/skills/introduce-fk/SKILL.md",
-      "sha256": "6ac2152b35c2d390519186869a4ae7b88b31c31f7c3b4228b3ddaf3c3c4144ac",
+      "sha256": "7c525a8940fa8ce2ff0bdddf7f7d66167761be80d6e1bb6b3e2168dfb24a4965",
       "tier": "maintenance"
     },
     "map-product-workflow": {
@@ -605,7 +565,7 @@
       "job": "map",
       "name": "map-product-workflow",
       "path": ".claude/skills/map-product-workflow/SKILL.md",
-      "sha256": "d987092f9a86e518b06aacedd71f56b2056b61f2b1d35831543bc93e1a6a5688",
+      "sha256": "665c32be8630853beba8d3a62273b0d4545d32af73c8dc1da70e0c5c9b87d56c",
       "tier": "maintenance"
     },
     "map-subsystem": {
@@ -613,47 +573,31 @@
       "job": "map",
       "name": "map-subsystem",
       "path": ".claude/skills/map-subsystem/SKILL.md",
-      "sha256": "08913c465e74147b0356f1831c1f421b9af8bf22256d0293df24bdb42179af94",
+      "sha256": "41699e7dc35e798f3e7afa9863d3854126b95dcc008b02be38713d81c5ad5f2b",
       "tier": "maintenance"
     },
     "mature-existing-ideas": {
-      "description_sha256": "0f556a3ffc5def232e43d20c2f168e461593abad858b571dd73b5c07e36dd3d3",
+      "description_sha256": "96a0e1e05ab64bb5a91eb76e73da6cd3cd3f9214f633b4cba03ede2e0fc3a540",
       "job": "meta",
       "name": "mature-existing-ideas",
       "path": ".claude/skills/mature-existing-ideas/SKILL.md",
-      "sha256": "c7a3f072cc3d3a64877074829bdcb46cbeea9e3e9fd2d7e6e518b428605e04f1",
+      "sha256": "248e38d9e71cee0fffa97d0be1001d4e2fee457fc7264af9569ecb9d8a0bb56e",
       "tier": "cross-cutting"
-    },
-    "move-path": {
-      "description_sha256": "610f5b5963664c6a25774ed29d123b11b6cdf43c24d831a4eb6c327d9bbd42d5",
-      "job": "refactor",
-      "name": "move-path",
-      "path": ".claude/skills/move-path/SKILL.md",
-      "sha256": "73c61c6d52e783077e9192150cd77a978196298e5d57756ca259086f736fdbf0",
-      "tier": "maintenance"
-    },
-    "organize-project-structure": {
-      "description_sha256": "6411c8582fe9d0005737f1484785522fbd635b4c383a1918b75c54161243ddf6",
-      "job": "plan",
-      "name": "organize-project-structure",
-      "path": ".claude/skills/organize-project-structure/SKILL.md",
-      "sha256": "d4abf55fa205eb05194d8d0f73b9610aea19685e95ee750cc0085eaeda219eb9",
-      "tier": "system"
     },
     "orient": {
       "description_sha256": "c6357c9fbe5445a8181b6d19eccb3748a25a3e888365dc46a12a73a685f38837",
       "job": "meta",
       "name": "orient",
       "path": ".claude/skills/orient/SKILL.md",
-      "sha256": "fed88ebe0f00ff0f87ba8a6811fe6221b3ea527765b89ba6e4bb2547d56bb461",
+      "sha256": "2d4b32baadabeedf48e662529da2a358682360ea38c63387b547ba6dee7cb875",
       "tier": "cross-cutting"
     },
     "plan-feature": {
-      "description_sha256": "ac3b0f0202a61a3b2636c0f9e18b7d3c72f9b2ef7815b68bce362fca0b49a9b4",
+      "description_sha256": "6643407222fb19e57d7ee3e026367e73213a303c71d60795614d56004bb24006",
       "job": "plan",
       "name": "plan-feature",
       "path": ".claude/skills/plan-feature/SKILL.md",
-      "sha256": "6abdbd8c758a42ebc08a260c19195403a98ec2a8d51e4b42b72197e0cd486d66",
+      "sha256": "c317e354588473cc7d4072c1274579d669df45540b3518ddf69506221b7907c4",
       "tier": "feature"
     },
     "plan-skill": {
@@ -661,7 +605,7 @@
       "job": "plan",
       "name": "plan-skill",
       "path": ".claude/skills/plan-skill/SKILL.md",
-      "sha256": "17721ad49a9cc6dc18e5befc2cfc7d7d653484fdfba72e85816a3a0c70bcf10b",
+      "sha256": "68040105bf09e6e081cbf68267123bd49d87a4e9684c2e960be07cf902a6968e",
       "tier": "cross-cutting"
     },
     "plan-spec": {
@@ -669,7 +613,7 @@
       "job": "plan",
       "name": "plan-spec",
       "path": ".claude/skills/plan-spec/SKILL.md",
-      "sha256": "9ac42932e80ff077018653706e7100890b7739b22a59e94536adb6895c73720a",
+      "sha256": "3720c45a7090ab7fa13dfcb8962f75a7d415529d8b19b0f1eb63a74a1dc45d61",
       "tier": "system"
     },
     "prevent-regression": {
@@ -677,7 +621,7 @@
       "job": "guard",
       "name": "prevent-regression",
       "path": ".claude/skills/prevent-regression/SKILL.md",
-      "sha256": "16fe70e34ea3c9ce94d01de36e9bf67b07507ed66e7538d5c5b252ef925f30eb",
+      "sha256": "c1d58223dcd360628ec4e9be5e5c522f38627f47dcc51e5624fbfd51cc26d96f",
       "tier": "maintenance"
     },
     "project-interview": {
@@ -685,7 +629,7 @@
       "job": "meta",
       "name": "project-interview",
       "path": ".claude/skills/project-interview/SKILL.md",
-      "sha256": "f0295846c43f754ffbc2119f3532017da503188c9ffb24f59ec9c5d8f1885eed",
+      "sha256": "888b892d75e008e4426f53e78c48b11888a2fc4e7296d7d21f45a870ad9cde02",
       "tier": "cross-cutting"
     },
     "propose-boundary": {
@@ -693,7 +637,7 @@
       "job": "explain",
       "name": "propose-boundary",
       "path": ".claude/skills/propose-boundary/SKILL.md",
-      "sha256": "de5a2de6cdde360f9792bf6ad891cc66f1c144f11079aa8fa7dd403abc967d6f",
+      "sha256": "0233f5bee996c226000188ef18f8ee1b6f022c4ecdf4347fe6e5c02733a406cc",
       "tier": "maintenance"
     },
     "propose-folder-reorganization": {
@@ -701,7 +645,7 @@
       "job": "explain",
       "name": "propose-folder-reorganization",
       "path": ".claude/skills/propose-folder-reorganization/SKILL.md",
-      "sha256": "0c8107e6a934cf855a148bf3fe4d004909b00c28ae992e254f06208fe15a3498",
+      "sha256": "c00661fc2d6431d04810ee86a2e7b00cb21b77f9d2dee77b9e8727f23950396e",
       "tier": "maintenance"
     },
     "query-patterns": {
@@ -709,7 +653,7 @@
       "job": "meta",
       "name": "query-patterns",
       "path": ".claude/skills/query-patterns/SKILL.md",
-      "sha256": "5848fe6bf7941399d71b0b3ff9a2eed278237da8a829bcf2a7c2eae9a3686e6c",
+      "sha256": "6ac8de412cd6b1f757d63bbaa562afb5b4f5a1185aa02c4fa616e5c053ecb8ed",
       "tier": "cross-cutting"
     },
     "refactor-subsystem": {
@@ -717,31 +661,15 @@
       "job": "refactor",
       "name": "refactor-subsystem",
       "path": ".claude/skills/refactor-subsystem/SKILL.md",
-      "sha256": "35f4edb2178b118290050bb1d5ee97196ab21b45171b09b13a038d7e65a62b09",
+      "sha256": "3faf2dab7bf3ba9feca28885d4fbc643c012d27564ab969d8ab8432a8d60b0ea",
       "tier": "maintenance"
-    },
-    "rename-concept": {
-      "description_sha256": "ec6aac03869ed64108bf5f140ac0aaa1080901dea38b156a05330fe222964682",
-      "job": "refactor",
-      "name": "rename-concept",
-      "path": ".claude/skills/rename-concept/SKILL.md",
-      "sha256": "54955d2a72de40bfd9bcbd8c5929dce2dd467fd285dc0cd194a6999a6494feb8",
-      "tier": "maintenance"
-    },
-    "repair-skill": {
-      "description_sha256": "d0535894b0dd3693156404e985cbad1dbc49f64770815c9cd891fb89143c6f4a",
-      "job": "meta",
-      "name": "repair-skill",
-      "path": ".claude/skills/repair-skill/SKILL.md",
-      "sha256": "864f0036bd99fc77603bdf8751caae335b457475fda1ecf9dc3a3656ab379870",
-      "tier": "cross-cutting"
     },
     "scope-feature": {
       "description_sha256": "52c87d70624e7f6e56e56fe1bfcbcbba8a4314e47d8c4e60c544d7ddecf5f8a6",
       "job": "plan",
       "name": "scope-feature",
       "path": ".claude/skills/scope-feature/SKILL.md",
-      "sha256": "803eae5c631497ec4b3c218e551918072d304a881242faa80851fc7a948657e2",
+      "sha256": "201fefefd4f0b7e6623f250200886884a7c33933d683056ba43b5b19c9ae6978",
       "tier": "system"
     },
     "teach-pattern": {
@@ -749,7 +677,7 @@
       "job": "teach",
       "name": "teach-pattern",
       "path": ".claude/skills/teach-pattern/SKILL.md",
-      "sha256": "39ca3a69ec7fe0e3fdad52a97be51950b06728e5bebde4e75caec1eb9abf5b49",
+      "sha256": "d5db7118eee2422257556beef3a6f4a60612e0ba3a3ad00e4acf425faed43eb2",
       "tier": "cross-cutting"
     },
     "track-idea": {
@@ -757,7 +685,7 @@
       "job": "meta",
       "name": "track-idea",
       "path": ".claude/skills/track-idea/SKILL.md",
-      "sha256": "97f801ccfa74108a1543af814860ff5e4e3aeb4b85dd2af3c404c31ec428d22f",
+      "sha256": "4a171c770d86e55dc8b35ad33a349010b41c39a712f4c60f5ad3f40683f40566",
       "tier": "cross-cutting"
     },
     "triage-debt": {
@@ -765,7 +693,7 @@
       "job": "triage",
       "name": "triage-debt",
       "path": ".claude/skills/triage-debt/SKILL.md",
-      "sha256": "0904bc007a9e74ee8484e3a0d249a7008814735447059f03fd374a6ec49e54ed",
+      "sha256": "c2468402a2d783003c98cfe5237cd697e27f96685dfd4bcaa57b1e91dda27683",
       "tier": "cross-cutting"
     },
     "unify-shadows": {
@@ -773,7 +701,7 @@
       "job": "explain",
       "name": "unify-shadows",
       "path": ".claude/skills/unify-shadows/SKILL.md",
-      "sha256": "a354f296faf92969afc9394bcb73bc14f826cb72c0028e11ec434516188353de",
+      "sha256": "ecd8c7f857d2d7ed20cdfdf810c94bd1cf0d8ae69eba8335ae250e5bfe9af448",
       "tier": "maintenance"
     },
     "which-cleanup": {
@@ -781,15 +709,15 @@
       "job": "meta",
       "name": "which-cleanup",
       "path": ".claude/skills/which-cleanup/SKILL.md",
-      "sha256": "d0c557641775befc68f920c25fac97f039cbbf1cd4f4ea638b3617fe8fd411e3",
+      "sha256": "bb53beb385eea057d744755bfe0cd2d248e8a5c6c09c4788cbe9fc7c507759ba",
       "tier": "cross-cutting"
     },
     "which-shape": {
-      "description_sha256": "786979b5e34acd77472f8bae56440c6de050df7265e402b9776e2b44ebac28d8",
+      "description_sha256": "2459e161e4b1a627c052d3c95c0551bb83c45bd2f166937803baa2c2265df09c",
       "job": "meta",
       "name": "which-shape",
       "path": ".claude/skills/which-shape/SKILL.md",
-      "sha256": "2e7c9a9cb8bf96f646ea33fe6b508409af5c27336bf7d374b823c947ca1fa753",
+      "sha256": "89e7bc396ad48c20c9a0be2ce14331d00d4cf18844dd0d2db2b980532957b8d2",
       "tier": "cross-cutting"
     },
     "which-skill": {
@@ -797,7 +725,7 @@
       "job": "meta",
       "name": "which-skill",
       "path": ".claude/skills/which-skill/SKILL.md",
-      "sha256": "433cd00dc95e198f408e285380c36d4d43f908b00007cc6a85f68cbc0eeea777",
+      "sha256": "f368d6c3bf703261382c31f271d0f6a8146f97967b20e5288f7ce5c512d31985",
       "tier": "cross-cutting"
     }
   }

@@ -1,0 +1,6 @@
+id: pilot-go-errors
+message: Go parse error for the structural-tool pilot
+severity: error
+language: Go
+rule:
+  kind: ERROR

@@ -1,25 +1,25 @@
 ---
 name: unify-shadows
-description: Turn a semantic-duplication finding into an implementation-ready proposal. Consumes a confirmed finding from /find-semantic-duplication (shape = keep_separate_document_why | share_utilities | complete_migration | merge_at_workflow) and emits reports/unify-shadows/<finding-id>/proposal.md with the migration plan, caller impact, test matrix, and stop condition. Hands off to /fix-workflow semantic:<id>.
-argument-hint: "<semantic:SC-N or explicit target spec>"
+description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, and Java consume the accepted structured /find-semantic-duplication finding and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
+argument-hint: "<semantic:SC-N | semantic:TS-SD-NNNN | semantic:JAVA-SD-NNNN | explicit target spec>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
 job: explain
 best_for: |
-  A confirmed semantic-duplication finding from
+  One confirmed Python, TypeScript, checked-JavaScript, Go, or Java semantic-duplication finding from
   /find-semantic-duplication (shape =
   keep_separate_document_why | share_utilities | complete_migration |
   merge_at_workflow). Produces an implementation-ready proposal at
   `reports/unify-shadows/<finding-id>/proposal.md` with migration
   plan, caller impact, test matrix, and stop condition.
 not_for: |
-  Detection of semantic duplication (use /find-semantic-duplication).
-  Lexical near-clones (use /find-duplication then /fix-workflow).
-  Refactor execution (use /fix-workflow semantic:<id> after proposal
-  approval).
-language: python
-framework: django
+  Fresh candidate discovery belongs to /find-semantic-duplication. Lexical
+  near-clones belong to /find-duplication and their downstream fix workflow.
+  Source mutation begins only after human acceptance of this artifact.
+language: any
+framework: any
+scans: [python, typescript, javascript, go, java]
 ---
 
 # /unify-shadows
@@ -30,14 +30,29 @@ an actionable proposal. `/find-semantic-duplication` classified the cluster's
 workflow) and wrote a capability matrix. Your job is to produce the
 implementation spec `/fix-workflow semantic:<id>` will execute.
 
-You do not write production code in this skill — you read the shadows in
-full, dispatch a scout per member to profile signature / callers / return
-contract / retry-and-resource semantics, and consolidate into a proposal.
-The human reviews the proposal before authorizing `/fix-workflow`.
+You do not write production code in this skill. The Python branch reads the
+shadows in full, dispatches a scout per member, and consolidates their
+profiles. The TypeScript branch validates and renders the accepted structured
+finding without re-detection. The human reviews either proposal before
+authorizing `/fix-workflow`.
+
+## Go v1
+
+For a Go finding, read and follow `knowledge/go-v1.md`; load it only for Go
+work. The Go branch validates one complete, confirmed upstream artifact and
+renders a proposal without re-detection or source mutation. It preserves the
+upstream warning that a static review lead is not behavioral equivalence.
+
+## Java 17 v1
+
+For a Java finding, read `knowledge/java-v1.md`. The Java branch consumes one
+complete accepted finding and its capability matrix, validates current member
+and direct-caller citations, and writes a read-only proposal. It never reruns
+detection or upgrades matching record construction into behavioral equivalence.
 
 ## How success is judged
 
-- `reports/unify-shadows/<finding-id>/proposal.md` exists with every
+- In the Python branch, `reports/unify-shadows/<finding-id>/proposal.md` exists with every
   shadow member profiled at `profiles/<member-key>.md` — divergences
   in signature, callers, return contract, and retry/resource semantics
   are documented per member, never asserted equivalent without
@@ -49,9 +64,25 @@ The human reviews the proposal before authorizing `/fix-workflow`.
 - Scout profiles and final proposal claims cite artifacts: current
   `file:line` references, capability-matrix rows, or pasted scout
   output. Equivalence claims without citations do not satisfy the gate.
-- The final reply pastes the exact Stage 1 collection output and the
+- A Python final reply pastes the exact Stage 1 collection output and the
   Stage 4 effectiveness-log output, or states the command and exit code
   that prevented logging.
+- A TypeScript run accepts exactly one `confirmed`, function-level record
+  from the accepted `findings.json` schema. Missing, uncertain, rejected,
+  wrong-skill, wrong-language, wrong-level, malformed-source, or unsupported-
+  shape input exits 2 before any proposal artifact exists.
+- A TypeScript run writes `proposal.md`, `evidence.json`, and `scope.json`
+  beneath `reports/unify-shadows/<finding-id>/`, cites every member source
+  span and the capability-matrix rows, includes honest caller limitations and
+  host-native typecheck/test commands, and leaves all `.ts`/`.tsx` source
+  bytes unchanged.
+- `keep_separate_document_why` is complete when it documents separation. Its
+  proposed-action body contains no consolidation or caller-move plan. The
+  other three shapes include source/caller impact, native tests, a stop
+  condition, explicit human approval, and a read-only handoff.
+- A Java run consumes one complete `JAVA-SD-*` record, preserves upstream and
+  consumer fingerprints, and rejects stale/unconfirmed/partial evidence before
+  creating any proposal directory.
 Write toward these gates from Stage 0.
 
 ## Core beliefs
@@ -87,7 +118,97 @@ Write toward these gates from Stage 0.
   orchestrator reads the section for the scan's `consolidation_shape`
   during Stage 3; scouts do not read it.
 
+## TypeScript / TSX and checked-JavaScript v1 — structured proposal consumer
+
+This branch consumes the final machine-readable output from the accepted
+TypeScript or checked-JavaScript path of `/find-semantic-duplication`. It does not parse the legacy
+triage Markdown, run scouts, re-detect duplication, or infer framework/runtime
+behavior. The input must have:
+
+- `skill: "find-semantic-duplication"` and matching `language: "typescript"` or
+  `language: "javascript"` selected with `--language`;
+- exactly one selected record in both `confirmed` and the accepted public
+  `findings` list;
+- `investigation_status: "confirmed"`, `level: "function"`, at least two
+  `.ts`/`.tsx` members with current source spans, and one of the four supported
+  `consolidation_shape` values;
+- a readable capability matrix beside `findings.json` with the static return,
+  returned-fields, direct-call, and exception/async evidence rows.
+
+The typed-source detector's `caller_count` covers compiler-resolved incoming
+calls from its eligible candidate graph. It does **not** carry complete
+project caller locations. The proposal renders `null`/`-1` as unknown and
+requires a full language-service/reference inventory before approval; it
+never converts unknown or zero into a claim that no host callers exist.
+
+The runner is intentionally skill-local and uses only the host's Node runtime
+plus filesystem/JSON APIs. It writes no host source and needs no toolkit venv,
+repository script, sibling skill, shared TypeScript service, or network call.
+It records the host's declared `npm run typecheck` and `npm test` commands in
+the test matrix without executing the refactor or tests itself.
+
+Checked JavaScript accepts only current `.js`, `.jsx`, `.mjs`, and `.cjs`
+member spans from a `language: "javascript"` confirmed finding. It preserves
+the finding's complete/partial evidence boundary: partial, uncertain, malformed,
+or unsupported input exits 2 before synthesis; it never upgrades an inferred
+or lexical duplicate into a consolidation proposal.
+
+### Installed TypeScript commands
+
+Set `UNIFY_SHADOWS_SOURCE` to the pinned source/ref and install exactly this
+selected skill from the target TypeScript host root.
+
+<!-- installed-command:stock-install:start -->
+```bash
+: "${UNIFY_SHADOWS_SOURCE:?Set this to the pinned skill source/ref}"
+npx --yes skills@1.5.19 add "${UNIFY_SHADOWS_SOURCE}" \
+  --skill unify-shadows --agent codex --copy -y
+```
+<!-- installed-command:stock-install:end -->
+
+Run the next block from that host root after the confirmed semantic scan. It
+writes only beneath `reports/unify-shadows/`.
+
+<!-- installed-command:typescript-proposal:start -->
+```bash
+: "${UNIFY_FINDINGS:?Set UNIFY_FINDINGS to the confirmed typed-source findings.json}"
+: "${UNIFY_LANGUAGE:=typescript}" # typescript | javascript
+: "${UNIFY_FINDING_ID:?Set UNIFY_FINDING_ID to one confirmed TS-SD identifier}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/unify-shadows" \
+  ".claude/skills/unify-shadows"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "unify-shadows is not installed in .agents/skills or .claude/skills" >&2
+  exit 2
+fi
+node "${SKILL_ROOT}/scripts/propose_typescript.mjs" \
+  --findings "${UNIFY_FINDINGS}" \
+  --finding-id "${UNIFY_FINDING_ID}" \
+  --project-root "$(pwd)" \
+  --language "${UNIFY_LANGUAGE}" \
+  --proposal "reports/unify-shadows/${UNIFY_FINDING_ID}/proposal.md" \
+  --evidence "reports/unify-shadows/${UNIFY_FINDING_ID}/evidence.json"
+```
+<!-- installed-command:typescript-proposal:end -->
+
+The script resolves logical and physical paths before synthesis. Inputs must
+stay inside the project root; outputs must stay beneath
+`reports/unify-shadows/`; symlink traversal is rejected. Validation completes
+before the output directory is created, so an invalid finding cannot leave a
+partial proposal.
+
 ## Argument parsing
+
+The forms below are the retained Python/scout branch. Typed-source uses the
+installed structured proposal command above and requires a `TS-SD-*` finding
+ID plus its exact `findings.json` path.
 
 Two forms:
 
@@ -282,6 +403,8 @@ artifact; the human authorizes the execution step separately.
   silently re-open the merge debate.
 - Touching files outside `reports/unify-shadows/<id>/`.
 - Running tests — the proposal lists the matrix; `/fix-workflow` runs it.
+- Re-analyzing TypeScript/Java, inventing full caller locations, or turning a
+  static function-level lead into workflow/framework authority.
 
 ## When things go sideways
 
@@ -294,6 +417,10 @@ artifact; the human authorizes the execution step separately.
 | Capability matrix missing | Proceed without — base the divergence paragraph on the triage's `load_bearing_divergence` field and note the matrix gap |
 | `knowledge/proposal-templates.md` missing or empty | Abort before writing `proposal.md`; the per-shape body is load-bearing and must not be invented |
 | Shape is `keep_separate_document_why` but no in-tree comment | The proposal's primary action is "add the documenting comment" plus the optional share-utility; DO NOT invert to a merge |
+| TypeScript finding is absent from `confirmed` but present under `uncertain` or `rejected` | Exit 2 before synthesis; re-run or review `/find-semantic-duplication`, never promote the record locally |
+| TypeScript `caller_count` is `null`, `-1`, or zero | Render the candidate-graph fact exactly and require a full project reference inventory; never claim there are no callers |
+| TypeScript matrix/source span is missing or stale | Exit 2 before synthesis; refresh the semantic scan instead of fabricating citations |
+| TypeScript proposal path escapes `reports/unify-shadows/` or crosses a symlink | Exit 2 without writing; choose a contained, physical report directory |
 
 ## Repository layout
 
@@ -301,7 +428,9 @@ artifact; the human authorizes the execution step separately.
 .claude/skills/unify-shadows/
 ├── SKILL.md                         # this file — orchestrator
 ├── scripts/
-│   └── collect_shadows.py           # Stage 1 (stdlib-only)
+│   ├── collect_shadows.py           # Python Stage 1 (stdlib-only)
+│   ├── propose_java.py               # Structured Java proposal consumer
+│   └── propose_typescript.mjs       # Structured TypeScript proposal consumer
 ├── agents/
 │   └── shadow-profiler.md           # Stage 2 scout brief
 └── knowledge/
@@ -315,9 +444,27 @@ matrix path they were handed.
 
 ## Replay case
 
-For template or dispatch changes, replay with the smallest fixture triage
-that has one finding for each shape. The replay passes only when
+For Python template or dispatch changes, replay with the smallest fixture
+triage that has one finding for each shape. The replay passes only when
 `collect_shadows.py` writes `targets.json`, four profile stubs can be
 placed under `profiles/`, `proposal.md` uses the matching template
 section verbatim under `## Proposed action`, and the Stage 4 log command
 prints `logged to reports/_meta/effectiveness.jsonl: unify-shadows / <id>`.
+
+For TypeScript consumer changes, replay the locked
+`tests/fixtures/unify-shadows-typescript/host` finding through the installed
+command. All four shapes must reach a cited final proposal; missing,
+unconfirmed, and wrong-kind records must leave no output directory;
+`keep_separate_document_why` must contain no consolidation/caller-move plan;
+native `npm run typecheck` and `npm test` must pass before and after; source
+hashes must not change; and escape/symlink outputs must fail.
+
+For Go consumer changes, replay the copied skill against the locked Go fixture;
+the accepted finding must reach all three proposal artifacts, `go test ./...`
+must pass before and after, source hashes must not change, and unconfirmed or
+partial input must leave no proposal directory.
+
+For Java consumer changes, replay the copied skill with `python3 -I -S` against
+the locked Java semantic fixture. All four shapes must preserve citations and
+the approval boundary; unconfirmed/partial/stale input must leave no output,
+native Java 17 tests must pass, and source hashes must not change.

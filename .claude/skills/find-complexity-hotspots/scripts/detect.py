@@ -11,36 +11,15 @@ import argparse
 import ast
 import fnmatch
 import json
+import re
+import shutil
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
 sys.dont_write_bytecode = True
-
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
-COMMON_DIR = PROJECT_ROOT / ".claude" / "skills" / "_common"
-if str(COMMON_DIR) not in sys.path:
-    sys.path.insert(0, str(COMMON_DIR))
-
-# Route Python parsing through the shared per-language adapter registry
-# (ADR 0032). The complexity analysis is Python/Django-specific (nested
-# loops, ORM-in-loop, branch scoring), so this stays a Python-only
-# consumer: ask the registry for the file's adapter and only proceed when
-# it exposes the raw `ast.Module` (CAP_PYTHON_AST), keeping the existing
-# visitor. Wire the repo `scripts/` dir onto sys.path so the package
-# imports when this skill script runs standalone.
-_SCRIPTS_DIR = str(PROJECT_ROOT / "scripts")
-if _SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPTS_DIR)
-
-from _lib.lang_adapter import (  # noqa: E402
-    CAP_PYTHON_AST,
-    AnalysisFailure,
-    get_adapter,
-)
-from product_health import finding, normalize_record  # noqa: E402
-
 
 SKIP_DIRS = {
     ".git",
@@ -52,6 +31,89 @@ SKIP_DIRS = {
     "reports",
 }
 TEST_GLOBS = ("test_*.py", "tests_*.py", "tests.py", "conftest.py")
+TYPESCRIPT_SKIP_DIRS = {
+    "__tests__",
+    "build",
+    "coverage",
+    "dist",
+    "fixture",
+    "fixtures",
+    "generated",
+    "spec",
+    "specs",
+    "test",
+    "tests",
+    "vendor",
+}
+SCRIPT_SKIP_GLOBS = (
+    "*.d.ts", "*.d.tsx", "*.generated.ts", "*.generated.tsx",
+    "*.min.ts", "*.min.tsx", "*-min.ts", "*-min.tsx",
+    "*.bundle.ts", "*.bundle.tsx", "*.spec.ts", "*.spec.tsx",
+    "*.test.ts", "*.test.tsx", "test_*.ts", "test_*.tsx",
+    "tests_*.ts", "tests_*.tsx", "*_test.ts", "*_test.tsx",
+    "*.generated.js", "*.generated.jsx", "*.generated.mjs", "*.generated.cjs",
+    "*.min.js", "*.min.jsx", "*.min.mjs", "*.min.cjs",
+    "*-min.js", "*-min.jsx", "*-min.mjs", "*-min.cjs",
+    "*.bundle.js", "*.bundle.jsx", "*.bundle.mjs", "*.bundle.cjs",
+    "*.spec.js", "*.spec.jsx", "*.spec.mjs", "*.spec.cjs",
+    "*.test.js", "*.test.jsx", "*.test.mjs", "*.test.cjs",
+    "test_*.js", "test_*.jsx", "test_*.mjs", "test_*.cjs",
+    "tests_*.js", "tests_*.jsx", "tests_*.mjs", "tests_*.cjs",
+    "*_test.js", "*_test.jsx", "*_test.mjs", "*_test.cjs",
+)
+SCRIPT_SUFFIXES = {
+    "typescript": {".ts", ".tsx"},
+    "javascript": {".js", ".jsx", ".mjs", ".cjs"},
+}
+JAVA_SKIP_DIRS = {
+    ".gradle",
+    "build",
+    "coverage",
+    "dist",
+    "fixture",
+    "fixtures",
+    "generated",
+    "integrationtest",
+    "out",
+    "reports",
+    "target",
+    "test",
+    "testdata",
+    "testfixtures",
+    "tests",
+    "vendor",
+}
+JAVA_SKIP_GLOBS = (
+    "*Test.java",
+    "*Tests.java",
+    "*IT.java",
+    "*Generated.java",
+    "*.generated.java",
+    "*_generated.java",
+)
+JAVA_MIN_VERSION = (17, 0, 0)
+GO_SKIP_DIRS = {
+    "__tests__",
+    "build",
+    "coverage",
+    "dist",
+    "fixture",
+    "fixtures",
+    "gen",
+    "generated",
+    "spec",
+    "specs",
+    "test",
+    "testdata",
+    "tests",
+    "vendor",
+}
+GO_SKIP_GLOBS = (
+    "*_test.go",
+    "*.generated.go",
+    "*_generated.go",
+)
+GO_MIN_VERSION = (1, 22, 0)
 
 QUERYSET_METHODS = {
     "aggregate",
@@ -117,6 +179,107 @@ BRANCH_NODES = (
     ast.AsyncWith,
     ast.Match,
 )
+
+
+class TypeScriptExtractionError(RuntimeError):
+    """Raised when syntax-only TypeScript facts cannot be established."""
+
+
+class GoExtractionError(RuntimeError):
+    """Raised when syntax-only Go facts cannot be established honestly."""
+
+
+class JavaExtractionError(RuntimeError):
+    """Raised when syntax-only Java facts cannot be established honestly."""
+
+
+@dataclass(frozen=True)
+class ScanResult:
+    """Final detector records plus bounded language-level execution evidence."""
+
+    records: list[dict[str, Any]]
+    status: str = "complete"
+    analysis: dict[str, Any] | None = None
+
+
+def _relpath(path: Path | str, project_root: Path) -> str:
+    if not isinstance(path, Path):
+        return path
+    try:
+        return str(path.relative_to(project_root))
+    except ValueError:
+        return str(path)
+
+
+def _infer_surface(file: str) -> str:
+    if file.startswith("app/pages/sites") or file.startswith("templates/core/site_config"):
+        return "sites_template_or_view"
+    if file.startswith("app/site_management") or file.startswith("app/api/"):
+        return "sites_backend"
+    if file.startswith("app/services/sites"):
+        return "sites_service"
+    if file.startswith("static/js/"):
+        return "sites_frontend"
+    if file.startswith(".claude/skills"):
+        return "skill"
+    if file.startswith(".claude/docs") or file.startswith("docs/"):
+        return "docs"
+    if file.startswith("tests/") or file.startswith("testing/"):
+        return "tests"
+    return "sites_surface"
+
+
+def finding(
+    pattern: str,
+    path: Path | str,
+    lineno: int,
+    summary: str,
+    recommendation: str,
+    project_root: Path,
+    *,
+    confidence: str = "medium",
+    surface: str | None = None,
+    next_skill: str = "triage-debt",
+    guard_candidate: bool = False,
+    **extra: Any,
+) -> dict[str, Any]:
+    """Build the historical advisory finding shape without a shared runtime."""
+    file = _relpath(path, project_root)
+    record: dict[str, Any] = {
+        "pattern": pattern,
+        "file": file,
+        "lineno": lineno,
+        "summary": summary.strip(),
+        "recommendation": recommendation.strip(),
+        "confidence": confidence,
+        "surface": surface or _infer_surface(file),
+        "next_skill": next_skill,
+        "guard_candidate": guard_candidate,
+    }
+    record.update(extra)
+    return record
+
+
+def normalize_record(
+    record: dict[str, Any],
+    project_root: Path,
+    *,
+    default_confidence: str = "medium",
+    next_skill: str = "triage-debt",
+    guard_candidate: bool = False,
+) -> dict[str, Any]:
+    """Preserve the selected skill's established JSONL compatibility fields."""
+    file = str(record.get("file", ""))
+    return {
+        **record,
+        "lineno": int(record.get("lineno") or 1),
+        "summary": str(record.get("summary") or record.get("evidence") or "").strip(),
+        "recommendation": str(record.get("recommendation") or "Review this advisory finding.").strip(),
+        "confidence": str(record.get("confidence") or default_confidence),
+        "surface": str(record.get("surface") or _infer_surface(file)),
+        "next_skill": str(record.get("next_skill") or next_skill),
+        "guard_candidate": bool(record.get("guard_candidate", guard_candidate)),
+    }
 
 
 @dataclass(frozen=True)
@@ -382,35 +545,327 @@ def _branch_score(node: ast.AST) -> int:
     return score
 
 
-def select_python_files(
-    project_root: Path,
-    paths: Iterable[str],
-    include_tests: bool = False,
-    *,
-    roots: Iterable[str | Path] | None = None,
-    exclusions: Iterable[str | Path] = (),
-    case_sensitive: bool = True,
-) -> list[Path]:
-    """Return the exact files eligible under the detector's selection contract."""
-    project_root = project_root.resolve()
-
-    def resolved(raw: str | Path) -> Path:
-        path = Path(raw)
-        return (path if path.is_absolute() else project_root / path).resolve()
-
-    root_paths = [resolved(root) for root in (roots or (project_root,))]
-    excluded_paths = [resolved(path) for path in exclusions]
-
-    def within(path: Path, boundary: Path) -> bool:
-        rendered_path = path.as_posix()
-        rendered_boundary = boundary.as_posix()
-        if not case_sensitive:
-            rendered_path = rendered_path.casefold()
-            rendered_boundary = rendered_boundary.casefold()
-        return rendered_path == rendered_boundary or rendered_path.startswith(
-            f"{rendered_boundary}/"
+def _typescript_complexity(path: Path, project_root: Path) -> list[dict[str, Any]]:
+    """Return Compiler API syntax facts for supported TypeScript functions."""
+    launcher = Path(__file__).resolve().with_name("detect_typescript_complexity.mjs")
+    try:
+        result = subprocess.run(
+            ["node", str(launcher), "--file", str(path), "--project-root", str(project_root)],
+            capture_output=True,
+            text=True,
+            check=False,
         )
+    except OSError as exc:
+        raise TypeScriptExtractionError(f"cannot run bundled TypeScript parser: {exc}") from exc
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or "unknown parser failure"
+        raise TypeScriptExtractionError(detail)
+    try:
+        records = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise TypeScriptExtractionError("bundled TypeScript parser emitted invalid JSON") from exc
+    if not isinstance(records, list):
+        raise TypeScriptExtractionError("bundled TypeScript parser emitted a non-list result")
+    validated: list[dict[str, Any]] = []
+    for record in records:
+        try:
+            validated.append({
+                "name": str(record["name"]),
+                "symbol": str(record["symbol"]),
+                "kind": str(record["kind"]),
+                "branch_score": int(record["branch_score"]),
+                "lineno": int(record["lineno"]),
+                "end_lineno": int(record["end_lineno"]),
+                "loc": int(record["loc"]),
+            })
+        except (KeyError, TypeError, ValueError) as exc:
+            raise TypeScriptExtractionError("bundled TypeScript parser emitted an invalid function") from exc
+    return validated
 
+
+def _script_high_branch_records(
+    path: Path, project_root: Path, language: str
+) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for fact in _typescript_complexity(path, project_root):
+        branch_score = int(fact["branch_score"])
+        loc = int(fact["loc"])
+        if branch_score < 18 and not (branch_score >= 12 and loc >= 120):
+            continue
+        symbol = str(fact["symbol"])
+        records.append(
+            finding(
+                "high-branch-function",
+                path,
+                int(fact["lineno"]),
+                f"`{symbol}` has approximate syntactic branch score {branch_score} over {loc} LOC.",
+                "Read the block and its input sizes before changing it; preserve observable "
+                f"behavior with native {language} tests if a behavior-backed boundary emerges.",
+                project_root,
+                confidence="medium" if branch_score >= 18 else "low",
+                next_skill="manual-review",
+                guard_candidate=False,
+                symbol=symbol,
+                impact=min(90, branch_score * 3 + loc // 20),
+                category="structural",
+                branch_score=branch_score,
+                loc=loc,
+                end_lineno=int(fact["end_lineno"]),
+                kind=str(fact["kind"]),
+                language=language,
+                analyzer="typescript-compiler-api",
+            )
+        )
+    return records
+
+
+def _go_toolchain() -> tuple[str, str]:
+    """Resolve and validate the host Go toolchain without bundling one."""
+    executable = shutil.which("go")
+    if executable is None:
+        raise GoExtractionError("Go toolchain is unavailable on PATH")
+    try:
+        result = subprocess.run(
+            [executable, "version"], capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        raise GoExtractionError(f"cannot run Go toolchain: {exc}") from exc
+    rendered = (result.stdout or result.stderr).strip()
+    if result.returncode != 0:
+        raise GoExtractionError(f"cannot determine Go version: {rendered or 'unknown error'}")
+    match = re.search(r"\bgo(\d+)\.(\d+)(?:\.(\d+))?\b", rendered)
+    if match is None:
+        raise GoExtractionError(f"cannot parse Go version: {rendered or 'unknown version'}")
+    version = tuple(int(part or 0) for part in match.groups())
+    if version < GO_MIN_VERSION:
+        minimum = ".".join(str(part) for part in GO_MIN_VERSION)
+        raise GoExtractionError(f"Go detector requires Go >= {minimum}; found go{'.'.join(map(str, version))}")
+    return executable, f"go{'.'.join(map(str, version))}"
+
+
+def _go_complexity(path: Path, project_root: Path) -> dict[str, Any]:
+    """Return stdlib parser facts for one eligible Go source file."""
+    executable, _version = _go_toolchain()
+    launcher = Path(__file__).resolve().with_name("detect_go_complexity.go")
+    try:
+        result = subprocess.run(
+            [
+                executable,
+                "run",
+                str(launcher),
+                "--file",
+                str(path),
+                "--project-root",
+                str(project_root),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise GoExtractionError(f"cannot run bundled Go parser: {exc}") from exc
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or "unknown parser failure"
+        raise GoExtractionError(detail)
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise GoExtractionError("bundled Go parser emitted invalid JSON") from exc
+    if not isinstance(payload, dict):
+        raise GoExtractionError("bundled Go parser emitted a non-object result")
+    if payload.get("schema_version") != 1:
+        raise GoExtractionError("bundled Go parser emitted an unsupported schema")
+    if payload.get("status") not in {"complete", "partial"}:
+        raise GoExtractionError("bundled Go parser emitted an invalid status")
+    if payload.get("analyzer") != "go-parser-go-ast":
+        raise GoExtractionError("bundled Go parser emitted an invalid analyzer")
+    if not isinstance(payload.get("go_version"), str) or not payload["go_version"]:
+        raise GoExtractionError("bundled Go parser omitted its Go version")
+    if not isinstance(payload.get("records"), list) or not isinstance(payload.get("skipped"), list):
+        raise GoExtractionError("bundled Go parser emitted invalid records")
+    return payload
+
+
+def _go_high_branch_records(
+    path: Path, project_root: Path, payload: dict[str, Any]
+) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for fact in payload["records"]:
+        try:
+            branch_score = int(fact["branch_score"])
+            loc = int(fact["loc"])
+            symbol = str(fact["symbol"])
+            kind = str(fact["kind"])
+            lineno = int(fact["lineno"])
+            end_lineno = int(fact["end_lineno"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise GoExtractionError("bundled Go parser emitted an invalid function") from exc
+        if branch_score < 18 and not (branch_score >= 12 and loc >= 120):
+            continue
+        records.append(
+            finding(
+                "high-branch-function",
+                path,
+                lineno,
+                f"`{symbol}` has approximate syntactic branch score {branch_score} over {loc} LOC.",
+                "Read the block and its input sizes before changing it; preserve observable "
+                "behavior with native Go tests if a behavior-backed boundary emerges.",
+                project_root,
+                confidence="medium" if branch_score >= 18 else "low",
+                next_skill="manual-review",
+                guard_candidate=False,
+                symbol=symbol,
+                impact=min(90, branch_score * 3 + loc // 20),
+                category="structural",
+                branch_score=branch_score,
+                loc=loc,
+                end_lineno=end_lineno,
+                kind=kind,
+                language="go",
+                analyzer="go-parser-go-ast",
+            )
+        )
+    return records
+
+
+def _parse_java_version(
+    rendered: str, *, tool: str
+) -> tuple[tuple[int, int, int], str]:
+    """Parse the tool's own version line, ignoring launcher warnings."""
+    if tool == "java":
+        pattern = re.compile(r'\bversion\s+"(\d+)(?:\.(\d+))?(?:\.(\d+))?')
+    else:
+        pattern = re.compile(r"^javac\s+(\d+)(?:\.(\d+))?(?:\.(\d+))?\b")
+    matched_line = ""
+    match = None
+    for line in rendered.splitlines():
+        candidate = pattern.search(line.strip())
+        if candidate is not None:
+            match = candidate
+            matched_line = line.strip()
+            break
+    if match is None:
+        raise JavaExtractionError(
+            f"cannot parse {tool} version: {rendered or 'unknown version'}"
+        )
+    major, minor, patch = (int(part or 0) for part in match.groups())
+    if major == 1 and minor:
+        major, minor = minor, patch
+        patch = 0
+    return (major, minor, patch), matched_line
+
+
+def _java_toolchain() -> tuple[str, str, str, str]:
+    """Resolve a complete JDK 17+ without assuming Maven or Gradle."""
+    java = shutil.which("java")
+    javac = shutil.which("javac")
+    if java is None or javac is None:
+        missing = " and ".join(
+            name for name, executable in (("java", java), ("javac", javac))
+            if executable is None
+        )
+        raise JavaExtractionError(f"Java JDK is unavailable on PATH (missing {missing})")
+
+    versions: dict[str, str] = {}
+    for name, executable in (("java", java), ("javac", javac)):
+        try:
+            result = subprocess.run(
+                [executable, "-version"], capture_output=True, text=True, check=False
+            )
+        except OSError as exc:
+            raise JavaExtractionError(f"cannot run {name}: {exc}") from exc
+        rendered = (result.stdout or result.stderr).strip()
+        if result.returncode != 0:
+            raise JavaExtractionError(
+                f"cannot determine {name} version: {rendered or 'unknown error'}"
+            )
+        version, version_line = _parse_java_version(rendered, tool=name)
+        if version < JAVA_MIN_VERSION:
+            minimum = ".".join(str(part) for part in JAVA_MIN_VERSION)
+            found = ".".join(str(part) for part in version)
+            raise JavaExtractionError(
+                f"Java detector requires JDK >= {minimum}; {name} reports {found}"
+            )
+        versions[name] = version_line
+    return java, javac, versions["java"], versions["javac"]
+
+
+def _java_complexity(paths: list[Path], project_root: Path) -> tuple[dict[str, Any], str, str]:
+    """Return one batched JDK compiler-tree analysis for eligible Java sources."""
+    java, _javac, java_version, javac_version = _java_toolchain()
+    launcher = Path(__file__).resolve().with_name("detect_java_complexity.java")
+    command = [java, str(launcher), "--project-root", str(project_root)]
+    for path in paths:
+        command.extend(("--file", str(path)))
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=False)
+    except OSError as exc:
+        raise JavaExtractionError(f"cannot run bundled Java parser: {exc}") from exc
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or "unknown parser failure"
+        raise JavaExtractionError(detail)
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise JavaExtractionError("bundled Java parser emitted invalid JSON") from exc
+    if not isinstance(payload, dict):
+        raise JavaExtractionError("bundled Java parser emitted a non-object result")
+    if payload.get("schema_version") != 1:
+        raise JavaExtractionError("bundled Java parser emitted an unsupported schema")
+    if payload.get("analyzer") != "jdk-compiler-tree-api":
+        raise JavaExtractionError("bundled Java parser emitted an invalid analyzer")
+    if not isinstance(payload.get("java_version"), str) or not payload["java_version"]:
+        raise JavaExtractionError("bundled Java parser omitted its Java version")
+    if not isinstance(payload.get("files"), list):
+        raise JavaExtractionError("bundled Java parser emitted invalid file evidence")
+    return payload, java_version, javac_version
+
+
+def _java_high_branch_records(
+    path: Path, project_root: Path, facts: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for fact in facts:
+        try:
+            branch_score = int(fact["branch_score"])
+            loc = int(fact["loc"])
+            symbol = str(fact["symbol"])
+            kind = str(fact["kind"])
+            lineno = int(fact["lineno"])
+            end_lineno = int(fact["end_lineno"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise JavaExtractionError("bundled Java parser emitted an invalid method") from exc
+        if kind not in {"method", "constructor"}:
+            raise JavaExtractionError("bundled Java parser emitted an invalid method kind")
+        if branch_score < 18 and not (branch_score >= 12 and loc >= 120):
+            continue
+        records.append(
+            finding(
+                "high-branch-function",
+                path,
+                lineno,
+                f"`{symbol}` has approximate syntactic branch score {branch_score} over {loc} LOC.",
+                "Read the block and its input sizes before changing it; preserve observable "
+                "behavior with native Java tests if a behavior-backed boundary emerges.",
+                project_root,
+                confidence="medium" if branch_score >= 18 else "low",
+                next_skill="manual-review",
+                guard_candidate=False,
+                symbol=symbol,
+                impact=min(90, branch_score * 3 + loc // 20),
+                category="structural",
+                branch_score=branch_score,
+                loc=loc,
+                end_lineno=end_lineno,
+                kind=kind,
+                language="java",
+                analyzer="jdk-compiler-tree-api",
+            )
+        )
+    return records
+
+
+def _iter_python_files(project_root: Path, paths: Iterable[str], include_tests: bool) -> list[Path]:
     found: list[Path] = []
     for raw in paths:
         raw_path = Path(raw)
@@ -432,12 +887,189 @@ def select_python_files(
             continue
         if not include_tests and any(fnmatch.fnmatchcase(path.name, glob) for glob in TEST_GLOBS):
             continue
-        if not any(within(path, root) for root in root_paths):
-            continue
-        if any(within(path, exclusion) for exclusion in excluded_paths):
+        clean.append(path.resolve())
+    return sorted(dict.fromkeys(clean))
+
+
+def _typescript_path_is_excluded(path: Path, project_root: Path) -> bool:
+    try:
+        parts = path.relative_to(project_root).parts
+    except ValueError:
+        parts = path.parts
+    skipped_dirs = SKIP_DIRS | TYPESCRIPT_SKIP_DIRS
+    if any(part.lower() in skipped_dirs for part in parts[:-1]):
+        return True
+    return any(fnmatch.fnmatchcase(path.name, glob) for glob in SCRIPT_SKIP_GLOBS)
+
+
+def _iter_script_files(
+    project_root: Path, paths: Iterable[str], language: str
+) -> list[Path]:
+    suffixes = SCRIPT_SUFFIXES[language]
+    found: list[Path] = []
+    for raw in paths:
+        raw_path = Path(raw)
+        candidates: Iterable[Path]
+        if any(ch in raw for ch in "*?[]"):
+            candidates = project_root.glob(raw)
+        else:
+            candidate = raw_path if raw_path.is_absolute() else project_root / raw_path
+            candidates = [candidate]
+        for candidate in candidates:
+            if candidate.is_file() and candidate.suffix.lower() in suffixes:
+                found.append(candidate)
+            elif candidate.is_dir():
+                found.extend(
+                    path
+                    for path in candidate.rglob("*")
+                    if path.is_file() and path.suffix.lower() in suffixes
+                )
+    clean: list[Path] = []
+    for path in found:
+        if _typescript_path_is_excluded(path, project_root):
             continue
         clean.append(path.resolve())
     return sorted(dict.fromkeys(clean))
+
+
+def _go_exclusion_reason(path: Path, project_root: Path) -> str | None:
+    if path.is_symlink():
+        return "symlink_boundary"
+    try:
+        parts = path.relative_to(project_root).parts
+    except ValueError:
+        return "outside_project_root"
+    directories = {part.lower() for part in parts[:-1]}
+    if directories & SKIP_DIRS:
+        return "excluded_directory"
+    if directories & GO_SKIP_DIRS:
+        return "go_excluded_directory"
+    if any(fnmatch.fnmatchcase(path.name, glob) for glob in GO_SKIP_GLOBS):
+        return "generated_or_test_filename"
+    return None
+
+
+def _iter_go_files(
+    project_root: Path, paths: Iterable[str]
+) -> tuple[list[Path], list[dict[str, str]]]:
+    found: list[Path] = []
+    excluded: list[dict[str, str]] = []
+    seen: set[Path] = set()
+    seen_exclusions: set[tuple[str, str]] = set()
+
+    def note_exclusion(path: Path, reason: str) -> None:
+        relative = _relpath(path, project_root)
+        key = (relative, reason)
+        if key not in seen_exclusions:
+            seen_exclusions.add(key)
+            excluded.append({"file": relative, "reason": reason})
+
+    for raw in paths:
+        raw_path = Path(raw)
+        candidates: Iterable[Path]
+        if any(ch in raw for ch in "*?[]"):
+            candidates = project_root.glob(raw)
+        else:
+            candidate = raw_path if raw_path.is_absolute() else project_root / raw_path
+            candidates = [candidate]
+        for candidate in candidates:
+            if candidate.is_file() and candidate.suffix.lower() == ".go":
+                possible = [candidate]
+            elif candidate.is_dir():
+                possible = [
+                    path for path in candidate.rglob("*.go")
+                    if path.is_file() or path.is_symlink()
+                ]
+            else:
+                possible = []
+            for path in possible:
+                reason = _go_exclusion_reason(path, project_root)
+                if reason is not None:
+                    note_exclusion(path, reason)
+                    continue
+                resolved = path.resolve()
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
+                found.append(resolved)
+    return sorted(found), sorted(excluded, key=lambda row: (row["file"], row["reason"]))
+
+
+def _java_exclusion_reason(path: Path, project_root: Path) -> str | None:
+    try:
+        relative = path.absolute().relative_to(project_root)
+    except ValueError:
+        return "outside_project_root"
+    cursor = project_root
+    for part in relative.parts:
+        cursor /= part
+        if cursor.is_symlink():
+            return "symlink_boundary"
+    parts = relative.parts
+    directories = {part.lower() for part in parts[:-1]}
+    if directories & SKIP_DIRS:
+        return "excluded_directory"
+    if directories & JAVA_SKIP_DIRS:
+        return "java_excluded_directory"
+    if path.suffix.lower() == ".java" and any(
+        fnmatch.fnmatchcase(path.name, glob) for glob in JAVA_SKIP_GLOBS
+    ):
+        return "generated_or_test_filename"
+    return None
+
+
+def _iter_java_files(
+    project_root: Path, paths: Iterable[str]
+) -> tuple[list[Path], list[dict[str, str]], list[dict[str, str]]]:
+    eligible: list[Path] = []
+    excluded: list[dict[str, str]] = []
+    unsupported: list[dict[str, str]] = []
+    seen: set[Path] = set()
+    seen_evidence: set[tuple[str, str]] = set()
+
+    def note(rows: list[dict[str, str]], path: Path, reason: str) -> None:
+        relative = _relpath(path, project_root)
+        key = (relative, reason)
+        if key not in seen_evidence:
+            seen_evidence.add(key)
+            rows.append({"file": relative, "reason": reason})
+
+    for raw in paths:
+        raw_path = Path(raw)
+        candidates: Iterable[Path]
+        if any(character in raw for character in "*?[]"):
+            candidates = project_root.glob(raw)
+        else:
+            candidate = raw_path if raw_path.is_absolute() else project_root / raw_path
+            candidates = [candidate]
+        for candidate in candidates:
+            if candidate.is_file() or candidate.is_symlink():
+                possible = [candidate] if candidate.suffix.lower() in {".java", ".kt", ".kts"} else []
+            elif candidate.is_dir():
+                possible = [
+                    path for path in candidate.rglob("*")
+                    if path.suffix.lower() in {".java", ".kt", ".kts"}
+                    and (path.is_file() or path.is_symlink())
+                ]
+            else:
+                possible = []
+            for path in possible:
+                reason = _java_exclusion_reason(path, project_root)
+                if reason is not None:
+                    note(excluded, path, reason)
+                    continue
+                if path.suffix.lower() in {".kt", ".kts"}:
+                    note(unsupported, path, "kotlin_source_present")
+                    continue
+                resolved = path.resolve()
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
+                eligible.append(resolved)
+    def order(row: dict[str, str]) -> tuple[str, str]:
+        return row["file"], row["reason"]
+
+    return sorted(eligible), sorted(excluded, key=order), sorted(unsupported, key=order)
 
 
 def _dedupe(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -464,86 +1096,159 @@ def _positive_int(raw: str) -> int:
     return value
 
 
-def _typed_python_tree(adapter: Any, text: str, path: Path) -> ast.Module:
-    """Parse once through the WP4 compatibility seam with typed failures."""
-    parse = getattr(adapter, "parse", None)
-    if not callable(parse):
-        raise AnalysisFailure(
-            "unsupported_capability",
-            adapter=adapter.name,
-            path=path.as_posix(),
-            capability=CAP_PYTHON_AST,
-            detail="adapter advertises no Python compatibility-tree accessor",
-        )
-    try:
-        tree = parse(text)
-    except AnalysisFailure:
-        raise
-    except Exception as exc:
-        raise AnalysisFailure(
-            "corrupt_output",
-            adapter=adapter.name,
-            path=path.as_posix(),
-            capability=CAP_PYTHON_AST,
-            detail=f"invalid compatibility-tree output: {exc}",
-        ) from exc
-    if tree is None:
-        raise AnalysisFailure(
-            "parse_error",
-            adapter=adapter.name,
-            path=path.as_posix(),
-            capability=CAP_PYTHON_AST,
-            detail="Python syntax error",
-        )
-    if not isinstance(tree, ast.Module):
-        raise AnalysisFailure(
-            "corrupt_output",
-            adapter=adapter.name,
-            path=path.as_posix(),
-            capability=CAP_PYTHON_AST,
-            detail=f"expected ast.Module, got {type(tree).__name__}",
-        )
-    return tree
-
-
-def detect(
+def detect_scan(
     project_root: Path,
     paths: list[str],
     *,
     include_tests: bool = False,
-    max_findings: int | None = 80,
-    roots: Iterable[str | Path] | None = None,
-    exclusions: Iterable[str | Path] = (),
-    case_sensitive: bool = True,
-) -> list[dict[str, Any]]:
+    max_findings: int = 80,
+    languages: set[str] | None = None,
+) -> ScanResult:
     project_root = project_root.resolve()
     records: list[dict[str, Any]] = []
-    for path in select_python_files(
-        project_root,
-        paths,
-        include_tests,
-        roots=roots,
-        exclusions=exclusions,
-        case_sensitive=case_sensitive,
-    ):
-        # The nested-control-flow visitor requires Python's compatibility tree.
-        # Parse exactly once and reuse that tree; the typed wrapper converts the
-        # compatibility seam's optional/exceptional outcomes into loud failures.
-        adapter = get_adapter(path, capability=CAP_PYTHON_AST)
-        try:
-            text = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError) as exc:
-            raise AnalysisFailure(
-                "tool_failure",
-                adapter=adapter.name,
-                path=path.as_posix(),
-                capability=CAP_PYTHON_AST,
-                detail=f"could not read source: {exc}",
-            ) from exc
-        tree = _typed_python_tree(adapter, text, path)
-        visitor = ComplexityVisitor(path, project_root)
-        visitor.visit(tree)
-        records.extend(visitor.records)
+    wanted = languages or {"go", "java", "javascript", "python", "typescript"}
+    status = "complete"
+    analysis: dict[str, Any] = {}
+    if "python" in wanted:
+        for path in _iter_python_files(project_root, paths, include_tests):
+            try:
+                text = path.read_text(encoding="utf-8")
+                tree = ast.parse(text)
+            except (OSError, UnicodeDecodeError, SyntaxError):
+                continue
+            visitor = ComplexityVisitor(path, project_root)
+            visitor.visit(tree)
+            records.extend(visitor.records)
+    for language in ("javascript", "typescript"):
+        if language not in wanted:
+            continue
+        for path in _iter_script_files(project_root, paths, language):
+            try:
+                records.extend(_script_high_branch_records(path, project_root, language))
+            except TypeScriptExtractionError as exc:
+                raise TypeScriptExtractionError(f"{path}: {exc}") from exc
+
+    if "go" in wanted:
+        go_files, exclusions = _iter_go_files(project_root, paths)
+        analyzed = 0
+        ambiguous: list[dict[str, str]] = []
+        actual_version: str | None = None
+        for path in go_files:
+            try:
+                payload = _go_complexity(path, project_root)
+            except GoExtractionError as exc:
+                raise GoExtractionError(f"{path}: {exc}") from exc
+            actual_version = str(payload["go_version"])
+            skipped = payload["skipped"]
+            if payload["status"] == "partial":
+                status = "partial"
+                for row in skipped:
+                    if not isinstance(row, dict) or row.get("reason") != "build-constraint-ambiguous":
+                        raise GoExtractionError("bundled Go parser emitted invalid partial evidence")
+                    ambiguous.append({"file": str(row.get("file", "")), "reason": "build-constraint-ambiguous"})
+                continue
+            if skipped:
+                for row in skipped:
+                    if not isinstance(row, dict) or not isinstance(row.get("file"), str) or not isinstance(row.get("reason"), str):
+                        raise GoExtractionError("bundled Go parser emitted invalid skipped evidence")
+                    exclusions.append({"file": row["file"], "reason": row["reason"]})
+                continue
+            analyzed += 1
+            records.extend(_go_high_branch_records(path, project_root, payload))
+        minimum = ".".join(str(part) for part in GO_MIN_VERSION)
+        analysis["go"] = {
+            "status": status if go_files else "complete",
+            "analyzer": "go-parser-go-ast",
+            "minimum_go_version": minimum,
+            "actual_go_version": actual_version,
+            "files": {
+                "eligible": len(go_files),
+                "analyzed": analyzed,
+                "excluded": len(exclusions),
+                "ambiguous": len(ambiguous),
+            },
+            "exclusions": sorted(exclusions, key=lambda row: (row["file"], row["reason"])),
+            "ambiguous": sorted(ambiguous, key=lambda row: (row["file"], row["reason"])),
+            "limitations": (
+                ["Build-constrained Go source was not evaluated; findings cover only analyzed files."]
+                if ambiguous else []
+            ),
+        }
+
+    if "java" in wanted:
+        java_files, exclusions, unsupported = _iter_java_files(project_root, paths)
+        analyzed = 0
+        actual_java_version: str | None = None
+        actual_javac_version: str | None = None
+        if unsupported:
+            status = "partial"
+        if java_files:
+            try:
+                payload, actual_java_version, actual_javac_version = _java_complexity(
+                    java_files, project_root
+                )
+            except JavaExtractionError as exc:
+                raise JavaExtractionError(f"Java batch: {exc}") from exc
+            expected = {_relpath(path, project_root): path for path in java_files}
+            observed: set[str] = set()
+            for file_fact in payload["files"]:
+                if not isinstance(file_fact, dict):
+                    raise JavaExtractionError("bundled Java parser emitted invalid file evidence")
+                file = file_fact.get("file")
+                file_status = file_fact.get("status")
+                facts = file_fact.get("records")
+                error = file_fact.get("error")
+                if (
+                    not isinstance(file, str)
+                    or file not in expected
+                    or file in observed
+                    or file_status not in {"complete", "generated", "syntax-error", "invalid-source"}
+                    or not isinstance(facts, list)
+                    or not isinstance(error, str)
+                ):
+                    raise JavaExtractionError("bundled Java parser emitted invalid file evidence")
+                observed.add(file)
+                if file_status in {"syntax-error", "invalid-source"}:
+                    raise JavaExtractionError(f"{file}: {error or file_status}")
+                if file_status == "generated":
+                    exclusions.append({"file": file, "reason": "generated_source_marker"})
+                    continue
+                analyzed += 1
+                records.extend(
+                    _java_high_branch_records(expected[file], project_root, facts)
+                )
+            if observed != set(expected):
+                raise JavaExtractionError("bundled Java parser omitted eligible source evidence")
+        exclusion_only = analyzed == 0 and bool(exclusions)
+        if exclusion_only:
+            status = "partial"
+        minimum = ".".join(str(part) for part in JAVA_MIN_VERSION)
+        java_status = "partial" if unsupported or exclusion_only else "complete"
+        limitations: list[str] = []
+        if unsupported:
+            limitations.append(
+                "Kotlin source was inventoried but not analyzed; this is Java support, not JVM support."
+            )
+        if exclusion_only:
+            limitations.append(
+                "The target contained no eligible Java source; excluded files were not analyzed."
+            )
+        analysis["java"] = {
+            "status": java_status,
+            "analyzer": "jdk-compiler-tree-api",
+            "minimum_jdk_version": minimum,
+            "actual_java_version": actual_java_version,
+            "actual_javac_version": actual_javac_version,
+            "files": {
+                "eligible": len(java_files),
+                "analyzed": analyzed,
+                "excluded": len(exclusions),
+                "unsupported": len(unsupported),
+            },
+            "exclusions": sorted(exclusions, key=lambda row: (row["file"], row["reason"])),
+            "unsupported": unsupported,
+            "limitations": limitations,
+        }
 
     records = [normalize_record(record, project_root) for record in _dedupe(records)]
     confidence_rank = {"high": 0, "medium": 1, "low": 2}
@@ -555,7 +1260,25 @@ def detect(
             int(r.get("lineno") or 1),
         )
     )
-    return records if max_findings is None else records[:max_findings]
+    return ScanResult(records=records[:max_findings], status=status, analysis=analysis or None)
+
+
+def detect(
+    project_root: Path,
+    paths: list[str],
+    *,
+    include_tests: bool = False,
+    max_findings: int = 80,
+    languages: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Compatibility wrapper for callers that consume JSONL records only."""
+    return detect_scan(
+        project_root,
+        paths,
+        include_tests=include_tests,
+        max_findings=max_findings,
+        languages=languages,
+    ).records
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -565,19 +1288,31 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--include-tests", action="store_true")
     parser.add_argument("--max-findings", type=_positive_int, default=80)
+    parser.add_argument(
+        "--language",
+        action="append",
+        choices=("go", "java", "javascript", "python", "typescript"),
+        default=[],
+        help="Restrict scanning to one or more supported languages.",
+    )
     args = parser.parse_args(argv)
 
-    records = detect(
-        args.project_root,
-        args.paths,
-        include_tests=args.include_tests,
-        max_findings=args.max_findings,
-    )
+    try:
+        scan = detect_scan(
+            args.project_root,
+            args.paths,
+            include_tests=args.include_tests,
+            max_findings=args.max_findings,
+            languages=set(args.language) or None,
+        )
+    except (TypeScriptExtractionError, GoExtractionError, JavaExtractionError) as exc:
+        print(f"[find-complexity-hotspots] ERROR: {exc}", file=sys.stderr)
+        return 2
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8") as fh:
-        for record in records:
+        for record in scan.records:
             fh.write(json.dumps(record, sort_keys=True) + "\n")
-    print(f"wrote {len(records)} findings to {args.output}")
+    print(f"wrote {len(scan.records)} findings to {args.output} (status={scan.status})")
     return 0
 
 

@@ -1,0 +1,68 @@
+{
+  "batch": "P3E Go G1 expansion",
+  "revisions": ["e4fa2f4", "dd37954", "5298be2", "bd9fe15"],
+  "skills": [
+    "adapt-project",
+    "audit-decisions",
+    "explain-code",
+    "find-comment-drift",
+    "find-concept-divergence",
+    "find-folder-topology-drift",
+    "find-omnibus",
+    "find-standard-gaps"
+  ],
+  "outcome": {
+    "supported_after_g1": 11,
+    "language_level_total": 22,
+    "pending_after_g1": 11,
+    "final_boundaries": [
+      "adapter report",
+      "decision drift report",
+      "annotated explanation",
+      "comment drift report",
+      "concept divergence report",
+      "folder topology report",
+      "omnibus findings",
+      "standard coverage report"
+    ]
+  },
+  "transferred": [
+    "Inventory first-party source before applying narrower eligibility rules.",
+    "Keep parser and report semantics family-local while sharing the complete/partial/unsupported/failed vocabulary.",
+    "Prove copied on-demand closures, native go test, final artifacts, and source immutability per skill.",
+    "Treat generated, testdata, fixture, vendor, dependency, and build-constrained source as explicit policy cases.",
+    "Batch syntax files through one Go compiler-driver launch when a repository scan needs per-file AST facts."
+  ],
+  "did_not_transfer": [
+    "TypeScript lexical walkers and Compiler API loaders.",
+    "One universal AST or cross-skill Go fact schema.",
+    "One common failure policy: audit is atomic, standard coverage may be partial, and omnibus refuses ambiguous build selection.",
+    "One common output lifecycle: explanation artifacts are target-keyed while most detectors write isolated reports."
+  ],
+  "review_findings_that_became_contracts": [
+    "Implicit GOOS/GOARCH filename constraints are not comment-only build tags.",
+    "Only the final filename suffix constrains a Go file; names such as clean_linux_impl.go are ordinary.",
+    "Generated classification precedes build-constraint classification.",
+    "The canonical generated marker may follow long leading line or block comments before package.",
+    "Narrow targets and symlinks cannot bypass project-root-relative exclusions.",
+    "Failed reruns cannot leave a prior complete explanation, annotations, sidecars, or latest pointer visible.",
+    "Artifact cleanup must reject source-file, source-directory, and symlinked report-directory overlap.",
+    "Generic and parenthesized direct Go calls remain visible to syntax standards."
+  ],
+  "tooling_decision": {
+    "current": "Keep analyzers and launchers in each selected skill closure.",
+    "candidate": "A generated/tested Go source-policy template for tool preflight, generated/build classification, and project-relative exclusions.",
+    "promotion_trigger": "Adopt only if it reduces total code while the installer can carry an explicit self-contained closure for every consumer; do not introduce a hidden repository import.",
+    "not_now": [
+      "universal parser platform",
+      "shared analysis result schema",
+      "go/packages or go/types before semantic-project skills demonstrate the need"
+    ]
+  },
+  "next_cohort_guidance": [
+    "Complete find-duplication as a separate detector decision before semantic work.",
+    "Pilot no more than three semantic/project skills before considering shared go list, go/packages, or go/types facts.",
+    "Use one locked module with generated, testdata, vendor, build-tag, implicit filename, malformed, and missing-tool cases from the start.",
+    "Measure repeated Go process launches before extracting or batching another runtime helper."
+  ]
+}

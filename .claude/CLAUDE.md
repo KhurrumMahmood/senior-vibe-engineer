@@ -46,7 +46,8 @@ incident behind it (`/repair-skill`).
 Most files are framework-agnostic. Some lint rules, scripts, and helper
 modules grew up around Django/Python — the design has always anticipated
 cross-language adapters (TypeScript, Rust) and cross-framework reuse;
-see `.claude/skills/_common/portability-roadmap.md` for the porting
+see `docs/language-support-development.md` before expanding a language and
+`.claude/skills/_common/portability-roadmap.md` for the longer-term porting
 contract.
 
 ## Python Environment
@@ -300,6 +301,8 @@ read the file.
 | `linting.md` | Adding a lint rule, debugging hook failures, or expanding the ruff rule set. |
 | `testing.md` | Picking the right test module; full coverage map. |
 | `folder-organization.md` | Decomposing a flat folder; placing tests for a new package; proposing a directory package; deciding whether a singleton stays flat; or evaluating whether a small folder should collapse back to siblings. Bidirectional convention — folders earn packaging at ≥3 siblings and lose it below ≥3. |
+| `language-support-development.md` | Adding or expanding language support; selecting native parser/compiler/analyzer tooling; changing shared source inventory, provider, artifact-lifecycle, conformance, or batching infrastructure. |
+| `installation-and-on-demand-library.md` | Changing installation, the router-only/on-demand-library topology, host `AGENTS.md`/`CLAUDE.md`/`GEMINI.md` integration, delegated task packets, or model/effort role mapping. |
 | `sub-agents.md` | Cross-tool agent bridging (Codex ↔ Claude CLI, sandbox, model-tier picks). |
 | `cross-tool-agent-governance.md` | Editing `CLAUDE.md` / `AGENTS.md` / `.augment/`, or hardening a rule into an enforceable guardrail. |
 | `ai-docs/decisions/0006-folder-organization.md` | The bidirectional folder-packaging convention referenced from `folder-organization.md`. |

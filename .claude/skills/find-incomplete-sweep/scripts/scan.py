@@ -33,16 +33,27 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from functools import lru_cache
 
-# KIT_ROOT anchors kit-relative imports ONLY (_common). Relative --paths,
-# blame fallbacks, and report labels are target-project surfaces and anchor on
-# --project-root instead — the kit may live in a different repo than the
-# target project (de-baking convention, ADR 0024).
-KIT_ROOT = pathlib.Path(__file__).resolve().parents[4]
-_COMMON = str(KIT_ROOT / ".claude" / "skills" / "_common")
-if _COMMON not in sys.path:
-    sys.path.insert(0, _COMMON)
+def resolve_project_root(explicit: pathlib.Path | None) -> pathlib.Path:
+    """Resolve target ownership without importing toolkit-level runtime code.
 
-from diff_resolution import resolve_project_root  # noqa: E402
+    The selected skill must run after a stock install, where sibling `_common`
+    is intentionally absent.  Keep this small root rule local to the family.
+    """
+    if explicit is not None:
+        return explicit.resolve()
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return pathlib.Path(result.stdout.strip()).resolve()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return pathlib.Path.cwd().resolve()
 
 # Bare single-segment callee names too generic to cluster meaningfully.
 GENERIC_SINGLE = {

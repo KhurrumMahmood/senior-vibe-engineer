@@ -31,55 +31,156 @@ not_for: |
   execution (use /fix-workflow or /refactor-subsystem). One-off
   pattern fixes the team has decided NOT to enforce broadly (just
   fix in place).
-language: python
+language: any
 framework: any
+install_with: [find-implicit-state]
 ---
 
 # /prevent-regression
 
-You are the **orchestrator** for turning a one-off cleanup into a
-permanent guardrail. A cluster that `/fix-workflow` has just closed is
-evidence that one shape of bug can recur; this skill emits a
-diff-scoped lint rule (plus fixture + CLAUDE.md canonical-pattern
-entry) so the same shape cannot land again.
-
-Invocation does **not** authorize rolling the rule out. The skill
-produces a **proposal** under `reports/prevent-regression/<id>/` and
-stops. The human reviews and executes.
-
-Guard artifacts are **staged, not installed**: author them under the
-proposal directory at their repo-relative destination paths
-(`reports/prevent-regression/<id>/scripts/lint/<rule>.py`,
-`reports/prevent-regression/<id>/tests/lint/<rule>_bad.<ext>`, …), and
-emit wiring (pre-commit hook, CI step, `run.py` RuleSpec, CLAUDE.md
-bullet) as ready-to-apply diff blocks inside `proposal.md`. The Phase
-Pre/Post conditions below name destination paths — read each as "staged
-under the proposal directory at that relative path" until the human
-installs.
+You are the **orchestrator** for turning a closed cleanup into a permanent
+guardrail. Invocation only stages a proposal below
+`reports/prevent-regression/<id>/`; it never authorizes rollout. Stage rule,
+fixture, and ready-to-apply wiring at their repo-relative destination paths,
+then let the human install or discard them.
 
 ## How success is judged
 
-- Guard artifact + verification recipe **emitted, never installed
-  unilaterally** — no guard artifact or wiring edit lands in the
-  working tree.
-- The skill's own verifier passes and its output is pasted, not
-  asserted: `verify_rule.py` reports BAD_RC=1, GOOD_RC=0 (Phase 3).
-- Historical fire: the rule fires on each pre-fix site via
-  `git show <anchor>^:<file>` and is clean on current HEAD (Phase 6).
-- The bad fixture covers every anti-pattern variant and the good
-  fixture proves the rule stays quiet on legitimate forms (Phase 3) —
-  the precision/recall gates a conformance harness re-runs by
-  side-effect.
-- Test-only guards (Phase 3b): the focused regression module runs
-  green, with its run output in the proposal.
+- Emit, never install, the artifact and verification recipe.
+- Paste the real verifier result: BAD_RC=1 and GOOD_RC=0 for lint guards, or
+  focused test output for behavioral guards.
+- Prove the historical fire and current clean result; fixtures cover every
+  matched anti-pattern plus legitimate forms.
+- Use `_common/skill-conventions.md`, `agents/rule-designer.md`, and the
+  bundled generation/verifier helpers for the shared report shape.
 
-Procedural detail lives beside this file:
+## Closed-state guard
 
-- `_common/skill-conventions.md` — shared conventions (symbolic names,
-  report shapes). `knowledge/` is a host-overlay slot for custom-lint
-  patterns the host project adopts; it ships empty in this ecosystem.
-- `agents/rule-designer.md` — scout brief for pattern-shape analysis.
-- `scripts/generate_rule.py` / `scripts/verify_rule.py` — helpers.
+For the reviewed first-party `status` / `phase` / `state` path, use the
+bundled guard directly after installation:
+
+```bash
+python3 scripts/stringly_status_guard.py <file-or-directory>
+```
+
+It blocks a bare string Django field, comparison, or assignment and accepts
+only a reasoned `# noqa: stringly-status: <reason>` vendor boundary. This is a
+family-local reference guard; it does not generate or install unrelated
+general-purpose rules.
+
+### TypeScript closed-state guard
+
+Stage—not install—the family-local Compiler API guard for a reviewed closed
+TypeScript field. It covers direct/reversed comparisons, one-hop const aliases,
+plain/`??=`/chained assignments, and transparent parentheses. A pinned host
+TypeScript package plus tsconfig are required; unsupported general dataflow,
+ORM behavior, and root lint wiring remain out of scope.
+
+    ID="typescript-state"
+    OUT="reports/prevent-regression/$ID"
+    node .claude/skills/prevent-regression/scripts/generate_typescript_state_guard.mjs \
+      --id "$ID" \
+      --project-root "$(pwd)" \
+      --tsconfig "$(pwd)/tsconfig.json" \
+      --output-root "$OUT"
+
+    node .claude/skills/prevent-regression/scripts/verify_typescript_state_guard.mjs \
+      --rule "$OUT/scripts/lint/no_stringly_state.mjs" \
+      --bad "$OUT/tests/lint/no_stringly_state_bad.ts" \
+      --bad-tsx "$OUT/tests/lint/no_stringly_state_bad.tsx" \
+      --good "$OUT/tests/lint/no_stringly_state_good.ts" \
+      --good-tsx "$OUT/tests/lint/no_stringly_state_good.tsx"
+
+The report stages guard, TS/TSX fixture pairs, and `host-wiring.diff`; paste
+BAD_RC=1/GOOD_RC=0. A reasoned noqa only suppresses a Compiler-resolved vendor
+receiver, never a filename or forged first-party comment. The serial integrator
+owns staged wiring.
+
+### Checked-JavaScript closed-state guard
+
+Retain complete checked-JavaScript detector evidence and manifest first. The
+generator accepts only at least one proven first-party operation from an
+`allowJs` + `checkJs` host Compiler API run; partial/unsupported evidence exits
+2 rather than fabricating findings.
+
+    ID="javascript-state"
+    OUT="reports/prevent-regression/$ID"
+    node .claude/skills/prevent-regression/scripts/generate_javascript_state_guard.mjs \
+      --id "$ID" \
+      --project-root "$(pwd)" \
+      --config "$(pwd)/jsconfig.json" \
+      --findings reports/implicit-state/findings.jsonl \
+      --manifest reports/implicit-state/manifest.json \
+      --output-root "$OUT"
+
+    node .claude/skills/prevent-regression/scripts/verify_javascript_state_guard.mjs \
+      --rule "$OUT/scripts/lint/no_stringly_state_javascript.mjs" \
+      --bad "$OUT/tests/lint/no_stringly_state_bad.js" \
+      --bad "$OUT/tests/lint/no_stringly_state_bad.jsx" \
+      --bad "$OUT/tests/lint/no_stringly_state_bad.mjs" \
+      --bad "$OUT/tests/lint/no_stringly_state_bad.cjs" \
+      --good "$OUT/tests/lint/no_stringly_state_good.js" \
+      --good "$OUT/tests/lint/no_stringly_state_good.jsx" \
+      --good "$OUT/tests/lint/no_stringly_state_good.mjs" \
+      --good "$OUT/tests/lint/no_stringly_state_good.cjs"
+
+The proposal stages four fixture pairs and wiring; paste BAD_RC=1/GOOD_RC=0.
+Coverage is direct/reversed comparison, assignment, and one-hop const aliases
+on JSDoc-closed fields; vendor noqa requires Compiler API evidence. The serial
+integrator owns installation.
+
+### Go closed-state guard
+
+After a human accepts a Go proposal, read and follow `knowledge/go-state.md`.
+Load that file only for Go work. Never weaken an unavailable semantic closure
+to a field-name regex.
+
+### Java 17 exact-authority guard
+
+After a human accepts a Java enum proposal, stage—not install—a guard from its
+`targets.json`. It copies the accepted qualified owner, field, source
+fingerprint, and family-local JDK compiler helper. The staged rule checks only
+that compiler-resolved direct `String` field; it does not broadly match every
+field named `state`, `status`, or `phase`. It catches bare assignments,
+`String.equals`/`Objects.equals`, and unsafe `==`/`!=` while that exact field
+is still `String`.
+
+<!-- installed-command:java-state-guard:start -->
+```bash
+OUT="${OUT:-reports/prevent-regression/java-job-status}"
+TARGETS="${TARGETS:-reports/extract-enum/java-job-status/targets.json}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/prevent-regression" \
+  ".agents/skills/prevent-regression" \
+  ".claude/skills/prevent-regression"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "prevent-regression is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+python3 "${SKILL_ROOT}/scripts/generate_java_state_guard.py" \
+  --targets "$TARGETS" \
+  --project-root "$(pwd)" --output-root "$OUT"
+RULE="$(find "$OUT/scripts/lint" -maxdepth 1 -name 'no_stringly_state.py' -print -quit)"
+python3 "${SKILL_ROOT}/scripts/verify_java_state_guard.py" \
+  --rule "$RULE" --authority "$OUT/authority.json" \
+  --bad "$OUT/tests/lint/bad/Job.java" --good "$OUT/tests/lint/good/Job.java" \
+  --project-root "$(pwd)"
+```
+<!-- installed-command:java-state-guard:end -->
+
+Install `find-implicit-state` alongside this skill so the generator can copy
+its helper; a missing helper or JDK 17 exits 2 rather than falling back to a
+name regex. The verifier pastes BAD_RC=1, GOOD_RC=0 and compiles both fixtures
+with `javac --release 17 -proc:none`. This branch modifies only the staged
+proposal directory, never host guard files; a human integrator owns any later
+installation, native check, and rollback.
 
 ## Argument parsing
 
@@ -133,87 +234,25 @@ corresponding product-topology report, not from a raw grep:
 
 ## Core beliefs
 
-1. **Ruff first; custom rule only when ruff misses.** If the pattern
-   maps to a ruff code (e.g. `BLE001` for broad-except), prefer
-   enabling it in `pyproject.toml` over a new AST script. A custom
-   script should fire where ruff is silent or too broad.
-2. **Diff-scoped enforcement.** Pre-commit lints staged files only;
-   CI lints `origin/main...HEAD`. Existing violations in untouched
-   files never block unrelated work. Anything else is a political
-   negotiation we don't want.
-3. **Allow-list must require a reason.** Every custom rule supports
-   `<comment> noqa: <rule>: <non-empty reason>`. Allow-lists without
-   reasons degrade into permanent suppressions.
-4. **Fixture pair is load-bearing.** The rule is only trustworthy if
-   a `tests/lint/<rule>_bad.<ext>` fires on every anti-pattern variant
-   AND a `tests/lint/<rule>_good.<ext>` fires on zero.
-   `verify_rule.py` asserts both on every run.
-5. **One commit per guard.** The proposal bundles the guard artifacts
-   that enforce one invariant. For lint guards, that means rule script,
-   fixtures, verification report, pre-commit + CI wiring, and the
-   CLAUDE.md Canonical Patterns entry. For test-only guards, that means
-   the focused regression test(s), verification recipe, and any
-   canonical-pattern text. Splitting one guard across commits makes
-   bisect useless when someone tries to revert.
-6. **Topology guards wait for a convention.** Do not guard against
-   route sprawl or boot globals before the workflow has an accepted
-   registry/include/payload shape; otherwise the guard blocks migration
-   work instead of protecting it.
-7. **Topology guards need positive and negative coverage.** For
-   registry, boot-payload, or endpoint-sprawl guards, pair the negative
-   static lint with a positive contract test that proves the canonical
-   registry/payload still exposes the expected keys or URLs.
-8. **Match the language surface.** Python rules can be AST-based. JS,
-   template, and docs rules may be lightweight lexical checks when that
-   is the narrowest reliable shape. Keep the same CLI contract and
-   reason-required allow-list, but use the file suffix and comment style
-   of the guarded language.
-9. **Prefer canonical derivation over duplicate guard tables.** When a
-   guard protects a registry-owned contract, derive expected keys,
-   suffixes, or route names from the canonical registry/URL metadata
-   where practical. A regression test that copies the whole registry is
-   itself a small maintenance smell.
-10. **Lint guards and test guards are peers.** Use lint when the
-   invariant is a path-scoped lexical/AST shape. Use tests when the
-   invariant is behavioral or contract-shaped: import shims stay stable,
-   an old flat file must not return, per-endpoint anonymous/user/staff
-   and CSRF expectations hold, credential literals stay absent from
-   hidden diagnostics/logs/fake defaults, fake production fallbacks stay
-   gone, or dispatch failure cleans up domain state.
-11. **Detector bands are the third peer.** A band in `find-folder-
-   topology-drift` (or a sibling MAP/SUSPECT scanner) belongs
-   alongside lints and tests when the rule needs *neighbor context*
-   to fire — filename-vs-parent-folder mirroring, sibling-cluster
-   thresholds, duplicated subtrees, route-vs-page mirroring. Per-file
-   violations stay in lint (commit-time, narrow); cross-file or
-   path-shape violations land as a band (audit-time, whole-tree).
-   Some invariants earn both: the lint is the primary guardrail; the
-   band catches what slips past hooks (direct-to-main pushes, files
-   pre-dating the rule, merge commits that bypass the diff scope).
-   Default: lint when you can; add a band only when the rule is
-   genuinely topological.
+1. **Ruff first.** Use a custom rule only where Ruff is silent or too broad.
+2. **Diff-scope and reasoned escapes.** Hooks inspect changed files; custom
+   noqa markers require a non-empty reason.
+3. **Fixture truth.** Every matcher branch fires in bad fixtures and stays
+   quiet in good fixtures; the verifier is the proof.
+4. **One invariant, one commit.** Bundle rule/test, fixtures, verifier, and
+   staged wiring so a revert and bisect remain meaningful.
+5. **Choose the right peer.** Use lint for local shape, tests for behavioral
+   contracts, and audit bands only when neighbor/path context is essential.
+6. **Protect an accepted convention.** Derive registry facts where possible;
+   do not guard topology before its canonical shape exists.
 
 ## New-Feature Guardrail Prompts
 
-When a new feature establishes a reusable convention, ask whether a
-lightweight guard should land with it:
-
-- route or endpoint keys: reverse-backed contract tests may be enough;
-  add a lint only if hardcoded consumers are likely to recur.
-- template-to-JS boot data: prefer one payload/accessor plus a static
-  test that retired globals or raw endpoint strings stay gone.
-- status/phase/state fields: prefer `TextChoices` at creation time so
-  `stringly-status` never needs a waiver.
-- prototype graduation: pair the feature with a dormant sweep or an
-  explicit quarantine reason for leftover static/template entry points.
-- admin/settings cleanup: prefer endpoint-contract and
-  credential-literal tests over a bespoke lint unless the same lexical
-  leak appears in multiple files. Staff APIs may legitimately return
-  configured sensitive values for editing; the guard is that they are
-  never public, unauthenticated, logged, fake-defaulted, or exposed via
-  hidden command diagnostics.
-- async dispatch conversion: add a broker-failure cleanup test whenever
-  `safe_dispatch` replaces inline/thread execution.
+When a feature establishes a reusable convention, ask whether a lightweight
+guard belongs with it: reverse-backed route tests before endpoint lints; one
+boot payload plus a retired-global check; typed state authority from creation;
+a dormant sweep or quarantine for prototype remnants; endpoint/credential
+tests before bespoke lints; and broker-failure cleanup tests for safe dispatch.
 
 ## Phase 1 — Pattern discovery
 
@@ -293,26 +332,11 @@ positives). If either is wrong, iterate on the rule or fixtures.
 
 ### Phase 3b — Test-only guard
 
-Use this instead of Phases 2–3 when the invariant is best expressed as
-a framework or unit test rather than a lint. Examples:
-
-- old module path and parent-package import shims stay importable,
-- retired flat implementation file does not return after a package split,
-- settings/admin APIs keep their expected anonymous/user/staff response
-  contract (for example `401`/`403` on JSON APIs) and staff mutations
-  require CSRF,
-- known credential literals or raw command snippets are absent from
-  templates and hidden diagnostics,
-- production fake fallback data is gone while tests inject explicit
-  fixtures,
-- `safe_dispatch` broker failure marks the owning job failed or
-  cleanup-complete.
-
-Write the smallest focused test module that protects the invariant,
-derive expected routes/keys from URLconf or canonical registries where
-practical, and run that module plus the baseline suite. The proposal
-still needs a pattern section, verification results, and follow-on
-findings; it simply has no lint script or fixture pair.
+Use this when a focused test expresses the invariant better than a lint:
+import-path stability, retired files, endpoint/auth/CSRF contracts, credential
+absence, removed fake fallbacks, or dispatch cleanup. Write the smallest test,
+derive canonical routes/keys where practical, run it plus baseline, and retain
+the proposal's pattern, verification, and follow-on sections.
 
 ## Phase 4 — Wire into pre-commit + CI
 

@@ -1,0 +1,261 @@
+{
+  "batch": "post-B4 TypeScript complexity candidate",
+  "revision": "886ded0",
+  "family": [
+    "find-complexity-hotspots"
+  ],
+  "invariant": {
+    "portable_principle": "Report advisory per-function structural complexity only when reliable syntax establishes a function body, span, and branch score; never infer runtime cost or safe refactoring from the score.",
+    "python_or_framework_mechanism": "Preserved stdlib AST visitor for six Python bands: django-query-in-loop, nested-loop, membership-scan-in-loop, sort-in-loop, repeated-scan-in-loop, and high-branch-function.",
+    "typescript_mechanism": "A family-local Node launcher resolves the host's TypeScript Compiler API, uses createSourceFile, and scores function declarations, methods, and block-bodied arrows from direct control-flow syntax.",
+    "explicit_non_goals": [
+      "ORM, React, Node, or framework semantics",
+      "Receiver, type, API, module-resolution, or call-graph claims",
+      "Function expressions and expression-bodied arrows",
+      "Declarations and overload signatures without a body",
+      "Generated, vendor, minified/bundle, declaration, test/spec, or fixture sources",
+      "Performance conclusions, automatic changes, or guards",
+      "A shared TypeScript parser or fact platform"
+    ]
+  },
+  "reference_repairs": [
+    "Removed this selected skill's dependency on repository scripts/_lib, sibling _common, and the shared language-adapter registry by bundling only the exact historical finding/report compatibility helpers it needs.",
+    "Preserved the Python detector's six bands and final report shape while making the selected runtime self-contained.",
+    "Added language/analyzer provenance to TypeScript records and their final Markdown evidence without changing Python records.",
+    "Added explicit TypeScript preflight failures for missing Node/package, parser output errors, and source syntax errors.",
+    "Repaired target-relative exclusion handling so direct directory or file targets remain governed by project-relative dependency/build/generated/fixture/spec/test/vendor/report exclusions."
+  ],
+  "language_model": {
+    "syntax": [
+      "TypeScript and TSX function declarations with a body",
+      "Method declarations with a body",
+      "Identifier-named block-bodied arrows, including parenthesized/as/assertion/satisfies initializers",
+      "Exact source start/end lines and LOC",
+      "if, loop forms, try/catch, with, switch, &&/||, and conditional-expression score terms",
+      "TypeScript parse diagnostics"
+    ],
+    "type_system": [
+      "No Program or TypeChecker facts are used; annotations are syntax only."
+    ],
+    "module_resolution": [
+      "No import, alias, barrel, re-export, or call resolution occurs.",
+      "Runtime resolves the host-pinned typescript package from project-root package.json."
+    ],
+    "runtime": [
+      "Python 3.11+ stdlib detector/report runner.",
+      "Node and host project-local TypeScript; fixture package-lock pins 5.9.3."
+    ],
+    "framework": [
+      "No framework assumption."
+    ]
+  },
+  "tooling": {
+    "selected": "Family-local Node Compiler API createSourceFile launcher, called by a self-contained Python detector/report pipeline.",
+    "rejected_alternatives": {
+      "b4_top_level_symbol_extractor": "Its top-level declaration contract does not establish per-function bodies or direct control-flow and would be a false reuse.",
+      "b2t_state_detector": "Its Program/TypeChecker receiver-state contract is semantic, does not fit advisory body complexity, and would couple selected installations.",
+      "ts_morph": "Adds an unneeded dependency for syntax-only scores.",
+      "tree_sitter_or_ast_grep": "Adds installation surface without improving the accepted Compiler API outcome.",
+      "shared_fact_platform": "B4 symbol spans and this body traversal are different contracts; two Compiler API users are not evidence for a shared platform."
+    },
+    "exact_b4_reuse_decision": {
+      "reused": [
+        "Host package.json createRequire TypeScript resolution",
+        "Compiler API line/span calculation",
+        "Parenthesized/as/type-assertion/satisfies initializer unwrapping"
+      ],
+      "not_reused": [
+        "B4 top-level symbol collection and its output schema",
+        "Any shared adapter or installed sibling runtime"
+      ],
+      "rationale": "The reused fragments establish the same host resolution and trustworthy source-span facts. The body walker needs a different direct-control-flow and nested-function-boundary contract."
+    },
+    "version_and_resolution": "Fixture package-lock pins TypeScript 5.9.3. Selected execution uses host Node and project-local typescript, never a toolkit venv.",
+    "closure_mode": "The selected skill bundles detector, report runner, and TypeScript launcher. The documented resolver supports .agents and .claude roots, chooses host .venv Python only when it exists otherwise python3, and has no repository scripts/_lib, sibling _common, router, catalog, adapter, or other-skill dependency.",
+    "preflight_and_failure_codes": [
+      "detect/run: 0 for complete artifacts",
+      "detect/run: 2 for invalid target/parser precondition, missing Node, missing host TypeScript, malformed parser JSON, or TypeScript syntax error"
+    ]
+  },
+  "outcome_contract": {
+    "inputs": [
+      "Locked TypeScript 5.9.3 host fixture",
+      "Positive declaration, class method, and block-bodied arrow",
+      "Clean TSX and expression-bodied arrow",
+      "Generated/vendor/minified/spec/test/declaration/overload boundary corpus"
+    ],
+    "structured_outputs": [
+      "reports/find-complexity-hotspots/scan-*/detections.jsonl",
+      "reports/find-complexity-hotspots/scan-*/report.md",
+      "reports/find-complexity-hotspots/scan-*/findings.json",
+      "reports/find-complexity-hotspots/latest"
+    ],
+    "must_fire": [
+      "declaredHotspot, ComplexityService.methodHotspot, and arrowHotspot in src/complexity.ts",
+      "branch_score=18 and trustworthy function start/end/LOC spans",
+      "language=typescript and analyzer=typescript-compiler-api",
+      "Final report with three high-branch-function findings and printed analyzer provenance"
+    ],
+    "must_not_fire": [
+      "clean TSX function and expression-bodied arrow",
+      "overload declarations and .d.ts",
+      "generated and vendor paths",
+      "minified source",
+      "spec and test sources"
+    ],
+    "native_test_command": "npm ci --offline --ignore-scripts && npm run typecheck && npm test",
+    "native_guard_command": null
+  },
+  "evidence": {
+    "d1_to_d8": {
+      "D1_scope_honesty": "SKILL.md has language:any, framework:any, scans:[python, typescript], narrow form/score/exclusion language, and explicit no-framework semantics.",
+      "D2_python_oracle": "scripts/smoke.py reports six bad fixture findings and a clean good fixture.",
+      "D3_typescript_outcome": "tests/test_find_complexity_hotspots_typescript.py reaches final JSONL/report/JSON and asserts exact symbols, score, spans, provenance, clean, and must-not-fire corpus.",
+      "D4_change_or_guard": "not applicable; the family is advisory and proposes neither source changes nor guards.",
+      "D5_installed_closure": "Focused test copies the selected directory under python -I -S and runs a stock skills@1.5.19 installed command replay using host python3.",
+      "D6_fresh_forward": "Fresh non-context installed-skill journey wrote the final report and independently chose measure-first with no source edit.",
+      "D7_regression_and_conformance": "Focused pytest, Ruff, Python smoke, node --check, py_compile, skill metadata lint, native fixture checks, and git diff --check pass.",
+      "D8_learning_handoff": "This MD/JSON pair records the decision, adversarial exclusion repair, prerequisites, and accepted independent re-review."
+    },
+    "commands_and_results": [
+      ".venv/bin/python -m pytest -q tests/test_find_complexity_hotspots_typescript.py: 7 passed after project-relative exclusion repair",
+      ".venv/bin/ruff check .claude/skills/find-complexity-hotspots/scripts/detect.py .claude/skills/find-complexity-hotspots/scripts/run.py tests/test_find_complexity_hotspots_typescript.py: All checks passed",
+      ".venv/bin/python .claude/skills/find-complexity-hotspots/scripts/smoke.py: OK - 6 bad fixture findings, good fixture clean",
+      "node --check .claude/skills/find-complexity-hotspots/scripts/detect_typescript_complexity.mjs: passed",
+      ".venv/bin/python -m py_compile detect.py run.py: passed",
+      ".venv/bin/python scripts/skill_meta.py lint: OK — 76 skills, 76 declaring new contract",
+      "Fixture native: npm ci --offline --ignore-scripts && npm run typecheck && npm test: passed",
+      "Stock install: DO_NOT_TRACK=1 npx --yes skills@1.5.19 add <checkout> --skill find-complexity-hotspots --agent codex --copy -y: passed in focused test"
+    ],
+    "fresh_forward": {
+      "task": "Audit this TypeScript project for complex functions. Produce the skill's final report artifacts, then tell me which findings deserve engineering review and why. Do not edit source files.",
+      "installed_skill": "/private/tmp/find-complexity-hotspots-forward.NJDE6E/host/.agents/skills/find-complexity-hotspots",
+      "report_dir": "/private/tmp/find-complexity-hotspots-forward.NJDE6E/host/reports/find-complexity-hotspots/scan-20260719-093930",
+      "result": "measure-first; exactly three score-18 high-branch findings grouped for maintainability/behavior review; no performance conclusion; no source edits.",
+      "artifact_sha256": {
+        "detections.jsonl": "9fc7c0bb2efb56adedc4ae18deafd4c84fe1829a3e7ebc189c29ac2bb1722b5c",
+        "report.md": "f0b20f1059cb98bba7679f9d42dcb31d4689c269343745c9e699f88407a05459",
+        "findings.json": "f1ff1ccd938f0f5fa55a50b304a7902e89d363b38ab835ee5ce73d73bc23eff6"
+      }
+    }
+  },
+  "false_positive_boundary": {
+    "known_false_positives": [
+      "Dense validation or policy code can have a high syntax score while being correct and cold.",
+      "Repeated branch patterns may be deliberately explicit for auditability."
+    ],
+    "known_false_negatives": [
+      "Runtime cost hidden in calls, expression-bodied arrows, function expressions, dynamic code, or framework behavior is not modeled.",
+      "No TypeChecker facts means no receiver/API identity or indirect control-flow reasoning."
+    ],
+    "legitimate_similar_shapes": [
+      "Clean TSX source, expression-bodied arrow, overload/declaration forms, and all explicit source-path exclusions stay absent.",
+      "A high score is measure-first evidence, never an automatic optimization recommendation."
+    ]
+  },
+  "generalized": [
+    "Host-local pinned Compiler API resolution",
+    "Explicit language/analyzer provenance",
+    "Outcome-first positive/clean/must-not-fire fixture design",
+    "Native typecheck/test plus copied and stock installed replay",
+    "Syntax failure/preflight rc2 contract",
+    "Project-root-relative exclusion policy that cannot be bypassed by narrowing the invocation target"
+  ],
+  "did_not_generalize": [
+    "Python Django/ORM scan bands",
+    "TypeScript body traversal and branch-score mapping",
+    "Framework, receiver, type, module, and runtime semantics",
+    "A global parse cache or shared TypeScript fact layer"
+  ],
+  "reuse_decision": {
+    "shared_candidate": "Compiler API host resolution and exact source-span primitives from B4",
+    "actual_second_consumer": "find-omnibus (B4), with a different top-level-symbol contract",
+    "decision": "keep-family-local",
+    "evidence": [
+      "B4 establishes top-level declarations; complexity establishes direct per-function control-flow and excludes nested function bodies.",
+      "The exact shared fragments are small, bundled locally, and do not justify a runtime platform.",
+      "No third accepted consumer demonstrates identical body/span/failure/closure requirements."
+    ],
+    "owner": "find-complexity-hotspots post-B4 candidate"
+  },
+  "translation_prerequisites": {
+    "rust": {
+      "native_tool": "syn, rustc parser, or rust-analyzer syntax tree",
+      "idiomatic_representation": "named functions, impl methods, and body-bearing closures",
+      "required_fixtures": [
+        "positive branch-heavy function/method/closure",
+        "clean, generated, test, vendor, and macro-adjacent corpus",
+        "native cargo test/check and installed replay"
+      ],
+      "semantic_gaps": ["macro expansion", "trait dispatch", "async lowering"]
+    },
+    "go": {
+      "native_tool": "go/parser and go/ast",
+      "idiomatic_representation": "functions and receiver methods",
+      "required_fixtures": [
+        "positive/clean functions and methods",
+        "vendor/generated/_test.go corpus",
+        "go test and installed replay"
+      ],
+      "semantic_gaps": ["build tags", "generated markers", "interface dispatch"]
+    },
+    "java_or_kotlin": {
+      "native_tool": "compiler parser or language-server syntax facts",
+      "idiomatic_representation": "methods, lambdas, overload/declaration boundary",
+      "required_fixtures": [
+        "positive/clean methods and lambdas",
+        "overload/generated/test corpus",
+        "native type/test and installed replay"
+      ],
+      "semantic_gaps": ["overload resolution", "annotations", "nested/companion types"]
+    },
+    "csharp": {
+      "native_tool": "Roslyn",
+      "idiomatic_representation": "methods and body-bearing lambdas",
+      "required_fixtures": [
+        "positive/clean method and lambda",
+        "partial/generated/test corpus",
+        "dotnet test/build and installed replay"
+      ],
+      "semantic_gaps": ["partial types", "source generators", "extension methods"]
+    },
+    "ruby": {
+      "native_tool": "Prism or Ripper",
+      "idiomatic_representation": "methods and blocks with reliable spans",
+      "required_fixtures": [
+        "positive/clean method/block",
+        "reopened-module/generated/test corpus",
+        "native test and installed replay"
+      ],
+      "semantic_gaps": ["metaprogramming", "runtime reopening", "dynamic dispatch"]
+    }
+  },
+  "user_experience": {
+    "install_steps": [
+      "Create a clean host with its TypeScript lockfile and install host dependencies offline.",
+      "Run the pinned stock skills CLI with only --skill find-complexity-hotspots and --copy.",
+      "From the host root run the installed SKILL.md resolver and run blocks verbatim with TARGET set.",
+      "Read reports/find-complexity-hotspots/latest/report.md and findings.json; do not edit source."
+    ],
+    "wall_time_seconds": null,
+    "agent_confusions": [
+      "A high branch score can be mistaken for a performance result; the final report and fresh agent both use measure-first.",
+      "The TypeScript branch intentionally ignores framework/receiver clues that the legacy Python branch can flag."
+    ],
+    "repeated_work": [
+      "B4's installation-relative resolver and stock-command extraction test were reused as a validation pattern, not as a shared runtime."
+    ],
+    "smallest_later_improvement": "Add a fixture only if a real host need establishes another syntax construct; do not add semantic/type facts without a new explicit contract."
+  },
+  "residual_risks": [
+    "Syntactic branch score can over-report dense but correct validation/policy code and under-report call-hidden runtime cost.",
+    "Expression arrows, function expressions, dynamic code, decorators, imports, calls, receivers, and types stay intentionally unmodeled.",
+    "A host TypeScript package is required whenever eligible TypeScript files are scanned.",
+    "Fresh installed D6 evidence predates the exclusion repair; the direct-target regression and subsequent independent re-review passed."
+  ],
+  "next_decision": {
+    "recommendation": "Accept find-complexity-hotspots as additive Python plus narrow TypeScript support; retain the parser family-local.",
+    "rationale": "The Python six-band oracle, locked TypeScript final outcome, explicit failures, native checks, copied/stock installed closure, and fresh installed journey prove useful advisory output without a platform or semantic overclaim.",
+    "blockers": []
+  }
+}

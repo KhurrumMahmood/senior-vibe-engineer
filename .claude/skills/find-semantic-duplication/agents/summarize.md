@@ -14,7 +14,7 @@ You produce one JSON record per input definition and nothing else.
 
 ### Input
 
-You receive a batch of definition records at `{{input_path}}`. Each record has the function's source code inline (`"source"` field) along with its metadata. The full schema is the `definition` schema in `scripts/semantic_inventory.py`.
+You receive a batch of definition records at `{{input_path}}`. Each record has the function's source code inline (`"source"` field) along with its metadata. The full schema is the `definition` schema in `{{skill_root}}/scripts/semantic_inventory.py`.
 
 You also have read access to `{{project_root}}` if you need to resolve context (e.g., a called symbol's identity). Prefer staying inside the record — the goal is a fast, accurate summary, not deep exploration.
 
@@ -74,7 +74,7 @@ Rules:
 After writing, run from `{{project_root}}`:
 
 ```bash
-python3 scripts/semantic_inventory.py validate {{output_path}} --schema summary
+python3 {{skill_root}}/scripts/semantic_inventory.py validate {{output_path}} --schema summary
 ```
 
 Expected output: `PASS: N/N records valid`. If validation fails, fix the offending records. Do not hand back partial output.

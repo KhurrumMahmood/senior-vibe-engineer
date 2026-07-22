@@ -7,28 +7,11 @@ date: 2026-06-11
 deciders: [khurrum, claude-code]
 provenance: "Dogfooded before being decided: prototype proven end-to-end on a foreign Python repo (full loop), precision-measured on an external 667k-LOC TypeScript corpus, calibration-tested on a disciplined Rust codebase. The design draft preceded the prior research notes; convergent elements were merged after."
 assumes: ["the dominant compute cost of skill-driven cleanup is the agent sitting in the loop for deterministic work (reading skill prose, orchestrating scans, re-reading raw findings and code), and context compaction is caused by raw volume flowing through the orchestrator"]
-revisit_when:
-  - "a provider adapter shows the manifest schema cannot preserve required native semantics"
-  - "judge-stage precision measured on a new corpus drops materially below the Atlas datum"
+revisit_when: ["productization moves the prototype out of .claude/tasks/sweep-prototype/ into scripts/ + skill wiring (update embodied_by then), or a second-language shim (e.g. cargo clippy) shows the manifest schema needs revision, or judge-stage precision measured on a new corpus drops materially below the Atlas datum"]
 supersedes: []
 superseded_by: null
-applies_to:
-  - scripts/sweep/
-  - scripts/sweep_shims.py
-  - scripts/status.py
-  - scripts/queue_status.py
-embodied_by:
-  - "script:scripts/sweep/__main__.py"
-  - "script:scripts/sweep/commands.py"
-  - "script:scripts/sweep/manifest.py"
-  - "script:scripts/sweep/pipeline.py"
-  - "script:scripts/sweep_shims.py"
-  - "script:scripts/status.py"
-  - "script:scripts/queue_status.py"
-  - "contract:tests/test_sweep_cli.py"
-  - "contract:tests/test_sweep_manifest.py"
-  - "contract:tests/test_sweep_pipeline.py"
-  - "contract:tests/test_sweep_live_pipeline.py"
+applies_to: [.claude/tasks/sweep-prototype/]
+embodied_by: ["script:.claude/tasks/sweep-prototype/sweep.py", "pending:productization — scripts/ promotion + battery expansion + skill wiring, tracked via the shareable-core-reorganization plan"]
 tags: [sweep, manifest, batch, compute, convergence, ratchet, guard, detection]
 related_smell: null
 related_pattern: null
@@ -69,14 +52,10 @@ batch process emitting a single **manifest**: normalized findings, severity,
 per-rule counts. Zero tokens. SUSPECT skills remain the judgment/triage
 wrappers; their scripts are the battery members.
 
-**2. Finding identity is stable.** The prototype used
-`hash(rule | path | symbol)`; the productized harness uses ADR 0040 identity
-schema v2: provider, canonical rule semantic key, subject language,
-repository-relative path, semantic anchor, and deterministic occurrence.
-Line/column, severity, volatile metrics, messages, and tool versions remain
-outside identity, so manifests diff cleanly into `fixed / new / persisting`.
-This id is the unit of run-local outcome telemetry and attestation; canonical
-cross-skill outcome linkage remains ADR 0003 / AC-8.9 work.
+**2. Finding identity is stable.** `finding_id = hash(rule | path | symbol)`
+— deliberately excluding line numbers and volatile metrics — so manifests
+from different moments diff cleanly into `fixed / new / persisting`. This id
+is the unit of outcome telemetry (the ADR 0003 axis) and of attestation.
 
 **3. Agents read digests, never raw findings.** The orchestrator/planner
 consumes counts + top-N; full findings stay on disk addressable by id. The
@@ -148,17 +127,13 @@ the batch sweep.
 
 ## Verification
 
-<!-- spec:portable-batch-sweep::IM-16 -->
-
-- The productized CLI and library live under `scripts/sweep/`, with registry
-  resolution retained in `scripts/sweep_shims.py`. Manifest, CLI, judgment,
-  packet, harness, and ratchet contracts are exercised by
-  `tests/test_sweep_manifest.py`, `tests/test_sweep_cli.py`, and
-  `tests/test_sweep_pipeline.py`; judged-only status and queue consumption are
-  covered by `tests/test_status.py` and `tests/test_queue_status.py`.
-- `.github/workflows/ci.yml` runs the native and integrated live boundaries
-  with `SWEEP_LIVE_REQUIRED=1`, so an unavailable provider cannot become a
-  skipped success. `tests/test_sweep_live_pipeline.py` carries the exact
-  Python, TypeScript, Rust, Go, and mixed-host manifest/diff/ratchet oracles.
-- `.claude/tasks/sweep-prototype/` remains historical dogfood evidence only.
-  Productized runtime and test defaults do not import or resolve through it.
+- The prototype (`.claude/tasks/sweep-prototype/sweep.py`) holds the
+  evidence on disk: the Hermes manifests and diff, the Atlas precision
+  report (`atlas-precision.md`), the lessons synthesis
+  (`atlas-ai-first-lessons.md`), and the three-act ratchet dogfood
+  (tighten with deliberate-increase absorption → FAIL on reverted fix with
+  stable ids → clean restore) recorded in the introducing commits.
+- Productization (the `pending:` ref) re-verifies on promotion: schema
+  documented, battery members fail loudly, ratchet wired as an optional
+  pre-commit/CI gate, and the prior adherence-harness plan folded in as the
+  executor-guardrail section.

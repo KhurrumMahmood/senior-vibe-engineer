@@ -1,0 +1,289 @@
+"""Locked native evidence for the intentionally narrow Java move-path pilot."""
+from __future__ import annotations
+
+import importlib.util
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+MOVE = ROOT / ".claude" / "skills" / "move-path" / "scripts" / "move_path.py"
+FIXTURE = ROOT / "tests" / "fixtures" / "move-path-java" / "host"
+pytestmark = pytest.mark.skipif(
+    shutil.which("java") is None or shutil.which("javac") is None,
+    reason="JDK 17 is required",
+)
+
+
+def _module():
+    spec = importlib.util.spec_from_file_location("java_move_path_under_test", MOVE)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _host(tmp_path: Path) -> Path:
+    host = tmp_path / "host"
+    shutil.copytree(FIXTURE, host)
+    return host
+
+
+def _plan(host: Path) -> Path:
+    plan = host / "move.json"
+    plan.write_text(
+        json.dumps(
+            {
+                "moves": [
+                    {
+                        "from": "src/main/java/example/legacy/",
+                        "to": "src/main/java/example/workflow/",
+                        "mode": "directory",
+                    }
+                ],
+                "reference_scope": {"include": ["**/*.md"]},
+                "rewrite": {"backtick_paths": "update", "code_imports": "update-java"},
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return plan
+
+
+def _documented_java_command(skill: Path) -> str:
+    text = (skill / "SKILL.md").read_text(encoding="utf-8")
+    match = re.search(
+        r"<!-- installed-command:java-move:start -->\n```bash\n(.*?)\n```\n"
+        r"<!-- installed-command:java-move:end -->",
+        text,
+        re.DOTALL,
+    )
+    assert match is not None
+    return match.group(1)
+
+
+def _run(module, host: Path, plan: Path, mode: str):
+    return module.run_plan(
+        plan_path=plan,
+        project_root=host,
+        mode=mode,
+        report_dir=host / "reports/move-path",
+    )
+
+
+def _compile(host: Path) -> subprocess.CompletedProcess[str]:
+    sources = sorted(str(path.relative_to(host)) for path in host.rglob("*.java"))
+    classes = host / "classes"
+    result = subprocess.run(
+        ["javac", "--release", "17", "-proc:none", "-d", str(classes), *sources],
+        cwd=host,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    shutil.rmtree(classes, ignore_errors=True)
+    return result
+
+
+def test_java_leaf_package_move_updates_package_import_and_fqcn_then_compiles(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    host = _host(tmp_path)
+    plan = _plan(host)
+    assert _compile(host).returncode == 0
+
+    dry = _run(module, host, plan, "dry-run")
+    assert dry["java"]["status"] == "complete"
+    assert {row["kind"] for row in dry["java"]["exact_changes"]} == {
+        "java_package",
+        "java_import",
+        "java_fully_qualified_type",
+    }
+    assert (host / "src/main/java/example/legacy").is_dir()
+
+    applied = _run(module, host, plan, "apply")
+    assert applied["java"]["status"] == "complete"
+    assert applied["java"]["native"]["javac_preflight"]["passed"] is True
+    assert applied["java"]["native"]["javac"]["passed"] is True
+    assert applied["java"]["native"]["exact_diff"]["passed"] is True
+    assert not (host / "src/main/java/example/legacy").exists()
+    moved = host / "src/main/java/example/workflow/LegacyService.java"
+    assert "package example.workflow;" in moved.read_text(encoding="utf-8")
+    consumer = (host / "src/main/java/example/app/Consumer.java").read_text(encoding="utf-8")
+    assert "import example.workflow.LegacyService;" in consumer
+    assert "import static example.workflow.LegacyPolicy.staticAllowed;" in consumer
+    assert "new example.workflow.LegacyPolicy()" in consumer
+    assert "example.legacy" not in consumer
+    assert _compile(host).returncode == 0
+
+    checked = _run(module, host, plan, "check")
+    assert checked["java"]["status"] == "complete"
+    assert checked["java"]["native"]["javac"]["passed"] is True
+
+
+def test_java_move_refuses_malformed_generated_non_leaf_symlink_and_dynamic_identity(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+
+    malformed = _host(tmp_path / "malformed")
+    (malformed / "src/main/java/example/legacy/Broken.java").write_text(
+        "package example.legacy; public class Broken {", encoding="utf-8"
+    )
+    report = _run(module, malformed, _plan(malformed), "dry-run")
+    assert report["java"]["status"] == "failed"
+
+    generated = _host(tmp_path / "generated")
+    (generated / "src/main/java/example/legacy/Generated.java").write_text(
+        "// Code Generated by fixture. DO NOT EDIT.\n"
+        "package example.legacy;\npublic final class Generated {}\n",
+        encoding="utf-8",
+    )
+    report = _run(module, generated, _plan(generated), "dry-run")
+    assert report["java"]["status"] == "unsupported"
+    assert any(item["kind"] == "java_generated_source" for item in report["java"]["blocked"])
+
+    non_leaf = _host(tmp_path / "non-leaf")
+    nested = non_leaf / "src/main/java/example/legacy/nested"
+    nested.mkdir()
+    report = _run(module, non_leaf, _plan(non_leaf), "dry-run")
+    assert report["java"]["status"] == "unsupported"
+    assert any(item["kind"] == "java_package_not_leaf" for item in report["java"]["blocked"])
+
+    linked = _host(tmp_path / "linked")
+    (linked / "src/main/java/example/legacy/linked.txt").symlink_to(
+        linked / "docs/move.md"
+    )
+    report = _run(module, linked, _plan(linked), "dry-run")
+    assert report["java"]["status"] == "unsupported"
+    assert any(item["kind"] == "java_symlink_in_package" for item in report["java"]["blocked"])
+
+    ancestor = _host(tmp_path / "ancestor-link")
+    example = ancestor / "src/main/java/example"
+    external = tmp_path / "external-example"
+    example.rename(external)
+    example.symlink_to(external, target_is_directory=True)
+    report = _run(module, ancestor, _plan(ancestor), "dry-run")
+    assert report["java"]["status"] == "unsupported"
+    assert any(item["kind"] == "java_symlink_boundary" for item in report["java"]["blocked"])
+
+    dynamic = _host(tmp_path / "dynamic")
+    consumer = dynamic / "src/main/java/example/app/Consumer.java"
+    consumer.write_text(
+        consumer.read_text(encoding="utf-8").replace(
+            "public final class Consumer {",
+            'public final class Consumer {\n    private static final String TYPE = "example.legacy.LegacyService";',
+        ),
+        encoding="utf-8",
+    )
+    report = _run(module, dynamic, _plan(dynamic), "dry-run")
+    assert report["java"]["status"] == "partial"
+    assert any(item["kind"] == "java_dynamic_old_package" for item in report["java"]["blocked"])
+
+    resource = _host(tmp_path / "resource")
+    service = resource / "src/main/resources/META-INF/services/example.Service"
+    service.parent.mkdir(parents=True)
+    service.write_text("example.legacy.LegacyService\n", encoding="utf-8")
+    report = _run(module, resource, _plan(resource), "dry-run")
+    assert report["java"]["status"] == "partial"
+    assert any(item["kind"] == "java_runtime_old_package" for item in report["java"]["blocked"])
+
+    generated_consumer = _host(tmp_path / "generated-consumer")
+    consumer = generated_consumer / "src/main/java/example/app/GeneratedConsumer.java"
+    consumer.write_text(
+        "package example.app;\n"
+        "import javax.annotation.processing.Generated;\n"
+        "import example.legacy.LegacyService;\n"
+        "@Generated(\"fixture\")\n"
+        "public final class GeneratedConsumer { LegacyService value; }\n",
+        encoding="utf-8",
+    )
+    report = _run(module, generated_consumer, _plan(generated_consumer), "dry-run")
+    assert report["java"]["status"] == "unsupported"
+    assert any(item["kind"] == "java_generated_consumer" for item in report["java"]["blocked"])
+
+
+def test_java_move_rolls_back_after_native_failure_and_copied_closure_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _module()
+    host = _host(tmp_path / "rollback")
+    plan = _plan(host)
+    consumer_before = (host / "src/main/java/example/app/Consumer.java").read_bytes()
+    calls = 0
+
+    def fail_after_preflight(*_args, **_kwargs):
+        nonlocal calls
+        calls += 1
+        return {
+            "argv": ["javac"],
+            "passed": calls == 1,
+            "returncode": 0 if calls == 1 else 1,
+            "stdout": "",
+            "stderr": "" if calls == 1 else "forced",
+        }
+
+    monkeypatch.setattr(module, "run_java_compile", fail_after_preflight)
+    with pytest.raises(SystemExit, match="rolled back"):
+        _run(module, host, plan, "apply")
+    assert (host / "src/main/java/example/legacy/LegacyService.java").is_file()
+    assert not (host / "src/main/java/example/workflow").exists()
+    assert (host / "src/main/java/example/app/Consumer.java").read_bytes() == consumer_before
+
+    copied_host = _host(tmp_path / "copied")
+    copied_plan = _plan(copied_host)
+    installed = tmp_path / "installed/move-path"
+    shutil.copytree(MOVE.parents[1], installed)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-S",
+            str(installed / "scripts/move_path.py"),
+            "--plan",
+            str(copied_plan),
+            "--project-root",
+            str(copied_host),
+            "--report-dir",
+            str(copied_host / "reports/move-path"),
+            "--apply",
+            "--json",
+        ],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout)["java"]["native"]["javac"]["passed"] is True
+
+
+def test_documented_java_command_runs_from_agents_skill_location(tmp_path: Path) -> None:
+    host = _host(tmp_path)
+    _plan(host)
+    installed = host / ".agents/skills/move-path"
+    shutil.copytree(MOVE.parents[1], installed)
+
+    result = subprocess.run(
+        ["/bin/bash", "-c", _documented_java_command(installed)],
+        cwd=host,
+        env={**os.environ, "MOVE_PLAN": "move.json", "MOVE_MODE": "--apply"},
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = json.loads((host / "reports/move-path/report.json").read_text())
+    assert report["java"]["status"] == "complete"

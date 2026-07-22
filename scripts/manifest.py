@@ -5,18 +5,16 @@ Activation is *applicability*: which skills apply to THIS repo at all. The
 normal case is "most skills apply" — `default: active` with a short opt-out
 list (`skills.inactive`), each entry carrying a human reason. This CLI manages
 that default-active opt-out list; the flipped allowlist form
-(`default: inactive` + `skills.active`) remains an advanced manual override.
-Canonical `resolve`/`is-active` answers come from the shared host-profile
-decision API; a manual entry can narrow compatibility but never broaden it.
+(`default: inactive` + `skills.active`) is an advanced manual override read by
+`engineering_home.is_skill_active` but not written here.
 
 Activation is orthogonal to ADR 0020 maturity x stakes rung-gating
 (`project-state.json`), which selects which *standards* fire — not whether a
 whole skill runs.
 
 Subcommands:
-  show                          Print manual activation overrides.
-  resolve                       Print canonical profile-derived decisions.
-  is-active <skill>             Exit 0 if the canonical decision is active.
+  show                          Print the activation block (default + inactive).
+  is-active <skill>             Exit 0 if the skill applies here, 1 if inactive.
   deactivate <skill> <reason>   Opt a skill out (records the reason).
   activate <skill>              Opt a skill back in (drop from inactive).
 
@@ -35,24 +33,11 @@ _COMMON = REPO_ROOT / ".claude" / "skills" / "_common"
 if str(_COMMON) not in sys.path:
     sys.path.insert(0, str(_COMMON))
 import engineering_home as eh  # noqa: E402
-from _lib.capability_registry import load_registry  # noqa: E402
-from _lib.skill_activation import (  # noqa: E402
-    ActivationError,
-    decide_catalog_activation,
-    load_host_profile,
-    load_skill_metadata,
-)
-
-CAPABILITY_REGISTRY = load_registry()
-DEFAULT_SKILLS_DIR = REPO_ROOT / ".claude" / "skills"
 
 
 def _load_raw(root: Path) -> dict:
     """Manifest dict for mutation, defaulting to a fresh versioned stub."""
-    manifest = eh.read_manifest(root) or {"version": eh.MANIFEST_VERSION}
-    manifest.setdefault("capability_registry_version", CAPABILITY_REGISTRY.schema_version)
-    manifest.setdefault("capability_contract_version", CAPABILITY_REGISTRY.contract_version)
-    return manifest
+    return eh.read_manifest(root) or {"version": eh.MANIFEST_VERSION}
 
 
 def _write(root: Path, manifest: dict) -> None:
@@ -75,7 +60,6 @@ def _skills_block(manifest: dict) -> dict:
 
 def cmd_show(root: Path) -> int:
     activation = eh.skill_activation(root)
-    print("manual overrides:")
     print(f"default: {activation['default']}")
     inactive = activation["inactive"]
     if inactive:
@@ -91,72 +75,12 @@ def cmd_show(root: Path) -> int:
     return 0
 
 
-def _resolved_catalog(
-    root: Path,
-    skills_dir: Path,
-    profile_path: Path | None,
-) -> dict:
-    profile = load_host_profile(root, profile_path=profile_path)
-    return decide_catalog_activation(
-        load_skill_metadata(skills_dir),
-        project_root=root,
-        profile=profile,
-    )
-
-
-def cmd_resolve(
-    root: Path,
-    skills_dir: Path,
-    profile_path: Path | None,
-    *,
-    as_json: bool,
-) -> int:
-    try:
-        decisions = _resolved_catalog(root, skills_dir, profile_path)
-    except ActivationError as exc:
-        print(f"activation resolution failed: {exc}", file=sys.stderr)
-        return 2
-    payload = {
-        "active": [name for name, decision in decisions.items() if decision.active],
-        "inactive": {
-            name: list(decision.exclusion_reasons)
-            for name, decision in decisions.items()
-            if not decision.active
-        },
-        "decisions": {
-            name: decision.as_dict() for name, decision in decisions.items()
-        },
-    }
-    if as_json:
-        print(json.dumps(payload, indent=2, sort_keys=True))
-    else:
-        print("active:")
-        for name in payload["active"]:
-            print(f"  - {name}")
-        print("inactive:")
-        for name, reasons in payload["inactive"].items():
-            print(f"  - {name}: {'; '.join(reasons)}")
-    return 0
-
-
-def cmd_is_active(
-    root: Path,
-    skill: str,
-    skills_dir: Path,
-    profile_path: Path | None,
-) -> int:
-    try:
-        decision = _resolved_catalog(root, skills_dir, profile_path).get(skill)
-    except ActivationError as exc:
-        print(f"activation resolution failed: {exc}", file=sys.stderr)
-        return 2
-    if decision is None:
-        print(f"unknown skill: {skill}", file=sys.stderr)
-        return 2
-    if decision.active:
-        print(f"{skill}: active ({'; '.join(decision.reasons)})")
+def cmd_is_active(root: Path, skill: str) -> int:
+    if eh.is_skill_active(root, skill):
+        print(f"{skill}: active")
         return 0
-    print(f"{skill}: inactive ({'; '.join(decision.exclusion_reasons)})")
+    reason = eh.inactive_reason(root, skill)
+    print(f"{skill}: inactive" + (f" ({reason})" if reason else ""))
     return 1
 
 
@@ -180,51 +104,6 @@ def cmd_activate(root: Path, skill: str) -> int:
     return 0
 
 
-def validate_manifest(root: Path) -> list[str]:
-    manifest = eh.read_manifest(root)
-    if manifest is None:
-        return []
-    errors: list[str] = []
-    registry_version = manifest.get("capability_registry_version")
-    contract_version = manifest.get("capability_contract_version")
-    if registry_version not in (None, CAPABILITY_REGISTRY.schema_version):
-        errors.append("manifest capability_registry_version does not match registry")
-    if contract_version not in (None, CAPABILITY_REGISTRY.contract_version):
-        errors.append("manifest capability_contract_version does not match registry")
-    selection = manifest.get("capability_selection")
-    if selection is not None:
-        if not isinstance(selection, dict):
-            errors.append("manifest capability_selection must be a mapping")
-        else:
-            stack = {
-                "languages": selection.get("languages", []),
-                "frameworks": selection.get("frameworks", []),
-                "tools": selection.get("tools", []),
-            }
-            errors.extend(CAPABILITY_REGISTRY.validate_stack(stack, prefix="manifest.capability_selection"))
-            unknown_layers = sorted(
-                set(selection.get("layers", [])) - CAPABILITY_REGISTRY.identifiers("layers")
-            )
-            unknown_bindings = sorted(
-                set(selection.get("bindings", [])) - CAPABILITY_REGISTRY.identifiers("bindings")
-            )
-            if unknown_layers:
-                errors.append(f"manifest capability_selection.layers contains unregistered identifiers: {unknown_layers}")
-            if unknown_bindings:
-                errors.append(f"manifest capability_selection.bindings contains unregistered identifiers: {unknown_bindings}")
-    return errors
-
-
-def cmd_validate(root: Path) -> int:
-    errors = validate_manifest(root)
-    if errors:
-        for error in errors:
-            print(error)
-        return 1
-    print("manifest OK")
-    return 0
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Skill-activation manifest CLI.")
     parser.add_argument(
@@ -236,23 +115,8 @@ def main(argv: list[str] | None = None) -> int:
             "(default: this toolkit repo, for dogfooding)."
         ),
     )
-    parser.add_argument(
-        "--skills-dir",
-        type=Path,
-        default=DEFAULT_SKILLS_DIR,
-        help="Canonical skill catalog to resolve (default: this toolkit catalog).",
-    )
-    parser.add_argument(
-        "--profile",
-        type=Path,
-        default=None,
-        help="Canonical host-profile JSON (default: durable project profile).",
-    )
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("show", help="Print the activation block.")
-    p_resolve = sub.add_parser("resolve", help="Resolve the canonical active set.")
-    p_resolve.add_argument("--json", action="store_true")
-    sub.add_parser("validate", help="Validate activation and capability selection fields.")
     p_is = sub.add_parser("is-active", help="Exit 0 if active, 1 if inactive.")
     p_is.add_argument("skill")
     p_de = sub.add_parser("deactivate", help="Opt a skill out (with reason).")
@@ -265,22 +129,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "show":
         return cmd_show(root)
-    if args.command == "resolve":
-        return cmd_resolve(
-            root,
-            args.skills_dir.resolve(),
-            args.profile.resolve() if args.profile else None,
-            as_json=args.json,
-        )
-    if args.command == "validate":
-        return cmd_validate(root)
     if args.command == "is-active":
-        return cmd_is_active(
-            root,
-            args.skill,
-            args.skills_dir.resolve(),
-            args.profile.resolve() if args.profile else None,
-        )
+        return cmd_is_active(root, args.skill)
     if args.command == "deactivate":
         return cmd_deactivate(root, args.skill, args.reason)
     if args.command == "activate":

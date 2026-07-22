@@ -14,6 +14,10 @@ dist/
 .mypy_cache/
 .playwright-mcp/
 
+# Reproducible but machine-local evaluation environments, caches, checkouts,
+# and raw model traces. Compact evidence and harnesses live beside this folder.
+.claude/tasks/tool-evaluations/local/
+
 # macOS
 .DS_Store
 
@@ -21,9 +25,6 @@ dist/
 # effectiveness meta under reports/_meta/ is committed (see README.md).
 /reports/*
 !/reports/_meta/
-# The active portability program's acceptance evidence is durable input to
-# independent verification, not a regenerable per-skill scan byproduct.
-!/reports/portable-skill-ecosystem-completion/
 
 # Skill-effectiveness telemetry — the raw log and gzipped archives carry
 # repo-local paths and override strings (see .claude/skill-use/README.md).

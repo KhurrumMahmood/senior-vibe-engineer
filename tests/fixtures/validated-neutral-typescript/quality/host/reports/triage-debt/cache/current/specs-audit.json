@@ -1,0 +1,10 @@
+{
+  "specs": [
+    {
+      "id": "webhook-ingress",
+      "path": "ai-docs/specs/webhook-ingress.md",
+      "last_modified": "2026-03-01",
+      "coverage": {"summary": {"checkmark_lag": 1, "not_started": 1}}
+    }
+  ]
+}

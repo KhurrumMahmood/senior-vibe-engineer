@@ -1,0 +1,981 @@
+#!/usr/bin/env python3
+"""Portable decision-registry drift audit.
+
+The selected skill cannot depend on the toolkit's ``scripts/decisions.py``:
+stock Codex installs copy only this directory.  This deliberately small,
+stdlib-only executor preserves the audit's read-only registry/link checks and
+adds comment-aware TypeScript/TSX decision references without claiming any
+TypeScript semantic or framework knowledge. Java comment support validates
+syntax through the public JDK compiler tree API before a family-local lexical
+comment scan; it does not claim Java semantic or framework knowledge.
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import io
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tokenize
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Iterable
+
+
+ADR_NAME = re.compile(r"^(?P<id>\d{4})-(?P<slug>[a-z][a-z0-9_-]*)\.md$")
+REFERENCE = re.compile(r"\bdecision:(\d{4})\b")
+MARKDOWN_REFERENCE = re.compile(r"#\s*decision:(\d{4})\b")
+VALID_STATUSES = {"proposed", "accepted", "superseded", "deprecated"}
+EMBODIMENT_KINDS = {"skill", "lint", "script", "hook", "doctrine", "contract", "pending"}
+EXCLUDED_DIRS = frozenset({
+    ".git", ".hg", ".svn", ".venv", "venv", "env", "node_modules",
+    "bower_components", "vendor", "third_party", "third-party", "deps",
+    "dependencies", "dist", "build", "out", "coverage", "reports",
+    "generated", "__generated__", "test", "tests", "__tests__", "spec",
+    "specs", "testdata", "fixture", "fixtures", ".next", ".cache", "site-packages",
+})
+SCRIPT_SUFFIXES = {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"}
+GO_SUFFIXES = {".go"}
+JAVA_SUFFIXES = {".java"}
+SCANNED_SUFFIXES = {".py", ".md", ".html", ".htm", *SCRIPT_SUFFIXES, *GO_SUFFIXES, *JAVA_SUFFIXES}
+MINIMUM_GO_VERSION = (1, 22)
+MINIMUM_JAVA_VERSION = (17, 0, 0)
+
+
+@dataclass(frozen=True)
+class Decision:
+    id: str
+    slug: str
+    title: str
+    status: str
+    date: str
+    supersedes: list[str]
+    superseded_by: str | None
+    applies_to: list[str]
+    embodied_by: list[str]
+    tags: list[str]
+    frontmatter: dict[str, Any]
+    path: Path
+
+
+def _remove_yaml_comment(value: str) -> str:
+    quote: str | None = None
+    escaped = False
+    for index, char in enumerate(value):
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+        elif char in {"'", '"'}:
+            quote = char
+        elif char == "#" and (index == 0 or value[index - 1].isspace()):
+            return value[:index].rstrip()
+    return value.rstrip()
+
+
+def _split_inline_list(value: str) -> list[str]:
+    items: list[str] = []
+    start = 0
+    quote: str | None = None
+    escaped = False
+    depth = 0
+    for index, char in enumerate(value):
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+        elif char in "[{(":
+            depth += 1
+        elif char in "]})":
+            depth -= 1
+        elif char == "," and depth == 0:
+            items.append(value[start:index])
+            start = index + 1
+    items.append(value[start:])
+    return [item.strip() for item in items if item.strip()]
+
+
+def _parse_scalar(raw: str) -> Any:
+    value = _remove_yaml_comment(raw.strip())
+    if value in {"", "null", "Null", "NULL", "~"}:
+        return None
+    if value.startswith("[") and value.endswith("]"):
+        return [_parse_scalar(item) for item in _split_inline_list(value[1:-1])]
+    if value.startswith('"') and value.endswith('"'):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return value[1:-1]
+    if value.startswith("'") and value.endswith("'"):
+        return value[1:-1].replace("''", "'")
+    if value in {"true", "True", "TRUE"}:
+        return True
+    if value in {"false", "False", "FALSE"}:
+        return False
+    return value
+
+
+def _frontmatter(path: Path) -> dict[str, Any]:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ValueError(f"cannot read {path}: {exc}") from exc
+    if text.startswith("\ufeff"):
+        text = text[1:]
+    lines = text.replace("\r\n", "\n").splitlines()
+    if not lines or lines[0].strip() != "---":
+        raise ValueError(f"{path}: missing YAML frontmatter")
+    try:
+        end = next(index for index, line in enumerate(lines[1:], start=1) if line.strip() == "---")
+    except StopIteration as exc:
+        raise ValueError(f"{path}: unclosed YAML frontmatter") from exc
+
+    metadata: dict[str, Any] = {}
+    active_list: str | None = None
+    key_pattern = re.compile(r"^(?P<key>[A-Za-z_][A-Za-z0-9_-]*):(?:[ \t]*(?P<value>.*))?$")
+    for line in lines[1:end]:
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        stripped = line.lstrip()
+        if stripped.startswith("- "):
+            if active_list is None:
+                raise ValueError(f"{path}: list item without a key")
+            current = metadata.setdefault(active_list, [])
+            if not isinstance(current, list):
+                raise ValueError(f"{path}: mixed scalar/list value for {active_list}")
+            current.append(_parse_scalar(stripped[2:]))
+            continue
+        match = key_pattern.match(line)
+        if not match:
+            raise ValueError(f"{path}: unsupported frontmatter line {line!r}")
+        key = match.group("key")
+        raw_value = match.group("value") or ""
+        if not raw_value.strip():
+            metadata[key] = []
+            active_list = key
+        else:
+            metadata[key] = _parse_scalar(raw_value)
+            active_list = None
+    return metadata
+
+
+def _as_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    return [str(value)]
+
+
+def load_decisions(decisions_dir: Path) -> list[Decision]:
+    if not decisions_dir.is_dir():
+        raise ValueError(f"decision directory does not exist: {decisions_dir}")
+    decisions: list[Decision] = []
+    for path in sorted(decisions_dir.glob("*.md")):
+        match = ADR_NAME.match(path.name)
+        if not match:
+            continue
+        fm = _frontmatter(path)
+        decisions.append(Decision(
+            id=match.group("id"),
+            slug=match.group("slug"),
+            title=str(fm.get("title") or ""),
+            status=str(fm.get("status") or "proposed"),
+            date=str(fm.get("date") or ""),
+            supersedes=[str(value).zfill(4) for value in _as_list(fm.get("supersedes"))],
+            superseded_by=(str(fm["superseded_by"]).zfill(4) if fm.get("superseded_by") else None),
+            applies_to=_as_list(fm.get("applies_to")),
+            embodied_by=_as_list(fm.get("embodied_by")),
+            tags=_as_list(fm.get("tags")),
+            frontmatter=fm,
+            path=path,
+        ))
+    return decisions
+
+
+def _relative(path: Path, project_root: Path) -> str:
+    return path.resolve().relative_to(project_root).as_posix()
+
+
+def _is_excluded(path: Path, project_root: Path) -> bool:
+    """Apply source policy to a project-relative path, never to a target root."""
+    try:
+        rel = path.resolve().relative_to(project_root)
+    except ValueError:
+        return True
+    if any(part in EXCLUDED_DIRS for part in rel.parts):
+        return True
+    name = path.name.lower()
+    return (
+        name.startswith("test_")
+        or name.endswith("_test.go")
+        or (name.endswith(".go") and "generated" in name)
+        or (
+            name.endswith(".java")
+            and name.endswith(("test.java", "tests.java", "it.java", "generated.java", ".generated.java", "_generated.java"))
+        )
+        or name.endswith(
+            tuple(
+                f".{marker}{suffix}"
+                for marker in ("test", "spec")
+                for suffix in SCRIPT_SUFFIXES
+            )
+            + (".d.ts",)
+        )
+        or ".min." in name
+    )
+
+
+def _is_generated_go(path: Path) -> bool:
+    if path.suffix.lower() != ".go":
+        return False
+    in_block_comment = False
+    try:
+        with path.open(encoding="utf-8") as source:
+            for raw_line in source:
+                remaining = raw_line.lstrip("\ufeff \t")
+                while True:
+                    if in_block_comment:
+                        end = remaining.find("*/")
+                        if end < 0:
+                            break
+                        in_block_comment = False
+                        remaining = remaining[end + 2 :].lstrip()
+                        continue
+                    if not remaining.strip():
+                        break
+                    if remaining.startswith("//"):
+                        if re.fullmatch(
+                            r"// Code generated .* DO NOT EDIT\.",
+                            remaining.rstrip("\r\n"),
+                        ):
+                            return True
+                        break
+                    if remaining.startswith("/*"):
+                        in_block_comment = True
+                        remaining = remaining[2:]
+                        continue
+                    return False
+    except (OSError, UnicodeDecodeError):
+        return False
+    return False
+
+
+def _is_generated_java(path: Path) -> bool:
+    """Recognize the conventional generated-source header before scanning it."""
+    if path.suffix.lower() not in JAVA_SUFFIXES:
+        return False
+    try:
+        source = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return False
+    head = source[:4096].lower()
+    return "generated by" in head and "do not edit" in head
+
+
+def _resolve_target(raw: str, project_root: Path) -> Path:
+    candidate = Path(raw)
+    target = candidate.resolve() if candidate.is_absolute() else (project_root / candidate).resolve()
+    try:
+        target.relative_to(project_root)
+    except ValueError as exc:
+        raise ValueError(f"target is outside project root: {raw}") from exc
+    if not target.exists():
+        raise ValueError(f"target does not exist: {raw}")
+    return target
+
+
+def _resolve_output_dir(raw: Path, project_root: Path) -> Path:
+    """Return a resolved per-run directory below the project's audit report root."""
+    configured_report_root = project_root / "reports" / "audit-decisions"
+    report_root = configured_report_root.resolve()
+    try:
+        report_root.relative_to(project_root)
+    except ValueError as exc:
+        raise ValueError(
+            f"audit report root resolves outside project root: {configured_report_root}"
+        ) from exc
+    if report_root != configured_report_root:
+        raise ValueError(f"audit report root must not resolve through a symlink: {configured_report_root}")
+    candidate = Path(raw)
+    output_dir = candidate.resolve() if candidate.is_absolute() else (project_root / candidate).resolve()
+    try:
+        output_dir.relative_to(report_root)
+    except ValueError as exc:
+        raise ValueError(f"output directory must resolve below {report_root}: {raw}") from exc
+    if output_dir == report_root:
+        raise ValueError(f"output directory must name a run below {report_root}: {raw}")
+    return output_dir
+
+
+def iter_scannable_files(project_root: Path, targets: Iterable[Path]) -> list[Path]:
+    found: set[Path] = set()
+    for target in targets:
+        if _is_excluded(target, project_root):
+            continue
+        if target.is_file():
+            if (
+                target.suffix.lower() in SCANNED_SUFFIXES
+                and not _is_generated_go(target)
+                and not _is_generated_java(target)
+            ):
+                found.add(target)
+            continue
+        for path in sorted(target.rglob("*")):
+            if (
+                path.is_file()
+                and path.suffix.lower() in SCANNED_SUFFIXES
+                and not _is_excluded(path, project_root)
+                and not _is_generated_go(path)
+                and not _is_generated_java(path)
+            ):
+                found.add(path)
+    return sorted(found, key=lambda path: _relative(path, project_root))
+
+
+def _reference_dict(path: Path, project_root: Path, line: int, identifier: str, language: str, comment_form: str) -> dict[str, Any]:
+    return {
+        "path": _relative(path, project_root),
+        "line": line,
+        "id": identifier,
+        "language": language,
+        "comment_form": comment_form,
+    }
+
+
+def _script_references(path: Path, project_root: Path) -> list[tuple[int, str, str]]:
+    """Return Compiler API-confirmed comments from one JS or TS file."""
+    launcher = Path(__file__).resolve().with_name("detect_typescript_comments.mjs")
+    try:
+        result = subprocess.run(
+            ["node", str(launcher), "--file", str(path), "--project-root", str(project_root)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise ValueError(f"cannot run bundled script comment parser: {exc}") from exc
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise ValueError(f"script comment parser failed for {_relative(path, project_root)}: {detail}")
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"script comment parser emitted invalid JSON for {_relative(path, project_root)}") from exc
+    if not isinstance(payload, list):
+        raise ValueError(f"script comment parser emitted an invalid result for {_relative(path, project_root)}")
+    references: list[tuple[int, str, str]] = []
+    for item in payload:
+        if not isinstance(item, dict):
+            raise ValueError(f"script comment parser emitted an invalid reference for {_relative(path, project_root)}")
+        line, identifier, form = item.get("line"), item.get("id"), item.get("comment_form")
+        if (
+            not isinstance(line, int)
+            or line < 1
+            or not isinstance(identifier, str)
+            or not REFERENCE.fullmatch(f"decision:{identifier}")
+            or form not in {"line", "block", "jsdoc"}
+        ):
+            raise ValueError(f"script comment parser emitted an invalid reference for {_relative(path, project_root)}")
+        references.append((line, identifier, form))
+    return references
+
+
+def _go_tool() -> Path:
+    discovered = shutil.which("go")
+    if discovered is None:
+        raise ValueError("status=unsupported: Go toolchain is unavailable")
+    go = Path(discovered)
+    try:
+        result = subprocess.run(
+            [str(go), "version"], capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        raise ValueError(f"status=unsupported: cannot run Go toolchain: {exc}") from exc
+    match = re.search(r"\bgo(\d+)\.(\d+)(?:\.\d+)?\b", result.stdout)
+    if result.returncode or match is None:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise ValueError(f"status=unsupported: cannot determine Go toolchain version: {detail}")
+    version = (int(match.group(1)), int(match.group(2)))
+    if version < MINIMUM_GO_VERSION:
+        raise ValueError("status=unsupported: Go comments require Go >= 1.22")
+    return go
+
+
+def _go_references(path: Path, project_root: Path) -> list[tuple[int, str, str]]:
+    launcher = Path(__file__).resolve().with_name("detect_go_comments.go")
+    go = _go_tool()
+    try:
+        result = subprocess.run(
+            [str(go), "run", str(launcher), "--file", str(path)],
+            capture_output=True,
+            text=True,
+            check=False,
+            env={
+                **os.environ,
+                "GO111MODULE": "off",
+                "GOTOOLCHAIN": "local",
+                "GOWORK": "off",
+            },
+        )
+    except OSError as exc:
+        raise ValueError(f"status=unsupported: cannot run Go comment parser: {exc}") from exc
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise ValueError(
+            f"status=failed: Go comment parser failed for {_relative(path, project_root)}: {detail}"
+        )
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"status=failed: Go comment parser emitted invalid JSON for {_relative(path, project_root)}"
+        ) from exc
+    if not isinstance(payload, list):
+        raise ValueError(
+            f"status=failed: Go comment parser emitted an invalid result for {_relative(path, project_root)}"
+        )
+    references: list[tuple[int, str, str]] = []
+    for item in payload:
+        if not isinstance(item, dict):
+            raise ValueError(
+                f"status=failed: Go comment parser emitted an invalid reference for {_relative(path, project_root)}"
+            )
+        line, identifier, form = item.get("line"), item.get("id"), item.get("comment_form")
+        if (
+            not isinstance(line, int)
+            or line < 1
+            or not isinstance(identifier, str)
+            or not REFERENCE.fullmatch(f"decision:{identifier}")
+            or form not in {"line", "block"}
+        ):
+            raise ValueError(
+                f"status=failed: Go comment parser emitted an invalid reference for {_relative(path, project_root)}"
+            )
+        references.append((line, identifier, form))
+    return references
+
+
+def _parse_java_version(rendered: str, tool: str) -> tuple[int, int, int]:
+    """Parse the tool's own version line while tolerating launcher warnings."""
+    pattern = (
+        re.compile(r'\bversion\s+"(\d+)(?:\.(\d+))?(?:\.(\d+))?')
+        if tool == "java"
+        else re.compile(r"\bjavac\s+(\d+)(?:\.(\d+))?(?:\.(\d+))?\b")
+    )
+    for line in rendered.splitlines():
+        match = pattern.search(line.strip())
+        if match is None:
+            continue
+        major, minor, patch = (int(part or 0) for part in match.groups())
+        if major == 1 and minor:
+            major, minor, patch = minor, patch, 0
+        return major, minor, patch
+    raise ValueError(
+        f"status=unsupported: cannot parse {tool} version: {rendered.strip() or 'unknown version'}"
+    )
+
+
+def _java_toolchain() -> tuple[Path, Path]:
+    """Resolve a complete JDK 17+ without relying on Maven or Gradle."""
+    discovered = {name: shutil.which(name) for name in ("java", "javac")}
+    missing = [name for name, executable in discovered.items() if executable is None]
+    if missing:
+        raise ValueError(
+            "status=unsupported: Java JDK is unavailable on PATH (missing "
+            + ", ".join(missing)
+            + ")"
+        )
+    for name in ("java", "javac"):
+        executable = discovered[name]
+        assert executable is not None
+        try:
+            result = subprocess.run(
+                [executable, "-version"], capture_output=True, text=True, check=False
+            )
+        except OSError as exc:
+            raise ValueError(f"status=unsupported: cannot run {name}: {exc}") from exc
+        rendered = "\n".join(part for part in (result.stdout, result.stderr) if part)
+        if result.returncode:
+            raise ValueError(
+                f"status=unsupported: cannot determine {name} version: "
+                f"{rendered.strip() or f'exit {result.returncode}'}"
+            )
+        version = _parse_java_version(rendered, name)
+        if version < MINIMUM_JAVA_VERSION:
+            raise ValueError(
+                "status=unsupported: Java comments require JDK >= "
+                + ".".join(map(str, MINIMUM_JAVA_VERSION))
+                + f"; found {name} "
+                + ".".join(map(str, version))
+            )
+    return Path(discovered["java"]), Path(discovered["javac"])
+
+
+def _java_references(
+    paths: list[Path], project_root: Path
+) -> dict[Path, list[tuple[int, str, str]]]:
+    """Return JDK-validated Java comments from selected sources in one launch."""
+    if not paths:
+        return {}
+    for path in paths:
+        try:
+            path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            raise ValueError(
+                f"status=failed: cannot read Java source {_relative(path, project_root)}: {exc}"
+            ) from exc
+    launcher = Path(__file__).resolve().with_name("detect_java_comments.java")
+    java, _javac = _java_toolchain()
+    command = [str(java), str(launcher), "--project-root", str(project_root)]
+    for path in paths:
+        command.extend(("--file", str(path)))
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise ValueError(f"status=unsupported: cannot run Java comment parser: {exc}") from exc
+    first_relative = _relative(paths[0], project_root)
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise ValueError(
+            f"status=failed: Java comment parser failed for {first_relative}: {detail}"
+        )
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"status=failed: Java comment parser emitted invalid JSON for {first_relative}"
+        ) from exc
+    if (
+        not isinstance(payload, dict)
+        or payload.get("schema_version") != 1
+        or payload.get("analyzer") != "jdk-compiler-tree-api"
+        or not isinstance(payload.get("java_version"), str)
+        or not isinstance(payload.get("files"), list)
+        or len(payload["files"]) != len(paths)
+    ):
+        raise ValueError(
+            f"status=failed: Java comment parser emitted an invalid result for {first_relative}"
+        )
+    results: dict[Path, list[tuple[int, str, str]]] = {}
+    for path, file_payload in zip(paths, payload["files"], strict=True):
+        relative = _relative(path, project_root)
+        if not isinstance(file_payload, dict):
+            raise ValueError(
+                f"status=failed: Java comment parser emitted an invalid result for {relative}"
+            )
+        if file_payload.get("file") != relative or file_payload.get("status") not in {
+            "complete", "generated", "read-error", "syntax-error"
+        }:
+            raise ValueError(
+                f"status=failed: Java comment parser emitted invalid file evidence for {relative}"
+            )
+        status = file_payload["status"]
+        if status in {"read-error", "syntax-error"}:
+            detail = file_payload.get("error") or status
+            kind = "syntax error" if status == "syntax-error" else "read error"
+            raise ValueError(
+                f"status=failed: Java comment parser {kind} for {relative}: {detail}"
+            )
+        records = file_payload.get("records")
+        if not isinstance(records, list):
+            raise ValueError(
+                f"status=failed: Java comment parser emitted invalid references for {relative}"
+            )
+        references: list[tuple[int, str, str]] = []
+        for item in records:
+            if not isinstance(item, dict):
+                raise ValueError(
+                    f"status=failed: Java comment parser emitted an invalid reference for {relative}"
+                )
+            line, identifier, form = item.get("line"), item.get("id"), item.get("comment_form")
+            if (
+                not isinstance(line, int)
+                or line < 1
+                or not isinstance(identifier, str)
+                or not REFERENCE.fullmatch(f"decision:{identifier}")
+                or form not in {"line", "block"}
+            ):
+                raise ValueError(
+                    f"status=failed: Java comment parser emitted an invalid reference for {relative}"
+                )
+            references.append((line, identifier, form))
+        results[path] = references
+    return results
+
+
+def _scan_references_for_file(path: Path, project_root: Path) -> list[dict[str, Any]]:
+    suffix = path.suffix.lower()
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        if suffix in GO_SUFFIXES:
+            raise ValueError(
+                f"status=failed: cannot read Go source {_relative(path, project_root)}: {exc}"
+            ) from exc
+        if suffix in JAVA_SUFFIXES:
+            raise ValueError(
+                f"status=failed: cannot read Java source {_relative(path, project_root)}: {exc}"
+            ) from exc
+        return []
+    references: list[dict[str, Any]] = []
+    if suffix == ".py":
+        try:
+            for token in tokenize.generate_tokens(io.StringIO(text).readline):
+                if token.type != tokenize.COMMENT:
+                    continue
+                for match in REFERENCE.finditer(token.string):
+                    references.append(_reference_dict(path, project_root, token.start[0], match.group(1), "python", "line"))
+        except (tokenize.TokenError, IndentationError):
+            return []
+    elif suffix in SCRIPT_SUFFIXES:
+        language = "typescript" if suffix in {".ts", ".tsx"} else "javascript"
+        for line, identifier, form in _script_references(path, project_root):
+            references.append(_reference_dict(path, project_root, line, identifier, language, form))
+    elif suffix in GO_SUFFIXES:
+        for line, identifier, form in _go_references(path, project_root):
+            references.append(
+                _reference_dict(path, project_root, line, identifier, "go", form)
+            )
+    elif suffix == ".md":
+        for match in MARKDOWN_REFERENCE.finditer(text):
+            references.append(_reference_dict(path, project_root, text.count("\n", 0, match.start()) + 1, match.group(1), "markdown", "hash"))
+    else:
+        for match in MARKDOWN_REFERENCE.finditer(text):
+            before = text.rfind("<!--", 0, match.start())
+            after = text.find("-->", match.start())
+            form = "html-comment" if before >= 0 and after >= 0 else "hash"
+            references.append(_reference_dict(path, project_root, text.count("\n", 0, match.start()) + 1, match.group(1), "html", form))
+    return references
+
+
+def scan_references(paths: Iterable[Path], project_root: Path) -> list[dict[str, Any]]:
+    """Scan selected sources while launching the Java helper once per audit."""
+    selected_paths = list(paths)
+    java_paths = [path for path in selected_paths if path.suffix.lower() in JAVA_SUFFIXES]
+    java_records: dict[Path, list[tuple[int, str, str]]] | None = None
+    references: list[dict[str, Any]] = []
+    for path in selected_paths:
+        if path.suffix.lower() not in JAVA_SUFFIXES:
+            references.extend(_scan_references_for_file(path, project_root))
+            continue
+        if java_records is None:
+            java_records = _java_references(java_paths, project_root)
+        for line, identifier, form in java_records[path]:
+            references.append(_reference_dict(path, project_root, line, identifier, "java", form))
+    return references
+
+
+def registry_audit(decisions: list[Decision]) -> list[str]:
+    diagnostics: list[str] = []
+    today = dt.date.today()
+    by_id = {decision.id: decision for decision in decisions}
+    identifiers = [decision.id for decision in decisions]
+    duplicates = sorted({identifier for identifier in identifiers if identifiers.count(identifier) > 1})
+    diagnostics.extend(f"duplicate id {identifier}" for identifier in duplicates)
+    for decision in decisions:
+        if decision.status not in VALID_STATUSES:
+            diagnostics.append(f"{decision.id}: invalid status {decision.status!r} (allowed: {sorted(VALID_STATUSES)})")
+        if decision.status == "proposed" and decision.date and not (decision.frontmatter.get("revisit_when") or decision.frontmatter.get("provenance")):
+            try:
+                age = (today - dt.date.fromisoformat(decision.date)).days
+            except ValueError:
+                diagnostics.append(f"{decision.id}: malformed date {decision.date!r}")
+            else:
+                if age > 30:
+                    diagnostics.append(
+                        f"{decision.id}: proposed for {age} days (>30) — accept, reject, "
+                        "or add a revisit_when trigger"
+                    )
+        if decision.status == "accepted" and not decision.embodied_by:
+            diagnostics.append(
+                f"{decision.id}: accepted but embodied_by is empty — name the skill/lint/"
+                "script that realizes it, doctrine:<path> if prose-only is deliberate, "
+                "or pending:<ref> if the build is tracked elsewhere (ADR 0033)"
+            )
+        for target in decision.supersedes:
+            if target not in by_id:
+                diagnostics.append(f"{decision.id}: supersedes {target} which does not exist")
+        if decision.superseded_by and decision.superseded_by not in by_id:
+            diagnostics.append(f"{decision.id}: superseded_by {decision.superseded_by} which does not exist")
+    return diagnostics
+
+
+def link_check(decisions: list[Decision], project_root: Path) -> tuple[list[str], list[str]]:
+    diagnostics: list[str] = []
+    advisory: list[str] = []
+    by_id = {decision.id: decision for decision in decisions}
+    for decision in decisions:
+        for target in decision.supersedes:
+            if target not in by_id:
+                diagnostics.append(f"{decision.id}: supersedes {target} -> not found")
+        if decision.superseded_by and decision.superseded_by not in by_id:
+            diagnostics.append(f"{decision.id}: superseded_by {decision.superseded_by} -> not found")
+        for applies_to in decision.applies_to:
+            host_path = applies_to.startswith("host:")
+            candidate = applies_to.removeprefix("host:")
+            matches = list(project_root.glob(candidate)) if any(char in candidate for char in "*?[") else [project_root / candidate]
+            if any(path.exists() for path in matches):
+                continue
+            if host_path:
+                advisory.append(
+                    f"{decision.id}: applies_to {applies_to} → host path, resolves "
+                    "in the importing project (advisory)"
+                )
+            else:
+                diagnostics.append(f"{decision.id}: applies_to {applies_to} → path does not exist")
+        for entry in decision.embodied_by:
+            kind, separator, ref = entry.partition(":")
+            if not separator or kind not in EMBODIMENT_KINDS or not ref:
+                diagnostics.append(
+                    f"{decision.id}: embodied_by {entry!r} → must be <kind>:<ref> with kind "
+                    f"in {sorted(EMBODIMENT_KINDS)}"
+                )
+                continue
+            if kind == "pending":
+                advisory.append(f"{decision.id}: embodied_by pending:{ref} → decided-but-unbuilt (advisory backlog)")
+            elif kind == "hook":
+                advisory.append(f"{decision.id}: embodied_by hook:{ref} → hook, resolves in harness settings (advisory)")
+            else:
+                target = {
+                    "skill": Path(".claude/skills") / ref / "SKILL.md",
+                    "lint": Path("scripts/lint") / f"{ref}.py",
+                }.get(kind, Path(ref.partition("#")[0]))
+                if not (project_root / target).exists():
+                    diagnostics.append(f"{decision.id}: embodied_by {entry} → {target} does not exist")
+    return diagnostics, advisory
+
+
+def _row(symptom: str, severity: str, adr_id: str | None, evidence: dict[str, Any], resolution: str) -> dict[str, Any]:
+    return {
+        "symptom": symptom,
+        "severity": severity,
+        "adr_id": adr_id,
+        "evidence": evidence,
+        "resolution_command": resolution,
+    }
+
+
+def _applies_missing(decision: Decision, project_root: Path) -> list[str]:
+    missing: list[str] = []
+    for raw in decision.applies_to:
+        if raw.startswith("host:"):
+            continue
+        matches = list(project_root.glob(raw)) if any(char in raw for char in "*?[") else [project_root / raw]
+        if not any(path.exists() for path in matches):
+            missing.append(raw)
+    return missing
+
+
+def make_drift(decisions: list[Decision], project_root: Path, references: list[dict[str, Any]], *, full_reference_scope: bool) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    by_id = {decision.id: decision for decision in decisions}
+    for diagnostic in registry_audit(decisions):
+        if "supersedes" in diagnostic or "superseded_by" in diagnostic or "proposed for" in diagnostic:
+            continue
+        identifier = diagnostic[:4] if diagnostic[:4].isdigit() else None
+        rows.append(_row("registry-audit", "P0", identifier, {"diagnostic": diagnostic}, "/decide --amend " + identifier if identifier else "/decide"))
+    for reference in references:
+        if reference["id"] in by_id:
+            continue
+        severity = "P1" if reference["language"] in {"markdown", "html"} else "P0"
+        rows.append(_row(
+            "code-ref-orphan", severity, reference["id"],
+            {key: reference[key] for key in ("path", "line", "language", "comment_form")},
+            f"/decide {reference['id']} or remove the reference",
+        ))
+    for decision in decisions:
+        for target in decision.supersedes:
+            other = by_id.get(target)
+            if other is None or other.superseded_by != decision.id:
+                rows.append(_row(
+                    "broken-supersession", "P0", decision.id,
+                    {"relation": "supersedes", "target": target}, f"/decide --amend {decision.id}",
+                ))
+        if decision.superseded_by:
+            other = by_id.get(decision.superseded_by)
+            if other is None or decision.id not in other.supersedes:
+                rows.append(_row(
+                    "broken-supersession", "P0", decision.id,
+                    {"relation": "superseded_by", "target": decision.superseded_by}, f"/decide --amend {decision.superseded_by}",
+                ))
+        if decision.status == "proposed":
+            try:
+                days_old = (dt.date.today() - dt.date.fromisoformat(decision.date)).days
+            except ValueError:
+                days_old = 0
+            if days_old > 30 and not (decision.frontmatter.get("revisit_when") or decision.frontmatter.get("provenance")):
+                rows.append(_row(
+                    "proposed-too-long", "P0" if days_old > 90 else "P1", decision.id,
+                    {"date": decision.date, "days_old": days_old}, f"/decide --amend {decision.id}",
+                ))
+        missing = _applies_missing(decision, project_root)
+        if missing:
+            severity = "P0" if len(missing) == len([path for path in decision.applies_to if not path.startswith("host:")]) else "P1"
+            rows.append(_row(
+                "applies-to-missing", severity, decision.id,
+                {"paths": missing}, f"/decide --amend {decision.id}",
+            ))
+    if full_reference_scope:
+        referenced = {reference["id"] for reference in references if reference["id"] in by_id}
+        for decision in decisions:
+            try:
+                days_old = (dt.date.today() - dt.date.fromisoformat(decision.date)).days
+            except ValueError:
+                continue
+            if decision.status == "accepted" and days_old > 60 and decision.id not in referenced:
+                severity = "P1" if {"lint", "enforced"} & set(decision.tags) else "P2"
+                rows.append(_row(
+                    "unreferenced-decision", severity, decision.id,
+                    {"title": decision.title, "days_old": days_old}, "review whether the decision remains load-bearing",
+                ))
+    return sorted(rows, key=lambda row: (row["severity"], row["symptom"], row.get("adr_id") or "", json.dumps(row["evidence"], sort_keys=True)))
+
+
+def render_drift(scan_id: str, decisions: list[Decision], references: list[dict[str, Any]], rows: list[dict[str, Any]]) -> str:
+    counts = {severity: sum(row["severity"] == severity for row in rows) for severity in ("P0", "P1", "P2")}
+    summary = {symptom: sum(row["symptom"] == symptom for row in rows) for symptom in (
+        "broken-supersession", "code-ref-orphan", "applies-to-missing", "proposed-too-long", "unreferenced-decision",
+    )}
+    ts_count = sum(reference["language"] == "typescript" for reference in references)
+    js_count = sum(reference["language"] == "javascript" for reference in references)
+    go_count = sum(reference["language"] == "go" for reference in references)
+    java_count = sum(reference["language"] == "java" for reference in references)
+    lines = [
+        f"# Decision-registry drift — {scan_id}",
+        "",
+        f"_{len(decisions)} ADRs scanned. {len(rows)} drift rows surfaced._",
+        "",
+        "## Summary",
+        "| Symptom | Count | Severity |",
+        "|---|---:|---|",
+    ]
+    defaults = {
+        "broken-supersession": "P0", "code-ref-orphan": "P0", "applies-to-missing": "P1",
+        "proposed-too-long": "P1", "unreferenced-decision": "P2",
+    }
+    lines.extend(f"| {symptom} | {summary[symptom]} | {defaults[symptom]} |" for symptom in defaults)
+    lines.extend([
+        "",
+        "## Reference inventory",
+        "",
+        f"JS/JSX/MJS/CJS comment references: {js_count} total; TS/TSX: {ts_count} total; "
+        f"Go comment references: {go_count} total; Java comment references: {java_count} total. "
+        "Resolved references are retained here even when they create no drift row.",
+    ])
+    if references:
+        for reference in references:
+            resolution = "resolved" if reference["resolved"] else "orphan"
+            lines.append(f"- `{resolution}` — `{reference['path']}:{reference['line']}` `decision:{reference['id']}` ({reference['language']}, {reference['comment_form']})")
+    else:
+        lines.append("- (none)")
+    lines.extend(["", "## Drift rows", ""])
+    for severity, title in (("P0", "fix before next release"), ("P1", "fix this sprint"), ("P2", "review when convenient")):
+        lines.extend([f"### {severity} — {title}", ""])
+        selected = [row for row in rows if row["severity"] == severity]
+        if not selected:
+            lines.extend(["(empty)", ""])
+            continue
+        for row in selected:
+            identifier = f" ADR `{row['adr_id']}`" if row.get("adr_id") else ""
+            lines.append(f"- `{row['symptom']}` —{identifier} `{json.dumps(row['evidence'], sort_keys=True)}`")
+            lines.append(f"  - Resolution: `{row['resolution_command']}`")
+        lines.append("")
+    lines.extend([
+        "## Notes for the user",
+        "",
+        f"- Severity totals: P0: {counts['P0']}, P1: {counts['P1']}, P2: {counts['P2']}.",
+        "- Re-run after applying resolutions to confirm clean.",
+    ])
+    return "\n".join(lines) + "\n"
+
+
+def run(args: argparse.Namespace) -> int:
+    project_root = args.project_root.resolve()
+    if not project_root.is_dir():
+        raise ValueError(f"project root does not exist: {project_root}")
+    output_dir = _resolve_output_dir(args.output_dir, project_root)
+    targets = [_resolve_target(raw, project_root) for raw in args.target] if args.target else [project_root]
+    decisions = load_decisions(project_root / "ai-docs" / "decisions")
+    scannable_files = iter_scannable_files(project_root, targets)
+    references = scan_references(scannable_files, project_root)
+    known_ids = {decision.id for decision in decisions}
+    for reference in references:
+        reference["resolved"] = reference["id"] in known_ids
+    references.sort(key=lambda item: (item["path"], item["line"], item["id"]))
+    rows = make_drift(decisions, project_root, references, full_reference_scope=not args.target)
+    audit_diagnostics = registry_audit(decisions)
+    link_diagnostics, link_advisories = link_check(decisions, project_root)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    scan_id = output_dir.name
+    (output_dir / "registry-audit.json").write_text(json.dumps({
+        "count": len(decisions), "drift_count": len(audit_diagnostics), "drift": audit_diagnostics,
+    }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    link_lines = [*link_advisories, *link_diagnostics]
+    if not link_diagnostics:
+        tail = f", {len(link_advisories)} host-scoped" if link_advisories else ""
+        link_lines.append(f"OK — {len(decisions)} decisions, all links resolve{tail}")
+    (output_dir / "link-check.txt").write_text("\n".join(link_lines) + "\n", encoding="utf-8")
+    analysis: dict[str, dict[str, str]] = {}
+    if any(path.suffix.lower() in GO_SUFFIXES for path in scannable_files):
+        analysis["go"] = {
+            "status": "complete",
+            "analyzer": "go-parser-comments",
+            "minimum_go_version": "1.22",
+        }
+    if any(path.suffix.lower() in JAVA_SUFFIXES for path in scannable_files):
+        analysis["java"] = {
+            "status": "complete",
+            "analyzer": "jdk-compiler-tree-api",
+            "minimum_jdk_version": "17.0.0",
+        }
+    raw = {
+        "status": "complete",
+        "analysis": analysis,
+        "scan_id": scan_id,
+        "project_root": str(project_root),
+        "targets": [_relative(target, project_root) for target in targets],
+        "references": references,
+        "registry_audit": {"drift": audit_diagnostics},
+        "link_check": {"drift": link_diagnostics, "advisory": link_advisories},
+        "drift": rows,
+    }
+    (output_dir / "raw-drift.json").write_text(json.dumps(raw, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    (output_dir / "drift.md").write_text(render_drift(scan_id, decisions, references, rows), encoding="utf-8")
+    print(f"{output_dir / 'drift.md'}")
+    return 1 if rows else 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Read-only portable decision-registry drift audit.")
+    parser.add_argument("--project-root", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--target", action="append", default=[], help="Optional project-relative scan target; repeatable.")
+    args = parser.parse_args(argv)
+    try:
+        return run(args)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

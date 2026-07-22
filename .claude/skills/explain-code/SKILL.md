@@ -1,6 +1,6 @@
 ---
 name: explain-code
-description: Read-only EXPLAIN skill that converts a file, directory package, or named subsystem into an annotated behavior doc at reports/explanations/<target>.md. Fans out scout sub-agents per public symbol to capture intent, pre/postconditions, invariants, callers, and unexplained regions. Complements /map-subsystem (inventory) by producing the behavioral annotation that lets a human trust the code well enough to change it. Hands off to /fix-workflow or /refactor-subsystem when the unexplained regions resolve into concrete smells.
+description: Read-only EXPLAIN skill that converts a Python, Go, Java, JavaScript-family, or TypeScript/TSX target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Unsupported surfaces remain visible instead of being inferred.
 argument-hint: "<file-path-or-directory-or-subsystem-name>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -16,8 +16,9 @@ not_for: |
   Pure inventory without behavioral annotation (use /map-subsystem).
   Cross-workflow product topology (use /map-product-workflow).
   Refactor execution (use /fix-workflow or /refactor-subsystem).
-language: python
-framework: django
+language: any
+framework: any
+scans: [python, javascript, typescript, go, java]
 ---
 
 # /explain-code
@@ -84,11 +85,83 @@ Write toward these gates from Stage 0.
    its own scout (`agents/annotate.md`). The orchestrator merges
    annotations into the top-level explanation doc.
 
+## JavaScript-family and TypeScript v1 contracts
+
+For a `.ts` or `.tsx` file (or directory), the supported invariant is:
+**each named, direct, top-level export receives the same complete explanation
+document and sidecars as a Python public symbol.** Direct exported functions,
+classes, enums, interfaces, types, namespaces, and variables are eligible.
+
+The collector is intentionally lexical. It does not resolve imports, aliases,
+barrels, `export { ... }`, `export *`, `export type *`, or default expressions.
+Those forms are written to `targets.json`'s `unexplained` list and must appear
+in the final document and `unexplained.txt`; do not replace that region with an
+inferred contract. A re-export-only target therefore has zero scout targets but
+still proceeds to synthesis so its unresolved public surface remains visible.
+Before writing inventory, a bounded lexical integrity check rejects unterminated
+comments, strings, templates, or regex literals and unbalanced delimiters. This
+is not a TypeScript grammar or type check. The collector ignores test,
+generated, declaration, vendor, build, and
+`node_modules` descendants relative to the requested target. The TypeScript
+v1 contract makes no React, Node, framework, type-checker, or module-resolution
+claim.
+
+For `.js`, `.jsx`, `.mjs`, and `.cjs`, JavaScript v1 separately collects only
+named direct ESM functions/classes/variables and property-form CommonJS
+assignments. Aliases, star exports, default exports, CommonJS object/dynamic
+exports, and unenumerable bindings stay in `unexplained`. The same bounded
+lexical integrity check reports `syntax-error` and writes no `targets.json`
+for malformed selected JavaScript. It is not a JavaScript grammar, dynamic
+module-resolution, or semantic-export claim.
+
+Python remains the reference inventory path and all three branches retain the
+same stable `targets.json` schema. Do not infer that a successful JavaScript
+or TypeScript run supports the other language or resolves its modules.
+
+## Go v1 contract
+
+For a `.go` file or directory, the bundled stdlib-only helper uses `go/parser`
+and `go/ast` to inventory direct exported package functions, named types,
+constants/variables, and explicitly declared exported methods. Go is discovered
+from `PATH` and must be Go 1.22 or newer. The helper parses source files only;
+it does not load packages, resolve imports, infer promoted methods, evaluate
+build constraints, or use `go/packages`.
+
+`targets.json` adds Go-only `status` and `analysis.go` fields without changing
+the existing language payloads. `complete` means every selected Go file parsed
+and every directly supported declaration is represented. `partial` means the
+final inventory and explanation remain useful but exported type aliases or
+build-constrained files are present in `unexplained`. A missing/old tool or an
+excluded-only target is `unsupported`; malformed source or invalid helper data
+is `failed`. Unsupported/failed runs write no `targets.json` and cannot proceed
+to synthesis.
+
+Tests, vendor/dependency/build/generated directories, `*_test.go`, generated
+names, and canonical `// Code generated ... DO NOT EDIT.` files are excluded.
+Unexported declarations and promoted methods must not fire. The locked fixture
+must pass `go test ./...` independently; the explanation workflow itself stays
+read-only and records source fingerprints before and after its final document.
+
+## Java v1 contract
+
+For `.java`, the family-local JDK helper inventories public top-level types and
+their directly declared public constructors, methods, and fields. Java's
+implicitly public interface members are included. It uses the JDK compiler tree
+API in parse-only mode with JDK 17+; it does not resolve types, inherited or
+generated/Lombok members, overrides, frameworks, or runtime dispatch. Tests,
+generated source, fixtures, and vendor/dependency paths are excluded. Malformed
+source/helper output is `failed`; a missing/old JDK is `unsupported`. Successful
+inventory and final rendering remain read-only.
+
 ## Scope
 
 - **Project root:** this worktree's root.
-- **Python:** `.venv/bin/python` for helper scripts. The inventory
-  helper is stdlib-only, but use the repo venv for consistency.
+- **Executor:** `${PYTHON:-python3}`. All bundled helpers are stdlib-only and run
+  from a copied installed skill with `python3 -I -S`; use the repository's
+  `.venv/bin/python` while validating this source checkout.
+- **Go/Java executors:** the Python inventory launches the copied
+  `scripts/inventory_go.go` with Go 1.22+ only when selected `.go` source exists.
+  Java similarly launches `scripts/inventory_java.java` with JDK 17+.
 - **Output:** `reports/explanations/<target-slug>.md` and
   `reports/explanations/<target-slug>/annotations/<symbol>.md`. Never
   touches any other file.
@@ -129,14 +202,15 @@ the rest are listed as follow-on candidates in the summary.
 
 ### Stage 0 — Setup
 
-**Pre:** argument parsed. **Post:** `$REPORT_DIR` exists,
-`latest` symlink updated.
+**Pre:** argument parsed. **Post:** `$REPORT_DIR` exists. The `latest` symlink
+is published only after Stage 4 renders the complete explanation and sidecars.
 
 ```bash
+PROJECT_ROOT="${PROJECT_ROOT:-$PWD}"
+SKILL_ROOT="${SKILL_ROOT:-.claude/skills/explain-code}"
 TARGET_SLUG="<derived slug>"
 REPORT_DIR="reports/explanations/${TARGET_SLUG}"
-mkdir -p "${REPORT_DIR}/annotations"
-ln -sfn "${TARGET_SLUG}" reports/explanations/latest
+mkdir -p "${REPORT_DIR}"
 ```
 
 Target-keyed path (not timestamped) — the same rationale as
@@ -156,29 +230,37 @@ Two paths:
    `targets.json` with those symbols, prioritizing any that appear
    under "Open questions".
 
-2. **No map page.** Run the AST inventory helper:
+2. **No map page.** Run the standalone inventory helper. It uses the Python
+   AST reference path for `.py`, a direct-export lexical path for `.ts` /
+   `.tsx`, and a `go/parser` direct-declaration path for `.go`:
 
    ```bash
-   .venv/bin/python .claude/skills/explain-code/scripts/inventory_symbols.py \
+   "${PYTHON:-python3}" "${SKILL_ROOT}/scripts/inventory_symbols.py" \
      --target "<target-path>" \
      --output "${REPORT_DIR}/targets.json" \
      --max 15
    ```
 
-   The helper walks the AST, enumerates public symbols (functions,
-   classes, class methods — no leading underscore, not in a module
-   `__all__` that excludes them), computes LOC + branch-count
-   approximation + `has_docstring` flag, and ranks by
-   `(no_docstring, branch_count, LOC > 50)` descending. Output schema
-   is documented in the helper's module docstring.
+   The Python reference path walks the AST; the TypeScript path collects only
+   named direct exports after its bounded lexical integrity check. Both compute
+   a stable LOC + branch-count approximation and rank by `(no_docstring,
+   branch_count, LOC > 50)` descending. Before dispatching scouts, read
+   `targets.json`: every `unexplained` export is a mandatory final-doc region,
+   not a scout target. Go applies the same mandatory-unexplained rule to
+   exported aliases and build-constrained files.
 
-If the inventory returns zero symbols, abort with a one-line error:
-the target is either empty, private-only, or misresolved.
+If the inventory returns neither symbols nor unexplained regions, abort with a
+one-line error: the target is either empty, private-only, or misresolved. If it
+returns only unexplained regions, skip scout dispatch and proceed to synthesis.
 
 ### Stage 2 — Annotate (parallel fan-out)
 
 **Pre:** `targets.json`. **Post:**
 `${REPORT_DIR}/annotations/<symbol-key>.md` for every target (up to 15).
+
+Create `${REPORT_DIR}/annotations` after inventory succeeds; inventory removes
+the prior annotations and final sidecars before every rerun so a failed run
+cannot inherit a previous explanation.
 
 For each target, expand `agents/annotate.md` (substitute
 `{{target_slug}}`, `{{symbol_key}}`, `{{file_path}}`, `{{symbol}}`,
@@ -216,10 +298,28 @@ the gap in the synthesized doc.
 ### Stage 3 — Synthesize
 
 **Pre:** all annotations on disk. **Post:**
-`reports/explanations/${TARGET_SLUG}.md`.
+`reports/explanations/${TARGET_SLUG}.md` and `latest` points to the completed
+target-keyed report directory.
 
 Read `knowledge/explanation-format.md`, then read every annotation
-file. Write the top-level doc following that format file. Structure:
+file. Supply a truthful ≤5-sentence summary and render the top-level doc with
+the installed helper. It verifies every selected annotation uses the scout's
+required sections and writes the mandatory sidecars:
+
+```bash
+"${PYTHON:-python3}" "${SKILL_ROOT}/scripts/render_explanation.py" \
+  --targets "${REPORT_DIR}/targets.json" \
+  --annotations-dir "${REPORT_DIR}/annotations" \
+  --output "reports/explanations/${TARGET_SLUG}.md" \
+  --summary "<what it does; what it enforces; what it does not enforce>" \
+  --project-root "$PROJECT_ROOT"
+```
+
+The renderer never invents behavioral claims. It aggregates each scout's
+annotation and the inventory's unresolved export records. For the lexical
+TypeScript path, describe type signatures as source declarations only: no
+compiler ran, so never say the skill enforces, validates, or type-checks them.
+Structure:
 
 1. Target metadata (path, LOC, public symbol count, regenerated
    timestamp).
@@ -248,10 +348,13 @@ These files are mandatory Stage 3 outputs. Stage 4's missing-file
 fallback is defensive recovery for interrupted runs, not permission to
 omit the sidecars.
 
-### Stage 4 — Effectiveness log
+### Stage 4 — Optional host effectiveness log
 
 **Pre:** explanation doc written. **Post:** one line appended to
-`reports/_meta/effectiveness.jsonl`.
+`reports/_meta/effectiveness.jsonl` only when the host separately owns an
+effectiveness logger. This is not part of the copied language-inventory closure:
+the selected skill must not reach back into toolkit-level `scripts/` merely to
+log telemetry.
 
 ```bash
 ANNOTATED=$(ls "${REPORT_DIR}/annotations/" 2>/dev/null | wc -l | tr -d ' ')
@@ -265,9 +368,9 @@ if [ -f "${REPORT_DIR}/surprises.txt" ]; then
 else
   SURPRISES=0
 fi
-PUBLIC=$(.venv/bin/python -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["targets"]))' "${REPORT_DIR}/targets.json")
+PUBLIC=$("${PYTHON:-python3}" -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["targets"]))' "${REPORT_DIR}/targets.json")
 
-.venv/bin/python scripts/log_effectiveness.py \
+"${PYTHON:-python3}" scripts/log_effectiveness.py \
   --skill explain-code \
   --scan-id "explanation-${TARGET_SLUG}-$(date -u +%Y%m%d-%H%M%S)" \
   --target "<original-target-path>" \
@@ -309,6 +412,14 @@ of truth.
   it does not propose a new one.
 - Annotating every symbol. Budget is 15 per run; the remainder become
   follow-on candidates.
+- Resolving TypeScript modules, export aliases, barrels, or default
+  expressions. Keep them visibly unexplained until a separately accepted
+  resolver-backed contract exists.
+- Including TypeScript test, generated, declaration, vendor, build, or
+  `node_modules` files in a directory inventory.
+- Resolving Go imports/type aliases, selecting build tags, loading packages,
+  or inferring promoted methods.
+- Resolving Java inheritance, generated members, types, frameworks, or dispatch.
 - Touching production code.
 - Running tests — the explanation is source-level.
 
@@ -317,8 +428,14 @@ of truth.
 | Symptom | Action |
 |---|---|
 | Target path doesn't exist | Abort with a one-line error + suggestion to re-run with the correct path |
-| AST walk errors on a non-Python file | Skip it, flag in the doc's "Files" metadata |
-| `targets.json` lists 0 symbols | Target is empty or private-only — abort with a one-line message |
+| Inventory sees an alias/re-export/default expression | Keep its `unexplained` record in the final doc; do not dispatch a scout that invents resolution |
+| Target has only unsupported / ignored source files | Abort with a one-line message; do not fall back to scanning tests or vendor code |
+| TypeScript lexical integrity check fails | Abort without writing `targets.json`; report the source file and malformed construct |
+| Go reports `status=partial` | Continue to scouts/synthesis, and retain every Go alias/build-constraint record in the final doc and `unexplained.txt` |
+| Go reports `status=unsupported` | Restore Go 1.22+ or choose authored non-excluded source; do not synthesize a document |
+| Go reports `status=failed` | Repair the named malformed source/helper failure; no partial `targets.json` is valid |
+| `targets.json` lists 0 symbols and 0 unexplained regions | Target is empty or private-only — abort with a one-line message |
+| `targets.json` lists 0 symbols but has unexplained regions | Skip scouts and render the unresolved public surface and sidecars |
 | `knowledge/explanation-format.md` is missing or empty | Abort before synthesis; the top-level doc shape is undefined |
 | Stage 3 cannot write `unexplained.txt` or `surprises.txt` | Stop before effectiveness logging and report the exact write failure |
 | Scout returns `annotation_incomplete` on first try | Re-dispatch once with a stricter "respond only with file-write confirmation" nudge |
@@ -346,13 +463,23 @@ test -s .claude/skills/explain-code/knowledge/explanation-format.md && \
   printf 'format-present\n'
 ```
 
+The locked Go replay also proves the native and copied-helper boundaries:
+
+```bash
+(cd tests/fixtures/explain-code-go-g1 && go test ./...)
+.venv/bin/python -m pytest -q tests/test_explain_code_go_g1.py
+```
+
 ## Repository layout
 
 ```
 .claude/skills/explain-code/
 ├── SKILL.md                         # this file — orchestrator
 ├── scripts/
-│   └── inventory_symbols.py         # Stage 1 AST inventory (stdlib-only)
+│   ├── inventory_symbols.py         # Stage 1 Python/JS/TS/Go/Java orchestration
+│   ├── inventory_go.go              # Stage 1 stdlib Go parser helper
+│   ├── inventory_java.java           # Stage 1 JDK parser helper
+│   └── render_explanation.py         # Stage 3 document + sidecar renderer
 ├── agents/
 │   └── annotate.md                  # Stage 2 scout brief
 └── knowledge/                       # orchestrator output-format reference

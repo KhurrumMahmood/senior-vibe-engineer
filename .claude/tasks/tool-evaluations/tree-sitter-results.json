@@ -1,0 +1,280 @@
+{
+  "base_revision": "518e1057086e646e3c5726e620da77f99d295012",
+  "capabilities": {
+    "grammar_available": [
+      "java",
+      "csharp",
+      "php"
+    ],
+    "must_not_claim": [
+      "symbol identity",
+      "types",
+      "resolved calls/imports",
+      "project graph",
+      "framework behavior",
+      "complete source coverage"
+    ],
+    "semantic_support": [],
+    "validated_fact_families": {
+      "csharp": [
+        "declarations",
+        "imports",
+        "calls",
+        "spans",
+        "parse-problems"
+      ],
+      "java": [
+        "declarations",
+        "imports",
+        "calls",
+        "spans",
+        "parse-problems"
+      ],
+      "php": [
+        "declarations",
+        "imports",
+        "calls",
+        "spans",
+        "parse-problems"
+      ]
+    }
+  },
+  "checks": {
+    "all_malformed_inputs_visible": true,
+    "all_valid_fact_families_present": true,
+    "network_denial_marker_present": true,
+    "offline_matches_online": true
+  },
+  "disposition": "continue_pilot",
+  "disposition_reason": "The three cached grammars provide stable offline syntax facts with explicit parse-problem nodes, but language-specific queries and package maturity argue for one real C# or PHP product pilot before adoption.",
+  "experiment": "X2-tree-sitter-language-pack",
+  "maintenance": {
+    "estimated_per_language_work": "One locked fixture, explicit declaration/import/call queries, error-recovery tests, and native project verification; semantic families still need native tooling.",
+    "reason": "The package and grammar catalog are new and fast-moving; pin package and grammar cache bytes, rerun fixtures on every version change, and never infer semantics from grammar availability.",
+    "risk": "medium-high"
+  },
+  "next_revisit": "Use the cache and fact-family contract in the next C# or PHP detector pilot; do not add the package to default installation.",
+  "offline_replay": {
+    "analysis_ms": 301.102,
+    "analysis_summary": {
+      "csharp": {
+        "malformed": {
+          "fact_counts": {
+            "calls": 0,
+            "declarations": 2,
+            "imports": 0
+          },
+          "has_error": true,
+          "parse_problem_count": 2,
+          "path": ".claude/tasks/tool-evaluations/tree-sitter/fixtures/csharp/Broken.cs",
+          "root_type": "compilation_unit",
+          "sha256": "d9c4391ff377a5715b867951b09194a1e1ac94b9cd8cb5d7306d1ba9d2ec1779"
+        },
+        "valid": {
+          "fact_counts": {
+            "calls": 2,
+            "declarations": 6,
+            "imports": 1
+          },
+          "has_error": false,
+          "parse_problem_count": 0,
+          "path": ".claude/tasks/tool-evaluations/tree-sitter/fixtures/csharp/Sample.cs",
+          "root_type": "compilation_unit",
+          "sha256": "78b0ac9ccb9914f9b5b93481a8715f7fc996b7f401367f3920adf60442578a5f"
+        }
+      },
+      "java": {
+        "malformed": {
+          "fact_counts": {
+            "calls": 0,
+            "declarations": 2,
+            "imports": 0
+          },
+          "has_error": true,
+          "parse_problem_count": 1,
+          "path": ".claude/tasks/tool-evaluations/tree-sitter/fixtures/java/Broken.java",
+          "root_type": "program",
+          "sha256": "87c8708b864d7169d1a01a9cacf8480468d0e8153bf95966577d50bd2d3be363"
+        },
+        "valid": {
+          "fact_counts": {
+            "calls": 2,
+            "declarations": 6,
+            "imports": 1
+          },
+          "has_error": false,
+          "parse_problem_count": 0,
+          "path": ".claude/tasks/tool-evaluations/tree-sitter/fixtures/java/Sample.java",
+          "root_type": "program",
+          "sha256": "9728bc9147cd693dd062f7dcfa0417b5c62b5e45ba1a97f48f2dc5101878c6fd"
+        }
+      },
+      "php": {
+        "malformed": {
+          "fact_counts": {
+            "calls": 0,
+            "declarations": 4,
+            "imports": 0
+          },
+          "has_error": true,
+          "parse_problem_count": 2,
+          "path": ".claude/tasks/tool-evaluations/tree-sitter/fixtures/php/Broken.php",
+          "root_type": "program",
+          "sha256": "464dbace4450411fb71b231883766adb5c1e276146d99b6c16025fe5d48c8fb4"
+        },
+        "valid": {
+          "fact_counts": {
+            "calls": 2,
+            "declarations": 4,
+            "imports": 1
+          },
+          "has_error": false,
+          "parse_problem_count": 0,
+          "path": ".claude/tasks/tool-evaluations/tree-sitter/fixtures/php/Sample.php",
+          "root_type": "program",
+          "sha256": "60e6661847ab18a2f4ff3120d7307e8df71805c6ae883c94b5610549cd721a1b"
+        }
+      }
+    },
+    "full_state": ".claude/tasks/tool-evaluations/local/tree-sitter-offline-state.json",
+    "network_denial_required": true,
+    "sandbox_marker": "deny-network",
+    "stability": {
+      "csharp": {
+        "malformed": {
+          "same_facts": true,
+          "same_has_error": true,
+          "same_parse_problems": true,
+          "same_root_type": true
+        },
+        "valid": {
+          "same_facts": true,
+          "same_has_error": true,
+          "same_parse_problems": true,
+          "same_root_type": true
+        }
+      },
+      "java": {
+        "malformed": {
+          "same_facts": true,
+          "same_has_error": true,
+          "same_parse_problems": true,
+          "same_root_type": true
+        },
+        "valid": {
+          "same_facts": true,
+          "same_has_error": true,
+          "same_parse_problems": true,
+          "same_root_type": true
+        }
+      },
+      "php": {
+        "malformed": {
+          "same_facts": true,
+          "same_has_error": true,
+          "same_parse_problems": true,
+          "same_root_type": true
+        },
+        "valid": {
+          "same_facts": true,
+          "same_has_error": true,
+          "same_parse_problems": true,
+          "same_root_type": true
+        }
+      }
+    }
+  },
+  "prefetch": {
+    "downloaded_languages": [
+      "csharp",
+      "java",
+      "php"
+    ],
+    "environment_bytes": 27797755,
+    "grammar_cache_bytes": 7455120,
+    "installed_package_bytes": 4738202,
+    "installed_tree_sitter_bytes": 368971,
+    "package_version": "1.13.2",
+    "phase": "prefetch",
+    "platform": "macOS-26.5.2-arm64-arm-64bit",
+    "prefetch_ms": 6.076,
+    "python": "3.11.10",
+    "requested_languages": [
+      "java",
+      "csharp",
+      "php"
+    ],
+    "schema_version": 1,
+    "tree_sitter_version": "0.26.0"
+  },
+  "query_portability": {
+    "assessment": "The capture families are portable, but grammar node names and declaration/call shapes remain language-specific. A small fact adapter is still required.",
+    "common_capture_families": [
+      "declarations",
+      "imports",
+      "calls"
+    ],
+    "language_specific_queries": {
+      "csharp": {
+        "calls": "(invocation_expression function: (identifier) @name) @call",
+        "declarations": "\n            (method_declaration name: (identifier) @name) @declaration\n            (constructor_declaration name: (identifier) @name) @declaration\n        ",
+        "imports": "(using_directive) @item"
+      },
+      "java": {
+        "calls": "(method_invocation name: (identifier) @name) @call",
+        "declarations": "\n            (method_declaration name: (identifier) @name) @declaration\n            (constructor_declaration name: (identifier) @name) @declaration\n        ",
+        "imports": "(import_declaration) @item"
+      },
+      "php": {
+        "calls": "(function_call_expression function: (name) @name) @call",
+        "declarations": "\n            (method_declaration name: (name) @name) @declaration\n            (function_definition name: (name) @name) @declaration\n        ",
+        "imports": "(namespace_use_declaration) @item"
+      }
+    },
+    "node_types": {
+      "csharp": {
+        "calls": [
+          "identifier",
+          "invocation_expression"
+        ],
+        "declarations": [
+          "constructor_declaration",
+          "identifier",
+          "method_declaration"
+        ],
+        "imports": [
+          "using_directive"
+        ]
+      },
+      "java": {
+        "calls": [
+          "identifier",
+          "method_invocation"
+        ],
+        "declarations": [
+          "constructor_declaration",
+          "identifier",
+          "method_declaration"
+        ],
+        "imports": [
+          "import_declaration"
+        ]
+      },
+      "php": {
+        "calls": [
+          "function_call_expression",
+          "name"
+        ],
+        "declarations": [
+          "function_definition",
+          "method_declaration",
+          "name"
+        ],
+        "imports": [
+          "namespace_use_declaration"
+        ]
+      }
+    }
+  },
+  "schema_version": 1
+}

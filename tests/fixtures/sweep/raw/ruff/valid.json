@@ -1,9 +1,0 @@
-[
-  {
-    "code": "F401",
-    "end_location": {"column": 10, "row": 1},
-    "filename": "src/sample.py",
-    "location": {"column": 8, "row": 1},
-    "message": "`os` imported but unused"
-  }
-]
