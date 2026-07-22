@@ -149,8 +149,12 @@ The matcher returns JSON with:
 - `recommendation` — the top-scoring skill name OR `proceed_directly`
 - `routing_context` — resolved language/framework values, their explicit or
   exact-marker source, and whether portability filtering was applied
-- `excluded_unsupported[]` — otherwise-relevant skills whose declared
-  language, framework, or scanner coverage does not support the resolved host
+- `excluded_ineligible[]` — otherwise-relevant skills whose declared language,
+  framework, or scanner coverage does not yet serve the resolved host; each
+  item distinguishes pending implementation from a required native alternative
+- `recommendation: native-alternative-required` — returned when a named
+  stack-specific skill does not fit but its engineering job still needs a
+  language/framework-native equivalent
 - `recommendation: unsupported` — returned instead of silently substituting a
   weaker skill only when the strongest semantic match has an evidence-backed
   permanent unsupported disposition for the host

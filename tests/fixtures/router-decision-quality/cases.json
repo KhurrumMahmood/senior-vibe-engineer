@@ -108,7 +108,7 @@
     {
       "id": "K8",
       "prompt": "Find an omnibus Rust module with too many unrelated responsibilities.",
-      "expected": ["unsupported"],
+      "expected": ["pending-implementation"],
       "exit": 1
     },
     {
@@ -126,7 +126,7 @@
     {
       "id": "K11",
       "prompt": "Run impact-feature for a TypeScript service.",
-      "expected": ["unsupported"],
+      "expected": ["native-alternative-required"],
       "exit": 1
     }
   ],

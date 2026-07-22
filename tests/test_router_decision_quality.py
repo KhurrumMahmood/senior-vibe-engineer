@@ -72,7 +72,12 @@ def test_which_skill_decision_corpus(case, tmp_path):
     expected_exits = case["exit"] if isinstance(case["exit"], list) else [case["exit"]]
     assert code in expected_exits
     assert payload["recommendation"] in case["expected"]
-    if payload["recommendation"] in {"proceed_directly", "unsupported"}:
+    if payload["recommendation"] in {
+        "native-alternative-required",
+        "pending-implementation",
+        "proceed_directly",
+        "unsupported",
+    }:
         assert "handoff" not in payload
     else:
         assert payload["handoff"]["available"] is True

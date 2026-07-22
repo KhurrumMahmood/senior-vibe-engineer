@@ -449,21 +449,29 @@ def resolve_routing_context(
     }
 
 
-def portability_exclusion(skill: dict, routing_context: dict) -> str | None:
-    """Return why a skill cannot serve the resolved host language/stack."""
+def portability_exclusion(
+    skill: dict, routing_context: dict
+) -> dict[str, str] | None:
+    """Return the precise reason and next disposition for an ineligible skill."""
     languages = set(routing_context["languages"])
     frameworks = set(routing_context["frameworks"])
     declared_language = str(skill.get("language", "any")).strip().lower()
     declared_framework = str(skill.get("framework", "any")).strip().lower()
 
     if languages and declared_language != "any" and declared_language not in languages:
-        return f"declares language={declared_language}"
+        return {
+            "classification": "native-alternative-required",
+            "reason": f"declares language={declared_language}",
+        }
     if (
         (languages or frameworks)
         and declared_framework != "any"
         and declared_framework not in frameworks
     ):
-        return f"requires framework={declared_framework}"
+        return {
+            "classification": "native-alternative-required",
+            "reason": f"requires framework={declared_framework}",
+        }
 
     scans = skill.get("scans")
     if languages and skill.get("job") == "suspect" and isinstance(scans, list):
@@ -473,7 +481,10 @@ def portability_exclusion(skill: dict, routing_context: dict) -> str | None:
         }
         missing = sorted(languages - declared_scans)
         if missing:
-            return f"scanner does not declare scans={','.join(missing)}"
+            return {
+                "classification": "pending-implementation",
+                "reason": f"scanner does not declare scans={','.join(missing)}",
+            }
     return None
 
 
@@ -1042,7 +1053,7 @@ def cmd_match(args, catalog_path: Path) -> int:
     # high-scorer is explained rather than silently missing.
     active_ranked = []
     excluded_inactive = []
-    excluded_unsupported = []
+    excluded_ineligible = []
     for score, sk, rationale in ranked:
         name = sk.get("name", "")
         recommendable = (
@@ -1061,14 +1072,17 @@ def cmd_match(args, catalog_path: Path) -> int:
                     "reason": _inactive_reason(project_root, name) or "",
                 })
             continue
-        portability_reason = portability_exclusion(sk, routing_context)
-        if portability_reason is not None:
+        portability = portability_exclusion(sk, routing_context)
+        if portability is not None:
             if score >= threshold and recommendable:
-                excluded_unsupported.append({
-                    "name": name,
-                    "score": score,
-                    "reason": portability_reason,
-                })
+                excluded_ineligible.append(
+                    {
+                        "name": name,
+                        "score": score,
+                        "classification": portability["classification"],
+                        "reason": portability["reason"],
+                    }
+                )
             continue
         if recommendable:
             active_ranked.append((score, sk, rationale))
@@ -1084,7 +1098,7 @@ def cmd_match(args, catalog_path: Path) -> int:
         "job_hints": job_hits,
         "routing_context": routing_context,
         "excluded_inactive": excluded_inactive,
-        "excluded_unsupported": excluded_unsupported,
+        "excluded_ineligible": excluded_ineligible,
         "candidates": [
             {
                 "name": sk.get("name", "?"),
@@ -1102,7 +1116,7 @@ def cmd_match(args, catalog_path: Path) -> int:
         ],
     }
     blocked_best = max(
-        excluded_unsupported,
+        excluded_ineligible,
         key=lambda item: (item["score"], item["name"]),
         default=None,
     )
@@ -1111,11 +1125,12 @@ def cmd_match(args, catalog_path: Path) -> int:
         and routing_context["filtering_applied"]
         and (not above or blocked_best["score"] > above[0][0])
     ):
-        out["recommendation"] = "unsupported"
-        out["unsupported"] = blocked_best
+        classification = blocked_best["classification"]
+        out["recommendation"] = classification
+        out["unavailable"] = blocked_best
         out["rationale"] = (
-            f"The strongest matching skill, /{blocked_best['name']}, is not "
-            "eligible for the resolved language/framework: "
+            f"The strongest matching skill, /{blocked_best['name']}, requires "
+            f"{classification} for the resolved language/framework: "
             f"{blocked_best['reason']}. No weaker skill was substituted."
         )
         if args.json:
@@ -1151,10 +1166,10 @@ def cmd_match(args, catalog_path: Path) -> int:
                 for item in excluded_inactive:
                     reason = f" — {item['reason']}" if item["reason"] else ""
                     print(f"  /{item['name']:<25} score={item['score']}{reason}")
-            if excluded_unsupported:
+            if excluded_ineligible:
                 print()
-                print("Excluded (unsupported for resolved language/framework):")
-                for item in excluded_unsupported:
+                print("Excluded (not eligible for resolved language/framework):")
+                for item in excluded_ineligible:
                     print(f"  /{item['name']:<25} score={item['score']} — {item['reason']}")
         return 1
 
@@ -1264,10 +1279,10 @@ def cmd_match(args, catalog_path: Path) -> int:
             for item in excluded_inactive:
                 reason = f" — {item['reason']}" if item["reason"] else ""
                 print(f"  /{item['name']:<25} score={item['score']}{reason}")
-        if excluded_unsupported:
+        if excluded_ineligible:
             print()
-            print("Excluded (unsupported for resolved language/framework):")
-            for item in excluded_unsupported:
+            print("Excluded (not eligible for resolved language/framework):")
+            for item in excluded_ineligible:
                 print(f"  /{item['name']:<25} score={item['score']} — {item['reason']}")
     return 0
 

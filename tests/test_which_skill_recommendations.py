@@ -363,7 +363,9 @@ def test_explicit_language_is_authoritative_and_repeatable(tmp_path):
     assert payload["recommendation"] == "ts-audit"
     assert payload["routing_context"]["languages"] == ["typescript", "javascript"]
     assert payload["routing_context"]["language_source"] == "explicit"
-    assert {item["name"] for item in payload["excluded_unsupported"]} == {"django-audit"}
+    assert {item["name"] for item in payload["excluded_ineligible"]} == {
+        "django-audit"
+    }
 
 
 def test_mixed_exact_markers_do_not_guess_a_language():

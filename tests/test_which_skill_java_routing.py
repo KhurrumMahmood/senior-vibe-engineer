@@ -266,7 +266,7 @@ def test_promoted_java_capability_returns_on_demand_handoff(skill: str, tmp_path
     assert capability["java_disposition"] == "java-supported"
 
 
-def test_unsupported_rust_scanner_refuses_weaker_substitution(tmp_path: Path):
+def test_pending_rust_scanner_refuses_weaker_substitution(tmp_path: Path):
     returncode, payload = _run_match(
         "Find exact normalized Rust function-body clone candidates.",
         "--project-root",
@@ -275,7 +275,7 @@ def test_unsupported_rust_scanner_refuses_weaker_substitution(tmp_path: Path):
 
     assert returncode == 1
     assert payload["routing_context"]["languages"] == ["rust"]
-    assert payload["recommendation"] == "unsupported"
-    assert payload["unsupported"]["name"] == "find-duplication"
-    assert payload["unsupported"]["reason"] == "scanner does not declare scans=rust"
+    assert payload["recommendation"] == "pending-implementation"
+    assert payload["unavailable"]["name"] == "find-duplication"
+    assert payload["unavailable"]["reason"] == "scanner does not declare scans=rust"
     assert "handoff" not in payload

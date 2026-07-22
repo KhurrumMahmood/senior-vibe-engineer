@@ -1118,9 +1118,9 @@ def test_installed_which_skill_excludes_stack_bound_planning_claims(
     assert result.returncode == 1, result.stderr
     payload = json.loads(result.stdout)
     assert payload["routing_context"]["language"] == "typescript"
-    assert payload["recommendation"] == "unsupported"
-    assert payload["unsupported"]["name"] == excluded_skill
-    excluded = {item["name"] for item in payload["excluded_unsupported"]}
+    assert payload["recommendation"] == "native-alternative-required"
+    assert payload["unavailable"]["name"] == excluded_skill
+    excluded = {item["name"] for item in payload["excluded_ineligible"]}
     assert excluded_skill in excluded
 
 
@@ -1144,8 +1144,8 @@ def test_installed_which_skill_never_substitutes_for_named_stack_bound_skill(
 
     assert result.returncode == 1, result.stderr
     payload = json.loads(result.stdout)
-    assert payload["recommendation"] == "unsupported"
-    assert payload["unsupported"]["name"] == skill
+    assert payload["recommendation"] == "native-alternative-required"
+    assert payload["unavailable"]["name"] == skill
 
 
 def test_installed_which_cleanup_routes_without_repository_runtime(tmp_path):

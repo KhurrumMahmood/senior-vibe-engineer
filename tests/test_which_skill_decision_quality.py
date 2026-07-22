@@ -66,7 +66,7 @@ def test_explicit_ordered_maintenance_loop_routes_to_which_shape():
     assert payload["recommendation"] == "which-shape"
 
 
-def test_natural_rust_marker_returns_unsupported_without_a_handoff():
+def test_natural_rust_marker_returns_pending_without_a_handoff():
     returncode, payload = _run_match(
         "Find an omnibus Rust module with too many unrelated responsibilities."
     )
@@ -74,8 +74,8 @@ def test_natural_rust_marker_returns_unsupported_without_a_handoff():
     assert returncode == 1, payload
     assert payload["routing_context"]["languages"] == ["rust"]
     assert payload["routing_context"]["language_source"] == "task_marker"
-    assert payload["recommendation"] == "unsupported"
-    assert payload["unsupported"]["name"] == "find-omnibus"
+    assert payload["recommendation"] == "pending-implementation"
+    assert payload["unavailable"]["name"] == "find-omnibus"
     assert "handoff" not in payload
 
 
@@ -89,8 +89,8 @@ def test_rs_alias_preserves_explicit_language_portability_filtering():
     assert returncode == 1, payload
     assert payload["routing_context"]["languages"] == ["rust"]
     assert payload["routing_context"]["language_source"] == "explicit"
-    assert payload["recommendation"] == "unsupported"
-    assert payload["unsupported"]["name"] == "find-omnibus"
+    assert payload["recommendation"] == "pending-implementation"
+    assert payload["unavailable"]["name"] == "find-omnibus"
 
 
 def test_supported_go_skill_has_executable_handoff(tmp_path):
