@@ -6,7 +6,8 @@ description: |
   Flags detached section banners, narration comments, missing or thin
   public class docstrings, stale terminology, JavaScript and TypeScript
   functions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML
-  comments, fragile doc references, and bounded Go, Java, PHP, and C lexical-comment surfaces.
+  comments, fragile doc references, and bounded Go, Java, PHP, C, and C++
+  lexical-comment surfaces.
 argument-hint: "[paths... - no paths uses the detector's legacy default surface]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -24,7 +25,7 @@ not_for: |
   existing lints for behavior and correctness.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, c, templates]
+scans: [python, javascript, typescript, go, java, php, c, cpp, templates]
 ---
 
 # /find-comment-drift
@@ -73,6 +74,17 @@ translation-unit dependency closure. The result is lexical: macro expansion,
 inactive branches, comment-to-symbol meaning, C++, Objective-C, and framework
 conventions are explicit non-claims.
 
+C++ is selected through the copied `scripts/analyze_comments_cpp.py` entry
+point. It applies the same bounded Clang 21+ raw-token evidence contract to
+C++20 `.cpp`, `.cc`, `.cxx`, `.c++`, `.C`, and `.ii` translation units. Common
+C++ header and template suffixes (`.h`, `.hpp`, `.hh`, `.hxx`, `.h++`, `.inc`,
+`.ipp`, `.inl`, and `.tpp`) are eligible only when a current, complete C++20
+`compile_commands.json` proves dependency ownership. A conservative byte scan
+rejects malformed or truncated raw-token output; only Clang comment tokens
+produce findings. Macro expansion, inactive branches, comment-to-symbol
+meaning, Objective-C++, CUDA, module interfaces, and framework conventions
+remain explicit non-claims.
+
 ## How success is judged
 
 - The run is graded only by artifacts: pasted detector/reporter output
@@ -99,6 +111,11 @@ conventions are explicit non-claims.
 - A C run records `complete`, `partial`, `unsupported`, or `failed` plus a
   final `findings.json`. Missing/old Clang, ambiguous headers, stale/incomplete
   compile commands, syntax failures, and provider failures remain visible.
+- A C++ run records the same terminal status and final artifact. It must report
+  C++20 compile-database ownership, exact raw-token source spans, source hashes,
+  and whether evidence is lexical only. Validate a durable artifact with
+  `analyze_comments_cpp.py --verify-artifact`; stale source, manifest, spelling,
+  or finding hashes are rejected rather than presented as current evidence.
 
 ## Default Target
 
@@ -271,6 +288,27 @@ make test
 The helper writes `detections.jsonl`, `scan.json`, `report.md`, and
 `findings.json` atomically and preserves selected source bytes.
 
+For a C++20 host, use the copied C++ entry point. The host owns Clang, its
+compile database, and the native build; this skill installs none of them.
+
+```bash
+COMMENT_SKILL=".agents/skills/on-demand/find-comment-drift"
+COMMENT_REPORT="reports/find-comment-drift/cpp"
+mkdir -p "${COMMENT_REPORT}"
+python3 "${COMMENT_SKILL}/scripts/analyze_comments_cpp.py" \
+  --project-root "$PWD" --clang "$(command -v clang)" \
+  --output "${COMMENT_REPORT}/detections.jsonl" .
+python3 "${COMMENT_SKILL}/scripts/analyze_comments_cpp.py" \
+  --project-root "$PWD" \
+  --verify-artifact "${COMMENT_REPORT}/findings.json"
+make test
+```
+
+The analyzer removes all four old destination artifacts before a run and
+rewrites terminal evidence atomically. The verifier recomputes every inventoried
+source hash, the inventory manifest hash, and each finding's source spelling
+hash before accepting the report as current.
+
 ## Detector Bands
 
 - `detached_section_banner`: banner comments separated from the symbol or
@@ -332,3 +370,7 @@ input/output/side-effect contract.
 | PHP is missing or older than 8.1.0 | Keep the `unsupported` scan/report evidence, select PHP >= 8.1.0, and re-run; the detector never installs PHP or Composer dependencies. |
 | PHP syntax or source decoding fails | Keep useful findings with `partial`/`incomplete` evidence and cite the failed inventory row; do not call an empty JSONL clean. |
 | The PHP provider process or payload fails | Keep the concrete `failed` evidence, correct the selected runtime/closure, and re-run at the same destination so stale reports cannot survive. |
+| Clang is missing or older than 21.0.0 for C/C++ | Keep the `unsupported` final artifacts, select a supported host-owned Clang, and re-run; do not present empty detections as clean. |
+| C/C++ compile commands are missing, malformed, incomplete, or stale | Source translation units may still have bounded lexical evidence, but keep unowned headers `ambiguous-header`; do not infer ownership from directory names. |
+| C/C++ syntax fails or Clang raw-token output is malformed/incomplete | Keep the explicit `partial`/`failed` evidence and failed inventory rows. Fix the source/tool invocation and re-run the same destination; never reuse the prior report. |
+| C++ sources changed after the report | Run `analyze_comments_cpp.py --verify-artifact`; a nonzero result makes the report stale and requires a fresh analysis. |

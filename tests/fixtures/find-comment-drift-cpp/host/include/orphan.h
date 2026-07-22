@@ -1,0 +1,6 @@
+#ifndef CPPPILOT_ORPHAN_H
+#define CPPPILOT_ORPHAN_H
+
+#define CPPPILOT_ORPHAN 1
+
+#endif
