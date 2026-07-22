@@ -65,7 +65,7 @@ def test_repository_profiles_cover_current_inventory_languages() -> None:
     profiles = load_profiles(PROFILE_ROOT)
 
     assert set(profiles) == {
-        "python", "javascript", "typescript", "go", "java", "php",
+        "python", "javascript", "typescript", "go", "java", "php", "swift",
     }
     suffixes = {
         suffix: language
@@ -76,12 +76,15 @@ def test_repository_profiles_cover_current_inventory_languages() -> None:
         ".py": "python", ".pyi": "python",
         ".js": "javascript", ".jsx": "javascript", ".mjs": "javascript",
         ".cjs": "javascript", ".ts": "typescript", ".tsx": "typescript",
-        ".go": "go", ".java": "java", ".php": "php",
+        ".go": "go", ".java": "java", ".php": "php", ".swift": "swift",
     }
     assert profiles["typescript"].native_tools[1].id == "tsc"
     assert profiles["java"].native_tools[1].minimum_version == "17.0.0"
     assert profiles["php"].native_tools[0].id == "php"
     assert profiles["php"].native_tools[1].id == "composer"
+    assert [tool.id for tool in profiles["swift"].native_tools] == ["swift", "swiftc"]
+    assert profiles["swift"].project_markers == ("Package.swift",)
+    assert profiles["swift"].source_roles.configuration_files == ("Package.swift",)
 
 
 def test_loader_runs_under_isolated_no_site_python() -> None:

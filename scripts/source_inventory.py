@@ -45,6 +45,7 @@ EXCLUDED_DIRECTORIES = {
     "vendored": ("vendor", "external_dependency"),
     "dist": ("build", "build_output"),
     "build": ("build", "build_output"),
+    ".build": ("build", "build_output"),
     "coverage": ("build", "build_output"),
     ".next": ("build", "build_output"),
     "target": ("build", "build_output"),

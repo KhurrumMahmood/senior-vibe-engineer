@@ -205,6 +205,49 @@ def test_php_prefers_project_local_runtime_and_composer(tmp_path: Path) -> None:
     assert _tool(payload, "composer")["version"] == "2.7.9"
 
 
+def test_swift_prefers_project_local_compiler_tools_and_is_swiftpm_limited(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "host"
+    (project / ".tools" / "swift" / "bin").mkdir(parents=True)
+    (project / "Package.swift").write_text("// swift-tools-version: 6.0\n", encoding="utf-8")
+    local_swift = _fake_tool(
+        project / ".tools" / "swift" / "bin" / "swift",
+        "Swift version 6.1.2 (swift-6.1.2-RELEASE)",
+    )
+    local_swiftc = _fake_tool(
+        project / ".tools" / "swift" / "bin" / "swiftc",
+        "Swift version 6.1.2 (swift-6.1.2-RELEASE)",
+    )
+    system_bin = tmp_path / "system-bin"
+    _fake_tool(system_bin / "swift", "Swift version 9.0.0")
+    _fake_tool(system_bin / "swiftc", "Swift version 9.0.0")
+    before = _manifest(project)
+
+    completed = _run_doctor(project, "swift", system_bin=system_bin)
+
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert _manifest(project) == before
+    payload = json.loads(completed.stdout)
+    assert payload["status"] == "available"
+    assert payload["project_markers"] == {
+        "declared": ["Package.swift"],
+        "present": ["Package.swift"],
+    }
+    assert _tool(payload, "swift")["path"] == str(local_swift)
+    assert _tool(payload, "swift")["provenance"] == "project-local"
+    assert _tool(payload, "swift")["version"] == "6.1.2"
+    assert _tool(payload, "swiftc")["path"] == str(local_swiftc)
+    assert _tool(payload, "swiftc")["provenance"] == "project-local"
+    assert _tool(payload, "swiftc")["version"] == "6.1.2"
+    limits = "\n".join(payload["explicit_limits"])
+    assert "SwiftPM-only" in limits
+    assert "SwiftSyntax is not bundled" in limits
+    assert "SourceKit-LSP has no usable version probe" in limits
+    assert "XCTest and Testing modules" in limits
+    assert "SwiftUI" in limits
+
+
 def test_old_project_local_tool_is_not_replaced_by_newer_system_tool(
     tmp_path: Path,
 ) -> None:

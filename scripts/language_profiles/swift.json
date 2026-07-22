@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "language": "swift",
+  "suffixes": [".swift"],
+  "project_markers": ["Package.swift"],
+  "source_roles": {
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "migration", "symlink"],
+    "test_file_globs": ["*Test.swift", "*Tests.swift"],
+    "declaration_file_globs": [],
+    "configuration_files": ["Package.swift"]
+  },
+  "native_tools": [
+    {
+      "id": "swift",
+      "project_paths": [".tools/swift/bin/swift", "tools/swift/bin/swift"],
+      "system_commands": ["swift"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "6.0.0",
+      "required": true
+    },
+    {
+      "id": "swiftc",
+      "project_paths": [".tools/swift/bin/swiftc", "tools/swift/bin/swiftc"],
+      "system_commands": ["swiftc"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "6.0.0",
+      "required": true
+    }
+  ],
+  "fact_tiers": ["lexical-filesystem", "syntax", "semantic-project"],
+  "verification_commands": [
+    {
+      "id": "build-restrictive",
+      "argv": ["{tool:swift}", "build", "--disable-dependency-cache", "--manifest-cache", "local", "--disable-netrc", "--disable-keychain", "--disable-prefetching", "--disable-automatic-resolution", "--enable-index-store"],
+      "requires": ["swift"]
+    },
+    {
+      "id": "typecheck",
+      "argv": ["{tool:swiftc}", "-typecheck", "{source_files}"],
+      "requires": ["swiftc"]
+    }
+  ],
+  "terminal_outcomes": ["complete", "partial", "unsupported", "tool-missing", "syntax-error", "native-check-failure", "unexpected-source-mutation"],
+  "explicit_limits": [
+    "This profile is SwiftPM-only and does not imply Xcode project/workspace, Apple platform, SwiftUI, UIKit, AppKit, Objective-C bridging, or other framework support.",
+    "SwiftSyntax is not bundled by the observed toolchain and must not be claimed; bounded syntax facts may use successful swiftc typecheck and compiler AST output only.",
+    "SourceKit-LSP has no usable version probe here, and indexed semantic facts require a successful recent SwiftPM build plus target-level failure inspection; process exit zero alone does not prove a complete mixed-target result.",
+    "Command Line Tools lacks usable XCTest and Testing modules, so the pilot verifies an executable smoke product and does not claim a native Swift test-module boundary.",
+    "Swift interfaces, macros, plugins, resources, generated-source pipelines, arbitrary remote dependencies, mixed Swift/C-family targets, conditional compilation, reflection, and dynamic dispatch remain unsupported until separately validated."
+  ]
+}

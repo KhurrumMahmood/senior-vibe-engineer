@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-07-22T02:26:49-07:00",
+  "base_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
+  "platform": "macOS 26.5.2 arm64; active developer directory /Library/Developer/CommandLineTools",
+  "python_runtime": {
+    "requested_worktree_path": "/Users/<user>/Projects/engineering-skills-wt-p7-swift-spine/.venv/bin/python",
+    "requested_path_present": false,
+    "used_path": "/Users/<user>/Projects/engineering-skills-product/.venv/bin/python",
+    "version": "3.11.10"
+  },
+  "toolchain": {
+    "swift": {"path": "/usr/bin/swift", "version": "6.3.3", "minimum_profile_version": "6.0.0", "doctor_status": "available", "provenance": "system"},
+    "swiftc": {"path": "/usr/bin/swiftc", "version": "6.3.3", "minimum_profile_version": "6.0.0", "doctor_status": "available", "provenance": "system"},
+    "swiftpm": {"version": "6.3.3", "project_marker": "Package.swift", "scope": "dependency-free SwiftPM only"},
+    "sourcekit_lsp": {"path": "/usr/bin/sourcekit-lsp", "version_probe": "sourcekit-lsp --version fails with Unknown option", "status": "limited", "limitation": "A successful process or partial index cannot prove all selected targets succeeded."},
+    "swift_syntax": {"status": "unavailable", "evidence": "swift -e import SwiftSyntax fails with no such module", "claim": "compiler AST facts are not SwiftSyntax facts"},
+    "native_test_modules": {"status": "unavailable", "evidence": "Testing and XCTest imports fail under the active Command Line Tools installation", "replacement_boundary": "built executable smoke product only; no test-framework claim"},
+    "xcode": {"status": "unavailable-with-active-developer-directory", "boundary": "Xcode projects/workspaces, build settings, schemes, Apple frameworks, and app lifecycle are excluded"}
+  },
+  "fixture": {
+    "root": "tests/fixtures/swift-pilot",
+    "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), sorted regular-file paths",
+    "manifest_sha256": "099f8b10d41d17a245846ef70f7d4a3deba6c210da65035dd25b451646763147",
+    "total_bytes": 1787,
+    "files": [
+      "host/.build/Sentinel.swift",
+      "host/Package.swift",
+      "host/Sources/BillingCore/BillingCore.swift",
+      "host/Sources/SwiftPilotSmoke/main.swift",
+      "host/Tests/BillingCoreTests/InvoiceServiceTests.swift",
+      "host/generated/GeneratedInvoice.swift",
+      "host/vendor/Example/Vendor.swift",
+      "malformed/Broken.swift",
+      "symlink-target/LinkedExternal.swift"
+    ],
+    "runtime_symlink": "tests create host/LinkedExternal -> ../symlink-target and require inventory role=symlink without traversal",
+    "native_commands": [
+      "swift build --package-path <host> --cache-path <external>/cache --config-path <external>/config --security-path <external>/security --scratch-path <external>/build --disable-dependency-cache --manifest-cache local --disable-netrc --disable-keychain --disable-prefetching --disable-automatic-resolution --enable-index-store --product swift-pilot-smoke",
+      "<external>/build/debug/swift-pilot-smoke",
+      "swiftc -typecheck host/Sources/BillingCore/BillingCore.swift",
+      "swiftc -dump-ast host/Sources/BillingCore/BillingCore.swift",
+      "swiftc -typecheck malformed/Broken.swift"
+    ],
+    "native_result": "restrictive dependency-free build, executable smoke, typecheck, and compiler AST succeeded; malformed source was rejected; tracked host source bytes were unchanged"
+  },
+  "runtime_closure": {
+    "definition": "existing stdlib-only profile/doctor/inventory runtime needed by the spine; this is not a copied skill/provider closure and earns no support claim",
+    "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), listed path order",
+    "manifest_sha256": "7e793b2073e999fb4aa0ab6eb8ad805bf2b29062adcbdfa93e9245de249755f7",
+    "total_bytes": 42834,
+    "files": [
+      "scripts/language_profiles/swift.json",
+      "scripts/language_doctor.py",
+      "scripts/source_inventory.py",
+      "scripts/_lib/language_support/__init__.py",
+      "scripts/_lib/language_support/profile.py",
+      "scripts/_lib/language_support/lifecycle.py"
+    ]
+  },
+  "pilot_cohorts": {
+    "syntax": {
+      "skill": "find-omnibus",
+      "disposition": "swift-unsupported",
+      "producer": "swiftc compiler syntax/typecheck and -dump-ast",
+      "target": "host/Sources/BillingCore/BillingCore.swift",
+      "candidate_facts": ["declarations", "nominal kinds", "member spans", "direct syntax structure", "compiler syntax errors"],
+      "must_detect_if_implemented": ["BillingCore.swift contains Clock, FixedClock, Invoice, InvoiceFormatter, and InvoiceService responsibilities"],
+      "forbidden_claims": ["SwiftSyntax", "resolved references", "complete project semantics", "framework behavior", "supported final artifact before a cohort worker proves it"]
+    },
+    "semantic-project": {
+      "skill": "map-subsystem",
+      "disposition": "swift-unsupported",
+      "target": "host/Sources/BillingCore",
+      "required_facts": ["SwiftPM manifest/target graph", "successful build/index facts", "SourceKit-LSP references", "cross-target BillingCore -> SwiftPilotSmoke edge"],
+      "mixed_target_policy": "any selected-target failure makes the final outcome partial or failed, never clean/complete",
+      "limitations": ["recent successful build/index required", "process exit zero is insufficient", "conditional compilation, macros, reflection, dynamic dispatch, Xcode graphs, and mixed-language targets excluded"]
+    },
+    "mutation": {
+      "skill": "move-path",
+      "disposition": "swift-unsupported",
+      "scope": "one SwiftPM source-file or target-directory move",
+      "candidate_move": {"from": "Sources/BillingCore", "to": "Sources/InvoicingCore"},
+      "required_proofs": ["preview", "source fingerprint", "SwiftPM target membership update", "exact bounded diff", "rollback", "restrictive swift build", "executable smoke"],
+      "refusal_boundaries": ["malformed input", "symlink", "unexpected source change", "native failure", "Xcode project/scheme/resource rewrite", "framework or mixed-language target"]
+    }
+  },
+  "coverage": {
+    "artifact": ".claude/tasks/swift-language-coverage.json",
+    "rows": 22,
+    "disposition_counts": {"swift-unsupported": 22},
+    "reason": "Spine tooling and native fixture evidence do not reach any skill-owned final artifact or mutation boundary."
+  },
+  "mutation_performed": false,
+  "recommended_cohort_packets": [
+    "syntax/find-omnibus: compiler AST only, final artifact/lifecycle/source-role/tool-failure proof required",
+    "semantic-project/map-subsystem: SwiftPM plus build/index/SourceKit facts, with explicit mixed-target failure inspection",
+    "mutation/move-path: one SwiftPM source/target move only, serialized after read-only cohorts, with preview/fingerprint/rollback/build/smoke"
+  ]
+}

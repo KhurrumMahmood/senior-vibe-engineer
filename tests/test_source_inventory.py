@@ -61,8 +61,13 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     _write(host / "tests" / "MainTest.java", "class MainTest {}\n")
     _write(host / "src" / "InvoiceService.php", "<?php\nfinal class InvoiceService {}\n")
     _write(host / "tests" / "InvoiceServiceTest.php", "<?php\nfinal class InvoiceServiceTest {}\n")
+    _write(host / "Package.swift", "// swift-tools-version: 6.0\n")
+    _write(host / "Sources" / "BillingCore" / "InvoiceService.swift", "struct InvoiceService {}\n")
+    _write(host / "swift-tests" / "InvoiceServiceTests.swift", "func testInvoice() {}\n")
+    _write(host / "generated" / "GeneratedInvoice.swift", "struct GeneratedInvoice {}\n")
     _write(host / "node_modules" / "pkg" / "vendor.ts", "export const vendor = 1;\n")
     _write(host / "dist" / "bundle.ts", "export const bundled = 1;\n")
+    _write(host / ".build" / "SwiftBuildOutput.swift", "struct SwiftBuildOutput {}\n")
     external = tmp_path / "external"
     _write(external / "escaped.ts", "export const escaped = 1;\n")
     (host / "linked").symlink_to(external, target_is_directory=True)
@@ -82,6 +87,7 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
         "javascript",
         "php",
         "python",
+        "swift",
         "typescript",
     ]
     assert payload["capabilities"]["analysis"] == "none"
@@ -110,6 +116,10 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
         "tests/MainTest.java",
         "src/InvoiceService.php",
         "tests/InvoiceServiceTest.php",
+        "Package.swift",
+        "Sources/BillingCore/InvoiceService.swift",
+        "swift-tests/InvoiceServiceTests.swift",
+        "generated/GeneratedInvoice.swift",
     } == set(files)
 
     assert files["src/app.py"]["role"] == "source"
@@ -145,6 +155,11 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert files["src/InvoiceService.php"]["language"] == "php"
     assert files["src/InvoiceService.php"]["classification"] == "classified"
     assert files["tests/InvoiceServiceTest.php"]["role"] == "test"
+    assert files["Package.swift"]["language"] == "swift"
+    assert files["Package.swift"]["role"] == "configuration"
+    assert files["Sources/BillingCore/InvoiceService.swift"]["role"] == "source"
+    assert files["swift-tests/InvoiceServiceTests.swift"]["role"] == "test"
+    assert files["generated/GeneratedInvoice.swift"]["role"] == "generated"
 
     excluded = {row["path"]: row for row in payload["excluded_roots"]}
     assert excluded["node_modules"] == {
@@ -153,17 +168,21 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert excluded["dist"] == {
         "path": "dist", "role": "build", "reason": "build_output"
     }
+    assert excluded[".build"] == {
+        "path": ".build", "role": "build", "reason": "build_output"
+    }
     assert excluded["linked"] == {
         "path": "linked", "role": "symlink", "reason": "symlink_boundary"
     }
     assert "node_modules/pkg/vendor.ts" not in files
     assert "dist/bundle.ts" not in files
+    assert ".build/SwiftBuildOutput.swift" not in files
     assert "linked/escaped.ts" not in files
 
     assert payload["counts"]["files"] == len(files)
     assert payload["counts"]["classification"]["ambiguous"] == 1
     assert payload["counts"]["excluded_roles"] == {
-        "build": 1,
+        "build": 2,
         "vendor": 1,
         "symlink": 1,
     }
