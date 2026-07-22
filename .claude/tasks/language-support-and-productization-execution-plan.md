@@ -583,6 +583,25 @@ Per-language status:
 | C | `pilot_complete_expansion_required` | Apple Clang/clangd 21 plus Make 3.81 proven; `.c`/`.i` only; trustworthy C-mode compile DB required for semantic facts | 2 supported (`find-comment-drift`, `map-subsystem`), 20 pending implementation; not complete | Pilot truth published and installed-router tested | `.claude/tasks/multilanguage-learnings/c-pilot.md` plus spine and cohort packets | spine `56707fe`; lexical `b5a63e9`; semantic `5d6def3`; publication `79d8a27` |
 | C++ | `family_expansion_required` | Separate ISO C++20 profile; Apple Clang/clangd 21 and Make proven; trustworthy C++ compile DB required | 2 supported (`find-comment-drift`, `map-subsystem`), 20 pending implementation; not complete | Capability column published and installed-router tested | Spine, lexical, and semantic learning packets | spine `6d642f0`; lexical `9b1ed7d`; semantic `5eeff8e`; publication `7f1c6b3` |
 
+Current Rust family schedule after the three pilot outcomes are accepted:
+
+1. Lexical/filesystem batch (5): `adapt-project`, `explain-code`,
+   `find-concept-divergence`, `find-duplication`, and
+   `find-folder-topology-drift`.
+2. Syntax batch (4): `audit-decisions`, `find-complexity-hotspots`,
+   `find-omnibus`, and `find-standard-gaps`.
+3. Semantic read-only batch (5): `find-dormant`, `find-implicit-state`,
+   `find-incomplete-sweep`, `find-semantic-duplication`, and `rename-concept`.
+4. Proposal/guard batch (5), only after the required producer artifacts are
+   accepted: `extract-enum`, `prevent-regression`, `propose-boundary`,
+   `propose-folder-reorganization`, and `unify-shadows`.
+
+The first three batches may use separate worktrees concurrently. Each skill
+retains an independent value scenario and final-outcome assertion; shared fact
+production is allowed only when the pilot evidence proves the facts identical.
+The proposal/guard batch is integrated after its producers and never shares a
+mutation executor.
+
 ### Language toolchain dependency register
 
 This table tracks development prerequisites; it is not an instruction to
