@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-07-22T13:00:00-07:00",
+  "base_revision": "230c2795cfa8d3811a39729722b952b087cd4a8b",
+  "platform": "macOS 26.5.2 arm64; stable-aarch64-apple-darwin rustup toolchain",
+  "python_runtime": {
+    "required_path": "/Users/<user>/Projects/engineering-skills-product/.venv/bin/python",
+    "version": "3.11.10"
+  },
+  "toolchain": {
+    "rustc": {"path": "/Users/<user>/.local/bin/rustc", "proxy_target": "/opt/homebrew/opt/rustup/bin/rustc", "version": "1.97.1", "commit": "8bab26f4f", "host": "aarch64-apple-darwin", "minimum_profile_version": "1.85.0", "required": true},
+    "cargo": {"path": "/Users/<user>/.local/bin/cargo", "proxy_target": "/opt/homebrew/opt/rustup/bin/cargo", "version": "1.97.1", "minimum_profile_version": "1.85.0", "required": true},
+    "rust-analyzer": {"path": "/Users/<user>/.local/bin/rust-analyzer", "proxy_target": "/opt/homebrew/opt/rustup/bin/rust-analyzer", "version": "1.97.1", "required": false, "boundary": "LSP is reusable; CLI analysis subcommands explicitly provide no stability guarantee and are feasibility probes only"},
+    "clippy": {"path": "/Users/<user>/.local/bin/cargo-clippy", "proxy_target": "/opt/homebrew/opt/rustup/bin/cargo-clippy", "version": "0.1.97", "required": false, "boundary": "project-native lint authority when the component and host policy are selected"},
+    "rustfmt": {"path": "/Users/<user>/.local/bin/rustfmt", "proxy_target": "/opt/homebrew/opt/rustup/bin/rustfmt", "version": "1.9.0-stable", "required": false, "boundary": "project-native formatting authority; check-only in the spine"},
+    "installation_performed": false,
+    "dependency_install_or_update_performed": false,
+    "network_used": false
+  },
+  "workspace_boundary": {
+    "shape": "dependency-free Cargo 2024 virtual workspace",
+    "members": ["crates/billing-core", "crates/rust-pilot-smoke"],
+    "required_for_fixture": ["Cargo.toml", "Cargo.lock", "member Cargo.toml files", "build.rs", "src modules", "tests", "examples", "benches"],
+    "cargo_environment": ["CARGO_NET_OFFLINE=true", "CARGO_TARGET_DIR=<outside-host>", "CARGO_HOME=<outside-host>"],
+    "valid": "cargo metadata accepts the locked offline workspace, reports both members and every selected target, and cargo check/test pass all targets and all features",
+    "invalid_states": ["missing all declared project markers", "malformed Cargo.toml", "stale Cargo.lock under --locked", "malformed selected Rust source", "Rust/Cargo below 1.85", "version probe missing or broken"],
+    "metadata_boundary": "Cargo.toml and Cargo.lock are project metadata rather than .rs source; build.rs is executable configuration whose outputs and environment require separate evidence."
+  },
+  "source_roles": {
+    "profile_owned_suffixes": [".rs"],
+    "first_party_modules": ["host/crates/billing-core/src/lib.rs", "host/crates/billing-core/src/invoice/mod.rs", "host/crates/billing-core/src/invoice/service.rs", "host/crates/billing-core/src/macro_boundary.rs", "host/crates/billing-core/src/experimental.rs", "host/crates/rust-pilot-smoke/src/main.rs"],
+    "configuration": ["host/crates/billing-core/build.rs"],
+    "test": ["host/crates/billing-core/tests/invoice_service.rs"],
+    "auxiliary_target_source": ["host/crates/billing-core/examples/invoice_example.rs", "host/crates/billing-core/benches/invoice_bench.rs"],
+    "direct_rustc_source": ["host/rustc/direct_smoke.rs"],
+    "generated": ["host/generated/GeneratedInvoice.rs"],
+    "excluded_vendor": ["host/vendor/VendorInvoice.rs"],
+    "excluded_build": ["host/target/TargetSentinel.rs"],
+    "runtime_symlink": "tests create host/linked-external -> ../symlink-target and require role=symlink without traversal",
+    "manifest_and_lock_not_inventoried": ["host/Cargo.toml", "host/Cargo.lock", "host/crates/billing-core/Cargo.toml", "host/crates/rust-pilot-smoke/Cargo.toml"]
+  },
+  "fixture": {
+    "root": "tests/fixtures/rust-pilot",
+    "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), sorted regular-file paths",
+    "manifest_sha256": "d388b6411ea0a5eb7e31cbb70454a0e4f6522dc88bb3ec10976df05342aa1909",
+    "total_bytes": 2789,
+    "files": [
+      "host/Cargo.lock",
+      "host/Cargo.toml",
+      "host/crates/billing-core/Cargo.toml",
+      "host/crates/billing-core/benches/invoice_bench.rs",
+      "host/crates/billing-core/build.rs",
+      "host/crates/billing-core/examples/invoice_example.rs",
+      "host/crates/billing-core/src/experimental.rs",
+      "host/crates/billing-core/src/invoice/mod.rs",
+      "host/crates/billing-core/src/invoice/service.rs",
+      "host/crates/billing-core/src/lib.rs",
+      "host/crates/billing-core/src/macro_boundary.rs",
+      "host/crates/billing-core/tests/invoice_service.rs",
+      "host/crates/rust-pilot-smoke/Cargo.toml",
+      "host/crates/rust-pilot-smoke/src/main.rs",
+      "host/generated/GeneratedInvoice.rs",
+      "host/rustc/direct_smoke.rs",
+      "host/target/TargetSentinel.rs",
+      "host/vendor/VendorInvoice.rs",
+      "malformed/Broken.rs",
+      "symlink-target/External.rs"
+    ],
+    "cargo_targets": ["lib", "bin", "test", "example", "bench", "custom-build"],
+    "native_commands": [
+      "cargo metadata --format-version 1 --locked --offline --no-deps",
+      "cargo check --locked --offline --workspace --all-targets --all-features",
+      "cargo test --locked --offline --workspace --all-targets --all-features",
+      "cargo run --quiet --locked --offline -p rust-pilot-smoke",
+      "cargo clippy --locked --offline --workspace --all-targets --all-features -- -D warnings",
+      "cargo fmt --all -- --check",
+      "rustc --edition=2024 --test rustc/direct_smoke.rs -o <external>/rustc-direct-test",
+      "rustc --edition=2024 rustc/direct_smoke.rs -o <external>/rustc-direct-smoke",
+      "rust-analyzer analysis-stats <copied-host> --disable-build-scripts --disable-proc-macros --no-test",
+      "rustc --edition=2024 --crate-type=lib --emit=metadata malformed/Broken.rs"
+    ],
+    "native_result": "Copied workspace metadata, all-target/all-feature check and test, executable smoke, Clippy warnings-as-errors, rustfmt check, direct rustc test/smoke, and bounded rust-analyzer feasibility pass offline with external target/cache state; malformed Rust, malformed Cargo.toml, and stale Cargo.lock are rejected without changing audited bytes."
+  },
+  "runtime_closure": {
+    "definition": "Rust profile plus existing stdlib-only profile/doctor/inventory runtime exercised by the spine; this is not a copied skill closure and earns no skill support claim.",
+    "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), listed path order",
+    "manifest_sha256": "2631b776422a93613c64e23ad8baed337702e52bda9028da8acd5150d1518ff0",
+    "total_bytes": 44944,
+    "files": [
+      "scripts/language_profiles/rust.json",
+      "scripts/language_doctor.py",
+      "scripts/source_inventory.py",
+      "scripts/_lib/language_support/__init__.py",
+      "scripts/_lib/language_support/profile.py",
+      "scripts/_lib/language_support/lifecycle.py"
+    ]
+  },
+  "runtime_timings_seconds": {
+    "measurement": "single local monotonic observations with cold external target state; informational, not performance thresholds",
+    "cargo_metadata": 0.1434,
+    "cargo_check": 2.5716,
+    "cargo_test": 3.6915,
+    "cargo_clippy": 0.8890,
+    "cargo_fmt_check": 0.0714,
+    "cargo_smoke": 1.6166
+  },
+  "fact_tiers": {
+    "lexical-filesystem": "Profile/inventory paths, exact bytes, comments/doc comments, tokens, attributes, module file conventions, and exclusions; no macro-expanded or cfg-selected identity.",
+    "syntax": "Successful stable compiler/Cargo parse and diagnostics across selected files/targets/features; syntax alone does not prove expanded/generated behavior.",
+    "semantic-project": "Stable Cargo package/target/feature/path-dependency facts plus bounded rust-analyzer LSP facts, accepted only for the exact locked source/configuration snapshot and explicitly selected cfg/target/build-script/proc-macro state."
+  },
+  "tool_reuse": {
+    "stable_required": ["rustc", "Cargo"],
+    "rustup_optional_components": ["rust-analyzer", "Clippy", "rustfmt"],
+    "stable_interfaces": ["cargo metadata JSON format 1", "Cargo diagnostics", "rust-analyzer LSP", "Clippy diagnostics", "rustfmt check"],
+    "unstable_feasibility_only": ["rust-analyzer analysis-stats and other CLI analysis subcommands"],
+    "forbidden_portability_dependency": ["private rustc APIs"],
+    "policy": "Use host-selected toolchain/components and project Cargo configuration. Missing optional tools limit outcomes but never make unfinished jobs permanently unsupported."
+  },
+  "semantic_limits": [
+    "macro_rules expansion and hygiene plus procedural macro host execution",
+    "build.rs output, rerun rules, environment, OUT_DIR generation, and include! inputs",
+    "cfg, feature, target, profile, optional-dependency, workspace, and platform variants not explicitly enumerated",
+    "trait-object dispatch, generic monomorphization, unsafe/FFI, compiler desugaring, doctests, examples/benches as production reachability roots",
+    "workspace inheritance, patches/replacements, alternate registries, vendoring, non-Cargo projects, nightly features, cross-compilation, and no_std/embedded targets"
+  ],
+  "pilot_contracts": {
+    "lexical": {
+      "skill": "find-comment-drift",
+      "disposition": "rust-pending-implementation",
+      "producer_candidate": "Rust lexer/parser or rust-analyzer syntax/source spans gated by cargo check for the selected snapshot",
+      "final_outcome": "Atomic durable detections/report or clean result with complete/partial/unsupported/failed lifecycle and stale-output replacement.",
+      "positive_obligation": {"path": "host/crates/billing-core/src/invoice/service.rs", "comment": "Calculates a percentage fee from the invoice amount.", "code_fact": "fee_cents ignores the amount and returns the fixed value 125", "required_result": "one precise behavior-drift finding with doc-comment and code spans"},
+      "must_not_fire": ["generated", "vendor", "target", "test", "attributes", "accurate render doc comment", "macro-expanded semantic inference", "inactive cfg branch without selection evidence"],
+      "native_obligations": ["cargo check", "rustfmt check", "malformed-file non-complete outcome", "copied closure", "source fingerprint", "valid-to-failed transition", "failed-to-valid transition", "stale artifact clearing"],
+      "forbidden_claims": ["doc syntax proves runtime behavior", "macro/build/cfg variants were analyzed when excluded", "supported before the skill final artifact passes"]
+    },
+    "semantic": {
+      "skill": "map-subsystem",
+      "disposition": "rust-pending-implementation",
+      "producer_candidate": "cargo metadata/check target graph plus bounded rust-analyzer semantic facts for the exact locked snapshot",
+      "target": "host/crates/billing-core",
+      "cargo_gate": ["valid", "locked", "offline", "workspace-complete", "all-targets", "all-features"],
+      "positive_obligations": ["workspace -> billing-core and rust-pilot-smoke members", "rust-pilot-smoke -> billing-core path dependency", "lib.rs -> invoice -> service module edges", "public InvoiceService re-export", "test/example/bench/custom-build target provenance"],
+      "must_not_resolve_without_evidence": ["macro_rules expansion", "procedural macros", "build-script outputs", "cfg variants", "include! inputs", "trait-object runtime dispatch", "unselected target triples"],
+      "must_not_include": ["generated", "vendor", "target", "symlink target as first-party", "test/example/bench as production module"],
+      "native_obligations": ["cargo metadata", "cargo check", "cargo test", "Clippy", "rustfmt", "executable smoke", "copied closure", "source fingerprint", "malformed manifest/source and stale-lock non-complete states", "stale artifact clearing"]
+    },
+    "mutation": {
+      "skill": "move-path",
+      "disposition": "rust-pending-implementation",
+      "state": "deferred-until-accepted-module-and-reference-lineage",
+      "scope": "one Cargo module-file rename with explicit mod declaration update and unchanged public re-export/API",
+      "candidate_move": {"from": "crates/billing-core/src/invoice/service.rs", "to": "crates/billing-core/src/invoice/invoice_service.rs"},
+      "positive_obligations": ["move exactly one file", "update mod service to mod invoice_service", "preserve public InvoiceService re-export and external paths", "emit preview and final exact change set"],
+      "must_not_change": ["Cargo.lock", "Cargo manifests", "build.rs", "macro_boundary.rs", "generated", "vendor", "target", "tests/examples/benches unless proved textual references require it"],
+      "refusal_boundaries": ["include!", "procedural macros", "build.rs output", "cfg-dependent modules", "path attributes", "symlink", "unexpected source change", "native failure", "stale or mutable lock", "workspace/target ambiguity"],
+      "native_obligations": ["accepted semantic lineage", "preview", "exact bounded diff", "source fingerprint", "rollback", "cargo metadata", "cargo check", "cargo test", "Clippy", "rustfmt", "executable smoke", "copied closure", "same-destination terminal state", "stale artifact clearing"]
+    }
+  },
+  "stale_artifact_contract": {
+    "invalid-or-failed": "remove prior final artifacts before emitting the failure state",
+    "clean-or-complete": "atomically replace prior artifacts; never inherit stale findings",
+    "same-destination": "valid-to-failed and failed-to-valid transitions are mandatory"
+  },
+  "coverage": {
+    "artifact": ".claude/tasks/rust-language-coverage.json",
+    "rows": 22,
+    "disposition_counts": {"rust-pending-implementation": 22},
+    "reason": "Profile, doctor, inventory, Cargo/rustc native fixture, optional-tool feasibility, and frozen contracts do not reach any skill-owned final artifact or mutation boundary. Unfinished work is pending, not unsupported."
+  },
+  "mutation_performed": false,
+  "root_integration_needs": [
+    "In tests/test_language_support_profile.py::test_repository_profiles_cover_current_inventory_languages, add rust to the expected profile set and add .rs: rust to the expected suffix-owner map. In tests/test_source_inventory.py::test_inventory_covers_first_party_roles_and_honest_boundaries, add rust to the expected inventory_languages list. These are the exact minimal root-owned census changes needed for the generic suites to pass.",
+    "Keep Cargo.toml/Cargo.lock as project metadata and build.rs as executable configuration. Examples and benches are auxiliary target source; do not silently label them production modules or ordinary tests.",
+    "Do not publish router/matrix/catalog support until Rust cohorts reach skill-owned final outcomes. All 22 rows are pending implementation."
+  ]
+}

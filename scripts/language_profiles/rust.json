@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "language": "rust",
+  "suffixes": [".rs"],
+  "project_markers": ["Cargo.toml", "Cargo.lock"],
+  "source_roles": {
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "migration", "symlink"],
+    "test_file_globs": ["test_*.rs", "*_test.rs"],
+    "declaration_file_globs": [],
+    "configuration_files": ["build.rs"]
+  },
+  "native_tools": [
+    {
+      "id": "rustc",
+      "project_paths": [".tools/rust/bin/rustc", "tools/rust/bin/rustc"],
+      "system_commands": ["rustc"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "1.85.0",
+      "required": true
+    },
+    {
+      "id": "cargo",
+      "project_paths": [".tools/rust/bin/cargo", "tools/rust/bin/cargo"],
+      "system_commands": ["cargo"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "1.85.0",
+      "required": true
+    },
+    {
+      "id": "rust-analyzer",
+      "project_paths": [".tools/rust/bin/rust-analyzer", "tools/rust/bin/rust-analyzer"],
+      "system_commands": ["rust-analyzer"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "1.85.0",
+      "required": false
+    },
+    {
+      "id": "cargo-clippy",
+      "project_paths": [".tools/rust/bin/cargo-clippy", "tools/rust/bin/cargo-clippy"],
+      "system_commands": ["cargo-clippy"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "0.1.85",
+      "required": false
+    },
+    {
+      "id": "rustfmt",
+      "project_paths": [".tools/rust/bin/rustfmt", "tools/rust/bin/rustfmt"],
+      "system_commands": ["rustfmt"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "1.8.0",
+      "required": false
+    }
+  ],
+  "fact_tiers": ["lexical-filesystem", "syntax", "semantic-project"],
+  "verification_commands": [
+    {
+      "id": "cargo-metadata",
+      "argv": ["{tool:cargo}", "metadata", "--format-version", "1", "--locked", "--offline", "--no-deps"],
+      "requires": ["cargo"]
+    },
+    {
+      "id": "cargo-check",
+      "argv": ["{tool:cargo}", "check", "--locked", "--offline", "--workspace", "--all-targets", "--all-features"],
+      "requires": ["cargo", "rustc"]
+    },
+    {
+      "id": "cargo-test",
+      "argv": ["{tool:cargo}", "test", "--locked", "--offline", "--workspace", "--all-targets", "--all-features"],
+      "requires": ["cargo", "rustc"]
+    },
+    {
+      "id": "cargo-clippy",
+      "argv": ["{tool:cargo}", "clippy", "--locked", "--offline", "--workspace", "--all-targets", "--all-features", "--", "-D", "warnings"],
+      "requires": ["cargo", "rustc", "cargo-clippy"]
+    },
+    {
+      "id": "cargo-fmt",
+      "argv": ["{tool:cargo}", "fmt", "--all", "--", "--check"],
+      "requires": ["cargo", "rustfmt"]
+    },
+    {
+      "id": "rustc-direct-test",
+      "argv": ["{tool:rustc}", "--edition=2024", "--test", "{project_root}/rustc/direct_smoke.rs", "-o", "{project_root}/target/rustc-direct-test"],
+      "requires": ["rustc"]
+    }
+  ],
+  "terminal_outcomes": ["complete", "partial", "unsupported", "tool-missing", "syntax-error", "native-check-failure", "unexpected-source-mutation"],
+  "explicit_limits": [
+    "This profile is a dependency-free Cargo 2024 workspace baseline. It does not imply async runtimes, web frameworks, embedded/no_std targets, FFI, WASM, cross-compilation, nightly Rust, or non-Cargo build systems.",
+    "Only .rs is source-inventory-owned. Cargo.toml and Cargo.lock are project metadata, build.rs is an executable configuration boundary, and Cargo metadata must validate workspace members, targets, features, and the locked offline dependency graph before project facts are complete.",
+    "Cargo commands must use --locked and --offline with CARGO_TARGET_DIR outside the audited source tree when preservation matters. They must never fetch, update, vendor, publish, or rewrite Cargo.lock.",
+    "src modules are first-party source; tests are test code; examples and benches are auxiliary target source, not production modules or automatically equivalent tests. generated is classified separately, while vendor, target, and symlink roots are excluded.",
+    "Stable cargo metadata and compiler diagnostics can establish packages, targets, features, and successful builds. rust-analyzer subcommands are explicitly unstable and may provide bounded semantic feasibility only; private rustc APIs are never a portability contract.",
+    "macro_rules expansion, procedural macros, build-script output and environment, cfg/feature/target variants, include! inputs, generated OUT_DIR code, trait-object dispatch, monomorphization, unsafe/FFI, workspace inheritance, patches/replacements, and optional dependencies remain explicit completeness limits."
+  ]
+}
