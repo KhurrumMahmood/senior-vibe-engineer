@@ -188,9 +188,9 @@ or network connection at scan time.
 When Go is in scope, the selected skill instead invokes its bundled `.go`
 helper with the discovered Go 1.22+ executable; it has no host module or
 third-party dependency.
-When Java is in scope, it invokes its bundled `.java` helper with the
-discovered JDK 17+ source launcher; it has no Maven, Gradle, or third-party
-dependency.
+When Java is in scope, it invokes its bundled `.java` helper once with every
+selected eligible Java source, using the discovered JDK 17+ source launcher;
+it has no Maven, Gradle, or third-party dependency.
 
 ## Read the final artifact before acting
 

@@ -525,35 +525,44 @@ def _java_toolchain() -> tuple[Path, Path]:
     return Path(discovered["java"]), Path(discovered["javac"])
 
 
-def _java_references(path: Path, project_root: Path) -> list[tuple[int, str, str]]:
-    """Return JDK-validated Java comments from one selected source file."""
+def _java_references(
+    paths: list[Path], project_root: Path
+) -> dict[Path, list[tuple[int, str, str]]]:
+    """Return JDK-validated Java comments from selected sources in one launch."""
+    if not paths:
+        return {}
+    for path in paths:
+        try:
+            path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            raise ValueError(
+                f"status=failed: cannot read Java source {_relative(path, project_root)}: {exc}"
+            ) from exc
     launcher = Path(__file__).resolve().with_name("detect_java_comments.java")
     java, _javac = _java_toolchain()
+    command = [str(java), str(launcher), "--project-root", str(project_root)]
+    for path in paths:
+        command.extend(("--file", str(path)))
     try:
         result = subprocess.run(
-            [
-                str(java),
-                str(launcher),
-                "--project-root",
-                str(project_root),
-                "--file",
-                str(path),
-            ],
+            command,
             capture_output=True,
             text=True,
             check=False,
         )
     except OSError as exc:
         raise ValueError(f"status=unsupported: cannot run Java comment parser: {exc}") from exc
-    relative = _relative(path, project_root)
+    first_relative = _relative(paths[0], project_root)
     if result.returncode:
         detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
-        raise ValueError(f"status=failed: Java comment parser failed for {relative}: {detail}")
+        raise ValueError(
+            f"status=failed: Java comment parser failed for {first_relative}: {detail}"
+        )
     try:
         payload = json.loads(result.stdout)
     except json.JSONDecodeError as exc:
         raise ValueError(
-            f"status=failed: Java comment parser emitted invalid JSON for {relative}"
+            f"status=failed: Java comment parser emitted invalid JSON for {first_relative}"
         ) from exc
     if (
         not isinstance(payload, dict)
@@ -561,56 +570,59 @@ def _java_references(path: Path, project_root: Path) -> list[tuple[int, str, str
         or payload.get("analyzer") != "jdk-compiler-tree-api"
         or not isinstance(payload.get("java_version"), str)
         or not isinstance(payload.get("files"), list)
-        or len(payload["files"]) != 1
+        or len(payload["files"]) != len(paths)
     ):
         raise ValueError(
-            f"status=failed: Java comment parser emitted an invalid result for {relative}"
+            f"status=failed: Java comment parser emitted an invalid result for {first_relative}"
         )
-    file_payload = payload["files"][0]
-    if not isinstance(file_payload, dict):
-        raise ValueError(
-            f"status=failed: Java comment parser emitted an invalid result for {relative}"
-        )
-    if file_payload.get("file") != relative or file_payload.get("status") not in {
-        "complete", "generated", "read-error", "syntax-error"
-    }:
-        raise ValueError(
-            f"status=failed: Java comment parser emitted invalid file evidence for {relative}"
-        )
-    status = file_payload["status"]
-    if status in {"read-error", "syntax-error"}:
-        detail = file_payload.get("error") or status
-        kind = "syntax error" if status == "syntax-error" else "read error"
-        raise ValueError(
-            f"status=failed: Java comment parser {kind} for {relative}: {detail}"
-        )
-    records = file_payload.get("records")
-    if not isinstance(records, list):
-        raise ValueError(
-            f"status=failed: Java comment parser emitted invalid references for {relative}"
-        )
-    references: list[tuple[int, str, str]] = []
-    for item in records:
-        if not isinstance(item, dict):
+    results: dict[Path, list[tuple[int, str, str]]] = {}
+    for path, file_payload in zip(paths, payload["files"], strict=True):
+        relative = _relative(path, project_root)
+        if not isinstance(file_payload, dict):
             raise ValueError(
-                f"status=failed: Java comment parser emitted an invalid reference for {relative}"
+                f"status=failed: Java comment parser emitted an invalid result for {relative}"
             )
-        line, identifier, form = item.get("line"), item.get("id"), item.get("comment_form")
-        if (
-            not isinstance(line, int)
-            or line < 1
-            or not isinstance(identifier, str)
-            or not REFERENCE.fullmatch(f"decision:{identifier}")
-            or form not in {"line", "block"}
-        ):
+        if file_payload.get("file") != relative or file_payload.get("status") not in {
+            "complete", "generated", "read-error", "syntax-error"
+        }:
             raise ValueError(
-                f"status=failed: Java comment parser emitted an invalid reference for {relative}"
+                f"status=failed: Java comment parser emitted invalid file evidence for {relative}"
             )
-        references.append((line, identifier, form))
-    return references
+        status = file_payload["status"]
+        if status in {"read-error", "syntax-error"}:
+            detail = file_payload.get("error") or status
+            kind = "syntax error" if status == "syntax-error" else "read error"
+            raise ValueError(
+                f"status=failed: Java comment parser {kind} for {relative}: {detail}"
+            )
+        records = file_payload.get("records")
+        if not isinstance(records, list):
+            raise ValueError(
+                f"status=failed: Java comment parser emitted invalid references for {relative}"
+            )
+        references: list[tuple[int, str, str]] = []
+        for item in records:
+            if not isinstance(item, dict):
+                raise ValueError(
+                    f"status=failed: Java comment parser emitted an invalid reference for {relative}"
+                )
+            line, identifier, form = item.get("line"), item.get("id"), item.get("comment_form")
+            if (
+                not isinstance(line, int)
+                or line < 1
+                or not isinstance(identifier, str)
+                or not REFERENCE.fullmatch(f"decision:{identifier}")
+                or form not in {"line", "block"}
+            ):
+                raise ValueError(
+                    f"status=failed: Java comment parser emitted an invalid reference for {relative}"
+                )
+            references.append((line, identifier, form))
+        results[path] = references
+    return results
 
 
-def scan_references(path: Path, project_root: Path) -> list[dict[str, Any]]:
+def _scan_references_for_file(path: Path, project_root: Path) -> list[dict[str, Any]]:
     suffix = path.suffix.lower()
     try:
         text = path.read_text(encoding="utf-8")
@@ -643,11 +655,6 @@ def scan_references(path: Path, project_root: Path) -> list[dict[str, Any]]:
             references.append(
                 _reference_dict(path, project_root, line, identifier, "go", form)
             )
-    elif suffix in JAVA_SUFFIXES:
-        for line, identifier, form in _java_references(path, project_root):
-            references.append(
-                _reference_dict(path, project_root, line, identifier, "java", form)
-            )
     elif suffix == ".md":
         for match in MARKDOWN_REFERENCE.finditer(text):
             references.append(_reference_dict(path, project_root, text.count("\n", 0, match.start()) + 1, match.group(1), "markdown", "hash"))
@@ -657,6 +664,23 @@ def scan_references(path: Path, project_root: Path) -> list[dict[str, Any]]:
             after = text.find("-->", match.start())
             form = "html-comment" if before >= 0 and after >= 0 else "hash"
             references.append(_reference_dict(path, project_root, text.count("\n", 0, match.start()) + 1, match.group(1), "html", form))
+    return references
+
+
+def scan_references(paths: Iterable[Path], project_root: Path) -> list[dict[str, Any]]:
+    """Scan selected sources while launching the Java helper once per audit."""
+    selected_paths = list(paths)
+    java_paths = [path for path in selected_paths if path.suffix.lower() in JAVA_SUFFIXES]
+    java_records: dict[Path, list[tuple[int, str, str]]] | None = None
+    references: list[dict[str, Any]] = []
+    for path in selected_paths:
+        if path.suffix.lower() not in JAVA_SUFFIXES:
+            references.extend(_scan_references_for_file(path, project_root))
+            continue
+        if java_records is None:
+            java_records = _java_references(java_paths, project_root)
+        for line, identifier, form in java_records[path]:
+            references.append(_reference_dict(path, project_root, line, identifier, "java", form))
     return references
 
 
@@ -892,11 +916,7 @@ def run(args: argparse.Namespace) -> int:
     targets = [_resolve_target(raw, project_root) for raw in args.target] if args.target else [project_root]
     decisions = load_decisions(project_root / "ai-docs" / "decisions")
     scannable_files = iter_scannable_files(project_root, targets)
-    references = [
-        reference
-        for path in scannable_files
-        for reference in scan_references(path, project_root)
-    ]
+    references = scan_references(scannable_files, project_root)
     known_ids = {decision.id for decision in decisions}
     for reference in references:
         reference["resolved"] = reference["id"] in known_ids

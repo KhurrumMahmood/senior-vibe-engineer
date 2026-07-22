@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -78,6 +79,29 @@ def _raw(output: Path) -> dict:
     return json.loads((output / "raw-drift.json").read_text(encoding="utf-8"))
 
 
+def _recording_jdk(tmp_path: Path, env: dict[str, str]) -> tuple[dict[str, str], Path]:
+    """Wrap the selected JDK so the audit's process boundary is observable."""
+    bin_dir = tmp_path / "recording-jdk"
+    bin_dir.mkdir()
+    calls = tmp_path / "jdk-calls.txt"
+    for name in ("java", "javac"):
+        executable = shutil.which(name, path=env["PATH"])
+        assert executable is not None
+        wrapper = bin_dir / name
+        wrapper.write_text(
+            "#!/bin/sh\n"
+            f"printf '%s %s\\n' {shlex.quote(name)} \"$*\" >> \"$AUDIT_JDK_CALLS\"\n"
+            f"exec {shlex.quote(executable)} \"$@\"\n",
+            encoding="utf-8",
+        )
+        wrapper.chmod(0o755)
+    return {
+        **env,
+        "PATH": f"{bin_dir}{os.pathsep}{env['PATH']}",
+        "AUDIT_JDK_CALLS": str(calls),
+    }, calls
+
+
 def _assert_outcome(output: Path) -> None:
     raw = _raw(output)
     java_refs = [item for item in raw["references"] if item["language"] == "java"]
@@ -110,6 +134,41 @@ def test_java_comments_reach_final_drift_and_source_is_read_only(tmp_path: Path)
     assert result.returncode == 1, result.stdout + result.stderr
     _assert_outcome(output)
     assert _fingerprints(host) == before
+
+
+def test_java_audit_batches_multiple_sources_into_one_helper_launch(tmp_path: Path) -> None:
+    host, env = _host(tmp_path)
+    extra_sources = [
+        host / "src" / "main" / "java" / "refs" / "AdditionalRefs.java",
+        host / "src" / "main" / "java" / "refs" / "FinalRefs.java",
+    ]
+    for index, source in enumerate(extra_sources, start=1):
+        source.write_text(
+            f"package refs; final class {source.stem} {{ // decision:000{index}\n}}\n",
+            encoding="utf-8",
+        )
+    recording_env, calls_path = _recording_jdk(tmp_path, env)
+    output = host / "reports" / "audit-decisions" / "batched"
+
+    result = _audit(SKILL, host, output, recording_env)
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    calls = calls_path.read_text(encoding="utf-8").splitlines()
+    helper_calls = [call for call in calls if "detect_java_comments.java" in call]
+    assert len(helper_calls) == 1
+    assert helper_calls[0].count("--file") == 3
+    assert all(str(source) in helper_calls[0] for source in extra_sources)
+    assert [call for call in calls if call == "java -version"] == ["java -version"]
+    assert [call for call in calls if call == "javac -version"] == ["javac -version"]
+    references = _raw(output)["references"]
+    assert {
+        (reference["path"], reference["id"])
+        for reference in references
+        if reference["language"] == "java"
+    } >= {
+        (source.relative_to(host).as_posix(), f"000{index}")
+        for index, source in enumerate(extra_sources, start=1)
+    }
 
 
 def test_java_strings_exclusions_unresolved_and_external_symlink_are_honest(tmp_path: Path) -> None:
