@@ -231,18 +231,18 @@ def test_swift_frozen_cohorts_preserve_fact_and_mutation_boundaries() -> None:
     syntax = cohorts["syntax"]
     assert syntax["skill"] == "find-omnibus"
     assert syntax["producer"] == "swiftc compiler syntax/typecheck and -dump-ast"
-    assert syntax["disposition"] == "swift-unsupported"
+    assert syntax["disposition"] == "swift-pending-implementation"
     assert "SwiftSyntax" in syntax["forbidden_claims"]
 
     semantic = cohorts["semantic-project"]
     assert semantic["skill"] == "map-subsystem"
-    assert semantic["disposition"] == "swift-unsupported"
+    assert semantic["disposition"] == "swift-pending-implementation"
     assert semantic["mixed_target_policy"] == "any selected-target failure makes the final outcome partial or failed, never clean/complete"
     assert {"SwiftPM manifest/target graph", "successful build/index facts", "SourceKit-LSP references"} <= set(semantic["required_facts"])
 
     mutation = cohorts["mutation"]
     assert mutation["skill"] == "move-path"
-    assert mutation["disposition"] == "swift-unsupported"
+    assert mutation["disposition"] == "swift-pending-implementation"
     assert mutation["scope"] == "one SwiftPM source-file or target-directory move"
     assert {"preview", "source fingerprint", "rollback", "restrictive swift build", "executable smoke"} <= set(mutation["required_proofs"])
     assert baseline["mutation_performed"] is False
@@ -252,11 +252,11 @@ def test_all_22_swift_skill_rows_have_explicit_closeout_dispositions() -> None:
     coverage = json.loads(COVERAGE.read_text(encoding="utf-8"))
     rows = coverage["skills"]
 
-    assert coverage["decision"] == "stop-after-pilot"
+    assert coverage["decision"] == "expand"
     assert len(rows) == 22
     assert {row["skill"] for row in rows} == EXPECTED_SKILLS
     assert {
         row["skill"] for row in rows if row["disposition"] == "swift-supported"
     } == {"find-omnibus", "map-subsystem", "move-path"}
-    assert sum(row["disposition"] == "swift-unsupported" for row in rows) == 19
+    assert sum(row["disposition"] == "swift-pending-implementation" for row in rows) == 19
     assert all(row["limitation"] and row["native_check"] for row in rows)

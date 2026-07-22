@@ -152,7 +152,11 @@ def test_c_generic_inventory_roles_header_ambiguity_symlink_and_preservation(tmp
     assert files["src/main.c"]["role"] == "source"
     assert files["tests/invoice_test.c"]["role"] == "test"
     assert files["generated/GeneratedInvoice.c"]["role"] == "generated"
-    assert not any(path.endswith((".h", ".inc", ".cpp", ".m", ".mm", ".cu", ".cl", ".S")) for path in files)
+    assert files["foreign/Foreign.cpp"]["language"] == "cpp"
+    assert not any(
+        path.endswith((".h", ".inc", ".m", ".mm", ".cu", ".cl", ".S"))
+        for path in files
+    )
     excluded = {row["path"]: row["role"] for row in payload["excluded_roots"]}
     assert excluded["build"] == "build"
     assert excluded["vendor"] == "vendor"
@@ -284,7 +288,7 @@ def test_c_frozen_contracts_and_all_22_initial_dispositions() -> None:
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
     contracts = baseline["pilot_contracts"]
     assert contracts["lexical"]["skill"] == "find-comment-drift"
-    assert contracts["lexical"]["disposition"] == "c-unsupported"
+    assert contracts["lexical"]["disposition"] == "c-pending-implementation"
     assert contracts["semantic"]["skill"] == "map-subsystem"
     assert contracts["semantic"]["compile_database_gate"] == ["valid", "current", "complete", "C-mode", "no-fallback"]
     assert contracts["mutation"]["skill"] == "move-path"
@@ -293,10 +297,13 @@ def test_c_frozen_contracts_and_all_22_initial_dispositions() -> None:
 
     coverage = json.loads(COVERAGE.read_text(encoding="utf-8"))
     rows = coverage["skills"]
-    assert coverage["decision"] == "spine-only-no-support-claim"
+    assert coverage["decision"] == "expand"
     assert len(rows) == 22
     assert {row["skill"] for row in rows} == EXPECTED_SKILLS
-    assert all(row["disposition"] == "c-unsupported" for row in rows)
+    assert {
+        row["skill"] for row in rows if row["disposition"] == "c-supported"
+    } == {"find-comment-drift", "map-subsystem"}
+    assert sum(row["disposition"] == "c-pending-implementation" for row in rows) == 20
     assert all(
         row["evidence_path"]
         and row["native_check"]

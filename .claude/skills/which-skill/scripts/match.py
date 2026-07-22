@@ -676,7 +676,23 @@ def capability_handoff(library_root: Path, skills: list[str]) -> dict:
     }
 
 
-def capability_language_exclusion(capabilities: dict, routing_context: dict) -> str | None:
+def _capability_exclusion(disposition: str, reason: str) -> dict[str, str]:
+    if disposition.endswith("-pending-implementation"):
+        classification = "pending-implementation"
+    elif disposition.endswith("-unsupported"):
+        classification = "unsupported"
+    elif disposition == "not-applicable":
+        classification = "not-applicable"
+    elif disposition.endswith("-partial"):
+        classification = "partial"
+    else:
+        classification = "not-validated"
+    return {"classification": classification, "reason": reason}
+
+
+def capability_language_exclusion(
+    capabilities: dict, routing_context: dict
+) -> dict[str, str] | None:
     if not capabilities.get("available"):
         return None
     for language in routing_context["languages"]:
@@ -685,39 +701,42 @@ def capability_language_exclusion(capabilities: dict, routing_context: dict) -> 
                 "go-supported",
                 "validated-neutral",
             }:
-                return (
-                    f"/{row['skill']} declares go_disposition="
-                    f"{row['go_disposition']}"
+                return _capability_exclusion(
+                    row["go_disposition"],
+                    f"/{row['skill']} declares go_disposition={row['go_disposition']}",
                 )
             if language == "java" and row["java_disposition"] not in {
                 "java-supported",
                 "validated-neutral",
             }:
-                return (
-                    f"/{row['skill']} declares java_disposition="
-                    f"{row['java_disposition']}"
+                return _capability_exclusion(
+                    row["java_disposition"],
+                    f"/{row['skill']} declares java_disposition={row['java_disposition']}",
                 )
             if language == "php" and row["php_disposition"] not in {
                 "php-supported",
                 "validated-neutral",
             }:
-                return (
-                    f"/{row['skill']} declares php_disposition="
-                    f"{row['php_disposition']}"
+                return _capability_exclusion(
+                    row["php_disposition"],
+                    f"/{row['skill']} declares php_disposition={row['php_disposition']}",
                 )
             if language == "swift" and row["swift_disposition"] not in {
                 "swift-supported",
                 "validated-neutral",
             }:
-                return (
-                    f"/{row['skill']} declares swift_disposition="
-                    f"{row['swift_disposition']}"
+                return _capability_exclusion(
+                    row["swift_disposition"],
+                    f"/{row['skill']} declares swift_disposition={row['swift_disposition']}",
                 )
             if language == "c" and row["c_disposition"] not in {
                 "c-supported",
                 "validated-neutral",
             }:
-                return f"/{row['skill']} declares c_disposition={row['c_disposition']}"
+                return _capability_exclusion(
+                    row["c_disposition"],
+                    f"/{row['skill']} declares c_disposition={row['c_disposition']}",
+                )
     return None
 
 
@@ -830,7 +849,13 @@ def code_health_family_handoff(
         elif not member["on_demand_closure"]["capabilities"]["available"]:
             skips.append({"skill": skill, "reason": "capability_evidence_unavailable"})
         elif capability_reason is not None:
-            skips.append({"skill": skill, "reason": capability_reason})
+            skips.append(
+                {
+                    "skill": skill,
+                    "classification": capability_reason["classification"],
+                    "reason": capability_reason["reason"],
+                }
+            )
         elif dependency and not dependencies[dependency]["available"]:
             if dependency == "host_standards":
                 reason = dependencies[dependency]["reason"]
@@ -1146,16 +1171,18 @@ def cmd_match(args, catalog_path: Path) -> int:
         blocked_name = out["recommendation"]
         out.pop("handoff")
         out.pop("task_packet", None)
-        out["recommendation"] = "unsupported"
-        out["unsupported"] = {
+        classification = capability_reason["classification"]
+        out["recommendation"] = classification
+        out["unavailable"] = {
             "name": blocked_name,
             "score": above[0][0],
-            "reason": capability_reason,
+            "classification": classification,
+            "reason": capability_reason["reason"],
         }
         out["rationale"] = (
-            f"The strongest matching skill, /{blocked_name}, is not eligible for "
-            f"the resolved language/framework: {capability_reason}. No weaker "
-            "skill was substituted."
+            f"The strongest matching skill, /{blocked_name}, is currently "
+            f"{classification} for the resolved language/framework: "
+            f"{capability_reason['reason']}. No weaker skill was substituted."
         )
         if args.json:
             print(json.dumps(out, indent=2))

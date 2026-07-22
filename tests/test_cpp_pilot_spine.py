@@ -1,4 +1,4 @@
-"""Frozen C++-only P7 spine, compile-database gate, and unsupported truth."""
+"""Frozen C++-only P7 spine, compile-database gate, and pending-work truth."""
 from __future__ import annotations
 
 import hashlib
@@ -303,7 +303,7 @@ def test_cpp_frozen_contracts_and_all_22_initial_dispositions() -> None:
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
     contracts = baseline["pilot_contracts"]
     assert contracts["lexical"]["skill"] == "find-comment-drift"
-    assert contracts["lexical"]["disposition"] == "cpp-unsupported"
+    assert contracts["lexical"]["disposition"] == "cpp-pending-implementation"
     assert contracts["semantic"]["skill"] == "map-subsystem"
     assert contracts["semantic"]["compile_database_gate"] == ["valid", "current", "complete", "C++20-mode", "no-fallback"]
     assert contracts["mutation"]["skill"] == "move-path"
@@ -312,8 +312,8 @@ def test_cpp_frozen_contracts_and_all_22_initial_dispositions() -> None:
 
     coverage = json.loads(COVERAGE.read_text(encoding="utf-8"))
     rows = coverage["skills"]
-    assert coverage["decision"] == "spine-only-no-support-claim"
+    assert coverage["decision"] == "expand"
     assert len(rows) == 22
     assert {row["skill"] for row in rows} == EXPECTED_SKILLS
-    assert all(row["disposition"] == "cpp-unsupported" for row in rows)
+    assert all(row["disposition"] == "cpp-pending-implementation" for row in rows)
     assert all(row["evidence_path"] and row["native_check"] and row["reviewed_revision"] and row["limitation"] for row in rows)

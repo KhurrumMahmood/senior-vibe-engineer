@@ -72,7 +72,7 @@
   "pilot_contracts": {
     "lexical": {
       "skill": "find-comment-drift",
-      "disposition": "c-unsupported",
+      "disposition": "c-pending-implementation",
       "producer_candidate": "version-gated clang raw tokens plus exact source spans",
       "final_outcome": "durable findings and clean result with source-role exclusions and complete/partial/unsupported/failed lifecycle",
       "required_boundaries": ["valid", "clean", "malformed", "generated", "vendor", "ambiguous-header", "tool-missing", "tool-too-old", "source-preserving", "copied closure"],
@@ -80,7 +80,7 @@
     },
     "semantic": {
       "skill": "map-subsystem",
-      "disposition": "c-unsupported",
+      "disposition": "c-pending-implementation",
       "producer_candidate": "version-gated Clang/clangd facts from effective fixture compile commands",
       "compile_database_gate": ["valid", "current", "complete", "C-mode", "no-fallback"],
       "final_outcome": "durable map with declarations, references, public/private headers, and cross-translation-unit edges plus explicit non-complete states",
@@ -88,7 +88,7 @@
     },
     "mutation": {
       "skill": "move-path",
-      "disposition": "c-unsupported",
+      "disposition": "c-pending-implementation",
       "state": "deferred-until-semantic-lineage",
       "scope_if_authorized_later": "one source/header move in a disposable copy with include and Makefile updates",
       "required_proofs": ["accepted semantic lineage", "preview", "source fingerprint", "bounded diff", "symlink/generated/vendor refusal", "rollback", "native build/test", "same-destination terminal state"]
@@ -97,7 +97,7 @@
   "coverage": {
     "artifact": ".claude/tasks/c-language-coverage.json",
     "rows": 22,
-    "disposition_counts": {"c-unsupported": 22},
+    "disposition_counts": {"c-pending-implementation": 22},
     "reason": "Profile, native fixture, and feasibility evidence do not reach any skill-owned final artifact or mutation boundary."
   },
   "mutation_performed": false,

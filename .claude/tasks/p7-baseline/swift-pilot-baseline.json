@@ -61,7 +61,7 @@
   "pilot_cohorts": {
     "syntax": {
       "skill": "find-omnibus",
-      "disposition": "swift-unsupported",
+      "disposition": "swift-pending-implementation",
       "producer": "swiftc compiler syntax/typecheck and -dump-ast",
       "target": "host/Sources/BillingCore/BillingCore.swift",
       "candidate_facts": ["declarations", "nominal kinds", "member spans", "direct syntax structure", "compiler syntax errors"],
@@ -70,7 +70,7 @@
     },
     "semantic-project": {
       "skill": "map-subsystem",
-      "disposition": "swift-unsupported",
+      "disposition": "swift-pending-implementation",
       "target": "host/Sources/BillingCore",
       "required_facts": ["SwiftPM manifest/target graph", "successful build/index facts", "SourceKit-LSP references", "cross-target BillingCore -> SwiftPilotSmoke edge"],
       "mixed_target_policy": "any selected-target failure makes the final outcome partial or failed, never clean/complete",
@@ -78,7 +78,7 @@
     },
     "mutation": {
       "skill": "move-path",
-      "disposition": "swift-unsupported",
+      "disposition": "swift-pending-implementation",
       "scope": "one SwiftPM source-file or target-directory move",
       "candidate_move": {"from": "Sources/BillingCore", "to": "Sources/InvoicingCore"},
       "required_proofs": ["preview", "source fingerprint", "SwiftPM target membership update", "exact bounded diff", "rollback", "restrictive swift build", "executable smoke"],
@@ -88,7 +88,7 @@
   "coverage": {
     "artifact": ".claude/tasks/swift-language-coverage.json",
     "rows": 22,
-    "disposition_counts": {"swift-unsupported": 22},
+    "disposition_counts": {"swift-pending-implementation": 22},
     "reason": "Spine tooling and native fixture evidence do not reach any skill-owned final artifact or mutation boundary."
   },
   "mutation_performed": false,

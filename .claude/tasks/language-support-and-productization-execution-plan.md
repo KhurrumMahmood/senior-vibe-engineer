@@ -2,7 +2,7 @@
 
 Status: active
 Current phase: C++ spine accepted at `6d642f0`; open value-tested C++ skill-family cohorts while preparing parallel queued-language spines; C#/.NET remains last
-Last updated: 2026-07-22 (C spine passed with 22 honest unsupported rows; no optional tool was installed)
+Last updated: 2026-07-22 (full chosen-language completion and native-alternative rules adopted; C++ spine integrated; queued toolchains installed)
 
 ## Objective
 
@@ -53,7 +53,8 @@ execution authorities.
   on-demand library unless the user explicitly requests ambient installation.
 - Fresh non-context workers receive bounded task packets; they are not assumed
   to inherit the parent conversation, model, effort, or host instruction files.
-- Cross-language execution distinguishes complete, partial, unsupported, and
+- Cross-language execution distinguishes complete, partial, pending
+  implementation, exceptional unsupported/not-applicable judgments, and
   concrete failures. A verified no-finding result is a skill-owned `clean`
   domain result inside a complete run, not a universal terminal state.
 - Use established native tools when they establish the required facts; do not
@@ -93,7 +94,7 @@ execution authorities.
   each commit, run its focused tests plus the narrow shared regression surface;
   after a wave, run the frozen cross-language and on-demand replay gates.
 - A failed lane is not merged to make a matrix row look complete. Preserve its
-  evidence, publish partial/unsupported honestly, and revise the next packet.
+  evidence, publish pending/partial honestly, and revise the next packet.
 
 ## Phase summary
 
@@ -323,16 +324,19 @@ Acceptance:
   final outcome; syntax availability is not presented as semantic support.
 - [x] Established PHP tooling such as PHP Parser, PHPStan, or Psalm is used only
   where the host owns or the on-demand closure explicitly provides it.
-- [x] All selected skills distinguish complete, partial, unsupported, and
+- [x] All selected skills distinguish complete, partial, pending
+  implementation, exceptional unsupported/not-applicable judgments, and
   concrete failures; any clean result remains inside the skill-owned final
-  artifact. Each reaches its final artifact/diff from the external library.
+  artifact. Each implemented cohort reaches its final artifact/diff from the
+  external library.
 - [x] Positive, clean, malformed, generated/test/vendor/build/symlink,
   tool-missing/old, and same-destination transition cases pass.
 - [x] Native PHP verification for each selected outcome passes.
 - [x] Router/matrix output explains PHP capabilities and limitations without
   installing task skills ambiently.
 - [x] Every one of the 22 language-level skills receives an evidence-backed
-  supported, partial, unsupported, or not-applicable disposition map. Pilot
+  supported, partial, pending-implementation, unsupported, or not-applicable
+  disposition map. Pilot
   completion records an explicit owner `expand` or `stop` decision; P4 does not
   require implementing beyond the three frozen cohorts.
 - [x] Compared with the frozen equivalent Java mechanics, maintained
@@ -369,8 +373,8 @@ Evidence:
 | Lexical final outcome | `tests/test_find_comment_drift_php.py`; `.claude/tasks/multilanguage-learnings/php-find-comment-drift.md` | Native token parsing, positive/clean/malformed/excluded-role/tool/lifecycle/copied-closure cases reach the final JSONL/report; full family regression passed `22 passed` | `6a9d27b`, `05fc1a7` |
 | Semantic final outcome | `tests/test_map_subsystem_php.py`; `.claude/tasks/multilanguage-learnings/php-map-subsystem.md` | Composer PSR-4 facts reach final Markdown/JSON; tree-sitter rejected as a semantic producer; full map regression passed `25 passed` | `78f8e1f`, `8a212d3` |
 | Mutation final outcome | `tests/test_php_move_path.py`; `.claude/tasks/multilanguage-learnings/php-move-path.md` | One bounded namespace-directory move reaches exact diff/report, native validation, rollback, and source-preservation boundaries; full move regression passed `41 passed, 1 skipped` | `499d070`, `8399c98` |
-| Capability truth and disposition closeout | `.claude/tasks/php-language-coverage.json`; generated matrix; all three routers; `tests/test_{multilanguage_expansion_matrix,installed_routers}.py` | Three supported and 19 explicitly unsupported language-level skills; supported handoff succeeds, unsupported PHP work is refused without weaker substitution, and only three routers remain ambient | `2d7c277`, `268c3ac` |
-| Economics and learning | `.claude/tasks/p4-baseline/php-pilot-baseline.json`; `.claude/tasks/multilanguage-learnings/php-pilot.md` | LOC reduction `11.11%` fails 25%; closure growth `26.63%` fails 10%; aggregate warm latency growth `9.18%` passes. Decision: retain correct family-local outcomes, stop PHP expansion, promote no new shared mechanics | `2d7c277` |
+| Capability truth and disposition closeout | `.claude/tasks/php-language-coverage.json`; generated matrix; all three routers; `tests/test_{multilanguage_expansion_matrix,installed_routers}.py` | P4 proved three supported outcomes. The other 19 are now `php-pending-implementation`; router refusal remains correct until each job receives support or a strict native-alternative/impossibility judgment. Only three routers remain ambient | `2d7c277`, `268c3ac`, criteria revision `424d7e4` plus follow-up |
+| Economics and learning | `.claude/tasks/p4-baseline/php-pilot-baseline.json`; `.claude/tasks/multilanguage-learnings/php-pilot.md` | LOC reduction `11.11%` fails 25%; closure growth `26.63%` fails 10%; aggregate warm latency growth `9.18%` passes. These results reject premature shared-mechanic promotion, not PHP completion; expansion is reopened | `2d7c277`, criteria revision `424d7e4` plus follow-up |
 | Preserved-language closeout | P4 final outcomes plus profile/lifecycle/doctor/inventory/conformance, TypeScript/Go/Java, router, and matrix suites | Combined run: `305 passed, 1 skipped`; one Java subprocess received OS `SIGKILL` under combined load, then passed alone. Targeted Java-map plus PHP/router/matrix replay: `83 passed` | `268c3ac` |
 
 ## P5 — .NET setup and C# Roslyn pilot
@@ -398,7 +402,8 @@ Acceptance:
 - [ ] Router/matrix output reports C# capability and incomplete project/restore
   boundaries honestly.
 - [ ] All 22 language-level skills receive an evidence-backed supported,
-  partial, unsupported, or not-applicable disposition map. Pilot completion
+  partial, pending-implementation, unsupported, or not-applicable disposition
+  map. Pilot completion
   records an explicit owner `expand` or `stop` decision; P5 does not require
   implementing beyond the three frozen cohorts.
 - [ ] LOC, copied closure size, cold/warm setup, and median execution latency are
@@ -487,11 +492,19 @@ Acceptance for each language:
 - [ ] The toolchain doctor and profile report native tools, project/build
   boundaries, fact tiers, idiom/standard-tool references, and explicit gaps.
 - [ ] All 22 language-level skills receive evidence-backed dispositions.
-  `partial` and `unsupported` are honest intermediate states but cannot close a
-  chosen language. Completion requires `supported` or a reviewed
-  `not-applicable` judgment for every row. `not-applicable` is allowed only when
-  the skill's engineering job has no meaningful language analogue, not because
-  implementation is difficult.
+  `pending-implementation` and `partial` are honest intermediate states but
+  cannot close a chosen language. Completion normally requires `supported`.
+  Permanent `unsupported` is allowed only with evidence of technical
+  impossibility or conceptual incompatibility with the language/framework;
+  lack of implementation, cost, missing tooling, or pilot scope is never such
+  evidence.
+- [ ] If the original skill mechanics do not fit but its underlying engineering
+  need still exists, the language/framework supplies and routes to a
+  value-tested native alternative. `not-applicable` is allowed only when both
+  the original skill and its underlying engineering job genuinely have no
+  meaningful analogue. Every permanent unsupported/not-applicable judgment is
+  independently reviewed and names the language practice or tool that serves
+  the need, or explicitly proves that no such need exists.
 - [ ] Every applicable skill has a language-native value scenario that reaches
   its final outcome from the copied external-library closure. The scenario
   encodes a real engineering problem and machine-checkable useful output; an
@@ -539,7 +552,7 @@ Repeatable per-language slice:
 1. `codex/p7-<lang>-spine`: profile, doctor, representative host, native-tool
    evidence, three frozen pilot contracts, and all 22 initial dispositions.
 2. `codex/p7-<lang>-lexical`, `-semantic`, and `-proposal` may run concurrently
-   from the spine with disjoint ownership. Unsupported/partial is a valid pilot
+   from the spine with disjoint ownership. Pending/partial is a valid pilot
    result but not a completed language; no agent weakens a fact claim to pass.
 3. Root serially integrates the pilot, records lessons/economics, and issues
    the remaining skill-family cohorts. A pilot may pause expansion for a
@@ -560,15 +573,15 @@ Per-language status:
 
 | Language | Status | Profile/doctor | Final outcomes | Matrix/router | Learning packet | Revision |
 |---|---|---|---|---|---|---|
-| PHP expansion | `pilot_complete_expansion_required` | PHP 8.4.2/Composer 2.4.0 proven | 3 supported, 19 unsupported; not complete under full-language criteria | Pilot truth published | `.claude/tasks/multilanguage-learnings/php-pilot.md` | `268c3ac` |
+| PHP expansion | `pilot_complete_expansion_required` | PHP 8.4.2/Composer 2.4.0 proven | 3 supported, 19 pending implementation; not complete under full-language criteria | Pilot truth published | `.claude/tasks/multilanguage-learnings/php-pilot.md` | `268c3ac` |
 | Typed-pilot expansion | `toolchain_ready_deferred_to_final` | .NET 10.0.302 installed user-locally; P5 remains last by owner decision | — | — | — | — |
 | Ruby | `toolchain_ready_queued` | Homebrew Ruby 3.4.1, RubyGems 3.6.2, and Bundler 2.6.2 pass direct execution smoke | — | — | `.claude/tasks/p7-preflight/ruby.md` | — |
 | Rust | `toolchain_ready_queued` | rustc/Cargo 1.97.1 plus rust-analyzer, Clippy, and rustfmt installed through rustup | — | — | — | — |
-| Swift | `pilot_complete_expansion_required` | SwiftPM-only profile/doctor/inventory and restrictive native fixture proven; SwiftSyntax and native test modules remain unavailable under CLT-only setup | 3 supported (`find-omnibus`, `map-subsystem`, `move-path`), 19 unsupported; not complete | Pilot truth published and installed-router tested | `.claude/tasks/multilanguage-learnings/swift-pilot.md` plus three cohort packets | spine `09248d4`; cohorts `84bd160`, `7fb2f4f`, `c5a2792`; publication `661e1b1` |
+| Swift | `pilot_complete_expansion_required` | SwiftPM-only profile/doctor/inventory and restrictive native fixture proven; SwiftSyntax and native test modules remain unavailable under CLT-only setup | 3 supported (`find-omnibus`, `map-subsystem`, `move-path`), 19 pending implementation; not complete | Pilot truth published and installed-router tested | `.claude/tasks/multilanguage-learnings/swift-pilot.md` plus three cohort packets | spine `09248d4`; cohorts `84bd160`, `7fb2f4f`, `c5a2792`; publication `661e1b1` |
 | Dart | `toolchain_ready_queued` | Dart SDK 3.12.2 passes generated-console execution smoke; Flutter remains a separate optional profile | — | — | — | — |
 | Kotlin | `toolchain_ready_queued` | Kotlin 2.4.10 passes JVM expression smoke; project build tooling remains fixture-owned | — | — | — | — |
-| C | `pilot_complete_expansion_required` | Apple Clang/clangd 21 plus Make 3.81 proven; `.c`/`.i` only; trustworthy C-mode compile DB required for semantic facts | 2 supported (`find-comment-drift`, `map-subsystem`), 20 unsupported; not complete | Pilot truth published and installed-router tested | `.claude/tasks/multilanguage-learnings/c-pilot.md` plus spine and cohort packets | spine `56707fe`; lexical `b5a63e9`; semantic `5d6def3`; publication `79d8a27` |
-| C++ | `spine_complete_expansion_required` | Separate ISO C++20 profile; Apple Clang/clangd 21 and Make proven; trustworthy C++ compile DB required | 22 unsupported intermediate rows; lexical, semantic, and mutation/proposal contracts frozen; not complete | Not published | `.claude/tasks/multilanguage-learnings/cpp-spine.md`; `.claude/tasks/p7-baseline/cpp-pilot-baseline.json` | `6d642f0` plus root census integration |
+| C | `pilot_complete_expansion_required` | Apple Clang/clangd 21 plus Make 3.81 proven; `.c`/`.i` only; trustworthy C-mode compile DB required for semantic facts | 2 supported (`find-comment-drift`, `map-subsystem`), 20 pending implementation; not complete | Pilot truth published and installed-router tested | `.claude/tasks/multilanguage-learnings/c-pilot.md` plus spine and cohort packets | spine `56707fe`; lexical `b5a63e9`; semantic `5d6def3`; publication `79d8a27` |
+| C++ | `spine_complete_expansion_required` | Separate ISO C++20 profile; Apple Clang/clangd 21 and Make proven; trustworthy C++ compile DB required | 22 pending-implementation rows; lexical, semantic, and mutation/proposal contracts frozen; not complete | Not published | `.claude/tasks/multilanguage-learnings/cpp-spine.md`; `.claude/tasks/p7-baseline/cpp-pilot-baseline.json` | `6d642f0` plus root census integration |
 
 ### Language toolchain dependency register
 
@@ -599,12 +612,12 @@ Swift slice evidence:
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
 | Three-language preflight and selection | `.claude/tasks/p7-preflight/{swift,ruby,c-cpp}.md` | Swift selected; Ruby deferred for unhealthy runtime; C and C++ queued as separate compile-database-gated profiles | `ef07cca` |
-| SwiftPM spine | `scripts/language_profiles/swift.json`; `.claude/tasks/p7-baseline/swift-pilot-baseline.json`; `.claude/tasks/swift-language-coverage.json`; `tests/test_swift_pilot_spine.py` | Restrictive dependency-free build, executable smoke, typecheck/AST, malformed/source-role/symlink/tool-precedence/source-preservation boundaries pass; all 22 rows remain unsupported; main replay `36 passed` including PHP spine | `09248d4` |
+| SwiftPM spine | `scripts/language_profiles/swift.json`; `.claude/tasks/p7-baseline/swift-pilot-baseline.json`; `.claude/tasks/swift-language-coverage.json`; `tests/test_swift_pilot_spine.py` | Restrictive dependency-free build, executable smoke, typecheck/AST, malformed/source-role/symlink/tool-precedence/source-preservation boundaries pass; the spine initially earned no support; main replay `36 passed` including PHP spine | `09248d4` |
 | Swift pilot cohorts | `tests/test_find_omnibus_swift.py`; `tests/test_map_subsystem_swift.py`; `tests/test_swift_move_path.py` | Focused lanes: omnibus `6 passed`, map `5 passed`, move `13 passed`; all three copied closures reach their final artifact/mutation boundary | `84bd160`; `c5a2792`; `7fb2f4f` |
 | Preserved families and publication | Omnibus, map, move-path, matrix, and installed-router suites | Non-Java omnibus `21 passed`; Java omnibus `11 passed`; non-Java map `24 passed` plus corrected metadata assertion; Java map `5 passed`; non-Java move `50 passed, 1 skipped`; Java move `4 passed`; matrix/router `59 passed`. Selected-skill install passes with explicit runtime provenance. | publication `661e1b1` plus closeout follow-up |
-| C spine | `scripts/language_profiles/c.json`; `.claude/tasks/p7-baseline/c-pilot-baseline.json`; `.claude/tasks/c-language-coverage.json`; `tests/test_c_pilot_spine.py` | C-only Make/Clang fixture, native test, AST/raw tokens, compile-DB validity boundaries, header ambiguity, roles, tool states, source preservation, and all 22 unsupported rows pass; integrated profile/doctor/inventory/C suite `33 passed` | `56707fe` plus root census integration |
-| C pilot cohorts and publication | `tests/test_find_comment_drift_c.py`; `tests/test_map_subsystem_c.py`; `tests/test_installed_routers.py`; `.claude/tasks/multilanguage-learnings/c-pilot.md` | Lexical `9 passed`; semantic `12 passed`; matrix/router/C closeout `80 passed`; installed router plus preserved non-Java families `114 passed` before one stale PHP metadata assertion was corrected, then the correction and Swift replay `6 passed`; explicit-JDK Java replay `9 passed`. Both copied closures reach final artifacts and preserve source. Publish 2 supported/20 unsupported; stop before mutation because bounded value is proven without expanding a language-local closure | lexical `b5a63e9`; semantic `5d6def3`; publication `79d8a27` |
-| C++ spine | `scripts/language_profiles/cpp.json`; `.claude/tasks/p7-baseline/cpp-pilot-baseline.json`; `.claude/tasks/cpp-language-coverage.json`; `tests/test_cpp_pilot_spine.py` | Separate C++20 suffix/mode truth, native Make build/smoke, compile-database valid/missing/malformed/stale/incomplete/wrong-mode gates, owned-vs-ambiguous headers, source roles, tool failures, preservation, and 22 unsupported intermediate dispositions pass. Integrated profile/doctor/inventory/conformance replay `39 passed` | `6d642f0` plus root census integration |
+| C spine | `scripts/language_profiles/c.json`; `.claude/tasks/p7-baseline/c-pilot-baseline.json`; `.claude/tasks/c-language-coverage.json`; `tests/test_c_pilot_spine.py` | C-only Make/Clang fixture, native test, AST/raw tokens, compile-DB validity boundaries, header ambiguity, roles, tool states, source preservation, and 22 initial gap rows pass; integrated profile/doctor/inventory/C suite `33 passed` | `56707fe` plus root census integration |
+| C pilot cohorts and publication | `tests/test_find_comment_drift_c.py`; `tests/test_map_subsystem_c.py`; `tests/test_installed_routers.py`; `.claude/tasks/multilanguage-learnings/c-pilot.md` | Lexical `9 passed`; semantic `12 passed`; matrix/router/C closeout `80 passed`; installed router plus preserved non-Java families `114 passed` before one stale PHP metadata assertion was corrected, then the correction and Swift replay `6 passed`; explicit-JDK Java replay `9 passed`. Both copied closures reach final artifacts and preserve source. Two rows are supported and twenty are now explicitly pending implementation | lexical `b5a63e9`; semantic `5d6def3`; publication `79d8a27`; criteria revision follow-up |
+| C++ spine | `scripts/language_profiles/cpp.json`; `.claude/tasks/p7-baseline/cpp-pilot-baseline.json`; `.claude/tasks/cpp-language-coverage.json`; `tests/test_cpp_pilot_spine.py` | Separate C++20 suffix/mode truth, native Make build/smoke, compile-database valid/missing/malformed/stale/incomplete/wrong-mode gates, owned-vs-ambiguous headers, source roles, tool failures, preservation, and 22 pending-implementation dispositions pass. Integrated profile/doctor/inventory/conformance replay `39 passed` | `6d642f0` plus root census integration |
 
 ## P8 — Measure the current journey and finish lifecycle/help semantics
 
@@ -698,8 +711,10 @@ Evidence:
 - PHP and one feasible compiler-backed typed pilot complete their frozen
   three-cohort journeys, all 22 dispositions, native checks, economic evidence,
   and promote/reject decisions.
-- Every chosen language has all 22 language-level rows supported or strictly
-  reviewed not-applicable; partial/unsupported rows keep that language open.
+- Every chosen language has all 22 language-level jobs served by the named
+  skill or a routed language-native alternative. Pending/partial rows keep that
+  language open; unsupported/not-applicable rows close only under the strict
+  impossibility/inapplicability and independent-review rule above.
   Every applicable row passes its positive-value, must-not-fire, degraded-tool,
   copied-layout, stale-artifact, and native final-boundary scenario obligations.
 - Every worker starts from a recorded SHA in a disjoint worktree, obeys owned
@@ -737,15 +752,15 @@ Evidence:
 | 2026-07-21 | P2 | Runtime bootstrap integrated | `9208fca`; normal external-library bootstrap now health-checks Python >=3.11, creates/verifies the library venv, installs declared requirements, and exposes the exact runtime path through all three routers. The final P2 candidate and public replay must include this revision plus the pending release-truth repair. |
 | 2026-07-21 | P8 | Router corpus seed captured | Resuming this explicit ledger produced `Project context: missing (adapter=False, profile=False, approved=False)` and a score-zero lexical `bug-fix` fallback. The explicit sole active plan correctly overrode it. Preserve this as an authoritative-plan/low-context routing case for the frozen P8 corpus; do not create project context or block P2 merely to raise router confidence. |
 | 2026-07-21 | P2 | Completed | `60898a7`; public Go/Java claims, accepted coverage, generated matrix, router capability output, and shared inventory agree. The final public list/install/bootstrap/route/`adapt-project`/cleanup/remove replay passed with exact router-tree/library revision coherence, runtime setup, host-source preservation, sentinel preservation, and library retention. Begin P3.0 baseline/worktree inventory; do not revise P2 further unless a reproduced installer regression appears. |
-| 2026-07-22 | P4 | Completed; expansion stopped | Three bounded PHP outcomes reach final artifacts and native checks. The 22-row matrix/router truth is published. LOC and closure economics failed, so correct implementations remain family-local and the other 19 skills remain explicitly unsupported. P5 readiness confirms `dotnet` is absent and no install was attempted. |
-| 2026-07-22 | P7 | Three preflights completed; Swift selected | `ef07cca`; Swift, Ruby, and C/C++ evidence lives under `.claude/tasks/p7-preflight/`. Begin one root-owned SwiftPM spine from that revision: profile/doctor/inventory, representative host, three frozen final-outcome contracts, and 22 initial unsupported dispositions. Ruby and C/C++ remain queued; no concurrent product implementation. |
-| 2026-07-22 | P7 | SwiftPM spine completed | `09248d4`; strict Swift profile, doctor/inventory truth, restrictive dependency-free fixture, executable smoke, syntax/malformed boundaries, three frozen contracts, and 22 unsupported rows pass. Open three disjoint cohort worktrees from this spine; root serially integrates and publishes only earned support. |
-| 2026-07-22 | P7 | Swift pilot cohorts integrated; closeout verification in progress | `84bd160`, `7fb2f4f`, and `c5a2792` earn bounded final outcomes for omnibus syntax, SwiftPM mapping, and target-directory mutation. Coverage is frozen at 3 supported/19 unsupported and expansion stops on closure/runtime economics. Non-Java preserved families pass; the installed JDK now times out even on version probes, so Java replay is explicitly pending rather than misreported. |
-| 2026-07-22 | P7 | Swift pilot published and closed | `661e1b1` publishes 3 supported/19 unsupported matrix and router truth; installed router/matrix suite `59 passed`. Explicit Homebrew OpenJDK provenance restores Java verification (omnibus `11`, map `5`, move `4` passed). Explicit `ENGINEERING_SKILLS_PYTHON` makes direct selected-skill commands usable despite the broken bare host Python. Begin separate C then C++ spine planning; install no optional tool without owner authorization. |
-| 2026-07-22 | P7 | C-only spine integrated | `56707fe`; `.c`/`.i` profile truth, portable two-TU Make fixture, valid/current/complete C-mode compile-database gate, owned-vs-ambiguous headers, source roles, tool states, native test, and 22 unsupported dispositions pass. Open disjoint lexical `find-comment-drift` and semantic `map-subsystem` lanes; keep mutation deferred and C++ separate. |
-| 2026-07-22 | P7 | C pilot cohorts integrated; publication underway | Lexical `b5a63e9` and semantic `5d6def3` prove two useful read-only final outcomes. Stop at 2 supported/20 unsupported, retain mutation as unsupported, and publish router/matrix truth before opening the separate C++ spine. |
-| 2026-07-22 | P7 | C published; separate C++ spine opened | `79d8a27` publishes 2 supported/20 unsupported C capability truth and `87aa135` closes verification. Push main, then open `codex/p7-cpp-spine` from that exact revision. Reuse only evidence patterns; C++ owns separate profile, compile mode, headers, fixture, dispositions, and dependency truth. |
-| 2026-07-22 | P7 | C++ spine accepted under full-language criteria | `6d642f0` adds the separate C++20 spine and root census integration passes `39` tests. All 22 unsupported rows are intermediate only; begin skill-family value cohorts and do not publish C++ as complete until every applicable row is supported or reviewed not-applicable. |
+| 2026-07-22 | P4 | Completed; earlier stop decision superseded | Three bounded PHP outcomes reached final artifacts and native checks. The original closeout called the other 19 skills unsupported; the full-language criteria now correctly classify them as pending implementation and reopen expansion. P5 readiness then found `dotnet` absent; it has since been installed user-locally. |
+| 2026-07-22 | P7 | Three preflights completed; Swift selected | `ef07cca`; Swift, Ruby, and C/C++ evidence lives under `.claude/tasks/p7-preflight/`. Begin one root-owned SwiftPM spine from that revision: profile/doctor/inventory, representative host, three frozen final-outcome contracts, and 22 initial gap dispositions. Ruby and C/C++ remain queued; no concurrent product implementation. |
+| 2026-07-22 | P7 | SwiftPM spine completed | `09248d4`; strict Swift profile, doctor/inventory truth, restrictive native fixture, executable smoke, syntax/malformed boundaries, and three frozen contracts pass. Its 22 unimplemented outcomes are now treated as pending until cohorts earn support. |
+| 2026-07-22 | P7 | Swift pilot cohorts integrated; earlier stop decision superseded | `84bd160`, `7fb2f4f`, and `c5a2792` earn bounded final outcomes for omnibus syntax, SwiftPM mapping, and target-directory mutation. The original closeout froze 3 supported/19 unsupported; the latter 19 are now pending implementation. |
+| 2026-07-22 | P7 | Swift pilot published | `661e1b1` published the initial 3 supported/19 gap matrix and router truth; installed router/matrix suite `59 passed`. The current matrix reclassifies the 19 unfinished rows as pending implementation and expansion remains open. |
+| 2026-07-22 | P7 | C-only spine integrated | `56707fe`; `.c`/`.i` profile truth, portable two-TU Make fixture, valid/current/complete C-mode compile-database gate, owned-vs-ambiguous headers, source roles, tool states, and native tests pass. Its initial gaps are pending implementation. |
+| 2026-07-22 | P7 | C pilot cohorts integrated | Lexical `b5a63e9` and semantic `5d6def3` prove two useful read-only final outcomes. The remaining 20 jobs stay pending implementation; mutation is deferred, not declared impossible. |
+| 2026-07-22 | P7 | C published; separate C++ spine opened | `79d8a27` publishes 2 supported/20 gap C capability truth and `87aa135` closes verification. Current criteria reclassify all unfinished gaps as pending. C++ owns a separate profile, compile mode, headers, fixture, dispositions, and dependency truth. |
+| 2026-07-22 | P7 | C++ spine accepted under full-language criteria | `6d642f0` adds the separate C++20 spine and root census integration passes `39` tests. All 22 rows are pending implementation; begin skill-family value cohorts and do not publish C++ as complete until every engineering job is served or passes the strict exception rule. |
 | 2026-07-21 | P3 | Started | Freeze the exact `60898a7` TypeScript+Java `find-omnibus` baseline and review the 87 registered/59 previously prunable worktree registrations before opening any P3 worker lane. |
 | 2026-07-21 | P3.0 | Completed | Committed evidence freezes the existing-substrate decisions, exact TypeScript/Java projections and exclusions, copied closure bytes, fixture manifests, maintained LOC, OpenJDK 17.0.20/TypeScript 5.9.3 toolchain, full `18 passed` correctness run, and cold plus seven alternating warm trials. Registration-only pruning reduced 87 worktree records to 28 without deleting a path, branch, commit, or dirty worktree. P3.1 may now start from this spine. |
 | 2026-07-21 | P3.1 | Completed | Added strict stdlib-only profiles for the five currently inventoried languages and a narrow lifecycle module. The deletion/caller-knowledge test is satisfied by two immediate consumers (TypeScript and Java omnibus); profiles remove duplicated suffix/tool/role/command/limit declarations, while lifecycle removes only atomic-write, stale-clear, source-hash, and terminal-vocabulary policy. No semantic result schema, adapter layer, installer, cache, mutation executor, or framework profile was added. P3.2 may extend the existing inventory from this spine. |

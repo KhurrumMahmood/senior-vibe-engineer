@@ -152,7 +152,11 @@ The matcher returns JSON with:
 - `excluded_unsupported[]` — otherwise-relevant skills whose declared
   language, framework, or scanner coverage does not support the resolved host
 - `recommendation: unsupported` — returned instead of silently substituting a
-  weaker skill when the strongest semantic match is ineligible for the host
+  weaker skill only when the strongest semantic match has an evidence-backed
+  permanent unsupported disposition for the host
+- `recommendation: pending-implementation` — returned when the matching skill's
+  language implementation is unfinished; `unavailable.classification` and
+  `unavailable.reason` preserve that distinction without claiming impossibility
 - `handoff` — the winner plus declared companions, exact local guide and
   bundled/shared tooling paths (including the shared source inventory), the
   manifest-backed language/fact/outcome capability rows for the exact closure,

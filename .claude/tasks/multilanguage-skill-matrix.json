@@ -23,15 +23,15 @@
     },
     {
       "path": ".claude/tasks/php-language-coverage.json",
-      "sha256": "92505ed11be146a1c04e046160c266b99ded985ec0b041f083164d6a85b8195a"
+      "sha256": "b66659d072d83e8d03ddb1a4ed0712c806db9f205e695ca2e17528d50efe4be6"
     },
     {
       "path": ".claude/tasks/swift-language-coverage.json",
-      "sha256": "5ffdd7e24b30eff1aa564dabf253bd7a8e0bcb83d90b7af2d1f8e2b72855b58b"
+      "sha256": "c6ae97b7ee43d27d316fbbbfda9893745b805b6f079d474839038125e73c15c1"
     },
     {
       "path": ".claude/tasks/c-language-coverage.json",
-      "sha256": "ca59a0e0d86b2ab60b51a15096db8fedca92fad05896f6e1d7da5419810b5d09"
+      "sha256": "e7c07c368008433d48ca5a1c8c5e49a3631cd24a30622c7dfe5f8374315af275"
     }
   ],
   "counts": {
@@ -155,7 +155,7 @@
         "final adapter artifacts and source-fingerprint assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "PHP profile and inventory exist",
@@ -163,7 +163,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "Inventory support alone does not prove the final adapter artifacts.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "SwiftPM profile and source-role inventory only",
@@ -171,7 +171,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "Inventory and a valid Package.swift do not prove final adapter artifacts.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "profile and inventory fixture only"
@@ -321,7 +321,7 @@
         "final audit artifacts and source-fingerprint assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -329,7 +329,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "No PHP decision-comment/provider contract has reached the final audit.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "spine final-outcome census",
@@ -337,7 +337,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No Swift decision-comment producer reaches the final audit.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "raw tokens retain a decision comment"
@@ -936,7 +936,7 @@
         "final report, mixed-status, and source-once assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -944,7 +944,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "No PHP symbol explanation path has been validated.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "compiler and SwiftPM facts are available",
@@ -952,7 +952,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No indexed symbol explanation path has been validated across targets.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "syntax and AST feasibility only"
@@ -1112,7 +1112,7 @@
         "final proposal and stale-evidence rejection assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -1120,7 +1120,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "No PHP type/reference evidence reaches the proposal boundary.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "spine final-outcome census",
@@ -1128,7 +1128,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No resolved type/reference evidence reaches the proposal boundary.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "no proposal executed"
@@ -1511,7 +1511,7 @@
       ],
       "php_reviewed_revision": "6a9d27b",
       "php_limitation": "Lexical comments only; no Composer, symbol, framework, or runtime semantics.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "SwiftSyntax unavailable",
@@ -1607,7 +1607,7 @@
         "source fingerprint and final report assertions"
       ],
       "java_reviewed_revision": "e14274b",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -1615,7 +1615,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "PHP syntax availability has not been connected to the skill's final report.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "swiftc AST output is available",
@@ -1623,7 +1623,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "Compiler AST availability alone does not establish the skill's metrics or final report.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "per-translation-unit AST feasibility only"
@@ -1708,7 +1708,7 @@
         "final findings and copied-runbook assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -1716,7 +1716,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "No PHP naming/usage census has reached the final report.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "spine final-outcome census",
@@ -1724,7 +1724,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No Swift naming and usage census reaches the final report.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "lexical feasibility only"
@@ -2040,7 +2040,7 @@
         "final report and source-fingerprint assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -2048,7 +2048,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "Dynamic references require a project-owned semantic analyzer.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "SourceKit-LSP completeness unproven",
@@ -2056,7 +2056,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "Recent successful indexing, mixed-target failure inspection, and reflective use limits are unresolved.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "function-pointer fixture present"
@@ -2142,7 +2142,7 @@
         "clone report and source-once assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -2150,7 +2150,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "No PHP token/normalization contract has reached final triage.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "spine final-outcome census",
@@ -2158,7 +2158,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No accepted Swift normalization contract reaches final triage.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "raw tokens available"
@@ -2243,7 +2243,7 @@
         "copied runbook and terminal lifecycle assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -2251,7 +2251,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "Composer conventions alone do not prove this skill's topology findings.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "SwiftPM target layout is present",
@@ -2259,7 +2259,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "One representative SwiftPM layout does not prove a final topology finding.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "source-role decoys validated"
@@ -2499,7 +2499,7 @@
         "final findings, source manifest, and build-boundary assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -2507,7 +2507,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "No PHP type/reference producer exists for this contract.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "spine final-outcome census",
@@ -2515,7 +2515,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No resolved type/reference producer reaches this contract.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "file-local static fixture present"
@@ -2604,7 +2604,7 @@
         "final human-verdict artifact assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -2612,7 +2612,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "Resolved call targets and trajectory evidence are unavailable.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "SourceKit/index facts are not yet accepted",
@@ -2620,7 +2620,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "Resolved call targets and complete cross-target evidence are unavailable.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "incomplete compile database rejected by frozen gate"
@@ -2777,7 +2777,7 @@
         "generic and explicit terminal lifecycle assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -2794,7 +2794,7 @@
       ],
       "swift_reviewed_revision": "84bd160",
       "swift_limitation": "Bounded to dependency-free SwiftPM compiler-AST facts; no SwiftSyntax, resolved references, full project semantics, Xcode/framework behavior, macros, reflection, or mixed-language claim.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "AST feasibility only"
@@ -3250,7 +3250,7 @@
         "final findings and source-manifest assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -3258,7 +3258,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "No project-owned semantic index is available.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "SourceKit-LSP completeness unproven",
@@ -3266,7 +3266,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No accepted project semantic index reaches final triage.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "no semantic producer accepted"
@@ -3574,7 +3574,7 @@
         "final report and copied-closure assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -3582,7 +3582,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "PHPStan, Psalm, and framework standards remain project-owned and unintegrated.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "compiler diagnostics only",
@@ -3590,7 +3590,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "Framework guidance and project-owned lint/analyzer integrations are out of scope.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "C17 warnings-as-errors build passes"
@@ -4619,7 +4619,7 @@
       ],
       "swift_reviewed_revision": "7fb2f4f",
       "swift_limitation": "Only one dependency-free regular SwiftPM target-directory move retaining module identity; Xcode, resources, dependencies, frameworks, macros/plugins, generated/symlink/mixed-language shapes, individual files, and reflective identities remain partial or unsupported.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "mutation intentionally not performed"
@@ -5072,7 +5072,7 @@
         "staged guard and native verification assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -5080,7 +5080,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "No accepted PHP producer evidence reaches the guard boundary.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "spine final-outcome census",
@@ -5088,7 +5088,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No accepted Swift producer evidence reaches the guard boundary.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "no accepted producer artifact"
@@ -5252,7 +5252,7 @@
         "source fingerprint and final proposal assertions"
       ],
       "java_reviewed_revision": "cfd0e2d",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -5260,7 +5260,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "No PHP resolved dependency graph reaches the proposal boundary.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "spine final-outcome census",
@@ -5268,7 +5268,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No complete resolved dependency graph reaches the proposal boundary.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "compile database feasibility only"
@@ -5355,7 +5355,7 @@
         "read-only move plan and wildcard-safety assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -5363,7 +5363,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "Framework and Composer layout conventions need a dedicated final-outcome pass.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "spine final-outcome census",
@@ -5371,7 +5371,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "SwiftPM target and source layout rules need a dedicated final-outcome pass.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "Make fixture only"
@@ -5606,7 +5606,7 @@
         "final assessment and copied-closure assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -5614,7 +5614,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "Dynamic and reflective references are not resolved.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "spine final-outcome census",
@@ -5622,7 +5622,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "Conditional compilation, reflection, dynamic dispatch, and cross-module references are unresolved.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "no mutation executed"
@@ -6087,7 +6087,7 @@
         "final proposal and stale-evidence rejection assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-unsupported",
+      "php_disposition": "php-pending-implementation",
       "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
       "php_native_check": [
         "P4 final-outcome census",
@@ -6095,7 +6095,7 @@
       ],
       "php_reviewed_revision": "a3c70cb",
       "php_limitation": "No PHP producer evidence reaches the proposal boundary.",
-      "swift_disposition": "swift-unsupported",
+      "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
         "spine final-outcome census",
@@ -6103,7 +6103,7 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No accepted Swift producer evidence reaches the proposal boundary.",
-      "c_disposition": "c-unsupported",
+      "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
         "no proposal executed"

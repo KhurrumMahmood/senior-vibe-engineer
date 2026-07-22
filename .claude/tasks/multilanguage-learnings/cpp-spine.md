@@ -34,5 +34,5 @@ ABI/layout, target/sysroot/defines, and build variants remain semantic limits.
 Frozen cohort order is lexical `find-comment-drift`, semantic
 `map-subsystem`, then mutation candidate `move-path` only after accepted
 lineage. Each still needs its own final artifact, failure lifecycle, copied
-closure, and native proof. This spine earns no skill support: all 22 rows remain
-`cpp-unsupported`.
+closure, and native proof. This spine earns no completed skill support: all 22
+rows remain `cpp-pending-implementation`.

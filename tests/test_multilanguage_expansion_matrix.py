@@ -60,21 +60,21 @@ EXPECTED_JAVA_COUNTS = {
 }
 EXPECTED_PHP_COUNTS = {
     "php-supported": 3,
-    "php-unsupported": 19,
+    "php-pending-implementation": 19,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
 }
 EXPECTED_SWIFT_COUNTS = {
     "swift-supported": 3,
-    "swift-unsupported": 19,
+    "swift-pending-implementation": 19,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
 }
 EXPECTED_C_COUNTS = {
     "c-supported": 2,
-    "c-unsupported": 20,
+    "c-pending-implementation": 20,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -100,6 +100,52 @@ OUTCOME_CLASSES = {
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _run_with_php_coverage(path: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(BUILDER), "--php-coverage", str(path)],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_unfinished_language_work_cannot_be_labeled_unsupported(tmp_path: Path) -> None:
+    payload = json.loads(PHP_COVERAGE.read_text(encoding="utf-8"))
+    row = next(item for item in payload["skills"] if item["skill"] == "adapt-project")
+    row["disposition"] = "php-unsupported"
+    candidate = tmp_path / "php-language-coverage.json"
+    candidate.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = _run_with_php_coverage(candidate)
+
+    assert result.returncode == 2
+    assert "lacks a valid basis" in result.stderr
+
+
+def test_permanent_unsupported_requires_a_proven_native_alternative(
+    tmp_path: Path,
+) -> None:
+    payload = json.loads(PHP_COVERAGE.read_text(encoding="utf-8"))
+    row = next(item for item in payload["skills"] if item["skill"] == "adapt-project")
+    row.update(
+        {
+            "disposition": "php-unsupported",
+            "unsupported_basis": "conceptually-inapplicable",
+            "alternative_skill": "adapt-php-project",
+            "independent_review": "fresh language-native review",
+            "language_reference": "PHP and Composer project conventions",
+        }
+    )
+    candidate = tmp_path / "php-language-coverage.json"
+    candidate.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = _run_with_php_coverage(candidate)
+
+    assert result.returncode == 2
+    assert "lacks alternative_evidence_path" in result.stderr
 
 
 def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
@@ -235,12 +281,12 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
                 assert row["php_disposition"] in {
                     "php-supported",
                     "php-partial",
-                    "php-unsupported",
+                    "php-pending-implementation",
                 }
                 assert (REPO_ROOT / row["php_evidence_path"]).is_file()
                 assert row["php_native_check"]
                 assert row["php_reviewed_revision"]
-            if row["php_disposition"] in {"php-partial", "php-unsupported"}:
+            if row["php_disposition"] in {"php-partial", "php-pending-implementation"}:
                 assert row["php_limitation"]
             if row["swift_disposition"] == "pending-validation":
                 assert row["swift_evidence_path"] is None
@@ -250,12 +296,12 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
                 assert row["swift_disposition"] in {
                     "swift-supported",
                     "swift-partial",
-                    "swift-unsupported",
+                    "swift-pending-implementation",
                 }
                 assert (REPO_ROOT / row["swift_evidence_path"]).is_file()
                 assert row["swift_native_check"]
                 assert row["swift_reviewed_revision"]
-            if row["swift_disposition"] in {"swift-partial", "swift-unsupported"}:
+            if row["swift_disposition"] in {"swift-partial", "swift-pending-implementation"}:
                 assert row["swift_limitation"]
             if row["c_disposition"] == "pending-validation":
                 assert row["c_evidence_path"] is None
@@ -265,12 +311,12 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
                 assert row["c_disposition"] in {
                     "c-supported",
                     "c-partial",
-                    "c-unsupported",
+                    "c-pending-implementation",
                 }
                 assert (REPO_ROOT / row["c_evidence_path"]).is_file()
                 assert row["c_native_check"]
                 assert row["c_reviewed_revision"]
-            if row["c_disposition"] in {"c-partial", "c-unsupported"}:
+            if row["c_disposition"] in {"c-partial", "c-pending-implementation"}:
                 assert row["c_limitation"]
         elif row["expansion_disposition"] == "framework-bound":
             framework_rows.append(row)

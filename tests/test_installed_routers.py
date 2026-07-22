@@ -226,9 +226,9 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "javascript_disposition": "javascript-supported",
         "go_disposition": "go-supported",
         "java_disposition": "java-supported",
-        "php_disposition": "php-unsupported",
-        "swift_disposition": "swift-unsupported",
-        "c_disposition": "c-unsupported",
+        "php_disposition": "php-pending-implementation",
+        "swift_disposition": "swift-pending-implementation",
+        "c_disposition": "c-pending-implementation",
         "fact_level": "semantic-project",
         "outcome_class": "read-only-report",
         "framework_family": None,
@@ -317,7 +317,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "php_disposition"
     ] == "php-supported"
 
-    unsupported_php = _run_isolated(
+    pending_php = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
         "use adapt-project on this PHP repository",
         "--project-root",
@@ -329,11 +329,14 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "--json",
         cwd=host,
     )
-    assert unsupported_php.returncode == 1
-    unsupported_php_payload = json.loads(unsupported_php.stdout)
-    assert unsupported_php_payload["recommendation"] == "unsupported"
-    assert unsupported_php_payload["unsupported"]["reason"] == (
-        "/adapt-project declares php_disposition=php-unsupported"
+    assert pending_php.returncode == 1
+    pending_php_payload = json.loads(pending_php.stdout)
+    assert pending_php_payload["recommendation"] == "pending-implementation"
+    assert pending_php_payload["unavailable"]["classification"] == (
+        "pending-implementation"
+    )
+    assert pending_php_payload["unavailable"]["reason"] == (
+        "/adapt-project declares php_disposition=php-pending-implementation"
     )
 
     swift_routed = _run_isolated(
@@ -355,7 +358,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "swift_disposition"
     ] == "swift-supported"
 
-    unsupported_swift = _run_isolated(
+    pending_swift = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
         "use adapt-project on this Swift repository",
         "--project-root",
@@ -367,11 +370,14 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "--json",
         cwd=host,
     )
-    assert unsupported_swift.returncode == 1
-    unsupported_swift_payload = json.loads(unsupported_swift.stdout)
-    assert unsupported_swift_payload["recommendation"] == "unsupported"
-    assert unsupported_swift_payload["unsupported"]["reason"] == (
-        "/adapt-project declares swift_disposition=swift-unsupported"
+    assert pending_swift.returncode == 1
+    pending_swift_payload = json.loads(pending_swift.stdout)
+    assert pending_swift_payload["recommendation"] == "pending-implementation"
+    assert pending_swift_payload["unavailable"]["classification"] == (
+        "pending-implementation"
+    )
+    assert pending_swift_payload["unavailable"]["reason"] == (
+        "/adapt-project declares swift_disposition=swift-pending-implementation"
     )
 
     c_routed = _run_isolated(
@@ -393,7 +399,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "c_disposition"
     ] == "c-supported"
 
-    unsupported_c = _run_isolated(
+    pending_c = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
         "use adapt-project on this C17 repository",
         "--project-root",
@@ -405,11 +411,14 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "--json",
         cwd=host,
     )
-    assert unsupported_c.returncode == 1
-    unsupported_c_payload = json.loads(unsupported_c.stdout)
-    assert unsupported_c_payload["recommendation"] == "unsupported"
-    assert unsupported_c_payload["unsupported"]["reason"] == (
-        "/adapt-project declares c_disposition=c-unsupported"
+    assert pending_c.returncode == 1
+    pending_c_payload = json.loads(pending_c.stdout)
+    assert pending_c_payload["recommendation"] == "pending-implementation"
+    assert pending_c_payload["unavailable"]["classification"] == (
+        "pending-implementation"
+    )
+    assert pending_c_payload["unavailable"]["reason"] == (
+        "/adapt-project declares c_disposition=c-pending-implementation"
     )
 
     shape_routed = _run_isolated(
@@ -429,9 +438,9 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "javascript_disposition": "javascript-supported",
         "go_disposition": "go-supported",
         "java_disposition": "java-supported",
-        "php_disposition": "php-unsupported",
-        "swift_disposition": "swift-unsupported",
-        "c_disposition": "c-unsupported",
+        "php_disposition": "php-pending-implementation",
+        "swift_disposition": "swift-pending-implementation",
+        "c_disposition": "c-pending-implementation",
         "fact_level": "lexical-filesystem",
         "outcome_class": "configuration-output",
         "framework_family": None,
@@ -454,13 +463,13 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert php_shape_payload["recommendation"]["first_next"] == "/adapt-project"
     assert php_shape_payload["handoff"]["available"] is False
     assert php_shape_payload["handoff"]["reason"] == (
-        "selected_skill_not_validated_for_language"
+        "selected_skill_pending_implementation"
     )
     assert php_shape_payload["handoff"]["blocked"] == [
         {
             "skill": "adapt-project",
             "language": "php",
-            "disposition": "php-unsupported",
+            "disposition": "php-pending-implementation",
         }
     ]
 
@@ -479,13 +488,13 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert swift_shape_payload["recommendation"]["first_next"] == "/adapt-project"
     assert swift_shape_payload["handoff"]["available"] is False
     assert swift_shape_payload["handoff"]["reason"] == (
-        "selected_skill_not_validated_for_language"
+        "selected_skill_pending_implementation"
     )
     assert swift_shape_payload["handoff"]["blocked"] == [
         {
             "skill": "adapt-project",
             "language": "swift",
-            "disposition": "swift-unsupported",
+            "disposition": "swift-pending-implementation",
         }
     ]
 
@@ -504,13 +513,13 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert c_shape_payload["recommendation"]["first_next"] == "/adapt-project"
     assert c_shape_payload["handoff"]["available"] is False
     assert c_shape_payload["handoff"]["reason"] == (
-        "selected_skill_not_validated_for_language"
+        "selected_skill_pending_implementation"
     )
     assert c_shape_payload["handoff"]["blocked"] == [
         {
             "skill": "adapt-project",
             "language": "c",
-            "disposition": "c-unsupported",
+            "disposition": "c-pending-implementation",
         }
     ]
 

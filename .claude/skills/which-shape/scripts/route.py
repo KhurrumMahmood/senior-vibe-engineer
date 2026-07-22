@@ -710,12 +710,17 @@ def _apply_task_capability_gate(handoff: dict[str, Any], task: str) -> None:
         for item in blocked
     ):
         handoff["reason"] = "selected_skill_stack_bound_for_language"
+    elif all(
+        item["disposition"].endswith("-pending-implementation")
+        for item in blocked
+    ):
+        handoff["reason"] = "selected_skill_pending_implementation"
     else:
         handoff["reason"] = "selected_skill_not_validated_for_language"
     handoff["blocked"] = blocked
     handoff["instruction"] = (
         "Do not execute the selected skill for the named language. Choose a "
-        "supported tactical path or generalize and validate the skill first."
+        "supported tactical path or complete and validate the pending implementation first."
     )
 
 
@@ -862,6 +867,7 @@ def render_markdown(result: dict[str, Any]) -> str:
         if not result["handoff"]["available"]:
             if result["handoff"].get("reason") in {
                 "selected_skill_stack_bound_for_language",
+                "selected_skill_pending_implementation",
                 "selected_skill_not_validated_for_language",
             }:
                 blocked = ", ".join(
@@ -983,6 +989,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             if result["handoff"].get("reason") in {
                 "selected_skill_stack_bound_for_language",
+                "selected_skill_pending_implementation",
                 "selected_skill_not_validated_for_language",
             }:
                 result["optional_install"].pop("command", None)

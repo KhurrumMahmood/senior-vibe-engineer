@@ -418,7 +418,54 @@ def _simple_language_coverage(
                 or not isinstance(row.get("reviewed_revision"), str)
                 or not row["reviewed_revision"]
             ):
-                raise ValueError(f"supported {language} row lacks evidence: {skill}")
+                raise ValueError(f"non-pending {language} row lacks evidence: {skill}")
+        if disposition.endswith("-unsupported"):
+            if row.get("unsupported_basis") not in {
+                "technical-impossibility",
+                "conceptually-inapplicable",
+            }:
+                raise ValueError(
+                    f"permanent {language} unsupported row lacks a valid basis: {skill}"
+                )
+            alternative = row.get("alternative_skill")
+            if alternative is not None and (
+                not isinstance(alternative, str) or not alternative.strip()
+            ):
+                raise ValueError(
+                    f"permanent {language} unsupported row has an invalid alternative: "
+                    f"{skill}"
+                )
+            job_absent = row.get("underlying_job_absent") is True
+            if bool(alternative) == job_absent:
+                raise ValueError(
+                    f"permanent {language} unsupported row must name exactly one "
+                    f"alternative or absent underlying job: {skill}"
+                )
+        if disposition.endswith("-unsupported") or disposition == "not-applicable":
+            if not isinstance(row.get("independent_review"), str) or not row[
+                "independent_review"
+            ].strip():
+                raise ValueError(
+                    f"exceptional {language} disposition lacks independent review: {skill}"
+                )
+            if not isinstance(row.get("language_reference"), str) or not row[
+                "language_reference"
+            ].strip():
+                raise ValueError(
+                    f"exceptional {language} disposition lacks a language reference: "
+                    f"{skill}"
+                )
+        if disposition == "not-applicable" and row.get("underlying_job_absent") is not True:
+            raise ValueError(
+                f"{language} not-applicable row must prove the underlying job absent: {skill}"
+            )
+        if disposition.endswith("-unsupported") and row.get("alternative_skill"):
+            for field in ("alternative_evidence_path", "alternative_routing_test"):
+                value = row.get(field)
+                if not isinstance(value, str) or not (REPO_ROOT / value).is_file():
+                    raise ValueError(
+                        f"permanent {language} unsupported row lacks {field}: {skill}"
+                    )
         by_name[skill] = row
     if set(by_name) != set(LANGUAGE_CLASSIFICATION):
         raise ValueError(f"{language} coverage must contain the 22 language-level skills")
@@ -451,7 +498,11 @@ def _php_coverage(payload: dict) -> dict[str, dict]:
         supported_disposition="php-supported",
     )
     for skill, row in coverage.items():
-        if row["disposition"] in {"php-partial", "php-unsupported"} and not row.get("limitation"):
+        if row["disposition"] in {
+            "php-pending-implementation",
+            "php-partial",
+            "php-unsupported",
+        } and not row.get("limitation"):
             raise ValueError(f"bounded PHP row lacks a limitation: {skill}")
     if payload.get("decision") not in {"expand", "stop-after-pilot"}:
         raise ValueError("PHP coverage must record an expand or stop-after-pilot decision")
@@ -468,7 +519,11 @@ def _swift_coverage(payload: dict) -> dict[str, dict]:
         supported_disposition="swift-supported",
     )
     for skill, row in coverage.items():
-        if row["disposition"] in {"swift-partial", "swift-unsupported"} and not row.get("limitation"):
+        if row["disposition"] in {
+            "swift-pending-implementation",
+            "swift-partial",
+            "swift-unsupported",
+        } and not row.get("limitation"):
             raise ValueError(f"bounded Swift row lacks a limitation: {skill}")
     if payload.get("decision") not in {"expand", "stop-after-pilot"}:
         raise ValueError("Swift coverage must record an expand or stop-after-pilot decision")
@@ -485,7 +540,11 @@ def _c_coverage(payload: dict) -> dict[str, dict]:
         supported_disposition="c-supported",
     )
     for skill, row in coverage.items():
-        if row["disposition"] in {"c-partial", "c-unsupported"} and not row.get("limitation"):
+        if row["disposition"] in {
+            "c-pending-implementation",
+            "c-partial",
+            "c-unsupported",
+        } and not row.get("limitation"):
             raise ValueError(f"bounded C row lacks a limitation: {skill}")
     if payload.get("decision") not in {"expand", "stop-after-pilot"}:
         raise ValueError("C coverage must record an expand or stop-after-pilot decision")
