@@ -14,8 +14,9 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILL = REPO_ROOT / ".claude" / "skills" / "find-comment-drift"
 FIXTURE = REPO_ROOT / "tests" / "fixtures" / "php-pilot"
-PHP = Path("/opt/homebrew/bin/php")
-pytestmark = pytest.mark.skipif(not PHP.is_file(), reason="PHP pilot binary is required")
+PHP_PATH = shutil.which("php")
+PHP = Path(PHP_PATH) if PHP_PATH else Path("php-unavailable")
+pytestmark = pytest.mark.skipif(PHP_PATH is None, reason="PHP pilot binary is required")
 
 
 def _run(
