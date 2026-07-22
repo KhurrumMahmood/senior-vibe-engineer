@@ -1,0 +1,3 @@
+module InvoiceKit
+  VERSION: String
+end

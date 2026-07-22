@@ -1,0 +1,2 @@
+class PythonDecoy:
+    pass

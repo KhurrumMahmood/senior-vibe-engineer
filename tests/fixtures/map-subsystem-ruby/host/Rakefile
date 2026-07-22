@@ -1,0 +1,3 @@
+task :test do
+  ruby "-Ilib", "test/invoice_service_test.rb"
+end
