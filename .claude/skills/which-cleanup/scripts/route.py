@@ -172,50 +172,93 @@ def scope_band(file_count: int) -> str:
     return "large"
 
 
-def install_command(*, source: str, version: str, skill: str, agent: str) -> str:
-    return "DO_NOT_TRACK=1 " + shlex.join(
-        [
-            "npx",
-            "--yes",
-            f"skills@{version}",
-            "add",
-            source,
-            "--skill",
-            skill,
-            "--agent",
-            agent,
-            "--copy",
-            "-y",
-        ]
-    )
+def install_command(*, source: str, version: str, skills: list[str], agent: str) -> str:
+    command = ["npx", "--yes", f"skills@{version}", "add", source]
+    for skill in skills:
+        command.extend(["--skill", skill])
+    command.extend(["--agent", agent, "--copy", "-y"])
+    return "DO_NOT_TRACK=1 " + shlex.join(command)
+
+
+def declared_closure(library_root: Path, skill: str) -> list[str]:
+    """Return the manifest-declared closure, falling back to the primary skill.
+
+    Capability validation below remains authoritative. This small lookup exists
+    only so the handoff can ask that validator for the complete closure instead
+    of incorrectly treating a companion-backed skill as a singleton.
+    """
+    manifest = library_root / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
+    try:
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict) or payload.get("schema_version") != 2:
+            raise TypeError("unsupported capability manifest schema")
+        rows = payload["skills"]
+        if not isinstance(rows, list):
+            raise TypeError("skills must be a list")
+        names = {
+            row["skill"]
+            for row in rows
+            if isinstance(row, dict) and isinstance(row.get("skill"), str)
+        }
+        row = next(
+            row
+            for row in rows
+            if isinstance(row, dict) and row.get("skill") == skill
+        )
+        closure = row["on_demand_closure"]["closure_skills"]
+        if (
+            not isinstance(closure, list)
+            or not closure
+            or closure[0] != skill
+            or len(closure) != len(set(closure))
+            or any(not isinstance(member, str) or not member for member in closure)
+            or any(member not in names for member in closure)
+        ):
+            raise TypeError("selected capability closure is invalid")
+        return closure
+    except (
+        OSError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        KeyError,
+        StopIteration,
+        TypeError,
+    ):
+        return [skill]
 
 
 def library_handoff(library_root: Path, skill: str) -> dict:
-    guide = library_root / ".claude" / "skills" / skill / "SKILL.md"
-    bundled_tooling = guide.parent / "scripts"
+    skills = declared_closure(library_root, skill)
+    guides = []
+    for member in skills:
+        guide = library_root / ".claude" / "skills" / member / "SKILL.md"
+        bundled_tooling = guide.parent / "scripts"
+        guides.append(
+            {
+                "skill": member,
+                "skill_root": str(guide.parent),
+                "guide": str(guide),
+                "bundled_tooling": (
+                    str(bundled_tooling) if bundled_tooling.is_dir() else None
+                ),
+            }
+        )
     shared_tooling = library_root / "scripts"
     source_inventory = shared_tooling / "source_inventory.py"
     common_guidance = library_root / ".claude" / "skills" / "_common"
     shared_guidance = library_root / ".claude" / "docs"
     return {
         "mode": "on_demand_library",
-        "available": guide.is_file(),
+        "available": all(Path(item["guide"]).is_file() for item in guides),
         "default_execution": "fresh_non_context_subagent",
         "library_root": str(library_root),
-        "skills": [skill],
-        "guides": [
-            {
-                "skill": skill,
-                "skill_root": str(guide.parent),
-                "guide": str(guide),
-                "bundled_tooling": str(bundled_tooling) if bundled_tooling.is_dir() else None,
-            }
-        ],
+        "skills": skills,
+        "guides": guides,
         "shared_tooling": str(shared_tooling) if shared_tooling.is_dir() else None,
         "source_inventory_tool": str(source_inventory) if source_inventory.is_file() else None,
         "common_guidance": str(common_guidance) if common_guidance.is_dir() else None,
         "shared_guidance": str(shared_guidance) if shared_guidance.is_dir() else None,
-        "capabilities": capability_handoff(library_root, [skill]),
+        "capabilities": capability_handoff(library_root, skills),
         "instruction": (
             "For a non-trivial closeout, give a fresh non-context sub-agent the bounded paths, "
             "reason, selected skill root, and shared guidance/tool paths. For a tiny check, read "
@@ -303,9 +346,17 @@ def capability_handoff(library_root: Path, skills: list[str]) -> dict:
 
 
 def optional_install_handoff(
-    *, source: str, version: str, skill: str, agent: str, capabilities: dict
+    *,
+    source: str,
+    version: str,
+    skill: str,
+    skills: list[str],
+    agent: str,
+    capabilities: dict,
 ) -> dict:
     result = {
+        "skill": skill,
+        "skills": skills,
         "source": source,
         "skills_cli_version": version,
         "agent": agent,
@@ -335,7 +386,7 @@ def optional_install_handoff(
         "command": install_command(
             source=source,
             version=version,
-            skill=skill,
+            skills=skills,
             agent=agent,
         ),
     }
@@ -386,6 +437,7 @@ def build_result(args: argparse.Namespace) -> dict:
                     source=args.source,
                     version=args.skills_cli_version,
                     skill=skill,
+                    skills=handoff["skills"],
                     agent=args.agent,
                     capabilities=handoff["capabilities"],
                 ),
@@ -419,13 +471,10 @@ def render(result: dict) -> str:
     lines.append("")
     lines.append("Recommended skills:")
     for item in result["recommendations"]:
-        lines.extend(
-            [
-                f"- /{item['skill']}: {item['reason']}",
-                f"  Guide: {item['handoff']['guides'][0]['guide']}",
-                f"  Default: {item['handoff']['default_execution']}",
-            ]
-        )
+        lines.append(f"- /{item['skill']}: {item['reason']}")
+        for guide in item["handoff"]["guides"]:
+            lines.append(f"  Guide /{guide['skill']}: {guide['guide']}")
+        lines.append(f"  Default: {item['handoff']['default_execution']}")
         if item["optional_install"]["available"]:
             lines.extend(
                 [

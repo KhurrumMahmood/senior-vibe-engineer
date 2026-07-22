@@ -67,6 +67,13 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         for name in DEFAULT_ROUTERS
     }
 
+    cleanup_smoke = _run_isolated(
+        installed["which-cleanup"] / "scripts" / "smoke.py",
+        cwd=host,
+    )
+    assert cleanup_smoke.returncode == 0, cleanup_smoke.stdout + cleanup_smoke.stderr
+    assert "which-cleanup smoke: OK" in cleanup_smoke.stdout
+
     bootstrap = _run_isolated(
         installed["which-skill"] / "scripts" / "bootstrap_library.py",
         "--project-root",
@@ -334,6 +341,23 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert cleanup_install["available"] is False
     assert cleanup_install["reason"] == "selected_skill_install_not_validated"
     assert "command" not in cleanup_install
+
+    regression = cleanup_recommendations["prevent-regression"]
+    assert regression["handoff"]["skills"] == [
+        "prevent-regression",
+        "find-implicit-state",
+    ]
+    assert [guide["skill"] for guide in regression["handoff"]["guides"]] == [
+        "prevent-regression",
+        "find-implicit-state",
+    ]
+    assert regression["handoff"]["capabilities"]["available"] is True
+    assert [
+        row["skill"] for row in regression["handoff"]["capabilities"]["skills"]
+    ] == ["prevent-regression", "find-implicit-state"]
+    assert regression["optional_install"]["available"] is True
+    assert "--skill prevent-regression" in regression["optional_install"]["command"]
+    assert "--skill find-implicit-state" in regression["optional_install"]["command"]
 
     rename_routed = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",

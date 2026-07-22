@@ -114,8 +114,9 @@ Acceptance:
   expected catalog count at that revision.
 - [ ] The documented install command on a clean temporary Git host creates
   exactly `which-skill`, `which-shape`, and `which-cleanup` in discovery.
-- [ ] Copies of all three routers run under isolated/no-site Python without
-  importing repository-only modules or using network access.
+- [ ] The documented entrypoints for all three routers and the installed
+  `which-cleanup` smoke run under isolated/no-site Python without importing
+  repository-only modules or using network access.
 - [ ] The documented bootstrap creates a complete sibling library outside the
   host repository and discovery roots.
 - [ ] One `which-skill` route and one `which-shape` route return exact selected
@@ -123,6 +124,9 @@ Acceptance:
   outcome without ambiently installing a task skill.
 - [ ] `which-cleanup` returns a bounded closeout result with valid on-demand
   paths from the same library.
+- [ ] Every router recommendation returns its complete manifest-declared
+  companion closure; capability validation and optional installation operate
+  on that exact closure rather than the primary skill alone.
 - [ ] The documented removal path removes the three routers, preserves an
   out-of-scope sentinel byte-for-byte, and does not claim to remove the external
   library unless separately requested.
@@ -135,7 +139,9 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | Requires repository-owner publication authorization | — | — |
+| Public source state | `gh repo view <distribution-named-by-README> --json visibility,defaultBranchRef`; `git ls-remote <distribution-named-by-README> ...` | Blocked: repository is `PRIVATE`; `main`/HEAD is `ce257f57`, 286 commits behind the local candidate at audit time | local `2bcddd6` |
+| Local installed-router suite | `.venv/bin/python -m pytest -q tests/test_installed_routers.py` | Pass: 55 | pending repair commit |
+| Clean stock-CLI local replay | `skills@1.5.19` install from local source; isolated router entrypoints/smoke; sibling bootstrap; closure assertions; `remove --all` | Pass: exactly three routers, `organize-project-structure` task route, `adapt-project` shape route, exact `prevent-regression` + `find-implicit-state` cleanup closure, sentinel preserved | pending repair commit |
 
 ## P3 — Prove the minimal language-support kit scaffold
 
@@ -384,6 +390,7 @@ Evidence:
 | Date | Phase | Change | Reason/evidence | User decision |
 |---|---|---|---|---|
 | 2026-07-21 | All | Initial verifiable criteria created | Requested resumable one-by-one execution with final validation | Approved by request |
+| 2026-07-21 | P2 | Added installed-smoke and exact companion-closure gates | Clean stock replay exposed a repo-only smoke import and `which-cleanup` treating `prevent-regression` as a singleton despite its declared companion | Strengthening from observed installer failures; no scope expansion beyond easy installation |
 
 ## Execution log
 
@@ -392,3 +399,4 @@ Evidence:
 | 2026-07-21 | P1 | Started | Validate discoverability, reference integrity, diff scope, then commit the documentation/ledger unit. |
 | 2026-07-21 | P1 | Completed | `cc2a4fc`; all P1 acceptance items passed. |
 | 2026-07-21 | P2 | Started | Audit the documented public source and compare its remote revision with `cc2a4fc`; prepare the clean replay and stop for owner authorization before any publication action. |
+| 2026-07-21 | P2 | Local replay repaired | Installed smoke is stdlib-only; cleanup handoffs and optional commands now use the exact manifest closure. Focused suite and clean local stock-CLI replay pass. Public visibility/publication and the fresh useful-outcome replay remain open. |
