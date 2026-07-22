@@ -19,12 +19,12 @@ SUPPORTED_SUFFIXES = {
     ".mjs": "javascript",
     ".cjs": "javascript",
     ".go": "go",
+    ".java": "java",
     ".ts": "typescript",
     ".tsx": "typescript",
 }
 UNSUPPORTED_SUFFIXES = {
     ".rs": "rust",
-    ".java": "java",
     ".kt": "kotlin",
     ".kts": "kotlin",
     ".cs": "csharp",

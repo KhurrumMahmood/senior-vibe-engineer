@@ -4,12 +4,11 @@ A **senior-engineer skill ecosystem** for AI coding agents: skills that find
 architectural debt, refactor systematically, author ADRs, and turn one-off
 discoveries into durable guardrails. Extracted from a real production codebase.
 **Its origin and shared runtime remain Python/Django-flavored** — the lint
-substrate and most worked examples are Django. TypeScript has complete coverage
-across the 22 language-level skills. Go has a bounded 14/22 core, and Java has
-a bounded 3/22 standalone-JDK pilot covering complexity detection, boundary
-proposal, and transactional package moves; unsupported families remain
-explicitly pending rather than inheriting a language-wide claim. Other host
-languages, including Rust, are not yet proven (see
+substrate and most worked examples are Django. TypeScript and Go each have
+22/22 language-level coverage; standalone-JDK Java also has 22/22. These claims
+do not extend to the 22 deliberately stack-bound framework skills: Java support
+does not imply Spring, Android, or Kotlin support. Other host languages,
+including Rust, are not yet proven (see
 [Tech assumptions](#tech-assumptions) and the tracked
 [coverage matrix](./.claude/tasks/multilanguage-skill-matrix.json)).
 
@@ -234,11 +233,10 @@ reports/
   remain Django/Celery-specific. TypeScript coverage is separately proven and
   tracked in `.claude/tasks/typescript-skill-coverage.json`: 22 skills are
   TypeScript-supported, 19 are validated-neutral, 22 are deliberately
-  stack-bound, and 13 are ecosystem-runtime. Go separately earns 14/22
-  language-level outcomes. Java earns only the three standalone-JDK families
-  recorded in `.claude/tasks/java-language-coverage.json`; the other 19 remain
-  pending. None of that evidence establishes Rust, Kotlin, or framework-level
-  Java support.
+  stack-bound, and 13 are ecosystem-runtime. Go separately earns 22/22
+  language-level outcomes. Java earns 22/22 standalone-JDK language-level
+  outcomes recorded in `.claude/tasks/java-language-coverage.json`. None of
+  that evidence establishes Rust, Kotlin, or framework-level Java support.
 
 ## Where to read next
 

@@ -2,7 +2,7 @@
 
 Status: active
 Current phase: P2 — align release truth and replay the final public candidate
-Last updated: 2026-07-21
+Last updated: 2026-07-21 (runtime-bootstrap and routing-provenance update)
 
 ## Objective
 
@@ -632,4 +632,6 @@ Evidence:
 | 2026-07-21 | P2 | Started | Audit the documented public source and compare its remote revision with `cc2a4fc`; prepare the clean replay and stop for owner authorization before any publication action. |
 | 2026-07-21 | P2 | Local replay repaired | Installed smoke is stdlib-only; cleanup handoffs and optional commands now use the exact manifest closure. Focused suite and clean local stock-CLI replay pass. Public visibility/publication and the fresh useful-outcome replay remain open. |
 | 2026-07-21 | P2 | Public replay passed provisionally | Owner made the repository public; `main` is `8dc37d7`; stock list reports 76; clean public install/bootstrap/routes/`adapt-project` evidence/removal pass. Repair stale README Go/Java counts and Java inventory classification, add consistency sentinels, publish, then rerun the same journey at the final candidate. |
+| 2026-07-21 | P2 | Runtime bootstrap integrated | `9208fca`; normal external-library bootstrap now health-checks Python >=3.11, creates/verifies the library venv, installs declared requirements, and exposes the exact runtime path through all three routers. The final P2 candidate and public replay must include this revision plus the pending release-truth repair. |
+| 2026-07-21 | P8 | Router corpus seed captured | Resuming this explicit ledger produced `Project context: missing (adapter=False, profile=False, approved=False)` and a score-zero lexical `bug-fix` fallback. The explicit sole active plan correctly overrode it. Preserve this as an authoritative-plan/low-context routing case for the frozen P8 corpus; do not create project context or block P2 merely to raise router confidence. |
 | 2026-07-21 | Planning | Non-context plan review completed | `7637fcf`; three independent lanes reviewed the P3 substrate, language/worktree execution, and adversarial product alignment. Accepted bounded reuse, exact ownership, economics, release-truth, and measure-before-optimization findings; rejected stale private-repo assumptions and blanket prohibition on user-requested Swift/Dart planning. |

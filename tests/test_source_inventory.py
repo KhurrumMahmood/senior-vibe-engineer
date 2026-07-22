@@ -55,6 +55,8 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     _write(host / "vite.config.ts", "export default {};\n")
     _write(host / "src" / "main.go", "package main\n")
     _write(host / "src" / "main_test.go", "package main\n")
+    _write(host / "src" / "Main.java", "class Main {}\n")
+    _write(host / "tests" / "MainTest.java", "class MainTest {}\n")
     _write(host / "node_modules" / "pkg" / "vendor.ts", "export const vendor = 1;\n")
     _write(host / "dist" / "bundle.ts", "export const bundled = 1;\n")
     external = tmp_path / "external"
@@ -72,6 +74,7 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert payload["status"] == "complete"
     assert payload["capabilities"]["inventory_languages"] == [
         "go",
+        "java",
         "javascript",
         "python",
         "typescript",
@@ -96,6 +99,8 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
         "vite.config.ts",
         "src/main.go",
         "src/main_test.go",
+        "src/Main.java",
+        "tests/MainTest.java",
     } == set(files)
 
     assert files["src/app.py"]["role"] == "source"
@@ -124,6 +129,9 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert files["src/main.go"]["language"] == "go"
     assert files["src/main.go"]["classification"] == "classified"
     assert files["src/main_test.go"]["role"] == "test"
+    assert files["src/Main.java"]["language"] == "java"
+    assert files["src/Main.java"]["classification"] == "classified"
+    assert files["tests/MainTest.java"]["role"] == "test"
 
     excluded = {row["path"]: row["reason"] for row in payload["excluded_roots"]}
     assert excluded["node_modules"] == "external_dependency"
