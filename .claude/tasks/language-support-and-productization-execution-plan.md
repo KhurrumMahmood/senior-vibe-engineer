@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P5 readiness — owner-authorized .NET SDK path required before product work
-Last updated: 2026-07-22 (P4 stopped after three correct pilot outcomes; PHP expansion economics failed)
+Current phase: P7 Swift spine — bounded SwiftPM pilot while P5 awaits an owner-authorized .NET SDK
+Last updated: 2026-07-22 (Swift selected from three parallel preflights; no early shared-component promotion)
 
 ## Objective
 
@@ -105,7 +105,7 @@ execution authorities.
 | P4 | PHP pilot proves real outcomes and kit economics | `done` | `268c3ac` |
 | P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `awaiting_owner_toolchain` | — |
 | P6 | Shared components promoted or rejected on evidence | `not_started` | — |
-| P7 | Remaining selected languages receive honest coverage | `not_started` | — |
+| P7 | Remaining selected languages receive honest coverage | `swift_spine_in_progress` | — |
 | P8 | Current journey, update/repair, and help are measured | `not_started` | — |
 | P9 | Only measured user-journey improvements are adopted | `not_started` | — |
 
@@ -464,8 +464,11 @@ Before selecting a new language, service any owner-approved PHP or typed-pilot
 `expand` decision from P4/P5 as the first P7 slice.
 
 P7 is a repeatable language slice, not a single all-at-once conversion. At P6
-closeout, rank the queue using user demand, representative-host availability,
-native/offline tool feasibility, expected closure cost, and transfer evidence.
+closeout, rank the remaining queue using user demand, representative-host
+availability, native/offline tool feasibility, expected closure cost, and
+transfer evidence. By owner-approved sequencing exception, the Swift spine may
+begin while P5 awaits .NET and before P6: it may reuse already-accepted P3
+mechanics, but it cannot promote a new shared component or weaken P5/P6 gates.
 Read-only profiles/toolchain preflight for up to three languages may run
 concurrently. Exactly one language may have product implementation in flight;
 the global maximum of three worker worktrees applies across that language's
@@ -521,12 +524,12 @@ Per-language status:
 |---|---|---|---|---|---|---|
 | PHP expansion | `stopped_after_pilot` | PHP 8.4.2/Composer 2.4.0 proven | 3 supported, 19 unsupported | Published | `.claude/tasks/multilanguage-learnings/php-pilot.md` | `268c3ac` |
 | Typed-pilot expansion | `awaiting_p5_decision` | P5-owned | — | — | — | — |
-| Ruby | `preflight_needed` | System Ruby 2.6.10/Bundler 1.17.2 observed; likely old | — | — | — | — |
+| Ruby | `deferred_unhealthy_toolchain` | System Ruby 2.6.10 is too old for representative syntax; private Ruby 3.3/rbenv paths time out | — | — | `.claude/tasks/p7-preflight/ruby.md` | — |
 | Rust | `toolchain_missing` | `cargo`/`rustc` absent | — | — | — | — |
-| Swift | `ready_for_preflight` | Swift 6.3.3/SwiftPM available | — | — | — | — |
+| Swift | `spine_in_progress` | Swift 6.3.3, SwiftPM, SourceKit-LSP, index and symbol tools available; SwiftSyntax and native test modules absent under CLT-only setup | Frozen contracts next: syntax, semantic/project, mutation | Not published | `.claude/tasks/p7-preflight/swift.md` | base `865d850` |
 | Dart | `toolchain_missing` | `dart`/Flutter absent | — | — | — | — |
 | Kotlin | `toolchain_missing` | `kotlin`/`kotlinc` absent | — | — | — | — |
-| C/C++ | `partial_toolchain` | Clang/clangd 21 available; CMake absent; host compile DB still required | — | — | — | — |
+| C/C++ | `preflight_complete_queued` | Separate C and C++ profiles required; Clang/clangd 21 available, CMake absent, trustworthy compile DB required | — | — | `.claude/tasks/p7-preflight/c-cpp.md` | — |
 
 ## P8 — Measure the current journey and finish lifecycle/help semantics
 
@@ -641,6 +644,7 @@ Evidence:
 | 2026-07-21 | P3 | Reframed as extension of existing profile/inventory/journey/lifecycle primitives with TS+Java proof | Fresh substrate review found useful partial primitives and duplicated native-tool probing; greenfield infrastructure would repeat the prior rabbit hole | Keep only mechanics likely to reduce language-port cost |
 | 2026-07-21 | P4-P7 | Added spine/cohort worktrees, frozen economics, 22-row closeouts, toolchain readiness, and serial shared integration | Completed Go/Java evidence supports cohort fan-out, while different-language branches collide on shared dispatch/matrix surfaces | Parallelize disjoint work without parallelizing shared truth |
 | 2026-07-21 | P8-P9 | Measure baseline/update/help before optional host-instruction infrastructure | Adversarial review showed the prior order could make an unmeasured optional platform mandatory | Preserve installer -> languages -> measured journey order |
+| 2026-07-22 | P5-P7 | Permit one bounded SwiftPM P7 slice while P5 awaits an owner-authorized .NET SDK; forbid early shared-component promotion | Owner explicitly asked to start other languages meanwhile. Parallel preflights found Swift ready, Ruby unhealthy, and C/C++ feasible only as two compile-database-gated profiles | Approved by user request |
 
 ## Execution log
 
@@ -655,6 +659,7 @@ Evidence:
 | 2026-07-21 | P8 | Router corpus seed captured | Resuming this explicit ledger produced `Project context: missing (adapter=False, profile=False, approved=False)` and a score-zero lexical `bug-fix` fallback. The explicit sole active plan correctly overrode it. Preserve this as an authoritative-plan/low-context routing case for the frozen P8 corpus; do not create project context or block P2 merely to raise router confidence. |
 | 2026-07-21 | P2 | Completed | `60898a7`; public Go/Java claims, accepted coverage, generated matrix, router capability output, and shared inventory agree. The final public list/install/bootstrap/route/`adapt-project`/cleanup/remove replay passed with exact router-tree/library revision coherence, runtime setup, host-source preservation, sentinel preservation, and library retention. Begin P3.0 baseline/worktree inventory; do not revise P2 further unless a reproduced installer regression appears. |
 | 2026-07-22 | P4 | Completed; expansion stopped | Three bounded PHP outcomes reach final artifacts and native checks. The 22-row matrix/router truth is published. LOC and closure economics failed, so correct implementations remain family-local and the other 19 skills remain explicitly unsupported. P5 readiness confirms `dotnet` is absent and no install was attempted. |
+| 2026-07-22 | P7 | Three preflights completed; Swift selected | Swift, Ruby, and C/C++ evidence lives under `.claude/tasks/p7-preflight/`. Begin one root-owned SwiftPM spine from `865d850`: profile/doctor/inventory, representative host, three frozen final-outcome contracts, and 22 initial unsupported dispositions. Ruby and C/C++ remain queued; no concurrent product implementation. |
 | 2026-07-21 | P3 | Started | Freeze the exact `60898a7` TypeScript+Java `find-omnibus` baseline and review the 87 registered/59 previously prunable worktree registrations before opening any P3 worker lane. |
 | 2026-07-21 | P3.0 | Completed | Committed evidence freezes the existing-substrate decisions, exact TypeScript/Java projections and exclusions, copied closure bytes, fixture manifests, maintained LOC, OpenJDK 17.0.20/TypeScript 5.9.3 toolchain, full `18 passed` correctness run, and cold plus seven alternating warm trials. Registration-only pruning reduced 87 worktree records to 28 without deleting a path, branch, commit, or dirty worktree. P3.1 may now start from this spine. |
 | 2026-07-21 | P3.1 | Completed | Added strict stdlib-only profiles for the five currently inventoried languages and a narrow lifecycle module. The deletion/caller-knowledge test is satisfied by two immediate consumers (TypeScript and Java omnibus); profiles remove duplicated suffix/tool/role/command/limit declarations, while lifecycle removes only atomic-write, stale-clear, source-hash, and terminal-vocabulary policy. No semantic result schema, adapter layer, installer, cache, mutation executor, or framework profile was added. P3.2 may extend the existing inventory from this spine. |
