@@ -684,8 +684,8 @@ detectors.
 |---|---|---|---|
 | J2 lexical/filesystem | 6/6 integrated; review pending | `adapt-project`, `explain-code`, `find-comment-drift`, `find-concept-divergence`, `find-duplication`, `find-folder-topology-drift` | Accepted Java source-role and path boundaries. All six candidate outcomes are integrated through `71ffb81`; promotion still waits for product-framed review and closeout replay. |
 | J3 syntax/reports | 3/3 integrated; review pending | `audit-decisions`, `find-omnibus`, `find-standard-gaps` | JDK syntax facts only where text/metadata cannot establish the final report. All three candidate outcomes are integrated through `29d21cd`; promotion waits for closeout review. |
-| J4 semantic/project | 6/6 integrated; review pending | `find-dormant`, `find-implicit-state`, `find-incomplete-sweep`, `find-semantic-duplication`, `map-subsystem`, `rename-concept` | All bounded Java identity/relationship outcomes are integrated through `7b1d186`; promotion waits for the active product review and closeout replay. |
-| J5 proposals/guards | 3/4 integrated; folder proposal active | `extract-enum`, `prevent-regression`, `propose-folder-reorganization`, `unify-shadows` | Enum, exact-field guard, and shadow proposals consume accepted producer artifacts and are integrated through `f568715`; only the independent read-only folder proposal remains active. |
+| J4 semantic/project | 6/6 integrated; review fixes pending | `find-dormant`, `find-implicit-state`, `find-incomplete-sweep`, `find-semantic-duplication`, `map-subsystem`, `rename-concept` | All bounded Java identity/relationship outcomes are integrated; the active product review found bounded correctness gaps that must become regressions before promotion. |
+| J5 proposals/guards | 4/4 integrated; review pending | `extract-enum`, `prevent-regression`, `propose-folder-reorganization`, `unify-shadows` | All four producer-backed/read-only outcomes are integrated through `a171fd2`; promotion waits for review repairs, full router validation, and closeout replay. |
 
 Execution ownership is deliberately smaller than those reporting batches:
 
