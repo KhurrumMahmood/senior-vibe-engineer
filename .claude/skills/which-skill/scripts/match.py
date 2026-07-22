@@ -124,7 +124,7 @@ LANGUAGE_ALIASES = {
 LEXICAL_LANGUAGE_TOKENS = frozenset(LANGUAGE_ALIASES)
 LANGUAGE_MARKERS = {
     "cpp": re.compile(
-        r"(?i)(?:\bC\+\+\b|\bcpp\b|\.(?:cc|cpp|cxx|c\+\+|hpp|hh|hxx|h\+\+|ipp|inl|tpp)\b)"
+        r"(?i)(?:\bC\+\+(?=\d|\s|$)|\bcpp\b|\.(?:cc|cpp|cxx|c\+\+|hpp|hh|hxx|h\+\+|ipp|inl|tpp)\b)"
     ),
     "c": re.compile(
         r"(?i)(?:\bC(?:17|23)?\b(?=\s+(?:project|repo|repository|library|code|source|file))|\.c\b|\.i\b)"

@@ -426,7 +426,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
 
     pending_cpp = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
-        "use adapt-project on this C++20 repository",
+        "use adapt-project on this C++ repository",
         "--project-root",
         str(host),
         "--library-root",
@@ -552,7 +552,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
 
     cpp_shape = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",
-        "onboard an unknown inherited C++20 repository and figure out what loop to run",
+        "onboard an unknown inherited C++ repository and figure out what loop to run",
         "--project-root",
         str(host),
         "--library-root",
