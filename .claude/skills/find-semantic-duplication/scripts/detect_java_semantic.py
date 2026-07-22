@@ -136,6 +136,16 @@ def _fingerprint(scripts: Path) -> str:
     return f"sha256:{digest.hexdigest()}"
 
 
+def _source_manifest(files: list[Path], root: Path) -> dict[str, Any]:
+    return {
+        "algorithm": "sha256",
+        "files": {
+            path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in files
+        },
+    }
+
+
 def _helper(java: Path, files: list[Path], root: Path) -> dict[str, Any]:
     if not files:
         return {"schema_version": 1, "analyzer": "jdk-compiler-tree-static-record-returns", "eligible_method_count": 0, "leads": [], "deferred": []}
@@ -259,10 +269,12 @@ def main(argv: list[str] | None = None) -> int:
         raw = _helper(java, files, root)
         findings = [_finding(lead, index) for index, lead in enumerate(raw["leads"], 1)]
         fingerprint = _fingerprint(Path(__file__).parent)
+        source_manifest = _source_manifest(files, root)
         payload = {
             "skill": "find-semantic-duplication", "language": "java",
             "analyzer": "jdk-compiler-tree-static-record-returns", "status": "complete",
-            "source_fingerprint": fingerprint, "capability_matrix": CAPABILITIES,
+            "source_fingerprint": fingerprint, "source_manifest": source_manifest,
+            "capability_matrix": CAPABILITIES,
             "counts": {"confirmed": len(findings), "uncertain": 0, "rejected": 0, "deferred": len(raw["deferred"])},
             "findings": findings, "confirmed": findings, "uncertain": [], "rejected": [],
             "deferred": raw["deferred"],

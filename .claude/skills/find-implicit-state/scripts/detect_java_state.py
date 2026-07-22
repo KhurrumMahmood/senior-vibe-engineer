@@ -22,6 +22,7 @@ VENDOR_OWNER = re.compile(
 )
 TEST_PARTS = {"test", "tests", "fixture", "fixtures", "integrationtest", "testfixtures"}
 SKIP_PARTS = {".git", ".gradle", ".idea", "build", "dist", "node_modules", "out", "reports", "target"}
+BUILD_OUTPUT_PARTS = {"build", "out", "target"}
 GENERATED_PARTS = {"generated", "gen"}
 MINIMUM_JDK = (17, 0, 0)
 
@@ -86,6 +87,8 @@ def _relative(root: Path, path: Path) -> str:
 def _role(root: Path, path: Path) -> str:
     relative = path.relative_to(root)
     parts = {part.lower() for part in relative.parts[:-1]}
+    if parts & BUILD_OUTPUT_PARTS:
+        return "excluded_build_output"
     if "vendor" in parts:
         return "excluded_vendor"
     if parts & TEST_PARTS or re.search(r"(?:Test|Tests|IT)\.java$", path.name):
@@ -243,6 +246,7 @@ def _final_findings(
     scan_id: str,
     target: Path,
     inventory: list[dict[str, str]],
+    source_files: list[Path],
     helper: dict[str, Any],
     unavailable: list[str],
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -294,6 +298,13 @@ def _final_findings(
         "language": "java",
         "status": status,
         "target": _relative(root, target),
+        "source_manifest": {
+            "algorithm": "sha256",
+            "files": {
+                _relative(root, path): hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in source_files
+            },
+        },
         "analysis": {
             "status": status,
             "analyzer": "jdk-compiler-tree-type-api",
@@ -411,7 +422,9 @@ def main(argv: list[str] | None = None) -> int:
                 raise JavaStateError(f"Java syntax error: {detail}")
         else:
             helper = {"schema_version": 1, "analyzer": "jdk-compiler-tree-type-api", "java_version": java_version, "status": "partial", "diagnostics": ["no eligible first-party Java source"], "operations": []}
-        payload, records = _final_findings(root, args.scan_id, target, inventory, helper, unavailable)
+        payload, records = _final_findings(
+            root, args.scan_id, target, inventory, files, helper, unavailable
+        )
         payload["analysis"]["java_tool"] = java_version
         payload["analysis"]["javac_tool"] = javac_version
         _atomic_write(output, "".join(json.dumps(record, sort_keys=True) + "\n" for record in records))

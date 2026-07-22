@@ -43,9 +43,10 @@ python3 -I -S "${SKILL_ROOT}/scripts/detect_java_semantic.py" \
 
 Run the host's native Java 17 compile/tests before and after. Judge only
 `findings.json`, `triage.md`, and the cited capability matrix. The copied skill
-contains the complete stdlib-Python/JDK closure and records its source
-fingerprint. Pass one complete confirmed finding to `/unify-shadows`; never
-start a mutation workflow directly from detector output.
+contains the complete stdlib-Python/JDK closure and records both its analyzer
+fingerprint and a SHA-256 manifest of selected Java source. Pass one complete
+confirmed finding to `/unify-shadows`; never start a mutation workflow directly
+from detector output.
 
 ## Outcome boundaries
 

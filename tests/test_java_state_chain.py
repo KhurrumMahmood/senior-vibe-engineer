@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -79,12 +80,20 @@ def _records(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
 
 
-def _detect(skill: Path, host: Path, output: Path, *, isolated: bool = False, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def _detect(
+    skill: Path,
+    host: Path,
+    output: Path,
+    *,
+    target: Path | None = None,
+    isolated: bool = False,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     prefix = (sys.executable, "-I", "-S") if isolated else (sys.executable,)
     return _run(
         *prefix,
         str(skill / "scripts" / "detect_java_state.py"),
-        "--target", str(host),
+        "--target", str(target or host),
         "--project-root", str(host),
         "--output", str(output / "hits.jsonl"),
         "--findings", str(output / "findings.json"),
@@ -156,6 +165,12 @@ def test_java_state_detector_reaches_final_review_artifacts_from_copied_closure(
     findings = json.loads((report / "findings.json").read_text(encoding="utf-8"))
     assert findings["status"] == "complete"
     assert findings["analysis"]["analyzer"] == "jdk-compiler-tree-type-api"
+    assert findings["source_manifest"]["algorithm"] == "sha256"
+    assert findings["source_manifest"]["files"][
+        "src/main/java/example/Job.java"
+    ] == hashlib.sha256(
+        (host / "src/main/java/example/Job.java").read_bytes()
+    ).hexdigest()
     accepted = [row for row in findings["findings"] if row["bucket"] == "extract_enum_candidate"]
     assert len(accepted) == 1
     assert accepted[0]["finding_id"] == "java-implicit-state-0001"
@@ -200,6 +215,42 @@ def test_java_state_detector_rejects_malformed_and_missing_or_old_jdk_without_ar
     assert old.returncode == 2
     assert "requires jdk >= 17" in old.stderr.lower()
     assert not output.exists()
+
+
+@pytest.mark.parametrize("build_part", ("build", "target", "out"))
+@pytest.mark.parametrize("target_kind", ("directory", "file"))
+def test_java_state_detector_excludes_direct_build_output_targets(
+    tmp_path: Path,
+    build_part: str,
+    target_kind: str,
+) -> None:
+    host = _host(tmp_path)
+    excluded = host / build_part / "example/GeneratedJob.java"
+    excluded.parent.mkdir(parents=True)
+    excluded.write_text(
+        (host / "src/main/java/example/Job.java").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    target = host / build_part if target_kind == "directory" else excluded
+    report = host / "reports/implicit-state" / f"{build_part}-{target_kind}"
+
+    result = _detect(FIND, host, report, target=target)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads((report / "findings.json").read_text(encoding="utf-8"))
+    assert payload["status"] == "partial"
+    assert not any(
+        item.get("bucket") == "extract_enum_candidate"
+        for item in payload["findings"]
+    )
+    inventory = payload["boundaries"]["source_inventory"]
+    assert inventory == [
+        {
+            "record_kind": "source_inventory",
+            "file": f"{build_part}/example/GeneratedJob.java",
+            "role": "excluded_build_output",
+        }
+    ]
 
 
 def test_java_enum_proposal_consumes_one_complete_accepted_authority_without_redetection(tmp_path: Path) -> None:
@@ -247,6 +298,81 @@ def test_java_enum_proposal_consumes_one_complete_accepted_authority_without_red
     assert stale.returncode == 2
     assert "authority is stale" in stale.stderr
     assert not stale_output.exists()
+
+
+def test_java_enum_proposal_rejects_stale_caller_from_detector_manifest(
+    tmp_path: Path,
+) -> None:
+    host = _host(tmp_path)
+    caller = host / "src/main/java/example/JobConsumer.java"
+    caller.write_text(
+        """package example;
+
+public final class JobConsumer {
+    public static boolean isQueued(Job job) {
+        return job.status.equals("queued");
+    }
+}
+""",
+        encoding="utf-8",
+    )
+    implicit = host / "reports/implicit-state/java-state"
+    detected = _detect(FIND, host, implicit)
+    assert detected.returncode == 0, detected.stdout + detected.stderr
+    payload = json.loads((implicit / "findings.json").read_text(encoding="utf-8"))
+    assert payload["source_manifest"]["files"][
+        "src/main/java/example/JobConsumer.java"
+    ] == hashlib.sha256(caller.read_bytes()).hexdigest()
+    caller.write_text(caller.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+    output = host / "reports/extract-enum/stale-caller"
+
+    result = _collect(
+        EXTRACT,
+        host,
+        implicit / "findings.json",
+        output,
+        "java-implicit-state-0001",
+    )
+
+    assert result.returncode == 2
+    assert "caller evidence is stale" in result.stderr
+    assert not output.exists()
+
+
+def test_copied_java_state_runbook_preserves_detector_failure(tmp_path: Path) -> None:
+    host = tmp_path / "host"
+    installed = host / ".claude/skills/find-implicit-state"
+    shutil.copytree(FIND, installed)
+    detector = installed / "scripts/detect_java_state.py"
+    detector.write_text(
+        """import pathlib
+import sys
+
+output = pathlib.Path(sys.argv[sys.argv.index("--output") + 1])
+output.parent.mkdir(parents=True, exist_ok=True)
+raise SystemExit(7)
+""",
+        encoding="utf-8",
+    )
+    text = (installed / "SKILL.md").read_text(encoding="utf-8")
+    match = re.search(
+        r"<!-- installed-command:java-state:start -->\n```bash\n(.*?)\n```\n"
+        r"<!-- installed-command:java-state:end -->",
+        text,
+        re.DOTALL,
+    )
+    assert match is not None
+
+    result = _run(
+        "/bin/sh",
+        "-c",
+        match.group(1),
+        cwd=host,
+        env={**_env(), "TARGET": "."},
+    )
+
+    assert result.returncode == 7
+    assert not (host / "reports/implicit-state/latest").exists()
 
 
 def test_java_state_guard_stages_only_exact_authority_and_verifies_native_fixtures(tmp_path: Path) -> None:

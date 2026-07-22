@@ -70,10 +70,28 @@ def _resolve_target(raw: Path, root: Path) -> Path:
     return target
 
 
+def _traverses_symlink(path: Path, root: Path) -> bool:
+    current = root
+    for part in path.relative_to(root).parts:
+        current /= part
+        if current.is_symlink():
+            return True
+    return False
+
+
 def _files(target: Path, root: Path) -> tuple[list[Path], dict[str, int]]:
     candidates = [target] if target.is_file() else sorted(target.rglob("*.java"))
     candidates = [path for path in candidates if path.is_file() and path.suffix.casefold() == ".java"]
-    eligible = [path for path in candidates if not _excluded(path, root)]
+    eligible: list[Path] = []
+    physical: set[Path] = set()
+    for path in candidates:
+        if _traverses_symlink(path, target) or _excluded(path, root):
+            continue
+        resolved = path.resolve()
+        if resolved in physical:
+            continue
+        physical.add(resolved)
+        eligible.append(path)
     return eligible, {"java_candidates": len(candidates), "policy_excluded": len(candidates) - len(eligible)}
 
 

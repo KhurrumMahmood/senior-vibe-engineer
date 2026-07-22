@@ -109,6 +109,7 @@ def test_java_confirmed_finding_reaches_read_only_proposal(tmp_path: Path) -> No
     assert payload["language"] == "java"
     assert payload["finding_id"] == FINDING_ID
     assert payload["upstream_source_fingerprint"] == upstream["source_fingerprint"]
+    assert payload["upstream_source_manifest"] == upstream["source_manifest"]
     assert payload["consumer_source_fingerprint"] == _consumer_fingerprint(SKILL)
     assert len(payload["source_evidence"]) == 2
     assert len(payload["caller_evidence"]) == 3
@@ -167,6 +168,30 @@ def test_java_consumer_rejects_unaccepted_or_stale_evidence_and_copies(tmp_path:
     stale, proposal, _ = _propose(SKILL, host, env, findings, name="stale")
     assert stale.returncode == 2
     assert "source span does not contain" in stale.stderr
+    assert not proposal.parent.exists()
+
+    shutil.copytree(FIXTURE, host, dirs_exist_ok=True)
+    member_source = host / "src/main/java/example/SemanticFixture.java"
+    member_source.write_text(
+        member_source.read_text(encoding="utf-8") + "\n", encoding="utf-8"
+    )
+    stale_hash, proposal, _ = _propose(
+        SKILL, host, env, findings, name="stale-member-hash"
+    )
+    assert stale_hash.returncode == 2
+    assert "member 1 evidence is stale" in stale_hash.stderr
+    assert not proposal.parent.exists()
+
+    shutil.copytree(FIXTURE, host, dirs_exist_ok=True)
+    caller_source = host / "src/main/java/example/SemanticConsumer.java"
+    caller_source.write_text(
+        caller_source.read_text(encoding="utf-8") + "\n", encoding="utf-8"
+    )
+    stale_caller, proposal, _ = _propose(
+        SKILL, host, env, findings, name="stale-caller-hash"
+    )
+    assert stale_caller.returncode == 2
+    assert "caller 1 evidence is stale" in stale_caller.stderr
     assert not proposal.parent.exists()
 
     shutil.copytree(FIXTURE, host, dirs_exist_ok=True)

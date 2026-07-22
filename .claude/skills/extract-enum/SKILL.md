@@ -105,8 +105,9 @@ Consume one complete, `status: accepted`,
 `bucket: extract_enum_candidate` record from the final Java
 `findings.json`. Never re-scan Java source or accept an
 `unsafe_string_comparison`; `==` is a correctness finding, not enum proof.
-The collector verifies the declaration-file fingerprint before writing only
-`targets.json` and `proposal.md` below `reports/extract-enum/`.
+The collector verifies the upstream SHA-256 manifest for the declaration and
+every cited caller before writing only `targets.json` and `proposal.md` below
+`reports/extract-enum/`.
 
 <!-- installed-command:java-state-proposal:start -->
 ```bash

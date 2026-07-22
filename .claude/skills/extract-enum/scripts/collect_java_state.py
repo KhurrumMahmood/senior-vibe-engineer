@@ -17,6 +17,9 @@ class JavaEnumProposalError(ValueError):
     """Invalid, stale, or non-actionable Java detector evidence."""
 
 
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
 def _inside(root: Path, candidate: Path) -> bool:
     try:
         candidate.relative_to(root)
@@ -72,7 +75,41 @@ def _accepted(payload: dict[str, Any], finding_id: str) -> dict[str, Any]:
     return finding
 
 
-def _authority(root: Path, finding: dict[str, Any]) -> dict[str, Any]:
+def _source_manifest(payload: dict[str, Any]) -> dict[str, str]:
+    manifest = payload.get("source_manifest")
+    if not isinstance(manifest, dict) or manifest.get("algorithm") != "sha256":
+        raise JavaEnumProposalError("Java detector findings require a sha256 source manifest")
+    files = manifest.get("files")
+    if not isinstance(files, dict) or not all(
+        isinstance(path, str)
+        and isinstance(digest, str)
+        and SHA256_RE.fullmatch(digest)
+        for path, digest in files.items()
+    ):
+        raise JavaEnumProposalError("Java detector source manifest is malformed")
+    return files
+
+
+def _fresh_source(
+    root: Path,
+    relative: str,
+    manifest: dict[str, str],
+    label: str,
+) -> Path:
+    if Path(relative).is_absolute() or Path(relative).suffix.casefold() != ".java":
+        raise JavaEnumProposalError(f"{label} must cite project-relative Java source")
+    expected = manifest.get(relative)
+    if expected is None:
+        raise JavaEnumProposalError(f"{label} is absent from the detector source manifest")
+    source = _resolve(root, relative, label)
+    if not source.is_file() or hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+        raise JavaEnumProposalError(f"{label} is stale; re-run /find-implicit-state")
+    return source
+
+
+def _authority(
+    root: Path, finding: dict[str, Any], manifest: dict[str, str]
+) -> dict[str, Any]:
     authority = finding.get("authority")
     required = (
         "language", "kind", "qualified_owner", "package_name", "field", "field_type",
@@ -82,8 +119,9 @@ def _authority(root: Path, finding: dict[str, Any]) -> dict[str, Any]:
         raise JavaEnumProposalError("accepted finding omits exact Java field authority")
     if authority["language"] != "java" or authority["kind"] != "direct_string_field" or authority["field_type"] != "java.lang.String":
         raise JavaEnumProposalError("accepted finding is not a direct java.lang.String field")
-    source = _resolve(root, str(authority["declaration_file"]), "authority source")
-    if not source.is_file() or hashlib.sha256(source.read_bytes()).hexdigest() != authority["source_sha256"]:
+    declaration_file = str(authority["declaration_file"])
+    _fresh_source(root, declaration_file, manifest, "accepted Java field authority")
+    if manifest.get(declaration_file) != authority["source_sha256"]:
         raise JavaEnumProposalError("accepted Java field authority is stale; re-run /find-implicit-state")
     return authority
 
@@ -97,10 +135,20 @@ def _member(value: str) -> str:
     return name
 
 
-def _literal_rows(finding: dict[str, Any]) -> list[dict[str, Any]]:
+def _callsites(
+    root: Path, finding: dict[str, Any], manifest: dict[str, str]
+) -> list[dict[str, Any]]:
     callsites = finding.get("callsites")
     if not isinstance(callsites, list) or len(callsites) < 3:
         raise JavaEnumProposalError("accepted finding lacks repeated direct callsite evidence")
+    for item in callsites:
+        if not isinstance(item, dict) or not isinstance(item.get("file"), str):
+            raise JavaEnumProposalError("accepted finding has malformed caller evidence")
+        _fresh_source(root, item["file"], manifest, "caller evidence")
+    return callsites
+
+
+def _literal_rows(callsites: list[dict[str, Any]]) -> list[dict[str, Any]]:
     values = [item.get("literal") for item in callsites if isinstance(item, dict)]
     if not all(isinstance(value, str) for value in values):
         raise JavaEnumProposalError("accepted finding has malformed literal evidence")
@@ -259,9 +307,10 @@ def main(argv: list[str] | None = None) -> int:
             raise JavaEnumProposalError(f"project root is not a directory: {args.project_root}")
         findings_path, payload = _read_findings(root, args.findings)
         finding = _accepted(payload, args.finding)
-        authority = _authority(root, finding)
-        literals = _literal_rows(finding)
-        callsites = finding["callsites"]
+        source_manifest = _source_manifest(payload)
+        authority = _authority(root, finding, source_manifest)
+        callsites = _callsites(root, finding, source_manifest)
+        literals = _literal_rows(callsites)
         output = _artifact(root, args.output, "targets artifact", "extract-enum")
         proposal = _artifact(root, args.proposal, "proposal artifact", "extract-enum")
         if output == proposal:
@@ -274,6 +323,7 @@ def main(argv: list[str] | None = None) -> int:
             "status": "review_required",
             "detector_finding_id": finding["finding_id"],
             "detector_findings_sha256": hashlib.sha256(findings_path.read_bytes()).hexdigest(),
+            "detector_source_manifest": payload["source_manifest"],
             "evidence_provenance": "complete JDK compiler-tree/type accepted field authority",
             "accepted_authority": authority,
             "current_type": "java.lang.String",

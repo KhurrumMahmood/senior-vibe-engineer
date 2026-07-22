@@ -7,6 +7,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import uuid
@@ -26,6 +27,7 @@ REQUIRED_MATRIX_ROWS = {
     "Resolved direct call relationship",
     "Resolved direct callers",
 }
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 class ProposalError(ValueError):
@@ -147,7 +149,37 @@ def _positive_integer(value: Any, label: str) -> int:
     return value
 
 
-def _members(root: Path, finding: dict[str, Any]) -> list[dict[str, Any]]:
+def _source_manifest(payload: dict[str, Any]) -> dict[str, str]:
+    manifest = payload.get("source_manifest")
+    if not isinstance(manifest, dict) or manifest.get("algorithm") != "sha256":
+        raise ProposalError("Java semantic evidence requires a sha256 source manifest")
+    files = manifest.get("files")
+    if not isinstance(files, dict) or not all(
+        isinstance(path, str)
+        and isinstance(digest, str)
+        and SHA256_RE.fullmatch(digest)
+        for path, digest in files.items()
+    ):
+        raise ProposalError("Java semantic source manifest is malformed")
+    return files
+
+
+def _validate_source_hash(
+    source: Path,
+    relative: str,
+    manifest: dict[str, str],
+    label: str,
+) -> None:
+    expected = manifest.get(relative)
+    if expected is None:
+        raise ProposalError(f"{label} is absent from the upstream source manifest")
+    if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+        raise ProposalError(f"{label} evidence is stale; refresh Java semantic evidence")
+
+
+def _members(
+    root: Path, finding: dict[str, Any], manifest: dict[str, str]
+) -> list[dict[str, Any]]:
     raw_members = finding.get("members")
     if not isinstance(raw_members, list) or len(raw_members) < 2:
         raise ProposalError("confirmed Java finding requires at least two members")
@@ -168,6 +200,7 @@ def _members(root: Path, finding: dict[str, Any]) -> list[dict[str, Any]]:
             raise ProposalError(f"member {index} source span exceeds {file}")
         if name.split(".")[-1] not in "\n".join(source_lines[line - 1 : end_line]):
             raise ProposalError(f"member {index} source span does not contain {name}")
+        _validate_source_hash(source, file, manifest, f"member {index}")
         caller_count = member.get("caller_count")
         raw_callers = member.get("direct_callers")
         if not isinstance(caller_count, int) or isinstance(caller_count, bool) or caller_count < 1:
@@ -185,6 +218,12 @@ def _members(root: Path, finding: dict[str, Any]) -> list[dict[str, Any]]:
             lines = caller_source.read_text(encoding="utf-8").splitlines()
             if caller_line > len(lines) or not lines[caller_line - 1].strip():
                 raise ProposalError(f"member {index} caller {caller_index} citation is stale")
+            _validate_source_hash(
+                caller_source,
+                caller_file,
+                manifest,
+                f"member {index} caller {caller_index}",
+            )
             callers.append({
                 "file": caller_file,
                 "line": caller_line,
@@ -327,7 +366,8 @@ def main(argv: list[str] | None = None) -> int:
             raise ProposalError("Java proposal outputs must be proposal.md and evidence.json")
         payload = _load(findings, "findings payload")
         finding = _select(payload, finding_id)
-        members = _members(root, finding)
+        source_manifest = _source_manifest(payload)
+        members = _members(root, finding, source_manifest)
         matrix_path, matrix_citations = _matrix(root, findings, finding)
         rendered = _render(finding_id, finding, members, matrix_citations)
         source_evidence = [member["citation"] for member in members]
@@ -340,6 +380,7 @@ def main(argv: list[str] | None = None) -> int:
             "capability_matrix": matrix_path.relative_to(root).as_posix(),
             "source_evidence": source_evidence, "caller_evidence": caller_evidence,
             "upstream_source_fingerprint": payload["source_fingerprint"],
+            "upstream_source_manifest": payload["source_manifest"],
             "consumer_source_fingerprint": _consumer_fingerprint(), "source_mutations": 0,
         }
         scope_payload = {

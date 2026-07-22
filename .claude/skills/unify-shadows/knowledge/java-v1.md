@@ -6,8 +6,9 @@ Load this guide only for a `JAVA-SD-*` finding from
 ## Contract
 
 Consume one complete, confirmed, function-level Java static lead. Validate its
-current `.java` member spans, compiler-resolved direct-caller citations, source
-fingerprint, and capability-matrix rows for record return type, returned
+current `.java` member spans and compiler-resolved direct-caller citations
+against the upstream SHA-256 source manifest, then validate the analyzer
+fingerprint and capability-matrix rows for record return type, returned
 components, caller/callee relationship, and direct callers. Do not run the
 detector again or infer behavioral equivalence.
 

@@ -142,6 +142,40 @@ def test_copied_java_closure_reaches_final_report(tmp_path: Path) -> None:
     assert str(ROOT) not in closure
 
 
+def test_java_detector_analyzes_physical_source_once_through_internal_aliases(
+    tmp_path: Path,
+) -> None:
+    host, env = _host(tmp_path)
+    source = host / "src/main/java/example/PendingFormatter.java"
+    (host / "pending-alias.java").symlink_to(source)
+    (host / "java-directory-alias").symlink_to(
+        host / "src/main/java", target_is_directory=True
+    )
+    output = host / "reports/aliases.json"
+
+    result = _run(
+        sys.executable,
+        str(SKILL / "scripts/run_java.py"),
+        "--target",
+        ".",
+        "--project-root",
+        str(host),
+        "--output",
+        str(output),
+        cwd=host,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["scan_meta"]["analysis"]["file_status_counts"] == {"complete": 3}
+    assert len(payload["findings"]) == 1
+    sites = payload["findings"][0]["sites"]
+    assert payload["findings"][0]["multiplicity"] == 2
+    assert not any(site["file"] == "pending-alias.java" for site in sites)
+    assert not any(site["file"].startswith("java-directory-alias/") for site in sites)
+
+
 def test_java_failures_and_contract_are_honest(tmp_path: Path) -> None:
     host, env = _host(tmp_path)
     broken = host / "src/main/java/example/Broken.java"

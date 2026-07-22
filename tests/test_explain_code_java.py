@@ -182,6 +182,50 @@ def test_java_public_declarations_reach_final_explanation(tmp_path: Path) -> Non
     assert _fingerprints(host) == before
 
 
+def test_mixed_partial_go_and_complete_java_stays_partial(tmp_path: Path) -> None:
+    if shutil.which("go") is None:
+        pytest.skip("Go is unavailable")
+    host, env = _host(tmp_path)
+    go_source = host / "src/main/go/alias.go"
+    go_source.parent.mkdir(parents=True)
+    go_source.write_text(
+        'package service\n\nimport "strings"\n\ntype Remote = strings.Builder\n',
+        encoding="utf-8",
+    )
+    output = host / "reports/explanations/mixed/targets.json"
+
+    result = _inventory(SKILL, host, ".", output, env)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["language"] == "mixed"
+    assert payload["status"] == "partial"
+    assert payload["analysis"]["go"]["status"] == "partial"
+    assert payload["analysis"]["java"]["status"] == "complete"
+
+
+def test_java_inventory_analyzes_physical_source_once_through_internal_aliases(
+    tmp_path: Path,
+) -> None:
+    host, env = _host(tmp_path)
+    service = host / "src/main/java/example/Service.java"
+    (host / "service-alias.java").symlink_to(service)
+    (host / "java-directory-alias").symlink_to(
+        host / "src/main/java", target_is_directory=True
+    )
+    output = host / "reports/explanations/aliases/targets.json"
+
+    result = _inventory(SKILL, host, ".", output, env)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert "service-alias.java" not in payload["files"]
+    assert not any(path.startswith("java-directory-alias/") for path in payload["files"])
+    physical_files = [(host / path).resolve() for path in payload["files"]]
+    assert len(physical_files) == len(set(physical_files))
+    assert [item["symbol"] for item in payload["targets"]].count("Service.render") == 1
+
+
 def test_java_malformed_missing_tool_and_copied_closure_are_honest(tmp_path: Path) -> None:
     host, env = _host(tmp_path)
     broken = host / "src/main/java/example/Broken.java"

@@ -1258,6 +1258,15 @@ def _is_ignored(path: Path, repo_root: Path) -> bool:
     )
 
 
+def _traverses_symlink(path: Path, root: Path) -> bool:
+    current = root
+    for part in path.relative_to(root).parts:
+        current /= part
+        if current.is_symlink():
+            return True
+    return False
+
+
 def _collect_files(target: Path, repo_root: Path) -> list[Path]:
     if target.is_file():
         return [target] if (
@@ -1266,13 +1275,22 @@ def _collect_files(target: Path, repo_root: Path) -> list[Path]:
         ) else []
     if not target.is_dir():
         return []
-    return [
-        path
-        for path in sorted(target.rglob("*"))
-        if path.is_file()
-        and path.suffix.casefold() in SOURCE_SUFFIXES
-        and not _is_ignored(path, repo_root)
-    ]
+    files: list[Path] = []
+    physical_java: set[Path] = set()
+    for path in sorted(target.rglob("*")):
+        if (
+            not path.is_file()
+            or path.suffix.casefold() not in SOURCE_SUFFIXES
+            or _is_ignored(path, repo_root)
+        ):
+            continue
+        if path.suffix.casefold() == ".java":
+            resolved = path.resolve()
+            if _traverses_symlink(path, target) or resolved in physical_java:
+                continue
+            physical_java.add(resolved)
+        files.append(path)
+    return files
 
 
 def _display_path(path: Path, repo_root: Path) -> Path:
@@ -1524,7 +1542,6 @@ def main(argv: list[str] | None = None) -> int:
         }
     if "java" in languages:
         assert java_versions is not None
-        payload["status"] = "complete"
         payload.setdefault("analysis", {})["java"] = {
             "status": "complete",
             "analyzer": "jdk-compiler-tree-api",
@@ -1532,6 +1549,8 @@ def main(argv: list[str] | None = None) -> int:
             "actual_java_version": java_versions[0],
             "actual_javac_version": java_versions[1],
         }
+    if languages & {"go", "java"}:
+        payload["status"] = "partial" if go_status == "partial" else "complete"
     try:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

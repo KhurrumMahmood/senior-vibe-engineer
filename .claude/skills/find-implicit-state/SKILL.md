@@ -171,7 +171,7 @@ for SKILL_CANDIDATE in ".agents/skills/on-demand/find-implicit-state" ".agents/s
 done
 if [ -z "${SKILL_ROOT}" ]; then printf '%s\n' "find-implicit-state is not installed" >&2; exit 2; fi
 REPORT_DIR="reports/implicit-state/java-state-$(date +%Y%m%d-%H%M%S)"
-python3 "${SKILL_ROOT}/scripts/detect_java_state.py" --target "${TARGET}" --project-root "$(pwd)" --output "${REPORT_DIR}/hits.jsonl" --findings "${REPORT_DIR}/findings.json" --report "${REPORT_DIR}/report.md" --scan-id "$(basename "${REPORT_DIR}")"
+python3 "${SKILL_ROOT}/scripts/detect_java_state.py" --target "${TARGET}" --project-root "$(pwd)" --output "${REPORT_DIR}/hits.jsonl" --findings "${REPORT_DIR}/findings.json" --report "${REPORT_DIR}/report.md" --scan-id "$(basename "${REPORT_DIR}")" || exit $?
 ln -sfn "$(basename "${REPORT_DIR}")" reports/implicit-state/latest
 ```
 <!-- installed-command:java-state:end -->
@@ -179,8 +179,10 @@ ln -sfn "$(basename "${REPORT_DIR}")" reports/implicit-state/latest
 Hand exactly one `status: accepted`, `bucket: extract_enum_candidate` finding
 from the complete `findings.json` to `/extract-enum`; do not give the next
 skill the source tree to re-detect. The final `report.md` and `findings.json`
-are the review artifacts. Syntax or missing/old-JDK failures exit 2 without
-publishing them; unresolved or symlink evidence is `partial`, never clean.
+are the review artifacts. `findings.json` fingerprints every selected Java
+source so the proposal consumer can reject stale field or caller evidence.
+Syntax or missing/old-JDK failures exit 2 without publishing them; unresolved
+or symlink evidence is `partial`, never clean.
 
 ## Scope
 
