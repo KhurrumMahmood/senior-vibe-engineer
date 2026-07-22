@@ -6,8 +6,8 @@
   "minimum_clang_version": "21.0.0",
   "allowed_dispositions": ["pending-validation", "c-supported", "c-partial", "c-unsupported"],
   "baseline_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-  "decision": "stop-after-pilot",
-  "decision_reason": "Two bounded read-only cohorts reach useful final artifacts and native verification, but their copied closures grow 22.65% and are intentionally language-local. The pilot stops at two honest C capabilities; mutation and the other 20 skills remain unsupported until separate evidence justifies their cost.",
+  "decision": "expand",
+  "decision_reason": "Two bounded read-only cohorts reach useful final artifacts and native verification but do not complete a chosen supported language. Owner-approved P7 criteria require every applicable language-level skill to reach a value-tested final outcome; the 22.65% closure growth guides reuse decisions but no longer justifies stopping C at 2/22.",
   "skills": [
     {"skill":"adapt-project","disposition":"c-unsupported","evidence_path":".claude/tasks/p7-baseline/c-pilot-baseline.json","reviewed_revision":"4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a","native_check":["profile and inventory fixture only"],"limitation":"No C adapter artifact or build-system selection outcome is validated."},
     {"skill":"audit-decisions","disposition":"c-unsupported","evidence_path":".claude/tasks/p7-baseline/c-pilot-baseline.json","reviewed_revision":"4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a","native_check":["raw tokens retain a decision comment"],"limitation":"Comment association across macros, conditional branches, and headers has no final audit."},

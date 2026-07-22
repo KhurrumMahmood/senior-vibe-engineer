@@ -23,15 +23,15 @@
     },
     {
       "path": ".claude/tasks/php-language-coverage.json",
-      "sha256": "3cda39bd2ea59d0648db6c8517f2578fdd6ec2fa4aabd1755d0045a137d355ab"
+      "sha256": "92505ed11be146a1c04e046160c266b99ded985ec0b041f083164d6a85b8195a"
     },
     {
       "path": ".claude/tasks/swift-language-coverage.json",
-      "sha256": "ce28ee2efc1874d073bb38cb80c1af1d68668ec5fb382b26f3514e9d16d8e06d"
+      "sha256": "5ffdd7e24b30eff1aa564dabf253bd7a8e0bcb83d90b7af2d1f8e2b72855b58b"
     },
     {
       "path": ".claude/tasks/c-language-coverage.json",
-      "sha256": "e4c8d86bfa5f14310b6e4e5733e354fe23a003d18ac7cb5c09b71ae2b1472029"
+      "sha256": "ca59a0e0d86b2ab60b51a15096db8fedca92fad05896f6e1d7da5419810b5d09"
     }
   ],
   "counts": {

@@ -5,8 +5,8 @@
   "minimum_swift_version": "6.0.0",
   "allowed_dispositions": ["pending-validation", "swift-supported", "swift-partial", "swift-unsupported"],
   "baseline_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-  "decision": "stop-after-pilot",
-  "decision_reason": "Three representative skills now reach bounded final outcomes for syntax, SwiftPM project mapping, and source mutation. Their family-local closures exceed the promotion economics, while SwiftSyntax, full Xcode test/framework support, dependencies, and general SourceKit completeness remain unavailable or unproven; retain the useful pilot outcomes and leave the other 19 skills explicitly unsupported.",
+  "decision": "expand",
+  "decision_reason": "The bounded pilot proves three correct outcomes but does not complete a chosen supported language. Owner-approved P7 criteria require every applicable language-level skill to reach a value-tested final outcome; missing SwiftSyntax or full Xcode capabilities remain explicit boundaries rather than reasons to stop Swift at 3/22.",
   "skills": [
     {"skill": "adapt-project", "disposition": "swift-unsupported", "evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json", "native_check": ["SwiftPM profile and source-role inventory only", "no Swift adapter artifact validated"], "reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71", "limitation": "Inventory and a valid Package.swift do not prove final adapter artifacts."},
     {"skill": "audit-decisions", "disposition": "swift-unsupported", "evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json", "native_check": ["spine final-outcome census", "no Swift decision audit validated"], "reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71", "limitation": "No Swift decision-comment producer reaches the final audit."},

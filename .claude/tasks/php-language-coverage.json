@@ -5,8 +5,8 @@
   "minimum_php_version": "8.1.0",
   "allowed_dispositions": ["pending-validation", "php-supported", "php-partial", "php-unsupported", "not-applicable"],
   "baseline_revision": "a3c70cb",
-  "decision": "stop-after-pilot",
-  "decision_reason": "Three bounded final outcomes are correct, but aggregate adapter/test LOC, copied closure size, and two per-cohort latency comparisons do not justify broad PHP expansion or promotion of shared infrastructure in P4.",
+  "decision": "expand",
+  "decision_reason": "The bounded pilot proves three correct outcomes but does not complete a chosen supported language. Owner-approved P7 criteria require every applicable language-level skill to reach a value-tested final outcome; closure economics guide reuse and batching but no longer justify stopping PHP at 3/22.",
   "skills": [
     {"skill": "adapt-project", "disposition": "php-unsupported", "evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json", "native_check": ["PHP profile and inventory exist", "no PHP adapt-project final artifact was validated in P4"], "reviewed_revision": "a3c70cb", "limitation": "Inventory support alone does not prove the final adapter artifacts."},
     {"skill": "audit-decisions", "disposition": "php-unsupported", "evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json", "native_check": ["P4 final-outcome census", "no PHP decision-audit artifact was validated"], "reviewed_revision": "a3c70cb", "limitation": "No PHP decision-comment/provider contract has reached the final audit."},
