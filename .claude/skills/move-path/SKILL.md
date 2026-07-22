@@ -1,6 +1,6 @@
 ---
 name: move-path
-description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked PHP supports one Composer PSR-4 leaf namespace-directory move; checked Swift supports one dependency-free SwiftPM target-directory move while retaining module identity. TypeScript/TSX source imports are never rewritten in v1.
+description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked PHP supports one Composer PSR-4 leaf namespace-directory move; checked Swift supports one dependency-free SwiftPM target-directory move while retaining module identity; checked Rust supports one conventional Cargo library leaf-module file or directory move. TypeScript/TSX source imports are never rewritten in v1.
 argument-hint: "--plan moves.json --dry-run|--apply|--check"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 user-invocable: true
@@ -19,6 +19,8 @@ best_for: |
   whose package, import, and fully-qualified type identities must stay exact.
   Use the checked-Swift mode only for one reviewed dependency-free SwiftPM
   target-directory move that retains module identity and has an executable smoke product.
+  Use the checked-Rust mode only for one reviewed conventional leaf-module
+  file or directory move in a regular Cargo library target.
 not_for: |
   Domain-concept terminology renames in prose (use /rename-concept).
   Python/TypeScript import refactors unless a language adapter has been
@@ -27,13 +29,13 @@ not_for: |
   /refactor-subsystem). Blind global find-and-replace.
 language: any
 framework: any
-scans: [go, java, javascript, php, swift, typescript]
+scans: [go, java, javascript, php, rust, swift, typescript]
 ---
 
 # /move-path
 
 You are the orchestrator for safe batched standalone TypeScript/TSX path
-moves, plus opt-in bounded checked-JavaScript, Go, Java, PHP, and SwiftPM modes. The deterministic
+moves, plus opt-in bounded checked-JavaScript, Go, Java, PHP, Rust, and SwiftPM modes. The deterministic
 script owns filesystem moves, path normalization, reference resolution, patch
 generation, and verification. Your job is to prepare or inspect the plan, run
 dry-run first, review uncertainty buckets and ignored-import risk, then apply
@@ -199,6 +201,23 @@ projects/workspaces, macros/plugins, mixed-language targets, generated files,
 symlinks, reflective path strings, and non-Swift target contents remain partial
 or unsupported. The copied closure installs no Swift tooling.
 
+## Checked-Rust Module Boundary
+
+Use `knowledge/rust-v1.md` and the standalone
+`scripts/rust_module_move.py` only for one conventional leaf module in one
+regular Cargo library target. Version 1 moves either `name.rs` to
+`new_name.rs` or `name/mod.rs` to `new_name/mod.rs`, updates the exact parent
+`mod` declaration and statically resolved first-party Rust paths, and preserves
+the reviewed public re-export.
+
+Cargo metadata, check, test, and Clippy run locked/offline across the workspace,
+all targets, and all features; rustfmt and an explicit smoke package also gate
+apply. `#[path]`, relevant cfg, `include!`, macro-generated modules, build
+output, reflective strings, excluded roots, symlinks, multiple/cross-package
+moves, and ambiguous topology remain `partial` and block writes. Post-apply or
+exact-after-tree failure restores the full pre-apply snapshot. This is not a
+crate/package rename or arbitrary Rust refactoring engine.
+
 ## Commands
 
 The installed/on-demand command resolves either supported agent location and
@@ -246,6 +265,39 @@ esac
   --json
 ```
 <!-- installed-command:java-move:end -->
+
+For Rust, invoke the copied standalone adapter instead of `move_path.py`; run
+dry-run first and pass its source fingerprint to apply:
+
+<!-- installed-command:rust-move:start -->
+```bash
+MOVE_PLAN="${MOVE_PLAN:-moves.json}"
+MOVE_MODE="${MOVE_MODE:---dry-run}" # --dry-run | --apply | --check
+MOVE_REPORT_DIR="${MOVE_REPORT_DIR:-reports/move-path}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/move-path" \
+  ".agents/skills/move-path" \
+  ".claude/skills/move-path"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "move-path is not installed" >&2
+  exit 2
+fi
+RUST_ARGS=("--plan" "${MOVE_PLAN}" "--project-root" "$(pwd)" \
+  "--report-dir" "${MOVE_REPORT_DIR}" "${MOVE_MODE}" "--json")
+if [ "${MOVE_MODE}" = "--apply" ]; then
+  : "${EXPECTED_SOURCE_SHA256:?Set from the reviewed dry-run report}"
+  RUST_ARGS+=("--expected-source-sha256" "${EXPECTED_SOURCE_SHA256}")
+fi
+python3 "${SKILL_ROOT}/scripts/rust_module_move.py" "${RUST_ARGS[@]}"
+```
+<!-- installed-command:rust-move:end -->
 
 For a repository checkout, the residue audit remains:
 
@@ -371,6 +423,26 @@ For the bounded SwiftPM target-directory move, use:
 }
 ```
 
+For the bounded Rust module move, use one file or leaf-directory row and pin
+the host-owned toolchain plus an executable smoke expectation:
+
+```json
+{
+  "moves": [
+    {"from": "crates/billing-core/src/invoice/service.rs", "to": "crates/billing-core/src/invoice/invoice_service.rs", "mode": "file"}
+  ],
+  "rewrite": {"code_imports": "update-rust"},
+  "rust": {
+    "cargo": "/absolute/path/to/cargo",
+    "rustc": "/absolute/path/to/rustc",
+    "cargo_clippy": "/absolute/path/to/cargo-clippy",
+    "rustfmt": "/absolute/path/to/rustfmt",
+    "smoke_package": "rust-move-smoke",
+    "smoke_expected_stdout": "invoice:INV-42:125\n"
+  }
+}
+```
+
 ## Confidence Buckets
 
 - `auto` — resolved identity, safe to update.
@@ -402,6 +474,9 @@ describing the old layout rather than linking to the current identity.
    In checked-Swift mode, require a `complete` Swift status, review the one
    target-path manifest change and every moved file, and resolve every refused
    manifest, target, dependency, framework, generated, symlink, or reflective shape.
+   In checked-Rust mode, require a `complete` Rust status, review the exact
+   module declaration/path edits and source fingerprint, and resolve every
+   cfg, macro, include, build-output, symlink, excluded-root, or topology refusal.
 5. Run `--apply` only after the dry-run report matches the intended
    transform.
 6. Run `--check` after manual follow-up edits or before commit.

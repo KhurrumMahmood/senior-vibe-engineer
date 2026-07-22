@@ -571,6 +571,25 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "rust_disposition"
     ] == "rust-supported"
 
+    rust_move = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use move-path for a Rust module file move",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "rust",
+        "--json",
+        cwd=host,
+    )
+    rust_move_payload = _json_output(rust_move)
+    assert rust_move_payload["recommendation"] == "move-path"
+    assert rust_move_payload["handoff"]["available"] is True
+    assert rust_move_payload["handoff"]["capabilities"]["skills"][0][
+        "rust_disposition"
+    ] == "rust-supported"
+
     shape_routed = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",
         "onboard an unknown inherited repo and figure out what loop to run",

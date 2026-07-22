@@ -548,7 +548,8 @@ def test_rust_frozen_cohort_contracts_and_all_22_initial_dispositions() -> None:
     assert {row["skill"] for row in rows} == EXPECTED_SKILLS
     dispositions = {row["skill"]: row["disposition"] for row in rows}
     assert dispositions["find-comment-drift"] == "rust-supported"
-    assert sum(value == "rust-pending-implementation" for value in dispositions.values()) == 21
+    assert dispositions["move-path"] == "rust-supported"
+    assert sum(value == "rust-pending-implementation" for value in dispositions.values()) == 20
     assert all(
         row["evidence_path"]
         and row["native_check"]

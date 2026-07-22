@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "8b35ce1d384bf6db99300f614aaace6ab16898e887e67313e49dfcb138ef7491"
+      "sha256": "bd8bab4268d2f58518f21651e3062c023c75a4432e719780ce0ace93da68d196"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -43,7 +43,7 @@
     },
     {
       "path": ".claude/tasks/rust-language-coverage.json",
-      "sha256": "c6db23ec71c91490d2fd4c5ac4eedf2f7de62e028f91c4b602231b259000666b"
+      "sha256": "8f8dd954aa016e0ba6b87854950b060ea336d48f171a4934958678f80838c513"
     }
   ],
   "counts": {
@@ -5568,13 +5568,14 @@
       ],
       "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
       "ruby_limitation": "Static lineage, exact edits, rollback, stale clearing, and all native verification remain unproved.",
-      "rust_disposition": "rust-pending-implementation",
-      "rust_evidence_path": ".claude/tasks/p7-baseline/rust-pilot-baseline.json",
+      "rust_disposition": "rust-supported",
+      "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-move-path.md",
       "rust_native_check": [
-        "mutation intentionally not performed; frozen module-file move contract only"
+        "Cargo metadata/check/test/Clippy plus rustfmt run locked/offline across the workspace, all targets, and all features before and after apply",
+        "file and leaf-directory module moves prove preview, fingerprint-authorized apply, exact module/path edits, public re-export preservation, stale recovery, copied closure, exact-after-tree validation, rollback, native smoke, and source preservation"
       ],
-      "rust_reviewed_revision": "230c2795cfa8d3811a39729722b952b087cd4a8b",
-      "rust_limitation": "Reference lineage, exact module edits, rollback, stale clearing, and all native verification remain unproved.",
+      "rust_reviewed_revision": "af9ecc6e77623bff42a04c7643bdde09210b413b",
+      "rust_limitation": "Version 1 supports one conventional leaf module in one regular Cargo library target; cfg/path attributes, macros, include!, build output, reflective strings, multiple/cross-package moves, arbitrary files, and non-Cargo/nightly/no_std/cross-target shapes remain partial and block writes.",
       "fact_level": "lexical-filesystem",
       "outcome_class": "source-mutation",
       "framework_family": null,
@@ -5587,6 +5588,7 @@
           "java",
           "javascript",
           "php",
+          "rust",
           "swift",
           "typescript"
         ],
