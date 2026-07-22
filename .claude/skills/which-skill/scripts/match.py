@@ -105,6 +105,8 @@ WORD_RE = re.compile(r"[a-z][a-z0-9_-]+")
 
 LANGUAGE_ALIASES = {
     "c": "c",
+    "c++": "cpp",
+    "cpp": "cpp",
     "go": "go",
     "golang": "go",
     "java": "java",
@@ -121,6 +123,9 @@ LANGUAGE_ALIASES = {
 }
 LEXICAL_LANGUAGE_TOKENS = frozenset(LANGUAGE_ALIASES)
 LANGUAGE_MARKERS = {
+    "cpp": re.compile(
+        r"(?i)(?:\bC\+\+\b|\bcpp\b|\.(?:cc|cpp|cxx|c\+\+|hpp|hh|hxx|h\+\+|ipp|inl|tpp)\b)"
+    ),
     "c": re.compile(
         r"(?i)(?:\bC(?:17|23)?\b(?=\s+(?:project|repo|repository|library|code|source|file))|\.c\b|\.i\b)"
     ),
@@ -613,6 +618,7 @@ CAPABILITY_FIELDS = (
     "php_disposition",
     "swift_disposition",
     "c_disposition",
+    "cpp_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -630,7 +636,7 @@ def capability_handoff(library_root: Path, skills: list[str]) -> dict:
         return {**unavailable, "reason": "manifest_missing"}
     try:
         payload = json.loads(manifest.read_text(encoding="utf-8"))
-        if not isinstance(payload, dict) or payload.get("schema_version") != 2:
+        if not isinstance(payload, dict) or payload.get("schema_version") != 3:
             raise TypeError("unsupported capability manifest schema")
         rows = payload["skills"]
         if not isinstance(rows, list):
@@ -747,6 +753,14 @@ def capability_language_exclusion(
                 return _capability_exclusion(
                     row["c_disposition"],
                     f"/{row['skill']} declares c_disposition={row['c_disposition']}",
+                )
+            if language == "cpp" and row["cpp_disposition"] not in {
+                "cpp-supported",
+                "validated-neutral",
+            }:
+                return _capability_exclusion(
+                    row["cpp_disposition"],
+                    f"/{row['skill']} declares cpp_disposition={row['cpp_disposition']}",
                 )
     return None
 

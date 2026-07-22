@@ -157,6 +157,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
             "php_disposition": "validated-neutral",
             "swift_disposition": "validated-neutral",
             "c_disposition": "validated-neutral",
+            "cpp_disposition": "validated-neutral",
             "fact_level": "neutral",
             "outcome_class": "not-applicable",
             "framework_family": None,
@@ -197,6 +198,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "php_disposition": "stack-bound",
         "swift_disposition": "stack-bound",
         "c_disposition": "stack-bound",
+        "cpp_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "architecture-planning",
@@ -229,6 +231,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "php_disposition": "php-pending-implementation",
         "swift_disposition": "swift-pending-implementation",
         "c_disposition": "c-pending-implementation",
+        "cpp_disposition": "cpp-pending-implementation",
         "fact_level": "semantic-project",
         "outcome_class": "read-only-report",
         "framework_family": None,
@@ -421,6 +424,29 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "/adapt-project declares c_disposition=c-pending-implementation"
     )
 
+    pending_cpp = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use adapt-project on this C++20 repository",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "cpp",
+        "--json",
+        cwd=host,
+    )
+    assert pending_cpp.returncode == 1
+    pending_cpp_payload = json.loads(pending_cpp.stdout)
+    assert pending_cpp_payload["routing_context"]["language"] == "cpp"
+    assert pending_cpp_payload["recommendation"] == "pending-implementation"
+    assert pending_cpp_payload["unavailable"]["classification"] == (
+        "pending-implementation"
+    )
+    assert pending_cpp_payload["unavailable"]["reason"] == (
+        "/adapt-project declares cpp_disposition=cpp-pending-implementation"
+    )
+
     shape_routed = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",
         "onboard an unknown inherited repo and figure out what loop to run",
@@ -441,6 +467,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "php_disposition": "php-pending-implementation",
         "swift_disposition": "swift-pending-implementation",
         "c_disposition": "c-pending-implementation",
+        "cpp_disposition": "cpp-pending-implementation",
         "fact_level": "lexical-filesystem",
         "outcome_class": "configuration-output",
         "framework_family": None,
@@ -523,6 +550,31 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         }
     ]
 
+    cpp_shape = _run_isolated(
+        installed["which-shape"] / "scripts" / "route.py",
+        "onboard an unknown inherited C++20 repository and figure out what loop to run",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--json",
+        "--skip-log",
+        cwd=host,
+    )
+    cpp_shape_payload = _json_output(cpp_shape)
+    assert cpp_shape_payload["recommendation"]["first_next"] == "/adapt-project"
+    assert cpp_shape_payload["handoff"]["available"] is False
+    assert cpp_shape_payload["handoff"]["reason"] == (
+        "selected_skill_pending_implementation"
+    )
+    assert cpp_shape_payload["handoff"]["blocked"] == [
+        {
+            "skill": "adapt-project",
+            "language": "cpp",
+            "disposition": "cpp-pending-implementation",
+        }
+    ]
+
     cleanup_routed = _run_isolated(
         installed["which-cleanup"] / "scripts" / "route.py",
         "src/app.py",
@@ -548,6 +600,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "php_disposition": "stack-bound",
         "swift_disposition": "stack-bound",
         "c_disposition": "stack-bound",
+        "cpp_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "framework-quality",

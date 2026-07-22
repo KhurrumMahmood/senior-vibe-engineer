@@ -25,6 +25,7 @@ DEFAULT_JAVA_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "java-language-coverag
 DEFAULT_PHP_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "php-language-coverage.json"
 DEFAULT_SWIFT_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "swift-language-coverage.json"
 DEFAULT_C_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "c-language-coverage.json"
+DEFAULT_CPP_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "cpp-language-coverage.json"
 DEFAULT_OUTPUT = REPO_ROOT / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
 
 DISPOSITION_MAP = {
@@ -553,6 +554,39 @@ def _c_coverage(payload: dict) -> dict[str, dict]:
     return coverage
 
 
+def _cpp_coverage(payload: dict) -> dict[str, dict]:
+    source_suffixes = [".cc", ".cpp", ".cxx", ".c++", ".C", ".ii"]
+    declaration_suffixes = [".hpp", ".hh", ".hxx", ".h++", ".ipp", ".inl", ".tpp"]
+    normalized = {
+        **payload,
+        "suffixes": [*source_suffixes, *declaration_suffixes],
+    }
+    if payload.get("source_suffixes") != source_suffixes:
+        raise ValueError("C++ coverage source suffixes are incomplete")
+    if payload.get("declaration_suffixes") != declaration_suffixes:
+        raise ValueError("C++ coverage declaration suffixes are incomplete")
+    coverage = _simple_language_coverage(
+        normalized,
+        language="C++",
+        suffixes=[*source_suffixes, *declaration_suffixes],
+        supported_disposition="cpp-supported",
+    )
+    for skill, row in coverage.items():
+        if row["disposition"] in {
+            "cpp-pending-implementation",
+            "cpp-partial",
+            "cpp-unsupported",
+        } and not row.get("limitation"):
+            raise ValueError(f"bounded C++ row lacks a limitation: {skill}")
+    if payload.get("decision") not in {"expand", "stop-after-pilot"}:
+        raise ValueError("C++ coverage must record an expand or stop-after-pilot decision")
+    if not isinstance(payload.get("decision_reason"), str) or not payload[
+        "decision_reason"
+    ]:
+        raise ValueError("C++ coverage decision needs a reason")
+    return coverage
+
+
 def build_matrix(
     catalog_path: Path,
     coverage_path: Path,
@@ -562,6 +596,7 @@ def build_matrix(
     php_coverage_path: Path,
     swift_coverage_path: Path,
     c_coverage_path: Path,
+    cpp_coverage_path: Path,
 ) -> dict:
     catalog_payload = _read_json(catalog_path)
     coverage_payload = _read_json(coverage_path)
@@ -571,6 +606,7 @@ def build_matrix(
     php_payload = _read_json(php_coverage_path)
     swift_payload = _read_json(swift_coverage_path)
     c_payload = _read_json(c_coverage_path)
+    cpp_payload = _read_json(cpp_coverage_path)
     catalog = {row["name"]: row for row in catalog_payload.get("skills", [])}
     coverage = {row["skill"]: row for row in coverage_payload.get("skills", [])}
     javascript_coverage = _javascript_coverage(javascript_payload)
@@ -579,6 +615,7 @@ def build_matrix(
     php_coverage = _php_coverage(php_payload)
     swift_coverage = _swift_coverage(swift_payload)
     c_coverage = _c_coverage(c_payload)
+    cpp_coverage = _cpp_coverage(cpp_payload)
     if not catalog or set(catalog) != set(coverage):
         raise ValueError("catalog and TypeScript coverage must contain the same skills")
 
@@ -744,6 +781,24 @@ def build_matrix(
             c_reviewed_revision = None
             c_limitation = None
 
+        if expansion == "language-level":
+            cpp = cpp_coverage[skill]
+            cpp_disposition = cpp["disposition"]
+            cpp_evidence_path = cpp.get("evidence_path")
+            cpp_native_check = cpp.get("native_check")
+            cpp_reviewed_revision = cpp.get("reviewed_revision")
+            cpp_limitation = cpp.get("limitation")
+        else:
+            cpp_disposition = {
+                "validated-neutral": "validated-neutral",
+                "framework-bound": "stack-bound",
+                "ecosystem-runtime": "ecosystem-runtime",
+            }[expansion]
+            cpp_evidence_path = None
+            cpp_native_check = None
+            cpp_reviewed_revision = None
+            cpp_limitation = None
+
         rows.append(
             {
                 "skill": skill,
@@ -779,6 +834,11 @@ def build_matrix(
                 "c_native_check": c_native_check,
                 "c_reviewed_revision": c_reviewed_revision,
                 "c_limitation": c_limitation,
+                "cpp_disposition": cpp_disposition,
+                "cpp_evidence_path": cpp_evidence_path,
+                "cpp_native_check": cpp_native_check,
+                "cpp_reviewed_revision": cpp_reviewed_revision,
+                "cpp_limitation": cpp_limitation,
                 "fact_level": fact_level,
                 "outcome_class": outcome_class,
                 "framework_family": framework_family,
@@ -814,7 +874,7 @@ def build_matrix(
                 f"shared primitive {primitive['primitive']} needs two consumers"
             )
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "sources": [
             {"path": _relative(catalog_path), "sha256": _sha256(catalog_path)},
             {"path": _relative(coverage_path), "sha256": _sha256(coverage_path)},
@@ -827,6 +887,10 @@ def build_matrix(
             {"path": _relative(php_coverage_path), "sha256": _sha256(php_coverage_path)},
             {"path": _relative(swift_coverage_path), "sha256": _sha256(swift_coverage_path)},
             {"path": _relative(c_coverage_path), "sha256": _sha256(c_coverage_path)},
+            {
+                "path": _relative(cpp_coverage_path),
+                "sha256": _sha256(cpp_coverage_path),
+            },
         ],
         "counts": {
             "validated-neutral": counts["validated-neutral"],
@@ -877,6 +941,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--php-coverage", type=Path, default=DEFAULT_PHP_COVERAGE)
     parser.add_argument("--swift-coverage", type=Path, default=DEFAULT_SWIFT_COVERAGE)
     parser.add_argument("--c-coverage", type=Path, default=DEFAULT_C_COVERAGE)
+    parser.add_argument("--cpp-coverage", type=Path, default=DEFAULT_CPP_COVERAGE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
@@ -897,6 +962,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.php_coverage,
                 args.swift_coverage,
                 args.c_coverage,
+                args.cpp_coverage,
             )
         )
     except ValueError as exc:

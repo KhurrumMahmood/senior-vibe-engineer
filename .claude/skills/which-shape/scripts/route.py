@@ -34,6 +34,9 @@ ORDERED_FIRST_PHASE_RE = re.compile(
     r"[,;.]?\s+after\s+(?:approval|that|this)\b)"
 )
 LANGUAGE_MARKERS = {
+    "cpp": re.compile(
+        r"(?i)(?:\bC\+\+\b|\bcpp\b|\.(?:cc|cpp|cxx|c\+\+|hpp|hh|hxx|h\+\+|ipp|inl|tpp)\b)"
+    ),
     "c": re.compile(
         r"(?i)(?:\bC(?:17|23)?\b(?=\s+(?:project|repo|repository|library|code|source|file))|\.c\b|\.i\b)"
     ),
@@ -691,6 +694,9 @@ def _apply_task_capability_gate(handoff: dict[str, Any], task: str) -> None:
             elif language == "c":
                 disposition = row["c_disposition"]
                 eligible = disposition in {"c-supported", "validated-neutral"}
+            elif language == "cpp":
+                disposition = row["cpp_disposition"]
+                eligible = disposition in {"cpp-supported", "validated-neutral"}
             elif language == "python":
                 continue
             else:
@@ -734,6 +740,7 @@ CAPABILITY_FIELDS = (
     "php_disposition",
     "swift_disposition",
     "c_disposition",
+    "cpp_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -751,7 +758,7 @@ def _capability_handoff(library_root: Path, skills: list[str]) -> dict[str, Any]
         return {**unavailable, "reason": "manifest_missing"}
     try:
         payload = json.loads(manifest.read_text(encoding="utf-8"))
-        if not isinstance(payload, dict) or payload.get("schema_version") != 2:
+        if not isinstance(payload, dict) or payload.get("schema_version") != 3:
             raise TypeError("unsupported capability manifest schema")
         rows = payload["skills"]
         if not isinstance(rows, list):
