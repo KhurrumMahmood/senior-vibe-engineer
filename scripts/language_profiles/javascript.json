@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "language": "javascript",
+  "suffixes": [".js", ".jsx", ".mjs", ".cjs"],
+  "project_markers": ["package.json", "jsconfig.json"],
+  "source_roles": {
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "symlink"],
+    "test_file_globs": ["*.test.js", "*.test.jsx", "*.test.mjs", "*.test.cjs", "*.spec.js", "*.spec.jsx", "*.spec.mjs", "*.spec.cjs"],
+    "declaration_file_globs": [],
+    "configuration_files": ["eslint.config.js", "vite.config.js", "webpack.config.js"]
+  },
+  "native_tools": [
+    {
+      "id": "node",
+      "project_paths": ["node_modules/.bin/node"],
+      "system_commands": ["node"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "18.0.0",
+      "required": true
+    }
+  ],
+  "fact_tiers": ["lexical-filesystem", "syntax", "semantic-project"],
+  "verification_commands": [
+    {
+      "id": "syntax",
+      "argv": ["{tool:node}", "--check", "{source_files}"],
+      "requires": ["node"]
+    }
+  ],
+  "terminal_outcomes": ["complete", "partial", "unsupported", "tool-missing", "syntax-error", "native-check-failure", "unexpected-source-mutation"],
+  "explicit_limits": [
+    "JSX and framework semantics require a consumer-specific parser or project graph.",
+    "A system Node executable does not prove that project packages are installed."
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "language": "go",
+  "suffixes": [".go"],
+  "project_markers": ["go.mod", "go.work"],
+  "source_roles": {
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "symlink"],
+    "test_file_globs": ["*_test.go"],
+    "declaration_file_globs": [],
+    "configuration_files": []
+  },
+  "native_tools": [
+    {
+      "id": "go",
+      "project_paths": [".tools/go/bin/go"],
+      "system_commands": ["go"],
+      "version_argv": ["{tool}", "version"],
+      "minimum_version": "1.22.0",
+      "required": true
+    }
+  ],
+  "fact_tiers": ["lexical-filesystem", "syntax", "semantic-project"],
+  "verification_commands": [
+    {
+      "id": "test",
+      "argv": ["{tool:go}", "test", "./..."],
+      "requires": ["go"]
+    }
+  ],
+  "terminal_outcomes": ["complete", "partial", "unsupported", "tool-missing", "syntax-error", "native-check-failure", "unexpected-source-mutation"],
+  "explicit_limits": [
+    "Build tags and generated files must remain visible when a consumer cannot evaluate them.",
+    "Module-aware facts require the audited project's own go.mod or go.work context."
+  ]
+}

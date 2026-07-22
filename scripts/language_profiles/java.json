@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "language": "java",
+  "suffixes": [".java"],
+  "project_markers": ["pom.xml", "build.gradle", "build.gradle.kts", "settings.gradle"],
+  "source_roles": {
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "symlink"],
+    "test_file_globs": ["*Test.java", "*Tests.java", "*IT.java"],
+    "declaration_file_globs": [],
+    "configuration_files": []
+  },
+  "native_tools": [
+    {
+      "id": "java",
+      "project_paths": [".jdk/bin/java", "jdk/bin/java"],
+      "system_commands": ["java"],
+      "version_argv": ["{tool}", "-version"],
+      "minimum_version": "17.0.0",
+      "required": true
+    },
+    {
+      "id": "javac",
+      "project_paths": [".jdk/bin/javac", "jdk/bin/javac"],
+      "system_commands": ["javac"],
+      "version_argv": ["{tool}", "-version"],
+      "minimum_version": "17.0.0",
+      "required": true
+    }
+  ],
+  "fact_tiers": ["lexical-filesystem", "syntax", "semantic-project"],
+  "verification_commands": [
+    {
+      "id": "compile",
+      "argv": ["{tool:javac}", "--release", "17", "{source_files}"],
+      "requires": ["javac"]
+    }
+  ],
+  "terminal_outcomes": ["complete", "partial", "unsupported", "tool-missing", "syntax-error", "native-check-failure", "unexpected-source-mutation"],
+  "explicit_limits": [
+    "A Java profile does not imply Spring, Android, Kotlin, annotation-processor, or build-plugin support.",
+    "Project-wide type resolution requires a consumer-specific classpath or build-tool integration."
+  ]
+}

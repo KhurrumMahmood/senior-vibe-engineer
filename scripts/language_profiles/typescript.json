@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "language": "typescript",
+  "suffixes": [".ts", ".tsx"],
+  "project_markers": ["package.json", "tsconfig.json"],
+  "source_roles": {
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "symlink"],
+    "test_file_globs": ["*.test.ts", "*.test.tsx", "*.spec.ts", "*.spec.tsx"],
+    "declaration_file_globs": ["*.d.ts"],
+    "configuration_files": ["vite.config.ts", "webpack.config.ts"]
+  },
+  "native_tools": [
+    {
+      "id": "node",
+      "project_paths": ["node_modules/.bin/node"],
+      "system_commands": ["node"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "18.0.0",
+      "required": true
+    },
+    {
+      "id": "tsc",
+      "project_paths": ["node_modules/.bin/tsc"],
+      "system_commands": ["tsc"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "5.0.0",
+      "required": true
+    }
+  ],
+  "fact_tiers": ["lexical-filesystem", "syntax", "semantic-project"],
+  "verification_commands": [
+    {
+      "id": "typecheck",
+      "argv": ["{tool:tsc}", "--noEmit", "--project", "{project_root}/tsconfig.json"],
+      "requires": ["tsc"]
+    }
+  ],
+  "terminal_outcomes": ["complete", "partial", "unsupported", "tool-missing", "syntax-error", "native-check-failure", "unexpected-source-mutation"],
+  "explicit_limits": [
+    "A TypeScript profile does not imply React, Angular, Vue, or other framework support.",
+    "Semantic facts require the audited project's own compiler package and tsconfig."
+  ]
+}

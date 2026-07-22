@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "language": "python",
+  "suffixes": [".py", ".pyi"],
+  "project_markers": ["pyproject.toml", "requirements.txt", "setup.py", "manage.py"],
+  "source_roles": {
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "symlink"],
+    "test_file_globs": ["test_*.py", "*_test.py"],
+    "declaration_file_globs": ["*.pyi"],
+    "configuration_files": ["conftest.py", "manage.py", "settings.py"]
+  },
+  "native_tools": [
+    {
+      "id": "python",
+      "project_paths": [".venv/bin/python", "venv/bin/python"],
+      "system_commands": ["python3", "python"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "3.11.0",
+      "required": true
+    }
+  ],
+  "fact_tiers": ["lexical-filesystem", "syntax", "semantic-project"],
+  "verification_commands": [
+    {
+      "id": "compile",
+      "argv": ["{tool:python}", "-m", "compileall", "-q", "{source_files}"],
+      "requires": ["python"]
+    }
+  ],
+  "terminal_outcomes": ["complete", "partial", "unsupported", "tool-missing", "syntax-error", "native-check-failure", "unexpected-source-mutation"],
+  "explicit_limits": [
+    "A profile declares tooling and source roles; it does not imply framework or runtime behavior.",
+    "Import-aware facts require a project-specific semantic consumer."
+  ]
+}
