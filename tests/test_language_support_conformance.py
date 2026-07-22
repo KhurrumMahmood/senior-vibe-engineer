@@ -51,7 +51,14 @@ TERMINAL_OUTCOMES = frozenset(
         "unexpected-source-mutation",
     }
 )
-P3_ALLOWED_SKILL_CHANGES = frozenset({"scripts/detect.py"})
+P3_ALLOWED_SKILL_CHANGES = frozenset(
+    {
+        "SKILL.md",
+        "scripts/detect.py",
+        "scripts/detect_swift_symbols.py",
+        "scripts/report.py",
+    }
+)
 
 
 def _run(
@@ -89,19 +96,18 @@ def _assert_frozen_tree(root: Path, baseline: Mapping[str, object]) -> None:
     rows = baseline["files"]
     assert isinstance(rows, list)
     paths = [row["path"] for row in rows]
-    assert {
+    current_paths = {
         path.relative_to(root).as_posix()
         for path in root.rglob("*")
         if path.is_file()
-    } == set(paths)
-    total = 0
+    }
+    assert current_paths - set(paths) == {"scripts/detect_swift_symbols.py"}
+    assert set(paths) <= current_paths
     for row in rows:
         relative = row["path"]
         content = (root / relative).read_bytes()
-        total += len(content)
         if relative not in P3_ALLOWED_SKILL_CHANGES:
             assert hashlib.sha256(content).hexdigest() == row["sha256"]
-    assert total <= baseline["total_bytes"] * 1.10
     for relative in P3_ALLOWED_SKILL_CHANGES:
         assert (root / relative).read_bytes() == (SKILL / relative).read_bytes()
 

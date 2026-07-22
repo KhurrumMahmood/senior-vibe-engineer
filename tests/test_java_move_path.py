@@ -278,7 +278,12 @@ def test_documented_java_command_runs_from_agents_skill_location(tmp_path: Path)
     result = subprocess.run(
         ["/bin/bash", "-c", _documented_java_command(installed)],
         cwd=host,
-        env={**os.environ, "MOVE_PLAN": "move.json", "MOVE_MODE": "--apply"},
+        env={
+            **os.environ,
+            "MOVE_PLAN": "move.json",
+            "MOVE_MODE": "--apply",
+            "ENGINEERING_SKILLS_PYTHON": sys.executable,
+        },
         text=True,
         capture_output=True,
         check=False,

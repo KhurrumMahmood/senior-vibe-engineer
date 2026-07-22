@@ -236,7 +236,11 @@ def test_selected_skill_installs_with_pinned_stock_cli(tmp_path: Path) -> None:
         name: _documented_command(installed, name)
         for name in ("resolve", "setup", "detect", "collapse", "report")
     }
-    command_env = {**os.environ, "TARGET": "src"}
+    command_env = {
+        **os.environ,
+        "TARGET": "src",
+        "ENGINEERING_SKILLS_PYTHON": sys.executable,
+    }
     for stage in ("setup", "detect", "collapse"):
         result = _run(
             "bash",

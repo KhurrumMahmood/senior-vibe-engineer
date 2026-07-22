@@ -223,11 +223,22 @@ if [ -z "${SKILL_ROOT}" ]; then
   printf '%s\n' "move-path is not installed in .agents/skills or .claude/skills" >&2
   exit 2
 fi
+if [ -n "${ENGINEERING_SKILLS_PYTHON:-}" ]; then
+  if [ ! -x "${ENGINEERING_SKILLS_PYTHON}" ]; then
+    printf '%s\n' "ENGINEERING_SKILLS_PYTHON must name an executable Python 3.11+ runtime" >&2
+    exit 2
+  fi
+  HOST_PYTHON="${ENGINEERING_SKILLS_PYTHON}"
+elif [ -x ".venv/bin/python" ]; then
+  HOST_PYTHON="$(pwd)/.venv/bin/python"
+else
+  HOST_PYTHON="python3"
+fi
 case "${MOVE_MODE}" in
   --dry-run|--apply|--check) ;;
   *) printf '%s\n' "MOVE_MODE must be --dry-run, --apply, or --check" >&2; exit 2 ;;
 esac
-python3 "${SKILL_ROOT}/scripts/move_path.py" \
+"${HOST_PYTHON}" "${SKILL_ROOT}/scripts/move_path.py" \
   --plan "${MOVE_PLAN}" \
   --project-root "$(pwd)" \
   --report-dir "${MOVE_REPORT_DIR}" \

@@ -123,7 +123,13 @@ if [ -z "${SKILL_ROOT}" ]; then
   printf '%s\n' "find-omnibus is not installed in .agents/skills or .claude/skills" >&2
   exit 2
 fi
-if [ -x ".venv/bin/python" ]; then
+if [ -n "${ENGINEERING_SKILLS_PYTHON:-}" ]; then
+  if [ ! -x "${ENGINEERING_SKILLS_PYTHON}" ]; then
+    printf '%s\n' "ENGINEERING_SKILLS_PYTHON must name an executable Python 3.11+ runtime" >&2
+    exit 2
+  fi
+  HOST_PYTHON="${ENGINEERING_SKILLS_PYTHON}"
+elif [ -x ".venv/bin/python" ]; then
   HOST_PYTHON="$(pwd)/.venv/bin/python"
 else
   HOST_PYTHON="python3"

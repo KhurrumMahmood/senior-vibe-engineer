@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P7 Swift closeout — three bounded outcomes earned; preserved Java replay awaits a healthy existing JDK
-Last updated: 2026-07-22 (Swift stopped after its pilot; C#/.NET remains last and toolchain blockers are explicit)
+Current phase: P7 Swift complete; prepare separate C and C++ compile-database-gated spines next
+Last updated: 2026-07-22 (Swift stopped after three useful outcomes; toolchain paths and remaining install blockers are explicit)
 
 ## Objective
 
@@ -105,7 +105,7 @@ execution authorities.
 | P4 | PHP pilot proves real outcomes and kit economics | `done` | `268c3ac` |
 | P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `deferred_to_final_language` | — |
 | P6 | Shared components promoted or rejected on evidence | `not_started` | — |
-| P7 | Remaining selected languages receive honest coverage | `swift_closeout_in_progress` | — |
+| P7 | Remaining selected languages receive honest coverage | `swift_done_next_c_cpp` | — |
 | P8 | Current journey, update/repair, and help are measured | `not_started` | — |
 | P9 | Only measured user-journey improvements are adopted | `not_started` | — |
 
@@ -526,7 +526,7 @@ Per-language status:
 | Typed-pilot expansion | `awaiting_p5_decision` | P5-owned | — | — | — | — |
 | Ruby | `deferred_unhealthy_toolchain` | System Ruby 2.6.10 is too old for representative syntax; private Ruby 3.3/rbenv paths time out | — | — | `.claude/tasks/p7-preflight/ruby.md` | — |
 | Rust | `toolchain_missing` | `cargo`/`rustc` absent | — | — | — | — |
-| Swift | `stopped_after_pilot` | SwiftPM-only profile/doctor/inventory and restrictive native fixture proven; SwiftSyntax and native test modules remain unavailable under CLT-only setup | 3 supported (`find-omnibus`, `map-subsystem`, `move-path`), 19 unsupported | Publication integration in progress | `.claude/tasks/multilanguage-learnings/swift-pilot.md` plus three cohort packets | spine `09248d4`; cohorts `84bd160`, `7fb2f4f`, `c5a2792` |
+| Swift | `stopped_after_pilot` | SwiftPM-only profile/doctor/inventory and restrictive native fixture proven; SwiftSyntax and native test modules remain unavailable under CLT-only setup | 3 supported (`find-omnibus`, `map-subsystem`, `move-path`), 19 unsupported | Published and installed-router tested | `.claude/tasks/multilanguage-learnings/swift-pilot.md` plus three cohort packets | spine `09248d4`; cohorts `84bd160`, `7fb2f4f`, `c5a2792`; publication `661e1b1` |
 | Dart | `toolchain_missing` | `dart`/Flutter absent | — | — | — | — |
 | Kotlin | `toolchain_missing` | `kotlin`/`kotlinc` absent | — | — | — | — |
 | C/C++ | `preflight_complete_queued` | Separate C and C++ profiles required; Clang/clangd 21 available, CMake absent, trustworthy compile DB required | — | — | `.claude/tasks/p7-preflight/c-cpp.md` | — |
@@ -541,7 +541,7 @@ execution dependent on host-owned or exact on-demand-closure tools.
 
 | Language | Required blocker | Optional host-owned tools | State / timing |
 |---|---|---|---|
-| Java (preserved support) | Healthy JDK 17+ launcher | Existing Maven/Gradle or project analyzers when a host requires them | `/usr/bin/java` and `/usr/bin/javac` were installed and previously proven, but both timed out even on `-version` during the Swift closeout replay. No replacement install is authorized; investigate or repair the existing JDK before claiming the preserved Java suites reran. |
+| Java (preserved support) | Healthy JDK 17+ launcher | Existing Maven/Gradle or project analyzers when a host requires them | Homebrew OpenJDK 17.0.20 at `/opt/homebrew/opt/openjdk@17` is healthy and all preserved Java family suites pass when its `bin` is first on `PATH` and `JAVA_HOME` names that prefix. The macOS `/usr/bin/java` and `/usr/bin/javac` stubs time out on this host, so setup/verification must publish the resolved executable rather than trusting default `PATH`; no new install is needed. |
 | Swift | None for the SwiftPM spine or compiler-AST pilot | SwiftSyntax, SwiftLint, Periphery, SourceKitten; full Xcode for XCTest/Testing and Xcode projects | Current CLT Swift 6.3.3 is enough for the selected build, executable-smoke, AST, index, and SourceKit boundaries. Optional tools do not block the spine and are not installed. |
 | C | Trustworthy host or fixture `compile_commands.json`; no new compiler required | CMake, clang-tidy, clang-format, IWYU, cppcheck, capture tools such as Bear | Apple Clang/clangd 21 and Make are available. CMake is absent but not required for a bounded Make fixture. |
 | C++ | Separate C++ profile plus trustworthy compile commands; no new compiler required | Same Clang ecosystem as C, selected standard library/build-system tools | Apple Clang/clangd 21 and Make are available. Do not combine C and C++ capability truth. |
@@ -562,7 +562,7 @@ Swift slice evidence:
 | Three-language preflight and selection | `.claude/tasks/p7-preflight/{swift,ruby,c-cpp}.md` | Swift selected; Ruby deferred for unhealthy runtime; C and C++ queued as separate compile-database-gated profiles | `ef07cca` |
 | SwiftPM spine | `scripts/language_profiles/swift.json`; `.claude/tasks/p7-baseline/swift-pilot-baseline.json`; `.claude/tasks/swift-language-coverage.json`; `tests/test_swift_pilot_spine.py` | Restrictive dependency-free build, executable smoke, typecheck/AST, malformed/source-role/symlink/tool-precedence/source-preservation boundaries pass; all 22 rows remain unsupported; main replay `36 passed` including PHP spine | `09248d4` |
 | Swift pilot cohorts | `tests/test_find_omnibus_swift.py`; `tests/test_map_subsystem_swift.py`; `tests/test_swift_move_path.py` | Focused lanes: omnibus `6 passed`, map `5 passed`, move `13 passed`; all three copied closures reach their final artifact/mutation boundary | `84bd160`; `c5a2792`; `7fb2f4f` |
-| Preserved non-Java families | Omnibus, map, and move-path family suites | Omnibus `21 passed, 1 deselected`; map `24 passed` plus corrected stale PHP metadata assertion `1 passed`; move-path `50 passed, 1 skipped`. Java is separately blocked by the unhealthy existing launcher. | working tree before Swift publication commit |
+| Preserved families and publication | Omnibus, map, move-path, matrix, and installed-router suites | Non-Java omnibus `21 passed`; Java omnibus `11 passed`; non-Java map `24 passed` plus corrected metadata assertion; Java map `5 passed`; non-Java move `50 passed, 1 skipped`; Java move `4 passed`; matrix/router `59 passed`. Selected-skill install passes with explicit runtime provenance. | publication `661e1b1` plus closeout follow-up |
 
 ## P8 — Measure the current journey and finish lifecycle/help semantics
 
@@ -696,6 +696,7 @@ Evidence:
 | 2026-07-22 | P7 | Three preflights completed; Swift selected | `ef07cca`; Swift, Ruby, and C/C++ evidence lives under `.claude/tasks/p7-preflight/`. Begin one root-owned SwiftPM spine from that revision: profile/doctor/inventory, representative host, three frozen final-outcome contracts, and 22 initial unsupported dispositions. Ruby and C/C++ remain queued; no concurrent product implementation. |
 | 2026-07-22 | P7 | SwiftPM spine completed | `09248d4`; strict Swift profile, doctor/inventory truth, restrictive dependency-free fixture, executable smoke, syntax/malformed boundaries, three frozen contracts, and 22 unsupported rows pass. Open three disjoint cohort worktrees from this spine; root serially integrates and publishes only earned support. |
 | 2026-07-22 | P7 | Swift pilot cohorts integrated; closeout verification in progress | `84bd160`, `7fb2f4f`, and `c5a2792` earn bounded final outcomes for omnibus syntax, SwiftPM mapping, and target-directory mutation. Coverage is frozen at 3 supported/19 unsupported and expansion stops on closure/runtime economics. Non-Java preserved families pass; the installed JDK now times out even on version probes, so Java replay is explicitly pending rather than misreported. |
+| 2026-07-22 | P7 | Swift pilot published and closed | `661e1b1` publishes 3 supported/19 unsupported matrix and router truth; installed router/matrix suite `59 passed`. Explicit Homebrew OpenJDK provenance restores Java verification (omnibus `11`, map `5`, move `4` passed). Explicit `ENGINEERING_SKILLS_PYTHON` makes direct selected-skill commands usable despite the broken bare host Python. Begin separate C then C++ spine planning; install no optional tool without owner authorization. |
 | 2026-07-21 | P3 | Started | Freeze the exact `60898a7` TypeScript+Java `find-omnibus` baseline and review the 87 registered/59 previously prunable worktree registrations before opening any P3 worker lane. |
 | 2026-07-21 | P3.0 | Completed | Committed evidence freezes the existing-substrate decisions, exact TypeScript/Java projections and exclusions, copied closure bytes, fixture manifests, maintained LOC, OpenJDK 17.0.20/TypeScript 5.9.3 toolchain, full `18 passed` correctness run, and cold plus seven alternating warm trials. Registration-only pruning reduced 87 worktree records to 28 without deleting a path, branch, commit, or dirty worktree. P3.1 may now start from this spine. |
 | 2026-07-21 | P3.1 | Completed | Added strict stdlib-only profiles for the five currently inventoried languages and a narrow lifecycle module. The deletion/caller-knowledge test is satisfied by two immediate consumers (TypeScript and Java omnibus); profiles remove duplicated suffix/tool/role/command/limit declarations, while lifecycle removes only atomic-write, stale-clear, source-hash, and terminal-vocabulary policy. No semantic result schema, adapter layer, installer, cache, mutation executor, or framework profile was added. P3.2 may extend the existing inventory from this spine. |

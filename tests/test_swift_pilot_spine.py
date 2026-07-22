@@ -248,13 +248,15 @@ def test_swift_frozen_cohorts_preserve_fact_and_mutation_boundaries() -> None:
     assert baseline["mutation_performed"] is False
 
 
-def test_all_22_swift_skill_rows_remain_explicitly_unsupported() -> None:
+def test_all_22_swift_skill_rows_have_explicit_closeout_dispositions() -> None:
     coverage = json.loads(COVERAGE.read_text(encoding="utf-8"))
     rows = coverage["skills"]
 
-    assert coverage["decision"] == "spine-only"
+    assert coverage["decision"] == "stop-after-pilot"
     assert len(rows) == 22
     assert {row["skill"] for row in rows} == EXPECTED_SKILLS
-    assert {row["disposition"] for row in rows} == {"swift-unsupported"}
-    assert all(row["evidence_path"] == ".claude/tasks/p7-baseline/swift-pilot-baseline.json" for row in rows)
+    assert {
+        row["skill"] for row in rows if row["disposition"] == "swift-supported"
+    } == {"find-omnibus", "map-subsystem", "move-path"}
+    assert sum(row["disposition"] == "swift-unsupported" for row in rows) == 19
     assert all(row["limitation"] and row["native_check"] for row in rows)
