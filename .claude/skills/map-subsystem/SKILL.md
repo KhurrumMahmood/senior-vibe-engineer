@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, or compile-database-backed C subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, or compile-database-backed C/C++ subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -17,12 +17,13 @@ not_for: |
   execution (use /refactor-subsystem with a spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, swift, c]
+scans: [python, typescript, javascript, go, java, php, swift, c, cpp]
 ---
 
 # /map-subsystem
 
 <!-- Legacy Go metadata token: scans: [python, typescript, javascript, go] -->
+<!-- Legacy PHP/C metadata token: scans: [python, typescript, javascript, go, java, php, swift, c] -->
 
 You are the **orchestrator** for a MAP skill. Given a subsystem name or
 path, you produce (or refresh) a durable inventory doc at
@@ -45,6 +46,8 @@ Procedural detail lives in one knowledge file:
   partial states, and unavailable Go fields.
 - `knowledge/php-v1.md` — the native PHP lint + Composer PSR-4 static-map
   facts, exclusions, terminal states, and deliberate non-semantic boundary.
+- `knowledge/cpp-v1.md` — the C++20 compile-database, compiler AST/reference,
+  build-target, artifact-verification, and deliberate semantic boundaries.
 
 ## SwiftPM v1
 
@@ -367,6 +370,62 @@ python3 "${SKILL_ROOT}/scripts/map_c.py" \
 make test
 ```
 
+## C++20 v1
+
+Use this branch for a C++ subsystem whose host supplies Clang++ and clangd 21+
+plus Make and a current, complete C++20 `compile_commands.json`. The copied
+helper writes machine-checkable Markdown and JSON containing selected source
+and compiler-owned headers, namespace-qualified public declarations with
+overload signatures and template declarations, compiler include dependencies,
+direct compiler-resolved internal/inbound references, and project-local Make
+target relationships.
+
+Completeness is limited to the exact recorded compile-command snapshot.
+Virtual/dynamic dispatch, reflection/runtime registration, all possible
+template instantiations, macro/inactive-branch completeness, link-time
+behavior, and unrecorded build variants remain explicit unsupported fields.
+Missing, malformed, stale, incomplete, mismatched-root, wrong-language, or
+fallback databases fail closed. Compiler, clangd attribution, or Make database
+failures write `failed` artifacts and exit 2. `status` remains distinct from
+the compiler `diagnostic_state`.
+
+Run this verbatim from the target host root after the selected skill is copied.
+Run the host's restrictive native C++20 build/tests and executable smoke before
+and after mapping. The final verification command rejects stale sources or
+tampered Markdown/JSON using recorded hashes.
+
+<!-- installed-command:cpp-map:start -->
+```bash
+MAP_NAME="${MAP_NAME:-cpp-subsystem}"
+MAP_TARGET="${MAP_TARGET:-src}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/map-subsystem" \
+  ".agents/skills/map-subsystem" \
+  ".claude/skills/map-subsystem"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "map-subsystem is not installed" >&2
+  exit 2
+fi
+python3 "${SKILL_ROOT}/scripts/map_cpp.py" \
+  --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/cpp-map.json" \
+  --clangxx "$(command -v clang++)" --clangd "$(command -v clangd)" \
+  --make "$(command -v make)"
+python3 "${SKILL_ROOT}/scripts/map_cpp.py" \
+  --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/cpp-map.json" --verify-artifacts
+```
+<!-- installed-command:cpp-map:end -->
+
 ## How success is judged
 
 - Python maps are complete per `knowledge/output-format.md`: file inventory,
@@ -383,6 +442,11 @@ make test
   class-file/import facts are complete; dynamic semantics remain unavailable.
   C v1 is complete only for the exact current C17 compile-command snapshot and
   compiler dependency closure; every listed non-claim remains explicit.
+  C++20 v1 follows `knowledge/cpp-v1.md`: complete means a current, exact
+  C++20 compile database plus successful compiler/clangd attribution across
+  every production translation unit. Direct static references are
+  compiler-resolved; dynamic/reflection/template-instantiation boundaries
+  remain explicit and final artifact/source hashes must verify.
 - On `--refresh`, the doc opens with a diff section against the prior
   version — what changed, not just what is.
 - The run cites artifact truth: pasted `render_doc.py` `wrote ...`
