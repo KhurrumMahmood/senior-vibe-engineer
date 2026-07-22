@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "find-implicit-state-java"
 FIND = ROOT / ".claude" / "skills" / "find-implicit-state"
 EXTRACT = ROOT / ".claude" / "skills" / "extract-enum"
+GUARD = ROOT / ".claude" / "skills" / "prevent-regression"
+AFTER_FIXTURE = ROOT / "tests" / "fixtures" / "find-implicit-state-java-after"
 
 
 def _jdk() -> Path:
@@ -42,6 +44,19 @@ def _run(*args: str, cwd: Path, env: dict[str, str] | None = None) -> subprocess
 def _host(tmp_path: Path) -> Path:
     host = tmp_path / "host"
     shutil.copytree(FIXTURE, host)
+    sources = sorted(str(path.relative_to(host)) for path in host.rglob("*.java"))
+    native = _run(
+        "javac", "--release", "17", "-proc:none", "-d", str(host / "classes"), *sources,
+        cwd=host, env=_env(),
+    )
+    assert native.returncode == 0, native.stdout + native.stderr
+    shutil.rmtree(host / "classes")
+    return host
+
+
+def _after_host(tmp_path: Path) -> Path:
+    host = tmp_path / "after"
+    shutil.copytree(AFTER_FIXTURE, host)
     sources = sorted(str(path.relative_to(host)) for path in host.rglob("*.java"))
     native = _run(
         "javac", "--release", "17", "-proc:none", "-d", str(host / "classes"), *sources,
@@ -92,6 +107,14 @@ def _collect(skill: Path, host: Path, findings: Path, output: Path, finding: str
         "--proposal", str(output / "proposal.md"),
         cwd=host,
         env=_env(),
+    )
+
+
+def _generate_guard(skill: Path, host: Path, targets: Path, output: Path) -> subprocess.CompletedProcess[str]:
+    return _run(
+        sys.executable, "-I", "-S", str(skill / "scripts" / "generate_java_state_guard.py"),
+        "--targets", str(targets), "--project-root", str(host), "--output-root", str(output),
+        cwd=host, env=_env(),
     )
 
 
@@ -224,3 +247,86 @@ def test_java_enum_proposal_consumes_one_complete_accepted_authority_without_red
     assert stale.returncode == 2
     assert "authority is stale" in stale.stderr
     assert not stale_output.exists()
+
+
+def test_java_state_guard_stages_only_exact_authority_and_verifies_native_fixtures(tmp_path: Path) -> None:
+    host = _host(tmp_path / "before")
+    before = _fingerprints(host)
+    installed = tmp_path / "installed"
+    installed_find = installed / "find-implicit-state"
+    installed_extract = installed / "extract-enum"
+    installed_guard = installed / "prevent-regression"
+    shutil.copytree(FIND, installed_find)
+    shutil.copytree(EXTRACT, installed_extract)
+    shutil.copytree(GUARD, installed_guard)
+    implicit = host / "reports" / "implicit-state" / "java-state"
+    assert _detect(installed_find, host, implicit, isolated=True).returncode == 0
+    enum_dir = host / "reports" / "extract-enum" / "job-status"
+    assert _collect(
+        installed_extract, host, implicit / "findings.json", enum_dir,
+        "java-implicit-state-0001", isolated=True,
+    ).returncode == 0
+    stage = host / "reports" / "prevent-regression" / "job-status"
+
+    generated = _generate_guard(installed_guard, host, enum_dir / "targets.json", stage)
+
+    assert generated.returncode == 0, generated.stdout + generated.stderr
+    rule = stage / "scripts" / "lint" / "no_stringly_state.py"
+    helper = stage / "scripts" / "lint" / "detect_java_state.java"
+    authority = stage / "authority.json"
+    bad = stage / "tests" / "lint" / "bad" / "Job.java"
+    good = stage / "tests" / "lint" / "good" / "Job.java"
+    assert rule.is_file() and helper.is_file() and authority.is_file()
+    assert bad.is_file() and good.is_file() and (stage / "host-wiring.diff").is_file()
+    assert helper.read_text(encoding="utf-8") == (installed_find / "scripts" / "detect_java_state.java").read_text(encoding="utf-8")
+    assert str(ROOT) not in rule.read_text(encoding="utf-8")
+    copied_authority = json.loads(authority.read_text(encoding="utf-8"))
+    targets = json.loads((enum_dir / "targets.json").read_text(encoding="utf-8"))
+    assert copied_authority["accepted_authority"] == targets["accepted_authority"]
+    assert not (host / "scripts" / "lint" / "no_stringly_state.py").exists()
+
+    historical = _run(
+        sys.executable, str(rule), "--project-root", str(host),
+        str(host / "src" / "main" / "java" / "example" / "Job.java"), cwd=host, env=_env(),
+    )
+    assert historical.returncode == 1, historical.stdout + historical.stderr
+    assert len(historical.stdout.splitlines()) == 4
+    assert all("example.Job.status" in line for line in historical.stdout.splitlines())
+
+    after = _after_host(tmp_path)
+    after_before = _fingerprints(after)
+    clean = _run(
+        sys.executable, str(rule), "--project-root", str(after),
+        str(after / "src" / "main" / "java" / "example" / "Job.java"), cwd=after, env=_env(),
+    )
+    assert clean.returncode == 0, clean.stdout + clean.stderr
+    assert after_before == _fingerprints(after)
+
+    verify = _run(
+        sys.executable, "-I", "-S", str(installed_guard / "scripts" / "verify_java_state_guard.py"),
+        "--rule", str(rule), "--authority", str(authority), "--bad", str(bad), "--good", str(good),
+        "--project-root", str(host), cwd=host, env=_env(),
+    )
+    assert verify.returncode == 0, verify.stdout + verify.stderr
+    assert "PASS: BAD_RC=1, GOOD_RC=0, native Java fixtures compile" in verify.stdout
+
+    missing = _run(
+        sys.executable, str(rule), "--project-root", str(host),
+        str(host / "src" / "main" / "java" / "example" / "Job.java"), cwd=host, env=_env(path=""),
+    )
+    assert missing.returncode == 2
+    assert "jdk is unavailable" in missing.stderr.lower()
+
+    old_bin = tmp_path / "old-bin"
+    old_bin.mkdir()
+    for name, version in (("java", 'openjdk version "11.0.22"'), ("javac", "javac 11.0.22")):
+        executable = old_bin / name
+        executable.write_text(f"#!/bin/sh\necho '{version}' >&2\n", encoding="utf-8")
+        executable.chmod(0o755)
+    old = _run(
+        sys.executable, str(rule), "--project-root", str(host),
+        str(host / "src" / "main" / "java" / "example" / "Job.java"), cwd=host, env=_env(path=str(old_bin)),
+    )
+    assert old.returncode == 2
+    assert "jdk >= 17" in old.stderr.lower()
+    assert before == _fingerprints(host)
