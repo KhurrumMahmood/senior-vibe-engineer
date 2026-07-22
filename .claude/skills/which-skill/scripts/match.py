@@ -116,6 +116,7 @@ LANGUAGE_ALIASES = {
     "ts": "typescript",
     "typescript": "typescript",
 }
+LEXICAL_LANGUAGE_TOKENS = frozenset(LANGUAGE_ALIASES)
 LANGUAGE_MARKERS = {
     "go": re.compile(
         r"(?:\bGolang\b|\bGo\b(?=\s+(?:project|repo|repository|module|service|"
@@ -140,6 +141,11 @@ NON_DISCRIMINATING_MATCH_TOKENS = frozenset({
     "root", "table", "tables", "upgrade", "upgrades", "upgrading", "user",
     "users", "verify", "verification", "write",
 })
+
+# These words express sentence polarity or result cardinality, not a skill
+# boundary by themselves. Penalizing them makes careful phrasing such as "do
+# not edit" or "report only" count against the read-only skill it describes.
+NON_DISCRIMINATING_NOT_FOR_TOKENS = frozenset({"not", "only"})
 
 NEGATED_DIAGNOSIS_RE = re.compile(
     r"\b(?:do\s+not|don't|dont|avoid|stop|no\s+need\s+to)"
@@ -474,7 +480,9 @@ def score_skill(
     score = 0
 
     best_for_tokens = tokenize(skill.get("best_for", ""))
-    not_for_tokens = tokenize(skill.get("not_for", ""))
+    not_for_tokens = (
+        tokenize(skill.get("not_for", "")) - NON_DISCRIMINATING_NOT_FOR_TOKENS
+    )
     desc_tokens = tokenize(skill.get("description", ""))
     skill_name = str(skill.get("name", ""))
     name_tokens = tokenize(skill_name)
@@ -882,6 +890,13 @@ def cmd_match(args, catalog_path: Path) -> int:
         args.language,
         args.framework,
     )
+    # Language names establish portability context; they do not distinguish
+    # between skills that support the same host. Keeping them in lexical
+    # scoring rewards whichever metadata repeats the host language most often
+    # and can even penalize the correct skill for restating a language boundary
+    # in not_for. Preserve the original tokens for exact skill requests and
+    # routing signals, but exclude all known aliases from semantic ranking.
+    scoring_tokens = task_tokens - LEXICAL_LANGUAGE_TOKENS
     inferred_tier, tier_hits = infer_tier_signal(task_tokens)
     inferred_job, job_hits = infer_job_signal(task_tokens)
     if is_test_obligation_signal(task_tokens):
@@ -943,7 +958,7 @@ def cmd_match(args, catalog_path: Path) -> int:
         code_health_family_requested = False
     ranked = []
     for sk in skills:
-        score, rationale = score_skill(sk, task_tokens, inferred_tier, inferred_job)
+        score, rationale = score_skill(sk, scoring_tokens, inferred_tier, inferred_job)
         if code_health_family_requested and sk.get("name") == "find-complexity-hotspots":
             score += 200
             rationale.append("broad JS/TS code-health family primary")
@@ -969,7 +984,7 @@ def cmd_match(args, catalog_path: Path) -> int:
     for score, sk, rationale in ranked:
         name = sk.get("name", "")
         recommendable = (
-            has_substantive_skill_evidence(sk, task_tokens)
+            has_substantive_skill_evidence(sk, scoring_tokens)
             or (
                 ordered_multi_phase
                 and not explicit_skill_requested

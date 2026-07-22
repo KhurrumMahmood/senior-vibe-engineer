@@ -14,9 +14,9 @@ best_for: |
   `reports/unify-shadows/<finding-id>/proposal.md` with migration
   plan, caller impact, test matrix, and stop condition.
 not_for: |
-  Raw candidate detection (run /find-semantic-duplication first).
-  Lexical near-clones (use /find-duplication then /fix-workflow).
-  Applying production edits happens downstream after proposal approval.
+  Fresh candidate discovery belongs to /find-semantic-duplication. Lexical
+  near-clones belong to /find-duplication and their downstream fix workflow.
+  Source mutation begins only after human acceptance of this artifact.
 language: any
 framework: any
 scans: [python, typescript, javascript, go, java]

@@ -16,12 +16,10 @@ best_for: |
   family-local syntax parsers. Findings carry analyzer provenance. The script
   paths resolve no types and assume no framework.
 not_for: |
-  Single-responsibility files that are merely large (cohesive >500 LOC
-  is fine — avoid splitting for size alone). Layer violations
-  specifically in views (use /find-layer-violation). Refactor
-  execution (use /refactor-subsystem in decomposition mode).
-  Languages without an extraction adapter yet — check
-  /find-perimeter-gaps for what is and isn't covered.
+  Cohesive modules remain outside this audit regardless of size. View-layer
+  architecture violations belong to /find-layer-violation, source mutation
+  belongs to /refactor-subsystem, and unimplemented language families belong
+  to /find-perimeter-gaps.
 language: any
 framework: any
 scans: [python, javascript, typescript, go, java]

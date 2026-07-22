@@ -79,7 +79,9 @@ Without `--language`, only an exact language name or source suffix in the task
 (`TypeScript`, `.ts`, `.tsx`, `JavaScript`, `.js`, `.jsx`, `Python`, `.py`,
 `Go`, `.go`, `Java`, `.java`)
 may establish one language. Mixed exact markers disable language filtering;
-the matcher never guesses from broad terms such as “frontend.”
+the matcher never guesses from broad terms such as “frontend.” Language names
+and aliases establish portability context only; they are removed from lexical
+relevance scoring so repeated catalog coverage claims do not influence ranking.
 
 Examples:
 

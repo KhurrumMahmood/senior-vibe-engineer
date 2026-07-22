@@ -161,7 +161,7 @@ def test_each_new_go_capability_reaches_its_declared_handoff(tmp_path, skill):
     )
 
 
-def test_pending_go_skill_is_rejected_without_weaker_substitution(tmp_path):
+def test_promoted_go_folder_proposal_reaches_declared_handoff(tmp_path):
     returncode, payload = _run_match(
         "Use propose-folder-reorganization on this Go module.",
         "--project-root",
@@ -170,12 +170,13 @@ def test_pending_go_skill_is_rejected_without_weaker_substitution(tmp_path):
         str(REPO_ROOT),
     )
 
-    assert returncode == 1
+    assert returncode == 0
     assert payload["routing_context"]["languages"] == ["go"]
-    assert payload["recommendation"] == "unsupported"
-    assert payload["unsupported"]["name"] == "propose-folder-reorganization"
-    assert "go_disposition=pending-validation" in payload["unsupported"]["reason"]
-    assert "handoff" not in payload
+    assert payload["recommendation"] == "propose-folder-reorganization"
+    assert payload["handoff"]["available"] is True
+    assert payload["handoff"]["capabilities"]["skills"][0]["go_disposition"] == (
+        "go-supported"
+    )
 
 
 def test_go_state_guard_handoff_includes_detector_companion(tmp_path):

@@ -7,29 +7,25 @@ user-invocable: true
 tier: maintenance
 job: explain
 best_for: |
-  A confirmed implicit-state finding (or explicit `<file>::<field>`
-  target) on a Django model field, ready for a TextChoices proposal —
-  produces the enum class, caller migration table, data-migration risks,
-  and stop condition. Read-only. Decided in: 0001 (TextChoices for state).
-  For TypeScript or checked JavaScript, consume the closed-state detector JSONL to propose one
-  exported as-const runtime value object, its derived union, all caller
-  migrations, and named vendor boundaries.
-  For Go, consume go/types-resolved repeated-operation evidence and produce a
-  review-only named string type plus typed constants.
-  For Java, consume exactly one complete accepted JDK-resolved direct String
-  field finding and emit a review-only enum migration and impact plan.
+  A confirmed Django model implicit-state target ready for a TextChoices class,
+  caller table, data-migration risk review, and stop condition. Decided in:
+  0001 (TextChoices for state).
+  For TypeScript or checked JavaScript, consume a closed-state detector JSONL
+  record and design its exported as-const runtime value object, derived union,
+  caller changes, and named vendor boundaries.
+  For Go, consume go/types-resolved repeated-operation evidence for a named
+  string type plus typed constants.
+  For Java, consume exactly one complete JDK-resolved direct String field
+  finding for an enum migration with caller-impact review.
 not_for: |
-  Detection (use /find-implicit-state first). Tuple-inferred-identity
-  sub-shape — a `.filter(status=X, *_at__...).first()` pattern (use
-  /introduce-fk). Refactor execution (use /fix-workflow). Non-model
-  first-party string sentinels (a dataclass attribute, function return,
-  module constant, or command-internal outcome) — those take a plain
-  `str`-valued Enum (`enum.StrEnum` on 3.11+, or `class X(str, Enum)`),
-  not TextChoices, and the collector only walks model fields; apply that
-  conversion by hand.
-  Do not use the TypeScript or checked-JavaScript branch for untyped/open-ended strings, a
-  framework-specific ORM representation, or a project-native string enum
-  without fixture evidence for that convention.
+  Fresh candidate discovery belongs to /find-implicit-state. Tuple-inferred
+  identity expressed through `.filter(..., *_at__...).first()` belongs to
+  /introduce-fk, while production refactoring belongs to /fix-workflow.
+  Plain first-party sentinels outside a Django model require a separately
+  reviewed Python typed-value conversion because the Django collector walks
+  model fields. The TypeScript and checked-JavaScript branch excludes
+  open-ended values, ORM-specific representations, and existing project-native
+  enumerations whose convention lacks fixture evidence.
 language: any
 framework: any
 ---

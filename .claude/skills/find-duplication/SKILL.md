@@ -9,12 +9,14 @@ job: suspect
 best_for: |
   Python/Django copy-paste and canonical-pattern candidates that need the
   established P0/P1/P2 scout triage, JavaScript-family/TypeScript lexical clone
-  candidates that need reliable source spans, or exact normalized Go/Java body
-  clones that need conservative evidence without a consolidation claim.
+  candidates that need reliable source spans, exact normalized Go function-body
+  clones, or duplicated Java method bodies represented as exact normalized
+  method-body clone candidates for conservative human review.
 not_for: |
-  Semantic duplication where code differs substantially (use
-  /find-semantic-duplication), cross-layer workflow drift, or executing a
-  refactor. JavaScript, TypeScript, Go, and Java v1 do not prove semantic equivalence or safe reuse.
+  Behavior-level matches whose implementations differ structurally belong to
+  /find-semantic-duplication. Cross-layer workflow drift and refactor execution
+  are outside this detector. Family-local v1 evidence establishes structural
+  clone leads and stops short of safety or reuse conclusions.
 language: any
 framework: any
 scans: [python, javascript, typescript, go, java]

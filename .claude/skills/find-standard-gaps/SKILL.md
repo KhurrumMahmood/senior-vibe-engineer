@@ -10,6 +10,8 @@ best_for: |
   Checking that a baseline standard is applied everywhere its situation
   occurs — "every external DB connection is inside a try", "every
   outbound HTTP call sets a timeout", "no call to X without guard Y".
+  This includes coverage gaps for a declared standard governing direct calls,
+  required arguments, or an enclosing try guard.
   Each standard is a declarative entry with an `ast` detector; the scan
   is deterministic, cheap, and syntactically precise.
   Census mode (scripts/census.py) answers the upstream discovery question:
@@ -17,11 +19,11 @@ best_for: |
   Use census before declaring a standard to understand the current
   population; census output feeds /decide and standards declaration.
 not_for: |
-  Judgment-heavy ideas that do not reduce to a call/argument/block
-  pattern (keep those as code review). Structural smells — omnibus,
-  duplication, dormant code (use the find-* family). Executing the
-  fixes (hand off to /fix-workflow). Authoring a bespoke one-off lint
-  when there is no reusable baseline policy (just write the lint).
+  Policies requiring human judgment rather than a machine-executable
+  call/argument/block detector remain review work. Responsibility, clone, and
+  reachability smells belong to their dedicated find-* detectors. Production
+  remediation belongs to /fix-workflow, while a bespoke rule with no reusable
+  baseline belongs in host lint tooling.
 language: any
 framework: any
 scans: [python, javascript, typescript, go, java]

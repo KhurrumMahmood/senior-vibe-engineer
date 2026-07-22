@@ -68,7 +68,7 @@ def test_bundled_catalog_matches_source_frontmatter():
     omnibus = next(skill for skill in catalog["skills"] if skill["name"] == "find-omnibus")
     assert omnibus["language"] == "any"
     assert omnibus["framework"] == "any"
-    assert omnibus["scans"] == ["python", "javascript", "typescript", "go"]
+    assert omnibus["scans"] == ["python", "javascript", "typescript", "go", "java"]
 
 
 def test_new_skill_prompt_routes_to_plan_skill():
