@@ -1,0 +1,11 @@
+{
+  "concepts": [
+    {
+      "name": "canceled order",
+      "aliases": ["canceled_order"],
+      "avoid": ["cancelled_order"],
+      "source_files": []
+    }
+  ],
+  "flagged_ambiguities": []
+}
