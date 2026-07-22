@@ -207,6 +207,75 @@
       }
     }
   },
+  "post_p4": {
+    "decision": "stop-after-pilot",
+    "correct_outcomes_retained": [
+      "find-comment-drift",
+      "map-subsystem",
+      "move-path"
+    ],
+    "tree_sitter_disposition": "rejected-for-production-final-outcome",
+    "tree_sitter_reason": "The bounded experiment proved syntax spans but not Composer project resolution, symbol identity, types, resolved calls, or framework behavior. The accepted semantic outcome instead uses Composer PSR-4 metadata plus native PHP validation.",
+    "established_tooling": {
+      "used": [
+        "PHP token_get_all with TOKEN_PARSE",
+        "PHP parser/lint execution",
+        "Composer validate and PSR-4 metadata"
+      ],
+      "not_bundled": [
+        "nikic/PHP-Parser",
+        "PHPStan",
+        "Psalm"
+      ],
+      "rule": "Project-owned analyzers may provide additional facts, but routed execution does not install them or claim their facts when absent."
+    },
+    "php_incremental_adapter_plus_test": {
+      "find-comment-drift_lines": 697,
+      "map-subsystem_lines": 1513,
+      "move-path_lines": 1144,
+      "combined_lines": 3354
+    },
+    "java_equivalent_adapter_plus_test": {
+      "combined_lines": 3773
+    },
+    "loc_reduction_percent": 11.105221,
+    "loc_gate_passed": false,
+    "php_closures": {
+      "find-comment-drift_bytes": 93488,
+      "map-subsystem_bytes": 208684,
+      "move-path_bytes": 185800,
+      "combined_bytes": 487972
+    },
+    "combined_closure_growth_percent": 26.631841,
+    "closure_gate_passed": false,
+    "timing_protocol": "one cold trial each, then seven fresh pytest subprocess trials with rotating cohort order",
+    "cold_seconds": {
+      "lexical": 1.223537,
+      "semantic": 2.814993,
+      "mutation": 3.521578
+    },
+    "warm_seconds": {
+      "lexical": [1.237252, 0.992832, 0.910319, 0.987844, 0.999375, 1.090960, 1.088022],
+      "semantic": [2.604155, 2.342108, 2.387434, 2.455863, 2.480991, 2.563678, 2.764592],
+      "mutation": [3.239307, 2.950307, 2.852701, 2.889032, 2.886177, 3.474030, 3.404643]
+    },
+    "warm_median_seconds": {
+      "lexical": 0.999375,
+      "semantic": 2.480991,
+      "mutation": 2.950307,
+      "combined": 6.430673
+    },
+    "java_warm_median_combined_seconds": 5.890172,
+    "combined_latency_growth_percent": 9.176319,
+    "combined_latency_gate_passed": true,
+    "per_cohort_latency_growth_percent": {
+      "lexical": 75.087511,
+      "semantic": 62.326027,
+      "mutation": -22.175735
+    },
+    "economics_result": "fail",
+    "promotion_result": "Keep PHP semantic/provider implementations family-local. Do not promote new shared mechanics from P4; retain the correct bounded outcomes and publish unsupported limitations for the other 19 language-level skills."
+  },
   "economics_gates": {
     "maintained_adapter_plus_test_loc_reduction_minimum_percent": 25,
     "combined_copied_closure_growth_maximum_percent": 10,

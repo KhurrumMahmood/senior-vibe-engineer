@@ -107,6 +107,7 @@ LANGUAGE_ALIASES = {
     "go": "go",
     "golang": "go",
     "java": "java",
+    "php": "php",
     "js": "javascript",
     "javascript": "javascript",
     "py": "python",
@@ -123,6 +124,7 @@ LANGUAGE_MARKERS = {
         r"package|code|source|file|CLI|application|app)\b)|\.go\b)"
     ),
     "java": re.compile(r"(?i)(?:\bjava\b|\.java\b)"),
+    "php": re.compile(r"(?i)(?:\bphp\b|\.php\b)"),
     "typescript": re.compile(r"(?i)(?:\btypescript\b|\.tsx?\b)"),
     "javascript": re.compile(r"(?i)(?:\bjavascript\b|(?:\.[cm]?js|\.jsx)\b)"),
     "python": re.compile(r"(?i)(?:\bpython\b|\.py\b)"),
@@ -591,6 +593,7 @@ CAPABILITY_FIELDS = (
     "javascript_disposition",
     "go_disposition",
     "java_disposition",
+    "php_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -685,6 +688,14 @@ def capability_language_exclusion(capabilities: dict, routing_context: dict) -> 
                 return (
                     f"/{row['skill']} declares java_disposition="
                     f"{row['java_disposition']}"
+                )
+            if language == "php" and row["php_disposition"] not in {
+                "php-supported",
+                "validated-neutral",
+            }:
+                return (
+                    f"/{row['skill']} declares php_disposition="
+                    f"{row['php_disposition']}"
                 )
     return None
 

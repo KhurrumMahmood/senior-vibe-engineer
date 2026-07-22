@@ -678,6 +678,9 @@ def _apply_task_capability_gate(handoff: dict[str, Any], task: str) -> None:
             elif language == "java":
                 disposition = row["java_disposition"]
                 eligible = disposition in {"java-supported", "validated-neutral"}
+            elif language == "php":
+                disposition = row["php_disposition"]
+                eligible = disposition in {"php-supported", "validated-neutral"}
             elif language == "python":
                 continue
             else:
@@ -713,6 +716,7 @@ CAPABILITY_FIELDS = (
     "javascript_disposition",
     "go_disposition",
     "java_disposition",
+    "php_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",

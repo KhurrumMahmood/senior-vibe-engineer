@@ -22,6 +22,7 @@ DEFAULT_JAVASCRIPT_COVERAGE = (
 )
 DEFAULT_GO_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "go-language-coverage.json"
 DEFAULT_JAVA_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "java-language-coverage.json"
+DEFAULT_PHP_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "php-language-coverage.json"
 DEFAULT_OUTPUT = REPO_ROOT / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
 
 DISPOSITION_MAP = {
@@ -440,23 +441,43 @@ def _java_coverage(payload: dict) -> dict[str, dict]:
     )
 
 
+def _php_coverage(payload: dict) -> dict[str, dict]:
+    coverage = _simple_language_coverage(
+        payload,
+        language="PHP",
+        suffixes=[".php"],
+        supported_disposition="php-supported",
+    )
+    for skill, row in coverage.items():
+        if row["disposition"] in {"php-partial", "php-unsupported"} and not row.get("limitation"):
+            raise ValueError(f"bounded PHP row lacks a limitation: {skill}")
+    if payload.get("decision") not in {"expand", "stop-after-pilot"}:
+        raise ValueError("PHP coverage must record an expand or stop-after-pilot decision")
+    if not isinstance(payload.get("decision_reason"), str) or not payload["decision_reason"]:
+        raise ValueError("PHP coverage decision needs a reason")
+    return coverage
+
+
 def build_matrix(
     catalog_path: Path,
     coverage_path: Path,
     javascript_coverage_path: Path,
     go_coverage_path: Path,
     java_coverage_path: Path,
+    php_coverage_path: Path,
 ) -> dict:
     catalog_payload = _read_json(catalog_path)
     coverage_payload = _read_json(coverage_path)
     javascript_payload = _read_json(javascript_coverage_path)
     go_payload = _read_json(go_coverage_path)
     java_payload = _read_json(java_coverage_path)
+    php_payload = _read_json(php_coverage_path)
     catalog = {row["name"]: row for row in catalog_payload.get("skills", [])}
     coverage = {row["skill"]: row for row in coverage_payload.get("skills", [])}
     javascript_coverage = _javascript_coverage(javascript_payload)
     go_coverage = _go_coverage(go_payload)
     java_coverage = _java_coverage(java_payload)
+    php_coverage = _php_coverage(php_payload)
     if not catalog or set(catalog) != set(coverage):
         raise ValueError("catalog and TypeScript coverage must contain the same skills")
 
@@ -568,6 +589,24 @@ def build_matrix(
             java_native_check = None
             java_reviewed_revision = None
 
+        if expansion == "language-level":
+            php = php_coverage[skill]
+            php_disposition = php["disposition"]
+            php_evidence_path = php.get("evidence_path")
+            php_native_check = php.get("native_check")
+            php_reviewed_revision = php.get("reviewed_revision")
+            php_limitation = php.get("limitation")
+        else:
+            php_disposition = {
+                "validated-neutral": "validated-neutral",
+                "framework-bound": "stack-bound",
+                "ecosystem-runtime": "ecosystem-runtime",
+            }[expansion]
+            php_evidence_path = None
+            php_native_check = None
+            php_reviewed_revision = None
+            php_limitation = None
+
         rows.append(
             {
                 "skill": skill,
@@ -588,6 +627,11 @@ def build_matrix(
                 "java_evidence_path": java_evidence_path,
                 "java_native_check": java_native_check,
                 "java_reviewed_revision": java_reviewed_revision,
+                "php_disposition": php_disposition,
+                "php_evidence_path": php_evidence_path,
+                "php_native_check": php_native_check,
+                "php_reviewed_revision": php_reviewed_revision,
+                "php_limitation": php_limitation,
                 "fact_level": fact_level,
                 "outcome_class": outcome_class,
                 "framework_family": framework_family,
@@ -633,6 +677,7 @@ def build_matrix(
             },
             {"path": _relative(go_coverage_path), "sha256": _sha256(go_coverage_path)},
             {"path": _relative(java_coverage_path), "sha256": _sha256(java_coverage_path)},
+            {"path": _relative(php_coverage_path), "sha256": _sha256(php_coverage_path)},
         ],
         "counts": {
             "validated-neutral": counts["validated-neutral"],
@@ -680,6 +725,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--go-coverage", type=Path, default=DEFAULT_GO_COVERAGE)
     parser.add_argument("--java-coverage", type=Path, default=DEFAULT_JAVA_COVERAGE)
+    parser.add_argument("--php-coverage", type=Path, default=DEFAULT_PHP_COVERAGE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
@@ -697,6 +743,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.javascript_coverage,
                 args.go_coverage,
                 args.java_coverage,
+                args.php_coverage,
             )
         )
     except ValueError as exc:

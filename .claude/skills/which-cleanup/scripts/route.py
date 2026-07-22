@@ -280,6 +280,7 @@ CAPABILITY_FIELDS = (
     "javascript_disposition",
     "go_disposition",
     "java_disposition",
+    "php_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",

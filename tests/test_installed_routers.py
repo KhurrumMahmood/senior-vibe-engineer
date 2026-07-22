@@ -154,6 +154,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
             "javascript_disposition": "validated-neutral",
             "go_disposition": "validated-neutral",
             "java_disposition": "validated-neutral",
+            "php_disposition": "validated-neutral",
             "fact_level": "neutral",
             "outcome_class": "not-applicable",
             "framework_family": None,
@@ -191,6 +192,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "javascript_disposition": "stack-bound",
         "go_disposition": "stack-bound",
         "java_disposition": "stack-bound",
+        "php_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "architecture-planning",
@@ -220,6 +222,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "javascript_disposition": "javascript-supported",
         "go_disposition": "go-supported",
         "java_disposition": "java-supported",
+        "php_disposition": "php-unsupported",
         "fact_level": "semantic-project",
         "outcome_class": "read-only-report",
         "framework_family": None,
@@ -289,6 +292,44 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         ] == "go-supported"
         assert Path(go_payload["handoff"]["guides"][0]["guide"]).is_file()
 
+    php_routed = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use find-comment-drift on PHP source",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "php",
+        "--json",
+        cwd=host,
+    )
+    php_payload = _json_output(php_routed)
+    assert php_payload["recommendation"] == "find-comment-drift"
+    assert php_payload["handoff"]["available"] is True
+    assert php_payload["handoff"]["capabilities"]["skills"][0][
+        "php_disposition"
+    ] == "php-supported"
+
+    unsupported_php = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use adapt-project on this PHP repository",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "php",
+        "--json",
+        cwd=host,
+    )
+    unsupported_php_payload = _json_output(unsupported_php)
+    assert unsupported_php.returncode == 1
+    assert unsupported_php_payload["recommendation"] == "unsupported"
+    assert unsupported_php_payload["unsupported"]["reason"] == (
+        "/adapt-project declares php_disposition=php-unsupported"
+    )
+
     shape_routed = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",
         "onboard an unknown inherited repo and figure out what loop to run",
@@ -306,12 +347,38 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "javascript_disposition": "javascript-supported",
         "go_disposition": "go-supported",
         "java_disposition": "java-supported",
+        "php_disposition": "php-unsupported",
         "fact_level": "lexical-filesystem",
         "outcome_class": "configuration-output",
         "framework_family": None,
         "closure_skills": ["adapt-project"],
         "optional_install_status": "passed",
     }
+
+    php_shape = _run_isolated(
+        installed["which-shape"] / "scripts" / "route.py",
+        "onboard an unknown inherited PHP repository and figure out what loop to run",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--json",
+        "--skip-log",
+        cwd=host,
+    )
+    php_shape_payload = _json_output(php_shape)
+    assert php_shape_payload["recommendation"]["first_next"] == "/adapt-project"
+    assert php_shape_payload["handoff"]["available"] is False
+    assert php_shape_payload["handoff"]["reason"] == (
+        "selected_skill_not_validated_for_language"
+    )
+    assert php_shape_payload["handoff"]["blocked"] == [
+        {
+            "skill": "adapt-project",
+            "language": "php",
+            "disposition": "php-unsupported",
+        }
+    ]
 
     cleanup_routed = _run_isolated(
         installed["which-cleanup"] / "scripts" / "route.py",
@@ -335,6 +402,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "javascript_disposition": "stack-bound",
         "go_disposition": "stack-bound",
         "java_disposition": "stack-bound",
+        "php_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "framework-quality",
