@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "377af454539dad28e2d5648dc6fc57ce88b56d270f689812e8ede1687079855c"
+      "sha256": "77b485d58544b6aa4154a668590872e9ecd75b3bf3bd925810a68795c23a5eb5"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -19,7 +19,7 @@
     },
     {
       "path": ".claude/tasks/java-language-coverage.json",
-      "sha256": "59a3df694e1c428a636aa81b25aea88f0fd51b86f42fcadf035a6db18c849c81"
+      "sha256": "a49f42b86037a76c83901c32dd8824992cbb31d7854982c41fd955091310fa5c"
     }
   ],
   "counts": {
@@ -136,10 +136,13 @@
         "source fingerprint and final adapter assertions"
       ],
       "go_reviewed_revision": "bd9fe15",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_adapt_project_java_j2a.py",
+      "java_native_check": [
+        "standalone Maven/Gradle-style fixture inventory",
+        "final adapter artifacts and source-fingerprint assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "lexical-filesystem",
       "outcome_class": "configuration-output",
       "framework_family": null,
@@ -261,10 +264,13 @@
         "source fingerprint and final drift-report assertions"
       ],
       "go_reviewed_revision": "bd9fe15",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_audit_decisions_java.py",
+      "java_native_check": [
+        "batched JDK 17 comment parser",
+        "final audit artifacts and source-fingerprint assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "syntax",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -278,7 +284,8 @@
           "html",
           "javascript",
           "typescript",
-          "go"
+          "go",
+          "java"
         ],
         "install_with": []
       },
@@ -744,10 +751,13 @@
         "source fingerprint and final explanation assertions"
       ],
       "go_reviewed_revision": "bd9fe15",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_explain_code_java.py",
+      "java_native_check": [
+        "JDK 17 symbol inventory",
+        "final report, mixed-status, and source-once assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "lexical-filesystem",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -759,7 +769,8 @@
           "python",
           "javascript",
           "typescript",
-          "go"
+          "go",
+          "java"
         ],
         "install_with": []
       },
@@ -878,10 +889,13 @@
         "review-only proposal artifact and source fingerprint assertions"
       ],
       "go_reviewed_revision": "4d295de",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_java_state_chain.py",
+      "java_native_check": [
+        "JDK 17 producer source manifest",
+        "final proposal and stale-evidence rejection assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "semantic-project",
       "outcome_class": "proposal-only",
       "framework_family": null,
@@ -1183,10 +1197,13 @@
         "source fingerprint and final report assertions"
       ],
       "go_reviewed_revision": "e4fa2f4",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_comment_drift_java_j2a.py",
+      "java_native_check": [
+        "JDK 17 lexical comment fixture",
+        "copied runbook and terminal lifecycle assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "lexical-filesystem",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -1199,6 +1216,7 @@
           "javascript",
           "typescript",
           "go",
+          "java",
           "templates"
         ],
         "install_with": []
@@ -1334,10 +1352,13 @@
         "source fingerprint and final report assertions"
       ],
       "go_reviewed_revision": "dd37954",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_concept_divergence_java_j2a.py",
+      "java_native_check": [
+        "standalone Java source fixture",
+        "final findings and copied-runbook assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "lexical-filesystem",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -1350,6 +1371,7 @@
           "javascript",
           "typescript",
           "go",
+          "java",
           "markdown",
           "templates"
         ],
@@ -1594,10 +1616,13 @@
         "source fingerprint and final review artifact assertions"
       ],
       "go_reviewed_revision": "eeb38da",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_dormant_java.py",
+      "java_native_check": [
+        "JDK 17 compiler attribution",
+        "final report and source-fingerprint assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -1609,7 +1634,8 @@
           "python",
           "typescript",
           "javascript",
-          "go"
+          "go",
+          "java"
         ],
         "install_with": []
       },
@@ -1669,10 +1695,13 @@
         "source fingerprint and final triage assertions"
       ],
       "go_reviewed_revision": "22147a3",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_duplication_java.py",
+      "java_native_check": [
+        "JDK 17 source fixture",
+        "clone report and source-once assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "lexical-filesystem",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -1684,7 +1713,8 @@
           "python",
           "javascript",
           "typescript",
-          "go"
+          "go",
+          "java"
         ],
         "install_with": []
       },
@@ -1743,10 +1773,13 @@
         "source fingerprint and final report assertions"
       ],
       "go_reviewed_revision": "e4fa2f4",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_folder_topology_java_j2a.py",
+      "java_native_check": [
+        "standalone Java package fixture",
+        "copied runbook and terminal lifecycle assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "lexical-filesystem",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -1758,7 +1791,8 @@
           "python",
           "javascript",
           "typescript",
-          "go"
+          "go",
+          "java"
         ],
         "install_with": []
       },
@@ -1942,10 +1976,13 @@
         "source fingerprint and final JSONL assertions"
       ],
       "go_reviewed_revision": "4d295de",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_java_state_chain.py",
+      "java_native_check": [
+        "JDK 17 compiler attribution",
+        "final findings, source manifest, and build-boundary assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -1957,7 +1994,8 @@
           "python",
           "typescript",
           "javascript",
-          "go"
+          "go",
+          "java"
         ],
         "install_with": []
       },
@@ -2020,10 +2058,13 @@
         "manifest-to-scout-verdict-to-triage and source-preservation assertions"
       ],
       "go_reviewed_revision": "2b83ccd",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_incomplete_sweep_java.py",
+      "java_native_check": [
+        "JDK 17 resolved calls plus Git history",
+        "final human-verdict artifact assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -2034,7 +2075,9 @@
         "scans": [
           "python",
           "typescript",
-          "javascript"
+          "javascript",
+          "go",
+          "java"
         ],
         "install_with": []
       },
@@ -2150,10 +2193,13 @@
         "source fingerprint and final report assertions"
       ],
       "go_reviewed_revision": "5298be2",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_omnibus_java.py",
+      "java_native_check": [
+        "JDK 17 syntax fixture",
+        "generic and explicit terminal lifecycle assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "syntax",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -2165,7 +2211,8 @@
           "python",
           "javascript",
           "typescript",
-          "go"
+          "go",
+          "java"
         ],
         "install_with": []
       },
@@ -2519,10 +2566,13 @@
         "source fingerprint and final triage assertions"
       ],
       "go_reviewed_revision": "bb4e5fa",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_semantic_duplication_java.py",
+      "java_native_check": [
+        "JDK 17 compiler attribution",
+        "final findings and source-manifest assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -2534,7 +2584,8 @@
           "python",
           "typescript",
           "javascript",
-          "go"
+          "go",
+          "java"
         ],
         "install_with": []
       },
@@ -2771,10 +2822,13 @@
         "source fingerprint and final coverage assertions"
       ],
       "go_reviewed_revision": "5298be2",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_find_standard_gaps_java.py",
+      "java_native_check": [
+        "JDK 17 syntax fixture",
+        "final report and copied-closure assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "syntax",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -2786,7 +2840,8 @@
           "python",
           "javascript",
           "typescript",
-          "go"
+          "go",
+          "java"
         ],
         "install_with": []
       },
@@ -3439,10 +3494,13 @@
         "source fingerprint and final map artifact assertions"
       ],
       "go_reviewed_revision": "2147d5d",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_map_subsystem_java.py",
+      "java_native_check": [
+        "JDK 17 compiler attribution",
+        "final subsystem artifacts and nested-type assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -3454,7 +3512,8 @@
           "python",
           "typescript",
           "javascript",
-          "go"
+          "go",
+          "java"
         ],
         "install_with": []
       },
@@ -3943,10 +4002,13 @@
         "BAD_RC=1, GOOD_RC=0 staged-guard verification"
       ],
       "go_reviewed_revision": "4d295de",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_java_state_chain.py",
+      "java_native_check": [
+        "JDK 17 accepted producer evidence",
+        "staged guard and native verification assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "semantic-project",
       "outcome_class": "guard-generation",
       "framework_family": null,
@@ -4162,10 +4224,13 @@
         "read-only move plan, current-module import impact, and copied on-demand closure assertions"
       ],
       "go_reviewed_revision": "7f3da12",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_propose_folder_reorganization_java.py",
+      "java_native_check": [
+        "JDK 17 compiler attribution",
+        "read-only move plan and wildcard-safety assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "semantic-project",
       "outcome_class": "proposal-only",
       "framework_family": null,
@@ -4175,6 +4240,8 @@
         "framework": "any",
         "scans": [
           "python",
+          "go",
+          "java",
           "typescript",
           "javascript"
         ],
@@ -4355,10 +4422,13 @@
         "copied closure and source fingerprint assertions"
       ],
       "go_reviewed_revision": "bb4e5fa",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_rename_concept_java.py",
+      "java_native_check": [
+        "JDK 17 compiler attribution",
+        "final assessment and copied-closure assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -4371,6 +4441,7 @@
           "javascript",
           "typescript",
           "go",
+          "java",
           "markdown",
           "templates"
         ],
@@ -4734,10 +4805,13 @@
         "read-only proposal artifacts and source fingerprint assertions"
       ],
       "go_reviewed_revision": "bb4e5fa",
-      "java_disposition": "pending-validation",
-      "java_evidence_path": null,
-      "java_native_check": null,
-      "java_reviewed_revision": null,
+      "java_disposition": "java-supported",
+      "java_evidence_path": "tests/test_unify_shadows_java.py",
+      "java_native_check": [
+        "JDK 17 producer source manifest",
+        "final proposal and stale-evidence rejection assertions"
+      ],
+      "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
       "fact_level": "semantic-project",
       "outcome_class": "proposal-only",
       "framework_family": null,
@@ -4749,7 +4823,8 @@
           "python",
           "typescript",
           "javascript",
-          "go"
+          "go",
+          "java"
         ],
         "install_with": []
       },

@@ -50,8 +50,7 @@ EXPECTED_GO_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_JAVA_COUNTS = {
-    "pending-validation": 19,
-    "java-supported": 3,
+    "java-supported": 22,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,

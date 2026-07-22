@@ -248,7 +248,7 @@ def test_java_one_line_typo_still_proceeds_directly(tmp_path: Path):
 
 
 @pytest.mark.parametrize("skill", ["adapt-project", "propose-folder-reorganization"])
-def test_pending_java_capability_refuses_handoff(skill: str, tmp_path: Path):
+def test_promoted_java_capability_returns_on_demand_handoff(skill: str, tmp_path: Path):
     returncode, payload = _run_match(
         f"Use {skill} on this Java repository.",
         "--project-root",
@@ -257,11 +257,13 @@ def test_pending_java_capability_refuses_handoff(skill: str, tmp_path: Path):
         str(REPO_ROOT),
     )
 
-    assert returncode == 1
-    assert payload["recommendation"] == "unsupported"
-    assert payload["unsupported"]["name"] == skill
-    assert "java_disposition=pending-validation" in payload["unsupported"]["reason"]
-    assert "handoff" not in payload
+    assert returncode == 0, payload
+    assert payload["recommendation"] == skill
+    assert payload["handoff"]["skills"][0] == skill
+    assert payload["handoff"]["default_execution"] == "fresh_non_context_subagent"
+    capability = payload["handoff"]["capabilities"]["skills"][0]
+    assert capability["skill"] == skill
+    assert capability["java_disposition"] == "java-supported"
 
 
 def test_unsupported_rust_scanner_refuses_weaker_substitution(tmp_path: Path):

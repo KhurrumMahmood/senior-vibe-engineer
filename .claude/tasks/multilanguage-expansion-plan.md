@@ -577,7 +577,7 @@ test obligations—remain backlog candidates until a real host needs them.
 
 ## Phase P5 — Core language queue and Java pilot
 
-State: `in_progress`
+State: `complete`
 
 The independent structural-tool and SkillOpt experiments are tracked in
 `.claude/tasks/cross-language-tool-evaluation-plan.md`. They may run alongside
@@ -597,7 +597,7 @@ work as follows:
 | 1 | Python | earned reference | Existing native reference paths. |
 | 2 | JavaScript/TypeScript | earned | One closely coupled ecosystem; all 22 language-level outcomes have explicit evidence. |
 | 3 | Go | earned | All 22 language-level outcomes have explicit bounded evidence; unsupported framework and toolchain cases remain honest rather than inheriting language support. |
-| 4 | Java | active pilot | High professional/GitHub use and JDK 17 compiler-tree APIs are available locally without Maven/Gradle or third-party JARs. Java does not imply Kotlin support. |
+| 4 | Java | earned | All 22 language-level outcomes have reviewed Java 17 evidence, copied/on-demand closure coverage, and honest source-only boundaries. Java does not imply Kotlin support. |
 | 5 | C#/.NET | queued | High professional use; start only after a real host proves copied, offline Roslyn/SDK resolution and `dotnet build --no-restore`. |
 | 6 | PHP | queued | Material web/legacy cleanup value; require a representative Composer host and native parser/project boundary before semantic claims. |
 | 7 | Rust | queued | Strong growth and native Cargo verification; require a stable offline syntax/project fact path without adding parser crates or assuming rust-analyzer. |
@@ -620,9 +620,8 @@ syntax adapter does not trigger broad parallel conversion.
 ### Java J0/J1 pilot
 
 J0 state: `complete` at `e14274b`. J1 proposal is complete at `cfd0e2d` and
-J1 mutation is complete at `cd7a445`. Java has earned the bounded three-family
-pilot; the other 19 language-level skills remain explicitly pending rather
-than inheriting Java support.
+J1 mutation is complete at `cd7a445`. That bounded three-family pilot earned
+the evidence pattern later used to complete the other 19 language-level rows.
 
 The local tool probe found OpenJDK/Javac 17.0.12. Java begins with one detector
 implemented serially to establish the fixture and JDK invocation pattern:
@@ -666,14 +665,12 @@ Java J1 acceptance:
       becomes a regression before Java closeout is committed.
 
 The user accepted full staged Java expansion after the three-family pilot.
-Java is now the only active language; C# does not start until every remaining
-Java language-level row has either passed its own final-outcome evidence or an
-explicit product-reviewed stop decision proves that a useful honest outcome is
-unavailable.
+That expansion is complete at the reviewed implementation revision `cf48aa5`;
+C#/.NET is the next queued core language when another language pass begins.
 
 ### Java J2-J5 staged expansion
 
-State: `in_progress`
+State: `complete`
 
 The remaining 19 rows are owned in four batches. A batch may share fixtures or
 invocation patterns, but each skill still needs its own final artifact and
@@ -682,10 +679,10 @@ detectors.
 
 | Batch | State | Skills | Dependency |
 |---|---|---|---|
-| J2 lexical/filesystem | 6/6 integrated; review pending | `adapt-project`, `explain-code`, `find-comment-drift`, `find-concept-divergence`, `find-duplication`, `find-folder-topology-drift` | Accepted Java source-role and path boundaries. All six candidate outcomes are integrated through `71ffb81`; promotion still waits for product-framed review and closeout replay. |
-| J3 syntax/reports | 3/3 integrated; review pending | `audit-decisions`, `find-omnibus`, `find-standard-gaps` | JDK syntax facts only where text/metadata cannot establish the final report. All three candidate outcomes are integrated through `29d21cd`; promotion waits for closeout review. |
-| J4 semantic/project | 6/6 integrated; review fixes pending | `find-dormant`, `find-implicit-state`, `find-incomplete-sweep`, `find-semantic-duplication`, `map-subsystem`, `rename-concept` | All bounded Java identity/relationship outcomes are integrated; the active product review found bounded correctness gaps that must become regressions before promotion. |
-| J5 proposals/guards | 4/4 integrated; review pending | `extract-enum`, `prevent-regression`, `propose-folder-reorganization`, `unify-shadows` | All four producer-backed/read-only outcomes are integrated through `a171fd2`; promotion waits for review repairs, full router validation, and closeout replay. |
+| J2 lexical/filesystem | complete | `adapt-project`, `explain-code`, `find-comment-drift`, `find-concept-divergence`, `find-duplication`, `find-folder-topology-drift` | Final artifacts, copied commands, source-once rules, terminal lifecycle, and preserved-language behavior passed. |
+| J3 syntax/reports | complete | `audit-decisions`, `find-omnibus`, `find-standard-gaps` | Final reports passed; Java audit now batches selected files in one helper launch and omnibus generic/explicit Java paths publish terminal state. |
+| J4 semantic/project | complete | `find-dormant`, `find-implicit-state`, `find-incomplete-sweep`, `find-semantic-duplication`, `map-subsystem`, `rename-concept` | Compiler-attributed facts, build/path boundaries, source manifests, and nested-type ownership passed product review. |
+| J5 proposals/guards | complete | `extract-enum`, `prevent-regression`, `propose-folder-reorganization`, `unify-shadows` | Producer freshness, read-only proposal/guard outcomes, wildcard safety, and human-approval boundaries passed product review. |
 
 Execution ownership is deliberately smaller than those reporting batches:
 
@@ -703,35 +700,35 @@ Execution ownership is deliberately smaller than those reporting batches:
 
 Per-skill acceptance:
 
-- [ ] A locked Java 17 host reaches the skill's existing final human and
+- [x] A locked Java 17 host reaches the skill's existing final human and
       structured artifact, not merely parser facts.
-- [ ] The selected task skill runs from a copied on-demand closure with no
+- [x] The selected task skill runs from a copied on-demand closure with no
       network or repository runtime import. Skills claiming compiler facts
       discover host `java`/`javac`; lexical skills still name a native fixture
       check. No skill assumes Maven/Gradle unless it explicitly reports that
       build boundary as unsupported.
-- [ ] Positive, clean-negative, generated/test/vendor, malformed or unresolved,
+- [x] Positive, clean-negative, generated/test/vendor, malformed or unresolved,
       symlink/path, and missing/old-tool behavior is explicit where applicable;
       partial evidence never becomes clean.
-- [ ] Read-only skills preserve source fingerprints. Mutating or guard skills
+- [x] Read-only skills preserve source fingerprints. Mutating or guard skills
       prove exact output plus native `javac --release 17 -proc:none` behavior
       and rollback/non-application on failure.
-- [ ] Existing Python, TypeScript/JavaScript, and Go paths remain green for the
+- [x] Existing Python, TypeScript/JavaScript, and Go paths remain green for the
       touched skill family.
-- [ ] A product-framed independent review separates user-facing fixes from
+- [x] A product-framed independent review separates user-facing fixes from
       backlog ideas and disproportionate hardening before the row is promoted.
-- [ ] The batch records what transferred, what remained family-local, measured
+- [x] The batch records what transferred, what remained family-local, measured
       implementation cost, and whether any repeated Java bootstrap/path repair
       now satisfies ML-021's extraction gate.
 
 Expansion completion:
 
-- [ ] `java-language-coverage.json` contains 22 `java-supported` rows, or a
+- [x] `java-language-coverage.json` contains 22 `java-supported` rows, or a
       smaller explicitly accepted maximum with named unsupported outcomes and
       user-approved stop decisions.
-- [ ] The generated 76-skill matrix is current; installed router journeys
+- [x] The generated 76-skill matrix is current; installed router journeys
       select every accepted Java capability and reject any stopped row.
-- [ ] Copied-closure, native fixture, preserved-language, strict metadata, and
+- [x] Copied-closure, native fixture, preserved-language, strict metadata, and
       product-review gates pass at the accepted closeout revision.
 
 Pilot planning history: the original J0/J1 plan was revised in `295a862`
@@ -787,7 +784,7 @@ completion.
 | E1 read-only batching | complete | benchmark implementation commit (this revision) | Fresh isolated TypeScript and JavaScript hosts per condition and trial | Focused contract: 2 passed; frozen benchmark: 7 paired trials per language, semantic/native/source gates all passed, zero failures/interventions | Fresh product-framed review found a single-language gate bypass; repaired at CLI and aggregate layers; bounded re-review PASS | `.claude/tasks/ml009-readonly-batch-results.json`; ML-011 is the bounded product follow-up |
 | E2 compressed code-health family | complete | this revision | Five disposable TypeScript A/B/C triplets, one unseen TypeScript host, two invalid-standards sentinels | 15/15 timed conditions and 3/3 validation cases passed; context -78.84%, tokens -22.23%, median wall -52.68%; 78 focused product tests pass | Fresh product review and two bounded re-review turns closed seven user-real defects; final gate PASS. Live run directly constructed lanes; future preparation freezes route projections and partial resume uses the frozen host digest | `.claude/tasks/ml020-code-health-results.json` and `.claude/tasks/multilanguage-learnings/code-health-family-ml020.{json,md}` |
 | P4 route frameworks | pending | — | — | — | — | — |
-| P5 Java next-language pilot | complete (bounded 3/22 core) | `e14274b`, `cfd0e2d`, `cd7a445`, closeout commit | Three standalone Java 17 fixtures cover detector, proposal, and transactional mutation boundaries | Integrated Java/preserved proposal+mover/router+matrix replay: 120 passed, 1 intentional skip; canonical committed-head router replay follows closeout commit | J0 product review passed after four regressions; J1 fresh product-framed review found five user-facing defects, all became regressions, and bounded re-review PASS | Three Java packet pairs under `.claude/tasks/multilanguage-learnings/`; capability manifest records 3 supported and 19 pending; ML-021/ML-022 preserve simplification and evidence-integrity follow-ups |
+| P5 Java full coverage | complete (22/22 core) | pilot commits plus reviewed implementation `cf48aa5` and capability closeout | Standalone Java 17 fixtures cover all 22 language-level final outcomes, copied runbooks, terminal status, source freshness, routing, and native obligations | Integrated Java: 147 passed; preserved Go/TypeScript/JavaScript/Python families: 157 passed; final adversarial bounded suite: 114 passed; capability/router/matrix closeout: 87 passed | Fresh no-context product review reached PROMOTE only after two exact documented-command lifecycle defects became regressions; no P0/P1 remains | `.claude/tasks/multilanguage-learnings/java-full-coverage.{json,md}`; capability manifest and generated matrix record 22/22 Java support; remaining precision/bloat work is backlog only |
 
 ## Final definition of done for this plan
 
@@ -799,6 +796,9 @@ completion.
       expansion plan or an explicit stop decision.
 - [x] All 22 Go language-level outcomes have bounded evidence, copied/on-demand
       closure coverage, native obligations, and honest unsupported boundaries.
+- [x] All 22 Java language-level outcomes have bounded Java 17 evidence,
+      copied/on-demand closure coverage, native obligations, honest terminal
+      status, and distinct clear-request routing.
 - [ ] Express and FastAPI route/workflow journeys reach consumer artifacts from
       framework-specific native fixtures.
 - [x] The next major language and ordered core queue are selected from current usage evidence and local native-tool constraints.

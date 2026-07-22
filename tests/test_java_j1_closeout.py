@@ -1,4 +1,4 @@
-"""Serial acceptance contract for the bounded three-family Java pilot."""
+"""Acceptance contract for full Java language-level coverage."""
 from __future__ import annotations
 
 import json
@@ -42,20 +42,14 @@ def test_java_coverage_is_bounded_traceable_and_projected() -> None:
     rows = coverage["skills"]
     assert len(rows) == 22
     assert Counter(row["disposition"] for row in rows) == {
-        "java-supported": 3,
-        "pending-validation": 19,
+        "java-supported": 22,
     }
     supported = {row["skill"] for row in rows if row["disposition"] == "java-supported"}
-    assert supported == {"find-complexity-hotspots", "propose-boundary", "move-path"}
+    assert supported == {row["skill"] for row in rows}
     for row in rows:
-        if row["disposition"] == "java-supported":
-            assert (ROOT / row["evidence_path"]).is_file()
-            assert row["native_check"]
-            assert row["reviewed_revision"]
-        else:
-            assert row["evidence_path"] is None
-            assert row["native_check"] is None
-            assert row["reviewed_revision"] is None
+        assert (ROOT / row["evidence_path"]).is_file()
+        assert row["native_check"]
+        assert row["reviewed_revision"]
 
     matrix = json.loads(MATRIX.read_text(encoding="utf-8"))
     projected = {
@@ -66,11 +60,12 @@ def test_java_coverage_is_bounded_traceable_and_projected() -> None:
     assert projected == supported
 
 
-def test_java_router_selects_supported_families_and_refuses_pending_family() -> None:
+def test_java_router_selects_representative_supported_families() -> None:
     cases = {
         "audit syntactic branch complexity in Java methods and constructors": "find-complexity-hotspots",
         "propose a Java package boundary with resolved caller impact": "propose-boundary",
         "move a Java package directory and update imports safely": "move-path",
+        "use find-dormant to review unused private Java methods": "find-dormant",
     }
     for task, expected in cases.items():
         payload = _route(task)
@@ -79,10 +74,3 @@ def test_java_router_selects_supported_families_and_refuses_pending_family() -> 
         assert capability["skill"] == expected
         assert capability["java_disposition"] == "java-supported"
         assert payload["handoff"]["default_execution"] == "fresh_non_context_subagent"
-
-    unsupported = _route("use find-dormant to remove unused Java methods")
-    assert unsupported["recommendation"] == "unsupported"
-    assert unsupported["unsupported"]["reason"] in {
-        "scanner does not declare scans=java",
-        "/find-dormant declares java_disposition=pending-validation",
-    }

@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "batch": "Java J2-J5 full language-level coverage",
+  "reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
+  "result": {
+    "supported_language_skills": 22,
+    "pending_language_skills": 0,
+    "minimum_jdk": "17.0.0",
+    "review_verdict": "PROMOTE"
+  },
+  "transferable_contracts": [
+    "standalone native fixture per family",
+    "explicit source-role inventory",
+    "typed terminal status",
+    "exact copied documented-command replay",
+    "producer source manifest checked by proposal consumers",
+    "metadata-first routing to a fresh non-context sub-agent"
+  ],
+  "family_local_boundaries": [
+    "compiler fact schemas",
+    "final artifact schemas",
+    "Maven and Gradle project modeling",
+    "Kotlin and other JVM languages"
+  ],
+  "accepted_reuse": {
+    "scope": "audit-decisions family only",
+    "change": "one JDK probe and one helper launch for all selected Java files",
+    "shared_java_platform": false
+  },
+  "acceptance_learning": "Replay the exact documented wrapper through valid-to-failed same-destination transitions; correct helper JSON alone does not prove exit status or stale-artifact safety.",
+  "measured_cost": {
+    "baseline": "8167ab4",
+    "reviewed_head": "cf48aa5",
+    "skills_net_lines": 11195,
+    "tests_net_lines": 6096,
+    "interpretation": "Real coverage, but too large to assume as the default shape for the next language."
+  },
+  "verification": {
+    "integrated_java_tests": 147,
+    "preserved_language_family_tests": 157,
+    "fresh_adversarial_tests": 114,
+    "capability_router_matrix_tests": 87
+  },
+  "next_language_guidance": [
+    "port by final-outcome cohorts rather than one skill at a time or one universal adapter",
+    "compare an established native tool adapter with a small copied family helper before broad conversion",
+    "count fixture, test, and closure code in reuse decisions",
+    "keep unsupported build and framework behavior explicit"
+  ]
+}

@@ -526,7 +526,7 @@ auditable when completeness matters.
 
 ### ML-021 — Reduce repeated Java launcher/plumbing without sharing semantic facts
 
-- State: `proposed_after_java_j1_measure_before_more_java_mutation_families`
+- State: `evaluated_after_java_full_keep_family_local`
 - User value: copied/on-demand Java skills remain self-contained without making
   every new family carry another several hundred lines of path, compiler-launch,
   failure, and JSON plumbing.
@@ -545,6 +545,13 @@ auditable when completeness matters.
   or saves little code after tests and adapters are counted.
 - Non-goals: a universal JVM platform, Maven/Gradle ownership, Kotlin support,
   or normalizing all language adapters behind one interface.
+- Evaluation: the full Java pass found repeated JDK probes and source-role
+  policies, but the final contracts differ enough that a shared runtime would
+  enlarge copied closures and couple unrelated status schemas. Keep analyzers
+  family-local. The one demonstrated identical lifecycle was batched inside
+  `audit-decisions` (one helper launch per selected file set). Revisit only
+  when a concrete repair must be duplicated across at least three closures and
+  a copied helper reduces total maintained LOC after its tests are counted.
 
 ### ML-022 — Bind capability evidence to an accepted closeout revision
 
@@ -587,6 +594,46 @@ auditable when completeness matters.
 - Non-goals: reimplementing `go vet`, Staticcheck, Clippy, Roslyn analyzers,
   RuboCop, PHPStan, or comparable ecosystems; embedding all profiles in ambient
   router context; claiming that one style guide captures every project.
+
+### ML-024 — Java preflight and omitted-boundary precision
+
+- State: `proposed_post_java_closeout`
+- User value: unsupported or intentionally omitted Java source should explain
+  the exact boundary instead of failing later or disappearing from inventory.
+- Trigger: the next Java maintenance pass or a real host hits one of these
+  boundaries.
+- Smallest experiment: (1) replace raw package-regex source-root preflight in
+  `map-subsystem` and `find-dormant` with compiler-tree package facts; (2)
+  surface skipped symlink directories in their terminal inventories; (3)
+  compare `javac -version` explicitly in `propose-folder-reorganization`.
+- Acceptance: block-comment package text cannot change root inference, skipped
+  symlink directories are visible without traversal, and a mismatched
+  Java/javac PATH returns a precise unsupported status.
+- Non-goals: Maven/Gradle modeling, Kotlin/JVM inference, or a shared compiler
+  service.
+
+### ML-025 — Measure and reduce language-adapter footprint
+
+- State: `proposed_before_next_full_language_pass`
+- User value: full language coverage should not keep adding roughly one large
+  analyzer per skill when a smaller family contract or established native tool
+  can deliver the same final outcome.
+- Trigger: before broad C#/.NET conversion, using the completed Java pass as
+  the comparison baseline.
+- Evidence: Java J2-J5 added roughly 11,195 net lines under `.claude/skills/`
+  and 6,096 net test lines from `8167ab4` through reviewed `cf48aa5`. That cost
+  bought 19 additional final outcomes and concrete failure semantics, but it is
+  too large to assume as the default expansion shape.
+- Smallest experiment: select one lexical, one semantic, and one proposal
+  family; compare current family-local code against (a) an established native
+  tool adapter and (b) a small copied family helper, including test/closure
+  code in the LOC and latency totals.
+- Acceptance: preserve the final artifacts and negative boundaries while
+  reducing total maintained adapter-plus-test LOC by at least 25% and not
+  increasing copied closure size or median execution latency by more than 10%.
+- Stop conditions: keep the independent implementation if reuse shares
+  semantic schemas, obscures terminal status, needs network/package downloads,
+  or saves little after fixtures/tests are counted.
 
 ## External release dependency (tracked, not a language feature)
 
