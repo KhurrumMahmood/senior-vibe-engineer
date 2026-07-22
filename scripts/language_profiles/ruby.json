@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "language": "ruby",
+  "suffixes": [".rb"],
+  "project_markers": ["Gemfile", "Gemfile.lock", "gems.rb", "gems.locked", "Rakefile"],
+  "source_roles": {
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "migration", "symlink"],
+    "test_file_globs": ["test_*.rb", "*_test.rb"],
+    "declaration_file_globs": [],
+    "configuration_files": ["Gemfile", "Gemfile.lock", "gems.rb", "gems.locked", "Rakefile", ".ruby-version"]
+  },
+  "native_tools": [
+    {
+      "id": "ruby",
+      "project_paths": [".tools/ruby/bin/ruby", "tools/ruby/bin/ruby"],
+      "system_commands": ["ruby"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "3.3.0",
+      "required": true
+    },
+    {
+      "id": "gem",
+      "project_paths": [".tools/ruby/bin/gem", "tools/ruby/bin/gem"],
+      "system_commands": ["gem"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "3.5.0",
+      "required": true
+    },
+    {
+      "id": "bundler",
+      "project_paths": [".tools/ruby/bin/bundle", "tools/ruby/bin/bundle", "bin/bundle"],
+      "system_commands": ["bundle", "bundler"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "2.6.0",
+      "required": true
+    },
+    {
+      "id": "steep",
+      "project_paths": ["bin/steep", ".tools/ruby/bin/steep", "tools/ruby/bin/steep"],
+      "system_commands": ["steep"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "1.0.0",
+      "required": false
+    }
+  ],
+  "fact_tiers": ["lexical-filesystem", "syntax", "semantic-project"],
+  "verification_commands": [
+    {
+      "id": "syntax-per-file",
+      "argv": ["{tool:ruby}", "--disable-gems", "-c", "{source_files}"],
+      "requires": ["ruby"]
+    },
+    {
+      "id": "bundle-check-frozen",
+      "argv": ["{tool:bundler}", "check"],
+      "requires": ["bundler"]
+    },
+    {
+      "id": "native-test",
+      "argv": ["{tool:ruby}", "--disable-gems", "-I{project_root}/lib", "{project_root}/test/invoice_service_test.rb"],
+      "requires": ["ruby"]
+    },
+    {
+      "id": "executable-smoke",
+      "argv": ["{tool:ruby}", "--disable-gems", "-I{project_root}/lib", "{project_root}/bin/ruby-pilot-smoke"],
+      "requires": ["ruby"]
+    }
+  ],
+  "terminal_outcomes": ["complete", "partial", "unsupported", "tool-missing", "syntax-error", "native-check-failure", "unexpected-source-mutation"],
+  "explicit_limits": [
+    "This is a plain-Ruby and dependency-free gem-layout profile; it does not imply Rails, Zeitwerk, ActiveSupport, ActiveRecord, Rack, ERB, native extensions, or another framework/build profile.",
+    "Only .rb is source-inventory-owned. Gemfile, Gemfile.lock, gems.rb, gems.locked, Rakefile, *.gemspec, *.rake, and *.ru are project or DSL boundaries; the current suffix-only shared inventory cannot assign every extensionless or globbed DSL file a Ruby source role.",
+    "Each ruby -c verification must run once per selected file. One successful invocation must never be reported as validating additional files.",
+    "Bundler execution is limited to check or bundle exec against an already locked and locally satisfied project with frozen/version-check-disabled settings; install, update, lock mutation, and remote resolution are outside the product path.",
+    "Prism 1.2.0 is bundled with the observed Ruby 3.4.1 runtime and can provide syntax, token, comment, and source-location facts. Prism does not resolve runtime constants, dynamic dispatch, require targets, autoload, monkey patches, class/module reopening, eval, define_method, send, const_get, or other metaprogramming.",
+    "Steep is an optional project-owned semantic tool. RBS, TypeProf, Sorbet, RuboCop, Standard Ruby, and Solargraph can contribute only when the audited project owns compatible configuration and dependencies; their absence is a limitation, never evidence that a pending skill is unsupported."
+  ]
+}

@@ -1,0 +1,5 @@
+# The fixture deliberately does not require Rake at runtime. This file pins the
+# Rake DSL boundary without making Rake a native test dependency.
+task :test do
+  ruby "-Ilib", "test/invoice_service_test.rb"
+end

@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-07-22T12:00:00-07:00",
+  "base_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
+  "platform": "macOS 26.5.2 arm64",
+  "python_runtime": {
+    "required_path": "/Users/<user>/Projects/engineering-skills-product/.venv/bin/python",
+    "version": "3.11.10"
+  },
+  "toolchain": {
+    "ruby": {"path": "/Users/<user>/.local/bin/ruby", "target": "/opt/homebrew/opt/ruby/bin/ruby", "version": "3.4.1", "minimum_profile_version": "3.3.0", "required": true},
+    "rubygems": {"path": "/Users/<user>/.local/bin/gem", "target": "/opt/homebrew/opt/ruby/bin/gem", "version": "3.6.2", "minimum_profile_version": "3.5.0", "required": true, "execution_policy": "version/read-only metadata only; never install or update"},
+    "bundler": {"path": "/Users/<user>/.local/bin/bundle", "target": "/opt/homebrew/opt/ruby/bin/bundle", "version": "2.6.2", "minimum_profile_version": "2.6.0", "required": true, "execution_policy": "frozen check or bundle exec against an already satisfied lock; never install, update, or rewrite the lock"},
+    "prism": {"version": "1.2.0", "source": "bundled with Ruby 3.4.1", "probe": "ruby --disable-gems -rprism", "status": "available", "tier": "syntax-and-source-locations-not-semantics"},
+    "steep": {"status": "unavailable", "required": false, "source": "optional project-owned dependency", "doctor_effect": "Ruby/Gem/Bundler remain available individually; aggregate capability is limited because optional semantic facts are absent"},
+    "installation_performed": false,
+    "dependency_install_or_update_performed": false,
+    "network_used": false
+  },
+  "project_boundary": {
+    "shape": "plain dependency-free gem layout",
+    "required_for_fixture": ["Gemfile", "Gemfile.lock", "ruby_pilot.gemspec", "Rakefile", "lib/**/*.rb", "test/**/*_test.rb"],
+    "bundler_environment": ["BUNDLE_FROZEN=true", "BUNDLE_DISABLE_VERSION_CHECK=true", "BUNDLE_GEMFILE=<copied-host>/Gemfile", "BUNDLE_APP_CONFIG=<outside-host>"],
+    "valid": "Gemfile selects the local dependency-free gemspec, the committed lock is satisfied locally, and every selected .rb file parses",
+    "invalid_states": ["missing all declared project markers", "malformed Gemfile", "missing or unsatisfied frozen lock", "malformed selected Ruby source", "Ruby below 3.3", "Bundler below 2.6", "version probe missing or broken"],
+    "dsl_role_boundary": "Gemfile/Gemfile.lock/gems.rb/gems.locked/Rakefile/*.gemspec/*.rake/*.ru are project/configuration or executable DSL inputs, not unconditional .rb source. The shared suffix-only inventory cannot classify every extensionless or wildcard DSL input."
+  },
+  "source_roles": {
+    "profile_owned_suffixes": [".rb"],
+    "first_party_source": ["host/lib/billing/invoice_service.rb", "host/lib/billing/invoice_registry.rb", "host/lib/billing/dynamic_features.rb"],
+    "test": ["host/test/invoice_service_test.rb"],
+    "generated": ["host/generated/GeneratedInvoice.rb"],
+    "excluded_vendor": ["host/vendor/VendorInvoice.rb"],
+    "excluded_build": ["host/build/BuildSentinel.rb"],
+    "runtime_symlink": "tests create host/linked-external -> ../symlink-target and require role=symlink without traversal",
+    "configuration_not_currently_inventoried": ["host/Gemfile", "host/Gemfile.lock", "host/Rakefile", "host/ruby_pilot.gemspec"],
+    "declaration_and_migration": "No universal Ruby declaration or migration suffix is claimed. RBS and Rails migrations require explicit supplementary/project-owned profiles."
+  },
+  "fixture": {
+    "root": "tests/fixtures/ruby-pilot",
+    "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), sorted regular-file paths",
+    "manifest_sha256": "f2e8488bcc1fbd20a5b7f705361409dd946c622bd8a3ebd0e495a90d62a25558",
+    "total_bytes": 2811,
+    "files": [
+      "host/Gemfile",
+      "host/Gemfile.lock",
+      "host/Rakefile",
+      "host/bin/ruby-pilot-smoke",
+      "host/build/BuildSentinel.rb",
+      "host/generated/GeneratedInvoice.rb",
+      "host/lib/billing/dynamic_features.rb",
+      "host/lib/billing/invoice_registry.rb",
+      "host/lib/billing/invoice_service.rb",
+      "host/ruby_pilot.gemspec",
+      "host/test/invoice_service_test.rb",
+      "host/vendor/VendorInvoice.rb",
+      "malformed/Broken.rb",
+      "symlink-target/External.rb"
+    ],
+    "native_commands": [
+      "ruby --disable-gems -c <one selected .rb file> (repeated per file)",
+      "ruby --disable-gems -I<copied-host>/lib <copied-host>/test/invoice_service_test.rb",
+      "<copied-host>/bin/ruby-pilot-smoke (executable shebang resolves the selected Ruby)",
+      "BUNDLE_FROZEN=true BUNDLE_DISABLE_VERSION_CHECK=true BUNDLE_GEMFILE=<copied-host>/Gemfile bundle check",
+      "ruby --disable-gems -rprism -e <parse and comment/source-location probe> <copied source>",
+      "ruby --disable-gems -c malformed/Broken.rb"
+    ],
+    "native_result": "Copied layout passes every per-file syntax check, dependency-free native test, executable smoke, frozen offline Bundler check, and Prism parse/comment probe; malformed Ruby and malformed Gemfile fail; host source/configuration bytes remain unchanged."
+  },
+  "runtime_closure": {
+    "definition": "Ruby profile plus existing stdlib-only profile/doctor/inventory runtime exercised by the spine; this is not a copied skill closure and earns no skill support claim.",
+    "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), listed path order",
+    "manifest_sha256": "e2f24c0898cc540e5bcda6ff8057922a3d471357dc9f99d5ef217b6e3f9383ea",
+    "total_bytes": 44151,
+    "files": [
+      "scripts/language_profiles/ruby.json",
+      "scripts/language_doctor.py",
+      "scripts/source_inventory.py",
+      "scripts/_lib/language_support/__init__.py",
+      "scripts/_lib/language_support/profile.py",
+      "scripts/_lib/language_support/lifecycle.py"
+    ]
+  },
+  "runtime_timings_seconds": {
+    "measurement": "single local monotonic observations; informational, not performance thresholds",
+    "native_test": 0.0236,
+    "executable_smoke": 0.0095,
+    "bundle_check": 0.1386,
+    "prism_probe": 0.0295
+  },
+  "fact_tiers": {
+    "lexical-filesystem": "Profile/inventory paths, exact bytes, comments, tokens, and Prism source locations; no runtime identity.",
+    "syntax": "Successful Ruby 3.3+ per-file parse plus version-gated Prism nodes; a malformed or unparsed selected file prevents completeness.",
+    "semantic-project": "Explicit require_relative/load-layout and project-owned analyzer evidence only. Base Ruby/Prism cannot prove dynamic constant, call, autoload, reopening, eval, or framework edges."
+  },
+  "semantic_tool_sources": {
+    "runtime_standard_or_default": ["Prism", "Ripper"],
+    "toolchain_optional_present": ["RBS", "TypeProf"],
+    "project_owned_optional": ["Steep", "Sorbet", "RuboCop", "Standard Ruby", "Solargraph"],
+    "framework_only_optional": ["Rails", "Zeitwerk", "ActiveSupport", "ActiveRecord"],
+    "policy": "Prism is a default gem and Ripper is stdlib. RBS 3.8.0 and TypeProf 0.30.1 are present non-default gems in the observed toolchain but remain optional and require project-owned inputs before they establish project semantics. Other project-owned tools require compatible host configuration and locked dependencies; framework tools never expand the base Ruby claim."
+  },
+  "dynamic_limits": [
+    "require with non-literal input and load-path mutation",
+    "autoload and Zeitwerk/Rails conventions",
+    "Object.const_get, const_missing, send/public_send, method_missing, and dynamic delegation",
+    "eval/class_eval/module_eval, define_method, refinements, monkey patches, and class/module reopening",
+    "symbols/strings used as identities, callbacks/hooks, dependency injection, native extensions, and runtime-generated code"
+  ],
+  "pilot_contracts": {
+    "lexical": {
+      "skill": "find-comment-drift",
+      "disposition": "ruby-pending-implementation",
+      "producer_candidate": "Ruby 3.3+ Prism comments/tokens/source locations gated by per-file ruby -c",
+      "final_outcome": "Atomic durable detections/report or clean result with complete/partial/unsupported/failed lifecycle and stale-output replacement.",
+      "positive_obligation": {"path": "host/lib/billing/invoice_service.rb", "comment": "Calculates a percentage fee from the invoice amount.", "code_fact": "fee_cents ignores the amount and returns the fixed value 125", "required_result": "one precise behavior-drift finding with comment and code spans"},
+      "must_not_fire": ["generated", "vendor", "build", "test", "magic-comments", "accurate InvoiceRegistry comment", "dynamic semantic inference"],
+      "native_obligations": ["ruby -c per file", "malformed-file non-complete outcome", "copied closure", "source fingerprint", "valid-to-failed transition", "failed-to-valid transition", "stale artifact clearing"],
+      "forbidden_claims": ["Prism syntax is resolved runtime semantics", "excluded roles were analyzed", "supported before the skill final artifact passes"]
+    },
+    "semantic": {
+      "skill": "map-subsystem",
+      "disposition": "ruby-pending-implementation",
+      "producer_candidate": "Bundler/gemspec/load-path metadata plus Prism syntax and literal require_relative edges; optional project-owned Steep or Sorbet may add only evidenced facts",
+      "target": "host/lib/billing",
+      "expected_final_status": "partial-without-project-owned-analyzer",
+      "positive_obligations": ["InvoiceService -> InvoiceRegistry literal constant edge", "invoice_service.rb -> invoice_registry.rb require_relative edge", "test and smoke entrypoint edges", "gemspec/lib layout provenance"],
+      "must_not_resolve": ["require", "const_get", "public_send", "define_method", "class_eval", "autoload", "method_missing", "Rails/Zeitwerk"],
+      "must_not_include": ["generated", "vendor", "build", "test-as-production-node", "symlink target"],
+      "native_obligations": ["ruby -c per file", "locked bundle check", "native test", "executable smoke", "copied closure", "source fingerprint", "malformed and invalid-project non-complete states", "stale artifact clearing"]
+    },
+    "mutation": {
+      "skill": "move-path",
+      "disposition": "ruby-pending-implementation",
+      "state": "deferred-until-accepted-static-lineage",
+      "scope": "one plain-Ruby leaf source move with literal require_relative and module-path edits only",
+      "candidate_move": {"from": "lib/billing/invoice_registry.rb", "to": "lib/invoicing/invoice_registry.rb"},
+      "positive_obligations": ["move exactly one file", "update InvoiceRegistry namespace and static consumers", "preserve unrelated InvoiceService behavior", "emit preview and final exact change set"],
+      "must_not_change": ["dynamic_features.rb identities", "Gemfile.lock", "gemspec file list DSL", "generated", "vendor", "build", "test unless its static reference requires it"],
+      "refusal_boundaries": ["dynamic require", "autoload", "reflection", "Rails/Zeitwerk", "eval or reopening", "symlink", "unexpected source change", "native failure", "unsatisfied or mutable lock"],
+      "native_obligations": ["accepted semantic lineage", "preview", "exact bounded diff", "source fingerprint", "rollback", "ruby -c per file", "locked bundle check", "native test", "executable smoke", "copied closure", "same-destination terminal state", "stale artifact clearing"]
+    }
+  },
+  "stale_artifact_contract": {
+    "invalid-or-failed": "remove prior final artifacts before emitting the failure state",
+    "clean-or-complete": "atomically replace prior artifacts; never inherit stale findings",
+    "same-destination": "valid-to-failed and failed-to-valid transitions are mandatory"
+  },
+  "coverage": {
+    "artifact": ".claude/tasks/ruby-language-coverage.json",
+    "rows": 22,
+    "disposition_counts": {"ruby-pending-implementation": 22},
+    "reason": "Profile, doctor, inventory, native fixture, and frozen contracts do not reach any skill-owned final artifact or mutation boundary. Unfinished work is pending, not unsupported."
+  },
+  "mutation_performed": false,
+  "root_integration_needs": [
+    "In tests/test_language_support_profile.py::test_repository_profiles_cover_current_inventory_languages, add ruby to the expected profile set and add .rb: ruby to the expected suffix-owner map. In tests/test_source_inventory.py::test_inventory_covers_first_party_roles_and_honest_boundaries, add ruby to the expected inventory_languages list. These are the exact minimal root-owned census changes needed for the four generic suites to pass.",
+    "Keep Gemfile/Rakefile and wildcard *.gemspec/*.rake/*.ru role truth explicit: the current generic suffix inventory sees .rb only. Add shared filename/glob role support only if root accepts a second consumer and regression tests.",
+    "Do not publish router/matrix/catalog support until Ruby cohorts reach skill-owned final outcomes. All 22 rows are pending implementation."
+  ]
+}
