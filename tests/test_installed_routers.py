@@ -323,8 +323,8 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "--json",
         cwd=host,
     )
-    unsupported_php_payload = _json_output(unsupported_php)
     assert unsupported_php.returncode == 1
+    unsupported_php_payload = json.loads(unsupported_php.stdout)
     assert unsupported_php_payload["recommendation"] == "unsupported"
     assert unsupported_php_payload["unsupported"]["reason"] == (
         "/adapt-project declares php_disposition=php-unsupported"
