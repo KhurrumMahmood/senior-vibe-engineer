@@ -54,18 +54,23 @@ contract.
 
 Many scripts and skills are stdlib-only and run on any Python ≥ 3.11.
 Some (e.g. PyYAML-backed frontmatter parsing in `scripts/_lib/`) need
-deps from `requirements.txt`. Install once per clone:
+deps from `requirements.txt`. Install and verify once per clone with the same
+helper used by the public library bootstrap:
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-.venv/bin/pre-commit install
+python3 .claude/skills/which-skill/scripts/setup_runtime.py --project-root .
 ```
+
+The helper health-probes candidate Python >=3.11 interpreters with a timeout,
+creates or rebuilds `.venv`, installs pinned requirements, runs dependency
+checks, and installs hooks for a Git worktree. Pass `--python /absolute/path`
+when discovery should use a specific interpreter; if none is healthy, install
+Python 3.11+ first. It does not install a system-wide Python.
 
 Always invoke pip as `.venv/bin/python -m pip` (never the
 `.venv/bin/pip` shim): venv shims hardcode the creation-time absolute
 path, so after a directory rename they silently target the old
-location. `/engineer-init` validates `pyvenv.cfg` and rebuilds a stale
+location. `/engineer-init` validates the runtime prefix and rebuilds a stale
 venv automatically. CI-only extras (dashboard browser smoke) live in
 `requirements-dev.txt` — optional locally.
 

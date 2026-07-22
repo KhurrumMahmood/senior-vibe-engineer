@@ -428,6 +428,10 @@ def test_recommendation_prefers_on_demand_handoff_and_keeps_install_optional(tmp
         "source_inventory_tool": None,
         "common_guidance": None,
         "shared_guidance": None,
+        "runtime": {
+            "available": False,
+            "python": str(library_root / ".venv" / "bin" / "python"),
+        },
         "capabilities": {
             "available": False,
             "manifest": str(
@@ -441,9 +445,9 @@ def test_recommendation_prefers_on_demand_handoff_and_keeps_install_optional(tmp
         },
         "instruction": (
             "For non-trivial work, give a fresh non-context sub-agent the task, project root, "
-            "task packet, selected skill roots, and shared guidance/tool paths. For small work, "
-            "read from the same bounded roots directly. Do not install the skills unless the "
-            "user explicitly asks."
+            "task packet, selected skill roots, library runtime Python, and shared guidance/tool "
+            "paths. For small work, read from the same bounded roots directly. Do not install "
+            "the skills unless the user explicitly asks."
         ),
     }
     assert payload["optional_install"] == {

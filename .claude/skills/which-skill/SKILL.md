@@ -105,9 +105,10 @@ nothing to disk.
 This skill produces no artifact or persistent trace. The output is
 conversational.
 
-The default router installation also bundles `scripts/bootstrap_library.py`.
-Run it once from the host project to materialize the full repository outside
-agent discovery:
+The default router installation also bundles `scripts/bootstrap_library.py`
+and its stdlib-only `scripts/setup_runtime.py` helper. Run the bootstrap once
+from the host project to materialize the full repository outside agent
+discovery and leave its Python >= 3.11 venv plus pinned requirements ready:
 
 ```bash
 PROJECT_ROOT="$PWD"
@@ -122,7 +123,11 @@ PROJECT_ROOT="$PWD"
 The default root is the project-scoped sibling cache
 `<project-parent>/.engineering-skills/<project-name>`, outside both the target
 repository and agent discovery. Existing valid libraries are reused; an
-existing incomplete destination is never overwritten.
+existing incomplete destination is never overwritten. Candidate interpreters
+are health-probed rather than trusted from `--version`; pass `--python
+/absolute/path` to select one explicitly. `--skip-runtime` is an intentional
+escape hatch for storage-only/bootstrap tests, not the normal installation
+path.
 
 ### Stage 1 — Run the matcher
 
@@ -274,6 +279,8 @@ move.
 ├── SKILL.md                  # this file — orchestrator
 ├── catalog.json              # generated metadata for all distributable skills
 └── scripts/
+    ├── bootstrap_library.py  # external library + runtime setup
+    ├── setup_runtime.py      # healthy Python / venv / dependency bootstrap
     └── match.py              # stdlib-only installed matcher
 ```
 

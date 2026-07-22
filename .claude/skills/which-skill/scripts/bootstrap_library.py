@@ -63,11 +63,40 @@ def materialize(*, source: str, destination: Path) -> tuple[Path, bool]:
     return destination, True
 
 
+def setup_runtime(*, library_root: Path, python: str | None) -> str:
+    helper = Path(__file__).with_name("setup_runtime.py")
+    command = [
+        sys.executable,
+        str(helper),
+        "--project-root",
+        str(library_root),
+        "--no-hooks",
+    ]
+    if python:
+        command.extend(["--python", python])
+    result = subprocess.run(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or "runtime setup failed"
+        raise ValueError(detail)
+    return result.stdout.strip()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", default=DEFAULT_SOURCE)
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
     parser.add_argument("--library-root", type=Path)
+    parser.add_argument("--python", help="exact Python executable for the library venv")
+    parser.add_argument(
+        "--skip-runtime",
+        action="store_true",
+        help="materialize the library without creating its Python runtime",
+    )
     args = parser.parse_args(argv)
 
     project_root = args.project_root.resolve()
@@ -76,11 +105,16 @@ def main(argv: list[str] | None = None) -> int:
         library_root = project_root / library_root
     try:
         root, created = materialize(source=args.source, destination=library_root)
+        runtime_summary = None
+        if not args.skip_runtime:
+            runtime_summary = setup_runtime(library_root=root, python=args.python)
     except (OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     state = "created" if created else "already available"
     print(f"engineering-skills library {state}: {root}")
+    if runtime_summary:
+        print(runtime_summary)
     return 0
 
 

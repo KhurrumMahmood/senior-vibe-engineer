@@ -706,6 +706,7 @@ def library_handoff(library_root: Path, skills: list[str]) -> dict:
     source_inventory = shared_tooling / "source_inventory.py"
     common_guidance = library_root / ".claude" / "skills" / "_common"
     shared_guidance = library_root / ".claude" / "docs"
+    runtime_python = library_root / ".venv" / "bin" / "python"
     return {
         "mode": "on_demand_library",
         "available": all(Path(item["guide"]).is_file() for item in guides),
@@ -717,12 +718,16 @@ def library_handoff(library_root: Path, skills: list[str]) -> dict:
         "source_inventory_tool": str(source_inventory) if source_inventory.is_file() else None,
         "common_guidance": str(common_guidance) if common_guidance.is_dir() else None,
         "shared_guidance": str(shared_guidance) if shared_guidance.is_dir() else None,
+        "runtime": {
+            "available": runtime_python.is_file(),
+            "python": str(runtime_python),
+        },
         "capabilities": capability_handoff(library_root, skills),
         "instruction": (
             "For non-trivial work, give a fresh non-context sub-agent the task, project root, "
-            "task packet, selected skill roots, and shared guidance/tool paths. For small work, "
-            "read from the same bounded roots directly. Do not install the skills unless the "
-            "user explicitly asks."
+            "task packet, selected skill roots, library runtime Python, and shared guidance/tool "
+            "paths. For small work, read from the same bounded roots directly. Do not install "
+            "the skills unless the user explicitly asks."
         ),
     }
 
@@ -1167,6 +1172,8 @@ def cmd_match(args, catalog_path: Path) -> int:
         print(f"Use /{out['recommendation']} on demand:")
         print(f"  Guide: {out['handoff']['guides'][0]['guide']}")
         print(f"  Default: {out['handoff']['default_execution']}")
+        if out["handoff"]["runtime"]["available"]:
+            print(f"  Runtime Python: {out['handoff']['runtime']['python']}")
         if not out["handoff"]["available"]:
             print("  Library unavailable: run the which-skill library bootstrap first.")
         if out["optional_install"]["available"]:

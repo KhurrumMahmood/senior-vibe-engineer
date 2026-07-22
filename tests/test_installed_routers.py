@@ -80,6 +80,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         str(host),
         "--source",
         str(REPO_ROOT),
+        "--skip-runtime",
         cwd=host,
     )
 
@@ -99,6 +100,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         str(host),
         "--source",
         str(REPO_ROOT),
+        "--skip-runtime",
         cwd=host,
     )
     assert repeated.returncode == 0, repeated.stdout + repeated.stderr
@@ -136,6 +138,10 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert payload["handoff"]["source_inventory_tool"] == str(
         library_root / "scripts" / "source_inventory.py"
     )
+    assert payload["handoff"]["runtime"] == {
+        "available": False,
+        "python": str(library_root / ".venv" / "bin" / "python"),
+    }
     assert payload["handoff"]["capabilities"]["available"] is True
     assert payload["handoff"]["capabilities"]["manifest"] == str(
         library_root / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
@@ -387,6 +393,132 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert "--skill find-concept-divergence" in rename_payload["optional_install"][
         "command"
     ]
+
+
+def test_library_bootstrap_creates_and_verifies_runtime_by_default(tmp_path):
+    source = tmp_path / "source"
+    for router in DEFAULT_ROUTERS:
+        guide = source / ".claude" / "skills" / router / "SKILL.md"
+        guide.parent.mkdir(parents=True, exist_ok=True)
+        guide.write_text(f"# {router}\n", encoding="utf-8")
+    scripts = source / "scripts"
+    scripts.mkdir()
+    (scripts / ".keep").write_text("\n", encoding="utf-8")
+    (source / "requirements.txt").write_text("# no packages needed\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=source, check=True)
+    subprocess.run(["git", "add", "."], cwd=source, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Router Test",
+            "-c",
+            "user.email=router@example.invalid",
+            "commit",
+            "-qm",
+            "fixture",
+        ],
+        cwd=source,
+        check=True,
+    )
+
+    host = tmp_path / "host"
+    router = _install_router(host, "which-skill")
+    bootstrap = _run_isolated(
+        router / "scripts" / "bootstrap_library.py",
+        "--project-root",
+        str(host),
+        "--source",
+        str(source),
+        "--python",
+        sys.executable,
+        cwd=host,
+    )
+
+    assert bootstrap.returncode == 0, bootstrap.stdout + bootstrap.stderr
+    library_root = host.parent / ".engineering-skills" / host.name
+    runtime_python = library_root / ".venv" / "bin" / "python"
+    assert runtime_python.is_file()
+    assert "dependencies: verified from requirements.txt" in bootstrap.stdout
+
+    checked = _run_isolated(
+        router / "scripts" / "setup_runtime.py",
+        "--project-root",
+        str(library_root),
+        "--check",
+        "--no-hooks",
+        cwd=host,
+    )
+    assert checked.returncode == 0, checked.stdout + checked.stderr
+    assert "venv: already present" in checked.stdout
+
+    routed = _run_isolated(
+        router / "scripts" / "match.py",
+        "choose which skill to use for this ambiguous task",
+        "--project-root",
+        str(host),
+        "--json",
+        cwd=host,
+    )
+    payload = _json_output(routed)
+    assert payload["recommendation"] == "which-skill"
+    assert payload["handoff"]["runtime"] == {
+        "available": True,
+        "python": str(runtime_python),
+    }
+
+
+def test_runtime_setup_rejects_an_explicit_python_below_the_minimum(tmp_path):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / "requirements.txt").write_text("# no packages needed\n", encoding="utf-8")
+    fake_python = tmp_path / "python3.10"
+    fake_python.write_text(
+        "#!/bin/sh\n"
+        "printf '%s\\n' '{\"version\":[3,10,14],\"prefix\":\"/tmp/fake\"}'\n",
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+    router = _install_router(project_root, "which-skill")
+
+    result = _run_isolated(
+        router / "scripts" / "setup_runtime.py",
+        "--project-root",
+        str(project_root),
+        "--python",
+        str(fake_python),
+        "--no-hooks",
+        cwd=project_root,
+    )
+
+    assert result.returncode == 2
+    assert "below 3.11" in result.stderr
+    assert not (project_root / ".venv").exists()
+
+
+def test_runtime_setup_rebuilds_a_venv_moved_from_another_root(tmp_path):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / "requirements.txt").write_text("# no packages needed\n", encoding="utf-8")
+    old_venv = tmp_path / "old-venv"
+    subprocess.run([sys.executable, "-m", "venv", str(old_venv)], check=True)
+    old_venv.rename(project_root / ".venv")
+    router = _install_router(project_root, "which-skill")
+
+    result = _run_isolated(
+        router / "scripts" / "setup_runtime.py",
+        "--project-root",
+        str(project_root),
+        "--python",
+        sys.executable,
+        "--no-hooks",
+        cwd=project_root,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "venv: rebuilt" in result.stdout
+    config = (project_root / ".venv" / "pyvenv.cfg").read_text(encoding="utf-8")
+    assert str(project_root / ".venv") in config
 
 
 def test_library_bootstrap_refuses_to_overwrite_an_existing_incomplete_destination(tmp_path):

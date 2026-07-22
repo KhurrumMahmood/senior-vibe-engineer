@@ -116,7 +116,8 @@ DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \
   --skill which-shape --skill which-skill --skill which-cleanup \
   --agent codex --copy -y
 
-# Materialize all non-router guides and tooling outside agent discovery.
+# Materialize all non-router guides/tooling outside agent discovery, then
+# create and verify its Python >=3.11 venv and pinned dependencies.
 python3 .agents/skills/which-skill/scripts/bootstrap_library.py \
   --project-root "$PWD" --source "$ENGINEERING_SKILLS_SOURCE"
 ```
@@ -129,7 +130,9 @@ project-scoped sibling cache
 `<project-parent>/.engineering-skills/<project-name>` by default, outside both
 the target repository and standard skill-discovery roots. Router results point
 to only the selected guide/tool closure and
-recommend a fresh non-context sub-agent for non-trivial work. After bootstrap,
+recommend a fresh non-context sub-agent for non-trivial work. They also expose
+the library's exact `.venv/bin/python` path so the selected lane does not rely
+on shell activation. After bootstrap,
 a pinned `skills@1.5.19` selected-skill command is emitted only when every
 closure member has passed selected-install evidence and the user explicitly
 chooses ambient installation; other closures report that path unavailable.
@@ -155,12 +158,19 @@ removing it. Files elsewhere in the host project are outside that boundary.
 The on-demand library is separate from that boundary and may be retained as a
 shared project resource or removed independently.
 
-For repository development, clone this repo and run `/engineer-init`, or:
+Python >=3.11 is an explicit script-runtime dependency. Initial library
+bootstrap health-probes candidate interpreters (including installed pyenv
+runtimes), rebuilds a missing/stale/broken `.venv`, installs
+`requirements.txt`, and runs dependency checks. If no candidate is usable,
+install Python 3.11+ and rerun with `--python /absolute/path`. It deliberately
+does not install or replace a system-wide Python. Use `--skip-runtime` only
+when materializing a storage-only copy.
+
+For repository development, clone this repo and run `/engineer-init`, or use
+the same setup implementation directly:
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-.venv/bin/pre-commit install
+python3 .claude/skills/which-skill/scripts/setup_runtime.py --project-root .
 ```
 
 ## Runtime-backed guides
@@ -171,13 +181,12 @@ are not yet claimed as independently installable. TypeScript support is tracked
 per skill, and further cross-language work proceeds one cohesive family at a
 time.
 
-1. **The development runtime isn't installed.** Most skills shell out to helper
+1. **The runtime is installed during normal bootstrap.** Most skills shell out to helper
    scripts under `scripts/` (`decisions.py`, `ledger.py`, the lint
-   runner, …) that need `PyYAML` from `requirements.txt`. Until the venv
-   exists the slash command is listed but errors on its first script
-   call. Run the repository-development block above — or `/engineer-init` —
-   when developing the full checkout. Prompt-only guides and the three routers
-   do not require it.
+   runner, …) that need `PyYAML` from `requirements.txt`. The normal installed
+   library bootstrap creates and verifies its venv; `/engineer-init` or the
+   repository-development command above does the same for a contributor
+   checkout. Prompt-only guides and the three routers remain stdlib-only.
 
 2. **Older script-backed guides may still require runtime generalization.** Their scripts use
    paths relative to the repo root — `scripts/decisions.py`,
@@ -215,7 +224,8 @@ reports/
 
 ## Tech assumptions
 
-- **Python 3.11+** for the script runtime and lint rules.
+- **A healthy Python 3.11+** for the script runtime and lint rules. Setup checks
+  required stdlib imports with a timeout instead of trusting the version string.
 - **stdlib-first** in `_common/` so skills can run before a project venv
   exists; PyYAML is the only required external dep (for shared
   frontmatter parsing, pinned in `requirements.txt`).

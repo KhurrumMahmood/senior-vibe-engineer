@@ -108,6 +108,11 @@ These live in `.claude/docs/canonical-patterns.md` as documentation;
 
 ## Technical Conventions
 
+- **Python runtime**: Run
+  `python3 .claude/skills/which-skill/scripts/setup_runtime.py --project-root .`
+  once per clone. It health-probes Python >=3.11, creates/rebuilds `.venv`,
+  installs pinned requirements, verifies dependencies, and wires Git hooks.
+  Use the reported `.venv/bin/python` path explicitly in delegated work.
 - **Services**: Static methods, no instance state, lazy imports.
 - **Views**: Thin HTTP wrappers calling services.
 - **Comments**: Explain intent, ownership, contract, caveat,

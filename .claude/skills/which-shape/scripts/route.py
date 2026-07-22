@@ -631,6 +631,7 @@ def _library_handoff(library_root: Path, skills: list[str]) -> dict[str, Any]:
     source_inventory = shared_tooling / "source_inventory.py"
     common_guidance = library_root / ".claude" / "skills" / "_common"
     shared_guidance = library_root / ".claude" / "docs"
+    runtime_python = library_root / ".venv" / "bin" / "python"
     return {
         "mode": "on_demand_library",
         "available": all(Path(item["guide"]).is_file() for item in guides),
@@ -642,12 +643,16 @@ def _library_handoff(library_root: Path, skills: list[str]) -> dict[str, Any]:
         "source_inventory_tool": str(source_inventory) if source_inventory.is_file() else None,
         "common_guidance": str(common_guidance) if common_guidance.is_dir() else None,
         "shared_guidance": str(shared_guidance) if shared_guidance.is_dir() else None,
+        "runtime": {
+            "available": runtime_python.is_file(),
+            "python": str(runtime_python),
+        },
         "capabilities": _capability_handoff(library_root, skills),
         "instruction": (
             "For non-trivial work, give a fresh non-context sub-agent the task, project root, "
-            "selected skill roots, and shared guidance/tool paths. For small work, read from "
-            "the same bounded roots directly. Do not install the skills unless the user "
-            "explicitly asks."
+            "selected skill roots, library runtime Python, and shared guidance/tool paths. For "
+            "small work, read from the same bounded roots directly. Do not install the skills "
+            "unless the user explicitly asks."
         ),
     }
 
@@ -832,6 +837,8 @@ def render_markdown(result: dict[str, Any]) -> str:
             if item["bundled_tooling"]:
                 lines.append(f"  Bundled tooling /{item['skill']}: {item['bundled_tooling']}")
         lines.append(f"  Default: {result['handoff']['default_execution']}")
+        if result["handoff"]["runtime"]["available"]:
+            lines.append(f"  Runtime Python: {result['handoff']['runtime']['python']}")
         if result["handoff"]["common_guidance"]:
             lines.append(f"  Shared skill guidance: {result['handoff']['common_guidance']}")
         if result["handoff"]["shared_tooling"]:

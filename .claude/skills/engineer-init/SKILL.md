@@ -1,7 +1,7 @@
 ---
 name: engineer-init
-description: Bootstrap the engineering-skills runtime so the script-backed skills can actually run. Checks for Python >= 3.11, creates the .venv, installs requirements.txt (PyYAML, ruff, pre-commit), wires pre-commit hooks when the repo is git-tracked, and verifies the install by running a script-backed skill end to end. Idempotent — safe to re-run; each stage skips work already done. Run once per clone, or whenever a skill fails with a missing-module / dependency error. Does not edit production code, does not git-init, and does not scaffold a new project (that is /init-project).
-argument-hint: "[--check]"
+description: Bootstrap the engineering-skills runtime so the script-backed skills can actually run. Health-checks candidate Python >= 3.11 interpreters, creates the .venv, installs requirements.txt (PyYAML, ruff, pre-commit), wires pre-commit hooks when the repo is git-tracked, and verifies the install by running a script-backed skill end to end. Idempotent — safe to re-run; each stage skips work already done. Run once per clone, or whenever a skill fails with a missing-module / dependency error. Does not edit production code, does not git-init, and does not scaffold a new project (that is /init-project).
+argument-hint: "[--check] [--python /absolute/path]"
 allowed-tools: Bash, Read
 user-invocable: true
 tier: cross-cutting
@@ -49,8 +49,10 @@ hook. Everything else is read-only inspection and a verification run.
 
 - Stage 0 confirms the working directory is an ecosystem root
   (`requirements.txt`, `scripts/`, and `.claude/` are present).
-- Stage 2 leaves `.venv/bin/python` present and tied to this directory,
-  not a stale pre-rename venv.
+- Stage 1 rejects interpreters that report a version but hang or fail while
+  importing required stdlib modules.
+- Stage 2 leaves `.venv/bin/python` present, healthy, and tied to this
+  directory rather than a stale pre-rename venv.
 - Stage 3 resolves `PyYAML`, `ruff`, and `pre-commit` from the venv by
   installing `requirements.txt` with `.venv/bin/python -m pip`.
 - Stage 5 prints the real runtime gates: `.venv/bin/ruff --version`,
@@ -88,8 +90,11 @@ Two forms — pick exactly one.
 /engineer-init
 ```
 
-Runs the whole pipeline: Python check -> venv -> deps -> pre-commit
+Runs the whole pipeline: Python health check -> venv -> deps -> pre-commit
 hooks (if git) -> verify. Each stage no-ops if its work is already done.
+
+Use `--python /absolute/path` when the correct interpreter is known and should
+be used to create a missing or unhealthy venv.
 
 ### Form B — Status check only
 
@@ -122,25 +127,34 @@ root (or a host project that vendored `.claude/`, `scripts/`,
 `requirements.txt`). Tell the user the working directory looks wrong and
 name what is missing — do not guess a path.
 
-### Stage 1 — Check Python
+### Stage 1 — Run the canonical runtime bootstrap
 
-**Pre:** root confirmed. **Post:** a Python >= 3.11 interpreter is named.
+**Pre:** root confirmed. **Post:** a healthy Python >= 3.11 interpreter has
+created or validated the project runtime, installed requirements, and wired
+hooks when the root is Git-tracked.
 
 ```bash
-python3 --version
+python3 .claude/skills/which-skill/scripts/setup_runtime.py --project-root .
 ```
 
-The ecosystem requires Python >= 3.11 (stdlib features in the scripts,
-`target-version = "py311"` in `pyproject.toml`). If `python3` is older,
-stop and ask the user to point at a >= 3.11 interpreter — do not try to
-install Python.
+For `--check`, append `--check`. When the user supplied `--python`, pass it
+through exactly. This helper is bundled with the default `which-skill` router
+and is the single setup implementation used by both repository initialization
+and installed-library bootstrap.
+
+The ecosystem requires Python >= 3.11. A version string alone is insufficient:
+the helper probes `shutil`, `ssl`, and `venv` imports with a timeout, rejects a
+hung or incomplete interpreter, checks the active executable plus common 3.11+
+executables and installed pyenv runtimes, then emits every rejected candidate
+if none is usable. It does not install a system-wide Python. If discovery
+fails, install Python 3.11+ and rerun with an exact `--python` path.
 
 ### Stage 2 — Create (or rebuild) the venv
 
 **Pre:** Python OK. **Post:** `.venv/bin/python` exists AND the venv
 was created for THIS directory.
 
-Existence is not enough: a venv created before the repo directory was
+The Stage 1 helper owns this stage. Existence is not enough: a venv created before the repo directory was
 renamed or moved still has an executable `bin/python`, but every
 `bin/` shim (`pip`, `pre-commit`, `playwright`, …) hardcodes the
 creation-time absolute path in its shebang and silently targets the
@@ -148,29 +162,21 @@ old location. Validate `pyvenv.cfg` before trusting an existing venv;
 rebuild on mismatch (a venv is fully regenerable — deleting it loses
 nothing).
 
-```bash
-if [ -x .venv/bin/python ] && grep -q "command = .*$(pwd)/\.venv" .venv/pyvenv.cfg; then
-  echo "venv present and paths match — skipping"
-else
-  [ -d .venv ] && echo "venv stale (created for another path) — rebuilding" && rm -rf .venv
-  python3 -m venv .venv && echo "venv created"
-fi
-```
+The helper runs the venv interpreter itself, verifies its runtime prefix is the
+current `.venv`, and rebuilds a failed or stale environment from the selected
+healthy base interpreter.
 
 ### Stage 3 — Install dependencies
 
 **Pre:** venv present. **Post:** `PyYAML`, `ruff`, `pre-commit` resolve
 from the venv.
 
-```bash
-.venv/bin/python -m pip install -r requirements.txt
-```
+The Stage 1 helper runs `.venv/bin/python -m pip install -r requirements.txt`
+and `.venv/bin/python -m pip check`, plus an import check for PyYAML when it is
+declared. Always use `python -m pip`, never the `.venv/bin/pip` shim.
 
-Always `python -m pip`, never the `.venv/bin/pip` shim — the shim is
-exactly the stale-shebang hazard Stage 2 guards against. `pip` is
-idempotent — satisfied requirements are left alone. If `pip` fails on
-a network error, stop and report it; the first install needs PyPI
-reachable.
+`pip` is idempotent — satisfied requirements are left alone. If it fails on a
+network error, stop and report it; the first install needs PyPI reachable.
 
 Optional dev/CI extras (the status-dashboard browser smoke) live in
 `requirements-dev.txt` — install only when working on the renderer or
@@ -185,13 +191,10 @@ reproducing the CI browser step locally:
 
 **Pre:** deps installed. **Post:** hooks installed, OR skip recorded.
 
-```bash
-if [ -d .git ]; then
-  .venv/bin/pre-commit install && echo "hooks wired"
-else
-  echo "no git repo — pre-commit hooks skipped"
-fi
-```
+The Stage 1 helper detects Git worktrees with `git rev-parse` (including linked
+worktrees whose `.git` is a file) and runs `.venv/bin/python -m pre_commit
+install`. The installed on-demand library passes `--no-hooks`, because its
+cache checkout is not the host project whose commits should be guarded.
 
 If skipped: the diff-scoped lints still run via `scripts/lint/run.py`
 and CI; only the local commit-time hook is absent. To enable it, the
@@ -252,7 +255,7 @@ MISSING with the one fixing command, and writes nothing.
 | Symptom | Action |
 |---|---|
 | Stage 0 prints `WRONG DIR` | Working directory is not an ecosystem / host-project root. Name the missing marker (`requirements.txt`, `scripts/`, `.claude/`); do not guess a path. |
-| `python3` is < 3.11 | Stop. Ask the user for a >= 3.11 interpreter; do not install Python or rewrite `pyproject.toml`. |
+| No candidate passes the Python health probe | Install Python >= 3.11, then rerun with `--python /absolute/path`; do not lower `pyproject.toml`. |
 | `pip install` fails on a network error | Stop and report. First install needs PyPI; a re-run on a healthy network is safe (idempotent). |
 | `pip install` fails on a build error for one package | Report the failing package and its error; the venv is partially populated — Stage 3 is safe to re-run after the cause is fixed. |
 | `.venv` exists but `.venv/bin/python` is missing or broken | The venv is corrupt. Remove `.venv/` and re-run; Stage 2 rebuilds it. |
@@ -267,9 +270,11 @@ MISSING with the one fixing command, and writes nothing.
 └── SKILL.md          # this file — the whole skill, prompt-only
 ```
 
-No helper script. A setup skill cannot depend on the runtime it
-installs — the chicken-and-egg is resolved by keeping the skill to
-stdlib `python3 -m venv` and `pip`, driven entirely from this prompt.
+The executable helper lives under
+`.claude/skills/which-skill/scripts/setup_runtime.py` so it ships with the
+default router set. It is stdlib-only before it creates the venv, and both this
+skill and `bootstrap_library.py` call it instead of maintaining separate setup
+recipes.
 
 ## Related
 

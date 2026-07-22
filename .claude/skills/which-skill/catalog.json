@@ -208,7 +208,7 @@
     },
     {
       "name": "engineer-init",
-      "description": "Bootstrap the engineering-skills runtime so the script-backed skills can actually run. Checks for Python >= 3.11, creates the .venv, installs requirements.txt (PyYAML, ruff, pre-commit), wires pre-commit hooks when the repo is git-tracked, and verifies the install by running a script-backed skill end to end. Idempotent — safe to re-run; each stage skips work already done. Run once per clone, or whenever a skill fails with a missing-module / dependency error. Does not edit production code, does not git-init, and does not scaffold a new project (that is /init-project).",
+      "description": "Bootstrap the engineering-skills runtime so the script-backed skills can actually run. Health-checks candidate Python >= 3.11 interpreters, creates the .venv, installs requirements.txt (PyYAML, ruff, pre-commit), wires pre-commit hooks when the repo is git-tracked, and verifies the install by running a script-backed skill end to end. Idempotent — safe to re-run; each stage skips work already done. Run once per clone, or whenever a skill fails with a missing-module / dependency error. Does not edit production code, does not git-init, and does not scaffold a new project (that is /init-project).",
       "tier": "cross-cutting",
       "job": "meta",
       "best_for": "Getting a fresh clone of the engineering-skills ecosystem (or a host\nproject that vendored it) to the point where the script-backed skills\nactually run. The common trigger: Claude Code lists a skill as a slash\ncommand, you invoke it, and it fails on its first scripts/*.py call\nbecause the venv / PyYAML isn't installed. Also the fix when ruff or\npre-commit is missing. Idempotent status check via --check.\n",
