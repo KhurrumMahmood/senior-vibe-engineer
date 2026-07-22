@@ -16,8 +16,9 @@ ROOT = Path(__file__).resolve().parents[1]
 MOVE = ROOT / ".claude" / "skills" / "move-path" / "scripts" / "move_path.py"
 FIXTURE = ROOT / "tests" / "fixtures" / "php-pilot" / "host"
 MALFORMED = ROOT / "tests" / "fixtures" / "php-pilot" / "malformed" / "Broken.php"
-PHP = Path("/opt/homebrew/bin/php")
-pytestmark = pytest.mark.skipif(not PHP.is_file(), reason="PHP 8.1 or newer is required")
+PHP_PATH = shutil.which("php")
+PHP = Path(PHP_PATH) if PHP_PATH else Path("php-unavailable")
+pytestmark = pytest.mark.skipif(PHP_PATH is None, reason="PHP 8.1 or newer is required")
 
 
 def _module():
