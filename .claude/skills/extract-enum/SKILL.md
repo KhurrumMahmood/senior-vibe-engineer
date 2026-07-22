@@ -489,20 +489,3 @@ and must show `collect.py` exits 2 before scanning.
 | Case-variant explosion (>5 variants of same lower-cased form) | Flag in proposal risks; recommend a pre-migration data-normalization audit before human approval |
 | Literal appears ONLY in webhook/bridge paths (ExternalSource, ScraperAPI, vendor APIs) | Mark as `third_party_bridge`; propose `# noqa: stringly-status: <reason>` for those comparison sites, NOT an enum member |
 | Tuple-style `STATUS_CHOICES` already exists but lists different literals than scan found | Surface both sets in the proposal; flag the divergence as a migration risk |
-
-## Repository layout
-
-```
-.claude/skills/extract-enum/
-├── SKILL.md                         # this file — orchestrator
-├── scripts/
-│   └── collect.py                   # Stage 1 (stdlib-only)
-├── agents/
-│   └── enum-profiler.md             # Stage 2 scout brief
-└── knowledge/                       # scout context, never loaded by orchestrator
-    └── risk-context.md              # risk buckets and plain-enum fallback
-```
-
-The orchestrator (you) **never reads files in `knowledge/`**. Those are
-for the scout sub-agent. Keeping them out of your context is the whole
-point of this architecture.
