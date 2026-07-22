@@ -159,6 +159,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
             "c_disposition": "validated-neutral",
             "cpp_disposition": "validated-neutral",
             "ruby_disposition": "validated-neutral",
+            "rust_disposition": "validated-neutral",
             "fact_level": "neutral",
             "outcome_class": "not-applicable",
             "framework_family": None,
@@ -201,6 +202,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "c_disposition": "stack-bound",
         "cpp_disposition": "stack-bound",
         "ruby_disposition": "stack-bound",
+        "rust_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "architecture-planning",
@@ -235,6 +237,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "c_disposition": "c-pending-implementation",
         "cpp_disposition": "cpp-pending-implementation",
         "ruby_disposition": "ruby-pending-implementation",
+        "rust_disposition": "rust-pending-implementation",
         "fact_level": "semantic-project",
         "outcome_class": "read-only-report",
         "framework_family": None,
@@ -527,6 +530,28 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "/adapt-project declares ruby_disposition=ruby-pending-implementation"
     )
 
+    pending_rust = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use adapt-project on this Rust repository",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "rust",
+        "--json",
+        cwd=host,
+    )
+    assert pending_rust.returncode == 1
+    pending_rust_payload = json.loads(pending_rust.stdout)
+    assert pending_rust_payload["recommendation"] == "pending-implementation"
+    assert pending_rust_payload["unavailable"]["classification"] == (
+        "pending-implementation"
+    )
+    assert pending_rust_payload["unavailable"]["reason"] == (
+        "/adapt-project declares rust_disposition=rust-pending-implementation"
+    )
+
     shape_routed = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",
         "onboard an unknown inherited repo and figure out what loop to run",
@@ -549,6 +574,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "c_disposition": "c-pending-implementation",
         "cpp_disposition": "cpp-pending-implementation",
         "ruby_disposition": "ruby-pending-implementation",
+        "rust_disposition": "rust-pending-implementation",
         "fact_level": "lexical-filesystem",
         "outcome_class": "configuration-output",
         "framework_family": None,
@@ -708,6 +734,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "c_disposition": "stack-bound",
         "cpp_disposition": "stack-bound",
         "ruby_disposition": "stack-bound",
+        "rust_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "framework-quality",

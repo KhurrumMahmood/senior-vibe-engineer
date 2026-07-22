@@ -80,7 +80,7 @@ def test_stack_bound_shape_handoff_is_not_presented_as_executable(tmp_path, caps
     assert payload["handoff"]["blocked"] == [{
         "skill": "plan-feature",
         "language": "rust",
-        "disposition": "framework-bound",
+        "disposition": "stack-bound",
     }]
     assert payload["optional_install"]["available"] is False
     assert "command" not in payload["optional_install"]

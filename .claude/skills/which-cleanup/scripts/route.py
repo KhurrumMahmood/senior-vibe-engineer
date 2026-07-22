@@ -190,7 +190,7 @@ def declared_closure(library_root: Path, skill: str) -> list[str]:
     manifest = library_root / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
     try:
         payload = json.loads(manifest.read_text(encoding="utf-8"))
-        if not isinstance(payload, dict) or payload.get("schema_version") != 4:
+        if not isinstance(payload, dict) or payload.get("schema_version") != 5:
             raise TypeError("unsupported capability manifest schema")
         rows = payload["skills"]
         if not isinstance(rows, list):
@@ -285,6 +285,7 @@ CAPABILITY_FIELDS = (
     "c_disposition",
     "cpp_disposition",
     "ruby_disposition",
+    "rust_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -302,7 +303,7 @@ def capability_handoff(library_root: Path, skills: list[str]) -> dict:
         return {**unavailable, "reason": "manifest_missing"}
     try:
         payload = json.loads(manifest.read_text(encoding="utf-8"))
-        if not isinstance(payload, dict) or payload.get("schema_version") != 4:
+        if not isinstance(payload, dict) or payload.get("schema_version") != 5:
             raise TypeError("unsupported capability manifest schema")
         rows = payload["skills"]
         if not isinstance(rows, list):

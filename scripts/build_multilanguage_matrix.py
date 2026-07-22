@@ -27,6 +27,7 @@ DEFAULT_SWIFT_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "swift-language-cover
 DEFAULT_C_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "c-language-coverage.json"
 DEFAULT_CPP_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "cpp-language-coverage.json"
 DEFAULT_RUBY_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "ruby-language-coverage.json"
+DEFAULT_RUST_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "rust-language-coverage.json"
 DEFAULT_OUTPUT = REPO_ROOT / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
 
 DISPOSITION_MAP = {
@@ -613,6 +614,31 @@ def _ruby_coverage(payload: dict) -> dict[str, dict]:
     return coverage
 
 
+def _rust_coverage(payload: dict) -> dict[str, dict]:
+    if payload.get("source_suffixes") != [".rs"]:
+        raise ValueError("Rust coverage source suffixes are incomplete")
+    coverage = _simple_language_coverage(
+        {**payload, "suffixes": [".rs"]},
+        language="Rust",
+        suffixes=[".rs"],
+        supported_disposition="rust-supported",
+    )
+    for skill, row in coverage.items():
+        if row["disposition"] in {
+            "rust-pending-implementation",
+            "rust-partial",
+            "rust-unsupported",
+        } and not row.get("limitation"):
+            raise ValueError(f"bounded Rust row lacks a limitation: {skill}")
+    if payload.get("decision") not in {"expand", "stop-after-pilot"}:
+        raise ValueError("Rust coverage must record an expand or stop-after-pilot decision")
+    if not isinstance(payload.get("decision_reason"), str) or not payload[
+        "decision_reason"
+    ]:
+        raise ValueError("Rust coverage decision needs a reason")
+    return coverage
+
+
 def build_matrix(
     catalog_path: Path,
     coverage_path: Path,
@@ -624,6 +650,7 @@ def build_matrix(
     c_coverage_path: Path,
     cpp_coverage_path: Path,
     ruby_coverage_path: Path,
+    rust_coverage_path: Path,
 ) -> dict:
     catalog_payload = _read_json(catalog_path)
     coverage_payload = _read_json(coverage_path)
@@ -635,6 +662,7 @@ def build_matrix(
     c_payload = _read_json(c_coverage_path)
     cpp_payload = _read_json(cpp_coverage_path)
     ruby_payload = _read_json(ruby_coverage_path)
+    rust_payload = _read_json(rust_coverage_path)
     catalog = {row["name"]: row for row in catalog_payload.get("skills", [])}
     coverage = {row["skill"]: row for row in coverage_payload.get("skills", [])}
     javascript_coverage = _javascript_coverage(javascript_payload)
@@ -645,6 +673,7 @@ def build_matrix(
     c_coverage = _c_coverage(c_payload)
     cpp_coverage = _cpp_coverage(cpp_payload)
     ruby_coverage = _ruby_coverage(ruby_payload)
+    rust_coverage = _rust_coverage(rust_payload)
     if not catalog or set(catalog) != set(coverage):
         raise ValueError("catalog and TypeScript coverage must contain the same skills")
 
@@ -846,6 +875,24 @@ def build_matrix(
             ruby_reviewed_revision = None
             ruby_limitation = None
 
+        if expansion == "language-level":
+            rust = rust_coverage[skill]
+            rust_disposition = rust["disposition"]
+            rust_evidence_path = rust.get("evidence_path")
+            rust_native_check = rust.get("native_check")
+            rust_reviewed_revision = rust.get("reviewed_revision")
+            rust_limitation = rust.get("limitation")
+        else:
+            rust_disposition = {
+                "validated-neutral": "validated-neutral",
+                "framework-bound": "stack-bound",
+                "ecosystem-runtime": "ecosystem-runtime",
+            }[expansion]
+            rust_evidence_path = None
+            rust_native_check = None
+            rust_reviewed_revision = None
+            rust_limitation = None
+
         rows.append(
             {
                 "skill": skill,
@@ -891,6 +938,11 @@ def build_matrix(
                 "ruby_native_check": ruby_native_check,
                 "ruby_reviewed_revision": ruby_reviewed_revision,
                 "ruby_limitation": ruby_limitation,
+                "rust_disposition": rust_disposition,
+                "rust_evidence_path": rust_evidence_path,
+                "rust_native_check": rust_native_check,
+                "rust_reviewed_revision": rust_reviewed_revision,
+                "rust_limitation": rust_limitation,
                 "fact_level": fact_level,
                 "outcome_class": outcome_class,
                 "framework_family": framework_family,
@@ -926,7 +978,7 @@ def build_matrix(
                 f"shared primitive {primitive['primitive']} needs two consumers"
             )
     return {
-        "schema_version": 4,
+        "schema_version": 5,
         "sources": [
             {"path": _relative(catalog_path), "sha256": _sha256(catalog_path)},
             {"path": _relative(coverage_path), "sha256": _sha256(coverage_path)},
@@ -946,6 +998,10 @@ def build_matrix(
             {
                 "path": _relative(ruby_coverage_path),
                 "sha256": _sha256(ruby_coverage_path),
+            },
+            {
+                "path": _relative(rust_coverage_path),
+                "sha256": _sha256(rust_coverage_path),
             },
         ],
         "counts": {
@@ -999,6 +1055,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--c-coverage", type=Path, default=DEFAULT_C_COVERAGE)
     parser.add_argument("--cpp-coverage", type=Path, default=DEFAULT_CPP_COVERAGE)
     parser.add_argument("--ruby-coverage", type=Path, default=DEFAULT_RUBY_COVERAGE)
+    parser.add_argument("--rust-coverage", type=Path, default=DEFAULT_RUST_COVERAGE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
@@ -1021,6 +1078,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.c_coverage,
                 args.cpp_coverage,
                 args.ruby_coverage,
+                args.rust_coverage,
             )
         )
     except ValueError as exc:
