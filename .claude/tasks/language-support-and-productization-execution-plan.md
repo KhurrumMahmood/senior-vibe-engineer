@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P7 Swift spine — bounded SwiftPM pilot while P5 awaits an owner-authorized .NET SDK
-Last updated: 2026-07-22 (Swift selected from three parallel preflights; no early shared-component promotion)
+Current phase: P7 Swift spine — bounded SwiftPM pilot; C#/.NET deferred to the end of the language queue
+Last updated: 2026-07-22 (language toolchain dependencies are tracked explicitly; no silent installs)
 
 ## Objective
 
@@ -103,7 +103,7 @@ execution authorities.
 | P2 | Release truth aligned; public install/library journey replayed | `done` | `60898a7` |
 | P3 | Minimal reusable language-support kit scaffold proven | `done` | `f249d9a` |
 | P4 | PHP pilot proves real outcomes and kit economics | `done` | `268c3ac` |
-| P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `awaiting_owner_toolchain` | — |
+| P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `deferred_to_final_language` | — |
 | P6 | Shared components promoted or rejected on evidence | `not_started` | — |
 | P7 | Remaining selected languages receive honest coverage | `swift_spine_in_progress` | — |
 | P8 | Current journey, update/repair, and help are measured | `not_started` | — |
@@ -456,7 +456,7 @@ Evidence:
 Outcome: the major-language set has useful, explicit, non-misleading support,
 using isolated implementation lanes and serial shared integration.
 
-Initial queue: Ruby, Rust, Swift, Dart, Kotlin, and C/C++. The queue may change
+Initial queue: Swift, C/C++, Ruby, Rust, Dart, Kotlin, then C#/.NET last. The queue may change
 only through a recorded criteria revision based on mainstream relevance,
 toolchain feasibility, or product evidence.
 
@@ -530,6 +530,29 @@ Per-language status:
 | Dart | `toolchain_missing` | `dart`/Flutter absent | — | — | — | — |
 | Kotlin | `toolchain_missing` | `kotlin`/`kotlinc` absent | — | — | — | — |
 | C/C++ | `preflight_complete_queued` | Separate C and C++ profiles required; Clang/clangd 21 available, CMake absent, trustworthy compile DB required | — | — | `.claude/tasks/p7-preflight/c-cpp.md` | — |
+
+### Language toolchain dependency register
+
+This table tracks development prerequisites; it is not an instruction to
+install them. A sub-agent never installs or updates a language toolchain. Root
+must obtain owner authorization immediately before any machine-level install,
+record the exact version/path/cleanup behavior, and keep routed product
+execution dependent on host-owned or exact on-demand-closure tools.
+
+| Language | Required blocker | Optional host-owned tools | State / timing |
+|---|---|---|---|
+| Swift | None for the SwiftPM spine or compiler-AST pilot | SwiftSyntax, SwiftLint, Periphery, SourceKitten; full Xcode for XCTest/Testing and Xcode projects | Current CLT Swift 6.3.3 is enough for the selected build, executable-smoke, AST, index, and SourceKit boundaries. Optional tools do not block the spine and are not installed. |
+| C | Trustworthy host or fixture `compile_commands.json`; no new compiler required | CMake, clang-tidy, clang-format, IWYU, cppcheck, capture tools such as Bear | Apple Clang/clangd 21 and Make are available. CMake is absent but not required for a bounded Make fixture. |
+| C++ | Separate C++ profile plus trustworthy compile commands; no new compiler required | Same Clang ecosystem as C, selected standard library/build-system tools | Apple Clang/clangd 21 and Make are available. Do not combine C and C++ capability truth. |
+| Ruby | Healthy modern Ruby (preflight floor 3.3+) and matching Bundler | Prism, RuboCop, RBS/Steep or Sorbet, Rails/Zeitwerk for explicit framework profiles | System Ruby 2.6 is too old; private Ruby 3.3/rbenv paths hang. Installation or repair is pending owner authorization when Ruby reaches the front of the queue. |
+| Rust | Rust compiler and Cargo | rust-analyzer, Clippy/rustfmt components | `rustc`/`cargo` absent. Track an owner-approved pinned rustup or package-manager path before the Rust slice. |
+| Dart | Dart SDK; Flutter only for an explicit Flutter profile | Analysis Server/analyzer and formatter bundled with the selected SDK | `dart`/Flutter absent. Install only when Dart reaches the front of the queue. |
+| Kotlin | Kotlin compiler plus a reproducible project build path; existing JDK may be reused if compatible | Gradle wrapper, Detekt, ktlint, Analysis API for bounded needs | `kotlin`/`kotlinc` absent. Prefer a fixture-owned Gradle wrapper or pinned compiler; do not install a global Gradle merely for discovery. |
+| C# | Supported .NET SDK with Roslyn | Project-owned analyzers and formatters | Deferred until all earlier selected languages are processed. Current .NET 10.0.302 macOS Arm64 package is about 211 MiB to download; `dotnet` is absent and no install is authorized yet. |
+
+For every new preflight, add any newly discovered required or optional tool to
+this register before opening implementation worktrees. Missing optional tools
+produce an explicit limitation; they do not automatically become dependencies.
 
 ## P8 — Measure the current journey and finish lifecycle/help semantics
 
@@ -645,6 +668,7 @@ Evidence:
 | 2026-07-21 | P4-P7 | Added spine/cohort worktrees, frozen economics, 22-row closeouts, toolchain readiness, and serial shared integration | Completed Go/Java evidence supports cohort fan-out, while different-language branches collide on shared dispatch/matrix surfaces | Parallelize disjoint work without parallelizing shared truth |
 | 2026-07-21 | P8-P9 | Measure baseline/update/help before optional host-instruction infrastructure | Adversarial review showed the prior order could make an unmeasured optional platform mandatory | Preserve installer -> languages -> measured journey order |
 | 2026-07-22 | P5-P7 | Permit one bounded SwiftPM P7 slice while P5 awaits an owner-authorized .NET SDK; forbid early shared-component promotion | Owner explicitly asked to start other languages meanwhile. Parallel preflights found Swift ready, Ruby unhealthy, and C/C++ feasible only as two compile-database-gated profiles | Approved by user request |
+| 2026-07-22 | P5-P7 | Move C#/.NET to the end and add an explicit language-toolchain dependency register | Owner asked to return to .NET at the end and track every other language dependency needing installation | Approved by user request |
 
 ## Execution log
 
