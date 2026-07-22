@@ -6,7 +6,7 @@ description: |
   Flags detached section banners, narration comments, missing or thin
   public class docstrings, stale terminology, JavaScript and TypeScript
   functions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML
-  comments, fragile doc references, and bounded Go, Java, PHP, Ruby, C, and C++
+  comments, fragile doc references, and bounded Go, Java, PHP, Ruby, Rust, C, and C++
   lexical-comment surfaces.
 argument-hint: "[paths... - no paths uses the detector's legacy default surface]"
 allowed-tools: Bash, Read, Grep, Glob, Write
@@ -25,7 +25,7 @@ not_for: |
   existing lints for behavior and correctness.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, c, cpp, templates]
+scans: [python, javascript, typescript, go, java, php, ruby, rust, c, cpp, templates]
 ---
 
 # /find-comment-drift
@@ -73,6 +73,13 @@ only an adjacent percentage-calculation comment contradicted by a fixed numeric
 method body; it does not infer runtime behavior through reopening,
 metaprogramming, reflection, dynamic loading, Rails, or Zeitwerk.
 
+Rust uses the copied `scripts/analyze_comments_rust.py` entry point. Rust/Cargo
+1.85+ and rustfmt gate a locked offline workspace plus every eligible `.rs`
+input. Its bounded behavior rule reports only an adjacent percentage/rate doc
+comment contradicted by a fixed numeric function body. Macros, build scripts,
+`include!`, cfg/target variants, traits, generics, unsafe/FFI, and runtime
+dispatch remain explicit non-claims.
+
 C is a separate copied-helper mode rather than a branch of the legacy
 detector. `scripts/analyze_comments_c.py` uses Clang 21+ raw tokens and exact
 source bytes over `.c`/`.i` files. Headers are eligible only when a current,
@@ -119,6 +126,10 @@ remain explicit non-claims.
   `scan.json` and `findings.json`. Missing/old Ruby, Prism/provider failures,
   syntax-invalid eligible inputs, and unreadable sources are never relabeled
   clean. Exact source, artifact, and finding hashes make stale output visible.
+- A Rust run records `complete`, `partial`, or `failed` plus
+  `advisory-findings`, `clean-within-complete`, or `incomplete` in all four
+  artifacts. Missing/old tools and syntax-incomplete inputs remain `partial`,
+  never a permanent unsupported language claim or an empty clean result.
 - A C run records `complete`, `partial`, `unsupported`, or `failed` plus a
   final `findings.json`. Missing/old Clang, ambiguous headers, stale/incomplete
   compile commands, syntax failures, and provider failures remain visible.
@@ -337,6 +348,27 @@ ruby -c path/to/representative.rb
 The helper atomically writes `detections.jsonl`, `scan.json`, `findings.json`,
 and `report.md`; selected source bytes remain unchanged.
 
+For a Rust 1.85+ Cargo host, run the copied Rust helper directly. The host owns
+Rust, Cargo, rustfmt, the lockfile, and native checks; the skill installs
+nothing and uses offline/locked commands.
+
+```bash
+COMMENT_SKILL=".agents/skills/on-demand/find-comment-drift"
+COMMENT_REPORT="reports/find-comment-drift/rust"
+mkdir -p "${COMMENT_REPORT}"
+python3 "${COMMENT_SKILL}/scripts/analyze_comments_rust.py" \
+  --project-root "$PWD" \
+  --rustc "$(command -v rustc)" \
+  --cargo "$(command -v cargo)" \
+  --rustfmt "$(command -v rustfmt)" \
+  --output "${COMMENT_REPORT}/detections.jsonl" .
+cargo test --locked --offline --workspace --all-targets --all-features
+```
+
+The helper atomically replaces `detections.jsonl`, `scan.json`,
+`findings.json`, and `report.md`, records exact source/finding/manifests hashes,
+and preserves selected source bytes.
+
 ## Detector Bands
 
 - `detached_section_banner`: banner comments separated from the symbol or
@@ -399,6 +431,7 @@ input/output/side-effect contract.
 | PHP syntax or source decoding fails | Keep useful findings with `partial`/`incomplete` evidence and cite the failed inventory row; do not call an empty JSONL clean. |
 | The PHP provider process or payload fails | Keep the concrete `failed` evidence, correct the selected runtime/closure, and re-run at the same destination so stale reports cannot survive. |
 | Ruby is missing/older than 3.3, Prism fails, or an eligible file is syntax-invalid | Keep the explicit `unsupported`, `failed`, or `partial` artifacts, correct the host runtime/source, and re-run at the same destination; do not present empty findings as clean. |
+| Rust/Cargo is missing or older than 1.85, rustfmt is unavailable, or an eligible file is syntax-invalid | Keep the explicit `partial` artifacts, correct the host toolchain/source, and re-run at the same destination; do not call the Rust skill unsupported or present empty findings as clean. |
 | Clang is missing or older than 21.0.0 for C/C++ | Keep the `unsupported` final artifacts, select a supported host-owned Clang, and re-run; do not present empty detections as clean. |
 | C/C++ compile commands are missing, malformed, incomplete, or stale | Source translation units may still have bounded lexical evidence, but keep unowned headers `ambiguous-header`; do not infer ownership from directory names. |
 | C/C++ syntax fails or Clang raw-token output is malformed/incomplete | Keep the explicit `partial`/`failed` evidence and failed inventory rows. Fix the source/tool invocation and re-run the same destination; never reuse the prior report. |

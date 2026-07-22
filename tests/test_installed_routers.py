@@ -552,6 +552,25 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "/adapt-project declares rust_disposition=rust-pending-implementation"
     )
 
+    rust_routed = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use find-comment-drift on Rust source",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "rust",
+        "--json",
+        cwd=host,
+    )
+    rust_payload = _json_output(rust_routed)
+    assert rust_payload["recommendation"] == "find-comment-drift"
+    assert rust_payload["handoff"]["available"] is True
+    assert rust_payload["handoff"]["capabilities"]["skills"][0][
+        "rust_disposition"
+    ] == "rust-supported"
+
     shape_routed = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",
         "onboard an unknown inherited repo and figure out what loop to run",
