@@ -1,7 +1,7 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: publish and close the bounded C pilot, then open a separate C++ spine; C#/.NET remains last
+Current phase: build the separate C++ P7 spine from published C closeout `87aa135`; C#/.NET remains last
 Last updated: 2026-07-22 (C spine passed with 22 honest unsupported rows; no optional tool was installed)
 
 ## Objective
@@ -530,7 +530,7 @@ Per-language status:
 | Dart | `toolchain_missing` | `dart`/Flutter absent | — | — | — | — |
 | Kotlin | `toolchain_missing` | `kotlin`/`kotlinc` absent | — | — | — | — |
 | C | `stopped_after_pilot` | Apple Clang/clangd 21 plus Make 3.81 proven; `.c`/`.i` only; trustworthy C-mode compile DB required for semantic facts | 2 supported (`find-comment-drift`, `map-subsystem`), 20 unsupported; mutation remains deferred | Published and installed-router tested | `.claude/tasks/multilanguage-learnings/c-pilot.md` plus spine and cohort packets | spine `56707fe`; lexical `b5a63e9`; semantic `5d6def3`; publication `79d8a27` |
-| C++ | `preflight_complete_queued` | Separate C++ profile required; Apple Clang/clangd 21 available, CMake absent, trustworthy C++ compile DB required | — | — | `.claude/tasks/p7-preflight/c-cpp.md` | — |
+| C++ | `spine_in_progress` | Separate C++ profile required; Apple Clang/clangd 21 available, CMake absent, trustworthy C++ compile DB required | Frozen C++-only lexical, semantic, and mutation/proposal contracts pending | Not published | `.claude/tasks/p7-preflight/c-cpp.md`; worktree `engineering-skills-wt-p7-cpp-spine` | branch `codex/p7-cpp-spine` from `87aa135` |
 
 ### Language toolchain dependency register
 
@@ -702,6 +702,7 @@ Evidence:
 | 2026-07-22 | P7 | Swift pilot published and closed | `661e1b1` publishes 3 supported/19 unsupported matrix and router truth; installed router/matrix suite `59 passed`. Explicit Homebrew OpenJDK provenance restores Java verification (omnibus `11`, map `5`, move `4` passed). Explicit `ENGINEERING_SKILLS_PYTHON` makes direct selected-skill commands usable despite the broken bare host Python. Begin separate C then C++ spine planning; install no optional tool without owner authorization. |
 | 2026-07-22 | P7 | C-only spine integrated | `56707fe`; `.c`/`.i` profile truth, portable two-TU Make fixture, valid/current/complete C-mode compile-database gate, owned-vs-ambiguous headers, source roles, tool states, native test, and 22 unsupported dispositions pass. Open disjoint lexical `find-comment-drift` and semantic `map-subsystem` lanes; keep mutation deferred and C++ separate. |
 | 2026-07-22 | P7 | C pilot cohorts integrated; publication underway | Lexical `b5a63e9` and semantic `5d6def3` prove two useful read-only final outcomes. Stop at 2 supported/20 unsupported, retain mutation as unsupported, and publish router/matrix truth before opening the separate C++ spine. |
+| 2026-07-22 | P7 | C published; separate C++ spine opened | `79d8a27` publishes 2 supported/20 unsupported C capability truth and `87aa135` closes verification. Push main, then open `codex/p7-cpp-spine` from that exact revision. Reuse only evidence patterns; C++ owns separate profile, compile mode, headers, fixture, dispositions, and dependency truth. |
 | 2026-07-21 | P3 | Started | Freeze the exact `60898a7` TypeScript+Java `find-omnibus` baseline and review the 87 registered/59 previously prunable worktree registrations before opening any P3 worker lane. |
 | 2026-07-21 | P3.0 | Completed | Committed evidence freezes the existing-substrate decisions, exact TypeScript/Java projections and exclusions, copied closure bytes, fixture manifests, maintained LOC, OpenJDK 17.0.20/TypeScript 5.9.3 toolchain, full `18 passed` correctness run, and cold plus seven alternating warm trials. Registration-only pruning reduced 87 worktree records to 28 without deleting a path, branch, commit, or dirty worktree. P3.1 may now start from this spine. |
 | 2026-07-21 | P3.1 | Completed | Added strict stdlib-only profiles for the five currently inventoried languages and a narrow lifecycle module. The deletion/caller-knowledge test is satisfied by two immediate consumers (TypeScript and Java omnibus); profiles remove duplicated suffix/tool/role/command/limit declarations, while lifecycle removes only atomic-write, stale-clear, source-hash, and terminal-vocabulary policy. No semantic result schema, adapter layer, installer, cache, mutation executor, or framework profile was added. P3.2 may extend the existing inventory from this spine. |
