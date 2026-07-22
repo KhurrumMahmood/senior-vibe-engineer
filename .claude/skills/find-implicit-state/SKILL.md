@@ -1,7 +1,7 @@
 ---
 name: find-implicit-state
-description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, and Java 17 state branches. Compiler-backed branches distinguish first-party bare state operations from typed authorities, vendor wire boundaries, tests/fixtures, unrelated fields, insufficient evidence, and unsafe reference equality. Detection-only — never edits production code.
-argument-hint: "--target <directory> [--language typescript|javascript|go|java]"
+description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, and Rust state branches. Compiler-backed branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.
+argument-hint: "--target <directory> [--language typescript|javascript|go|java|rust]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -21,11 +21,25 @@ not_for: |
   generic TypeScript lint generator.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java]
+scans: [python, typescript, javascript, go, java, rust]
 scout_model: cheap
 ---
 
 # /find-implicit-state
+
+## Rust v1
+
+Rust v1 proposes repeated bare string operations on a bounded state field for
+human `/extract-enum` review. It never claims the domain is closed and refuses
+promotion through typed enums, insufficient evidence, traits/generics,
+macros, cfg, unsafe/FFI, or excluded roles. Copy sibling `map-subsystem`.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-implicit-state"
+python3 "${SKILL_ROOT}/scripts/detect_rust_state.py" \
+  --project-root "$PWD" --target . \
+  --output-dir "$PWD/reports/implicit-state/rust"
+```
 
 You are the **orchestrator** for an implicit-state audit. Your job is
 to drive a pipeline of detectors and sub-agent verifiers; the bucket

@@ -1,6 +1,6 @@
 ---
 name: adapt-project
-description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, Go, and Java stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
+description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, Go, Java, and bounded Cargo/Rust stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
 argument-hint: "[--project-root <path>] [--artifact-root <path>] [--apply|--no-host-write]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -24,6 +24,7 @@ escalate_to: |
   human-approved and detectable.
 language: any
 framework: any
+scans: [python, javascript, typescript, go, java, rust]
 lanes: [project-adaptation]
 stage: discover
 entrypoint: true
@@ -112,6 +113,27 @@ from the discovery command.
 For Java hosts, read [`references/java.md`](references/java.md) before running
 discovery. That reference defines the authored-source boundary, accepted build
 markers and commands, native fixture check, and explicit non-claims.
+
+## Rust v1 contract
+
+For a Cargo/Rust host, use the copied two-file Rust closure: this skill plus
+the sibling `_rust/rust_lexical_facts.py`. It counts authored `.rs` modules,
+classifies Cargo and source roles, and emits locked/offline check, test, and
+format commands without treating the observed layout as a standard. Missing or
+old tools remain `partial`; native failures are `failed`; no Rust result is
+called unsupported.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/adapt-project"
+python3 "${SKILL_ROOT}/scripts/discover_rust.py" \
+  --project-root "$PWD" \
+  --output-dir "$PWD/reports/adapt-project/rust" .
+```
+
+The copied layout must also contain
+`.agents/skills/on-demand/_rust/rust_lexical_facts.py`. The command writes
+`adapter.yml`, `adapter.json`, `report.md`, and `evidence.json` and never writes
+durable host configuration.
 
 ## Forms
 

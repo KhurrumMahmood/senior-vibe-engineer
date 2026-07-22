@@ -1,7 +1,7 @@
 ---
 name: find-complexity-hotspots
-description: Detect advisory Python, JavaScript, TypeScript, Go, and Java function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only JS/JSX/MJS/CJS/TS/TSX, Go, and Java high-branch findings for bounded named functions, methods, and constructors.
-argument-hint: "<paths> [--language python|javascript|typescript|go|java]"
+description: Detect advisory Python, JavaScript, TypeScript, Go, Java, and bounded Rust function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only family-local high-branch findings for bounded named functions, methods, and constructors.
+argument-hint: "<paths> [--language python|javascript|typescript|go|java|rust]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -18,13 +18,27 @@ not_for: |
   scope. Broad module-level responsibility sprawl belongs to /find-omnibus.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java]
+scans: [python, javascript, typescript, go, java, rust]
 ---
 
 <!-- Native-parser compatibility subset: scans: [javascript, typescript, go, java] -->
 <!-- TypeScript compatibility subset: scans: [python, javascript, typescript] -->
 
 # /find-complexity-hotspots
+
+## Rust v1
+
+Rust v1 reports advisory direct-body branch scores for named functions. It
+excludes nested functions and braced closures and never infers runtime cost.
+The copied closure must include sibling `_rust-syntax`; cfg, macro/build,
+generated, and symlink uncertainty prevents a clean result.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-complexity-hotspots"
+python3 "${SKILL_ROOT}/scripts/run_rust.py" \
+  --project-root "$PWD" --target src \
+  --output-dir "$PWD/reports/complexity-hotspots/rust"
+```
 
 Run a read-only SUSPECT audit. A finding is a lead worth reading, never a
 proof that an optimization is safe or valuable.

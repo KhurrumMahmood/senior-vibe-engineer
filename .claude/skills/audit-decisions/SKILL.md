@@ -1,6 +1,6 @@
 ---
 name: audit-decisions
-description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, Java JDK 17+ source, JavaScript-family, and TypeScript comments plus Markdown/HTML references."
+description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, Java JDK 17+, bounded Rust, JavaScript-family, and TypeScript comments plus Markdown/HTML references."
 argument-hint: "[--target PATH]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -19,10 +19,25 @@ delegate_from: |
   and orphaned inline decision references.
 language: any
 framework: any
-scans: [python, markdown, html, javascript, typescript, go, java]
+scans: [python, markdown, html, javascript, typescript, go, java, rust]
 ---
 
 # /audit-decisions
+
+## Rust v1
+
+For Rust, run the bounded comment-reference adapter over one explicit Cargo
+source target. It preserves the four audit artifacts and distinguishes real
+line/block/doc comments from strings. The copied closure must include sibling
+`_rust-syntax`; cfg, macros, build output, generated roles, and symlinks make
+the result partial rather than clean.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/audit-decisions"
+python3 "${SKILL_ROOT}/scripts/audit_rust.py" \
+  --project-root "$PWD" --target src \
+  --output-dir "$PWD/reports/audit-decisions/rust"
+```
 
 Run a read-only drift scan over `ai-docs/decisions/` and the host's authored
 reference files. The final artifact is `drift.md`; `raw-drift.json` preserves

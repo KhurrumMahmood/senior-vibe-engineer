@@ -8,7 +8,7 @@ description: |
   completeness gate, so renames land half-applied. This skill (v0, assess-only)
   reports the scope-gate verdict, blast radius, a per-step lifecycle status
   table, and the completeness gate. It performs strict lexical assessment of
-  Python, JavaScript, TypeScript, TSX, Go, and Java text. For `.ts`, `.tsx`, and checked
+  Python, JavaScript, TypeScript, TSX, Go, Java, and Rust text. For `.ts`, `.tsx`, and checked
   `.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,
   declarations, and references; it does not claim whole-project type-checking,
   JSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`
@@ -18,7 +18,7 @@ description: |
   live code (/find-concept-divergence superseded_co_occurrence, band 3) AND no
   retired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)
   — both must be CLEAN for a lexical candidate assessment to pass. A
-  TypeScript/TSX, checked-JavaScript, or Go host additionally needs a successful native semantic
+  TypeScript/TSX, checked-JavaScript, Go, or Rust host additionally needs a successful native semantic
   evidence run that resolves old/new identifier candidates. Definition of done is the
   two-band gate, every lifecycle step resolved, and that evidence where
   a semantic language is in scope — NOT a codemod having run. Drives the two
@@ -33,7 +33,7 @@ user-invocable: true
 tier: maintenance
 job: refactor
 best_for: |
-  A TypeScript, JavaScript, Go, or Python glossary concept rename lifecycle
+  A TypeScript, JavaScript, Go, Rust, or Python glossary concept rename lifecycle
   assessment with a persistent completeness gate. Assessing whether a
   glossary-worthy, wide-blast change is COMPLETE —
   the long tail (string-literal references, the guard lint, the cross-tool
@@ -72,11 +72,24 @@ delegate_from: |
   here.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, markdown, templates]
+scans: [python, javascript, typescript, go, java, rust, markdown, templates]
 install_with: [find-concept-divergence]
 ---
 
 # /rename-concept
+
+## Rust v1 assessment
+
+Rust adds read-only identifier authority to the existing lifecycle and strict
+text gate. It resolves bounded public top-level old/new type declarations and
+references, but never applies a rename or claims macro, associated-item,
+reflection-string, cfg, generated, external-API, or compatibility coverage.
+The copied closure includes sibling `map-subsystem` and the existing
+`find-concept-divergence` companion.
+
+Run the normal `scripts/assess.py` command. It discovers Rust sources and
+invokes `scripts/rust_identifier_evidence.py`; a Rust assessment cannot be
+complete when native authority or deferred reference evidence is unresolved.
 
 Read-only **assessment** of a domain-concept rename against its lifecycle and a
 two-band completeness gate. Renaming a concept in a glossary-backed codebase is

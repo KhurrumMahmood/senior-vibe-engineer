@@ -1,7 +1,7 @@
 ---
 name: find-dormant
-description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, and Java have narrow static review branches for human review. Never infers safe deletion from static evidence.
-argument-hint: "--target <directory-or-file> [--language python|typescript|javascript|go|java]"
+description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, Java, and Rust have narrow static review branches for human review. Never infers safe deletion from static evidence.
+argument-hint: "--target <directory-or-file> [--language python|typescript|javascript|go|java|rust]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -27,11 +27,25 @@ not_for: |
   or safe-deletion decisions are outside the static v1 contract.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java]
+scans: [python, typescript, javascript, go, java, rust]
 scout_model: cheap
 ---
 
 # /find-dormant
+
+## Rust v1
+
+Rust v1 reports private free functions with no bounded resolved source use as
+`review_required`; `certain_delete` is always zero. Feature roots, callbacks,
+traits/generics, macros, unsafe/FFI, reflection, and external consumers remain
+deferred. The copied closure includes sibling `map-subsystem`.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-dormant"
+python3 "${SKILL_ROOT}/scripts/detect_rust_dormant.py" \
+  --project-root "$PWD" --target . \
+  --output-dir "$PWD/reports/find-dormant/rust"
+```
 <!-- Legacy copied-install metadata token: scans: [python, typescript] -->
 <!-- Legacy Go metadata token: scans: [python, typescript, javascript, go] -->
 

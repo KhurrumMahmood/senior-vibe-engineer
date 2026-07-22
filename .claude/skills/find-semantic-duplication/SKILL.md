@@ -1,7 +1,7 @@
 ---
 name: find-semantic-duplication
-description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, and Java function-level leads using host-native semantic facts. Compiler branches report bounded static candidates with capability matrices; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.
-argument-hint: "--target <directory> [--language python|typescript|javascript|go|java]"
+description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, and Rust function-level leads using host-native semantic facts. Compiler branches report bounded static candidates with capability matrices; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.
+argument-hint: "--target <directory> [--language python|typescript|javascript|go|java|rust]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -18,10 +18,24 @@ not_for: |
   dynamic dispatch, framework behavior, and automatic consolidation.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java]
+scans: [python, typescript, javascript, go, java, rust]
 ---
 
 # /find-semantic-duplication
+
+## Rust v1
+
+Rust v1 emits review leads for bounded free functions with overlapping resolved
+return/caller capability facts. It does not prove behavioral equivalence or
+authorize consolidation; traits/generics, macros/cfg, unsafe/FFI, runtime
+dispatch, and external APIs remain deferred. Copy sibling `map-subsystem`.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-semantic-duplication"
+python3 "${SKILL_ROOT}/scripts/detect_rust_semantic.py" \
+  --project-root "$PWD" --target . \
+  --output-dir "$PWD/reports/semantic-duplication/rust"
+```
 
 You are the **orchestrator** for a semantic-duplication audit. Your job is to
 drive a pipeline of scripts and sub-agent scouts; the judgment calls live in

@@ -98,9 +98,9 @@ EXPECTED_RUBY_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_RUST_COUNTS = {
-    "rust-supported": 2,
+    "rust-supported": 16,
     "rust-partial": 1,
-    "rust-pending-implementation": 19,
+    "rust-pending-implementation": 5,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -518,7 +518,24 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         row["skill"]
         for row in language_rows
         if row["rust_disposition"] == "rust-supported"
-    } == {"find-comment-drift", "move-path"}
+    } == {
+        "adapt-project",
+        "audit-decisions",
+        "explain-code",
+        "find-comment-drift",
+        "find-complexity-hotspots",
+        "find-concept-divergence",
+        "find-dormant",
+        "find-duplication",
+        "find-folder-topology-drift",
+        "find-implicit-state",
+        "find-incomplete-sweep",
+        "find-omnibus",
+        "find-semantic-duplication",
+        "find-standard-gaps",
+        "move-path",
+        "rename-concept",
+    }
     assert {
         row["skill"]
         for row in language_rows

@@ -1,7 +1,7 @@
 ---
 name: find-omnibus
-description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses exact Python AST spans, a bundled TypeScript Compiler API parser for JavaScript/TypeScript, a bundled Go 1.22+ standard-library syntax parser, a bundled Java JDK 17+ compiler-tree parser, and bounded Swift compiler-AST facts; then groups symbols by head-noun cluster, ranks candidates, and produces decomposition evidence. Never edits code.
-argument-hint: "--target <directory> [--language python|javascript|typescript|go|java|swift]"
+description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses family-local syntax facts for Python, JavaScript/TypeScript, Go, Java, bounded Rust, and Swift; then groups symbols by head-noun cluster, requires scout judgment, and produces decomposition evidence. Never edits code.
+argument-hint: "--target <directory> [--language python|javascript|typescript|go|java|rust|swift]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -22,10 +22,25 @@ not_for: |
   to /find-perimeter-gaps.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, swift]
+scans: [python, javascript, typescript, go, java, rust, swift]
 ---
 
 # /find-omnibus
+
+## Rust v1
+
+Rust v1 uses bounded named-item syntax to propose files with four or more
+paired head-noun domains, but the existing Stage 3 scout must still grade every
+candidate. A syntax candidate alone is never an omnibus verdict. Copy sibling
+`_rust-syntax` with this skill and keep cfg/macro/build uncertainty partial.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-omnibus"
+python3 "${SKILL_ROOT}/scripts/run_rust.py" \
+  --project-root "$PWD" --target src \
+  --output-dir "$PWD/reports/omnibus/rust" \
+  --scout-dir "$PWD/reports/omnibus/rust/scout"
+```
 
 You are the **orchestrator** for an omnibus-module audit. Your job is
 to drive a detector + a scout-verification fan-out; the judgment calls

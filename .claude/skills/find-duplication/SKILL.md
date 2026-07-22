@@ -1,6 +1,6 @@
 ---
 name: find-duplication
-description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
+description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go/Rust function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
 argument-hint: "--target <source-directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
@@ -19,7 +19,7 @@ not_for: |
   clone leads and stops short of safety or reuse conclusions.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java]
+scans: [python, javascript, typescript, go, java, rust]
 ---
 
 # /find-duplication
@@ -36,6 +36,7 @@ Inspect eligible source suffixes under `--target`:
 - `.js`/`.jsx`/`.mjs`/`.cjs` only: run the **JavaScript lexical-evidence branch**.
 - `.go` only: run the **Go exact-function evidence branch**.
 - `.java` only: run the **Java exact-method evidence branch**.
+- `.rs` only: run the **Rust exact normalized function-body evidence branch**.
 - multiple supported families: run each branch into its own language report
   directory and summarize them separately. Do not merge their findings or
   apply one family's outcome contract to another family's evidence.
@@ -44,6 +45,20 @@ Inspect eligible source suffixes under `--target`:
 Use a host Python 3.11+ interpreter. The selected skill is self-contained: no
 repository-level `scripts/`, `_common`, toolkit virtualenv, or shared language
 adapter is part of either installed path.
+
+For Rust, the exact installed closure additionally includes the sibling
+`_rust/rust_lexical_facts.py`. Rust v1 reports only named functions of at least
+five lines with identical whitespace-normalized lexical bodies. The result is a
+human-review lead, never proof that consolidation is safe; macros, cfg variants,
+traits/generics, closures, semantic equivalence, and runtime behavior remain
+unresolved.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-duplication"
+python3 "${SKILL_ROOT}/scripts/run_rust.py" \
+  --project-root "$PWD" --target src \
+  --output-dir "$PWD/reports/duplication/rust"
+```
 
 ## Python legacy triage branch
 

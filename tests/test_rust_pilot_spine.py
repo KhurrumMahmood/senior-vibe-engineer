@@ -547,10 +547,29 @@ def test_rust_frozen_cohort_contracts_and_all_22_initial_dispositions() -> None:
     assert len(rows) == 22
     assert {row["skill"] for row in rows} == EXPECTED_SKILLS
     dispositions = {row["skill"]: row["disposition"] for row in rows}
-    assert dispositions["find-comment-drift"] == "rust-supported"
-    assert dispositions["move-path"] == "rust-supported"
+    assert {
+        skill for skill, disposition in dispositions.items()
+        if disposition == "rust-supported"
+    } == {
+        "adapt-project",
+        "audit-decisions",
+        "explain-code",
+        "find-comment-drift",
+        "find-complexity-hotspots",
+        "find-concept-divergence",
+        "find-dormant",
+        "find-duplication",
+        "find-folder-topology-drift",
+        "find-implicit-state",
+        "find-incomplete-sweep",
+        "find-omnibus",
+        "find-semantic-duplication",
+        "find-standard-gaps",
+        "move-path",
+        "rename-concept",
+    }
     assert dispositions["map-subsystem"] == "rust-partial"
-    assert sum(value == "rust-pending-implementation" for value in dispositions.values()) == 19
+    assert sum(value == "rust-pending-implementation" for value in dispositions.values()) == 5
     assert all(
         row["evidence_path"]
         and row["native_check"]

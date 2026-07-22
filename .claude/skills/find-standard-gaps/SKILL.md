@@ -1,6 +1,6 @@
 ---
 name: find-standard-gaps
-description: Detect places a declared baseline standard should apply but doesn't. A standard is declared once with an executable `ast` detector; `scan_coverage.py` scans Python, narrow syntax-only JavaScript/TypeScript direct-call coverage, Go 1.22+ direct-call defer coverage, and Java JDK 17+ direct-call try coverage, then reports every site whose triggering situation holds but the standard is absent. Detection-only; never edits code.
+description: Detect places a declared baseline standard should apply but doesn't. Family-local scanners cover Python plus narrow syntax-only JavaScript/TypeScript, Go, Java, and Rust direct-call guard conditions, then report every site whose triggering situation holds but the declared standard is absent. Detection-only; never edits code.
 argument-hint: "<host-owned standards JSON — copy standards.example.json, adapt it, and pass its path>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -26,10 +26,25 @@ not_for: |
   baseline belongs in host lint tooling.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java]
+scans: [python, javascript, typescript, go, java, rust]
 ---
 
 # /find-standard-gaps
+
+## Rust v1
+
+Rust v1 supports one declared syntax condition: whether a direct spelled call
+is enclosed by `match`. It does not resolve aliases, receivers, types, traits,
+or the intended API. Copy sibling `_rust-syntax`; broader detector conditions
+remain pending rather than silently degrading to lexical clean.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-standard-gaps"
+python3 "${SKILL_ROOT}/scripts/scan_coverage_rust.py" \
+  --project-root "$PWD" --target src \
+  --ideas "$PWD/standards-rust.json" \
+  --output-dir "$PWD/reports/standard-gaps/rust"
+```
 
 You are the orchestrator for a SUSPECT skill. Given a **standards file**
 — a JSON file of declared baseline standards, each carrying an

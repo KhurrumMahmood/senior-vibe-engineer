@@ -237,7 +237,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "c_disposition": "c-pending-implementation",
         "cpp_disposition": "cpp-pending-implementation",
         "ruby_disposition": "ruby-pending-implementation",
-        "rust_disposition": "rust-pending-implementation",
+        "rust_disposition": "rust-supported",
         "fact_level": "semantic-project",
         "outcome_class": "read-only-report",
         "framework_family": None,
@@ -532,7 +532,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
 
     pending_rust = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
-        "use adapt-project on this Rust repository",
+        "use prevent-regression on this Rust repository",
         "--project-root",
         str(host),
         "--library-root",
@@ -549,8 +549,64 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "pending-implementation"
     )
     assert pending_rust_payload["unavailable"]["reason"] == (
-        "/adapt-project declares rust_disposition=rust-pending-implementation"
+        "/prevent-regression declares rust_disposition=rust-pending-implementation"
     )
+
+    for skill, task in (
+        ("adapt-project", "use adapt-project on this Rust repository"),
+        ("audit-decisions", "use audit-decisions on this Rust repository"),
+        ("explain-code", "use explain-code on this Rust source"),
+        (
+            "find-complexity-hotspots",
+            "use find-complexity-hotspots on this Rust source",
+        ),
+        (
+            "find-concept-divergence",
+            "use find-concept-divergence on this Rust source",
+        ),
+        ("find-duplication", "use find-duplication on this Rust source"),
+        (
+            "find-folder-topology-drift",
+            "use find-folder-topology-drift on this Rust source root",
+        ),
+        ("find-dormant", "use find-dormant on this Rust repository"),
+        (
+            "find-implicit-state",
+            "use find-implicit-state on this Rust repository",
+        ),
+        (
+            "find-incomplete-sweep",
+            "use find-incomplete-sweep on this Rust repository",
+        ),
+        ("find-omnibus", "use find-omnibus on this Rust source"),
+        (
+            "find-semantic-duplication",
+            "use find-semantic-duplication on this Rust source",
+        ),
+        (
+            "find-standard-gaps",
+            "use find-standard-gaps on this Rust source",
+        ),
+        ("rename-concept", "use rename-concept on this Rust repository"),
+    ):
+        rust_family = _run_isolated(
+            installed["which-skill"] / "scripts" / "match.py",
+            task,
+            "--project-root",
+            str(host),
+            "--library-root",
+            str(library_root),
+            "--language",
+            "rust",
+            "--json",
+            cwd=host,
+        )
+        rust_family_payload = _json_output(rust_family)
+        assert rust_family_payload["recommendation"] == skill
+        assert rust_family_payload["handoff"]["available"] is True
+        assert rust_family_payload["handoff"]["capabilities"]["skills"][0][
+            "rust_disposition"
+        ] == "rust-supported"
 
     rust_routed = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
@@ -632,7 +688,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "c_disposition": "c-pending-implementation",
         "cpp_disposition": "cpp-pending-implementation",
         "ruby_disposition": "ruby-pending-implementation",
-        "rust_disposition": "rust-pending-implementation",
+        "rust_disposition": "rust-supported",
         "fact_level": "lexical-filesystem",
         "outcome_class": "configuration-output",
         "framework_family": None,

@@ -1,6 +1,6 @@
 ---
 name: find-folder-topology-drift
-description: Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, Go, or Java filename clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript and TypeScript use a first `_` or `-` token, Go uses its first `_` token, and Java uses a leading CamelCase token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.
+description: Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, Go, Java, or Rust filename clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript, TypeScript, and Rust use a first `_` or `-` token, Go uses its first `_` token, and Java uses a leading CamelCase token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.
 argument-hint: "[--root PATH] [--javascript-root PATH] [--typescript-root PATH] [--go-root PATH] [--java-root PATH] [--min-cluster-size 3 --exclude PATTERN]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -20,7 +20,7 @@ not_for: |
   resolved-import contract.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java]
+scans: [python, javascript, typescript, go, java, rust]
 ---
 
 # /find-folder-topology-drift
@@ -124,6 +124,24 @@ the `--java-root` source-role inventory, leading-CamelCase cluster rule, native
 fixture check, incomplete states, and non-claims. This extends the preserved
 `scans: [python, javascript, typescript, go]` contract with a separately
 selected Java band.
+
+### Rust v1: explicit source roots only
+
+Pass one `--rust-root` to the copied Rust adapter. It groups eligible direct
+`.rs` siblings by the first `_` or `-` token and reports only clusters meeting
+the explicit threshold. `lib.rs`, tests, generated, vendor, target/build,
+examples/benches, `build.rs`, and symlinks cannot fire. This is a filename
+observation, not module ownership, import safety, framework convention, or a
+move recommendation.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-folder-topology-drift"
+python3 "${SKILL_ROOT}/scripts/detect_rust.py" \
+  --project-root "$PWD" --rust-root src --min-cluster-size 3 \
+  --output "$PWD/reports/find-folder-topology-drift/rust/detections.jsonl"
+```
+
+The copied closure must include sibling `_rust/rust_lexical_facts.py`.
 
 ## Pipeline
 

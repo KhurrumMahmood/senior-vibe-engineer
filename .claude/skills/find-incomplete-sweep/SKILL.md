@@ -7,21 +7,22 @@ description: |
   band; TypeScript/TSX and checked JavaScript use the host-pinned TypeScript Compiler API to group
   resolved project function calls by object-option property presence; Go uses host Go `go/types`
   for one direct top-level function / keyed struct-option shape; Java 17 uses the JDK
-  compiler tree API for one direct record/options-constructor shape. Gated on a git-trajectory
+  compiler tree API for one direct record/options-constructor shape; Rust uses
+  compiler-resolved direct calls for one struct-option omission shape. Gated on a git-trajectory
   signal: a divergence counts as a forgotten sweep only when the
   kwarg-present sites were touched more recently than the straggler (the sweep
   landed after the straggler was last edited). A straggler edited just as
   recently is reported separately as likely-deliberate. Distinguishes
   abandoned partial work from legitimate post-completion cleanup via residue
   direction. Detection-only — never edits code; hands off to /fix-workflow.
-argument-hint: "Python: [--band kwarg|placeholder|all] --paths scripts ...; TypeScript/JavaScript: --target src --tsconfig <config>; Go/Java: --target . --report-dir reports/find-incomplete-sweep/<name>"
+argument-hint: "Python: [--band kwarg|placeholder|all] --paths scripts ...; TypeScript/JavaScript: --target src --tsconfig <config>; Go/Java/Rust: --target . --report-dir reports/find-incomplete-sweep/<name>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java]
+scans: [python, typescript, javascript, go, java, rust]
 best_for: |
   Reviewing a human- or AI-authored multi-file change where a sweep across
   sibling call sites may have stopped short: a new keyword argument threaded
@@ -53,6 +54,23 @@ delegate_from: |
 ---
 
 # /find-incomplete-sweep
+
+## Rust v1
+
+Rust v1 emits one compiler-resolved direct-call/struct-option omission
+manifest, then preserves the existing scout packet and fixed human-verdict
+triage. Dynamic calls, unresolved types, macros/cfg, traits/generics, optional
+targets, and missing Git evidence remain deferred. Copy sibling
+`map-subsystem` with this skill.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-incomplete-sweep"
+REPORT_DIR="$PWD/reports/find-incomplete-sweep/rust"
+python3 "${SKILL_ROOT}/scripts/detect_rust_incomplete_sweep.py" \
+  --project-root "$PWD" --target . --report-dir "$REPORT_DIR"
+python3 "${SKILL_ROOT}/scripts/scout.py" --scan-dir "$REPORT_DIR" --project-root "$PWD"
+python3 "${SKILL_ROOT}/scripts/triage.py" --scan-dir "$REPORT_DIR"
+```
 
 Detects **forgotten call sites** — a change applied to N-1 of N
 structurally-similar sites, leaving one sibling at the old shape. The

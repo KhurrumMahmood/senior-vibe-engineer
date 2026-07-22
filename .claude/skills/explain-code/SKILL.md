@@ -1,6 +1,6 @@
 ---
 name: explain-code
-description: Read-only EXPLAIN skill that converts a Python, Go, Java, JavaScript-family, or TypeScript/TSX target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Unsupported surfaces remain visible instead of being inferred.
+description: Read-only EXPLAIN skill that converts a Python, Go, Java, JavaScript-family, TypeScript/TSX, or bounded Rust target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Unresolved surfaces remain visible instead of being inferred.
 argument-hint: "<file-path-or-directory-or-subsystem-name>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -18,7 +18,7 @@ not_for: |
   Refactor execution (use /fix-workflow or /refactor-subsystem).
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java]
+scans: [python, javascript, typescript, go, java, rust]
 ---
 
 # /explain-code
@@ -152,6 +152,26 @@ generated/Lombok members, overrides, frameworks, or runtime dispatch. Tests,
 generated source, fixtures, and vendor/dependency paths are excluded. Malformed
 source/helper output is `failed`; a missing/old JDK is `unsupported`. Successful
 inventory and final rendering remain read-only.
+
+## Rust v1 contract
+
+Rust v1 explains direct lexical public declarations only. It annotates ordinary
+public structs, enums, and functions with exact source spans/hashes while
+keeping private declarations out and re-exports, aliases, resolved callers,
+types, macro output, cfg variants, traits/generics, unsafe/FFI, and behavior in
+the unexplained sidecars. Missing/old tools are `partial`, not unsupported.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/explain-code"
+python3 "${SKILL_ROOT}/scripts/explain_rust.py" \
+  --project-root "$PWD" --target src \
+  --output "$PWD/reports/explanations/rust.md"
+```
+
+The copied closure must include the sibling
+`.agents/skills/on-demand/_rust/rust_lexical_facts.py`. Final output includes
+the explanation, `targets.json`, `scan.json`, annotations, `unexplained.txt`,
+and `surprises.txt` without editing source.
 
 ## Scope
 

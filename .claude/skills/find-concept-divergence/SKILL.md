@@ -31,7 +31,7 @@ not_for: |
   (deferred — strict canonical-name + avoid-term grep only in v1).
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, markdown, templates]
+scans: [python, javascript, typescript, go, java, rust, markdown, templates]
 ---
 
 # /find-concept-divergence
@@ -83,6 +83,24 @@ non-claims.
 This extends the preserved
 `scans: [python, javascript, typescript, go, markdown, templates]` contract
 with one separately selected Java band.
+
+Rust is a separate strict-text mode over authored `.rs` source. It uses the
+copied `_rust/rust_lexical_facts.py` inventory/native gate and records exact
+glossary-term spans and hashes; generated, vendor, target/build, test,
+auxiliary, configuration, and symlink roles remain visible but cannot fire.
+This is textual evidence, not symbol identity or semantic equivalence.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-concept-divergence"
+REPORT_DIR="$PWD/reports/find-concept-divergence/rust"
+python3 "${SKILL_ROOT}/scripts/scan_rust.py" \
+  --project-root "$PWD" \
+  --glossary "$PWD/.claude/contracts/concepts.yaml" \
+  --output "${REPORT_DIR}/findings.jsonl" \
+  --report "${REPORT_DIR}/report.md" .
+```
+
+The copied closure must include sibling `_rust/rust_lexical_facts.py`.
 
 ## How success is judged
 
