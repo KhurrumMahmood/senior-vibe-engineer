@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, or dependency-free SwiftPM subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, or compile-database-backed C subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -17,7 +17,7 @@ not_for: |
   execution (use /refactor-subsystem with a spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, swift]
+scans: [python, typescript, javascript, go, java, php, swift, c]
 ---
 
 # /map-subsystem
@@ -339,6 +339,34 @@ fi
 ```
 <!-- installed-command:php-map:end -->
 
+## C v1
+
+Use this branch for a `.c`/`.i` subsystem whose host supplies Clang and
+clangd 21+ plus a current, complete C17 `compile_commands.json`. The copied
+helper maps selected translation units, compiler-owned headers, declarations,
+public surface, resolved include dependencies, and shared-header edges. It
+writes one durable Markdown map and one JSON evidence artifact while preserving
+source fingerprints.
+
+The claim is limited to the exact recorded compile-command snapshot. Macro
+expansion and inactive branches, function-pointer targets, ABI/layout,
+arbitrary build variants, C++, Objective-C, and framework semantics remain
+unavailable. Missing, malformed, stale, incomplete, or non-C compile commands
+produce explicit terminal artifacts; clangd output is never accepted as a
+fallback for missing compiler attribution.
+
+```bash
+MAP_NAME="${MAP_NAME:-c-subsystem}"
+MAP_TARGET="${MAP_TARGET:-src}"
+SKILL_ROOT=".agents/skills/on-demand/map-subsystem"
+python3 "${SKILL_ROOT}/scripts/map_c.py" \
+  --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$PWD" \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/c-map.json" \
+  --clang "$(command -v clang)" --clangd "$(command -v clangd)"
+make test
+```
+
 ## How success is judged
 
 - Python maps are complete per `knowledge/output-format.md`: file inventory,
@@ -353,6 +381,8 @@ fi
   source facts are complete; unresolved or Kotlin coverage stays `partial`.
   PHP v1 follows `knowledge/php-v1.md`: only linted, validated Composer PSR-4
   class-file/import facts are complete; dynamic semantics remain unavailable.
+  C v1 is complete only for the exact current C17 compile-command snapshot and
+  compiler dependency closure; every listed non-claim remains explicit.
 - On `--refresh`, the doc opens with a diff section against the prior
   version — what changed, not just what is.
 - The run cites artifact truth: pasted `render_doc.py` `wrote ...`
@@ -568,6 +598,7 @@ counts, and one evidence-based next job (`/fix-workflow`, a SUSPECT skill,
 │   ├── map_go.go                 # Go v1 package map + final artifacts
 │   ├── map_java.java             # Java v1 package map + final artifacts
 │   ├── map_php.php               # PHP v1 Composer PSR-4 static map + final artifacts
+│   ├── map_c.py                  # C v1 compile-database map + final artifacts
 │   └── render_doc.py             # Python Stages 6-7 — renders the doc + appends log
 └── knowledge/
     ├── go-v1.md                  # bounded active-build Go contract

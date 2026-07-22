@@ -104,6 +104,7 @@ SKILL_DEVELOPMENT_ACTIONS = frozenset({
 WORD_RE = re.compile(r"[a-z][a-z0-9_-]+")
 
 LANGUAGE_ALIASES = {
+    "c": "c",
     "go": "go",
     "golang": "go",
     "java": "java",
@@ -120,6 +121,9 @@ LANGUAGE_ALIASES = {
 }
 LEXICAL_LANGUAGE_TOKENS = frozenset(LANGUAGE_ALIASES)
 LANGUAGE_MARKERS = {
+    "c": re.compile(
+        r"(?i)(?:\bC(?:17|23)?\b(?=\s+(?:project|repo|repository|library|code|source|file))|\.c\b|\.i\b)"
+    ),
     "go": re.compile(
         r"(?:\bGolang\b|\bGo\b(?=\s+(?:project|repo|repository|module|service|"
         r"package|code|source|file|CLI|application|app)\b)|\.go\b)"
@@ -597,6 +601,7 @@ CAPABILITY_FIELDS = (
     "java_disposition",
     "php_disposition",
     "swift_disposition",
+    "c_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -708,6 +713,11 @@ def capability_language_exclusion(capabilities: dict, routing_context: dict) -> 
                     f"/{row['skill']} declares swift_disposition="
                     f"{row['swift_disposition']}"
                 )
+            if language == "c" and row["c_disposition"] not in {
+                "c-supported",
+                "validated-neutral",
+            }:
+                return f"/{row['skill']} declares c_disposition={row['c_disposition']}"
     return None
 
 

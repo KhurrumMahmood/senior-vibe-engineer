@@ -24,6 +24,7 @@ DEFAULT_GO_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "go-language-coverage.js
 DEFAULT_JAVA_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "java-language-coverage.json"
 DEFAULT_PHP_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "php-language-coverage.json"
 DEFAULT_SWIFT_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "swift-language-coverage.json"
+DEFAULT_C_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "c-language-coverage.json"
 DEFAULT_OUTPUT = REPO_ROOT / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
 
 DISPOSITION_MAP = {
@@ -476,6 +477,23 @@ def _swift_coverage(payload: dict) -> dict[str, dict]:
     return coverage
 
 
+def _c_coverage(payload: dict) -> dict[str, dict]:
+    coverage = _simple_language_coverage(
+        payload,
+        language="C",
+        suffixes=[".c", ".i"],
+        supported_disposition="c-supported",
+    )
+    for skill, row in coverage.items():
+        if row["disposition"] in {"c-partial", "c-unsupported"} and not row.get("limitation"):
+            raise ValueError(f"bounded C row lacks a limitation: {skill}")
+    if payload.get("decision") not in {"expand", "stop-after-pilot"}:
+        raise ValueError("C coverage must record an expand or stop-after-pilot decision")
+    if not isinstance(payload.get("decision_reason"), str) or not payload["decision_reason"]:
+        raise ValueError("C coverage decision needs a reason")
+    return coverage
+
+
 def build_matrix(
     catalog_path: Path,
     coverage_path: Path,
@@ -484,6 +502,7 @@ def build_matrix(
     java_coverage_path: Path,
     php_coverage_path: Path,
     swift_coverage_path: Path,
+    c_coverage_path: Path,
 ) -> dict:
     catalog_payload = _read_json(catalog_path)
     coverage_payload = _read_json(coverage_path)
@@ -492,6 +511,7 @@ def build_matrix(
     java_payload = _read_json(java_coverage_path)
     php_payload = _read_json(php_coverage_path)
     swift_payload = _read_json(swift_coverage_path)
+    c_payload = _read_json(c_coverage_path)
     catalog = {row["name"]: row for row in catalog_payload.get("skills", [])}
     coverage = {row["skill"]: row for row in coverage_payload.get("skills", [])}
     javascript_coverage = _javascript_coverage(javascript_payload)
@@ -499,6 +519,7 @@ def build_matrix(
     java_coverage = _java_coverage(java_payload)
     php_coverage = _php_coverage(php_payload)
     swift_coverage = _swift_coverage(swift_payload)
+    c_coverage = _c_coverage(c_payload)
     if not catalog or set(catalog) != set(coverage):
         raise ValueError("catalog and TypeScript coverage must contain the same skills")
 
@@ -646,6 +667,24 @@ def build_matrix(
             swift_reviewed_revision = None
             swift_limitation = None
 
+        if expansion == "language-level":
+            c = c_coverage[skill]
+            c_disposition = c["disposition"]
+            c_evidence_path = c.get("evidence_path")
+            c_native_check = c.get("native_check")
+            c_reviewed_revision = c.get("reviewed_revision")
+            c_limitation = c.get("limitation")
+        else:
+            c_disposition = {
+                "validated-neutral": "validated-neutral",
+                "framework-bound": "stack-bound",
+                "ecosystem-runtime": "ecosystem-runtime",
+            }[expansion]
+            c_evidence_path = None
+            c_native_check = None
+            c_reviewed_revision = None
+            c_limitation = None
+
         rows.append(
             {
                 "skill": skill,
@@ -676,6 +715,11 @@ def build_matrix(
                 "swift_native_check": swift_native_check,
                 "swift_reviewed_revision": swift_reviewed_revision,
                 "swift_limitation": swift_limitation,
+                "c_disposition": c_disposition,
+                "c_evidence_path": c_evidence_path,
+                "c_native_check": c_native_check,
+                "c_reviewed_revision": c_reviewed_revision,
+                "c_limitation": c_limitation,
                 "fact_level": fact_level,
                 "outcome_class": outcome_class,
                 "framework_family": framework_family,
@@ -723,6 +767,7 @@ def build_matrix(
             {"path": _relative(java_coverage_path), "sha256": _sha256(java_coverage_path)},
             {"path": _relative(php_coverage_path), "sha256": _sha256(php_coverage_path)},
             {"path": _relative(swift_coverage_path), "sha256": _sha256(swift_coverage_path)},
+            {"path": _relative(c_coverage_path), "sha256": _sha256(c_coverage_path)},
         ],
         "counts": {
             "validated-neutral": counts["validated-neutral"],
@@ -772,6 +817,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--java-coverage", type=Path, default=DEFAULT_JAVA_COVERAGE)
     parser.add_argument("--php-coverage", type=Path, default=DEFAULT_PHP_COVERAGE)
     parser.add_argument("--swift-coverage", type=Path, default=DEFAULT_SWIFT_COVERAGE)
+    parser.add_argument("--c-coverage", type=Path, default=DEFAULT_C_COVERAGE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
@@ -791,6 +837,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.java_coverage,
                 args.php_coverage,
                 args.swift_coverage,
+                args.c_coverage,
             )
         )
     except ValueError as exc:

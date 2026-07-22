@@ -34,6 +34,9 @@ ORDERED_FIRST_PHASE_RE = re.compile(
     r"[,;.]?\s+after\s+(?:approval|that|this)\b)"
 )
 LANGUAGE_MARKERS = {
+    "c": re.compile(
+        r"(?i)(?:\bC(?:17|23)?\b(?=\s+(?:project|repo|repository|library|code|source|file))|\.c\b|\.i\b)"
+    ),
     "python": re.compile(r"(?i)(?:\bpython\b|\.py\b)"),
     "typescript": re.compile(r"(?i)(?:\btypescript\b|\.tsx?\b)"),
     "javascript": re.compile(r"(?i)(?:\bjavascript\b|(?:\.[cm]?js|\.jsx)\b)"),
@@ -685,6 +688,9 @@ def _apply_task_capability_gate(handoff: dict[str, Any], task: str) -> None:
             elif language == "swift":
                 disposition = row["swift_disposition"]
                 eligible = disposition in {"swift-supported", "validated-neutral"}
+            elif language == "c":
+                disposition = row["c_disposition"]
+                eligible = disposition in {"c-supported", "validated-neutral"}
             elif language == "python":
                 continue
             else:
@@ -722,6 +728,7 @@ CAPABILITY_FIELDS = (
     "java_disposition",
     "php_disposition",
     "swift_disposition",
+    "c_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",

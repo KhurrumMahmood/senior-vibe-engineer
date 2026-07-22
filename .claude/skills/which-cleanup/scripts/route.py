@@ -282,6 +282,7 @@ CAPABILITY_FIELDS = (
     "java_disposition",
     "php_disposition",
     "swift_disposition",
+    "c_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",

@@ -6,7 +6,7 @@ description: |
   Flags detached section banners, narration comments, missing or thin
   public class docstrings, stale terminology, JavaScript and TypeScript
   functions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML
-  comments, fragile doc references, and bounded Go, Java, and PHP lexical-comment surfaces.
+  comments, fragile doc references, and bounded Go, Java, PHP, and C lexical-comment surfaces.
 argument-hint: "[paths... - no paths uses the detector's legacy default surface]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -24,7 +24,7 @@ not_for: |
   existing lints for behavior and correctness.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, templates]
+scans: [python, javascript, typescript, go, java, php, c, templates]
 ---
 
 # /find-comment-drift
@@ -65,6 +65,14 @@ PHP is an explicit native lexical/syntax mode. The copied helper uses
 and distinguishes a clean complete scan from incomplete or unavailable
 evidence without loading Composer packages.
 
+C is a separate copied-helper mode rather than a branch of the legacy
+detector. `scripts/analyze_comments_c.py` uses Clang 21+ raw tokens and exact
+source bytes over `.c`/`.i` files. Headers are eligible only when a current,
+complete C17 `compile_commands.json` proves they belong to the selected
+translation-unit dependency closure. The result is lexical: macro expansion,
+inactive branches, comment-to-symbol meaning, C++, Objective-C, and framework
+conventions are explicit non-claims.
+
 ## How success is judged
 
 - The run is graded only by artifacts: pasted detector/reporter output
@@ -88,6 +96,9 @@ evidence without loading Composer packages.
   `clean-within-complete`, `incomplete`, `unsupported`, or `failed` outcome in
   `scan.json` and the explicitly selected JSON report. Missing/old PHP and
   native provider failures are never relabeled clean.
+- A C run records `complete`, `partial`, `unsupported`, or `failed` plus a
+  final `findings.json`. Missing/old Clang, ambiguous headers, stale/incomplete
+  compile commands, syntax failures, and provider failures remain visible.
 
 ## Default Target
 
@@ -243,6 +254,22 @@ python3 "${COMMENT_SKILL}/scripts/report.py" \
   --output-json reports/find-comment-drift/php-pilot/report.json --target .
 php -l path/to/representative.php
 ```
+
+For a C17 host, run the copied helper directly. The host owns Clang and its
+compile database; this skill installs neither.
+
+```bash
+COMMENT_SKILL=".agents/skills/on-demand/find-comment-drift"
+COMMENT_REPORT="reports/find-comment-drift/c-pilot"
+mkdir -p "${COMMENT_REPORT}"
+python3 "${COMMENT_SKILL}/scripts/analyze_comments_c.py" \
+  --project-root "$PWD" --clang "$(command -v clang)" \
+  --output "${COMMENT_REPORT}/detections.jsonl" .
+make test
+```
+
+The helper writes `detections.jsonl`, `scan.json`, `report.md`, and
+`findings.json` atomically and preserves selected source bytes.
 
 ## Detector Bands
 
