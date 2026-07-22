@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P7 Swift spine — bounded SwiftPM pilot; C#/.NET deferred to the end of the language queue
-Last updated: 2026-07-22 (language toolchain dependencies are tracked explicitly; no silent installs)
+Current phase: P7 Swift syntax, semantic, and mutation cohort lanes from frozen spine `09248d4`
+Last updated: 2026-07-22 (Swift spine passed; three disjoint final-outcome cohorts next)
 
 ## Objective
 
@@ -105,7 +105,7 @@ execution authorities.
 | P4 | PHP pilot proves real outcomes and kit economics | `done` | `268c3ac` |
 | P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `deferred_to_final_language` | — |
 | P6 | Shared components promoted or rejected on evidence | `not_started` | — |
-| P7 | Remaining selected languages receive honest coverage | `swift_spine_in_progress` | — |
+| P7 | Remaining selected languages receive honest coverage | `swift_cohorts_in_progress` | — |
 | P8 | Current journey, update/repair, and help are measured | `not_started` | — |
 | P9 | Only measured user-journey improvements are adopted | `not_started` | — |
 
@@ -526,7 +526,7 @@ Per-language status:
 | Typed-pilot expansion | `awaiting_p5_decision` | P5-owned | — | — | — | — |
 | Ruby | `deferred_unhealthy_toolchain` | System Ruby 2.6.10 is too old for representative syntax; private Ruby 3.3/rbenv paths time out | — | — | `.claude/tasks/p7-preflight/ruby.md` | — |
 | Rust | `toolchain_missing` | `cargo`/`rustc` absent | — | — | — | — |
-| Swift | `spine_in_progress` | Swift 6.3.3, SwiftPM, SourceKit-LSP, index and symbol tools available; SwiftSyntax and native test modules absent under CLT-only setup | Frozen contracts next: syntax, semantic/project, mutation | Not published | `.claude/tasks/p7-preflight/swift.md` | base `ef07cca` |
+| Swift | `cohorts_in_progress` | SwiftPM-only profile/doctor/inventory and restrictive native fixture frozen; SwiftSyntax and native test modules remain unavailable under CLT-only setup | Contracts frozen for `find-omnibus`, `map-subsystem`, and `move-path`; no support claim yet | Not published | `.claude/tasks/p7-preflight/swift.md`; `.claude/tasks/p7-baseline/swift-pilot-baseline.json` | spine `09248d4` |
 | Dart | `toolchain_missing` | `dart`/Flutter absent | — | — | — | — |
 | Kotlin | `toolchain_missing` | `kotlin`/`kotlinc` absent | — | — | — | — |
 | C/C++ | `preflight_complete_queued` | Separate C and C++ profiles required; Clang/clangd 21 available, CMake absent, trustworthy compile DB required | — | — | `.claude/tasks/p7-preflight/c-cpp.md` | — |
@@ -553,6 +553,13 @@ execution dependent on host-owned or exact on-demand-closure tools.
 For every new preflight, add any newly discovered required or optional tool to
 this register before opening implementation worktrees. Missing optional tools
 produce an explicit limitation; they do not automatically become dependencies.
+
+Swift slice evidence:
+
+| Check | Command/artifact | Result | Revision |
+|---|---|---|---|
+| Three-language preflight and selection | `.claude/tasks/p7-preflight/{swift,ruby,c-cpp}.md` | Swift selected; Ruby deferred for unhealthy runtime; C and C++ queued as separate compile-database-gated profiles | `ef07cca` |
+| SwiftPM spine | `scripts/language_profiles/swift.json`; `.claude/tasks/p7-baseline/swift-pilot-baseline.json`; `.claude/tasks/swift-language-coverage.json`; `tests/test_swift_pilot_spine.py` | Restrictive dependency-free build, executable smoke, typecheck/AST, malformed/source-role/symlink/tool-precedence/source-preservation boundaries pass; all 22 rows remain unsupported; main replay `36 passed` including PHP spine | `09248d4` |
 
 ## P8 — Measure the current journey and finish lifecycle/help semantics
 
@@ -684,6 +691,7 @@ Evidence:
 | 2026-07-21 | P2 | Completed | `60898a7`; public Go/Java claims, accepted coverage, generated matrix, router capability output, and shared inventory agree. The final public list/install/bootstrap/route/`adapt-project`/cleanup/remove replay passed with exact router-tree/library revision coherence, runtime setup, host-source preservation, sentinel preservation, and library retention. Begin P3.0 baseline/worktree inventory; do not revise P2 further unless a reproduced installer regression appears. |
 | 2026-07-22 | P4 | Completed; expansion stopped | Three bounded PHP outcomes reach final artifacts and native checks. The 22-row matrix/router truth is published. LOC and closure economics failed, so correct implementations remain family-local and the other 19 skills remain explicitly unsupported. P5 readiness confirms `dotnet` is absent and no install was attempted. |
 | 2026-07-22 | P7 | Three preflights completed; Swift selected | `ef07cca`; Swift, Ruby, and C/C++ evidence lives under `.claude/tasks/p7-preflight/`. Begin one root-owned SwiftPM spine from that revision: profile/doctor/inventory, representative host, three frozen final-outcome contracts, and 22 initial unsupported dispositions. Ruby and C/C++ remain queued; no concurrent product implementation. |
+| 2026-07-22 | P7 | SwiftPM spine completed | `09248d4`; strict Swift profile, doctor/inventory truth, restrictive dependency-free fixture, executable smoke, syntax/malformed boundaries, three frozen contracts, and 22 unsupported rows pass. Open three disjoint cohort worktrees from this spine; root serially integrates and publishes only earned support. |
 | 2026-07-21 | P3 | Started | Freeze the exact `60898a7` TypeScript+Java `find-omnibus` baseline and review the 87 registered/59 previously prunable worktree registrations before opening any P3 worker lane. |
 | 2026-07-21 | P3.0 | Completed | Committed evidence freezes the existing-substrate decisions, exact TypeScript/Java projections and exclusions, copied closure bytes, fixture manifests, maintained LOC, OpenJDK 17.0.20/TypeScript 5.9.3 toolchain, full `18 passed` correctness run, and cold plus seven alternating warm trials. Registration-only pruning reduced 87 worktree records to 28 without deleting a path, branch, commit, or dirty worktree. P3.1 may now start from this spine. |
 | 2026-07-21 | P3.1 | Completed | Added strict stdlib-only profiles for the five currently inventoried languages and a narrow lifecycle module. The deletion/caller-knowledge test is satisfied by two immediate consumers (TypeScript and Java omnibus); profiles remove duplicated suffix/tool/role/command/limit declarations, while lifecycle removes only atomic-write, stale-clear, source-hash, and terminal-vocabulary policy. No semantic result schema, adapter layer, installer, cache, mutation executor, or framework profile was added. P3.2 may extend the existing inventory from this spine. |
