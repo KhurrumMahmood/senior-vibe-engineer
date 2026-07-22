@@ -102,9 +102,9 @@ Two detector bands, selected with `--band` (default `kwarg`):
 
 Load `knowledge/go-v1.md`. The family-local `go list` + `go/parser` + `go/types`
 analyzer admits direct project top-level calls with one keyed struct-option omission,
-identical comparable values, and every present line newer in Git. It defers
-ambiguous/dynamic calls and unavailable evidence. Use manifest
-`present_sites`, the fixed verdict, and `triage.py` as documented in that guide.
+identical comparable values, and **every** present line newer in Git. It defers
+ambiguous/dynamic calls and unavailable evidence. Use manifest `present_sites`,
+the fixed verdict, and `triage.py`. Run the copied-install command and outcome boundaries in that guide.
 ## Java 17 v1
 
 Load `knowledge/java-v1.md` for the direct record-construction, three-to-one,
