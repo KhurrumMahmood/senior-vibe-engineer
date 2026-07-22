@@ -7,6 +7,12 @@ TypeScript implementation history. The machine-readable inventory is
 `.claude/tasks/multilanguage-skill-matrix.json`; raw evidence remains under
 `.claude/tasks/multilanguage-learnings/` and the cited test files.
 
+For the reusable native-tooling shape synthesized across TypeScript,
+JavaScript, Go, and Java, read
+`.claude/docs/language-support-development.md` before
+selecting or building another parser, compiler adapter, analyzer integration,
+artifact runner, or conformance harness.
+
 For every skill, the matrix records the current relative on-demand closure:
 each selected/companion skill root, `SKILL.md`, bundled `scripts/` directory
 when present, and the shared `scripts`, `_common`, and docs roots. Resolve those

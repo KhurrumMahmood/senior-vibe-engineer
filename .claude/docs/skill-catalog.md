@@ -553,6 +553,9 @@ makes `/which-skill` work.
   contract every new skill declares.
 - `.claude/skills/_common/portability-roadmap.md` — the future
   `_lib/{core,language,framework,repo}/` reorg.
+- `.claude/docs/language-support-development.md` — the current contributor
+  contract for native-tool selection, provider tiers, conformance, batching,
+  and promotion of shared language infrastructure.
 - `.claude/docs/architectural-smells.md` — catalog of the eight
   architectural smells the SUSPECT skills target.
 - `.claude/docs/canonical-patterns.md` — the law every PLAN /

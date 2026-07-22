@@ -27,9 +27,9 @@ one-off discoveries into repeatable guardrails.
   (positive law), `architectural-smells.md` (negative form),
   `linting.md`, `testing.md`, `development-workflow.md`,
   `senior-engineer-posture.md`, `quality-coordination-kernel.md`,
-  `folder-organization.md`, `sub-agents.md`,
-  `cross-tool-agent-governance.md`, `skill-catalog.md`,
-  `precedents.yml`.
+  `folder-organization.md`, `language-support-development.md`,
+  `installation-and-on-demand-library.md`, `sub-agents.md`,
+  `cross-tool-agent-governance.md`, `skill-catalog.md`, `precedents.yml`.
 - `scripts/lint/` -- diff-scoped lints (silent-catch, stringly-status,
   query-mutation, fat-view, safe-dispatch, comment-drift,
   codegen-emits-new-paths). Host projects extend by adding a new

@@ -196,6 +196,15 @@ active language-compatibility pass reaches its checkpoint:
    whole skill catalog.
 5. **Outcome telemetry:** prefer resolved/adopted/deferred/regression-held
    outcomes over additional activity dashboards.
+6. **Optional host-instruction integration:** preserve ADR 0038's exact-three
+   ambient-router default and external on-demand library, while offering an
+   explicit previewed choice to add a lean signpost or selected guidance to
+   existing `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, and equivalent surfaces.
+   Delegated task packets must carry applicable shared/model-specific guidance
+   because a fresh worker may use a different model and does not inherit the
+   parent context. Track the proposed shape and acceptance criteria in
+   `.claude/docs/installation-and-on-demand-library.md`; do not begin it
+   before the active language-compatibility checkpoint.
 
 Both reviews explicitly rejected a universal DAG/context cache, autonomous
 mutation platform, blanket skill compression, more attestation hardening, and
