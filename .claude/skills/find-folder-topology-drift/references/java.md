@@ -25,6 +25,10 @@ if [ -z "${SKILL_ROOT}" ]; then
 fi
 python3 "${SKILL_ROOT}/scripts/detect.py" --project-root "$PWD" --java-root src/main/java \
   --output reports/find-folder-topology-drift/scan-java/detections.jsonl
+DETECTOR_RC=$?
+if [ "${DETECTOR_RC}" -ne 0 ]; then
+  exit "${DETECTOR_RC}"
+fi
 python3 "${SKILL_ROOT}/scripts/report.py" \
   --detections reports/find-folder-topology-drift/scan-java/detections.jsonl \
   --output-md reports/find-folder-topology-drift/scan-java/report.md \

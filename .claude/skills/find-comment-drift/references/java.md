@@ -25,6 +25,10 @@ if [ -z "${SKILL_ROOT}" ]; then
 fi
 python3 "${SKILL_ROOT}/scripts/detect.py" --project-root "$PWD" --language java \
   --output reports/find-comment-drift/scan-java/detections.jsonl .
+DETECTOR_RC=$?
+if [ "${DETECTOR_RC}" -ne 0 ]; then
+  exit "${DETECTOR_RC}"
+fi
 python3 "${SKILL_ROOT}/scripts/report.py" \
   reports/find-comment-drift/scan-java/detections.jsonl \
   --output reports/find-comment-drift/scan-java/report.md --target .
