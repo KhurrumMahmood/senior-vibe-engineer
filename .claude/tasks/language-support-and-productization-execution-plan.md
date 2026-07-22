@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P3 — parallel doctor and conformance lanes from the P3.2 spine
-Last updated: 2026-07-21 (P2 and P3.0-P3.2 complete; P3.3-P3.4 next)
+Current phase: P4 — PHP final-outcome and economics pilot preflight
+Last updated: 2026-07-21 (P3 complete at `f249d9a`; P4 spine preflight next)
 
 ## Objective
 
@@ -101,8 +101,8 @@ execution authorities.
 |---|---|---|---|
 | P1 | Durable docs and execution ledger committed | `done` | `cc2a4fc` |
 | P2 | Release truth aligned; public install/library journey replayed | `done` | `60898a7` |
-| P3 | Minimal reusable language-support kit scaffold proven | `in_progress` | — |
-| P4 | PHP pilot proves real outcomes and kit economics | `not_started` | — |
+| P3 | Minimal reusable language-support kit scaffold proven | `done` | `f249d9a` |
+| P4 | PHP pilot proves real outcomes and kit economics | `in_progress` | — |
 | P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `not_started` | — |
 | P6 | Shared components promoted or rejected on evidence | `not_started` | — |
 | P7 | Remaining selected languages receive honest coverage | `not_started` | — |
@@ -229,30 +229,30 @@ Acceptance:
   roles, native tools, fact tiers, verification commands, and explicit limits.
   The loader runs under isolated/no-site Python and rejects duplicate suffixes,
   unsafe command shapes, unknown roles/outcomes, and schema drift.
-- [ ] A read-only doctor resolves project-local before system tools and reports
+- [x] A read-only doctor resolves project-local before system tools and reports
   available, too-old, unavailable, and limited capabilities without installing
   dependencies.
 - [x] Shared source inventory covers source/test/generated/vendor/build/
   declaration/configuration/tooling/symlink roles from profile data.
-- [ ] A small lifecycle/conformance interface defines terminal status, atomic
+- [x] A small lifecycle/conformance interface defines terminal status, atomic
   artifacts, stale-output clearing, source manifests, exact documented-command
   replay, and valid-to-failed same-destination behavior.
-- [ ] The lifecycle surface shares only atomic text/JSON output, stale-output
+- [x] The lifecycle surface shares only atomic text/JSON output, stale-output
   clearing, and source-manifest mechanics. Read-only conformance extends
   `tests/support/portability_journey.py`; mutations, rollback, final artifact
   schemas, and domain-level clean results remain skill-owned.
-- [ ] The scaffold is exercised through the installed/on-demand
+- [x] The scaffold is exercised through the installed/on-demand
   `find-omnibus` TypeScript and Java paths, including positive, clean,
   malformed, missing/old-tool, excluded-role, valid-to-failed, and
   failed-to-valid cases without changing final outcome claims.
-- [ ] Interface-depth checks identify the real consumers and what policy the
+- [x] Interface-depth checks identify the real consumers and what policy the
   shared surface removes from them; no universal semantic result schema is
   added.
-- [ ] The kit runs from an exact on-demand closure without a hidden repository
+- [x] The kit runs from an exact on-demand closure without a hidden repository
   import or network requirement.
 - [x] Focused tests and a size/latency baseline are recorded for comparison in
   P4 and P5.
-- [ ] P3 adds no universal AST/fact/result/proposal schema, mutation executor,
+- [x] P3 adds no universal AST/fact/result/proposal schema, mutation executor,
   package installer, dependency cache, framework profile, or scaffolder, and
   does not migrate all 22 skills.
 
@@ -298,7 +298,12 @@ Evidence:
 | Existing-substrate/interface-depth gate | `.claude/tasks/p3-baseline/existing-substrate-inventory.md` | Extends source inventory, capability publication, portability journey, and only proven skill-local lifecycle mechanics; rejects competing/broader abstractions | `f56a5f3` spine |
 | Frozen `find-omnibus` baseline | `.claude/tasks/p3-baseline/find-omnibus-baseline.json` | Exact `60898a7` skill tree/fixtures/toolchain/projections/negative boundaries/closure bytes/LOC frozen; TypeScript+Java suite `18 passed`; cold plus seven alternating warm trials recorded | `f56a5f3` spine |
 | Strict profile/lifecycle contract | `scripts/language_profiles/*.json`; `scripts/_lib/language_support/{profile,lifecycle}.py`; `tests/test_language_support_{profile,lifecycle}.py` | Five current inventory languages load under isolated/no-site Python; duplicate suffixes, schema drift, unknown roles/outcomes, unsafe argv, and symlinks fail closed; lifecycle is limited to terminal vocabulary, atomic text/JSON, bounded stale clearing, and source manifests; `20 passed` | `7236d4e` P3.1 spine |
-| Profile-driven shared inventory | `scripts/source_inventory.py`; `tests/test_source_inventory.py`; `tests/test_portability_journey_harness.py` | Existing Python/JavaScript/TypeScript/Go/Java projections and reasons preserved; source/test/generated/vendor/build/declaration/configuration/tooling/migration/symlink roles pass; isolated profile override changes suffix and role behavior; external-library fixture hashes the expanded exact closure; widened consumer suite `96 passed` | P3.2 spine (this commit) |
+| Profile-driven shared inventory | `scripts/source_inventory.py`; `tests/test_source_inventory.py`; `tests/test_portability_journey_harness.py` | Existing Python/JavaScript/TypeScript/Go/Java projections and reasons preserved; source/test/generated/vendor/build/declaration/configuration/tooling/migration/symlink roles pass; isolated profile override changes suffix and role behavior; external-library fixture hashes the expanded exact closure; widened consumer suite `96 passed` | `a880251` |
+| Read-only doctor | `scripts/language_doctor.py`; `tests/test_language_doctor.py` | Project-local precedence and available/too-old/unavailable/limited outcomes pass without writes, installs, or network; focused suite `8 passed`, integrated profile/inventory suite `26 passed` | `45f3c9c` |
+| Installed/on-demand lifecycle conformance | `tests/support/portability_journey.py`; `tests/test_language_support_conformance.py`; `.claude/skills/find-omnibus/scripts/detect.py` | Copied-library TypeScript and Java positive/clean/malformed/excluded-role/missing-or-old-tool and both same-destination transitions pass. The harness now launches copied inventory under isolated/no-site Python, and the exercised pipeline clears stale artifacts for every language; `20 passed` with no expected failure | `bbd886d`, `f249d9a` |
+| Integrated correctness and regression | P3 profile/lifecycle/inventory/doctor/conformance plus five-language omnibus, installed-router, on-demand, and release suites | `141 passed in 109.69s`; preserved omnibus language suites separately `29 passed in 56.18s`; all changed-file pre-commit checks pass | `f249d9a` |
+| Benchmark and interface-depth closeout | `.claude/tasks/p3-baseline/find-omnibus-baseline.json` | Seven alternating trials: TypeScript median `+0.949%`, Java `+3.690%`; copied skill closure `-0.092%`; tracked `scripts/` bytes `+4.231%`; maintained comparison paths decreased by three lines. No semantic/result/proposal/mutation/package/framework abstraction was introduced | `f249d9a` |
+| Exact public replay | Public `main` at `f249d9a`; stock `skills@1.5.19`; temporary clean host recorded in the baseline artifact | Public HEAD/digest coherence, 76 listed skills, exactly three installed routers, external-library bootstrap/runtime, TypeScript route/doctor/six-case conformance, cleanup/uninstall, sentinel/source preservation, and retained exact library HEAD all passed | `f249d9a` |
 
 ## P4 — PHP final-outcome and economics pilot
 
@@ -645,4 +650,8 @@ Evidence:
 | 2026-07-21 | P3.0 | Completed | Committed evidence freezes the existing-substrate decisions, exact TypeScript/Java projections and exclusions, copied closure bytes, fixture manifests, maintained LOC, OpenJDK 17.0.20/TypeScript 5.9.3 toolchain, full `18 passed` correctness run, and cold plus seven alternating warm trials. Registration-only pruning reduced 87 worktree records to 28 without deleting a path, branch, commit, or dirty worktree. P3.1 may now start from this spine. |
 | 2026-07-21 | P3.1 | Completed | Added strict stdlib-only profiles for the five currently inventoried languages and a narrow lifecycle module. The deletion/caller-knowledge test is satisfied by two immediate consumers (TypeScript and Java omnibus); profiles remove duplicated suffix/tool/role/command/limit declarations, while lifecycle removes only atomic-write, stale-clear, source-hash, and terminal-vocabulary policy. No semantic result schema, adapter layer, installer, cache, mutation executor, or framework profile was added. P3.2 may extend the existing inventory from this spine. |
 | 2026-07-21 | P3.2 | Completed | The existing `source_inventory.py` now reads the strict profiles under isolated/no-site Python, preserves all five current language projections, publishes profile schema/version capability, and emits explicit roles for excluded vendor/build/symlink roots without changing their established reasons. The portability fixture now copies and hashes the exact expanded inventory closure instead of passing through a checkout import. Widened installed-router/journey/release suite: `96 passed`. P3.3 and P3.4 may branch in parallel from this spine. |
+| 2026-07-21 | P3.3 | Completed | `45f3c9c`; the read-only doctor resolves project-local tools before system tools and reports available, too-old, unavailable, and limited states without writes, installs, or network. Focused suite: `8 passed`; profile/inventory integration: `26 passed`. |
+| 2026-07-21 | P3.4 | Completed | `bbd886d` plus root repair `f249d9a`; copied-library conformance covers TypeScript and Java final artifacts and state transitions under isolated/no-site Python. Integration exposed a real cross-language stale-artifact defect, now guarded without a language-specific branch; conformance: `20 passed`, preserved language suites: `29 passed`. |
+| 2026-07-21 | P3 | Completed | `f249d9a`; integrated P3 surface `141 passed`. Seven alternating warm trials stayed within the +10% gate (TypeScript `+0.949%`, Java `+3.690%`); copied closure changed `-0.092%`, tracked scripts `+4.231%`. The exact public source replay installed only three routers, bootstrapped the retained external library/runtime, routed and conformed TypeScript, preserved host state, and uninstalled the routers. Begin P4 PHP preflight; do not broaden the shared substrate without pilot evidence. |
+| 2026-07-21 | P4 | Started | Record PHP/Composer availability, freeze the three-cohort baseline and comparison economics, and create the P4 spine before opening disjoint lexical/semantic/mutation worker lanes. |
 | 2026-07-21 | Planning | Non-context plan review completed | `7637fcf`; three independent lanes reviewed the P3 substrate, language/worktree execution, and adversarial product alignment. Accepted bounded reuse, exact ownership, economics, release-truth, and measure-before-optimization findings; rejected stale private-repo assumptions and blanket prohibition on user-requested Swift/Dart planning. |

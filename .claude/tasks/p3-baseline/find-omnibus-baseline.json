@@ -100,5 +100,39 @@
     },
     "warm_median_seconds": {"typescript": 2.074984, "java": 1.105025},
     "post_p3_gate": "correctness/source/closure gates must pass; median warm latency and copied/shared closure bytes may not exceed this baseline by more than 10 percent"
+  },
+  "post_p3": {
+    "revision": "f249d9ab40fb734531e54081b08a6d8193907835",
+    "correctness": {
+      "integrated_command": "PATH=/opt/homebrew/opt/openjdk@17/bin:$PATH JAVA_HOME=/opt/homebrew/opt/openjdk@17 .venv/bin/python -m pytest -q tests/test_language_support_profile.py tests/test_language_support_lifecycle.py tests/test_source_inventory.py tests/test_language_doctor.py tests/test_portability_journey_harness.py tests/test_language_support_conformance.py tests/test_omnibus_typescript.py tests/test_find_omnibus_java.py tests/test_find_omnibus_go.py tests/test_find_omnibus_adapters.py tests/test_find_omnibus_javascript_syntax.py tests/test_installed_router_smoke.py tests/test_on_demand_skill_journeys.py tests/test_release_consistency.py",
+      "result": "141 passed in 109.69s",
+      "conformance_result": "20 passed in 23.09s",
+      "preserved_language_result": "29 passed in 56.18s"
+    },
+    "timing_protocol": {
+      "cold_seconds": {"typescript": 2.990485, "java": 3.656127},
+      "warm_seconds": {
+        "typescript": [8.624838, 2.441207, 2.530577, 1.991839, 1.994883, 2.094676, 2.048945],
+        "java": [1.660346, 1.066796, 1.145803, 1.064639, 1.121046, 1.193952, 1.398674]
+      },
+      "warm_median_seconds": {"typescript": 2.094676, "java": 1.145803},
+      "median_change_percent": {"typescript": 0.949, "java": 3.690},
+      "gate": "passed; both medians remained below the +10 percent limit"
+    },
+    "size": {
+      "skill_closure_bytes": 101015,
+      "skill_closure_change_percent": -0.092,
+      "maintained_physical_lines": 1875,
+      "maintained_nonblank_lines": 1676,
+      "tracked_scripts_baseline_bytes": 840454,
+      "tracked_scripts_post_p3_bytes": 876016,
+      "tracked_scripts_change_percent": 4.231,
+      "gate": "passed; copied closure and tracked script growth remained below the +10 percent limits"
+    },
+    "public_replay": {
+      "source": "README-declared public Git source",
+      "temporary_host": "/private/tmp/engineering-skills-p3-f249d9a.01Raz7",
+      "result": "public HEAD matched the revision; stock skills 1.5.19 listed 76 skills and installed exactly the three routers; bootstrap created the external library and Python 3.11.10 runtime; TypeScript routing, doctor, six-case copied-library conformance, router removal, source preservation, sentinel preservation, and retained exact library HEAD all passed"
+    }
   }
 }

@@ -635,6 +635,30 @@ auditable when completeness matters.
   semantic schemas, obscures terminal status, needs network/package downloads,
   or saves little after fixtures/tests are counted.
 
+### ML-026 — Atomic final-artifact writes in copied skill pipelines
+
+- State: `proposed`
+- User value: an interrupted analysis should not leave a truncated JSONL or
+  report that a later run mistakes for valid evidence.
+- Evidence: P3 conformance proved and repaired stale-output transitions in
+  `find-omnibus`, but inspection still found direct final-artifact writes in
+  detector/collapse/report stages. The new lifecycle helper proves a narrow
+  atomic text/JSON seam, but no partial-write incident has yet justified
+  changing the copied skill closure or all pipeline stages.
+- Trigger: reproduce a partial final artifact under forced interruption, or
+  encounter the same requirement in a second copied skill pipeline.
+- Smallest experiment: convert one final `find-omnibus` artifact stage to an
+  exact-closure-safe atomic write, force interruption before replacement, and
+  replay valid-to-failed and failed-to-valid transitions.
+- Acceptance: no partial final artifact becomes observable; terminal outcomes,
+  source manifests, installed/on-demand execution, and existing report schemas
+  remain unchanged; copied closure size stays within the existing +10% gate.
+- Non-goals: a universal transaction platform, mutation rollback framework,
+  shared semantic result schema, or speculative migration of all skills.
+- Deferral reason: the current user-visible correctness gates pass, and solving
+  the packaging/import seam before a reproduced interruption would expand P3
+  beyond the installer and multi-language goals.
+
 ## External release dependency (tracked, not a language feature)
 
 The reviewed branch is still not the public source named by the README. Before
