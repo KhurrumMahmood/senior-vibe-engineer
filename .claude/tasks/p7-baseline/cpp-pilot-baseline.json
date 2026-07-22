@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-07-22T04:49:00-07:00",
+  "base_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
+  "platform": "macOS 26.5.2 arm64; active developer directory /Library/Developer/CommandLineTools",
+  "python_runtime": {
+    "requested_worktree_path": "/Users/<user>/Projects/engineering-skills-wt-p7-cpp-spine/.venv/bin/python",
+    "requested_path_present": false,
+    "used_path": "/Users/<user>/Projects/engineering-skills-product/.venv/bin/python",
+    "version": "3.11.10"
+  },
+  "toolchain": {
+    "clangxx": {"path": "/usr/bin/clang++", "version": "21.0.0 (clang-2100.1.1.101)", "minimum_profile_version": "21.0.0", "required": true, "target": "arm64-apple-darwin25.5.0", "resource_dir": "/Library/Developer/CommandLineTools/usr/lib/clang/21"},
+    "clangd": {"path": "/usr/bin/clangd", "version": "21.0.0 (clang-2100.1.1.101)", "minimum_profile_version": "21.0.0", "required": true},
+    "make": {"path": "/usr/bin/make", "version": "GNU Make 3.81", "minimum_profile_version": "3.81.0", "required": true},
+    "standard_library": {"selected": "Apple toolchain default libc++", "explicit_override": false, "reason": "Use the installed Apple Clang default; no alternate standard-library coverage is claimed."},
+    "optional_absent": ["cmake", "bear", "intercept-build", "clang-tidy", "clang-format", "clang-query", "clang-check", "clang-refactor", "cppcheck", "include-what-you-use", "iwyu"],
+    "installation_performed": false,
+    "network_used": false
+  },
+  "selected_standard": {
+    "flag": "-std=c++20",
+    "evidence": "The P7 preflight successfully compiled valid input offline in C++20 and proposed a C++20/C++23 Make fixture; C++20 is the narrower validated baseline needed for the fixture's fold expression and enum/class/template relationships.",
+    "non_claims": ["C++23-specific behavior", "GNU dialects", "modules", "alternate standard libraries"]
+  },
+  "fixture": {
+    "root": "tests/fixtures/cpp-pilot",
+    "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), sorted regular-file paths",
+    "manifest_sha256": "6c8e657360d75e3b77142792e0fab9f37f760992530441dca67c4e7ba9a00ba7",
+    "total_bytes": 4531,
+    "files": [
+      "host/Makefile",
+      "host/build/BuildSentinel.cpp",
+      "host/foreign/Foreign.c",
+      "host/foreign/Foreign.i",
+      "host/foreign/Foreign.m",
+      "host/foreign/Foreign.mm",
+      "host/generated/GeneratedInvoice.cpp",
+      "host/include/cpppilot/invoice.hpp",
+      "host/include/cpppilot/render.hpp",
+      "host/include/orphan.h",
+      "host/include/orphan.inc",
+      "host/src/invoice.cpp",
+      "host/src/invoice_internal.hpp",
+      "host/src/main.cpp",
+      "host/src/pilot_mode.inc",
+      "host/tests/invoice_test.cpp",
+      "host/vendor/VendorInvoice.cpp",
+      "malformed/Broken.cpp",
+      "symlink-target/External.cpp"
+    ],
+    "translation_units": ["host/src/invoice.cpp", "host/src/main.cpp"],
+    "compile_owned_headers": ["host/include/cpppilot/invoice.hpp", "host/include/cpppilot/render.hpp", "host/src/invoice_internal.hpp", "host/src/pilot_mode.inc"],
+    "ambiguous_headers": ["host/include/orphan.h", "host/include/orphan.inc"],
+    "runtime_symlink": "tests create host/linked-external -> ../symlink-target and require role=symlink without traversal",
+    "native_result": "restrictive dependency-free C++20 warnings-as-errors build/test and smoke pass offline; syntax, parseable AST JSON, raw comment tokens, malformed rejection, two-entry copied-host compile database, dependency closure, and source preservation pass"
+  },
+  "compile_database": {
+    "materialization": "make -C <copied-host> clean compile-db CXX=/usr/bin/clang++",
+    "portable_property": "Make expands copied-host CURDIR into absolute directory, file, include, source, and output paths; no checkout path is committed.",
+    "trusted_entry_requirements": ["JSON array", "exact directory/file/arguments keys", "absolute copied-host paths", "two expected first-party translation units", "C++ driver or explicit C++ mode", "-std=c++20", "-c", "current versus Makefile and compile-owned inputs"],
+    "proven_states": ["valid", "missing", "malformed", "mismatched-directory", "stale", "incomplete", "wrong-language", "wrong-mode"],
+    "fallback_boundary": "clangd exit zero and a generic fallback command are never semantic success; only a provider-validated C++20 database is trusted."
+  },
+  "runtime_closure": {
+    "definition": "C++-named suffix/database provider plus existing stdlib-only profile/doctor/inventory runtime exercised by the spine; it is not a copied skill closure and earns no skill support claim.",
+    "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), listed path order",
+    "manifest_sha256": "abf3526324a2acadd8b3dd87d886c40c5b0375dc31152cbbee67f404cb2498fa",
+    "total_bytes": 48011,
+    "files": [
+      "scripts/language_profiles/cpp.json",
+      "scripts/cpp_language_provider.py",
+      "scripts/language_doctor.py",
+      "scripts/source_inventory.py",
+      "scripts/_lib/language_support/__init__.py",
+      "scripts/_lib/language_support/profile.py",
+      "scripts/_lib/language_support/lifecycle.py"
+    ]
+  },
+  "runtime_timings_seconds": {
+    "measurement": "single local wall-clock observations with /usr/bin/time -p; informational, not performance thresholds",
+    "native_clean_build_and_test": 1.68,
+    "compile_database_materialization": 0.01,
+    "clangd_check": 0.99,
+    "clang_ast_json": 1.74,
+    "malformed_syntax_rejection": 0.02
+  },
+  "pilot_contracts": {
+    "lexical": {
+      "skill": "find-comment-drift",
+      "disposition": "cpp-unsupported",
+      "producer_candidate": "version-gated clang++ raw tokens plus exact source spans",
+      "final_outcome": "durable findings and clean result with source-role exclusions and complete/partial/unsupported/failed lifecycle",
+      "required_boundaries": ["valid", "clean", "malformed", "generated", "vendor", "ambiguous-header", "tool-missing", "tool-too-old", "source-preserving", "copied closure"],
+      "forbidden_claims": ["macro-expanded semantic association", "template/overload identity", "inactive-branch meaning", "supported before the skill final artifact passes"]
+    },
+    "semantic": {
+      "skill": "map-subsystem",
+      "disposition": "cpp-unsupported",
+      "producer_candidate": "version-gated Clang/clangd facts from effective fixture compile commands",
+      "compile_database_gate": ["valid", "current", "complete", "C++20-mode", "no-fallback"],
+      "final_outcome": "durable map with declarations, references, public/private headers, and cross-translation-unit edges plus explicit non-complete states",
+      "required_boundaries": ["missing", "malformed", "mismatched-directory", "stale", "incomplete", "wrong-language", "wrong-mode", "clangd-fallback", "copied closure"]
+    },
+    "mutation": {
+      "skill": "move-path",
+      "disposition": "cpp-unsupported",
+      "state": "deferred-until-semantic-lineage",
+      "scope_if_authorized_later": "one source/header move in a disposable copy with include and Makefile updates",
+      "required_proofs": ["accepted semantic lineage", "preview", "source fingerprint", "bounded diff", "symlink/generated/vendor refusal", "rollback", "native build/test", "ODR and header-only impact review", "same-destination terminal state"]
+    }
+  },
+  "coverage": {
+    "artifact": ".claude/tasks/cpp-language-coverage.json",
+    "rows": 22,
+    "disposition_counts": {"cpp-unsupported": 22},
+    "reason": "Profile, provider, native fixture, and feasibility evidence do not reach any skill-owned final artifact or mutation boundary."
+  },
+  "mutation_performed": false,
+  "root_integration_needs": [
+    "Preserve .h/.inc as ambiguous until a C++20 compile-command dependency closure owns them; never borrow C or Objective-C suffixes.",
+    "Keep case-sensitive .C in the C++ provider rather than lowercasing it through the shared registry.",
+    "Publish shared router/matrix/catalog truth only after focused cohort final outcomes earn it."
+  ]
+}

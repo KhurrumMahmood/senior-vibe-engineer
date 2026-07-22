@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "language": "cpp",
+  "suffixes": [".cc", ".cpp", ".cxx", ".c++", ".ii", ".hpp", ".hh", ".hxx", ".h++", ".ipp", ".inl", ".tpp"],
+  "project_markers": ["Makefile", "compile_commands.json"],
+  "source_roles": {
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "migration", "symlink"],
+    "test_file_globs": ["test_*.cc", "test_*.cpp", "*_test.cc", "*_test.cpp"],
+    "declaration_file_globs": ["*.hpp", "*.hh", "*.hxx", "*.h++", "*.ipp", "*.inl", "*.tpp"],
+    "configuration_files": []
+  },
+  "native_tools": [
+    {
+      "id": "clangxx",
+      "project_paths": [".tools/clang++", "tools/clang++"],
+      "system_commands": ["clang++"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "21.0.0",
+      "required": true
+    },
+    {
+      "id": "clangd",
+      "project_paths": [".tools/clangd", "tools/clangd"],
+      "system_commands": ["clangd"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "21.0.0",
+      "required": true
+    },
+    {
+      "id": "make",
+      "project_paths": [".tools/make", "tools/make"],
+      "system_commands": ["make"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "3.81.0",
+      "required": true
+    }
+  ],
+  "fact_tiers": ["lexical-filesystem", "syntax", "semantic-project"],
+  "verification_commands": [
+    {
+      "id": "native-test",
+      "argv": ["{tool:make}", "-C", "{project_root}", "clean", "test"],
+      "requires": ["clangxx", "make"]
+    },
+    {
+      "id": "compile-database",
+      "argv": ["{tool:make}", "-C", "{project_root}", "compile-db"],
+      "requires": ["clangxx", "make"]
+    },
+    {
+      "id": "syntax",
+      "argv": ["{tool:clangxx}", "-x", "c++", "-std=c++20", "-Wall", "-Wextra", "-Werror", "-pedantic", "-fsyntax-only", "{source_files}"],
+      "requires": ["clangxx"]
+    }
+  ],
+  "terminal_outcomes": ["complete", "partial", "unsupported", "tool-missing", "syntax-error", "native-check-failure", "unexpected-source-mutation"],
+  "explicit_limits": [
+    "This profile is ISO C++20 plus a fixture-owned Make build; it does not imply C, Objective-C, Objective-C++, CUDA, CMake, Xcode, Bazel, Meson, modules, frameworks, or alternate standard-library support.",
+    "The JSON profile owns .cc, .cpp, .cxx, .c++, .ii, and unambiguous C++ declaration/template suffixes. Case-sensitive .C is owned only by the C++ provider because the shared profile schema intentionally accepts lowercase suffixes; it must never be lowercased into C. Module suffixes .cppm, .ixx, and .mpp remain unsupported.",
+    "A .h or .inc file is C++ only when a trustworthy C++ compile command and its dependency closure own it; otherwise it remains ambiguous. Suffixes .c, .i, .m, and .mm are never C++ claims.",
+    "Makefile presence proves a build marker, not semantic readiness. Cross-translation-unit facts require a valid, current, complete compile_commands.json whose effective commands use C++20 mode; missing, malformed, stale, incomplete, wrong-language, wrong-mode, or fallback commands cannot produce a complete semantic outcome.",
+    "Clang AST JSON and raw-token output are version-gated feasibility inputs, not stable cross-version APIs or skill final outcomes. Templates, overloads, ADL, implicit operations, ODR, exceptions/RTTI, ABI/layout, target/sysroot/defines/include order, conditional compilation, generated headers, and non-default variants remain explicit limits."
+  ]
+}
