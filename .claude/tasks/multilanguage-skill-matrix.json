@@ -35,7 +35,7 @@
     },
     {
       "path": ".claude/tasks/cpp-language-coverage.json",
-      "sha256": "856cecf04f86d151d2c1b332caeef470239e73513ce46b92dc31dae5866d56b6"
+      "sha256": "9b3754b1370c68979c5859d42e155e93591df49b4fc201b696b8f755db1c4313"
     },
     {
       "path": ".claude/tasks/ruby-language-coverage.json",
@@ -1722,13 +1722,14 @@
       ],
       "c_reviewed_revision": "b5a63e9",
       "c_limitation": "Lexical raw-token findings only; macro expansion, inactive branches, comment-to-symbol meaning, C++, Objective-C, and framework conventions remain outside the claim.",
-      "cpp_disposition": "cpp-pending-implementation",
-      "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
+      "cpp_disposition": "cpp-supported",
+      "cpp_evidence_path": ".claude/tasks/multilanguage-learnings/cpp-find-comment-drift.md",
       "cpp_native_check": [
-        "clang++ raw-token feasibility and frozen lexical contract"
+        "Apple Clang 21 C++20 raw comment tokens with exact spans and complete compile-database header ownership",
+        "positive, clean, malformed, role-decoy, tool-state, stale-artifact, copied-closure, source-preservation, native build, and executable-smoke cases reach and verify the final artifacts"
       ],
-      "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
-      "cpp_limitation": "No durable lexical final artifact proves source roles, lifecycle states, and copied closure.",
+      "cpp_reviewed_revision": "c798c3cbefc7390b8847be8e409019d20bb3e9f1",
+      "cpp_limitation": "Lexical review leads only; macros, inactive branches, comment-to-symbol meaning, Objective-C++, CUDA, modules, and framework documentation remain explicit non-claims.",
       "ruby_disposition": "ruby-supported",
       "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-find-comment-drift.md",
       "ruby_native_check": [
@@ -5036,13 +5037,14 @@
       ],
       "c_reviewed_revision": "5d6def3",
       "c_limitation": "Complete only for the exact current C17 compile-command snapshot; macro and inactive-branch facts, function-pointer targets, ABI/layout, arbitrary variants, C++, Objective-C, and framework semantics remain outside the claim.",
-      "cpp_disposition": "cpp-pending-implementation",
-      "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
+      "cpp_disposition": "cpp-supported",
+      "cpp_evidence_path": ".claude/tasks/multilanguage-learnings/cpp-map-subsystem.md",
       "cpp_native_check": [
-        "valid current complete C++20 compile database and dependency feasibility"
+        "valid, current, complete C++20 compile database plus clang AST/dependency/clangd attribution and bounded Make target facts",
+        "positive overload/template/reference/build graph, missing/malformed/stale/incomplete/wrong-mode metadata, tool failure, stale artifact, copied closure, source preservation, native test, and executable-smoke cases reach durable Markdown and JSON"
       ],
-      "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
-      "cpp_limitation": "No durable graph artifact proves overload/template/reference edges and explicit non-complete lifecycle outcomes.",
+      "cpp_reviewed_revision": "8581e12f0fa4d729c25160bc133ba200ce4fdc61",
+      "cpp_limitation": "Direct compiler-observed static facts only; virtual/dynamic dispatch, reflection, runtime registration, inactive macro branches, all possible template instantiations, non-Make target graphs, modules, and ABI behavior remain unavailable.",
       "ruby_disposition": "ruby-pending-implementation",
       "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
       "ruby_native_check": [

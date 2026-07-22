@@ -427,6 +427,25 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "/adapt-project declares c_disposition=c-pending-implementation"
     )
 
+    cpp_routed = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use map-subsystem on this C++ repository",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "cpp",
+        "--json",
+        cwd=host,
+    )
+    cpp_payload = _json_output(cpp_routed)
+    assert cpp_payload["recommendation"] == "map-subsystem"
+    assert cpp_payload["handoff"]["available"] is True
+    assert cpp_payload["handoff"]["capabilities"]["skills"][0][
+        "cpp_disposition"
+    ] == "cpp-supported"
+
     pending_cpp = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
         "use adapt-project on this C++ repository",

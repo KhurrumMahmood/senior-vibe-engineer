@@ -82,7 +82,8 @@ EXPECTED_C_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_CPP_COUNTS = {
-    "cpp-pending-implementation": 22,
+    "cpp-supported": 2,
+    "cpp-pending-implementation": 20,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -460,6 +461,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         row["skill"]
         for row in language_rows
         if row["c_disposition"] == "c-supported"
+    } == {"find-comment-drift", "map-subsystem"}
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row["cpp_disposition"] == "cpp-supported"
     } == {"find-comment-drift", "map-subsystem"}
     assert {
         row["skill"]

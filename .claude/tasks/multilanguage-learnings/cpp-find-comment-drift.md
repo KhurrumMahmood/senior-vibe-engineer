@@ -30,6 +30,22 @@
   multiple source/header suffixes, and proves generated, vendor, build, test,
   foreign-language, and ambiguous-header boundaries.
 
+## Size and reuse decision
+
+At integration, the C++ analyzer is 729 physical lines / 30,826 bytes; the
+analyzer plus its focused test is 1,111 lines / 44,762 bytes. The complete
+selected `find-comment-drift` directory is 26 files / 282,080 bytes, while the
+C++ runtime increment itself is the single 30,826-byte analyzer. This is a
+substantial language-local implementation, not evidence that every future
+lexical analyzer should be copied at the same size.
+
+The analyzer deliberately leaves the proven C helper unchanged. Its reusable
+seam is the same narrow C-family lifecycle noted by the C++ map cohort: atomic
+artifacts, containment checks, tool/version execution, compile-database
+freshness, and hashing. Extract that seam only in a joint C/C++ change with
+both full regressions. Do not share suffix/mode rules, comment-token parsing,
+header ownership claims, or completeness semantics merely to reduce LOC.
+
 ## What did not generalize and remaining limits
 
 - C and C++ source suffixes, language modes, standards, and unsupported
