@@ -298,7 +298,7 @@ def test_java_documented_copied_command_runs_without_repository_dependencies(
     assert json.loads(output.read_text(encoding="utf-8"))["java_identifier_evidence"]["status"] == "resolved"
     assert (installed / "rename-concept/scripts/java_identifier_evidence.java").is_file()
     closure = "\n".join(
-        path.read_text(encoding="utf-8")
+        path.read_text(encoding="utf-8", errors="ignore")
         for path in (installed / "rename-concept").rglob("*")
         if path.is_file()
     )
