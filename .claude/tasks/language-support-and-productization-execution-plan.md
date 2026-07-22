@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P4 — PHP lexical, semantic, and mutation cohort lanes from the frozen spine
-Last updated: 2026-07-22 (P4 spine frozen at `a3c70cb`; three disjoint cohort lanes next)
+Current phase: P5 readiness — owner-authorized .NET SDK path required before product work
+Last updated: 2026-07-22 (P4 stopped after three correct pilot outcomes; PHP expansion economics failed)
 
 ## Objective
 
@@ -102,8 +102,8 @@ execution authorities.
 | P1 | Durable docs and execution ledger committed | `done` | `cc2a4fc` |
 | P2 | Release truth aligned; public install/library journey replayed | `done` | `60898a7` |
 | P3 | Minimal reusable language-support kit scaffold proven | `done` | `f249d9a` |
-| P4 | PHP pilot proves real outcomes and kit economics | `in_progress` | — |
-| P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `not_started` | — |
+| P4 | PHP pilot proves real outcomes and kit economics | `done` | `268c3ac` |
+| P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `awaiting_owner_toolchain` | — |
 | P6 | Shared components promoted or rejected on evidence | `not_started` | — |
 | P7 | Remaining selected languages receive honest coverage | `not_started` | — |
 | P8 | Current journey, update/repair, and help are measured | `not_started` | — |
@@ -319,29 +319,29 @@ Acceptance:
   (semantic/project), and `move-path` (mutation). Record final artifacts,
   must/must-not-fire boundaries, counted paths, closure definition, tool
   versions, machine, and cold/seven-warm-trial protocol.
-- [ ] The bounded tree-sitter experiment reaches or is rejected by one real PHP
+- [x] The bounded tree-sitter experiment reaches or is rejected by one real PHP
   final outcome; syntax availability is not presented as semantic support.
-- [ ] Established PHP tooling such as PHP Parser, PHPStan, or Psalm is used only
+- [x] Established PHP tooling such as PHP Parser, PHPStan, or Psalm is used only
   where the host owns or the on-demand closure explicitly provides it.
-- [ ] All selected skills distinguish complete, partial, unsupported, and
+- [x] All selected skills distinguish complete, partial, unsupported, and
   concrete failures; any clean result remains inside the skill-owned final
   artifact. Each reaches its final artifact/diff from the external library.
-- [ ] Positive, clean, malformed, generated/test/vendor/build/symlink,
+- [x] Positive, clean, malformed, generated/test/vendor/build/symlink,
   tool-missing/old, and same-destination transition cases pass.
-- [ ] Native PHP verification for each selected outcome passes.
-- [ ] Router/matrix output explains PHP capabilities and limitations without
+- [x] Native PHP verification for each selected outcome passes.
+- [x] Router/matrix output explains PHP capabilities and limitations without
   installing task skills ambiently.
-- [ ] Every one of the 22 language-level skills receives an evidence-backed
+- [x] Every one of the 22 language-level skills receives an evidence-backed
   supported, partial, unsupported, or not-applicable disposition map. Pilot
   completion records an explicit owner `expand` or `stop` decision; P4 does not
   require implementing beyond the three frozen cohorts.
-- [ ] Compared with the frozen equivalent Java mechanics, maintained
+- [x] Compared with the frozen equivalent Java mechanics, maintained
   adapter-plus-test LOC eligible for sharing falls at least 25%, copied closure
   size does not increase more than 10%, and median execution latency does not
   increase more than 10%. Language-specific semantic/provider code is reported
   separately. A failed economic gate keeps the PHP implementation family-local
   and does not erase a correct final outcome.
-- [ ] A PHP learning packet states what generalized, what stayed language- or
+- [x] A PHP learning packet states what generalized, what stayed language- or
   family-local, tool acquisition/setup, and instructions for the C# pilot.
 
 Worktree sequence:
@@ -366,6 +366,12 @@ Evidence:
 | PHP profile and doctor | `scripts/language_profiles/php.json`; `tests/test_language_{support_profile,doctor}.py`; `.venv/bin/python -I -S scripts/language_doctor.py --project-root tests/fixtures/php-pilot/host --language php` | PHP 8.4.2 and Composer 2.4.0 available; fake project-local PHP/Composer win over newer system tools; doctor is read-only; no dependency installed or updated | `1bda74f` |
 | Frozen host and cohort contracts | `tests/fixtures/php-pilot`; `.claude/tasks/p4-baseline/php-pilot-baseline.json`; `tests/test_php_pilot_spine.py` | Offline Composer host freezes lexical, semantic, and mutation final artifacts, exclusions, terminal cases, native checks, exact fixture/skill closure manifests, Java comparison LOC, and one cold plus seven rotating warm trials; ignored build-role sentinel deliberately committed; focused spine suite `44 passed` plus fresh-clone manifest/native proof `3 passed` | `1bda74f`, `a3c70cb` |
 | Preserved shared substrate | P3 integrated suite plus PHP profile/spine | Initial widened run exposed only the expected copied-closure hash addition; after adding PHP to that exact closure assertion, the P3/P4 focused surface passed `44 passed`; wider run reached `140 passed` before the three now-repaired expected-hash assertions | `1bda74f` |
+| Lexical final outcome | `tests/test_find_comment_drift_php.py`; `.claude/tasks/multilanguage-learnings/php-find-comment-drift.md` | Native token parsing, positive/clean/malformed/excluded-role/tool/lifecycle/copied-closure cases reach the final JSONL/report; full family regression passed `22 passed` | `6a9d27b`, `05fc1a7` |
+| Semantic final outcome | `tests/test_map_subsystem_php.py`; `.claude/tasks/multilanguage-learnings/php-map-subsystem.md` | Composer PSR-4 facts reach final Markdown/JSON; tree-sitter rejected as a semantic producer; full map regression passed `25 passed` | `78f8e1f`, `8a212d3` |
+| Mutation final outcome | `tests/test_php_move_path.py`; `.claude/tasks/multilanguage-learnings/php-move-path.md` | One bounded namespace-directory move reaches exact diff/report, native validation, rollback, and source-preservation boundaries; full move regression passed `41 passed, 1 skipped` | `499d070`, `8399c98` |
+| Capability truth and disposition closeout | `.claude/tasks/php-language-coverage.json`; generated matrix; all three routers; `tests/test_{multilanguage_expansion_matrix,installed_routers}.py` | Three supported and 19 explicitly unsupported language-level skills; supported handoff succeeds, unsupported PHP work is refused without weaker substitution, and only three routers remain ambient | `2d7c277`, `268c3ac` |
+| Economics and learning | `.claude/tasks/p4-baseline/php-pilot-baseline.json`; `.claude/tasks/multilanguage-learnings/php-pilot.md` | LOC reduction `11.11%` fails 25%; closure growth `26.63%` fails 10%; aggregate warm latency growth `9.18%` passes. Decision: retain correct family-local outcomes, stop PHP expansion, promote no new shared mechanics | `2d7c277` |
+| Preserved-language closeout | P4 final outcomes plus profile/lifecycle/doctor/inventory/conformance, TypeScript/Go/Java, router, and matrix suites | Combined run: `305 passed, 1 skipped`; one Java subprocess received OS `SIGKILL` under combined load, then passed alone. Targeted Java-map plus PHP/router/matrix replay: `83 passed` | `268c3ac` |
 
 ## P5 — .NET setup and C# Roslyn pilot
 
@@ -374,7 +380,7 @@ compiler-backed semantic and rewrite facts.
 
 Acceptance:
 
-- [ ] Read-only readiness runs during P4 and records that `dotnet` is currently
+- [x] Read-only readiness runs during P4 and records that `dotnet` is currently
   unavailable. No sub-agent installs it. Before P5 product work, the owner
   authorizes a supported .NET SDK or provides a reproducible development path.
 - [ ] A supported .NET SDK is installed or otherwise made reproducibly
@@ -414,7 +420,7 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | — | — | — |
+| .NET readiness | `command -v dotnet`; `dotnet --info` | `dotnet` is unavailable on 2026-07-22. No install was attempted; P5 product work awaits an owner-authorized supported SDK or reproducible development path | `268c3ac` |
 
 ## P6 — Promote or reject shared kit components
 
@@ -513,7 +519,7 @@ Per-language status:
 
 | Language | Status | Profile/doctor | Final outcomes | Matrix/router | Learning packet | Revision |
 |---|---|---|---|---|---|---|
-| PHP expansion | `awaiting_p4_decision` | P4-owned | — | — | — | — |
+| PHP expansion | `stopped_after_pilot` | PHP 8.4.2/Composer 2.4.0 proven | 3 supported, 19 unsupported | Published | `.claude/tasks/multilanguage-learnings/php-pilot.md` | `268c3ac` |
 | Typed-pilot expansion | `awaiting_p5_decision` | P5-owned | — | — | — | — |
 | Ruby | `preflight_needed` | System Ruby 2.6.10/Bundler 1.17.2 observed; likely old | — | — | — | — |
 | Rust | `toolchain_missing` | `cargo`/`rustc` absent | — | — | — | — |
@@ -648,6 +654,7 @@ Evidence:
 | 2026-07-21 | P2 | Runtime bootstrap integrated | `9208fca`; normal external-library bootstrap now health-checks Python >=3.11, creates/verifies the library venv, installs declared requirements, and exposes the exact runtime path through all three routers. The final P2 candidate and public replay must include this revision plus the pending release-truth repair. |
 | 2026-07-21 | P8 | Router corpus seed captured | Resuming this explicit ledger produced `Project context: missing (adapter=False, profile=False, approved=False)` and a score-zero lexical `bug-fix` fallback. The explicit sole active plan correctly overrode it. Preserve this as an authoritative-plan/low-context routing case for the frozen P8 corpus; do not create project context or block P2 merely to raise router confidence. |
 | 2026-07-21 | P2 | Completed | `60898a7`; public Go/Java claims, accepted coverage, generated matrix, router capability output, and shared inventory agree. The final public list/install/bootstrap/route/`adapt-project`/cleanup/remove replay passed with exact router-tree/library revision coherence, runtime setup, host-source preservation, sentinel preservation, and library retention. Begin P3.0 baseline/worktree inventory; do not revise P2 further unless a reproduced installer regression appears. |
+| 2026-07-22 | P4 | Completed; expansion stopped | Three bounded PHP outcomes reach final artifacts and native checks. The 22-row matrix/router truth is published. LOC and closure economics failed, so correct implementations remain family-local and the other 19 skills remain explicitly unsupported. P5 readiness confirms `dotnet` is absent and no install was attempted. |
 | 2026-07-21 | P3 | Started | Freeze the exact `60898a7` TypeScript+Java `find-omnibus` baseline and review the 87 registered/59 previously prunable worktree registrations before opening any P3 worker lane. |
 | 2026-07-21 | P3.0 | Completed | Committed evidence freezes the existing-substrate decisions, exact TypeScript/Java projections and exclusions, copied closure bytes, fixture manifests, maintained LOC, OpenJDK 17.0.20/TypeScript 5.9.3 toolchain, full `18 passed` correctness run, and cold plus seven alternating warm trials. Registration-only pruning reduced 87 worktree records to 28 without deleting a path, branch, commit, or dirty worktree. P3.1 may now start from this spine. |
 | 2026-07-21 | P3.1 | Completed | Added strict stdlib-only profiles for the five currently inventoried languages and a narrow lifecycle module. The deletion/caller-knowledge test is satisfied by two immediate consumers (TypeScript and Java omnibus); profiles remove duplicated suffix/tool/role/command/limit declarations, while lifecycle removes only atomic-write, stale-clear, source-hash, and terminal-vocabulary policy. No semantic result schema, adapter layer, installer, cache, mutation executor, or framework profile was added. P3.2 may extend the existing inventory from this spine. |
