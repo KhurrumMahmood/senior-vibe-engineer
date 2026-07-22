@@ -62,10 +62,17 @@ def _records(path: Path) -> list[dict]:
 
 
 def _detect(
-    skill: Path, host: Path, output: Path, env: dict[str, str], target: Path, *, isolated: bool = False
+    skill: Path,
+    host: Path,
+    output: Path,
+    env: dict[str, str],
+    target: Path,
+    *,
+    isolated: bool = False,
+    language: str | None = "java",
 ) -> subprocess.CompletedProcess[str]:
     prefix = (sys.executable, "-I", "-S") if isolated else (sys.executable,)
-    return _run(
+    command = [
         *prefix,
         str(skill / "scripts" / "detect.py"),
         "--target",
@@ -74,11 +81,10 @@ def _detect(
         str(host),
         "--output",
         str(output),
-        "--language",
-        "java",
-        cwd=host,
-        env=env,
-    )
+    ]
+    if language is not None:
+        command.extend(("--language", language))
+    return _run(*command, cwd=host, env=env)
 
 
 def _pipeline(
@@ -262,6 +268,80 @@ def test_java_failure_rerun_invalidates_prior_pipeline_output(tmp_path: Path) ->
     assert missing.returncode == 2
     assert "JDK is unavailable" in missing.stderr
     assert all(not path.exists() for path in artifacts)
+
+
+def test_documented_generic_java_scan_is_terminal_and_invalidates_stale_output(
+    tmp_path: Path,
+) -> None:
+    host, env = _host(tmp_path)
+    report_dir = host / "reports" / "omnibus" / "scan-generic"
+    output = report_dir / "omnibus.jsonl"
+
+    detected = _detect(SKILL, host, output, env, host, language=None)
+    assert detected.returncode == 0, detected.stdout + detected.stderr
+    assert _records(output)
+    scan = json.loads((report_dir / "scan.json").read_text(encoding="utf-8"))
+    assert scan["status"] == "complete"
+    assert scan["language"] == "java"
+
+    candidates = report_dir / "candidates.jsonl"
+    collapsed = _run(
+        sys.executable,
+        str(SKILL / "scripts" / "collapse.py"),
+        "--detections",
+        str(output),
+        "--output",
+        str(candidates),
+        cwd=host,
+        env=env,
+    )
+    assert collapsed.returncode == 0, collapsed.stdout + collapsed.stderr
+    assert _records(candidates)
+
+    broken = host / "src" / "main" / "java" / "example" / "Broken.java"
+    broken.write_text("package example; class Broken { void bad( { } }\n", encoding="utf-8")
+    malformed = _detect(SKILL, host, output, env, host, language=None)
+
+    assert malformed.returncode == 2
+    assert "syntax error" in malformed.stderr.lower()
+    assert not output.exists()
+    assert not (report_dir / "scan.json").exists()
+    assert not candidates.exists()
+
+
+def test_documented_generic_empty_target_in_java_project_is_unsupported(
+    tmp_path: Path,
+) -> None:
+    host, env = _host(tmp_path)
+    target = host / "empty"
+    target.mkdir()
+    report_dir = host / "reports" / "omnibus" / "scan-empty"
+    output = report_dir / "omnibus.jsonl"
+
+    unsupported = _detect(SKILL, host, output, env, target, language=None)
+
+    assert unsupported.returncode == 2
+    assert output.read_bytes() == b""
+    scan = json.loads((report_dir / "scan.json").read_text(encoding="utf-8"))
+    assert scan["status"] == "unsupported"
+    assert scan["language"] == "java"
+    assert scan["failure_kind"] == "no-java-files"
+    assert scan["summary"] == {"discovered": 0, "eligible": 0, "excluded": 0}
+
+
+def test_generic_mixed_language_target_preserves_legacy_multilanguage_mode(
+    tmp_path: Path,
+) -> None:
+    host, env = _host(tmp_path)
+    (host / "cohesive.py").write_text("def load_invoice():\n    return 1\n", encoding="utf-8")
+    report_dir = host / "reports" / "omnibus" / "scan-mixed"
+    output = report_dir / "omnibus.jsonl"
+
+    detected = _detect(SKILL, host, output, env, host, language=None)
+
+    assert detected.returncode == 0, detected.stdout + detected.stderr
+    assert {record["language"] for record in _records(output)} == {"java"}
+    assert not (report_dir / "scan.json").exists()
 
 
 @pytest.mark.parametrize("target_name", ("vendor", "src/test", "empty"))

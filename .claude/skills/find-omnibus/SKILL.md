@@ -80,10 +80,10 @@ Write toward these gates from Stage 0.
   types, lambdas, implicit constructors, Kotlin, and build semantics are out
   of scope. Generated, vendored, test, build-output, and external-symlink
   sources are excluded. Syntax/read/tool failures stop Stage 1 with exit 2;
-  they never become a zero-candidate result. An explicit `--language java`
-  target containing Kotlin source also stops as unsupported rather than
-  presenting Kotlin as Java coverage. An empty or excluded-only Java selection
-  is `unsupported` (exit 2), not a clean zero-candidate scan.
+  they never become a zero-candidate result. A Java-only target containing
+  Kotlin source also stops as unsupported rather than presenting Kotlin as
+  Java coverage. An empty or excluded-only selection in a Java-only project is
+  `unsupported` (exit 2), not a clean zero-candidate scan.
 - **Project-specific defaults** (generic-verb strip list, skip
   patterns, directory-package precedent, known false-positive
   shapes): in `knowledge/`.
@@ -143,8 +143,9 @@ ln -sfn "scan-${TS}" reports/omnibus/latest
 
 **Pre:** target directory exists. **Post:** `omnibus.jsonl` with one
 record per flagged file (score-sorted by responsibility count, then
-security/side-effect sensitivity, then LOC). An explicit Java run also writes
-adjacent `scan.json` with its source-role inventory and parser provenance.
+security/side-effect sensitivity, then LOC). When the selected inputs are Java,
+including through this generic command, Stage 1 also writes adjacent `scan.json`
+with its source-role inventory and parser provenance.
 
 <!-- installed-command:detect:start -->
 ```bash

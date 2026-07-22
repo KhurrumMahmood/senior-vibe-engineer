@@ -571,7 +571,7 @@ def _write_java_scan(scan: dict[str, object], output: Path) -> None:
 
 
 def _first_kotlin_source(target: Path, project_root: Path) -> Path | None:
-    """Surface Kotlin explicitly for an opt-in Java-only scan rather than omitting it."""
+    """Surface Kotlin explicitly for a Java-only scan rather than omitting it."""
     for path in sorted(target.rglob("*")):
         if not path.is_file() or path.suffix.lower() not in {".kt", ".kts"}:
             continue
@@ -723,6 +723,45 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     project_root = args.project_root.resolve()
     target = args.target.resolve()
+    skip_file_globs = _DEFAULT_SKIP_FILE_GLOBS + tuple(args.skip_file_glob)
+    skip_path_globs = _DEFAULT_SKIP_PATH_GLOBS + tuple(args.skip_path_glob)
+    java_inventory: list[dict[str, str]] = []
+    java_scan: dict[str, object] | None = None
+    selected_files: list[Path] | None = None
+    if not args.language:
+        all_extensions = frozenset(
+            extension for extensions in _LANGUAGE_EXTENSIONS.values() for extension in extensions
+        )
+        selected_files = _walk_source_files(
+            target, skip_file_globs, skip_path_globs, project_root, all_extensions
+        )
+        selected_languages = {
+            language for path in selected_files if (language := _language_for(path)) is not None
+        }
+        if selected_languages:
+            java_mode = selected_languages == {"java"}
+        else:
+            java_inventory, _java_files = _java_inventory(
+                target, project_root, skip_file_globs, skip_path_globs
+            )
+            if java_inventory:
+                java_mode = True
+            else:
+                project_files = _walk_source_files(
+                    project_root,
+                    skip_file_globs,
+                    skip_path_globs,
+                    project_root,
+                    all_extensions,
+                )
+                project_languages = {
+                    language
+                    for path in project_files
+                    if (language := _language_for(path)) is not None
+                }
+                java_mode = project_languages == {"java"}
+        if java_mode:
+            _invalidate_java_artifacts(args.output)
     if java_mode:
         kotlin = _first_kotlin_source(target, project_root)
         if kotlin is not None:
@@ -731,14 +770,17 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 2
-    skip_file_globs = _DEFAULT_SKIP_FILE_GLOBS + tuple(args.skip_file_glob)
-    skip_path_globs = _DEFAULT_SKIP_PATH_GLOBS + tuple(args.skip_path_glob)
-    java_inventory: list[dict[str, str]] = []
-    java_scan: dict[str, object] | None = None
     if java_mode:
-        java_inventory, java_files = _java_inventory(
-            target, project_root, skip_file_globs, skip_path_globs
-        )
+        if not java_inventory:
+            java_inventory, java_files = _java_inventory(
+                target, project_root, skip_file_globs, skip_path_globs
+            )
+        else:
+            java_files = [
+                project_root / row["file"]
+                for row in java_inventory
+                if row["role"] == "eligible"
+            ]
         if not java_files:
             java_scan = _java_scan_payload(java_inventory, None)
             java_scan["status"] = "unsupported"
@@ -755,16 +797,19 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         files = list(java_files)
     else:
-        extensions = frozenset(
-            extension for language in wanted for extension in _LANGUAGE_EXTENSIONS[language]
-        )
-        files = _walk_source_files(
-            target,
-            skip_file_globs,
-            skip_path_globs,
-            project_root,
-            extensions,
-        )
+        if selected_files is not None:
+            files = selected_files
+        else:
+            extensions = frozenset(
+                extension for language in wanted for extension in _LANGUAGE_EXTENSIONS[language]
+            )
+            files = _walk_source_files(
+                target,
+                skip_file_globs,
+                skip_path_globs,
+                project_root,
+                extensions,
+            )
         java_files = [path for path in files if path.suffix.lower() == ".java"]
     go_files = [path for path in files if path.suffix.lower() == ".go"]
     java_symbols: dict[Path, list[Symbol]] = {}
