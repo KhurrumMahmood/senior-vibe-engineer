@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, or bounded Java package subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; compiler branches use family-local compiler attribution for exported surface and resolved imports. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, or Composer PSR-4 PHP subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -17,7 +17,7 @@ not_for: |
   execution (use /refactor-subsystem with a spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java]
+scans: [python, typescript, javascript, go, java, php]
 ---
 
 # /map-subsystem
@@ -43,6 +43,8 @@ Procedural detail lives in one knowledge file:
   exclusions, completeness states, and unavailable TypeScript fields.
 - `knowledge/go-v1.md` — the active-build Go package-map facts, exclusions,
   partial states, and unavailable Go fields.
+- `knowledge/php-v1.md` — the native PHP lint + Composer PSR-4 static-map
+  facts, exclusions, terminal states, and deliberate non-semantic boundary.
 
 ## TypeScript / TSX v1
 
@@ -263,6 +265,64 @@ java "${SKILL_ROOT}/scripts/map_java.java" \
 ```
 <!-- installed-command:java-map:end -->
 
+## PHP v1
+
+Use this branch for one production directory inside a host-owned Composer
+`autoload.psr-4` root, with PHP 8.1+ and Composer 2.2+. The copied,
+family-local provider runs native `php -l` across eligible production source,
+runs `composer validate --no-check-publish --no-interaction` without installing
+or updating dependencies, and establishes only the static first-party class
+file/import facts licensed by the validated Composer PSR-4 configuration.
+
+It maps class-like declarations in the selected directory, resolved outbound
+`use` imports, and resolved inbound `use` importers from the production PSR-4
+roots. It does not resolve dynamic calls, runtime class loading, types,
+framework behavior, or project-wide references. Missing/old PHP or Composer,
+unsafe/excluded targets, and absent PSR-4 configuration are explicit
+`unsupported` artifacts; malformed PHP or failed Composer validation is
+`failed`; unresolved first-party PSR-4 imports are `partial`. Details are in
+`knowledge/php-v1.md`.
+
+### Installed PHP map command
+
+Run this from the host root after the selected skill is installed. It writes
+only `.claude/docs/subsystems/<name>.md` and `reports/map/<name>/php-map.json`;
+it neither follows source/artifact symlinks nor changes host source. Run the
+host's own PHP tests separately before and after mapping.
+
+<!-- installed-command:php-map:start -->
+```bash
+MAP_NAME="${MAP_NAME:-php-subsystem}"
+MAP_TARGET="${MAP_TARGET:-src/Subsystem}"
+PHP_BIN="${PHP_BIN:-php}"
+COMPOSER_BIN="${COMPOSER_BIN:-composer}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/map-subsystem" \
+  ".agents/skills/map-subsystem" \
+  ".claude/skills/map-subsystem"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ] || ! command -v "${PHP_BIN}" >/dev/null 2>&1; then
+  printf '%s\n' "map-subsystem PHP v1 requires an installed skill and PHP 8.1+" >&2
+  exit 2
+fi
+if ! command -v "${COMPOSER_BIN}" >/dev/null 2>&1; then
+  printf '%s\n' "map-subsystem PHP v1 requires Composer 2.2+" >&2
+  exit 2
+fi
+"${PHP_BIN}" "${SKILL_ROOT}/scripts/map_php.php" \
+  --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/php-map.json" \
+  --composer "${COMPOSER_BIN}"
+```
+<!-- installed-command:php-map:end -->
+
 ## How success is judged
 
 - Python maps are complete per `knowledge/output-format.md`: file inventory,
@@ -275,6 +335,8 @@ java "${SKILL_ROOT}/scripts/map_java.java" \
   gaps remain visible as `partial`, and unavailable Go facts stay explicit.
   Java v1 follows `knowledge/java-v1.md`: only error-free JavacTask-attributed
   source facts are complete; unresolved or Kotlin coverage stays `partial`.
+  PHP v1 follows `knowledge/php-v1.md`: only linted, validated Composer PSR-4
+  class-file/import facts are complete; dynamic semantics remain unavailable.
 - On `--refresh`, the doc opens with a diff section against the prior
   version — what changed, not just what is.
 - The run cites artifact truth: pasted `render_doc.py` `wrote ...`
@@ -489,9 +551,11 @@ counts, and one evidence-based next job (`/fix-workflow`, a SUSPECT skill,
 ├── scripts/
 │   ├── map_go.go                 # Go v1 package map + final artifacts
 │   ├── map_java.java             # Java v1 package map + final artifacts
+│   ├── map_php.php               # PHP v1 Composer PSR-4 static map + final artifacts
 │   └── render_doc.py             # Python Stages 6-7 — renders the doc + appends log
 └── knowledge/
     ├── go-v1.md                  # bounded active-build Go contract
     ├── java-v1.md                # bounded compiler-attributed Java contract
+    ├── php-v1.md                 # bounded native PHP + Composer contract
     └── output-format.md          # Python doc structure + worked example
 ```
