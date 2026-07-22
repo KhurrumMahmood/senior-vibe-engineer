@@ -6,13 +6,30 @@ Read this reference only for `--language java`.
 
 Invoke the copied skill with Python 3.11+:
 
+<!-- installed-command:java-comment-scan:start -->
 ```bash
-python3 scripts/detect.py --project-root "$PWD" --language java \
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-comment-drift" \
+  ".agents/skills/find-comment-drift" \
+  ".claude/skills/find-comment-drift"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-comment-drift is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+python3 "${SKILL_ROOT}/scripts/detect.py" --project-root "$PWD" --language java \
   --output reports/find-comment-drift/scan-java/detections.jsonl .
-python3 scripts/report.py \
+python3 "${SKILL_ROOT}/scripts/report.py" \
   reports/find-comment-drift/scan-java/detections.jsonl \
   --output reports/find-comment-drift/scan-java/report.md --target .
 ```
+<!-- installed-command:java-comment-scan:end -->
 
 Grade the run from `detections.jsonl`, `scan.json`, `report.md`, and
 `findings.json`. The analyzer is `python-java-comment-lexer`.

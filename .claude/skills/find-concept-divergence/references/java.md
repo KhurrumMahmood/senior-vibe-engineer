@@ -6,11 +6,28 @@ Read this reference only for `--language java`.
 
 Invoke the copied skill with Python 3.11+:
 
+<!-- installed-command:java-concept-scan:start -->
 ```bash
-python3 scripts/scan.py --project-root "$PWD" --language java \
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-concept-divergence" \
+  ".agents/skills/find-concept-divergence" \
+  ".claude/skills/find-concept-divergence"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-concept-divergence is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+python3 "${SKILL_ROOT}/scripts/scan.py" --project-root "$PWD" --language java \
   --output reports/find-concept-divergence/scan-java/findings.jsonl \
   --report reports/find-concept-divergence/scan-java/report.md .
 ```
+<!-- installed-command:java-concept-scan:end -->
 
 Grade the final outcome from `findings.jsonl`, `report.md`, and `scan.json`.
 The analyzer is `python-strict-text`.

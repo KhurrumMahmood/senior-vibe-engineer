@@ -108,14 +108,33 @@ Consume one complete, `status: accepted`,
 The collector verifies the declaration-file fingerprint before writing only
 `targets.json` and `proposal.md` below `reports/extract-enum/`.
 
+<!-- installed-command:java-state-proposal:start -->
 ```bash
-REPORT_DIR="reports/extract-enum/java-job-status"
-python3 .claude/skills/extract-enum/scripts/collect_java_state.py \
-  --finding java-implicit-state-0001 \
-  --findings reports/implicit-state/<java-scan>/findings.json \
+JAVA_SCAN="${JAVA_SCAN:-java-state}"
+JAVA_FINDING="${JAVA_FINDING:-java-implicit-state-0001}"
+REPORT_DIR="${REPORT_DIR:-reports/extract-enum/java-job-status}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/extract-enum" \
+  ".agents/skills/extract-enum" \
+  ".claude/skills/extract-enum"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "extract-enum is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+python3 "${SKILL_ROOT}/scripts/collect_java_state.py" \
+  --finding "${JAVA_FINDING}" \
+  --findings "reports/implicit-state/${JAVA_SCAN}/findings.json" \
   --project-root "$(pwd)" --output "$REPORT_DIR/targets.json" \
   --proposal "$REPORT_DIR/proposal.md"
 ```
+<!-- installed-command:java-state-proposal:end -->
 
 Review the proposed enum's persisted/wire values, serializer/ORM/reflection
 boundaries, exact caller table, and native `javac --release 17 -proc:none`

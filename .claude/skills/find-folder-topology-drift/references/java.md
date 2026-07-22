@@ -6,15 +6,32 @@ Read this reference only when `--java-root` is selected.
 
 Invoke the copied skill with Python 3.11+:
 
+<!-- installed-command:java-folder-topology-scan:start -->
 ```bash
-python3 scripts/detect.py --project-root "$PWD" --java-root src/main/java \
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/find-folder-topology-drift" \
+  ".agents/skills/find-folder-topology-drift" \
+  ".claude/skills/find-folder-topology-drift"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "find-folder-topology-drift is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+python3 "${SKILL_ROOT}/scripts/detect.py" --project-root "$PWD" --java-root src/main/java \
   --output reports/find-folder-topology-drift/scan-java/detections.jsonl
-python3 scripts/report.py \
+python3 "${SKILL_ROOT}/scripts/report.py" \
   --detections reports/find-folder-topology-drift/scan-java/detections.jsonl \
   --output-md reports/find-folder-topology-drift/scan-java/report.md \
   --output-json reports/find-folder-topology-drift/scan-java/findings.json \
   --target src/main/java --language java
 ```
+<!-- installed-command:java-folder-topology-scan:end -->
 
 Grade the final outcome from `detections.jsonl`, `scan.json`, `report.md`, and
 `findings.json`. The analyzer is `python-filesystem-names`.

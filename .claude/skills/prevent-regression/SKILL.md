@@ -145,17 +145,35 @@ field named `state`, `status`, or `phase`. It catches bare assignments,
 `String.equals`/`Objects.equals`, and unsafe `==`/`!=` while that exact field
 is still `String`.
 
+<!-- installed-command:java-state-guard:start -->
 ```bash
-OUT="reports/prevent-regression/java-job-status"
-python3 .claude/skills/prevent-regression/scripts/generate_java_state_guard.py \
-  --targets reports/extract-enum/java-job-status/targets.json \
+OUT="${OUT:-reports/prevent-regression/java-job-status}"
+TARGETS="${TARGETS:-reports/extract-enum/java-job-status/targets.json}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/prevent-regression" \
+  ".agents/skills/prevent-regression" \
+  ".claude/skills/prevent-regression"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "prevent-regression is not installed in .agents/skills/on-demand, .agents/skills, or .claude/skills" >&2
+  exit 2
+fi
+python3 "${SKILL_ROOT}/scripts/generate_java_state_guard.py" \
+  --targets "$TARGETS" \
   --project-root "$(pwd)" --output-root "$OUT"
 RULE="$(find "$OUT/scripts/lint" -maxdepth 1 -name 'no_stringly_state.py' -print -quit)"
-python3 .claude/skills/prevent-regression/scripts/verify_java_state_guard.py \
+python3 "${SKILL_ROOT}/scripts/verify_java_state_guard.py" \
   --rule "$RULE" --authority "$OUT/authority.json" \
   --bad "$OUT/tests/lint/bad/Job.java" --good "$OUT/tests/lint/good/Job.java" \
   --project-root "$(pwd)"
 ```
+<!-- installed-command:java-state-guard:end -->
 
 Install `find-implicit-state` alongside this skill so the generator can copy
 its helper; a missing helper or JDK 17 exits 2 rather than falling back to a
