@@ -66,6 +66,7 @@ def test_repository_profiles_cover_current_inventory_languages() -> None:
 
     assert set(profiles) == {
         "python", "javascript", "typescript", "go", "java", "php", "swift", "c",
+        "cpp",
     }
     suffixes = {
         suffix: language
@@ -77,7 +78,10 @@ def test_repository_profiles_cover_current_inventory_languages() -> None:
         ".js": "javascript", ".jsx": "javascript", ".mjs": "javascript",
         ".cjs": "javascript", ".ts": "typescript", ".tsx": "typescript",
         ".go": "go", ".java": "java", ".php": "php", ".swift": "swift",
-        ".c": "c", ".i": "c",
+        ".c": "c", ".i": "c", ".cc": "cpp", ".cpp": "cpp",
+        ".cxx": "cpp", ".c++": "cpp", ".ii": "cpp", ".hpp": "cpp",
+        ".hh": "cpp", ".hxx": "cpp", ".h++": "cpp", ".ipp": "cpp",
+        ".inl": "cpp", ".tpp": "cpp",
     }
     assert profiles["typescript"].native_tools[1].id == "tsc"
     assert profiles["java"].native_tools[1].minimum_version == "17.0.0"

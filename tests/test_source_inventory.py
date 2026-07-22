@@ -57,6 +57,8 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     _write(host / "vite.config.ts", "export default {};\n")
     _write(host / "src" / "main.go", "package main\n")
     _write(host / "src" / "main_test.go", "package main\n")
+    _write(host / "src" / "main.cpp", "int main() { return 0; }\n")
+    _write(host / "include" / "main.hpp", "int main();\n")
     _write(host / "src" / "Main.java", "class Main {}\n")
     _write(host / "tests" / "MainTest.java", "class MainTest {}\n")
     _write(host / "src" / "InvoiceService.php", "<?php\nfinal class InvoiceService {}\n")
@@ -83,6 +85,7 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert payload["status"] == "complete"
     assert payload["capabilities"]["inventory_languages"] == [
         "c",
+        "cpp",
         "go",
         "java",
         "javascript",
@@ -113,6 +116,8 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
         "vite.config.ts",
         "src/main.go",
         "src/main_test.go",
+        "src/main.cpp",
+        "include/main.hpp",
         "src/Main.java",
         "tests/MainTest.java",
         "src/InvoiceService.php",
@@ -150,6 +155,10 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert files["src/main.go"]["language"] == "go"
     assert files["src/main.go"]["classification"] == "classified"
     assert files["src/main_test.go"]["role"] == "test"
+    assert files["src/main.cpp"]["language"] == "cpp"
+    assert files["src/main.cpp"]["role"] == "source"
+    assert files["include/main.hpp"]["language"] == "cpp"
+    assert files["include/main.hpp"]["role"] == "declaration"
     assert files["src/Main.java"]["language"] == "java"
     assert files["src/Main.java"]["classification"] == "classified"
     assert files["tests/MainTest.java"]["role"] == "test"
