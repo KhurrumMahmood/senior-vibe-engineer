@@ -1,6 +1,6 @@
 ---
 name: move-path
-description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits. TypeScript/TSX source imports are never rewritten in v1.
+description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked PHP supports one Composer PSR-4 leaf namespace-directory move with token-exact namespace and require/include edits. TypeScript/TSX source imports are never rewritten in v1.
 argument-hint: "--plan moves.json --dry-run|--apply|--check"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 user-invocable: true
@@ -25,13 +25,13 @@ not_for: |
   /refactor-subsystem). Blind global find-and-replace.
 language: any
 framework: any
-scans: [go, java, javascript, typescript]
+scans: [go, java, javascript, php, typescript]
 ---
 
 # /move-path
 
 You are the orchestrator for safe batched standalone TypeScript/TSX path
-moves, plus opt-in bounded checked-JavaScript, Go, and Java modes. The deterministic
+moves, plus opt-in bounded checked-JavaScript, Go, Java, and PHP modes. The deterministic
 script owns filesystem moves, path normalization, reference resolution, patch
 generation, and verification. Your job is to prepare or inspect the plan, run
 dry-run first, review uncertainty buckets and ignored-import risk, then apply
@@ -141,6 +141,43 @@ This is not Maven/Gradle/module-path discovery, annotation-processor execution,
 Spring/Jakarta/Android reflection analysis, Kotlin support, a type rename, or a
 general JVM refactor engine. Hosts requiring those semantics remain outside the
 standalone Java v1 claim.
+
+## Checked-PHP Namespace Boundary
+
+Enable PHP rewriting only with `rewrite.code_imports: "update-php"` and an
+explicit `php.verification_scripts` list. The pilot automates exactly one leaf
+namespace-directory move beneath one unambiguous string-valued Composer PSR-4
+`autoload` mapping, for example `src/Legacy/` to `src/Archive/`. Source and
+destination must remain under the same mapping. An optional absolute
+`php.binary` pins the executable; otherwise `php` resolves from `PATH`. PHP 8.1
+or newer is required, and the copied closure installs nothing.
+
+The family-local helper uses `token_get_all(..., TOKEN_PARSE)` to rewrite exact
+namespace declarations and qualified-name tokens whose prefix is the moved
+namespace. In explicitly named verification scripts it also rewrites only an
+exact constant string in a `require`, `require_once`, `include`, or
+`include_once` statement when that string points to a PHP file inside the moved
+directory. Strings, comments, reflection names, variable includes, and other
+dynamic occurrences are blocking `partial` findings.
+
+Only non-generated PHP files beneath Composer production `autoload` roots and
+the explicitly named verification scripts are analyzed for edits. Composer
+`autoload-dev` tests and generated, vendor, build, and other PHP files are never
+rewritten; an old path or namespace in one of those excluded files is blocking
+`unsupported` evidence so apply cannot leave a stale identity silently. The
+mover also rejects multiple or file moves, nested namespace directories,
+generated or non-PHP moved files, symlink boundaries or children, malformed
+Composer metadata, malformed PHP, ambiguous/non-string PSR-4 mappings, missing
+verification scripts, and unavailable or old PHP runtimes.
+
+Every verification script runs before and after mutation. The post-apply pass
+re-tokenizes the resulting project, requires no old namespace/path token to
+remain, and compares a whole-host content fingerprint against the exact virtual
+after-tree. Any native, token, or exact-diff failure restores the moved tree,
+rewritten consumers, changed unrelated files, and removes unexpected regular
+files. This is not Composer dependency installation, PHPStan/Psalm semantic
+resolution, framework-container discovery, a class rename, a general autoload
+migration, or a universal PHP rewrite engine.
 
 ## Commands
 
@@ -269,6 +306,23 @@ For the bounded Java package move, use:
 }
 ```
 
+For the bounded PHP namespace-directory move, use:
+
+```json
+{
+  "moves": [
+    {"from": "src/Legacy/", "to": "src/Archive/", "mode": "directory"}
+  ],
+  "rewrite": {"code_imports": "update-php"},
+  "php": {
+    "verification_scripts": ["tests/lint.php", "tests/smoke.php"]
+  }
+}
+```
+
+Set `php.binary` to a reviewed absolute executable path when the host must pin
+runtime provenance rather than use `PATH` discovery.
+
 ## Confidence Buckets
 
 - `auto` — resolved identity, safe to update.
@@ -294,6 +348,9 @@ describing the old layout rather than linking to the current identity.
    mode, require a `complete` JavaScript status and review each exact change.
    In checked-Java mode, require a `complete` Java status, review every exact
    package/import/FQCN change, and resolve every dynamic old-package finding.
+   In checked-PHP mode, require a `complete` PHP status, review every exact
+   namespace/name/require change, confirm the excluded-file inventory, and
+   resolve every dynamic or excluded old-identity finding.
 5. Run `--apply` only after the dry-run report matches the intended
    transform.
 6. Run `--check` after manual follow-up edits or before commit.

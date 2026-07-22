@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import fnmatch
+import hashlib
 import json
 import os
 import re
@@ -60,6 +61,12 @@ GO_NON_SOURCE_SKIP_PARTS = frozenset({".git", ".move-path", ".venv", "__pycache_
 JAVA_PACKAGE_MOVE_MINIMUM = 17
 JAVA_SKIP_PARTS = frozenset({".git", ".move-path", ".venv", "build", "dist", "generated", "gen", "node_modules", "reports", "target", "vendor"})
 JAVA_RUNTIME_SUFFIXES = frozenset({".json", ".properties", ".toml", ".xml", ".yaml", ".yml"})
+PHP_NAMESPACE_MOVE_MINIMUM = (8, 1, 0)
+PHP_NAMESPACE_MOVE_MINIMUM_TEXT = "8.1"
+PHP_SKIP_PARTS = frozenset({
+    ".git", ".move-path", ".venv", "build", "dist", "generated", "gen",
+    "node_modules", "reports", "target", "vendor",
+})
 GENERATED_TEXT_MARKER_RE = re.compile(r"(?im)^\s*(?:(?://|#|<!--)\s*)?code generated .*do not edit")
 JAVA_GENERATED_ANNOTATION_RE = re.compile(
     r"(?m)^\s*@(?:javax\.annotation\.processing\.)?Generated(?:\s*\(|\s*$)"
@@ -480,8 +487,8 @@ def mode_for(plan: dict, key: str, default: str = "ignore") -> str:
 def code_import_mode(plan: dict) -> str:
     """Return the only supported source-import policy without implying safety."""
     value = str((plan.get("rewrite") or {}).get("code_imports", "ignore"))
-    if value not in {"ignore", "update-javascript", "update-go", "update-java"}:
-        raise SystemExit("rewrite.code_imports only supports ignore, update-javascript, update-go, or update-java; TypeScript imports require a resolver-aware move")
+    if value not in {"ignore", "update-javascript", "update-go", "update-java", "update-php"}:
+        raise SystemExit("rewrite.code_imports only supports ignore, update-javascript, update-go, update-java, or update-php; TypeScript imports require a resolver-aware move")
     return value
 
 
@@ -961,6 +968,352 @@ def run_java_compile(root: Path, javac: str, files: list[str]) -> dict:
             [javac, "--release", "17", "-proc:none", "-d", classes, *[str(root / path) for path in files]],
             root,
         )
+
+
+def _php_version(value: str) -> tuple[int, int, int] | None:
+    match = re.search(r"\bPHP\s+(\d+)\.(\d+)(?:\.(\d+))?", value)
+    if match is None:
+        return None
+    return tuple(int(part or 0) for part in match.groups())
+
+
+def php_generated_source(path: Path) -> bool:
+    return bool(GENERATED_TEXT_MARKER_RE.search(_read_text(path)[:2048]))
+
+
+def _psr4_string_mappings(composer: dict) -> list[tuple[str, str]]:
+    autoload = composer.get("autoload")
+    psr4 = autoload.get("psr-4") if isinstance(autoload, dict) else None
+    if not isinstance(psr4, dict):
+        return []
+    mappings: list[tuple[str, str]] = []
+    for prefix, raw_path in psr4.items():
+        if not isinstance(prefix, str) or not isinstance(raw_path, str):
+            continue
+        candidate = raw_path.replace("\\", "/")
+        if candidate.startswith("/") or re.match(r"^[A-Za-z]:/", candidate):
+            continue
+        normalized = candidate.removeprefix("./").strip("/")
+        if ".." in Path(normalized).parts:
+            continue
+        if normalized:
+            mappings.append((prefix.rstrip("\\"), normalized))
+    return mappings
+
+
+def _namespace_for_psr4_path(prefix: str, source_root: str, path: str) -> str | None:
+    if not is_under(path, source_root):
+        return None
+    relative = path[len(source_root):].strip("/")
+    suffix = relative.replace("/", "\\")
+    namespace = prefix + ("\\" + suffix if suffix else "")
+    if not all(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", part) for part in namespace.split("\\")):
+        return None
+    return namespace
+
+
+def _php_config(plan: dict, root: Path) -> tuple[str | None, list[str], list[dict]]:
+    section = plan.get("php")
+    blocked: list[dict] = []
+    if not isinstance(section, dict):
+        return None, [], [{"kind": "php_config_required"}]
+    raw_binary = section.get("binary")
+    if raw_binary is None:
+        php = shutil.which("php")
+    else:
+        candidate = Path(str(raw_binary))
+        php = (
+            str(candidate)
+            if candidate.is_absolute() and candidate.is_file() and os.access(candidate, os.X_OK)
+            else None
+        )
+        if php is None:
+            blocked.append({"kind": "php_binary_unavailable", "path": str(raw_binary)})
+    raw_scripts = section.get("verification_scripts")
+    if not isinstance(raw_scripts, list) or not raw_scripts:
+        blocked.append({"kind": "php_verification_scripts_required"})
+        scripts: list[str] = []
+    else:
+        scripts = []
+        for raw in raw_scripts:
+            try:
+                relative = strip_dir(normalize_plan_path(str(raw), root))
+            except ValueError as exc:
+                blocked.append({"kind": "php_verification_script_invalid", "detail": str(exc)})
+                continue
+            path = root / relative
+            if path.suffix.lower() != ".php" or not path.is_file() or path.is_symlink():
+                blocked.append({"kind": "php_verification_script_unavailable", "path": relative})
+            else:
+                scripts.append(relative)
+        labels = [Path(script).stem for script in scripts]
+        if len(labels) != len(set(labels)):
+            blocked.append({"kind": "php_verification_script_names_ambiguous"})
+    return php, scripts, blocked
+
+
+def _iter_php_files(root: Path) -> list[str]:
+    return [
+        path.relative_to(root).as_posix()
+        for path in sorted(root.rglob("*.php"))
+        if path.is_file() and not path.is_symlink() and ".git" not in path.relative_to(root).parts
+    ]
+
+
+def _php_excluded_identity_blocks(
+    root: Path,
+    excluded: list[str],
+    old_namespace: str,
+    old_path: str,
+) -> list[dict]:
+    needles = (old_namespace, f"/{old_path.strip('/')}/", f"{old_path.strip('/')}/")
+    blocked: list[dict] = []
+    for relative in excluded:
+        text = _read_text(root / relative)
+        matches = [needle for needle in needles if needle in text]
+        if matches:
+            blocked.append({
+                "kind": "php_excluded_old_identity",
+                "path": relative,
+                "identities": sorted(set(matches)),
+            })
+    return blocked
+
+
+def php_tooling(
+    root: Path,
+    plan: dict,
+    moves: list[MoveSpec],
+    *,
+    post_apply: bool = False,
+) -> dict:
+    """Validate one Composer PSR-4 leaf namespace-directory move."""
+    outcome: dict = {"status": "unsupported", "blocked": []}
+    if len(moves) != 1:
+        outcome["blocked"].append({"kind": "php_move_count_unsupported"})
+        return outcome
+    move = moves[0]
+    if move.mode != "directory":
+        outcome["blocked"].append({"kind": "php_namespace_move_must_be_directory", "path": move.src})
+        return outcome
+    source_link = traversed_symlink(root, root / move.src)
+    destination_link = traversed_symlink(root, root / move.dst)
+    if source_link or destination_link:
+        outcome["blocked"].append({"kind": "php_symlink_boundary", "path": source_link or destination_link})
+        return outcome
+    current_relative = move.dst if post_apply else move.src
+    current = root / current_relative
+    if not current.is_dir():
+        outcome["blocked"].append({
+            "kind": "php_destination_namespace_missing_after_move" if post_apply else "php_namespace_move_must_be_directory",
+            "path": current_relative,
+        })
+        return outcome
+    if any(part.lower() in PHP_SKIP_PARTS for part in (*Path(move.src).parts, *Path(move.dst).parts)):
+        outcome["blocked"].append({"kind": "php_excluded_path_unsupported", "path": current_relative})
+        return outcome
+    symlinks = [
+        path.relative_to(root).as_posix()
+        for path in sorted(current.rglob("*"))
+        if path.is_symlink()
+    ]
+    if symlinks:
+        outcome["blocked"].append({"kind": "php_symlink_in_namespace", "paths": symlinks})
+        return outcome
+    nested = [path.relative_to(root).as_posix() for path in sorted(current.iterdir()) if path.is_dir()]
+    if nested:
+        outcome["blocked"].append({"kind": "php_namespace_not_leaf", "paths": nested})
+        return outcome
+    moved_files = [
+        path.relative_to(root).as_posix()
+        for path in sorted(current.iterdir())
+        if path.is_file()
+    ]
+    if not moved_files or any(Path(path).suffix.lower() != ".php" for path in moved_files):
+        outcome["blocked"].append({"kind": "php_namespace_requires_only_php_sources", "paths": moved_files})
+        return outcome
+    generated = [path for path in moved_files if php_generated_source(root / path)]
+    if generated:
+        outcome["blocked"].append({"kind": "php_generated_source", "paths": generated})
+        return outcome
+
+    composer_path = root / "composer.json"
+    try:
+        composer = json.loads(composer_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        return {
+            "status": "failed",
+            "error": f"composer.json is unavailable or malformed: {exc}",
+            "blocked": [{"kind": "php_composer_metadata_failed", "detail": str(exc)}],
+        }
+    mappings = _psr4_string_mappings(composer)
+    candidates = []
+    for prefix, source_root in mappings:
+        old_namespace = _namespace_for_psr4_path(prefix, source_root, move.src)
+        new_namespace = _namespace_for_psr4_path(prefix, source_root, move.dst)
+        if old_namespace and new_namespace:
+            candidates.append((len(source_root), prefix, source_root, old_namespace, new_namespace))
+    if not candidates:
+        outcome["blocked"].append({"kind": "php_psr4_mapping_required"})
+        return outcome
+    candidates.sort(reverse=True)
+    longest = candidates[0][0]
+    selected = [candidate for candidate in candidates if candidate[0] == longest]
+    if len(selected) != 1:
+        outcome["blocked"].append({"kind": "php_psr4_mapping_ambiguous"})
+        return outcome
+    _, prefix, source_root, old_namespace, new_namespace = selected[0]
+
+    php, verification_files, config_blocks = _php_config(plan, root)
+    outcome["blocked"].extend(config_blocks)
+    if php is None:
+        if not any(item["kind"] == "php_binary_unavailable" for item in outcome["blocked"]):
+            outcome["blocked"].append({"kind": "php_tool_missing", "tool": "php"})
+        return outcome
+    version_result = subprocess.run([php, "-v"], cwd=root, text=True, capture_output=True, check=False)
+    version = _php_version(version_result.stdout + version_result.stderr)
+    if version_result.returncode != 0 or version is None:
+        outcome["blocked"].append({"kind": "php_version_unreadable"})
+        return outcome
+    if version < PHP_NAMESPACE_MOVE_MINIMUM:
+        outcome["blocked"].append({
+            "kind": "php_version_too_old",
+            "actual": ".".join(str(part) for part in version),
+            "minimum": PHP_NAMESPACE_MOVE_MINIMUM_TEXT,
+        })
+        return outcome
+    if config_blocks:
+        return outcome
+
+    source_files: set[str] = set()
+    for _mapping_prefix, mapping_root in mappings:
+        mapping_path = root / mapping_root
+        if not mapping_path.is_dir() or mapping_path.is_symlink():
+            continue
+        for path in sorted(mapping_path.rglob("*.php")):
+            if path.is_symlink() or not path.is_file():
+                continue
+            relative = path.relative_to(root)
+            if any(part.lower() in PHP_SKIP_PARTS for part in relative.parts):
+                continue
+            if php_generated_source(path):
+                continue
+            source_files.add(relative.as_posix())
+    analyzed_files = sorted(source_files | set(verification_files))
+    excluded_files = sorted(set(_iter_php_files(root)) - set(analyzed_files))
+    excluded_blocks = _php_excluded_identity_blocks(root, excluded_files, old_namespace, move.src)
+    if excluded_blocks:
+        return {
+            **outcome,
+            "status": "unsupported",
+            "blocked": [*outcome["blocked"], *excluded_blocks],
+            "php": {
+                "path": php,
+                "version": (version_result.stdout or version_result.stderr).splitlines()[0],
+                "minimum": PHP_NAMESPACE_MOVE_MINIMUM_TEXT,
+            },
+            "psr4": {"prefix": prefix, "source_root": source_root},
+            "old_namespace": old_namespace,
+            "new_namespace": new_namespace,
+            "php_files": analyzed_files,
+            "moved_files": moved_files,
+            "verification_files": verification_files,
+            "excluded_files": excluded_files,
+        }
+    outcome.update({
+        "status": "complete",
+        "php": {
+            "path": php,
+            "version": (version_result.stdout or version_result.stderr).splitlines()[0],
+            "minimum": PHP_NAMESPACE_MOVE_MINIMUM_TEXT,
+        },
+        "psr4": {"prefix": prefix, "source_root": source_root},
+        "old_namespace": old_namespace,
+        "new_namespace": new_namespace,
+        "php_files": analyzed_files,
+        "moved_files": moved_files,
+        "verification_files": verification_files,
+        "excluded_files": excluded_files,
+    })
+    return outcome
+
+
+def checked_php(root: Path, moves: list[MoveSpec], tooling: dict, *, post_apply: bool = False) -> dict:
+    """Ask PHP's tokenizer for exact syntax spans; never infer dynamic identities."""
+    if tooling.get("status") != "complete":
+        return tooling
+    move = moves[0]
+    request = {
+        "project_root": str(root),
+        "old_namespace": tooling["old_namespace"],
+        "new_namespace": tooling["new_namespace"],
+        "old_path": move.src,
+        "new_path": move.dst,
+        "moved_path": move.dst if post_apply else move.src,
+        "expected_moved_namespace": tooling["new_namespace"] if post_apply else tooling["old_namespace"],
+        "files": tooling["php_files"],
+    }
+    result = subprocess.run(
+        [tooling["php"]["path"], str(Path(__file__).with_name("php_namespace_reference_spans.php"))],
+        cwd=root,
+        input=json.dumps(request),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    try:
+        outcome = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        outcome = {"status": "failed", "error": "PHP helper emitted invalid JSON", "blocked": []}
+    outcome["returncode"] = result.returncode
+    outcome["tooling"] = tooling
+    for key in (
+        "old_namespace", "new_namespace", "php_files", "moved_files",
+        "verification_files", "excluded_files",
+    ):
+        outcome[key] = tooling.get(key)
+    if post_apply and outcome.get("spans"):
+        outcome.setdefault("blocked", []).append({
+            "kind": "php_old_identity_remains_after_move",
+            "paths": sorted({item["file"] for item in outcome["spans"]}),
+        })
+        outcome["status"] = "partial"
+    if result.returncode != 0 and outcome.get("status") == "complete":
+        outcome["status"] = "failed"
+        outcome["error"] = result.stderr.strip() or "PHP helper failed"
+    return outcome
+
+
+def php_rewrites(root: Path, moves: list[MoveSpec], outcome: dict) -> tuple[list[Replacement], list[dict]]:
+    replacements: list[Replacement] = []
+    blocked = list(outcome.get("blocked") or [])
+    if outcome.get("status") != "complete":
+        return replacements, blocked
+    for item in outcome.get("spans", []):
+        source = item["file"]
+        text = _read_text(root / source)
+        start = utf8_offset(text, int(item["start"]))
+        end = utf8_offset(text, int(item["end"]))
+        if text[start:end] != item["old_text"]:
+            blocked.append({"kind": "php_reference_span_mismatch", "path": source, "line": item["line"]})
+            continue
+        replacements.append(Replacement(
+            file_before=source,
+            file_after=after_path_for(source, moves),
+            start=start,
+            end=end,
+            old=item["old_text"],
+            new=item["new_text"],
+            kind=item["kind"],
+            confidence="auto",
+            target_before=outcome["old_namespace"],
+            target_after=outcome["new_namespace"],
+        ))
+    return replacements, blocked
+
+
+def run_php_script(root: Path, php: str, script: str) -> dict:
+    return _native_result([php, script], root)
 
 
 def _native_result(
@@ -1781,6 +2134,16 @@ def render_markdown(payload: dict) -> str:
             out.append(f"- Detail: {java['error']}")
         if java.get("rolled_back"):
             out.append("- Source changes were rolled back after Java native compilation failed.")
+    if php := payload.get("php"):
+        out.extend(["", "## Checked PHP Namespace Move", ""])
+        out.append(f"- Status: `{php['status']}`")
+        out.append(f"- Updated token spans: {len(php.get('updates', []))}")
+        if php.get("old_namespace"):
+            out.append(f"- Namespace identity: `{php['old_namespace']}` -> `{php['new_namespace']}`")
+        if php.get("error"):
+            out.append(f"- Detail: {php['error']}")
+        if php.get("rolled_back"):
+            out.append("- Source changes were rolled back after PHP native or exact-diff verification failed.")
     out.extend(["", "## Post-Apply Broken Links", ""])
     if payload["post_broken_links"]:
         for item in payload["post_broken_links"]:
@@ -1867,6 +2230,38 @@ def add_java_report(
     payload["summary"]["java_status"] = outcome.get("status", "failed")
 
 
+def add_php_report(
+    payload: dict,
+    outcome: dict,
+    replacements: list[Replacement],
+    *,
+    native: dict | None = None,
+    rolled_back: bool = False,
+) -> None:
+    payload["code_imports"] = {
+        "mode": "update-php",
+        "risk": "Only PHP-token namespace/name spans and exact require/include literals are updated; excluded or dynamic identities block apply.",
+        "ignored": [],
+    }
+    tooling = outcome.get("tooling") or outcome
+    payload["php"] = {
+        "mode": "update-php",
+        "status": outcome.get("status", "failed"),
+        "error": outcome.get("error"),
+        "tooling": tooling,
+        "old_namespace": outcome.get("old_namespace") or tooling.get("old_namespace"),
+        "new_namespace": outcome.get("new_namespace") or tooling.get("new_namespace"),
+        "updates": [dataclasses.asdict(item) for item in replacements],
+        "exact_changes": [dataclasses.asdict(item) for item in replacements],
+        "blocked": outcome.get("blocked", []),
+        "verification_files": outcome.get("verification_files") or tooling.get("verification_files", []),
+        "excluded_files": outcome.get("excluded_files") or tooling.get("excluded_files", []),
+        "native": native or {},
+        "rolled_back": rolled_back,
+    }
+    payload["summary"]["php_status"] = outcome.get("status", "failed")
+
+
 def snapshot_move_inputs(root: Path, moves: list[MoveSpec], touched_before: list[str]) -> dict[str, bytes]:
     """Capture the bounded moved tree and rewritten files for native rollback."""
     paths = set(touched_before)
@@ -1904,6 +2299,87 @@ def exact_snapshot_match(
         if not path.is_file() or path.read_bytes() != expected_bytes:
             return False
     return True
+
+
+def _snapshot_excluded(path: Path, root: Path, report_dir: Path) -> bool:
+    relative = path.relative_to(root)
+    if ".git" in relative.parts:
+        return True
+    try:
+        path.resolve().relative_to(report_dir.resolve())
+        return True
+    except ValueError:
+        return False
+
+
+def snapshot_php_project(root: Path, report_dir: Path) -> dict[str, bytes]:
+    """Capture every regular host file so native side effects are detectable."""
+    return {
+        path.relative_to(root).as_posix(): path.read_bytes()
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+        and not path.is_symlink()
+        and not _snapshot_excluded(path, root, report_dir)
+    }
+
+
+def _manifest_fingerprint(files: dict[str, bytes]) -> str:
+    digest = hashlib.sha256()
+    for relative, contents in sorted(files.items()):
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(hashlib.sha256(contents).hexdigest().encode("ascii"))
+        digest.update(b"\n")
+    return digest.hexdigest()
+
+
+def exact_php_project_diff(
+    root: Path,
+    report_dir: Path,
+    moves: list[MoveSpec],
+    before: dict[str, bytes],
+    after_texts: dict[str, str],
+) -> dict:
+    """Compare the whole host to the exact virtual after-tree, not only touched files."""
+    expected: dict[str, bytes] = {}
+    for relative, contents in before.items():
+        after = after_path_for(relative, moves)
+        expected_text = after_texts.get(after)
+        expected[after] = expected_text.encode("utf-8") if expected_text is not None else contents
+    actual = snapshot_php_project(root, report_dir)
+    changed = sorted(
+        path for path in expected.keys() & actual.keys() if expected[path] != actual[path]
+    )
+    missing = sorted(expected.keys() - actual.keys())
+    unexpected = sorted(actual.keys() - expected.keys())
+    return {
+        "passed": not changed and not missing and not unexpected,
+        "before_fingerprint": _manifest_fingerprint(before),
+        "expected_fingerprint": _manifest_fingerprint(expected),
+        "actual_fingerprint": _manifest_fingerprint(actual),
+        "changed": changed,
+        "missing": missing,
+        "unexpected": unexpected,
+    }
+
+
+def rollback_php_project(
+    root: Path,
+    report_dir: Path,
+    moves: list[MoveSpec],
+    before: dict[str, bytes],
+) -> None:
+    """Restore the pre-apply manifest, including unexpected native output files."""
+    for move in sorted(moves, key=lambda item: len(item.src)):
+        if (root / move.dst).exists() and not (root / move.src).exists():
+            move_one(root, move.dst, move.src)
+    current = snapshot_php_project(root, report_dir)
+    for relative in sorted(current.keys() - before.keys(), reverse=True):
+        (root / relative).unlink()
+    for relative, contents in before.items():
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(contents)
 
 
 def merge_ignored_code_imports(pre_apply: list[dict], post_apply: list[dict]) -> list[dict]:
@@ -2021,6 +2497,19 @@ def run_plan(
                 else:
                     outcome = reverse_outcome
             add_java_report(payload, outcome, [], native=native)
+        if import_mode == "update-php":
+            tooling = php_tooling(root, plan, moves, post_apply=True)
+            outcome = checked_php(root, moves, tooling, post_apply=True)
+            native: dict = {}
+            if outcome.get("status") == "complete":
+                scripts = outcome.get("verification_files", [])
+                labels = [Path(script).stem for script in scripts]
+                for label, script in zip(labels, scripts, strict=True):
+                    native[label] = run_php_script(root, outcome["tooling"]["php"]["path"], script)
+                if not all(item["passed"] for item in native.values()):
+                    outcome["status"] = "failed"
+                    outcome.setdefault("blocked", []).append({"kind": "php_native_check_failed"})
+            add_php_report(payload, outcome, [], native=native)
         write_report(report_dir, payload)
         return payload
 
@@ -2030,6 +2519,7 @@ def run_plan(
     javascript = checked_javascript(root, config, javascript_files) if import_mode == "update-javascript" else None
     go = checked_go(root, moves, go_tooling(root, moves)) if import_mode == "update-go" else None
     java = checked_java(root, moves, java_tooling(root, moves)) if import_mode == "update-java" else None
+    php = checked_php(root, moves, php_tooling(root, plan, moves)) if import_mode == "update-php" else None
     if go is not None and go.get("status") == "complete":
         non_go_blocks = non_go_old_import_path_blocks(root, go["old_import"], plan_path, report_dir)
         if non_go_blocks:
@@ -2038,6 +2528,7 @@ def run_plan(
     javascript_replacements: list[Replacement] = []
     go_replacements: list[Replacement] = []
     java_replacements: list[Replacement] = []
+    php_replacements: list[Replacement] = []
     if javascript is not None:
         if javascript["status"] == "complete":
             javascript_replacements, javascript_blocked = javascript_rewrites(root, moves, javascript)
@@ -2064,12 +2555,22 @@ def run_plan(
                 java["status"] = "unsupported"
         else:
             blocked.append({"kind": f"java_{java.get('status', 'failed')}", "detail": java.get("error"), "findings": java.get("blocked", [])})
+    if php is not None:
+        if php.get("status") == "complete":
+            php_replacements, php_blocked = php_rewrites(root, moves, php)
+            blocked.extend(php_blocked)
+            if php_blocked:
+                php["status"] = "unsupported"
+        else:
+            blocked.append({"kind": f"php_{php.get('status', 'failed')}", "detail": php.get("error"), "findings": php.get("blocked", [])})
     replacements.extend(javascript_replacements)
     replacements.extend(go_replacements)
     replacements.extend(java_replacements)
+    replacements.extend(php_replacements)
     go_files = go.get("go_files", []) if go is not None else []
     java_files = java.get("java_files", []) if java is not None else []
-    after_texts = build_after_texts(root, sorted({*files, *javascript_files, *go_files, *java_files}), moves, replacements)
+    php_files = php.get("php_files", []) if php is not None else []
+    after_texts = build_after_texts(root, sorted({*files, *javascript_files, *go_files, *java_files, *php_files}), moves, replacements)
     after_paths = all_repo_paths_after(root, moves)
     post_broken = verify_markdown_links(root, after_texts, after_paths)
 
@@ -2098,6 +2599,8 @@ def run_plan(
         add_go_report(payload, go, go_replacements)
     if java is not None:
         add_java_report(payload, java, java_replacements)
+    if php is not None:
+        add_php_report(payload, php, php_replacements)
     write_report(report_dir, payload)
 
     safety = plan.get("safety") or {}
@@ -2132,6 +2635,25 @@ def run_plan(
             payload["summary"]["blocked"] = len(payload["blocked"])
             write_report(report_dir, payload)
             raise SystemExit(f"javac preflight prevents apply; see {report_dir / 'report.md'}")
+    php_snapshot: dict[str, bytes] | None = None
+    if php is not None:
+        php_snapshot = snapshot_php_project(root, report_dir)
+        scripts = php.get("verification_files", [])
+        labels = [Path(script).stem for script in scripts]
+        for label, script in zip(labels, scripts, strict=True):
+            native[f"{label}_preflight"] = run_php_script(root, php["tooling"]["php"]["path"], script)
+        native["preflight_fingerprint"] = exact_php_project_diff(
+            root, report_dir, [], php_snapshot, {}
+        )
+        if not all(item["passed"] for item in native.values()):
+            rollback_php_project(root, report_dir, [], php_snapshot)
+            php["status"] = "failed"
+            php.setdefault("blocked", []).append({"kind": "php_native_preflight_failed"})
+            add_php_report(payload, php, php_replacements, native=native, rolled_back=True)
+            payload["blocked"].append({"kind": "php_native_preflight_failed"})
+            payload["summary"]["blocked"] = len(payload["blocked"])
+            write_report(report_dir, payload)
+            raise SystemExit(f"PHP native preflight failed; source rolled back; see {report_dir / 'report.md'}")
     snapshots = snapshot_move_inputs(root, moves, touched_before) if go is not None or java is not None else {path: (root / path).read_bytes() for path in touched_before}
     apply_moves_and_rewrites(root, moves, after_texts, touched_before)
     if javascript is not None:
@@ -2185,6 +2707,40 @@ def run_plan(
             write_report(report_dir, payload)
             raise SystemExit(f"Java native verification failed; source rolled back; see {report_dir / 'report.md'}")
         add_java_report(payload, java, java_replacements, native=native)
+        write_report(report_dir, payload)
+        if stage:
+            stage_applied_paths(root, moves, touched_before)
+        return payload
+    if php is not None:
+        assert php_snapshot is not None
+        checked_after = checked_php(
+            root,
+            moves,
+            php_tooling(root, plan, moves, post_apply=True),
+            post_apply=True,
+        )
+        native["token_check"] = {
+            "passed": checked_after.get("status") == "complete",
+            "status": checked_after.get("status", "failed"),
+            "blocked": checked_after.get("blocked", []),
+        }
+        scripts = php.get("verification_files", [])
+        labels = [Path(script).stem for script in scripts]
+        for label, script in zip(labels, scripts, strict=True):
+            native[label] = run_php_script(root, php["tooling"]["php"]["path"], script)
+        native["exact_diff"] = exact_php_project_diff(
+            root, report_dir, moves, php_snapshot, after_texts
+        )
+        if not all(item["passed"] for item in native.values()):
+            rollback_php_project(root, report_dir, moves, php_snapshot)
+            checked_after["status"] = "failed"
+            checked_after.setdefault("blocked", []).append({"kind": "php_native_or_exact_check_failed"})
+            add_php_report(payload, checked_after, php_replacements, native=native, rolled_back=True)
+            payload["blocked"].append({"kind": "php_native_or_exact_check_failed"})
+            payload["summary"]["blocked"] = len(payload["blocked"])
+            write_report(report_dir, payload)
+            raise SystemExit(f"PHP native verification failed; source rolled back; see {report_dir / 'report.md'}")
+        add_php_report(payload, checked_after, php_replacements, native=native)
         write_report(report_dir, payload)
         if stage:
             stage_applied_paths(root, moves, touched_before)
