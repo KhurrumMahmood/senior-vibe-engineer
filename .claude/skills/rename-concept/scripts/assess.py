@@ -40,6 +40,8 @@ import sys
 import tempfile
 from functools import lru_cache
 
+sys.dont_write_bytecode = True
+
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
 
 
@@ -82,7 +84,11 @@ def resolve_project_root(explicit: pathlib.Path | None = None) -> pathlib.Path:
     return pathlib.Path.cwd().resolve()
 
 
-def assessment_output_path(output: pathlib.Path, project_root: pathlib.Path) -> pathlib.Path:
+def assessment_output_path(
+    output: pathlib.Path,
+    project_root: pathlib.Path,
+    flag: str = "--output",
+) -> pathlib.Path:
     """Accept only a contained assessment report with no symlink components.
 
     The assessment is read-only with respect to the host source tree.  Its
@@ -100,11 +106,11 @@ def assessment_output_path(output: pathlib.Path, project_root: pathlib.Path) -> 
         relative_output = logical_output.relative_to(report_root)
     except ValueError as exc:
         raise ValueError(
-            "assessment --output must be inside "
+            f"assessment {flag} must be inside "
             "<project-root>/reports/rename-concept/"
         ) from exc
     if not relative_output.parts:
-        raise ValueError("assessment --output must name a file inside reports/rename-concept/")
+        raise ValueError(f"assessment {flag} must name a file inside reports/rename-concept/")
 
     current = project_root
     for part in logical_output.relative_to(project_root).parts:
@@ -117,12 +123,12 @@ def assessment_output_path(output: pathlib.Path, project_root: pathlib.Path) -> 
             raise ValueError(f"assessment output component could not be inspected: {exc}") from exc
         if stat.S_ISLNK(mode):
             raise ValueError(
-                "assessment --output must not use symlink components inside "
+                f"assessment {flag} must not use symlink components inside "
                 "reports/rename-concept/"
             )
 
     if logical_output.exists() and logical_output.is_dir():
-        raise ValueError("assessment --output must name a file inside reports/rename-concept/")
+        raise ValueError(f"assessment {flag} must name a file inside reports/rename-concept/")
     return logical_output
 
 
@@ -262,6 +268,125 @@ def go_source_files(project_root: pathlib.Path) -> list[str]:
         for path in eligible
         if not ({part.lower() for part in path.relative_to(project_root).parts[:-1]} & excluded)
     )
+
+
+JAVA_PRUNE_SEGMENTS = frozenset({
+    ".agents", ".claude", ".git", ".gradle", ".idea", ".venv", "node_modules",
+    "reports", "venv",
+})
+JAVA_GENERATED_SEGMENTS = frozenset({"generated", "gen"})
+JAVA_TEST_SEGMENTS = frozenset({"test", "tests", "testfixtures", "fixtures", "fixture"})
+JAVA_VENDOR_SEGMENTS = frozenset({"vendor"})
+JAVA_BUILD_SEGMENTS = frozenset({"build", "target", "out", "dist"})
+
+
+def java_source_inventory(
+    project_root: pathlib.Path,
+) -> tuple[list[str], list[tuple[pathlib.Path, str]], list[dict]]:
+    """Inventory root-contained Java without turning excluded source into clean evidence."""
+    eligible: list[str] = []
+    excluded: list[tuple[pathlib.Path, str]] = []
+    ambiguities: list[dict] = []
+    for directory, directories, filenames in os.walk(project_root, followlinks=False):
+        parent = pathlib.Path(directory)
+        kept: list[str] = []
+        for name in directories:
+            child = parent / name
+            relative = child.relative_to(project_root)
+            lowered = {part.lower() for part in relative.parts}
+            if child.is_symlink():
+                if not (lowered & JAVA_PRUNE_SEGMENTS):
+                    ambiguities.append({
+                        "kind": "symlink_source_boundary",
+                        "file": relative.as_posix(),
+                        "reason": "Java source inventory never follows directory symlinks.",
+                    })
+                continue
+            if lowered & JAVA_PRUNE_SEGMENTS:
+                continue
+            kept.append(name)
+        directories[:] = kept
+        for name in filenames:
+            if not name.endswith(".java"):
+                continue
+            path = parent / name
+            relative = path.relative_to(project_root)
+            if path.is_symlink():
+                ambiguities.append({
+                    "kind": "symlink_source_file",
+                    "file": relative.as_posix(),
+                    "reason": "Java source inventory never reads source symlinks.",
+                })
+                continue
+            if not path.is_file():
+                continue
+            lowered = {part.lower() for part in relative.parts[:-1]}
+            reason = None
+            if lowered & JAVA_BUILD_SEGMENTS:
+                reason = "build"
+            elif lowered & JAVA_GENERATED_SEGMENTS:
+                reason = "generated"
+            elif lowered & JAVA_TEST_SEGMENTS or name.lower().endswith(("test.java", "tests.java")):
+                reason = "test"
+            elif lowered & JAVA_VENDOR_SEGMENTS:
+                reason = "vendor"
+            else:
+                try:
+                    head = "\n".join(path.read_text(encoding="utf-8", errors="replace").splitlines()[:20])
+                except OSError:
+                    ambiguities.append({
+                        "kind": "unreadable_java_source",
+                        "file": relative.as_posix(),
+                        "reason": "Java source could not be read.",
+                    })
+                    continue
+                if ("Generated" in head and "DO NOT EDIT" in head) or re.search(
+                    r"(?m)^\s*@(javax\.annotation\.processing\.)?Generated(?:\s*\(|\s*$)",
+                    head,
+                ):
+                    reason = "generated"
+            if reason:
+                excluded.append((path, reason))
+            else:
+                eligible.append(relative.as_posix())
+    return sorted(eligible), sorted(excluded), sorted(ambiguities, key=lambda row: row["file"])
+
+
+def excluded_java_references(
+    project_root: pathlib.Path,
+    excluded: list[tuple[pathlib.Path, str]],
+    terms: list[str],
+) -> list[dict]:
+    """Surface exact term hits outside compiler coverage as explicit deferrals."""
+    detector = detector_module()
+    if detector is None:
+        return []
+    patterns = [(term, detector.compile_term(term)) for term in terms if term.strip()]
+    kind_by_reason = {
+        "generated": "generated_source_reference",
+        "test": "test_source_reference",
+        "vendor": "vendor_source_reference",
+        "build": "build_source_reference",
+    }
+    findings: list[dict] = []
+    for path, reason in excluded:
+        try:
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        for lineno, line in enumerate(lines, start=1):
+            for term, pattern in patterns:
+                if not pattern.search(line):
+                    continue
+                findings.append({
+                    "kind": kind_by_reason[reason],
+                    "file": path.relative_to(project_root).as_posix(),
+                    "line": lineno,
+                    "text": line.strip()[:160],
+                    "term": term,
+                    "reason": f"{reason} Java source is outside rename authority and requires separate review.",
+                })
+    return findings
 
 
 def concept_terms(concept: str, project_root: pathlib.Path) -> list[str]:
@@ -432,6 +557,120 @@ def run_go_identifier_evidence(
         return {"status": "unavailable", "reason": str(exc)}
 
 
+def _jdk_feature(rendered: str) -> int | None:
+    match = re.search(r'(?:version\s+")?(\d+)(?:\.\d+)*', rendered)
+    return int(match.group(1)) if match else None
+
+
+def run_java_identifier_evidence(
+    project_root: pathlib.Path,
+    old_terms: list[str],
+    new_terms: list[str],
+    sources: list[str],
+) -> dict:
+    """Invoke the family-local JDK 17 compiler/tree/type resolver read-only."""
+    java = shutil.which("java")
+    javac = shutil.which("javac")
+    runner = pathlib.Path(__file__).resolve().with_name("java_identifier_evidence.java")
+    if not java or not javac:
+        return {"status": "unavailable", "reason": "JDK java and javac executables are required from PATH"}
+    if not runner.exists():
+        return {"status": "unavailable", "reason": "bundled Java evidence runner is missing"}
+    try:
+        version = subprocess.run(
+            [java, "-version"], cwd=project_root, capture_output=True, text=True, timeout=30,
+        )
+        rendered = (version.stdout + version.stderr).strip()
+        feature = _jdk_feature(rendered)
+        if version.returncode or feature is None:
+            return {"status": "unavailable", "reason": "cannot determine Java version from PATH"}
+        if feature < 17:
+            return {"status": "unsupported", "reason": f"JDK 17 or newer is required; found {rendered}"}
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = pathlib.Path(temp_dir) / "java-identifiers.json"
+            command = [
+                java,
+                str(runner),
+                "--project-root", str(project_root),
+                "--output", str(output),
+            ]
+            for term in old_terms:
+                command.extend(("--old-term", term))
+            for term in new_terms:
+                command.extend(("--new-term", term))
+            for source in sources:
+                command.extend(("--source", source))
+            result = subprocess.run(
+                command,
+                cwd=project_root,
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            if not output.exists():
+                detail = result.stderr.strip() or result.stdout.strip()
+                return {
+                    "status": "unavailable",
+                    "reason": detail or f"Java evidence runner exited {result.returncode}",
+                }
+            evidence = json.loads(output.read_text(encoding="utf-8"))
+            if result.returncode and evidence.get("status") == "resolved":
+                return {"status": "unavailable", "reason": "Java evidence runner failed after resolving"}
+            return evidence
+    except (subprocess.SubprocessError, OSError, json.JSONDecodeError, ValueError) as exc:
+        return {"status": "unavailable", "reason": str(exc)}
+
+
+def load_strict_candidates(
+    paths: list[pathlib.Path],
+    project_root: pathlib.Path,
+) -> tuple[list[dict], list[str]]:
+    """Accept root-contained concept-divergence JSON/JSONL candidate artifacts."""
+    findings: list[dict] = []
+    labels: list[str] = []
+    for supplied in paths:
+        candidate = supplied if supplied.is_absolute() else project_root / supplied
+        candidate = pathlib.Path(os.path.abspath(candidate))
+        try:
+            relative = candidate.relative_to(project_root)
+        except ValueError as exc:
+            raise ValueError("--strict-candidate must stay inside the project root") from exc
+        current = project_root
+        for part in relative.parts:
+            current /= part
+            if current.exists() and current.is_symlink():
+                raise ValueError("--strict-candidate must not traverse a symlink")
+        if not candidate.is_file():
+            raise ValueError(f"--strict-candidate is not a file: {relative.as_posix()}")
+        try:
+            text = candidate.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            raise ValueError(
+                f"--strict-candidate could not be read: {relative.as_posix()}"
+            ) from exc
+        try:
+            parsed = json.loads(text)
+            records = parsed if isinstance(parsed, list) else parsed.get("findings", [parsed])
+        except json.JSONDecodeError:
+            records = [json.loads(line) for line in text.splitlines() if line.strip()]
+        for record in records:
+            if not isinstance(record, dict) or record.get("band") not in {
+                "avoid_term_hit", "superseded_co_occurrence",
+            }:
+                raise ValueError(f"invalid concept-divergence record in {relative.as_posix()}")
+            file = record.get("file")
+            if not isinstance(file, str) or not file.endswith(".java"):
+                raise ValueError(f"strict Java candidate must name a .java file in {relative.as_posix()}")
+            source = pathlib.Path(os.path.abspath(project_root / file))
+            try:
+                source.relative_to(project_root)
+            except ValueError as exc:
+                raise ValueError("strict Java candidate source escapes project root") from exc
+            findings.append({**record, "language": "java", "candidate_source": relative.as_posix()})
+        labels.append(relative.as_posix())
+    return findings, labels
+
+
 def classify_lexical_candidates(findings: list[dict] | None, old: str, evidence: dict) -> list[dict]:
     """Classify band-3 hits with compiler identity or text-only evidence."""
     occurrences = evidence.get("occurrences") if isinstance(evidence, dict) else []
@@ -484,7 +723,12 @@ def _text_only_candidate_kind(finding: dict) -> str:
     return "non_identifier_text"
 
 
-def _run_concept_divergence(project_root: pathlib.Path) -> list[dict] | None:
+def _run_concept_divergence(
+    project_root: pathlib.Path,
+    *,
+    java_sources: list[str] | None = None,
+    accepted_candidates: list[dict] | None = None,
+) -> list[dict] | None:
     """Run find-concept-divergence ONCE and return its raw findings (parsed
     JSONL). None if the detector can't run. Both completeness bands —
     superseded_co_occurrence (band 3) and avoid_term_hit (band 1) — filter
@@ -522,7 +766,24 @@ def _run_concept_divergence(project_root: pathlib.Path) -> list[dict] | None:
                 for line in pathlib.Path(out).read_text().splitlines():
                     if line.strip():
                         findings.append(json.loads(line))
-            return findings
+            detector = detector_module()
+            if detector is None:
+                return None
+            if java_sources:
+                glossary = load_glossary(project_root / ".claude/contracts/concepts.yaml")
+                findings.extend(detector.scan(
+                    glossary,
+                    (),
+                    project_root,
+                    selected_files=[project_root / source for source in java_sources],
+                    language="java",
+                ))
+            findings.extend(accepted_candidates or [])
+            unique: dict[str, dict] = {}
+            for finding in findings:
+                key = json.dumps(finding, sort_keys=True, ensure_ascii=False)
+                unique[key] = finding
+            return list(unique.values())
     except (subprocess.SubprocessError, OSError, json.JSONDecodeError, ValueError):
         return None
 
@@ -574,6 +835,81 @@ def concept_avoid_hits(findings: list[dict] | None, old: str, new: str) -> list[
     return sorted(set(files))
 
 
+def render_assessment_report(payload: dict) -> str:
+    """Render the persistent human handoff from the same structured truth."""
+    old = payload["old"]
+    new = payload["new"]
+    lifecycle = payload["lifecycle"]
+    lexical = payload["lexical_gate"]
+    java = payload.get("java_identifier_evidence") or {}
+    lines = [
+        f"# Rename impact assessment — {old} → {new}",
+        "",
+        "> Read-only proposal evidence; no source edits were applied.",
+        "",
+        f"**Verdict:** `{payload['verdict']}`",
+        "",
+        "## Lifecycle and strict-text gate",
+        "",
+        f"- Glossary superseded-by matches: `{lifecycle['supersede_matches_new']}`",
+        f"- Reintroduction guard: `{lifecycle['guard_lint'] or 'missing'}`",
+        f"- Band 3 files: `{len(lexical['superseded_cooccurrence_files'] or [])}`",
+        f"- Band 1 files: `{len(lexical['retired_prose_files'] or [])}`",
+        "",
+    ]
+    if java:
+        declarations = java.get("declarations") or {"old": [], "new": []}
+        lines.extend([
+            "## Compiler-resolved Java impact",
+            "",
+            "Only public top-level `TypeElement` identity establishes rename authority.",
+            "",
+            f"- Compiler status: `{java.get('status', 'unavailable')}`",
+            f"- Authority status: `{java.get('authority_status', 'unavailable')}`",
+            f"- Old authorities: `{len(declarations.get('old', []))}`",
+            f"- New authorities: `{len(declarations.get('new', []))}`",
+            "",
+            "| File | Line | Name | Classification | Syntax |",
+            "|---|---:|---|---|---|",
+        ])
+        for item in java.get("occurrences") or []:
+            lines.append(
+                f"| `{item.get('file')}` | {item.get('line')} | `{item.get('name')}` | "
+                f"`{item.get('classification')}` | `{item.get('syntax')}` |"
+            )
+        lines.extend([
+            "",
+            "## Deferred Java references",
+            "",
+            "Reflection and dynamic references are deferred, as are strings, generated/test/vendor/build source, and annotation-mediated framework behavior.",
+            "",
+        ])
+        deferred = java.get("deferred_references") or []
+        if deferred:
+            lines.extend(["| File | Line | Kind | Reason |", "|---|---:|---|---|"])
+            for item in deferred:
+                lines.append(
+                    f"| `{item.get('file')}` | {item.get('line')} | `{item.get('kind')}` | "
+                    f"{item.get('reason')} |"
+                )
+        else:
+            lines.append("No deferred Java references were found on the bounded surface.")
+        lines.extend([
+            "",
+            "## Native verification obligation",
+            "",
+            "Compile the same first-party source set with `javac --release 17 -proc:none`, then run the project's existing native tests before and after any separately approved rename. No build framework is inferred.",
+            "",
+        ])
+    lines.extend(["## Open items", ""])
+    if payload["open_items"]:
+        lines.extend(f"- {item}" for item in payload["open_items"])
+    else:
+        lines.append("- None on the bounded assessment surface.")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("old")
@@ -585,6 +921,10 @@ def main():
                     "divergence scan; default: git toplevel of cwd, else cwd)")
     ap.add_argument("--output", type=pathlib.Path, default=None,
                     help="Optional JSON under reports/rename-concept/ (source files remain read-only)")
+    ap.add_argument("--report", type=pathlib.Path, default=None,
+                    help="Optional Markdown companion under reports/rename-concept/")
+    ap.add_argument("--strict-candidate", type=pathlib.Path, action="append", default=[],
+                    help="Optional root-contained concept-divergence JSON/JSONL Java candidate")
     args = ap.parse_args()
     old, new = args.old, args.new
     project_root = resolve_project_root(args.project_root)
@@ -594,11 +934,31 @@ def main():
             output = assessment_output_path(args.output, project_root)
         except ValueError as exc:
             ap.error(str(exc))
+    report = None
+    if args.report is not None:
+        try:
+            report = assessment_output_path(args.report, project_root, "--report")
+        except ValueError as exc:
+            ap.error(str(exc))
+
+    try:
+        accepted_candidates, strict_candidate_inputs = load_strict_candidates(
+            args.strict_candidate, project_root
+        )
+    except (ValueError, OSError, json.JSONDecodeError) as exc:
+        ap.error(str(exc))
 
     old_files_all = git_grep_files(old, project_root)
     old_files_live = [f for f in old_files_all if not allowed(f)]
+    old_terms = concept_terms(old, project_root)
+    new_terms = concept_terms(new, project_root)
+    java_files, java_excluded, java_inventory_ambiguities = java_source_inventory(project_root)
     # Run find-concept-divergence ONCE; both completeness bands filter it.
-    divergence = _run_concept_divergence(project_root)        # None if unavailable
+    divergence = _run_concept_divergence(
+        project_root,
+        java_sources=java_files,
+        accepted_candidates=accepted_candidates,
+    )
     co_occur = concept_divergence_cooccurrence(divergence, old)      # band 3 (term co-occurrence)
     avoid_hits = concept_avoid_hits(divergence, old, new)           # band 1 (retired prose)
 
@@ -610,8 +970,8 @@ def main():
     typescript_evidence = (
         run_typescript_identifier_evidence(
             project_root,
-            concept_terms(old, project_root),
-            concept_terms(new, project_root),
+            old_terms,
+            new_terms,
             typescript_files,
         )
         if typescript_files
@@ -620,8 +980,8 @@ def main():
     javascript_evidence = (
         run_javascript_identifier_evidence(
             project_root,
-            concept_terms(old, project_root),
-            concept_terms(new, project_root),
+            old_terms,
+            new_terms,
             javascript_files,
         )
         if javascript_files
@@ -630,18 +990,39 @@ def main():
     go_evidence = (
         run_go_identifier_evidence(
             project_root,
-            concept_terms(old, project_root),
-            concept_terms(new, project_root),
+            old_terms,
+            new_terms,
             go_files,
         )
         if go_files
         else None
     )
+    java_evidence = (
+        run_java_identifier_evidence(
+            project_root,
+            old_terms,
+            new_terms,
+            java_files,
+        )
+        if java_files
+        else None
+    )
+    if java_evidence is not None:
+        java_evidence.setdefault("deferred_references", []).extend(
+            excluded_java_references(
+                project_root,
+                java_excluded,
+                [*old_terms, *new_terms],
+            )
+        )
+        java_evidence["inventory_ambiguities"] = java_inventory_ambiguities
+        java_evidence["lexical_companion"] = "find-concept-divergence strict-text rules over eligible Java source"
     combined_evidence = {
         "occurrences": [
             *(typescript_evidence or {}).get("occurrences", []),
             *(javascript_evidence or {}).get("occurrences", []),
             *(go_evidence or {}).get("occurrences", []),
+            *(java_evidence or {}).get("occurrences", []),
         ],
     }
     lexical_candidates = classify_lexical_candidates(divergence, old, combined_evidence)
@@ -732,6 +1113,26 @@ def main():
         else:
             reason = (go_evidence or {}).get("reason", "unknown resolver failure")
             print("  [identifiers] Go: " + str((go_evidence or {}).get("status", "UNAVAILABLE")).upper() + " — " + str(reason))
+    if java_files:
+        if java_evidence and java_evidence.get("status") == "resolved":
+            declarations = java_evidence.get("declarations", {})
+            occurrences = java_evidence.get("occurrences", [])
+            old_declarations = len(declarations.get("old", [])) if isinstance(declarations, dict) else 0
+            new_declarations = len(declarations.get("new", [])) if isinstance(declarations, dict) else 0
+            old_references = sum(
+                item.get("classification") == "old_concept_symbol"
+                for item in occurrences if isinstance(item, dict)
+            )
+            deferred = len(java_evidence.get("deferred_references", []))
+            print("  [identifiers] Java: RESOLVED — JDK compiler TypeElement authority; "
+                  f"authority={java_evidence.get('authority_status', '?')}; "
+                  f"old declarations={old_declarations}, old references={old_references}, "
+                  f"new declarations={new_declarations}, deferred references={deferred}.")
+        else:
+            reason = (java_evidence or {}).get("reason", "unknown resolver failure")
+            print("  [identifiers] Java: "
+                  + str((java_evidence or {}).get("status", "UNAVAILABLE")).upper()
+                  + " — " + str(reason))
 
     print("\n## completeness gate (find-concept-divergence)")
     print("  Two bands must BOTH be clean. Band 3 (superseded_co_occurrence) is")
@@ -802,6 +1203,20 @@ def main():
                           f"`{item.get('name')}` → {item.get('classification')}")
                 if len(occurrences) > 30:
                     print(f"      … (+{len(occurrences)-30} more)")
+    if java_files:
+        print("\n  ### Java identifier evidence (JDK compiler tree/type API)")
+        if not java_evidence or java_evidence.get("status") != "resolved":
+            print("    PARTIAL/UNAVAILABLE — cannot certify Java identifier completeness.")
+        else:
+            print("    Rename authority: public top-level TypeElement identity only.")
+            for item in (java_evidence.get("occurrences") or [])[:30]:
+                print("      - " + f"{item.get('file')}:{item.get('line')} "
+                      f"`{item.get('name')}` → {item.get('classification')}")
+            deferred = java_evidence.get("deferred_references") or []
+            if deferred:
+                print("    Deferred lexical/runtime surfaces:")
+                for item in deferred[:30]:
+                    print("      - " + f"{item.get('file')}:{item.get('line')} → {item.get('kind')}")
 
     if (co_occur is not None and not co_occur) and old_files_live:
         print(f"\n  NOTE: {len(old_files_live)} live file(s) still mention '{old}' "
@@ -822,13 +1237,16 @@ def main():
     evidence_resolved = bool(typescript_evidence and typescript_evidence.get("status") == "resolved")
     javascript_resolved = bool(javascript_evidence and javascript_evidence.get("status") == "resolved")
     go_resolved = bool(go_evidence and go_evidence.get("status") == "resolved")
+    java_resolved = bool(java_evidence and java_evidence.get("status") == "resolved")
     evidence_declarations = (typescript_evidence or {}).get("declarations", {})
     javascript_declarations = (javascript_evidence or {}).get("declarations", {})
     go_declarations = (go_evidence or {}).get("declarations", {})
+    java_declarations = (java_evidence or {}).get("declarations", {})
     evidence_occurrences = [
         *(typescript_evidence or {}).get("occurrences", []),
         *(javascript_evidence or {}).get("occurrences", []),
         *(go_evidence or {}).get("occurrences", []),
+        *(java_evidence or {}).get("occurrences", []),
     ]
     old_symbol_references = sum(
         item.get("classification") == "old_concept_symbol"
@@ -852,13 +1270,19 @@ def main():
         len(go_declarations.get("new", []))
         if isinstance(go_declarations, dict) else 0
     )
+    java_new_declarations = (
+        len(java_declarations.get("new", []))
+        if isinstance(java_declarations, dict) else 0
+    )
     new_symbol_declarations = (
-        typescript_new_declarations + javascript_new_declarations + go_new_declarations
+        typescript_new_declarations + javascript_new_declarations
+        + go_new_declarations + java_new_declarations
     )
     resolution_diagnostics = (
         len((typescript_evidence or {}).get("resolution_diagnostics", []))
         + len((javascript_evidence or {}).get("resolution_diagnostics", []))
         + len((go_evidence or {}).get("resolution_diagnostics", []))
+        + len((java_evidence or {}).get("resolution_diagnostics", []))
     )
     typescript_complete = (
         not typescript_files
@@ -888,14 +1312,42 @@ def main():
             and go_new_declarations > 0
         )
     )
+    java_occurrences = (java_evidence or {}).get("occurrences", [])
+    java_old_references = sum(
+        item.get("classification") == "old_concept_symbol"
+        for item in java_occurrences if isinstance(item, dict)
+    )
+    java_unresolved = sum(
+        item.get("classification") == "unresolved_identifier"
+        for item in java_occurrences if isinstance(item, dict)
+    )
+    java_complete = (
+        not java_files
+        or (
+            java_resolved
+            and (java_evidence or {}).get("authority_status") == "resolved"
+            and java_new_declarations == 1
+            and java_old_references == 0
+            and java_unresolved == 0
+            and not (java_evidence or {}).get("resolution_diagnostics")
+            and not (java_evidence or {}).get("deferred_references")
+            and not (java_evidence or {}).get("inventory_ambiguities")
+        )
+    )
     open_items: list[str] = []
     if co_occur is None or avoid_hits is None:
         verdict = "INCONCLUSIVE"
         open_items = ["concept-divergence completeness gate unavailable"]
         if go_files and not go_resolved:
             open_items.append("Go semantic evidence unavailable")
+        if java_files and not java_resolved:
+            open_items.append("Java compiler evidence unavailable")
         print("  INCONCLUSIVE — completeness gate could not run (see above).")
-    elif not typescript_complete or not javascript_complete or not go_complete:
+    elif java_files and (java_evidence or {}).get("status") in {"unavailable", "unsupported"}:
+        verdict = "INCONCLUSIVE"
+        open_items = ["Java compiler evidence unavailable"]
+        print("  INCONCLUSIVE — Java compiler evidence is unavailable; no clean rename claim is possible.")
+    elif not typescript_complete or not javascript_complete or not go_complete or not java_complete:
         missing: list[str] = []
         if typescript_files and not evidence_resolved:
             missing.append("TypeScript compiler evidence unavailable")
@@ -903,6 +1355,8 @@ def main():
             missing.append("checked-JavaScript compiler evidence unavailable or partial")
         if go_files and not go_resolved:
             missing.append("Go semantic evidence unavailable")
+        if java_files and not java_resolved:
+            missing.append("Java compiler evidence unavailable or failed")
         if old_symbol_references:
             missing.append(f"old concept symbol references ({old_symbol_references})")
         if unresolved_identifiers:
@@ -915,7 +1369,24 @@ def main():
             missing.append("no resolved new concept declaration (checked JavaScript)")
         if go_files and not go_new_declarations:
             missing.append("no resolved new concept declaration (Go)")
-        if not new_symbol_declarations and not (typescript_files or javascript_files or go_files):
+        if java_files and java_new_declarations != 1:
+            missing.append("Java requires exactly one public top-level new TypeElement authority")
+        if java_files and (java_evidence or {}).get("authority_status") != "resolved":
+            missing.append("Java rename authority is " + str((java_evidence or {}).get("authority_status", "unavailable")))
+        if java_old_references:
+            missing.append(f"Java old concept symbol references ({java_old_references})")
+        if (java_evidence or {}).get("deferred_references"):
+            missing.append(
+                "Java reflection/string/dynamic/generated/test/vendor/build references deferred "
+                f"({len((java_evidence or {}).get('deferred_references', []))})"
+            )
+        if (java_evidence or {}).get("inventory_ambiguities"):
+            missing.append(
+                f"Java source inventory ambiguities ({len((java_evidence or {}).get('inventory_ambiguities', []))})"
+            )
+        if not new_symbol_declarations and not (
+            typescript_files or javascript_files or go_files or java_files
+        ):
             missing.append("no resolved new concept declaration")
         if avoid_hits:
             missing.append(f"band 1 retired prose ({len(avoid_hits)} file(s))")
@@ -946,13 +1417,15 @@ def main():
         verdict = "HALF-APPLIED / INCOMPLETE"
         open_items = missing
         print("  HALF-APPLIED / INCOMPLETE — open: " + "; ".join(missing))
-    if output:
+    if output or report:
         payload = {
+            "schema_version": 1,
             "skill": "rename-concept",
             "project_root": str(project_root),
             "old": old,
             "new": new,
             "read_only": True,
+            "strict_candidate_inputs": strict_candidate_inputs,
             "lifecycle": {
                 "glossary_superseded_by": supersede,
                 "supersede_matches_new": supersede_matches_new,
@@ -967,12 +1440,18 @@ def main():
             "typescript_identifier_evidence": typescript_evidence,
             "javascript_identifier_evidence": javascript_evidence,
             "go_identifier_evidence": go_evidence,
+            "java_identifier_evidence": java_evidence,
             "verdict": verdict,
             "open_items": open_items,
         }
+    if output:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(f"\nassessment JSON → {output}")
+    if report:
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.write_text(render_assessment_report(payload), encoding="utf-8")
+        print(f"assessment report → {report}")
     return 0
 
 

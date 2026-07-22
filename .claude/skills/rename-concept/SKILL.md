@@ -8,7 +8,7 @@ description: |
   completeness gate, so renames land half-applied. This skill (v0, assess-only)
   reports the scope-gate verdict, blast radius, a per-step lifecycle status
   table, and the completeness gate. It performs strict lexical assessment of
-  Python, JavaScript, TypeScript, TSX, and Go text. For `.ts`, `.tsx`, and checked
+  Python, JavaScript, TypeScript, TSX, Go, and Java text. For `.ts`, `.tsx`, and checked
   `.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,
   declarations, and references; it does not claim whole-project type-checking,
   JSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`
@@ -72,7 +72,7 @@ delegate_from: |
   here.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, markdown, templates]
+scans: [python, javascript, typescript, go, java, markdown, templates]
 install_with: [find-concept-divergence]
 ---
 
@@ -193,6 +193,10 @@ Reports, read-only:
 For Go targets, read `knowledge/go-v1.md` only when needed. `assess.py` invokes
 the bundled resolver automatically after the coupled lexical scan; missing,
 old, partial, or diagnostically unresolved Go evidence prevents completion.
+
+For Java targets, read `knowledge/java-v1.md`. The copied skill uses JDK 17
+compiler tree/type facts for public top-level authority and bounded impact
+evidence while retaining the companion's strict-text sweep.
 
 `--min-blast` tunes the scope-gate threshold.
 
@@ -329,3 +333,13 @@ external symbols remain classified boundary evidence. Tests, generated source,
 inactive build files, malformed packages, and unavailable tools cannot be
 silently treated as clean. The branch is assessment-only and never performs a
 rename or claims codemod safety.
+
+## Java boundary
+
+Use JDK 17 `JavacTask.parse()` plus `analyze()`. Only one compiler-resolved
+public top-level `TypeElement` can establish each concept identity; lexical
+candidates never establish rename authority. Keep same-spelled locals as
+unrelated evidence. Defer reflection, strings, dynamic lookup,
+annotations/framework behavior, generated/test/vendor/build source, symlinks,
+ambiguous authorities, and incomplete compilation. Emit JSON plus Markdown
+impact artifacts and never mutate source.
