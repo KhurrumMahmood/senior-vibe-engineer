@@ -590,6 +590,26 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "rust_disposition"
     ] == "rust-supported"
 
+    rust_map = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use map-subsystem on this Rust repository",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "rust",
+        "--json",
+        cwd=host,
+    )
+    assert rust_map.returncode == 1
+    rust_map_payload = json.loads(rust_map.stdout)
+    assert rust_map_payload["recommendation"] == "partial"
+    assert rust_map_payload["unavailable"]["classification"] == "partial"
+    assert rust_map_payload["unavailable"]["reason"] == (
+        "/map-subsystem declares rust_disposition=rust-partial"
+    )
+
     shape_routed = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",
         "onboard an unknown inherited repo and figure out what loop to run",

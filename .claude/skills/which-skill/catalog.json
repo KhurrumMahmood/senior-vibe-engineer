@@ -844,7 +844,7 @@
     },
     {
       "name": "map-subsystem",
-      "description": "Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, or plain locked Ruby gem subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.",
+      "description": "Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, plain locked Ruby gem, or Cargo-backed Rust subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.",
       "tier": "maintenance",
       "job": "map",
       "best_for": "Producing or refreshing a durable inventory doc for a subsystem at\n`.claude/docs/subsystems/<name>.md` — file list, public surface,\nresponsibility table, dependency graph, convention-compliance\nscore. MAP skill in the maintenance nervous system.\n",
@@ -861,7 +861,8 @@
         "swift",
         "c",
         "cpp",
-        "ruby"
+        "ruby",
+        "rust"
       ],
       "_path": "skills/map-subsystem"
     },

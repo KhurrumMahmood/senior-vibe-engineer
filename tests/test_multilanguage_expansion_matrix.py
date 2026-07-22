@@ -99,7 +99,8 @@ EXPECTED_RUBY_COUNTS = {
 }
 EXPECTED_RUST_COUNTS = {
     "rust-supported": 2,
-    "rust-pending-implementation": 20,
+    "rust-partial": 1,
+    "rust-pending-implementation": 19,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -518,6 +519,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         for row in language_rows
         if row["rust_disposition"] == "rust-supported"
     } == {"find-comment-drift", "move-path"}
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row["rust_disposition"] == "rust-partial"
+    } == {"map-subsystem"}
     assert Counter(row["javascript_cohort"] for row in language_rows) == (
         EXPECTED_JAVASCRIPT_COHORT_COUNTS
     )

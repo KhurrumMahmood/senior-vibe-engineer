@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "bd8bab4268d2f58518f21651e3062c023c75a4432e719780ce0ace93da68d196"
+      "sha256": "724f80faef55a075d19da935d6eb0998254eb919f8cb411a2e951516e1f7e3b0"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -43,7 +43,7 @@
     },
     {
       "path": ".claude/tasks/rust-language-coverage.json",
-      "sha256": "8f8dd954aa016e0ba6b87854950b060ea336d48f171a4934958678f80838c513"
+      "sha256": "4d0eca1de24d96995eb9d1bf5a5e6210113beb811981947d59c742a30da76ad5"
     }
   ],
   "counts": {
@@ -5349,13 +5349,14 @@
       ],
       "ruby_reviewed_revision": "2f0abb3668c5215b4e0baceb08b50bdad9110e4b",
       "ruby_limitation": "The bounded static map adds value, but dynamic loading, reflection, metaprogramming, callbacks, Rails/Zeitwerk, and runtime identity remain unresolved; semantic reachability is therefore partial.",
-      "rust_disposition": "rust-pending-implementation",
-      "rust_evidence_path": ".claude/tasks/p7-baseline/rust-pilot-baseline.json",
+      "rust_disposition": "rust-partial",
+      "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-map-subsystem.md",
       "rust_native_check": [
-        "locked Cargo target graph and bounded rust-analyzer contract"
+        "locked/offline Cargo metadata and compiler JSON plus rustc cfg and stable rust-analyzer LSP establish the selected workspace/package/target/module configuration",
+        "durable Markdown/JSON, source/artifact hashes, roles/exclusions, eight inbound InvoiceService definitions, native check/test/Clippy/rustfmt/smoke, stale/failure recovery, copied closure, and source preservation reach the final boundary"
       ],
-      "rust_reviewed_revision": "230c2795cfa8d3811a39729722b952b087cd4a8b",
-      "rust_limitation": "No durable map artifact proves module/reference edges and explicit non-complete macro/build/cfg states.",
+      "rust_reviewed_revision": "aee1e4a863f66d259e2683fb7ca18437c6ed38da",
+      "rust_limitation": "Useful selected-configuration facts are complete, but macro/procedural expansion, build-script OUT_DIR, include!, unselected cfg/feature/target variants, and runtime trait-object dispatch remain unresolved; overall status is partial.",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -5373,7 +5374,8 @@
           "swift",
           "c",
           "cpp",
-          "ruby"
+          "ruby",
+          "rust"
         ],
         "install_with": []
       },

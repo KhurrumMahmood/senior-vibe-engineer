@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, or plain locked Ruby gem subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, plain locked Ruby gem, or Cargo-backed Rust subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -17,7 +17,7 @@ not_for: |
   execution (use /refactor-subsystem with a spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, swift, c, cpp, ruby]
+scans: [python, typescript, javascript, go, java, php, swift, c, cpp, ruby, rust]
 ---
 
 # /map-subsystem
@@ -50,6 +50,8 @@ Procedural detail lives in one knowledge file:
   build-target, artifact-verification, and deliberate semantic boundaries.
 - `knowledge/ruby-v1.md` — the plain locked-gem Ruby syntax map, literal-load
   evidence, native checks, partial semantic boundary, and deliberate non-claims.
+- `knowledge/rust-v1.md` — the Cargo/compiler/stable-LSP evidence chain,
+  source roles, partial completeness, lifecycle, and deliberate non-claims.
 
 ## SwiftPM v1
 
@@ -469,6 +471,52 @@ python3 "${SKILL_ROOT}/scripts/map_ruby.py" \
 ```
 <!-- installed-command:ruby-map:end -->
 
+## Rust v1
+
+Use this branch for one Cargo workspace package when the host owns Rust/Cargo
+1.85+, rust-analyzer, a current lockfile, and a compiler-clean locked/offline
+workspace. The copied helper maps package/target/dependency provenance,
+selected ordinary module and re-export paths, compiler diagnostics, selected
+host cfg evidence, source roles, and stable-LSP symbols/definitions. It never
+uses rust-analyzer's unstable CLI or private rustc interfaces.
+
+A successful Rust result remains `partial`: the selected configuration is
+useful and machine-checkable, while macro expansion, build-script `OUT_DIR`,
+`include!`, unselected cfg/feature/target variants, and runtime trait-object
+dispatch stay unresolved. See `knowledge/rust-v1.md` for the exact boundary.
+
+<!-- installed-command:rust-map:start -->
+```bash
+MAP_NAME="${MAP_NAME:-rust-subsystem}"
+MAP_TARGET="${MAP_TARGET:-crates/core}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/map-subsystem" \
+  ".agents/skills/map-subsystem" \
+  ".claude/skills/map-subsystem"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "map-subsystem is not installed" >&2
+  exit 2
+fi
+python3 "${SKILL_ROOT}/scripts/map_rust.py" \
+  --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/rust-map.json" \
+  --cargo "$(command -v cargo)" --rustc "$(command -v rustc)" \
+  --rust-analyzer "$(command -v rust-analyzer)"
+python3 "${SKILL_ROOT}/scripts/map_rust.py" \
+  --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/rust-map.json" --verify-artifacts
+```
+<!-- installed-command:rust-map:end -->
+
 ## How success is judged
 
 - Python maps are complete per `knowledge/output-format.md`: file inventory,
@@ -493,6 +541,10 @@ python3 "${SKILL_ROOT}/scripts/map_ruby.py" \
   Ruby v1 follows `knowledge/ruby-v1.md`: its bounded static map is complete
   for the selected plain-gem snapshot, but overall status remains `partial`
   because Ruby runtime reachability and dynamic behavior are not inferred.
+  Rust v1 follows `knowledge/rust-v1.md`: Cargo/compiler/stable-LSP facts are
+  complete for the selected clean configuration, but overall status remains
+  `partial` across macros, build output, include contents, variants, and
+  runtime trait dispatch.
 - On `--refresh`, the doc opens with a diff section against the prior
   version — what changed, not just what is.
 - The run cites artifact truth: pasted `render_doc.py` `wrote ...`
