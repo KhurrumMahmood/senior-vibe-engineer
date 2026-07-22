@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P3 — freeze the baseline before the minimal language-support kit
-Last updated: 2026-07-21 (P2 complete; P3.0 starting)
+Current phase: P3 — implement the profile contract from the frozen P3.0 spine
+Last updated: 2026-07-21 (P2 complete; P3.0 complete; P3.1 next)
 
 ## Objective
 
@@ -220,7 +220,7 @@ surface before another full language implementation begins.
 
 Acceptance:
 
-- [ ] Before new code, an inventory names the existing source inventory,
+- [x] Before new code, an inventory names the existing source inventory,
   capability matrix, portability journey harness, and representative
   skill-local lifecycle implementations. Each P3 component extends one of them
   or records why reuse is rejected; no parallel second system is created.
@@ -250,7 +250,7 @@ Acceptance:
   added.
 - [ ] The kit runs from an exact on-demand closure without a hidden repository
   import or network requirement.
-- [ ] Focused tests and a size/latency baseline are recorded for comparison in
+- [x] Focused tests and a size/latency baseline are recorded for comparison in
   P4 and P5.
 - [ ] P3 adds no universal AST/fact/result/proposal schema, mutation executor,
   package installer, dependency cache, framework profile, or scaffolder, and
@@ -294,7 +294,9 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | Select existing-language exemplars before implementation | — | — |
+| Worktree review | `.claude/tasks/p3-baseline/worktree-inventory.json` | Reviewed 87 registrations; pruned only 59 missing-path registrations after proving all 21 detached heads remained reachable; preserved 28 present worktrees including both dirty worktrees; post-prune dry-run reports zero prunable registrations | `f56a5f3` spine |
+| Existing-substrate/interface-depth gate | `.claude/tasks/p3-baseline/existing-substrate-inventory.md` | Extends source inventory, capability publication, portability journey, and only proven skill-local lifecycle mechanics; rejects competing/broader abstractions | `f56a5f3` spine |
+| Frozen `find-omnibus` baseline | `.claude/tasks/p3-baseline/find-omnibus-baseline.json` | Exact `60898a7` skill tree/fixtures/toolchain/projections/negative boundaries/closure bytes/LOC frozen; TypeScript+Java suite `18 passed`; cold plus seven alternating warm trials recorded | `f56a5f3` spine |
 
 ## P4 — PHP final-outcome and economics pilot
 
@@ -638,4 +640,5 @@ Evidence:
 | 2026-07-21 | P8 | Router corpus seed captured | Resuming this explicit ledger produced `Project context: missing (adapter=False, profile=False, approved=False)` and a score-zero lexical `bug-fix` fallback. The explicit sole active plan correctly overrode it. Preserve this as an authoritative-plan/low-context routing case for the frozen P8 corpus; do not create project context or block P2 merely to raise router confidence. |
 | 2026-07-21 | P2 | Completed | `60898a7`; public Go/Java claims, accepted coverage, generated matrix, router capability output, and shared inventory agree. The final public list/install/bootstrap/route/`adapt-project`/cleanup/remove replay passed with exact router-tree/library revision coherence, runtime setup, host-source preservation, sentinel preservation, and library retention. Begin P3.0 baseline/worktree inventory; do not revise P2 further unless a reproduced installer regression appears. |
 | 2026-07-21 | P3 | Started | Freeze the exact `60898a7` TypeScript+Java `find-omnibus` baseline and review the 87 registered/59 previously prunable worktree registrations before opening any P3 worker lane. |
+| 2026-07-21 | P3.0 | Completed | Committed evidence freezes the existing-substrate decisions, exact TypeScript/Java projections and exclusions, copied closure bytes, fixture manifests, maintained LOC, OpenJDK 17.0.20/TypeScript 5.9.3 toolchain, full `18 passed` correctness run, and cold plus seven alternating warm trials. Registration-only pruning reduced 87 worktree records to 28 without deleting a path, branch, commit, or dirty worktree. P3.1 may now start from this spine. |
 | 2026-07-21 | Planning | Non-context plan review completed | `7637fcf`; three independent lanes reviewed the P3 substrate, language/worktree execution, and adversarial product alignment. Accepted bounded reuse, exact ownership, economics, release-truth, and measure-before-optimization findings; rejected stale private-repo assumptions and blanket prohibition on user-requested Swift/Dart planning. |

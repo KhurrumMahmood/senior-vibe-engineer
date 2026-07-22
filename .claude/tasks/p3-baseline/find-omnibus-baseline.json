@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-07-21T23:24:40-07:00",
+  "product_candidate": "60898a705115bc4eeb12d0eca55e82c6a7d217ea",
+  "spine_revision": "f56a5f33e8844cbc9059ad2f25e92ae759cc6e7c",
+  "skill_tree": {
+    "candidate": "768764458b0a2d7ea4087908b074364fdced2bf4",
+    "spine": "768764458b0a2d7ea4087908b074364fdced2bf4",
+    "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), sorted paths",
+    "manifest_sha256": "3dcc8b148cb960a54c779044a08468355ad7fab7bceca218e7291e48761bfca8",
+    "total_bytes": 101108,
+    "files": [
+      {"path": "SKILL.md", "bytes": 15826, "sha256": "deffb8f834b90f6ae916d807a90be554795097d626efca57973436179a5a31da"},
+      {"path": "agents/verify.md", "bytes": 6802, "sha256": "2e2480609256dcc2fc17119160accdbcae13e3d7cb0d91c50b2bd7199599d2ab"},
+      {"path": "knowledge/verification.md", "bytes": 7748, "sha256": "409c16b25f62b2201f09dea8010e04a63c029693cbd48d1a5b30f8372b5ed484"},
+      {"path": "scripts/collapse.py", "bytes": 2344, "sha256": "3c488fa46b430cfb9274cde04e8d56298bbb8a0bc89e5b0fcd07a671e8bb58c5"},
+      {"path": "scripts/detect.py", "bytes": 37009, "sha256": "804e207a59cad575415fd90594c1355056cd9d91fd2f0bbe28f91940188bc838"},
+      {"path": "scripts/detect_go_symbols.go", "bytes": 3750, "sha256": "b936c1e922672b7df470512d62009b97d8bb35dab77a724e05dd111c70bbacbf"},
+      {"path": "scripts/detect_java_symbols.java", "bytes": 9567, "sha256": "668fe4bb722a4bf8d2e298d34618ffebe72c845765c1973e9b76f4372a9f781d"},
+      {"path": "scripts/detect_typescript_symbols.mjs", "bytes": 4621, "sha256": "6002ee8fc6883a735b3778af4a75f8ecf4237fd0c663143c7ae3285c1f62194e"},
+      {"path": "scripts/report.py", "bytes": 13441, "sha256": "536fe5170b9165faf307f8f817f1c81d957116abcc0d2396684be1e1ee046a97"}
+    ]
+  },
+  "fixtures": {
+    "typescript": {
+      "root": "tests/fixtures/b4_typescript_omnibus",
+      "manifest_sha256": "aade2234e4daa5025c41d907006d1561dcbc645c4cf0d844573e419e29ad3c31",
+      "total_bytes": 6369,
+      "files": ["package-lock.json", "package.json", "src/InvoicePanel.tsx", "src/generated/omnibus.generated.ts", "src/legacy.min.ts", "src/omnibus.spec.ts", "src/omnibus.ts", "src/omnibus.tsx", "src/vendor/omnibus.ts", "tests/omnibus.test.mjs", "tests/omnibus.test.tsx", "tsconfig.json"]
+    },
+    "java": {
+      "root": "tests/fixtures/find-omnibus-java",
+      "manifest_sha256": "13931630d4192dade05532418cd5cbc0cc4f1bf817aaeeed843a309ab6349f9d",
+      "total_bytes": 2154,
+      "files": ["src/generated/GeneratedOmnibus.java", "src/main/java/example/CleanService.java", "src/main/java/example/NestedOnly.java", "src/main/java/example/OmnibusService.java", "src/test/java/example/OmnibusServiceTest.java", "vendor/example/VendorOmnibus.java"]
+    }
+  },
+  "toolchain": {
+    "platform": "macOS 26.5.2 arm64",
+    "python": "3.11.10",
+    "node": "22.21.1",
+    "npm": "11.12.1",
+    "typescript": "5.9.3",
+    "java": "OpenJDK 17.0.20 Homebrew",
+    "javac": "17.0.20",
+    "java_home": "/opt/homebrew/opt/openjdk@17"
+  },
+  "projections": {
+    "typescript": {
+      "status": "complete",
+      "analyzer": "typescript-compiler-api",
+      "confirmed_omnibus": 2,
+      "must_fire": ["src/omnibus.ts", "src/omnibus.tsx"],
+      "must_not_fire": ["src/InvoicePanel.tsx", "src/generated/omnibus.generated.ts", "src/legacy.min.ts", "src/omnibus.spec.ts", "src/vendor/omnibus.ts", "tests/omnibus.test.mjs", "tests/omnibus.test.tsx"],
+      "clusters": ["invoice", "shipment", "customer", "inventory"]
+    },
+    "java": {
+      "status": "complete",
+      "analyzer": "jdk-compiler-tree-api",
+      "confirmed_omnibus": 1,
+      "must_fire": ["src/main/java/example/OmnibusService.java"],
+      "must_not_fire": ["src/main/java/example/CleanService.java", "src/main/java/example/NestedOnly.java", "src/generated/GeneratedOmnibus.java", "src/test/java/example/OmnibusServiceTest.java", "vendor/example/VendorOmnibus.java"],
+      "clusters": ["invoice", "shipment", "customer", "inventory"]
+    }
+  },
+  "hard_boundaries": [
+    "copied closure runs under isolated/no-site Python without repository imports",
+    "source fingerprints are unchanged after the final pipeline",
+    "TypeScript syntax errors are terminal and explicit",
+    "Java syntax errors, missing JDK, and JDK below 17 are terminal and clear stale output",
+    "Java valid-to-failed and failed-to-valid same-destination transitions are deterministic",
+    "generated, test, vendor, minified, and symlink-boundary inputs do not become findings",
+    "Kotlin is explicitly unsupported by the Java path"
+  ],
+  "maintained_loc": {
+    "definition": "physical and nonblank UTF-8 lines in the shared detector, two native adapters, and two exercised test modules",
+    "total_bytes": 76401,
+    "physical_lines": 1878,
+    "nonblank_lines": 1679,
+    "paths": [
+      ".claude/skills/find-omnibus/scripts/detect.py",
+      ".claude/skills/find-omnibus/scripts/detect_typescript_symbols.mjs",
+      ".claude/skills/find-omnibus/scripts/detect_java_symbols.java",
+      "tests/test_omnibus_typescript.py",
+      "tests/test_find_omnibus_java.py"
+    ]
+  },
+  "correctness": {
+    "command": "PATH=/opt/homebrew/opt/openjdk@17/bin:$PATH JAVA_HOME=/opt/homebrew/opt/openjdk@17 .venv/bin/python -m pytest -q tests/test_omnibus_typescript.py tests/test_find_omnibus_java.py",
+    "result": "18 passed in 19.83s"
+  },
+  "timing_protocol": {
+    "measurement": "wall-clock time.perf_counter around one fresh pytest subprocess per copied-closure test; cold TypeScript then cold Java, followed by seven trials with alternating order",
+    "typescript_command": ".venv/bin/python -m pytest -q tests/test_omnibus_typescript.py::test_copied_skill_is_self_contained_for_typescript_pipeline",
+    "java_command": ".venv/bin/python -m pytest -q tests/test_find_omnibus_java.py::test_copied_java_closure_is_self_contained",
+    "cold_seconds": {"typescript": 7.037445, "java": 5.070497},
+    "warm_seconds": {
+      "typescript": [2.417442, 2.074984, 1.931873, 2.022950, 2.185571, 2.007622, 2.084253],
+      "java": [1.105025, 1.052296, 1.145364, 1.062031, 1.059746, 1.124227, 1.141963]
+    },
+    "warm_median_seconds": {"typescript": 2.074984, "java": 1.105025},
+    "post_p3_gate": "correctness/source/closure gates must pass; median warm latency and copied/shared closure bytes may not exceed this baseline by more than 10 percent"
+  }
+}

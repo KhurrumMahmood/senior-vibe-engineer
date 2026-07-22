@@ -1,0 +1,1205 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-07-21T22:15:00-07:00",
+  "repository": "senior-vibe-engineer",
+  "base_revision": "f56a5f33e8844cbc9059ad2f25e92ae759cc6e7c",
+  "path_normalization": "Absolute /Users/<owner>/Projects prefixes are published as <repo-parent>/.",
+  "commands": [
+    "git worktree list --porcelain",
+    "git merge-base --is-ancestor <head> main",
+    "git -C <present-path> status --porcelain",
+    "git for-each-ref --contains <detached-head> --format=%(refname)",
+    "git worktree prune --dry-run --verbose",
+    "git worktree prune --verbose"
+  ],
+  "pre_prune_summary": {
+    "total": 87,
+    "prunable": 59,
+    "present": 28,
+    "present_clean": 26,
+    "present_dirty": 2,
+    "merged_heads": 4,
+    "unmerged_heads": 83,
+    "prunable_unmerged_heads": 57
+  },
+  "reachability_review": {
+    "prunable_with_named_branch": 38,
+    "prunable_detached": 21,
+    "detached_reachable_from_ref": 21,
+    "detached_unreferenced": 0,
+    "conclusion": "All 59 missing-path registrations were safe to prune as registrations. Named branches were retained, every detached HEAD remained reachable from an existing ref, and no present or dirty worktree was touched."
+  },
+  "post_prune_summary": {
+    "registered_worktrees": 28,
+    "prunable_registrations": 0
+  },
+  "dirty_present_worktrees": [
+    {
+      "path": "<repo-parent>/engineering-skills",
+      "branch": "refs/heads/codex/portable-v1-preflight",
+      "changed_entries": 2,
+      "action": "preserve"
+    },
+    {
+      "path": "<repo-parent>/engineering-skills-js-mutation",
+      "branch": "refs/heads/codex/js-mutation-guard",
+      "changed_entries": 2,
+      "action": "preserve"
+    }
+  ],
+  "worktrees_before_prune": [
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills",
+      "head": "95e2aec31cec0c43ca94eff5a460f687589448b3",
+      "branch": "refs/heads/codex/portable-v1-preflight",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": false,
+      "changed_entries": 2
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-go-detector",
+      "head": "771f5457a555e5088b5790b770fccd616e63c11a",
+      "branch": "refs/heads/codex/go-detector-pilot",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-go-incomplete-sweep",
+      "head": "383eadf76fc9c620be27d03e50566488a9976230",
+      "branch": "refs/heads/codex/go-incomplete-sweep-v1",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-go-move",
+      "head": "803ad545a72451d1c867fe42da2dddceaedf2e7f",
+      "branch": "refs/heads/codex/go-move-pilot",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-go-proposal",
+      "head": "8a70ff0b5c0acba49765932e3d041b6205c72953",
+      "branch": "refs/heads/codex/go-proposal-pilot",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-js-lexical",
+      "head": "299705f284ea4cee6435e15ed85d035f9ad8b4f7",
+      "branch": "refs/heads/codex/js-lexical",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-js-mutation",
+      "head": "6a08adab27769a5791f85e5645d12ae2da1743e0",
+      "branch": "refs/heads/codex/js-mutation-guard",
+      "path_exists": true,
+      "head_merged_to_main": true,
+      "worktree_clean": false,
+      "changed_entries": 2
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-js-mutation-v2",
+      "head": "59aa031117f29ea3c3402c633a0299a8017d8167",
+      "branch": "refs/heads/codex/js-mutation-guard-v2",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-js-proposal",
+      "head": "87960c4d77c9a676afac88c482055f1566480c10",
+      "branch": "refs/heads/codex/js-proposal",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-js-semantic",
+      "head": "f06b6c56797c3fda5161d3de181c50428495750d",
+      "branch": "refs/heads/codex/js-semantic",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-js-semantic-repair",
+      "head": "7fb4caf0ad81aff91b46bbdfb700db8d17278799",
+      "branch": "refs/heads/codex/js-semantic-repair",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-js-syntax",
+      "head": "2eb3026ea84795e4b8a797c217e436b46e31fe72",
+      "branch": "refs/heads/codex/js-syntax",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-product",
+      "head": "f56a5f33e8844cbc9059ad2f25e92ae759cc6e7c",
+      "branch": "refs/heads/main",
+      "path_exists": true,
+      "head_merged_to_main": true,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-product-java-audit-batch",
+      "head": "e82a73ccdd1c59a9b44f0d398d555c94410b2957",
+      "branch": "refs/heads/codex/java-audit-batch",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-product-java-final-omnibus-generic",
+      "head": "ad63a6e97c515c153a181a31bb042365cbd4f09c",
+      "branch": "refs/heads/codex/java-final-omnibus-generic",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-product-java-final-runbook-status",
+      "head": "f01e9e0aa94d4efc7b490b950a9c0f3c9539ddaa",
+      "branch": "refs/heads/codex/java-final-runbook-status",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-product-java-j2a",
+      "head": "1a6bee774c53d3347d9c1d6766098c399681aba0",
+      "branch": "refs/heads/codex/java-j2a",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-product-java-j3",
+      "head": "b4bd5fd7aea851aa0bc6b79bb9cd55b0315f1403",
+      "branch": "refs/heads/codex/java-j3",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-product-java-j4a",
+      "head": "7f5b3d686c8094555eb44676e2e8bec81bcebac1",
+      "branch": "refs/heads/codex/java-j4a",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-product-java-j4b",
+      "head": "23c9497bf8b9bc3acc93119fe3e79d0ba77e431b",
+      "branch": "refs/heads/codex/java-j4b",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-product-java-j4c",
+      "head": "c3b8c50e17a97c45ef219873e94bbf1554c8c174",
+      "branch": "refs/heads/codex/java-j4c",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-product-java-j5",
+      "head": "1799c6ce48085f5777daf033ac0a95dfd3b232a3",
+      "branch": "refs/heads/codex/java-j5",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-product-java-review-analysis",
+      "head": "cba60b695f03a4048ba91397e578e30415291d5b",
+      "branch": "refs/heads/codex/java-review-analysis",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-product-java-review-lifecycle",
+      "head": "91d2d230eaf61ef25ee6c43b192122a21c9d088c",
+      "branch": "refs/heads/codex/java-review-lifecycle",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-product-java-review-runtime",
+      "head": "2ce5e0da86ca14b4e42ab6ba68a0a463c8b36eaf",
+      "branch": "refs/heads/codex/java-review-runtime",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-product-java-review-status",
+      "head": "d541667bd4d9bd249fd3460f8f13be2a7b895d9a",
+      "branch": "refs/heads/codex/java-review-status",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-wt-go-dormant",
+      "head": "66ab1a8a94c3725e7d398add0665f818c17c0f7c",
+      "branch": "refs/heads/codex/go-g2-dormant",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": false,
+      "locked": false,
+      "worktree": "<repo-parent>/engineering-skills-wt-go-map",
+      "head": "752acc0166506f0bed9125f9702e3f3bd0b0f635",
+      "branch": "refs/heads/codex/go-g2-map",
+      "path_exists": true,
+      "head_merged_to_main": false,
+      "worktree_clean": true,
+      "changed_entries": 0
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/e0-independent-10647452de10-2",
+      "head": "10647452de10d60e8a684049a71a5471c7328971",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/e0-independent-verifier.usFFgE/worktree",
+      "head": "24ef189695629ec0fe3d00b504d46226d6c43844",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-authority-fix-v3",
+      "head": "e9660623646fae784f9acf71a59bfd7cf9be1e7c",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-e0-oracles",
+      "head": "24ef189695629ec0fe3d00b504d46226d6c43844",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-e0-prep",
+      "head": "fb0c8cc697423039f6ee6df7f8d40e0139eb550f",
+      "branch": "refs/heads/codex/e0-expectation-contract",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-e0-r2-1064745",
+      "head": "10647452de10d60e8a684049a71a5471c7328971",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-i1-b5291e1",
+      "head": "b5291e149871d9831752db3663f7961fa8a805db",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-i1-matrix-tests",
+      "head": "216434e1c85ea6e9a951550821f41d3733638eb7",
+      "branch": "refs/heads/codex/i1-matrix-tests",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-i1-plan-spec",
+      "head": "132b1e4d3ab5282b169298a999dd4dfd394a9276",
+      "branch": "refs/heads/codex/i1-plan-spec",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-i2-1bdfbfa",
+      "head": "1bdfbfa83307fc122b6f165f97e7420a7fc2eeeb",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-i2-209ef25",
+      "head": "209ef25450b3689f75ce4ed908b071f3c5c9e8a5",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-i2-3989ef0",
+      "head": "3989ef021bb9ab1783fad291c9dc5c70f1cf4e37",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-i2-6982e28",
+      "head": "6982e284623044a1ea1b7536e486332bfd9f9452",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-p0-closure-v1",
+      "head": "339f78d5a67e0c4f5b1365fdf4f5e3737a1184cb",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-p0-final-hmAMx4/candidate",
+      "head": "be0424b52bfd004add7aa40337defb5d91cd1f10",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-p0-legacy-6330",
+      "head": "6330c491434cfe7b8d97b644d5ea5d70dfbe41bb",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-p0-loop-recheck-b626379",
+      "head": "b626379bbb9f5c0ab905dcc6c272354ab6f70bd2",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-p1-ac6-48a6cff",
+      "head": "48a6cff8c3d059c905834867ce8c2abafc1e86ed",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-p1-ac6-d1fa609",
+      "head": "d1fa6093af0ec12c5f9bed20aa82d1d445e38880",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-p1-ac6-inspect-d9d0081",
+      "head": "d9d00819346c918e38b3b707c87f699389eeb6bc",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-pre-portability-baseline",
+      "head": "ad685e3f47fd6fb3debe4880735a5bf20eb79cae",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": true
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-product-ts-gaps",
+      "head": "e01b0daa19439fb84cd621a473faf03efd6d8e22",
+      "branch": "refs/heads/codex/ts-find-standard-gaps",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-product-ts-incomplete-sweep",
+      "head": "1f4a5fad40f707d92a7a4546447a1dca5d0cb01d",
+      "branch": "refs/heads/codex/typescript-incomplete-sweep",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-product-ts-neutral-orchestration",
+      "head": "3da97aca1ffcfeda80b7b6127fae91de26e4d71d",
+      "branch": "refs/heads/codex/typescript-neutral-orchestration",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-product-ts-semantic-duplication",
+      "head": "31e30f2befef199871c00030a490fc0d0d2da4c2",
+      "branch": "refs/heads/codex/typescript-semantic-duplication",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-product-ts-unify-shadows",
+      "head": "3e94d5098bc6eca3da406114aa5c430ce3d69372",
+      "branch": "refs/heads/codex/typescript-unify-shadows",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-standard-installer-4d12eee",
+      "head": "4d12eee8a04bc25b0f3889908cf979feee9bfc1a",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-trial-d46a315",
+      "head": "d46a3157a5d1e4d4385116661dc9bcf14d8fb275",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-adapt-project",
+      "head": "15eceeded6d3b11983f2f8ee3cc0ea03a75cbfe6",
+      "branch": "refs/heads/codex/ts-adapt-project",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-audit-decisions",
+      "head": "15b4796e39d8f840be0f9e6666e8adde03dd0d5d",
+      "branch": "refs/heads/codex/ts-audit-decisions",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-b1",
+      "head": "3768a265051ca9cf35538d0f1d1714eb1b4fa8c8",
+      "branch": "refs/heads/codex/ts-b1-portability",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-b2t",
+      "head": "54a9db3bde1a7b223a6d80be85163e56953a64b9",
+      "branch": "refs/heads/codex/ts-b2t",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-complexity",
+      "head": "fb2b8d06deff44b776a88bf1a061fc6ded6b0284",
+      "branch": "refs/heads/codex/ts-complexity",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-duplication",
+      "head": "ff7927495626a22565dde667dba6f7e35bae748c",
+      "branch": "refs/heads/codex/ts-duplication",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-explain",
+      "head": "5d225b2aafe1c17bb411e98de7c990d4acef5ee3",
+      "branch": "refs/heads/codex/ts-explain",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-find-dormant",
+      "head": "40aa002d6b4d1304f193b92cf086866ef19525d6",
+      "branch": "refs/heads/codex/ts-find-dormant",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-folder-topology",
+      "head": "8c5a2dedff9fcca6e078aeebb035ed407be01d0e",
+      "branch": "refs/heads/codex/ts-folder-topology",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-map-subsystem",
+      "head": "84a54aa8a6739990c55b4ea8f453317f4a11ac1e",
+      "branch": "refs/heads/codex/ts-map-subsystem",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-move-path",
+      "head": "cd157d5c453d1c3a5d9a36f53856929f6baccfcf",
+      "branch": "refs/heads/codex/ts-move-path",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-omnibus",
+      "head": "df716f12fc7e11f7bcaf307f9db0fcbd5d381425",
+      "branch": "refs/heads/codex/ts-omnibus",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-propose-boundary",
+      "head": "4c100733f28355a80be221b8e2ce86d22cb0c138",
+      "branch": "refs/heads/codex/ts-propose-boundary",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-propose-folder-reorganization",
+      "head": "0fad8448faab22fe9395035cfb7cb46abe045797",
+      "branch": "refs/heads/codex/ts-propose-folder-reorganization",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-rename-concept",
+      "head": "e3c5ce1757cfdb4a731a7394ce8259f39bb1adae",
+      "branch": "refs/heads/codex/ts-rename-concept",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-ts-state-reference",
+      "head": "a3b7e536f1a7eecf40a82f8c3fc3f92459feaf81",
+      "branch": "refs/heads/codex/ts-state-reference",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-validated-neutral-planning",
+      "head": "b148c15e83c494ef3cdb7e4d4f13df1b5959d1b9",
+      "branch": "refs/heads/codex/validated-neutral-typescript-planning",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-validated-neutral-quality-typescript",
+      "head": "241054677420cbd1f6a6c3ed62fd5f389512497f",
+      "branch": "refs/heads/codex/validated-neutral-typescript-quality",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-wp3-dispatch-runtime",
+      "head": "923926fddd793d682e37cc0a320aedca6fd47c31",
+      "branch": "refs/heads/codex/wp3-dispatch-runtime",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-wp3-gemini-native",
+      "head": "af015a5f35769e8233e7f0a43c2fd1fe1b64bd2f",
+      "branch": "refs/heads/codex/wp3-gemini-native",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-wp3-identity",
+      "head": "1cda5b6d174c1b7e09123bb6e868ce8ffb5584b5",
+      "branch": "refs/heads/codex/wp3-contract-identity",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-wp3-im13-portfolios",
+      "head": "2791e93b93cfea5a108088587b3872c526441ffa",
+      "branch": "refs/heads/codex/wp3-im13-portfolios",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-wp3-im14-schema",
+      "head": "fbad18457fc2fcc3babd9a5200205b7dc24d9d60",
+      "branch": "refs/heads/codex/wp3-im14-schema-foundation",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-wp3-integrated-main",
+      "head": "f7dd6aed5942c0caa47de2c555823aa222dc9904",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": true
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-wp3-lifecycle",
+      "head": "0b3ab383112628bafeeb153a7ddac831b8e1cf55",
+      "branch": "refs/heads/codex/wp3-lifecycle",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-wp3-lifecycle-repair2",
+      "head": "64d66dffd4f5ced3ebbf550fb6b06feab8712edd",
+      "branch": "refs/heads/codex/wp3-lifecycle-recovery-fix",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-wp3-router-dispatch",
+      "head": "fb26bbd356b9eec7ee613a5d98a4c2e03899e48c",
+      "branch": "refs/heads/codex/wp3-router-dispatch",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-wp3-semantics",
+      "head": "a337c6cfcd1dfbf425e57e5eec3e61e4dc06ec6a",
+      "branch": "refs/heads/codex/wp3-contract-semantics",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-wp3-surface",
+      "head": "ab85fa65073882f73ca87bfeaa1444369c3ccd25",
+      "branch": "refs/heads/codex/wp3-surface",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-wp3-trust-bundle",
+      "head": "ff142b60cffd5566150757dbb5005a8ab061fb64",
+      "branch": "refs/heads/codex/wp3-trust-bundle",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    },
+    {
+      "prunable": true,
+      "locked": false,
+      "worktree": "/private/tmp/engineering-skills-wp5-provenance",
+      "head": "cb91260b92202b5f4cc9920f12de4d224c32573f",
+      "branch": "refs/heads/codex/wp5-provenance",
+      "prunable_reason": "gitdir file points to non-existent location",
+      "path_exists": false,
+      "head_merged_to_main": false
+    }
+  ],
+  "detached_prunable_reachability": [
+    {
+      "path": "/private/tmp/e0-independent-10647452de10-2",
+      "head": "10647452de10d60e8a684049a71a5471c7328971",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/e0-independent-verifier.usFFgE/worktree",
+      "head": "24ef189695629ec0fe3d00b504d46226d6c43844",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-authority-fix-v3",
+      "head": "e9660623646fae784f9acf71a59bfd7cf9be1e7c",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-e0-oracles",
+      "head": "24ef189695629ec0fe3d00b504d46226d6c43844",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-e0-r2-1064745",
+      "head": "10647452de10d60e8a684049a71a5471c7328971",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-i1-b5291e1",
+      "head": "b5291e149871d9831752db3663f7961fa8a805db",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-i2-1bdfbfa",
+      "head": "1bdfbfa83307fc122b6f165f97e7420a7fc2eeeb",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-i2-209ef25",
+      "head": "209ef25450b3689f75ce4ed908b071f3c5c9e8a5",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-i2-3989ef0",
+      "head": "3989ef021bb9ab1783fad291c9dc5c70f1cf4e37",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-i2-6982e28",
+      "head": "6982e284623044a1ea1b7536e486332bfd9f9452",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-p0-closure-v1",
+      "head": "339f78d5a67e0c4f5b1365fdf4f5e3737a1184cb",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-p0-final-hmAMx4/candidate",
+      "head": "be0424b52bfd004add7aa40337defb5d91cd1f10",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-p0-legacy-6330",
+      "head": "6330c491434cfe7b8d97b644d5ea5d70dfbe41bb",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-p0-loop-recheck-b626379",
+      "head": "b626379bbb9f5c0ab905dcc6c272354ab6f70bd2",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-p1-ac6-48a6cff",
+      "head": "48a6cff8c3d059c905834867ce8c2abafc1e86ed",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-p1-ac6-d1fa609",
+      "head": "d1fa6093af0ec12c5f9bed20aa82d1d445e38880",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-p1-ac6-inspect-d9d0081",
+      "head": "d9d00819346c918e38b3b707c87f699389eeb6bc",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-pre-portability-baseline",
+      "head": "ad685e3f47fd6fb3debe4880735a5bf20eb79cae",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/checkpoint-main-before-productization-2026-07-21",
+        "refs/heads/codex/e0-expectation-contract",
+        "refs/heads/codex/go-detector-pilot",
+        "refs/heads/codex/go-g2-dormant",
+        "refs/heads/codex/go-g2-map",
+        "refs/heads/codex/go-incomplete-sweep-v1",
+        "refs/heads/codex/go-move-pilot",
+        "refs/heads/codex/go-proposal-pilot",
+        "refs/heads/codex/i1-matrix-tests",
+        "refs/heads/codex/i1-plan-spec",
+        "refs/heads/codex/java-audit-batch",
+        "refs/heads/codex/java-final-omnibus-generic",
+        "refs/heads/codex/java-final-runbook-status",
+        "refs/heads/codex/java-j2a",
+        "refs/heads/codex/java-j3",
+        "refs/heads/codex/java-j4a",
+        "refs/heads/codex/java-j4b",
+        "refs/heads/codex/java-j4c",
+        "refs/heads/codex/java-j5",
+        "refs/heads/codex/java-review-analysis",
+        "refs/heads/codex/java-review-lifecycle",
+        "refs/heads/codex/java-review-runtime",
+        "refs/heads/codex/java-review-status",
+        "refs/heads/codex/js-lexical",
+        "refs/heads/codex/js-mutation-guard",
+        "refs/heads/codex/js-mutation-guard-v2",
+        "refs/heads/codex/js-proposal",
+        "refs/heads/codex/js-semantic",
+        "refs/heads/codex/js-semantic-repair",
+        "refs/heads/codex/js-syntax",
+        "refs/heads/codex/portable-v1-preflight",
+        "refs/heads/codex/productization-restart",
+        "refs/heads/codex/router-amendment",
+        "refs/heads/codex/ts-adapt-project",
+        "refs/heads/codex/ts-audit-decisions",
+        "refs/heads/codex/ts-b1-portability",
+        "refs/heads/codex/ts-b2t",
+        "refs/heads/codex/ts-complexity",
+        "refs/heads/codex/ts-duplication",
+        "refs/heads/codex/ts-explain",
+        "refs/heads/codex/ts-find-dormant",
+        "refs/heads/codex/ts-find-standard-gaps",
+        "refs/heads/codex/ts-folder-topology",
+        "refs/heads/codex/ts-map-subsystem",
+        "refs/heads/codex/ts-move-path",
+        "refs/heads/codex/ts-omnibus",
+        "refs/heads/codex/ts-propose-boundary",
+        "refs/heads/codex/ts-propose-folder-reorganization",
+        "refs/heads/codex/ts-rename-concept",
+        "refs/heads/codex/ts-state-reference",
+        "refs/heads/codex/typescript-incomplete-sweep",
+        "refs/heads/codex/typescript-neutral-orchestration",
+        "refs/heads/codex/typescript-semantic-duplication",
+        "refs/heads/codex/typescript-unify-shadows",
+        "refs/heads/codex/validated-neutral-typescript-planning",
+        "refs/heads/codex/validated-neutral-typescript-quality",
+        "refs/heads/codex/wp3-binding",
+        "refs/heads/codex/wp3-contract-identity",
+        "refs/heads/codex/wp3-contract-semantics",
+        "refs/heads/codex/wp3-dispatch-runtime",
+        "refs/heads/codex/wp3-gemini-native",
+        "refs/heads/codex/wp3-im13-portfolios",
+        "refs/heads/codex/wp3-im14-schema-foundation",
+        "refs/heads/codex/wp3-lifecycle",
+        "refs/heads/codex/wp3-lifecycle-recovery-fix",
+        "refs/heads/codex/wp3-router-dispatch",
+        "refs/heads/codex/wp3-surface",
+        "refs/heads/codex/wp3-trust-bundle",
+        "refs/heads/codex/wp5-cli",
+        "refs/heads/codex/wp5-integration",
+        "refs/heads/codex/wp5-judgment",
+        "refs/heads/codex/wp5-parser-members",
+        "refs/heads/codex/wp5-provenance",
+        "refs/heads/main",
+        "refs/remotes/origin/HEAD",
+        "refs/remotes/origin/codex/checkpoint-main-before-productization-2026-07-21",
+        "refs/remotes/origin/main"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-standard-installer-4d12eee",
+      "head": "4d12eee8a04bc25b0f3889908cf979feee9bfc1a",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-trial-d46a315",
+      "head": "d46a3157a5d1e4d4385116661dc9bcf14d8fb275",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/portable-v1-preflight"
+      ]
+    },
+    {
+      "path": "/private/tmp/engineering-skills-wp3-integrated-main",
+      "head": "f7dd6aed5942c0caa47de2c555823aa222dc9904",
+      "prunable": true,
+      "containing_refs": [
+        "refs/heads/archive/productization-platform-2026-07-18",
+        "refs/heads/codex/checkpoint-main-before-productization-2026-07-21",
+        "refs/heads/codex/e0-expectation-contract",
+        "refs/heads/codex/i1-matrix-tests",
+        "refs/heads/codex/i1-plan-spec",
+        "refs/heads/codex/portable-v1-preflight",
+        "refs/heads/codex/wp3-gemini-native",
+        "refs/heads/main",
+        "refs/remotes/origin/HEAD",
+        "refs/remotes/origin/codex/checkpoint-main-before-productization-2026-07-21",
+        "refs/remotes/origin/main"
+      ]
+    }
+  ]
+}
