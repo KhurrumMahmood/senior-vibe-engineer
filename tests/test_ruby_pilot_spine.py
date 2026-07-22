@@ -439,7 +439,10 @@ def test_ruby_frozen_cohort_contracts_and_all_22_initial_dispositions() -> None:
     assert coverage["decision"] == "expand"
     assert len(rows) == 22
     assert {row["skill"] for row in rows} == EXPECTED_SKILLS
-    assert all(row["disposition"] == "ruby-pending-implementation" for row in rows)
+    dispositions = {row["skill"]: row["disposition"] for row in rows}
+    assert dispositions["find-comment-drift"] == "ruby-supported"
+    assert dispositions["map-subsystem"] == "ruby-partial"
+    assert sum(value == "ruby-pending-implementation" for value in dispositions.values()) == 20
     assert all(
         row["evidence_path"]
         and row["native_check"]

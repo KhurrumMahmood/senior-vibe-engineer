@@ -90,7 +90,8 @@ EXPECTED_CPP_COUNTS = {
 }
 EXPECTED_RUBY_COUNTS = {
     "ruby-supported": 1,
-    "ruby-pending-implementation": 21,
+    "ruby-partial": 1,
+    "ruby-pending-implementation": 20,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -472,6 +473,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         for row in language_rows
         if row["ruby_disposition"] == "ruby-supported"
     } == {"find-comment-drift"}
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row["ruby_disposition"] == "ruby-partial"
+    } == {"map-subsystem"}
     assert Counter(row["javascript_cohort"] for row in language_rows) == (
         EXPECTED_JAVASCRIPT_COHORT_COUNTS
     )

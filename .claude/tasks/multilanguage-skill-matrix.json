@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "677a6a438555a7ef6d1a9d18a6441dc2b94228d717196244f23de6b596ba806a"
+      "sha256": "8db85175407eb01f6effd1a0a6e568a6f5518e08eb7214e73844faa77babf90e"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -39,7 +39,7 @@
     },
     {
       "path": ".claude/tasks/ruby-language-coverage.json",
-      "sha256": "3abb5331743cd15d6afcf2b1bd3b744787bad4256ed9a9ec12235bb6578b0265"
+      "sha256": "0901fe5c689145e3852d8f34d8f0f94ff8ef6d7a439dcd7e95a3febb93521f3f"
     }
   ],
   "counts": {
@@ -5045,13 +5045,14 @@
       ],
       "cpp_reviewed_revision": "8581e12f0fa4d729c25160bc133ba200ce4fdc61",
       "cpp_limitation": "Direct compiler-observed static facts only; virtual/dynamic dispatch, reflection, runtime registration, inactive macro branches, all possible template instantiations, non-Make target graphs, modules, and ABI behavior remain unavailable.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-partial",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-map-subsystem.md",
       "ruby_native_check": [
-        "frozen partial explicit-load contract with native test/smoke obligations"
+        "Ruby 3.4 syntax and Prism attribution for every eligible input plus frozen Bundler check",
+        "durable Markdown/JSON, source-role and hash inventory, declarations, literal load-layout matches, reopening/mixin evidence, constant candidates, explicit native test and executable smoke, copied closure, stale snapshot rejection, and source preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "No durable map artifact exists; base facts must remain partial without a compatible project-owned analyzer.",
+      "ruby_reviewed_revision": "2f0abb3668c5215b4e0baceb08b50bdad9110e4b",
+      "ruby_limitation": "The bounded static map adds value, but dynamic loading, reflection, metaprogramming, callbacks, Rails/Zeitwerk, and runtime identity remain unresolved; semantic reachability is therefore partial.",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -5067,7 +5068,9 @@
           "java",
           "php",
           "swift",
-          "c"
+          "c",
+          "cpp",
+          "ruby"
         ],
         "install_with": []
       },

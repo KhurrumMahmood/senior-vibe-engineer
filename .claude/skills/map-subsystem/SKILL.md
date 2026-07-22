@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, or compile-database-backed C/C++ subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, or plain locked Ruby gem subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -17,7 +17,7 @@ not_for: |
   execution (use /refactor-subsystem with a spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, swift, c, cpp]
+scans: [python, typescript, javascript, go, java, php, swift, c, cpp, ruby]
 ---
 
 # /map-subsystem
@@ -48,6 +48,8 @@ Procedural detail lives in one knowledge file:
   facts, exclusions, terminal states, and deliberate non-semantic boundary.
 - `knowledge/cpp-v1.md` — the C++20 compile-database, compiler AST/reference,
   build-target, artifact-verification, and deliberate semantic boundaries.
+- `knowledge/ruby-v1.md` — the plain locked-gem Ruby syntax map, literal-load
+  evidence, native checks, partial semantic boundary, and deliberate non-claims.
 
 ## SwiftPM v1
 
@@ -426,6 +428,47 @@ python3 "${SKILL_ROOT}/scripts/map_cpp.py" \
 ```
 <!-- installed-command:cpp-map:end -->
 
+## Ruby v1
+
+Use this branch for a plain Ruby 3.3+ gem with a root `Gemfile`, lockfile,
+gemspec, and Bundler 2.6+. The copied helper writes a useful, bounded static
+map: source roles and hashes; module, class, and method declarations; literal
+load-layout matches; reopening and mixin syntax; constant-reference candidates;
+and explicit test/executable evidence. It installs nothing and never mutates
+host source.
+
+The successful Ruby result is `partial`, not unsupported: the static facts are
+complete for the selected snapshot, while dynamic loading, reflection,
+metaprogramming, callbacks, Rails/Zeitwerk, and runtime identity remain
+unresolved. See `knowledge/ruby-v1.md` for the exact boundary.
+
+<!-- installed-command:ruby-map:start -->
+```bash
+MAP_NAME="${MAP_NAME:-ruby-subsystem}"
+MAP_TARGET="${MAP_TARGET:-lib}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/map-subsystem" \
+  ".agents/skills/map-subsystem" \
+  ".claude/skills/map-subsystem"
+do
+  if [ -f "${SKILL_CANDIDATE}/SKILL.md" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "map-subsystem is not installed" >&2
+  exit 2
+fi
+python3 "${SKILL_ROOT}/scripts/map_ruby.py" \
+  --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
+  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "reports/map/${MAP_NAME}/ruby-map.json" \
+  --ruby "$(command -v ruby)" --bundle "$(command -v bundle)"
+```
+<!-- installed-command:ruby-map:end -->
+
 ## How success is judged
 
 - Python maps are complete per `knowledge/output-format.md`: file inventory,
@@ -447,6 +490,9 @@ python3 "${SKILL_ROOT}/scripts/map_cpp.py" \
   every production translation unit. Direct static references are
   compiler-resolved; dynamic/reflection/template-instantiation boundaries
   remain explicit and final artifact/source hashes must verify.
+  Ruby v1 follows `knowledge/ruby-v1.md`: its bounded static map is complete
+  for the selected plain-gem snapshot, but overall status remains `partial`
+  because Ruby runtime reachability and dynamic behavior are not inferred.
 - On `--refresh`, the doc opens with a diff section against the prior
   version — what changed, not just what is.
 - The run cites artifact truth: pasted `render_doc.py` `wrote ...`

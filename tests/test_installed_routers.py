@@ -488,6 +488,26 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "ruby_disposition"
     ] == "ruby-supported"
 
+    partial_ruby = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use map-subsystem on this Ruby repository",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "ruby",
+        "--json",
+        cwd=host,
+    )
+    assert partial_ruby.returncode == 1
+    partial_ruby_payload = json.loads(partial_ruby.stdout)
+    assert partial_ruby_payload["recommendation"] == "partial"
+    assert partial_ruby_payload["unavailable"]["classification"] == "partial"
+    assert partial_ruby_payload["unavailable"]["reason"] == (
+        "/map-subsystem declares ruby_disposition=ruby-partial"
+    )
+
     pending_ruby = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
         "use adapt-project on this Ruby repository",
