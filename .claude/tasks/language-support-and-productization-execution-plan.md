@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P4 — PHP final-outcome and economics pilot preflight
-Last updated: 2026-07-21 (P3 complete at `f249d9a`; P4 spine preflight next)
+Current phase: P4 — PHP lexical, semantic, and mutation cohort lanes from the frozen spine
+Last updated: 2026-07-22 (P4 spine frozen at `a3c70cb`; three disjoint cohort lanes next)
 
 ## Objective
 
@@ -312,9 +312,9 @@ ecosystem rather than merely centralizing setup code.
 
 Acceptance:
 
-- [ ] PHP and Composer versions are recorded; project-local PHP tooling wins
+- [x] PHP and Composer versions are recorded; project-local PHP tooling wins
   over system fallback and no dependency is silently added to the host.
-- [ ] Before implementation, freeze the comparison cohort:
+- [x] Before implementation, freeze the comparison cohort:
   `find-comment-drift` (lexical/filesystem), `map-subsystem`
   (semantic/project), and `move-path` (mutation). Record final artifacts,
   must/must-not-fire boundaries, counted paths, closure definition, tool
@@ -363,7 +363,9 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | — | — | — |
+| PHP profile and doctor | `scripts/language_profiles/php.json`; `tests/test_language_{support_profile,doctor}.py`; `.venv/bin/python -I -S scripts/language_doctor.py --project-root tests/fixtures/php-pilot/host --language php` | PHP 8.4.2 and Composer 2.4.0 available; fake project-local PHP/Composer win over newer system tools; doctor is read-only; no dependency installed or updated | `1bda74f` |
+| Frozen host and cohort contracts | `tests/fixtures/php-pilot`; `.claude/tasks/p4-baseline/php-pilot-baseline.json`; `tests/test_php_pilot_spine.py` | Offline Composer host freezes lexical, semantic, and mutation final artifacts, exclusions, terminal cases, native checks, exact fixture/skill closure manifests, Java comparison LOC, and one cold plus seven rotating warm trials; ignored build-role sentinel deliberately committed; focused spine suite `44 passed` plus fresh-clone manifest/native proof `3 passed` | `1bda74f`, `a3c70cb` |
+| Preserved shared substrate | P3 integrated suite plus PHP profile/spine | Initial widened run exposed only the expected copied-closure hash addition; after adding PHP to that exact closure assertion, the P3/P4 focused surface passed `44 passed`; wider run reached `140 passed` before the three now-repaired expected-hash assertions | `1bda74f` |
 
 ## P5 — .NET setup and C# Roslyn pilot
 
@@ -654,4 +656,5 @@ Evidence:
 | 2026-07-21 | P3.4 | Completed | `bbd886d` plus root repair `f249d9a`; copied-library conformance covers TypeScript and Java final artifacts and state transitions under isolated/no-site Python. Integration exposed a real cross-language stale-artifact defect, now guarded without a language-specific branch; conformance: `20 passed`, preserved language suites: `29 passed`. |
 | 2026-07-21 | P3 | Completed | `f249d9a`; integrated P3 surface `141 passed`. Seven alternating warm trials stayed within the +10% gate (TypeScript `+0.949%`, Java `+3.690%`); copied closure changed `-0.092%`, tracked scripts `+4.231%`. The exact public source replay installed only three routers, bootstrapped the retained external library/runtime, routed and conformed TypeScript, preserved host state, and uninstalled the routers. Begin P4 PHP preflight; do not broaden the shared substrate without pilot evidence. |
 | 2026-07-21 | P4 | Started | Record PHP/Composer availability, freeze the three-cohort baseline and comparison economics, and create the P4 spine before opening disjoint lexical/semantic/mutation worker lanes. |
+| 2026-07-22 | P4.0 | Spine frozen | `1bda74f` plus ignored-fixture correction `a3c70cb`; added the strict PHP profile, project-local doctor precedence, shared inventory classification, representative offline Composer host, malformed/excluded-role boundaries, exact manifests, three final-outcome cohort contracts, and frozen Java LOC/closure/latency economics. PHP 8.4.2 and Composer 2.4.0 are usable; Composer's PHP 8.4 deprecation noise is recorded rather than “fixed” by changing the host. Open three disjoint worker lanes from `a3c70cb`; shared profiles, routers, matrices, docs, and this ledger remain root-owned. |
 | 2026-07-21 | Planning | Non-context plan review completed | `7637fcf`; three independent lanes reviewed the P3 substrate, language/worktree execution, and adversarial product alignment. Accepted bounded reuse, exact ownership, economics, release-truth, and measure-before-optimization findings; rejected stale private-repo assumptions and blanket prohibition on user-requested Swift/Dart planning. |
