@@ -59,6 +59,8 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     _write(host / "src" / "main_test.go", "package main\n")
     _write(host / "src" / "Main.java", "class Main {}\n")
     _write(host / "tests" / "MainTest.java", "class MainTest {}\n")
+    _write(host / "src" / "InvoiceService.php", "<?php\nfinal class InvoiceService {}\n")
+    _write(host / "tests" / "InvoiceServiceTest.php", "<?php\nfinal class InvoiceServiceTest {}\n")
     _write(host / "node_modules" / "pkg" / "vendor.ts", "export const vendor = 1;\n")
     _write(host / "dist" / "bundle.ts", "export const bundled = 1;\n")
     external = tmp_path / "external"
@@ -78,6 +80,7 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
         "go",
         "java",
         "javascript",
+        "php",
         "python",
         "typescript",
     ]
@@ -105,6 +108,8 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
         "src/main_test.go",
         "src/Main.java",
         "tests/MainTest.java",
+        "src/InvoiceService.php",
+        "tests/InvoiceServiceTest.php",
     } == set(files)
 
     assert files["src/app.py"]["role"] == "source"
@@ -137,6 +142,9 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert files["src/Main.java"]["language"] == "java"
     assert files["src/Main.java"]["classification"] == "classified"
     assert files["tests/MainTest.java"]["role"] == "test"
+    assert files["src/InvoiceService.php"]["language"] == "php"
+    assert files["src/InvoiceService.php"]["classification"] == "classified"
+    assert files["tests/InvoiceServiceTest.php"]["role"] == "test"
 
     excluded = {row["path"]: row for row in payload["excluded_roots"]}
     assert excluded["node_modules"] == {

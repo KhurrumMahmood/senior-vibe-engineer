@@ -32,7 +32,6 @@ UNSUPPORTED_SUFFIXES = {
     ".kts": "kotlin",
     ".cs": "csharp",
     ".rb": "ruby",
-    ".php": "php",
 }
 
 EXCLUDED_DIRECTORIES = {

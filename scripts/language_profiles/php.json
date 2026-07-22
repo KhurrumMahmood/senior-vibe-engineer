@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "language": "php",
+  "suffixes": [".php"],
+  "project_markers": ["composer.json"],
+  "source_roles": {
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "migration", "symlink"],
+    "test_file_globs": ["*Test.php", "*.test.php"],
+    "declaration_file_globs": ["*.stub.php"],
+    "configuration_files": []
+  },
+  "native_tools": [
+    {
+      "id": "php",
+      "project_paths": [".tools/php/bin/php", "tools/php/bin/php"],
+      "system_commands": ["php"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "8.1.0",
+      "required": true
+    },
+    {
+      "id": "composer",
+      "project_paths": [".tools/composer", "tools/composer", "composer.phar"],
+      "system_commands": ["composer"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "2.2.0",
+      "required": false
+    }
+  ],
+  "fact_tiers": ["lexical-filesystem", "syntax", "semantic-project"],
+  "verification_commands": [
+    {
+      "id": "lint",
+      "argv": ["{tool:php}", "-l", "{source_files}"],
+      "requires": ["php"]
+    },
+    {
+      "id": "composer-validate",
+      "argv": ["{tool:composer}", "validate", "--no-check-publish", "--no-interaction"],
+      "requires": ["composer"]
+    }
+  ],
+  "terminal_outcomes": ["complete", "partial", "unsupported", "tool-missing", "syntax-error", "native-check-failure", "unexpected-source-mutation"],
+  "explicit_limits": [
+    "A PHP profile does not imply Laravel, Symfony, WordPress, Drupal, or another framework contract.",
+    "Project-wide semantic facts require the audited Composer project and its own configured analyzer; PHP syntax alone does not resolve dynamic calls."
+  ]
+}

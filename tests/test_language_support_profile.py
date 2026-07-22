@@ -64,7 +64,9 @@ def _write(root: Path, payload: dict, name: str | None = None) -> None:
 def test_repository_profiles_cover_current_inventory_languages() -> None:
     profiles = load_profiles(PROFILE_ROOT)
 
-    assert set(profiles) == {"python", "javascript", "typescript", "go", "java"}
+    assert set(profiles) == {
+        "python", "javascript", "typescript", "go", "java", "php",
+    }
     suffixes = {
         suffix: language
         for language, profile in profiles.items()
@@ -74,10 +76,12 @@ def test_repository_profiles_cover_current_inventory_languages() -> None:
         ".py": "python", ".pyi": "python",
         ".js": "javascript", ".jsx": "javascript", ".mjs": "javascript",
         ".cjs": "javascript", ".ts": "typescript", ".tsx": "typescript",
-        ".go": "go", ".java": "java",
+        ".go": "go", ".java": "java", ".php": "php",
     }
     assert profiles["typescript"].native_tools[1].id == "tsc"
     assert profiles["java"].native_tools[1].minimum_version == "17.0.0"
+    assert profiles["php"].native_tools[0].id == "php"
+    assert profiles["php"].native_tools[1].id == "composer"
 
 
 def test_loader_runs_under_isolated_no_site_python() -> None:

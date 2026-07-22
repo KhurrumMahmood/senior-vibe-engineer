@@ -1,0 +1,23 @@
+{
+  "name": "engineering-skills/php-pilot",
+  "description": "Offline fixture for PHP language-support final-outcome pilots",
+  "type": "project",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "Acme\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Acme\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "lint": "@php tests/lint.php",
+    "test": "@php tests/smoke.php"
+  }
+}

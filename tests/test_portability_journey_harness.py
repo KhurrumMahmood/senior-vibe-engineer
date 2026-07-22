@@ -126,6 +126,7 @@ def test_records_declared_observation_outcomes_and_evidence(
         "scripts/language_profiles/go.json",
         "scripts/language_profiles/java.json",
         "scripts/language_profiles/javascript.json",
+        "scripts/language_profiles/php.json",
         "scripts/language_profiles/python.json",
         "scripts/language_profiles/typescript.json",
         "scripts/source_inventory.py",

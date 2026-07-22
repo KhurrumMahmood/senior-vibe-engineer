@@ -173,6 +173,38 @@ def test_java_uses_system_tools_and_parses_stderr_versions(tmp_path: Path) -> No
     ]
 
 
+def test_php_prefers_project_local_runtime_and_composer(tmp_path: Path) -> None:
+    project = tmp_path / "host"
+    (project / ".tools" / "php" / "bin").mkdir(parents=True)
+    (project / "composer.json").write_text("{}\n", encoding="utf-8")
+    local_php = _fake_tool(
+        project / ".tools" / "php" / "bin" / "php",
+        "PHP 8.3.12 (cli)",
+    )
+    local_composer = _fake_tool(
+        project / ".tools" / "composer",
+        "Composer version 2.7.9 2024-09-04 14:43:28",
+    )
+    system_bin = tmp_path / "system-bin"
+    _fake_tool(system_bin / "php", "PHP 9.0.0 (cli)")
+    _fake_tool(system_bin / "composer", "Composer version 9.0.0")
+    before = _manifest(project)
+
+    completed = _run_doctor(project, "php", system_bin=system_bin)
+
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert _manifest(project) == before
+    payload = json.loads(completed.stdout)
+    assert payload["status"] == "available"
+    assert payload["project_markers"]["present"] == ["composer.json"]
+    assert _tool(payload, "php")["path"] == str(local_php)
+    assert _tool(payload, "php")["provenance"] == "project-local"
+    assert _tool(payload, "php")["version"] == "8.3.12"
+    assert _tool(payload, "composer")["path"] == str(local_composer)
+    assert _tool(payload, "composer")["provenance"] == "project-local"
+    assert _tool(payload, "composer")["version"] == "2.7.9"
+
+
 def test_old_project_local_tool_is_not_replaced_by_newer_system_tool(
     tmp_path: Path,
 ) -> None:

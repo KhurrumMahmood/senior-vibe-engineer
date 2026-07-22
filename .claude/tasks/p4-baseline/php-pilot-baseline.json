@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-07-22T00:35:59-07:00",
+  "base_revision": "c914b64b24f656ee8e7f2862e3320f1ea08c07df",
+  "platform": "macOS 26.5.2 arm64",
+  "toolchain": {
+    "python": "3.11.10",
+    "php": {
+      "path": "/opt/homebrew/bin/php",
+      "version": "8.4.2",
+      "minimum_profile_version": "8.1.0",
+      "doctor_status": "available",
+      "provenance": "system"
+    },
+    "composer": {
+      "path": "/usr/local/bin/composer",
+      "version": "2.4.0",
+      "minimum_profile_version": "2.2.0",
+      "doctor_status": "available",
+      "provenance": "system",
+      "note": "Composer 2.4.0 emits PHP 8.4 deprecation notices but validate and both fixture scripts exit successfully; the pilot must not install or update it in a host."
+    }
+  },
+  "fixture": {
+    "root": "tests/fixtures/php-pilot",
+    "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), sorted paths",
+    "manifest_sha256": "2ec21d6a1041218c050da7ff844a529bdce56a92116f705b0613a74f0fd1bad4",
+    "total_bytes": 4041,
+    "files": [
+      "host/build/CompiledContainer.php",
+      "host/composer.json",
+      "host/generated/GeneratedProxy.php",
+      "host/src/Billing/InvoiceService.php",
+      "host/src/Consumer/CheckoutService.php",
+      "host/src/Legacy/LegacyInvoiceFormatter.php",
+      "host/src/Shared/Clock.php",
+      "host/src/Shared/FixedClock.php",
+      "host/src/Shipping/ShipmentService.php",
+      "host/tests/Billing/InvoiceServiceTest.php",
+      "host/tests/lint.php",
+      "host/tests/smoke.php",
+      "host/vendor/example/package/VendorService.php",
+      "malformed/Broken.php"
+    ],
+    "native_commands": [
+      "composer validate --no-check-publish --no-interaction",
+      "php tests/lint.php",
+      "php tests/smoke.php"
+    ],
+    "native_result": "all valid-host commands passed; php -l rejected malformed/Broken.php"
+  },
+  "pilot_cohorts": {
+    "lexical": {
+      "skill": "find-comment-drift",
+      "target": "host/src",
+      "final_artifacts": [
+        "reports/find-comment-drift/php-pilot/detections.jsonl",
+        "reports/find-comment-drift/php-pilot/report.json"
+      ],
+      "must_fire": [
+        "host/src/Billing/InvoiceService.php: narration comment immediately above issue()"
+      ],
+      "must_not_fire": [
+        "host/src/Shared/Clock.php",
+        "host/src/Shared/FixedClock.php",
+        "host/src/Shipping/ShipmentService.php",
+        "host/tests/Billing/InvoiceServiceTest.php",
+        "host/generated/GeneratedProxy.php",
+        "host/vendor/example/package/VendorService.php",
+        "host/build/CompiledContainer.php"
+      ],
+      "terminal_cases": [
+        "positive",
+        "clean",
+        "malformed",
+        "tool-missing-or-old",
+        "excluded-role",
+        "valid-to-failed",
+        "failed-to-valid"
+      ]
+    },
+    "semantic": {
+      "skill": "map-subsystem",
+      "target": "host/src/Billing",
+      "final_artifacts": [
+        ".claude/docs/subsystems/billing.md",
+        "reports/map/billing/php-map.json"
+      ],
+      "must_include": [
+        "Acme\\Billing\\InvoiceService",
+        "Acme\\Shared\\Clock",
+        "Acme\\Consumer\\CheckoutService"
+      ],
+      "must_not_include": [
+        "host/tests",
+        "host/generated",
+        "host/vendor",
+        "host/build"
+      ],
+      "honest_boundary": "Tree-sitter may establish syntax spans only; resolved project edges require the Composer autoload graph and an explicitly available project-owned analyzer, otherwise the final map is partial."
+    },
+    "mutation": {
+      "skill": "move-path",
+      "move": {
+        "from": "src/Legacy",
+        "to": "src/Archive"
+      },
+      "final_artifacts": [
+        ".engineering/local/move-path/report.json"
+      ],
+      "required_updates": [
+        "Acme\\Legacy becomes Acme\\Archive",
+        "tests/smoke.php require and use paths follow the move",
+        "no stale Legacy path or namespace remains"
+      ],
+      "native_verification": [
+        "php tests/lint.php",
+        "php tests/smoke.php"
+      ],
+      "safety_cases": [
+        "read-only plan",
+        "apply",
+        "malformed input refusal",
+        "generated/test/vendor/build exclusion",
+        "symlink refusal",
+        "native-failure rollback",
+        "source fingerprint outside intended diff"
+      ]
+    }
+  },
+  "tree_sitter_candidate": {
+    "disposition": "continue_pilot",
+    "package_version": "1.13.2",
+    "runtime_version": "0.26.0",
+    "cached_grammar_bytes": 7455120,
+    "validated_php_facts": [
+      "declarations",
+      "imports",
+      "calls",
+      "spans",
+      "parse-problems"
+    ],
+    "forbidden_claims": [
+      "symbol identity",
+      "types",
+      "resolved calls or imports",
+      "project graph",
+      "framework behavior",
+      "complete source coverage"
+    ],
+    "evidence": ".claude/tasks/tool-evaluations/tree-sitter-results.json"
+  },
+  "java_comparison": {
+    "counted_paths": [
+      ".claude/skills/find-comment-drift/scripts/detect.py",
+      ".claude/skills/find-comment-drift/scripts/support.py",
+      "tests/test_find_comment_drift_java_j2a.py",
+      ".claude/skills/map-subsystem/scripts/map_java.java",
+      "tests/test_map_subsystem_java.py",
+      ".claude/skills/move-path/scripts/move_path.py",
+      ".claude/skills/move-path/scripts/java_package_reference_spans.java",
+      "tests/test_java_move_path.py"
+    ],
+    "counted_bytes": 232356,
+    "physical_lines": 5670,
+    "nonblank_lines": 5168,
+    "closure_definition": "all regular non-pyc files below the three selected skill roots, excluding __pycache__",
+    "closures": {
+      "find-comment-drift": {
+        "manifest_sha256": "4404a21b9a41220cf6ff69f84c2ea86bc04cfbcb5a4a5d52d1f5dd8eeec65f26",
+        "total_bytes": 75908,
+        "files": 17
+      },
+      "map-subsystem": {
+        "manifest_sha256": "7773b8a2a439577a608d2ac0831de69b1d33613a10dc93f4c02c4f10505bc652",
+        "total_bytes": 159072,
+        "files": 9
+      },
+      "move-path": {
+        "manifest_sha256": "fcd19fe4553fa8b8bd30cc7d6dade4eb7661ae7bfd8c128244ce943e3985718d",
+        "total_bytes": 150367,
+        "files": 8
+      },
+      "combined_bytes": 385347
+    },
+    "timing_protocol": {
+      "measurement": "wall-clock time.perf_counter around one fresh pytest subprocess per final-outcome test; one cold trial each, then seven trials with rotating cohort order",
+      "commands": {
+        "lexical": ".venv/bin/python -m pytest -q tests/test_find_comment_drift_java_j2a.py::test_java_comments_reach_final_report_with_inventory_and_no_mutation",
+        "semantic": ".venv/bin/python -m pytest -q tests/test_map_subsystem_java.py::test_java_map_reaches_final_artifacts_with_compiler_resolved_edges",
+        "mutation": ".venv/bin/python -m pytest -q tests/test_java_move_path.py::test_java_leaf_package_move_updates_package_import_and_fqcn_then_compiles"
+      },
+      "cold_seconds": {
+        "lexical": 1.444357,
+        "semantic": 2.329500,
+        "mutation": 4.966522
+      },
+      "warm_seconds": {
+        "lexical": [0.865171, 0.602971, 0.562645, 0.701282, 0.555151, 0.570786, 0.568466],
+        "semantic": [1.597077, 1.533193, 1.402430, 1.545909, 1.528400, 1.425945, 1.515516],
+        "mutation": [4.203226, 3.650886, 3.792751, 3.790986, 3.915296, 3.718454, 3.735281]
+      },
+      "warm_median_seconds": {
+        "lexical": 0.570786,
+        "semantic": 1.528400,
+        "mutation": 3.790986
+      }
+    }
+  },
+  "economics_gates": {
+    "maintained_adapter_plus_test_loc_reduction_minimum_percent": 25,
+    "combined_copied_closure_growth_maximum_percent": 10,
+    "median_final_outcome_latency_growth_maximum_percent": 10,
+    "correctness_source_preservation_and_honest_terminal_status": "hard gates",
+    "language_specific_provider_code": "reported separately from eligible shared mechanics"
+  },
+  "worktree_snapshot": {
+    "registered_worktrees_before_p4_spine": 30,
+    "base_revision": "c914b64b24f656ee8e7f2862e3320f1ea08c07df"
+  }
+}
