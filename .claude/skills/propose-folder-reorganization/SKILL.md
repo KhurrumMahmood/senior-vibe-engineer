@@ -1,12 +1,13 @@
 ---
 name: propose-folder-reorganization
-description: Turn a confirmed Python, Go, TypeScript, or checked-JavaScript folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
+description: Turn a confirmed Python, Go, Java 17, TypeScript, or checked-JavaScript folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
 argument-hint: "<folder-topology:ID or parent::prefix>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
 job: explain
 best_for: |
+  A Java 17 flat-prefix cluster needing a compiler-resolved subpackage move plan.
   A TypeScript or checked-JavaScript flat-prefix folder cluster needing resolved import impact,
   a target tree, barrel/subpath compatibility, and native verification plan.
   A confirmed folder-topology drift finding ready for a per-cluster
@@ -25,7 +26,7 @@ not_for: |
   recommends `defer_scratch_code` instead of a refactor.
 language: any
 framework: any
-scans: [python, go, typescript, javascript]
+scans: [python, go, java, typescript, javascript]
 ---
 
 # /propose-folder-reorganization
@@ -107,8 +108,12 @@ Write toward these gates from Stage 0.
   orchestrator's `allowed-tools` list intentionally excludes Edit.
 
 ## Go v1
-Read `knowledge/go-v1.md`; its copied-closure command requires an explicit
-project convention, while language-safety blockers override that permission.
+Read `knowledge/go-v1.md`; its copied-closure command requires an explicit project convention, while language-safety blockers override that permission.
+
+## Java 17 v1
+Read `knowledge/java-v1.md`; its copied-closure command requires explicit
+cluster and subpackage-convention judgments, then emits a compiler-resolved,
+current-source-root-only plan. It never loads Maven, Gradle, or JARs.
 
 ## TypeScript / TSX and checked-JavaScript v1 — one resolved cluster proposal
 
@@ -483,17 +488,12 @@ sections that changed.
 ├── SKILL.md          # this file — orchestrator
 └── scripts/
     ├── inspect.py                # Python cluster + import-impact data
+    ├── propose_java.py           # JDK gate + artifact-safe launcher
+    ├── propose_java.java         # JDK compiler/tree/type proposal
     └── propose_typescript.mjs     # TS/TSX resolved proposal (host Compiler API)
 ```
 
 ## Next skills
 
-- **`/refactor-subsystem`** in decomposition mode — executes the
-  proposal under ADR 0002's two-commit discipline. One cluster per
-  PR.
-- **`/decide`** if the proposal surfaces a tradeoff ADR 0006
-  doesn't yet cover (e.g. the `framework_convention` deferral
-  becomes a real question that needs a ruling on
-  `core/management/commands/`).
-- **`/find-folder-topology-drift`** to re-scan after the migration
-  lands — the cluster should drop off the next report.
+Use `/refactor-subsystem` for an approved one-cluster move, `/decide` for an
+unsettled convention, and `/find-folder-topology-drift` to verify it afterward.
