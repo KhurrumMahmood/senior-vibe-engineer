@@ -1,13 +1,13 @@
 ---
 name: unify-shadows
-description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, and Go consume the accepted structured /find-semantic-duplication finding and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
-argument-hint: "<semantic:SC-N | semantic:TS-SD-NNNN | explicit target spec>"
+description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, and Java consume the accepted structured /find-semantic-duplication finding and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
+argument-hint: "<semantic:SC-N | semantic:TS-SD-NNNN | semantic:JAVA-SD-NNNN | explicit target spec>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
 job: explain
 best_for: |
-  One confirmed Python, TypeScript, checked-JavaScript, or Go semantic-duplication finding from
+  One confirmed Python, TypeScript, checked-JavaScript, Go, or Java semantic-duplication finding from
   /find-semantic-duplication (shape =
   keep_separate_document_why | share_utilities | complete_migration |
   merge_at_workflow). Produces an implementation-ready proposal at
@@ -19,7 +19,7 @@ not_for: |
   Applying production edits happens downstream after proposal approval.
 language: any
 framework: any
-scans: [python, typescript, javascript, go]
+scans: [python, typescript, javascript, go, java]
 ---
 
 # /unify-shadows
@@ -42,6 +42,13 @@ For a Go finding, read and follow `knowledge/go-v1.md`; load it only for Go
 work. The Go branch validates one complete, confirmed upstream artifact and
 renders a proposal without re-detection or source mutation. It preserves the
 upstream warning that a static review lead is not behavioral equivalence.
+
+## Java 17 v1
+
+For a Java finding, read `knowledge/java-v1.md`. The Java branch consumes one
+complete accepted finding and its capability matrix, validates current member
+and direct-caller citations, and writes a read-only proposal. It never reruns
+detection or upgrades matching record construction into behavioral equivalence.
 
 ## How success is judged
 
@@ -73,6 +80,9 @@ upstream warning that a static review lead is not behavioral equivalence.
   proposed-action body contains no consolidation or caller-move plan. The
   other three shapes include source/caller impact, native tests, a stop
   condition, explicit human approval, and a read-only handoff.
+- A Java run consumes one complete `JAVA-SD-*` record, preserves upstream and
+  consumer fingerprints, and rejects stale/unconfirmed/partial evidence before
+  creating any proposal directory.
 Write toward these gates from Stage 0.
 
 ## Core beliefs
@@ -393,7 +403,7 @@ artifact; the human authorizes the execution step separately.
   silently re-open the merge debate.
 - Touching files outside `reports/unify-shadows/<id>/`.
 - Running tests — the proposal lists the matrix; `/fix-workflow` runs it.
-- Re-analyzing TypeScript, inventing full caller locations, or turning a
+- Re-analyzing TypeScript/Java, inventing full caller locations, or turning a
   static function-level lead into workflow/framework authority.
 
 ## When things go sideways
@@ -419,6 +429,7 @@ artifact; the human authorizes the execution step separately.
 ├── SKILL.md                         # this file — orchestrator
 ├── scripts/
 │   ├── collect_shadows.py           # Python Stage 1 (stdlib-only)
+│   ├── propose_java.py               # Structured Java proposal consumer
 │   └── propose_typescript.mjs       # Structured TypeScript proposal consumer
 ├── agents/
 │   └── shadow-profiler.md           # Stage 2 scout brief
@@ -452,3 +463,8 @@ For Go consumer changes, replay the copied skill against the locked Go fixture;
 the accepted finding must reach all three proposal artifacts, `go test ./...`
 must pass before and after, source hashes must not change, and unconfirmed or
 partial input must leave no proposal directory.
+
+For Java consumer changes, replay the copied skill with `python3 -I -S` against
+the locked Java semantic fixture. All four shapes must preserve citations and
+the approval boundary; unconfirmed/partial/stale input must leave no output,
+native Java 17 tests must pass, and source hashes must not change.
