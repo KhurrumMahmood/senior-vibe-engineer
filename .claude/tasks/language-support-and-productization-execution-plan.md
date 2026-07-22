@@ -1,7 +1,7 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P1 — commit durable contributor guidance and this ledger
+Current phase: P2 — publish and replay the public installation boundary
 Last updated: 2026-07-21
 
 ## Objective
@@ -62,8 +62,8 @@ live here or in the task artifacts linked below.
 
 | Phase | Outcome | Status | Completion revision |
 |---|---|---|---|
-| P1 | Durable docs and execution ledger committed | `in_progress` | — |
-| P2 | Public three-router install/library journey replayed | `not_started` | — |
+| P1 | Durable docs and execution ledger committed | `done` | `cc2a4fc` |
+| P2 | Public three-router install/library journey replayed | `in_progress` | — |
 | P3 | Minimal reusable language-support kit scaffold proven | `not_started` | — |
 | P4 | PHP pilot proves real outcomes and kit economics | `not_started` | — |
 | P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `not_started` | — |
@@ -88,16 +88,17 @@ Acceptance:
   full guides into always-loaded model-specific files.
 - [x] All references to the former task-file locations are removed.
 - [x] `git diff --check` passes.
-- [ ] The exact P1 file set is committed as one logical revision, with no
+- [x] The exact P1 file set is committed as one logical revision, with no
   unrelated or foreign changes staged.
 
 Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Durable docs exist and are registered | `test -f ...`; `/usr/bin/grep -nE "language-support-development.md\|installation-and-on-demand-library.md" ...` | Pass; root triggers, task pointers, catalog, and Augment inventory resolve | pending commit |
-| Former paths absent | `/usr/bin/grep -R -nE "language-tooling-reuse-guide\|installer-instruction-integration-design" . --include='*.md' --exclude-dir=.git` | Pass; no matches | pending commit |
-| Patch integrity | `/usr/bin/git diff --check` | Pass | pending commit |
+| Durable docs exist and are registered | `test -f ...`; `/usr/bin/grep -nE "language-support-development.md\|installation-and-on-demand-library.md" ...` | Pass; root triggers, task pointers, catalog, and Augment inventory resolve | `cc2a4fc` |
+| Former paths absent | `/usr/bin/grep -R -nE "language-tooling-reuse-guide\|installer-instruction-integration-design" . --include='*.md' --exclude-dir=.git` | Pass; no matches | `cc2a4fc` |
+| Patch integrity | `/usr/bin/git diff --check`; commit hooks | Pass; whitespace, EOF, conflict, host-reference, and applicable hooks passed | `cc2a4fc` |
+| Exact file set committed | `/usr/bin/git diff --cached --name-only`; `/usr/bin/git commit -m "Document language support and productization execution"` | Pass; eight owned documentation/ledger files, no foreign changes | `cc2a4fc` |
 
 ## P2 — Publish and replay the public installation boundary
 
@@ -389,3 +390,5 @@ Evidence:
 | Date | Phase | Event | Evidence/next action |
 |---|---|---|---|
 | 2026-07-21 | P1 | Started | Validate discoverability, reference integrity, diff scope, then commit the documentation/ledger unit. |
+| 2026-07-21 | P1 | Completed | `cc2a4fc`; all P1 acceptance items passed. |
+| 2026-07-21 | P2 | Started | Audit the documented public source and compare its remote revision with `cc2a4fc`; prepare the clean replay and stop for owner authorization before any publication action. |
