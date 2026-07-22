@@ -157,6 +157,41 @@ def test_java_map_reaches_final_artifacts_with_compiler_resolved_edges(tmp_path:
     assert _native_compile(host).returncode == 0
 
 
+def test_java_map_attributes_nested_types_to_their_package(tmp_path: Path) -> None:
+    host = _copy_host(tmp_path)
+    (host / "src/main/java/example/features/Outer.java").write_text(
+        "package example.features;\n\n"
+        "public final class Outer {\n"
+        "    public static final class Inner {}\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (host / "src/main/java/example/app/NestedConsumer.java").write_text(
+        "package example.app;\n\n"
+        "import example.features.Outer.Inner;\n\n"
+        "public final class NestedConsumer {\n"
+        "    public Inner imported() { return new Inner(); }\n"
+        "    public example.features.Outer.Inner qualified() {\n"
+        "        return new example.features.Outer.Inner();\n"
+        "    }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    assert _native_compile(host).returncode == 0
+
+    result, _, evidence = _map(SKILL, host, name="nested")
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = _payload(evidence)
+    nested_edges = [
+        edge
+        for edge in payload["inbound_imports"]
+        if edge["referenced_type"] == "example.features.Outer.Inner"
+    ]
+    assert {edge["style"] for edge in nested_edges} == {"import", "fully_qualified"}
+    assert {edge["target_package"] for edge in nested_edges} == {"example.features"}
+
+
 def test_java_map_preserves_partial_failed_and_unsupported_states(tmp_path: Path) -> None:
     partial_host = _copy_host(tmp_path, "partial")
     (partial_host / "src" / "main" / "java" / "example" / "features" / "Missing.java").write_text(

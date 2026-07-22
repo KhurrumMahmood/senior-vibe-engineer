@@ -635,6 +635,11 @@ class ProposeJava {
             Path file = paths.get(unit.getSourceFile().toUri());
             boolean callerSelected = selectedPaths.contains(file);
             String callerPackage = unit.getPackageName() == null ? "" : unit.getPackageName().toString();
+            Set<String> wildcardReferencedTypes = referencedTopLevelTypes(unit, trees, oldPackage);
+            boolean wildcardUsesSelected = wildcardReferencedTypes.stream().anyMatch(selectedQualified::contains);
+            boolean wildcardUsesRetained = wildcardReferencedTypes.stream().anyMatch(
+                name -> !selectedQualified.contains(name)
+            );
             if (callerSelected) {
                 long start = trees.getSourcePositions().getStartPosition(unit, unit.getPackageName());
                 impacts.add(impact(
@@ -664,8 +669,16 @@ class ProposeJava {
                         add(tree, "type_import", current, replacePackage(current, oldPackage, newPackage),
                             "Imported selected type moves to the approved subpackage.");
                     } else if (!tree.isStatic() && current.equals(oldPackage + ".*")) {
-                        add(tree, "wildcard_import", current, newPackage + ".*",
-                            "Review wildcard coverage; the old package remains for unselected types.");
+                        if (wildcardUsesSelected && wildcardUsesRetained) {
+                            long start = trees.getSourcePositions().getStartPosition(unit, tree);
+                            blockers.add(new Blocker(
+                                "wildcard_import_split_required", relative(root, file), line(unit, start),
+                                "This wildcard supplies both moving and retained types; split it into explicit imports before the move."
+                            ));
+                        } else if (wildcardUsesSelected) {
+                            add(tree, "wildcard_import", current, newPackage + ".*",
+                                "All compiler-resolved types supplied by this wildcard move to the approved subpackage.");
+                        }
                     }
                     return null;
                 }
@@ -728,6 +741,38 @@ class ProposeJava {
             }.scan(unit, null);
         }
         return deduplicateImpacts(impacts);
+    }
+
+    private static Set<String> referencedTopLevelTypes(
+        CompilationUnitTree unit, Trees trees, String packageName
+    ) {
+        Set<String> referenced = new LinkedHashSet<>();
+        new TreePathScanner<Void, Void>() {
+            @Override
+            public Void visitImport(ImportTree tree, Void unused) {
+                return null;
+            }
+
+            @Override
+            public Void visitIdentifier(com.sun.source.tree.IdentifierTree tree, Void unused) {
+                add(trees.getElement(getCurrentPath()));
+                return super.visitIdentifier(tree, unused);
+            }
+
+            @Override
+            public Void visitMemberSelect(MemberSelectTree tree, Void unused) {
+                add(trees.getElement(getCurrentPath()));
+                return super.visitMemberSelect(tree, unused);
+            }
+
+            private void add(Element element) {
+                TypeElement owner = owningTopLevelType(element);
+                if (owner != null && packageName(owner).equals(packageName)) {
+                    referenced.add(owner.getQualifiedName().toString());
+                }
+            }
+        }.scan(unit, null);
+        return referenced;
     }
 
     private static boolean insideImport(TreePath path) {

@@ -40,6 +40,7 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.NestingKind;
+import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.tools.Diagnostic;
@@ -514,7 +515,7 @@ class MapJava {
                     if (style.equals("fully_qualified") && !text.equals(qualified)) return;
                     long start = trees.getSourcePositions().getStartPosition(unit, tree);
                     int line = start < 0 ? 0 : Math.toIntExact(unit.getLineMap().getLineNumber(start));
-                    String target = type.getEnclosingElement().toString();
+                    String target = packageName(type);
                     Edge edge = new Edge(sourcePackage, relative(root, path), line, target, qualified, style,
                         firstParty ? "compiler_resolved_first_party" : "compiler_resolved_external");
                     if (firstParty && sourceIsTarget && !target.equals(targetPackage)) add(outbound, edge);
@@ -533,6 +534,14 @@ class MapJava {
             current = current.getEnclosingElement();
         }
         return null;
+    }
+
+    private static String packageName(Element element) {
+        Element current = element;
+        while (current != null && !(current instanceof PackageElement)) {
+            current = current.getEnclosingElement();
+        }
+        return current instanceof PackageElement pkg ? pkg.getQualifiedName().toString() : "";
     }
 
     private static void add(Map<String, Edge> edges, Edge edge) {

@@ -201,6 +201,37 @@ def test_java_human_judgment_and_threshold_deferrals_are_explicit(tmp_path: Path
     assert payload["recommendation"] == "defer_below_threshold"
 
 
+def test_java_wildcard_import_using_moving_and_retained_types_blocks_ready_plan(
+    tmp_path: Path,
+) -> None:
+    host = _host(tmp_path)
+    consumer = host / "src/main/java/example/app/WildcardConsumer.java"
+    consumer.write_text(
+        "package example.app;\n\n"
+        "import example.legacy.*;\n\n"
+        "public final class WildcardConsumer {\n"
+        "    public int parse(String value) {\n"
+        "        return OtherPolicy.normalize(new BillingParser().parse(value));\n"
+        "    }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    _native(host)
+
+    result, inspection, proposal = _propose(host, "mixed-wildcard")
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(inspection.read_text(encoding="utf-8"))
+    assert payload["status"] == "blocked"
+    assert payload["recommendation"] == "defer_blocked"
+    assert any(
+        row["kind"] == "wildcard_import_split_required"
+        and row["file"] == "src/main/java/example/app/WildcardConsumer.java"
+        for row in payload["blockers"]
+    )
+    assert "Resolve every structured blocker" in proposal.read_text(encoding="utf-8")
+
+
 def test_java_package_private_generated_test_vendor_build_and_symlink_blockers(
     tmp_path: Path,
 ) -> None:
