@@ -1,0 +1,7 @@
+[package]
+name = "rust-syntax-smoke"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+syntax-core = { path = "../syntax-core" }

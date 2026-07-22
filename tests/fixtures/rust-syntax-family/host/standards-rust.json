@@ -1,0 +1,17 @@
+{
+  "ideas": [
+    {
+      "id": "rust-result-match",
+      "label": "Invoice parsing is handled by match",
+      "contract": {
+        "detector": {
+          "kind": "ast",
+          "call_matches": "^parse_invoice$",
+          "enclosed_by": "match",
+          "paths": ["crates/syntax-core/src/**/*.rs"]
+        }
+      },
+      "activation": {"baseline": true}
+    }
+  ]
+}
