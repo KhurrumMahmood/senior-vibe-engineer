@@ -26,6 +26,7 @@ best_for: |
   pre-existing package configuration, direct native test/smoke, and declared
   stable public barrel.
 not_for: |
+  Explaining or annotating code behavior or public exports (use /explain-code).
   Domain-concept terminology renames in prose (use /rename-concept).
   Python/TypeScript import refactors unless a language adapter has been
   explicitly added and enabled. Large behavior-changing subsystem splits

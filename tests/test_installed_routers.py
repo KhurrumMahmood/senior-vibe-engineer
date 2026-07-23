@@ -570,6 +570,60 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         ],
     }
 
+    for skill, task, closure_skills in (
+        (
+            "find-semantic-duplication",
+            "use find-semantic-duplication on these Dart functions",
+            ["find-semantic-duplication", "map-subsystem"],
+        ),
+        (
+            "unify-shadows",
+            "use unify-shadows on this accepted Dart semantic finding",
+            ["unify-shadows"],
+        ),
+        (
+            "move-path",
+            "use move-path for this private Dart library move",
+            ["move-path"],
+        ),
+    ):
+        routed = _run_isolated(
+            installed["which-skill"] / "scripts" / "match.py",
+            task,
+            "--project-root",
+            str(host),
+            "--library-root",
+            str(library_root),
+            "--language",
+            "dart",
+            "--json",
+            cwd=host,
+        )
+        routed_payload = _json_output(routed)
+        assert routed_payload["recommendation"] == skill
+        assert routed_payload["handoff"]["available"] is True
+        capability = routed_payload["handoff"]["capabilities"]["skills"][0]
+        assert capability["dart_disposition"] == "dart-supported"
+        assert capability["closure_skills"] == closure_skills
+        assert routed_payload["optional_install"]["available"] is False
+        assert routed_payload["optional_install"]["reason"] == (
+            "selected_language_requires_external_library"
+        )
+
+    assert (
+        library_root
+        / ".claude/skills/find-semantic-duplication/scripts/detect_dart_semantic.py"
+    ).is_file()
+    assert (
+        library_root / ".claude/skills/map-subsystem/scripts/dart_lsp_facts.py"
+    ).is_file()
+    assert (
+        library_root / ".claude/skills/unify-shadows/scripts/propose_dart.py"
+    ).is_file()
+    assert (
+        library_root / ".claude/skills/move-path/scripts/dart_library_move.py"
+    ).is_file()
+
     for skill, task in (
         ("adapt-project", "use adapt-project on this Rust repository"),
         ("audit-decisions", "use audit-decisions on this Rust repository"),

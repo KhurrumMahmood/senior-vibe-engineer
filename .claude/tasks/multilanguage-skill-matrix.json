@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "0355f188d82abfece022c655c41fa9071808fee7106192cf6ed44b1463b46dd8"
+      "sha256": "2da192e8ec47e37f10639ff5bc3d68c0be52352240dca2dd31d3ec050e1fedf1"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -47,7 +47,7 @@
     },
     {
       "path": ".claude/tasks/dart-language-coverage.json",
-      "sha256": "01f5da2744d0437bc16fb2dee2faa60cc9dc7702e27c500f5f5721ff4a116a91"
+      "sha256": "197acaa3dc2fee958064f7fc0c201aadbec035c587bd56615b6c87bfaf99b161"
     }
   ],
   "counts": {
@@ -6025,14 +6025,15 @@
       ],
       "rust_reviewed_revision": "af9ecc6e77623bff42a04c7643bdde09210b413b",
       "rust_limitation": "Version 1 supports one conventional leaf module in one regular Cargo library target; cfg/path attributes, macros, include!, build output, reflective strings, multiple/cross-package moves, arbitrary files, and non-Cargo/nightly/no_std/cross-target shapes remain partial and block writes.",
-      "dart_disposition": "dart-pending-implementation",
-      "dart_closure_mode": null,
-      "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
+      "dart_disposition": "dart-supported",
+      "dart_closure_mode": "external-library",
+      "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d8-move-path.md",
       "dart_native_check": [
-        "mutation intentionally not performed"
+        "a reviewed evidence hash authorizes one private Dart library file/directory move with exact directly impacted directive edits, public-barrel preservation, mode-aware whole-tree proof, and copied six-file closure execution",
+        "preview, apply, check, stale evidence, impacted symlink/part/conditional refusal, unrelated boundary coexistence, native postflight, exact residue proof, and byte/mode/symlink rollback pass from the integrated revision"
       ],
-      "dart_reviewed_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
-      "dart_limitation": "Imports, parts, generated code, package APIs, rollback, and native post-verification are unproven.",
+      "dart_reviewed_revision": "80724f4",
+      "dart_limitation": "One conventional private-library move only; no public or cross-package migration, arbitrary codemod, generated/part/real-augmentation move, unresolved relevant graph, framework/Flutter migration, Git staging, power-loss journal, or semver guarantee.",
       "fact_level": "lexical-filesystem",
       "outcome_class": "source-mutation",
       "framework_family": null,
@@ -6041,6 +6042,7 @@
         "language": "any",
         "framework": "any",
         "scans": [
+          "dart",
           "go",
           "java",
           "javascript",

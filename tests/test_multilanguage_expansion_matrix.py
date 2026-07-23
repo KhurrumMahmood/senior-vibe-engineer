@@ -106,9 +106,8 @@ EXPECTED_RUST_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_DART_COUNTS = {
-    "dart-supported": 20,
+    "dart-supported": 21,
     "dart-partial": 1,
-    "dart-pending-implementation": 1,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -581,11 +580,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         for row in language_rows
         if row["rust_disposition"] == "rust-partial"
     } == {"map-subsystem"}
-    assert {
+    assert not {
         row["skill"]
         for row in language_rows
         if row["dart_disposition"] == "dart-pending-implementation"
-    } == {"move-path"}
+    }
     assert {
         row["skill"]
         for row in language_rows
@@ -603,6 +602,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "find-omnibus",
         "find-semantic-duplication",
         "find-standard-gaps",
+        "move-path",
         "prevent-regression",
         "propose-boundary",
         "propose-folder-reorganization",

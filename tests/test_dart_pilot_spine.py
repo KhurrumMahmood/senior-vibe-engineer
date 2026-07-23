@@ -409,6 +409,7 @@ def test_dart_frozen_contracts_and_current_family_dispositions() -> None:
         "find-omnibus",
         "find-semantic-duplication",
         "find-standard-gaps",
+        "move-path",
         "prevent-regression",
         "propose-boundary",
         "propose-folder-reorganization",
@@ -418,9 +419,9 @@ def test_dart_frozen_contracts_and_current_family_dispositions() -> None:
     assert {skill for skill, value in dispositions.items() if value == "dart-partial"} == {
         "map-subsystem"
     }
-    assert {
+    assert not {
         skill
         for skill, value in dispositions.items()
         if value == "dart-pending-implementation"
-    } == {"move-path"}
+    }
     assert all(row["limitation"] and row["native_check"] for row in rows)
