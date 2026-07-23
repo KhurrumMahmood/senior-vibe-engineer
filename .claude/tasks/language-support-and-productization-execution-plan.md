@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P7/F2 Cohort A, Ruby A5 move-path is next; PHP is 22/22; Swift A3 needs a different semantic foundation; C#/.NET remains last
-Last updated: 2026-07-23 (PHP/Ruby A4 published and committed installed replay passed)
+Current phase: P7/F2 Cohort A, Ruby A5 move-path is next; bounded AC1 decision-propagation/coherence gate follows A5 before B0; PHP is 22/22; Swift A3 needs a different semantic foundation; C#/.NET remains last
+Last updated: 2026-07-23 (AC1 coherence gate scheduled from a real consuming-host incident)
 
 ## Objective
 
@@ -11,7 +11,9 @@ Complete the product work in this order:
 1. preserve and publish the simple three-router installation journey;
 2. make additional language support cheaper without weakening final outcomes;
 3. expand honest support across the selected major-language set; and
-4. improve host guidance, routing, batching, context use, and measured user
+4. make accepted decisions propagate coherently, or leave explicit auditable
+   obligations when propagation is deferred; and
+5. improve host guidance, routing, batching, context use, and measured user
    outcomes only after the preceding boundaries work.
 
 This file is the sole active resumable execution ledger for unfinished
@@ -113,7 +115,7 @@ execution authorities.
 | P4 | PHP pilot proves real outcomes and kit economics | `done` | `268c3ac` |
 | P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `deferred_to_final_language` | — |
 | P6 | Shared components promoted or rejected on evidence | `done` | `febc761` |
-| P7 | Every chosen language reaches complete, value-tested language-level support | `active_cohort_a3` | — |
+| P7 | Every chosen language reaches complete, value-tested language-level support | `active_cohort_a5` | — |
 | P8 | Current journey, update/repair, and help are measured | `not_started` | — |
 | P9 | Only measured user-journey improvements are adopted | `not_started` | — |
 
@@ -129,7 +131,8 @@ the committed integration revision.
 | F0 | Close Dart and normalize repository state | `done` | Root integrated serially; fresh non-context agents reviewed but did not publish shared truth | D5/D7 and D8 accepted; Dart published at 22/22; installed replay passed; anomaly branches retained; only useful checkouts remain |
 | F1 | Complete P6 reuse decisions | `done` | Three fresh non-context read-only comparison lanes; root owned the decision and shared reduction | `febc761`: promotion decision, frozen packet index, 65.80% lifecycle-surface reduction, Ruby/Rust semantics normalized, committed installed replay passed |
 | F2 | Complete PHP, Ruby, and Swift | `in_progress` | One fresh non-context worktree per language for the same family; maximum three; root integrates serially | All 22 jobs per language have accepted outcomes or strict reviewed exceptions; installed routes and native value suites pass |
-| F3 | Complete C, C++, and Kotlin | `pending_f2` | Kotlin spine first; then one worktree per language for the same family; maximum three | Separate C/C++ truth retained; Kotlin project boundary proven; all three languages meet the F2 outcome gate |
+| F2C | Close the decision-propagation and project-coherence gaps reproduced in engineering-skills and host-a | `pending_a5` | Root owns the contract and integration; up to three fresh non-context read-only inventories may audit decision impact, artifact homes, and host drift | AC1 criteria pass: one authoritative state-home decision, explicit propagation obligations, diff-honest cleanup, register-or-exempt subsystem coverage, and durable deferred-debt projection |
+| F3 | Complete C, C++, and Kotlin | `pending_f2c` | Kotlin spine first; then one worktree per language for the same family; maximum three | Separate C/C++ truth retained; Kotlin project boundary proven; all three languages meet the F2 outcome gate |
 | F4 | Complete C#/.NET last | `pending_f3` | One spine, then disjoint read-only family lanes only where ownership is proven; mutation serial | Roslyn/project facts, all 22 jobs, copied closures, native build/test/analyze, and installed routing pass |
 | F5 | Publish final language release | `pending_f4` | Root only | No coverage-level pending or partial rows; bounded supported contracts may still report explicit runtime partial configurations; public install/bootstrap/route/execute/cleanup/uninstall replay passes at one SHA |
 | F6 | Measure and finish the existing user journey (P8) | `pending_f5` | Up to three read-only corpus/measurement lanes; router/help/status implementation serial | Frozen router corpus, non-executing help, stock update/repair journey, and serial/batched baseline measurements pass |
@@ -268,7 +271,8 @@ before changing status to `done`.
 | A3 — PHP/Ruby/Swift semantic read-only | `done_php_ruby_swift_tool_gap` | `4e3aa41`; PHP/Ruby branches retained; Swift research remains on `codex/f2-swift-semantic` | PHP `42f6236`; Ruby `b8f82cf` + ignored-fixture repair `10015fb`; publication `c7cee0b`; installed expectation `c00df4e`; Swift candidate `3e13061` removed from main by `20851c2` | PHP A3 `3 passed` plus preserved `112 passed`; Ruby A3 `14 passed` plus preserved `63 passed`; shared projection/router `94 passed`; committed installed routers `58 passed`; Swift root replay exceeded 360 seconds and its first semantic request remained unanswered after explicit indexing/workspace/readiness probes | PHP/Ruby accepted with explicit semantic boundaries; Swift's five rows remain pending under ML-026 and do not block independent PHP/Ruby downstream work |
 | A4 — PHP/Ruby/Swift proposal/guard | `done_php_ruby_swift_tool_gap` | `a3855b0`; PHP/Ruby branches retained; Swift deferred with ML-026 | PHP `0b38efa`; Ruby `98c80aa`; publication `2e7cc75` | PHP root `9 passed`; Ruby root `18 passed`; shared release/router `163 passed`; conformance `6 passed`; metadata `76/76`; artifact drift and commit hooks passed; committed installed routers `58 passed` | PHP/Ruby accepted without redetection; Swift opens only after a working A3 foundation |
 | A5 — Ruby mutation and Cohort A publication | `ready` | start from `2e7cc75`; serial | — | — | Preserve PHP's accepted move outcome; Ruby proves preview, authority, rollback, exact after-tree, and native checks; Swift remains separately tracked under ML-026 |
-| B0 — Kotlin spine and C/C++ reuse decision | `pending_a5` | TBD; root/exclusive | — | — | Kotlin project/build boundary frozen; C and C++ remain separate even if a shared lifecycle helper is accepted |
+| AC1 — Decision propagation and project coherence | `pending_a5` | start from committed A5 closeout; root/exclusive shared implementation, with up to three fresh non-context read-only inventories | — | — | The bounded F2C acceptance criteria below pass before another language family multiplies the affected contracts |
+| B0 — Kotlin spine and C/C++ reuse decision | `pending_ac1` | TBD; root/exclusive | — | — | Kotlin project/build boundary frozen; C and C++ remain separate even if a shared lifecycle helper is accepted |
 | B1 — C/C++/Kotlin lexical-filesystem | `pending_b0` | TBD; three worktrees | — | — | Independent copied final outcomes under trustworthy language modes |
 | B2 — C/C++/Kotlin syntax | `pending_b1` | TBD; three worktrees | — | — | Native syntax facts and complete degraded-tool boundaries |
 | B3 — C/C++/Kotlin semantic read-only | `pending_b2` | TBD; three worktrees | — | — | Trustworthy compile/project configuration and independent semantic outcomes |
@@ -278,6 +282,50 @@ before changing status to `done`.
 | C1 — C# lexical/syntax/semantic families | `pending_c0` | TBD; up to three disjoint worktrees | — | — | One project-aware fact boundary only if ownership and immediate consumers are proven |
 | C2 — C# downstream accepted-evidence consumers | `pending_c1` | TBD; up to three disjoint worktrees | — | — | Enum/guard, boundary/folder, and unification consumers preserve distinct artifacts and review authority |
 | C3 — C# mutation and publication | `pending_c2` | TBD; serial | — | — | All 22 C# jobs close and the final chosen-language release gate may start |
+
+AC1 is a product-coherence gate, not a new knowledge-graph or workflow
+platform. It dogfoods the existing `propagate-convention-change` ledger idea on
+the concrete state-home and closeout incidents before broader language work:
+
+- [ ] Consolidate or explicitly supersede the conflicting state-location
+  decisions. The accepted decision, implementation defaults, contributor
+  guidance, and tests name one canonical home for durable host state and one
+  canonical home for raw local runs, with a bounded compatibility fallback.
+- [ ] A decision-impact record can enumerate required cascading updates across
+  code, skills, docs, tests, generated projections, configuration, and host
+  migration. Every obligation has exactly one auditable disposition:
+  `complete`, `deferred` with a tracked work item, or `not-applicable` with a
+  reason. A decision is not reported fully embodied while a required
+  obligation is undisposed.
+- [ ] `/which-cleanup` preserves the originating diff selector and distinguishes
+  line-, file-, and project-scoped findings. A frozen fixture proves that the
+  primary closeout verdict does not present unrelated pre-existing line
+  findings as new work while retaining legitimate changed-file obligations.
+- [ ] Registry coverage has a portable `register-or-exempt` result driven by
+  declared first-party roots/project profile rather than host-specific folder
+  names. A new coherent surface cannot disappear merely because it was never
+  added to the registry.
+- [ ] A read-only self-audit inventories remaining legacy artifact homes,
+  incorrect ADR references, local-host/upstream skill divergence, and open
+  propagation obligations. Anything not repaired in AC1 is projected into a
+  durable backlog/status surface and remains discoverable after a fresh clone.
+- [ ] The bounded path works in this repository and a disposable host fixture
+  representing the reproduced host-a failure. No production host is mutated, and
+  no broad semantic graph, autonomous rewrite engine, or new package manager is
+  introduced.
+
+Known AC1 intake evidence:
+
+- `which-cleanup` is diff-driven at file selection but sends whole changed
+  files to scanners that may report unrelated pre-existing lines;
+- host-a's registry validator proves registered paths exist but cannot detect a
+  wholly unregistered `/projects`-like surface;
+- accepted ADR 0021 assigns shared host state to `.engineering/`, while the
+  proposed/shipped cleanup contract still names `.claude/subsystems.yaml` and
+  root `reports/` in upstream defaults;
+- host-a and upstream copies already differ in skills and report defaults; and
+- the active plan itself carried a stale `active_cohort_a3` label after A4
+  closed, demonstrating that projection drift is part of the same class.
 
 This converts the unfinished matrix into roughly thirty multi-skill read-only
 cohorts plus five serial mutation closeouts, instead of 142 skill-sized worker
@@ -1037,6 +1085,7 @@ Evidence:
 
 | Date | Phase | Change | Reason/evidence | User decision |
 |---|---|---|---|---|
+| 2026-07-23 | P7/F2C | Insert AC1 after Ruby A5 and before B0; make decision propagation, deferred-obligation tracking, artifact-home coherence, diff-honest closeout, and subsystem register-or-exempt behavior verifiable product work | A real host-a run exposed whole-file false-positive noise, an unregistered subsystem, and conflicting state-home interpretations. Upstream review confirmed the mechanisms exist independently but no contract joins decision impact, propagation, verification, and deferred debt. Repeating these inconsistencies across the remaining language families would increase rework and user confusion | Owner stated that engineering-skills should solve coherence for itself and other projects, including cascading updates and durable tracking when work is deferred |
 | 2026-07-23 | P6/F1 | Close shared-component promotion with no new cross-language runtime; retain proven language-local reuse, prune unused lifecycle API, and normalize Ruby/Rust bounded-map coverage semantics | Three independent comparisons found no new component satisfying the conjunctive consumer/LOC/closure/latency gate. `febc761` records the decision/packet index, removes 65.80% of the unused lifecycle implementation/test surface, and preserves runtime partial truth inside supported bounded contracts | Implements the approved evidence-first reuse gate without adding productization overhead |
 | 2026-07-23 | F0 | Replace the literal "only `main` checked out" condition with "only useful checkouts retained" | The archived preflight checkout is Git's primary administrative worktree: its `.git` directory stores the common metadata used by the linked product checkout, so `git worktree remove` correctly refuses it. Its redacted telemetry is committed at `5a8a571`, it is clean, and every completed implementation checkout is retired. Removing it would require a separate repository-metadata migration with no installer or language-support benefit | Consistent with the owner's request to retire worktrees that are no longer useful; no product scope added |
 | 2026-07-23 | P6-P9 | Added one bounded follow-on queue: Dart/repository closeout, evidence-backed reuse, family-batched language cohorts, final release, measured journey, then threshold-gated improvements | The owner requested retirement of obsolete worktrees and a resumable plan that can use separate non-context workers. Three fresh read-only reviews independently supported family batching, serial shared integration, criteria repair, and measure-before-UX sequencing | Approved by user request |
@@ -1056,6 +1105,7 @@ Evidence:
 
 | Date | Phase | Event | Evidence/next action |
 |---|---|---|---|
+| 2026-07-23 | P7/F2C AC1 | Decision-propagation and coherence gate scheduled | The existing `propagate-convention-change` idea now has real host-a evidence rather than a theoretical trigger. Finish the isolated Ruby A5 mutation first, then freeze AC1's impact/disposition contract and dogfood it on the state-home, diff-scope, subsystem-coverage, and upstream/host-divergence incidents before opening B0. |
 | 2026-07-23 | P7/F2 A2 | PHP/Ruby/Swift syntax wave opened | Three fresh non-context language worktrees start from exact A1 closeout `98dff01`. PHP and Ruby each own audit, complexity, omnibus, and standard-gap outcomes; Swift owns audit, complexity, and standard-gap outcomes while preserving its accepted omnibus path. Workers own language-local implementation/fixtures/tests/packets only; root retains shared guides, coverage, projections, routers, docs, and serial publication. |
 | 2026-07-23 | P7/F2 A2 | PHP/Ruby/Swift syntax implementations integrated | PHP `682a4df`, Ruby `23cc7f2` plus economics correction `c4b2036`, and Swift `f8cc3a4` reach their copied final artifacts with focused root replays of `42`, `19`, and `32` passing tests (`1` slow Swift latency case independently worker-validated and root-deselected). The shared conformance, router, matrix, and spine publication surface passes `77`. Coverage is now PHP 12/22, Ruby 11/22, and Swift 12/22; detailed tool commands live in on-demand provider guides rather than expanding every ambient skill body. Commit shared publication truth, replay installed routers from that committed revision, then close A2 and open A3. |
 | 2026-07-23 | P7/F2 A2 | PHP/Ruby/Swift syntax wave closed | Publication `f7c9311` passes every commit hook. The complete router/release surface passes `163` after correcting one stale expected language list, and the committed external-library journey passes `58` installed-router tests. All three clean A2 worktrees are retired while their branches and commits remain. Open A3 from the exact ledger-closeout revision with one language-family worktree per language. |
