@@ -650,6 +650,12 @@ def _dart_coverage(payload: dict) -> dict[str, dict]:
         supported_disposition="dart-supported",
     )
     for skill, row in coverage.items():
+        if row["disposition"] in {"dart-supported", "dart-partial"} and row.get(
+            "closure_mode"
+        ) not in {"stock-selected-install", "external-library"}:
+            raise ValueError(
+                f"accepted Dart row lacks an explicit closure mode: {skill}"
+            )
         if row["disposition"] in {
             "dart-pending-implementation",
             "dart-partial",
@@ -925,6 +931,7 @@ def build_matrix(
         if expansion == "language-level":
             dart = dart_coverage[skill]
             dart_disposition = dart["disposition"]
+            dart_closure_mode = dart.get("closure_mode")
             dart_evidence_path = dart.get("evidence_path")
             dart_native_check = dart.get("native_check")
             dart_reviewed_revision = dart.get("reviewed_revision")
@@ -935,6 +942,7 @@ def build_matrix(
                 "framework-bound": "stack-bound",
                 "ecosystem-runtime": "ecosystem-runtime",
             }[expansion]
+            dart_closure_mode = None
             dart_evidence_path = None
             dart_native_check = None
             dart_reviewed_revision = None
@@ -991,6 +999,11 @@ def build_matrix(
                 "rust_reviewed_revision": rust_reviewed_revision,
                 "rust_limitation": rust_limitation,
                 "dart_disposition": dart_disposition,
+                **(
+                    {"dart_closure_mode": dart_closure_mode}
+                    if expansion == "language-level"
+                    else {}
+                ),
                 "dart_evidence_path": dart_evidence_path,
                 "dart_native_check": dart_native_check,
                 "dart_reviewed_revision": dart_reviewed_revision,

@@ -374,7 +374,7 @@ def test_dart_profile_doctor_inventory_execute_from_copied_runtime(
     assert _tree_state(host) == before
 
 
-def test_dart_frozen_contracts_and_all_22_initial_dispositions() -> None:
+def test_dart_frozen_contracts_and_current_family_dispositions() -> None:
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
     contracts = baseline["pilot_contracts"]
     assert contracts["lexical"]["disposition"] == "dart-pending-implementation"
@@ -392,5 +392,19 @@ def test_dart_frozen_contracts_and_all_22_initial_dispositions() -> None:
     assert coverage["decision"] == "expand"
     assert len(rows) == 22
     assert {row["skill"] for row in rows} == EXPECTED_SKILLS
-    assert all(row["disposition"] == "dart-pending-implementation" for row in rows)
+    dispositions = {row["skill"]: row["disposition"] for row in rows}
+    assert {skill for skill, value in dispositions.items() if value == "dart-supported"} == {
+        "adapt-project",
+        "audit-decisions",
+        "find-comment-drift",
+        "find-concept-divergence",
+        "find-dormant",
+        "find-folder-topology-drift",
+        "find-standard-gaps",
+        "rename-concept",
+    }
+    assert {skill for skill, value in dispositions.items() if value == "dart-partial"} == {
+        "map-subsystem"
+    }
+    assert sum(value == "dart-pending-implementation" for value in dispositions.values()) == 13
     assert all(row["limitation"] and row["native_check"] for row in rows)

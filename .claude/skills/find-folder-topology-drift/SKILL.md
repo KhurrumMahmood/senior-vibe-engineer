@@ -1,6 +1,6 @@
 ---
 name: find-folder-topology-drift
-description: Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, Go, Java, or Rust filename clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript, TypeScript, and Rust use a first `_` or `-` token, Go uses its first `_` token, and Java uses a leading CamelCase token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.
+description: Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, Go, Java, Rust, or Dart filename clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript, TypeScript, Rust, and Dart use a first `_` or `-` token, Go uses its first `_` token, and Java uses a leading CamelCase token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.
 argument-hint: "[--root PATH] [--javascript-root PATH] [--typescript-root PATH] [--go-root PATH] [--java-root PATH] [--min-cluster-size 3 --exclude PATTERN]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -20,10 +20,27 @@ not_for: |
   resolved-import contract.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust]
+scans: [python, javascript, typescript, go, java, rust, dart]
 ---
 
 # /find-folder-topology-drift
+
+### Dart v1: explicit source roots only
+
+Dart v1 groups eligible direct-sibling filenames below one explicit authored
+root. Copy the sibling `_dart/dart_project_snapshot.py`. Findings are advisory:
+they do not prove Dart library ownership, import impact, move safety, workspace
+layout, or Flutter conventions.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-folder-topology-drift"
+python3 "${SKILL_ROOT}/scripts/detect_dart.py" \
+  --project-root "$PWD" --dart-root lib/src \
+  --output "$PWD/reports/find-folder-topology-drift/dart" \
+  --direct-test "${DART_DIRECT_TEST:?Set a dependency-free direct test path}" \
+  --smoke-entrypoint "${DART_SMOKE:?Set a direct smoke entrypoint}" \
+  --expected-smoke "${DART_EXPECTED_SMOKE:?Set its exact stdout without the newline}"
+```
 
 Run a read-only directory-layout audit. Treat every finding as a human-triage
 candidate, never as authorization to move files.

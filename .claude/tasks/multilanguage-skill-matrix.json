@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "2f2c27d465f394c52b2bafd49619470704af269cc2d26630373643cada91bc16"
+      "sha256": "b89945abe262c452aa342b1a9db24a07ec3fe71602a63ccbca9266a3fee2e6dc"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -47,7 +47,7 @@
     },
     {
       "path": ".claude/tasks/dart-language-coverage.json",
-      "sha256": "eaecf3ec85da6402b7ecd35dff33e31de37f22dc6a591a361067f3ecde4efe76"
+      "sha256": "b3629d3147bd9d5fd3c88c5ccf0a593dc793f22ef3c03271fd32bfab7ad7eaea"
     }
   ],
   "counts": {
@@ -216,13 +216,15 @@
       ],
       "rust_reviewed_revision": "26c0482161bbc19c73f5d11ad288e2d3fef99105",
       "rust_limitation": "Objective Cargo/Rust adaptation facts only; frameworks, layout quality, macro/build/cfg semantics, and project intent remain unresolved.",
-      "dart_disposition": "dart-pending-implementation",
-      "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
+      "dart_disposition": "dart-supported",
+      "dart_closure_mode": "external-library",
+      "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d1-project-lexical-family.md",
       "dart_native_check": [
-        "profile, pubspec boundary, inventory roles, and copied fixture only"
+        "shared Dart project snapshot proves source roles, configuration and source hashes, Dart 3.12 analyze/format/direct-test/exact-smoke gates, zero-write host behavior, stale recovery, and copied execution",
+        "adapter.yml, adapter.json, report.md, and evidence.json count authored library files and emit the exact native commands without applying host changes"
       ],
-      "dart_reviewed_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
-      "dart_limitation": "No Dart adapter artifact or package/framework selection outcome is validated.",
+      "dart_reviewed_revision": "70184ee",
+      "dart_limitation": "Objective dependency-free plain-Dart layout facts only; architecture quality, package graphs, frameworks, Flutter, workspaces, generated APIs, and project intent remain unresolved.",
       "fact_level": "lexical-filesystem",
       "outcome_class": "configuration-output",
       "framework_family": null,
@@ -236,7 +238,8 @@
           "typescript",
           "go",
           "java",
-          "rust"
+          "rust",
+          "dart"
         ],
         "install_with": []
       },
@@ -438,13 +441,15 @@
       ],
       "rust_reviewed_revision": "225a0e784720ec2b6084a31676d9a54c4d84b117",
       "rust_limitation": "Bounded authored comments only; cfg variants, macros, build/include output, generated roles, symlinks, and runtime behavior remain unresolved.",
-      "dart_disposition": "dart-pending-implementation",
-      "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
+      "dart_disposition": "dart-supported",
+      "dart_closure_mode": "external-library",
+      "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d2-syntax-family.md",
       "dart_native_check": [
-        "analyzer feasibility only"
+        "locked public analyzer 14.1.0 closure proves real line/block/doc comments, roles, exact hashes, zero-write native gates, stale recovery, and copied execution",
+        "final drift, raw, registry, and link artifacts retain resolved decision:0001 references and expose orphan decision:9999"
       ],
-      "dart_reviewed_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
-      "dart_limitation": "No final audit associates comments with declarations across part files, generated code, or conditional imports.",
+      "dart_reviewed_revision": "8821fb4",
+      "dart_limitation": "Bounded authored comment syntax only; it does not interpret applicability or cover parts, generated code, conditional configurations, or framework documentation.",
       "fact_level": "syntax",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -460,7 +465,8 @@
           "typescript",
           "go",
           "java",
-          "rust"
+          "rust",
+          "dart"
         ],
         "install_with": []
       },
@@ -1224,6 +1230,7 @@
       "rust_reviewed_revision": "26c0482161bbc19c73f5d11ad288e2d3fef99105",
       "rust_limitation": "Direct lexical public declarations only; re-exports, aliases, resolved callers/types, macro output, cfg variants, traits/generics, unsafe/FFI, and behavior remain unexplained.",
       "dart_disposition": "dart-pending-implementation",
+      "dart_closure_mode": null,
       "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
       "dart_native_check": [
         "Dart analysis succeeds on the fixture"
@@ -1450,6 +1457,7 @@
       "rust_reviewed_revision": "a939b70800fd96528e3538aadbeae3767a628013",
       "rust_limitation": "Proposal-only; macros, build/include output, cfg variants, traits/generics, unsafe/FFI, serialization/wire behavior, exhaustiveness, public compatibility, and source mutation remain unresolved.",
       "dart_disposition": "dart-pending-implementation",
+      "dart_closure_mode": null,
       "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
       "dart_native_check": [
         "no proposal or mutation executed"
@@ -1977,13 +1985,15 @@
       ],
       "rust_reviewed_revision": "812ae4fcf9c5c99c6887726ce3fcd3f610c6b9aa",
       "rust_limitation": "One bounded adjacent percentage/rate doc-comment versus fixed-literal function-body rule; macros, build scripts, include!, cfg/target variants, traits, generics, unsafe/FFI, and runtime semantics remain explicit non-claims.",
-      "dart_disposition": "dart-pending-implementation",
-      "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
+      "dart_disposition": "dart-supported",
+      "dart_closure_mode": "external-library",
+      "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d2-syntax-family.md",
       "dart_native_check": [
-        "source-role and malformed-input boundaries only"
+        "locked public analyzer facts and native gates prove exact adjacent doc-comment and fixed-return spans, roles, hashes, zero-write host behavior, lifecycle recovery, and copied execution",
+        "final artifacts report only the conflicting direct fixed-literal percentage/rate claim and preserve the matching case as clean"
       ],
-      "dart_reviewed_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
-      "dart_limitation": "No Dart comment-drift final artifact reaches clean/finding lifecycle states.",
+      "dart_reviewed_revision": "8821fb4",
+      "dart_limitation": "One advisory adjacent doc-comment versus direct fixed-numeric-return rule only; computed values, inheritance, nested closures, data flow, generated code, runtime behavior, and Flutter semantics remain unresolved.",
       "fact_level": "lexical-filesystem",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -2000,6 +2010,7 @@
           "php",
           "ruby",
           "rust",
+          "dart",
           "c",
           "cpp",
           "templates"
@@ -2112,6 +2123,7 @@
       "rust_reviewed_revision": "225a0e784720ec2b6084a31676d9a54c4d84b117",
       "rust_limitation": "Advisory syntax score only; macros, async desugaring, cfg variants, match guards beyond the counted policy, traits/generics, and runtime cost remain unresolved.",
       "dart_disposition": "dart-pending-implementation",
+      "dart_closure_mode": null,
       "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
       "dart_native_check": [
         "native analyzer accepts syntax"
@@ -2242,13 +2254,15 @@
       ],
       "rust_reviewed_revision": "26c0482161bbc19c73f5d11ad288e2d3fef99105",
       "rust_limitation": "Strict glossary-backed text evidence only; symbol identity, imports/re-exports, macros, associated items, blanket impls, cfg variants, generated identifiers, and conceptual equivalence remain unresolved.",
-      "dart_disposition": "dart-pending-implementation",
-      "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
+      "dart_disposition": "dart-supported",
+      "dart_closure_mode": "external-library",
+      "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d1-project-lexical-family.md",
       "dart_native_check": [
-        "lexical source inventory only"
+        "shared Dart project snapshot proves eligible roles, exact glossary-backed spans and hashes, native gates, stale recovery, source preservation, and copied execution",
+        "final artifacts detect one avoid-term only in authored library source while preferred-only source is clean"
       ],
-      "dart_reviewed_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
-      "dart_limitation": "No resolved symbol/string census reaches a final report.",
+      "dart_reviewed_revision": "70184ee",
+      "dart_limitation": "Strict glossary-backed text evidence only; symbol identity, imports/exports, generated identifiers, conceptual equivalence, and rename completeness remain unresolved.",
       "fact_level": "lexical-filesystem",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -2263,6 +2277,7 @@
           "go",
           "java",
           "rust",
+          "dart",
           "markdown",
           "templates"
         ],
@@ -2664,13 +2679,15 @@
       ],
       "rust_reviewed_revision": "51055379904262ed4d60645b9fbed5b08f6ef015",
       "rust_limitation": "No safe-deletion claim; feature/target roots, macros/build output, doctests, callbacks, traits/generics, external APIs, reflection, and unsafe/FFI remain deferred.",
-      "dart_disposition": "dart-pending-implementation",
-      "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
+      "dart_disposition": "dart-supported",
+      "dart_closure_mode": "stock-selected-install",
+      "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d4-semantic-family.md",
       "dart_native_check": [
-        "direct fixture entrypoints execute"
+        "Dart 3.12 SDK-LSP fact pack proves selected source/configuration hashes, capabilities, definitions/references, native gates, external-cache cleanup, stale recovery, and copied execution",
+        "final artifacts emit one private top-level review_required candidate while fixing certain_delete at zero; the bounded clean package is complete empty"
       ],
-      "dart_reviewed_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
-      "dart_limitation": "Reflection, callbacks, isolates, Flutter entrypoints, conditional imports, and dynamic dispatch hide reachability.",
+      "dart_reviewed_revision": "f246f0b",
+      "dart_limitation": "No safe-deletion or runtime-reachability claim; callbacks, reflection, isolates, registries, native/JS interop, conditional/part/generated code, external consumers, and Flutter entrypoints remain unresolved.",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -2684,7 +2701,8 @@
           "javascript",
           "go",
           "java",
-          "rust"
+          "rust",
+          "dart"
         ],
         "install_with": [
           "map-subsystem"
@@ -2806,6 +2824,7 @@
       "rust_reviewed_revision": "26c0482161bbc19c73f5d11ad288e2d3fef99105",
       "rust_limitation": "Whitespace-normalized lexical bodies of named functions at least five lines long are review leads only; macros, generics, patterns, closures, cfg branches, semantic equivalence, and safe consolidation remain unresolved.",
       "dart_disposition": "dart-pending-implementation",
+      "dart_closure_mode": null,
       "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
       "dart_native_check": [
         "formatted Dart fixture only"
@@ -2936,13 +2955,15 @@
       ],
       "rust_reviewed_revision": "26c0482161bbc19c73f5d11ad288e2d3fef99105",
       "rust_limitation": "Explicit-root direct-sibling filename clusters only; module ownership, imports, package/workspace conventions, framework layout, move safety, proc-macro/no_std, and monorepo topology remain unresolved.",
-      "dart_disposition": "dart-pending-implementation",
-      "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
+      "dart_disposition": "dart-supported",
+      "dart_closure_mode": "external-library",
+      "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d1-project-lexical-family.md",
       "dart_native_check": [
-        "lib, bin, test, generated, vendor, and build roles only"
+        "shared Dart project snapshot proves authored and excluded roles, exact inventory/hashes, native gates, stale recovery, source preservation, and copied execution",
+        "final artifacts report one policy-backed three-file direct-sibling billing cluster while below-threshold, allowed, nested, barrel, part, generated, and excluded-role cases stay clean"
       ],
-      "dart_reviewed_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
-      "dart_limitation": "One dependency-free package does not establish Flutter, workspace, plugin, or generated-code topology.",
+      "dart_reviewed_revision": "70184ee",
+      "dart_limitation": "Explicit-root direct-sibling filename evidence only; Dart library ownership, import impact, move safety, workspaces, plugins, generated APIs, and Flutter conventions remain unresolved.",
       "fact_level": "lexical-filesystem",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -2956,7 +2977,8 @@
           "typescript",
           "go",
           "java",
-          "rust"
+          "rust",
+          "dart"
         ],
         "install_with": []
       },
@@ -3263,6 +3285,7 @@
       "rust_reviewed_revision": "51055379904262ed4d60645b9fbed5b08f6ef015",
       "rust_limitation": "Human extract-enum verdict required; the domain is not proven closed, and statics, interior mutability, environment/thread state, traits/generics, macros/cfg, registries, and unsafe/FFI remain unresolved.",
       "dart_disposition": "dart-pending-implementation",
+      "dart_closure_mode": null,
       "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
       "dart_native_check": [
         "no final state census"
@@ -3407,6 +3430,7 @@
       "rust_reviewed_revision": "51055379904262ed4d60645b9fbed5b08f6ef015",
       "rust_limitation": "One direct struct-option omission shape only; target/cfg variants, macros/build output, dynamic/trait/generic calls, optional dependencies, external crates, and missing Git evidence remain deferred.",
       "dart_disposition": "dart-pending-implementation",
+      "dart_closure_mode": null,
       "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
       "dart_native_check": [
         "malformed source is rejected; malformed pubspec remains explicitly unvalidated"
@@ -3640,6 +3664,7 @@
       "rust_reviewed_revision": "225a0e784720ec2b6084a31676d9a54c4d84b117",
       "rust_limitation": "Scout judgment remains mandatory; macros, generated/build output, impl/trait defaults, cfg variants, and runtime responsibility remain unresolved.",
       "dart_disposition": "dart-pending-implementation",
+      "dart_closure_mode": null,
       "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
       "dart_native_check": [
         "analyzer syntax feasibility only"
@@ -4242,6 +4267,7 @@
       "rust_reviewed_revision": "51055379904262ed4d60645b9fbed5b08f6ef015",
       "rust_limitation": "No behavioral-equivalence or safe-refactor claim; traits/blanket impls, generics, macros/cfg, unsafe behavior, runtime dispatch, external APIs, and type/const inference remain unresolved.",
       "dart_disposition": "dart-pending-implementation",
+      "dart_closure_mode": null,
       "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
       "dart_native_check": [
         "no semantic producer accepted"
@@ -4664,13 +4690,15 @@
       ],
       "rust_reviewed_revision": "225a0e784720ec2b6084a31676d9a54c4d84b117",
       "rust_limitation": "Only the match-enclosure condition and direct call spelling are supported; aliases, receivers, imports, types, traits, macros/cfg, broader policies, and framework identity remain unresolved.",
-      "dart_disposition": "dart-pending-implementation",
-      "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
+      "dart_disposition": "dart-supported",
+      "dart_closure_mode": "external-library",
+      "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d2-syntax-family.md",
       "dart_native_check": [
-        "dart analyze and format check pass"
+        "locked public analyzer facts prove direct spelled call and try-enclosure spans, roles, exact hashes, zero-write native gates, lifecycle recovery, and copied execution",
+        "final coverage artifacts report two parseInvoice sites, one gap, and 50 percent coverage while receiver/declaration/tear-off/string/excluded decoys do not become sites"
       ],
-      "dart_reviewed_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
-      "dart_limitation": "Native gate success is not a standards-gap artifact; host analysis_options and selected lints are absent.",
+      "dart_reviewed_revision": "8821fb4",
+      "dart_limitation": "Only direct call spelling and one frozen try-enclosure condition are supported; callee identity, aliases, receiver dispatch, exception flow, general lint policy, and framework semantics remain unresolved.",
       "fact_level": "syntax",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -4684,7 +4712,8 @@
           "typescript",
           "go",
           "java",
-          "rust"
+          "rust",
+          "dart"
         ],
         "install_with": []
       },
@@ -5744,13 +5773,15 @@
       ],
       "rust_reviewed_revision": "aee1e4a863f66d259e2683fb7ca18437c6ed38da",
       "rust_limitation": "Useful selected-configuration facts are complete, but macro/procedural expansion, build-script OUT_DIR, include!, unselected cfg/feature/target variants, and runtime trait-object dispatch remain unresolved; overall status is partial.",
-      "dart_disposition": "dart-pending-implementation",
-      "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
+      "dart_disposition": "dart-partial",
+      "dart_closure_mode": "stock-selected-install",
+      "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d4-semantic-family.md",
       "dart_native_check": [
-        "pubspec and source-role inventory only"
+        "Dart 3.12 SDK-LSP fact pack proves capabilities, diagnostics, selected source/configuration hashes, direct public surface, resolved first-party edges, native gates, external-cache cleanup, stale recovery, and copied execution",
+        "durable Markdown and JSON agree; a bounded clean package is complete while a conditional-export package preserves useful facts as partial"
       ],
-      "dart_reviewed_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
-      "dart_limitation": "No version-gated Analysis Server project graph reaches a durable final map.",
+      "dart_reviewed_revision": "f246f0b",
+      "dart_limitation": "Useful selected-configuration facts are available, but conditional imports/exports, parts, augmentations, generated code, unresolved URIs, external dependency internals, reflection, runtime dispatch, and Flutter routes/widgets remain incomplete; overall disposition is partial.",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -5769,7 +5800,8 @@
           "c",
           "cpp",
           "ruby",
-          "rust"
+          "rust",
+          "dart"
         ],
         "install_with": []
       },
@@ -5978,6 +6010,7 @@
       "rust_reviewed_revision": "af9ecc6e77623bff42a04c7643bdde09210b413b",
       "rust_limitation": "Version 1 supports one conventional leaf module in one regular Cargo library target; cfg/path attributes, macros, include!, build output, reflective strings, multiple/cross-package moves, arbitrary files, and non-Cargo/nightly/no_std/cross-target shapes remain partial and block writes.",
       "dart_disposition": "dart-pending-implementation",
+      "dart_closure_mode": null,
       "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
       "dart_native_check": [
         "mutation intentionally not performed"
@@ -6577,6 +6610,7 @@
       "rust_reviewed_revision": "a939b70800fd96528e3538aadbeae3767a628013",
       "rust_limitation": "Exact reviewed field only; private fields abstain, and this is not a universal Rust lint or a claim about macros, cfg variants, traits/generics, unsafe/FFI, serialization, wire behavior, or compatibility.",
       "dart_disposition": "dart-pending-implementation",
+      "dart_closure_mode": null,
       "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
       "dart_native_check": [
         "no accepted Dart producer artifact"
@@ -6821,6 +6855,7 @@
       "rust_reviewed_revision": "dc1f97482558a395d88af148bea401c52f62fe8f",
       "rust_limitation": "Proposal-only; macros/proc macros, build/generated/include inputs, cfg/feature/target variants, traits/generics, unsafe/FFI, external APIs, public compatibility, and semver remain unresolved.",
       "dart_disposition": "dart-pending-implementation",
+      "dart_closure_mode": null,
       "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
       "dart_native_check": [
         "package marker and analyzer feasibility only"
@@ -6954,6 +6989,7 @@
       "rust_reviewed_revision": "dc1f97482558a395d88af148bea401c52f62fe8f",
       "rust_limitation": "Proposal-only and requires a human split/cohesive judgment; macros/proc macros, build/generated/include inputs, cfg variants, traits/generics, unsafe/FFI, external/public/semver compatibility, and automatic moves remain unresolved.",
       "dart_disposition": "dart-pending-implementation",
+      "dart_closure_mode": null,
       "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
       "dart_native_check": [
         "dependency-free package layout only"
@@ -7274,13 +7310,15 @@
       ],
       "rust_reviewed_revision": "51055379904262ed4d60645b9fbed5b08f6ef015",
       "rust_limitation": "Assess-only; macros/proc macros, imports/re-exports, associated items, cfg variants, generated code, reflection strings/symbols, external APIs, mutation safety, and compatibility remain unresolved.",
-      "dart_disposition": "dart-pending-implementation",
-      "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
+      "dart_disposition": "dart-supported",
+      "dart_closure_mode": "stock-selected-install",
+      "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d4-semantic-family.md",
       "dart_native_check": [
-        "no mutation executed"
+        "Dart 3.12 SDK-LSP fact pack plus strict-text evidence prove bounded public old/new authority, selected references, read-only rename probes, native gates, stale recovery, source preservation, and copied execution",
+        "assessment reports HALF-APPLIED / INCOMPLETE for mixed public authority and COMPLETE for the bounded new-only clean package without applying edits"
       ],
-      "dart_reviewed_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
-      "dart_limitation": "Imports, exports, parts, generated members, reflection strings, and external API references lack complete lineage.",
+      "dart_reviewed_revision": "f246f0b",
+      "dart_limitation": "Assess-only selected-configuration evidence; parts, generated APIs, conditional configurations, reflection/string linkage, external compatibility, codemod safety, and Flutter assets/routes remain unresolved.",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -7295,6 +7333,7 @@
           "go",
           "java",
           "rust",
+          "dart",
           "markdown",
           "templates"
         ],
@@ -7894,6 +7933,7 @@
       "rust_reviewed_revision": "1ff012a98b929c734cf641a3790c55e52ad6d639",
       "rust_limitation": "No behavioral-equivalence or mutation authority; traits/blanket impls, generics, macros/cfg variants, unsafe/FFI, runtime behavior, external APIs, and semver compatibility remain unresolved.",
       "dart_disposition": "dart-pending-implementation",
+      "dart_closure_mode": null,
       "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
       "dart_native_check": [
         "no proposal executed"

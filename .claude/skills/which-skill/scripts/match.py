@@ -957,6 +957,7 @@ def optional_install_handoff(
     version: str,
     agent: str,
     capabilities: dict,
+    language: str | None,
 ) -> dict:
     result = {
         "skill": skill,
@@ -972,6 +973,40 @@ def optional_install_handoff(
             "reason": capabilities["reason"],
             "evidence": [],
         }
+    if language == "dart":
+        try:
+            manifest = Path(capabilities["manifest"])
+            rows = json.loads(manifest.read_text(encoding="utf-8"))["skills"]
+            by_name = {row["skill"]: row for row in rows}
+            closure_modes = {
+                skill_name: by_name[skill_name]["dart_closure_mode"]
+                for skill_name in skills
+            }
+            if any(
+                mode not in {"stock-selected-install", "external-library"}
+                for mode in closure_modes.values()
+            ):
+                raise ValueError("invalid Dart closure mode")
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+            return {
+                **result,
+                "available": False,
+                "reason": "selected_language_closure_mode_unavailable",
+                "evidence": [],
+            }
+        external_only = [
+            name for name, mode in closure_modes.items() if mode == "external-library"
+        ]
+        if external_only:
+            return {
+                **result,
+                "available": False,
+                "reason": "selected_language_requires_external_library",
+                "evidence": [
+                    {"skill": name, "status": "external-library-only"}
+                    for name in external_only
+                ],
+            }
     evidence = [
         {"skill": row["skill"], "status": row["optional_install_status"]}
         for row in capabilities["skills"]
@@ -1263,6 +1298,7 @@ def cmd_match(args, catalog_path: Path) -> int:
         version=args.skills_cli_version,
         agent=args.agent,
         capabilities=out["handoff"]["capabilities"],
+        language=routing_context["language"],
     )
     if code_health_family_requested:
         out["coverage_family"] = code_health_family_handoff(

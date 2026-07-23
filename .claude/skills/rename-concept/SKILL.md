@@ -8,7 +8,7 @@ description: |
   completeness gate, so renames land half-applied. This skill (v0, assess-only)
   reports the scope-gate verdict, blast radius, a per-step lifecycle status
   table, and the completeness gate. It performs strict lexical assessment of
-  Python, JavaScript, TypeScript, TSX, Go, Java, and Rust text. For `.ts`, `.tsx`, and checked
+  Python, JavaScript, TypeScript, TSX, Go, Java, Rust, and Dart text. For `.ts`, `.tsx`, and checked
   `.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,
   declarations, and references; it does not claim whole-project type-checking,
   JSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`
@@ -72,11 +72,31 @@ delegate_from: |
   here.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust, markdown, templates]
+scans: [python, javascript, typescript, go, java, rust, dart, markdown, templates]
 install_with: [find-concept-divergence, map-subsystem]
 ---
 
 # /rename-concept
+
+## Dart v1
+
+Dart v1 is assess-only. It uses the sibling `map-subsystem` SDK-LSP provider
+for bounded public old/new identifier authority and preserves strict-text
+prose/string evidence as deferred. It never applies the LSP rename edits it
+probes. Package imports require a pre-existing hashed package configuration.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/rename-concept"
+python3 "${SKILL_ROOT}/scripts/assess_dart_rename.py" \
+  "${OLD_CONCEPT:?Set the old concept}" \
+  "${NEW_CONCEPT:?Set the new concept}" \
+  --project-root "$PWD" --target . \
+  --output "$PWD/reports/rename-concept/assessment.json"
+```
+
+Parts, generated APIs, conditional configurations, reflection/string linkage,
+external compatibility, codemod safety, and Flutter assets/routes are explicit
+non-claims.
 
 ## Rust v1 assessment
 

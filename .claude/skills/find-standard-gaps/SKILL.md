@@ -1,6 +1,6 @@
 ---
 name: find-standard-gaps
-description: Detect places a declared baseline standard should apply but doesn't. Family-local scanners cover Python plus narrow syntax-only JavaScript/TypeScript, Go, Java, and Rust direct-call guard conditions, then report every site whose triggering situation holds but the declared standard is absent. Detection-only; never edits code.
+description: Detect places a declared baseline standard should apply but doesn't. Family-local scanners cover Python plus narrow syntax-only JavaScript/TypeScript, Go, Java, Rust, and Dart direct-call guard conditions, then report every site whose triggering situation holds but the declared standard is absent. Detection-only; never edits code.
 argument-hint: "<host-owned standards JSON — copy standards.example.json, adapt it, and pass its path>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -26,10 +26,28 @@ not_for: |
   baseline belongs in host lint tooling.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust]
+scans: [python, javascript, typescript, go, java, rust, dart]
 ---
 
 # /find-standard-gaps
+
+## Dart v1
+
+Dart v1 supports one frozen condition: a direct spelled call is enclosed by a
+`try` statement. It does not resolve callee identity, aliases, receiver calls,
+exception flow, or framework policy. Copy sibling `_dart/scripts` and its
+locked public-analyzer tool; offline tool absence is visible partial evidence.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-standard-gaps"
+python3 "${SKILL_ROOT}/scripts/scan_coverage_dart.py" \
+  --project-root "$PWD" --target . \
+  --ideas "${DART_STANDARDS:?Set the host-owned Dart standards JSON}" \
+  --output-dir "$PWD/reports/standard-gaps/dart" \
+  --native-test "${DART_DIRECT_TEST:?Set a dependency-free direct test path}" \
+  --smoke "${DART_SMOKE:?Set a direct smoke entrypoint}" \
+  --smoke-stdout "${DART_EXPECTED_STDOUT:?Set exact stdout including any newline}"
+```
 
 ## Rust v1
 

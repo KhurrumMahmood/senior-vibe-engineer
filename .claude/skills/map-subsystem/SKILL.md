@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, plain locked Ruby gem, or Cargo-backed Rust subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, plain locked Ruby gem, Cargo-backed Rust, or bounded plain-Dart subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -17,10 +17,32 @@ not_for: |
   execution (use /refactor-subsystem with a spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, swift, c, cpp, ruby, rust]
+scans: [python, typescript, javascript, go, java, php, swift, c, cpp, ruby, rust, dart]
 ---
 
 # /map-subsystem
+
+## Dart v1
+
+Dart v1 uses the SDK-owned `dart language-server --protocol=lsp` through this
+skill's stdlib-only provider. It maps selected authored files, direct public
+surface, and resolved first-party import/export edges. It uses an external
+temporary cache and a pre-existing hashed package configuration; it never runs
+Pub or repairs the host.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/map-subsystem"
+MAP_NAME="${MAP_NAME:-dart-subsystem}"
+MAP_TARGET="${MAP_TARGET:-lib}"
+python3 "${SKILL_ROOT}/scripts/map_dart.py" \
+  --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$PWD" \
+  --output "$PWD/.claude/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "$PWD/reports/map/${MAP_NAME}/dart-map.json"
+```
+
+Conditional imports/exports, parts, augmentations, generated code, unresolved
+URIs, reflection, runtime dispatch, external dependency internals, and Flutter
+routes/widgets remain partial or unavailable rather than inferred.
 
 <!-- Legacy Go metadata token: scans: [python, typescript, javascript, go] -->
 <!-- Legacy PHP/C metadata token: scans: [python, typescript, javascript, go, java, php, swift, c] -->

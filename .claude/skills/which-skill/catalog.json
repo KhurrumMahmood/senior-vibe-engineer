@@ -3,7 +3,7 @@
   "skills": [
     {
       "name": "adapt-project",
-      "description": "Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, Go, Java, and bounded Cargo/Rust stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.",
+      "description": "Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, Go, Java, bounded Cargo/Rust, and bounded plain-Dart stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.",
       "tier": "cross-cutting",
       "job": "meta",
       "best_for": "Adapting the portable engineering-skills ecosystem to a new host\nproject. Use when onboarding a repo, dogfooding against a reference\nproject, or regenerating local adapter facts after stack/CI/test\nchanges. Produces project adapter facts, not human intent.\n",
@@ -37,7 +37,8 @@
         "typescript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "_path": "skills/adapt-project"
     },
@@ -54,7 +55,7 @@
     },
     {
       "name": "audit-decisions",
-      "description": "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, Java JDK 17+, bounded Rust, JavaScript-family, and TypeScript comments plus Markdown/HTML references.",
+      "description": "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, Java JDK 17+, bounded Rust and Dart, JavaScript-family, and TypeScript comments plus Markdown/HTML references.",
       "tier": "cross-cutting",
       "job": "guard",
       "best_for": "Periodic (monthly / pre-release) decision-registry hygiene and a precise\ncheck that inline decision references still point at real ADRs.\n",
@@ -69,7 +70,8 @@
         "typescript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "_path": "skills/audit-decisions"
     },
@@ -329,7 +331,7 @@
     },
     {
       "name": "find-comment-drift",
-      "description": "Advisory SUSPECT scan for comments, docstrings, JSDoc, and template\ncomments that have drifted from the code they are meant to clarify.\nFlags detached section banners, narration comments, missing or thin\npublic class docstrings, stale terminology, JavaScript and TypeScript\nfunctions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML\ncomments, fragile doc references, and bounded Go, Java, PHP, Ruby, Rust, C, and C++\nlexical-comment surfaces.\n",
+      "description": "Advisory SUSPECT scan for comments, docstrings, JSDoc, and template\ncomments that have drifted from the code they are meant to clarify.\nFlags detached section banners, narration comments, missing or thin\npublic class docstrings, stale terminology, JavaScript and TypeScript\nfunctions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML\ncomments, fragile doc references, bounded Go, Java, PHP, Ruby, Rust, C, and\nC++ lexical-comment surfaces, and bounded Dart adjacent-doc/fixed-return\nsyntax.\n",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Auditing explanatory-code hygiene after AI-heavy development: noisy\ncomments that narrate the next line, missing ownership docstrings,\nstale terminology in comments/docstrings, banner comments that should\nbe adjacent JSDoc or deleted, and Django-template comments that repeat\nvisible headings.\n",
@@ -345,6 +347,7 @@
         "php",
         "ruby",
         "rust",
+        "dart",
         "c",
         "cpp",
         "templates"
@@ -386,6 +389,7 @@
         "go",
         "java",
         "rust",
+        "dart",
         "markdown",
         "templates"
       ],
@@ -436,7 +440,7 @@
     },
     {
       "name": "find-dormant",
-      "description": "Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, Java, and Rust have narrow static review branches for human review. Never infers safe deletion from static evidence.",
+      "description": "Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, Java, Rust, and Dart have narrow static review branches for human review. Never infers safe deletion from static evidence.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "TypeScript private implementations that appear statically unreferenced and\nneed a conservative dormant-code review with no safe-deletion claim.\nDetecting dead and quasi-dead Python code, unused URL patterns,\ndefined-but-unreferenced symbols. Validates against real call sites\nand template URL-name usage; cross-checks git-log recency. Never\ndeletes — surfaces evidence for /fix-workflow delete:<id>. TypeScript/TSX\nv1 reports only non-exported top-level implementations with zero resolved\nstatic symbol references, and always requires human runtime review.\nGo v1 reports only unexported package-level functions and function-valued\nvariables with zero `go/types` uses in the selected active-build package.\nJava v1 reports only private methods with zero compiler-resolved source uses.\n",
@@ -449,7 +453,8 @@
         "javascript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "install_with": [
         "map-subsystem"
@@ -477,7 +482,7 @@
     },
     {
       "name": "find-folder-topology-drift",
-      "description": "Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, Go, Java, or Rust filename clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript, TypeScript, and Rust use a first `_` or `-` token, Go uses its first `_` token, and Java uses a leading CamelCase token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.",
+      "description": "Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, Go, Java, Rust, or Dart filename clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript, TypeScript, Rust, and Dart use a first `_` or `-` token, Go uses its first `_` token, and Java uses a leading CamelCase token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Auditing a Python package against ADR 0006's bidirectional ≥3-sibling\nthreshold, or inspecting an explicitly named TypeScript, Go, or Java source root for a\nsimple same-domain filename cluster such as\n`billing_parser.ts`, `billing-validator.ts`, and `billing-types.ts`.\n",
@@ -490,7 +495,8 @@
         "typescript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "_path": "skills/find-folder-topology-drift"
     },
@@ -731,7 +737,7 @@
     },
     {
       "name": "find-standard-gaps",
-      "description": "Detect places a declared baseline standard should apply but doesn't. Family-local scanners cover Python plus narrow syntax-only JavaScript/TypeScript, Go, Java, and Rust direct-call guard conditions, then report every site whose triggering situation holds but the declared standard is absent. Detection-only; never edits code.",
+      "description": "Detect places a declared baseline standard should apply but doesn't. Family-local scanners cover Python plus narrow syntax-only JavaScript/TypeScript, Go, Java, Rust, and Dart direct-call guard conditions, then report every site whose triggering situation holds but the declared standard is absent. Detection-only; never edits code.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Checking that a baseline standard is applied everywhere its situation\noccurs — \"every external DB connection is inside a try\", \"every\noutbound HTTP call sets a timeout\", \"no call to X without guard Y\".\nThis includes coverage gaps for a declared standard governing direct calls,\nrequired arguments, or an enclosing try guard.\nEach standard is a declarative entry with an `ast` detector; the scan\nis deterministic, cheap, and syntactically precise.\nCensus mode (scripts/census.py) answers the upstream discovery question:\n\"what variants exist, which is the majority, who are the stragglers?\"\nUse census before declaring a standard to understand the current\npopulation; census output feeds /decide and standards declaration.\n",
@@ -744,7 +750,8 @@
         "typescript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "_path": "skills/find-standard-gaps"
     },
@@ -888,7 +895,7 @@
     },
     {
       "name": "map-subsystem",
-      "description": "Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, plain locked Ruby gem, or Cargo-backed Rust subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.",
+      "description": "Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, plain locked Ruby gem, Cargo-backed Rust, or bounded plain-Dart subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.",
       "tier": "maintenance",
       "job": "map",
       "best_for": "Producing or refreshing a durable inventory doc for a subsystem at\n`.claude/docs/subsystems/<name>.md` — file list, public surface,\nresponsibility table, dependency graph, convention-compliance\nscore. MAP skill in the maintenance nervous system.\n",
@@ -906,7 +913,8 @@
         "c",
         "cpp",
         "ruby",
-        "rust"
+        "rust",
+        "dart"
       ],
       "_path": "skills/map-subsystem"
     },
@@ -1154,7 +1162,7 @@
     },
     {
       "name": "rename-concept",
-      "description": "Assess a domain-concept rename against its full lifecycle and a mandatory\ntwo-band completeness gate, read-only. Renaming a concept that lives in the\nglossary spans many surfaces — identifiers, docs, the cross-tool agent\nmirrors — and is executed from tribal knowledge with no front door and no\ncompleteness gate, so renames land half-applied. This skill (v0, assess-only)\nreports the scope-gate verdict, blast radius, a per-step lifecycle status\ntable, and the completeness gate. It performs strict lexical assessment of\nPython, JavaScript, TypeScript, TSX, Go, Java, and Rust text. For `.ts`, `.tsx`, and checked\n`.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,\ndeclarations, and references; it does not claim whole-project type-checking,\nJSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`\nclassifies project-exported concept declarations and their references while\nretaining fields, import aliases, locals, inactive source, and diagnostics.\nThe old and new names must not co-occur lexically in\nlive code (/find-concept-divergence superseded_co_occurrence, band 3) AND no\nretired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)\n— both must be CLEAN for a lexical candidate assessment to pass. A\nTypeScript/TSX, checked-JavaScript, Go, or Rust host additionally needs a successful native semantic\nevidence run that resolves old/new identifier candidates. Definition of done is the\ntwo-band gate, every lifecycle step resolved, and that evidence where\na semantic language is in scope — NOT a codemod having run. Drives the two\nrename-relevant /find-concept-divergence bands through a required coupled\ninstallation; the assessment logic does not duplicate their matching rules.\nThe write half (author + dry-run a codemod plan, scaffold a reintroduction\nlint, --apply) is a v1 gap pending a codemod harness in this\necosystem (see Deferred, below).\n",
+      "description": "Assess a domain-concept rename against its full lifecycle and a mandatory\ntwo-band completeness gate, read-only. Renaming a concept that lives in the\nglossary spans many surfaces — identifiers, docs, the cross-tool agent\nmirrors — and is executed from tribal knowledge with no front door and no\ncompleteness gate, so renames land half-applied. This skill (v0, assess-only)\nreports the scope-gate verdict, blast radius, a per-step lifecycle status\ntable, and the completeness gate. It performs strict lexical assessment of\nPython, JavaScript, TypeScript, TSX, Go, Java, Rust, and Dart text. For `.ts`, `.tsx`, and checked\n`.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,\ndeclarations, and references; it does not claim whole-project type-checking,\nJSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`\nclassifies project-exported concept declarations and their references while\nretaining fields, import aliases, locals, inactive source, and diagnostics.\nThe old and new names must not co-occur lexically in\nlive code (/find-concept-divergence superseded_co_occurrence, band 3) AND no\nretired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)\n— both must be CLEAN for a lexical candidate assessment to pass. A\nTypeScript/TSX, checked-JavaScript, Go, or Rust host additionally needs a successful native semantic\nevidence run that resolves old/new identifier candidates. Definition of done is the\ntwo-band gate, every lifecycle step resolved, and that evidence where\na semantic language is in scope — NOT a codemod having run. Drives the two\nrename-relevant /find-concept-divergence bands through a required coupled\ninstallation; the assessment logic does not duplicate their matching rules.\nThe write half (author + dry-run a codemod plan, scaffold a reintroduction\nlint, --apply) is a v1 gap pending a codemod harness in this\necosystem (see Deferred, below).\n",
       "tier": "maintenance",
       "job": "refactor",
       "best_for": "A TypeScript, JavaScript, Go, Rust, or Python glossary concept rename lifecycle\nassessment with a persistent completeness gate. Assessing whether a\nglossary-worthy, wide-blast change is COMPLETE —\nthe long tail (string-literal references, the guard lint, the cross-tool\nagent mirrors, the docs) is exactly what a rushed pass forgets, and the\ntwo-band gate is what catches a rename that is identifier-clean but still\ncarries retired prose. Use when the rename is glossary-tracked and the cost\nof a half-applied result is real. Pairs with /find-concept-divergence (which\nDETECTS the drift): this skill consumes that detector and frames it as a\nper-rename definition of done.\n",
@@ -1168,6 +1176,7 @@
         "go",
         "java",
         "rust",
+        "dart",
         "markdown",
         "templates"
       ],

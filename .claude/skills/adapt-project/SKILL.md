@@ -1,6 +1,6 @@
 ---
 name: adapt-project
-description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, Go, Java, and bounded Cargo/Rust stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
+description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, Go, Java, bounded Cargo/Rust, and bounded plain-Dart stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
 argument-hint: "[--project-root <path>] [--artifact-root <path>] [--apply|--no-host-write]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -24,7 +24,7 @@ escalate_to: |
   human-approved and detectable.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust]
+scans: [python, javascript, typescript, go, java, rust, dart]
 lanes: [project-adaptation]
 stage: discover
 entrypoint: true
@@ -35,6 +35,23 @@ max_overhead: "Stop after discovery and write unresolved questions; do not infer
 ---
 
 # /adapt-project
+
+## Dart v1
+
+For a dependency-free plain-Dart 3.12 package, use the copied skill plus the
+sibling `_dart/dart_project_snapshot.py`. The adapter inventories authored
+library roles and records the exact native commands it proves. It does not run
+Pub, infer Flutter, resolve a package graph, or endorse the observed layout.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/adapt-project"
+python3 "${SKILL_ROOT}/scripts/discover_dart.py" \
+  --project-root "$PWD" \
+  --output-dir "$PWD/reports/adapt-project/dart" \
+  --direct-test "${DART_DIRECT_TEST:?Set a dependency-free direct test path}" \
+  --smoke-entrypoint "${DART_SMOKE:?Set a direct smoke entrypoint}" \
+  --expected-smoke "${DART_EXPECTED_SMOKE:?Set its exact stdout without the newline}"
+```
 
 Discover objective facts about a host project and turn them into a
 project adapter. The adapter is the operational half of localizing

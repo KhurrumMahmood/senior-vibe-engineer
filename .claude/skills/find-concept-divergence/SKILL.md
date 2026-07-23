@@ -31,10 +31,29 @@ not_for: |
   (deferred — strict canonical-name + avoid-term grep only in v1).
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust, markdown, templates]
+scans: [python, javascript, typescript, go, java, rust, dart, markdown, templates]
 ---
 
 # /find-concept-divergence
+
+## Dart v1
+
+Dart v1 is strict glossary-backed text evidence over authored library source.
+Copy the sibling `_dart/dart_project_snapshot.py`; the scan excludes generated,
+test, example, vendor, build, report, part, barrel, and symlink roles and makes
+no symbol-identity or rename-completeness claim.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-concept-divergence"
+python3 "${SKILL_ROOT}/scripts/scan_dart.py" \
+  --project-root "$PWD" --dart-root lib \
+  --glossary "$PWD/.claude/contracts/concepts.yaml" \
+  --output "$PWD/reports/find-concept-divergence/dart/findings.jsonl" \
+  --report "$PWD/reports/find-concept-divergence/dart/report.md" \
+  --direct-test "${DART_DIRECT_TEST:?Set a dependency-free direct test path}" \
+  --smoke-entrypoint "${DART_SMOKE:?Set a direct smoke entrypoint}" \
+  --expected-smoke "${DART_EXPECTED_SMOKE:?Set its exact stdout without the newline}"
+```
 
 You are running an advisory concept-glossary divergence audit. The goal
 is to surface places in the codebase or docs where:

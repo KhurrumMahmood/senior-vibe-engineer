@@ -172,6 +172,11 @@ def scope_band(file_count: int) -> str:
     return "large"
 
 
+def path_languages(paths: list[str]) -> set[str]:
+    """Return only language signals that affect closeout install eligibility."""
+    return {"dart"} if any(Path(path).suffix.casefold() == ".dart" for path in paths) else set()
+
+
 def install_command(*, source: str, version: str, skills: list[str], agent: str) -> str:
     command = ["npx", "--yes", f"skills@{version}", "add", source]
     for skill in skills:
@@ -365,6 +370,7 @@ def optional_install_handoff(
     skills: list[str],
     agent: str,
     capabilities: dict,
+    languages: set[str],
 ) -> dict:
     result = {
         "skill": skill,
@@ -380,6 +386,40 @@ def optional_install_handoff(
             "reason": capabilities["reason"],
             "evidence": [],
         }
+    if "dart" in languages:
+        try:
+            manifest = Path(capabilities["manifest"])
+            rows = json.loads(manifest.read_text(encoding="utf-8"))["skills"]
+            by_name = {row["skill"]: row for row in rows}
+            closure_modes = {
+                skill_name: by_name[skill_name]["dart_closure_mode"]
+                for skill_name in skills
+            }
+            if any(
+                mode not in {"stock-selected-install", "external-library"}
+                for mode in closure_modes.values()
+            ):
+                raise ValueError("invalid Dart closure mode")
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+            return {
+                **result,
+                "available": False,
+                "reason": "selected_language_closure_mode_unavailable",
+                "evidence": [],
+            }
+        external_only = [
+            name for name, mode in closure_modes.items() if mode == "external-library"
+        ]
+        if external_only:
+            return {
+                **result,
+                "available": False,
+                "reason": "selected_language_requires_external_library",
+                "evidence": [
+                    {"skill": name, "status": "external-library-only"}
+                    for name in external_only
+                ],
+            }
     evidence = [
         {"skill": row["skill"], "status": row["optional_install_status"]}
         for row in capabilities["skills"]
@@ -437,6 +477,7 @@ def build_result(args: argparse.Namespace) -> dict:
     library_root = library_root.resolve()
     target, paths = resolve_paths(args, root)
     band = scope_band(len(paths))
+    languages = path_languages(paths)
     recs = []
     for skill, reason in recommendations(paths, band):
         handoff = library_handoff(library_root, skill)
@@ -452,6 +493,7 @@ def build_result(args: argparse.Namespace) -> dict:
                     skills=handoff["skills"],
                     agent=args.agent,
                     capabilities=handoff["capabilities"],
+                    languages=languages,
                 ),
             }
         )

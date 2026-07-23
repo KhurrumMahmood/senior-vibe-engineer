@@ -106,7 +106,9 @@ EXPECTED_RUST_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_DART_COUNTS = {
-    "dart-pending-implementation": 22,
+    "dart-supported": 8,
+    "dart-partial": 1,
+    "dart-pending-implementation": 13,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -583,7 +585,38 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         row["skill"]
         for row in language_rows
         if row["dart_disposition"] == "dart-pending-implementation"
-    } == {row["skill"] for row in language_rows}
+    } == {
+        "explain-code",
+        "extract-enum",
+        "find-complexity-hotspots",
+        "find-duplication",
+        "find-implicit-state",
+        "find-incomplete-sweep",
+        "find-omnibus",
+        "find-semantic-duplication",
+        "move-path",
+        "prevent-regression",
+        "propose-boundary",
+        "propose-folder-reorganization",
+        "unify-shadows",
+    }
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row["dart_closure_mode"] == "external-library"
+    } == {
+        "adapt-project",
+        "audit-decisions",
+        "find-comment-drift",
+        "find-concept-divergence",
+        "find-folder-topology-drift",
+        "find-standard-gaps",
+    }
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row["dart_closure_mode"] == "stock-selected-install"
+    } == {"find-dormant", "map-subsystem", "rename-concept"}
     assert Counter(row["javascript_cohort"] for row in language_rows) == (
         EXPECTED_JAVASCRIPT_COHORT_COUNTS
     )

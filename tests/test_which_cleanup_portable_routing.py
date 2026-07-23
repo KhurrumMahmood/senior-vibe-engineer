@@ -53,6 +53,29 @@ def _init_repo(repo: Path) -> None:
     _git(repo, "init", "--quiet")
 
 
+def test_dart_closeout_keeps_external_library_only_companion_honest(tmp_path):
+    project_root = tmp_path / "host"
+    _init_repo(project_root)
+    result = _run_router(
+        project_root,
+        "lib/invoice.dart",
+        "--library-root",
+        str(REPO_ROOT),
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    comment = next(
+        row for row in payload["recommendations"] if row["skill"] == "find-comment-drift"
+    )
+    assert comment["handoff"]["available"] is True
+    assert comment["optional_install"]["available"] is False
+    assert comment["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
+    )
+    assert "command" not in comment["optional_install"]
+
+
 @pytest.mark.parametrize(
     ("file_count", "expected_band", "expected_skills"),
     [

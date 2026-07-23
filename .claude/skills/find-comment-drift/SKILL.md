@@ -6,8 +6,9 @@ description: |
   Flags detached section banners, narration comments, missing or thin
   public class docstrings, stale terminology, JavaScript and TypeScript
   functions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML
-  comments, fragile doc references, and bounded Go, Java, PHP, Ruby, Rust, C, and C++
-  lexical-comment surfaces.
+  comments, fragile doc references, bounded Go, Java, PHP, Ruby, Rust, C, and
+  C++ lexical-comment surfaces, and bounded Dart adjacent-doc/fixed-return
+  syntax.
 argument-hint: "[paths... - no paths uses the detector's legacy default surface]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -25,10 +26,31 @@ not_for: |
   existing lints for behavior and correctness.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, rust, c, cpp, templates]
+scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, c, cpp, templates]
 ---
 
 # /find-comment-drift
+
+## Dart v1
+
+Dart v1 reports one deliberately narrow advisory shape: an adjacent `///`
+percentage/rate claim whose named top-level function directly returns a
+conflicting fixed numeric literal. Copy sibling `_dart/scripts` and its locked
+public-analyzer tool; missing offline dependencies remain partial and never
+trigger a download or host Pub operation.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-comment-drift"
+python3 "${SKILL_ROOT}/scripts/analyze_comments_dart.py" \
+  --project-root "$PWD" --target . \
+  --output-dir "$PWD/reports/find-comment-drift/dart" \
+  --native-test "${DART_DIRECT_TEST:?Set a dependency-free direct test path}" \
+  --smoke "${DART_SMOKE:?Set a direct smoke entrypoint}" \
+  --smoke-stdout "${DART_EXPECTED_STDOUT:?Set exact stdout including any newline}"
+```
+
+Computed values, inherited docs, nested closures, data flow, generated code,
+and runtime correctness remain outside this rule.
 
 You are running an advisory comment/docstring hygiene audit. The goal is
 to find explanatory text that makes an AI-grown codebase harder to skim:

@@ -93,7 +93,7 @@ def test_rs_alias_preserves_explicit_language_portability_filtering():
     assert "unavailable" not in payload
 
 
-def test_natural_dart_marker_reports_pending_capability(tmp_path):
+def test_natural_dart_marker_returns_supported_external_library_handoff(tmp_path):
     returncode, payload = _run_match(
         "Use adapt-project to onboard this Dart package.",
         "--project-root",
@@ -102,14 +102,28 @@ def test_natural_dart_marker_reports_pending_capability(tmp_path):
         str(REPO_ROOT),
     )
 
-    assert returncode == 1, payload
+    assert returncode == 0, payload
     assert payload["routing_context"]["languages"] == ["dart"]
     assert payload["routing_context"]["language_source"] == "task_marker"
-    assert payload["recommendation"] == "pending-implementation"
-    assert payload["unavailable"]["classification"] == "pending-implementation"
-    assert payload["unavailable"]["reason"] == (
-        "/adapt-project declares dart_disposition=dart-pending-implementation"
+    assert payload["recommendation"] == "adapt-project"
+    assert payload["handoff"]["available"] is True
+    assert payload["handoff"]["default_execution"] == "fresh_non_context_subagent"
+    assert payload["handoff"]["capabilities"]["skills"][0]["dart_disposition"] == (
+        "dart-supported"
     )
+    optional_install = dict(payload["optional_install"])
+    assert optional_install.pop("source").startswith("https://github.com/")
+    assert optional_install == {
+        "skill": "adapt-project",
+        "skills": ["adapt-project"],
+        "skills_cli_version": "1.5.19",
+        "agent": "codex",
+        "available": False,
+        "reason": "selected_language_requires_external_library",
+        "evidence": [
+            {"skill": "adapt-project", "status": "external-library-only"}
+        ],
+    }
 
 
 def test_supported_go_skill_has_executable_handoff(tmp_path):

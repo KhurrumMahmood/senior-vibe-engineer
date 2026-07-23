@@ -1,6 +1,6 @@
 ---
 name: audit-decisions
-description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, Java JDK 17+, bounded Rust, JavaScript-family, and TypeScript comments plus Markdown/HTML references."
+description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, Java JDK 17+, bounded Rust and Dart, JavaScript-family, and TypeScript comments plus Markdown/HTML references."
 argument-hint: "[--target PATH]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -19,10 +19,30 @@ delegate_from: |
   and orphaned inline decision references.
 language: any
 framework: any
-scans: [python, markdown, html, javascript, typescript, go, java, rust]
+scans: [python, markdown, html, javascript, typescript, go, java, rust, dart]
 ---
 
 # /audit-decisions
+
+## Dart v1
+
+Dart v1 recognizes lowercase `decision:NNNN` only in real line, block, and doc
+comments from eligible authored source. Its copied closure includes sibling
+`_dart/scripts` and the locked public `package:analyzer` tool. It runs locked
+offline setup only in a disposable tool copy, never in the audited host.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/audit-decisions"
+python3 "${SKILL_ROOT}/scripts/audit_dart.py" \
+  --project-root "$PWD" --target . \
+  --output-dir "$PWD/reports/audit-decisions/dart" \
+  --native-test "${DART_DIRECT_TEST:?Set a dependency-free direct test path}" \
+  --smoke "${DART_SMOKE:?Set a direct smoke entrypoint}" \
+  --smoke-stdout "${DART_EXPECTED_STDOUT:?Set exact stdout including any newline}"
+```
+
+This is comment syntax evidence only; it does not interpret whether a decision
+applies, resolve symbols, or claim coverage across generated/conditional code.
 
 ## Rust v1
 

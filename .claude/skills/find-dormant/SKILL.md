@@ -1,7 +1,7 @@
 ---
 name: find-dormant
-description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, Java, and Rust have narrow static review branches for human review. Never infers safe deletion from static evidence.
-argument-hint: "--target <directory-or-file> [--language python|typescript|javascript|go|java|rust]"
+description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, Java, Rust, and Dart have narrow static review branches for human review. Never infers safe deletion from static evidence.
+argument-hint: "--target <directory-or-file> [--language python|typescript|javascript|go|java|rust|dart]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -27,12 +27,31 @@ not_for: |
   or safe-deletion decisions are outside the static v1 contract.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust]
+scans: [python, typescript, javascript, go, java, rust, dart]
 install_with: [map-subsystem]
 scout_model: cheap
 ---
 
 # /find-dormant
+
+## Dart v1
+
+Dart v1 uses the sibling `map-subsystem` SDK-LSP provider and reports only
+private top-level functions with no resolved selected-workspace source use as
+`review_required`; `certain_delete` is always zero. A pre-existing package
+configuration is required for package imports. Conditional/part/generated
+code and unresolved semantic boundaries lower completeness.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-dormant"
+python3 "${SKILL_ROOT}/scripts/detect_dart_dormant.py" \
+  --project-root "$PWD" --target lib \
+  --output-dir "$PWD/reports/find-dormant/dart"
+```
+
+This never proves runtime reachability or deletion safety across callbacks,
+reflection, isolates, registries, native/JS interop, external callers, or
+Flutter entrypoints.
 
 ## Rust v1
 

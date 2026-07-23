@@ -86,6 +86,28 @@ def test_stack_bound_shape_handoff_is_not_presented_as_executable(tmp_path, caps
     assert "command" not in payload["optional_install"]
 
 
+def test_supported_dart_shape_uses_library_when_stock_closure_is_incomplete(
+    tmp_path, capsys
+):
+    code = route.main([
+        "Onboard this inherited Dart package and discover its project facts.",
+        "--project-root", str(tmp_path),
+        "--library-root", str(REPO_ROOT),
+        "--skip-log",
+        "--json",
+    ])
+
+    payload = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert payload["recommendation"]["first_next"] == "/adapt-project"
+    assert payload["handoff"]["available"] is True
+    assert payload["optional_install"]["available"] is False
+    assert payload["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
+    )
+    assert "command" not in payload["optional_install"]
+
+
 def test_later_language_does_not_block_an_eligible_first_phase(tmp_path, capsys):
     code = route.main([
         "First plan a Python/Django capability for one workflow, then build the companion Rust CLI.",
