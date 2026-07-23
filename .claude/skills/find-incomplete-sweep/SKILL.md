@@ -7,7 +7,9 @@ description: |
   band; TypeScript/TSX and checked JavaScript use the host-pinned TypeScript Compiler API to group
   resolved project function calls by object-option property presence; Go uses host Go `go/types`
   for one direct top-level function / keyed struct-option shape; Java 17 uses the JDK
-  compiler tree API for one direct record/options-constructor shape; Rust uses
+  compiler tree API for one direct record/options-constructor shape; PHP uses
+  bounded Composer PSR-4 direct constructions; Ruby requires project-authored
+  RBS constructor contracts; Rust uses
   compiler-resolved direct calls for one struct-option omission shape; Dart
   uses SDK-LSP-resolved top-level calls for one named-argument omission shape. Gated on a git-trajectory
   signal: a divergence counts as a forgotten sweep only when the
@@ -23,7 +25,7 @@ tier: maintenance
 job: suspect
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
 install_with: [map-subsystem]
 best_for: |
   Reviewing a human- or AI-authored multi-file change where a sweep across
@@ -56,6 +58,13 @@ delegate_from: |
 ---
 
 # /find-incomplete-sweep
+
+## PHP and Ruby
+
+For a selected PHP or Ruby run, load `../_php-semantic/GUIDE.md` or
+`../_ruby-semantic/GUIDE.md`. These branches admit only bounded direct
+constructor omissions; dynamic/framework call sites and automatic fixes remain
+outside the contract.
 
 ## Dart v1
 

@@ -1,7 +1,7 @@
 ---
 name: find-implicit-state
-description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, Rust, and Dart state branches. Compiler-backed branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.
-argument-hint: "--target <directory> [--language typescript|javascript|go|java|rust|dart]"
+description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, PHP, Ruby, Rust, and Dart state branches. Semantic branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.
+argument-hint: "--target <directory> [--language typescript|javascript|go|java|php|ruby|rust|dart]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -21,12 +21,18 @@ not_for: |
   generic TypeScript lint generator.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
 install_with: [map-subsystem]
 scout_model: cheap
 ---
 
 # /find-implicit-state
+
+## PHP and Ruby
+
+For a selected PHP or Ruby run, load `../_php-semantic/GUIDE.md` or
+`../_ruby-semantic/GUIDE.md`. Both branches require candidate-hash-bound human
+review and never claim a closed runtime domain or safe enum conversion.
 
 ## Dart v1
 

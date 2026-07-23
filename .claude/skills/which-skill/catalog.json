@@ -459,7 +459,7 @@
     },
     {
       "name": "find-dormant",
-      "description": "Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, Java, Rust, and Dart have narrow static review branches for human review. Never infers safe deletion from static evidence.",
+      "description": "Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, Java, PHP, Ruby, Rust, and Dart have narrow static review branches for human review. Never infers safe deletion from static evidence.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "TypeScript private implementations that appear statically unreferenced and\nneed a conservative dormant-code review with no safe-deletion claim.\nDetecting dead and quasi-dead Python code, unused URL patterns,\ndefined-but-unreferenced symbols. Validates against real call sites\nand template URL-name usage; cross-checks git-log recency. Never\ndeletes — surfaces evidence for /fix-workflow delete:<id>. TypeScript/TSX\nv1 reports only non-exported top-level implementations with zero resolved\nstatic symbol references, and always requires human runtime review.\nGo v1 reports only unexported package-level functions and function-valued\nvariables with zero `go/types` uses in the selected active-build package.\nJava v1 reports only private methods with zero compiler-resolved source uses.\n",
@@ -472,6 +472,8 @@
         "javascript",
         "go",
         "java",
+        "php",
+        "ruby",
         "rust",
         "dart"
       ],
@@ -558,7 +560,7 @@
     },
     {
       "name": "find-implicit-state",
-      "description": "Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, Rust, and Dart state branches. Compiler-backed branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.",
+      "description": "Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, PHP, Ruby, Rust, and Dart state branches. Semantic branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Stringly-typed status / phase / state comparisons against bare\nliterals; `.filter(status=..., *_at__...)` tuple-inferred identity.\nTargets the stringly-typed-state smell. Decided in: 0001\n(TextChoices for state).\nIn TypeScript, closed state receivers with repeated bare string\ncomparisons or assignments and a host-owned Compiler API.\n",
@@ -571,6 +573,8 @@
         "javascript",
         "go",
         "java",
+        "php",
+        "ruby",
         "rust",
         "dart"
       ],
@@ -581,7 +585,7 @@
     },
     {
       "name": "find-incomplete-sweep",
-      "description": "Advisory SUSPECT scan for incomplete sweeps — multi-site changes that were\nstarted but never finished, leaving a forgotten sibling call site at the old\nshape (\"updated N-1 of N\"). Python retains the keyword-argument omission\nband; TypeScript/TSX and checked JavaScript use the host-pinned TypeScript Compiler API to group\nresolved project function calls by object-option property presence; Go uses host Go `go/types`\nfor one direct top-level function / keyed struct-option shape; Java 17 uses the JDK\ncompiler tree API for one direct record/options-constructor shape; Rust uses\ncompiler-resolved direct calls for one struct-option omission shape; Dart\nuses SDK-LSP-resolved top-level calls for one named-argument omission shape. Gated on a git-trajectory\nsignal: a divergence counts as a forgotten sweep only when the\nkwarg-present sites were touched more recently than the straggler (the sweep\nlanded after the straggler was last edited). A straggler edited just as\nrecently is reported separately as likely-deliberate. Distinguishes\nabandoned partial work from legitimate post-completion cleanup via residue\ndirection. Detection-only — never edits code; hands off to /fix-workflow.\n",
+      "description": "Advisory SUSPECT scan for incomplete sweeps — multi-site changes that were\nstarted but never finished, leaving a forgotten sibling call site at the old\nshape (\"updated N-1 of N\"). Python retains the keyword-argument omission\nband; TypeScript/TSX and checked JavaScript use the host-pinned TypeScript Compiler API to group\nresolved project function calls by object-option property presence; Go uses host Go `go/types`\nfor one direct top-level function / keyed struct-option shape; Java 17 uses the JDK\ncompiler tree API for one direct record/options-constructor shape; PHP uses\nbounded Composer PSR-4 direct constructions; Ruby requires project-authored\nRBS constructor contracts; Rust uses\ncompiler-resolved direct calls for one struct-option omission shape; Dart\nuses SDK-LSP-resolved top-level calls for one named-argument omission shape. Gated on a git-trajectory\nsignal: a divergence counts as a forgotten sweep only when the\nkwarg-present sites were touched more recently than the straggler (the sweep\nlanded after the straggler was last edited). A straggler edited just as\nrecently is reported separately as likely-deliberate. Distinguishes\nabandoned partial work from legitimate post-completion cleanup via residue\ndirection. Detection-only — never edits code; hands off to /fix-workflow.\n",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Reviewing a human- or AI-authored multi-file change where a sweep across\nsibling call sites may have stopped short: a new keyword argument threaded\nthrough some callers, a proxy/config param added to some call sites, an\noption passed at most but not all of a callee's call sites. The straggler is\nfully live (old shape still referenced and executing), so /find-dormant\ncannot see it. The git-trajectory gate keeps the signal to recently-swept\ndivergences rather than long-stable intentional asymmetry.\n",
@@ -594,6 +598,8 @@
         "javascript",
         "go",
         "java",
+        "php",
+        "ruby",
         "rust",
         "dart"
       ],
@@ -696,7 +702,7 @@
     },
     {
       "name": "find-semantic-duplication",
-      "description": "Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, Rust, and Dart function-level leads using host-native semantic facts. Compiler branches report bounded static candidates with capability matrices; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.",
+      "description": "Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, PHP, Ruby, Rust, and Dart function-level leads using host-native semantic facts. Semantic branches report bounded static candidates with human review; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Two independently-written, live functions that plausibly solve the same\nproblem with different code shape. Python uses scout confirmation; TypeScript\nGo, and Java use typed return-shape and direct-call evidence before human review.\n",
@@ -709,6 +715,8 @@
         "javascript",
         "go",
         "java",
+        "php",
+        "ruby",
         "rust",
         "dart"
       ],
@@ -1201,7 +1209,7 @@
     },
     {
       "name": "rename-concept",
-      "description": "Assess a domain-concept rename against its full lifecycle and a mandatory\ntwo-band completeness gate, read-only. Renaming a concept that lives in the\nglossary spans many surfaces — identifiers, docs, the cross-tool agent\nmirrors — and is executed from tribal knowledge with no front door and no\ncompleteness gate, so renames land half-applied. This skill (v0, assess-only)\nreports the scope-gate verdict, blast radius, a per-step lifecycle status\ntable, and the completeness gate. It performs strict lexical assessment of\nPython, JavaScript, TypeScript, TSX, Go, Java, Rust, and Dart text. For `.ts`, `.tsx`, and checked\n`.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,\ndeclarations, and references; it does not claim whole-project type-checking,\nJSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`\nclassifies project-exported concept declarations and their references while\nretaining fields, import aliases, locals, inactive source, and diagnostics.\nThe old and new names must not co-occur lexically in\nlive code (/find-concept-divergence superseded_co_occurrence, band 3) AND no\nretired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)\n— both must be CLEAN for a lexical candidate assessment to pass. A\nTypeScript/TSX, checked-JavaScript, Go, or Rust host additionally needs a successful native semantic\nevidence run that resolves old/new identifier candidates. Definition of done is the\ntwo-band gate, every lifecycle step resolved, and that evidence where\na semantic language is in scope — NOT a codemod having run. Drives the two\nrename-relevant /find-concept-divergence bands through a required coupled\ninstallation; the assessment logic does not duplicate their matching rules.\nThe write half (author + dry-run a codemod plan, scaffold a reintroduction\nlint, --apply) is a v1 gap pending a codemod harness in this\necosystem (see Deferred, below).\n",
+      "description": "Assess a domain-concept rename against its full lifecycle and a mandatory\ntwo-band completeness gate, read-only. Renaming a concept that lives in the\nglossary spans many surfaces — identifiers, docs, the cross-tool agent\nmirrors — and is executed from tribal knowledge with no front door and no\ncompleteness gate, so renames land half-applied. This skill (v0, assess-only)\nreports the scope-gate verdict, blast radius, a per-step lifecycle status\ntable, and the completeness gate. It performs strict lexical assessment of\nPython, JavaScript, TypeScript, TSX, Go, Java, PHP, Ruby, Rust, and Dart text. For `.ts`, `.tsx`, and checked\n`.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,\ndeclarations, and references; it does not claim whole-project type-checking,\nJSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`\nclassifies project-exported concept declarations and their references while\nretaining fields, import aliases, locals, inactive source, and diagnostics.\nThe old and new names must not co-occur lexically in\nlive code (/find-concept-divergence superseded_co_occurrence, band 3) AND no\nretired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)\n— both must be CLEAN for a lexical candidate assessment to pass. A\nTypeScript/TSX, checked-JavaScript, Go, or Rust host additionally needs a successful native semantic\nevidence run that resolves old/new identifier candidates. Definition of done is the\ntwo-band gate, every lifecycle step resolved, and that evidence where\na semantic language is in scope — NOT a codemod having run. Drives the two\nrename-relevant /find-concept-divergence bands through a required coupled\ninstallation; the assessment logic does not duplicate their matching rules.\nThe write half (author + dry-run a codemod plan, scaffold a reintroduction\nlint, --apply) is a v1 gap pending a codemod harness in this\necosystem (see Deferred, below).\n",
       "tier": "maintenance",
       "job": "refactor",
       "best_for": "A TypeScript, JavaScript, Go, Rust, or Python glossary concept rename lifecycle\nassessment with a persistent completeness gate. Assessing whether a\nglossary-worthy, wide-blast change is COMPLETE —\nthe long tail (string-literal references, the guard lint, the cross-tool\nagent mirrors, the docs) is exactly what a rushed pass forgets, and the\ntwo-band gate is what catches a rename that is identifier-clean but still\ncarries retired prose. Use when the rename is glossary-tracked and the cost\nof a half-applied result is real. Pairs with /find-concept-divergence (which\nDETECTS the drift): this skill consumes that detector and frames it as a\nper-rename definition of done.\n",
@@ -1214,6 +1222,8 @@
         "typescript",
         "go",
         "java",
+        "php",
+        "ruby",
         "rust",
         "dart",
         "markdown",

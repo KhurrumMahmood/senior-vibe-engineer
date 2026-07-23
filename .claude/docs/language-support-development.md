@@ -197,6 +197,28 @@ syntax candidates and explicit unresolved boundaries; they do not establish
 semantic identity, behavioral equivalence, refactor safety, or request-level
 batching.
 
+### 9. Cohort A semantic evidence
+
+PHP and Ruby now have accepted language-local semantic tiers for five
+read-only consumers. PHP freezes exact Composer PSR-4 ownership and direct
+declared relationships; it remains visibly partial when a configured
+PHPStan/Psalm pair is incomplete and never substitutes token matches. Ruby
+requires project-authored RBS and uses Prism only for spans and explicit
+dynamic boundaries. Projects without authored RBS remain partial rather than
+receiving inferred Ruby semantics.
+
+Both providers retain distinct consumer artifacts and hash-bound human
+authority. PHP reduces maintained LOC by `62.65%` with negligible closure
+growth and a `0.55%` median improvement. Ruby reduces maintained LOC by
+`58.76%`, the union closure by `62.39%`, and median repeated-provider latency
+by `78.22%`. These economics justify only the two language-local providers.
+
+Swift A3 is not yet accepted. Its worker evidence passed, but root replay
+timed out in a cold/repeated SourceKit-LSP `documentSymbol` path after 360
+seconds. Keep Swift coverage pending until the provider has a predictable
+bounded protocol path and a root replay reaches all final artifacts. A passing
+warm benchmark does not override a non-reproducible user journey.
+
 ## Native foundations for queued languages
 
 | Language | Preferred foundations | Honest boundary |

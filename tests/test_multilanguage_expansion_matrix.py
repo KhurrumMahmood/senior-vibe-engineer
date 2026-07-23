@@ -63,8 +63,8 @@ EXPECTED_JAVA_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_PHP_COUNTS = {
-    "php-supported": 12,
-    "php-pending-implementation": 10,
+    "php-supported": 17,
+    "php-pending-implementation": 5,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -91,8 +91,8 @@ EXPECTED_CPP_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_RUBY_COUNTS = {
-    "ruby-supported": 11,
-    "ruby-pending-implementation": 11,
+    "ruby-supported": 16,
+    "ruby-pending-implementation": 6,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -526,12 +526,17 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "find-comment-drift",
         "find-complexity-hotspots",
         "find-concept-divergence",
+        "find-dormant",
         "find-duplication",
         "find-folder-topology-drift",
+        "find-implicit-state",
+        "find-incomplete-sweep",
         "find-omnibus",
+        "find-semantic-duplication",
         "find-standard-gaps",
         "map-subsystem",
         "move-path",
+        "rename-concept",
     }
     assert {
         row["skill"]
@@ -572,10 +577,15 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "find-comment-drift",
         "find-complexity-hotspots",
         "find-concept-divergence",
+        "find-dormant",
         "find-duplication",
         "find-folder-topology-drift",
+        "find-implicit-state",
+        "find-incomplete-sweep",
         "find-omnibus",
+        "find-semantic-duplication",
         "find-standard-gaps",
+        "rename-concept",
         "map-subsystem",
     }
     assert {
@@ -626,10 +636,15 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "explain-code",
         "find-complexity-hotspots",
         "find-concept-divergence",
+        "find-dormant",
         "find-duplication",
         "find-folder-topology-drift",
+        "find-implicit-state",
+        "find-incomplete-sweep",
         "find-omnibus",
+        "find-semantic-duplication",
         "find-standard-gaps",
+        "rename-concept",
     }
     assert {
         row["skill"]
@@ -641,10 +656,15 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "explain-code",
         "find-complexity-hotspots",
         "find-concept-divergence",
+        "find-dormant",
         "find-duplication",
         "find-folder-topology-drift",
+        "find-implicit-state",
+        "find-incomplete-sweep",
         "find-omnibus",
+        "find-semantic-duplication",
         "find-standard-gaps",
+        "rename-concept",
     }
     assert {
         row["skill"]

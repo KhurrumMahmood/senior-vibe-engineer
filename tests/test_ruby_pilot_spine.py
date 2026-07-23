@@ -450,13 +450,18 @@ def test_ruby_frozen_cohort_contracts_and_all_22_initial_dispositions() -> None:
         "find-comment-drift",
         "find-complexity-hotspots",
         "find-concept-divergence",
+        "find-dormant",
         "find-duplication",
         "find-folder-topology-drift",
+        "find-implicit-state",
+        "find-incomplete-sweep",
         "find-omnibus",
+        "find-semantic-duplication",
         "find-standard-gaps",
         "map-subsystem",
+        "rename-concept",
     }
-    assert sum(value == "ruby-pending-implementation" for value in dispositions.values()) == 11
+    assert sum(value == "ruby-pending-implementation" for value in dispositions.values()) == 6
     assert all(
         row["evidence_path"]
         and row["native_check"]

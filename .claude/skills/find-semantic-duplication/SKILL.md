@@ -1,7 +1,7 @@
 ---
 name: find-semantic-duplication
-description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, Rust, and Dart function-level leads using host-native semantic facts. Compiler branches report bounded static candidates with capability matrices; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.
-argument-hint: "--target <directory> [--language python|typescript|javascript|go|java|rust|dart]"
+description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, PHP, Ruby, Rust, and Dart function-level leads using host-native semantic facts. Semantic branches report bounded static candidates with human review; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.
+argument-hint: "--target <directory> [--language python|typescript|javascript|go|java|php|ruby|rust|dart]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -18,11 +18,18 @@ not_for: |
   dynamic dispatch, framework behavior, and automatic consolidation.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
 install_with: [map-subsystem]
 ---
 
 # /find-semantic-duplication
+
+## PHP and Ruby
+
+For a selected PHP or Ruby run, load `../_php-semantic/GUIDE.md` or
+`../_ruby-semantic/GUIDE.md`. Matching bounded type/constructor shapes become
+hash-reviewed leads only, never behavioral-equivalence or consolidation
+authority.
 
 ## Dart v1
 

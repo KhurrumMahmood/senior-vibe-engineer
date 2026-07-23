@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "c228afe446e9b047cf789dd28fe12ab09c0cbf1e4e47af4420a196be392aae07"
+      "sha256": "cf9754dd23064bcf179923569b799932e73fb68ad5f5126ed3b83113afae287c"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -23,7 +23,7 @@
     },
     {
       "path": ".claude/tasks/php-language-coverage.json",
-      "sha256": "90c66b0628a6ce448de0b26ee23d22ba8ca8ba4a4e0b938679cabd43e99652bc"
+      "sha256": "6088f5f4080fd90630be6a223ef182ba13e02e079d158275d8ba76e662add9bf"
     },
     {
       "path": ".claude/tasks/swift-language-coverage.json",
@@ -39,7 +39,7 @@
     },
     {
       "path": ".claude/tasks/ruby-language-coverage.json",
-      "sha256": "595f1ac7db849936001ce92983de8394268eb4ba9e8c843f86ff19c4892651af"
+      "sha256": "71c34870da736aa57952530ff590081c6ab7d993c7e56aadc9985eaaa7537760"
     },
     {
       "path": ".claude/tasks/rust-language-coverage.json",
@@ -2677,14 +2677,14 @@
         "final report and source-fingerprint assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-a3-semantic-family.json",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP dormant-symbol report was validated"
+        "Composer PSR-4 direct-symbol facts plus native PHP/Composer gates",
+        "copied review-only dormant report, lifecycle, role exclusions, and source preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "Dynamic references require a project-owned semantic analyzer.",
+      "php_reviewed_revision": "42f6236",
+      "php_limitation": "Direct final-class private methods only; dynamic/framework/external reachability and safe deletion remain unresolved.",
       "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
@@ -2707,13 +2707,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "Roots, linkage, templates, virtual dispatch, callbacks, variants, and cross-translation-unit reachability are unresolved.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a3-semantic-read-only.md",
       "ruby_native_check": [
-        "explicit entrypoints and load edges only"
+        "project-authored RBS plus direct selected-source call evidence",
+        "copied review-only report, frozen native gates, lifecycle, roles, and preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Reflection, autoload, callbacks, dynamic dispatch, framework loading, and externally invoked APIs hide reachability.",
+      "ruby_reviewed_revision": "10015fb",
+      "ruby_limitation": "One private non-reopened RBS method only; dynamic dispatch, callbacks, autoload, frameworks, external invocation, and safe deletion remain unresolved.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-semantic-family.md",
       "rust_native_check": [
@@ -2723,6 +2724,8 @@
       "rust_reviewed_revision": "51055379904262ed4d60645b9fbed5b08f6ef015",
       "rust_limitation": "No safe-deletion claim; feature/target roots, macros/build output, doctests, callbacks, traits/generics, external APIs, reflection, and unsafe/FFI remain deferred.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "stock-selected-install",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d4-semantic-family.md",
       "dart_native_check": [
@@ -2744,6 +2747,8 @@
           "javascript",
           "go",
           "java",
+          "php",
+          "ruby",
           "rust",
           "dart"
         ],
@@ -3298,14 +3303,14 @@
         "final findings, source manifest, and build-boundary assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-a3-semantic-family.json",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP implicit-state findings were validated"
+        "Composer-owned direct type/member facts plus candidate-hash review",
+        "copied state artifacts, lifecycle, native gates, and source preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "No PHP type/reference producer exists for this contract.",
+      "php_reviewed_revision": "42f6236",
+      "php_limitation": "A direct string-field pattern is review evidence only; dynamic properties, frameworks, runtime domains, and enum safety remain unresolved.",
       "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
@@ -3328,13 +3333,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "Constructors, RAII, hidden special members, globals/statics, TLS, aliasing, templates, and callbacks remain unresolved.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a3-semantic-read-only.md",
       "ruby_native_check": [
-        "dynamic refusal sentinels present"
+        "project-authored RBS String attribute plus direct literal operations",
+        "candidate-hash review, copied artifacts, frozen native gates, and preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Globals, class variables, constants, memoization, callbacks, monkey patches, reopening, and runtime DSL state are unresolved.",
+      "ruby_reviewed_revision": "10015fb",
+      "ruby_limitation": "Review-only authored-RBS pattern; runtime DSL state, globals, callbacks, reopening, monkey patches, and closed-domain safety remain unresolved.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-semantic-family.md",
       "rust_native_check": [
@@ -3344,6 +3350,8 @@
       "rust_reviewed_revision": "51055379904262ed4d60645b9fbed5b08f6ef015",
       "rust_limitation": "Human extract-enum verdict required; the domain is not proven closed, and statics, interior mutability, environment/thread state, traits/generics, macros/cfg, registries, and unsafe/FFI remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "stock-selected-install",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d5-semantic-state-family.md",
       "dart_native_check": [
@@ -3365,6 +3373,8 @@
           "javascript",
           "go",
           "java",
+          "php",
+          "ruby",
           "rust",
           "dart"
         ],
@@ -3445,14 +3455,14 @@
         "final human-verdict artifact assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-a3-semantic-family.json",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP resolved-call sweep was validated"
+        "Composer-resolved direct named construction plus Git trajectory",
+        "hash-bound scout/triage artifacts, copied closure, native gates, and preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "Resolved call targets and trajectory evidence are unavailable.",
+      "php_reviewed_revision": "42f6236",
+      "php_limitation": "Direct named constructions in the selected PSR-4 project only; dynamic calls, external consumers, and framework variants remain unresolved.",
       "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
@@ -3475,13 +3485,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "Declarations, definitions, overloads, instantiations, variants, macros, and generated inputs lack complete project facts.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a3-semantic-read-only.md",
       "ruby_native_check": [
-        "literal require_relative edge only"
+        "RBS optional keyword plus direct selected-source construction evidence",
+        "copied review artifact, frozen native gates, lifecycle, and preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Resolved call/constant targets, autoload roots, runtime variants, and trajectory evidence are unavailable.",
+      "ruby_reviewed_revision": "10015fb",
+      "ruby_limitation": "Direct constructor spelling under authored RBS only; dynamic dispatch, autoload, runtime variants, and external callers remain unresolved.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-semantic-family.md",
       "rust_native_check": [
@@ -3491,6 +3502,8 @@
       "rust_reviewed_revision": "51055379904262ed4d60645b9fbed5b08f6ef015",
       "rust_limitation": "One direct struct-option omission shape only; target/cfg variants, macros/build output, dynamic/trait/generic calls, optional dependencies, external crates, and missing Git evidence remain deferred.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "stock-selected-install",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d5-semantic-state-family.md",
       "dart_native_check": [
@@ -3512,6 +3525,8 @@
           "javascript",
           "go",
           "java",
+          "php",
+          "ruby",
           "rust",
           "dart"
         ],
@@ -4291,14 +4306,14 @@
         "final findings and source-manifest assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-a3-semantic-family.json",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP semantic-duplication triage was validated"
+        "Composer-resolved direct return shapes and callers",
+        "candidate-hash review, copied final triage, native gates, and preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "No project-owned semantic index is available.",
+      "php_reviewed_revision": "42f6236",
+      "php_limitation": "Matching direct constructor shapes are review leads, never behavioral equivalence or safe consolidation authority.",
       "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
@@ -4321,13 +4336,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "Templates, overloads, aliasing, ADL, variants, ABI, and undefined behavior prevent equivalence claims.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a3-semantic-read-only.md",
       "ruby_native_check": [
-        "no accepted semantic producer"
+        "location-free authored-RBS type shape plus direct body/caller evidence",
+        "candidate-hash review, copied triage, frozen native gates, and preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Duck typing, delegation, runtime patching, blocks, and dynamic dispatch prevent equivalence claims from syntax alone.",
+      "ruby_reviewed_revision": "10015fb",
+      "ruby_limitation": "A review lead only; duck typing, delegation, blocks, runtime patching, dynamic dispatch, behavioral equivalence, and consolidation safety remain unresolved.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-semantic-family.md",
       "rust_native_check": [
@@ -4337,6 +4353,8 @@
       "rust_reviewed_revision": "51055379904262ed4d60645b9fbed5b08f6ef015",
       "rust_limitation": "No behavioral-equivalence or safe-refactor claim; traits/blanket impls, generics, macros/cfg, unsafe behavior, runtime dispatch, external APIs, and type/const inference remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d5-d7-semantic-finish.md",
       "dart_native_check": [
@@ -4358,6 +4376,8 @@
           "javascript",
           "go",
           "java",
+          "php",
+          "ruby",
           "rust",
           "dart"
         ],
@@ -7352,14 +7372,14 @@
         "final assessment and copied-closure assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-a3-semantic-family.json",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP rename assessment was validated"
+        "Composer-owned old/new declaration and direct typed-use evidence",
+        "copied assessment, unresolved boundaries, native gates, and source preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "Dynamic and reflective references are not resolved.",
+      "php_reviewed_revision": "42f6236",
+      "php_limitation": "Assessment-only direct identifier evidence; strings, reflection, aliases, frameworks, runtime consumers, and rename safety remain unresolved.",
       "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
@@ -7382,13 +7402,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "Macros, overload sets, templates, ADL, declarations/definitions, linkage, and textual build uses lack complete references.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a3-semantic-read-only.md",
       "ruby_native_check": [
-        "no mutation executed"
+        "authored RBS and direct source old/new declaration evidence",
+        "copied assessment, dynamic boundaries, frozen native gates, and preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Symbols, strings, send/const_get, aliases, DSLs, reflection, reopening, and framework conventions evade syntax-only rename.",
+      "ruby_reviewed_revision": "10015fb",
+      "ruby_limitation": "Assessment-only; symbols, strings, send/const_get, aliases, DSLs, reflection, reopening, frameworks, runtime identity, and rename safety remain unresolved.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-semantic-family.md",
       "rust_native_check": [
@@ -7398,6 +7419,8 @@
       "rust_reviewed_revision": "51055379904262ed4d60645b9fbed5b08f6ef015",
       "rust_limitation": "Assess-only; macros/proc macros, imports/re-exports, associated items, cfg variants, generated code, reflection strings/symbols, external APIs, mutation safety, and compatibility remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "stock-selected-install",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d4-semantic-family.md",
       "dart_native_check": [
@@ -7419,6 +7442,8 @@
           "typescript",
           "go",
           "java",
+          "php",
+          "ruby",
           "rust",
           "dart",
           "markdown",

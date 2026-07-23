@@ -8,7 +8,7 @@ description: |
   completeness gate, so renames land half-applied. This skill (v0, assess-only)
   reports the scope-gate verdict, blast radius, a per-step lifecycle status
   table, and the completeness gate. It performs strict lexical assessment of
-  Python, JavaScript, TypeScript, TSX, Go, Java, Rust, and Dart text. For `.ts`, `.tsx`, and checked
+  Python, JavaScript, TypeScript, TSX, Go, Java, PHP, Ruby, Rust, and Dart text. For `.ts`, `.tsx`, and checked
   `.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,
   declarations, and references; it does not claim whole-project type-checking,
   JSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`
@@ -72,11 +72,18 @@ delegate_from: |
   here.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust, dart, markdown, templates]
+scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, markdown, templates]
 install_with: [find-concept-divergence, map-subsystem]
 ---
 
 # /rename-concept
+
+## PHP and Ruby
+
+For a selected PHP or Ruby assessment, load `../_php-semantic/GUIDE.md` or
+`../_ruby-semantic/GUIDE.md`. These branches assess bounded declared
+identifier evidence only; reflection, strings, frameworks, runtime consumers,
+codemods, and rename safety remain unresolved.
 
 ## Dart v1
 
