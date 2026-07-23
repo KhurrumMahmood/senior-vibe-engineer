@@ -463,9 +463,9 @@ load-layout matches; reopening and mixin syntax; constant-reference candidates;
 and explicit test/executable evidence. It installs nothing and never mutates
 host source.
 
-The successful Ruby result is `partial`, not unsupported: the static facts are
-complete for the selected snapshot, while dynamic loading, reflection,
-metaprogramming, callbacks, Rails/Zeitwerk, and runtime identity remain
+Ruby has a supported bounded static-map contract. Its successful artifact still
+reports runtime `partial` completeness when dynamic loading, reflection,
+metaprogramming, callbacks, Rails/Zeitwerk, or runtime identity remain
 unresolved. See `knowledge/ruby-v1.md` for the exact boundary.
 
 <!-- installed-command:ruby-map:start -->
@@ -504,10 +504,11 @@ selected ordinary module and re-export paths, compiler diagnostics, selected
 host cfg evidence, source roles, and stable-LSP symbols/definitions. It never
 uses rust-analyzer's unstable CLI or private rustc interfaces.
 
-A successful Rust result remains `partial`: the selected configuration is
-useful and machine-checkable, while macro expansion, build-script `OUT_DIR`,
-`include!`, unselected cfg/feature/target variants, and runtime trait-object
-dispatch stay unresolved. See `knowledge/rust-v1.md` for the exact boundary.
+Rust has a supported bounded selected-configuration contract. Its artifact
+still reports runtime `partial` completeness across macro expansion,
+build-script `OUT_DIR`, `include!`, unselected cfg/feature/target variants, and
+runtime trait-object dispatch. See `knowledge/rust-v1.md` for the exact
+boundary.
 
 <!-- installed-command:rust-map:start -->
 ```bash
@@ -562,13 +563,13 @@ python3 "${SKILL_ROOT}/scripts/map_rust.py" \
   every production translation unit. Direct static references are
   compiler-resolved; dynamic/reflection/template-instantiation boundaries
   remain explicit and final artifact/source hashes must verify.
-  Ruby v1 follows `knowledge/ruby-v1.md`: its bounded static map is complete
-  for the selected plain-gem snapshot, but overall status remains `partial`
-  because Ruby runtime reachability and dynamic behavior are not inferred.
-  Rust v1 follows `knowledge/rust-v1.md`: Cargo/compiler/stable-LSP facts are
-  complete for the selected clean configuration, but overall status remains
-  `partial` across macros, build output, include contents, variants, and
-  runtime trait dispatch.
+  Ruby v1 follows `knowledge/ruby-v1.md`: its bounded static-map contract is
+  supported for the selected plain-gem snapshot, while the artifact reports
+  runtime `partial` completeness because runtime reachability and dynamic
+  behavior are not inferred. Rust v1 follows `knowledge/rust-v1.md`: its
+  bounded selected-configuration contract is supported, while the artifact
+  reports runtime `partial` completeness across macros, build output, include
+  contents, variants, and runtime trait dispatch.
 - On `--refresh`, the doc opens with a diff section against the prior
   version — what changed, not just what is.
 - The run cites artifact truth: pasted `render_doc.py` `wrote ...`

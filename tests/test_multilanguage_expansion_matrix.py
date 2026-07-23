@@ -91,16 +91,14 @@ EXPECTED_CPP_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_RUBY_COUNTS = {
-    "ruby-supported": 1,
-    "ruby-partial": 1,
+    "ruby-supported": 2,
     "ruby-pending-implementation": 20,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
 }
 EXPECTED_RUST_COUNTS = {
-    "rust-supported": 21,
-    "rust-partial": 1,
+    "rust-supported": 22,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -541,12 +539,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         row["skill"]
         for row in language_rows
         if row["ruby_disposition"] == "ruby-supported"
-    } == {"find-comment-drift"}
-    assert {
-        row["skill"]
-        for row in language_rows
-        if row["ruby_disposition"] == "ruby-partial"
-    } == {"map-subsystem"}
+    } == {"find-comment-drift", "map-subsystem"}
     assert {
         row["skill"]
         for row in language_rows
@@ -567,6 +560,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "find-omnibus",
         "find-semantic-duplication",
         "find-standard-gaps",
+        "map-subsystem",
         "move-path",
         "prevent-regression",
         "propose-boundary",
@@ -574,11 +568,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "rename-concept",
         "unify-shadows",
     }
-    assert {
+    assert not {
         row["skill"]
         for row in language_rows
         if row["rust_disposition"] == "rust-partial"
-    } == {"map-subsystem"}
+    }
     assert not {
         row["skill"]
         for row in language_rows

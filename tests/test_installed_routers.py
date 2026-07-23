@@ -494,7 +494,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "ruby_disposition"
     ] == "ruby-supported"
 
-    partial_ruby = _run_isolated(
+    supported_ruby_map = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
         "use map-subsystem on this Ruby repository",
         "--project-root",
@@ -506,13 +506,13 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "--json",
         cwd=host,
     )
-    assert partial_ruby.returncode == 1
-    partial_ruby_payload = json.loads(partial_ruby.stdout)
-    assert partial_ruby_payload["recommendation"] == "partial"
-    assert partial_ruby_payload["unavailable"]["classification"] == "partial"
-    assert partial_ruby_payload["unavailable"]["reason"] == (
-        "/map-subsystem declares ruby_disposition=ruby-partial"
-    )
+    supported_ruby_map_payload = _json_output(supported_ruby_map)
+    assert supported_ruby_map_payload["recommendation"] == "map-subsystem"
+    assert supported_ruby_map_payload["handoff"]["available"] is True
+    assert supported_ruby_map_payload["handoff"]["capabilities"]["skills"][0][
+        "ruby_disposition"
+    ] == "ruby-supported"
+    assert supported_ruby_map_payload["optional_install"]["available"] is True
 
     pending_ruby = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
@@ -760,13 +760,13 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "--json",
         cwd=host,
     )
-    assert rust_map.returncode == 1
-    rust_map_payload = json.loads(rust_map.stdout)
-    assert rust_map_payload["recommendation"] == "partial"
-    assert rust_map_payload["unavailable"]["classification"] == "partial"
-    assert rust_map_payload["unavailable"]["reason"] == (
-        "/map-subsystem declares rust_disposition=rust-partial"
-    )
+    rust_map_payload = _json_output(rust_map)
+    assert rust_map_payload["recommendation"] == "map-subsystem"
+    assert rust_map_payload["handoff"]["available"] is True
+    assert rust_map_payload["handoff"]["capabilities"]["skills"][0][
+        "rust_disposition"
+    ] == "rust-supported"
+    assert rust_map_payload["optional_install"]["available"] is True
 
     shape_routed = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",

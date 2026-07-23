@@ -39,11 +39,11 @@
     },
     {
       "path": ".claude/tasks/ruby-language-coverage.json",
-      "sha256": "0901fe5c689145e3852d8f34d8f0f94ff8ef6d7a439dcd7e95a3febb93521f3f"
+      "sha256": "84c898c4305513eab5362cf2d8bc82eacc9c7a57a3efe6acd3e6cc9f0c0a9c6b"
     },
     {
       "path": ".claude/tasks/rust-language-coverage.json",
-      "sha256": "6804082d58ccd9633df32ad037694051864a8efb4aac7442049e1571e8a93438"
+      "sha256": "6272a5785ac9072b7a6f304fe857368c8bb1dbab162875e75e389847a4602a1b"
     },
     {
       "path": ".claude/tasks/dart-language-coverage.json",
@@ -5773,22 +5773,22 @@
       ],
       "cpp_reviewed_revision": "8581e12f0fa4d729c25160bc133ba200ce4fdc61",
       "cpp_limitation": "Direct compiler-observed static facts only; virtual/dynamic dispatch, reflection, runtime registration, inactive macro branches, all possible template instantiations, non-Make target graphs, modules, and ABI behavior remain unavailable.",
-      "ruby_disposition": "ruby-partial",
+      "ruby_disposition": "ruby-supported",
       "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-map-subsystem.md",
       "ruby_native_check": [
         "Ruby 3.4 syntax and Prism attribution for every eligible input plus frozen Bundler check",
         "durable Markdown/JSON, source-role and hash inventory, declarations, literal load-layout matches, reopening/mixin evidence, constant candidates, explicit native test and executable smoke, copied closure, stale snapshot rejection, and source preservation"
       ],
       "ruby_reviewed_revision": "2f0abb3668c5215b4e0baceb08b50bdad9110e4b",
-      "ruby_limitation": "The bounded static map adds value, but dynamic loading, reflection, metaprogramming, callbacks, Rails/Zeitwerk, and runtime identity remain unresolved; semantic reachability is therefore partial.",
-      "rust_disposition": "rust-partial",
+      "ruby_limitation": "The bounded static map contract is supported; dynamic loading, reflection, metaprogramming, callbacks, Rails/Zeitwerk, and runtime identity remain explicit runtime-partial completeness rather than inferred facts.",
+      "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-map-subsystem.md",
       "rust_native_check": [
         "locked/offline Cargo metadata and compiler JSON plus rustc cfg and stable rust-analyzer LSP establish the selected workspace/package/target/module configuration",
         "durable Markdown/JSON, source/artifact hashes, roles/exclusions, eight inbound InvoiceService definitions, native check/test/Clippy/rustfmt/smoke, stale/failure recovery, copied closure, and source preservation reach the final boundary"
       ],
       "rust_reviewed_revision": "aee1e4a863f66d259e2683fb7ca18437c6ed38da",
-      "rust_limitation": "Useful selected-configuration facts are complete, but macro/procedural expansion, build-script OUT_DIR, include!, unselected cfg/feature/target variants, and runtime trait-object dispatch remain unresolved; overall status is partial.",
+      "rust_limitation": "The bounded selected-configuration map contract is supported; macro/procedural expansion, build-script OUT_DIR, include!, unselected cfg/feature/target variants, and runtime trait-object dispatch remain explicit runtime-partial completeness rather than inferred facts.",
       "dart_disposition": "dart-supported",
       "dart_closure_mode": "stock-selected-install",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d4-semantic-family.md",

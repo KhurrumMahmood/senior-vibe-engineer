@@ -1,11 +1,12 @@
 # Portability roadmap for `_common/`
 
 The skill ecosystem was originally Django-flavored because that's what
-the seed host project needed. Selected skill families now have validated
-TypeScript support; Rust and other host languages remain unproven. The design
-still anticipates cross-language adapters and cross-framework reuse (Django,
-FastAPI, Express). This document pins the planned reorganization so future PRs
-don't accidentally cement Django assumptions into shared files.
+the seed host project needed. The language-level family now has validated
+coverage across multiple static and dynamic languages; the exact current truth
+lives in the generated capability matrix and per-language coverage files. The
+design still anticipates cross-language adapters and cross-framework reuse
+(Django, FastAPI, Express). This document pins the planned reorganization so
+future PRs don't accidentally cement Django assumptions into shared files.
 
 **Status:** roadmap, not a plan-of-record. The full reorg is reconsidered when
 a non-Django host project starts adopting these skills, or when a genuinely
@@ -107,11 +108,10 @@ framework: django     # django | none | any
 A skill declaring `language: any, framework: any` encodes no language or
 framework assumption for routing purposes. That declaration alone is not proof
 of host-language support; validation is recorded separately in
-`.claude/tasks/typescript-skill-coverage.json`. Its current snapshot classifies
-22 skills as TypeScript-supported, 19 as validated-neutral, 22 as deliberately
-stack-bound, and 13 as ecosystem-runtime; it proves no other host language. A
-skill declaring `language: python, framework: django` is bound to the host stack
-and will need adapters when ported.
+`.claude/tasks/multilanguage-skill-matrix.json` and the named
+`<language>-language-coverage.json` files. A skill declaring `language: python,
+framework: django` is bound to the host stack and will need adapters when
+ported.
 
 `/which-skill` uses these fields to filter recommendations: a TypeScript
 project asking for a "split this fat module" skill should not be offered

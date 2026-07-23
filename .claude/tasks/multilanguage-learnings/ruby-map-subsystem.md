@@ -8,8 +8,9 @@ The cohort produces a durable paired map for one or more ordinary production
 - `.claude/docs/subsystems/<name>.md`
 - `reports/map/<name>/ruby-map.json`
 
-The successful lifecycle is intentionally `partial` overall. The artifact
-marks its bounded static snapshot `complete`: project/configuration inventory
+The coverage-level contract is supported because the bounded static-map
+implementation reaches its declared final outcome. The artifact intentionally
+reports runtime `partial` completeness: project/configuration inventory
 and hashes, selected targets, Prism module/class/method declarations, literal
 `require`/`require_relative`/`load` calls, syntactic namespace/reopening and
 mixin evidence, conservative constant candidates, and explicit native checks.
@@ -119,7 +120,7 @@ This lane intentionally does not edit shared surfaces. Root integration should:
 
 1. add Ruby to `map-subsystem` frontmatter/description, the orchestrator branch,
    installed command, success criteria, and a pointer to `knowledge/ruby-v1.md`;
-2. publish `map-subsystem` as `ruby-partial` only after the consolidated copied
+2. publish `map-subsystem` as `ruby-supported` only after the consolidated copied
    closure and existing-language regression replay passes;
 3. update the two already-known generic census expectations: add `ruby` and
    `.rb: ruby` in `test_language_support_profile.py`, and add `ruby` to the

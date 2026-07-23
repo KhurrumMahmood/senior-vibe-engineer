@@ -1,7 +1,7 @@
 # Language-support development
 
-Status: durable contributor guide synthesized after TypeScript, JavaScript,
-Go, and Java coverage
+Status: durable contributor guide synthesized through TypeScript, JavaScript,
+Go, Java, PHP, Rust, and Dart evidence
 
 Use this guide before starting another language or changing shared
 language-analysis tooling. It captures the tooling shape that repeated across
@@ -20,6 +20,8 @@ entry point.
   language capability claims.
 - `.claude/tasks/multilanguage-typescript-transfer-guide.md` and
   `.claude/tasks/multilanguage-learnings/` retain completed-port evidence.
+- `.claude/tasks/shared-kit-promotion-decision.md` records the accepted reuse
+  decisions and the frozen family-packet index.
 - `.claude/tasks/multilanguage-support-backlog.md` owns proposed follow-ups and
   their promotion triggers.
 - `.claude/tasks/cross-language-tool-evaluation-plan.md` retains bounded tool
@@ -37,7 +39,8 @@ The reusable layers are:
 
 1. source discovery and role classification;
 2. native-tool discovery, version checks, and offline preflight;
-3. process execution, batching, terminal status, and artifact lifecycle;
+3. the narrow execution and artifact mechanics that clear the measured reuse
+   gate;
 4. source manifests, fingerprints, and proposal-to-source lineage;
 5. copied/on-demand closure resolution; and
 6. conformance fixtures that prove the documented user command.
@@ -100,15 +103,20 @@ A provider may return `partial` or `unsupported` for a higher tier while still
 providing a useful lower tier. Consumers own their final report/proposal/diff
 schema; providers do not claim that syntax facts prove semantic outcomes.
 
-### 4. Shared execution and artifact lifecycle
+### 4. Execution and artifact lifecycle
 
-The reusable runner should own tool probing, batched file input, timeout and
-exit propagation, atomic output, stale-artifact removal, source fingerprints,
-and terminal status. It must prove valid-to-failed and failed-to-valid reruns at
-the same destination so an old clean report cannot survive a failed analysis.
+The accepted cross-language foundation currently shares only atomic source-
+inventory output. Tool probing is shared through profiles and the read-only
+doctor. Stale-artifact removal, source fingerprints, terminal status, and
+mutation rollback remain language/skill-family local because the completed
+ports have different schemas and no broader component passed the conjunctive
+LOC, closure, and latency gate.
 
-Keep the runner small enough to copy into an exact on-demand closure. Do not
-make selected skills depend on an undeclared repository runtime.
+Every family must still prove valid-to-failed and failed-to-valid reruns at the
+same destination so an old clean report cannot survive a failed analysis.
+Extract another mechanic only after two real consumers demonstrate the exact
+same contract and all promotion metrics pass. Keep every selected closure
+explicit; do not make a skill depend on an undeclared repository runtime.
 
 ### 5. Conformance harness and scaffolder
 
@@ -159,9 +167,11 @@ contracts rather than reimplementing them.
 
 ## Promotion gate
 
-Before using the kit for a broad language pass, prove it on two materially
-different ecosystems: PHP is the first syntax/dynamic-language pilot, and C#
-is the preferred typed semantic/rewrite pilot once the .NET SDK is available.
+The accepted P6 decision is recorded in
+`.claude/tasks/shared-kit-promotion-decision.md`. PHP, Rust, and Dart supplied
+the materially different evidence that the initial TypeScript/Java comparison
+lacked. C# remains a required final language, not a prerequisite for retaining
+the already-proven narrow foundation.
 
 Promote a shared component only when:
 
@@ -179,6 +189,10 @@ ambient network downloads, or save little once fixture and closure code is
 counted.
 
 ## Work packet for a language lane
+
+Start with the family-packet index in
+`.claude/tasks/shared-kit-promotion-decision.md`; do not reconstruct completed
+family contracts from repository archaeology.
 
 Give a fresh non-context worker only:
 

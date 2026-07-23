@@ -441,7 +441,7 @@ def test_ruby_frozen_cohort_contracts_and_all_22_initial_dispositions() -> None:
     assert {row["skill"] for row in rows} == EXPECTED_SKILLS
     dispositions = {row["skill"]: row["disposition"] for row in rows}
     assert dispositions["find-comment-drift"] == "ruby-supported"
-    assert dispositions["map-subsystem"] == "ruby-partial"
+    assert dispositions["map-subsystem"] == "ruby-supported"
     assert sum(value == "ruby-pending-implementation" for value in dispositions.values()) == 20
     assert all(
         row["evidence_path"]

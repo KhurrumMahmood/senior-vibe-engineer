@@ -70,8 +70,8 @@
   "runtime_closure": {
     "definition": "Ruby profile plus existing stdlib-only profile/doctor/inventory runtime exercised by the spine; this is not a copied skill closure and earns no skill support claim.",
     "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), listed path order",
-    "manifest_sha256": "e2f24c0898cc540e5bcda6ff8057922a3d471357dc9f99d5ef217b6e3f9383ea",
-    "total_bytes": 44151,
+    "manifest_sha256": "c3f95cf3fcfce46ededd413fd006fe4e5e967962a96d322f977404847ab2785b",
+    "total_bytes": 40672,
     "files": [
       "scripts/language_profiles/ruby.json",
       "scripts/language_doctor.py",

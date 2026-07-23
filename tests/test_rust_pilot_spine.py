@@ -563,17 +563,18 @@ def test_rust_frozen_cohort_contracts_and_all_22_initial_dispositions() -> None:
         "find-folder-topology-drift",
         "find-implicit-state",
         "find-incomplete-sweep",
-        "find-omnibus",
-        "find-semantic-duplication",
-        "find-standard-gaps",
-        "move-path",
+            "find-omnibus",
+            "find-semantic-duplication",
+            "find-standard-gaps",
+            "map-subsystem",
+            "move-path",
         "prevent-regression",
         "propose-boundary",
         "propose-folder-reorganization",
         "rename-concept",
         "unify-shadows",
     }
-    assert dispositions["map-subsystem"] == "rust-partial"
+    assert dispositions["map-subsystem"] == "rust-supported"
     assert "rust-pending-implementation" not in set(dispositions.values())
     assert all(
         row["evidence_path"]

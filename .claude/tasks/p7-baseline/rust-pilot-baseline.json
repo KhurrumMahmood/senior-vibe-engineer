@@ -84,8 +84,8 @@
   "runtime_closure": {
     "definition": "Rust profile plus existing stdlib-only profile/doctor/inventory runtime exercised by the spine; this is not a copied skill closure and earns no skill support claim.",
     "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), listed path order",
-    "manifest_sha256": "2631b776422a93613c64e23ad8baed337702e52bda9028da8acd5150d1518ff0",
-    "total_bytes": 44944,
+    "manifest_sha256": "970b050a114075cbaf1e34a97b8492f5f78c12419583e0e668db74f60b549b8d",
+    "total_bytes": 41465,
     "files": [
       "scripts/language_profiles/rust.json",
       "scripts/language_doctor.py",

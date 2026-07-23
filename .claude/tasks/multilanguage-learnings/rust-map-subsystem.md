@@ -20,7 +20,9 @@ path dependency, the selected library module path
 
 ## Fact providers and useful partial support
 
-Rust v1 is deliberately `partial` even when diagnostics are clean:
+Rust v1 has a supported bounded selected-configuration contract. Its artifact
+deliberately reports runtime `partial` completeness even when diagnostics are
+clean:
 
 1. `cargo metadata --format-version 1 --locked --offline --no-deps` owns
    workspace/package/dependency/feature/target provenance.
