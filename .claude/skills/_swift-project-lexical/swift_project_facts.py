@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SwiftPM project and lexical facts for six read-only Swift consumers.
+"""SwiftPM project and lexical facts for read-only Swift consumers.
 
 This copied helper owns source roles, restrictive dependency-free SwiftPM
 checks, exact source fingerprints, Swift-aware string/comment masking, and
@@ -45,6 +45,21 @@ PUBLIC_DECL_RE = re.compile(
     rb"(?:(?:final|indirect|nonisolated|static|class)[ \t]+)*"
     rb"(?P<kind>struct|class|enum|protocol|actor|typealias|let|var)[ \t]+"
     rb"(?P<name>[A-Za-z_][A-Za-z0-9_]*)"
+)
+CONTROL_BRACE_RE = re.compile(
+    rb"(?:^|[^A-Za-z0-9_])"
+    rb"(?:if|else|guard|for|while|repeat|switch|do|catch|defer)\b[^{};]*$"
+)
+BRANCH_RE = re.compile(
+    rb"(?P<keyword>(?<![A-Za-z0-9_])(?:if|guard|for|while|repeat|case|catch)"
+    rb"(?![A-Za-z0-9_]))|(?P<operator>&&|\|\|)"
+)
+CALL_RE = re.compile(
+    rb"(?<![A-Za-z0-9_.$])(?P<name>[A-Za-z_][A-Za-z0-9_]*)[ \t\r\n]*\("
+)
+DO_RE = re.compile(rb"(?<![A-Za-z0-9_])do(?![A-Za-z0-9_])[ \t\r\n]*\{")
+CALL_KEYWORDS = frozenset(
+    {"catch", "for", "func", "guard", "if", "init", "repeat", "switch", "while"}
 )
 
 
@@ -468,6 +483,132 @@ def function_facts(row: dict[str, Any]) -> list[dict[str, Any]]:
     return results
 
 
+def _direct_function_facts(row: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return functions that are not lexically nested inside another function body."""
+    facts = function_facts(row)
+    direct: list[dict[str, Any]] = []
+    for fact in facts:
+        start = fact["span"]["start_byte"]
+        nested = any(
+            other is not fact
+            and other["body_span"]["start_byte"] <= start < other["body_span"]["end_byte"]
+            for other in facts
+        )
+        if not nested:
+            direct.append(fact)
+    return direct
+
+
+def _is_control_brace(mask: bytearray, body_start: int, opening: int) -> bool:
+    prefix_start = max(body_start, opening - 512)
+    prefix = bytes(mask[prefix_start:opening]).rstrip()
+    return CONTROL_BRACE_RE.search(prefix) is not None
+
+
+def _direct_body_mask(row: dict[str, Any], fact: dict[str, Any]) -> bytearray:
+    """Mask nested callable/declaration scopes while retaining direct control bodies."""
+    mask = bytearray(row["_mask"])
+    body_start = fact["body_span"]["start_byte"]
+    body_end = fact["body_span"]["end_byte"]
+    cursor = body_start
+    while cursor < body_end:
+        if mask[cursor] != 123:
+            cursor += 1
+            continue
+        closing = _matching(mask, cursor, 123, 125)
+        if closing is None or closing > body_end:
+            cursor += 1
+            continue
+        if _is_control_brace(mask, body_start, cursor):
+            cursor += 1
+            continue
+        _blank(mask, cursor, closing + 1)
+        cursor = closing + 1
+    return mask
+
+
+def _branch_events(source: bytes, mask: bytearray, start: int, end: int) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for match in BRANCH_RE.finditer(mask, start, end):
+        spelling = match.group(0)
+        kind = {
+            b"&&": "logical-and",
+            b"||": "logical-or",
+        }.get(spelling, spelling.decode("ascii"))
+        events.append(
+            {
+                "kind": kind,
+                "span": span(source, match.start(), match.end()),
+                "spelling_sha256": hash_bytes(source[match.start() : match.end()]),
+            }
+        )
+    return events
+
+
+def _do_catch_ranges(mask: bytearray, start: int, end: int) -> list[tuple[int, int]]:
+    ranges: list[tuple[int, int]] = []
+    for match in DO_RE.finditer(mask, start, end):
+        opening = bytes(mask).find(b"{", match.start(), match.end())
+        closing = _matching(mask, opening, 123, 125) if opening >= 0 else None
+        if closing is None or closing > end:
+            continue
+        tail = bytes(mask[closing + 1 : min(end, closing + 512)])
+        if re.match(rb"[ \t\r\n]*catch\b", tail):
+            ranges.append((opening + 1, closing))
+    return ranges
+
+
+def _call_facts(
+    row: dict[str, Any], fact: dict[str, Any], mask: bytearray
+) -> list[dict[str, Any]]:
+    source: bytes = row["_source"]
+    start = fact["body_span"]["start_byte"]
+    end = fact["body_span"]["end_byte"]
+    protected = _do_catch_ranges(mask, start, end)
+    calls: list[dict[str, Any]] = []
+    for match in CALL_RE.finditer(mask, start, end):
+        name = match.group("name").decode("ascii")
+        if name in CALL_KEYWORDS:
+            continue
+        name_start, name_end = match.start("name"), match.end("name")
+        calls.append(
+            {
+                "spelling": name,
+                "function": fact["symbol"],
+                "file": row["file"],
+                "line": span(source, name_start, name_end)["start"]["line"],
+                "span": span(source, name_start, name_end),
+                "source_sha256": row["source_sha256"],
+                "spelling_sha256": hash_bytes(source[name_start:name_end]),
+                "in_do_catch": any(left <= name_start < right for left, right in protected),
+                "call_identity_claimed": False,
+            }
+        )
+    return calls
+
+
+def function_syntax_facts(row: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return bounded direct-function branch and spelled-call syntax evidence."""
+    source: bytes = row["_source"]
+    results: list[dict[str, Any]] = []
+    for fact in _direct_function_facts(row):
+        mask = _direct_body_mask(row, fact)
+        body_start = fact["body_span"]["start_byte"]
+        body_end = fact["body_span"]["end_byte"]
+        branches = _branch_events(source, mask, body_start, body_end)
+        results.append(
+            {
+                **fact,
+                "kind": "top_level_function" if fact["top_level"] else "method",
+                "branch_score": len(branches),
+                "branch_events": branches,
+                "calls": _call_facts(row, fact, mask),
+                "syntax_only": True,
+            }
+        )
+    return results
+
+
 def declaration_facts(row: dict[str, Any]) -> list[dict[str, Any]]:
     source: bytes = row["_source"]
     mask: bytearray = row["_mask"]
@@ -653,8 +794,10 @@ def collect_snapshot(
         "_package_manifest": package,
         "limits": [
             "dependency-free SwiftPM regular and executable targets only",
-            "compiler-validated lexical source-file and direct declaration spans only",
+            "compiler-validated lexical source-file, direct declaration/body, branch-token, and spelled-call spans only",
             "no SwiftSyntax, resolved symbol/reference/type, overload, protocol, extension, or call identity",
+            "direct-body branch and call facts exclude nested callable/declaration braces and do not measure control flow or cost",
+            "no runtime behavior, cross-target semantics, equivalence, or refactor-authority claim",
             "no conditional-compilation projection, macro/plugin expansion, reflection, or dynamic dispatch",
             "string interpolation is treated as string content; comments inside interpolation are not inventoried",
             "no Xcode project, Apple framework, Objective-C/C-family, resource, or SwiftUI behavior claim",

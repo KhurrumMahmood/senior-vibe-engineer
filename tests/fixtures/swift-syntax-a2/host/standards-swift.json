@@ -1,0 +1,26 @@
+{
+  "ideas": [
+    {
+      "id": "swift-do-catch",
+      "label": "Direct parse calls use do-catch",
+      "contract": {
+        "detector": {
+          "kind": "ast",
+          "paths": ["Sources/SwiftA2Core/**/*.swift"],
+          "call_matches": "^parseInvoice$",
+          "enclosed_by": "do-catch"
+        }
+      }
+    },
+    {
+      "id": "manual-review",
+      "label": "Manual review remains manual",
+      "contract": {
+        "detector": {
+          "kind": "manual",
+          "paths": []
+        }
+      }
+    }
+  ]
+}
