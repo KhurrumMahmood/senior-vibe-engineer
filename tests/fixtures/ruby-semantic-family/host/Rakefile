@@ -1,0 +1,3 @@
+task :test do
+  ruby "-Ilib", "test/semantic_test.rb"
+end

@@ -1,0 +1,44 @@
+module SemanticKit
+  type phase = "queued" | "running" | "done"
+
+  class DormantPlan
+    def active: () -> String
+
+    private
+
+    def unused_helper: () -> String
+  end
+
+  class Job
+    attr_accessor phase: String
+    def initialize: () -> void
+    def start: () -> void
+    def finish: () -> void
+  end
+
+  class SweepOptions
+    attr_reader audit: bool
+    def initialize: (?audit: bool) -> void
+  end
+
+  class SweepRunner
+    def first: () -> SweepOptions
+    def second: () -> SweepOptions
+    def third: () -> SweepOptions
+    def straggler: () -> SweepOptions
+    def complete: () -> InvoiceRecord
+  end
+
+  class DuplicateAlpha
+    def calculate: (Integer amount) -> String
+  end
+
+  class DuplicateBeta
+    def calculate: (Integer amount) -> String
+  end
+
+  class InvoiceRecord
+    def initialize: (String identifier) -> void
+    def label: () -> String
+  end
+end

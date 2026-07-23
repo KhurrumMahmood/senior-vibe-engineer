@@ -1,0 +1,5 @@
+module SemanticKit
+  class Broken
+    def missing: (String ->
+  end
+end
