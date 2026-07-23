@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P7/F2 Cohort A, wave A2 syntax launch-ready; C#/.NET remains last
-Last updated: 2026-07-23 (PHP/Ruby/Swift A1 completed; A2 membership frozen)
+Current phase: P7/F2 Cohort A, wave A2 syntax in progress; C#/.NET remains last
+Last updated: 2026-07-23 (A1 closed at `98dff01`; three A2 language worktrees active)
 
 ## Objective
 
@@ -264,7 +264,7 @@ before changing status to `done`.
 | Wave | Status | Base SHA / lane refs | Accepted revisions | Root replay evidence | Required result before advancing |
 |---|---|---|---|---|---|
 | A1 — PHP/Ruby/Swift lexical-filesystem | `done` | `febc761`; retired `codex/f2-{php,ruby,swift}-project-lexical` worktrees; branches retained | PHP `35e957b`; Ruby `a38a2e5` + exit-contract repair `debbfb2`; Swift `105c7a2`; publication `7d196dd` | PHP `70 passed`; Ruby `44 passed` plus focused exit repair `21 passed`; Swift worker `71 passed, 1 deselected` and independent root `71 passed, 1 deselected`; shared publication `152 passed`; committed installed routers `58 passed` after refreshing three stale pending assertions | Every targeted final artifact, bounded closure, routing surface, and committed installed-library handoff passed |
-| A2 — PHP/Ruby/Swift syntax | `ready` | TBD; three worktrees | — | — | Native token/compiler facts remain syntax-scoped; no syntax-as-semantics promotion |
+| A2 — PHP/Ruby/Swift syntax | `in_progress` | `98dff01`; `codex/f2-php-syntax`, `codex/f2-ruby-syntax`, `codex/f2-swift-syntax` | — | — | Native token/compiler facts remain syntax-scoped; no syntax-as-semantics promotion |
 | A3 — PHP/Ruby/Swift semantic read-only | `pending_a2` | TBD; three worktrees | — | — | Project/configuration identity and explicit dynamic/unresolved boundaries; revisit Ruby map disposition here |
 | A4 — PHP/Ruby/Swift proposal/guard | `pending_a3` | TBD; three worktrees | — | — | Accepted producer envelopes only; no consumer reruns detection |
 | A5 — Ruby mutation and Cohort A publication | `pending_a4` | TBD; serial | — | — | PHP and Swift preserve accepted mutation outcomes; Ruby proves preview, authority, rollback, exact after-tree, and native checks |
@@ -1056,6 +1056,7 @@ Evidence:
 
 | Date | Phase | Event | Evidence/next action |
 |---|---|---|---|
+| 2026-07-23 | P7/F2 A2 | PHP/Ruby/Swift syntax wave opened | Three fresh non-context language worktrees start from exact A1 closeout `98dff01`. PHP and Ruby each own audit, complexity, omnibus, and standard-gap outcomes; Swift owns audit, complexity, and standard-gap outcomes while preserving its accepted omnibus path. Workers own language-local implementation/fixtures/tests/packets only; root retains shared guides, coverage, projections, routers, docs, and serial publication. |
 | 2026-07-23 | P7/F2 A1 | PHP/Ruby/Swift project/lexical wave completed | Language-local external providers reach five PHP, five Ruby, and six Swift copied final outcomes without ambient skill installation. Bounded adversarial review drove fixes for Ruby partial exit 0 and Swift protocol-requirement body capture. Publication `7d196dd` passes `152` shared tests; the committed on-demand-library/router replay passes `58` after updating only three stale installed-test expectations. PHP/Ruby worktrees are retired; retire Swift and open the frozen A2 syntax lanes from the A1 closeout revision. |
 | 2026-07-23 | P6/F1 | Shared-kit decision completed; Cohort A opened | `febc761` retains the narrow profile/inventory/doctor/conformance foundation, reduces unused lifecycle implementation/test surface from 231 to 79 lines, rejects PHP/universal extraction, and freezes representative family packets. Shared foundation replay passes `40`; Ruby/Rust maps plus PHP final outcomes pass `38`; matrix/spines pass `13`; the committed installed router passes in 4.04s. Ruby is now 2 supported/20 pending and Rust is 22/22 supported under the accepted bounded-contract/runtime-partial distinction. Open A1 from `febc761` for PHP, Ruby, and Swift project/lexical work; root retains shared publication ownership. |
 | 2026-07-23 | P7/F0 | Dart and repository closeout completed | D5/D7 and D8 were integrated and adversarially repaired through `891ad50`; Dart now has 22 supported rows and no coverage-level partial, pending, or unsupported rows. Installed external-library routing reaches semantic duplication, keep-separate unification, and transactional move outcomes while only three routers remain ambient. Both Dart implementation worktrees are retired. The preflight telemetry was redacted and committed on its archive branch at `5a8a571`; that clean checkout remains solely because it owns Git's common administrative metadata. Begin three read-only P6/F1 reuse comparisons; do not open a new language implementation lane yet. |
