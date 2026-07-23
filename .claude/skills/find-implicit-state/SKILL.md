@@ -1,7 +1,7 @@
 ---
 name: find-implicit-state
-description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, and Rust state branches. Compiler-backed branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.
-argument-hint: "--target <directory> [--language typescript|javascript|go|java|rust]"
+description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, Rust, and Dart state branches. Compiler-backed branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.
+argument-hint: "--target <directory> [--language typescript|javascript|go|java|rust|dart]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -21,12 +21,34 @@ not_for: |
   generic TypeScript lint generator.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust]
+scans: [python, typescript, javascript, go, java, rust, dart]
 install_with: [map-subsystem]
 scout_model: cheap
 ---
 
 # /find-implicit-state
+
+## Dart v1
+
+Dart v1 uses the sibling `map-subsystem` SDK-LSP provider to nominate a
+direct class `String state`, `status`, or `phase` field only when at least
+three literal assignments or comparisons resolve to that exact declaration.
+It requires a candidate-hash-bound human review before a finding is promoted;
+the literals never prove that the value domain is closed. Copy sibling
+`map-subsystem` with this skill.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-implicit-state"
+python3 "${SKILL_ROOT}/scripts/detect_dart_state.py" \
+  --project-root "$PWD" --target lib \
+  --output-dir "$PWD/reports/implicit-state/dart"
+```
+
+Typed state, insufficient evidence, local homonyms, dynamic access,
+serialization/wire carriers, tests, generated code, examples, vendor code,
+reflection, isolates, external compatibility, and Flutter state are excluded
+or unresolved. The first run normally stops at `human_review_required`; pass
+an accepted review directory with `--reviews-dir` to produce final findings.
 
 ## Rust v1
 

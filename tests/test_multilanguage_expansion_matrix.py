@@ -106,9 +106,9 @@ EXPECTED_RUST_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_DART_COUNTS = {
-    "dart-supported": 8,
+    "dart-supported": 10,
     "dart-partial": 1,
-    "dart-pending-implementation": 13,
+    "dart-pending-implementation": 11,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -590,8 +590,6 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "extract-enum",
         "find-complexity-hotspots",
         "find-duplication",
-        "find-implicit-state",
-        "find-incomplete-sweep",
         "find-omnibus",
         "find-semantic-duplication",
         "move-path",
@@ -616,7 +614,13 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         row["skill"]
         for row in language_rows
         if row["dart_closure_mode"] == "stock-selected-install"
-    } == {"find-dormant", "map-subsystem", "rename-concept"}
+    } == {
+        "find-dormant",
+        "find-implicit-state",
+        "find-incomplete-sweep",
+        "map-subsystem",
+        "rename-concept",
+    }
     assert Counter(row["javascript_cohort"] for row in language_rows) == (
         EXPECTED_JAVASCRIPT_COHORT_COUNTS
     )

@@ -400,11 +400,13 @@ def test_dart_frozen_contracts_and_current_family_dispositions() -> None:
         "find-concept-divergence",
         "find-dormant",
         "find-folder-topology-drift",
+        "find-implicit-state",
+        "find-incomplete-sweep",
         "find-standard-gaps",
         "rename-concept",
     }
     assert {skill for skill, value in dispositions.items() if value == "dart-partial"} == {
         "map-subsystem"
     }
-    assert sum(value == "dart-pending-implementation" for value in dispositions.values()) == 13
+    assert sum(value == "dart-pending-implementation" for value in dispositions.values()) == 11
     assert all(row["limitation"] and row["native_check"] for row in rows)

@@ -240,7 +240,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "cpp_disposition": "cpp-pending-implementation",
         "ruby_disposition": "ruby-pending-implementation",
         "rust_disposition": "rust-supported",
-        "dart_disposition": "dart-pending-implementation",
+        "dart_disposition": "dart-supported",
         "fact_level": "semantic-project",
         "outcome_class": "read-only-report",
         "framework_family": None,
@@ -533,7 +533,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "/adapt-project declares ruby_disposition=ruby-pending-implementation"
     )
 
-    pending_dart = _run_isolated(
+    supported_dart = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
         "use adapt-project on this Dart repository",
         "--project-root",
@@ -545,16 +545,30 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "--json",
         cwd=host,
     )
-    assert pending_dart.returncode == 1
-    pending_dart_payload = json.loads(pending_dart.stdout)
-    assert pending_dart_payload["routing_context"]["language"] == "dart"
-    assert pending_dart_payload["recommendation"] == "pending-implementation"
-    assert pending_dart_payload["unavailable"]["classification"] == (
-        "pending-implementation"
+    supported_dart_payload = _json_output(supported_dart)
+    assert supported_dart_payload["routing_context"]["language"] == "dart"
+    assert supported_dart_payload["recommendation"] == "adapt-project"
+    assert supported_dart_payload["handoff"]["available"] is True
+    assert supported_dart_payload["handoff"]["default_execution"] == (
+        "fresh_non_context_subagent"
     )
-    assert pending_dart_payload["unavailable"]["reason"] == (
-        "/adapt-project declares dart_disposition=dart-pending-implementation"
-    )
+    assert supported_dart_payload["handoff"]["capabilities"]["skills"][0][
+        "dart_disposition"
+    ] == "dart-supported"
+    dart_optional = dict(supported_dart_payload["optional_install"])
+    dart_source = dart_optional.pop("source")
+    assert dart_source.startswith("https://github.com/")
+    assert dart_optional == {
+        "skill": "adapt-project",
+        "skills": ["adapt-project"],
+        "skills_cli_version": "1.5.19",
+        "agent": "codex",
+        "available": False,
+        "reason": "selected_language_requires_external_library",
+        "evidence": [
+            {"skill": "adapt-project", "status": "external-library-only"}
+        ],
+    }
 
     for skill, task in (
         ("adapt-project", "use adapt-project on this Rust repository"),
@@ -704,7 +718,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "cpp_disposition": "cpp-pending-implementation",
         "ruby_disposition": "ruby-pending-implementation",
         "rust_disposition": "rust-supported",
-        "dart_disposition": "dart-pending-implementation",
+        "dart_disposition": "dart-supported",
         "fact_level": "lexical-filesystem",
         "outcome_class": "configuration-output",
         "framework_family": None,
@@ -775,17 +789,13 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     )
     dart_shape_payload = _json_output(dart_shape)
     assert dart_shape_payload["recommendation"]["first_next"] == "/adapt-project"
-    assert dart_shape_payload["handoff"]["available"] is False
-    assert dart_shape_payload["handoff"]["reason"] == (
-        "selected_skill_pending_implementation"
+    assert dart_shape_payload["handoff"]["available"] is True
+    assert dart_shape_payload["handoff"]["default_execution"] == (
+        "fresh_non_context_subagent"
     )
-    assert dart_shape_payload["handoff"]["blocked"] == [
-        {
-            "skill": "adapt-project",
-            "language": "dart",
-            "disposition": "dart-pending-implementation",
-        }
-    ]
+    assert dart_shape_payload["handoff"]["capabilities"]["skills"][0][
+        "dart_disposition"
+    ] == "dart-supported"
 
     c_shape = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",

@@ -8,21 +8,22 @@ description: |
   resolved project function calls by object-option property presence; Go uses host Go `go/types`
   for one direct top-level function / keyed struct-option shape; Java 17 uses the JDK
   compiler tree API for one direct record/options-constructor shape; Rust uses
-  compiler-resolved direct calls for one struct-option omission shape. Gated on a git-trajectory
+  compiler-resolved direct calls for one struct-option omission shape; Dart
+  uses SDK-LSP-resolved top-level calls for one named-argument omission shape. Gated on a git-trajectory
   signal: a divergence counts as a forgotten sweep only when the
   kwarg-present sites were touched more recently than the straggler (the sweep
   landed after the straggler was last edited). A straggler edited just as
   recently is reported separately as likely-deliberate. Distinguishes
   abandoned partial work from legitimate post-completion cleanup via residue
   direction. Detection-only — never edits code; hands off to /fix-workflow.
-argument-hint: "Python: [--band kwarg|placeholder|all] --paths scripts ...; TypeScript/JavaScript: --target src --tsconfig <config>; Go/Java/Rust: --target . --report-dir reports/find-incomplete-sweep/<name>"
+argument-hint: "Python: [--band kwarg|placeholder|all] --paths scripts ...; TypeScript/JavaScript: --target src --tsconfig <config>; Go/Java/Rust/Dart: --target . --report-dir reports/find-incomplete-sweep/<name>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust]
+scans: [python, typescript, javascript, go, java, rust, dart]
 install_with: [map-subsystem]
 best_for: |
   Reviewing a human- or AI-authored multi-file change where a sweep across
@@ -55,6 +56,30 @@ delegate_from: |
 ---
 
 # /find-incomplete-sweep
+
+## Dart v1
+
+Dart v1 uses the sibling `map-subsystem` SDK-LSP provider to group direct
+calls that resolve to one top-level function. It admits one narrow shape: at
+least three of four sites pass the same comparable named-argument value, one
+omits it, and every present site is newer in Git than the straggler. The
+detector writes candidates only; `scout.py` and `triage.py` preserve the fixed
+human-verdict workflow. Copy sibling `map-subsystem` with this skill.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-incomplete-sweep"
+REPORT_DIR="$PWD/reports/find-incomplete-sweep/dart"
+python3 "${SKILL_ROOT}/scripts/detect_dart_incomplete_sweep.py" \
+  --project-root "$PWD" --target lib --report-dir "$REPORT_DIR"
+python3 "${SKILL_ROOT}/scripts/scout.py" \
+  --scan-dir "$REPORT_DIR" --project-root "$PWD"
+# Write one fixed-vocabulary verdict per packet, then:
+python3 "${SKILL_ROOT}/scripts/triage.py" --scan-dir "$REPORT_DIR"
+```
+
+Wrappers, aliases, methods, cascades, extension/dynamic dispatch, runtime
+behavior, generated/test/vendor/example code, incomplete Git evidence, and
+automatic fixes remain outside this contract.
 
 ## Rust v1
 

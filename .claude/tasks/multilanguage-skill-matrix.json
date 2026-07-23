@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "b89945abe262c452aa342b1a9db24a07ec3fe71602a63ccbca9266a3fee2e6dc"
+      "sha256": "cf862ad63ed489b53d3cbee3632a72016b1cd05ae4db0f67ed001651267153c3"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -47,7 +47,7 @@
     },
     {
       "path": ".claude/tasks/dart-language-coverage.json",
-      "sha256": "b3629d3147bd9d5fd3c88c5ccf0a593dc793f22ef3c03271fd32bfab7ad7eaea"
+      "sha256": "099aaeadf6ba87716025569a6d95a8de5fa2963d0194d894c52e053064707a7e"
     }
   ],
   "counts": {
@@ -3284,14 +3284,15 @@
       ],
       "rust_reviewed_revision": "51055379904262ed4d60645b9fbed5b08f6ef015",
       "rust_limitation": "Human extract-enum verdict required; the domain is not proven closed, and statics, interior mutability, environment/thread state, traits/generics, macros/cfg, registries, and unsafe/FFI remain unresolved.",
-      "dart_disposition": "dart-pending-implementation",
-      "dart_closure_mode": null,
-      "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
+      "dart_disposition": "dart-supported",
+      "dart_closure_mode": "stock-selected-install",
+      "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d5-semantic-state-family.md",
       "dart_native_check": [
-        "no final state census"
+        "Dart 3.12 SDK-LSP definition targets prove direct String field operations, source/configuration hashes, native gates, stale recovery, source preservation, and copied execution",
+        "candidate-hash-bound human review promotes exactly one bounded state finding while typed, insufficient, local-homonym, dynamic, wire, generated, test, example, vendor, and tooling evidence stays out"
       ],
-      "dart_reviewed_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
-      "dart_limitation": "Statics, late fields, singletons, zones, isolates, callbacks, providers, and framework state remain unresolved.",
+      "dart_reviewed_revision": "eb9f7a6",
+      "dart_limitation": "Human review remains mandatory and literals do not prove a closed domain; serialization, reflection, dynamic access, external compatibility, isolates, provider/framework state, and Flutter state remain unresolved.",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -3305,7 +3306,8 @@
           "javascript",
           "go",
           "java",
-          "rust"
+          "rust",
+          "dart"
         ],
         "install_with": [
           "map-subsystem"
@@ -3429,14 +3431,15 @@
       ],
       "rust_reviewed_revision": "51055379904262ed4d60645b9fbed5b08f6ef015",
       "rust_limitation": "One direct struct-option omission shape only; target/cfg variants, macros/build output, dynamic/trait/generic calls, optional dependencies, external crates, and missing Git evidence remain deferred.",
-      "dart_disposition": "dart-pending-implementation",
-      "dart_closure_mode": null,
-      "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
+      "dart_disposition": "dart-supported",
+      "dart_closure_mode": "stock-selected-install",
+      "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d5-semantic-state-family.md",
       "dart_native_check": [
-        "malformed source is rejected; malformed pubspec remains explicitly unvalidated"
+        "Dart 3.12 SDK-LSP definition targets plus Git trajectory prove one direct top-level named-argument omission shape, source/configuration hashes, native gates, stale recovery, source preservation, and copied execution",
+        "detector, scout packets, one fixed-vocabulary human verdict, and triaged.md complete the final handoff while same-spelled locals, tear-offs, wrappers, dynamic/extension dispatch, and excluded roles stay out"
       ],
-      "dart_reviewed_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
-      "dart_limitation": "Resolved references, manifest validity, package variants, generated units, and trajectory evidence are unavailable.",
+      "dart_reviewed_revision": "eb9f7a6",
+      "dart_limitation": "One direct top-level named-argument omission shape only; wrappers, aliases, methods, cascades, dynamic/extension dispatch, generated code, incomplete Git history, runtime behavior, framework semantics, and automatic fixes remain unresolved.",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -3450,7 +3453,8 @@
           "javascript",
           "go",
           "java",
-          "rust"
+          "rust",
+          "dart"
         ],
         "install_with": [
           "map-subsystem"

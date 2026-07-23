@@ -532,7 +532,7 @@
     },
     {
       "name": "find-implicit-state",
-      "description": "Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, and Rust state branches. Compiler-backed branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.",
+      "description": "Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, Rust, and Dart state branches. Compiler-backed branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Stringly-typed status / phase / state comparisons against bare\nliterals; `.filter(status=..., *_at__...)` tuple-inferred identity.\nTargets the stringly-typed-state smell. Decided in: 0001\n(TextChoices for state).\nIn TypeScript, closed state receivers with repeated bare string\ncomparisons or assignments and a host-owned Compiler API.\n",
@@ -545,7 +545,8 @@
         "javascript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "install_with": [
         "map-subsystem"
@@ -554,7 +555,7 @@
     },
     {
       "name": "find-incomplete-sweep",
-      "description": "Advisory SUSPECT scan for incomplete sweeps — multi-site changes that were\nstarted but never finished, leaving a forgotten sibling call site at the old\nshape (\"updated N-1 of N\"). Python retains the keyword-argument omission\nband; TypeScript/TSX and checked JavaScript use the host-pinned TypeScript Compiler API to group\nresolved project function calls by object-option property presence; Go uses host Go `go/types`\nfor one direct top-level function / keyed struct-option shape; Java 17 uses the JDK\ncompiler tree API for one direct record/options-constructor shape; Rust uses\ncompiler-resolved direct calls for one struct-option omission shape. Gated on a git-trajectory\nsignal: a divergence counts as a forgotten sweep only when the\nkwarg-present sites were touched more recently than the straggler (the sweep\nlanded after the straggler was last edited). A straggler edited just as\nrecently is reported separately as likely-deliberate. Distinguishes\nabandoned partial work from legitimate post-completion cleanup via residue\ndirection. Detection-only — never edits code; hands off to /fix-workflow.\n",
+      "description": "Advisory SUSPECT scan for incomplete sweeps — multi-site changes that were\nstarted but never finished, leaving a forgotten sibling call site at the old\nshape (\"updated N-1 of N\"). Python retains the keyword-argument omission\nband; TypeScript/TSX and checked JavaScript use the host-pinned TypeScript Compiler API to group\nresolved project function calls by object-option property presence; Go uses host Go `go/types`\nfor one direct top-level function / keyed struct-option shape; Java 17 uses the JDK\ncompiler tree API for one direct record/options-constructor shape; Rust uses\ncompiler-resolved direct calls for one struct-option omission shape; Dart\nuses SDK-LSP-resolved top-level calls for one named-argument omission shape. Gated on a git-trajectory\nsignal: a divergence counts as a forgotten sweep only when the\nkwarg-present sites were touched more recently than the straggler (the sweep\nlanded after the straggler was last edited). A straggler edited just as\nrecently is reported separately as likely-deliberate. Distinguishes\nabandoned partial work from legitimate post-completion cleanup via residue\ndirection. Detection-only — never edits code; hands off to /fix-workflow.\n",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Reviewing a human- or AI-authored multi-file change where a sweep across\nsibling call sites may have stopped short: a new keyword argument threaded\nthrough some callers, a proxy/config param added to some call sites, an\noption passed at most but not all of a callee's call sites. The straggler is\nfully live (old shape still referenced and executing), so /find-dormant\ncannot see it. The git-trajectory gate keeps the signal to recently-swept\ndivergences rather than long-stable intentional asymmetry.\n",
@@ -567,7 +568,8 @@
         "javascript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "install_with": [
         "map-subsystem"
