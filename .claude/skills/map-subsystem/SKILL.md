@@ -40,9 +40,11 @@ python3 "${SKILL_ROOT}/scripts/map_dart.py" \
   --evidence "$PWD/reports/map/${MAP_NAME}/dart-map.json"
 ```
 
-Conditional imports/exports, parts, augmentations, generated code, unresolved
-URIs, reflection, runtime dispatch, external dependency internals, and Flutter
-routes/widgets remain partial or unavailable rather than inferred.
+The bounded selected configuration is complete when every selected authored
+file and first-party edge resolves. Conditional imports/exports, parts,
+augmentations, generated code, unresolved URIs, reflection, runtime dispatch,
+external dependency internals, and Flutter routes/widgets instead produce an
+explicit runtime partial or unavailable boundary; they are never inferred.
 
 <!-- Legacy Go metadata token: scans: [python, typescript, javascript, go] -->
 <!-- Legacy PHP/C metadata token: scans: [python, typescript, javascript, go, java, php, swift, c] -->

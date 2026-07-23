@@ -106,8 +106,7 @@ EXPECTED_RUST_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_DART_COUNTS = {
-    "dart-supported": 21,
-    "dart-partial": 1,
+    "dart-supported": 22,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,

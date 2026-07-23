@@ -409,6 +409,7 @@ def test_dart_frozen_contracts_and_current_family_dispositions() -> None:
         "find-omnibus",
         "find-semantic-duplication",
         "find-standard-gaps",
+        "map-subsystem",
         "move-path",
         "prevent-regression",
         "propose-boundary",
@@ -416,8 +417,8 @@ def test_dart_frozen_contracts_and_current_family_dispositions() -> None:
         "rename-concept",
         "unify-shadows",
     }
-    assert {skill for skill, value in dispositions.items() if value == "dart-partial"} == {
-        "map-subsystem"
+    assert not {
+        skill for skill, value in dispositions.items() if value == "dart-partial"
     }
     assert not {
         skill

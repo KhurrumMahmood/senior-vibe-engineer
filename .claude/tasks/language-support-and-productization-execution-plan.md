@@ -156,11 +156,13 @@ Run in this order:
    external-library closures. Run artifact drift, matrix freshness, router
    decision, installed-router, and final copied execution tests from the
    committed revision.
-4. Resolve the plan's partial-outcome ambiguity explicitly. A partial row does
-   not close a chosen language under the current criteria. Either earn a
-   supported bounded outcome or propose an owner-approved criteria revision
-   explaining why a complete selected-configuration outcome plus explicit
-   unsupported configurations satisfies the underlying engineering job.
+4. Apply the accepted coverage/runtime distinction: a coverage row is
+   `supported` when its bounded implementation fully satisfies the declared
+   useful contract, even though unsupported input configurations may terminate
+   visibly as runtime `partial`; coverage `partial` means the implementation
+   itself remains incomplete and keeps the language open. Dart's bounded map
+   satisfies the former rule without claiming conditional, part, generated, or
+   Flutter completeness.
 5. Repository anomaly review is complete: the Java review's substantive bytes
    already exist on `main`, and the dirty JavaScript lane was an abandoned
    precursor to the smaller committed mutation implementation; its focused
@@ -182,8 +184,9 @@ F0 acceptance:
 - [ ] Installed routing reaches final Dart semantic-duplication, keep-separate
   unification, and move preview/apply/check outcomes without ambiently
   installing task skills.
-- [ ] Dart's remaining partial disposition has an explicit accepted completion
-  decision; no whole-language or Flutter claim is implied.
+- [x] Dart has zero coverage-level partial rows under the accepted bounded-
+  contract/runtime-partial distinction; no whole-language or Flutter claim is
+  implied.
 - [ ] The committed ledger records the Java byte-equivalence decision and the
   JavaScript supersession plus green mutation regression; branch refs remain.
 - [ ] Only `main` remains checked out. Archive and completed lane branches may
@@ -207,13 +210,14 @@ and semantic/proposal/mutation facts. Root then writes one decision.
 - Record rejected abstractions, including universal AST/call-graph/result
   schemas, workflow DAGs, daemons, package managers, and cross-language
   mutation executors, so later reviews do not repeatedly reopen them.
-- Submit one criteria revision for owner approval: a coverage row is
-  `supported` when a bounded implementation fully satisfies its declared
-  contract even though individual unsupported configurations may terminate as
-  runtime `partial`; coverage `partial` remains reserved for an implementation
-  that does not yet satisfy its declared useful contract and therefore keeps
-  the language open. Re-evaluate Rust, Dart, and Ruby map rows under that rule
-  rather than calling the same disposition both complete and incomplete.
+- Apply the accepted coverage/runtime distinction consistently: a coverage row
+  is `supported` when a bounded implementation fully satisfies its declared
+  contract even though unsupported configurations may terminate as runtime
+  `partial`; coverage `partial` remains reserved for an implementation that
+  does not yet satisfy its useful contract and therefore keeps the language
+  open. Dart is resolved in F0; re-evaluate the existing Rust and Ruby map rows
+  under the same rule rather than calling the same disposition both complete
+  and incomplete.
 - Reconcile P4/P5 wording with the chosen-language requirement: economics may
   reject shared extraction but cannot stop useful PHP outcomes, and P5 becomes
   the required C# spine/economics gate rather than an optional stop-after-pilot
@@ -1082,3 +1086,4 @@ Evidence:
 | 2026-07-23 | Planning/F0 | Obsolete worktrees retired and follow-on queue drafted | Fresh audit began with 70 registered worktrees. Root removed 64 clean worktrees whose complete patches were already represented on `main`, then retired the Java review after proving its substantive bytes already landed and the dirty JavaScript precursor after the committed mutation regression passed `2 passed`. All branch refs and commits remain. Four checkouts remain: `main`, two completed unmerged Dart lanes, and the archived preflight checkout with machine-local policy logs. Checked-out disk use fell from about 2.2 GB to 1.1 GB. Three fresh non-context read-only reviews then shaped F0-F7 around serial Dart/repository closeout, family-batched languages, and measured UX adoption. |
 | 2026-07-23 | P7/F0 | Dart D5/D7 integrated and published | `ef9a9fb` integrates the bounded Dart semantic-duplication detector and accepted-evidence shadow proposal consumer onto the final D4 outgoing-call provider. Root replay passes `35` D4/D5/D7 and copied-closure tests in 144.60s. Skill prose, coverage, catalog, and generated matrix now publish 20 supported outcomes, one useful partial map, and only `move-path` pending; their focused publication/router tests pass `37` in 8.39s, metadata lint reports 76 conforming skills, and artifact drift is clean. D8 remains isolated until unrelated-file over-refusal is repaired and replayed. |
 | 2026-07-23 | P7/F0 | Dart D8 accepted after adversarial repair | `9075acc`, `c037890`, and `80724f4` integrate one evidence-authorized private-library move plus two review-response checkpoints. Regression-first repair scopes unrelated boundaries, refuses impacted symlink consumers before mutation, fingerprints file modes, preserves rollback/exact-tree proof, makes native tests portable, and deletes one dead 563-line copied helper. Worker replay passes `26` Dart move tests, `61` D1/D2/D4/conformance tests, and the preserved non-Dart family at `72 passed, 1` intentional skip; root replays `12` critical transaction, decoy, symlink, mode, rollback, and copied-closure cases in 181.16s. Coverage publication now records 21 supported jobs, one useful partial map, and zero pending jobs. |
+| 2026-07-23 | P7/F0 | Dart coverage/runtime semantics resolved | `e22a021` publishes transactional move support, and the committed installed-router replay passes in 3.61s while routing Dart semantic duplication, shadow proposal, and move-path to their external-library closures with only three ambient routers. The accepted distinction now reserves coverage `partial` for an incomplete implementation while allowing a bounded `supported` contract to return visible runtime partials for unsupported configurations. The already-proven selected-configuration Dart map therefore closes as supported with explicit conditional/part/generated/Flutter limitations: Dart is 22 supported, zero partial, zero pending, and zero unsupported. |

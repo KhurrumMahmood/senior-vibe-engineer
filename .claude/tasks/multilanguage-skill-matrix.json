@@ -47,7 +47,7 @@
     },
     {
       "path": ".claude/tasks/dart-language-coverage.json",
-      "sha256": "197acaa3dc2fee958064f7fc0c201aadbec035c587bd56615b6c87bfaf99b161"
+      "sha256": "54349fe302af3c4f331457beaa194cf823628b9d62ffc57c2200a19e79387dcb"
     }
   ],
   "counts": {
@@ -5789,15 +5789,15 @@
       ],
       "rust_reviewed_revision": "aee1e4a863f66d259e2683fb7ca18437c6ed38da",
       "rust_limitation": "Useful selected-configuration facts are complete, but macro/procedural expansion, build-script OUT_DIR, include!, unselected cfg/feature/target variants, and runtime trait-object dispatch remain unresolved; overall status is partial.",
-      "dart_disposition": "dart-partial",
+      "dart_disposition": "dart-supported",
       "dart_closure_mode": "stock-selected-install",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d4-semantic-family.md",
       "dart_native_check": [
         "Dart 3.12 SDK-LSP fact pack proves capabilities, diagnostics, selected source/configuration hashes, direct public surface, resolved first-party edges, native gates, external-cache cleanup, stale recovery, and copied execution",
-        "durable Markdown and JSON agree; a bounded clean package is complete while a conditional-export package preserves useful facts as partial"
+        "durable Markdown and JSON agree; a bounded clean selected configuration is complete while an unsupported conditional-export configuration remains visibly runtime partial"
       ],
       "dart_reviewed_revision": "f246f0b",
-      "dart_limitation": "Useful selected-configuration facts are available, but conditional imports/exports, parts, augmentations, generated code, unresolved URIs, external dependency internals, reflection, runtime dispatch, and Flutter routes/widgets remain incomplete; overall disposition is partial.",
+      "dart_limitation": "The bounded selected-configuration map is supported; conditional imports/exports, parts, augmentations, generated code, unresolved URIs, external dependency internals, reflection, runtime dispatch, and Flutter routes/widgets remain explicit runtime-partial or unavailable configurations rather than inferred facts.",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
