@@ -1,6 +1,6 @@
 ---
 name: move-path
-description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked PHP supports one Composer PSR-4 leaf namespace-directory move; checked Swift supports one dependency-free SwiftPM target-directory move while retaining module identity; checked Rust supports one conventional Cargo library leaf-module file or directory move. TypeScript/TSX source imports are never rewritten in v1.
+description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked PHP supports one Composer PSR-4 leaf namespace-directory move; checked Swift supports one dependency-free SwiftPM target-directory move while retaining module identity; checked Rust supports one conventional Cargo library leaf-module file or directory move; checked Dart supports one evidence-authorized private library file or leaf-directory move with analyzer-resolved directive rewrites and public-barrel preservation. TypeScript/TSX source imports are never rewritten in v1.
 argument-hint: "--plan moves.json --dry-run|--apply|--check"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 user-invocable: true
@@ -21,6 +21,10 @@ best_for: |
   target-directory move that retains module identity and has an executable smoke product.
   Use the checked-Rust mode only for one reviewed conventional leaf-module
   file or directory move in a regular Cargo library target.
+  Use the checked-Dart mode only for one reviewed private `lib/src` library
+  file or leaf-directory move in a dependency-free Dart 3.12 package with a
+  pre-existing package configuration, direct native test/smoke, and declared
+  stable public barrel.
 not_for: |
   Domain-concept terminology renames in prose (use /rename-concept).
   Python/TypeScript import refactors unless a language adapter has been
@@ -29,13 +33,13 @@ not_for: |
   /refactor-subsystem). Blind global find-and-replace.
 language: any
 framework: any
-scans: [go, java, javascript, php, rust, swift, typescript]
+scans: [dart, go, java, javascript, php, rust, swift, typescript]
 ---
 
 # /move-path
 
 You are the orchestrator for safe batched standalone TypeScript/TSX path
-moves, plus opt-in bounded checked-JavaScript, Go, Java, PHP, Rust, and SwiftPM modes. The deterministic
+moves, plus opt-in bounded checked-Dart, JavaScript, Go, Java, PHP, Rust, and SwiftPM modes. The deterministic
 script owns filesystem moves, path normalization, reference resolution, patch
 generation, and verification. Your job is to prepare or inspect the plan, run
 dry-run first, review uncertainty buckets and ignored-import risk, then apply
@@ -218,6 +222,34 @@ moves, and ambiguous topology remain `partial` and block writes. Post-apply or
 exact-after-tree failure restores the full pre-apply snapshot. This is not a
 crate/package rename or arbitrary Rust refactoring engine.
 
+## Checked-Dart Library Boundary
+
+Use `scripts/dart_library_move.py` for exactly one private Dart library file
+or leaf-directory move below `lib/src/`. Dry-run joins exact public-analyzer
+directive spans to SDK Analysis Server/LSP-resolved module targets, runs the
+native preflight, and writes `evidence.json`. Apply requires both that exact
+evidence file and its SHA-256 on the command line; this is the explicit human
+approval boundary. Any changed source, package configuration, tool facts,
+plan, edit span, or expected after-tree makes the evidence stale and blocks
+writes.
+
+The bounded adapter rewrites all impacted resolved first-party `import` and
+`export` URIs, including a moved referrer's relative imports and internal
+`package:<name>/src/...` imports. At least one stable public barrel must be
+declared and must continue to export the moved library. Moving a public
+`lib/*.dart` library, changing a public package URI, or crossing packages is
+not supported.
+
+The host must explicitly declare itself `disposable` or `user-approved`.
+Generated source, any symlink boundary, parts/part files, augmentations,
+conditional directives, dynamic/reflective loading evidence, unresolved or
+excluded-role impacts, multiple moves, public-library moves, and an incomplete
+package graph all stop before mutation. Postflight reruns analyzer-backed
+facts plus format/analyze/direct-test/smoke, checks the exact whole-host after
+tree, and restores the complete byte/mode/symlink snapshot on any failure.
+The copied closure installs no Dart SDK or host dependency and never runs Pub
+inside the audited host.
+
 ## Commands
 
 The installed/on-demand command resolves either supported agent location and
@@ -298,6 +330,42 @@ fi
 python3 "${SKILL_ROOT}/scripts/rust_module_move.py" "${RUST_ARGS[@]}"
 ```
 <!-- installed-command:rust-move:end -->
+
+For Dart, invoke the copied standalone adapter. Dry-run produces the evidence
+hash; apply must repeat that reviewed hash explicitly:
+
+<!-- installed-command:dart-move:start -->
+```bash
+MOVE_PLAN="${MOVE_PLAN:-moves.json}"
+MOVE_MODE="${MOVE_MODE:---dry-run}" # --dry-run | --apply | --check
+MOVE_REPORT_DIR="${MOVE_REPORT_DIR:-reports/move-path}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/move-path" \
+  ".agents/skills/move-path" \
+  ".claude/skills/move-path"
+do
+  if [ -f "${SKILL_CANDIDATE}/scripts/dart_library_move.py" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "Dart move-path external-library closure is not installed" >&2
+  exit 2
+fi
+DART_ARGS=(--plan "${MOVE_PLAN}" --project-root "$(pwd)" \
+  --report-dir "${MOVE_REPORT_DIR}" "${MOVE_MODE}" --json)
+if [ "${MOVE_MODE}" = "--apply" ]; then
+  : "${APPROVED_EVIDENCE_SHA256:?Set from the reviewed dry-run evidence}"
+  DART_ARGS+=(--evidence "${MOVE_REPORT_DIR}/evidence.json" \
+    --approve-evidence-sha256 "${APPROVED_EVIDENCE_SHA256}")
+elif [ "${MOVE_MODE}" = "--check" ]; then
+  DART_ARGS+=(--evidence "${MOVE_REPORT_DIR}/evidence.json")
+fi
+python3 "${SKILL_ROOT}/scripts/dart_library_move.py" "${DART_ARGS[@]}"
+```
+<!-- installed-command:dart-move:end -->
 
 For a repository checkout, the residue audit remains:
 
@@ -443,6 +511,32 @@ the host-owned toolchain plus an executable smoke expectation:
 }
 ```
 
+For the bounded Dart private-library move, declare the audited host scope,
+pre-existing configuration, direct native obligations, and stable barrel:
+
+```json
+{
+  "version": 1,
+  "moves": [
+    {
+      "from": "lib/src/legacy/invoice_service.dart",
+      "to": "lib/src/billing/internal/invoice_service.dart",
+      "mode": "file"
+    }
+  ],
+  "rewrite": {"code_imports": "update-dart"},
+  "dart": {
+    "binary": "/absolute/path/to/dart",
+    "host_scope": "disposable",
+    "package_config": ".dart_tool/package_config.json",
+    "native_test": "test/native_test.dart",
+    "smoke": "bin/smoke.dart",
+    "smoke_expected_stdout": "INV-42:125\n",
+    "public_barrels": ["lib/my_package.dart"]
+  }
+}
+```
+
 ## Confidence Buckets
 
 - `auto` — resolved identity, safe to update.
@@ -477,6 +571,10 @@ describing the old layout rather than linking to the current identity.
    In checked-Rust mode, require a `complete` Rust status, review the exact
    module declaration/path edits and source fingerprint, and resolve every
    cfg, macro, include, build-output, symlink, excluded-root, or topology refusal.
+   In checked-Dart mode, require a `complete` dry-run, review every exact
+   analyzer-resolved directive edit and the declared public barrel, then pass
+   the content-addressed evidence hash explicitly to apply. Any partial or
+   stale evidence is a stop, not permission to fall back to text replacement.
 5. Run `--apply` only after the dry-run report matches the intended
    transform.
 6. Run `--check` after manual follow-up edits or before commit.
