@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: C++ lexical/semantic value cohorts and Ruby lexical cohort active; Ruby spine integrated; C#/.NET remains last
-Last updated: 2026-07-22 (full chosen-language completion and native-alternative rules adopted; C++ spine integrated; queued toolchains installed)
+Current phase: Dart final integration and publication; shared-component closeout follows before the next language cohort; C#/.NET remains last
+Last updated: 2026-07-23 (integrated worktrees retired; bounded follow-on execution sequence added)
 
 ## Objective
 
@@ -69,9 +69,13 @@ execution authorities.
 
 - The root coordinator records the exact base SHA and `git worktree list`
   before opening a lane. Existing live/unmerged worktrees are never deleted or
-  repurposed; prunable registrations are changed only after explicit review.
-  At this plan revision Git reports 87 registered worktrees, 59 prunable, so
-  the first implementation wave must review that inventory before adding more.
+  repurposed; obsolete worktrees are removed only after their work is proven
+  represented on `main` and their working tree is clean. The 2026-07-23 review
+  reduced 70 registrations to four by retiring 64 clean patch-equivalent
+  worktrees plus two reviewed superseded/anomaly worktrees while retaining
+  every branch and commit. The remaining checkouts are `main`, the archived
+  preflight branch, and the two completed Dart lanes. No new implementation
+  wave may open until those lanes have the dispositions required by F0 below.
 - Implementation workers are fresh non-context sub-agents. Every packet names
   the project/worktree root, `.venv/bin/python`, platform, base SHA, owned and
   forbidden paths, native tools, final artifacts, stop conditions, and exact
@@ -105,10 +109,269 @@ execution authorities.
 | P3 | Minimal reusable language-support kit scaffold proven | `done` | `f249d9a` |
 | P4 | PHP pilot proves real outcomes and kit economics | `done` | `268c3ac` |
 | P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `deferred_to_final_language` | — |
-| P6 | Shared components promoted or rejected on evidence | `not_started` | — |
-| P7 | Every chosen language reaches complete, value-tested language-level support | `active_dart_family_expansion` | — |
+| P6 | Shared components promoted or rejected on evidence | `scheduled_after_dart_closeout` | — |
+| P7 | Every chosen language reaches complete, value-tested language-level support | `active_dart_closeout` | — |
 | P8 | Current journey, update/repair, and help are measured | `not_started` | — |
 | P9 | Only measured user-journey improvements are adopted | `not_started` | — |
+
+## Follow-on execution sequence — 2026-07-23
+
+This is the active queue within P6-P9. Update `Status` and the named phase
+evidence table after each accepted integration. Do not mark a row done from a
+worker report alone: root must replay the final copied/installed boundary from
+the committed integration revision.
+
+| ID | Outcome | Status | Execution owner and parallelism | Completion evidence |
+|---|---|---|---|---|
+| F0 | Close Dart and normalize repository state | `in_progress` | Root integrates serially; fresh non-context agents may review but not publish shared truth | Accepted D5/D7 and D8 commits, final Dart publication/replay, anomaly dispositions, and only useful worktrees retained |
+| F1 | Complete P6 reuse decisions | `pending_f0` | Up to three read-only comparison lanes; root owns the decision and any shared edit | One committed adopt/reject/defer table with real consumers, economics, deletion proof, and frozen worker packets |
+| F2 | Complete PHP, Ruby, and Swift | `pending_f1` | One fresh non-context worktree per language for the same family; maximum three; root integrates serially | All 22 jobs per language have accepted outcomes or strict reviewed exceptions; installed routes and native value suites pass |
+| F3 | Complete C, C++, and Kotlin | `pending_f2` | Kotlin spine first; then one worktree per language for the same family; maximum three | Separate C/C++ truth retained; Kotlin project boundary proven; all three languages meet the F2 outcome gate |
+| F4 | Complete C#/.NET last | `pending_f3` | One spine, then disjoint read-only family lanes only where ownership is proven; mutation serial | Roslyn/project facts, all 22 jobs, copied closures, native build/test/analyze, and installed routing pass |
+| F5 | Publish final language release | `pending_f4` | Root only | No coverage-level pending or partial rows; bounded supported contracts may still report explicit runtime partial configurations; public install/bootstrap/route/execute/cleanup/uninstall replay passes at one SHA |
+| F6 | Measure and finish the existing user journey (P8) | `pending_f5` | Up to three read-only corpus/measurement lanes; router/help/status implementation serial | Frozen router corpus, non-executing help, stock update/repair journey, and serial/batched baseline measurements pass |
+| F7 | Adopt only measured UX/performance improvements (P9) | `pending_f6` | One experiment at a time; shared routing and mutation integration serial | Only experiments meeting predeclared correctness and efficiency thresholds ship; neutral/harmful results are recorded and rejected |
+
+### F0 — Dart and repository closeout
+
+Run in this order:
+
+1. Integrate completed D5/D7 semantic consumer commit `382ab7e` onto the
+   accepted D4 provider revision `dec49ac`. Replay its focused suite, the accepted-evidence
+   validator, D4/D5/D7 preservation, and one copied detector and proposer
+   journey before continuing.
+2. Review D8 commit `45f0c3f`, which was based before the final D4 extension,
+   before integration. Compare the standalone
+   adapter with existing move-path mechanics; retain only behavior required for
+   one reviewed private Dart library move, complete directive impact, native
+   postflight, residue proof, and rollback. Do not extract a transaction
+   platform. Its current refusal scan also treats unrelated generated Dart,
+   parts/augmentations, dynamic-loading tokens, and symlinks anywhere in the
+   host as blockers. Add unrelated-decoy tests and either narrow refusal to the
+   impacted evidence closure or publish the outcome as partial; global
+   over-refusal cannot earn supported. Then integrate and replay Dart plus
+   preserved move families.
+3. Publish `find-semantic-duplication`, `unify-shadows`, and `move-path` through
+   shared skill prose, coverage, matrix, catalog, routers, and installed
+   external-library closures. Run artifact drift, matrix freshness, router
+   decision, installed-router, and final copied execution tests from the
+   committed revision.
+4. Resolve the plan's partial-outcome ambiguity explicitly. A partial row does
+   not close a chosen language under the current criteria. Either earn a
+   supported bounded outcome or propose an owner-approved criteria revision
+   explaining why a complete selected-configuration outcome plus explicit
+   unsupported configurations satisfies the underlying engineering job.
+5. Repository anomaly review is complete: the Java review's substantive bytes
+   already exist on `main`, and the dirty JavaScript lane was an abandoned
+   precursor to the smaller committed mutation implementation; its focused
+   regression passed `2 passed`. Both worktrees were retired and their branch
+   refs retained. Keep `codex/portable-v1-preflight` as an archive branch, but
+   retire its physical worktree after its machine-local policy logs are
+   handled. Retire the two Dart worktrees only after accepted integration.
+
+F0 acceptance:
+
+- [ ] D5/D7 and D8 are integrated one at a time with focused and preserved
+  regressions green after each commit.
+- [ ] D8's retained production size and closure are justified by required user
+  behavior; redundant lifecycle/evidence machinery is removed or documented
+  as necessary, unrelated host files do not block a provably bounded move, and
+  no generic transaction abstraction is introduced.
+- [ ] Dart coverage, skill prose, generated matrix, catalog, all three routers,
+  installed closure manifests, and the execution ledger agree at one commit.
+- [ ] Installed routing reaches final Dart semantic-duplication, keep-separate
+  unification, and move preview/apply/check outcomes without ambiently
+  installing task skills.
+- [ ] Dart's remaining partial disposition has an explicit accepted completion
+  decision; no whole-language or Flutter claim is implied.
+- [ ] The committed ledger records the Java byte-equivalence decision and the
+  JavaScript supersession plus green mutation regression; branch refs remain.
+- [ ] Only `main` remains checked out. Archive and completed lane branches may
+  remain as refs; branch deletion is a separate, optional cleanup action.
+
+### F1 — Evidence-backed reuse decision
+
+Use completed TypeScript/Java, PHP, Rust, and Dart families as the sample. Three
+read-only lanes may independently examine: project/lexical facts, syntax facts,
+and semantic/proposal/mutation facts. Root then writes one decision.
+
+- Adopt only a component used immediately by at least two real consumers that
+  reduces maintained LOC by at least 25%, grows the copied closure by no more
+  than 10%, and grows median latency by no more than 10%. Any exception
+  requires an explicit criteria revision rather than an `or` interpretation.
+- Keep language-semantic schemas, consumer verdicts, proposal formats, and
+  mutation rollback local unless evidence independently clears that gate.
+- Freeze a work packet for each family containing owned files, provider facts,
+  positive/decoy/degraded fixtures, copied closure, native commands, and final
+  artifacts. This packet—not the full conversation—is passed to workers.
+- Record rejected abstractions, including universal AST/call-graph/result
+  schemas, workflow DAGs, daemons, package managers, and cross-language
+  mutation executors, so later reviews do not repeatedly reopen them.
+- Submit one criteria revision for owner approval: a coverage row is
+  `supported` when a bounded implementation fully satisfies its declared
+  contract even though individual unsupported configurations may terminate as
+  runtime `partial`; coverage `partial` remains reserved for an implementation
+  that does not yet satisfy its declared useful contract and therefore keeps
+  the language open. Re-evaluate Rust, Dart, and Ruby map rows under that rule
+  rather than calling the same disposition both complete and incomplete.
+- Reconcile P4/P5 wording with the chosen-language requirement: economics may
+  reject shared extraction but cannot stop useful PHP outcomes, and P5 becomes
+  the required C# spine/economics gate rather than an optional stop-after-pilot
+  decision.
+
+F1 acceptance is the existing P6 checklist plus a committed family-packet
+index that the next cohort can execute without repository archaeology.
+
+### F2-F4 — Repeatable language cohorts
+
+Process languages in cohorts so comparable work is visible at the same time:
+
+1. **Cohort A:** PHP, Ruby, Swift. Their spines and at least one value outcome
+   already exist.
+2. **Cohort B:** C, C++, Kotlin. C and C++ retain separate profiles and compile
+   modes; Kotlin first earns its project/build spine.
+3. **Cohort C:** C#/.NET, deliberately last.
+
+Within a cohort, execute the same family across up to three languages before
+advancing:
+
+1. lexical/filesystem;
+2. syntax;
+3. semantic read-only;
+4. accepted-evidence proposal and guard consumers; and
+5. mutation, one language at a time.
+
+One worker owns all still-pending skills in one family for one language. Do
+not create one agent or worktree per skill. A worker may share one
+language-local fact producer only when every consumer retains an independent
+final artifact and value assertion. Root alone updates shared skill guides,
+coverage, matrices, routers, durable docs, and this ledger.
+
+The concrete wave queue is also the resumability ledger. At wave start, replace
+`TBD` with the exact base SHA and branch/worktree names. After each root
+integration, record accepted revisions and the exact replay command/result
+before changing status to `done`.
+
+| Wave | Status | Base SHA / lane refs | Accepted revisions | Root replay evidence | Required result before advancing |
+|---|---|---|---|---|---|
+| A1 — PHP/Ruby/Swift lexical-filesystem | `pending_f1` | TBD; three worktrees | — | — | Every pending family member reaches its own copied final artifact; one language-local snapshot is allowed only for immediate consumers and measured savings |
+| A2 — PHP/Ruby/Swift syntax | `pending_a1` | TBD; three worktrees | — | — | Native token/compiler facts remain syntax-scoped; no syntax-as-semantics promotion |
+| A3 — PHP/Ruby/Swift semantic read-only | `pending_a2` | TBD; three worktrees | — | — | Project/configuration identity and explicit dynamic/unresolved boundaries; revisit Ruby map disposition here |
+| A4 — PHP/Ruby/Swift proposal/guard | `pending_a3` | TBD; three worktrees | — | — | Accepted producer envelopes only; no consumer reruns detection |
+| A5 — Ruby mutation and Cohort A publication | `pending_a4` | TBD; serial | — | — | PHP and Swift preserve accepted mutation outcomes; Ruby proves preview, authority, rollback, exact after-tree, and native checks |
+| B0 — Kotlin spine and C/C++ reuse decision | `pending_a5` | TBD; root/exclusive | — | — | Kotlin project/build boundary frozen; C and C++ remain separate even if a shared lifecycle helper is accepted |
+| B1 — C/C++/Kotlin lexical-filesystem | `pending_b0` | TBD; three worktrees | — | — | Independent copied final outcomes under trustworthy language modes |
+| B2 — C/C++/Kotlin syntax | `pending_b1` | TBD; three worktrees | — | — | Native syntax facts and complete degraded-tool boundaries |
+| B3 — C/C++/Kotlin semantic read-only | `pending_b2` | TBD; three worktrees | — | — | Trustworthy compile/project configuration and independent semantic outcomes |
+| B4 — C/C++/Kotlin proposal/guard | `pending_b3` | TBD; three worktrees | — | — | Accepted producer evidence, distinct proposal/guard artifacts, and human authority |
+| B5 — C, C++, then Kotlin mutation/publication | `pending_b4` | TBD; serial | — | — | One accepted mutation and publication at a time |
+| C0 — C# spine/P5 | `pending_b5` | TBD; serial | — | — | .NET/Roslyn project, restore/cache, source-role, and native command boundaries frozen |
+| C1 — C# lexical/syntax/semantic families | `pending_c0` | TBD; up to three disjoint worktrees | — | — | One project-aware fact boundary only if ownership and immediate consumers are proven |
+| C2 — C# downstream accepted-evidence consumers | `pending_c1` | TBD; up to three disjoint worktrees | — | — | Enum/guard, boundary/folder, and unification consumers preserve distinct artifacts and review authority |
+| C3 — C# mutation and publication | `pending_c2` | TBD; serial | — | — | All 22 C# jobs close and the final chosen-language release gate may start |
+
+This converts the unfinished matrix into roughly thirty multi-skill read-only
+cohorts plus five serial mutation closeouts, instead of 142 skill-sized worker
+lanes. Slow native family suites run serially after worker-focused tests to
+avoid the contention already observed in combined language runs.
+
+Family-wave entry gate:
+
+- exact base SHA, tool versions, project/build boundary, and existing coverage
+  are frozen;
+- every target skill names its useful final outcome, positive fixture, clean or
+  safe-defer case, must-not-fire cases, degraded-tool behavior, copied closure,
+  and native verification;
+- producer/consumer dependencies are explicit; proposal/guard work does not
+  start before accepted producer evidence; and
+- no worker installs tooling, edits shared publication surfaces, or weakens a
+  claim to make a row green.
+
+Family-wave merge gate:
+
+- each skill reaches its own final report/proposal/guard/mutation boundary;
+- source preservation or rollback is proven as applicable;
+- missing, old, failing, incomplete, stale, generated, vendor, test/example,
+  symlink, and framework-bound cases remain honest;
+- copied execution runs outside the checkout with no network or hidden import;
+- the host's native build/test/typecheck/lint and exact smoke pass; and
+- root replays focused, preserved-language, matrix/router, and installed
+  closure tests before publishing the new dispositions.
+
+### F5 — Final language release
+
+F5 starts only after every chosen language has zero pending rows. Frameworks
+remain explicitly separate. Root freezes one release SHA and proves README,
+coverage files, inventory, matrix, router output, closure manifests, and
+prerequisite documentation agree. A clean public host must install exactly the
+three routers, bootstrap the same-revision external library, route to
+representative completed language outcomes, explain unsupported framework or
+configuration boundaries, preserve user bytes, and uninstall only documented
+scope.
+
+### F6-F7 — Measured user journey and efficiency
+
+P8 remains measure-first. Up to three read-only lanes may freeze the router
+quality corpus, help/status/update-repair journeys, and serial/batched
+measurement corpus. Shared router behavior changes only after root integrates
+the evidence.
+
+The mandatory P8 surface is:
+
+- clear/ambiguous/misleading/direct/unsupported-language router cases;
+- non-executing `--help` for all three routers, including capability,
+  prerequisites, limitations, and slow/manual paths;
+- read-only router/library revision status and stock reinstall/re-bootstrap
+  repair instructions; and
+- final-outcome measurements for wall time, observable tokens, controlled
+  context bytes, native-tool calls, repeated facts, and human interventions.
+
+Execute P8 in this order:
+
+1. Root freezes a versioned router corpus and measurement protocol before any
+   matcher edit. Hard gates are 100% clear routes, allowed-set or discriminating
+   question behavior for every ambiguous case, zero heavy false positives on
+   direct tasks, honest support classification, and valid selected closures.
+2. Three read-only evidence lanes may then run concurrently: fresh-context
+   corpus adjudication, stock-CLI help/update/repair observation on disposable
+   hosts, and measurement-protocol audit. They do not edit shared files.
+3. Make matcher changes only for reproduced frozen-corpus failures. If the
+   corpus passes, do not change routing.
+4. One exclusive owner implements non-executing help for all three routers and
+   one stdlib-only read-only status command. Status reports available source
+   ref/digests and router/library match or mismatch; it never installs,
+   updates, fetches, or writes.
+5. Document stock router reinstall and explicit reversible library
+   re-bootstrap rather than implementing a package manager. Router removal,
+   optional managed guidance, external-library removal, and user files remain
+   four separate scopes.
+6. Root runs the clean public replay with an intentional mismatch, proves
+   status detects it, repairs through the documented stock path, and preserves
+   every non-managed byte.
+7. Record alternating fixed serial and accepted batched baselines without
+   inventing a telemetry service; unavailable system-context metrics remain
+   unavailable.
+
+P9 then evaluates, one bounded experiment at a time: complementary read-only
+lens batching, smaller non-context handoffs/shared fact reuse, and optional
+previewed host-file signposts. Mutation and final verification remain serial;
+the full catalog never becomes ambient. Adopt only experiments meeting P9's
+predeclared correctness and performance gates.
+
+The existing bounded code-health family is the batching positive control, not
+authority for arbitrary sets. A second family is attempted only after at least
+two real tasks request the same fixed two or three complementary read-only
+lenses and the serial baseline shows material repetition. Context-packet and
+batching experiments require at least five paired alternating runs, identical
+outcomes, either at least 30% controlled-context reduction or 20% median wall
+reduction, aggregate token growth no greater than 10%, and no new failure or
+human intervention. A host-file signpost experiment starts only if at least two
+of five cold runs show discoverability intervention or wrong-entry behavior.
+
+Framework profiles, generalized model/effort mapping, blanket skill
+compression, and a new SkillOpt run remain backlog. The prior SkillOpt pilot
+was inconclusive from insufficient differentiation; rerun only with a skill and
+frozen corpus that first demonstrate measurable baseline failures or headroom.
 
 ## P1 — Commit durable contributor guidance and ledger
 
@@ -747,6 +1010,7 @@ Evidence:
 
 | Date | Phase | Change | Reason/evidence | User decision |
 |---|---|---|---|---|
+| 2026-07-23 | P6-P9 | Added one bounded follow-on queue: Dart/repository closeout, evidence-backed reuse, family-batched language cohorts, final release, measured journey, then threshold-gated improvements | The owner requested retirement of obsolete worktrees and a resumable plan that can use separate non-context workers. Three fresh read-only reviews independently supported family batching, serial shared integration, criteria repair, and measure-before-UX sequencing | Approved by user request |
 | 2026-07-22 | P7 | Replace pilot-closeout completion with full chosen-language completion and value-scenario gates | Owner clarified that every chosen language must support every applicable skill and that tests must prove useful language-native outcomes. PHP 3/22, Swift 3/22, and C 2/22 are therefore honest pilots but incomplete products. Cross-language work is batched by four skill families with language-specific providers and serial shared integration | Approved by user request |
 | 2026-07-21 | All | Initial verifiable criteria created | Requested resumable one-by-one execution with final validation | Approved by request |
 | 2026-07-21 | P2 | Added installed-smoke and exact companion-closure gates | Clean stock replay exposed a repo-only smoke import and `which-cleanup` treating `prevent-regression` as a singleton despite its declared companion | Strengthening from observed installer failures; no scope expansion beyond easy installation |
@@ -815,3 +1079,4 @@ Evidence:
 | 2026-07-21 | P4 | Started | Record PHP/Composer availability, freeze the three-cohort baseline and comparison economics, and create the P4 spine before opening disjoint lexical/semantic/mutation worker lanes. |
 | 2026-07-22 | P4.0 | Spine frozen | `1bda74f` plus ignored-fixture correction `a3c70cb`; added the strict PHP profile, project-local doctor precedence, shared inventory classification, representative offline Composer host, malformed/excluded-role boundaries, exact manifests, three final-outcome cohort contracts, and frozen Java LOC/closure/latency economics. PHP 8.4.2 and Composer 2.4.0 are usable; Composer's PHP 8.4 deprecation noise is recorded rather than “fixed” by changing the host. Open three disjoint worker lanes from `a3c70cb`; shared profiles, routers, matrices, docs, and this ledger remain root-owned. |
 | 2026-07-21 | Planning | Non-context plan review completed | `7637fcf`; three independent lanes reviewed the P3 substrate, language/worktree execution, and adversarial product alignment. Accepted bounded reuse, exact ownership, economics, release-truth, and measure-before-optimization findings; rejected stale private-repo assumptions and blanket prohibition on user-requested Swift/Dart planning. |
+| 2026-07-23 | Planning/F0 | Obsolete worktrees retired and follow-on queue drafted | Fresh audit began with 70 registered worktrees. Root removed 64 clean worktrees whose complete patches were already represented on `main`, then retired the Java review after proving its substantive bytes already landed and the dirty JavaScript precursor after the committed mutation regression passed `2 passed`. All branch refs and commits remain. Four checkouts remain: `main`, two completed unmerged Dart lanes, and the archived preflight checkout with machine-local policy logs. Checked-out disk use fell from about 2.2 GB to 1.1 GB. Three fresh non-context read-only reviews then shaped F0-F7 around serial Dart/repository closeout, family-batched languages, and measured UX adoption. |
