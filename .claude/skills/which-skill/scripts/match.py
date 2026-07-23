@@ -107,6 +107,7 @@ LANGUAGE_ALIASES = {
     "c": "c",
     "c++": "cpp",
     "cpp": "cpp",
+    "dart": "dart",
     "go": "go",
     "golang": "go",
     "java": "java",
@@ -128,6 +129,7 @@ LANGUAGE_MARKERS = {
     "cpp": re.compile(
         r"(?i)(?:\bC\+\+(?=\d|\s|$)|\bcpp\b|\.(?:cc|cpp|cxx|c\+\+|hpp|hh|hxx|h\+\+|ipp|inl|tpp)\b)"
     ),
+    "dart": re.compile(r"(?i)(?:\bdart\b|\.dart\b|pubspec\.yaml\b)"),
     "c": re.compile(
         r"(?i)(?:\bC(?:17|23)?\b(?=\s+(?:project|repo|repository|library|code|source|file))|\.c\b|\.i\b)"
     ),
@@ -624,6 +626,7 @@ CAPABILITY_FIELDS = (
     "cpp_disposition",
     "ruby_disposition",
     "rust_disposition",
+    "dart_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -787,6 +790,14 @@ def capability_language_exclusion(
                 return _capability_exclusion(
                     row["rust_disposition"],
                     f"/{row['skill']} declares rust_disposition={row['rust_disposition']}",
+                )
+            if language == "dart" and row["dart_disposition"] not in {
+                "dart-supported",
+                "validated-neutral",
+            }:
+                return _capability_exclusion(
+                    row["dart_disposition"],
+                    f"/{row['skill']} declares dart_disposition={row['dart_disposition']}",
                 )
     return None
 

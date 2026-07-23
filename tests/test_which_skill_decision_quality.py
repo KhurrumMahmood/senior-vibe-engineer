@@ -93,6 +93,25 @@ def test_rs_alias_preserves_explicit_language_portability_filtering():
     assert "unavailable" not in payload
 
 
+def test_natural_dart_marker_reports_pending_capability(tmp_path):
+    returncode, payload = _run_match(
+        "Use adapt-project to onboard this Dart package.",
+        "--project-root",
+        str(tmp_path),
+        "--library-root",
+        str(REPO_ROOT),
+    )
+
+    assert returncode == 1, payload
+    assert payload["routing_context"]["languages"] == ["dart"]
+    assert payload["routing_context"]["language_source"] == "task_marker"
+    assert payload["recommendation"] == "pending-implementation"
+    assert payload["unavailable"]["classification"] == "pending-implementation"
+    assert payload["unavailable"]["reason"] == (
+        "/adapt-project declares dart_disposition=dart-pending-implementation"
+    )
+
+
 def test_supported_go_skill_has_executable_handoff(tmp_path):
     returncode, payload = _run_match(
         "Use propose-boundary for a Go package boundary.",

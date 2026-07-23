@@ -28,6 +28,7 @@ DEFAULT_C_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "c-language-coverage.json
 DEFAULT_CPP_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "cpp-language-coverage.json"
 DEFAULT_RUBY_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "ruby-language-coverage.json"
 DEFAULT_RUST_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "rust-language-coverage.json"
+DEFAULT_DART_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "dart-language-coverage.json"
 DEFAULT_OUTPUT = REPO_ROOT / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
 
 DISPOSITION_MAP = {
@@ -639,6 +640,31 @@ def _rust_coverage(payload: dict) -> dict[str, dict]:
     return coverage
 
 
+def _dart_coverage(payload: dict) -> dict[str, dict]:
+    if payload.get("suffixes") != [".dart"]:
+        raise ValueError("Dart coverage suffixes are incomplete")
+    coverage = _simple_language_coverage(
+        payload,
+        language="Dart",
+        suffixes=[".dart"],
+        supported_disposition="dart-supported",
+    )
+    for skill, row in coverage.items():
+        if row["disposition"] in {
+            "dart-pending-implementation",
+            "dart-partial",
+            "dart-unsupported",
+        } and not row.get("limitation"):
+            raise ValueError(f"bounded Dart row lacks a limitation: {skill}")
+    if payload.get("decision") not in {"expand", "stop-after-pilot"}:
+        raise ValueError("Dart coverage must record an expand or stop-after-pilot decision")
+    if not isinstance(payload.get("decision_reason"), str) or not payload[
+        "decision_reason"
+    ]:
+        raise ValueError("Dart coverage decision needs a reason")
+    return coverage
+
+
 def build_matrix(
     catalog_path: Path,
     coverage_path: Path,
@@ -651,6 +677,7 @@ def build_matrix(
     cpp_coverage_path: Path,
     ruby_coverage_path: Path,
     rust_coverage_path: Path,
+    dart_coverage_path: Path,
 ) -> dict:
     catalog_payload = _read_json(catalog_path)
     coverage_payload = _read_json(coverage_path)
@@ -663,6 +690,7 @@ def build_matrix(
     cpp_payload = _read_json(cpp_coverage_path)
     ruby_payload = _read_json(ruby_coverage_path)
     rust_payload = _read_json(rust_coverage_path)
+    dart_payload = _read_json(dart_coverage_path)
     catalog = {row["name"]: row for row in catalog_payload.get("skills", [])}
     coverage = {row["skill"]: row for row in coverage_payload.get("skills", [])}
     javascript_coverage = _javascript_coverage(javascript_payload)
@@ -674,6 +702,7 @@ def build_matrix(
     cpp_coverage = _cpp_coverage(cpp_payload)
     ruby_coverage = _ruby_coverage(ruby_payload)
     rust_coverage = _rust_coverage(rust_payload)
+    dart_coverage = _dart_coverage(dart_payload)
     if not catalog or set(catalog) != set(coverage):
         raise ValueError("catalog and TypeScript coverage must contain the same skills")
 
@@ -893,6 +922,24 @@ def build_matrix(
             rust_reviewed_revision = None
             rust_limitation = None
 
+        if expansion == "language-level":
+            dart = dart_coverage[skill]
+            dart_disposition = dart["disposition"]
+            dart_evidence_path = dart.get("evidence_path")
+            dart_native_check = dart.get("native_check")
+            dart_reviewed_revision = dart.get("reviewed_revision")
+            dart_limitation = dart.get("limitation")
+        else:
+            dart_disposition = {
+                "validated-neutral": "validated-neutral",
+                "framework-bound": "stack-bound",
+                "ecosystem-runtime": "ecosystem-runtime",
+            }[expansion]
+            dart_evidence_path = None
+            dart_native_check = None
+            dart_reviewed_revision = None
+            dart_limitation = None
+
         rows.append(
             {
                 "skill": skill,
@@ -943,6 +990,11 @@ def build_matrix(
                 "rust_native_check": rust_native_check,
                 "rust_reviewed_revision": rust_reviewed_revision,
                 "rust_limitation": rust_limitation,
+                "dart_disposition": dart_disposition,
+                "dart_evidence_path": dart_evidence_path,
+                "dart_native_check": dart_native_check,
+                "dart_reviewed_revision": dart_reviewed_revision,
+                "dart_limitation": dart_limitation,
                 "fact_level": fact_level,
                 "outcome_class": outcome_class,
                 "framework_family": framework_family,
@@ -1003,6 +1055,10 @@ def build_matrix(
                 "path": _relative(rust_coverage_path),
                 "sha256": _sha256(rust_coverage_path),
             },
+            {
+                "path": _relative(dart_coverage_path),
+                "sha256": _sha256(dart_coverage_path),
+            },
         ],
         "counts": {
             "validated-neutral": counts["validated-neutral"],
@@ -1056,6 +1112,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cpp-coverage", type=Path, default=DEFAULT_CPP_COVERAGE)
     parser.add_argument("--ruby-coverage", type=Path, default=DEFAULT_RUBY_COVERAGE)
     parser.add_argument("--rust-coverage", type=Path, default=DEFAULT_RUST_COVERAGE)
+    parser.add_argument("--dart-coverage", type=Path, default=DEFAULT_DART_COVERAGE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
@@ -1079,6 +1136,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.cpp_coverage,
                 args.ruby_coverage,
                 args.rust_coverage,
+                args.dart_coverage,
             )
         )
     except ValueError as exc:

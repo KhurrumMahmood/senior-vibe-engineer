@@ -160,6 +160,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
             "cpp_disposition": "validated-neutral",
             "ruby_disposition": "validated-neutral",
             "rust_disposition": "validated-neutral",
+            "dart_disposition": "validated-neutral",
             "fact_level": "neutral",
             "outcome_class": "not-applicable",
             "framework_family": None,
@@ -203,6 +204,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "cpp_disposition": "stack-bound",
         "ruby_disposition": "stack-bound",
         "rust_disposition": "stack-bound",
+        "dart_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "architecture-planning",
@@ -238,6 +240,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "cpp_disposition": "cpp-pending-implementation",
         "ruby_disposition": "ruby-pending-implementation",
         "rust_disposition": "rust-supported",
+        "dart_disposition": "dart-pending-implementation",
         "fact_level": "semantic-project",
         "outcome_class": "read-only-report",
         "framework_family": None,
@@ -530,6 +533,29 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "/adapt-project declares ruby_disposition=ruby-pending-implementation"
     )
 
+    pending_dart = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use adapt-project on this Dart repository",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "dart",
+        "--json",
+        cwd=host,
+    )
+    assert pending_dart.returncode == 1
+    pending_dart_payload = json.loads(pending_dart.stdout)
+    assert pending_dart_payload["routing_context"]["language"] == "dart"
+    assert pending_dart_payload["recommendation"] == "pending-implementation"
+    assert pending_dart_payload["unavailable"]["classification"] == (
+        "pending-implementation"
+    )
+    assert pending_dart_payload["unavailable"]["reason"] == (
+        "/adapt-project declares dart_disposition=dart-pending-implementation"
+    )
+
     for skill, task in (
         ("adapt-project", "use adapt-project on this Rust repository"),
         ("audit-decisions", "use audit-decisions on this Rust repository"),
@@ -678,6 +704,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "cpp_disposition": "cpp-pending-implementation",
         "ruby_disposition": "ruby-pending-implementation",
         "rust_disposition": "rust-supported",
+        "dart_disposition": "dart-pending-implementation",
         "fact_level": "lexical-filesystem",
         "outcome_class": "configuration-output",
         "framework_family": None,
@@ -838,6 +865,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "cpp_disposition": "stack-bound",
         "ruby_disposition": "stack-bound",
         "rust_disposition": "stack-bound",
+        "dart_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "framework-quality",
@@ -1193,7 +1221,7 @@ def test_installed_which_skill_routes_earned_typescript_state_skill(tmp_path):
     assert payload["routing_context"]["language"] == "typescript"
     assert payload["routing_context"]["language_source"] == "task_marker"
     assert payload["recommendation"] == "find-implicit-state"
-    assert payload["handoff"]["skills"] == ["find-implicit-state"]
+    assert payload["handoff"]["skills"] == ["find-implicit-state", "map-subsystem"]
     assert payload["handoff"]["capabilities"]["available"] is False
     assert payload["handoff"]["capabilities"]["reason"] == "manifest_missing"
 
