@@ -50,6 +50,31 @@ auditable when completeness matters.
 
 ## Backlog
 
+### ML-026 — Replace the blocked Swift A3 semantic foundation
+
+- State: `candidate`
+- User value: the five pending Swift semantic read-only skills complete in a
+  predictable time and produce real final artifacts instead of hanging in an
+  advertised-but-unusable SourceKit path.
+- Trigger: root reproduced a cold copied timeout; SourceKit-LSP initialized and
+  advertised its capabilities but did not answer the first semantic request
+  after explicit indexing, forced SwiftPM mode, or a readiness wait.
+- Smallest experiment: compare one verified full-Xcode SourceKit environment
+  and one bounded SwiftSyntax/compiler-AST approach on the existing archived
+  fixture, stopping after the first approach reaches one positive and one
+  clean final outcome within a predeclared wall-time bound.
+- Acceptance: a fresh copied closure reaches all five independent A3 artifacts
+  twice from cold state; missing/incomplete tooling returns partial promptly;
+  no checkout imports or ambient installation are required; source bytes stay
+  unchanged; the preserved Swift A1/A2 suite passes; and maintained/runtime
+  cost is compared with keeping the rows pending.
+- Non-goals: reviving the 4,535-line candidate unchanged, raising timeouts,
+  treating capability advertisement as working semantics, or blocking PHP and
+  Ruby downstream proposal work.
+- Evidence: archived branch `codex/f2-swift-semantic`; rejected main candidate
+  `3e13061`; removal `20851c2`; diagnosis is recorded in the active execution
+  ledger and shared-kit decision.
+
 ### ML-001 — Repository file-role and content classification
 
 - State: `in_progress`

@@ -213,11 +213,16 @@ growth and a `0.55%` median improvement. Ruby reduces maintained LOC by
 `58.76%`, the union closure by `62.39%`, and median repeated-provider latency
 by `78.22%`. These economics justify only the two language-local providers.
 
-Swift A3 is not yet accepted. Its worker evidence passed, but root replay
-timed out in a cold/repeated SourceKit-LSP `documentSymbol` path after 360
-seconds. Keep Swift coverage pending until the provider has a predictable
-bounded protocol path and a root replay reaches all final artifacts. A passing
-warm benchmark does not override a non-reproducible user journey.
+Swift A3 is not accepted. Its worker evidence passed, but root replay timed out
+in a cold/repeated SourceKit-LSP `documentSymbol` path after 360 seconds. A
+bounded diagnosis then proved that initialization, explicit indexing, forced
+SwiftPM workspace selection, and a readiness wait still produced no response
+to the first semantic request under the installed Command Line Tools. The
+4,535-line unpublished candidate was removed from `main` and retained on its
+language branch for reference. Keep the five rows pending until a different
+working semantic foundation—such as a verified full-Xcode SourceKit path or a
+bounded SwiftSyntax-based provider—reaches the final artifacts. A passing warm
+benchmark does not override a non-reproducible user journey.
 
 ## Native foundations for queued languages
 
