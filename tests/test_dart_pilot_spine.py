@@ -407,14 +407,20 @@ def test_dart_frozen_contracts_and_current_family_dispositions() -> None:
         "find-implicit-state",
         "find-incomplete-sweep",
         "find-omnibus",
+        "find-semantic-duplication",
         "find-standard-gaps",
         "prevent-regression",
         "propose-boundary",
         "propose-folder-reorganization",
         "rename-concept",
+        "unify-shadows",
     }
     assert {skill for skill, value in dispositions.items() if value == "dart-partial"} == {
         "map-subsystem"
     }
-    assert sum(value == "dart-pending-implementation" for value in dispositions.values()) == 3
+    assert {
+        skill
+        for skill, value in dispositions.items()
+        if value == "dart-pending-implementation"
+    } == {"move-path"}
     assert all(row["limitation"] and row["native_check"] for row in rows)

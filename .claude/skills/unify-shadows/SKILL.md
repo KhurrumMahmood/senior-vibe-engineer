@@ -1,6 +1,6 @@
 ---
 name: unify-shadows
-description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, Java, and bounded Rust consume accepted structured evidence and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
+description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, Java, bounded Rust, and Dart consume accepted structured evidence and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
 argument-hint: "<semantic:SC-N | semantic:TS-SD-NNNN | semantic:JAVA-SD-NNNN | explicit target spec>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -19,10 +19,33 @@ not_for: |
   Source mutation begins only after human acceptance of this artifact.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust]
+scans: [python, typescript, javascript, go, java, rust, dart]
 ---
 
 # /unify-shadows
+
+## Dart v1
+
+Dart v1 consumes one content-addressed human acceptance from the Dart branch
+of `/find-semantic-duplication`. It revalidates the source/configuration
+snapshot, selected finding and review hashes, capability matrix, consolidation
+shape, and every member/caller citation before writing exactly `proposal.md`,
+`evidence.json`, and `scope.json`. It launches no Dart process and never reruns
+detection or edits host source.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/unify-shadows"
+python3 "${SKILL_ROOT}/scripts/propose_dart.py" \
+  --project-root "$PWD" \
+  --evidence-dir "$PWD/reports/semantic-duplication/dart" \
+  --acceptance "$PWD/reports/semantic-duplication/dart/reviews/DART-SD-0001.json" \
+  --output-dir "$PWD/reports/unify-shadows/DART-SD-0001"
+```
+
+Missing, pending, partial, tampered, or stale evidence produces a visible
+three-artifact refusal. `keep_separate_document_why` is a successful proposal
+outcome; no equivalence, survivor, refactor-safety, runtime, external-consumer,
+generated/part/conditional, Flutter, or framework claim is implied.
 
 ## Rust v1
 

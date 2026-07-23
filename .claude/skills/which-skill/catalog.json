@@ -672,7 +672,7 @@
     },
     {
       "name": "find-semantic-duplication",
-      "description": "Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, and Rust function-level leads using host-native semantic facts. Compiler branches report bounded static candidates with capability matrices; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.",
+      "description": "Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, Rust, and Dart function-level leads using host-native semantic facts. Compiler branches report bounded static candidates with capability matrices; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Two independently-written, live functions that plausibly solve the same\nproblem with different code shape. Python uses scout confirmation; TypeScript\nGo, and Java use typed return-shape and direct-call evidence before human review.\n",
@@ -685,7 +685,8 @@
         "javascript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "install_with": [
         "map-subsystem"
@@ -1281,7 +1282,7 @@
     },
     {
       "name": "unify-shadows",
-      "description": "Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, Java, and bounded Rust consume accepted structured evidence and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.",
+      "description": "Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, Java, bounded Rust, and Dart consume accepted structured evidence and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "One confirmed Python, TypeScript, checked-JavaScript, Go, or Java semantic-duplication finding from\n/find-semantic-duplication (shape =\nkeep_separate_document_why | share_utilities | complete_migration |\nmerge_at_workflow). Produces an implementation-ready proposal at\n`reports/unify-shadows/<finding-id>/proposal.md` with migration\nplan, caller impact, test matrix, and stop condition.\n",
@@ -1294,7 +1295,8 @@
         "javascript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "_path": "skills/unify-shadows"
     },

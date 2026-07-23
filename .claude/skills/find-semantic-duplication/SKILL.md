@@ -1,7 +1,7 @@
 ---
 name: find-semantic-duplication
-description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, and Rust function-level leads using host-native semantic facts. Compiler branches report bounded static candidates with capability matrices; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.
-argument-hint: "--target <directory> [--language python|typescript|javascript|go|java|rust]"
+description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, Rust, and Dart function-level leads using host-native semantic facts. Compiler branches report bounded static candidates with capability matrices; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.
+argument-hint: "--target <directory> [--language python|typescript|javascript|go|java|rust|dart]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -18,11 +18,42 @@ not_for: |
   dynamic dispatch, framework behavior, and automatic consolidation.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust]
+scans: [python, typescript, javascript, go, java, rust, dart]
 install_with: [map-subsystem]
 ---
 
 # /find-semantic-duplication
+
+## Dart v1
+
+Dart v1 consumes the selected-configuration SDK-LSP fact pack produced by the
+sibling `map-subsystem` closure. It emits conservative review leads only for
+authored, synchronous, top-level, non-generic free functions with explicit
+return types, matching named-constructor return fields, matching resolved
+first-party callees, and resolved callers on distinct surfaces. A candidate is
+not behavioral equivalence: a content-addressed human verdict is required, and
+`keep_separate_document_why` is a valid completed result.
+
+Run from the host root after resolving the two selected on-demand skills:
+
+```bash
+FIND_ROOT=".agents/skills/on-demand/find-semantic-duplication"
+MAP_ROOT=".agents/skills/on-demand/map-subsystem"
+python3 "${MAP_ROOT}/scripts/dart_lsp_facts.py" \
+  --project-root "$PWD" --target . \
+  --output-dir "$PWD/reports/semantic-duplication/dart/facts"
+python3 "${FIND_ROOT}/scripts/detect_dart_semantic.py" \
+  --project-root "$PWD" --target . \
+  --facts "$PWD/reports/semantic-duplication/dart/facts/facts.json" \
+  --output-dir "$PWD/reports/semantic-duplication/dart"
+```
+
+The detector excludes generated, test, example, vendor, method, extension,
+generic, wrapper, dynamic-dispatch, and partial-evidence shapes. It writes
+machine candidates, capability matrices, review templates, and final findings
+without editing host source. Generated/part/augmentation/conditional behavior,
+reflection, external consumers, Flutter/framework semantics, side effects, and
+safe consolidation remain outside the contract.
 
 ## Rust v1
 

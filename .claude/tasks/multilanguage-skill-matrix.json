@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "94aeb9bd6971adb49a614a982835f2c03d54c2f8961edc0574f4e0f8f601d9d2"
+      "sha256": "0355f188d82abfece022c655c41fa9071808fee7106192cf6ed44b1463b46dd8"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -47,7 +47,7 @@
     },
     {
       "path": ".claude/tasks/dart-language-coverage.json",
-      "sha256": "e058d6560d00f0003e214e8966aa97565cab736547ab1dfc06e17ac36f13107b"
+      "sha256": "01f5da2744d0437bc16fb2dee2faa60cc9dc7702e27c500f5f5721ff4a116a91"
     }
   ],
   "counts": {
@@ -4280,14 +4280,15 @@
       ],
       "rust_reviewed_revision": "51055379904262ed4d60645b9fbed5b08f6ef015",
       "rust_limitation": "No behavioral-equivalence or safe-refactor claim; traits/blanket impls, generics, macros/cfg, unsafe behavior, runtime dispatch, external APIs, and type/const inference remain unresolved.",
-      "dart_disposition": "dart-pending-implementation",
-      "dart_closure_mode": null,
-      "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
+      "dart_disposition": "dart-supported",
+      "dart_closure_mode": "external-library",
+      "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d5-d7-semantic-finish.md",
       "dart_native_check": [
-        "no semantic producer accepted"
+        "accepted D4 SDK-LSP call hierarchy plus bounded Dart syntax produce content-addressed static review leads, capability matrices, and human-verdict templates from a copied two-file closure",
+        "the positive fixture promotes only one non-lexical top-level free-function pair; wrapper, method, extension, generic, dynamic, generated, test, example, vendor, exact-clone, and policy-divergent shapes do not promote"
       ],
-      "dart_reviewed_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
-      "dart_limitation": "No behavioral-equivalence claim is supported by the spine.",
+      "dart_reviewed_revision": "ef9a9fb",
+      "dart_limitation": "Selected-configuration static review evidence only; it does not prove behavioral equivalence, refactor safety, a canonical survivor, runtime reachability, side effects, external consumers, reflection, dynamic dispatch, generated/part/conditional behavior, semver compatibility, or Flutter/framework semantics.",
       "fact_level": "semantic-project",
       "outcome_class": "read-only-report",
       "framework_family": null,
@@ -4301,7 +4302,8 @@
           "javascript",
           "go",
           "java",
-          "rust"
+          "rust",
+          "dart"
         ],
         "install_with": [
           "map-subsystem"
@@ -7952,14 +7954,15 @@
       ],
       "rust_reviewed_revision": "1ff012a98b929c734cf641a3790c55e52ad6d639",
       "rust_limitation": "No behavioral-equivalence or mutation authority; traits/blanket impls, generics, macros/cfg variants, unsafe/FFI, runtime behavior, external APIs, and semver compatibility remain unresolved.",
-      "dart_disposition": "dart-pending-implementation",
-      "dart_closure_mode": null,
-      "dart_evidence_path": ".claude/tasks/p7-baseline/dart-pilot-baseline.json",
+      "dart_disposition": "dart-supported",
+      "dart_closure_mode": "external-library",
+      "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d5-d7-semantic-finish.md",
       "dart_native_check": [
-        "no proposal executed"
+        "a copied two-file closure revalidates accepted finding, review, source/configuration snapshot, capability matrix, selected shape, and every member/caller citation without launching Dart or rerunning detection",
+        "ready and keep-separate proposals write exactly proposal.md, evidence.json, and scope.json; missing, pending, partial, tampered, and stale inputs produce a visible refusal and valid-failure-valid replay recovers"
       ],
-      "dart_reviewed_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
-      "dart_limitation": "Semantic equivalence, type compatibility, generated code, and public API obligations are unavailable.",
+      "dart_reviewed_revision": "ef9a9fb",
+      "dart_limitation": "Read-only proposal only; keep-separate is a valid outcome and no equivalence, source mutation, survivor, refactor-safety, runtime, external-consumer, generated/part/conditional, semver, Flutter, or framework claim is implied.",
       "fact_level": "semantic-project",
       "outcome_class": "proposal-only",
       "framework_family": null,
@@ -7973,7 +7976,8 @@
           "javascript",
           "go",
           "java",
-          "rust"
+          "rust",
+          "dart"
         ],
         "install_with": []
       },
