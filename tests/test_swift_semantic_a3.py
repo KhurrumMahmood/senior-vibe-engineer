@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import os
 import shutil
 import statistics
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -30,9 +32,7 @@ SWIFT = Path("/usr/bin/swift")
 SWIFTC = Path("/usr/bin/swiftc")
 SOURCEKIT = Path("/usr/bin/sourcekit-lsp")
 SWIFT_FORMAT = Path("/Library/Developer/CommandLineTools/usr/bin/swift-format")
-PRODUCT_PYTHON = Path(
-    "/Users/khurrummahmood/Projects/engineering-skills-product/.venv/bin/python"  # host-ref-allow: required frozen F2 runtime
-)
+PRODUCT_PYTHON = ROOT / ".venv/bin/python"
 pytestmark = pytest.mark.skipif(
     not all(path.is_file() for path in (SWIFT, SWIFTC, SOURCEKIT, SWIFT_FORMAT, PRODUCT_PYTHON)),
     reason="the frozen Python and CLT Swift semantic toolchain are required",
@@ -249,6 +249,90 @@ def _write_json(path: Path, payload: dict) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return path
+
+
+def _provider_module():
+    spec = importlib.util.spec_from_file_location("swift_semantic_facts_under_test", PROVIDER)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_lsp_failure_and_query_scope_are_globally_bounded(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    provider = _provider_module()
+    sources = []
+    roles = {}
+    for index in range(3):
+        source = tmp_path / f"Source{index}.swift"
+        source.write_text("let state = 1\n", encoding="utf-8")
+        sources.append(source)
+        roles[source.name] = "selected-production"
+
+    class FailingClient:
+        methods: list[str] = []
+        timeouts: list[float] = []
+        instances = 0
+
+        def __init__(self, _argv, _root) -> None:
+            self.__class__.instances += 1
+
+        def request(self, method, _params, timeout=60):
+            self.__class__.methods.append(method)
+            self.__class__.timeouts.append(timeout)
+            if method == "initialize":
+                return {
+                    "capabilities": {
+                        "callHierarchyProvider": True,
+                        "definitionProvider": True,
+                        "documentSymbolProvider": True,
+                        "referencesProvider": True,
+                        "renameProvider": {"prepareProvider": True},
+                    }
+                }
+            raise provider.SwiftFactError("sourcekit_lsp_timeout", "fixture timeout")
+
+        def notify(self, _method, _params) -> None:
+            pass
+
+        def close(self):
+            return {"exited_cleanly": True, "returncode": 0, "stderr": ""}
+
+    monkeypatch.setattr(provider, "_LspClient", FailingClient)
+    with pytest.raises(provider.SwiftFactError, match="fixture timeout") as failure:
+        provider._lsp_facts(
+            Path("/fake/sourcekit-lsp"),
+            tmp_path,
+            tmp_path / "scratch",
+            "debug",
+            sources,
+            roles,
+            ["state"],
+        )
+    assert failure.value.kind == "sourcekit_lsp_timeout"
+    assert FailingClient.methods == ["initialize", "textDocument/documentSymbol"]
+    assert max(FailingClient.timeouts) <= provider.LSP_REQUEST_TIMEOUT_SECONDS
+
+    crowded = tmp_path / "Crowded.swift"
+    crowded.write_text(
+        "state " * (provider.MAX_LSP_OCCURRENCES + 1),
+        encoding="utf-8",
+    )
+    with pytest.raises(provider.SwiftFactError) as scope_failure:
+        provider._lsp_facts(
+            Path("/fake/sourcekit-lsp"),
+            tmp_path,
+            tmp_path / "scratch",
+            "debug",
+            [crowded],
+            {crowded.name: "selected-production"},
+            ["state"],
+        )
+    assert scope_failure.value.kind == "sourcekit_lsp_query_scope_exceeded"
+    assert FailingClient.instances == 1
 
 
 def test_copied_union_reaches_five_outcomes_reviews_and_lifecycle(tmp_path: Path) -> None:

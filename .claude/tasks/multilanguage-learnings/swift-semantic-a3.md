@@ -1,8 +1,36 @@
 # Swift A3 semantic read-only family learning packet
 
-Status: accepted bounded SwiftPM cohort for root integration; no shared skill
-prose, router, matrix, catalogue, ledger, profile, or dispatch claim is changed
-by this lane
+Status: pending and unpublished. No shared skill prose, router, matrix,
+catalogue, ledger, profile, or dispatch claim is changed by this lane.
+
+## Cold-run reproducibility correction
+
+The earlier accepted result below is historical warm-run evidence, not a
+publishable support claim. With the repository-local Python runtime, a cold
+provider run exceeded 360 seconds and a one-query run remained blocked in the
+first `textDocument/documentSymbol` request after 137 seconds. A minimal
+protocol probe showed that SourceKit-LSP initialized in 0.6--0.9 seconds and
+advertised all required capabilities, but neither document-symbol nor
+definition returned while the process remained alive and idle. Successfully
+running `sourcekit-lsp debug index` over every fixture source in 23.64 seconds,
+forcing the SwiftPM workspace type, and waiting 30 seconds after initialize did
+not change the first-request timeout.
+
+The original provider compounded that tool failure: each file received an
+independent 60-second document-symbol timeout, failures were caught and the
+loop continued, and shutdown added another 10 seconds. The archived candidate
+now applies one 12-second LSP wall-clock budget, an 8-second per-request cap,
+hard file/query/occurrence/request scope limits, a one-second shutdown cap,
+and immediate partial termination on the first failed request. A focused fake
+client regression proves that a first-file timeout cannot multiply across
+subsequent files and that excessive occurrence scope is rejected before an LSP
+process starts.
+
+No responsible stable-SourceKit repair was found on this Command Line Tools
+environment. This A3 family must remain unpublished until stable requests are
+reproducible across cold and repeated runs. The sections below record what the
+earlier successful cohort appeared to establish; they do not override this
+correction.
 
 ## Final outcomes earned
 

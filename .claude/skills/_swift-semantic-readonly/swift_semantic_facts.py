@@ -35,6 +35,13 @@ GENERATED_DIRS = frozenset({"generated", "derivedsources", "gen"})
 VENDOR_DIRS = frozenset({"vendor", "vendors", "third_party", "third-party"})
 TEST_DIRS = frozenset({"test", "tests", "spec", "specs", "fixtures", "testdata"})
 CALLABLE_KINDS = frozenset({6, 9, 12})
+LSP_TOTAL_BUDGET_SECONDS = 12.0
+LSP_REQUEST_TIMEOUT_SECONDS = 8.0
+LSP_CLOSE_TIMEOUT_SECONDS = 1.0
+MAX_LSP_FILES = 32
+MAX_LSP_QUERIES = 64
+MAX_LSP_OCCURRENCES = 512
+MAX_LSP_REQUESTS = 512
 LIMITS = [
     "dependency-free SwiftPM regular library/executable targets in one selected debug or release configuration only",
     "a fresh successful restrictive build and fresh index-store units are required before SourceKit-LSP facts",
@@ -44,6 +51,7 @@ LIMITS = [
     "Xcode projects/workspaces/schemes, Apple-framework behavior, resources, package dependencies, and mixed-language targets are outside this contract",
     "native XCTest and Testing modules remain unavailable under the active Command Line Tools; fixture-owned check and smoke executables are required",
     "ASCII identifier queries only; Unicode identifier spellings are not a selected consumer contract",
+    "SourceKit-LSP semantic work has one 12-second wall-clock budget and stops on the first failed request; an unresponsive advertised capability remains partial, never clean",
 ]
 
 
@@ -515,18 +523,18 @@ class _LspClient:
         exited = False
         try:
             if self.process.poll() is None:
-                self.request("shutdown", None, 10)
+                self.request("shutdown", None, LSP_CLOSE_TIMEOUT_SECONDS)
                 shutdown = True
                 self.notify("exit", None)
-                self.process.wait(timeout=10)
+                self.process.wait(timeout=LSP_CLOSE_TIMEOUT_SECONDS)
                 exited = True
         except (OSError, SwiftFactError, subprocess.TimeoutExpired):
             self.process.terminate()
             try:
-                self.process.wait(timeout=2)
+                self.process.wait(timeout=LSP_CLOSE_TIMEOUT_SECONDS)
             except subprocess.TimeoutExpired:
                 self.process.kill()
-                self.process.wait(timeout=2)
+                self.process.wait(timeout=LSP_CLOSE_TIMEOUT_SECONDS)
         return {
             "shutdown_acknowledged": shutdown,
             "exited_cleanly": exited and self.process.returncode == 0,
@@ -555,6 +563,25 @@ def _lsp_facts(
     roles: dict[str, str],
     queries: list[str],
 ) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+    if len(files) > MAX_LSP_FILES or len(queries) > MAX_LSP_QUERIES:
+        raise SwiftFactError(
+            "sourcekit_lsp_query_scope_exceeded",
+            f"bounded LSP scope exceeded: {len(files)} files / {len(queries)} queries",
+        )
+    documents = {source: source.read_text(encoding="utf-8").splitlines() for source in files}
+    occurrence_specs: list[tuple[Path, str, int, int]] = []
+    for source, lines in documents.items():
+        for line_index, line in enumerate(lines):
+            for query in queries:
+                occurrence_specs.extend(
+                    (source, query, line_index, match.start())
+                    for match in re.finditer(rf"\b{re.escape(query)}\b", line)
+                )
+                if len(occurrence_specs) > MAX_LSP_OCCURRENCES:
+                    raise SwiftFactError(
+                        "sourcekit_lsp_query_scope_exceeded",
+                        f"bounded LSP occurrence scope exceeded: >{MAX_LSP_OCCURRENCES}",
+                    )
     client = _LspClient(
         [
             str(sourcekit),
@@ -566,8 +593,32 @@ def _lsp_facts(
         root,
     )
     close: dict[str, Any] = {}
+    started = time.monotonic()
+    deadline = started + LSP_TOTAL_BUDGET_SECONDS
+    request_count = 0
+
+    def request(method: str, params: Any) -> Any:
+        nonlocal request_count
+        request_count += 1
+        if request_count > MAX_LSP_REQUESTS:
+            raise SwiftFactError(
+                "sourcekit_lsp_query_scope_exceeded",
+                f"bounded LSP request scope exceeded: >{MAX_LSP_REQUESTS}",
+            )
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise SwiftFactError(
+                "sourcekit_lsp_budget_exhausted",
+                f"global LSP budget exhausted before {method}",
+            )
+        return client.request(
+            method,
+            params,
+            min(LSP_REQUEST_TIMEOUT_SECONDS, remaining),
+        )
+
     try:
-        initialized = client.request(
+        initialized = request(
             "initialize",
             {
                 "processId": os.getpid(),
@@ -585,7 +636,6 @@ def _lsp_facts(
                 },
                 "workspaceFolders": [{"uri": root.as_uri(), "name": root.name}],
             },
-            60,
         )
         advertised = _capabilities(initialized.get("capabilities", {}))
         if not all(advertised.values()):
@@ -602,23 +652,17 @@ def _lsp_facts(
                         "uri": source.as_uri(),
                         "languageId": "swift",
                         "version": 1,
-                        "text": source.read_text(encoding="utf-8"),
+                        "text": "\n".join(documents[source]) + "\n",
                     }
                 },
             )
         symbols: list[dict[str, Any]] = []
-        document_failures: list[str] = []
         for source in files:
             relative = source.relative_to(root).as_posix()
-            try:
-                raw = client.request(
-                    "textDocument/documentSymbol",
-                    {"textDocument": {"uri": source.as_uri()}},
-                    60,
-                )
-            except SwiftFactError:
-                document_failures.append(relative)
-                continue
+            raw = request(
+                "textDocument/documentSymbol",
+                {"textDocument": {"uri": source.as_uri()}},
+            )
             symbols.extend(_flatten_symbols(raw, relative, roles[relative]))
         selected: list[dict[str, Any]] = []
         query_set = set(queries)
@@ -627,12 +671,15 @@ def _lsp_facts(
                 continue
             source = root / symbol["file"]
             position = {"line": symbol["line"] - 1, "character": symbol["column"] - 1}
-            request = {"textDocument": {"uri": source.as_uri()}, "position": position}
+            position_request = {
+                "textDocument": {"uri": source.as_uri()},
+                "position": position,
+            }
             enriched = dict(symbol)
-            prepared = client.request("textDocument/prepareCallHierarchy", request, 60)
+            prepared = request("textDocument/prepareCallHierarchy", position_request)
             item = (prepared or [None])[0] if isinstance(prepared, list) else prepared
             enriched["symbol_id"] = item.get("data", {}).get("usr") if item else None
-            definitions = client.request("textDocument/definition", request, 60)
+            definitions = request("textDocument/definition", position_request)
             if isinstance(definitions, dict):
                 definitions = [definitions]
             enriched["definitions"] = [
@@ -649,19 +696,18 @@ def _lsp_facts(
             enriched["semantic_identity_kind"] = (
                 "sourcekit-definition-location" if len(definition_ids) == 1 else None
             )
-            references = client.request(
+            references = request(
                 "textDocument/references",
-                {**request, "context": {"includeDeclaration": True}},
-                60,
+                {**position_request, "context": {"includeDeclaration": True}},
             )
             enriched["references"] = [
                 location for row in references or [] if (location := _location(row, root))
             ]
-            enriched["hover"] = client.request("textDocument/hover", request, 60)
-            enriched["prepare_rename"] = client.request("textDocument/prepareRename", request, 60)
+            enriched["hover"] = request("textDocument/hover", position_request)
+            enriched["prepare_rename"] = request("textDocument/prepareRename", position_request)
             enriched["call_hierarchy"] = {"incoming": [], "outgoing": []}
             if item and symbol.get("kind") in CALLABLE_KINDS:
-                outgoing = client.request("callHierarchy/outgoingCalls", {"item": item}, 60)
+                outgoing = request("callHierarchy/outgoingCalls", {"item": item})
                 enriched["call_hierarchy"]["outgoing"] = [
                     {
                         "target": _call_item(row.get("to", {}), root),
@@ -669,7 +715,7 @@ def _lsp_facts(
                     }
                     for row in outgoing or []
                 ]
-                incoming = client.request("callHierarchy/incomingCalls", {"item": item}, 60)
+                incoming = request("callHierarchy/incomingCalls", {"item": item})
                 enriched["call_hierarchy"]["incoming"] = [
                     {
                         "caller": _call_item(row.get("from", {}), root),
@@ -679,48 +725,44 @@ def _lsp_facts(
                 ]
             selected.append(enriched)
         definition_occurrences: list[dict[str, Any]] = []
-        for source in files:
+        for source, query, line_index, column in occurrence_specs:
             relative = source.relative_to(root).as_posix()
-            for line_index, line in enumerate(source.read_text(encoding="utf-8").splitlines()):
-                for query in queries:
-                    for match in re.finditer(rf"\b{re.escape(query)}\b", line):
-                        request = {
-                            "textDocument": {"uri": source.as_uri()},
-                            "position": {"line": line_index, "character": match.start()},
+            position_request = {
+                "textDocument": {"uri": source.as_uri()},
+                "position": {"line": line_index, "character": column},
+            }
+            definitions = request("textDocument/definition", position_request)
+            if isinstance(definitions, dict):
+                definitions = [definitions]
+            resolved = [location for row in definitions or [] if (location := _location(row, root))]
+            definition_occurrences.append(
+                {
+                    "name": query,
+                    "source": relative,
+                    "line": line_index + 1,
+                    "column": column + 1,
+                    "definitions": resolved,
+                    "definition_semantic_ids": sorted(
+                        {
+                            identity
+                            for location in resolved
+                            if (identity := _definition_semantic_id(location))
                         }
-                        definitions = client.request("textDocument/definition", request, 60)
-                        if isinstance(definitions, dict):
-                            definitions = [definitions]
-                        resolved = [
-                            location
-                            for row in definitions or []
-                            if (location := _location(row, root))
-                        ]
-                        definition_occurrences.append(
-                            {
-                                "name": query,
-                                "source": relative,
-                                "line": line_index + 1,
-                                "column": match.start() + 1,
-                                "definitions": resolved,
-                                "definition_semantic_ids": sorted(
-                                    {
-                                        identity
-                                        for location in resolved
-                                        if (identity := _definition_semantic_id(location))
-                                    }
-                                ),
-                                "evidence": "textDocument/definition",
-                            }
-                        )
+                    ),
+                    "evidence": "textDocument/definition",
+                }
+            )
         semantic = {
-            "state": "complete" if not document_failures else "partial",
+            "state": "complete",
             "protocol": "LSP",
             "unstable_cli_used": False,
             "capabilities": advertised,
-            "document_failures": document_failures,
+            "document_failures": [],
             "query_count": len(queries),
             "selected_symbol_count": len(selected),
+            "request_count": request_count,
+            "elapsed_seconds": time.monotonic() - started,
+            "wall_clock_budget_seconds": LSP_TOTAL_BUDGET_SECONDS,
         }
         return (
             semantic,
@@ -1097,6 +1139,7 @@ def collect(
                 "failure_kind": exc.kind,
                 "detail": str(exc),
                 "capabilities": payload["semantic"]["capabilities"],
+                "wall_clock_budget_seconds": LSP_TOTAL_BUDGET_SECONDS,
             }
             symbols = []
             definition_occurrences = []
