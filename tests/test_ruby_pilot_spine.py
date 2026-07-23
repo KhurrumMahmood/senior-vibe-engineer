@@ -445,14 +445,18 @@ def test_ruby_frozen_cohort_contracts_and_all_22_initial_dispositions() -> None:
         if disposition == "ruby-supported"
     } == {
         "adapt-project",
+        "audit-decisions",
         "explain-code",
         "find-comment-drift",
+        "find-complexity-hotspots",
         "find-concept-divergence",
         "find-duplication",
         "find-folder-topology-drift",
+        "find-omnibus",
+        "find-standard-gaps",
         "map-subsystem",
     }
-    assert sum(value == "ruby-pending-implementation" for value in dispositions.values()) == 15
+    assert sum(value == "ruby-pending-implementation" for value in dispositions.values()) == 11
     assert all(
         row["evidence_path"]
         and row["native_check"]

@@ -58,7 +58,7 @@
     },
     {
       "name": "audit-decisions",
-      "description": "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, Java JDK 17+, bounded Rust and Dart, JavaScript-family, and TypeScript comments plus Markdown/HTML references.",
+      "description": "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, Java JDK 17+, bounded PHP, Ruby, Swift, Rust, and Dart, JavaScript-family, and TypeScript comments plus Markdown/HTML references.",
       "tier": "cross-cutting",
       "job": "guard",
       "best_for": "Periodic (monthly / pre-release) decision-registry hygiene and a precise\ncheck that inline decision references still point at real ADRs.\n",
@@ -73,6 +73,9 @@
         "typescript",
         "go",
         "java",
+        "php",
+        "ruby",
+        "swift",
         "rust",
         "dart"
       ],
@@ -365,7 +368,7 @@
     },
     {
       "name": "find-complexity-hotspots",
-      "description": "Detect advisory Python, JavaScript, TypeScript, Go, Java, bounded Rust, and bounded Dart function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only family-local high-branch findings for bounded named functions, methods, and constructors.",
+      "description": "Detect advisory Python, JavaScript, TypeScript, Go, Java, bounded PHP, Ruby, Swift, Rust, and Dart function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only family-local high-branch findings for bounded named functions, methods, and constructors.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Read-only complexity leads. Python retains nested-loop, membership-scan,\nsort/repeated-scan, Django-query, and high-branch bands. TypeScript/TSX\nreports only per-function syntactic branch complexity with exact source spans\nand analyzer provenance. Go and Java add equally bounded native-parser facts.\n",
@@ -378,6 +381,9 @@
         "typescript",
         "go",
         "java",
+        "php",
+        "ruby",
+        "swift",
         "rust",
         "dart"
       ],
@@ -609,7 +615,7 @@
     },
     {
       "name": "find-omnibus",
-      "description": "Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses family-local syntax facts for Python, JavaScript/TypeScript, Go, Java, bounded Rust, bounded Dart, and Swift; then groups symbols by head-noun cluster, requires scout judgment, and produces decomposition evidence. Never edits code.",
+      "description": "Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses family-local syntax facts for Python, JavaScript/TypeScript, Go, Java, bounded PHP, Ruby, Rust, Dart, and Swift; then groups symbols by head-noun cluster, requires scout judgment, and produces decomposition evidence. Never edits code.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Files answering questions from 3+ unrelated domains — the SRP \"and\"\ntest counts 3+ \"and\"s. Ranks by responsibility count, then boosts\nfiles that mix credentials, admin APIs, CSRF/auth, command/network\ndiagnostics, persistence, raw SQL, import/export, task dispatch, or\nfilesystem writes; produces decomposition candidates that hand off\nto /refactor-subsystem. Covers Python, JavaScript/TypeScript, Go, Java, and\nbounded Swift with family-local syntax parsers. Findings carry analyzer provenance. The script\npaths resolve no types and assume no framework.\n",
@@ -622,6 +628,8 @@
         "typescript",
         "go",
         "java",
+        "php",
+        "ruby",
         "rust",
         "dart",
         "swift"
@@ -761,7 +769,7 @@
     },
     {
       "name": "find-standard-gaps",
-      "description": "Detect places a declared baseline standard should apply but doesn't. Family-local scanners cover Python plus narrow syntax-only JavaScript/TypeScript, Go, Java, Rust, and Dart direct-call guard conditions, then report every site whose triggering situation holds but the declared standard is absent. Detection-only; never edits code.",
+      "description": "Detect places a declared baseline standard should apply but doesn't. Family-local scanners cover Python plus narrow syntax-only JavaScript/TypeScript, Go, Java, PHP, Ruby, Swift, Rust, and Dart direct-call guard conditions, then report every site whose triggering situation holds but the declared standard is absent. Detection-only; never edits code.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Checking that a baseline standard is applied everywhere its situation\noccurs — \"every external DB connection is inside a try\", \"every\noutbound HTTP call sets a timeout\", \"no call to X without guard Y\".\nThis includes coverage gaps for a declared standard governing direct calls,\nrequired arguments, or an enclosing try guard.\nEach standard is a declarative entry with an `ast` detector; the scan\nis deterministic, cheap, and syntactically precise.\nCensus mode (scripts/census.py) answers the upstream discovery question:\n\"what variants exist, which is the majority, who are the stragglers?\"\nUse census before declaring a standard to understand the current\npopulation; census output feeds /decide and standards declaration.\n",
@@ -774,6 +782,9 @@
         "typescript",
         "go",
         "java",
+        "php",
+        "ruby",
+        "swift",
         "rust",
         "dart"
       ],

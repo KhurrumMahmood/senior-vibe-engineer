@@ -177,6 +177,26 @@ snapshot across independent read-only consumers without weakening their final
 statuses. The current external-library closure is the honest prerequisite for
 that experiment, not the experiment itself.
 
+### 8. Cohort A syntax evidence
+
+The syntax wave preserved language ownership instead of forcing one parser
+contract across PHP, Ruby, and Swift. PHP and Ruby use separate on-demand
+syntax providers because their token and Prism fact boundaries differ from
+their project/lexical providers. Swift extends its existing project/lexical
+provider because the same compiler-validated source inventory owns both fact
+sets. Detailed commands and non-claims live in the three provider `GUIDE.md`
+files rather than every ambient consumer skill.
+
+The measured provider-versus-literal-consumer comparisons passed the retained
+ML-025 gates: PHP reduced maintained LOC by `56.55%` with `0%` closure growth
+and `+3.70%` median latency; Ruby reduced LOC by `57.91%` with `0%` closure
+growth and `+1.068%` median latency; Swift reduced LOC by `45.53%` with `0%`
+closure growth and `+2.81%` aggregate latency (its consumer median improved by
+`0.75%`). These results justify language-local reuse only. The providers expose
+syntax candidates and explicit unresolved boundaries; they do not establish
+semantic identity, behavioral equivalence, refactor safety, or request-level
+batching.
+
 ## Native foundations for queued languages
 
 | Language | Preferred foundations | Honest boundary |

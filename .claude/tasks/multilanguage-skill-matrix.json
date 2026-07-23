@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "51f8f94064aacbca6efe576018a4e63e7ce337248f829cf569fc42c4adacfb19"
+      "sha256": "c228afe446e9b047cf789dd28fe12ab09c0cbf1e4e47af4420a196be392aae07"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -23,11 +23,11 @@
     },
     {
       "path": ".claude/tasks/php-language-coverage.json",
-      "sha256": "17c765def35f87dec85a87d75206584902ff0ef4e049a2ec6ff0d8bb210f53de"
+      "sha256": "90c66b0628a6ce448de0b26ee23d22ba8ca8ba4a4e0b938679cabd43e99652bc"
     },
     {
       "path": ".claude/tasks/swift-language-coverage.json",
-      "sha256": "67229399e65629b38b6a89f0bb07d012775ecb85a95302492e65ed8c33eaf309"
+      "sha256": "9a229ea0eb4626e6fd30615395fab85fee7eb34265fd84951ef6f7e93bc84e08"
     },
     {
       "path": ".claude/tasks/c-language-coverage.json",
@@ -39,7 +39,7 @@
     },
     {
       "path": ".claude/tasks/ruby-language-coverage.json",
-      "sha256": "1f01c7c9b23eea041cb883a91f053637fc25c8e0f6eb39a1c357edc9b9bbd516"
+      "sha256": "595f1ac7db849936001ce92983de8394268eb4ba9e8c843f86ff19c4892651af"
     },
     {
       "path": ".claude/tasks/rust-language-coverage.json",
@@ -403,22 +403,22 @@
         "final audit artifacts and source-fingerprint assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-a2-syntax-family.md",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP decision-audit artifact was validated"
+        "PHP token comments plus Composer/PHP native gates",
+        "copied final drift artifacts, roles, lifecycle, and preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "No PHP decision-comment/provider contract has reached the final audit.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "php_reviewed_revision": "682a4df",
+      "php_limitation": "Comment references resolve registry IDs only; applicability, symbols, behavior, Composer, and frameworks remain unresolved.",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-syntax-a2.md",
       "swift_native_check": [
-        "spine final-outcome census",
-        "no Swift decision audit validated"
+        "compiler-validated lexical comments plus restrictive native gates",
+        "copied final drift artifacts, roles, lifecycle, and preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "No Swift decision-comment producer reaches the final audit.",
+      "swift_reviewed_revision": "f8cc3a4",
+      "swift_limitation": "Registry-token syntax only; applicability, target/runtime identity, frameworks, and behavior remain unresolved.",
       "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
@@ -433,13 +433,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "Comment association across macros, templates, overloads, conditional branches, and headers has no final audit.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a2-syntax-family.md",
       "ruby_native_check": [
-        "Prism comment/source-location feasibility only"
+        "Prism comments plus frozen Bundler/native gates",
+        "copied final drift artifacts, roles, lifecycle, and preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "No final audit associates decision comments with reopened or dynamically defined behavior.",
+      "ruby_reviewed_revision": "c4b2036",
+      "ruby_limitation": "Registry-token syntax only; applicability, reopening, dynamic definitions, Rails/Zeitwerk, and runtime behavior remain unresolved.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-syntax-family.md",
       "rust_native_check": [
@@ -449,6 +450,9 @@
       "rust_reviewed_revision": "225a0e784720ec2b6084a31676d9a54c4d84b117",
       "rust_limitation": "Bounded authored comments only; cfg variants, macros, build/include output, generated roles, symlinks, and runtime behavior remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d2-syntax-family.md",
       "dart_native_check": [
@@ -472,6 +476,9 @@
           "typescript",
           "go",
           "java",
+          "php",
+          "ruby",
+          "swift",
           "rust",
           "dart"
         ],
@@ -2097,22 +2104,22 @@
         "source fingerprint and final report assertions"
       ],
       "java_reviewed_revision": "e14274b",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-a2-syntax-family.md",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP complexity report was validated"
+        "direct-body PHP branch tokens plus native gates",
+        "copied advisory report, closure decoy, lifecycle, and preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "PHP syntax availability has not been connected to the skill's final report.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "php_reviewed_revision": "682a4df",
+      "php_limitation": "Frozen direct-body syntax score only; runtime cost, control-flow semantics, behavior, and refactor authority remain unresolved.",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-syntax-a2.md",
       "swift_native_check": [
-        "swiftc AST output is available",
-        "no Swift complexity report validated"
+        "direct-body Swift syntax tokens plus restrictive native gates",
+        "copied advisory report, nested-callable decoys, lifecycle, and preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "Compiler AST availability alone does not establish the skill's metrics or final report.",
+      "swift_reviewed_revision": "f8cc3a4",
+      "swift_limitation": "Frozen direct-body token score only; control-flow semantics, runtime cost, behavior, and refactor authority remain unresolved.",
       "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
@@ -2127,13 +2134,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "Template instantiations, overloads, macros, generated code, and conditional-branch counting policy are not validated.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a2-syntax-family.md",
       "ruby_native_check": [
-        "Prism parse feasibility only"
+        "Prism direct-method branch nodes plus native gates",
+        "copied advisory report, lambda decoy, lifecycle, and preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Blocks, pattern matching, metaprogramming, generated methods, and DSL counting policy do not reach a final report.",
+      "ruby_reviewed_revision": "c4b2036",
+      "ruby_limitation": "Frozen direct-method syntax score only; blocks, metaprogramming, DSLs, runtime cost, behavior, and refactor authority remain unresolved.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-syntax-family.md",
       "rust_native_check": [
@@ -2143,6 +2151,9 @@
       "rust_reviewed_revision": "225a0e784720ec2b6084a31676d9a54c4d84b117",
       "rust_limitation": "Advisory syntax score only; macros, async desugaring, cfg variants, match guards beyond the counted policy, traits/generics, and runtime cost remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d3-declaration-body-family.md",
       "dart_native_check": [
@@ -2164,6 +2175,9 @@
           "typescript",
           "go",
           "java",
+          "php",
+          "ruby",
+          "swift",
           "rust",
           "dart"
         ],
@@ -3666,14 +3680,14 @@
         "generic and explicit terminal lifecycle assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-a2-syntax-family.md",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP omnibus report was validated"
+        "named syntax clusters plus native gates",
+        "candidate-id/hash-bound human scout verdict and copied final report"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "Tree-sitter syntax facts were not adopted as an omnibus final outcome.",
+      "php_reviewed_revision": "682a4df",
+      "php_limitation": "Name clusters are candidates only; dynamic/framework responsibilities and safe decomposition require human judgment.",
       "swift_disposition": "swift-supported",
       "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-find-omnibus.md",
       "swift_native_check": [
@@ -3697,13 +3711,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "Header reuse and template-instantiation deduplication policy are not validated in a final artifact.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a2-syntax-family.md",
       "ruby_native_check": [
-        "Prism node feasibility only"
+        "Prism method-name clusters plus native gates",
+        "copied candidate and human-scout-graded final report"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Syntax size cannot prove runtime responsibilities introduced by mixins, reopenings, DSLs, or generated methods.",
+      "ruby_reviewed_revision": "c4b2036",
+      "ruby_limitation": "Syntax clusters are candidates only; mixins, reopenings, DSLs, generated methods, and safe decomposition require human judgment.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-syntax-family.md",
       "rust_native_check": [
@@ -3713,6 +3728,8 @@
       "rust_reviewed_revision": "225a0e784720ec2b6084a31676d9a54c4d84b117",
       "rust_limitation": "Scout judgment remains mandatory; macros, generated/build output, impl/trait defaults, cfg variants, and runtime responsibility remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d3-declaration-body-family.md",
       "dart_native_check": [
@@ -3734,6 +3751,8 @@
           "typescript",
           "go",
           "java",
+          "php",
+          "ruby",
           "rust",
           "dart",
           "swift"
@@ -4698,22 +4717,22 @@
         "final report and copied-closure assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-a2-syntax-family.md",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP standards-gap report was validated"
+        "direct call spelling and lexical try enclosure",
+        "copied coverage artifacts, clean case, lifecycle, and native gates"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "PHPStan, Psalm, and framework standards remain project-owned and unintegrated.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "php_reviewed_revision": "682a4df",
+      "php_limitation": "One declared direct-call/try condition only; callee identity, exception flow, PHPStan/Psalm, and framework standards remain project-owned.",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-syntax-a2.md",
       "swift_native_check": [
-        "compiler diagnostics only",
-        "no Swift standards-gap report validated"
+        "direct call spelling and lexical do-catch enclosure",
+        "copied coverage artifacts, clean case, lifecycle, and restrictive native gates"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "Framework guidance and project-owned lint/analyzer integrations are out of scope.",
+      "swift_reviewed_revision": "f8cc3a4",
+      "swift_limitation": "One direct-call/do-catch condition only; callee identity, exception flow, frameworks, Xcode, and general lint policy remain unresolved.",
       "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
@@ -4728,13 +4747,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "Compiler success is not a standards-gap artifact; host policy and optional clang-tidy/IWYU/cppcheck tools are absent.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a2-syntax-family.md",
       "ruby_native_check": [
-        "ruby -c and Bundler check pass"
+        "Prism direct calls and begin/rescue enclosure",
+        "copied coverage artifacts, lifecycle, partial exit 2, and native gates"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Compiler/lock success is not a standards-gap artifact; RuboCop, Standard Ruby, Steep, or Sorbet must be project-owned and configured.",
+      "ruby_reviewed_revision": "c4b2036",
+      "ruby_limitation": "One direct-call/begin-rescue syntax condition only; runtime callee/exception semantics and RuboCop/Standard/Steep/Sorbet remain project-owned.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-syntax-family.md",
       "rust_native_check": [
@@ -4744,6 +4764,9 @@
       "rust_reviewed_revision": "225a0e784720ec2b6084a31676d9a54c4d84b117",
       "rust_limitation": "Only the match-enclosure condition and direct call spelling are supported; aliases, receivers, imports, types, traits, macros/cfg, broader policies, and framework identity remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d2-syntax-family.md",
       "dart_native_check": [
@@ -4765,6 +4788,9 @@
           "typescript",
           "go",
           "java",
+          "php",
+          "ruby",
+          "swift",
           "rust",
           "dart"
         ],

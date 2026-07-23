@@ -63,6 +63,8 @@ POST_P3_ADDITIVE_FILES = frozenset(
     {
         "scripts/detect_swift_symbols.py",
         "scripts/run_dart.py",
+        "scripts/run_php.py",
+        "scripts/run_ruby.py",
         "scripts/run_rust.py",
     }
 )

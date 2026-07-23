@@ -259,14 +259,17 @@ def test_all_22_swift_skill_rows_have_explicit_closeout_dispositions() -> None:
         row["skill"] for row in rows if row["disposition"] == "swift-supported"
     } == {
         "adapt-project",
+        "audit-decisions",
         "explain-code",
         "find-comment-drift",
+        "find-complexity-hotspots",
         "find-concept-divergence",
         "find-duplication",
         "find-folder-topology-drift",
         "find-omnibus",
+        "find-standard-gaps",
         "map-subsystem",
         "move-path",
     }
-    assert sum(row["disposition"] == "swift-pending-implementation" for row in rows) == 13
+    assert sum(row["disposition"] == "swift-pending-implementation" for row in rows) == 10
     assert all(row["limitation"] and row["native_check"] for row in rows)

@@ -24,8 +24,13 @@ Set `SKILL_ROOT=.agents/skills/on-demand/<skill>` and run the matching command:
 - `find-concept-divergence`: `python3 -I -S "$SKILL_ROOT/scripts/scan_swift.py" --project-root "$PWD" --glossary "$PWD/.claude/contracts/concepts.yaml" --output "$PWD/reports/find-concept-divergence/swift/findings.jsonl" --report "$PWD/reports/find-concept-divergence/swift/report.md" "${SWIFT_NATIVE_ARGS[@]}" Sources`
 - `find-duplication`: `python3 -I -S "$SKILL_ROOT/scripts/run_swift.py" --project-root "$PWD" --target Sources --output-dir "$PWD/reports/duplication/swift" "${SWIFT_NATIVE_ARGS[@]}"`
 - `find-folder-topology-drift`: `python3 -I -S "$SKILL_ROOT/scripts/detect_swift.py" --project-root "$PWD" --swift-root Sources --output "$PWD/reports/find-folder-topology-drift/swift/detections.jsonl" "${SWIFT_NATIVE_ARGS[@]}"`
+- `audit-decisions`: `python3 -I -S "$SKILL_ROOT/scripts/audit_swift.py" --project-root "$PWD" --target . --output-dir "$PWD/reports/audit-decisions/swift" "${SWIFT_NATIVE_ARGS[@]}"`
+- `find-complexity-hotspots`: `python3 -I -S "$SKILL_ROOT/scripts/run_swift.py" --project-root "$PWD" --target Sources --output-dir "$PWD/reports/find-complexity-hotspots/swift" "${SWIFT_NATIVE_ARGS[@]}"`
+- `find-standard-gaps`: `python3 -I -S "$SKILL_ROOT/scripts/scan_coverage_swift.py" --project-root "$PWD" --target Sources --ideas "${SWIFT_STANDARDS:?}" --output-dir "$PWD/reports/find-standard-gaps/swift" "${SWIFT_NATIVE_ARGS[@]}"`
 
 The provider runs restrictive SwiftPM, per-file compiler parse, strict format,
 direct-check, smoke, roles, fingerprints, and lifecycle gates. These outcomes
 do not establish resolved symbols, cross-module semantics, macros, framework
 conventions, runtime behavior, equivalence, or safe consolidation/moves.
+The syntax consumers additionally make no callee identity, exception-flow,
+runtime-cost, ADR-applicability, general-lint, or refactor-authority claim.

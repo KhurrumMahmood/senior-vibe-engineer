@@ -164,29 +164,40 @@ def test_non_dart_external_library_closure_disables_ambient_install(tmp_path):
     [
         *( ("php", skill) for skill in (
             "adapt-project",
+            "audit-decisions",
             "explain-code",
+            "find-complexity-hotspots",
             "find-concept-divergence",
             "find-duplication",
             "find-folder-topology-drift",
+            "find-omnibus",
+            "find-standard-gaps",
         )),
         *( ("ruby", skill) for skill in (
             "adapt-project",
+            "audit-decisions",
             "explain-code",
+            "find-complexity-hotspots",
             "find-concept-divergence",
             "find-duplication",
             "find-folder-topology-drift",
+            "find-omnibus",
+            "find-standard-gaps",
         )),
         *( ("swift", skill) for skill in (
             "adapt-project",
+            "audit-decisions",
             "explain-code",
             "find-comment-drift",
+            "find-complexity-hotspots",
             "find-concept-divergence",
             "find-duplication",
             "find-folder-topology-drift",
+            "find-standard-gaps",
         )),
     ],
 )
-def test_project_lexical_capabilities_route_to_external_library(
+def test_project_family_capabilities_route_to_external_library(
     tmp_path: Path, language: str, skill: str
 ) -> None:
     returncode, payload = _run_match(

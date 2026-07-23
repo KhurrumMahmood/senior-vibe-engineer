@@ -63,15 +63,15 @@ EXPECTED_JAVA_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_PHP_COUNTS = {
-    "php-supported": 8,
-    "php-pending-implementation": 14,
+    "php-supported": 12,
+    "php-pending-implementation": 10,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
 }
 EXPECTED_SWIFT_COUNTS = {
-    "swift-supported": 9,
-    "swift-pending-implementation": 13,
+    "swift-supported": 12,
+    "swift-pending-implementation": 10,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -91,8 +91,8 @@ EXPECTED_CPP_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_RUBY_COUNTS = {
-    "ruby-supported": 7,
-    "ruby-pending-implementation": 15,
+    "ruby-supported": 11,
+    "ruby-pending-implementation": 11,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -521,11 +521,15 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         if row["php_disposition"] == "php-supported"
     } == {
         "adapt-project",
+        "audit-decisions",
         "explain-code",
         "find-comment-drift",
+        "find-complexity-hotspots",
         "find-concept-divergence",
         "find-duplication",
         "find-folder-topology-drift",
+        "find-omnibus",
+        "find-standard-gaps",
         "map-subsystem",
         "move-path",
     }
@@ -535,12 +539,15 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         if row["swift_disposition"] == "swift-supported"
     } == {
         "adapt-project",
+        "audit-decisions",
         "explain-code",
         "find-comment-drift",
+        "find-complexity-hotspots",
         "find-concept-divergence",
         "find-duplication",
         "find-folder-topology-drift",
         "find-omnibus",
+        "find-standard-gaps",
         "map-subsystem",
         "move-path",
     }
@@ -560,11 +567,15 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         if row["ruby_disposition"] == "ruby-supported"
     } == {
         "adapt-project",
+        "audit-decisions",
         "explain-code",
         "find-comment-drift",
+        "find-complexity-hotspots",
         "find-concept-divergence",
         "find-duplication",
         "find-folder-topology-drift",
+        "find-omnibus",
+        "find-standard-gaps",
         "map-subsystem",
     }
     assert {
@@ -611,10 +622,14 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         if row.get("php_closure_mode") == "external-library"
     } == {
         "adapt-project",
+        "audit-decisions",
         "explain-code",
+        "find-complexity-hotspots",
         "find-concept-divergence",
         "find-duplication",
         "find-folder-topology-drift",
+        "find-omnibus",
+        "find-standard-gaps",
     }
     assert {
         row["skill"]
@@ -622,10 +637,14 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         if row.get("ruby_closure_mode") == "external-library"
     } == {
         "adapt-project",
+        "audit-decisions",
         "explain-code",
+        "find-complexity-hotspots",
         "find-concept-divergence",
         "find-duplication",
         "find-folder-topology-drift",
+        "find-omnibus",
+        "find-standard-gaps",
     }
     assert {
         row["skill"]
@@ -633,11 +652,14 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         if row.get("swift_closure_mode") == "external-library"
     } == {
         "adapt-project",
+        "audit-decisions",
         "explain-code",
         "find-comment-drift",
+        "find-complexity-hotspots",
         "find-concept-divergence",
         "find-duplication",
         "find-folder-topology-drift",
+        "find-standard-gaps",
     }
     assert {
         row["skill"]

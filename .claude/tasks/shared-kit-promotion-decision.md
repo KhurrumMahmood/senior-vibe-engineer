@@ -1,6 +1,6 @@
 # Shared-kit promotion decision and family-packet index
 
-Status: accepted for P6/F1 closeout; Cohort A project/lexical evidence appended
+Status: accepted for P6/F1 closeout; Cohort A A1/A2 evidence appended
 
 Evidence snapshot: `f9d14f077b158291a360e83c3db47aecab01e606`
 
@@ -28,6 +28,9 @@ runtime platform.
 | PHP A1 project/lexical provider | Five consumers; `62.43%` maintained-LOC reduction; maximum closure growth `0.32%`; median latency growth `1.86%` | Retain PHP-local in the external library; no cross-language schema follows |
 | Ruby A1 project/lexical provider | Five consumers; `57.02%` maintained-LOC reduction; closure growth `0%`; median latency growth `-2.98%` | Retain Ruby-local in the external library; no cross-language schema follows |
 | Swift A1 project/lexical provider | Six consumers; `62.80%` maintained-LOC reduction; closure growth `0%`; median consumer latency growth `-4.59%` | Retain Swift-local in the external library; no cross-language schema follows |
+| PHP A2 syntax provider | Four consumers; `56.55%` maintained-LOC reduction; closure growth `0%`; median latency growth `3.70%` | Retain PHP-local in the external library; no cross-language schema follows |
+| Ruby A2 syntax provider | Four consumers; `57.91%` maintained-LOC reduction; closure growth `0%`; median latency growth `1.068%` | Retain Ruby-local in the external library; no cross-language schema follows |
+| Swift A2 syntax extension | Three new consumers on the existing provider; `45.53%` maintained-LOC reduction; closure growth `0%`; aggregate latency growth `2.81%` and median consumer change `-0.75%` | Retain the Swift-local extension; do not split or generalize its compiler-validated inventory |
 | Rust syntax provider | Four consumers; `56.34%` maintained-LOC reduction; latency comparator missing | Retain Rust-local; defer any broader promotion |
 | Dart D2/D3 syntax providers | Three/four consumers; `43.06%`/`58.12%` maintained-LOC reduction; D3 copied bytes `-24.38%`; repeated median comparator missing | Retain Dart-local; defer any broader promotion |
 | Rust semantic and proposal evidence | Five semantic consumers at `53.77%` LOC reduction; two proposal consumers at `28.6%`; closure/latency comparisons incomplete | Retain Rust-local; defer broader promotion |
@@ -60,7 +63,9 @@ closure, native commands, and final artifacts. Paths are repository-relative.
 | Syntax | Dart D2 — `ready-local` | `dart-d2-syntax-family.md`, `dart-d2-provider-extension.md`; `_dart/scripts/dart_syntax_facts.py`; analyzer tool; three consumers and two focused tests | `tests/fixtures/dart-d2-syntax`; packets record copied closures, offline locked analyzer setup, native analyze/format/test/smoke, and audit/comment/standards artifacts |
 | Syntax | Dart D3 — `ready-local` | `dart-d3-declaration-body-family.md`; `_dart/scripts/dart_d3_snapshot.py`; four consumers; `tests/test_dart_d3_declaration_body_family.py` | `tests/fixtures/dart-d3`; packet records 60-file union closure, native commands, and explanation/complexity/duplication/omnibus artifacts |
 | Syntax | TypeScript / Java — `family-local` | TypeScript per-skill learning JSON/Markdown; `java-j2-j3-expansion.json` and Java skill packets | Providers have different facts and final schemas; use the target skill's packet rather than inventing a shared parser |
-| Syntax | PHP — `no-completed-family` | `php-pilot.md`, tree-sitter evaluation evidence | Syntax spans did not reach a final semantic value claim; use project-owned analyzers when present |
+| Syntax | PHP — `ready-local` | `multilanguage-learnings/php-a2-syntax-family.md`; `_php-syntax/run_php.py`; four consumer adapters; `tests/test_php_a2_syntax_family.py` | `tests/fixtures/php-a2-syntax`; packet records copied closures, Composer/PHP native gates, four independent final artifacts, lifecycle, and economics |
+| Syntax | Ruby — `ready-local` | `multilanguage-learnings/ruby-a2-syntax-family.md`; `_ruby-syntax/ruby_syntax_facts.py`; four consumer adapters; `tests/test_ruby_a2_syntax_family.py` | `tests/fixtures/ruby-syntax-family`; packet records copied closures, frozen Bundler/Prism/native gates, four independent final artifacts, lifecycle, and economics |
+| Syntax | Swift — `ready-local` | `multilanguage-learnings/swift-syntax-a2.md`; A2 extension to `_swift-project-lexical/swift_project_facts.py`; three new consumer adapters; `tests/test_swift_syntax_a2.py` | `tests/fixtures/swift-project-lexical`; packet records copied closures, restrictive Swift native gates, three independent final artifacts, lifecycle, and economics |
 | Semantic/proposal/mutation | TypeScript — `ready-family-local` | TypeScript map, semantic-duplication, unify-shadows, and move-path packets plus their named adapters/tests | Corresponding fixtures record Compiler API identity, decoys, offline npm/typecheck or `node --check`, copied closure, report/proposal/move artifacts |
 | Semantic/proposal/mutation | Java — `ready-family-local` | Java semantic-relationship, proposal, state-chain, and move packets plus Java-focused tests | Corresponding fixtures record JDK compiler facts, malformed/reflection/framework decoys, `javac --release 17 -proc:none`, copied closure, proposal/mutation boundaries |
 | Semantic/proposal/mutation | PHP — `ready-family-local` | `p4-baseline/php-pilot-baseline.json`, `php-map-subsystem.md`, `php-move-path.md` | `tests/fixtures/php-pilot`; Composer/`php -l`/lint/smoke commands and final map/move rollback artifacts are frozen there |

@@ -1,6 +1,6 @@
 ---
 name: audit-decisions
-description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, Java JDK 17+, bounded Rust and Dart, JavaScript-family, and TypeScript comments plus Markdown/HTML references."
+description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, Java JDK 17+, bounded PHP, Ruby, Swift, Rust, and Dart, JavaScript-family, and TypeScript comments plus Markdown/HTML references."
 argument-hint: "[--target PATH]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -19,10 +19,22 @@ delegate_from: |
   and orphaned inline decision references.
 language: any
 framework: any
-scans: [python, markdown, html, javascript, typescript, go, java, rust, dart]
+scans: [python, markdown, html, javascript, typescript, go, java, php, ruby, swift, rust, dart]
 ---
 
 # /audit-decisions
+
+## External syntax variants
+
+For PHP, Ruby, or Swift, load the selected skill with its sibling provider and
+read the matching on-demand guide before execution:
+
+- [`../_php-syntax/GUIDE.md`](../_php-syntax/GUIDE.md)
+- [`../_ruby-syntax/GUIDE.md`](../_ruby-syntax/GUIDE.md)
+- [`../_swift-project-lexical/GUIDE.md`](../_swift-project-lexical/GUIDE.md)
+
+These resolve comment tokens against the ADR registry only. The guides own the
+exact commands, copied closures, native gates, and semantic non-claims.
 
 ## Dart v1
 

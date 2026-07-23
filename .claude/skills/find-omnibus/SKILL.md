@@ -1,7 +1,7 @@
 ---
 name: find-omnibus
-description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses family-local syntax facts for Python, JavaScript/TypeScript, Go, Java, bounded Rust, bounded Dart, and Swift; then groups symbols by head-noun cluster, requires scout judgment, and produces decomposition evidence. Never edits code.
-argument-hint: "--target <directory> [--language python|javascript|typescript|go|java|rust|dart|swift]"
+description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses family-local syntax facts for Python, JavaScript/TypeScript, Go, Java, bounded PHP, Ruby, Rust, Dart, and Swift; then groups symbols by head-noun cluster, requires scout judgment, and produces decomposition evidence. Never edits code.
+argument-hint: "--target <directory> [--language python|javascript|typescript|go|java|php|ruby|rust|dart|swift]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -22,10 +22,21 @@ not_for: |
   to /find-perimeter-gaps.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust, dart, swift]
+scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, swift]
 ---
 
 # /find-omnibus
+
+## External syntax variants
+
+For PHP or Ruby, load the selected skill with its sibling provider and read the
+matching on-demand guide before execution:
+
+- [`../_php-syntax/GUIDE.md`](../_php-syntax/GUIDE.md)
+- [`../_ruby-syntax/GUIDE.md`](../_ruby-syntax/GUIDE.md)
+
+Both produce syntax candidates requiring hash-bound human scout judgment. The
+guides own the exact commands, copied closures, native gates, and non-claims.
 
 ## Dart v1
 

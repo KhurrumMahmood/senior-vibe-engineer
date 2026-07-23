@@ -1,7 +1,7 @@
 ---
 name: find-complexity-hotspots
-description: Detect advisory Python, JavaScript, TypeScript, Go, Java, bounded Rust, and bounded Dart function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only family-local high-branch findings for bounded named functions, methods, and constructors.
-argument-hint: "<paths> [--language python|javascript|typescript|go|java|rust|dart]"
+description: Detect advisory Python, JavaScript, TypeScript, Go, Java, bounded PHP, Ruby, Swift, Rust, and Dart function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only family-local high-branch findings for bounded named functions, methods, and constructors.
+argument-hint: "<paths> [--language python|javascript|typescript|go|java|php|ruby|swift|rust|dart]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -18,13 +18,25 @@ not_for: |
   scope. Broad module-level responsibility sprawl belongs to /find-omnibus.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust, dart]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart]
 ---
 
 <!-- Native-parser compatibility subset: scans: [javascript, typescript, go, java] -->
 <!-- TypeScript compatibility subset: scans: [python, javascript, typescript] -->
 
 # /find-complexity-hotspots
+
+## External syntax variants
+
+For PHP, Ruby, or Swift, load the selected skill with its sibling provider and
+read the matching on-demand guide before execution:
+
+- [`../_php-syntax/GUIDE.md`](../_php-syntax/GUIDE.md)
+- [`../_ruby-syntax/GUIDE.md`](../_ruby-syntax/GUIDE.md)
+- [`../_swift-project-lexical/GUIDE.md`](../_swift-project-lexical/GUIDE.md)
+
+These are frozen direct-body syntax scores and advisory leads. The guides own
+the exact commands, nested-callable boundaries, native gates, and non-claims.
 
 ## Dart v1
 
