@@ -86,6 +86,7 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert payload["capabilities"]["inventory_languages"] == [
         "c",
         "cpp",
+        "dart",
         "go",
         "java",
         "javascript",

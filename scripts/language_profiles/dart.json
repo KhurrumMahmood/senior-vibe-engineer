@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "language": "dart",
+  "suffixes": [".dart"],
+  "project_markers": ["pubspec.yaml"],
+  "source_roles": {
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "migration", "symlink"],
+    "test_file_globs": ["test_*.dart", "*_test.dart"],
+    "declaration_file_globs": [],
+    "configuration_files": []
+  },
+  "native_tools": [
+    {
+      "id": "dart",
+      "project_paths": [".tools/dart-sdk/bin/dart", "tools/dart-sdk/bin/dart", ".dart-sdk/bin/dart"],
+      "system_commands": ["dart"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "3.12.0",
+      "required": true
+    }
+  ],
+  "fact_tiers": ["lexical-filesystem", "syntax", "semantic-project"],
+  "verification_commands": [
+    {
+      "id": "dart-analyze",
+      "argv": ["{tool:dart}", "analyze", "--fatal-infos", "--fatal-warnings", "{project_root}"],
+      "requires": ["dart"]
+    },
+    {
+      "id": "native-test",
+      "argv": ["{tool:dart}", "{project_root}/test/invoice_service_test.dart"],
+      "requires": ["dart"]
+    },
+    {
+      "id": "format-check",
+      "argv": ["{tool:dart}", "format", "--output=none", "--set-exit-if-changed", "{project_root}/lib", "{project_root}/bin", "{project_root}/test"],
+      "requires": ["dart"]
+    },
+    {
+      "id": "executable-smoke",
+      "argv": ["{tool:dart}", "{project_root}/bin/dart_pilot_smoke.dart"],
+      "requires": ["dart"]
+    }
+  ],
+  "terminal_outcomes": ["complete", "partial", "unsupported", "tool-missing", "syntax-error", "native-check-failure", "unexpected-source-mutation"],
+  "explicit_limits": [
+    "This is a dependency-free Dart 3.12 package baseline. It does not imply Flutter, web, build_runner, code generation, FFI, isolates, native assets, workspaces, or another framework/build profile.",
+    "Only .dart is source-inventory-owned. pubspec.yaml and pubspec.lock are project metadata, and analysis_options.yaml or build.yaml require separate configuration handling rather than source classification.",
+    "Dependency-free native test and smoke commands use direct dart <script.dart> execution. dart run performs implicit pub resolution in Dart 3.12 and writes .dart_tool plus pubspec.lock, so it is excluded from the read-only spine. dart test is conditional on a host-owned package:test dependency and lock state.",
+    "dart analyze and direct script execution must not run pub get, install packages, fetch dependencies, create .dart_tool, or create/change pubspec.lock. Format verification is check-only via --output=none --set-exit-if-changed.",
+    "The shared inventory classifies generated directories and generic generated-name markers. Common Dart units such as *.g.dart and *.freezed.dart remain source-classified outside those locations until the declarative profile schema owns language-specific generated globs.",
+    "The generic doctor proves pubspec.yaml presence, not manifest validity, and dart analyze 3.12 does not reject a malformed pubspec when analyzed Dart sources are otherwise valid. Pub commands can trigger implicit resolution and project writes, so a read-only manifest-validity gate remains pending.",
+    "The Dart SDK bundles analyzer and Analysis Server implementation, but this spine claims only native analyze diagnostics and project markers. Analysis Server protocol facts, analyzer API compatibility, resolved references/types, package graph completeness, generated sources, and SDK/API churn require separate version-gated evidence before a semantic outcome can be complete."
+  ]
+}

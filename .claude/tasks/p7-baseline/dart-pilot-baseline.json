@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-07-22T16:00:00-07:00",
+  "base_revision": "c691fb3c4a8bf040774e7d75b50fb6bd6aac81c7",
+  "platform": "macOS arm64; Homebrew Dart stable SDK",
+  "python_runtime": {
+    "required_path": "/Users/<user>/Projects/engineering-skills-product/.venv/bin/python",
+    "version": "3.11.10"
+  },
+  "toolchain": {
+    "dart": {
+      "path": "/opt/homebrew/bin/dart",
+      "version": "3.12.2",
+      "minimum_profile_version": "3.12.0",
+      "required": true
+    },
+    "installation_performed": false,
+    "dependency_install_or_update_performed": false,
+    "network_used": false
+  },
+  "package_boundary": {
+    "shape": "dependency-free Dart 3.12 package",
+    "required_marker": "pubspec.yaml",
+    "lock_policy": "pubspec.lock is preserved if host-owned and must never be created or changed by the spine",
+    "valid": "marker presence plus dart analyze, direct native test, format check, and direct smoke pass without project writes; this does not validate pubspec syntax",
+    "invalid_states": [
+      "missing pubspec.yaml",
+      "lockfile-only directory",
+      "malformed pubspec.yaml remains metadata-unvalidated by the generic doctor and dart analyze",
+      "malformed selected Dart source",
+      "Dart below 3.12",
+      "version probe missing, broken, or unrecognized"
+    ],
+    "direct_execution_boundary": "dart <script.dart> is read-only for this fixture; dart run performs implicit pub resolution and writes .dart_tool and pubspec.lock, while dart test requires a host-owned package:test dependency"
+  },
+  "source_roles": {
+    "profile_owned_suffixes": [".dart"],
+    "authored": ["host/lib/invoice_service.dart"],
+    "tooling": ["host/bin/dart_pilot_smoke.dart"],
+    "test": ["host/test/invoice_service_test.dart"],
+    "generated": ["host/generated/GeneratedInvoice.dart"],
+    "excluded_vendor": ["host/vendor/example/VendorInvoice.dart"],
+    "excluded_build": ["host/build/BuildSentinel.dart"],
+    "runtime_symlink": "tests create host/linked-external -> ../symlink-target and require role=symlink without traversal",
+    "metadata_not_inventoried": ["host/pubspec.yaml"]
+  },
+  "fixture": {
+    "root": "tests/fixtures/dart-pilot",
+    "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), sorted regular-file paths",
+    "manifest_sha256": "1b30da17e691a7428cbc7f6f9de0b603802f67dbc3ef06ab92a7e9e63a48e7ef",
+    "total_bytes": 1061,
+    "files": [
+      "host/bin/dart_pilot_smoke.dart",
+      "host/build/BuildSentinel.dart",
+      "host/generated/GeneratedInvoice.dart",
+      "host/lib/invoice_service.dart",
+      "host/pubspec.yaml",
+      "host/test/invoice_service_test.dart",
+      "host/vendor/example/VendorInvoice.dart",
+      "malformed/Broken.dart",
+      "symlink-target/External.dart"
+    ]
+  },
+  "runtime_closure": {
+    "definition": "existing stdlib-only profile, doctor, and inventory runtime exercised from a copied library; it earns no skill support claim",
+    "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), listed path order",
+    "manifest_sha256": "b32e4beaec941a6225b038cf823686a6944d58ff2786ae46e76bdbb203d5bba5",
+    "total_bytes": 43766,
+    "files": [
+      "scripts/language_profiles/dart.json",
+      "scripts/language_doctor.py",
+      "scripts/source_inventory.py",
+      "scripts/_lib/language_support/__init__.py",
+      "scripts/_lib/language_support/profile.py",
+      "scripts/_lib/language_support/lifecycle.py"
+    ]
+  },
+  "pilot_contracts": {
+    "lexical": {
+      "skill": "find-comment-drift",
+      "disposition": "dart-pending-implementation",
+      "producer_candidate": "version-gated analyzer tokens/source spans or a bounded Dart-native parser",
+      "final_outcome": "durable findings/clean artifact with exact roles and complete, partial, unsupported, and failed lifecycle",
+      "required_boundaries": ["valid", "clean", "malformed", "generated", "vendor", "build", "test", "tool-missing", "tool-too-old", "source-preserving", "copied closure"]
+    },
+    "semantic": {
+      "skill": "map-subsystem",
+      "disposition": "dart-pending-implementation",
+      "producer_candidate": "version-gated Analysis Server/analyzer project facts",
+      "pubspec_gate": ["valid", "current", "dependency-complete", "selected-package-complete", "no implicit pub mutation"],
+      "final_outcome": "durable map with declarations, resolved references/types, package edges, explicit unresolved facts, and honest partial status",
+      "required_boundaries": ["missing", "malformed", "lock-only", "generated", "package:test-absent", "tool-missing", "tool-too-old", "copied closure"]
+    },
+    "mutation": {
+      "skill": "move-path",
+      "disposition": "dart-pending-implementation",
+      "state": "deferred-until-semantic-lineage",
+      "scope_if_authorized_later": "one Dart library move in a disposable copy with import/part and pubspec impacts",
+      "required_proofs": ["accepted semantic lineage", "preview", "source fingerprint", "bounded diff", "generated/vendor/build/symlink refusal", "rollback", "analyze", "native test", "format check", "smoke", "same-destination terminal state"]
+    }
+  },
+  "generated_unit_boundary": {
+    "classified_now": "generated directory or generic generated-name markers",
+    "pending": ["*.g.dart", "*.freezed.dart"],
+    "rule": "do not hardcode Dart filename exceptions into shared inventory; add profile-owned generated globs only with a reviewed schema extension"
+  },
+  "coverage": {
+    "artifact": ".claude/tasks/dart-language-coverage.json",
+    "rows": 22,
+    "disposition_counts": {"dart-pending-implementation": 22},
+    "reason": "Profile, read-only doctor, inventory roles, and native fixture gates do not reach any skill-owned final artifact or mutation boundary."
+  },
+  "mutation_performed": false,
+  "root_integration_needs": [
+    "Keep pubspec.yaml as the sole generic doctor marker; pubspec.lock alone is not project metadata readiness.",
+    "Add profile-owned generated filename globs before excluding *.g.dart or *.freezed.dart outside generated directories.",
+    "Publish router, matrix, catalog, and execution-plan truth only after focused skill final outcomes earn it."
+  ]
+}
