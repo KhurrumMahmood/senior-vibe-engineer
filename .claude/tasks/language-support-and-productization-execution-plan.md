@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: Dart final integration and publication; shared-component closeout follows before the next language cohort; C#/.NET remains last
-Last updated: 2026-07-23 (integrated worktrees retired; bounded follow-on execution sequence added)
+Current phase: P6/F1 evidence-backed reuse decision; Dart is complete at 22/22 and C#/.NET remains last
+Last updated: 2026-07-23 (Dart/repository closeout accepted; three read-only reuse comparisons started)
 
 ## Objective
 
@@ -71,11 +71,14 @@ execution authorities.
   before opening a lane. Existing live/unmerged worktrees are never deleted or
   repurposed; obsolete worktrees are removed only after their work is proven
   represented on `main` and their working tree is clean. The 2026-07-23 review
-  reduced 70 registrations to four by retiring 64 clean patch-equivalent
-  worktrees plus two reviewed superseded/anomaly worktrees while retaining
-  every branch and commit. The remaining checkouts are `main`, the archived
-  preflight branch, and the two completed Dart lanes. No new implementation
-  wave may open until those lanes have the dispositions required by F0 below.
+  reduced 70 registrations to two by retiring 64 clean patch-equivalent
+  worktrees, two reviewed superseded/anomaly worktrees, and the two accepted
+  Dart lanes while retaining every branch and commit. The product checkout is
+  `main`. The only other checkout is the clean archived preflight branch,
+  retained as the repository's primary administrative worktree because its
+  `.git` directory owns the common metadata used by the linked product
+  checkout. Removing it requires a separate metadata migration, not ordinary
+  worktree retirement.
 - Implementation workers are fresh non-context sub-agents. Every packet names
   the project/worktree root, `.venv/bin/python`, platform, base SHA, owned and
   forbidden paths, native tools, final artifacts, stop conditions, and exact
@@ -109,8 +112,8 @@ execution authorities.
 | P3 | Minimal reusable language-support kit scaffold proven | `done` | `f249d9a` |
 | P4 | PHP pilot proves real outcomes and kit economics | `done` | `268c3ac` |
 | P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `deferred_to_final_language` | — |
-| P6 | Shared components promoted or rejected on evidence | `scheduled_after_dart_closeout` | — |
-| P7 | Every chosen language reaches complete, value-tested language-level support | `active_dart_closeout` | — |
+| P6 | Shared components promoted or rejected on evidence | `in_progress` | — |
+| P7 | Every chosen language reaches complete, value-tested language-level support | `paused_at_reuse_gate_after_dart` | — |
 | P8 | Current journey, update/repair, and help are measured | `not_started` | — |
 | P9 | Only measured user-journey improvements are adopted | `not_started` | — |
 
@@ -123,8 +126,8 @@ the committed integration revision.
 
 | ID | Outcome | Status | Execution owner and parallelism | Completion evidence |
 |---|---|---|---|---|
-| F0 | Close Dart and normalize repository state | `in_progress` | Root integrates serially; fresh non-context agents may review but not publish shared truth | Accepted D5/D7 and D8 commits, final Dart publication/replay, anomaly dispositions, and only useful worktrees retained |
-| F1 | Complete P6 reuse decisions | `pending_f0` | Up to three read-only comparison lanes; root owns the decision and any shared edit | One committed adopt/reject/defer table with real consumers, economics, deletion proof, and frozen worker packets |
+| F0 | Close Dart and normalize repository state | `done` | Root integrated serially; fresh non-context agents reviewed but did not publish shared truth | D5/D7 and D8 accepted; Dart published at 22/22; installed replay passed; anomaly branches retained; only useful checkouts remain |
+| F1 | Complete P6 reuse decisions | `in_progress` | Three fresh non-context read-only comparison lanes; root owns the decision and any shared edit | One committed adopt/reject/defer table with real consumers, economics, deletion proof, and frozen worker packets |
 | F2 | Complete PHP, Ruby, and Swift | `pending_f1` | One fresh non-context worktree per language for the same family; maximum three; root integrates serially | All 22 jobs per language have accepted outcomes or strict reviewed exceptions; installed routes and native value suites pass |
 | F3 | Complete C, C++, and Kotlin | `pending_f2` | Kotlin spine first; then one worktree per language for the same family; maximum three | Separate C/C++ truth retained; Kotlin project boundary proven; all three languages meet the F2 outcome gate |
 | F4 | Complete C#/.NET last | `pending_f3` | One spine, then disjoint read-only family lanes only where ownership is proven; mutation serial | Roslyn/project facts, all 22 jobs, copied closures, native build/test/analyze, and installed routing pass |
@@ -173,24 +176,26 @@ Run in this order:
 
 F0 acceptance:
 
-- [ ] D5/D7 and D8 are integrated one at a time with focused and preserved
+- [x] D5/D7 and D8 are integrated one at a time with focused and preserved
   regressions green after each commit.
-- [ ] D8's retained production size and closure are justified by required user
+- [x] D8's retained production size and closure are justified by required user
   behavior; redundant lifecycle/evidence machinery is removed or documented
   as necessary, unrelated host files do not block a provably bounded move, and
   no generic transaction abstraction is introduced.
-- [ ] Dart coverage, skill prose, generated matrix, catalog, all three routers,
+- [x] Dart coverage, skill prose, generated matrix, catalog, all three routers,
   installed closure manifests, and the execution ledger agree at one commit.
-- [ ] Installed routing reaches final Dart semantic-duplication, keep-separate
+- [x] Installed routing reaches final Dart semantic-duplication, keep-separate
   unification, and move preview/apply/check outcomes without ambiently
   installing task skills.
 - [x] Dart has zero coverage-level partial rows under the accepted bounded-
   contract/runtime-partial distinction; no whole-language or Flutter claim is
   implied.
-- [ ] The committed ledger records the Java byte-equivalence decision and the
+- [x] The committed ledger records the Java byte-equivalence decision and the
   JavaScript supersession plus green mutation regression; branch refs remain.
-- [ ] Only `main` remains checked out. Archive and completed lane branches may
-  remain as refs; branch deletion is a separate, optional cleanup action.
+- [x] ~~Only `main` remains checked out.~~ The product checkout is `main`; the
+  only other checkout is the clean archived preflight branch that owns Git's
+  common administrative metadata. All completed implementation lanes are
+  retired, and archive/completed lane branches remain as refs.
 
 ### F1 — Evidence-backed reuse decision
 
@@ -845,7 +850,7 @@ Per-language status:
 | Ruby | `family_expansion_active` | Homebrew Ruby 3.4.1, RubyGems 3.6.2, and Bundler 2.6.2 pass direct execution smoke | 1 supported (`find-comment-drift`), 1 useful partial (`map-subsystem`), 20 pending implementation; not complete | Ruby column and lexical capability published; map publication in current slice | Two family-specific learning packets plus spine/preflight | spine `6b87331`; lexical `eed1f1d`; map `423fd08` |
 | Rust | `broad_coverage_complete_one_partial` | rustc/Cargo 1.97.1 plus rust-analyzer, Clippy, and rustfmt installed through rustup | 21 supported, 1 useful partial (`map-subsystem`), 0 pending, 0 unsupported; every job provides real value, while whole-language completeness is not claimed | Schema-v5 column plus all bounded families published | Rust pilots plus lexical, syntax, semantic, proposal, enum/guard, and unification packets | implementation through `9b0faf4`; publication `f7311f0`; closure gating `f1a99c4`; installed expectation `e6e818e` |
 | Swift | `pilot_complete_expansion_required` | SwiftPM-only profile/doctor/inventory and restrictive native fixture proven; SwiftSyntax and native test modules remain unavailable under CLT-only setup | 3 supported (`find-omnibus`, `map-subsystem`, `move-path`), 19 pending implementation; not complete | Pilot truth published and installed-router tested | `.claude/tasks/multilanguage-learnings/swift-pilot.md` plus three cohort packets | spine `09248d4`; cohorts `84bd160`, `7fb2f4f`, `c5a2792`; publication `661e1b1` |
-| Dart | `final_three_active` | Dependency-free Dart SDK 3.12.2 foundation plus project/lexical, locked public-analyzer syntax, SDK-LSP semantic, and accepted-evidence consumers proven; Flutter remains separate | 18 supported, 1 useful partial (`map-subsystem`), 3 pending: semantic duplication, its unification consumer, and transactional move-path | Capability column and all three router handoffs published; fourteen shared-helper outcomes remain external-library-only rather than advertising broken one-skill stock installs | Spine, contract map, D1-D7 family packets | spine `f4a5eab`; contract `8e16c5c`/`ad6f277`; implementations through `3c42fd5`, `78b0deb`, and `40a111e`; publication current slice |
+| Dart | `complete` | Dependency-free Dart SDK 3.12.2 foundation plus project/lexical, locked public-analyzer syntax, SDK-LSP semantic, accepted-evidence consumers, and transactional move proven; Flutter remains separate | 22 supported, 0 partial, 0 pending, 0 unsupported under bounded-contract/runtime-partial semantics | Capability column and all three router handoffs published; shared-helper outcomes remain external-library-only rather than advertising broken one-skill stock installs | Spine, contract map, D1-D8 family packets | spine `f4a5eab`; contract `8e16c5c`/`ad6f277`; final integration/publication through `891ad50` |
 | Kotlin | `toolchain_ready_queued` | Kotlin 2.4.10 passes JVM expression smoke; project build tooling remains fixture-owned | — | — | — | — |
 | C | `pilot_complete_expansion_required` | Apple Clang/clangd 21 plus Make 3.81 proven; `.c`/`.i` only; trustworthy C-mode compile DB required for semantic facts | 2 supported (`find-comment-drift`, `map-subsystem`), 20 pending implementation; not complete | Pilot truth published and installed-router tested | `.claude/tasks/multilanguage-learnings/c-pilot.md` plus spine and cohort packets | spine `56707fe`; lexical `b5a63e9`; semantic `5d6def3`; publication `79d8a27` |
 | C++ | `family_expansion_required` | Separate ISO C++20 profile; Apple Clang/clangd 21 and Make proven; trustworthy C++ compile DB required | 2 supported (`find-comment-drift`, `map-subsystem`), 20 pending implementation; not complete | Capability column published and installed-router tested | Spine, lexical, and semantic learning packets | spine `6d642f0`; lexical `9b1ed7d`; semantic `5eeff8e`; publication `7f1c6b3` |
@@ -1014,6 +1019,7 @@ Evidence:
 
 | Date | Phase | Change | Reason/evidence | User decision |
 |---|---|---|---|---|
+| 2026-07-23 | F0 | Replace the literal "only `main` checked out" condition with "only useful checkouts retained" | The archived preflight checkout is Git's primary administrative worktree: its `.git` directory stores the common metadata used by the linked product checkout, so `git worktree remove` correctly refuses it. Its redacted telemetry is committed at `5a8a571`, it is clean, and every completed implementation checkout is retired. Removing it would require a separate repository-metadata migration with no installer or language-support benefit | Consistent with the owner's request to retire worktrees that are no longer useful; no product scope added |
 | 2026-07-23 | P6-P9 | Added one bounded follow-on queue: Dart/repository closeout, evidence-backed reuse, family-batched language cohorts, final release, measured journey, then threshold-gated improvements | The owner requested retirement of obsolete worktrees and a resumable plan that can use separate non-context workers. Three fresh read-only reviews independently supported family batching, serial shared integration, criteria repair, and measure-before-UX sequencing | Approved by user request |
 | 2026-07-22 | P7 | Replace pilot-closeout completion with full chosen-language completion and value-scenario gates | Owner clarified that every chosen language must support every applicable skill and that tests must prove useful language-native outcomes. PHP 3/22, Swift 3/22, and C 2/22 are therefore honest pilots but incomplete products. Cross-language work is batched by four skill families with language-specific providers and serial shared integration | Approved by user request |
 | 2026-07-21 | All | Initial verifiable criteria created | Requested resumable one-by-one execution with final validation | Approved by request |
@@ -1031,6 +1037,7 @@ Evidence:
 
 | Date | Phase | Event | Evidence/next action |
 |---|---|---|---|
+| 2026-07-23 | P7/F0 | Dart and repository closeout completed | D5/D7 and D8 were integrated and adversarially repaired through `891ad50`; Dart now has 22 supported rows and no coverage-level partial, pending, or unsupported rows. Installed external-library routing reaches semantic duplication, keep-separate unification, and transactional move outcomes while only three routers remain ambient. Both Dart implementation worktrees are retired. The preflight telemetry was redacted and committed on its archive branch at `5a8a571`; that clean checkout remains solely because it owns Git's common administrative metadata. Begin three read-only P6/F1 reuse comparisons; do not open a new language implementation lane yet. |
 | 2026-07-21 | P1 | Started | Validate discoverability, reference integrity, diff scope, then commit the documentation/ledger unit. |
 | 2026-07-21 | P1 | Completed | `cc2a4fc`; all P1 acceptance items passed. |
 | 2026-07-21 | P2 | Started | Audit the documented public source and compare its remote revision with `cc2a4fc`; prepare the clean replay and stop for owner authorization before any publication action. |
