@@ -973,21 +973,33 @@ def optional_install_handoff(
             "reason": capabilities["reason"],
             "evidence": [],
         }
-    if language == "dart":
+    if language:
+        closure_field = f"{language}_closure_mode"
         try:
             manifest = Path(capabilities["manifest"])
             rows = json.loads(manifest.read_text(encoding="utf-8"))["skills"]
             by_name = {row["skill"]: row for row in rows}
             closure_modes = {
-                skill_name: by_name[skill_name]["dart_closure_mode"]
+                skill_name: by_name[skill_name][closure_field]
                 for skill_name in skills
+                if closure_field in by_name[skill_name]
             }
-            if any(
-                mode not in {"stock-selected-install", "external-library"}
-                for mode in closure_modes.values()
+            if closure_modes and (
+                len(closure_modes) != len(skills)
+                or any(
+                    mode not in {"stock-selected-install", "external-library"}
+                    for mode in closure_modes.values()
+                )
             ):
-                raise ValueError("invalid Dart closure mode")
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+                raise ValueError("invalid language closure mode")
+        except (
+            OSError,
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+            KeyError,
+            TypeError,
+            ValueError,
+        ):
             return {
                 **result,
                 "available": False,

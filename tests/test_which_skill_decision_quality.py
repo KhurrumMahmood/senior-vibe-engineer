@@ -126,6 +126,39 @@ def test_natural_dart_marker_returns_supported_external_library_handoff(tmp_path
     }
 
 
+def test_non_dart_external_library_closure_disables_ambient_install(tmp_path):
+    library_root = tmp_path / "library"
+    manifest = library_root / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
+    manifest.parent.mkdir(parents=True)
+    payload = json.loads(
+        (REPO_ROOT / ".claude" / "tasks" / "multilanguage-skill-matrix.json")
+        .read_text(encoding="utf-8")
+    )
+    adapt = next(row for row in payload["skills"] if row["skill"] == "adapt-project")
+    adapt["ruby_disposition"] = "ruby-supported"
+    adapt["ruby_closure_mode"] = "external-library"
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    returncode, routed = _run_match(
+        "Use adapt-project to onboard this Ruby gem.",
+        "--project-root",
+        str(tmp_path),
+        "--library-root",
+        str(library_root),
+    )
+
+    assert returncode == 0, routed
+    assert routed["recommendation"] == "adapt-project"
+    assert routed["handoff"]["capabilities"]["available"] is True
+    assert routed["optional_install"]["available"] is False
+    assert routed["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
+    )
+    assert routed["optional_install"]["evidence"] == [
+        {"skill": "adapt-project", "status": "external-library-only"}
+    ]
+
+
 @pytest.mark.parametrize(
     "skill",
     [

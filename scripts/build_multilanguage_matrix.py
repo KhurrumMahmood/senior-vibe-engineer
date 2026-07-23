@@ -406,6 +406,12 @@ def _simple_language_coverage(
         if row.get("disposition") not in allowed:
             raise ValueError(f"invalid {language} disposition for {skill}")
         disposition = row["disposition"]
+        closure_mode = row.get("closure_mode")
+        if closure_mode is not None and closure_mode not in {
+            "stock-selected-install",
+            "external-library",
+        }:
+            raise ValueError(f"invalid {language} closure mode for {skill}")
         evidence_fields = ("evidence_path", "native_check", "reviewed_revision")
         if disposition == "pending-validation":
             if any(row.get(field) is not None for field in evidence_fields):
@@ -931,7 +937,6 @@ def build_matrix(
         if expansion == "language-level":
             dart = dart_coverage[skill]
             dart_disposition = dart["disposition"]
-            dart_closure_mode = dart.get("closure_mode")
             dart_evidence_path = dart.get("evidence_path")
             dart_native_check = dart.get("native_check")
             dart_reviewed_revision = dart.get("reviewed_revision")
@@ -942,11 +947,29 @@ def build_matrix(
                 "framework-bound": "stack-bound",
                 "ecosystem-runtime": "ecosystem-runtime",
             }[expansion]
-            dart_closure_mode = None
             dart_evidence_path = None
             dart_native_check = None
             dart_reviewed_revision = None
             dart_limitation = None
+
+        closure_modes = {}
+        if expansion == "language-level":
+            language_coverages = {
+                "go": go_coverage,
+                "java": java_coverage,
+                "php": php_coverage,
+                "swift": swift_coverage,
+                "c": c_coverage,
+                "cpp": cpp_coverage,
+                "ruby": ruby_coverage,
+                "rust": rust_coverage,
+                "dart": dart_coverage,
+            }
+            closure_modes = {
+                f"{language_name}_closure_mode": coverage[skill]["closure_mode"]
+                for language_name, coverage in language_coverages.items()
+                if coverage[skill].get("closure_mode")
+            }
 
         rows.append(
             {
@@ -999,11 +1022,7 @@ def build_matrix(
                 "rust_reviewed_revision": rust_reviewed_revision,
                 "rust_limitation": rust_limitation,
                 "dart_disposition": dart_disposition,
-                **(
-                    {"dart_closure_mode": dart_closure_mode}
-                    if expansion == "language-level"
-                    else {}
-                ),
+                **closure_modes,
                 "dart_evidence_path": dart_evidence_path,
                 "dart_native_check": dart_native_check,
                 "dart_reviewed_revision": dart_reviewed_revision,
