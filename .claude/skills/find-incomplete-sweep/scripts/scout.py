@@ -123,7 +123,7 @@ def ensure_compiler_manifest_output_containment(scan_dir: pathlib.Path, manifest
                                                 project_root: pathlib.Path) -> None:
     """Preserve every compiler-manifest run's report-root and no-symlink promise."""
     language = manifest.get("language")
-    if language not in {"typescript", "javascript", "go", "java", "rust"}:
+    if language not in {"typescript", "javascript", "go", "java", "rust", "dart"}:
         return
     language_label = {
         "typescript": "TypeScript",
@@ -131,6 +131,7 @@ def ensure_compiler_manifest_output_containment(scan_dir: pathlib.Path, manifest
         "go": "Go",
         "java": "Java",
         "rust": "Rust",
+        "dart": "Dart",
     }[language]
     allowed_root = project_root / "reports" / "find-incomplete-sweep"
     if ".." in scan_dir.parts:
@@ -249,7 +250,7 @@ def main():
         return
 
     is_compiler_manifest = manifest.get("language") in {
-        "typescript", "javascript", "go", "java", "rust",
+        "typescript", "javascript", "go", "java", "rust", "dart",
     }
     if not is_compiler_manifest and not args.paths:
         ap.error("--paths is required for a Python manifest")

@@ -1,0 +1,12 @@
+{
+  "configVersion": 2,
+  "packages": [
+    {
+      "name": "dart_d5_positive",
+      "rootUri": "../",
+      "packageUri": "lib/",
+      "languageVersion": "3.12"
+    }
+  ],
+  "generator": "tracked-d5-fixture"
+}
