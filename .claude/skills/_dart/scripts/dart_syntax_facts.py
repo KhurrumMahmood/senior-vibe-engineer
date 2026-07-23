@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Produce bounded, source-preserving Dart D2 syntax facts.
+"""Produce bounded, source-preserving Dart D2/D3 syntax facts.
 
 The audited host stays dependency-free and read-only. A locked analyzer tool is
 copied to a temporary directory, prepared with Pub's offline enforce-lockfile
@@ -52,6 +52,7 @@ def _run(
     *,
     env: dict[str, str] | None = None,
     timeout: int = 180,
+    output_limit: int | None = 12000,
 ) -> dict[str, Any]:
     started = time.monotonic()
     try:
@@ -77,8 +78,8 @@ def _run(
         "argv": argv,
         "passed": result.returncode == 0,
         "returncode": result.returncode,
-        "stdout": result.stdout[:12000],
-        "stderr": result.stderr[:12000],
+        "stdout": result.stdout if output_limit is None else result.stdout[:output_limit],
+        "stderr": result.stderr if output_limit is None else result.stderr[:output_limit],
         "duration_seconds": round(time.monotonic() - started, 4),
     }
 
@@ -291,8 +292,9 @@ def _terminal(
         "project_root": str(root),
         "target": target.relative_to(root).as_posix() if target != root else ".",
         "claim_boundary": (
-            "real comments, adjacent doc/fixed-return shapes, and direct spelled calls "
-            "inside direct try bodies; no identity, flow, framework, or Flutter semantics"
+            "D2 comments/fixed returns/direct calls plus D3 declarations/directives, "
+            "named bodies, direct branch events, and body tokens; syntax only—no "
+            "identity, flow, consumer judgment, framework, or Flutter semantics"
         ),
         "tools": tools,
         "tool_package": tool_package,
@@ -441,12 +443,17 @@ def produce(
             ],
             prepared,
             env=env,
+            output_limit=None,
         )
         package_manifest["execution"] = analyzer
+        raw_stdout = analyzer["stdout"]
+        raw_stderr = analyzer["stderr"]
+        analyzer["stdout"] = raw_stdout[:12000]
+        analyzer["stderr"] = raw_stderr[:12000]
         if not analyzer["passed"]:
             return finish("failed", "analyzer_execution_failed")
         try:
-            payload = json.loads(analyzer["stdout"])
+            payload = json.loads(raw_stdout)
             raw_files = payload["files"]
         except (json.JSONDecodeError, KeyError, TypeError) as exc:
             package_manifest["payload_error"] = str(exc)
@@ -465,6 +472,11 @@ def produce(
                     "comments": file.get("comments", []),
                     "functions": file.get("functions", []),
                     "calls": file.get("calls", []),
+                    "directives": file.get("directives", []),
+                    "declarations": file.get("declarations", []),
+                    "named_bodies": file.get("named_bodies", []),
+                    "direct_body_branches": file.get("direct_body_branches", []),
+                    "body_tokens": file.get("body_tokens", []),
                 }
             )
     if any(file["diagnostics"] for file in facts):
@@ -483,6 +495,13 @@ def produce(
     )
     if native_failure:
         return finish(native_status, native_failure)
+    if any(
+        row.get("supported") is False
+        for file in facts
+        for key in ("directives", "declarations")
+        for row in file[key]
+    ):
+        return finish("partial", "unsupported_dart_syntax")
     return finish("complete", "none", code=0)
 
 

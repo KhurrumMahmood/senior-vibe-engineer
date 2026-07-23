@@ -98,6 +98,153 @@ Map<String, Object?>? _functionFact(
   };
 }
 
+int _endLine(CompilationUnit unit, AstNode node) {
+  final offset = node.end > node.offset ? node.end - 1 : node.offset;
+  return unit.lineInfo.getLocation(offset).lineNumber;
+}
+
+Map<String, Object?> _directiveFact(Directive node, CompilationUnit unit) {
+  late final String kind;
+  String? uri;
+  var supported = true;
+  String? unsupportedReason;
+  if (node is ImportDirective) {
+    kind = 'import';
+    uri = node.uri.stringValue;
+    if (node.configurations.isNotEmpty) {
+      supported = false;
+      unsupportedReason = 'conditional_configuration';
+    }
+  } else if (node is ExportDirective) {
+    kind = 'export';
+    uri = node.uri.stringValue;
+    if (node.configurations.isNotEmpty) {
+      supported = false;
+      unsupportedReason = 'conditional_configuration';
+    }
+  } else if (node is PartDirective) {
+    kind = 'part';
+    uri = node.uri.stringValue;
+  } else if (node is PartOfDirective) {
+    kind = 'part_of';
+    uri = node.uri?.stringValue;
+  } else {
+    throw StateError('unhandled directive ${node.runtimeType}');
+  }
+  final location = unit.lineInfo.getLocation(node.offset);
+  return {
+    'kind': kind,
+    'uri': uri,
+    'offset': node.offset,
+    'end': node.end,
+    'line': location.lineNumber,
+    'column': location.columnNumber,
+    'supported': supported,
+    'unsupported_reason': unsupportedReason,
+  };
+}
+
+List<Map<String, Object?>> _directives(CompilationUnit unit) {
+  final rows = <Map<String, Object?>>[];
+  for (final directive in unit.directives) {
+    if (directive is ImportDirective ||
+        directive is ExportDirective ||
+        directive is PartDirective ||
+        directive is PartOfDirective) {
+      rows.add(_directiveFact(directive, unit));
+    }
+  }
+  return rows;
+}
+
+bool _privateName(String? name) => name?.startsWith('_') ?? false;
+
+final class _Container {
+  const _Container(this.name, this.offset, this.isPrivate);
+
+  final String? name;
+  final int offset;
+  final bool isPrivate;
+}
+
+class _DirectBodyVisitor extends RecursiveAstVisitor<void> {
+  _DirectBodyVisitor(this.unit, this.declarationOffset);
+
+  final CompilationUnit unit;
+  final int declarationOffset;
+  final List<Map<String, Object?>> events = [];
+
+  void _event(String kind, Token token) {
+    final location = unit.lineInfo.getLocation(token.offset);
+    events.add({
+      'declaration_offset': declarationOffset,
+      'kind': kind,
+      'offset': token.offset,
+      'end': token.end,
+      'line': location.lineNumber,
+      'column': location.columnNumber,
+    });
+  }
+
+  @override
+  void visitFunctionDeclarationStatement(FunctionDeclarationStatement node) {}
+
+  @override
+  void visitFunctionExpression(FunctionExpression node) {}
+
+  @override
+  void visitIfStatement(IfStatement node) {
+    _event('if', node.ifKeyword);
+    super.visitIfStatement(node);
+  }
+
+  @override
+  void visitForStatement(ForStatement node) {
+    _event('for', node.forKeyword);
+    super.visitForStatement(node);
+  }
+
+  @override
+  void visitWhileStatement(WhileStatement node) {
+    _event('while', node.whileKeyword);
+    super.visitWhileStatement(node);
+  }
+
+  @override
+  void visitDoStatement(DoStatement node) {
+    _event('do', node.doKeyword);
+    super.visitDoStatement(node);
+  }
+
+  @override
+  void visitSwitchCase(SwitchCase node) {
+    _event('switch_case', node.keyword);
+    super.visitSwitchCase(node);
+  }
+
+  @override
+  void visitSwitchPatternCase(SwitchPatternCase node) {
+    _event('switch_case', node.keyword);
+    super.visitSwitchPatternCase(node);
+  }
+
+  @override
+  void visitCatchClause(CatchClause node) {
+    _event('catch', node.catchKeyword ?? node.onKeyword!);
+    super.visitCatchClause(node);
+  }
+
+  @override
+  void visitBinaryExpression(BinaryExpression node) {
+    if (node.operator.type == TokenType.AMPERSAND_AMPERSAND) {
+      _event('logical_and', node.operator);
+    } else if (node.operator.type == TokenType.BAR_BAR) {
+      _event('logical_or', node.operator);
+    }
+    super.visitBinaryExpression(node);
+  }
+}
+
 bool _insideTryBody(MethodInvocation node) {
   AstNode? child = node;
   AstNode? parent = node.parent;
@@ -115,22 +262,265 @@ class _FactsVisitor extends RecursiveAstVisitor<void> {
 
   final CompilationUnit unit;
   final String content;
+  final List<_Container> _containers = [];
   final List<Map<String, Object?>> functions = [];
   final List<Map<String, Object?>> calls = [];
+  final List<Map<String, Object?>> declarations = [];
+  final List<Map<String, Object?>> namedBodies = [];
+  final List<Map<String, Object?>> directBodyBranches = [];
+  final List<Map<String, Object?>> bodyTokens = [];
+
+  void _declaration(
+    AstNode node, {
+    required String? name,
+    required String kind,
+    required bool topLevel,
+    required bool isPrivate,
+    required bool anonymous,
+    Token? augmentKeyword,
+  }) {
+    final container = _containers.isEmpty ? null : _containers.last;
+    final location = unit.lineInfo.getLocation(node.offset);
+    declarations.add({
+      'name': name,
+      'kind': kind,
+      'container': container?.name,
+      'container_offset': container?.offset,
+      'top_level': topLevel,
+      'private': isPrivate || (container?.isPrivate ?? false),
+      'anonymous': anonymous,
+      'offset': node.offset,
+      'end': node.end,
+      'line': location.lineNumber,
+      'end_line': _endLine(unit, node),
+      'supported': augmentKeyword == null,
+      'unsupported_reason': augmentKeyword == null
+          ? null
+          : 'augmentation_declaration',
+    });
+  }
+
+  void _body(
+    AstNode declaration,
+    FunctionBody body, {
+    required String name,
+    required String kind,
+  }) {
+    final container = _containers.isEmpty ? null : _containers.last;
+    final bodyLocation = unit.lineInfo.getLocation(body.offset);
+    namedBodies.add({
+      'name': name,
+      'kind': kind,
+      'container': container?.name,
+      'declaration_offset': declaration.offset,
+      'declaration_end': declaration.end,
+      'body_offset': body.offset,
+      'body_end': body.end,
+      'body_line': bodyLocation.lineNumber,
+      'body_end_line': _endLine(unit, body),
+    });
+
+    Token? token = body.beginToken;
+    var index = 0;
+    while (token != null && !token.isEof && token.offset < body.end) {
+      bodyTokens.add({
+        'declaration_offset': declaration.offset,
+        'index': index,
+        'token_kind': token.type.name,
+        'lexeme': token.lexeme,
+        'offset': token.offset,
+        'end': token.end,
+      });
+      index++;
+      token = token.next;
+    }
+
+    final branches = _DirectBodyVisitor(unit, declaration.offset);
+    body.accept(branches);
+    branches.events.sort(
+      (left, right) =>
+          (left['offset'] as int).compareTo(right['offset'] as int),
+    );
+    directBodyBranches.addAll(branches.events);
+  }
+
+  void _pushContainer(
+    AstNode node,
+    String? name,
+    bool isPrivate,
+    void Function() visitChildren,
+  ) {
+    _containers.add(_Container(name, node.offset, isPrivate));
+    visitChildren();
+    _containers.removeLast();
+  }
+
+  void _containerDeclaration(
+    AstNode node, {
+    required String? name,
+    required String kind,
+    required Token? augmentKeyword,
+    required void Function() visitChildren,
+  }) {
+    final isPrivate = name == null || _privateName(name);
+    _declaration(
+      node,
+      name: name,
+      kind: kind,
+      topLevel: true,
+      isPrivate: isPrivate,
+      anonymous: name == null,
+      augmentKeyword: augmentKeyword,
+    );
+    _pushContainer(node, name, isPrivate, visitChildren);
+  }
+
+  void _typeAlias(TypeAlias node, void Function() visitChildren) {
+    final name = node.name.lexeme;
+    _declaration(
+      node,
+      name: name,
+      kind: 'typedef',
+      topLevel: true,
+      isPrivate: _privateName(name),
+      anonymous: false,
+      augmentKeyword: node.augmentKeyword,
+    );
+    visitChildren();
+  }
+
+  @override
+  void visitClassDeclaration(ClassDeclaration node) {
+    _containerDeclaration(
+      node,
+      name: node.namePart.typeName.lexeme,
+      kind: 'class',
+      augmentKeyword: node.augmentKeyword,
+      visitChildren: () => super.visitClassDeclaration(node),
+    );
+  }
+
+  @override
+  void visitEnumDeclaration(EnumDeclaration node) {
+    _containerDeclaration(
+      node,
+      name: node.namePart.typeName.lexeme,
+      kind: 'enum',
+      augmentKeyword: node.augmentKeyword,
+      visitChildren: () => super.visitEnumDeclaration(node),
+    );
+  }
+
+  @override
+  void visitExtensionDeclaration(ExtensionDeclaration node) {
+    _containerDeclaration(
+      node,
+      name: node.name?.lexeme,
+      kind: 'extension',
+      augmentKeyword: node.augmentKeyword,
+      visitChildren: () => super.visitExtensionDeclaration(node),
+    );
+  }
+
+  @override
+  void visitMixinDeclaration(MixinDeclaration node) {
+    _containerDeclaration(
+      node,
+      name: node.name.lexeme,
+      kind: 'mixin',
+      augmentKeyword: node.augmentKeyword,
+      visitChildren: () => super.visitMixinDeclaration(node),
+    );
+  }
+
+  @override
+  void visitFunctionTypeAlias(FunctionTypeAlias node) {
+    _typeAlias(node, () => super.visitFunctionTypeAlias(node));
+  }
+
+  @override
+  void visitGenericTypeAlias(GenericTypeAlias node) {
+    _typeAlias(node, () => super.visitGenericTypeAlias(node));
+  }
 
   @override
   void visitFunctionDeclaration(FunctionDeclaration node) {
-    if (node.parent is CompilationUnit && !node.isGetter && !node.isSetter) {
-      final fact = _functionFact(
+    if (node.parent is CompilationUnit) {
+      final name = node.name.lexeme;
+      final kind = node.isGetter
+          ? 'getter'
+          : node.isSetter
+          ? 'setter'
+          : 'top_level_function';
+      _declaration(
         node,
-        node.name.lexeme,
-        node.functionExpression.body,
-        unit,
-        content,
+        name: name,
+        kind: kind,
+        topLevel: true,
+        isPrivate: _privateName(name),
+        anonymous: false,
+        augmentKeyword: node.augmentKeyword,
       );
-      if (fact != null) functions.add(fact);
+      _body(node, node.functionExpression.body, name: name, kind: kind);
+      if (!node.isGetter && !node.isSetter) {
+        final fact = _functionFact(
+          node,
+          name,
+          node.functionExpression.body,
+          unit,
+          content,
+        );
+        if (fact != null) functions.add(fact);
+      }
     }
     super.visitFunctionDeclaration(node);
+  }
+
+  @override
+  void visitMethodDeclaration(MethodDeclaration node) {
+    if (_containers.isNotEmpty) {
+      final name = node.name.lexeme;
+      final kind = node.isGetter
+          ? 'getter'
+          : node.isSetter
+          ? 'setter'
+          : node.isOperator
+          ? 'operator'
+          : 'method';
+      _declaration(
+        node,
+        name: name,
+        kind: kind,
+        topLevel: false,
+        isPrivate: _privateName(name),
+        anonymous: false,
+        augmentKeyword: node.augmentKeyword,
+      );
+      _body(node, node.body, name: name, kind: kind);
+    }
+    super.visitMethodDeclaration(node);
+  }
+
+  @override
+  void visitConstructorDeclaration(ConstructorDeclaration node) {
+    if (_containers.isNotEmpty) {
+      final container = _containers.last;
+      final suffix = node.name?.lexeme;
+      final name = suffix == null
+          ? container.name ?? '<anonymous-constructor@${node.offset}>'
+          : '${container.name ?? '<anonymous@${container.offset}>'}.$suffix';
+      _declaration(
+        node,
+        name: name,
+        kind: 'constructor',
+        topLevel: false,
+        isPrivate: _privateName(suffix),
+        anonymous: false,
+        augmentKeyword: node.augmentKeyword,
+      );
+      _body(node, node.body, name: name, kind: 'constructor');
+    }
+    super.visitConstructorDeclaration(node);
   }
 
   @override
@@ -181,6 +571,11 @@ Map<String, Object?> _analyze(String root, String rawPath) {
     'comments': _comments(result.unit),
     'functions': visitor.functions,
     'calls': visitor.calls,
+    'directives': _directives(result.unit),
+    'declarations': visitor.declarations,
+    'named_bodies': visitor.namedBodies,
+    'direct_body_branches': visitor.directBodyBranches,
+    'body_tokens': visitor.bodyTokens,
   };
 }
 

@@ -214,7 +214,14 @@ def test_dart_tool_package_lock_and_public_api_surface_are_exact(tmp_path: Path)
     assert 'version: "14.1.0"' in lock
     assert 'dependency: "direct main"' in lock
     assert "package:analyzer/src/" not in source
-    assert "package:analyzer/dart/analysis/utilities.dart" in source
+    assert source.count("package:analyzer/") == 4
+    for public_library in (
+        "dart/analysis/utilities.dart",
+        "dart/ast/ast.dart",
+        "dart/ast/token.dart",
+        "dart/ast/visitor.dart",
+    ):
+        assert f"package:analyzer/{public_library}" in source
 
     copied = tmp_path / "tool"
     shutil.copytree(TOOL, copied)
@@ -512,8 +519,8 @@ def test_dart_d2_owned_closure_and_fixture_hashes_are_frozen() -> None:
     ]
     fixture_files = [path for path in FIXTURE.rglob("*") if path.is_file()]
     assert _manifest(owned, ROOT) == (
-        "8bb34a1c1c57a08a69ed5cd38fa3dc5f3d78c4f23e9f71507435796bae104944",
-        53682,
+        "9ab8fcdce6b1c981eb25931c364db3ab66f91f837dc63a0699c12a316bb3bfee",
+        65633,
     )
     assert _manifest(fixture_files, FIXTURE) == (
         "f122c7d992591cdc09bdd913e96ffc225b9484e42b942d4d386795b7264d2b14",
