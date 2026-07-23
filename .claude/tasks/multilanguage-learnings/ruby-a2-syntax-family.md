@@ -52,10 +52,10 @@ Exact executable closures are:
 
 | Consumer | Required copied files | Bytes |
 |---|---|---:|
-| `audit-decisions` | `_ruby-syntax/ruby_syntax_facts.py`, `audit_ruby.py`, `audit.py` | 81,043 |
-| `find-complexity-hotspots` | `_ruby-syntax/ruby_syntax_facts.py`, `run_ruby.py` | 36,996 |
-| `find-omnibus` | `_ruby-syntax/ruby_syntax_facts.py`, `run_ruby.py` | 39,309 |
-| `find-standard-gaps` | `_ruby-syntax/ruby_syntax_facts.py`, `scan_coverage_ruby.py` | 38,860 |
+| `audit-decisions` | `_ruby-syntax/ruby_syntax_facts.py`, `audit_ruby.py`, `audit.py` | 81,045 |
+| `find-complexity-hotspots` | `_ruby-syntax/ruby_syntax_facts.py`, `run_ruby.py` | 36,998 |
+| `find-omnibus` | `_ruby-syntax/ruby_syntax_facts.py`, `run_ruby.py` | 39,311 |
+| `find-standard-gaps` | `_ruby-syntax/ruby_syntax_facts.py`, `scan_coverage_ruby.py` | 38,862 |
 
 The focused test copies exactly those files below `.agents/skills/`, executes
 them with isolated Python (`-I -S`) from outside the checkout, and proves that
@@ -103,8 +103,8 @@ exercise its final artifacts through the four executable consumers.
 | Removed maintenance (`3H`) | 2,763 |
 
 The shared design reduces maintained adapter-plus-test LOC by **57.91%**,
-above ML-025's 25% threshold. The shared exact-closure union is 99,209 bytes;
-literal per-consumer producer copies total 196,208 bytes, a 49.44% union
+above ML-025's 25% threshold. The shared exact-closure union is 99,211 bytes;
+literal per-consumer producer copies total 196,216 bytes, a 49.44% union
 reduction. Each individual closure has **0.00%** growth because it carries the
 same one provider either way.
 
