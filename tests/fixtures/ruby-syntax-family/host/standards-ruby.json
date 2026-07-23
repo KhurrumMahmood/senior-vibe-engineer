@@ -1,0 +1,17 @@
+{
+  "ideas": [
+    {
+      "id": "ruby-rescue-parse",
+      "label": "Invoice parsing is syntactically enclosed by rescue",
+      "contract": {
+        "detector": {
+          "kind": "ast",
+          "call_matches": "^parse_invoice$",
+          "enclosed_by": "rescue",
+          "paths": ["lib/**/*.rb"]
+        }
+      },
+      "activation": {"baseline": true}
+    }
+  ]
+}
