@@ -1,0 +1,1 @@
+enum BillingState { pending, canceled }

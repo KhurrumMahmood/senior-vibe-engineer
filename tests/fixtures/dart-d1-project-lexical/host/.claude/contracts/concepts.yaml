@@ -1,0 +1,7 @@
+concepts:
+  - name: canceled_order
+    aliases: [cancelledOrder]
+    avoid:
+      - cancelled_order
+    source: lib/invoice_terms.dart
+flagged_ambiguities: []

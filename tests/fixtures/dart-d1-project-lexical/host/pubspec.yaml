@@ -1,0 +1,5 @@
+name: dart_d1_project_lexical_fixture
+description: Dependency-free plain-Dart D1 fixture with Flutter-shaped prose only.
+publish_to: none
+environment:
+  sdk: ">=3.12.0 <3.13.0"
