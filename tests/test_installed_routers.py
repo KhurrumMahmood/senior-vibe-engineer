@@ -329,7 +329,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "php_disposition"
     ] == "php-supported"
 
-    pending_php = _run_isolated(
+    supported_php_adapt = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
         "use adapt-project on this PHP repository",
         "--project-root",
@@ -341,14 +341,16 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "--json",
         cwd=host,
     )
-    assert pending_php.returncode == 1
-    pending_php_payload = json.loads(pending_php.stdout)
-    assert pending_php_payload["recommendation"] == "pending-implementation"
-    assert pending_php_payload["unavailable"]["classification"] == (
-        "pending-implementation"
-    )
-    assert pending_php_payload["unavailable"]["reason"] == (
-        "/adapt-project declares php_disposition=php-pending-implementation"
+    supported_php_payload = _json_output(supported_php_adapt)
+    assert supported_php_adapt.returncode == 0
+    assert supported_php_payload["recommendation"] == "adapt-project"
+    assert supported_php_payload["handoff"]["available"] is True
+    assert supported_php_payload["handoff"]["capabilities"]["skills"][0][
+        "php_disposition"
+    ] == "php-supported"
+    assert supported_php_payload["optional_install"]["available"] is False
+    assert supported_php_payload["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
     )
 
     swift_routed = _run_isolated(
@@ -370,7 +372,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "swift_disposition"
     ] == "swift-supported"
 
-    pending_swift = _run_isolated(
+    supported_swift_adapt = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
         "use adapt-project on this Swift repository",
         "--project-root",
@@ -382,14 +384,16 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "--json",
         cwd=host,
     )
-    assert pending_swift.returncode == 1
-    pending_swift_payload = json.loads(pending_swift.stdout)
-    assert pending_swift_payload["recommendation"] == "pending-implementation"
-    assert pending_swift_payload["unavailable"]["classification"] == (
-        "pending-implementation"
-    )
-    assert pending_swift_payload["unavailable"]["reason"] == (
-        "/adapt-project declares swift_disposition=swift-pending-implementation"
+    supported_swift_payload = _json_output(supported_swift_adapt)
+    assert supported_swift_adapt.returncode == 0
+    assert supported_swift_payload["recommendation"] == "adapt-project"
+    assert supported_swift_payload["handoff"]["available"] is True
+    assert supported_swift_payload["handoff"]["capabilities"]["skills"][0][
+        "swift_disposition"
+    ] == "swift-supported"
+    assert supported_swift_payload["optional_install"]["available"] is False
+    assert supported_swift_payload["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
     )
 
     c_routed = _run_isolated(
@@ -514,7 +518,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     ] == "ruby-supported"
     assert supported_ruby_map_payload["optional_install"]["available"] is True
 
-    pending_ruby = _run_isolated(
+    supported_ruby_adapt = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
         "use adapt-project on this Ruby repository",
         "--project-root",
@@ -526,11 +530,16 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "--json",
         cwd=host,
     )
-    assert pending_ruby.returncode == 1
-    pending_ruby_payload = json.loads(pending_ruby.stdout)
-    assert pending_ruby_payload["recommendation"] == "pending-implementation"
-    assert pending_ruby_payload["unavailable"]["reason"] == (
-        "/adapt-project declares ruby_disposition=ruby-pending-implementation"
+    supported_ruby_payload = _json_output(supported_ruby_adapt)
+    assert supported_ruby_adapt.returncode == 0
+    assert supported_ruby_payload["recommendation"] == "adapt-project"
+    assert supported_ruby_payload["handoff"]["available"] is True
+    assert supported_ruby_payload["handoff"]["capabilities"]["skills"][0][
+        "ruby_disposition"
+    ] == "ruby-supported"
+    assert supported_ruby_payload["optional_install"]["available"] is False
+    assert supported_ruby_payload["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
     )
 
     supported_dart = _run_isolated(
@@ -785,11 +794,11 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "javascript_disposition": "javascript-supported",
         "go_disposition": "go-supported",
         "java_disposition": "java-supported",
-        "php_disposition": "php-pending-implementation",
-        "swift_disposition": "swift-pending-implementation",
+        "php_disposition": "php-supported",
+        "swift_disposition": "swift-supported",
         "c_disposition": "c-pending-implementation",
         "cpp_disposition": "cpp-pending-implementation",
-        "ruby_disposition": "ruby-pending-implementation",
+        "ruby_disposition": "ruby-supported",
         "rust_disposition": "rust-supported",
         "dart_disposition": "dart-supported",
         "fact_level": "lexical-filesystem",
@@ -812,17 +821,13 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     )
     php_shape_payload = _json_output(php_shape)
     assert php_shape_payload["recommendation"]["first_next"] == "/adapt-project"
-    assert php_shape_payload["handoff"]["available"] is False
-    assert php_shape_payload["handoff"]["reason"] == (
-        "selected_skill_pending_implementation"
+    assert php_shape_payload["handoff"]["available"] is True
+    assert php_shape_payload["handoff"]["default_execution"] == (
+        "fresh_non_context_subagent"
     )
-    assert php_shape_payload["handoff"]["blocked"] == [
-        {
-            "skill": "adapt-project",
-            "language": "php",
-            "disposition": "php-pending-implementation",
-        }
-    ]
+    assert php_shape_payload["handoff"]["capabilities"]["skills"][0][
+        "php_disposition"
+    ] == "php-supported"
 
     swift_shape = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",
@@ -837,17 +842,13 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     )
     swift_shape_payload = _json_output(swift_shape)
     assert swift_shape_payload["recommendation"]["first_next"] == "/adapt-project"
-    assert swift_shape_payload["handoff"]["available"] is False
-    assert swift_shape_payload["handoff"]["reason"] == (
-        "selected_skill_pending_implementation"
+    assert swift_shape_payload["handoff"]["available"] is True
+    assert swift_shape_payload["handoff"]["default_execution"] == (
+        "fresh_non_context_subagent"
     )
-    assert swift_shape_payload["handoff"]["blocked"] == [
-        {
-            "skill": "adapt-project",
-            "language": "swift",
-            "disposition": "swift-pending-implementation",
-        }
-    ]
+    assert swift_shape_payload["handoff"]["capabilities"]["skills"][0][
+        "swift_disposition"
+    ] == "swift-supported"
 
     dart_shape = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",
@@ -933,17 +934,13 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     )
     ruby_shape_payload = _json_output(ruby_shape)
     assert ruby_shape_payload["recommendation"]["first_next"] == "/adapt-project"
-    assert ruby_shape_payload["handoff"]["available"] is False
-    assert ruby_shape_payload["handoff"]["reason"] == (
-        "selected_skill_pending_implementation"
+    assert ruby_shape_payload["handoff"]["available"] is True
+    assert ruby_shape_payload["handoff"]["default_execution"] == (
+        "fresh_non_context_subagent"
     )
-    assert ruby_shape_payload["handoff"]["blocked"] == [
-        {
-            "skill": "adapt-project",
-            "language": "ruby",
-            "disposition": "ruby-pending-implementation",
-        }
-    ]
+    assert ruby_shape_payload["handoff"]["capabilities"]["skills"][0][
+        "ruby_disposition"
+    ] == "ruby-supported"
 
     cleanup_routed = _run_isolated(
         installed["which-cleanup"] / "scripts" / "route.py",
