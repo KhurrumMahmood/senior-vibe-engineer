@@ -659,6 +659,34 @@ auditable when completeness matters.
   the packaging/import seam before a reproduced interruption would expand P3
   beyond the installer and multi-language goals.
 
+### ML-027 — Data-driven language capability publication
+
+- State: `candidate`
+- User value: adding a proven language should require supplying its coverage
+  evidence once, rather than editing repeated builder parameters, row assembly,
+  source hashing, and count assertions in several places.
+- Evidence: Rust publication added another complete hard-coded column to
+  `scripts/build_multilanguage_matrix.py`; preparing Dart reveals the same
+  mechanical edits will recur for Dart, Kotlin, and C# even though their
+  capability-row shape is identical. This is release plumbing, not language
+  analysis.
+- Trigger: observed twice (Rust and the pending Dart publication) with at least
+  two more selected languages queued.
+- Smallest experiment: replace only the repeated simple-language registration
+  and row projection with a reviewed registry containing language id, coverage
+  path, suffix contract, disposition prefix, and parser/validator. Keep C/C++
+  special validation and all skill evidence schemas intact.
+- Acceptance: the generated matrix is byte-for-byte unchanged for every
+  already-published language; adding a synthetic fixture language requires one
+  registry entry and coverage fixture but no `build_matrix` signature or row-
+  assembly change; freshness, unsupported-basis, installed-router, and release-
+  consistency regressions still pass; maintained builder/test LOC does not grow.
+- Scheduling gate: do not delay the Dart spine or its first real final outcome.
+  Re-evaluate immediately after Dart publication and before Kotlin or C#.
+- Non-goals: a universal analyzer API, changing capability semantics, dynamic
+  plugin loading, loosening per-language validation, or raising the matrix
+  schema version solely for internal refactoring.
+
 ## External release dependency (tracked, not a language feature)
 
 The reviewed branch is still not the public source named by the README. Before
