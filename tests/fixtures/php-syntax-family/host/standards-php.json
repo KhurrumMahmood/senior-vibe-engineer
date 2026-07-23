@@ -1,0 +1,21 @@
+{
+  "ideas": [
+    {
+      "id": "php-parse-try",
+      "label": "Direct parseInvoice calls are enclosed by try",
+      "contract": {
+        "detector": {
+          "kind": "ast",
+          "paths": ["src/**/*.php"],
+          "call_matches": "parseInvoice",
+          "enclosed_by": "try"
+        }
+      }
+    },
+    {
+      "id": "manual-example",
+      "label": "Manual standard",
+      "contract": {"detector": {"kind": "manual", "paths": []}}
+    }
+  ]
+}
