@@ -465,17 +465,7 @@ def sources_preserved(snapshot: dict[str, Any]) -> bool:
 def terminal_return_code(snapshot: dict[str, Any]) -> int:
     if snapshot["status"] == "failed":
         return 1
-    if snapshot["status"] != "partial":
-        return 0
-    if snapshot.get("failure_kind") in {
-        "ruby-tool-missing",
-        "ruby-version-too-old",
-        "bundler-tool-missing",
-        "bundler-version-too-old",
-        "ruby-project-incomplete",
-        "native-gates-incomplete",
-        "no-eligible-ruby-files",
-    }:
+    if snapshot["status"] == "partial":
         return 2
     return 0
 

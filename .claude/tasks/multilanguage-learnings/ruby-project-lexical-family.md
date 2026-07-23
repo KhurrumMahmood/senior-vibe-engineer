@@ -117,7 +117,8 @@ outcome. Every consumer also proves:
   false clean or permanent unsupported claim;
 - a Bundler 2.6.2-shaped executable whose check fails is `failed`;
 - an unreferenced malformed selected `.rb` file is `partial` while valid facts
-  remain useful;
+  remain useful; every `partial` terminal state exits 2 so automation cannot
+  mistake incomplete evidence for a successful complete run;
 - positive, preferred-only clean, exact-clone clean, and below-threshold
   topology outcomes are distinguished;
 - role decoys include test, generated tree/marker, vendor, build, report,

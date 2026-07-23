@@ -407,7 +407,7 @@ def test_each_consumer_malformed_selected_source_is_partial_and_preserved(
 
     result = _invoke(skill, copied[skill], host)
 
-    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.returncode == 2, result.stdout + result.stderr
     assert _status(skill, host) == "partial"
     assert _source_hashes(host) == before
 
