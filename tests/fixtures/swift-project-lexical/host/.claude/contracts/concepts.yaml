@@ -1,0 +1,7 @@
+concepts:
+  - name: canceled_order
+    aliases:
+      - canceled
+    avoid:
+      - cancelled_order
+flagged_ambiguities: []
