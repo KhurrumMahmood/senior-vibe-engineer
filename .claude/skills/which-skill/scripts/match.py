@@ -717,8 +717,13 @@ def capability_language_exclusion(
 ) -> dict[str, str] | None:
     if not capabilities.get("available"):
         return None
+    # The selected skill's accepted coverage row owns the outcome claim for
+    # its full declared closure. Companions may intentionally expose a useful
+    # partial evidence layer (for example, a selected-configuration map) that
+    # is sufficient for the primary skill's bounded supported outcome.
+    primary_rows = capabilities["skills"][:1]
     for language in routing_context["languages"]:
-        for row in capabilities["skills"]:
+        for row in primary_rows:
             if language == "go" and row["go_disposition"] not in {
                 "go-supported",
                 "validated-neutral",

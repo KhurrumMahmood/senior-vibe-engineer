@@ -74,6 +74,7 @@ def test_bundled_catalog_matches_source_frontmatter():
         "typescript",
         "go",
         "java",
+        "rust",
         "swift",
     ]
 
