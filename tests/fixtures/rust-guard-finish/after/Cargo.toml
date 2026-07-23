@@ -1,0 +1,3 @@
+[workspace]
+members = ["state-core", "state-smoke"]
+resolver = "3"
