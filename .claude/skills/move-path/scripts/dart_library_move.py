@@ -525,12 +525,18 @@ def _dart_sources(root: Path, report_dir: Path) -> list[Path]:
     return sorted(sources)
 
 
-def _filesystem_boundaries(root: Path, report_dir: Path) -> list[dict[str, Any]]:
+def _move_path_related(path: str, move: dict[str, str]) -> bool:
+    return _path_moved(path, move["from"]) or _path_moved(path, move["to"])
+
+
+def _moved_source_boundaries(
+    root: Path, report_dir: Path, move: dict[str, str]
+) -> list[dict[str, Any]]:
     blocked: list[dict[str, Any]] = []
-    _, links = _snapshot(root, report_dir)
-    blocked.extend({"kind": "dart_symlink_boundary", "path": path} for path in sorted(links))
     for source in _dart_sources(root, report_dir):
         relative = source.relative_to(root).as_posix()
+        if not _path_moved(relative, move["from"]):
+            continue
         text = source.read_text(encoding="utf-8", errors="replace")
         if _generated_path(relative) or GENERATED_MARKER.search(text[:4096]):
             blocked.append({"kind": "dart_generated_source", "path": relative})
@@ -539,6 +545,112 @@ def _filesystem_boundaries(root: Path, report_dir: Path) -> list[dict[str, Any]]
         for token in DYNAMIC_TOKENS:
             if token in text:
                 blocked.append({"kind": "dart_dynamic_loading_boundary", "path": relative, "token": token})
+    return blocked
+
+
+def _impacted_files(
+    normalized: dict[str, Any], semantic: dict[str, Any]
+) -> set[str]:
+    move = normalized["move"]
+    impacted = {
+        row["path"]
+        for row in semantic.get("source_inventory", [])
+        if isinstance(row.get("path"), str) and _move_path_related(row["path"], move)
+    }
+    for edge in semantic.get("module_edges", []):
+        source = edge.get("source")
+        targets = [
+            target.get("path")
+            for target in edge.get("targets", [])
+            if isinstance(target.get("path"), str)
+        ]
+        if not isinstance(source, str):
+            continue
+        if _move_path_related(source, move) or any(
+            _move_path_related(target, move) for target in targets
+        ):
+            impacted.add(source)
+            impacted.update(targets)
+    return impacted
+
+
+def _boundary_targets_move(
+    path: str, boundary: dict[str, Any], move: dict[str, str], package_name: str
+) -> bool:
+    directive = boundary.get("directive")
+    if not isinstance(directive, str):
+        return False
+    match = DIRECTIVE_RE.search(directive)
+    if match is None:
+        return False
+    target = _resolve_lexical_uri(path, match.group("uri"), package_name)
+    return target is not None and _move_path_related(target, move)
+
+
+def _relevant_semantic_boundaries(
+    normalized: dict[str, Any],
+    semantic: dict[str, Any],
+    impacted_files: set[str],
+    package_name: str,
+) -> list[dict[str, Any]]:
+    move = normalized["move"]
+    relevant: list[dict[str, Any]] = []
+    for boundary in semantic.get("boundaries", []):
+        path = boundary.get("path")
+        if not isinstance(path, str):
+            continue
+        if (
+            path in impacted_files
+            or _move_path_related(path, move)
+            or _boundary_targets_move(path, boundary, move, package_name)
+        ):
+            relevant.append(boundary)
+    return relevant
+
+
+def _impacted_closure_boundaries(
+    root: Path,
+    report_dir: Path,
+    normalized: dict[str, Any],
+    semantic: dict[str, Any],
+    impacted_files: set[str],
+) -> list[dict[str, Any]]:
+    move = normalized["move"]
+    package_name = _package_name(root)
+    blocked: list[dict[str, Any]] = []
+    for source in _dart_sources(root, report_dir):
+        relative = source.relative_to(root).as_posix()
+        if relative not in impacted_files and not _move_path_related(relative, move):
+            continue
+        text = source.read_text(encoding="utf-8", errors="replace")
+        if _generated_path(relative) or GENERATED_MARKER.search(text[:4096]):
+            blocked.append({"kind": "dart_generated_source", "path": relative})
+        if re.search(r"(?m)^\s*(?:part\s+of|augment(?:ation)?)\b", text):
+            blocked.append({"kind": "dart_part_or_augmentation", "path": relative})
+        for token in DYNAMIC_TOKENS:
+            if token in text:
+                blocked.append(
+                    {
+                        "kind": "dart_dynamic_loading_boundary",
+                        "path": relative,
+                        "token": token,
+                    }
+                )
+    if package_name is not None:
+        for boundary in _relevant_semantic_boundaries(
+            normalized, semantic, impacted_files, package_name
+        ):
+            path = boundary["path"]
+            if boundary.get("kind") in {"part", "augmentation"}:
+                blocked.append({"kind": "dart_part_or_augmentation", "path": path})
+            else:
+                blocked.append(
+                    {
+                        "kind": "dart_dynamic_loading_boundary",
+                        "path": path,
+                        "token": boundary.get("kind"),
+                    }
+                )
     return blocked
 
 
@@ -587,7 +699,12 @@ def _collect_facts(
 
 
 def _fact_failure(
-    syntax: dict[str, Any], semantic: dict[str, Any]
+    syntax: dict[str, Any],
+    semantic: dict[str, Any],
+    *,
+    normalized: dict[str, Any],
+    impacted_files: set[str],
+    package_name: str | None,
 ) -> tuple[str, str] | None:
     if syntax.get("status") == "failed":
         return "failed", str(syntax.get("failure_kind") or "dart_syntax_failed")
@@ -596,7 +713,23 @@ def _fact_failure(
     if syntax.get("status") != "complete":
         return "partial", str(syntax.get("failure_kind") or "dart_syntax_partial")
     if semantic.get("status") != "complete":
-        return "partial", str(semantic.get("failure_kind") or "dart_semantic_partial")
+        boundary_reason = "conditional/part/augmentation/runtime boundaries are present"
+        remaining_reasons = [
+            reason
+            for reason in semantic.get("partial_reasons", [])
+            if reason != boundary_reason
+        ]
+        relevant_boundaries = (
+            _relevant_semantic_boundaries(
+                normalized, semantic, impacted_files, package_name
+            )
+            if package_name is not None
+            else semantic.get("boundaries", [])
+        )
+        if remaining_reasons or relevant_boundaries:
+            return "partial", str(
+                semantic.get("failure_kind") or "dart_semantic_partial"
+            )
     return None
 
 
@@ -606,6 +739,7 @@ def _plan_changes(
     normalized: dict[str, Any],
     syntax: dict[str, Any],
     semantic: dict[str, Any],
+    impacted_files: set[str],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str]]:
     move = normalized["move"]
     package_name = _package_name(root)
@@ -628,7 +762,19 @@ def _plan_changes(
             kind = directive.get("kind")
             uri = directive.get("uri")
             if kind in {"part", "part_of"}:
-                blocked.append({"kind": "dart_part_directive", "path": source_name})
+                target = (
+                    _resolve_lexical_uri(source_name, uri, package_name)
+                    if isinstance(uri, str)
+                    else None
+                )
+                if (
+                    source_name in impacted_files
+                    or _move_path_related(source_name, move)
+                    or (target is not None and _move_path_related(target, move))
+                ):
+                    blocked.append(
+                        {"kind": "dart_part_directive", "path": source_name}
+                    )
                 continue
             if directive.get("supported") is False:
                 blocked.append(
@@ -716,7 +862,19 @@ def _plan_changes(
             kind = match.group("kind")
             uri = match.group("uri")
             if kind.startswith("part"):
-                blocked.append({"kind": "dart_part_directive", "path": relative, "line": text[: match.start()].count("\n") + 1})
+                target = _resolve_lexical_uri(relative, uri, package_name)
+                if (
+                    relative in impacted_files
+                    or _move_path_related(relative, move)
+                    or (target is not None and _move_path_related(target, move))
+                ):
+                    blocked.append(
+                        {
+                            "kind": "dart_part_directive",
+                            "path": relative,
+                            "line": text[: match.start()].count("\n") + 1,
+                        }
+                    )
             if " if (" in match.group("tail"):
                 blocked.append({"kind": "conditional_configuration", "path": relative, "line": text[: match.start()].count("\n") + 1})
             if relative not in syntax_files:
@@ -744,6 +902,11 @@ def _plan_changes(
                         }
                     )
 
+    blocked.extend(
+        _impacted_closure_boundaries(
+            root, report_dir, normalized, semantic, impacted_files
+        )
+    )
     barrels_preserved: list[str] = []
     for barrel in normalized["dart"]["public_barrels"]:
         barrel_changes = [row for row in changes if row["file_before"] == barrel and row["kind"] == "export"]
@@ -963,7 +1126,9 @@ def _dry_run(
     (report_dir / "evidence.json").unlink(missing_ok=True)
     before_files, before_links = _snapshot(root, report_dir)
     source_hash = _fingerprint(before_files, before_links)
-    blocked = _preflight_paths(root, normalized) + _filesystem_boundaries(root, report_dir)
+    blocked = _preflight_paths(root, normalized) + _moved_source_boundaries(
+        root, report_dir, normalized["move"]
+    )
     if blocked:
         report = _base_report(
             mode="dry-run",
@@ -987,9 +1152,17 @@ def _dry_run(
         )
         _write_report(report_dir, report)
         return report, 2
-    fact_failure = _fact_failure(syntax, semantic)
+    impacted_files = _impacted_files(normalized, semantic)
+    package_name = _package_name(root)
+    fact_failure = _fact_failure(
+        syntax,
+        semantic,
+        normalized=normalized,
+        impacted_files=impacted_files,
+        package_name=package_name,
+    )
     changes, plan_blocked, barrels = _plan_changes(
-        root, report_dir, normalized, syntax, semantic
+        root, report_dir, normalized, syntax, semantic, impacted_files
     )
     if fact_failure or plan_blocked:
         status, failure = fact_failure or ("partial", "unresolved_dart_move_evidence")
@@ -1086,7 +1259,13 @@ def _apply(
     try:
         _apply_move(root, normalized["move"], patches)
         syntax, semantic = _collect_facts(root, normalized, library_root)
-        failure = _fact_failure(syntax, semantic)
+        failure = _fact_failure(
+            syntax,
+            semantic,
+            normalized=normalized,
+            impacted_files=_impacted_files(normalized, semantic),
+            package_name=_package_name(root),
+        )
         report["dart"]["native_postflight"] = {
             "status": syntax.get("status"),
             "checks": syntax.get("native", {}),
@@ -1161,7 +1340,13 @@ def _check(
         _write_report(report_dir, report)
         return report, 2
     syntax, semantic = _collect_facts(root, normalized, library_root)
-    failure = _fact_failure(syntax, semantic)
+    failure = _fact_failure(
+        syntax,
+        semantic,
+        normalized=normalized,
+        impacted_files=_impacted_files(normalized, semantic),
+        package_name=_package_name(root),
+    )
     report["dart"]["native_postflight"] = {
         "status": syntax.get("status"),
         "checks": syntax.get("native", {}),

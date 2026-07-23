@@ -241,13 +241,18 @@ declared and must continue to export the moved library. Moving a public
 not supported.
 
 The host must explicitly declare itself `disposable` or `user-approved`.
-Generated source, any symlink boundary, parts/part files, augmentations,
-conditional directives, dynamic/reflective loading evidence, unresolved or
+Generated source, parts/part files, augmentations, and dynamic/reflective
+loading evidence stop when they occur on the moved path or its resolved direct
+impact closure; symlinks stop when a moved or required evidence path crosses
+one, and exact old-identity strings remain blocking wherever found. Unrelated
+generated, part/augmentation, dynamic-token, and symlink decoys remain
+content-addressed in the whole-host proof rather than globally refusing the
+move. Conditional directives, unresolved or
 excluded-role impacts, multiple moves, public-library moves, and an incomplete
-package graph all stop before mutation. Postflight reruns analyzer-backed
+package graph also stop before mutation. Postflight reruns analyzer-backed
 facts plus format/analyze/direct-test/smoke, checks the exact whole-host after
-tree, and restores the complete byte/mode/symlink snapshot on any failure.
-The copied closure installs no Dart SDK or host dependency and never runs Pub
+tree, and restores the complete byte/mode/symlink snapshot on any failure. The
+copied closure installs no Dart SDK or host dependency and never runs Pub
 inside the audited host.
 
 ## Commands

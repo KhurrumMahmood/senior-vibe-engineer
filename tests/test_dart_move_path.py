@@ -309,6 +309,96 @@ def test_dart_leaf_directory_move_uses_the_same_resolved_transaction(tmp_path: P
     assert not (host / "lib/src/legacy").exists()
 
 
+def _add_unrelated_boundary_decoy(host: Path, tmp_path: Path, boundary: str) -> None:
+    if boundary == "generated":
+        _write(host / "generated/unrelated.g.dart", "class UnrelatedGenerated {}\n")
+    elif boundary == "part":
+        _write(
+            host / "lib/src/unrelated_owner.dart",
+            "part 'unrelated_part.dart';\n\nclass UnrelatedOwner {}\n",
+        )
+        _write(
+            host / "lib/src/unrelated_part.dart",
+            "part of 'unrelated_owner.dart';\n\nclass UnrelatedPart {}\n",
+        )
+    elif boundary == "augmentation":
+        _write(
+            host / "lib/src/unrelated_augmentation.dart",
+            "const unrelatedAugmentationText = '''\naugmentation decoy\n''';\n",
+        )
+    elif boundary == "dynamic-loading":
+        _write(
+            host / "lib/src/unrelated_dynamic_loading.dart",
+            "const unrelatedDynamicLoadingText = 'Uri.parse';\n",
+        )
+    else:
+        external = tmp_path / "unrelated_external.dart"
+        _write(external, "class UnrelatedExternal {}\n")
+        linked = host / "lib/src/unrelated_link.dart"
+        linked.parent.mkdir(parents=True, exist_ok=True)
+        linked.symlink_to(external)
+
+
+@pytest.mark.parametrize(
+    "boundary", ["generated", "part", "augmentation", "dynamic-loading", "symlink"]
+)
+def test_dart_unrelated_boundary_decoys_do_not_refuse_a_proved_move(
+    tmp_path: Path, boundary: str
+) -> None:
+    host = _host(tmp_path, boundary)
+    _add_unrelated_boundary_decoy(host, tmp_path, boundary)
+    plan = _plan(host)
+    before = _tree(host)
+    decoys = {path: state for path, state in before.items() if "unrelated" in path}
+
+    preview, evidence_path, evidence = _preview(host, plan)
+    result, report, _ = _invoke(
+        host,
+        plan,
+        "apply",
+        evidence=evidence_path,
+        approval=evidence["evidence_sha256"],
+    )
+
+    assert preview["dart"]["status"] == "complete"
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert report["dart"]["status"] == "complete"
+    assert report["dart"]["exact_after_tree"]["passed"] is True
+    after = _tree(host)
+    assert {path: after[path] for path in decoys} == decoys
+
+
+def test_dart_part_boundary_in_an_impacted_consumer_still_refuses(
+    tmp_path: Path,
+) -> None:
+    host = _host(tmp_path)
+    consumer = host / "lib/src/relative_consumer.dart"
+    consumer_source = consumer.read_text(encoding="utf-8")
+    consumer.write_text(
+        consumer_source.replace(
+            "import 'model/invoice.dart';\n",
+            "import 'model/invoice.dart';\n\npart 'relative_consumer_part.dart';\n",
+        ),
+        encoding="utf-8",
+    )
+    _write(
+        host / "lib/src/relative_consumer_part.dart",
+        "part of 'relative_consumer.dart';\n\nclass RelativeConsumerPart {}\n",
+    )
+    plan = _plan(host)
+    before = _tree(host)
+
+    result, report, report_dir = _invoke(host, plan, "dry-run")
+
+    assert result.returncode == 0
+    assert report["dart"]["status"] == "partial"
+    assert "dart_part_or_augmentation" in {
+        row["kind"] for row in report["dart"]["blocked"]
+    }
+    assert not (report_dir / "evidence.json").exists()
+    assert _tree(host) == before
+
+
 def test_dart_stale_evidence_refuses_without_touching_current_source(tmp_path: Path) -> None:
     host = _host(tmp_path)
     plan = _plan(host)
@@ -387,8 +477,18 @@ def test_dart_unresolved_or_dynamic_uncertainty_refuses_and_preserves_bytes(
     assert _tree(host) == before
 
 
-@pytest.mark.parametrize("boundary", ["generated", "symlink", "part", "public-package"])
-def test_dart_generated_symlink_part_and_public_package_moves_refuse_before_analysis(
+@pytest.mark.parametrize(
+    "boundary",
+    [
+        "generated",
+        "symlink",
+        "part",
+        "augmentation",
+        "dynamic-loading",
+        "public-package",
+    ],
+)
+def test_dart_impacted_boundaries_refuse_before_analysis(
     tmp_path: Path, boundary: str
 ) -> None:
     host = _host(tmp_path, boundary)
@@ -412,6 +512,16 @@ def test_dart_generated_symlink_part_and_public_package_moves_refuse_before_anal
             "part of dart_move_host;\n",
             encoding="utf-8",
         )
+    elif boundary == "augmentation":
+        (host / "lib/src/legacy/invoice_service.dart").write_text(
+            "const moveAugmentationText = '''\naugmentation decoy\n''';\n",
+            encoding="utf-8",
+        )
+    elif boundary == "dynamic-loading":
+        (host / "lib/src/legacy/invoice_service.dart").write_text(
+            "const moveDynamicLoadingText = 'Uri.parse';\n",
+            encoding="utf-8",
+        )
     else:
         plan_kwargs.update(
             source="lib/dart_move_host.dart",
@@ -425,6 +535,15 @@ def test_dart_generated_symlink_part_and_public_package_moves_refuse_before_anal
     assert result.returncode == 0
     assert report["dart"]["status"] == "partial"
     assert report["dart"]["blocked"]
+    expected_kind = {
+        "generated": "dart_generated_move_path",
+        "symlink": "dart_source_not_regular_library_file",
+        "part": "dart_part_or_augmentation",
+        "augmentation": "dart_part_or_augmentation",
+        "dynamic-loading": "dart_dynamic_loading_boundary",
+        "public-package": "dart_public_or_cross_package_move",
+    }[boundary]
+    assert expected_kind in {row["kind"] for row in report["dart"]["blocked"]}
     assert _tree(host) == before
     apply, _, _ = _invoke(host, plan, "apply")
     assert apply.returncode == 2
@@ -599,5 +718,5 @@ def test_dart_fixture_and_adapter_closure_manifests_are_content_addressed(
         "315f6217ccc049fbe3fc7d43f8376cabc317729f80d706e416ae7cfaf68f3f3d"
     )
     assert closure_digest.hexdigest() == (
-        "74b1ec0903b4ff7d3524850301017e81ab4fe8673d616ec8e4d3f72c61d2d120"
+        "a1f1eea9f651f9d3b910068b2b0b4593308cba6472ec34dfa2718c9ec7ab66f6"
     )
