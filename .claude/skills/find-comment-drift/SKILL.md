@@ -6,8 +6,8 @@ description: |
   Flags detached section banners, narration comments, missing or thin
   public class docstrings, stale terminology, JavaScript and TypeScript
   functions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML
-  comments, fragile doc references, bounded Go, Java, PHP, Ruby, Rust, C, and
-  C++ lexical-comment surfaces, and bounded Dart adjacent-doc/fixed-return
+  comments, fragile doc references, bounded Go, Java, PHP, Ruby, Swift, Rust,
+  C, and C++ lexical-comment surfaces, and bounded Dart adjacent-doc/fixed-return
   syntax.
 argument-hint: "[paths... - no paths uses the detector's legacy default surface]"
 allowed-tools: Bash, Read, Grep, Glob, Write
@@ -26,7 +26,7 @@ not_for: |
   existing lints for behavior and correctness.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, c, cpp, templates]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp, templates]
 ---
 
 # /find-comment-drift
@@ -94,6 +94,12 @@ eligible `.rb` or Ruby-shebang source. The bounded behavior-drift rule reports
 only an adjacent percentage-calculation comment contradicted by a fixed numeric
 method body; it does not infer runtime behavior through reopening,
 metaprogramming, reflection, dynamic loading, Rails, or Zeitwerk.
+
+Swift uses the external-library provider. Load the selected skill with sibling
+`_swift-project-lexical`, then read
+[`../_swift-project-lexical/GUIDE.md`](../_swift-project-lexical/GUIDE.md) for
+the exact command, restrictive native gates, bounded adjacent-comment rule,
+and semantic non-claims.
 
 Rust uses the copied `scripts/analyze_comments_rust.py` entry point. Rust/Cargo
 1.85+ and rustfmt gate a locked offline workspace plus every eligible `.rs`

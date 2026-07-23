@@ -108,8 +108,8 @@
     {
       "id": "K8",
       "prompt": "Find an omnibus Rust module with too many unrelated responsibilities.",
-      "expected": ["pending-implementation"],
-      "exit": 1
+      "expected": ["find-omnibus"],
+      "exit": 0
     },
     {
       "id": "K9",

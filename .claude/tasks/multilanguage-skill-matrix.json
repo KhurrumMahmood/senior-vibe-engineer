@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "2da192e8ec47e37f10639ff5bc3d68c0be52352240dca2dd31d3ec050e1fedf1"
+      "sha256": "51f8f94064aacbca6efe576018a4e63e7ce337248f829cf569fc42c4adacfb19"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -23,11 +23,11 @@
     },
     {
       "path": ".claude/tasks/php-language-coverage.json",
-      "sha256": "b66659d072d83e8d03ddb1a4ed0712c806db9f205e695ca2e17528d50efe4be6"
+      "sha256": "17c765def35f87dec85a87d75206584902ff0ef4e049a2ec6ff0d8bb210f53de"
     },
     {
       "path": ".claude/tasks/swift-language-coverage.json",
-      "sha256": "c6ae97b7ee43d27d316fbbbfda9893745b805b6f079d474839038125e73c15c1"
+      "sha256": "67229399e65629b38b6a89f0bb07d012775ecb85a95302492e65ed8c33eaf309"
     },
     {
       "path": ".claude/tasks/c-language-coverage.json",
@@ -39,7 +39,7 @@
     },
     {
       "path": ".claude/tasks/ruby-language-coverage.json",
-      "sha256": "84c898c4305513eab5362cf2d8bc82eacc9c7a57a3efe6acd3e6cc9f0c0a9c6b"
+      "sha256": "1f01c7c9b23eea041cb883a91f053637fc25c8e0f6eb39a1c357edc9b9bbd516"
     },
     {
       "path": ".claude/tasks/rust-language-coverage.json",
@@ -171,22 +171,22 @@
         "final adapter artifacts and source-fingerprint assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-project-lexical-family.md",
       "php_native_check": [
-        "PHP profile and inventory exist",
-        "no PHP adapt-project final artifact was validated in P4"
+        "Composer validate plus PHP lint/test/smoke",
+        "copied adapter artifacts, roles, lifecycle, and source preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "Inventory support alone does not prove the final adapter artifacts.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "php_reviewed_revision": "35e957b",
+      "php_limitation": "Objective Composer/PSR-4 and authored-source facts only; no framework or layout endorsement.",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-project-lexical-family.md",
       "swift_native_check": [
-        "SwiftPM profile and source-role inventory only",
-        "no Swift adapter artifact validated"
+        "restrictive SwiftPM build, per-file parse, format, direct check, and smoke",
+        "copied adapter artifacts, roles, lifecycle, and source preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "Inventory and a valid Package.swift do not prove final adapter artifacts.",
+      "swift_reviewed_revision": "105c7a2",
+      "swift_limitation": "Objective dependency-free SwiftPM project facts only; no framework, Xcode, dependency, or layout endorsement.",
       "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
@@ -201,13 +201,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "No C++ adapter artifact or build-system selection outcome is validated.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-project-lexical-family.md",
       "ruby_native_check": [
-        "profile, project boundary, and copied fixture only"
+        "Ruby syntax, frozen Bundler check, native test, and smoke",
+        "copied adapter artifacts, roles, lifecycle, and source preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "No Ruby adapter artifact or explicit plain-Ruby/gem/framework selection outcome is validated.",
+      "ruby_reviewed_revision": "debbfb2",
+      "ruby_limitation": "Objective dependency-free plain-Ruby/gem facts only; no framework or layout endorsement.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-lexical-filesystem-family.md",
       "rust_native_check": [
@@ -217,6 +218,9 @@
       "rust_reviewed_revision": "26c0482161bbc19c73f5d11ad288e2d3fef99105",
       "rust_limitation": "Objective Cargo/Rust adaptation facts only; frameworks, layout quality, macro/build/cfg semantics, and project intent remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d1-project-lexical-family.md",
       "dart_native_check": [
@@ -238,6 +242,9 @@
           "typescript",
           "go",
           "java",
+          "php",
+          "ruby",
+          "swift",
           "rust",
           "dart"
         ],
@@ -1184,22 +1191,22 @@
         "final report, mixed-status, and source-once assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-project-lexical-family.md",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP explanation artifact was validated"
+        "PHP token parse plus native project checks",
+        "copied explanation, targets, annotations, unresolved sidecars, lifecycle, and preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "No PHP symbol explanation path has been validated.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "php_reviewed_revision": "35e957b",
+      "php_limitation": "Direct public lexical declarations only; aliases, inheritance, types, callers, contracts, and behavior remain unresolved.",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-project-lexical-family.md",
       "swift_native_check": [
-        "compiler and SwiftPM facts are available",
-        "no Swift explanation artifact validated"
+        "compiler-parseable direct declarations plus restrictive native gates",
+        "copied explanation, targets, annotations, unresolved sidecars, lifecycle, and preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "No indexed symbol explanation path has been validated across targets.",
+      "swift_reviewed_revision": "105c7a2",
+      "swift_limitation": "Direct public lexical declarations only; overload identity, cross-file extensions, protocols, macros, callers, types, contracts, and behavior remain unresolved.",
       "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
@@ -1214,13 +1221,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "No compile-database-backed explanation artifact handles templates, overloads, ADL, or implicit operations.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-project-lexical-family.md",
       "ruby_native_check": [
-        "Ruby syntax and explicit require_relative fixture only"
+        "Prism direct syntax plus native project checks",
+        "copied explanation, targets, annotations, unresolved sidecars, lifecycle, and preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Dynamic dispatch, constant lookup, mixins, reopening, callbacks, and runtime metaprogramming lack resolved evidence.",
+      "ruby_reviewed_revision": "debbfb2",
+      "ruby_limitation": "Direct Prism declarations only; dynamic dispatch, constant identity, mixins, reopening, callbacks, metaprogramming, and behavior remain unresolved.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-lexical-filesystem-family.md",
       "rust_native_check": [
@@ -1230,6 +1238,9 @@
       "rust_reviewed_revision": "26c0482161bbc19c73f5d11ad288e2d3fef99105",
       "rust_limitation": "Direct lexical public declarations only; re-exports, aliases, resolved callers/types, macro output, cfg variants, traits/generics, unsafe/FFI, and behavior remain unexplained.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d3-declaration-body-family.md",
       "dart_native_check": [
@@ -1251,6 +1262,9 @@
           "typescript",
           "go",
           "java",
+          "php",
+          "ruby",
+          "swift",
           "rust",
           "dart"
         ],
@@ -1948,14 +1962,14 @@
       ],
       "php_reviewed_revision": "6a9d27b",
       "php_limitation": "Lexical comments only; no Composer, symbol, framework, or runtime semantics.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-project-lexical-family.md",
       "swift_native_check": [
-        "SwiftSyntax unavailable",
-        "no Swift comment report validated"
+        "Swift lexical masking plus restrictive native gates",
+        "copied final artifacts, protocol-requirement regression, lifecycle, exclusions, and preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "The spine does not introduce an unvalidated comment scanner or final report path.",
+      "swift_reviewed_revision": "105c7a2",
+      "swift_limitation": "One bounded adjacent percentage-comment versus fixed-multiplier rule; distant prose, resolved ownership/data flow, overloads, macros, frameworks, and runtime correctness remain unresolved.",
       "c_disposition": "c-supported",
       "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-find-comment-drift.md",
       "c_native_check": [
@@ -1990,6 +2004,7 @@
       "rust_reviewed_revision": "812ae4fcf9c5c99c6887726ce3fcd3f610c6b9aa",
       "rust_limitation": "One bounded adjacent percentage/rate doc-comment versus fixed-literal function-body rule; macros, build scripts, include!, cfg/target variants, traits, generics, unsafe/FFI, and runtime semantics remain explicit non-claims.",
       "dart_disposition": "dart-supported",
+      "swift_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d2-syntax-family.md",
       "dart_native_check": [
@@ -2013,6 +2028,7 @@
           "java",
           "php",
           "ruby",
+          "swift",
           "rust",
           "dart",
           "c",
@@ -2215,22 +2231,22 @@
         "final findings and copied-runbook assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-project-lexical-family.md",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP concept-divergence report was validated"
+        "PHP token parse plus native project checks",
+        "copied strict-glossary final report, exact spans/hashes, exclusions, lifecycle, and preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "No PHP naming/usage census has reached the final report.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "php_reviewed_revision": "35e957b",
+      "php_limitation": "Strict authored-text evidence only; comments or strings may be review noise and no symbol identity is claimed.",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-project-lexical-family.md",
       "swift_native_check": [
-        "spine final-outcome census",
-        "no Swift concept census validated"
+        "authored-source inventory plus restrictive native gates",
+        "copied glossary-backed report, exact spans/hashes, exclusions, lifecycle, and preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "No Swift naming and usage census reaches the final report.",
+      "swift_reviewed_revision": "105c7a2",
+      "swift_limitation": "Strict authored-text evidence only; comments or strings may be review noise and no symbol or conceptual identity is claimed.",
       "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
@@ -2245,13 +2261,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "Preprocessor spelling, overload sets, templates, aliases, and symbol identity do not reach a final census.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-project-lexical-family.md",
       "ruby_native_check": [
-        "lexical names available"
+        "Prism syntax plus native project checks",
+        "copied strict-glossary final report, exact spans/hashes, exclusions, lifecycle, and preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Symbols, strings, aliases, dynamic constants/methods, mixins, and reopened definitions lack identity resolution.",
+      "ruby_reviewed_revision": "debbfb2",
+      "ruby_limitation": "Strict authored-text evidence only; symbols, strings, aliases, dynamic definitions, mixins, and reopenings do not establish identity.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-lexical-filesystem-family.md",
       "rust_native_check": [
@@ -2261,6 +2278,9 @@
       "rust_reviewed_revision": "26c0482161bbc19c73f5d11ad288e2d3fef99105",
       "rust_limitation": "Strict glossary-backed text evidence only; symbol identity, imports/re-exports, macros, associated items, blanket impls, cfg variants, generated identifiers, and conceptual equivalence remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d1-project-lexical-family.md",
       "dart_native_check": [
@@ -2282,6 +2302,9 @@
           "typescript",
           "go",
           "java",
+          "php",
+          "ruby",
+          "swift",
           "rust",
           "dart",
           "markdown",
@@ -2784,22 +2807,22 @@
         "clone report and source-once assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-project-lexical-family.md",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP duplication report was validated"
+        "PHP token parse plus native project checks",
+        "copied token-normalized clone triage, decoys, lifecycle, and preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "No PHP token/normalization contract has reached final triage.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "php_reviewed_revision": "35e957b",
+      "php_limitation": "Exact named-body token normalization is an advisory clone lead, never behavioral equivalence or consolidation authority.",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-project-lexical-family.md",
       "swift_native_check": [
-        "spine final-outcome census",
-        "no Swift duplication triage validated"
+        "direct function bodies plus restrictive native gates",
+        "copied normalized-clone triage, protocol-requirement regression, decoys, lifecycle, and preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "No accepted Swift normalization contract reaches final triage.",
+      "swift_reviewed_revision": "105c7a2",
+      "swift_limitation": "Identical normalized direct bodies are advisory clone leads only; resolved identity, behavior, and safe consolidation remain unresolved.",
       "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
@@ -2814,13 +2837,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "No accepted normalization for templates, overloads, macros, or semantic equivalence reaches final triage.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-project-lexical-family.md",
       "ruby_native_check": [
-        "Prism token/syntax feasibility only"
+        "Prism method-body spelling plus native project checks",
+        "copied clone triage, decoys, lifecycle, and preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "No accepted normalization handles blocks, heredocs, DSLs, monkey patches, or metaprogramming through final triage.",
+      "ruby_reviewed_revision": "debbfb2",
+      "ruby_limitation": "Exact method-body spelling is an advisory clone lead; blocks, heredocs, DSLs, monkey patches, metaprogramming, and consolidation safety remain unresolved.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-lexical-filesystem-family.md",
       "rust_native_check": [
@@ -2830,6 +2854,9 @@
       "rust_reviewed_revision": "26c0482161bbc19c73f5d11ad288e2d3fef99105",
       "rust_limitation": "Whitespace-normalized lexical bodies of named functions at least five lines long are review leads only; macros, generics, patterns, closures, cfg branches, semantic equivalence, and safe consolidation remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d3-declaration-body-family.md",
       "dart_native_check": [
@@ -2851,6 +2878,9 @@
           "typescript",
           "go",
           "java",
+          "php",
+          "ruby",
+          "swift",
           "rust",
           "dart"
         ],
@@ -2918,22 +2948,22 @@
         "copied runbook and terminal lifecycle assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-project-lexical-family.md",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP topology report was validated"
+        "Composer validate plus PHP lint/test/smoke",
+        "copied direct-sibling cluster report, thresholds, role exclusions, lifecycle, and preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "Composer conventions alone do not prove this skill's topology findings.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "php_reviewed_revision": "35e957b",
+      "php_limitation": "Filename clusters prove no namespace, autoload, ownership, import, framework, or safe-move contract.",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-project-lexical-family.md",
       "swift_native_check": [
-        "SwiftPM target layout is present",
-        "no Swift topology report validated"
+        "SwiftPM project facts plus restrictive native gates",
+        "copied direct-sibling cluster report, allow-folder exceptions, lifecycle, and preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "One representative SwiftPM layout does not prove a final topology finding.",
+      "swift_reviewed_revision": "105c7a2",
+      "swift_limitation": "Filename clusters prove no target ownership, imports, framework convention, or safe-move contract.",
       "c_disposition": "c-pending-implementation",
       "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
       "c_native_check": [
@@ -2948,13 +2978,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "One Make layout and ambiguous headers do not prove C++ project topology or build ownership.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-project-lexical-family.md",
       "ruby_native_check": [
-        "plain gem layout and source roles only"
+        "Ruby syntax, frozen Bundler check, native test, and smoke",
+        "copied direct-sibling filename cluster report, thresholds, exclusions, lifecycle, and preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Bundler gem layout does not imply Rails/Zeitwerk, Rack, native-extension, monorepo, or application topology.",
+      "ruby_reviewed_revision": "debbfb2",
+      "ruby_limitation": "Filename clusters prove no namespace, load, ownership, Rails/Zeitwerk, Rack, native-extension, monorepo, or safe-move contract.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-lexical-filesystem-family.md",
       "rust_native_check": [
@@ -2964,6 +2995,9 @@
       "rust_reviewed_revision": "26c0482161bbc19c73f5d11ad288e2d3fef99105",
       "rust_limitation": "Explicit-root direct-sibling filename clusters only; module ownership, imports, package/workspace conventions, framework layout, move safety, proc-macro/no_std, and monorepo topology remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d1-project-lexical-family.md",
       "dart_native_check": [
@@ -2985,6 +3019,9 @@
           "typescript",
           "go",
           "java",
+          "php",
+          "ruby",
+          "swift",
           "rust",
           "dart"
         ],

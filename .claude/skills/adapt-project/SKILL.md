@@ -1,6 +1,6 @@
 ---
 name: adapt-project
-description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, Go, Java, bounded Cargo/Rust, and bounded plain-Dart stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
+description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, Go, Java, PHP/Composer, bounded plain-Ruby/Bundler, SwiftPM, Cargo/Rust, and plain-Dart stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
 argument-hint: "[--project-root <path>] [--artifact-root <path>] [--apply|--no-host-write]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -24,7 +24,7 @@ escalate_to: |
   human-approved and detectable.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust, dart]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart]
 lanes: [project-adaptation]
 stage: discover
 entrypoint: true
@@ -151,6 +151,18 @@ The copied layout must also contain
 `.agents/skills/on-demand/_rust/rust_lexical_facts.py`. The command writes
 `adapter.yml`, `adapter.json`, `report.md`, and `evidence.json` and never writes
 durable host configuration.
+
+## External project/lexical variants
+
+For PHP, Ruby, or Swift, load the selected skill with its sibling language
+provider and read that provider's on-demand guide before execution:
+
+- [`../_php-project-lexical/GUIDE.md`](../_php-project-lexical/GUIDE.md)
+- [`../_ruby-project-lexical/GUIDE.md`](../_ruby-project-lexical/GUIDE.md)
+- [`../_swift-project-lexical/GUIDE.md`](../_swift-project-lexical/GUIDE.md)
+
+A consumer-only ambient install is incomplete. Each guide owns the exact
+command, tool boundary, output contract, and bounded non-claims.
 
 ## Forms
 

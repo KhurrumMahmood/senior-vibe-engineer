@@ -1,6 +1,6 @@
 ---
 name: find-duplication
-description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go/Rust/Dart function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
+description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go/PHP/Ruby/Swift/Rust/Dart function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
 argument-hint: "--target <source-directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
@@ -19,7 +19,7 @@ not_for: |
   clone leads and stops short of safety or reuse conclusions.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust, dart]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart]
 ---
 
 # /find-duplication
@@ -50,6 +50,9 @@ Inspect eligible source suffixes under `--target`:
 - `.js`/`.jsx`/`.mjs`/`.cjs` only: run the **JavaScript lexical-evidence branch**.
 - `.go` only: run the **Go exact-function evidence branch**.
 - `.java` only: run the **Java exact-method evidence branch**.
+- `.php` only: run the **PHP exact token-normalized named-body evidence branch**.
+- `.rb` only: run the **Ruby exact Prism method-body spelling branch**.
+- `.swift` only: run the **Swift exact normalized direct-body evidence branch**.
 - `.rs` only: run the **Rust exact normalized function-body evidence branch**.
 - multiple supported families: run each branch into its own language report
   directory and summarize them separately. Do not merge their findings or
@@ -73,6 +76,17 @@ python3 "${SKILL_ROOT}/scripts/run_rust.py" \
   --project-root "$PWD" --target src \
   --output-dir "$PWD/reports/duplication/rust"
 ```
+
+PHP, Ruby, and Swift are external-library branches. Load the selected skill
+with its sibling provider and read the matching on-demand guide:
+
+- [`../_php-project-lexical/GUIDE.md`](../_php-project-lexical/GUIDE.md)
+- [`../_ruby-project-lexical/GUIDE.md`](../_ruby-project-lexical/GUIDE.md)
+- [`../_swift-project-lexical/GUIDE.md`](../_swift-project-lexical/GUIDE.md)
+
+All three produce human-review clone leads only. The guides own the exact
+commands, normalization boundary, native gates, and non-claims; none proves
+behavioral equivalence or safe consolidation.
 
 ## Python legacy triage branch
 

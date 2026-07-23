@@ -1,10 +1,10 @@
 # Shared-kit promotion decision and family-packet index
 
-Status: accepted for P6/F1 closeout
+Status: accepted for P6/F1 closeout; Cohort A project/lexical evidence appended
 
 Evidence snapshot: `f9d14f077b158291a360e83c3db47aecab01e606`
 
-This decision compares completed TypeScript, Java, PHP, Rust, and Dart work.
+This decision compares completed TypeScript, Java, PHP, Ruby, Swift, Rust, and Dart work.
 It applies the conjunctive gate from the active execution ledger: a newly
 promoted component needs at least two immediate real consumers, at least 25%
 maintained-LOC reduction, copied-closure growth no greater than 10%, and median
@@ -25,6 +25,9 @@ runtime platform.
 | Generic lifecycle module | Only atomic text output has a production caller | Reduce to that behavior; removed unused terminal enum, JSON writer, artifact clearer, and source-manifest API plus their tests (`231` to `79` implementation/test lines, `65.80%` reduction) |
 | Dart project/lexical provider | Three consumers; `41.25%` maintained-LOC reduction | Retain Dart-local; closure/latency equivalence was structural, not an independent A/B measurement |
 | Rust project/lexical provider | Five consumers; `59.21%` maintained-LOC reduction | Retain Rust-local; no cross-language schema follows |
+| PHP A1 project/lexical provider | Five consumers; `62.43%` maintained-LOC reduction; maximum closure growth `0.32%`; median latency growth `1.86%` | Retain PHP-local in the external library; no cross-language schema follows |
+| Ruby A1 project/lexical provider | Five consumers; `57.02%` maintained-LOC reduction; closure growth `0%`; median latency growth `-2.98%` | Retain Ruby-local in the external library; no cross-language schema follows |
+| Swift A1 project/lexical provider | Six consumers; `62.80%` maintained-LOC reduction; closure growth `0%`; median consumer latency growth `-4.59%` | Retain Swift-local in the external library; no cross-language schema follows |
 | Rust syntax provider | Four consumers; `56.34%` maintained-LOC reduction; latency comparator missing | Retain Rust-local; defer any broader promotion |
 | Dart D2/D3 syntax providers | Three/four consumers; `43.06%`/`58.12%` maintained-LOC reduction; D3 copied bytes `-24.38%`; repeated median comparator missing | Retain Dart-local; defer any broader promotion |
 | Rust semantic and proposal evidence | Five semantic consumers at `53.77%` LOC reduction; two proposal consumers at `28.6%`; closure/latency comparisons incomplete | Retain Rust-local; defer broader promotion |
@@ -50,7 +53,9 @@ closure, native commands, and final artifacts. Paths are repository-relative.
 | Project/lexical | Rust — `ready` | `multilanguage-learnings/rust-lexical-filesystem-family.md`; `_rust/rust_lexical_facts.py`; five named consumer adapters; `tests/test_rust_lexical_family.py` | `tests/fixtures/rust-lexical-family`; packet records five closures, locked/offline Cargo commands, rustfmt, and final adaptation/explanation/divergence/duplication/topology artifacts |
 | Project/lexical | TypeScript — `family-local` | `adapt-project-typescript.md`, `find-folder-topology-drift-typescript.md`, `map-subsystem-typescript.md` and their named adapters/tests | Each packet owns its fixture/closure/final artifacts; no shared provider contract exists |
 | Project/lexical | Java — `refreeze-required` | `java-j4a-project-graph.json` and Java map/adapter tests | Current map implementation/test LOC drifted from the packet; refreeze hashes, closure, and latency before using it for economics |
-| Project/lexical | PHP — `rejected-extraction` | `p4-baseline/php-pilot-baseline.json`, `php-pilot.md` | The baseline is the frozen fixture/native/final-output packet and the decisive failed economics comparison |
+| Project/lexical | PHP — `ready-local` | `multilanguage-learnings/php-project-lexical-family.md`; `_php-project-lexical/php_project_lexical.php`; five named consumer adapters; `tests/test_php_project_lexical_family.py` | `tests/fixtures/php-project-lexical-family`; packet records copied closures, Composer/PHP native commands, lifecycle, economics, and five final outcomes. The earlier cross-language PHP/Java extraction remains rejected. |
+| Project/lexical | Ruby — `ready-local` | `multilanguage-learnings/ruby-project-lexical-family.md`; `_ruby-project-lexical/ruby_project_lexical_facts.py`; five named consumer adapters; `tests/test_ruby_project_lexical_family.py` | `tests/fixtures/ruby-project-lexical-family`; packet records copied closures, frozen Bundler/Prism/native commands, lifecycle, economics, and five final outcomes |
+| Project/lexical | Swift — `ready-local` | `multilanguage-learnings/swift-project-lexical-family.md`; `_swift-project-lexical/swift_project_facts.py`; six named consumer adapters; `tests/test_swift_project_lexical_family.py` | `tests/fixtures/swift-project-lexical`; packet records copied closures, restrictive SwiftPM/compiler/format/direct commands, lifecycle, economics, and six final outcomes |
 | Syntax | Rust — `ready-local` | `rust-syntax-family.md`; `_rust-syntax/scripts/rust_syntax_facts.py`; four consumer adapters; `tests/test_rust_syntax_family.py` | `tests/fixtures/rust-syntax-family`; packet records exact closures, locked/offline Cargo/rustfmt commands, and audit/complexity/omnibus/standards artifacts; broader promotion waits on median A/B data |
 | Syntax | Dart D2 — `ready-local` | `dart-d2-syntax-family.md`, `dart-d2-provider-extension.md`; `_dart/scripts/dart_syntax_facts.py`; analyzer tool; three consumers and two focused tests | `tests/fixtures/dart-d2-syntax`; packets record copied closures, offline locked analyzer setup, native analyze/format/test/smoke, and audit/comment/standards artifacts |
 | Syntax | Dart D3 — `ready-local` | `dart-d3-declaration-body-family.md`; `_dart/scripts/dart_d3_snapshot.py`; four consumers; `tests/test_dart_d3_declaration_body_family.py` | `tests/fixtures/dart-d3`; packet records 60-file union closure, native commands, and explanation/complexity/duplication/omnibus artifacts |

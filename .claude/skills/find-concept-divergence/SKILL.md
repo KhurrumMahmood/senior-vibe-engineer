@@ -31,7 +31,7 @@ not_for: |
   (deferred — strict canonical-name + avoid-term grep only in v1).
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust, dart, markdown, templates]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, markdown, templates]
 ---
 
 # /find-concept-divergence
@@ -120,6 +120,18 @@ python3 "${SKILL_ROOT}/scripts/scan_rust.py" \
 ```
 
 The copied closure must include sibling `_rust/rust_lexical_facts.py`.
+
+### External strict-text variants
+
+For PHP, Ruby, or Swift, load the selected skill with its sibling language
+provider and read that provider's on-demand guide before execution:
+
+- [`../_php-project-lexical/GUIDE.md`](../_php-project-lexical/GUIDE.md)
+- [`../_ruby-project-lexical/GUIDE.md`](../_ruby-project-lexical/GUIDE.md)
+- [`../_swift-project-lexical/GUIDE.md`](../_swift-project-lexical/GUIDE.md)
+
+These are glossary-backed authored-text scans, not symbol or conceptual
+identity. The guides own the exact commands, native gates, and non-claims.
 
 ## How success is judged
 

@@ -3,7 +3,7 @@
   "skills": [
     {
       "name": "adapt-project",
-      "description": "Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, Go, Java, bounded Cargo/Rust, and bounded plain-Dart stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.",
+      "description": "Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, Go, Java, PHP/Composer, bounded plain-Ruby/Bundler, SwiftPM, Cargo/Rust, and plain-Dart stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.",
       "tier": "cross-cutting",
       "job": "meta",
       "best_for": "Adapting the portable engineering-skills ecosystem to a new host\nproject. Use when onboarding a repo, dogfooding against a reference\nproject, or regenerating local adapter facts after stack/CI/test\nchanges. Produces project adapter facts, not human intent.\n",
@@ -37,6 +37,9 @@
         "typescript",
         "go",
         "java",
+        "php",
+        "ruby",
+        "swift",
         "rust",
         "dart"
       ],
@@ -230,7 +233,7 @@
     },
     {
       "name": "explain-code",
-      "description": "Read-only EXPLAIN skill that converts a Python, Go, Java, JavaScript-family, TypeScript/TSX, bounded Rust, or bounded Dart target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Unresolved surfaces remain visible instead of being inferred.",
+      "description": "Read-only EXPLAIN skill that converts a Python, Go, Java, JavaScript-family, TypeScript/TSX, bounded PHP, Ruby, Swift, Rust, or Dart target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Unresolved surfaces remain visible instead of being inferred.",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "Producing an annotated behavior doc for a file, directory package,\nor named subsystem — pre/postconditions, invariants, callers,\nunexplained regions. Read-only. Complements /map-subsystem inventory\nby adding the behavioral annotation that lets a human trust the code\nenough to change it.\n",
@@ -243,6 +246,9 @@
         "typescript",
         "go",
         "java",
+        "php",
+        "ruby",
+        "swift",
         "rust",
         "dart"
       ],
@@ -333,7 +339,7 @@
     },
     {
       "name": "find-comment-drift",
-      "description": "Advisory SUSPECT scan for comments, docstrings, JSDoc, and template\ncomments that have drifted from the code they are meant to clarify.\nFlags detached section banners, narration comments, missing or thin\npublic class docstrings, stale terminology, JavaScript and TypeScript\nfunctions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML\ncomments, fragile doc references, bounded Go, Java, PHP, Ruby, Rust, C, and\nC++ lexical-comment surfaces, and bounded Dart adjacent-doc/fixed-return\nsyntax.\n",
+      "description": "Advisory SUSPECT scan for comments, docstrings, JSDoc, and template\ncomments that have drifted from the code they are meant to clarify.\nFlags detached section banners, narration comments, missing or thin\npublic class docstrings, stale terminology, JavaScript and TypeScript\nfunctions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML\ncomments, fragile doc references, bounded Go, Java, PHP, Ruby, Swift, Rust,\nC, and C++ lexical-comment surfaces, and bounded Dart adjacent-doc/fixed-return\nsyntax.\n",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Auditing explanatory-code hygiene after AI-heavy development: noisy\ncomments that narrate the next line, missing ownership docstrings,\nstale terminology in comments/docstrings, banner comments that should\nbe adjacent JSDoc or deleted, and Django-template comments that repeat\nvisible headings.\n",
@@ -348,6 +354,7 @@
         "java",
         "php",
         "ruby",
+        "swift",
         "rust",
         "dart",
         "c",
@@ -391,6 +398,9 @@
         "typescript",
         "go",
         "java",
+        "php",
+        "ruby",
+        "swift",
         "rust",
         "dart",
         "markdown",
@@ -466,7 +476,7 @@
     },
     {
       "name": "find-duplication",
-      "description": "Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go/Rust/Dart function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.",
+      "description": "Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go/PHP/Ruby/Swift/Rust/Dart function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Python/Django copy-paste and canonical-pattern candidates that need the\nestablished P0/P1/P2 scout triage, JavaScript-family/TypeScript lexical clone\ncandidates that need reliable source spans, exact normalized Go function-body\nclones, or duplicated Java method bodies represented as exact normalized\nmethod-body clone candidates for conservative human review.\n",
@@ -479,6 +489,9 @@
         "typescript",
         "go",
         "java",
+        "php",
+        "ruby",
+        "swift",
         "rust",
         "dart"
       ],
@@ -486,7 +499,7 @@
     },
     {
       "name": "find-folder-topology-drift",
-      "description": "Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, Go, Java, Rust, or Dart filename clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript, TypeScript, Rust, and Dart use a first `_` or `-` token, Go uses its first `_` token, and Java uses a leading CamelCase token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.",
+      "description": "Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, Go, Java, PHP, Ruby, Swift, Rust, or Dart filename clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript, TypeScript, Rust, Dart, PHP, Ruby, and Swift use bounded filename-prefix rules, Go uses its first `_` token, and Java uses a leading CamelCase token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Auditing a Python package against ADR 0006's bidirectional ≥3-sibling\nthreshold, or inspecting an explicitly named TypeScript, Go, or Java source root for a\nsimple same-domain filename cluster such as\n`billing_parser.ts`, `billing-validator.ts`, and `billing-types.ts`.\n",
@@ -499,6 +512,9 @@
         "typescript",
         "go",
         "java",
+        "php",
+        "ruby",
+        "swift",
         "rust",
         "dart"
       ],

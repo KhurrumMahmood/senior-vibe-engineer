@@ -1,6 +1,6 @@
 ---
 name: find-folder-topology-drift
-description: Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, Go, Java, Rust, or Dart filename clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript, TypeScript, Rust, and Dart use a first `_` or `-` token, Go uses its first `_` token, and Java uses a leading CamelCase token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.
+description: Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, Go, Java, PHP, Ruby, Swift, Rust, or Dart filename clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript, TypeScript, Rust, Dart, PHP, Ruby, and Swift use bounded filename-prefix rules, Go uses its first `_` token, and Java uses a leading CamelCase token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.
 argument-hint: "[--root PATH] [--javascript-root PATH] [--typescript-root PATH] [--go-root PATH] [--java-root PATH] [--min-cluster-size 3 --exclude PATTERN]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -20,7 +20,7 @@ not_for: |
   resolved-import contract.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust, dart]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart]
 ---
 
 # /find-folder-topology-drift
@@ -44,6 +44,19 @@ python3 "${SKILL_ROOT}/scripts/detect_dart.py" \
 
 Run a read-only directory-layout audit. Treat every finding as a human-triage
 candidate, never as authorization to move files.
+
+### External explicit-root variants
+
+For PHP, Ruby, or Swift, load the selected skill with its sibling language
+provider and read the matching on-demand guide:
+
+- [`../_php-project-lexical/GUIDE.md`](../_php-project-lexical/GUIDE.md)
+- [`../_ruby-project-lexical/GUIDE.md`](../_ruby-project-lexical/GUIDE.md)
+- [`../_swift-project-lexical/GUIDE.md`](../_swift-project-lexical/GUIDE.md)
+
+These group authored direct siblings into advisory clusters. The guides own
+the exact commands and native gates; no finding proves namespace or target
+ownership, framework convention, import impact, or move safety.
 
 ## How success is judged
 

@@ -1,7 +1,7 @@
 # Language-support development
 
 Status: durable contributor guide synthesized through TypeScript, JavaScript,
-Go, Java, PHP, Rust, and Dart evidence
+Go, Java, PHP, Ruby, Swift, Rust, and Dart evidence
 
 Use this guide before starting another language or changing shared
 language-analysis tooling. It captures the tooling shape that repeated across
@@ -145,6 +145,37 @@ options. Preserve each consumer's independent outcome and failure status.
 Do not batch mutations. Do not introduce a cache or shared provider until two
 real consumers demonstrate identical facts and a measured reduction in total
 adapter-plus-test cost.
+
+### 7. Cohort A project/lexical evidence
+
+PHP, Ruby, and Swift independently confirmed the same narrow implementation
+shape: one language-local external-library provider can own source roles,
+native preflight, fingerprints, and terminal lifecycle while each skill keeps
+its own final artifact and claim. All three providers cleared ML-025 by more
+than 57% maintained LOC, stayed inside the 10% closure/latency caps, and remain
+local to their language and immediate consumers. This is evidence for the
+family pattern, not for a cross-language runtime or result schema.
+
+The language-specific facts still matter:
+
+- PHP uses Composer validation, per-file `php -l`, and
+  `token_get_all(..., TOKEN_PARSE)`; Composer/framework semantics remain a
+  later project-aware tier.
+- Ruby uses frozen Bundler checks, per-file `ruby -c`, and bundled Prism;
+  reopening, dynamic load/dispatch, metaprogramming, Rails, and Zeitwerk remain
+  semantic boundaries.
+- Swift uses restrictive SwiftPM commands, per-file `swiftc -frontend -parse`,
+  strict Swift Format, and explicit direct-check/smoke products. Parse files
+  independently: combining multiple executable `main.swift` files in one
+  compiler invocation creates a false conflict.
+
+Implementation sharing is not request-level batching. Each current adapter
+invokes its provider and native gates for one skill outcome; a multi-lens
+request still repeats those costs. Do not claim the user-journey batching
+problem is solved until a later measured coordinator reuses one content-bound
+snapshot across independent read-only consumers without weakening their final
+statuses. The current external-library closure is the honest prerequisite for
+that experiment, not the experiment itself.
 
 ## Native foundations for queued languages
 

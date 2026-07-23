@@ -160,6 +160,59 @@ def test_non_dart_external_library_closure_disables_ambient_install(tmp_path):
 
 
 @pytest.mark.parametrize(
+    ("language", "skill"),
+    [
+        *( ("php", skill) for skill in (
+            "adapt-project",
+            "explain-code",
+            "find-concept-divergence",
+            "find-duplication",
+            "find-folder-topology-drift",
+        )),
+        *( ("ruby", skill) for skill in (
+            "adapt-project",
+            "explain-code",
+            "find-concept-divergence",
+            "find-duplication",
+            "find-folder-topology-drift",
+        )),
+        *( ("swift", skill) for skill in (
+            "adapt-project",
+            "explain-code",
+            "find-comment-drift",
+            "find-concept-divergence",
+            "find-duplication",
+            "find-folder-topology-drift",
+        )),
+    ],
+)
+def test_project_lexical_capabilities_route_to_external_library(
+    tmp_path: Path, language: str, skill: str
+) -> None:
+    returncode, payload = _run_match(
+        f"Use {skill} on this {language} project.",
+        "--project-root",
+        str(tmp_path),
+        "--library-root",
+        str(REPO_ROOT),
+    )
+
+    assert returncode == 0, payload
+    assert payload["routing_context"]["languages"] == [language]
+    assert payload["recommendation"] == skill
+    capability = next(
+        row
+        for row in payload["handoff"]["capabilities"]["skills"]
+        if row["skill"] == skill
+    )
+    assert capability[f"{language}_disposition"] == f"{language}-supported"
+    assert payload["optional_install"]["available"] is False
+    assert payload["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
+    )
+
+
+@pytest.mark.parametrize(
     "skill",
     [
         "explain-code",

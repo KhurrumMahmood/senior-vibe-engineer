@@ -63,15 +63,15 @@ EXPECTED_JAVA_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_PHP_COUNTS = {
-    "php-supported": 3,
-    "php-pending-implementation": 19,
+    "php-supported": 8,
+    "php-pending-implementation": 14,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
 }
 EXPECTED_SWIFT_COUNTS = {
-    "swift-supported": 3,
-    "swift-pending-implementation": 19,
+    "swift-supported": 9,
+    "swift-pending-implementation": 13,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -91,8 +91,8 @@ EXPECTED_CPP_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_RUBY_COUNTS = {
-    "ruby-supported": 2,
-    "ruby-pending-implementation": 20,
+    "ruby-supported": 7,
+    "ruby-pending-implementation": 15,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -519,12 +519,31 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         row["skill"]
         for row in language_rows
         if row["php_disposition"] == "php-supported"
-    } == {"find-comment-drift", "map-subsystem", "move-path"}
+    } == {
+        "adapt-project",
+        "explain-code",
+        "find-comment-drift",
+        "find-concept-divergence",
+        "find-duplication",
+        "find-folder-topology-drift",
+        "map-subsystem",
+        "move-path",
+    }
     assert {
         row["skill"]
         for row in language_rows
         if row["swift_disposition"] == "swift-supported"
-    } == {"find-omnibus", "map-subsystem", "move-path"}
+    } == {
+        "adapt-project",
+        "explain-code",
+        "find-comment-drift",
+        "find-concept-divergence",
+        "find-duplication",
+        "find-folder-topology-drift",
+        "find-omnibus",
+        "map-subsystem",
+        "move-path",
+    }
     assert {
         row["skill"]
         for row in language_rows
@@ -539,7 +558,15 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         row["skill"]
         for row in language_rows
         if row["ruby_disposition"] == "ruby-supported"
-    } == {"find-comment-drift", "map-subsystem"}
+    } == {
+        "adapt-project",
+        "explain-code",
+        "find-comment-drift",
+        "find-concept-divergence",
+        "find-duplication",
+        "find-folder-topology-drift",
+        "map-subsystem",
+    }
     assert {
         row["skill"]
         for row in language_rows
@@ -577,6 +604,40 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         row["skill"]
         for row in language_rows
         if row["dart_disposition"] == "dart-pending-implementation"
+    }
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row.get("php_closure_mode") == "external-library"
+    } == {
+        "adapt-project",
+        "explain-code",
+        "find-concept-divergence",
+        "find-duplication",
+        "find-folder-topology-drift",
+    }
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row.get("ruby_closure_mode") == "external-library"
+    } == {
+        "adapt-project",
+        "explain-code",
+        "find-concept-divergence",
+        "find-duplication",
+        "find-folder-topology-drift",
+    }
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row.get("swift_closure_mode") == "external-library"
+    } == {
+        "adapt-project",
+        "explain-code",
+        "find-comment-drift",
+        "find-concept-divergence",
+        "find-duplication",
+        "find-folder-topology-drift",
     }
     assert {
         row["skill"]

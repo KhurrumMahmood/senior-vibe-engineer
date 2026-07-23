@@ -47,8 +47,8 @@
   "runtime_closure": {
     "definition": "existing stdlib-only profile/doctor/inventory runtime needed by the spine; this is not a copied skill/provider closure and earns no support claim",
     "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), listed path order",
-    "manifest_sha256": "7e793b2073e999fb4aa0ab6eb8ad805bf2b29062adcbdfa93e9245de249755f7",
-    "total_bytes": 42834,
+    "manifest_sha256": "d6abf8d97594fb0b5d0be4165091be47eb67e301dad9f2087f848ca6f83225ef",
+    "total_bytes": 39355,
     "files": [
       "scripts/language_profiles/swift.json",
       "scripts/language_doctor.py",
