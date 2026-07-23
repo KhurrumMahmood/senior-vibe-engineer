@@ -350,17 +350,22 @@ def test_missing_old_broken_protocol_and_valid_failed_valid_replacement(tmp_path
         ".",
         "--query",
         "NewLedger",
+        "--query",
+        "_used",
         "--output",
         "reports/dart-lsp-facts/reused.json",
     ]
     _run([*base, "--dart", str(DART)], ROOT)
     assert json.loads(output.read_text())["status"] == "complete"
+    assert len(json.loads(output.read_text())["call_hierarchy_queries"]) == 2
     missing = _run([*base, "--dart", str(tmp_path / "missing-dart")], ROOT, expected=2)
     assert "wrote Dart semantic fact pack" in missing.stdout
     assert json.loads(output.read_text())["failure_kind"] == "dart_missing_or_broken"
+    assert json.loads(output.read_text())["call_hierarchy_queries"] == []
     old = _fake_dart(tmp_path / "old-dart", "Dart SDK version: 2.19.0 (stable)", "exit 0")
     _run([*base, "--dart", str(old)], ROOT, expected=2)
     assert json.loads(output.read_text())["failure_kind"] == "dart_too_old"
+    assert json.loads(output.read_text())["call_hierarchy_queries"] == []
     broken = _fake_dart(
         tmp_path / "broken-dart",
         "Dart SDK version: 3.12.2 (stable)",
@@ -368,6 +373,7 @@ def test_missing_old_broken_protocol_and_valid_failed_valid_replacement(tmp_path
     )
     _run([*base, "--dart", str(broken), "--timeout", "0.2"], ROOT, expected=2)
     assert json.loads(output.read_text())["failure_kind"] == "lsp_protocol_or_process_failure"
+    assert json.loads(output.read_text())["call_hierarchy_queries"] == []
     sleepy = _fake_dart(
         tmp_path / "sleepy-dart",
         "Dart SDK version: 3.12.2 (stable)",
@@ -375,8 +381,10 @@ def test_missing_old_broken_protocol_and_valid_failed_valid_replacement(tmp_path
     )
     _run([*base, "--dart", str(sleepy), "--timeout", "0.1"], ROOT, expected=2)
     assert "timed out" in json.loads(output.read_text())["failure_detail"]
+    assert json.loads(output.read_text())["call_hierarchy_queries"] == []
     _run([*base, "--dart", str(DART)], ROOT)
     assert json.loads(output.read_text())["status"] == "complete"
+    assert len(json.loads(output.read_text())["call_hierarchy_queries"]) == 2
 
 
 def test_missing_lsp_capabilities_are_partial(tmp_path: Path) -> None:
@@ -386,6 +394,7 @@ def test_missing_lsp_capabilities_are_partial(tmp_path: Path) -> None:
     facts = provider.collect(project, ".", ["NewLedger"], dart=str(fake), timeout=2)
     assert facts["status"] == "partial"
     assert set(facts["missing_capabilities"]) == {
+        "call_hierarchy",
         "definition",
         "document_symbol",
         "references",

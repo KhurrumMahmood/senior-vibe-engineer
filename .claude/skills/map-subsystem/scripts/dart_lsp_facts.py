@@ -2,9 +2,9 @@
 """Content-addressed, read-only Dart semantic facts over SDK LSP.
 
 This is a Dart-family provider, not a language-neutral LSP abstraction.  It
-owns the exact Dart 3.12 project/configuration contract used by the D4
-consumers and deliberately reports partial evidence when that contract is not
-closed.
+owns the exact Dart 3.12 project/configuration and resolved outgoing-call
+contract used by the D4 consumers and deliberately reports partial evidence
+when that contract is not closed.
 """
 
 from __future__ import annotations
@@ -28,14 +28,18 @@ from urllib.parse import unquote, urlparse
 SCHEMA_VERSION = "dart-lsp-facts-v1"
 MINIMUM_DART = (3, 12)
 CAPABILITY_PATHS = {
+    "call_hierarchy": ("callHierarchyProvider",),
     "document_symbol": ("documentSymbolProvider",),
     "definition": ("definitionProvider",),
     "references": ("referencesProvider",),
     "workspace_symbol": ("workspaceSymbolProvider",),
     "rename": ("renameProvider",),
 }
+CALLABLE_SYMBOL_KINDS = {6: "method", 9: "constructor", 12: "function"}
 LIMITS = [
     "selected-configuration static facts only; runtime dispatch is not inferred",
+    "only server-resolved outgoing calls are edges; dynamic and out-of-scope "
+    "targets remain explicit per-caller uncertainties",
     "conditional imports/exports, parts, augmentations, and generated code remain partial",
     "reflection, registries, isolates, native/JS interop, and external consumers remain unresolved",
     "SDK and dependency symbols are excluded from first-party facts",
@@ -330,6 +334,149 @@ def _location(row: dict[str, Any], root: Path) -> dict[str, Any] | None:
     }
 
 
+def _lsp_range(value: Any) -> dict[str, int] | None:
+    if not isinstance(value, dict):
+        return None
+    start = value.get("start")
+    end = value.get("end")
+    if not isinstance(start, dict) or not isinstance(end, dict):
+        return None
+    try:
+        return {
+            "line": int(start["line"]) + 1,
+            "column": int(start["character"]) + 1,
+            "end_line": int(end["line"]) + 1,
+            "end_column": int(end["character"]) + 1,
+        }
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def _callable_symbols(
+    items: Any,
+    source: str,
+    parent: str | None = None,
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        kind = item.get("kind")
+        if kind in CALLABLE_SYMBOL_KINDS:
+            rows.append({"source": source, "parent": parent, "item": item})
+        rows.extend(_callable_symbols(item.get("children"), source, item.get("name")))
+    return rows
+
+
+def _call_item_identity(
+    item: Any,
+    root: Path,
+    inventory: dict[str, dict[str, Any]],
+) -> tuple[dict[str, Any] | None, str | None]:
+    if not isinstance(item, dict):
+        return None, "call-hierarchy item is not an object"
+    name = item.get("name")
+    kind = item.get("kind")
+    uri = item.get("uri")
+    declaration = _lsp_range(item.get("range"))
+    selection = _lsp_range(item.get("selectionRange"))
+    if (
+        not isinstance(name, str)
+        or not name
+        or not isinstance(kind, int)
+        or not isinstance(uri, str)
+        or declaration is None
+        or selection is None
+    ):
+        return None, "call-hierarchy item omitted identity, URI, or exact ranges"
+    path = _uri_path(uri)
+    relative: str | None = None
+    role = "external"
+    origin = "external"
+    if path is not None and _contained(root, path):
+        relative = path.relative_to(root).as_posix()
+        role = inventory.get(relative, {}).get("role", "untracked")
+        origin = "first-party" if role == "production" else "first-party-excluded"
+    identity: dict[str, Any] = {
+        "name": name,
+        "kind": kind,
+        "kind_name": CALLABLE_SYMBOL_KINDS.get(kind, "other"),
+        "detail": item.get("detail") if isinstance(item.get("detail"), str) else None,
+        "origin": origin,
+        "role": role,
+        "path": relative,
+        "uri_sha256": None if relative is not None else hashlib.sha256(uri.encode()).hexdigest(),
+        "declaration_range": declaration,
+        "selection_range": selection,
+    }
+    identity["symbol_id"] = f"dart:{_canonical_hash(identity)}"
+    return identity, None
+
+
+def _document_symbol_identity(
+    candidate: dict[str, Any],
+    root: Path,
+    inventory: dict[str, dict[str, Any]],
+) -> tuple[dict[str, Any] | None, str | None]:
+    item = candidate["item"]
+    source = candidate["source"]
+    synthetic = {
+        "name": item.get("name"),
+        "kind": item.get("kind"),
+        "detail": candidate.get("parent") or Path(source).name,
+        "uri": (root / source).as_uri(),
+        "range": item.get("range"),
+        "selectionRange": item.get("selectionRange"),
+    }
+    return _call_item_identity(synthetic, root, inventory)
+
+
+def _call_sites(value: Any, caller: dict[str, Any]) -> tuple[list[dict[str, Any]], str | None]:
+    if not isinstance(value, list):
+        return [], "outgoing call omitted fromRanges"
+    rows: list[dict[str, Any]] = []
+    for raw in value:
+        normalized = _lsp_range(raw)
+        if normalized is None:
+            return [], "outgoing call contains a malformed fromRange"
+        rows.append({"path": caller["path"], **normalized})
+    if not rows:
+        return [], "outgoing call contains no source call-site range"
+    rows.sort(
+        key=lambda row: (
+            row["line"],
+            row["column"],
+            row["end_line"],
+            row["end_column"],
+        )
+    )
+    return rows, None
+
+
+def _dynamic_uncertainties(root: Path, caller: dict[str, Any]) -> list[dict[str, Any]]:
+    path = caller.get("path")
+    declaration = caller.get("declaration_range")
+    if not isinstance(path, str) or not isinstance(declaration, dict):
+        return []
+    lines = (root / path).read_text(encoding="utf-8", errors="replace").splitlines()
+    start_line = declaration["line"]
+    end_line = declaration["end_line"]
+    rows: list[dict[str, Any]] = []
+    for line_number in range(start_line, min(end_line, len(lines)) + 1):
+        line = lines[line_number - 1]
+        for match in re.finditer(r"\bdynamic\b", line):
+            rows.append(
+                {
+                    "kind": "dynamic-type-syntax",
+                    "path": path,
+                    "line": line_number,
+                    "column": match.start() + 1,
+                    "reason": "runtime dispatch target is not closed by static call hierarchy",
+                }
+            )
+    return rows
+
+
 class _LspClient:
     def __init__(self, argv: list[str], cwd: Path):
         self.argv = argv
@@ -550,6 +697,229 @@ def _diagnostics(client: _LspClient, root: Path) -> list[dict[str, Any]]:
     return sorted(rows, key=lambda row: (row["path"], row["line"], row["column"]))
 
 
+def _collect_call_hierarchy(
+    client: _LspClient,
+    root: Path,
+    inventory: dict[str, dict[str, Any]],
+    candidates: list[dict[str, Any]],
+    *,
+    available: bool,
+    timeout: float,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    queries: list[dict[str, Any]] = []
+    unresolved: list[dict[str, Any]] = []
+    for candidate in candidates:
+        source = candidate["source"]
+        item = candidate["item"]
+        fallback, fallback_error = _document_symbol_identity(candidate, root, inventory)
+        if fallback is None:
+            unresolved.append(
+                {
+                    "method": "textDocument/prepareCallHierarchy",
+                    "source": source,
+                    "name": item.get("name"),
+                    "reason": fallback_error,
+                }
+            )
+            continue
+        source_sha256 = inventory.get(source, {}).get("sha256")
+
+        def stopped(
+            reason: str,
+            prepare_status: str,
+            *,
+            caller_fallback: dict[str, Any] = fallback,
+            caller_sha256: str | None = source_sha256,
+            caller_source: str = source,
+            caller_name: Any = item.get("name"),
+        ) -> None:
+            uncertainty = {
+                "kind": "call-hierarchy-unresolved",
+                "reason": reason,
+            }
+            queries.append(
+                {
+                    "caller": caller_fallback,
+                    "source_sha256": caller_sha256,
+                    "prepare": {
+                        "method": "textDocument/prepareCallHierarchy",
+                        "status": prepare_status,
+                        "result_count": 0,
+                    },
+                    "method": "callHierarchy/outgoingCalls",
+                    "outgoing_status": "not-run",
+                    "status": "partial",
+                    "outgoing_calls": [],
+                    "uncertainties": [uncertainty],
+                }
+            )
+            unresolved.append(
+                {
+                    "method": "textDocument/prepareCallHierarchy",
+                    "source": caller_source,
+                    "name": caller_name,
+                    "reason": reason,
+                }
+            )
+
+        if not available:
+            stopped("server did not advertise callHierarchyProvider", "unsupported")
+            continue
+        selection = item.get("selectionRange", {}).get("start")
+        if not isinstance(selection, dict):
+            stopped("document symbol omitted an exact selection position", "malformed")
+            continue
+        request = {
+            "textDocument": {"uri": (root / source).as_uri()},
+            "position": selection,
+        }
+        try:
+            prepared = client.request("textDocument/prepareCallHierarchy", request, timeout)
+        except (DartFactError, TimeoutError) as exc:
+            stopped(str(exc), "unresolved")
+            continue
+        if not isinstance(prepared, list) or not prepared:
+            stopped("prepareCallHierarchy returned no origin item", "unresolved")
+            continue
+        for origin_item in prepared:
+            caller, caller_error = _call_item_identity(origin_item, root, inventory)
+            if caller is None:
+                stopped(caller_error or "malformed origin item", "malformed")
+                continue
+            uncertainties: list[dict[str, Any]] = []
+            if caller["origin"] != "first-party":
+                uncertainties.append(
+                    {
+                        "kind": "prepare-origin-outside-production-scope",
+                        "reason": "prepared origin is not a first-party production callable",
+                    }
+                )
+            if any(
+                caller[field] != fallback[field]
+                for field in ("name", "kind", "path", "selection_range")
+            ):
+                uncertainties.append(
+                    {
+                        "kind": "prepare-origin-mismatch",
+                        "candidate_symbol_id": fallback["symbol_id"],
+                        "reason": "prepared origin does not match the document-symbol candidate",
+                    }
+                )
+            if len(prepared) != 1:
+                uncertainties.append(
+                    {
+                        "kind": "prepare-origin-ambiguous",
+                        "reason": "prepareCallHierarchy returned multiple origin items",
+                    }
+                )
+            uncertainties.extend(_dynamic_uncertainties(root, caller))
+            outgoing_calls: list[dict[str, Any]] = []
+            outgoing_status = "resolved"
+            try:
+                outgoing = client.request(
+                    "callHierarchy/outgoingCalls", {"item": origin_item}, timeout
+                )
+            except (DartFactError, TimeoutError) as exc:
+                outgoing = []
+                outgoing_status = "unresolved"
+                uncertainties.append(
+                    {"kind": "call-hierarchy-unresolved", "reason": str(exc)}
+                )
+                unresolved.append(
+                    {
+                        "method": "callHierarchy/outgoingCalls",
+                        "source": source,
+                        "name": caller["name"],
+                        "caller_symbol_id": caller["symbol_id"],
+                        "reason": str(exc),
+                    }
+                )
+            if outgoing is not None and not isinstance(outgoing, list):
+                outgoing_status = "malformed"
+                uncertainties.append(
+                    {
+                        "kind": "call-hierarchy-malformed",
+                        "reason": "outgoingCalls result is not a list",
+                    }
+                )
+                outgoing = []
+            for raw in outgoing or []:
+                if not isinstance(raw, dict):
+                    uncertainties.append(
+                        {
+                            "kind": "call-hierarchy-malformed",
+                            "reason": "outgoing call row is not an object",
+                        }
+                    )
+                    continue
+                callee, callee_error = _call_item_identity(raw.get("to"), root, inventory)
+                if callee is None:
+                    uncertainties.append(
+                        {
+                            "kind": "call-hierarchy-malformed",
+                            "reason": callee_error,
+                        }
+                    )
+                    continue
+                call_sites, sites_error = _call_sites(raw.get("fromRanges"), caller)
+                if sites_error:
+                    uncertainties.append(
+                        {
+                            "kind": "call-hierarchy-malformed",
+                            "callee_symbol_id": callee["symbol_id"],
+                            "reason": sites_error,
+                        }
+                    )
+                    continue
+                resolution = {
+                    "first-party": "resolved-first-party",
+                    "first-party-excluded": "resolved-excluded-first-party",
+                    "external": "resolved-external",
+                }[callee["origin"]]
+                outgoing_calls.append(
+                    {
+                        "callee": callee,
+                        "call_sites": call_sites,
+                        "resolution": resolution,
+                    }
+                )
+                if callee["origin"] != "first-party":
+                    uncertainties.append(
+                        {
+                            "kind": "callee-outside-production-scope",
+                            "callee_symbol_id": callee["symbol_id"],
+                            "resolution": resolution,
+                            "reason": "callee internals are outside first-party production facts",
+                        }
+                    )
+            outgoing_calls.sort(
+                key=lambda row: (
+                    row["callee"]["symbol_id"],
+                    row["call_sites"][0]["line"],
+                    row["call_sites"][0]["column"],
+                )
+            )
+            uncertainties.sort(key=_canonical_hash)
+            queries.append(
+                {
+                    "caller": caller,
+                    "source_sha256": source_sha256,
+                    "prepare": {
+                        "method": "textDocument/prepareCallHierarchy",
+                        "status": "resolved",
+                        "result_count": len(prepared),
+                    },
+                    "method": "callHierarchy/outgoingCalls",
+                    "outgoing_status": outgoing_status,
+                    "status": "partial" if uncertainties else "complete",
+                    "outgoing_calls": outgoing_calls,
+                    "uncertainties": uncertainties,
+                }
+            )
+    queries.sort(key=lambda row: row["caller"]["symbol_id"])
+    return queries, unresolved
+
+
 def collect(
     project_root: Path,
     target: str,
@@ -580,6 +950,8 @@ def collect(
             "textDocument/references",
             "textDocument/prepareRename",
             "textDocument/rename",
+            "textDocument/prepareCallHierarchy",
+            "callHierarchy/outgoingCalls",
         ],
     }
     payload: dict[str, Any] = {
@@ -609,8 +981,16 @@ def collect(
         "module_edges": [],
         "reference_queries": [],
         "rename_queries": [],
+        "call_hierarchy_queries": [],
+        "call_hierarchy_summary": {
+            "callers": 0,
+            "complete": 0,
+            "partial": 0,
+            "resolved_edges": 0,
+            "unresolved": 0,
+        },
         "unresolved_requests": [],
-        "server": {"protocol": "LSP", "argv": [], "lifecycle": {}},
+        "server": {"protocol": "LSP", "argv": [], "info": None, "lifecycle": {}},
         "cache": {"external": True, "owned": cache_dir is None, "cleanup_verified": False},
         "limits": LIMITS,
     }
@@ -657,6 +1037,7 @@ def collect(
                     "textDocument": {
                         "documentSymbol": {"hierarchicalDocumentSymbolSupport": True},
                         "definition": {"linkSupport": True},
+                        "callHierarchy": {"dynamicRegistration": False},
                         "references": {},
                         "rename": {"prepareSupport": True},
                         "publishDiagnostics": {},
@@ -667,6 +1048,9 @@ def collect(
         )
         client.notify("initialized", {})
         capabilities = initialized.get("capabilities", {}) if isinstance(initialized, dict) else {}
+        payload["server"]["info"] = (
+            initialized.get("serverInfo") if isinstance(initialized, dict) else None
+        )
         payload["capabilities"] = capabilities
         for name, path_parts in CAPABILITY_PATHS.items():
             current: Any = capabilities
@@ -674,7 +1058,9 @@ def collect(
                 current = current.get(part) if isinstance(current, dict) else None
             if not current:
                 payload["missing_capabilities"].append(name)
+        inventory_by_path = {row["path"]: row for row in inventory}
         production = [root / row["path"] for row in inventory if row["role"] == "production"]
+        callable_candidates: list[dict[str, Any]] = []
         # Workspace-symbol polling is the known Dart readiness barrier.
         readiness = query_names[0] if query_names else (_pubspec_name(root) or "")
         deadline = time.monotonic() + timeout
@@ -712,6 +1098,13 @@ def collect(
                 payload["document_symbols"].extend(
                     _flatten_symbols(result, source.relative_to(root).as_posix())
                 )
+                callable_candidates.extend(
+                    row
+                    for row in _callable_symbols(
+                        result, source.relative_to(root).as_posix()
+                    )
+                    if row["item"].get("name") in query_names
+                )
             except (DartFactError, TimeoutError) as exc:
                 payload["unresolved_requests"].append(
                     {
@@ -720,6 +1113,23 @@ def collect(
                         "reason": str(exc),
                     }
                 )
+        call_queries, call_unresolved = _collect_call_hierarchy(
+            client,
+            root,
+            inventory_by_path,
+            callable_candidates,
+            available="call_hierarchy" not in payload["missing_capabilities"],
+            timeout=timeout,
+        )
+        payload["call_hierarchy_queries"] = call_queries
+        payload["unresolved_requests"].extend(call_unresolved)
+        payload["call_hierarchy_summary"] = {
+            "callers": len(call_queries),
+            "complete": sum(row["status"] == "complete" for row in call_queries),
+            "partial": sum(row["status"] == "partial" for row in call_queries),
+            "resolved_edges": sum(len(row["outgoing_calls"]) for row in call_queries),
+            "unresolved": sum(len(row["uncertainties"]) for row in call_queries),
+        }
         directive_pattern = re.compile(
             r"(?m)^\s*(?P<kind>import|export)\s+['\"](?P<uri>[^'\"]+)['\"]"
         )
@@ -886,11 +1296,22 @@ def collect(
             partial_reasons.append("required LSP capabilities are missing")
         if payload["unresolved_requests"]:
             partial_reasons.append("one or more LSP requests are unresolved")
+        call_hierarchy_uncertain = any(
+            row["status"] != "complete" for row in payload["call_hierarchy_queries"]
+        )
+        if call_hierarchy_uncertain:
+            partial_reasons.append("one or more outgoing call hierarchies are uncertain")
         if error_diagnostics:
             payload.update(status="failed", failure_kind="lsp_error_diagnostics")
         elif partial_reasons:
             payload.update(
-                status="partial", failure_kind=payload.get("failure_kind") or "semantic_boundary"
+                status="partial",
+                failure_kind=payload.get("failure_kind")
+                or (
+                    "call_hierarchy_uncertainty"
+                    if call_hierarchy_uncertain
+                    else "semantic_boundary"
+                ),
             )
         else:
             payload.update(status="complete", failure_kind=None)

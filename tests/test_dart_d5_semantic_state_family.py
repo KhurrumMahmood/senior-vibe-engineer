@@ -296,7 +296,9 @@ def test_union_pack_drives_state_sweep_and_honest_duplication_stop(
     assert duplicate["missing_required_facts"] == [
         "per-function outgoing call-hierarchy results with source and target lineage"
     ]
-    assert "textDocument/prepareCallHierarchy" not in duplicate["provider_query_plan"]["requests"]
+    assert "textDocument/prepareCallHierarchy" in duplicate["provider_query_plan"]["requests"]
+    assert "callHierarchy/outgoingCalls" in duplicate["provider_query_plan"]["requests"]
+    assert "callHierarchy/incomingCalls" not in duplicate["provider_query_plan"]["requests"]
     assert "No Dart lead was promoted" in (duplicate_dir / "triage.md").read_text()
     assert not list(duplicate_dir.glob("capability-matrix-*.md"))
 
