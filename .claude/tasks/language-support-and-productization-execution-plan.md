@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P6/F1 evidence-backed reuse decision; Dart is complete at 22/22 and C#/.NET remains last
-Last updated: 2026-07-23 (Dart/repository closeout accepted; three read-only reuse comparisons started)
+Current phase: P7/F2 Cohort A, wave A1 project/lexical; C#/.NET remains last
+Last updated: 2026-07-23 (P6/F1 closed at `febc761`; PHP/Ruby/Swift A1 opened)
 
 ## Objective
 
@@ -112,8 +112,8 @@ execution authorities.
 | P3 | Minimal reusable language-support kit scaffold proven | `done` | `f249d9a` |
 | P4 | PHP pilot proves real outcomes and kit economics | `done` | `268c3ac` |
 | P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `deferred_to_final_language` | — |
-| P6 | Shared components promoted or rejected on evidence | `in_progress` | — |
-| P7 | Every chosen language reaches complete, value-tested language-level support | `paused_at_reuse_gate_after_dart` | — |
+| P6 | Shared components promoted or rejected on evidence | `done` | `febc761` |
+| P7 | Every chosen language reaches complete, value-tested language-level support | `active_cohort_a1` | — |
 | P8 | Current journey, update/repair, and help are measured | `not_started` | — |
 | P9 | Only measured user-journey improvements are adopted | `not_started` | — |
 
@@ -127,8 +127,8 @@ the committed integration revision.
 | ID | Outcome | Status | Execution owner and parallelism | Completion evidence |
 |---|---|---|---|---|
 | F0 | Close Dart and normalize repository state | `done` | Root integrated serially; fresh non-context agents reviewed but did not publish shared truth | D5/D7 and D8 accepted; Dart published at 22/22; installed replay passed; anomaly branches retained; only useful checkouts remain |
-| F1 | Complete P6 reuse decisions | `in_progress` | Three fresh non-context read-only comparison lanes; root owns the decision and any shared edit | One committed adopt/reject/defer table with real consumers, economics, deletion proof, and frozen worker packets |
-| F2 | Complete PHP, Ruby, and Swift | `pending_f1` | One fresh non-context worktree per language for the same family; maximum three; root integrates serially | All 22 jobs per language have accepted outcomes or strict reviewed exceptions; installed routes and native value suites pass |
+| F1 | Complete P6 reuse decisions | `done` | Three fresh non-context read-only comparison lanes; root owned the decision and shared reduction | `febc761`: promotion decision, frozen packet index, 65.80% lifecycle-surface reduction, Ruby/Rust semantics normalized, committed installed replay passed |
+| F2 | Complete PHP, Ruby, and Swift | `in_progress` | One fresh non-context worktree per language for the same family; maximum three; root integrates serially | All 22 jobs per language have accepted outcomes or strict reviewed exceptions; installed routes and native value suites pass |
 | F3 | Complete C, C++, and Kotlin | `pending_f2` | Kotlin spine first; then one worktree per language for the same family; maximum three | Separate C/C++ truth retained; Kotlin project boundary proven; all three languages meet the F2 outcome gate |
 | F4 | Complete C#/.NET last | `pending_f3` | One spine, then disjoint read-only family lanes only where ownership is proven; mutation serial | Roslyn/project facts, all 22 jobs, copied closures, native build/test/analyze, and installed routing pass |
 | F5 | Publish final language release | `pending_f4` | Root only | No coverage-level pending or partial rows; bounded supported contracts may still report explicit runtime partial configurations; public install/bootstrap/route/execute/cleanup/uninstall replay passes at one SHA |
@@ -263,7 +263,7 @@ before changing status to `done`.
 
 | Wave | Status | Base SHA / lane refs | Accepted revisions | Root replay evidence | Required result before advancing |
 |---|---|---|---|---|---|
-| A1 — PHP/Ruby/Swift lexical-filesystem | `pending_f1` | TBD; three worktrees | — | — | Every pending family member reaches its own copied final artifact; one language-local snapshot is allowed only for immediate consumers and measured savings |
+| A1 — PHP/Ruby/Swift lexical-filesystem | `in_progress` | `febc761`; `codex/f2-php-project-lexical`, `codex/f2-ruby-project-lexical`, `codex/f2-swift-project-lexical` | — | — | Every pending family member reaches its own copied final artifact; one language-local snapshot is allowed only for immediate consumers and measured savings |
 | A2 — PHP/Ruby/Swift syntax | `pending_a1` | TBD; three worktrees | — | — | Native token/compiler facts remain syntax-scoped; no syntax-as-semantics promotion |
 | A3 — PHP/Ruby/Swift semantic read-only | `pending_a2` | TBD; three worktrees | — | — | Project/configuration identity and explicit dynamic/unresolved boundaries; revisit Ruby map disposition here |
 | A4 — PHP/Ruby/Swift proposal/guard | `pending_a3` | TBD; three worktrees | — | — | Accepted producer envelopes only; no consumer reruns detection |
@@ -283,6 +283,13 @@ This converts the unfinished matrix into roughly thirty multi-skill read-only
 cohorts plus five serial mutation closeouts, instead of 142 skill-sized worker
 lanes. Slow native family suites run serially after worker-focused tests to
 avoid the contention already observed in combined language runs.
+
+A1's frozen membership is `adapt-project`, `explain-code`,
+`find-concept-divergence`, `find-duplication`, and
+`find-folder-topology-drift` for PHP and Ruby; Swift adds
+`find-comment-drift`. Existing supported rows are preserved rather than
+reimplemented. `move-path` remains in the serial mutation closeout even though
+the matrix describes its input facts as lexical/filesystem.
 
 Family-wave entry gate:
 
@@ -675,9 +682,9 @@ Acceptance:
   boundaries honestly.
 - [ ] All 22 language-level skills receive an evidence-backed supported,
   partial, pending-implementation, unsupported, or not-applicable disposition
-  map. Pilot completion
-  records an explicit owner `expand` or `stop` decision; P5 does not require
-  implementing beyond the three frozen cohorts.
+  map. P5 freezes the required Roslyn spine/economics and hands every still-
+  pending row to F4; a pilot stop decision cannot complete the chosen C#
+  language.
 - [ ] LOC, copied closure size, cold/warm setup, and median execution latency are
   compared with Java and PHP.
 - [ ] A C# learning packet identifies reusable infrastructure and facts that
@@ -689,8 +696,8 @@ Acceptance:
 
 Worktree sequence mirrors P4: a root-owned `codex/p5-csharp-spine`, then at
 most three disjoint `lexical`, `semantic`, and `mutation` pilot lanes, followed
-by a serial `expand` or `stop` decision. Any expansion becomes a P7 slice after
-P6. Root alone edits Roslyn toolchain policy, shared profiles, dispatch,
+by a serial required-expansion handoff to F4 for every pending row. Root alone
+edits Roslyn toolchain policy, shared profiles, dispatch,
 matrix/router projection, and the 22-row closeout.
 
 Evidence:
@@ -705,28 +712,31 @@ Outcome: only evidence-backed reuse becomes product architecture.
 
 Acceptance:
 
-- [ ] Each proposed shared component names at least two real consumers and
+- [x] Each proposed shared component names at least two real consumers and
   passes deletion, caller-knowledge, test-surface, and adapter-reality checks.
-- [ ] PHP and the feasible typed-pilot final outcomes remain unchanged whether
+- [x] PHP and the feasible typed-pilot final outcomes remain unchanged whether
   a candidate component is promoted or correctly rejected.
-- [ ] Shared lifecycle/profile/doctor/conformance behavior has focused tests;
+- [x] Shared lifecycle/profile/doctor/conformance behavior has focused tests;
   language-semantic facts and skill-owned final artifact schemas remain local.
-- [ ] Components failing the 25% LOC or 10% closure/latency gates are rejected,
+- [x] Components failing the 25% LOC or 10% closure/latency gates are rejected,
   reduced, or retained locally with the evidence recorded.
-- [ ] No promoted component requires network access during routed execution or
+- [x] No promoted component requires network access during routed execution or
   creates a hidden dependency outside the selected closure.
-- [ ] The contributor guide, accepted profile schema, and work-packet template
+- [x] The contributor guide, accepted profile schema, and work-packet template
   match the accepted interfaces. A scaffolder is added only after two
   post-pilot language lanes demonstrate the same hand-written setup; otherwise
   it remains deferred.
-- [ ] A committed promotion decision lists adopted, rejected, and deferred
+- [x] A committed promotion decision lists adopted, rejected, and deferred
   components and supplies the frozen commands for P7 lanes.
 
 Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | — | — | — |
+| Three independent comparisons | Fresh non-context project/lexical, syntax, and semantic/proposal/mutation reviews of TypeScript, Java, PHP, Rust, and Dart | No new cross-language provider/runtime cleared all conjunctive gates. Proven Rust/Dart providers remain language-local; PHP extraction is rejected at `11.11%` LOC reduction and `26.63%` closure growth | `febc761`; `.claude/tasks/shared-kit-promotion-decision.md` |
+| Shared foundation and deletion proof | `tests/test_language_support_{profile,lifecycle,conformance}.py`, `tests/test_source_inventory.py`, `tests/test_language_doctor.py` | `40 passed`; unused generic lifecycle API/test surface reduced from 231 to 79 lines (`65.80%`) and the Ruby/Rust profile runtime closures each shrink by 3,479 bytes | `febc761` |
+| Final outcomes and semantics | Ruby/Rust map plus PHP pilot suite; matrix/spines; committed installed router | `38 passed`; `13 passed`; committed external-library replay `1 passed in 4.04s`. Ruby and Rust bounded maps route as supported while their artifacts retain explicit runtime partial completeness | `febc761` |
+| Contributor/packet truth | `.claude/docs/language-support-development.md`; `.claude/tasks/shared-kit-promotion-decision.md`; `.claude/tasks/multilanguage-learning-template.json` | Accepted interfaces, rejected abstractions, exact representative family packets, frozen commands, and refreeze gaps are discoverable without conversation context | `febc761` |
 
 ## P7 — Expand the remaining selected languages
 
@@ -847,8 +857,8 @@ Per-language status:
 |---|---|---|---|---|---|---|
 | PHP expansion | `pilot_complete_expansion_required` | PHP 8.4.2/Composer 2.4.0 proven | 3 supported, 19 pending implementation; not complete under full-language criteria | Pilot truth published | `.claude/tasks/multilanguage-learnings/php-pilot.md` | `268c3ac` |
 | Typed-pilot expansion | `toolchain_ready_deferred_to_final` | .NET 10.0.302 installed user-locally; P5 remains last by owner decision | — | — | — | — |
-| Ruby | `family_expansion_active` | Homebrew Ruby 3.4.1, RubyGems 3.6.2, and Bundler 2.6.2 pass direct execution smoke | 1 supported (`find-comment-drift`), 1 useful partial (`map-subsystem`), 20 pending implementation; not complete | Ruby column and lexical capability published; map publication in current slice | Two family-specific learning packets plus spine/preflight | spine `6b87331`; lexical `eed1f1d`; map `423fd08` |
-| Rust | `broad_coverage_complete_one_partial` | rustc/Cargo 1.97.1 plus rust-analyzer, Clippy, and rustfmt installed through rustup | 21 supported, 1 useful partial (`map-subsystem`), 0 pending, 0 unsupported; every job provides real value, while whole-language completeness is not claimed | Schema-v5 column plus all bounded families published | Rust pilots plus lexical, syntax, semantic, proposal, enum/guard, and unification packets | implementation through `9b0faf4`; publication `f7311f0`; closure gating `f1a99c4`; installed expectation `e6e818e` |
+| Ruby | `family_expansion_active` | Homebrew Ruby 3.4.1, RubyGems 3.6.2, and Bundler 2.6.2 pass direct execution smoke | 2 supported (`find-comment-drift`, bounded `map-subsystem`), 20 pending implementation; not complete | Ruby column and supported bounded-map routing published; runtime dynamic completeness stays partial | Two family-specific learning packets plus spine/preflight | spine `6b87331`; lexical `eed1f1d`; map `423fd08`; semantics `febc761` |
+| Rust | `complete` | rustc/Cargo 1.97.1 plus rust-analyzer, Clippy, and rustfmt installed through rustup | 22 supported, 0 partial, 0 pending, 0 unsupported under bounded-contract/runtime-partial semantics | Schema-v5 column plus all bounded families published; installed bounded map route passes | Rust pilots plus lexical, syntax, semantic, proposal, enum/guard, and unification packets | implementation through `9b0faf4`; prior publication `f7311f0`; final semantics `febc761` |
 | Swift | `pilot_complete_expansion_required` | SwiftPM-only profile/doctor/inventory and restrictive native fixture proven; SwiftSyntax and native test modules remain unavailable under CLT-only setup | 3 supported (`find-omnibus`, `map-subsystem`, `move-path`), 19 pending implementation; not complete | Pilot truth published and installed-router tested | `.claude/tasks/multilanguage-learnings/swift-pilot.md` plus three cohort packets | spine `09248d4`; cohorts `84bd160`, `7fb2f4f`, `c5a2792`; publication `661e1b1` |
 | Dart | `complete` | Dependency-free Dart SDK 3.12.2 foundation plus project/lexical, locked public-analyzer syntax, SDK-LSP semantic, accepted-evidence consumers, and transactional move proven; Flutter remains separate | 22 supported, 0 partial, 0 pending, 0 unsupported under bounded-contract/runtime-partial semantics | Capability column and all three router handoffs published; shared-helper outcomes remain external-library-only rather than advertising broken one-skill stock installs | Spine, contract map, D1-D8 family packets | spine `f4a5eab`; contract `8e16c5c`/`ad6f277`; final integration/publication through `891ad50` |
 | Kotlin | `toolchain_ready_queued` | Kotlin 2.4.10 passes JVM expression smoke; project build tooling remains fixture-owned | — | — | — | — |
@@ -1019,6 +1029,7 @@ Evidence:
 
 | Date | Phase | Change | Reason/evidence | User decision |
 |---|---|---|---|---|
+| 2026-07-23 | P6/F1 | Close shared-component promotion with no new cross-language runtime; retain proven language-local reuse, prune unused lifecycle API, and normalize Ruby/Rust bounded-map coverage semantics | Three independent comparisons found no new component satisfying the conjunctive consumer/LOC/closure/latency gate. `febc761` records the decision/packet index, removes 65.80% of the unused lifecycle implementation/test surface, and preserves runtime partial truth inside supported bounded contracts | Implements the approved evidence-first reuse gate without adding productization overhead |
 | 2026-07-23 | F0 | Replace the literal "only `main` checked out" condition with "only useful checkouts retained" | The archived preflight checkout is Git's primary administrative worktree: its `.git` directory stores the common metadata used by the linked product checkout, so `git worktree remove` correctly refuses it. Its redacted telemetry is committed at `5a8a571`, it is clean, and every completed implementation checkout is retired. Removing it would require a separate repository-metadata migration with no installer or language-support benefit | Consistent with the owner's request to retire worktrees that are no longer useful; no product scope added |
 | 2026-07-23 | P6-P9 | Added one bounded follow-on queue: Dart/repository closeout, evidence-backed reuse, family-batched language cohorts, final release, measured journey, then threshold-gated improvements | The owner requested retirement of obsolete worktrees and a resumable plan that can use separate non-context workers. Three fresh read-only reviews independently supported family batching, serial shared integration, criteria repair, and measure-before-UX sequencing | Approved by user request |
 | 2026-07-22 | P7 | Replace pilot-closeout completion with full chosen-language completion and value-scenario gates | Owner clarified that every chosen language must support every applicable skill and that tests must prove useful language-native outcomes. PHP 3/22, Swift 3/22, and C 2/22 are therefore honest pilots but incomplete products. Cross-language work is batched by four skill families with language-specific providers and serial shared integration | Approved by user request |
@@ -1037,6 +1048,7 @@ Evidence:
 
 | Date | Phase | Event | Evidence/next action |
 |---|---|---|---|
+| 2026-07-23 | P6/F1 | Shared-kit decision completed; Cohort A opened | `febc761` retains the narrow profile/inventory/doctor/conformance foundation, reduces unused lifecycle implementation/test surface from 231 to 79 lines, rejects PHP/universal extraction, and freezes representative family packets. Shared foundation replay passes `40`; Ruby/Rust maps plus PHP final outcomes pass `38`; matrix/spines pass `13`; the committed installed router passes in 4.04s. Ruby is now 2 supported/20 pending and Rust is 22/22 supported under the accepted bounded-contract/runtime-partial distinction. Open A1 from `febc761` for PHP, Ruby, and Swift project/lexical work; root retains shared publication ownership. |
 | 2026-07-23 | P7/F0 | Dart and repository closeout completed | D5/D7 and D8 were integrated and adversarially repaired through `891ad50`; Dart now has 22 supported rows and no coverage-level partial, pending, or unsupported rows. Installed external-library routing reaches semantic duplication, keep-separate unification, and transactional move outcomes while only three routers remain ambient. Both Dart implementation worktrees are retired. The preflight telemetry was redacted and committed on its archive branch at `5a8a571`; that clean checkout remains solely because it owns Git's common administrative metadata. Begin three read-only P6/F1 reuse comparisons; do not open a new language implementation lane yet. |
 | 2026-07-21 | P1 | Started | Validate discoverability, reference integrity, diff scope, then commit the documentation/ledger unit. |
 | 2026-07-21 | P1 | Completed | `cc2a4fc`; all P1 acceptance items passed. |
