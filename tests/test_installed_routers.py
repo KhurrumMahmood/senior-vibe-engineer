@@ -895,6 +895,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert [row["optional_install_status"] for row in rename_capabilities["skills"]] == [
         "passed",
         "passed",
+        "passed",
     ]
     assert rename_payload["optional_install"]["available"] is True
     assert "--skill rename-concept" in rename_payload["optional_install"]["command"]
