@@ -743,8 +743,13 @@ def test_copied_on_demand_closures_run_without_repository_imports(tmp_path: Path
         assert str(ROOT) not in destination.read_text(encoding="utf-8")
 
 
-def test_unify_shadows_remains_stopped_without_accepted_d5_finding() -> None:
+def test_unify_shadows_is_an_accepted_evidence_consumer_only() -> None:
     text = DUPLICATION.read_text(encoding="utf-8")
-    assert "accepted_provider_fact_gap" in text
+    proposer = ROOT / ".claude/skills/unify-shadows/scripts/propose_dart.py"
     assert "callHierarchy/outgoingCalls" in text
-    assert not (ROOT / ".claude/skills/unify-shadows/scripts/propose_dart.py").exists()
+    assert proposer.is_file()
+    proposer_text = proposer.read_text(encoding="utf-8")
+    assert "validate_accepted_evidence" in proposer_text
+    assert "subprocess" not in proposer_text
+    assert "language-server" not in proposer_text
+    assert "dart_lsp_facts" not in proposer_text

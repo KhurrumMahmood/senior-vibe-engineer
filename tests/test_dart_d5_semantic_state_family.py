@@ -27,11 +27,35 @@ PRODUCT_PYTHON = Path(
     "/Users/khurrummahmood/Projects/engineering-skills-product/.venv/bin/python"  # host-ref-allow: required frozen P7 runtime
 )
 
-UNION_QUERIES = [
+STATE_SWEEP_QUERIES = [
     "charge",
     "phase",
     "state",
     "status",
+]
+SEMANTIC_QUERIES = [
+    "buildStatement",
+    "cloneOne",
+    "cloneOnePreview",
+    "cloneTwo",
+    "cloneTwoPreview",
+    "invoicePreview",
+    "protocolDecoy",
+    "protocolPreview",
+    "statementPreview",
+    "summarizeInvoice",
+    "wrapperDuplicationDecoy",
+]
+UNION_QUERIES = sorted(set(STATE_SWEEP_QUERIES + SEMANTIC_QUERIES))
+CLEAN_QUERIES = [
+    "callerA",
+    "callerB",
+    "callerC",
+    "callerD",
+    "charge",
+    "packageClient",
+    "phase",
+    "summarize",
 ]
 
 pytestmark = pytest.mark.skipif(
@@ -147,6 +171,22 @@ def _state_review(candidates_path: Path, review_dir: Path) -> Path:
     )
 
 
+def _semantic_review(candidates_path: Path, review_dir: Path) -> Path:
+    candidate = json.loads(candidates_path.read_text().strip())
+    return _write_json(
+        {
+            "schema_version": "dart-semantic-duplication-review-v1",
+            "candidate_id": candidate["candidate_id"],
+            "candidate_sha256": candidate["candidate_sha256"],
+            "human_verdict": "accepted",
+            "consolidation_shape": "keep_separate_document_why",
+            "reviewer": "fixture-reviewer",
+            "notes": "The static lead is useful, but the two public intents remain separately named.",
+        },
+        review_dir / f"{candidate['candidate_id']}.json",
+    )
+
+
 def _run_consumers(
     host: Path,
     facts: Path,
@@ -155,6 +195,7 @@ def _run_consumers(
     sweep_scan: str = "dart",
     duplicate_scan: str = "dart",
     reviews: Path | None = None,
+    duplicate_reviews: Path | None = None,
     expected: int = 0,
     scripts: dict[str, Path] | None = None,
 ) -> None:
@@ -188,7 +229,7 @@ def _run_consumers(
         cwd=host,
         expected=expected,
     )
-    _run(
+    duplicate_argv: list[str | Path] = [
         PRODUCT_PYTHON,
         scripts["duplicate"],
         "--project-root",
@@ -199,9 +240,10 @@ def _run_consumers(
         f"reports/semantic-duplication/{duplicate_scan}",
         "--facts",
         facts,
-        cwd=host,
-        expected=0 if expected == 0 else expected,
-    )
+    ]
+    if duplicate_reviews is not None:
+        duplicate_argv.extend(["--reviews-dir", duplicate_reviews])
+    _run(*duplicate_argv, cwd=host, expected=0 if expected == 0 else expected)
 
 
 @pytest.fixture(scope="module")
@@ -210,7 +252,7 @@ def family_packs(tmp_path_factory: pytest.TempPathFactory) -> dict[str, tuple[Pa
     result: dict[str, tuple[Path, Path]] = {}
     for name in ("positive", "clean"):
         host = _history_host(base / name) if name == "positive" else _copy_fixture(base, name)
-        queries = UNION_QUERIES if name == "positive" else ["charge", "phase"]
+        queries = UNION_QUERIES if name == "positive" else CLEAN_QUERIES
         facts = _collect(host, queries)
         assert facts["status"] == "complete"
         assert facts["query_plan"]["queries"] == sorted(queries)
@@ -219,7 +261,7 @@ def family_packs(tmp_path_factory: pytest.TempPathFactory) -> dict[str, tuple[Pa
     return result
 
 
-def test_union_pack_drives_state_sweep_and_honest_duplication_stop(
+def test_union_pack_drives_state_sweep_and_reviewed_semantic_lead(
     family_packs: dict[str, tuple[Path, Path]], tmp_path: Path
 ) -> None:
     host, facts_path = family_packs["positive"]
@@ -234,7 +276,17 @@ def test_union_pack_drives_state_sweep_and_honest_duplication_stop(
 
     reviews = tmp_path / "reviews"
     _state_review(host / "reports/implicit-state/dart/candidates.jsonl", reviews)
-    _run_consumers(host, facts_path, reviews=reviews)
+    duplicate_reviews = tmp_path / "duplicate-reviews"
+    _semantic_review(
+        host / "reports/semantic-duplication/dart/candidates.jsonl",
+        duplicate_reviews,
+    )
+    _run_consumers(
+        host,
+        facts_path,
+        reviews=reviews,
+        duplicate_reviews=duplicate_reviews,
+    )
 
     state_dir = host / "reports/implicit-state/dart"
     state = json.loads((state_dir / "findings.json").read_text())
@@ -290,17 +342,39 @@ def test_union_pack_drives_state_sweep_and_honest_duplication_stop(
     duplicate_dir = host / "reports/semantic-duplication/dart"
     duplicate = json.loads((duplicate_dir / "analysis.json").read_text())
     assert duplicate["schema_version"] == "dart-semantic-duplication-v1"
-    assert duplicate["status"] == "partial"
-    assert duplicate["failure_kind"] == "accepted_provider_fact_gap"
-    assert duplicate["confirmed"] == []
-    assert duplicate["missing_required_facts"] == [
-        "per-function outgoing call-hierarchy results with source and target lineage"
+    assert duplicate["status"] == "complete"
+    assert duplicate["failure_kind"] is None
+    assert len(duplicate["confirmed"]) == 1
+    lead = duplicate["confirmed"][0]
+    assert [row["name"] for row in lead["members"]] == [
+        "buildStatement",
+        "summarizeInvoice",
     ]
+    assert lead["human_verdict"] == "accepted"
+    assert lead["consolidation_shape"] == "keep_separate_document_why"
+    assert lead["machine_consolidation_shape"] is None
+    assert {row["name"] for row in lead["members"][0]["direct_callers"]} != {
+        row["name"] for row in lead["members"][1]["direct_callers"]
+    }
+    assert lead["capability_matrix_sha256"] == hashlib.sha256(
+        (duplicate_dir / lead["capability_matrix_path"]).read_bytes()
+    ).hexdigest()
+    assert {row["reason"] for row in duplicate["rejected"]} >= {
+        "lexical_clone",
+        "first_party_policy_callee_mismatch",
+    }
+    assert {row["reason"] for row in duplicate["ineligible"]} >= {
+        "dynamic_syntax",
+        "generic_function",
+        "not_top_level_free_function",
+        "wrapper_without_direct_constructor_return",
+    }
+    assert duplicate["missing_required_facts"] == []
     assert "textDocument/prepareCallHierarchy" in duplicate["provider_query_plan"]["requests"]
     assert "callHierarchy/outgoingCalls" in duplicate["provider_query_plan"]["requests"]
     assert "callHierarchy/incomingCalls" not in duplicate["provider_query_plan"]["requests"]
-    assert "No Dart lead was promoted" in (duplicate_dir / "triage.md").read_text()
-    assert not list(duplicate_dir.glob("capability-matrix-*.md"))
+    assert "static review lead" in (duplicate_dir / "triage.md").read_text()
+    assert (duplicate_dir / "capability_matrices/DART-SD-0001.md").is_file()
 
     pack_hash = json.loads(facts_path.read_text())["fact_pack_sha256"]
     assert state["fact_pack_sha256"] == manifest["fact_pack_sha256"] == duplicate["fact_pack_sha256"] == pack_hash
@@ -320,7 +394,7 @@ def test_clean_and_must_not_fire_outcomes(
     assert state["summary"]["raw_candidates"] == 0
     assert sweep["status"] == "complete" and sweep["findings"] == []
     assert sweep["gated_out"] == []
-    assert duplicate["status"] == "partial" and duplicate["confirmed"] == []
+    assert duplicate["status"] == "complete" and duplicate["confirmed"] == []
     assert _snapshot(host) == before
 
 
@@ -512,9 +586,12 @@ def test_copied_closure_runs_from_outside_repository_and_provider_is_shared(
     )
     _run(PRODUCT_PYTHON, copied["triage"], "--scan-dir", sweep_dir, cwd=tmp_path)
     assert (sweep_dir / "triaged.md").is_file()
-    assert json.loads(
+    copied_duplicate = json.loads(
         (host / "reports/semantic-duplication/dart/analysis.json").read_text()
-    )["failure_kind"] == "accepted_provider_fact_gap"
+    )
+    assert copied_duplicate["status"] == "partial"
+    assert copied_duplicate["failure_kind"] == "human_review_required"
+    assert len(copied_duplicate["machine_candidates"]) == 1
     assert _snapshot(host) == before
 
     provider_loc = len(PROVIDER.read_text().splitlines())
@@ -537,7 +614,7 @@ def test_actual_union_pack_startup_is_faster_than_two_separate_runs(tmp_path: Pa
     union = _collect(host)
     union_seconds = time.perf_counter() - started
     separate_seconds = 0.0
-    for queries in (["state", "status", "phase"], ["charge"]):
+    for queries in (STATE_SWEEP_QUERIES, SEMANTIC_QUERIES):
         started = time.perf_counter()
         payload = _collect(host, list(queries))
         separate_seconds += time.perf_counter() - started
