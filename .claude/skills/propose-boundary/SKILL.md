@@ -1,6 +1,6 @@
 ---
 name: propose-boundary
-description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, and bounded Rust. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
+description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, bounded Rust, and bounded Dart. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
 argument-hint: "<target-path-or-name> [--candidates N]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -30,10 +30,26 @@ not_for: |
   fit → /plan-spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust]
+scans: [python, typescript, javascript, go, java, rust, dart]
 ---
 
 # /propose-boundary
+
+## Dart v1
+
+Dart v1 consumes one accepted D4 query pack and human selection. It cites the
+public seam, callers, barrel compatibility, test surface, and an exact
+disposable after-tree; cohesive or unresolved targets defer rather than force
+an extraction.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/propose-boundary"
+python3 "${SKILL_ROOT}/scripts/propose_dart.py" \
+  --project-root "$PWD" --evidence-dir reports/dart-boundary-evidence \
+  --acceptance reports/dart-boundary-evidence/acceptance.json \
+  --inspection "$PWD/reports/propose-boundary/dart/inspection.json" \
+  --proposal "$PWD/reports/propose-boundary/dart/proposal.md"
+```
 
 ## Rust v1
 

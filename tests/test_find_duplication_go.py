@@ -308,7 +308,7 @@ def test_go_output_overlap_is_rejected_without_source_mutation(tmp_path: Path) -
 
 def test_go_contract_declares_bounded_evidence() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
-    assert "scans: [python, javascript, typescript, go, java]" in text
+    assert "scans: [python, javascript, typescript, go, java, rust, dart]" in text
     assert "Go exact-function evidence branch" in text
     assert "go/parser" in text
     assert "Do not consolidate automatically" in text

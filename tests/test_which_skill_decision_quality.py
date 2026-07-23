@@ -126,6 +126,46 @@ def test_natural_dart_marker_returns_supported_external_library_handoff(tmp_path
     }
 
 
+@pytest.mark.parametrize(
+    "skill",
+    [
+        "explain-code",
+        "extract-enum",
+        "find-complexity-hotspots",
+        "find-duplication",
+        "find-omnibus",
+        "prevent-regression",
+        "propose-boundary",
+        "propose-folder-reorganization",
+    ],
+)
+def test_each_new_dart_capability_reaches_external_library_handoff(
+    tmp_path, skill
+):
+    returncode, payload = _run_match(
+        f"Use {skill} on this Dart package.",
+        "--project-root",
+        str(tmp_path),
+        "--library-root",
+        str(REPO_ROOT),
+    )
+
+    assert returncode == 0, payload
+    assert payload["routing_context"]["languages"] == ["dart"]
+    assert payload["recommendation"] == skill
+    assert payload["handoff"]["available"] is True
+    capability = next(
+        row
+        for row in payload["handoff"]["capabilities"]["skills"]
+        if row["skill"] == skill
+    )
+    assert capability["dart_disposition"] == "dart-supported"
+    assert payload["optional_install"]["available"] is False
+    assert payload["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
+    )
+
+
 def test_supported_go_skill_has_executable_handoff(tmp_path):
     returncode, payload = _run_match(
         "Use propose-boundary for a Go package boundary.",

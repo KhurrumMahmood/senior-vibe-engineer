@@ -106,9 +106,9 @@ EXPECTED_RUST_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_DART_COUNTS = {
-    "dart-supported": 10,
+    "dart-supported": 18,
     "dart-partial": 1,
-    "dart-pending-implementation": 11,
+    "dart-pending-implementation": 3,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -586,16 +586,8 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         for row in language_rows
         if row["dart_disposition"] == "dart-pending-implementation"
     } == {
-        "explain-code",
-        "extract-enum",
-        "find-complexity-hotspots",
-        "find-duplication",
-        "find-omnibus",
         "find-semantic-duplication",
         "move-path",
-        "prevent-regression",
-        "propose-boundary",
-        "propose-folder-reorganization",
         "unify-shadows",
     }
     assert {
@@ -605,10 +597,18 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
     } == {
         "adapt-project",
         "audit-decisions",
+        "explain-code",
+        "extract-enum",
         "find-comment-drift",
+        "find-complexity-hotspots",
         "find-concept-divergence",
+        "find-duplication",
         "find-folder-topology-drift",
+        "find-omnibus",
         "find-standard-gaps",
+        "prevent-regression",
+        "propose-boundary",
+        "propose-folder-reorganization",
     }
     assert {
         row["skill"]

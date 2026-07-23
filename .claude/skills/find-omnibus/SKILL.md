@@ -1,7 +1,7 @@
 ---
 name: find-omnibus
-description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses family-local syntax facts for Python, JavaScript/TypeScript, Go, Java, bounded Rust, and Swift; then groups symbols by head-noun cluster, requires scout judgment, and produces decomposition evidence. Never edits code.
-argument-hint: "--target <directory> [--language python|javascript|typescript|go|java|rust|swift]"
+description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses family-local syntax facts for Python, JavaScript/TypeScript, Go, Java, bounded Rust, bounded Dart, and Swift; then groups symbols by head-noun cluster, requires scout judgment, and produces decomposition evidence. Never edits code.
+argument-hint: "--target <directory> [--language python|javascript|typescript|go|java|rust|dart|swift]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -22,10 +22,24 @@ not_for: |
   to /find-perimeter-gaps.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust, swift]
+scans: [python, javascript, typescript, go, java, rust, dart, swift]
 ---
 
 # /find-omnibus
+
+## Dart v1
+
+Dart v1 consumes direct declarations from the shared `_dart` D3 snapshot and
+nominates four-or-more paired head-noun domains. Every candidate requires a
+SHA-bound scout verdict; syntax alone never becomes a decomposition finding.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-omnibus"
+python3 "${SKILL_ROOT}/scripts/run_dart.py" \
+  --project-root "$PWD" --target lib --facts /tmp/dart-d3-facts.json \
+  --output-dir "$PWD/reports/omnibus/dart" \
+  --scout-dir "$PWD/reports/omnibus/dart/scout"
+```
 
 ## Rust v1
 

@@ -1,6 +1,6 @@
 ---
 name: explain-code
-description: Read-only EXPLAIN skill that converts a Python, Go, Java, JavaScript-family, TypeScript/TSX, or bounded Rust target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Unresolved surfaces remain visible instead of being inferred.
+description: Read-only EXPLAIN skill that converts a Python, Go, Java, JavaScript-family, TypeScript/TSX, bounded Rust, or bounded Dart target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Unresolved surfaces remain visible instead of being inferred.
 argument-hint: "<file-path-or-directory-or-subsystem-name>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -18,10 +18,27 @@ not_for: |
   Refactor execution (use /fix-workflow or /refactor-subsystem).
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust]
+scans: [python, javascript, typescript, go, java, rust, dart]
 ---
 
 # /explain-code
+
+## Dart v1
+
+Dart v1 consumes the shared `_dart` D3 syntax snapshot and explains direct
+public declarations only. Re-exports and unresolved behavior remain explicit
+sidecars; it does not infer callers, types, runtime contracts, or Flutter
+semantics.
+
+```bash
+DART_ROOT=".agents/skills/on-demand/_dart"
+SKILL_ROOT=".agents/skills/on-demand/explain-code"
+python3 "${DART_ROOT}/scripts/dart_d3_snapshot.py" \
+  --project-root "$PWD" --target lib --output /tmp/dart-d3-facts.json
+python3 "${SKILL_ROOT}/scripts/explain_dart.py" \
+  --project-root "$PWD" --target lib --facts /tmp/dart-d3-facts.json \
+  --output "$PWD/reports/explanations/dart.md"
+```
 
 You are the **orchestrator** for an EXPLAIN skill. Given a target path,
 a directory package, or a `/map-subsystem` name, you produce

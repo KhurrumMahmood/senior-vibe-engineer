@@ -1,6 +1,6 @@
 ---
 name: extract-enum
-description: Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or a Go, Java 17, or bounded Rust implicit-state review candidate into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.
+description: Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or a Go, Java 17, bounded Rust, or bounded Dart implicit-state review candidate into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.
 argument-hint: "<implicit-state:ID or FILE::FIELD>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -28,11 +28,28 @@ not_for: |
   enumerations whose convention lacks fixture evidence.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust]
+scans: [python, typescript, javascript, go, java, rust, dart]
 install_with: [find-implicit-state, map-subsystem]
 ---
 
 # /extract-enum
+
+## Dart v1
+
+Consume exactly one content-addressed, human-accepted D5 state candidate.
+Emit an exact enum/wire-value proposal and validate its six-edit after-tree in
+a disposable copy; never edit the audited source.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/extract-enum"
+python3 "${SKILL_ROOT}/scripts/collect_dart_state.py" \
+  --project-root "$PWD" --evidence-dir reports/implicit-state/dart \
+  --acceptance reports/implicit-state/dart/acceptance.json \
+  --output-dir "$PWD/reports/extract-enum/dart"
+```
+
+Open domains, stale or unaccepted evidence, generated/private/external owners,
+and unresolved wire/public compatibility stop without a proposal.
 
 ## Rust v1
 

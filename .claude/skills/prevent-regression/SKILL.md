@@ -33,11 +33,33 @@ not_for: |
   fix in place).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust]
+scans: [python, typescript, javascript, go, java, rust, dart]
 install_with: [find-implicit-state, map-subsystem]
 ---
 
 # /prevent-regression
+
+## Dart exact-field guard
+
+After a human accepts the Dart enum proposal, stage—not install—a
+dependency-free project-owned guard for that exact reviewed public field. The
+verifier proves a good disposable tree passes and a buildable String reversion
+fails specifically because of the staged guard.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/prevent-regression"
+python3 "${SKILL_ROOT}/scripts/generate_dart_state_guard.py" \
+  --project-root "$PWD" --evidence-dir reports/implicit-state/dart \
+  --acceptance reports/implicit-state/dart/acceptance.json \
+  --targets reports/extract-enum/dart/targets.json \
+  --accepted-review reports/extract-enum/dart/accepted-review.json \
+  --output-root "$PWD/reports/prevent-regression/dart-state"
+python3 "${SKILL_ROOT}/scripts/verify_dart_state_guard.py" \
+  --project-root "$PWD" --stage reports/prevent-regression/dart-state
+```
+
+This is one field guard, not a universal lint or a runtime/serialization
+invariant. Audited host source is never modified.
 
 ## Rust exact-field guard
 

@@ -1,6 +1,6 @@
 ---
 name: find-duplication
-description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go/Rust function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
+description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go/Rust/Dart function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
 argument-hint: "--target <source-directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
@@ -19,10 +19,24 @@ not_for: |
   clone leads and stops short of safety or reuse conclusions.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust]
+scans: [python, javascript, typescript, go, java, rust, dart]
 ---
 
 # /find-duplication
+
+## Dart v1
+
+Dart v1 consumes the shared `_dart` D3 snapshot and reports exact normalized
+public-analyzer token clones for direct named functions or methods of at least
+five lines. It is a review lead only; behavioral equivalence and consolidation
+safety remain unproven.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-duplication"
+python3 "${SKILL_ROOT}/scripts/run_dart.py" \
+  --project-root "$PWD" --target lib --facts /tmp/dart-d3-facts.json \
+  --output-dir "$PWD/reports/duplication/dart"
+```
 
 Run the language branch that matches the target. Python, JavaScript, TypeScript, Go, and Java share a
 skill name and report vocabulary, but not a detector model or outcome claim.

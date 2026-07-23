@@ -1,6 +1,6 @@
 ---
 name: propose-folder-reorganization
-description: Turn a confirmed Python, Go, Java 17, TypeScript, checked-JavaScript, or bounded Rust folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
+description: Turn a confirmed Python, Go, Java 17, TypeScript, checked-JavaScript, bounded Rust, or bounded Dart folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
 argument-hint: "<folder-topology:ID or parent::prefix>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -26,10 +26,27 @@ not_for: |
   recommends `defer_scratch_code` instead of a refactor.
 language: any
 framework: any
-scans: [python, go, java, typescript, javascript, rust]
+scans: [python, go, java, typescript, javascript, rust, dart]
 ---
 
 # /propose-folder-reorganization
+
+## Dart v1
+
+Dart v1 consumes one accepted D1 cluster, accepted D4 import impact, and an
+explicit human convention judgment. It accounts for every member and edge,
+preserves the public barrel, and verifies the exact after-tree only in a
+disposable copy. Cohesive, convention-free, package-URI-uncertain, or stale
+evidence defers or refuses without moving source.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/propose-folder-reorganization"
+python3 "${SKILL_ROOT}/scripts/propose_dart.py" \
+  --project-root "$PWD" --evidence-dir reports/dart-folder-evidence \
+  --acceptance reports/dart-folder-evidence/acceptance.json \
+  --inspection "$PWD/reports/propose-folder-reorganization/dart/inspection.json" \
+  --proposal "$PWD/reports/propose-folder-reorganization/dart/proposal.md"
+```
 
 ## Rust v1
 

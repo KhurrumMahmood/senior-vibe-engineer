@@ -230,7 +230,7 @@
     },
     {
       "name": "explain-code",
-      "description": "Read-only EXPLAIN skill that converts a Python, Go, Java, JavaScript-family, TypeScript/TSX, or bounded Rust target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Unresolved surfaces remain visible instead of being inferred.",
+      "description": "Read-only EXPLAIN skill that converts a Python, Go, Java, JavaScript-family, TypeScript/TSX, bounded Rust, or bounded Dart target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Unresolved surfaces remain visible instead of being inferred.",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "Producing an annotated behavior doc for a file, directory package,\nor named subsystem — pre/postconditions, invariants, callers,\nunexplained regions. Read-only. Complements /map-subsystem inventory\nby adding the behavioral annotation that lets a human trust the code\nenough to change it.\n",
@@ -243,7 +243,8 @@
         "typescript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "_path": "skills/explain-code"
     },
@@ -260,7 +261,7 @@
     },
     {
       "name": "extract-enum",
-      "description": "Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or a Go, Java 17, or bounded Rust implicit-state review candidate into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.",
+      "description": "Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or a Go, Java 17, bounded Rust, or bounded Dart implicit-state review candidate into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "A confirmed Django model implicit-state target ready for a TextChoices class,\ncaller table, data-migration risk review, and stop condition. Decided in:\n0001 (TextChoices for state).\nFor TypeScript or checked JavaScript, consume a closed-state detector JSONL\nrecord and design its exported as-const runtime value object, derived union,\ncaller changes, and named vendor boundaries.\nFor Go, consume go/types-resolved repeated-operation evidence for a named\nstring type plus typed constants.\nFor Java, consume exactly one complete JDK-resolved direct String field\nfinding for an enum migration with caller-impact review.\n",
@@ -273,7 +274,8 @@
         "javascript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "install_with": [
         "find-implicit-state",
@@ -356,7 +358,7 @@
     },
     {
       "name": "find-complexity-hotspots",
-      "description": "Detect advisory Python, JavaScript, TypeScript, Go, Java, and bounded Rust function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only family-local high-branch findings for bounded named functions, methods, and constructors.",
+      "description": "Detect advisory Python, JavaScript, TypeScript, Go, Java, bounded Rust, and bounded Dart function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only family-local high-branch findings for bounded named functions, methods, and constructors.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Read-only complexity leads. Python retains nested-loop, membership-scan,\nsort/repeated-scan, Django-query, and high-branch bands. TypeScript/TSX\nreports only per-function syntactic branch complexity with exact source spans\nand analyzer provenance. Go and Java add equally bounded native-parser facts.\n",
@@ -369,7 +371,8 @@
         "typescript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "_path": "skills/find-complexity-hotspots"
     },
@@ -463,7 +466,7 @@
     },
     {
       "name": "find-duplication",
-      "description": "Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go/Rust function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.",
+      "description": "Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go/Rust/Dart function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Python/Django copy-paste and canonical-pattern candidates that need the\nestablished P0/P1/P2 scout triage, JavaScript-family/TypeScript lexical clone\ncandidates that need reliable source spans, exact normalized Go function-body\nclones, or duplicated Java method bodies represented as exact normalized\nmethod-body clone candidates for conservative human review.\n",
@@ -476,7 +479,8 @@
         "typescript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "_path": "skills/find-duplication"
     },
@@ -589,7 +593,7 @@
     },
     {
       "name": "find-omnibus",
-      "description": "Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses family-local syntax facts for Python, JavaScript/TypeScript, Go, Java, bounded Rust, and Swift; then groups symbols by head-noun cluster, requires scout judgment, and produces decomposition evidence. Never edits code.",
+      "description": "Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses family-local syntax facts for Python, JavaScript/TypeScript, Go, Java, bounded Rust, bounded Dart, and Swift; then groups symbols by head-noun cluster, requires scout judgment, and produces decomposition evidence. Never edits code.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Files answering questions from 3+ unrelated domains — the SRP \"and\"\ntest counts 3+ \"and\"s. Ranks by responsibility count, then boosts\nfiles that mix credentials, admin APIs, CSRF/auth, command/network\ndiagnostics, persistence, raw SQL, import/export, task dispatch, or\nfilesystem writes; produces decomposition candidates that hand off\nto /refactor-subsystem. Covers Python, JavaScript/TypeScript, Go, Java, and\nbounded Swift with family-local syntax parsers. Findings carry analyzer provenance. The script\npaths resolve no types and assume no framework.\n",
@@ -603,6 +607,7 @@
         "go",
         "java",
         "rust",
+        "dart",
         "swift"
       ],
       "_path": "skills/find-omnibus"
@@ -1058,7 +1063,8 @@
         "javascript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "install_with": [
         "find-implicit-state",
@@ -1104,7 +1110,7 @@
     },
     {
       "name": "propose-boundary",
-      "description": "Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, and bounded Rust. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).",
+      "description": "Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, bounded Rust, and bounded Dart. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "A TypeScript or checked-JavaScript target needing resolved symbol, import, and call-graph evidence\nfor a stable public interface, backward-compatible barrel, and caller-impact proposal.\nA file or directory where distinct domain concerns live side-by-side\nwith no defined public contract — sibling modules reach into each\nother's private helpers, change-amplification touches the same N\nfiles for every feature, test setup explodes because exercising one\ncluster requires fixturing the others. Produces candidate seams +\nproposed public API + shim shape + characterization-test matrix.\nRead-only. Works on `.claude/skills/<name>/` directories too —\nsub-phases (parsed from SKILL.md `## Phase N` headings) are treated\nas symbols, naming-prefix alignment as the cluster signal.\n",
@@ -1117,13 +1123,14 @@
         "javascript",
         "go",
         "java",
-        "rust"
+        "rust",
+        "dart"
       ],
       "_path": "skills/propose-boundary"
     },
     {
       "name": "propose-folder-reorganization",
-      "description": "Turn a confirmed Python, Go, Java 17, TypeScript, checked-JavaScript, or bounded Rust folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.",
+      "description": "Turn a confirmed Python, Go, Java 17, TypeScript, checked-JavaScript, bounded Rust, or bounded Dart folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "A Java 17 flat-prefix cluster needing a compiler-resolved subpackage move plan.\nA TypeScript or checked-JavaScript flat-prefix folder cluster needing resolved import impact,\na target tree, barrel/subpath compatibility, and native verification plan.\nA confirmed folder-topology drift finding ready for a per-cluster\nreorganization proposal — produces the current → proposed tree,\nfile-move table, import-impact summary, characterization-test\nmatrix, and the rule-of-thumb call (`tests_by_prefix` opportunistic\nvs `flat_prefix_cluster` per-PR). Read-only. Decided in: ADR 0006\n(folder-organization).\n",
@@ -1136,7 +1143,8 @@
         "java",
         "typescript",
         "javascript",
-        "rust"
+        "rust",
+        "dart"
       ],
       "_path": "skills/propose-folder-reorganization"
     },

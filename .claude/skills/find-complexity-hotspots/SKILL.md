@@ -1,7 +1,7 @@
 ---
 name: find-complexity-hotspots
-description: Detect advisory Python, JavaScript, TypeScript, Go, Java, and bounded Rust function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only family-local high-branch findings for bounded named functions, methods, and constructors.
-argument-hint: "<paths> [--language python|javascript|typescript|go|java|rust]"
+description: Detect advisory Python, JavaScript, TypeScript, Go, Java, bounded Rust, and bounded Dart function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only family-local high-branch findings for bounded named functions, methods, and constructors.
+argument-hint: "<paths> [--language python|javascript|typescript|go|java|rust|dart]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -18,13 +18,27 @@ not_for: |
   scope. Broad module-level responsibility sprawl belongs to /find-omnibus.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, rust]
+scans: [python, javascript, typescript, go, java, rust, dart]
 ---
 
 <!-- Native-parser compatibility subset: scans: [javascript, typescript, go, java] -->
 <!-- TypeScript compatibility subset: scans: [python, javascript, typescript] -->
 
 # /find-complexity-hotspots
+
+## Dart v1
+
+Dart v1 consumes the shared `_dart` D3 syntax snapshot and reports named
+direct bodies at the frozen score threshold of 18. Nested closures and local
+functions do not inflate their owners. The score is advisory syntax evidence,
+not runtime or cognitive complexity.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/find-complexity-hotspots"
+python3 "${SKILL_ROOT}/scripts/run_dart.py" \
+  --project-root "$PWD" --target lib --facts /tmp/dart-d3-facts.json \
+  --output-dir "$PWD/reports/complexity-hotspots/dart"
+```
 
 ## Rust v1
 
