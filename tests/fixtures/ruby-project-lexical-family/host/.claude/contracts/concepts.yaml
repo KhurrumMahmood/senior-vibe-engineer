@@ -1,0 +1,7 @@
+concepts:
+  - name: cancelled_invoice
+    preferred: cancelled_invoice
+    avoid:
+      - cancelled_order
+
+flagged_ambiguities: []
