@@ -1,0 +1,3 @@
+name: dart_d3_clean
+environment:
+  sdk: '>=3.12.0 <3.13.0'

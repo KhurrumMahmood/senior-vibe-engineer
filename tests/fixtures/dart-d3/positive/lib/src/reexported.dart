@@ -1,0 +1,3 @@
+class ReexportedInvoice {
+  const ReexportedInvoice();
+}

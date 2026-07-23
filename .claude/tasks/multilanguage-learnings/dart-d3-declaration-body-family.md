@@ -1,198 +1,277 @@
-# Dart D3 declaration/body family stop packet
+# Dart D3 declaration/body consumer family
 
-## Outcome and exact dispositions
+Status: accepted implementation candidate; this packet publishes no Dart
+support and changes no central skill prose, coverage, routing, profile, plan,
+installer, provider, or framework surface
 
-D3 stopped at the locked-provider gate on base revision
-`8821fb4be855c517225eb5593170e2e4140db71e`. The accepted D2 producer runs
-successfully and preserves the audited host, but its public payload does not
-contain the declaration/body facts that D3 is required to consume. The D3
-packet forbids changing that producer, forking it, or adding a second parser,
-so no D3 adapter, fixture, or support claim was created.
+Base revision: `a3e6ff9fcaabfc129ba2481fd94b4bc106f8a3ef`
 
-| Skill | Disposition | Blocking public fact |
+## Outcome and dispositions
+
+The accepted additive D2 provider contract is sufficient for all four bounded
+D3 outcomes. One content-addressed union snapshot invokes that unchanged
+provider once and each consumer independently validates the snapshot, its
+source lineage, the accepted tool-package manifest, target coverage, and its
+required public fact groups. Interpretation and final artifacts remain local
+to the consumer.
+
+| Skill | Worker disposition | Final value |
 |---|---|---|
-| `explain-code` | `dart-pending-implementation` | Direct class, enum, extension, typedef, and top-level-function declarations; declaration kinds/privacy/spans; export directives. |
-| `find-complexity-hotspots` | `dart-pending-implementation` | General named function/method body spans and direct-body branch events that stop at nested closures/local functions. |
-| `find-duplication` | `dart-pending-implementation` | General named function/method body spans and their public-analyzer token sequence for consumer-local normalization. |
-| `find-omnibus` | `dart-pending-implementation` | Direct named declarations with kinds, containers, privacy, and exact spans so syntax candidates can be linked to fixed scout verdicts. |
+| `explain-code` | `dart-complete-implementation-candidate` | Direct public class, enum, extension, mixin, typedef, and top-level-function declarations reach bounded annotations, target inventory, final explanation, and explicit re-export/unexplained sidecars. A private-only target is a successful explicit empty outcome. |
+| `find-complexity-hotspots` | `dart-complete-implementation-candidate` | A named direct body with the frozen score of 18 reaches `detections.jsonl`, `findings.json`, `report.md`, `scan.json`, and `latest`, with exact event/body/declaration lineage. |
+| `find-duplication` | `dart-complete-implementation-candidate` | One at-least-five-line exact public-analyzer token clone pair reaches `collapsed.json`, `ranked.json`, `triage.md`, `findings.json`, and `scan.json`. |
+| `find-omnibus` | `dart-complete-implementation-candidate` | Two syntax candidates reach complete human-scout accounting; the four-domain library is `confirmed_omnibus`, the cohesive control library is `facets_not_domains`, and only the confirmed candidate becomes a decomposition finding. |
 
-Nothing in this packet publishes Dart support. Central `SKILL.md`, coverage,
-matrix/projections, routers/catalog, profiles, plan, installer, and backlog
-surfaces remain unchanged.
+Root may promote these rows only after serial integration and publication. The
+worker changed no `SKILL.md`, matrix, generated projection, router, catalog,
+profile, plan, installer, backlog, `_common`, Dart analyzer provider/tool, or
+Flutter surface.
 
-## Reproduced public contract
+## Accepted fact boundary and union snapshot
 
-The provider was invoked with the required product Python and Dart 3.12.2 over
-the accepted D2 host fixture, including locked offline analyzer setup and the
-native analyze/format/direct-test/smoke matrix. It returned `0`, status
-`complete`, failure kind `none`, and `source_manifest.preserved: true`.
+The existing provider and locked tool remain byte-for-byte unchanged:
 
-The observed per-file keys were exactly:
+- `.claude/skills/_dart/scripts/dart_syntax_facts.py` SHA-256
+  `c162ad0393237ef9f5a1541768f24f14303ba9e66ee24762d21ddb1261bbf6e0`;
+- locked tool-package manifest SHA-256
+  `77486420178671884b4b0e409e44ad0d58080d6a29eaef41bd2bab56314acb6e`;
+- Dart executable SHA-256
+  `db03bb4f7a2b4914f8242641d44a7f29d3abb22324d576fc5a69f07fc1aab560`;
+- analyzer 14.1.0 and SDK range `>=3.12.0 <3.13.0`; and
+- only public `package:analyzer` imports, with no `package:analyzer/src/...`.
 
-```text
-calls, comments, diagnostics, file, functions, source_sha256
-```
-
-The observed `functions` rows were only the two D2 doc-adjacent fixed-return
-shapes, `invoiceRate` and `matchingRate`, with:
-
-```text
-comment, comment_end, comment_line, comment_offset, end, fixed_return,
-line, name, offset
-```
-
-The observed `calls` rows contained:
+The new `dart_d3_snapshot.py` is a D3 batching/provenance wrapper, not another
+syntax provider. It calls `dart_syntax_facts.produce()` exactly once and adds:
 
 ```text
-column, end, in_try, line, offset, spelling
+schema_version, analyzer, status, failure_kind, consumer_union,
+snapshot_key, snapshot_key_sha256, snapshot_sha256, provider
 ```
 
-This agrees with the locked Dart tool: `_FactsVisitor` emits only top-level
-functions accepted by `_functionFact` (adjacent `///` plus fixed numeric
-return) and unqualified method invocations. It emits no directives,
-declarations, general bodies, body tokens, or branch events. The producer's
-claim boundary also remains the narrower D2 comments/fixed-return/direct-call
-contract.
+The key contains the provider source manifest, selected-source manifest,
+accepted tool-package SHA, analyzer package version, Dart SDK version, target,
+and native options. Consumers reject a corrupt key/hash, an unaccepted
+producer manifest, a target mismatch, source mutation, stale current source,
+or missing required arrays. Missing provider/companion evidence is terminal
+partial; malformed or stale evidence is failed. No consumer calls Dart, Pub,
+the analyzer provider, a regex lexer, or a second parser.
 
-Verification actually run from the isolated D3 worktree:
+The consumer fact sets are exact:
 
-Product Python:
-`/Users/khurrummahmood/Projects/engineering-skills-product/.venv/bin/python`. <!-- # host-ref-allow: required frozen P7 runtime -->
-
-```text
-$PRODUCT_PYTHON -m pytest -q \
-  tests/test_dart_d2_syntax_family.py::test_dart_locked_public_analyzer_facts_roles_native_and_zero_write \
-  tests/test_dart_d2_syntax_family.py::test_dart_tool_package_lock_and_public_api_surface_are_exact
-```
-
-Result: `2 passed in 5.45s`. The live schema probe and timing runs also
-returned complete, source-preserving snapshots. No network, dependency
-install/update, audited-host report write, push, or main-worktree change was
-performed.
-
-## Exact minimal additive D2 gap
-
-Root/D2 ownership must add the following syntax facts through the existing
-public-`package:analyzer` tool before D3 can resume. These are facts only; the
-four consumers must continue to own thresholds, normalization, ranking,
-prose, scout judgment, and final artifact schemas.
-
-| Public fact group | Minimum fields/semantics | D3 consumers |
+| Consumer | Required public fact arrays | Consumer-local decisions |
 |---|---|---|
-| `directives` | Directive kind (`import`, `export`, `part`, `part_of`), URI text where present, and exact offset/end/line/column. Conditional/augmentation shapes must remain visibly unsupported or partial. | `explain-code` |
-| `declarations` | Name, declaration kind (including class, enum, extension, mixin, typedef, top-level function, method, constructor, getter/setter/operator), top-level/container identity, privacy, and exact declaration offset/end/line range. Anonymous declarations remain explicit rather than guessed. | `explain-code`, `find-omnibus` |
-| `named_bodies` | Name, declaration kind, container, declaration span, body offset/end/line range, and enough identity to join the row to its declaration. Include named top-level functions and methods; label constructors/accessors/operators so each consumer can apply its own eligibility policy. | `find-complexity-hotspots`, `find-duplication` |
-| `direct_body_branches` | Per named body, exact kind/span events for `if`, loops, non-default switch cases, `catch`, `&&`, and `||`; traversal must stop at nested closures and local-function bodies. Do not emit a complexity score. | `find-complexity-hotspots` |
-| `body_tokens` | Ordered public-analyzer tokens with exact offsets/end and lexeme/token kind for each named body. Do not emit clone groups, normalized hashes, thresholds, or rankings. | `find-duplication` |
+| `explain-code` | `directives`, `declarations` | public direct-declaration kinds, annotation format, 15-target cap, re-export explanation boundary, final prose/sidecars |
+| `find-complexity-hotspots` | `named_bodies`, `direct_body_branches` | eligible body kinds, score = direct event count, frozen threshold 18, ranking/report schema |
+| `find-duplication` | `named_bodies`, `body_tokens` | top-level-function/method eligibility, five-line minimum, exact `(token_kind, lexeme)` normalization, grouping/ranking/triage |
+| `find-omnibus` | `declarations` | direct top-level-function eligibility, generic-verb removal, four paired head-noun threshold, stable candidate hashes, scout schema/verdicts/final findings |
 
-The existing file `source_sha256`, exact spans, tool-package SHA, analyzer
-version, SDK version, inventory, native results, and source manifest are
-sufficient for D3 provenance once these facts exist. A D3 adapter can compute
-spelling/body hashes from the cited source slice and reject a stale producer
-by its accepted tool-package SHA; no universal AST or second parser is needed.
+The wrapper publishes no explanation prose, score, normalized clone hash,
+clone group, rank, head-noun cluster, candidate, scout verdict, or final report
+schema.
 
-## Why no legal workaround exists
+## Final consumer evidence
 
-- Reading Dart source with consumer regexes or a new lexer would be the second
-  parser prohibited by D3 and would not reliably distinguish declarations,
-  nested bodies, operators, comments, or strings.
-- Treating the current D2 `functions` rows as general functions would silently
-  omit every undocumented, computed-return, method, class, enum, extension,
-  and typedef declaration and could incorrectly report a clean result.
-- Reusing `calls` as complexity evidence would miss every required branch
-  shape and cannot establish the direct-body nested-function boundary.
-- File size, strings, or raw identifier counts cannot replace declaration
-  facts for omnibus nomination and cannot produce candidate-to-scout span/hash
-  lineage.
-- Raw source slicing cannot produce a body slice until the analyzer publishes
-  the body span, and whitespace stripping is not token normalization.
+### Explanation
 
-Therefore partial D3 adapters would add no useful bounded outcome; the honest
-state is to keep all four skills pending until the accepted producer contract
-is extended by its owner.
+`lib/public_surface.dart` produces five selected public declarations:
+`InvoiceMapper`, `PaymentState`, `InvoiceService`, `InvoiceFormatting`, and
+`calculateInvoice`. Every target has exact declaration offsets/lines,
+`source_sha256`, `spelling_sha256`, a stable symbol key, and one annotation.
+Private members/functions, imports, declaration-shaped strings, generated
+source, and the declaration behind a syntax-only re-export are not explained
+as direct exports. The export remains visibly unresolved in `targets.json`,
+`unexplained.txt`, and the final Markdown. The clean private-only fixture
+finishes complete with zero targets and empty sidecars.
 
-## Batching measurement and analyzer-JIT value
+### Complexity
 
-One source-preserving provider run was compared with four independent starts
-over the same accepted fixture and options. This is a local observation, not a
-performance threshold.
+`routeInvoice` emits exactly 18 direct events: `logical_and`, `logical_or`, ten
+`if` events, `for`, `while`, `do`, two non-default `switch_case` events, and
+`catch`. The consumer freezes the threshold at 18 and reports that one body.
+The branch-heavy nested closure and local function each publish zero direct
+events for their enclosing owner and never become findings. Every finding
+carries declaration/body spans and hashes plus exact event spans and spelling
+hashes. A clean host retains a complete empty report and `latest`; failed or
+partial evidence removes `latest`.
 
-| Shape | Wall time | Analyzer execution time |
-|---|---:|---:|
-| One batched provider run | 5.6067 s | 4.5086 s |
-| Four independent starts | 20.3657 s | 16.6793 s |
-| Avoided by one shared snapshot | 14.7590 s (72.47%) | 12.1707 s (72.97%) |
+### Duplication
 
-The four independent wall observations were 5.0341, 5.5451, 4.9104, and
-4.8761 seconds; their analyzer observations were 4.1345, 4.5549, 4.0107, and
-3.9792 seconds. The analyzer execution dominates each start, so a single
-content-addressed D3 snapshot would avoid three analyzer process/JIT starts.
-Once the missing facts land, D3 should key that in-memory/on-disk snapshot by
-the existing source manifest, tool-package SHA, analyzer/SDK versions, target,
-and native options, invoke the producer once for the union of four consumers,
-and validate the key independently in every consumer. It must not let one
-consumer's judgment or terminal state stand in for another's.
+`normalizeInvoice` and `normalizePayment` have six-line bodies with identical
+ordered public-analyzer `(token_kind, lexeme)` sequences. One stable clone
+finding cites both exact declaration/body spans, source/body/spelling hashes,
+line counts, token counts, and a consumer-owned normalized hash/rank. A
+behaviorally similar but token-different function, one-line trivial bodies,
+constructor/accessor bodies, nested closures, and excluded source roles do not
+fire. `triage.md` explicitly refuses automatic consolidation or behavioral
+equivalence.
 
-## Deferred proof matrix
+### Omnibus and human scout accounting
 
-No D3 runtime exists to exercise, so the required positive/clean/must-not-fire,
-partial/failure, valid -> failed -> valid, copied-closure, final-artifact,
-candidate/scout, or preserved-language proofs were not represented as passing.
-When the D2 gap is accepted, the D3 fixture and focused test must prove:
+Syntax nominates exactly two files:
 
-- the four existing final artifact schemas exactly as named in the contract
-  map, including explanation annotations/sidecars, complexity `latest`, the
-  five duplication artifacts, and omnibus candidate/scout lineage;
-- exact declaration/body/event spans, source/body/spelling hashes, and every
-  candidate's stable lineage into a fixed scout verdict;
-- one fixed `confirmed_omnibus` verdict for the four-domain library and one
-  fixed `facets_not_domains` verdict for the cohesive control library, with no
-  ungraded candidate becoming confirmed;
-- positive, clean, excluded-role, strings, private/generated/re-export,
-  nested-function, trivial-body, constructor/accessor, formatting, barrel,
-  extension/mixin, and file-size-only negatives;
-- complete -> failed parse/native gate -> complete and complete -> partial
-  missing companion -> complete at each existing destination, with stale
-  successes removed atomically;
-- copied selected-skill plus sibling `_dart` closure executed from outside the
-  repository and host, without ambient imports, network, installs, Pub writes
-  in the host, or source mutation; and
-- native `dart analyze --fatal-infos --fatal-warnings`, check-only format over
-  authored roots, direct dependency-free test, exact smoke stdout, focused D2
-  producer tests, and all preserved language-family tests for the four skills.
+- `lib/omnibus.dart`: four paired invoice/payment/shipping/audit domains;
+- `lib/cohesive_control.dart`: four paired header/body/footer/checksum facets.
 
-## Limits and learning
+Every candidate has a stable candidate ID/SHA bound to the file source hash,
+cluster membership, exact declaration spans, and spelling hashes. With no
+scout files the run is `partial/human_scout_required`, reports both candidates
+as ungraded, and emits zero confirmed findings. Fixed SHA-bound human inputs
+use `human_verdict: accepted`; the first becomes `confirmed_omnibus`, the
+second `facets_not_domains`. Final accounting is exactly two candidates, two
+graded, zero ungraded, while only the confirmed row appears in
+`omnibus.jsonl`/final findings. Accepted scout artifacts are retained under
+`scout/*.json`. Extensions, mixins, strings, barrels, file size alone, and
+excluded roles cannot become candidates or confirmed findings.
 
-- The stop is a public-contract mismatch, not a Dart/analyzer/tool-acquisition
-  failure. The locked analyzer, offline Pub setup, native matrix, and source
-  preservation all passed.
-- The contract map describes D2's shared syntax snapshot as including direct
-  declarations, directives, named bodies, and bounded direct-body syntax, but
-  the accepted D2 implementation and learning packet describe and emit only
-  the narrower three-consumer facts. Acceptance of prose did not establish the
-  future-consumer API.
-- A provider seam should be acceptance-tested for every promised public fact
-  family, even when its first consumers need only a subset. Alternatively, the
-  contract map should label future fields as reserved rather than present.
-- The runtime measurement confirms the proposed batching economics before D3
-  code exists: analyzer JIT startup is the concrete shared cost. It does not
-  justify a cross-language provider, universal syntax schema, persistent daemon,
-  or shared consumer judgment.
+## Fixture, exclusions, lifecycle, and closure proof
+
+The frozen D3 fixture contains 24 files / 7,740 bytes with manifest SHA-256
+`6cde43b318e7231e54f67df9ff319bcd3b63b6dec838fdf15955bd8736f0a5fc`.
+It has positive and clean pubspec-only hosts, `lib`, `bin`, and `tool` native
+entrypoints, generated suffix/header cases, `test`, `example`, `build`,
+`vendor`, build-directory semantics, an external symlink target, strings,
+private declarations, nested closure/local function, trivial/constructor/
+accessor bodies, a barrel, extension/mixin decoys, and a large non-omnibus
+file.
+
+The focused contract proves:
+
+- one complete union snapshot drives all four actual final artifact sets;
+- positive, clean/private-only, and ungraded-refusal outcomes;
+- exact roles for source, test, example, generated, vendor, build, and symlink
+  inventory, with only eligible source becoming facts/findings;
+- current-source staleness is rejected independently by every consumer;
+- complete -> failed parse -> complete at the same destinations, with stale
+  findings/annotations/`latest` removed;
+- complete -> partial missing copied provider -> complete from an installed
+  selected-skill plus sibling `_dart` closure;
+- execution from an unrelated working directory with product Python, no
+  ambient repository imports, network fetch, install, host Pub write,
+  `.dart_tool`, host `pubspec.lock`, or source mutation; and
+- native `dart analyze --fatal-infos --fatal-warnings`, check-only Dart format,
+  dependency-free direct test, and exact smoke stdout.
+
+The four extended selected-skill plus `_dart` closures are descriptive
+base-without-capability measurements, not the ML-025 sharing comparison:
+
+| Closure | Base files/bytes | Extended files/bytes | Capability delta | Extended SHA-256 |
+|---|---:|---:|---:|---|
+| `explain-code` + `_dart` | 13 / 197,016 | 15 / 217,977 | +10.64% | `2d672f358487023deadc623e1a9c8447132ef488195f6eac2b999cffc1ddc0bf` |
+| `find-complexity-hotspots` + `_dart` | 17 / 165,129 | 19 / 185,299 | +12.21% | `57ba34169f62ffd5192831c06860f1c5ade544fe92c6ee7d49fbb55e2761166a` |
+| `find-duplication` + `_dart` | 24 / 246,665 | 26 / 268,382 | +8.80% | `1f97e928500f29334dea50069a7107c8035d21fbae5d3ec0ea07f1cd693f3427` |
+| `find-omnibus` + `_dart` | 16 / 196,117 | 18 / 219,060 | +11.70% | `2115fd46638ca461c9a7bc19f724fcfd9a7c5dbbd9d937d229c777e11c5ca6a8` |
+
+## Batching and maintained-LOC economics
+
+One warmed-cache union run and four independent starts used the same clean
+fixture, product Python, Dart 3.12.2, locked offline analyzer setup, native
+matrix, target, and options. This is a local observation, not a threshold.
+
+| Shape | Wall observations | Total wall | Analyzer observations | Total analyzer |
+|---|---|---:|---|---:|
+| One union snapshot | 4.2909 s | 4.2909 s | 3.4408 s | 3.4408 s |
+| Four independent starts | 4.2893, 4.4127, 4.3244, 4.2979 s | 17.3241 s | 3.4368, 3.5343, 3.4672, 3.4486 s | 13.8869 s |
+| Avoided | — | 13.0332 s (75.23%) | — | 10.4461 s (75.22%) |
+
+The analyzer/Pub process startup dominates each independent run, so one union
+snapshot removes three starts without a daemon or provider change.
+
+Using physical LOC and the accepted ML-025 convention:
+
+- `H = 1,454`: accepted provider Python + Dart analyzer executable + pubspec +
+  D3 snapshot/provenance wrapper;
+- `C = 1,689`: four consumer adapters + the final-outcome contract test;
+- shared design `C + H = 3,143` lines;
+- equivalent per-consumer provider copies `C + 4H = 7,505` lines; and
+- maintained-LOC reduction is 58.12%.
+
+The honest aggregate installed-family byte comparison counts all four selected
+skills. One shared `_dart` closure is 673,593 bytes / 60 files; four equivalent
+consumer-local `_dart` copies are 890,718 bytes / 78 files. Sharing is 217,125
+bytes (24.38%) smaller and does not grow the equivalent copied closure. Runtime
+is also lower by 75.23%, so the sharing shape clears ML-025; the descriptive
+base-without-Dart deltas above are not that gate.
+
+## Verification and preserved-language state
+
+Passing candidate verification:
+
+- `tests/test_dart_d3_declaration_body_family.py`: 11 passed;
+- `tests/test_dart_d2_provider_extension.py`: 3 passed;
+- `tests/test_dart_d2_syntax_family.py`: 16 passed;
+- preserved explain implementations: 20 passed after removing local ignored
+  `__pycache__` created by a compile probe;
+- preserved complexity implementations all passed; the broader group had 38
+  passes plus two untouched router failures described below;
+- preserved duplication implementations had 37 passes plus two stale
+  publication assertions described below; and
+- preserved omnibus implementations had 56 passes plus one stale publication
+  assertion described below;
+- `tests/test_skill_comply.py`: 4 passed; and
+- the explicit staged-file pre-commit run passed every applicable Ruff,
+  whitespace, YAML, conflict, size, project-lint, host-reference, and drift
+  hook (ADR- and `SKILL.md`-only hooks skipped because this lane owns neither).
+
+Five pre-existing assertions fail against exact base metadata and were not
+changed in this forbidden shared-publication lane:
+
+1. `tests/test_find_duplication_python.py::test_copied_python_pipeline_preserves_legacy_scout_triage`
+   and
+   `tests/test_find_duplication_go.py::test_go_contract_declares_bounded_evidence`
+   expect `scans: [python, javascript, typescript, go, java]`; exact base
+   `a3e6ff9` already has `[..., rust]`.
+2. `tests/test_omnibus_typescript.py::test_frontmatter_truthfully_declares_all_supported_scanners`
+   expects `[..., go, java, swift]`; exact base already has
+   `[..., go, java, rust, swift]`.
+3. `tests/test_code_health_family.py::test_router_selects_bounded_health_family_without_ambient_members`
+   routes to `which-shape` rather than the stale expected complexity member.
+4. `tests/test_code_health_family.py::test_all_benchmark_user_prompts_activate_the_family`
+   has one exact-base prompt stop at an unavailable Django-only stronger match
+   rather than activating the family.
+
+No `SKILL.md`, router, family, or central metadata differs from `HEAD` in this
+worker. These failures reproduce without D3 consumer execution; repairing them
+belongs to root/shared publication ownership.
+
+The generic skill-creator `quick_validate.py` also rejects the repository's
+pre-existing extended frontmatter keys (`job`, `tier`, `language`, routing
+metadata). Shared `SKILL.md` is explicitly out of scope, so repository Ruff,
+focused tests, preserved implementation tests, Dart format/native gates, and
+hooks are the applicable validators.
+
+## Limitations
+
+- D3 is syntax-only. It resolves no symbols, imports/exports, aliases, callers,
+  types, flow, runtime behavior, generated semantics, framework behavior, or
+  Flutter widgets/routes/state.
+- Conditional directives and parsed augmentations remain provider partial;
+  parse diagnostics and native-gate failures remain failed.
+- Explanation records direct syntax surface, not contracts or behavior.
+- Complexity counts frozen direct branch/operator events and excludes nested
+  closure/local-function ownership; it is not cognitive or runtime cost.
+- Duplication is exact analyzer-token evidence for direct top-level functions
+  and methods only. Constructors/accessors/operators, semantic equivalence,
+  ownership, and consolidation safety remain outside the claim.
+- Omnibus uses head-noun nomination only. SHA-bound human scout judgment is
+  mandatory, and even `confirmed_omnibus` proves no safe split.
+- The SDK/analyzer pins, offline cache availability, core-Dart role policy,
+  package-workspace boundary, and no-Flutter boundary remain unchanged.
 
 ## Root integration steps
 
-1. Extend and accept the existing D2 provider/tool in its owning lane with only
-   the five additive fact groups above; keep public analyzer APIs, the exact
-   lock, host-safe offline setup, roles, lifecycle, and native/source proof.
-2. Add direct provider tests for the new fact fields, nested-body stopping,
-   exact spans/tokens, unsupported syntax, and valid -> failed -> valid
-   lifecycle. Record the new tool-package manifest SHA.
-3. Rebase/restart D3 from that accepted revision. Implement four consumer-local
-   adapters over one content-addressed producer result; do not copy analyzer
-   logic or consumer schemas into `_dart`.
-4. Replay the deferred proof matrix and the one-versus-four runtime comparison
-   in the copied closure. Keep both fixed omnibus scout verdicts and complete
-   candidate accounting.
-5. Only after those final outcomes pass should root publish the four bounded
-   dispositions and update central coverage, projections, routing, catalog,
-   profiles, plan, installer, or backlog surfaces serially.
+1. Cherry-pick the D3 consumer commit after exact accepted base `a3e6ff9`; do
+   not resolve it by changing the D2 provider/tool.
+2. Replay the 11 focused D3 tests, 3 D2 extension tests, and all 16 preserved
+   D2 syntax-family tests with the frozen product Python and Dart path.
+3. Copy each selected skill plus the single sibling `_dart` closure outside the
+   repository/host and replay the documented fact-pack + consumer commands;
+   preserve explicit omnibus scout input and accounting.
+4. Confirm `git diff` contains no provider/tool, shared `SKILL.md`, matrix,
+   router, catalog, profile, plan, installer, `_common`, framework, or other
+   batch changes.
+5. From root ownership only, publish each of the four bounded Dart dispositions
+   independently, regenerate coverage/projections, and update routing/catalog/
+   plan/installer surfaces serially.
+6. Repair or consciously baseline the five stale shared-suite assertions in a
+   separate root-owned change; do not mix that publication maintenance into
+   this D3 consumer commit.
