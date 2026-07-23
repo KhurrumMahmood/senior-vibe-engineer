@@ -1,6 +1,6 @@
 ---
 name: propose-folder-reorganization
-description: Turn a confirmed Python, Go, Java 17, TypeScript, checked-JavaScript, bounded Rust, or bounded Dart folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
+description: Turn a confirmed Python, Go, Java 17, TypeScript, checked-JavaScript, PHP, Ruby, bounded Rust, or bounded Dart folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
 argument-hint: "<folder-topology:ID or parent::prefix>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -26,10 +26,16 @@ not_for: |
   recommends `defer_scratch_code` instead of a refactor.
 language: any
 framework: any
-scans: [python, go, java, typescript, javascript, rust, dart]
+scans: [python, go, java, typescript, javascript, php, ruby, rust, dart]
 ---
 
 # /propose-folder-reorganization
+
+## PHP and Ruby
+
+For PHP, read `_php-proposal/GUIDE.md`; for Ruby, read
+`_ruby-semantic/PROPOSAL-GUIDE.md`. These branches consume accepted clusters
+and conventions, emit read-only move plans, and never move source.
 
 ## Dart v1
 

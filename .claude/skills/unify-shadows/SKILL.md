@@ -1,6 +1,6 @@
 ---
 name: unify-shadows
-description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, Java, bounded Rust, and Dart consume accepted structured evidence and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
+description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, Java, PHP, Ruby, bounded Rust, and Dart consume accepted structured evidence and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
 argument-hint: "<semantic:SC-N | semantic:TS-SD-NNNN | semantic:JAVA-SD-NNNN | explicit target spec>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -19,10 +19,16 @@ not_for: |
   Source mutation begins only after human acceptance of this artifact.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
 ---
 
 # /unify-shadows
+
+## PHP and Ruby
+
+For PHP, read `_php-proposal/GUIDE.md`; for Ruby, read
+`_ruby-semantic/PROPOSAL-GUIDE.md`. Consume only current accepted semantic
+evidence; keep-separate is a valid outcome and no equivalence is implied.
 
 ## Dart v1
 

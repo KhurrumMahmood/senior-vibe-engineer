@@ -270,7 +270,7 @@
     },
     {
       "name": "extract-enum",
-      "description": "Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or a Go, Java 17, bounded Rust, or bounded Dart implicit-state review candidate into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.",
+      "description": "Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or accepted Go, Java 17, PHP, Ruby, bounded Rust, or bounded Dart implicit-state evidence into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "A confirmed Django model implicit-state target ready for a TextChoices class,\ncaller table, data-migration risk review, and stop condition. Decided in:\n0001 (TextChoices for state).\nFor TypeScript or checked JavaScript, consume a closed-state detector JSONL\nrecord and design its exported as-const runtime value object, derived union,\ncaller changes, and named vendor boundaries.\nFor Go, consume go/types-resolved repeated-operation evidence for a named\nstring type plus typed constants.\nFor Java, consume exactly one complete JDK-resolved direct String field\nfinding for an enum migration with caller-impact review.\n",
@@ -283,6 +283,8 @@
         "javascript",
         "go",
         "java",
+        "php",
+        "ruby",
         "rust",
         "dart"
       ],
@@ -1100,6 +1102,8 @@
         "javascript",
         "go",
         "java",
+        "php",
+        "ruby",
         "rust",
         "dart"
       ],
@@ -1147,7 +1151,7 @@
     },
     {
       "name": "propose-boundary",
-      "description": "Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, bounded Rust, and bounded Dart. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).",
+      "description": "Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, PHP, Ruby, bounded Rust, and bounded Dart. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "A TypeScript or checked-JavaScript target needing resolved symbol, import, and call-graph evidence\nfor a stable public interface, backward-compatible barrel, and caller-impact proposal.\nA file or directory where distinct domain concerns live side-by-side\nwith no defined public contract — sibling modules reach into each\nother's private helpers, change-amplification touches the same N\nfiles for every feature, test setup explodes because exercising one\ncluster requires fixturing the others. Produces candidate seams +\nproposed public API + shim shape + characterization-test matrix.\nRead-only. Works on `.claude/skills/<name>/` directories too —\nsub-phases (parsed from SKILL.md `## Phase N` headings) are treated\nas symbols, naming-prefix alignment as the cluster signal.\n",
@@ -1160,6 +1164,8 @@
         "javascript",
         "go",
         "java",
+        "php",
+        "ruby",
         "rust",
         "dart"
       ],
@@ -1167,7 +1173,7 @@
     },
     {
       "name": "propose-folder-reorganization",
-      "description": "Turn a confirmed Python, Go, Java 17, TypeScript, checked-JavaScript, bounded Rust, or bounded Dart folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.",
+      "description": "Turn a confirmed Python, Go, Java 17, TypeScript, checked-JavaScript, PHP, Ruby, bounded Rust, or bounded Dart folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "A Java 17 flat-prefix cluster needing a compiler-resolved subpackage move plan.\nA TypeScript or checked-JavaScript flat-prefix folder cluster needing resolved import impact,\na target tree, barrel/subpath compatibility, and native verification plan.\nA confirmed folder-topology drift finding ready for a per-cluster\nreorganization proposal — produces the current → proposed tree,\nfile-move table, import-impact summary, characterization-test\nmatrix, and the rule-of-thumb call (`tests_by_prefix` opportunistic\nvs `flat_prefix_cluster` per-PR). Read-only. Decided in: ADR 0006\n(folder-organization).\n",
@@ -1180,6 +1186,8 @@
         "java",
         "typescript",
         "javascript",
+        "php",
+        "ruby",
         "rust",
         "dart"
       ],
@@ -1320,7 +1328,7 @@
     },
     {
       "name": "unify-shadows",
-      "description": "Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, Java, bounded Rust, and Dart consume accepted structured evidence and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.",
+      "description": "Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, Java, PHP, Ruby, bounded Rust, and Dart consume accepted structured evidence and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "One confirmed Python, TypeScript, checked-JavaScript, Go, or Java semantic-duplication finding from\n/find-semantic-duplication (shape =\nkeep_separate_document_why | share_utilities | complete_migration |\nmerge_at_workflow). Produces an implementation-ready proposal at\n`reports/unify-shadows/<finding-id>/proposal.md` with migration\nplan, caller impact, test matrix, and stop condition.\n",
@@ -1333,6 +1341,8 @@
         "javascript",
         "go",
         "java",
+        "php",
+        "ruby",
         "rust",
         "dart"
       ],

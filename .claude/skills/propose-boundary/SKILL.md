@@ -1,6 +1,6 @@
 ---
 name: propose-boundary
-description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, bounded Rust, and bounded Dart. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
+description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, PHP, Ruby, bounded Rust, and bounded Dart. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
 argument-hint: "<target-path-or-name> [--candidates N]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -30,10 +30,16 @@ not_for: |
   fit → /plan-spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
 ---
 
 # /propose-boundary
+
+## PHP and Ruby
+
+For PHP, read `_php-proposal/GUIDE.md`; for Ruby, read
+`_ruby-semantic/PROPOSAL-GUIDE.md`. Consume one accepted upstream selection,
+preserve its limits, and never rerun boundary detection.
 
 ## Dart v1
 

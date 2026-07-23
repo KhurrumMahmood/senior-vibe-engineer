@@ -1,6 +1,6 @@
 ---
 name: extract-enum
-description: Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or a Go, Java 17, bounded Rust, or bounded Dart implicit-state review candidate into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.
+description: Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or accepted Go, Java 17, PHP, Ruby, bounded Rust, or bounded Dart implicit-state evidence into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.
 argument-hint: "<implicit-state:ID or FILE::FIELD>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -28,11 +28,17 @@ not_for: |
   enumerations whose convention lacks fixture evidence.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
 install_with: [find-implicit-state, map-subsystem]
 ---
 
 # /extract-enum
+
+## PHP and Ruby
+
+For accepted PHP evidence, read `_php-proposal/GUIDE.md`. For accepted Ruby
+RBS evidence, read `_ruby-semantic/PROPOSAL-GUIDE.md`. Both branches are
+proposal-only and require current hash-bound human authority.
 
 ## Dart v1
 

@@ -224,6 +224,22 @@ working semantic foundation—such as a verified full-Xcode SourceKit path or a
 bounded SwiftSyntax-based provider—reaches the final artifacts. A passing warm
 benchmark does not override a non-reproducible user journey.
 
+### 10. Cohort A accepted-evidence consumers
+
+PHP and Ruby now consume accepted producer evidence for five downstream
+outcomes: enum proposal, exact-field regression guard, boundary proposal,
+folder proposal, and shadow-unification proposal. These consumers never rerun
+detection. Each validates current source and human authority, preserves the
+upstream limits, owns a distinct terminal artifact, and treats safe defer,
+keep-flat, cohesive, or keep-separate as legitimate completed outcomes.
+
+The PHP helper saves `44.59%` maintained LOC with `0%` closure growth and
+`+3.50%` median latency. The Ruby helper saves `43.37%` maintained LOC and
+`52.78%` runtime-closure LOC, with a `3.37%` median improvement. Keep both
+helpers language-local: Composer/PSR-4 identity and RBS/dynamic Ruby authority
+are not one portable evidence schema. Guards are staged and verified but not
+installed; proposals remain read-only and require separate mutation approval.
+
 ## Native foundations for queued languages
 
 | Language | Preferred foundations | Honest boundary |

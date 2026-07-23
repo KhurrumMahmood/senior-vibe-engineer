@@ -63,8 +63,7 @@ EXPECTED_JAVA_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_PHP_COUNTS = {
-    "php-supported": 17,
-    "php-pending-implementation": 5,
+    "php-supported": 22,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -91,8 +90,8 @@ EXPECTED_CPP_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_RUBY_COUNTS = {
-    "ruby-supported": 16,
-    "ruby-pending-implementation": 6,
+    "ruby-supported": 21,
+    "ruby-pending-implementation": 1,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -523,6 +522,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "adapt-project",
         "audit-decisions",
         "explain-code",
+        "extract-enum",
         "find-comment-drift",
         "find-complexity-hotspots",
         "find-concept-divergence",
@@ -536,7 +536,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "find-standard-gaps",
         "map-subsystem",
         "move-path",
+        "prevent-regression",
+        "propose-boundary",
+        "propose-folder-reorganization",
         "rename-concept",
+        "unify-shadows",
     }
     assert {
         row["skill"]
@@ -574,6 +578,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "adapt-project",
         "audit-decisions",
         "explain-code",
+        "extract-enum",
         "find-comment-drift",
         "find-complexity-hotspots",
         "find-concept-divergence",
@@ -585,7 +590,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "find-omnibus",
         "find-semantic-duplication",
         "find-standard-gaps",
+        "prevent-regression",
+        "propose-boundary",
+        "propose-folder-reorganization",
         "rename-concept",
+        "unify-shadows",
         "map-subsystem",
     }
     assert {
@@ -634,6 +643,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "adapt-project",
         "audit-decisions",
         "explain-code",
+        "extract-enum",
         "find-complexity-hotspots",
         "find-concept-divergence",
         "find-dormant",
@@ -644,7 +654,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "find-omnibus",
         "find-semantic-duplication",
         "find-standard-gaps",
+        "prevent-regression",
+        "propose-boundary",
+        "propose-folder-reorganization",
         "rename-concept",
+        "unify-shadows",
     }
     assert {
         row["skill"]
@@ -654,6 +668,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "adapt-project",
         "audit-decisions",
         "explain-code",
+        "extract-enum",
         "find-complexity-hotspots",
         "find-concept-divergence",
         "find-dormant",
@@ -664,7 +679,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "find-omnibus",
         "find-semantic-duplication",
         "find-standard-gaps",
+        "prevent-regression",
+        "propose-boundary",
+        "propose-folder-reorganization",
         "rename-concept",
+        "unify-shadows",
     }
     assert {
         row["skill"]

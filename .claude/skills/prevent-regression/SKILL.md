@@ -33,11 +33,17 @@ not_for: |
   fix in place).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
 install_with: [find-implicit-state, map-subsystem]
 ---
 
 # /prevent-regression
+
+## PHP and Ruby
+
+For an accepted PHP enum proposal, read `_php-proposal/GUIDE.md`. For an
+accepted Ruby RBS proposal, read `_ruby-semantic/PROPOSAL-GUIDE.md`. Both
+branches stage and verify one exact reviewed field guard; neither installs it.
 
 ## Dart exact-field guard
 

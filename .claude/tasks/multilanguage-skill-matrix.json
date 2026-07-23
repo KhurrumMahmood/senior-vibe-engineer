@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "cf9754dd23064bcf179923569b799932e73fb68ad5f5126ed3b83113afae287c"
+      "sha256": "062dabf066250bdd39cd31f8b330755b7c59e025aa0df8deee23eddd844b7325"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -23,7 +23,7 @@
     },
     {
       "path": ".claude/tasks/php-language-coverage.json",
-      "sha256": "6088f5f4080fd90630be6a223ef182ba13e02e079d158275d8ba76e662add9bf"
+      "sha256": "107172e93dac8a0140871e45bdf4b934094e79094c986192d9f9bc3da6fcfa90"
     },
     {
       "path": ".claude/tasks/swift-language-coverage.json",
@@ -39,7 +39,7 @@
     },
     {
       "path": ".claude/tasks/ruby-language-coverage.json",
-      "sha256": "71c34870da736aa57952530ff590081c6ab7d993c7e56aadc9985eaaa7537760"
+      "sha256": "a54469c6f39762780deee0015bd2ae60fa90457ca89dad2c551ffc8e343629b3"
     },
     {
       "path": ".claude/tasks/rust-language-coverage.json",
@@ -1434,14 +1434,14 @@
         "final proposal and stale-evidence rejection assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-a4-proposal-guard.md",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP enum proposal was validated"
+        "accepted A3 state evidence plus exact Composer/PHP identity",
+        "copied enum proposal, refusal lifecycle, native gates, and source preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "No PHP type/reference evidence reaches the proposal boundary.",
+      "php_reviewed_revision": "0b38efa",
+      "php_limitation": "Proposal-only; observed literals do not prove a closed runtime, wire, persistence, framework, or external domain.",
       "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
@@ -1464,13 +1464,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "Use coverage, overload resolution, ABI/layout, macro, and build compatibility are unproven.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a4-proposal-guard.md",
       "ruby_native_check": [
-        "no mutation or proposal executed"
+        "accepted A3 RBS state evidence and exact source hashes",
+        "copied enum/value proposal, safe defer, native obligations, and source preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Ruby has multiple enum-like practices and no selected compatibility/type contract reaches the proposal boundary.",
+      "ruby_reviewed_revision": "98c80aa",
+      "ruby_limitation": "Proposal-only; RBS literal authority does not prove runtime closure, Rails persistence, wire compatibility, or mutation safety.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-enum-regression-guard.md",
       "rust_native_check": [
@@ -1480,6 +1481,8 @@
       "rust_reviewed_revision": "a939b70800fd96528e3538aadbeae3767a628013",
       "rust_limitation": "Proposal-only; macros, build/include output, cfg variants, traits/generics, unsafe/FFI, serialization/wire behavior, exhaustiveness, public compatibility, and source mutation remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d6-accepted-state-consumers.md",
       "dart_native_check": [
@@ -1501,6 +1504,8 @@
           "javascript",
           "go",
           "java",
+          "php",
+          "ruby",
           "rust",
           "dart"
         ],
@@ -6665,14 +6670,14 @@
         "staged guard and native verification assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-a4-proposal-guard.md",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP guard-generation chain was validated"
+        "accepted enum proposal and exact-field guard review",
+        "staged guard proves good pass and buildable string regression failure without installation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "No accepted PHP producer evidence reaches the guard boundary.",
+      "php_reviewed_revision": "0b38efa",
+      "php_limitation": "Exact reviewed property/type guard only; it is staged, not installed, and proves no general PHP enum or runtime invariant.",
       "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
@@ -6695,13 +6700,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "No C++ producer-to-guard chain reaches native verification.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a4-proposal-guard.md",
       "ruby_native_check": [
-        "no accepted Ruby producer artifact"
+        "accepted enum proposal and exact RBS-field review",
+        "staged Ruby guard proves reviewed RBS type passes and String regression fails"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "No producer-to-project-owned Ruby guard reaches pre/post native verification.",
+      "ruby_reviewed_revision": "98c80aa",
+      "ruby_limitation": "Exact reviewed RBS declaration only; staged guard is not installed and proves no runtime, Rails, autoload, or general enum invariant.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-enum-regression-guard.md",
       "rust_native_check": [
@@ -6711,6 +6717,8 @@
       "rust_reviewed_revision": "a939b70800fd96528e3538aadbeae3767a628013",
       "rust_limitation": "Exact reviewed field only; private fields abstain, and this is not a universal Rust lint or a claim about macros, cfg variants, traits/generics, unsafe/FFI, serialization, wire behavior, or compatibility.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d6-accepted-state-consumers.md",
       "dart_native_check": [
@@ -6732,6 +6740,8 @@
           "javascript",
           "go",
           "java",
+          "php",
+          "ruby",
           "rust",
           "dart"
         ],
@@ -6912,14 +6922,14 @@
         "source fingerprint and final proposal assertions"
       ],
       "java_reviewed_revision": "cfd0e2d",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-a4-proposal-guard.md",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP boundary proposal was validated"
+        "accepted omnibus selection plus Composer/PHP identity",
+        "copied boundary proposal, safe defer, lifecycle, native gates, and preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "No PHP resolved dependency graph reaches the proposal boundary.",
+      "php_reviewed_revision": "0b38efa",
+      "php_limitation": "Accepted direct project evidence only; dynamic/framework/external wiring and refactor safety remain unresolved.",
       "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
@@ -6942,13 +6952,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "No trustworthy complete target/reference graph resolves templates, overloads, ADL, or virtual dispatch into a proposal.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a4-proposal-guard.md",
       "ruby_native_check": [
-        "explicit require_relative feasibility only"
+        "accepted Prism omnibus evidence plus current source hashes",
+        "copied boundary proposal, cohesive defer, native obligations, and preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "No resolved dependency graph covers mixins, dynamic constants/calls, callbacks, autoload, or framework wiring.",
+      "ruby_reviewed_revision": "98c80aa",
+      "ruby_limitation": "Static accepted evidence only; mixins, callbacks, autoload, dynamic constants/calls, Rails, and external consumers remain unresolved.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-read-only-proposals.md",
       "rust_native_check": [
@@ -6958,6 +6969,8 @@
       "rust_reviewed_revision": "dc1f97482558a395d88af148bea401c52f62fe8f",
       "rust_limitation": "Proposal-only; macros/proc macros, build/generated/include inputs, cfg/feature/target variants, traits/generics, unsafe/FFI, external APIs, public compatibility, and semver remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d7-proposal-family.md",
       "dart_native_check": [
@@ -6979,6 +6992,8 @@
           "javascript",
           "go",
           "java",
+          "php",
+          "ruby",
           "rust",
           "dart"
         ],
@@ -7048,14 +7063,14 @@
         "read-only move plan and wildcard-safety assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-a4-proposal-guard.md",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP folder move plan was validated"
+        "accepted topology cluster and explicit Composer-layout convention",
+        "copied read-only move plan, keep-flat outcome, native gates, and preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "Framework and Composer layout conventions need a dedicated final-outcome pass.",
+      "php_reviewed_revision": "0b38efa",
+      "php_limitation": "One reviewed PSR-4 layout plan only; frameworks, dynamic loading, external consumers, and mutation safety remain human-owned.",
       "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
@@ -7078,13 +7093,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "Semantic graph, header-only/ODR effects, and build-manifest impacts are unvalidated.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a4-proposal-guard.md",
       "ruby_native_check": [
-        "plain gem fixture only"
+        "accepted lexical topology cluster and explicit project convention",
+        "copied move plan, keep-flat outcome, native obligations, and preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Ruby gem, app, Rails/Zeitwerk, native-extension, and monorepo layouts require separate conventions and semantic evidence.",
+      "ruby_reviewed_revision": "98c80aa",
+      "ruby_limitation": "One reviewed plain-Ruby/gem layout plan only; Rails/Zeitwerk, native extensions, monorepos, dynamic loading, and mutation safety remain outside the claim.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-read-only-proposals.md",
       "rust_native_check": [
@@ -7094,6 +7110,8 @@
       "rust_reviewed_revision": "dc1f97482558a395d88af148bea401c52f62fe8f",
       "rust_limitation": "Proposal-only and requires a human split/cohesive judgment; macros/proc macros, build/generated/include inputs, cfg variants, traits/generics, unsafe/FFI, external/public/semver compatibility, and automatic moves remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d7-proposal-family.md",
       "dart_native_check": [
@@ -7115,6 +7133,8 @@
           "java",
           "typescript",
           "javascript",
+          "php",
+          "ruby",
           "rust",
           "dart"
         ],
@@ -7999,14 +8019,14 @@
         "final proposal and stale-evidence rejection assertions"
       ],
       "java_reviewed_revision": "cf48aa5e584ece81c1458d9fb2b0d77bde4896b9",
-      "php_disposition": "php-pending-implementation",
-      "php_evidence_path": ".claude/tasks/p4-baseline/php-pilot-baseline.json",
+      "php_disposition": "php-supported",
+      "php_evidence_path": ".claude/tasks/multilanguage-learnings/php-a4-proposal-guard.md",
       "php_native_check": [
-        "P4 final-outcome census",
-        "no PHP unification proposal was validated"
+        "accepted A3 duplication evidence and consolidation decision",
+        "copied proposal/evidence/scope artifacts, keep-separate outcome, native gates, and preservation"
       ],
-      "php_reviewed_revision": "a3c70cb",
-      "php_limitation": "No PHP producer evidence reaches the proposal boundary.",
+      "php_reviewed_revision": "0b38efa",
+      "php_limitation": "Static constructor-shape evidence is not behavioral equivalence; consolidation and mutation require separate human authority.",
       "swift_disposition": "swift-pending-implementation",
       "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
       "swift_native_check": [
@@ -8029,13 +8049,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "Semantic equivalence, overload behavior, template instantiation, ODR, and ABI compatibility evidence are unavailable.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a4-proposal-guard.md",
       "ruby_native_check": [
-        "no proposal executed"
+        "accepted A3 RBS duplication evidence and consolidation decision",
+        "copied proposal/evidence/scope artifacts, keep-separate outcome, and source preservation"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Aliases, refinements, reopenings, delegation, duck typing, callbacks, and runtime compatibility lack equivalence evidence.",
+      "ruby_reviewed_revision": "98c80aa",
+      "ruby_limitation": "RBS-backed static shapes are not behavioral equivalence; aliases, refinements, reopenings, delegation, callbacks, runtime compatibility, and mutation remain human-owned.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-unify-shadows.md",
       "rust_native_check": [
@@ -8045,6 +8066,8 @@
       "rust_reviewed_revision": "1ff012a98b929c734cf641a3790c55e52ad6d639",
       "rust_limitation": "No behavioral-equivalence or mutation authority; traits/blanket impls, generics, macros/cfg variants, unsafe/FFI, runtime behavior, external APIs, and semver compatibility remain unresolved.",
       "dart_disposition": "dart-supported",
+      "php_closure_mode": "external-library",
+      "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d5-d7-semantic-finish.md",
       "dart_native_check": [
@@ -8066,6 +8089,8 @@
           "javascript",
           "go",
           "java",
+          "php",
+          "ruby",
           "rust",
           "dart"
         ],
