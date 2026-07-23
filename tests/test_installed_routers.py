@@ -624,6 +624,25 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         library_root / ".claude/skills/move-path/scripts/dart_library_move.py"
     ).is_file()
 
+    dart_map = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use map-subsystem on this bounded Dart package",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "dart",
+        "--json",
+        cwd=host,
+    )
+    dart_map_payload = _json_output(dart_map)
+    assert dart_map_payload["recommendation"] == "map-subsystem"
+    assert dart_map_payload["handoff"]["capabilities"]["skills"][0][
+        "dart_disposition"
+    ] == "dart-supported"
+    assert dart_map_payload["optional_install"]["available"] is True
+
     for skill, task in (
         ("adapt-project", "use adapt-project on this Rust repository"),
         ("audit-decisions", "use audit-decisions on this Rust repository"),
