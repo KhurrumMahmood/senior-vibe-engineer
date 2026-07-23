@@ -286,6 +286,7 @@ CAPABILITY_FIELDS = (
     "cpp_disposition",
     "ruby_disposition",
     "rust_disposition",
+    "dart_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",

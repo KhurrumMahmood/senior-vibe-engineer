@@ -762,6 +762,31 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         }
     ]
 
+    dart_shape = _run_isolated(
+        installed["which-shape"] / "scripts" / "route.py",
+        "onboard an unknown inherited Dart package and figure out what loop to run",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--json",
+        "--skip-log",
+        cwd=host,
+    )
+    dart_shape_payload = _json_output(dart_shape)
+    assert dart_shape_payload["recommendation"]["first_next"] == "/adapt-project"
+    assert dart_shape_payload["handoff"]["available"] is False
+    assert dart_shape_payload["handoff"]["reason"] == (
+        "selected_skill_pending_implementation"
+    )
+    assert dart_shape_payload["handoff"]["blocked"] == [
+        {
+            "skill": "adapt-project",
+            "language": "dart",
+            "disposition": "dart-pending-implementation",
+        }
+    ]
+
     c_shape = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",
         "onboard an unknown inherited C17 repository and figure out what loop to run",

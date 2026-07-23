@@ -44,6 +44,7 @@ LANGUAGE_MARKERS = {
     "typescript": re.compile(r"(?i)(?:\btypescript\b|\.tsx?\b)"),
     "javascript": re.compile(r"(?i)(?:\bjavascript\b|(?:\.[cm]?js|\.jsx)\b)"),
     "rust": re.compile(r"(?i)(?:\brust\b|\.rs\b)"),
+    "dart": re.compile(r"(?i)(?:\bdart\b|\.dart\b|pubspec\.yaml\b)"),
     "go": re.compile(
         r"(?:\bGolang\b|\bGo\b(?=\s+(?:project|repo|repository|module|service|"
         r"package|code|source|file|CLI|application|app)\b)|\.go\b)"
@@ -703,6 +704,9 @@ def _apply_task_capability_gate(handoff: dict[str, Any], task: str) -> None:
             elif language == "rust":
                 disposition = row["rust_disposition"]
                 eligible = disposition in {"rust-supported", "validated-neutral"}
+            elif language == "dart":
+                disposition = row["dart_disposition"]
+                eligible = disposition in {"dart-supported", "validated-neutral"}
             elif language == "python":
                 continue
             else:
@@ -749,6 +753,7 @@ CAPABILITY_FIELDS = (
     "cpp_disposition",
     "ruby_disposition",
     "rust_disposition",
+    "dart_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
