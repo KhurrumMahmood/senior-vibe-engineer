@@ -116,17 +116,25 @@ its focused contract tests:
 The two D6 consumers alone do **not** clear the 25% extraction threshold. Do
 not claim that they do. D7 has two additional real accepted-evidence consumers;
 its stopped `unify-shadows` row must not count. The combined `n = 4` calculation
-is deliberately deferred to root integration after final D7 consumer/test LOC
-exist. Root must charge the full 786 LOC, use the final D7 paths, and keep the
-seam only if the combined maintenance gate clears.
+was completed during root integration using D7's final `C = 2,288` physical
+LOC. Combined consumer/test cost is `C = 4,832`; four duplicated validators
+would cost `C + 4H = 7,976`, while one shared validator costs
+`C + H = 5,618`. The shared seam saves 2,358 physical LOC, or **29.56%**, and
+therefore clears ML-025 without counting the stopped fifth row.
+
+For the runtime-only union, the five D6/D7 consumer scripts total 3,093
+physical LOC. One shared 430-LOC validator yields 3,523 LOC versus 4,813 LOC
+with four embedded copies, a **26.80%** closure reduction. The shared module
+adds no process, cache, wrapper, or network operation: each consumer imports
+and calls the same validation function once, so the shared and literally
+embedded execution paths are structurally identical. No synthetic latency
+benchmark is claimed.
 
 Per-consumer copied layout adds no wrapper/cache/process relative to an
 identical embedded validator: it copies the same validator bytes and calls it
-once. Installing both D6 skills together shares one sibling `_dart` file
-instead of duplicating it. No duplicated-implementation latency benchmark was
-manufactured; because the D6-local maintenance gate already fails, the final
-four-consumer root calculation must also make the closure-size and median-
-latency comparison before broader extraction is claimed.
+once. Installing the D6/D7 skills together shares one sibling `_dart` file
+instead of duplicating it. The passing combined gate justifies this bounded
+Dart acceptance seam only; it does not justify a broader evidence platform.
 
 ## Verification evidence
 
