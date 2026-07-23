@@ -324,7 +324,7 @@ def test_go_containment_copied_closure_and_source_fingerprint(tmp_path: Path) ->
 def test_go_docs_state_the_bounded_semantic_contract() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
     guide = (SKILL / "knowledge" / "go-v1.md").read_text(encoding="utf-8")
-    assert "scans: [python, typescript, javascript, go, java]" in text
+    assert "scans: [python, typescript, javascript, go, java, rust]" in text
     assert "`go list` + `go/parser` +" in text
     assert "exactly one literal omits the field" in guide
     assert "**every** present line newer" in text

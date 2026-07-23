@@ -236,6 +236,6 @@ def test_java_boundaries_are_explicit_not_clean(tmp_path: Path) -> None:
 
 def test_java_frontmatter_declares_narrow_support() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
-    assert "scans: [python, javascript, typescript, go, java]" in text
+    assert "scans: [python, javascript, typescript, go, java, rust]" in text
     assert "JDK 17" in text
     assert "does not resolve aliases, types, receivers, imports, or frameworks" in " ".join(text.split())
