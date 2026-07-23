@@ -1,0 +1,162 @@
+{
+  "batch": "P7/F2 A3 PHP semantic read-only",
+  "revision": "worker lane based on 4e3aa41; root publication is intentionally separate",
+  "family": [
+    "find-dormant",
+    "find-implicit-state",
+    "find-incomplete-sweep",
+    "find-semantic-duplication",
+    "rename-concept"
+  ],
+  "invariant": {
+    "portable_principle": "Share only one language-local fact collector when all immediate consumers need the same bounded project identity, source-role, native preflight, direct-symbol, source-preservation, and terminal-state facts; each consumer owns its report and review gate.",
+    "python_or_framework_mechanism": "No Python/Django mechanism is reused at runtime.",
+    "typescript_mechanism": "TypeScript Compiler API identity/reference facts are not treated as interchangeable with PHP Composer/direct-symbol facts.",
+    "explicit_non_goals": [
+      "No universal AST, call graph, semantic result schema, daemon, cache, or cross-language provider.",
+      "No framework, container, reflection, dynamic dispatch, inheritance, trait, external-consumer, behavioral-equivalence, safe-delete, or safe-refactor claim.",
+      "No tool installation, Composer install/update, plugin/script execution, or network operation."
+    ]
+  },
+  "reference_repairs": [],
+  "language_model": {
+    "syntax": [
+      "PHP native php -l plus token_get_all(..., TOKEN_PARSE) is only a parse/preflight boundary.",
+      "The provider records malformed source as partial and never turns it into a clean absence claim."
+    ],
+    "type_system": [
+      "The available PHP fact is deliberately narrower than a type checker: final Composer-owned class identity, direct $this member use, constructor parameters, direct named new expressions, and direct declared parameter/return types.",
+      "A project-local PHPStan/Psalm configuration/executable pair is fingerprinted and version-probed when present; an incomplete configured pair is a partial terminal state, not a fallback to guessed facts."
+    ],
+    "module_resolution": [
+      "composer.json name/hash, composer.lock presence/hash, Composer validate state, and exact autoload.psr-4 mapping are frozen in every fact result.",
+      "A class is resolved only when its declared FQCN and source path exactly agree with the selected PSR-4 mapping."
+    ],
+    "runtime": [
+      "Dynamic member names, class_alias, reflection-like names, containers, framework wiring, external callers, and unknown source roots are emitted as boundaries.",
+      "Direct static facts never authorize deletion, an enum migration, a sweep repair, consolidation, or a rename completion."
+    ],
+    "framework": [
+      "Laravel, Symfony, WordPress, Drupal, and other framework contracts remain outside the PHP language-level outcome."
+    ]
+  },
+  "tooling": {
+    "selected": "PHP 8.4.2 at /opt/homebrew/bin/php; Composer 2.4.0 at /usr/local/bin/composer; Composer PSR-4 direct-symbol provider.",
+    "rejected_alternatives": {
+      "ambient_phpstan_or_psalm": "Neither was installed or downloaded. The lane cannot claim their reference/type output without a project-owned executable/configuration pair.",
+      "token_only_semantics": "Rejected: tokens support parsing but do not establish Composer class identity or direct resolved relationships.",
+      "universal_semantic_provider": "Rejected by the shared-kit decision; PHP facts, final reports, partiality, and human review schemas stay family-local."
+    },
+    "version_and_resolution": "Every artifact records PHP/Composer probes, Composer validation, Composer name/json/lock/PSR-4 identity, and configured PHPStan/Psalm status. Project-local analyzers are not installed or resolved from the network.",
+    "closure_mode": "external-library: copied selected skill directory plus sibling _php-semantic/php_semantic_facts.php and _php-project-lexical/php_project_lexical.php.",
+    "preflight_and_failure_codes": [
+      "complete exits 0; missing/old PHP or Composer, malformed source, unsafe Composer lock, missing/incomplete configured analyzer, and missing required human review exit 2 with a replacement partial artifact.",
+      "failing PHP lint, Composer validation, configured analyzer probe, or source-preservation check exits 1 with a replacement failed artifact.",
+      "unsafe inputs, output paths, review files, and malformed verdict files exit 64 before an unsafe write."
+    ]
+  },
+  "outcome_contract": {
+    "inputs": [
+      "A regular Composer project root, selected non-symlink target, project-owned PHP and Composer executables, and an output below the consumer's reports root.",
+      "Hash-bound review files for implicit state and semantic duplication; hash-bound fixed-vocabulary verdicts for incomplete sweep triage."
+    ],
+    "structured_outputs": [
+      "find-dormant: findings.json, report.md, facts.json with review_required candidates and certain_delete=0.",
+      "find-implicit-state: candidates.json, findings.json, report.md, facts.json; raw candidates are not promoted without a current review.",
+      "find-incomplete-sweep: manifest.json, findings.md, facts.json followed by triaged.json/triaged.md after a current verdict.",
+      "find-semantic-duplication: candidates.jsonl, findings.json, analysis.json, triage.md, facts.json; only confirm_candidate review results reach confirmed.",
+      "rename-concept: assessment.json, report.md, facts.json; a resolved identifier sweep still remains prose/runtime-review incomplete."
+    ],
+    "must_fire": [
+      "One final-class private Job method with zero direct resolved $this calls becomes a human-review-only dormant lead.",
+      "One final string Job.state field with queued/running/done direct operations becomes a hash-reviewed implicit-state lead.",
+      "One old named RequestOptions construction misses region while three later direct constructions include it, producing a hash-verdict-gated sweep lead.",
+      "Two independent SummaryFactory methods return the same Composer-resolved Summary named-field shape, producing a hash-reviewed semantic-duplication lead.",
+      "LegacyStatus and CanonicalStatus declarations plus a direct LegacyStatus typed parameter establish a half-applied rename assessment."
+    ],
+    "must_not_fire": [
+      "Generated, test, vendor, report, and symlink copies of tempting signals are inventoried as excluded and never nominate a lead.",
+      "A DynamicHandler method reached through $this->{$method} is uncertainty, not dormant evidence.",
+      "A one-operation label field, a wrapper relationship, different resolved return target, strings/comments, and unreviewed candidates are not promoted."
+    ],
+    "native_test_command": "composer validate --no-check-publish --no-interaction && php tests/lint.php && php tests/smoke.php",
+    "native_guard_command": "php -l each provider/adapter plus the copied external-library pytest replay"
+  },
+  "evidence": {
+    "python_reference": [],
+    "typescript": [],
+    "commands_and_artifact_paths": [
+      ".venv/bin/python -m pytest -q tests/test_php_a3_semantic_family.py",
+      "tests/fixtures/php-semantic-family: 19 files, 5,629 bytes, manifest sha256 d8db44c6e782c5cb5d4aa8f255c330825f4d7beb93c212ca49f5a988da5791c3",
+      "Final copied closure manifests (files/bytes/sha256): dormant 20/275,791/0074aa883aed08e8cd2ab9a37b643c90e6881c93f9dcab5652f560d9528d293b; state 18/251,127/9e9f34e9061f0f8fe4e4642548fe4a73b40b7376b964a944c02e8122669b2b81; sweep 21/334,309/fb54d2da8f01d473a0928fe56b2cbfde1ff05d80797632b59e90f604be30c739; semantic 23/318,960/2c8aa91de6a72d9f4ce1c505734e880052b0bb1f7df89947da87ad650f20748f; rename 14/256,146/b81e4091ab7728b3b15af0ee09ce2244872ce818cb97c4418039bae42643e7a7.",
+      "tests/test_php_a3_semantic_family.py proves positive, clean, role/symlink decoys, missing/old/failing/malformed/configured-tool boundaries, valid-failed-valid replacement, copied closure, human gates, native Composer/PHP checks, and source preservation."
+    ]
+  },
+  "false_positive_boundary": {
+    "known_false_positives": [
+      "A zero direct $this call count can still be runtime-reachable; dormant output is review_required only.",
+      "Repeated string operations do not prove a closed domain; implicit-state requires a human verdict.",
+      "Similar direct constructor return shape is not behavioral equivalence; semantic duplication requires a human verdict.",
+      "A direct old symbol does not prove prose/runtime rename residue is complete."
+    ],
+    "known_false_negatives": [
+      "Cross-object receiver calls, aliases not resolved by the bounded import parser, traits, inheritance, framework/container edges, dynamic construction, and external callers are deliberately withheld.",
+      "Incomplete sweep requires named arguments, one omission, a 4/3/75% group, and a monotonic Git trajectory."
+    ],
+    "legitimate_similar_shapes": [
+      "Factory request variants can share a return shape but receive keep_separate human verdicts.",
+      "String labels and generated/vendor/test state terms are not first-party state authorities."
+    ]
+  },
+  "generalized": [
+    "Composer identity can support a useful narrow semantic tier when every claimed FQCN/source relationship exactly matches declared PSR-4 ownership.",
+    "A language-local semantic provider is worthwhile when five consumers need the same native preflight, Composer identity, role exclusions, source manifest, direct relationship, and boundary facts."
+  ],
+  "did_not_generalize": [
+    "Composer PSR-4 is not a substitute for PHPStan/Psalm reference/type facts.",
+    "The PHP provider cannot be promoted across PHP/Ruby/Swift or into a universal semantic platform.",
+    "Human review protocols vary by consumer and remain adapter-owned."
+  ],
+  "reuse_decision": {
+    "shared_candidate": "_php-semantic/php_semantic_facts.php",
+    "actual_second_consumer": "All five A3 consumers immediately consume identical Composer identity, source-role, native preflight, direct-symbol, boundary, source-manifest, and preservation facts while emitting distinct final artifacts.",
+    "decision": "keep-language-local-shared-provider",
+    "evidence": [
+      "ML-025 maintained physical LOC: provider 787 + adapters 723 + focused test 367 = 1,877 shared; mechanically copying the provider into each of five consumers is 5,025. Reduction is 62.6468% (gate >=25%).",
+      "Copied closure comparison replaces only the provider location. Shared-versus-literal growth is 23 bytes per consumer: dormant 0.00834%, state 0.00916%, sweep 0.00688%, semantic 0.00722%, rename 0.00899% (gate <=10%).",
+      "Seven alternating warm five-consumer cohorts on macOS/PHP 8.4.2/Composer 2.4.0: shared [5.086928, 5.165953, 5.406928, 6.731508, 6.846886, 4.969216, 5.200637] s; literal [4.928025, 4.863645, 5.229215, 6.166089, 5.969549, 5.413765, 4.854431] s. Medians 5.200637 and 5.229215 s: shared growth -0.5465% (gate <=10%).",
+      "Sharing stays PHP-local and external-library-only. If a later consumer needs incompatible facts, copy this provider locally and delete the seam rather than widening it."
+    ],
+    "owner": "PHP A3 family worker; root owns shared publication surfaces"
+  },
+  "translation_prerequisites": {
+    "rust": {"native_tool": "not applicable", "idiomatic_representation": "not applicable", "required_fixtures": [], "semantic_gaps": []},
+    "go": {"native_tool": "not applicable", "idiomatic_representation": "not applicable", "required_fixtures": [], "semantic_gaps": []},
+    "java_or_kotlin": {"native_tool": "not applicable", "idiomatic_representation": "not applicable", "required_fixtures": [], "semantic_gaps": []},
+    "csharp": {"native_tool": "not applicable", "idiomatic_representation": "not applicable", "required_fixtures": [], "semantic_gaps": []},
+    "ruby": {"native_tool": "Sorbet or Steep only when project-owned and configuration-complete", "idiomatic_representation": "Ruby semantic facts must retain dynamic dispatch/autoload boundaries rather than reuse Composer semantics", "required_fixtures": ["configured/missing/old analyzer", "autoload/dynamic dispatch", "human review and copied closure"], "semantic_gaps": ["PHP PSR-4 identity does not transfer to Ruby"]}
+  },
+  "user_experience": {
+    "install_steps": [
+      "Root later copies the selected skill and _php-semantic/_php-project-lexical siblings into the on-demand library; no ambient tool installation is needed.",
+      "Host invokes the PHP adapter with its Composer root and native PHP/Composer executables; human review files are required only where the skill contract requires a verdict."
+    ],
+    "wall_time_seconds": 5.200637,
+    "agent_confusions": [
+      "Composer identity is a bounded semantic fact, not a complete PHP reference/type index.",
+      "A configured but incomplete PHPStan/Psalm pair must remain partial; no fallback to string/token guesses is allowed."
+    ],
+    "repeated_work": ["Each independent consumer still runs one provider snapshot; request-level batching is not claimed."],
+    "smallest_later_improvement": "Measure a content-bound family coordinator only after at least two real user journeys show duplicated provider cost without weakening independent terminal statuses."
+  },
+  "residual_risks": [
+    "The direct-symbol parser intentionally does not establish PHP type/reference completeness; projects needing it require project-owned PHPStan/Psalm facts or remain partial.",
+    "The parent guide/router/coverage/matrix publication remains root-owned and is intentionally not edited in this lane.",
+    "No framework profile is earned."
+  ],
+  "next_decision": {
+    "recommendation": "Root may integrate the language-local implementation and then publish only the five bounded PHP dispositions after replaying focused/preserved PHP and shared release tests.",
+    "rationale": "All five consumers have distinct copied final artifacts, explicit human authority where required, native checks, lifecycle transitions, and ML-025 gates.",
+    "blockers": ["Root-owned guide, coverage, matrix, router, catalog, and active-ledger publication work remains serial."]
+  }
+}
