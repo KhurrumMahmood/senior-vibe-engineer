@@ -23,11 +23,12 @@ the moved source or its resolved direct consumer/dependency closure remains a
 refusal, and an exact old library identity remains blocking wherever found.
 
 Dry-run is source-preserving and emits `evidence.json`. Its hash covers the
-normalized plan, complete source tree, expected after tree, exact edit spans,
-public barrels, syntax/tool manifests, semantic fact-pack/query hashes,
-package configuration, and source hashes. Apply requires the human to repeat
-that evidence SHA explicitly. A stale tree, changed plan, changed evidence, or
-changed span refuses before mutation.
+normalized plan, complete source tree including regular-file modes, expected
+after tree, exact edit spans, public barrels, syntax/tool manifests, semantic
+fact-pack/query hashes, package configuration, and source hashes. Apply
+requires the human to repeat that evidence SHA explicitly. A stale tree,
+changed mode, changed plan, changed evidence, or changed span refuses before
+mutation.
 
 Apply snapshots every regular file, mode, and symlink outside the report and
 Git metadata; mutates only the reviewed move/edits; reruns Dart
@@ -44,12 +45,15 @@ declared public barrel that exports the moved library.
 
 It stops before writes for multiple moves, public `lib/*.dart` moves,
 cross-package/public package-URI changes, unresolved or excluded-role impacts,
-conditional imports/exports, or parts/part files, augmentations, generated
+or conditional imports/exports, parts/part files, augmentations, generated
 source, and dynamic/reflective loading evidence on the moved path or resolved
-direct impact closure. A moved/required path crossing a symlink, an exact old
+direct impact closure. A moved/required path crossing a symlink, a symlinked
+Dart consumer with lexical evidence of the moved identity, an exact old
 identity anywhere, malformed source, missing/stale configuration, unsupported
-tooling, or an incomplete relevant semantic graph also refuses. There is no
-regex/lexer fallback when move-relevant D2 or D4 evidence is partial.
+tooling, or an incomplete relevant semantic graph also refuses. The unrelated
+augmentation case proves only a raw augmentation-like token false positive,
+not an executable augmentation construct. There is no regex/lexer fallback
+when move-relevant D2 or D4 evidence is partial.
 
 This is not a package rename, public API/semver migration, dependency install,
 Pub workspace operation, arbitrary codemod, generated-code move, Flutter
@@ -75,25 +79,36 @@ boundary cases passed their preserved-refusal assertions, and a valid `part`
 relationship on a resolved direct consumer independently proved the impacted
 closure still refuses without leaving `evidence.json`.
 
+The adversarial follow-up reproduced two correctness escapes on `4779e2a`: an
+analysis-excluded symlinked Dart consumer could retain the old package URI in
+its external target, and file-mode changes neither made preview evidence stale
+nor failed post-apply `--check`. The regression selection failed all four new
+acceptance assertions before the fix. The repaired adapter now reads only the
+logical Dart symlink text needed for lexical move-identity detection, never
+mutates the external target, hashes regular-file modes, and proves both
+pre-apply and post-apply mode drift. A sixth unrelated-boundary cell proves a
+valid conditional directive can coexist with the move while an impacted
+conditional still refuses. The test subprocess uses `sys.executable` and finds
+Dart on `PATH`; only absence of the native Dart SDK skips the module.
+
 ## Reuse and economics
 
-The maintained adapter and focused final-outcome test are 2,126 physical lines
-(1,928 nonblank) and 79,399 bytes. The exact runtime closure reuses 4,005
+The maintained adapter and focused final-outcome test are 2,344 physical lines
+(2,130 nonblank) and 86,154 bytes. The exact runtime closure reuses 2,720
 physical lines of accepted Dart producers rather than forking their
 inventory, locked-analyzer, native-lifecycle, or SDK-LSP implementations into
 D8. Against an embedded `C + H` shape, the maintained D8-local surface is
-`C = 2,126` rather than `C + H = 6,131` lines, avoiding 4,005 duplicate lines
-(65.32%). This is deletion/reuse value, not evidence for a generic transaction
+`C = 2,344` rather than `C + H = 5,064` lines, avoiding 2,720 duplicate lines
+(53.71%). This is deletion/reuse value, not evidence for a generic transaction
 platform; Dart move policy, evidence schema, refusal rules, and rollback remain
 in one mutation-local adapter.
 
-The seven-file copied runtime is 198,849 bytes / 5,409 physical lines and uses
+The six-file copied runtime is 157,874 bytes / 4,243 physical lines and uses
 sorted `repository-relative-path + NUL + file-SHA-256 + LF` rows. Its manifest
 at implementation time is
-`a1f1eea9f651f9d3b910068b2b0b4593308cba6472ec34dfa2718c9ec7ab66f6`:
+`7c34867d6de20e797596349cfec0967dbb92e31c98b184ac1cac7a038f3a339b`:
 
 - `move-path/scripts/dart_library_move.py`
-- `_dart/dart_project_snapshot.py`
 - `_dart/scripts/dart_syntax_facts.py`
 - `_dart/tool/bin/dart_syntax_facts.dart`
 - `_dart/tool/pubspec.yaml`
@@ -107,7 +122,7 @@ temporary copy of the locked analyzer tool; Pub never runs in the host.
 
 ## Root publication boundary
 
-Root alone should (1) merge this branch after D1-D7, (2) add the seven-file
+Root alone should (1) merge this branch after D1-D7, (2) add the six-file
 external-library dependency closure for Dart `move-path`, (3) change only the
 Dart `move-path` capability from pending to supported with this packet and the
 committed revision as evidence, (4) regenerate matrix/router projections and

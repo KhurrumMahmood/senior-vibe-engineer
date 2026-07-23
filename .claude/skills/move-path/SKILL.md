@@ -245,14 +245,18 @@ Generated source, parts/part files, augmentations, and dynamic/reflective
 loading evidence stop when they occur on the moved path or its resolved direct
 impact closure; symlinks stop when a moved or required evidence path crosses
 one, and exact old-identity strings remain blocking wherever found. Unrelated
-generated, part/augmentation, dynamic-token, and symlink decoys remain
-content-addressed in the whole-host proof rather than globally refusing the
-move. Conditional directives, unresolved or
+generated source, a valid part pair, an augmentation-like raw token, a dynamic
+token, and a symlink remain content-addressed in the whole-host proof rather
+than globally refusing the move; this does not claim an executable augmentation
+construct. Conditional directives are likewise scoped to the resolved direct
+impact closure. Unresolved or
 excluded-role impacts, multiple moves, public-library moves, and an incomplete
 package graph also stop before mutation. Postflight reruns analyzer-backed
 facts plus format/analyze/direct-test/smoke, checks the exact whole-host after
-tree, and restores the complete byte/mode/symlink snapshot on any failure. The
-copied closure installs no Dart SDK or host dependency and never runs Pub
+tree including regular-file modes, and restores the complete byte/mode/symlink
+snapshot on any failure. A symlinked Dart file with lexical evidence of the
+moved identity refuses; unrelated symlinks remain preserved without mutation.
+The copied closure installs no Dart SDK or host dependency and never runs Pub
 inside the audited host.
 
 ## Commands
@@ -590,13 +594,20 @@ describing the old layout rather than linking to the current identity.
 
 ## Git Rules
 
+The rules below describe the generic `move_path.py` command, not the standalone
+language adapters:
+
 - Tracked paths move with `git mv`.
-- Untracked paths move with filesystem rename and are reported as
-  untracked.
+- Untracked paths move with filesystem rename and are reported as untracked.
 - Case-only renames use a temporary path internally.
 - Dirty touched files block apply by default.
-- `--stage` stages changed old and new paths after apply; otherwise the
-  tool leaves the index alone.
+- `--stage` stages changed old and new paths after apply; otherwise the tool
+  leaves the index alone.
+
+The standalone Dart adapter uses filesystem rename after the content-addressed
+current-tree check. It has no dirty-touched or `--stage` mode; the user owns Git
+staging after a complete apply/check.
+
 - After manual reference or signpost edits, run `--check` before commit. If
   `--stage` was not used, stage the move and rewrite surfaces together so the
   commit is a coherent topology change.

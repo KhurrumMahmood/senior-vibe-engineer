@@ -8,6 +8,7 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -16,12 +17,13 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / ".claude/skills/move-path/scripts/dart_library_move.py"
 GENERIC_MOVE = ROOT / ".claude/skills/move-path/scripts/move_path.py"
-PYTHON = Path("/Users/khurrummahmood/Projects/engineering-skills-product/.venv/bin/python")  # host-ref-allow: required frozen P7 runtime
-DART = Path("/opt/homebrew/bin/dart")
+PYTHON = Path(sys.executable).resolve()
+DART_ON_PATH = shutil.which("dart")
+DART = Path(DART_ON_PATH).resolve() if DART_ON_PATH else Path("dart")
 
 pytestmark = pytest.mark.skipif(
-    not (PYTHON.is_file() and DART.is_file()),
-    reason="the frozen product Python and Dart 3.12 SDK are required",
+    DART_ON_PATH is None,
+    reason="a native Dart SDK on PATH is required",
 )
 
 
@@ -331,6 +333,20 @@ def _add_unrelated_boundary_decoy(host: Path, tmp_path: Path, boundary: str) -> 
             host / "lib/src/unrelated_dynamic_loading.dart",
             "const unrelatedDynamicLoadingText = 'Uri.parse';\n",
         )
+    elif boundary == "conditional":
+        _write(
+            host / "lib/src/unrelated_platform.dart",
+            "export 'unrelated_platform_stub.dart'\n"
+            "    if (dart.library.io) 'unrelated_platform_io.dart';\n",
+        )
+        _write(
+            host / "lib/src/unrelated_platform_stub.dart",
+            "String unrelatedPlatform() => 'stub';\n",
+        )
+        _write(
+            host / "lib/src/unrelated_platform_io.dart",
+            "String unrelatedPlatform() => 'io';\n",
+        )
     else:
         external = tmp_path / "unrelated_external.dart"
         _write(external, "class UnrelatedExternal {}\n")
@@ -340,7 +356,8 @@ def _add_unrelated_boundary_decoy(host: Path, tmp_path: Path, boundary: str) -> 
 
 
 @pytest.mark.parametrize(
-    "boundary", ["generated", "part", "augmentation", "dynamic-loading", "symlink"]
+    "boundary",
+    ["generated", "part", "augmentation", "dynamic-loading", "conditional", "symlink"],
 )
 def test_dart_unrelated_boundary_decoys_do_not_refuse_a_proved_move(
     tmp_path: Path, boundary: str
@@ -366,6 +383,37 @@ def test_dart_unrelated_boundary_decoys_do_not_refuse_a_proved_move(
     assert report["dart"]["exact_after_tree"]["passed"] is True
     after = _tree(host)
     assert {path: after[path] for path in decoys} == decoys
+
+
+def test_dart_symlinked_consumer_with_move_identity_refuses_without_external_mutation(
+    tmp_path: Path,
+) -> None:
+    host = _host(tmp_path)
+    external = tmp_path / "external_consumer.dart"
+    _write(
+        external,
+        "import 'package:dart_move_host/src/legacy/invoice_service.dart';\n",
+    )
+    _write(
+        host / "analysis_options.yaml",
+        "analyzer:\n  exclude:\n    - lib/src/linked_consumer.dart\n",
+    )
+    linked = host / "lib/src/linked_consumer.dart"
+    linked.symlink_to(external)
+    plan = _plan(host)
+    before = _tree(host)
+    external_before = external.read_bytes()
+
+    result, report, report_dir = _invoke(host, plan, "dry-run")
+
+    assert result.returncode == 0
+    assert report["dart"]["status"] == "partial"
+    assert "dart_symlink_move_identity" in {
+        row["kind"] for row in report["dart"]["blocked"]
+    }
+    assert not (report_dir / "evidence.json").exists()
+    assert _tree(host) == before
+    assert external.read_bytes() == external_before
 
 
 def test_dart_part_boundary_in_an_impacted_consumer_still_refuses(
@@ -421,6 +469,58 @@ def test_dart_stale_evidence_refuses_without_touching_current_source(tmp_path: P
     assert _tree(host) == before_apply
 
 
+def test_dart_mode_drift_makes_preview_evidence_stale_before_apply(
+    tmp_path: Path,
+) -> None:
+    host = _host(tmp_path)
+    plan = _plan(host)
+    _, evidence_path, evidence = _preview(host, plan)
+    consumer = host / "lib/src/relative_consumer.dart"
+    consumer.chmod(0o600)
+    before_apply = _tree(host)
+
+    result, report, _ = _invoke(
+        host,
+        plan,
+        "apply",
+        evidence=evidence_path,
+        approval=evidence["evidence_sha256"],
+    )
+
+    assert result.returncode == 2
+    assert report["dart"]["status"] == "failed"
+    assert report["dart"]["failure_kind"] == "stale_move_evidence"
+    assert report["dart"]["rolled_back"] is False
+    assert _tree(host) == before_apply
+    assert not (host / "lib/src/billing/internal/invoice_service.dart").exists()
+
+
+def test_dart_check_refuses_post_apply_mode_drift(tmp_path: Path) -> None:
+    host = _host(tmp_path)
+    plan = _plan(host)
+    _, evidence_path, evidence = _preview(host, plan)
+    result, applied, _ = _invoke(
+        host,
+        plan,
+        "apply",
+        evidence=evidence_path,
+        approval=evidence["evidence_sha256"],
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert applied["dart"]["status"] == "complete"
+    destination = host / "lib/src/billing/internal/invoice_service.dart"
+    destination.chmod(0o600)
+
+    checked, report, _ = _invoke(host, plan, "check", evidence=evidence_path)
+
+    assert checked.returncode == 2
+    assert report["dart"]["status"] == "failed"
+    assert report["dart"]["failure_kind"] == "after_tree_mismatch"
+    assert report["dart"]["further_edits"] == [
+        "current tree differs from approved after tree"
+    ]
+
+
 def test_dart_partial_rerun_removes_prior_mutation_authority(tmp_path: Path) -> None:
     host = _host(tmp_path)
     plan = _plan(host)
@@ -456,7 +556,8 @@ def test_dart_unresolved_or_dynamic_uncertainty_refuses_and_preserves_bytes(
     else:
         _write(
             host / "lib/src/platform.dart",
-            "export 'platform_stub.dart' if (dart.library.io) 'platform_io.dart';\n",
+            "export 'legacy/invoice_service.dart' "
+            "if (dart.library.io) 'platform_io.dart';\n",
         )
         _write(host / "lib/src/platform_stub.dart", "String platform() => 'stub';\n")
         _write(host / "lib/src/platform_io.dart", "String platform() => 'io';\n")
@@ -594,7 +695,6 @@ def test_dart_external_library_closure_runs_from_outside_repo(tmp_path: Path) ->
     copied_move.parent.mkdir(parents=True)
     shutil.copy2(SCRIPT, copied_move)
     for relative in (
-        "dart_project_snapshot.py",
         "scripts/dart_syntax_facts.py",
         "tool/bin/dart_syntax_facts.dart",
         "tool/pubspec.yaml",
@@ -697,7 +797,6 @@ def test_dart_fixture_and_adapter_closure_manifests_are_content_addressed(
 
     closure = [
         SCRIPT,
-        ROOT / ".claude/skills/_dart/dart_project_snapshot.py",
         ROOT / ".claude/skills/_dart/scripts/dart_syntax_facts.py",
         ROOT / ".claude/skills/_dart/tool/bin/dart_syntax_facts.dart",
         ROOT / ".claude/skills/_dart/tool/pubspec.yaml",
@@ -718,5 +817,5 @@ def test_dart_fixture_and_adapter_closure_manifests_are_content_addressed(
         "315f6217ccc049fbe3fc7d43f8376cabc317729f80d706e416ae7cfaf68f3f3d"
     )
     assert closure_digest.hexdigest() == (
-        "a1f1eea9f651f9d3b910068b2b0b4593308cba6472ec34dfa2718c9ec7ab66f6"
+        "7c34867d6de20e797596349cfec0967dbb92e31c98b184ac1cac7a038f3a339b"
     )

@@ -116,7 +116,6 @@ def _library_root() -> Path:
     root = Path(__file__).resolve().parents[2]
     required = (
         root / "_dart/scripts/dart_syntax_facts.py",
-        root / "_dart/dart_project_snapshot.py",
         root / "map-subsystem/scripts/dart_lsp_facts.py",
     )
     if not all(path.is_file() for path in required):
@@ -128,7 +127,6 @@ def _library_root() -> Path:
 def _runtime_closure_evidence(library_root: Path) -> dict[str, Any]:
     paths = (
         library_root / "move-path/scripts/dart_library_move.py",
-        library_root / "_dart/dart_project_snapshot.py",
         library_root / "_dart/scripts/dart_syntax_facts.py",
         library_root / "_dart/tool/bin/dart_syntax_facts.dart",
         library_root / "_dart/tool/pubspec.yaml",
@@ -201,7 +199,10 @@ def _snapshot(
 def _fingerprint(files: dict[str, FileState], links: dict[str, str]) -> str:
     digest = hashlib.sha256()
     rows = {
-        **{path: _hash_bytes(state.contents) for path, state in files.items()},
+        **{
+            path: f"file:{state.mode:o}:{_hash_bytes(state.contents)}"
+            for path, state in files.items()
+        },
         **{path: f"symlink:{target}" for path, target in links.items()},
     }
     for path, value in sorted(rows.items()):
@@ -548,6 +549,54 @@ def _moved_source_boundaries(
     return blocked
 
 
+def _symlink_move_boundaries(
+    root: Path, report_dir: Path, normalized: dict[str, Any]
+) -> list[dict[str, Any]]:
+    package_name = _package_name(root)
+    if package_name is None:
+        return []
+    move = normalized["move"]
+    old_identities = {
+        move["from"],
+        f"package:{package_name}/{move['from'][len('lib/') :]}",
+    }
+    _, links = _snapshot(root, report_dir)
+    blocked: list[dict[str, Any]] = []
+    for relative in sorted(links):
+        logical = root / relative
+        if logical.suffix.casefold() != ".dart" or not logical.is_file():
+            continue
+        try:
+            text = logical.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        identity: str | None = None
+        for match in DIRECTIVE_RE.finditer(text):
+            uri = match.group("uri")
+            target = _resolve_lexical_uri(relative, uri, package_name)
+            if target is not None and _move_path_related(target, move):
+                identity = uri
+                break
+        if identity is None:
+            identity = next(
+                (
+                    candidate
+                    for candidate in sorted(old_identities)
+                    if re.search(rf"(['\"]){re.escape(candidate)}\1", text)
+                ),
+                None,
+            )
+        if identity is not None:
+            blocked.append(
+                {
+                    "kind": "dart_symlink_move_identity",
+                    "path": relative,
+                    "identity": identity,
+                }
+            )
+    return blocked
+
+
 def _impacted_files(
     normalized: dict[str, Any], semantic: dict[str, Any]
 ) -> set[str]:
@@ -711,7 +760,39 @@ def _fact_failure(
     if semantic.get("status") == "failed":
         return "failed", str(semantic.get("failure_kind") or "dart_semantic_failed")
     if syntax.get("status") != "complete":
-        return "partial", str(syntax.get("failure_kind") or "dart_syntax_partial")
+        unsupported_is_relevant = package_name is None or any(
+            (
+                any(
+                    row.get("supported") is False
+                    and _directive_impacted(
+                        file["file"],
+                        row.get("uri"),
+                        move=normalized["move"],
+                        package_name=package_name,
+                        impacted_files=impacted_files,
+                    )
+                    for row in file.get("directives", [])
+                )
+                or (
+                    any(
+                        row.get("supported") is False
+                        for row in file.get("declarations", [])
+                    )
+                    and (
+                        file["file"] in impacted_files
+                        or _move_path_related(file["file"], normalized["move"])
+                    )
+                )
+            )
+            for file in syntax.get("files", [])
+        )
+        if (
+            syntax.get("failure_kind") != "unsupported_dart_syntax"
+            or unsupported_is_relevant
+        ):
+            return "partial", str(
+                syntax.get("failure_kind") or "dart_syntax_partial"
+            )
     if semantic.get("status") != "complete":
         boundary_reason = "conditional/part/augmentation/runtime boundaries are present"
         remaining_reasons = [
@@ -731,6 +812,26 @@ def _fact_failure(
                 semantic.get("failure_kind") or "dart_semantic_partial"
             )
     return None
+
+
+def _directive_impacted(
+    source: str,
+    uri: object,
+    *,
+    move: dict[str, str],
+    package_name: str,
+    impacted_files: set[str],
+) -> bool:
+    target = (
+        _resolve_lexical_uri(source, uri, package_name)
+        if isinstance(uri, str)
+        else None
+    )
+    return (
+        source in impacted_files
+        or _move_path_related(source, move)
+        or (target is not None and _move_path_related(target, move))
+    )
 
 
 def _plan_changes(
@@ -762,28 +863,33 @@ def _plan_changes(
             kind = directive.get("kind")
             uri = directive.get("uri")
             if kind in {"part", "part_of"}:
-                target = (
-                    _resolve_lexical_uri(source_name, uri, package_name)
-                    if isinstance(uri, str)
-                    else None
-                )
-                if (
-                    source_name in impacted_files
-                    or _move_path_related(source_name, move)
-                    or (target is not None and _move_path_related(target, move))
+                if _directive_impacted(
+                    source_name,
+                    uri,
+                    move=move,
+                    package_name=package_name,
+                    impacted_files=impacted_files,
                 ):
                     blocked.append(
                         {"kind": "dart_part_directive", "path": source_name}
                     )
                 continue
             if directive.get("supported") is False:
-                blocked.append(
-                    {
-                        "kind": directive.get("unsupported_reason") or "dart_unsupported_directive",
-                        "path": source_name,
-                        "line": directive.get("line"),
-                    }
-                )
+                if _directive_impacted(
+                    source_name,
+                    uri,
+                    move=move,
+                    package_name=package_name,
+                    impacted_files=impacted_files,
+                ):
+                    blocked.append(
+                        {
+                            "kind": directive.get("unsupported_reason")
+                            or "dart_unsupported_directive",
+                            "path": source_name,
+                            "line": directive.get("line"),
+                        }
+                    )
                 continue
             if kind not in {"import", "export"} or not isinstance(uri, str) or uri.startswith("dart:"):
                 continue
@@ -862,11 +968,12 @@ def _plan_changes(
             kind = match.group("kind")
             uri = match.group("uri")
             if kind.startswith("part"):
-                target = _resolve_lexical_uri(relative, uri, package_name)
-                if (
-                    relative in impacted_files
-                    or _move_path_related(relative, move)
-                    or (target is not None and _move_path_related(target, move))
+                if _directive_impacted(
+                    relative,
+                    uri,
+                    move=move,
+                    package_name=package_name,
+                    impacted_files=impacted_files,
                 ):
                     blocked.append(
                         {
@@ -875,8 +982,20 @@ def _plan_changes(
                             "line": text[: match.start()].count("\n") + 1,
                         }
                     )
-            if " if (" in match.group("tail"):
-                blocked.append({"kind": "conditional_configuration", "path": relative, "line": text[: match.start()].count("\n") + 1})
+            if re.search(r"\bif\s*\(", match.group("tail")) and _directive_impacted(
+                relative,
+                uri,
+                move=move,
+                package_name=package_name,
+                impacted_files=impacted_files,
+            ):
+                blocked.append(
+                    {
+                        "kind": "conditional_configuration",
+                        "path": relative,
+                        "line": text[: match.start()].count("\n") + 1,
+                    }
+                )
             if relative not in syntax_files:
                 target = _resolve_lexical_uri(relative, uri, package_name)
                 if target and (_path_moved(target, move["from"]) or _path_moved(relative, move["from"])):
@@ -1128,7 +1247,7 @@ def _dry_run(
     source_hash = _fingerprint(before_files, before_links)
     blocked = _preflight_paths(root, normalized) + _moved_source_boundaries(
         root, report_dir, normalized["move"]
-    )
+    ) + _symlink_move_boundaries(root, report_dir, normalized)
     if blocked:
         report = _base_report(
             mode="dry-run",
