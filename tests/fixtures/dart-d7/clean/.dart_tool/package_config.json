@@ -1,0 +1,12 @@
+{
+  "configVersion": 2,
+  "packages": [
+    {
+      "name": "dart_d7_clean",
+      "rootUri": "../",
+      "packageUri": "lib/",
+      "languageVersion": "3.12"
+    }
+  ],
+  "generator": "tracked-d7-fixture"
+}
