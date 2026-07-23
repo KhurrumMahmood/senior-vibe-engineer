@@ -1,0 +1,7 @@
+name: dart_d2_syntax_fixture
+description: Dependency-free Dart D2 syntax-family fixture.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.12.0 <3.13.0"

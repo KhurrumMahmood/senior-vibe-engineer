@@ -1,0 +1,17 @@
+{
+  "ideas": [
+    {
+      "id": "dart-parse-invoice-try",
+      "label": "Invoice parsing is enclosed by try",
+      "contract": {
+        "detector": {
+          "kind": "ast",
+          "call_matches": "^parseInvoice$",
+          "enclosed_by": "try",
+          "paths": ["lib/**/*.dart"]
+        }
+      },
+      "activation": {"baseline": true}
+    }
+  ]
+}
