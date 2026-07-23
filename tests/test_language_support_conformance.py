@@ -59,6 +59,13 @@ P3_ALLOWED_SKILL_CHANGES = frozenset(
         "scripts/report.py",
     }
 )
+POST_P3_ADDITIVE_FILES = frozenset(
+    {
+        "scripts/detect_swift_symbols.py",
+        "scripts/run_dart.py",
+        "scripts/run_rust.py",
+    }
+)
 
 
 def _run(
@@ -101,7 +108,7 @@ def _assert_frozen_tree(root: Path, baseline: Mapping[str, object]) -> None:
         for path in root.rglob("*")
         if path.is_file()
     }
-    assert current_paths - set(paths) == {"scripts/detect_swift_symbols.py"}
+    assert current_paths - set(paths) == POST_P3_ADDITIVE_FILES
     assert set(paths) <= current_paths
     for row in rows:
         relative = row["path"]
