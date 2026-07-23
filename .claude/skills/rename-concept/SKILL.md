@@ -73,7 +73,7 @@ delegate_from: |
 language: any
 framework: any
 scans: [python, javascript, typescript, go, java, rust, markdown, templates]
-install_with: [find-concept-divergence]
+install_with: [find-concept-divergence, map-subsystem]
 ---
 
 # /rename-concept

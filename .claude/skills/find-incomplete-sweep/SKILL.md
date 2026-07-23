@@ -23,6 +23,7 @@ job: suspect
 language: any
 framework: any
 scans: [python, typescript, javascript, go, java, rust]
+install_with: [map-subsystem]
 best_for: |
   Reviewing a human- or AI-authored multi-file change where a sweep across
   sibling call sites may have stopped short: a new keyword argument threaded

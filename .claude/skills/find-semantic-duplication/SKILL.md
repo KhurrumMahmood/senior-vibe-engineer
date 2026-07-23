@@ -19,6 +19,7 @@ not_for: |
 language: any
 framework: any
 scans: [python, typescript, javascript, go, java, rust]
+install_with: [map-subsystem]
 ---
 
 # /find-semantic-duplication

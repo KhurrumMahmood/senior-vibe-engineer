@@ -33,10 +33,31 @@ not_for: |
   fix in place).
 language: any
 framework: any
-install_with: [find-implicit-state]
+scans: [python, typescript, javascript, go, java, rust]
+install_with: [find-implicit-state, map-subsystem]
 ---
 
 # /prevent-regression
+
+## Rust exact-field guard
+
+After a human accepts an `extract-enum` proposal, require a SHA-bound
+`rust-enum-review-v1` acceptance artifact. Stage—not install—a project-owned
+Cargo integration test that asserts one public owner/public field has the
+reviewed enum type, then verify it with locked/offline metadata, check, test,
+Clippy, and rustfmt. Private fields abstain; this is not a general Rust lint.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/prevent-regression"
+OUT="$PWD/reports/prevent-regression/rust-state"
+python3 "${SKILL_ROOT}/scripts/generate_rust_state_guard.py" \
+  --targets "$PWD/reports/extract-enum/rust/targets.json" \
+  --accepted-review "$PWD/reports/extract-enum/rust/accepted-review.json" \
+  --project-root "$PWD" --output-root "$OUT"
+python3 "${SKILL_ROOT}/scripts/verify_rust_state_guard.py" \
+  --stage "$OUT" --project-root "$PWD" \
+  --output "$OUT/verification.json"
+```
 
 You are the **orchestrator** for turning a closed cleanup into a permanent
 guardrail. Invocation only stages a proposal below

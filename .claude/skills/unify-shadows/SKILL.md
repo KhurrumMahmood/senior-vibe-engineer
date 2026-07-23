@@ -1,6 +1,6 @@
 ---
 name: unify-shadows
-description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, and Java consume the accepted structured /find-semantic-duplication finding and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
+description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, Java, and bounded Rust consume accepted structured evidence and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
 argument-hint: "<semantic:SC-N | semantic:TS-SD-NNNN | semantic:JAVA-SD-NNNN | explicit target spec>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -19,10 +19,29 @@ not_for: |
   Source mutation begins only after human acceptance of this artifact.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java]
+scans: [python, typescript, javascript, go, java, rust]
 ---
 
 # /unify-shadows
+
+## Rust v1
+
+Read `knowledge/rust-v1.md`. Consume one accepted Rust semantic-duplication
+record, its matching content-addressed fact pack, and capability matrix. Select
+one consolidation shape explicitly and render a read-only proposal; never
+rerun detection or claim behavioral equivalence. No runtime `map-subsystem`
+companion is needed once accepted evidence exists.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/unify-shadows"
+python3 "${SKILL_ROOT}/scripts/propose_rust.py" \
+  --analysis "$PWD/reports/semantic-duplication/rust/findings.json" \
+  --facts "$PWD/reports/semantic-duplication/rust/facts.json" \
+  --finding-id RUST-SD-0001 --shape share_utilities \
+  --project-root "$PWD" \
+  --proposal "$PWD/reports/unify-shadows/RUST-SD-0001/proposal.md" \
+  --evidence "$PWD/reports/unify-shadows/RUST-SD-0001/evidence.json"
+```
 
 You are the **orchestrator** that narrows a semantic-duplication finding into
 an actionable proposal. `/find-semantic-duplication` classified the cluster's

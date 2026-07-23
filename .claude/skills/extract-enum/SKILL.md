@@ -1,6 +1,6 @@
 ---
 name: extract-enum
-description: Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or a Go or Java 17 implicit-state review candidate into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.
+description: Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or a Go, Java 17, or bounded Rust implicit-state review candidate into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.
 argument-hint: "<implicit-state:ID or FILE::FIELD>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -28,9 +28,29 @@ not_for: |
   enumerations whose convention lacks fixture evidence.
 language: any
 framework: any
+scans: [python, typescript, javascript, go, java, rust]
+install_with: [find-implicit-state, map-subsystem]
 ---
 
 # /extract-enum
+
+## Rust v1
+
+Consume exactly one complete `rust-implicit-state-v1` candidate. Verify its
+source hashes and exact callers, then emit `targets.json` and a
+`review_required` proposal. Never edit Rust source or apply the enum.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/extract-enum"
+python3 "${SKILL_ROOT}/scripts/collect_rust_state.py" \
+  --findings "$PWD/reports/implicit-state/rust/findings.json" \
+  --project-root "$PWD" \
+  --output "$PWD/reports/extract-enum/rust/targets.json" \
+  --proposal "$PWD/reports/extract-enum/rust/proposal.md"
+```
+
+Fresh upstream evidence requires the accepted `find-implicit-state` and
+`map-subsystem` closure; copied execution from accepted findings is standalone.
 
 You are the **orchestrator** for turning a stringly-typed state field
 into an implementation-ready `models.TextChoices` proposal.

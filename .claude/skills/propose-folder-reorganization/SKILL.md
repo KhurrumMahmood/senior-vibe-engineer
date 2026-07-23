@@ -1,6 +1,6 @@
 ---
 name: propose-folder-reorganization
-description: Turn a confirmed Python, Go, Java 17, TypeScript, or checked-JavaScript folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
+description: Turn a confirmed Python, Go, Java 17, TypeScript, checked-JavaScript, or bounded Rust folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
 argument-hint: "<folder-topology:ID or parent::prefix>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -26,10 +26,30 @@ not_for: |
   recommends `defer_scratch_code` instead of a refactor.
 language: any
 framework: any
-scans: [python, go, java, typescript, javascript]
+scans: [python, go, java, typescript, javascript, rust]
 ---
 
 # /propose-folder-reorganization
+
+## Rust v1
+
+Read `knowledge/rust-v1.md`. Supply one human-reviewed split/cohesive judgment
+and optional project convention. The adapter emits an exact read-only Cargo
+module move plan and native obligations at
+`ready_for_human_review/review_folder_plan`; it never moves files. The copied
+canonical producer is
+`.claude/skills/_common/scripts/rust_proposal_evidence.py`; a copied projection
+places the same bytes beside the adapter under the alias
+`rust_project_evidence.py`.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/propose-folder-reorganization"
+python3 "${SKILL_ROOT}/scripts/propose_rust.py" \
+  --project-root "$PWD" --parent crates/example/src --prefix billing \
+  --cluster-judgment split \
+  --inspection "$PWD/reports/propose-folder-reorganization/rust/inspection.json" \
+  --proposal "$PWD/reports/propose-folder-reorganization/rust/proposal.md"
+```
 
 You are the **orchestrator** for turning a folder-topology cluster
 into a reorganization proposal. `/find-folder-topology-drift` already

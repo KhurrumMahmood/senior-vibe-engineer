@@ -1,6 +1,6 @@
 ---
 name: propose-boundary
-description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Python uses its existing AST helper; TypeScript/TSX or checked-JavaScript v1 uses a host-resolved symbol/import/call graph; Go v1 uses host `go list` package/import facts plus standard-library AST facts; Java v1 uses JDK 17 compiler-attributed package, type, import, and fully-qualified-reference facts. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
+description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, and bounded Rust. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
 argument-hint: "<target-path-or-name> [--candidates N]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -30,10 +30,31 @@ not_for: |
   fit → /plan-spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java]
+scans: [python, typescript, javascript, go, java, rust]
 ---
 
 # /propose-boundary
+
+## Rust v1
+
+Read `knowledge/rust-v1.md`. The Rust adapter inventories one selected Cargo
+target, emits distinct JSON/Markdown evidence, and stops at
+`complete/review_boundary`; the human still chooses the seam. Macros, build or
+generated inputs, include contents, cfg variants, traits/generics, unsafe/FFI,
+and public/semver compatibility stay partial or deferred.
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/propose-boundary"
+python3 "${SKILL_ROOT}/scripts/propose_rust.py" \
+  --project-root "$PWD" --target crates/example \
+  --inspection "$PWD/reports/propose-boundary/rust/inspection.json" \
+  --proposal "$PWD/reports/propose-boundary/rust/proposal.md"
+```
+
+The canonical producer is
+`.claude/skills/_common/scripts/rust_proposal_evidence.py`; a copied projection
+places the same bytes beside the adapter under the alias
+`rust_project_evidence.py`.
 
 You are the **orchestrator** for turning a suspected missing-boundary
 target into a read-only boundary-extraction proposal. The user has named

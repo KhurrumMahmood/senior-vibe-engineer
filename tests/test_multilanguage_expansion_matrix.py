@@ -98,9 +98,8 @@ EXPECTED_RUBY_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_RUST_COUNTS = {
-    "rust-supported": 16,
+    "rust-supported": 21,
     "rust-partial": 1,
-    "rust-pending-implementation": 5,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -522,6 +521,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "adapt-project",
         "audit-decisions",
         "explain-code",
+        "extract-enum",
         "find-comment-drift",
         "find-complexity-hotspots",
         "find-concept-divergence",
@@ -534,7 +534,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "find-semantic-duplication",
         "find-standard-gaps",
         "move-path",
+        "prevent-regression",
+        "propose-boundary",
+        "propose-folder-reorganization",
         "rename-concept",
+        "unify-shadows",
     }
     assert {
         row["skill"]
@@ -556,6 +560,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
     assert rename["on_demand_closure"]["closure_skills"] == [
         "rename-concept",
         "find-concept-divergence",
+        "map-subsystem",
     ]
 
     language_names = {row["skill"] for row in language_rows}

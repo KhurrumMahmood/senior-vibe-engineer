@@ -241,7 +241,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "fact_level": "semantic-project",
         "outcome_class": "read-only-report",
         "framework_family": None,
-        "closure_skills": ["find-implicit-state"],
+        "closure_skills": ["find-implicit-state", "map-subsystem"],
         "optional_install_status": "passed",
     }
 
@@ -530,32 +530,11 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "/adapt-project declares ruby_disposition=ruby-pending-implementation"
     )
 
-    pending_rust = _run_isolated(
-        installed["which-skill"] / "scripts" / "match.py",
-        "use prevent-regression on this Rust repository",
-        "--project-root",
-        str(host),
-        "--library-root",
-        str(library_root),
-        "--language",
-        "rust",
-        "--json",
-        cwd=host,
-    )
-    assert pending_rust.returncode == 1
-    pending_rust_payload = json.loads(pending_rust.stdout)
-    assert pending_rust_payload["recommendation"] == "pending-implementation"
-    assert pending_rust_payload["unavailable"]["classification"] == (
-        "pending-implementation"
-    )
-    assert pending_rust_payload["unavailable"]["reason"] == (
-        "/prevent-regression declares rust_disposition=rust-pending-implementation"
-    )
-
     for skill, task in (
         ("adapt-project", "use adapt-project on this Rust repository"),
         ("audit-decisions", "use audit-decisions on this Rust repository"),
         ("explain-code", "use explain-code on this Rust source"),
+        ("extract-enum", "use extract-enum on this Rust state finding"),
         (
             "find-complexity-hotspots",
             "use find-complexity-hotspots on this Rust source",
@@ -587,7 +566,17 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
             "find-standard-gaps",
             "use find-standard-gaps on this Rust source",
         ),
+        (
+            "prevent-regression",
+            "use prevent-regression for this reviewed Rust state migration",
+        ),
+        ("propose-boundary", "use propose-boundary on this Rust package"),
+        (
+            "propose-folder-reorganization",
+            "use propose-folder-reorganization on this Rust source folder",
+        ),
         ("rename-concept", "use rename-concept on this Rust repository"),
+        ("unify-shadows", "use unify-shadows on this Rust semantic finding"),
     ):
         rust_family = _run_isolated(
             installed["which-skill"] / "scripts" / "match.py",
@@ -866,18 +855,21 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert regression["handoff"]["skills"] == [
         "prevent-regression",
         "find-implicit-state",
+        "map-subsystem",
     ]
     assert [guide["skill"] for guide in regression["handoff"]["guides"]] == [
         "prevent-regression",
         "find-implicit-state",
+        "map-subsystem",
     ]
     assert regression["handoff"]["capabilities"]["available"] is True
     assert [
         row["skill"] for row in regression["handoff"]["capabilities"]["skills"]
-    ] == ["prevent-regression", "find-implicit-state"]
+    ] == ["prevent-regression", "find-implicit-state", "map-subsystem"]
     assert regression["optional_install"]["available"] is True
     assert "--skill prevent-regression" in regression["optional_install"]["command"]
     assert "--skill find-implicit-state" in regression["optional_install"]["command"]
+    assert "--skill map-subsystem" in regression["optional_install"]["command"]
 
     rename_routed = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
@@ -892,11 +884,13 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert rename_payload["handoff"]["skills"] == [
         "rename-concept",
         "find-concept-divergence",
+        "map-subsystem",
     ]
     assert rename_capabilities["available"] is True
     assert rename_capabilities["skills"][0]["closure_skills"] == [
         "rename-concept",
         "find-concept-divergence",
+        "map-subsystem",
     ]
     assert [row["optional_install_status"] for row in rename_capabilities["skills"]] == [
         "passed",
@@ -907,6 +901,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert "--skill find-concept-divergence" in rename_payload["optional_install"][
         "command"
     ]
+    assert "--skill map-subsystem" in rename_payload["optional_install"]["command"]
 
 
 def test_library_bootstrap_creates_and_verifies_runtime_by_default(tmp_path):

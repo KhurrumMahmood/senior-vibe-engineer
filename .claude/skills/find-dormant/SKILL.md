@@ -28,6 +28,7 @@ not_for: |
 language: any
 framework: any
 scans: [python, typescript, javascript, go, java, rust]
+install_with: [map-subsystem]
 scout_model: cheap
 ---
 

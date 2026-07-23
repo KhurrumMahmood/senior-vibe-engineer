@@ -554,6 +554,7 @@ def test_rust_frozen_cohort_contracts_and_all_22_initial_dispositions() -> None:
         "adapt-project",
         "audit-decisions",
         "explain-code",
+        "extract-enum",
         "find-comment-drift",
         "find-complexity-hotspots",
         "find-concept-divergence",
@@ -566,10 +567,14 @@ def test_rust_frozen_cohort_contracts_and_all_22_initial_dispositions() -> None:
         "find-semantic-duplication",
         "find-standard-gaps",
         "move-path",
+        "prevent-regression",
+        "propose-boundary",
+        "propose-folder-reorganization",
         "rename-concept",
+        "unify-shadows",
     }
     assert dispositions["map-subsystem"] == "rust-partial"
-    assert sum(value == "rust-pending-implementation" for value in dispositions.values()) == 5
+    assert "rust-pending-implementation" not in set(dispositions.values())
     assert all(
         row["evidence_path"]
         and row["native_check"]

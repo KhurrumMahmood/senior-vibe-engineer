@@ -139,13 +139,18 @@ def test_go_implicit_state_reports_resolved_review_candidates(tmp_path: Path) ->
 
 def test_go_state_guard_declares_its_companion_closure() -> None:
     catalog = {row["name"]: row for row in json.loads(CATALOG.read_text(encoding="utf-8"))["skills"]}
-    assert catalog["prevent-regression"]["install_with"] == ["find-implicit-state"]
+    assert catalog["prevent-regression"]["install_with"] == [
+        "find-implicit-state", "map-subsystem",
+    ]
     matrix = {row["skill"]: row for row in json.loads(MATRIX.read_text(encoding="utf-8"))["skills"]}
     row = matrix["prevent-regression"]
     assert row["on_demand_closure"]["closure_skills"] == [
-        "prevent-regression", "find-implicit-state",
+        "prevent-regression", "find-implicit-state", "map-subsystem",
     ]
-    assert "--skill prevent-regression --skill find-implicit-state" in row["optional_install"]["command"]
+    assert (
+        "--skill prevent-regression --skill find-implicit-state --skill map-subsystem"
+        in row["optional_install"]["command"]
+    )
 
 
 def test_go_implicit_state_refuses_malformed_source(tmp_path: Path) -> None:
