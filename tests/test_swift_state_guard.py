@@ -24,7 +24,9 @@ HELPER = SKILLS / "_swift-semantic-readonly/swift_accepted_evidence.py"
 STATE = SKILLS / "find-implicit-state/scripts/detect_swift_state.py"
 EXTRACT = SKILLS / "extract-enum/scripts/collect_swift_state.py"
 GUARD = SKILLS / "prevent-regression/scripts/stage_swift_state_guard.py"
-OVERLAY = ROOT / "tests/fixtures/swift-state-guard/migrated"
+JOB_MIGRATED = ROOT / "tests/fixtures/swift-state-guard/migrated"
+ALTERNATE_ORIGINAL = ROOT / "tests/fixtures/swift-state-guard/alternate/original"
+ALTERNATE_MIGRATED = ROOT / "tests/fixtures/swift-state-guard/alternate/migrated"
 SWIFT = Path("/usr/bin/swift")
 SWIFTC = Path("/usr/bin/swiftc")
 SWIFT_FORMAT = Path("/Library/Developer/CommandLineTools/usr/bin/swift-format")
@@ -95,14 +97,35 @@ def _install(tmp_path: Path) -> dict[str, Path]:
     return copied
 
 
-def _accepted_state(host: Path, tmp_path: Path) -> tuple[Path, Path, Path]:
+def _accepted_state(
+    host: Path,
+    tmp_path: Path,
+    *,
+    owner: str = "Job",
+    field: str = "state",
+    enum_type: str = "JobState",
+    enum_cases: list[dict[str, str]] | None = None,
+) -> tuple[Path, Path, Path]:
+    cases = enum_cases or [
+        {"name": "queued", "raw_value": "queued"},
+        {"name": "running", "raw_value": "running"},
+        {"name": "done", "raw_value": "done"},
+    ]
     facts_payload, facts, _ = A3._collect(
-        PROVIDER, host, "SwiftA3Core", A3.UNION_QUERIES, "state-guard"
+        PROVIDER,
+        host,
+        "SwiftA3Core",
+        sorted({*A3.UNION_QUERIES, field}),
+        "state-guard",
     )
     state_dir = host / "reports/implicit-state/swift"
     A3._consumer(STATE, host, facts, "--output-dir", state_dir)
-    candidate = _jsonl(state_dir / "candidates.jsonl")[0]
-    reviews = tmp_path / "state-reviews"
+    candidate = next(
+        row
+        for row in _jsonl(state_dir / "candidates.jsonl")
+        if row["owner"] == owner and row["field"] == field
+    )
+    reviews = tmp_path / f"state-reviews-{owner.lower()}-{field}"
     _write(
         reviews / f"{candidate['candidate_id']}.json",
         {
@@ -112,7 +135,7 @@ def _accepted_state(host: Path, tmp_path: Path) -> tuple[Path, Path, Path]:
             "bucket": "extract_enum_candidate",
             "human_verdict": "accepted",
             "confidence": "high",
-            "notes": "Accepted exact internal String state operations.",
+            "notes": "Accepted exact internal String state operations for this authority.",
         },
     )
     A3._consumer(
@@ -125,8 +148,21 @@ def _accepted_state(host: Path, tmp_path: Path) -> tuple[Path, Path, Path]:
         reviews,
     )
     findings = state_dir / "findings.json"
-    finding = _json(findings)["findings"][0]
+    finding = next(
+        row
+        for row in _json(findings)["findings"]
+        if row["owner"] == owner and row["field"] == field
+    )
     enum_source = host / "Sources/SwiftA3Core/State.swift"
+    enum_declarations = [
+        row
+        for row in facts_payload["compiler_details"]["all_declarations"]
+        if row["name"] == enum_type
+        and row["kind"] == 10
+        and row["file"] == enum_source.relative_to(host).as_posix()
+    ]
+    assert len(enum_declarations) == 1
+    enum_declaration = enum_declarations[0]
     acceptance = _write(
         host / "reports/implicit-state/swift/accepted-enum.json",
         {
@@ -144,15 +180,13 @@ def _accepted_state(host: Path, tmp_path: Path) -> tuple[Path, Path, Path]:
             "enum": {
                 "action": "reuse_existing",
                 "module": "SwiftA3Core",
-                "type_name": "JobState",
+                "type_name": enum_type,
                 "raw_type": "String",
+                "semantic_id": enum_declaration["semantic_id"],
                 "source": enum_source.relative_to(host).as_posix(),
+                "line": enum_declaration["line"],
                 "source_sha256": _hash(enum_source),
-                "cases": [
-                    {"name": "queued", "raw_value": "queued"},
-                    {"name": "running", "raw_value": "running"},
-                    {"name": "done", "raw_value": "done"},
-                ],
+                "cases": cases,
             },
             "boundary_verdicts": EVIDENCE.STATE_GATES,
             "native": {
@@ -163,7 +197,7 @@ def _accepted_state(host: Path, tmp_path: Path) -> tuple[Path, Path, Path]:
                 "expected_smoke": "swift-a3:42",
             },
             "reviewer": "fixture-reviewer",
-            "notes": "Accepted closed domain, existing enum, raw values, and bounded Swift surfaces.",
+            "notes": "Accepted this closed domain, existing enum, raw values, and bounded Swift surfaces.",
         },
         "acceptance_sha256",
     )
@@ -211,10 +245,17 @@ def _extract(
     return output
 
 
-def _migrate(host: Path) -> list[dict[str, str]]:
+def _apply_overlay(host: Path, overlay: Path) -> None:
+    for source in sorted(overlay.rglob("*.swift")):
+        destination = host / source.relative_to(overlay)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+
+
+def _migrate(host: Path, overlay: Path = JOB_MIGRATED) -> list[dict[str, str]]:
     edits: list[dict[str, str]] = []
-    for migrated in sorted(OVERLAY.rglob("*.swift")):
-        relative = migrated.relative_to(OVERLAY)
+    for migrated in sorted(overlay.rglob("*.swift")):
+        relative = migrated.relative_to(overlay)
         destination = host / relative
         original = destination.read_text(encoding="utf-8")
         replacement = migrated.read_text(encoding="utf-8")
@@ -324,6 +365,16 @@ def test_swift_accepted_proposal_guard_copied_and_lifecycle(tmp_path: Path) -> N
     _extract(host, copied["extract"], facts, findings, state_acceptance)
     assert _json(targets)["outcome"] == "proposal_ready"
 
+    invalid_enum = json.loads(json.dumps(accepted))
+    invalid_enum["enum"]["semantic_id"] = "swiftc-declaration:stale"
+    invalid_enum.pop("acceptance_sha256")
+    _write(state_acceptance, invalid_enum, "acceptance_sha256")
+    _extract(host, copied["extract"], facts, findings, state_acceptance, expected=2)
+    assert _json(targets)["failure_kind"] == "acceptance_invalid"
+    _write(state_acceptance, accepted)
+    _extract(host, copied["extract"], facts, findings, state_acceptance)
+    assert _json(targets)["outcome"] == "proposal_ready"
+
     edits = _migrate(host)
     migrated = A3._source_fingerprints(host)
     migration_acceptance = _migration_acceptance(host, targets, edits)
@@ -384,3 +435,51 @@ def test_swift_proposal_refuses_stale_a3_source_and_recovers(tmp_path: Path) -> 
     state.write_text(original, encoding="utf-8")
     _extract(host, copied["extract"], facts, findings, acceptance)
     assert _json(output / "targets.json")["outcome"] == "proposal_ready"
+
+
+def test_swift_state_generalizes_authority_raw_values_and_guard(tmp_path: Path) -> None:
+    host = A3._copy_host(tmp_path)
+    _apply_overlay(host, ALTERNATE_ORIGINAL)
+    copied = _install(tmp_path)
+    cases = [
+        {"name": "waiting", "raw_value": "not-started"},
+        {"name": "active", "raw_value": "in-progress"},
+        {"name": "finished", "raw_value": "completed"},
+    ]
+    facts, findings, acceptance = _accepted_state(
+        host,
+        tmp_path,
+        owner="Download",
+        field="phase",
+        enum_type="DownloadPhase",
+        enum_cases=cases,
+    )
+    original = A3._source_fingerprints(host)
+
+    proposal_dir = _extract(host, copied["extract"], facts, findings, acceptance)
+    targets = proposal_dir / "targets.json"
+    proposal = _json(targets)
+    assert proposal["target"]["authority"]["owner"] == "Download"
+    assert proposal["target"]["authority"]["field"] == "phase"
+    assert proposal["proposed_enum"]["type_name"] == "DownloadPhase"
+    assert proposal["proposed_enum"]["cases"] == cases
+    markdown = (proposal_dir / "proposal.md").read_text(encoding="utf-8")
+    assert 'case waiting = "not-started"' in markdown
+    assert 'case active = "in-progress"' in markdown
+    assert 'case finished = "completed"' in markdown
+    assert A3._source_fingerprints(host) == original
+
+    edits = _migrate(host, ALTERNATE_MIGRATED)
+    migrated = A3._source_fingerprints(host)
+    migration_acceptance = _migration_acceptance(host, targets, edits)
+    guard_dir = _stage(host, copied["guard"], targets, migration_acceptance)
+    guard_text = (guard_dir / "ExactAcceptedStateGuard.swift").read_text(encoding="utf-8")
+    assert "(_ value: Download) -> DownloadPhase" in guard_text
+    assert "value.phase" in guard_text
+    evidence = _json(guard_dir / "evidence.json")
+    assert evidence["limits"][0] == "one exact accepted Download.phase property type only"
+    assert evidence["verification"]["migrated_native"]["passed"] is True
+    assert evidence["verification"]["migrated_guard"]["returncode"] == 0
+    assert evidence["verification"]["reverted_native_without_guard"]["passed"] is True
+    assert evidence["verification"]["reverted_guard"]["returncode"] != 0
+    assert A3._source_fingerprints(host) == migrated

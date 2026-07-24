@@ -385,7 +385,7 @@ def main() -> int:
                 "regression_rejected": True,
             },
             "limits": [
-                "one exact accepted Job.state property type only",
+                f"one exact accepted {proposal['target']['authority']['owner']}.{proposal['target']['authority']['field']} property type only",
                 "raw values, Codable behavior, reflection, dynamic dispatch, generated/macros/plugins, frameworks, external callers, conditional variants, ABI, and runtime behavior remain outside the guard",
             ],
         }

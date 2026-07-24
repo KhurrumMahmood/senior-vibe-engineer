@@ -31,10 +31,27 @@ def _helper() -> Any:
 EVIDENCE = _helper()
 
 
+def _swift_string(value: str) -> str:
+    rendered: list[str] = []
+    escapes = {"\\": "\\\\", '"': '\\"', "\t": "\\t", "\n": "\\n", "\r": "\\r"}
+    for character in value:
+        if character in escapes:
+            rendered.append(escapes[character])
+        elif ord(character) < 32 or ord(character) == 127:
+            rendered.append(f"\\u{{{ord(character):X}}}")
+        else:
+            rendered.append(character)
+    return f'"{"".join(rendered)}"'
+
+
 def _markdown(payload: dict[str, Any]) -> str:
     authority = payload["target"]["authority"]
     enum = payload["proposed_enum"]
-    cases = "\n".join(f"  case {row['name']}" for row in enum["cases"])
+    cases = "\n".join(
+        f"  case {row['name']}"
+        + (f" = {_swift_string(row['raw_value'])}" if row["raw_value"] != row["name"] else "")
+        for row in enum["cases"]
+    )
     operations = "\n".join(
         f"- `{row['file']}:{row['line']}` — `{row['syntax']}`"
         for row in payload["target"]["operations"]

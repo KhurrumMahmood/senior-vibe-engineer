@@ -45,11 +45,13 @@ Use `scripts/stage_swift_state_guard.py` only after a fresh accepted Swift enum
 proposal and a second content-addressed acceptance of the migrated tree and
 exact buildable String reversion. Keep sibling `_swift-semantic-readonly`. The
 skill stages but never installs one same-module compile-time property-type
-guard, proves the accepted migrated tree passes build/check/smoke and guard
-typecheck, and proves the accepted reversion still passes native gates without
-the guard but fails with it. Raw values, runtime behavior, Codable/reflection,
-dynamic/protocol dispatch, frameworks, generated inputs, external variants,
-and compatibility remain outside the guard.
+guard derived from the accepted owner, member, and existing enum identity. It
+proves the accepted migrated tree passes build/check/smoke and guard typecheck,
+then proves the accepted reversion still passes native gates without the guard
+but fails with it. Case/raw mappings remain proposal evidence rather than a
+guard claim; runtime behavior, Codable/reflection, dynamic/protocol dispatch,
+frameworks, generated inputs, external variants, and compatibility remain
+outside the guard.
 
 ## C# staged exact-property-type guard
 

@@ -135,7 +135,129 @@ def source_hashes(root: Path) -> list[dict[str, str]]:
     return sorted(rows, key=lambda row: row["path"])
 
 
-def _enum(candidate: dict[str, Any], acceptance: dict[str, Any], root: Path) -> dict[str, Any]:
+def _candidate(findings: dict[str, Any], root: Path) -> dict[str, Any]:
+    accepted = findings.get("findings")
+    if (
+        findings.get("schema_version") != "swift-implicit-state-v1"
+        or findings.get("language") != "swift"
+        or findings.get("status") != "complete"
+        or findings.get("read_only") is not True
+        or not isinstance(accepted, list)
+        or len(accepted) != 1
+        or not isinstance(findings.get("summary"), dict)
+        or findings["summary"].get("accepted") != 1
+        or findings["summary"].get("pending_review") != 0
+    ):
+        raise EvidenceError(
+            "partial",
+            "producer_artifact_invalid",
+            "one complete accepted Swift state finding is required",
+        )
+    candidate = accepted[0]
+    if not isinstance(candidate, dict):
+        raise EvidenceError("partial", "selection_invalid", "accepted state finding is invalid")
+    literals = candidate.get("literals")
+    operations = candidate.get("operations")
+    if (
+        candidate.get("human_verdict") != "accepted"
+        or candidate.get("bucket") != "extract_enum_candidate"
+        or candidate.get("type") != "String"
+        or not IDENTIFIER.fullmatch(str(candidate.get("owner", "")))
+        or not IDENTIFIER.fullmatch(str(candidate.get("field", "")))
+        or not isinstance(candidate.get("semantic_id"), str)
+        or not candidate["semantic_id"]
+        or not isinstance(candidate.get("file"), str)
+        or not isinstance(candidate.get("line"), int)
+        or candidate["line"] < 1
+        or not isinstance(candidate.get("column"), int)
+        or candidate["column"] < 1
+        or not isinstance(literals, list)
+        or len(literals) < 3
+        or not all(isinstance(value, str) and value for value in literals)
+        or len(set(literals)) != len(literals)
+        or not isinstance(operations, list)
+        or len(operations) < 3
+    ):
+        raise EvidenceError(
+            "partial", "selection_invalid", "accepted String state authority is invalid"
+        )
+    source = safe_project_path(root, candidate["file"], "accepted state source")
+    if not source.is_file():
+        raise EvidenceError("partial", "selection_invalid", "accepted state source is missing")
+    definition = candidate.get("definition_identity")
+    if definition != {"path": candidate["file"], "line": candidate["line"]}:
+        raise EvidenceError(
+            "partial", "selection_invalid", "accepted state definition identity is invalid"
+        )
+    operation_literals: set[str] = set()
+    for operation in operations:
+        if (
+            not isinstance(operation, dict)
+            or set(operation)
+            != {"kind", "literal", "syntax", "start_column", "file", "line", "column"}
+            or operation.get("kind") not in {"assignment", "comparison"}
+            or operation.get("literal") not in literals
+            or not isinstance(operation.get("syntax"), str)
+            or not operation["syntax"]
+            or not all(
+                isinstance(operation.get(key), int) and operation[key] > 0
+                for key in ("start_column", "line", "column")
+            )
+            or not isinstance(operation.get("file"), str)
+        ):
+            raise EvidenceError(
+                "partial", "selection_invalid", "accepted state operation is invalid"
+            )
+        operation_source = safe_project_path(
+            root, operation["file"], "accepted state operation source"
+        )
+        if not operation_source.is_file():
+            raise EvidenceError(
+                "partial", "selection_invalid", "accepted state operation source is missing"
+            )
+        operation_literals.add(operation["literal"])
+    if operation_literals != set(literals):
+        raise EvidenceError(
+            "partial", "selection_invalid", "accepted state operations do not cover every literal"
+        )
+    reconstructed = dict(candidate)
+    claimed = reconstructed.pop("candidate_sha256", None)
+    for field in ("bucket", "confidence", "review_notes"):
+        reconstructed.pop(field, None)
+    reconstructed["human_verdict"] = "required"
+    if not isinstance(claimed, str) or claimed != canonical_hash(reconstructed):
+        raise EvidenceError(
+            "partial", "selection_invalid", "accepted state candidate hash does not verify"
+        )
+    return candidate
+
+
+def _state_symbol(candidate: dict[str, Any], facts: dict[str, Any]) -> None:
+    matches = [
+        row
+        for row in facts.get("symbols", [])
+        if row.get("semantic_id") == candidate["semantic_id"]
+        and row.get("name") == candidate["field"]
+        and row.get("parent") == candidate["owner"]
+        and row.get("kind") == 8
+        and row.get("file") == candidate["file"]
+        and row.get("line") == candidate["line"]
+        and row.get("column") == candidate["column"]
+        and row.get("role") == "selected-production"
+        and row.get("interface_type") == "String"
+    ]
+    if len(matches) != 1:
+        raise EvidenceError(
+            "partial", "selection_invalid", "accepted state authority no longer resolves exactly"
+        )
+
+
+def _enum(
+    candidate: dict[str, Any],
+    acceptance: dict[str, Any],
+    root: Path,
+    facts: dict[str, Any],
+) -> dict[str, Any]:
     enum = acceptance.get("enum")
     if not isinstance(enum, dict):
         raise EvidenceError(
@@ -147,6 +269,10 @@ def _enum(candidate: dict[str, Any], acceptance: dict[str, Any], root: Path) -> 
         or enum.get("raw_type") != "String"
         or not isinstance(enum.get("module"), str)
         or not IDENTIFIER.fullmatch(str(enum.get("type_name", "")))
+        or not isinstance(enum.get("semantic_id"), str)
+        or not enum["semantic_id"]
+        or not isinstance(enum.get("line"), int)
+        or enum["line"] < 1
         or not isinstance(cases, list)
         or len(cases) < 2
     ):
@@ -182,6 +308,22 @@ def _enum(candidate: dict[str, Any], acceptance: dict[str, Any], root: Path) -> 
         or file_hash(source) != enum["source_sha256"]
     ):
         raise EvidenceError("partial", "acceptance_stale", "existing enum authority is stale")
+    declarations = facts.get("compiler_details", {}).get("all_declarations", [])
+    matches = [
+        row
+        for row in declarations
+        if row.get("semantic_id") == enum["semantic_id"]
+        and row.get("name") == enum["type_name"]
+        and row.get("kind") == 10
+        and row.get("file") == enum["source"]
+        and row.get("line") == enum["line"]
+        and row.get("role") == "selected-production"
+        and row.get("top_level") is True
+    ]
+    if len(matches) != 1:
+        raise EvidenceError(
+            "partial", "acceptance_invalid", "existing enum identity no longer resolves exactly"
+        )
     return enum
 
 
@@ -196,31 +338,8 @@ def validate_state_acceptance(
     fact_file = safe_project_path(root, facts_path, "Swift semantic fact pack")
     finding_file = safe_project_path(root, findings_path, "Swift implicit-state findings")
     acceptance_file = safe_project_path(root, acceptance_path, "Swift state acceptance")
-    provider = _provider()
-    try:
-        facts = provider.load_fact_pack(fact_file, root, target_name, ["state"])
-    except provider.SwiftFactError as exc:
-        raise EvidenceError("partial", exc.kind, str(exc)) from exc
     findings = read_json(finding_file, "Swift implicit-state findings")
-    accepted = findings.get("findings")
-    if (
-        findings.get("schema_version") != "swift-implicit-state-v1"
-        or findings.get("language") != "swift"
-        or findings.get("status") != "complete"
-        or findings.get("read_only") is not True
-        or findings.get("fact_pack_sha256") != facts.get("fact_pack_sha256")
-        or findings.get("source_hashes") != facts.get("source_hashes")
-        or not isinstance(accepted, list)
-        or len(accepted) != 1
-        or findings.get("summary", {}).get("accepted") != 1
-        or findings.get("summary", {}).get("pending_review") != 0
-    ):
-        raise EvidenceError(
-            "partial",
-            "producer_artifact_invalid",
-            "one complete accepted Swift state finding is required",
-        )
-    candidate = accepted[0]
+    candidate = _candidate(findings, root)
     acceptance = read_json(acceptance_file, "Swift state acceptance")
     if (
         acceptance.get("schema_version") != "swift-state-acceptance-v1"
@@ -230,8 +349,6 @@ def validate_state_acceptance(
         or acceptance.get("decision") != "accept-enum"
         or acceptance.get("artifact") != finding_file.relative_to(root).as_posix()
         or acceptance.get("artifact_sha256") != file_hash(finding_file)
-        or acceptance.get("fact_pack_sha256") != facts.get("fact_pack_sha256")
-        or acceptance.get("source_manifest_sha256") != facts.get("source_manifest_sha256")
         or acceptance.get("candidate_sha256") != candidate.get("candidate_sha256")
         or acceptance.get("selection_semantic_id") != candidate.get("semantic_id")
         or acceptance.get("boundary_verdicts") != STATE_GATES
@@ -244,21 +361,22 @@ def validate_state_acceptance(
         raise EvidenceError(
             "partial", "acceptance_invalid", "fresh exact Swift state acceptance is required"
         )
+    provider = _provider()
+    try:
+        facts = provider.load_fact_pack(fact_file, root, target_name, [candidate["field"]])
+    except provider.SwiftFactError as exc:
+        raise EvidenceError("partial", exc.kind, str(exc)) from exc
     if (
-        candidate.get("human_verdict") != "accepted"
-        or candidate.get("bucket") != "extract_enum_candidate"
-        or candidate.get("type") != "String"
-        or candidate.get("owner") != "Job"
-        or candidate.get("field") != "state"
-        or not isinstance(candidate.get("semantic_id"), str)
-        or not isinstance(candidate.get("operations"), list)
-        or len(candidate["operations"]) < 3
-        or candidate.get("literals") != ["done", "queued", "running"]
+        findings.get("fact_pack_sha256") != facts.get("fact_pack_sha256")
+        or findings.get("source_hashes") != facts.get("source_hashes")
+        or acceptance.get("fact_pack_sha256") != facts.get("fact_pack_sha256")
+        or acceptance.get("source_manifest_sha256") != facts.get("source_manifest_sha256")
     ):
         raise EvidenceError(
-            "partial", "selection_invalid", "accepted authority is not exact Job.state"
+            "partial", "acceptance_stale", "accepted Swift facts or findings changed"
         )
-    enum = _enum(candidate, acceptance, root)
+    _state_symbol(candidate, facts)
+    enum = _enum(candidate, acceptance, root, facts)
     if enum.get("module") != target_name:
         raise EvidenceError(
             "partial", "acceptance_invalid", "enum module must match the selected target"
