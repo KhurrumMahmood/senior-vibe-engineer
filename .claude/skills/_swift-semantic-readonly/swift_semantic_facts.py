@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-SCHEMA_VERSION = "swift-semantic-facts-v1"
+SCHEMA_VERSION = "swift-semantic-facts-v2"
 MINIMUM_SWIFT = (6, 0, 0)
 PINNED_SEMANTIC_SWIFT = (6, 3, 3)
 ARTIFACT_DIRS = frozenset({".agents", ".build", ".git", ".swiftpm", "reports"})
@@ -40,7 +40,7 @@ LIMITS = [
     "dependency-free SwiftPM regular library/executable targets in one selected debug or release configuration only",
     "Apple Swift 6.3.3 swiftc compiler-AST output is the pinned semantic boundary; other compiler versions are unsupported until replayed",
     "a fresh successful restrictive build is required before one bounded offline swiftc typecheck/dump-ast invocation",
-    "normalized compiler declaration locations identify selected static symbols; exact resolved decl references identify direct references and calls",
+    "normalized compiler declaration locations identify all selected static symbols; exact resolved decl references identify direct references and caller-owned calls",
     "conditional compilation, attached/freestanding macros, plugins, generated code, reflection, @objc/dynamic dispatch, and selectors are not expanded",
     "protocol/existential runtime dispatch, runtime reachability, side effects, and deletion/refactor safety remain unresolved",
     "Xcode projects/workspaces/schemes, Apple-framework behavior, resources, package dependencies, and mixed-language targets are outside this contract",
@@ -331,6 +331,27 @@ def _inventory(
     return rows, semantic, selected
 
 
+def _normalized_target_graph(description: dict[str, Any]) -> list[dict[str, Any]]:
+    rows = [
+        {
+            "name": row.get("name"),
+            "type": row.get("type"),
+            "path": row.get("path"),
+            "sources": sorted(row.get("sources", [])),
+            "target_dependencies": sorted(row.get("target_dependencies", [])),
+        }
+        for row in description.get("targets", [])
+    ]
+    return sorted(
+        rows,
+        key=lambda row: (
+            str(row["name"] or ""),
+            str(row["type"] or ""),
+            str(row["path"] or ""),
+        ),
+    )
+
+
 def _base_name(display: str | None) -> str:
     if not isinstance(display, str):
         return ""
@@ -573,16 +594,82 @@ def _target_symbol(
     return exact[0] if len(exact) == 1 else None
 
 
+def _public_declaration(symbol: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in symbol.items() if not key.startswith("_")}
+
+
+def _resolved_reference(
+    location: dict[str, Any], symbol: dict[str, Any], evidence: str
+) -> dict[str, Any]:
+    return {
+        "source": location["path"],
+        "line": location["line"],
+        "column": location["column"],
+        "target_name": symbol["name"],
+        "target_kind": symbol["kind"],
+        "target_semantic_id": symbol["semantic_id"],
+        "target_interface_type": symbol["interface_type"],
+        "target_declaration": dict(symbol["definitions"][0]),
+        "evidence": evidence,
+    }
+
+
+def _containing_callable(
+    location: dict[str, Any], declarations: list[dict[str, Any]]
+) -> dict[str, Any] | None:
+    point = (location["line"], location["column"])
+    candidates = [
+        row
+        for row in declarations
+        if row["kind"] in CALLABLE_KINDS
+        and row["file"] == location["path"]
+        and (row["line"], row["column"]) <= point
+        and point <= (row["end_line"], row["end_column"])
+    ]
+    if not candidates:
+        return None
+    return min(
+        candidates,
+        key=lambda row: (
+            row["end_line"] - row["line"],
+            row["end_column"] - row["column"]
+            if row["end_line"] == row["line"]
+            else row["end_column"],
+            -row["line"],
+            -row["column"],
+        ),
+    )
+
+
+def _caller_identity(symbol: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "name": symbol["name"],
+        "kind": symbol["kind"],
+        "semantic_id": symbol["semantic_id"],
+        "interface_type": symbol["interface_type"],
+        "declaration": dict(symbol["definitions"][0]),
+    }
+
+
 def _compiler_occurrences(
     lines: list[str],
     root: Path,
     module: str,
     declarations: list[dict[str, Any]],
     queries: set[str],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+]:
     query_symbols = [row for row in declarations if row["name"] in queries]
+    type_candidates: dict[str, list[dict[str, Any]]] = {}
+    for row in declarations:
+        if row["kind"] in TYPE_KINDS:
+            type_candidates.setdefault(row["name"], []).append(row)
     type_symbols = {
-        row["name"]: row for row in query_symbols if row["kind"] in TYPE_KINDS
+        name: rows[0] for name, rows in type_candidates.items() if len(rows) == 1
     }
     occurrences = [
         _definition_occurrence(
@@ -595,6 +682,7 @@ def _compiler_occurrences(
     ]
     calls: list[dict[str, Any]] = []
     overloads: list[dict[str, Any]] = []
+    references: list[dict[str, Any]] = []
     for line in lines:
         location = _ast_location(line, root)
         if location is None:
@@ -602,62 +690,81 @@ def _compiler_occurrences(
         target = _ast_target(line, root)
         if target is not None and target["decl"].startswith(f"{module}.(file)."):
             symbol = _target_symbol(target, declarations)
-            constructor = re.search(
-                rf"^{re.escape(module)}\.\(file\)\.(?P<owner>[A-Za-z_][A-Za-z0-9_]*)\.init\(",
-                target["decl"],
-            )
-            if constructor is not None and "function_ref=single apply" in line:
-                owner = type_symbols.get(constructor.group("owner"))
-                interface = re.search(r'type="(?P<type>[^"]+)"', line)
-                overload = {
-                    "source": location["path"],
-                    "line": location["line"],
-                    "column": location["column"],
-                    "owner": constructor.group("owner"),
-                    "selected_declaration": {
-                        "path": target["path"],
-                        "line": target["line"],
-                        "column": target["column"],
-                    },
-                    "selected_interface_type": interface.group("type") if interface else None,
-                    "evidence": "swiftc-dump-ast-declref-single-apply",
-                }
-                overloads.append(overload)
-                if owner is not None:
-                    occurrences.append(
-                        _definition_occurrence(
-                            owner["name"], location, owner, "swiftc-dump-ast-constructor"
-                        )
-                    )
-            elif symbol is not None:
+            if symbol is not None:
+                references.append(
+                    _resolved_reference(location, symbol, "swiftc-dump-ast-declref")
+                )
                 if symbol["name"] in queries:
                     occurrences.append(
                         _definition_occurrence(
                             symbol["name"], location, symbol, "swiftc-dump-ast-declref"
                         )
                     )
-                if "function_ref=single apply" in line and symbol["kind"] in CALLABLE_KINDS:
-                    calls.append(
-                        {
-                            "source": location["path"],
-                            "line": location["line"],
-                            "column": location["column"],
-                            "target_name": symbol["name"],
-                            "target_semantic_id": symbol["semantic_id"],
-                            "target_interface_type": symbol["interface_type"],
-                            "target_declaration": dict(symbol["definitions"][0]),
-                            "evidence": "swiftc-dump-ast-declref-single-apply",
-                        }
+            if (
+                symbol is not None
+                and symbol.get("_node") == "constructor_decl"
+                and "function_ref=single apply" in line
+            ):
+                owner = type_symbols.get(symbol["parent"])
+                interface = re.search(r'type="(?P<type>[^"]+)"', line)
+                overload = {
+                    "source": location["path"],
+                    "line": location["line"],
+                    "column": location["column"],
+                    "owner": symbol["parent"],
+                    "selected_semantic_id": symbol["semantic_id"],
+                    "selected_declaration": dict(symbol["definitions"][0]),
+                    "selected_interface_type": interface.group("type")
+                    if interface
+                    else symbol["interface_type"],
+                    "evidence": "swiftc-dump-ast-declref-single-apply",
+                }
+                overloads.append(overload)
+                if owner is not None and owner["name"] in queries:
+                    occurrences.append(
+                        _definition_occurrence(
+                            owner["name"], location, owner, "swiftc-dump-ast-constructor"
+                        )
                     )
+            if (
+                symbol is not None
+                and "function_ref=single apply" in line
+                and symbol["kind"] in CALLABLE_KINDS
+            ):
+                caller = _containing_callable(location, declarations)
+                if caller is None:
+                    raise SwiftFactError(
+                        "compiler_ast_call_owner_unresolved",
+                        "compiler AST resolved a selected call without a containing static "
+                        f"callable at {location['path']}:{location['line']}:{location['column']}",
+                    )
+                calls.append(
+                    {
+                        "source": location["path"],
+                        "line": location["line"],
+                        "column": location["column"],
+                        "target_name": symbol["name"],
+                        "target_kind": symbol["kind"],
+                        "target_semantic_id": symbol["semantic_id"],
+                        "target_interface_type": symbol["interface_type"],
+                        "target_declaration": dict(symbol["definitions"][0]),
+                        "containing_caller": _caller_identity(caller),
+                        "evidence": "swiftc-dump-ast-declref-single-apply",
+                    }
+                )
         if "(type_expr" in line and "(type_expr implicit" not in line:
             type_name = _AST_TYPE_EXPR.search(line)
             if type_name and type_name.group("name") in type_symbols:
                 symbol = type_symbols[type_name.group("name")]
-                occurrences.append(
-                    _definition_occurrence(
-                        symbol["name"], location, symbol, "swiftc-dump-ast-type-expr"
-                    )
+                references.append(
+                    _resolved_reference(location, symbol, "swiftc-dump-ast-type-expr")
                 )
+                if symbol["name"] in queries:
+                    occurrences.append(
+                        _definition_occurrence(
+                            symbol["name"], location, symbol, "swiftc-dump-ast-type-expr"
+                        )
+                    )
 
     for declaration in declarations:
         source = root / declaration["file"]
@@ -679,9 +786,21 @@ def _compiler_occurrences(
                 for match in re.finditer(rf"\b{re.escape(name)}\b", source_line):
                     if declaration["name"] == name and offset == 0 and source_line == first_line:
                         continue
-                    occurrences.append(
-                        _definition_occurrence(
-                            name,
+                    if name in queries:
+                        occurrences.append(
+                            _definition_occurrence(
+                                name,
+                                {
+                                    "path": declaration["file"],
+                                    "line": declaration["line"] + offset,
+                                    "column": match.start() + 1,
+                                },
+                                symbol,
+                                "swiftc-dump-ast-interface-type",
+                            )
+                        )
+                    references.append(
+                        _resolved_reference(
                             {
                                 "path": declaration["file"],
                                 "line": declaration["line"] + offset,
@@ -722,7 +841,13 @@ def _compiler_occurrences(
             for row in overloads
         }.values()
     )
-    return occurrences, calls, overloads
+    references = list(
+        {
+            (row["source"], row["line"], row["column"], row["target_semantic_id"]): row
+            for row in references
+        }.values()
+    )
+    return occurrences, calls, overloads, references
 
 
 def _compiler_property_writes(
@@ -840,8 +965,8 @@ def _compiler_function_bodies(
         direct_calls = [
             row
             for row in calls
-            if row["source"] == symbol["file"]
-            and symbol["line"] < row["line"] <= symbol["end_line"]
+            if row["target_kind"] != 9
+            and row["containing_caller"]["semantic_id"] == symbol["semantic_id"]
         ]
         selected_overloads = [
             row
@@ -920,24 +1045,48 @@ def _compiler_facts(
     declarations = _ast_declarations(lines, root, module, roles)
     query_set = set(queries)
     symbols = [row for row in declarations if row["name"] in query_set]
-    occurrences, calls, overloads = _compiler_occurrences(
+    occurrences, calls, overloads, references = _compiler_occurrences(
         lines, root, module, declarations, query_set
     )
     property_writes = _compiler_property_writes(lines, root, declarations)
     defaults = _compiler_default_arguments(lines, root, declarations)
     bodies = _compiler_function_bodies(lines, symbols, calls, overloads)
-    public_symbols = [
-        {key: value for key, value in row.items() if not key.startswith("_")} for row in symbols
-    ]
+    public_symbols = [_public_declaration(row) for row in symbols]
     public_symbols.sort(key=lambda row: (row["file"], row["line"], row["column"], row["name"]))
+    all_declarations = [_public_declaration(row) for row in declarations]
+    all_declarations.sort(
+        key=lambda row: (
+            row["file"],
+            row["line"],
+            row["column"],
+            row["kind"],
+            row["display_name"],
+        )
+    )
     occurrences.sort(key=lambda row: (row["source"], row["line"], row["column"], row["name"]))
     details = {
         "normalization": "absolute-root-elision+hex-address-elision-v1",
         "normalized_ast_sha256": hashlib.sha256(normalized.encode()).hexdigest(),
         "normalized_ast_bytes": len(normalized.encode()),
         "selected_sources": relative_files,
+        "all_declarations": all_declarations,
+        "resolved_references": sorted(
+            references,
+            key=lambda row: (
+                row["source"],
+                row["line"],
+                row["column"],
+                row["target_semantic_id"],
+            ),
+        ),
         "resolved_calls": sorted(
-            calls, key=lambda row: (row["source"], row["line"], row["column"])
+            calls,
+            key=lambda row: (
+                row["source"],
+                row["line"],
+                row["column"],
+                row["target_semantic_id"],
+            ),
         ),
         "selected_overloads": sorted(
             overloads, key=lambda row: (row["source"], row["line"], row["column"])
@@ -994,6 +1143,7 @@ def _terminal(
             "package_sha256": _sha256(root / "Package.swift")
             if (root / "Package.swift").is_file()
             else None,
+            "target_graph_sha256": _canonical_hash([]),
         },
         "query_names": sorted(set(queries)),
         "query_plan_sha256": _canonical_hash(sorted(set(queries))),
@@ -1006,6 +1156,7 @@ def _terminal(
             if not value.startswith("symlink:")
         ],
         "source_manifest_sha256": _manifest_hash(snapshot),
+        "target_graph": [],
         "compiler": {"fresh_scratch": False, "selected_sources_compiled": False},
         "semantic": {
             "state": "not-run",
@@ -1168,16 +1319,8 @@ def collect(
             if not value.startswith("symlink:")
         ]
         payload["source_manifest_sha256"] = _manifest_hash(before)
-        target_graph = [
-            {
-                "name": row.get("name"),
-                "type": row.get("type"),
-                "path": row.get("path"),
-                "sources": row.get("sources", []),
-                "target_dependencies": row.get("target_dependencies", []),
-            }
-            for row in description.get("targets", [])
-        ]
+        target_graph = _normalized_target_graph(description)
+        payload["target_graph"] = target_graph
         payload["identity"] = {
             "package_name": description.get("name"),
             "package_sha256": _sha256(root / "Package.swift"),
@@ -1360,6 +1503,96 @@ def load_fact_pack(
     without_hash.pop("fact_pack_sha256", None)
     if supplied != _canonical_hash(without_hash):
         raise SwiftFactError("fact_pack_invalid", "Swift semantic fact pack hash does not verify")
+    if payload.get("status") == "complete":
+        target_graph = payload.get("target_graph")
+        if (
+            not isinstance(target_graph, list)
+            or not target_graph
+            or not all(isinstance(row, dict) for row in target_graph)
+            or target_graph != _normalized_target_graph({"targets": target_graph})
+            or payload.get("identity", {}).get("target_graph_sha256")
+            != _canonical_hash(target_graph)
+        ):
+            raise SwiftFactError(
+                "fact_pack_invalid", "complete fact pack target graph is invalid"
+            )
+        details = payload.get("compiler_details")
+        required_lists = ("all_declarations", "resolved_references", "resolved_calls")
+        if not isinstance(details, dict) or any(
+            not isinstance(details.get(key), list) for key in required_lists
+        ):
+            raise SwiftFactError(
+                "fact_pack_invalid", "complete fact pack compiler handoff is invalid"
+            )
+        declarations = details["all_declarations"]
+        declaration_keys = {
+            "semantic_id",
+            "name",
+            "kind",
+            "file",
+            "line",
+            "column",
+            "interface_type",
+            "definitions",
+        }
+        if any(
+            not isinstance(row, dict)
+            or not declaration_keys.issubset(row)
+            or not isinstance(row.get("semantic_id"), str)
+            for row in declarations
+        ):
+            raise SwiftFactError(
+                "fact_pack_invalid", "complete fact pack declarations are invalid"
+            )
+        declaration_ids = [row["semantic_id"] for row in declarations]
+        if len(declaration_ids) != len(set(declaration_ids)):
+            raise SwiftFactError(
+                "fact_pack_invalid", "complete fact pack declaration identities are not unique"
+            )
+        declaration_id_set = set(declaration_ids)
+        references = details["resolved_references"]
+        reference_keys = {
+            "source",
+            "line",
+            "column",
+            "target_kind",
+            "target_semantic_id",
+            "target_declaration",
+            "evidence",
+        }
+        if any(
+            not isinstance(row, dict)
+            or not reference_keys.issubset(row)
+            or row.get("target_semantic_id") not in declaration_id_set
+            for row in references
+        ):
+            raise SwiftFactError(
+                "fact_pack_invalid", "complete fact pack resolved references are invalid"
+            )
+        call_keys = {
+            "source",
+            "line",
+            "column",
+            "target_kind",
+            "target_semantic_id",
+            "target_declaration",
+            "containing_caller",
+            "evidence",
+        }
+        caller_keys = {"name", "kind", "semantic_id", "interface_type", "declaration"}
+        for call in details["resolved_calls"]:
+            caller = call.get("containing_caller") if isinstance(call, dict) else None
+            if (
+                not isinstance(call, dict)
+                or not call_keys.issubset(call)
+                or call.get("target_semantic_id") not in declaration_id_set
+                or not isinstance(caller, dict)
+                or not caller_keys.issubset(caller)
+                or caller.get("semantic_id") not in declaration_id_set
+            ):
+                raise SwiftFactError(
+                    "fact_pack_invalid", "complete fact pack resolved calls are invalid"
+                )
     if payload.get("identity", {}).get("target_name") != target_name:
         raise SwiftFactError(
             "fact_pack_scope_mismatch", "fact pack target does not match consumer target"

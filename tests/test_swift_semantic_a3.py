@@ -290,6 +290,50 @@ def test_compiler_ast_is_bounded_deterministic_and_resolved(tmp_path: Path) -> N
     assert all(semantic["capabilities"].values())
 
     details = bundle["details"]
+    declarations = details["all_declarations"]
+    declaration_ids = {row["semantic_id"] for row in declarations}
+    assert len(declaration_ids) == len(declarations)
+    statement_initializers = [
+        row for row in declarations if row["parent"] == "Statement" and row["name"] == "init"
+    ]
+    assert {row["line"] for row in statement_initializers} == {5, 10}
+    assert {row["interface_type"] for row in statement_initializers} == {
+        "(Statement.Type) -> (Double, String) -> Statement",
+        "(Statement.Type) -> (Int, String) -> Statement",
+    }
+
+    references = details["resolved_references"]
+    assert references
+    assert {row["target_semantic_id"] for row in references} <= declaration_ids
+    used_helper_id = next(
+        row["semantic_id"] for row in declarations if row["name"] == "usedHelper"
+    )
+    assert {
+        (row["source"], row["line"])
+        for row in references
+        if row["target_semantic_id"] == used_helper_id
+    } == {("Sources/SwiftA3Core/Dormant.swift", 14)}
+
+    calls = details["resolved_calls"]
+    assert calls
+    assert all(row["containing_caller"]["semantic_id"] in declaration_ids for row in calls)
+    call_pairs = {
+        (row["containing_caller"]["name"], row["target_name"], row["source"], row["line"])
+        for row in calls
+    }
+    assert ("buildStatement", "normalize", "Sources/SwiftA3Core/Duplication.swift", 25) in (
+        call_pairs
+    )
+    assert ("buildStatement", "init", "Sources/SwiftA3Core/Duplication.swift", 26) in (
+        call_pairs
+    )
+    assert ("billingSurface", "buildStatement", "Sources/SwiftA3Core/SurfaceA.swift", 2) in (
+        call_pairs
+    )
+    assert ("legacyChargePath", "charge", "Sources/SwiftA3Core/Sweep.swift", 6) in (
+        call_pairs
+    )
+
     overloads = [row for row in details["selected_overloads"] if row["owner"] == "Statement"]
     assert overloads
     assert {row["selected_declaration"]["line"] for row in overloads} == {5}
@@ -349,6 +393,50 @@ def test_copied_union_reaches_five_outcomes_reviews_and_lifecycle(tmp_path: Path
     assert facts_payload["status"] == "complete"
     assert facts_payload["identity"]["target_name"] == "SwiftA3Core"
     assert facts_payload["identity"]["configuration"] == "debug"
+    assert facts_payload["schema_version"] == "swift-semantic-facts-v2"
+    target_graph = facts_payload["target_graph"]
+    assert [row["name"] for row in target_graph] == [
+        "SwiftA3Check",
+        "SwiftA3Clean",
+        "SwiftA3Core",
+        "SwiftA3Smoke",
+    ]
+    assert all(row["sources"] == sorted(row["sources"]) for row in target_graph)
+    assert all(
+        row["target_dependencies"] == sorted(row["target_dependencies"])
+        for row in target_graph
+    )
+    provider = _provider_module()
+    assert facts_payload["identity"]["target_graph_sha256"] == provider._canonical_hash(
+        target_graph
+    )
+    core_target = next(row for row in target_graph if row["name"] == "SwiftA3Core")
+    assert core_target == {
+        "name": "SwiftA3Core",
+        "path": "Sources/SwiftA3Core",
+        "sources": [
+            "Dormant.swift",
+            "Duplication.swift",
+            "Rename.swift",
+            "State.swift",
+            "SurfaceA.swift",
+            "SurfaceB.swift",
+            "Sweep.swift",
+            "SweepPresent.swift",
+        ],
+        "target_dependencies": [],
+        "type": "library",
+    }
+    tampered_payload = json.loads(json.dumps(facts_payload))
+    tampered_payload["compiler_details"].pop("resolved_references")
+    tampered_without_hash = dict(tampered_payload)
+    tampered_without_hash.pop("fact_pack_sha256")
+    tampered_payload["fact_pack_sha256"] = provider._canonical_hash(tampered_without_hash)
+    tampered_facts = host / "reports/swift-semantic-facts/tampered-schema.json"
+    _write_json(tampered_facts, tampered_payload)
+    with pytest.raises(provider.SwiftFactError) as invalid_schema:
+        provider.load_fact_pack(tampered_facts, host, "SwiftA3Core", UNION_QUERIES)
+    assert invalid_schema.value.kind == "fact_pack_invalid"
     assert facts_payload["compiler"]["fresh_scratch"] is True
     assert facts_payload["compiler"]["selected_sources_compiled"] is True
     assert facts_payload["semantic"]["capabilities"] == {
