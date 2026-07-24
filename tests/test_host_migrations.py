@@ -272,6 +272,7 @@ def test_restore_recovers_exact_prior_manifest_and_path_then_reapply_works(
         for path in sorted((tmp_path / ".claude/docs/subsystems").rglob("*.md"))
     } == maps
     assert not (tmp_path / ".engineering/docs/subsystems").exists()
+    assert not (tmp_path / ".engineering/docs").exists()
 
     restored = hm.restore(tmp_path, hm.SUBSYSTEM_REGISTRY_MIGRATION_ID)
 

@@ -195,6 +195,17 @@ def _content_digest(path: Path, kind: str) -> str:
     return digest.hexdigest()
 
 
+def _missing_parent_dirs(root: Path, relative_parent: Path) -> list[str]:
+    """Return destination parents the migration itself would create."""
+    current = root
+    missing: list[str] = []
+    for part in relative_parent.parts:
+        current = current / part
+        if not current.exists():
+            missing.append(str(current.relative_to(root)))
+    return missing
+
+
 def _git_state() -> tuple[str | None, bool | None]:
     try:
         head_result = subprocess.run(
@@ -566,6 +577,7 @@ def _prepare_journal(
     manifest_raw: bytes | None,
     content_sha256: str | None,
     moved: bool,
+    created_destination_parents: list[str],
 ) -> dict[str, Any]:
     journal = {
         "journal_version": 2,
@@ -580,6 +592,7 @@ def _prepare_journal(
         "manifest_before_base64": _b64(manifest_raw),
         "content_sha256": content_sha256,
         "moved_path": moved,
+        "created_destination_parents": created_destination_parents,
     }
     _write_journal(root, journal)
     return journal
@@ -621,7 +634,12 @@ def _apply_one(root: Path, migration: dict[str, Any]) -> bool:
         moved = source.exists()
         content_sha256 = _content_digest(source, migration["kind"]) if moved else None
         journal = _prepare_journal(
-            root, migration, manifest_raw, content_sha256, moved
+            root,
+            migration,
+            manifest_raw,
+            content_sha256,
+            moved,
+            _missing_parent_dirs(root, migration["destination"].parent),
         )
 
     assert journal is not None
@@ -756,6 +774,10 @@ def restore(project_root: Path | str, migration_id: str) -> dict[str, Any]:
             return report
         source.parent.mkdir(parents=True, exist_ok=True)
         os.replace(destination, source)
+        for relative in reversed(journal.get("created_destination_parents", [])):
+            parent = root / relative
+            if parent.is_dir() and not any(parent.iterdir()):
+                parent.rmdir()
 
     manifest_before = _unb64(journal.get("manifest_before_base64"))
     if journal.get("manifest_existed"):
