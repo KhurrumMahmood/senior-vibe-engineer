@@ -12,9 +12,10 @@ best_for: |
   files that mix credentials, admin APIs, CSRF/auth, command/network
   diagnostics, persistence, raw SQL, import/export, task dispatch, or
   filesystem writes; produces decomposition candidates that hand off
-  to /refactor-subsystem. Covers Python, JavaScript/TypeScript, Go, Java, and
-  bounded Swift with family-local syntax parsers. Findings carry analyzer provenance. The script
-  paths resolve no types and assume no framework.
+  to /refactor-subsystem. Covers Python, JavaScript/TypeScript, Go, Java, PHP,
+  Ruby, Rust, Dart, and bounded Swift with family-local syntax parsers. Findings
+  carry analyzer provenance. The script paths resolve no types and assume no
+  framework.
 not_for: |
   Cohesive modules remain outside this audit regardless of size. View-layer
   architecture violations belong to /find-layer-violation, source mutation
