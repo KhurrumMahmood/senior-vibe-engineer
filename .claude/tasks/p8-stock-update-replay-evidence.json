@@ -1,76 +1,130 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "recorded_at": "2026-07-24",
-  "status": "passed-with-one-reproduced-router-quality-failure",
+  "status": "passed",
   "public_source": "README.md::ENGINEERING_SKILLS_SOURCE",
-  "replay_root": "/private/tmp/engineering-skills-p8-update.gh0o3B",
-  "refs": {
-    "old": "3bea2ae31d060b95fa22aeddb5aafa4a4faf32a9",
+  "two_ref_update": {
+    "replay_root": "/private/tmp/engineering-skills-p8-update.gh0o3B",
+    "old_ref": "3bea2ae31d060b95fa22aeddb5aafa4a4faf32a9",
     "old_host_schema": 2,
-    "new": "1c333d264288981688b8eac2b3722c7bb34190ca",
-    "new_host_schema": 3
-  },
-  "journey": {
+    "new_ref": "1c333d264288981688b8eac2b3722c7bb34190ca",
+    "new_host_schema": 3,
+    "result": "stock three-router reinstall, ordinary Git library replacement, schema 1-to-2-to-3 migration composition, route, final artifact, closeout, idempotence, preservation, and uninstall passed",
     "operator_command_count": 21,
     "manual_decision_count": 5,
-    "measured_seconds_excluding_public_source_preparation": {
-      "old_install_bootstrap_and_schema_1_to_2": 11,
-      "router_and_library_update_plus_schema_2_to_3": 3,
-      "route_execute_closeout_and_uninstall": 2,
-      "total": 16
+    "measured_seconds_excluding_public_source_preparation": 16
+  },
+  "final_candidate": {
+    "functional_ref": "1a56dd488c7771e41753a69952ed2d9575fe5699",
+    "replay_root": "/private/tmp/engineering-skills-p8-final.E7qRdQ",
+    "stock_cli": "skills@1.5.19",
+    "clean_journey_command_count": 12,
+    "manual_decision_count": 2,
+    "observed_wall_seconds": {
+      "install_bootstrap": 24,
+      "status_migration_route": 3,
+      "selected_execution_and_closeout": 22,
+      "uninstall_and_list": 3,
+      "total": 52
     },
-    "old_phase": [
-      "stock CLI installed exactly the three old routers",
-      "old router bootstrapped an external library at the old ref",
-      "read-only status and plan reported schema 1 -> 2",
-      "explicit apply moved the real subsystem registry and reached schema 2"
-    ],
-    "update_phase": [
-      "stock CLI reinstalled exactly the three routers from the new ref",
-      "ordinary Git fetch and detached checkout replaced the external library code",
-      "bootstrap revalidated the retained library runtime",
-      "read-only status and plan reported only migration 0002 pending",
-      "explicit apply moved real subsystem maps and reached schema 3",
-      "reapply returned current without writes"
-    ],
-    "completion_phase": [
-      "which-skill selected adapt-project with a valid on-demand closure",
-      "which-shape selected /adapt-project after the reproduced wording failure was removed",
-      "adapt-project emitted adapter.yml, adapter.json, report.md, and evidence.json outside the host",
-      "the evidence gate passed",
-      "which-cleanup returned bounded valid closure paths",
-      "stock removal left zero ambient router directories"
-    ]
+    "install": {
+      "catalog_count": 76,
+      "installed_routers": [
+        "which-cleanup",
+        "which-shape",
+        "which-skill"
+      ],
+      "external_library_head": "1a56dd488c7771e41753a69952ed2d9575fe5699",
+      "runtime": "Python 3.13.2"
+    },
+    "status_before_migration": {
+      "router_code_matches_library": true,
+      "host_state_matches_library": false,
+      "current_schema": 1,
+      "target_schema": 3,
+      "pending_migrations": [
+        "0001-subsystem-registry-home",
+        "0002-subsystem-maps-home"
+      ]
+    },
+    "status_after_explicit_apply": {
+      "router_code_matches_library": true,
+      "host_state_matches_library": true,
+      "overall": "match",
+      "current_schema": 3,
+      "target_schema": 3,
+      "pending_migrations": []
+    },
+    "routing": {
+      "which_shape": "natural onboarding wording -> project-intake -> adapt-project",
+      "which_skill": "Swift repository -> adapt-project",
+      "which_cleanup": [
+        "find-comment-drift",
+        "prevent-regression"
+      ],
+      "cleanup_excluded": "framework-bound find-test-obligation-drift without declared framework context"
+    },
+    "final_outcomes": {
+      "adapt_project": {
+        "language": "swift",
+        "status": "complete",
+        "native_checks": 7,
+        "artifacts": [
+          "adapter.json",
+          "adapter.yml",
+          "evidence.json",
+          "report.md"
+        ],
+        "evidence_gate": "adapt-project evidence OK",
+        "source_preserved": true
+      },
+      "cleanup_selected_skill": {
+        "skill": "find-comment-drift",
+        "status": "complete",
+        "outcome": "advisory-findings",
+        "finding_count": 1,
+        "native_checks": 7,
+        "artifacts": [
+          "detections.jsonl",
+          "findings.json",
+          "report.md",
+          "scan.json"
+        ],
+        "source_preserved": true
+      }
+    },
+    "uninstall": {
+      "command": "DO_NOT_TRACK=1 npx --yes skills@1.5.19 remove which-shape which-skill which-cleanup -y",
+      "installed_router_directories_remaining": 0,
+      "skills_list_json": [],
+      "external_library_retained": true,
+      "sentinel_preserved": true,
+      "stock_lock_behavior": "skills-lock.json retains prior router entries as restoration metadata"
+    }
   },
-  "final_state": {
-    "router_bytes_match_new_ref": true,
-    "external_library_head": "1c333d264288981688b8eac2b3722c7bb34190ca",
-    "host_schema": 3,
-    "applied_migrations": [
-      "0001-subsystem-registry-home",
-      "0002-subsystem-maps-home"
-    ],
-    "selected_execution_evidence_gate": "pass",
-    "cleanup_recommendations": [
-      "find-test-obligation-drift",
-      "find-comment-drift",
-      "prevent-regression"
-    ],
-    "routers_remaining_after_uninstall": 0,
-    "external_library_retained": true,
-    "non_managed_user_bytes_preserved": true
+  "recoverable_failures": [
+    {
+      "symptom": "a Swift adapter output outside the project was refused",
+      "repair": "use the documented project reports boundary",
+      "repair_sufficient": true,
+      "product_change": "none; the refusal is intentional source/artifact boundary enforcement"
+    },
+    {
+      "symptom": "stock remove with explicit names plus --agent codex reported success but left universal .agents copies",
+      "repair": "remove the same three explicit names without an agent filter",
+      "repair_sufficient": true,
+      "product_change": "README corrected and guarded; remove --all remains forbidden"
+    }
+  ],
+  "router_quality_and_measurement": {
+    "focused_regressions": "121 passed",
+    "performance_evidence": ".claude/tasks/p8-performance-measurement-evidence.json",
+    "actual_product_parallel_improvement_percent": 57.71212233687179,
+    "actual_product_semantic_parity": true,
+    "missing_library_behavior": "all three routers emit exact bootstrap repair and no nonexistent guide paths"
   },
-  "reproduced_failure": {
-    "prompt": "onboard this unknown inherited Python repository and choose the right operating loop",
-    "expected": "project-intake -> /adapt-project",
-    "actual": "decision-capture -> /decide",
-    "cause_signal": "the generic word choose outweighed strong inherited/onboard/unknown-repository cues",
-    "recovery": "the frozen known-good wording figure out what operating loop to start with routed to project-intake",
-    "disposition": "P8 router-quality regression case before any matcher edit"
-  },
-  "remaining_p8_gaps": [
-    "Installed router source/ref is externally verifiable by byte comparison but is not yet reported by one native read-only status command.",
-    "The stock update path requires the operator to choose and perform the ordinary Git replacement strategy for the external library.",
-    "The reproduced which-shape wording failure must be frozen and fixed without weakening durable-decision routing."
-  ]
+  "p9_decision_input": {
+    "convenience_updater": "not justified",
+    "reason": "the two reproduced operator failures were closed by bounded routing/documentation repairs; stock install, Git library replacement, explicit migration, status, and scoped uninstall now pass without a new package-management layer"
+  }
 }

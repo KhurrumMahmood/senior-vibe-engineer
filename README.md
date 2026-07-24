@@ -154,8 +154,7 @@ project (never from the engineering-skills source checkout):
 
 ```bash
 DO_NOT_TRACK=1 npx --yes skills@1.5.19 remove \
-  which-shape which-skill which-cleanup \
-  --agent codex -y
+  which-shape which-skill which-cleanup -y
 ```
 
 The stock CLI owns the installed skill directories and `skills-lock.json`.
@@ -164,7 +163,10 @@ removing it. Do not substitute `remove --all`: that option removes every skill
 the CLI discovers for every agent target, including unrelated skills. Files
 elsewhere in the host project are outside the scoped router boundary.
 The on-demand library is separate from that boundary and may be retained as a
-shared project resource or removed independently.
+shared project resource or removed independently. At the pinned CLI version,
+explicit removal retains prior `skills-lock.json` entries as restoration
+metadata; `skills list --json` is the installed-state check and returns an empty
+list after the three router directories are removed.
 
 Python >=3.11 is an explicit script-runtime dependency. Initial library
 bootstrap health-probes candidate interpreters (including installed pyenv

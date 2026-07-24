@@ -121,8 +121,8 @@ execution authorities.
 | P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `superseded_by_f4` | Pilot spine `f3166fd`; final C# completion `2dcbddb` |
 | P6 | Shared components promoted or rejected on evidence | `done` | `febc761` |
 | P7 | Every chosen language reaches complete, value-tested language-level support | `done` | Swift compiler-AST families through `f03cf8a`; publication `da51a8d` |
-| P8 | Current journey, update/repair, and help are measured | `in_progress` | Pre-change corpus/protocol frozen from `b1461c8` |
-| P9 | Only measured user-journey improvements are adopted | `not_started` | — |
+| P8 | Current journey, update/repair, and help are measured | `done` | Router/status candidate `1a56dd4`; evidence in the P8 artifacts below |
+| P9 | Only measured user-journey improvements are adopted | `done:no-updater` | Existing compressed parallel launcher retained; optional updater and host guidance rejected as unmeasured overhead |
 
 ## Follow-on execution sequence — 2026-07-23
 
@@ -140,8 +140,8 @@ the committed integration revision.
 | F3 | Complete C, then C++, then Kotlin | `done` | Finish one language before the next; up to three disjoint same-language lanes, with shared publication serial | C, C++, and Kotlin are complete at 22/22 under separate bounded truth; Kotlin's final structure consumers are `2c35b98`, publication is `52fc489`, and the committed installed-router replay passes `59` |
 | F4 | Complete C#/.NET last | `done:2dcbddb` | One spine, then disjoint read-only family lanes only where ownership is proven; mutation serial | C# is 22/22 with exact closure modes and bounded native claims; the committed cloned external-library/router replay passes 59 tests |
 | F5 | Publish final language release | `done:1c333d2` | Root only | All 13 chosen language columns are 22/22; 76-skill public catalog, exact three-router install, same-revision bootstrap, six language routes, final Swift artifact, bounded cleanup, preservation, and stock removal pass |
-| F6 | Measure and finish the existing user journey (P8) | `in_progress` | Up to three read-only corpus/measurement lanes; router/help/status implementation serial | Pre-change corpus and measure-only protocol frozen at `b1461c8`; adjudication, help/update observations, and measurements pending |
-| F7 | Adopt only measured UX/performance improvements (P9) | `pending_f6` | One experiment at a time; shared routing and mutation integration serial | Only experiments meeting predeclared correctness and efficiency thresholds ship; neutral/harmful results are recorded and rejected |
+| F6 | Measure and finish the existing user journey (P8) | `done:1a56dd4` | Three fresh non-context reviews supplied bounded findings; root integrated router/help/status changes serially | Frozen corpus passes; stock two-ref and final-candidate journeys pass; native status and missing-library repair are proven; actual product benchmark has five paired trials |
+| F7 | Adopt only measured UX/performance improvements (P9) | `done:no-updater` | Root applied the frozen threshold to existing compression/batching evidence | Compressed guidance retained; actual product parallel launcher is 57.71% faster with semantic parity; no coordinator, updater, or host-guidance surface was justified |
 
 ### F0 — Dart and repository closeout
 
@@ -380,8 +380,8 @@ weaken them.
 | AC1-D1 | Reviewed findings are remembered and safely re-surfaced on evidence change | `done:84ec7e5` | AC1-S3 | Avoid repeated compute and repeated human decisions |
 | AC1-C1 | Decision propagation, registry completeness, and deferred debt are auditable | `done:390d200` | AC1-S4 and AC1-D1 | Project coherence in this kit and adopters |
 | AC1-M2 | A second real host-state migration proves skipped-release composition | `done:5d0608c` | AC1-C1 supplied project-authored subsystem maps as a real legacy move | Install/update lifecycle |
-| P8-U1 | A stock prior-release update journey passes at two exact public refs | `in_progress:replay_passed_repairs_pending` | final language release and AC1-M2 | Installation and repair UX |
-| P9-U2 | A convenience updater ships only if measured stock-path friction justifies it | `pending_p9` | P8-U1 measurements | Evidence-backed user-journey improvement |
+| P8-U1 | A stock prior-release update journey passes at two exact public refs | `done:1a56dd4` | final language release and AC1-M2 | Installation and repair UX |
+| P9-U2 | A convenience updater ships only if measured stock-path friction justifies it | `done:no-wrapper` | P8-U1 measurements | Evidence-backed user-journey improvement |
 
 Execution is serial across shared product surfaces: AC1-S0 → S1 → S2 → S3 →
 S4 → D1 → C1 → M2. Read-only inventories may be prepared independently, but
@@ -671,21 +671,21 @@ Evidence:
 
 Acceptance:
 
-- [ ] Freeze two exact public Git refs with different toolkit code and host-state
+- [x] Freeze two exact public Git refs with different toolkit code and host-state
   schemas. Install the older three routers using the pinned stock skills CLI and
   bootstrap the same-ref external library in a disposable host.
-- [ ] Create representative legacy toolkit-owned state plus non-managed sentinel
+- [x] Create representative legacy toolkit-owned state plus non-managed sentinel
   files, then use documented stock router reinstall and ordinary Git/library
   replacement followed by status, migration preview, explicit apply, route,
   selected execution, closeout, cleanup, and uninstall.
-- [ ] Final router source/ref, library HEAD, host schema, and migration records
+- [x] Final router source/ref, library HEAD, host schema, and migration records
   match the new ref. Every non-managed byte and sentinel is unchanged; uninstall
   removes only documented router-owned directories.
-- [ ] The installed routers discover the configured/default external library or
+- [x] The installed routers discover the configured/default external library or
   return one actionable bootstrap/repair instruction. A missing manifest or
   runtime never produces plausible-but-unusable guide paths; the observed
   self-host missing-library handoff is frozen in the P8 routing corpus.
-- [ ] Record command count, manual decisions, recoverable failure points, wall
+- [x] Record command count, manual decisions, recoverable failure points, wall
   time, and observed errors. This is the evidence input to P9-U2, not merely a
   pass/fail integration test.
 
@@ -693,31 +693,29 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Public two-ref update/repair replay | `.claude/tasks/p8-stock-update-replay-evidence.json`; disposable replay root `/private/tmp/engineering-skills-p8-update.gh0o3B` | Public schema-2 ref `3bea2ae` installed and migrated a real schema-1 host to 2; stock router reinstall plus ordinary Git library replacement to `1c333d2` migrated 2→3; route, final `adapt-project` artifacts/evidence gate, cleanup, idempotent replay, scoped host-byte preservation, and clean-host uninstall passed. One natural which-shape wording failure, native status gap, missing-library repair gap, and unsafe documented `remove --all` remain P8 repairs. | replay against `3bea2ae` and `1c333d2`; evidence commit pending |
+| Public two-ref plus repaired final-candidate replay | `.claude/tasks/p8-stock-update-replay-evidence.json`; disposable roots `/private/tmp/engineering-skills-p8-update.gh0o3B` and `/private/tmp/engineering-skills-p8-final.E7qRdQ` | Ordered schema 1→2→3 update passed. At `1a56dd4`, exactly three routers installed; native status reported code match/state mismatch before explicit migration and full match afterward; natural routing, Swift final artifact, selected cleanup artifact, source/sentinel preservation, explicit-name uninstall, and empty stock installed list passed. | functional candidate `1a56dd4` |
 
 #### P9-U2 — Evidence gate for a convenience updater
 
 Acceptance:
 
-- [ ] No updater is implemented before P8-U1 establishes the baseline and names
+- [x] No updater is implemented before P8-U1 establishes the baseline and names
   a repeated avoidable failure or material operator burden.
-- [ ] If eligible, the experiment predeclares correctness parity and a measurable
-  journey threshold. At minimum it must preserve every P8 byte/scope invariant,
-  keep status/plan read-only and offline, expose the exact stock commands and
-  migration plan, require explicit apply, and reduce manual steps or errors by
-  the predeclared threshold.
-- [ ] The wrapper delegates code acquisition to the stock installer/Git and state
+- [x] Eligibility was adjudicated against the predeclared correctness and
+  measurable journey threshold. No updater experiment was eligible: the two
+  reproduced failures were repaired in bounded router/documentation surfaces,
+  while the stock update path completed without a new package-management layer.
+- [x] No wrapper shipped; code acquisition remains stock installer/Git and state
   changes to the migration runner. It has no dependency solver, hidden network
   update, or authority over project source/unmarked host instructions.
-- [ ] If the threshold does not pass, documentation plus status/plan remains the
-  product and the rejected wrapper experiment is recorded; “no wrapper” is a
-  valid completed outcome.
+- [x] Documentation plus status/plan remains the product; the no-updater
+  decision and its evidence are recorded as a valid completed outcome.
 
 Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | P8 baseline + paired P9 experiment or rejection record | — | — |
+| Updater eligibility and measured batching decision | `.claude/tasks/p8-stock-update-replay-evidence.json`; `.claude/tasks/p8-performance-measurement-evidence.json` | Retain compressed guidance and the existing parallel read-only launcher (57.71% faster with semantic parity). Reject a new coordinator/updater/host-guidance surface because no measured user problem cleared its adoption gate. | router/status candidate `1a56dd4` |
 
 #### AC1 plan review record
 
@@ -1289,45 +1287,45 @@ transferable work to be batched without creating shared-file merge races.
 
 Acceptance for each language:
 
-- [ ] The toolchain doctor and profile report native tools, project/build
+- [x] The toolchain doctor and profile report native tools, project/build
   boundaries, fact tiers, idiom/standard-tool references, and explicit gaps.
-- [ ] All 22 language-level skills receive evidence-backed dispositions.
+- [x] All 22 language-level skills receive evidence-backed dispositions.
   `pending-implementation` and `partial` are honest intermediate states but
   cannot close a chosen language. Completion normally requires `supported`.
   Permanent `unsupported` is allowed only with evidence of technical
   impossibility or conceptual incompatibility with the language/framework;
   lack of implementation, cost, missing tooling, or pilot scope is never such
   evidence.
-- [ ] If the original skill mechanics do not fit but its underlying engineering
+- [x] If the original skill mechanics do not fit but its underlying engineering
   need still exists, the language/framework supplies and routes to a
   value-tested native alternative. `not-applicable` is allowed only when both
   the original skill and its underlying engineering job genuinely have no
   meaningful analogue. Every permanent unsupported/not-applicable judgment is
   independently reviewed and names the language practice or tool that serves
   the need, or explicitly proves that no such need exists.
-- [ ] Every applicable skill has a language-native value scenario that reaches
+- [x] Every applicable skill has a language-native value scenario that reaches
   its final outcome from the copied external-library closure. The scenario
   encodes a real engineering problem and machine-checkable useful output; an
   empty report, generic advice, fixture-name matching, or exit-zero alone fails.
-- [ ] Every applicable skill/language value suite includes: positive expected
+- [x] Every applicable skill/language value suite includes: positive expected
   facts or changes; decoys and must-not-fire boundaries; missing/old/failing
   tool and incomplete-project states; source-role and stale-artifact behavior;
   copied-layout execution; and the host's native build/test/typecheck/lint
   obligation. Mutation and guard skills additionally prove rollback or
   pre/post behavior at the final executable boundary.
-- [ ] Advisory/proposal skills assert the affected paths/symbols, evidence
+- [x] Advisory/proposal skills assert the affected paths/symbols, evidence
   provenance, required obligations, and at least one rejected unsafe or
   irrelevant candidate. They do not pass by snapshotting prose alone.
-- [ ] Router output can explain what will work, what may be slow/manual, and
+- [x] Router output can explain what will work, what may be slow/manual, and
   which established host tools can help.
-- [ ] No task skill becomes ambient by default and every copied closure remains
+- [x] No task skill becomes ambient by default and every copied closure remains
   complete.
-- [ ] Existing Python, TypeScript/JavaScript, Go, Java, PHP, and the completed
+- [x] Existing Python, TypeScript/JavaScript, Go, Java, PHP, and the completed
   feasible typed-pilot outcomes retain their frozen regression checks; C# is
   required here only if P5 completed C#.
-- [ ] One learning packet per language records setup, reusable components,
+- [x] One learning packet per language records setup, reusable components,
   semantic limitations, framework follow-ups, and next-language guidance.
-- [ ] Shared surfaces are integrated serially; lane commits contain only their
+- [x] Shared surfaces are integrated serially; lane commits contain only their
   owned profile/provider/fixture work.
 
 Cross-language implementation families:
@@ -1448,34 +1446,34 @@ before optional UX infrastructure is proposed.
 
 Acceptance:
 
-- [ ] A frozen corpus covers clear, ambiguous, negated/misleading, direct/no-
+- [x] A frozen corpus covers clear, ambiguous, negated/misleading, direct/no-
   skill, unsupported-language, and different-scope cases across all three
   routers. Expected routes, allowed ambiguity sets, final-outcome rubrics,
   source revisions, and commands are frozen before optimization.
-- [ ] Every clear case reaches the intended route, every ambiguous case returns
+- [x] Every clear case reaches the intended route, every ambiguous case returns
   an allowed set or discriminating question, heavy false positives on direct
   tasks are zero, and every selected closure path is valid.
-- [ ] One representative installed/on-demand journey per router is judged on
+- [x] One representative installed/on-demand journey per router is judged on
   its final task outcome, not router JSON alone.
-- [ ] Router `--help` behavior explains the three router jobs, external library,
+- [x] Router `--help` behavior explains the three router jobs, external library,
   current language/framework capability, tool prerequisites, slow/manual
   paths, and no-action help semantics without initiating task execution.
-- [ ] A minimal read-only status/doctor reports installed router source/ref,
+- [x] A minimal read-only status/doctor reports installed router source/ref,
   external-library HEAD, host-state schema, pending migration IDs, and separate
   code/state match or mismatch. It does not add a package manager.
-- [ ] The documented repair uses stock router reinstall plus explicit library
+- [x] The documented repair uses stock router reinstall plus explicit library
   replacement/re-bootstrap, followed by previewed explicit host-state
   migration when needed. Router uninstall, optional managed guidance, the
   external library, toolkit-owned state, and user-owned files have separate
   stated scopes.
-- [ ] A frozen prior-release fixture proves ordered upgrade across at least two
+- [x] A frozen prior-release fixture proves ordered upgrade across at least two
   migration steps, plan-only no-write behavior, schema-newer-than-tool refusal,
   collision refusal, interrupted-run recovery, idempotent re-apply, and
   rollback/restore before successful re-apply.
-- [ ] A clean host passes install, help, route, selected execution, native
+- [x] A clean host passes install, help, route, selected execution, native
   verification, closeout, stock update/repair, and uninstall while preserving
   non-managed bytes.
-- [ ] Fixed serial and existing batched workflows record correctness,
+- [x] Fixed serial and existing batched workflows record correctness,
   completion, wall time, observable model tokens, controlled/repeated context
   bytes, native-tool invocations, and human interventions. Unobservable values
   are reported unavailable, not passed.
@@ -1484,7 +1482,9 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | — | — | — |
+| Router corpus, first-use/help, missing-library, and native status | `tests/test_router_decision_quality.py`; `tests/test_p8_router_first_use.py`; `tests/test_p8_router_status.py`; focused integrated replay | `121 passed`; exact closures/capability eligibility, non-writing help, actionable repair, clean-HEAD router refs, and code/state mismatch reporting pass | `1a56dd4` |
+| Stock update and final installed journey | `.claude/tasks/p8-stock-update-replay-evidence.json` | Two-ref schema migration and final candidate install → status → explicit apply → route → Swift artifact → cleanup artifact → scoped uninstall pass with source/sentinel preservation | functional candidate `1a56dd4` |
+| Compression and actual product batching | `.claude/tasks/p8-performance-measurement-evidence.json` | Historical A→B compression cuts controlled context 78.83%; actual launcher parallel mode is 57.71% faster across five paired runs with semantic parity and no source mutation | `1a56dd4` harness/launcher hashes recorded |
 
 ## P9 — Adopt only measured user-journey improvements
 
@@ -1494,29 +1494,29 @@ default.
 
 Acceptance:
 
-- [ ] Before each experiment, predeclare its primary metric, hard correctness
+- [x] Before each experiment, predeclare its primary metric, hard correctness
   gates, paired workflow, trial count, and adoption threshold. The default gate
   is at least five paired runs and either >=20% median wall-time reduction or
   >=30% controlled-context reduction without >10% token growth; a different
   threshold requires a criteria revision.
-- [ ] Complementary read-only facts/lenses batch only where outputs remain
+- [x] Complementary read-only facts/lenses batch only where outputs remain
   independently attributable; mutations and final verification remain serial.
-- [ ] An optimization is adopted only when every correctness/support-honesty
+- [x] An optimization is adopted only when every correctness/support-honesty
   gate is preserved and its threshold passes. Neutral or harmful changes are
   rejected and recorded.
-- [ ] Host-instruction integration is promoted only if P8 identifies instruction
-  discoverability as a material friction point. The first bounded experiment is
-  `routers-only` plus one previewed, byte-preserving `signpost` mode.
-- [ ] Any mutating guidance mode previews the exact diff, requires explicit
-  approval, detects existing `AGENTS.md`/`CLAUDE.md`/`GEMINI.md` and symlinks,
-  and preserves every non-managed byte across apply/update/remove.
-- [ ] `selected-guidance`, `project-template`, generalized model/effort mapping,
+- [x] P8 did not identify host-instruction discoverability as a material
+  friction point, so no host-instruction experiment or integration shipped.
+- [x] No mutating guidance mode shipped; any future proposal remains bound to
+  an exact diff preview, explicit approval, detection of existing
+  `AGENTS.md`/`CLAUDE.md`/`GEMINI.md` and symlinks, and preservation of every
+  non-managed byte across apply/update/remove.
+- [x] `selected-guidance`, `project-template`, generalized model/effort mapping,
   and multi-host adapter infrastructure remain deferred until a real second
   consumer demonstrates need.
-- [ ] The full skill catalog is never injected into ambient context; fresh
+- [x] The full skill catalog is never injected into ambient context; fresh
   non-context handoffs carry only binding rules, native commands, authority,
   stop conditions, and evidence needed by that task.
-- [ ] Final documentation states measured benefits, rejected experiments,
+- [x] Final documentation states measured benefits, rejected experiments,
   limitations, supported languages/frameworks, prerequisites, and known
   slow/manual paths.
 
@@ -1524,7 +1524,7 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | — | — | — |
+| Measured optimization decision | `.claude/tasks/p8-journey-measurement-protocol.json`; `.claude/tasks/p8-performance-measurement-evidence.json` | Retain compressed family guidance and existing parallel read-only execution; reject new coordinator, updater, and host-guidance infrastructure. No mutation mode or ambient full-catalog loading was added. | `1a56dd4` |
 
 ## Overall definition of done
 
@@ -1560,6 +1560,7 @@ Evidence:
 
 | Date | Phase | Change | Reason/evidence | User decision |
 |---|---|---|---|---|
+| 2026-07-24 | P8-P9 | Close the measured journey with native read-only compatibility status, exact missing-library repair, scoped explicit-name uninstall, compressed family guidance, and the existing parallel read-only launcher; reject new coordinator, updater, and host-guidance infrastructure | The two-ref and final-candidate stock journeys pass. The actual product launcher is 57.71% faster across five paired runs with semantic parity. Reproduced routing and uninstall failures were fixed in bounded router/documentation surfaces, so no larger convenience platform cleared the predeclared adoption gate. The pinned stock CLI leaves universal `.agents` copies when explicit names are combined with `--agent codex`, but removes exactly those copies when the agent filter is omitted; `remove --all` remains forbidden. | Executes the approved installer → languages → measured user-journey sequence while applying the user's instruction to reject overhead that does not materially serve those goals |
 | 2026-07-23 | P7/F2C AC1-S4 | Carry one scan request per normalized artifact rather than repeating it inside every finding; refresh only real scope projections rather than inventing a generated catalog | Request payloads can contain many paths and ranges. Repeating them per finding would add exactly the context/artifact bloat the user wants avoided, while a single artifact-level request preserves full auditability | Efficiency clarification found while implementing the reviewed S4 acceptance contract |
 | 2026-07-23 | P7/F2C AC1-S3 | Keep the canonical scan resolver inside the installed `which-cleanup` skill and exchange its serialized protocol with on-demand scanners | The stock skills installer copies only the selected skill directory. Leaving the resolver under sibling `_common` would make the default router depend on ambient or repository-only files; copying it twice would create the coherence problem this phase is meant to remove | Implementation repair required by the existing exactly-three-router installation contract |
 | 2026-07-23 | P7/F2C AC1-S3 | Interpret `diff-lines` per lens: filter line-local findings, but explicitly widen file/symbol/multi-site/project obligations to their narrowest honest supported mode | A global hunk limit would suppress test, duplication, omnibus, and other wider obligations. The medium fixture now proves one line-local filter plus preserved changed-file and multi-site lenses in the same closeout | Criteria-preserving clarification found during the owner-requested implementation/review loop |

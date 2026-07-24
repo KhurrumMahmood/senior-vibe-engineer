@@ -109,6 +109,6 @@ def test_readme_uninstall_is_router_scoped():
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
 
     assert "npx --yes skills@1.5.19 remove --all" not in readme
-    assert "which-shape which-skill which-cleanup" in readme
-    assert "--agent codex -y" in readme
+    assert "which-shape which-skill which-cleanup -y" in readme
+    assert "skills list --json" in readme
     assert "never from the engineering-skills source checkout" in readme
