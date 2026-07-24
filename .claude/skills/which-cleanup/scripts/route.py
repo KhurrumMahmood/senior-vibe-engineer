@@ -95,15 +95,51 @@ def scope_band(file_count: int) -> str:
 
 def path_languages(paths: list[str]) -> set[str]:
     """Return only language signals that affect closeout install eligibility."""
-    languages = set()
+    languages: set[str] = set()
     suffixes = {Path(path).suffix.casefold() for path in paths}
-    if ".dart" in suffixes:
-        languages.add("dart")
-    if ".kt" in suffixes:
-        languages.add("kotlin")
-    if ".cs" in suffixes:
-        languages.add("csharp")
+    language_suffixes = {
+        "typescript": {".ts", ".tsx"},
+        "javascript": {".js", ".jsx", ".mjs", ".cjs"},
+        "go": {".go"},
+        "java": {".java"},
+        "kotlin": {".kt"},
+        "csharp": {".cs"},
+        "php": {".php"},
+        "ruby": {".rb"},
+        "swift": {".swift"},
+        "c": {".c", ".h"},
+        "cpp": {".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx"},
+        "rust": {".rs"},
+        "dart": {".dart"},
+    }
+    for language, owned_suffixes in language_suffixes.items():
+        if suffixes & owned_suffixes:
+            languages.add(language)
     return languages
+
+
+def bootstrap_command(*, project_root: Path, source: str) -> str:
+    """Return the exact non-executing repair command for a missing library."""
+    script = (
+        project_root
+        / ".agents"
+        / "skills"
+        / "which-skill"
+        / "scripts"
+        / "bootstrap_library.py"
+    )
+    return shlex.join(
+        [
+            "python3",
+            "-I",
+            "-S",
+            str(script),
+            "--project-root",
+            str(project_root),
+            "--source",
+            source,
+        ]
+    )
 
 
 def install_command(*, source: str, version: str, skills: list[str], agent: str) -> str:
@@ -161,7 +197,13 @@ def declared_closure(library_root: Path, skill: str) -> list[str]:
         return [skill]
 
 
-def library_handoff(library_root: Path, skill: str) -> dict:
+def library_handoff(
+    library_root: Path,
+    skill: str,
+    *,
+    project_root: Path,
+    source: str,
+) -> dict:
     skills = declared_closure(library_root, skill)
     guides = []
     for member in skills:
@@ -182,13 +224,14 @@ def library_handoff(library_root: Path, skill: str) -> dict:
     common_guidance = library_root / ".claude" / "skills" / "_common"
     shared_guidance = library_root / ".claude" / "docs"
     runtime_python = library_root / ".venv" / "bin" / "python"
+    available = all(Path(item["guide"]).is_file() for item in guides)
     return {
         "mode": "on_demand_library",
-        "available": all(Path(item["guide"]).is_file() for item in guides),
+        "available": available,
         "default_execution": "fresh_non_context_subagent",
         "library_root": str(library_root),
         "skills": skills,
-        "guides": guides,
+        "guides": guides if available else [],
         "shared_tooling": str(shared_tooling) if shared_tooling.is_dir() else None,
         "source_inventory_tool": str(source_inventory) if source_inventory.is_file() else None,
         "common_guidance": str(common_guidance) if common_guidance.is_dir() else None,
@@ -198,6 +241,17 @@ def library_handoff(library_root: Path, skill: str) -> dict:
             "python": str(runtime_python),
         },
         "capabilities": capability_handoff(library_root, skills),
+        "repair": (
+            None
+            if available
+            else {
+                "action": "bootstrap_library",
+                "command": bootstrap_command(
+                    project_root=project_root,
+                    source=source,
+                ),
+            }
+        ),
         "instruction": (
             "For a non-trivial closeout, give a fresh non-context sub-agent the bounded paths, "
             "reason, selected skill root, library runtime Python, and shared guidance/tool paths. "
@@ -401,6 +455,25 @@ def recommendations(paths: list[str], band: str) -> list[tuple[str, str]]:
     return items
 
 
+def recommendation_ineligibility(handoff: dict, languages: set[str]) -> str | None:
+    """Explain why a capability-backed closeout recommendation is not actionable."""
+    capabilities = handoff["capabilities"]
+    if not capabilities.get("available"):
+        return None
+    for capability in capabilities["skills"]:
+        if capability["expansion_disposition"] == "framework-bound":
+            return "framework_context_not_declared"
+        for language in sorted(languages):
+            disposition = capability[f"{language}_disposition"]
+            if disposition not in {
+                f"{language}-supported",
+                "validated-neutral",
+                "ecosystem-runtime",
+            }:
+                return f"{language}_disposition={disposition}"
+    return None
+
+
 def build_result(args: argparse.Namespace) -> dict:
     root = args.project_root.resolve()
     library_root = (
@@ -416,8 +489,24 @@ def build_result(args: argparse.Namespace) -> dict:
     languages = path_languages(paths)
     scope_contracts = load_scope_contracts(library_root)
     recs = []
+    excluded_ineligible = []
     for skill, reason in recommendations(paths, band):
-        handoff = library_handoff(library_root, skill)
+        handoff = library_handoff(
+            library_root,
+            skill,
+            project_root=root,
+            source=args.source,
+        )
+        ineligibility = recommendation_ineligibility(handoff, languages)
+        if ineligibility is not None:
+            excluded_ineligible.append(
+                {
+                    "skill": skill,
+                    "reason": ineligibility,
+                    "languages": sorted(languages),
+                }
+            )
+            continue
         recs.append(
             {
                 "skill": skill,
@@ -441,6 +530,7 @@ def build_result(args: argparse.Namespace) -> dict:
         "scan_request": request.to_dict(),
         "scope_band": band,
         "recommendations": recs,
+        "excluded_ineligible": excluded_ineligible,
         "source": {
             "repository": args.source,
             "skill_definitions": f"{args.source}::.claude/skills/",
@@ -467,7 +557,11 @@ def render(result: dict) -> str:
         lines.append(f"- /{item['skill']}: {item['reason']}")
         for guide in item["handoff"]["guides"]:
             lines.append(f"  Guide /{guide['skill']}: {guide['guide']}")
-        lines.append(f"  Default: {item['handoff']['default_execution']}")
+        if item["handoff"]["available"]:
+            lines.append(f"  Default: {item['handoff']['default_execution']}")
+        else:
+            lines.append("  Library unavailable. Bootstrap it without running a task:")
+            lines.append(f"    {item['handoff']['repair']['command']}")
         if item["handoff"]["runtime"]["available"]:
             lines.append(f"  Runtime Python: {item['handoff']['runtime']['python']}")
         if item["optional_install"]["available"]:

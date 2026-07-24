@@ -37,6 +37,27 @@ def _run_router(
     )
 
 
+def _run_router_text(
+    project_root: Path,
+    *args: str,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-S",
+            str(ROUTER),
+            *args,
+            "--project-root",
+            str(project_root),
+        ],
+        cwd=project_root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
 def _git(repo: Path, *args: str) -> str:
     result = subprocess.run(
         ["git", *args],
@@ -74,6 +95,82 @@ def test_dart_closeout_keeps_external_library_only_companion_honest(tmp_path):
         "selected_language_requires_external_library"
     )
     assert "command" not in comment["optional_install"]
+
+
+def test_typescript_closeout_excludes_framework_bound_obligation_scanner(tmp_path):
+    project_root = tmp_path / "host"
+    _init_repo(project_root)
+
+    result = _run_router(
+        project_root,
+        "src/app.ts",
+        "--library-root",
+        str(REPO_ROOT),
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert "find-test-obligation-drift" not in {
+        row["skill"] for row in payload["recommendations"]
+    }
+    assert {
+        (row["skill"], row["reason"])
+        for row in payload["excluded_ineligible"]
+    } == {("find-test-obligation-drift", "framework_context_not_declared")}
+    assert all(
+        row["handoff"]["available"]
+        and row["handoff"]["capabilities"]["available"]
+        for row in payload["recommendations"]
+    )
+
+
+def test_missing_library_text_gives_exact_repair_without_nonexistent_guides(tmp_path):
+    project_root = tmp_path / "host"
+    _init_repo(project_root)
+    missing_library = tmp_path / "missing-library"
+
+    result = _run_router_text(
+        project_root,
+        "src/app.tsx",
+        "--library-root",
+        str(missing_library),
+    )
+
+    assert result.returncode == 0, result.stderr
+    expected_script = (
+        project_root
+        / ".agents"
+        / "skills"
+        / "which-skill"
+        / "scripts"
+        / "bootstrap_library.py"
+    )
+    assert "Library unavailable. Bootstrap it without running a task:" in result.stdout
+    assert str(expected_script) in result.stdout
+    assert " Guide /" not in result.stdout
+    assert not missing_library.exists()
+
+
+def test_missing_library_json_exposes_repair_and_no_guide_paths(tmp_path):
+    project_root = tmp_path / "host"
+    _init_repo(project_root)
+    missing_library = tmp_path / "missing-library"
+
+    result = _run_router(
+        project_root,
+        "src/app.tsx",
+        "--library-root",
+        str(missing_library),
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    for row in payload["recommendations"]:
+        assert row["handoff"]["available"] is False
+        assert row["handoff"]["guides"] == []
+        assert row["handoff"]["repair"]["action"] == "bootstrap_library"
+        assert "bootstrap_library.py" in row["handoff"]["repair"]["command"]
+    assert not missing_library.exists()
 
 
 @pytest.mark.parametrize(
